@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -28,6 +29,7 @@ public class ModularNuclear {
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
+        ModularNuclearTextures.init();
         ModBlocks.init();
         ModItems.init();
     }

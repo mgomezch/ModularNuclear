@@ -3,7 +3,10 @@ package com.gtnewhorizons.modularnuclear.common.block;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.IIcon;
+
+import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -18,9 +21,6 @@ public class BlockNuclearCasing extends BlockCasingsAbstract {
     public static final int CASING_ID = 6;
     public static final int CASING_TEXTURE_INDEX = (CASING_PAGE << 7) | (CASING_ID + 112);
 
-    @SideOnly(Side.CLIENT)
-    private IIcon mIcon;
-
     public BlockNuclearCasing() {
         super(ItemCasings.class, "modularnuclear.casing", Material.iron);
         setHardness(5.0F);
@@ -28,20 +28,25 @@ public class BlockNuclearCasing extends BlockCasingsAbstract {
         setStepSound(soundTypeMetal);
         setCreativeTab(CreativeTabs.tabBlock);
 
-        Textures.BlockIcons.setCasingTexture((byte) CASING_PAGE, (byte) (CASING_ID + 112), TextureFactory.of(this, 0));
+        Textures.BlockIcons.setCasingTexture(
+            (byte) CASING_PAGE,
+            (byte) (CASING_ID + 112),
+            TextureFactory.of(ModularNuclearTextures.MACHINE_CASING_NUCLEAR));
     }
 
     @Override
     @SideOnly(Side.CLIENT)
     public IIcon getIcon(int side, int meta) {
-        return mIcon;
+        if (ModularNuclearTextures.MACHINE_CASING_NUCLEAR != null) {
+            IIcon icon = ModularNuclearTextures.MACHINE_CASING_NUCLEAR.getIcon();
+            if (icon != null) return icon;
+        }
+        return Blocks.iron_block.getIcon(side, 0);
     }
 
     @Override
     @SideOnly(Side.CLIENT)
-    public void registerBlockIcons(IIconRegister aIconRegister) {
-        mIcon = aIconRegister.registerIcon("modularnuclear:MACHINE_CASING_NUCLEAR");
-    }
+    public void registerBlockIcons(IIconRegister aIconRegister) {}
 
     @Override
     public int getTextureIndex(int aMeta) {

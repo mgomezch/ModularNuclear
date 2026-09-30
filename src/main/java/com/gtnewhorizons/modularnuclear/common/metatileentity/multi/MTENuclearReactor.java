@@ -374,13 +374,21 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection aFacing,
         int colorIndex, boolean aActive, boolean redstoneLevel) {
-        if (side == aFacing) {
-            return new ITexture[] { gregtech.api.enums.Textures.BlockIcons.getCasingTextureForId(CASING_INDEX),
-                TextureFactory.of(
-                    aActive ? ModularNuclearTextures.OVERLAY_FRONT_FISSION_REACTOR_ACTIVE
-                        : ModularNuclearTextures.OVERLAY_FRONT_FISSION_REACTOR) };
+        ITexture casingTex = gregtech.api.enums.Textures.BlockIcons.getCasingTextureForId(CASING_INDEX);
+        if (casingTex == null) {
+            casingTex = gregtech.api.enums.Textures.BlockIcons.casingTexturePages[0][16];
         }
-        return new ITexture[] { gregtech.api.enums.Textures.BlockIcons.getCasingTextureForId(CASING_INDEX) };
+        if (side == aFacing) {
+            com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures.init();
+            gregtech.api.interfaces.IIconContainer overlay = aActive
+                ? ModularNuclearTextures.OVERLAY_FRONT_FISSION_REACTOR_ACTIVE
+                : ModularNuclearTextures.OVERLAY_FRONT_FISSION_REACTOR;
+            if (overlay != null && overlay.getIcon() != null) {
+                return new ITexture[] { casingTex, TextureFactory.of(overlay) };
+            }
+            return new ITexture[] { casingTex };
+        }
+        return new ITexture[] { casingTex };
     }
 
     @Override
