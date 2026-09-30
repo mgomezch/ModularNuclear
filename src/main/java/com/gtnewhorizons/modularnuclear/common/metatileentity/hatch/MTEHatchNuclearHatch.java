@@ -11,6 +11,7 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
 
 import com.cleanroommc.modularui.utils.fluid.FluidStackTank;
+import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularui.api.math.Color;
@@ -21,6 +22,7 @@ import com.gtnewhorizons.modularui.common.widget.FluidSlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 
 import gregtech.api.enums.GTValues;
+import gregtech.api.enums.Textures;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -190,8 +192,22 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     }
 
     @Override
+    public boolean isFacingValid(ForgeDirection facing) {
+        return true;
+    }
+
+    @Override
+    public ITexture getCasingTexture() {
+        ITexture tex = super.getCasingTexture();
+        if (tex != null) return tex;
+        tex = Textures.BlockIcons.getCasingTextureForId(BlockNuclearCasing.CASING_TEXTURE_INDEX);
+        if (tex != null) return tex;
+        return Textures.BlockIcons.MACHINE_CASINGS[mTier][0];
+    }
+
+    @Override
     public ITexture[] getTexturesActive(ITexture aBaseTexture) {
-        byte color = getBaseMetaTileEntity().getColorization();
+        byte color = getBaseMetaTileEntity() == null ? -1 : getBaseMetaTileEntity().getColorization();
         ITexture coloredOverlay = TextureFactory.of(OVERLAY_PIPE_COLORS[color + 1]);
         return new ITexture[] { aBaseTexture, TextureFactory.of(OVERLAY_PIPE_IN), coloredOverlay,
             TextureFactory.of(FLUID_IN_SIGN) };
@@ -199,7 +215,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
 
     @Override
     public ITexture[] getTexturesInactive(ITexture aBaseTexture) {
-        byte color = getBaseMetaTileEntity().getColorization();
+        byte color = getBaseMetaTileEntity() == null ? -1 : getBaseMetaTileEntity().getColorization();
         ITexture coloredOverlay = TextureFactory.of(OVERLAY_PIPE_COLORS[color + 1]);
         return new ITexture[] { aBaseTexture, TextureFactory.of(OVERLAY_PIPE_IN), coloredOverlay,
             TextureFactory.of(FLUID_IN_SIGN) };

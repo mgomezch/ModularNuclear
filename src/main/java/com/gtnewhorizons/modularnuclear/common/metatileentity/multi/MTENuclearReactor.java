@@ -1849,10 +1849,14 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public void updateControlHatches() {
         for (MTEHatchNuclearControl hatch : mControlHatches) {
             if (hatch != null && hatch.isValid()) {
-                byte signal = calculateSignalForMode(hatch.getMode());
+                byte signal = calculateSignal(hatch.getMetric(), hatch.getStatistic());
                 hatch.setOutputRedstone(signal);
             }
         }
+    }
+
+    public byte calculateSignal(int metric, int statistic) {
+        return calculateSignalForMode(metric * MTEHatchNuclearControl.STAT_COUNT + statistic);
     }
 
     public byte calculateSignalForMode(int mode) {

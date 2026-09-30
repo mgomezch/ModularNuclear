@@ -28,6 +28,17 @@ import gregtech.api.util.GTUtility;
 
 public class MTEHatchNuclearControl extends MTEHatch {
 
+    public static final int METRIC_TEMPERATURE = 0;
+    public static final int METRIC_FUEL_DURABILITY = 1;
+    public static final int METRIC_COMPONENT_DURABILITY = 2;
+    public static final int METRIC_COOLANT_LEVEL = 3;
+    public static final int METRIC_COUNT = 4;
+
+    public static final int STAT_MIN = 0;
+    public static final int STAT_MAX = 1;
+    public static final int STAT_AVG = 2;
+    public static final int STAT_COUNT = 3;
+
     public static final int MODE_TEMP_MIN = 0;
     public static final int MODE_TEMP_MAX = 1;
     public static final int MODE_TEMP_AVG = 2;
@@ -42,7 +53,8 @@ public class MTEHatchNuclearControl extends MTEHatch {
     public static final int MODE_COOLANT_LEVEL_AVG = 11;
     public static final int MODE_COUNT = 12;
 
-    private int mMode = 0;
+    private int mMetric = 0;
+    private int mStatistic = 0;
     private byte mOutputStrength = 0;
 
     public MTEHatchNuclearControl(int aID, String aName, String aNameRegional, int aTier) {
@@ -53,7 +65,7 @@ public class MTEHatchNuclearControl extends MTEHatch {
             aTier,
             0,
             new String[] { "Emits redstone signals based on nuclear reactor conditions",
-                "Right-click with screwdriver or use GUI to change mode",
+                "Right-click with screwdriver to cycle metric", "Right-click with soldering iron to cycle statistic",
                 "Outputs redstone signal strictly from its front face" });
     }
 
@@ -66,26 +78,82 @@ public class MTEHatchNuclearControl extends MTEHatch {
         return new MTEHatchNuclearControl(mName, mTier, mDescriptionArray, mTextures);
     }
 
-    public static String getModeName(int mode) {
-        return switch (mode) {
-            case MODE_TEMP_MIN -> "Temperature (min)";
-            case MODE_TEMP_MAX -> "Temperature (max)";
-            case MODE_TEMP_AVG -> "Temperature (avg)";
-            case MODE_FUEL_DURABILITY_MIN -> "Fuel durability (min)";
-            case MODE_FUEL_DURABILITY_MAX -> "Fuel durability (max)";
-            case MODE_FUEL_DURABILITY_AVG -> "Fuel durability (avg)";
-            case MODE_COMPONENT_DURABILITY_MIN -> "Component durability (min)";
-            case MODE_COMPONENT_DURABILITY_MAX -> "Component durability (max)";
-            case MODE_COMPONENT_DURABILITY_AVG -> "Component durability (avg)";
-            case MODE_COOLANT_LEVEL_MIN -> "Coolant level (min)";
-            case MODE_COOLANT_LEVEL_MAX -> "Coolant level (max)";
-            case MODE_COOLANT_LEVEL_AVG -> "Coolant level (avg)";
+    public static String getMetricName(int metric) {
+        return switch (metric) {
+            case METRIC_TEMPERATURE -> "Temperature";
+            case METRIC_FUEL_DURABILITY -> "Fuel durability";
+            case METRIC_COMPONENT_DURABILITY -> "Component durability";
+            case METRIC_COOLANT_LEVEL -> "Coolant level";
             default -> "Unknown";
         };
     }
 
+    public static String getStatisticName(int stat) {
+        return switch (stat) {
+            case STAT_MIN -> "min";
+            case STAT_MAX -> "max";
+            case STAT_AVG -> "avg";
+            default -> "unknown";
+        };
+    }
+
+    public static String getStatisticDisplayName(int stat) {
+        return switch (stat) {
+            case STAT_MIN -> "Minimum";
+            case STAT_MAX -> "Maximum";
+            case STAT_AVG -> "Average";
+            default -> "Unknown";
+        };
+    }
+
+    public static String getModeName(int mode) {
+        int metric = (mode / STAT_COUNT) % METRIC_COUNT;
+        int stat = mode % STAT_COUNT;
+        return getMetricName(metric) + " (" + getStatisticName(stat) + ")";
+    }
+
+    public int getMetric() {
+        return mMetric;
+    }
+
+    public void setMetric(int metric) {
+        if (metric < 0) {
+            metric = (metric % METRIC_COUNT + METRIC_COUNT) % METRIC_COUNT;
+        } else {
+            metric = metric % METRIC_COUNT;
+        }
+        this.mMetric = metric;
+        if (getBaseMetaTileEntity() != null) {
+            getBaseMetaTileEntity().markDirty();
+        }
+    }
+
+    public void cycleMetric(int dir) {
+        setMetric(mMetric + dir);
+    }
+
+    public int getStatistic() {
+        return mStatistic;
+    }
+
+    public void setStatistic(int stat) {
+        if (stat < 0) {
+            stat = (stat % STAT_COUNT + STAT_COUNT) % STAT_COUNT;
+        } else {
+            stat = stat % STAT_COUNT;
+        }
+        this.mStatistic = stat;
+        if (getBaseMetaTileEntity() != null) {
+            getBaseMetaTileEntity().markDirty();
+        }
+    }
+
+    public void cycleStatistic(int dir) {
+        setStatistic(mStatistic + dir);
+    }
+
     public int getMode() {
-        return mMode;
+        return mMetric * STAT_COUNT + mStatistic;
     }
 
     public void setMode(int mode) {
@@ -94,7 +162,8 @@ public class MTEHatchNuclearControl extends MTEHatch {
         } else {
             mode = mode % MODE_COUNT;
         }
-        this.mMode = mode;
+        this.mMetric = mode / STAT_COUNT;
+        this.mStatistic = mode % STAT_COUNT;
         if (getBaseMetaTileEntity() != null) {
             getBaseMetaTileEntity().markDirty();
         }
@@ -167,6 +236,15 @@ public class MTEHatchNuclearControl extends MTEHatch {
     }
 
     @Override
+    public ITexture getCasingTexture() {
+        ITexture tex = super.getCasingTexture();
+        if (tex != null) return tex;
+        tex = Textures.BlockIcons.getCasingTextureForId(BlockNuclearCasing.CASING_TEXTURE_INDEX);
+        if (tex != null) return tex;
+        return Textures.BlockIcons.MACHINE_CASINGS[mTier][0];
+    }
+
+    @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         ForgeDirection facing = aBaseMetaTileEntity.getFrontFacing();
@@ -178,8 +256,16 @@ public class MTEHatchNuclearControl extends MTEHatch {
     @Override
     public void onScrewdriverRightClick(ForgeDirection side, EntityPlayer aPlayer, float aX, float aY, float aZ,
         ItemStack aTool) {
-        setMode((mMode + 1) % MODE_COUNT);
-        GTUtility.sendChatToPlayer(aPlayer, "Control hatch: " + getModeName(mMode));
+        cycleMetric(1);
+        GTUtility.sendChatToPlayer(aPlayer, "Control hatch metric: " + getMetricName(mMetric));
+    }
+
+    @Override
+    public boolean onSolderingToolRightClick(ForgeDirection side, ForgeDirection wrenchingSide, EntityPlayer aPlayer,
+        float aX, float aY, float aZ, ItemStack aTool) {
+        cycleStatistic(1);
+        GTUtility.sendChatToPlayer(aPlayer, "Control hatch statistic: " + getStatisticDisplayName(mStatistic));
+        return true;
     }
 
     @Override
@@ -198,60 +284,95 @@ public class MTEHatchNuclearControl extends MTEHatch {
         builder.widget(
             new DrawableWidget().setDrawable(GTUITextures.PICTURE_SCREEN_BLACK)
                 .setPos(7, 16)
-                .setSize(162, 56))
+                .setSize(162, 60))
             .widget(
                 new TextWidget("Nuclear control hatch").setDefaultColor(Color.rgb(0, 255, 128))
                     .setPos(12, 20))
+            // Row 1: Metric
             .widget(
-                new TextWidget().setStringSupplier(() -> "Mode: " + getModeName(mMode))
+                new ButtonWidget().setOnClick((clickData, widget) -> cycleMetric(-1))
+                    .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
+                    .addTooltip("Previous metric")
+                    .setPos(12, 32)
+                    .setSize(12, 12))
+            .widget(
+                new TextWidget(Text.localised("<")).setTextAlignment(Alignment.Center)
+                    .setPos(12, 34)
+                    .setSize(12, 10))
+            .widget(
+                new TextWidget().setStringSupplier(() -> "Metric: " + getMetricName(mMetric))
                     .setDefaultColor(Color.rgb(100, 200, 255))
-                    .setPos(12, 33))
+                    .setPos(28, 34))
+            .widget(
+                new ButtonWidget().setOnClick((clickData, widget) -> cycleMetric(1))
+                    .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
+                    .addTooltip("Next metric")
+                    .setPos(153, 32)
+                    .setSize(12, 12))
+            .widget(
+                new TextWidget(Text.localised(">")).setTextAlignment(Alignment.Center)
+                    .setPos(153, 34)
+                    .setSize(12, 10))
+            // Row 2: Statistic
+            .widget(
+                new ButtonWidget().setOnClick((clickData, widget) -> cycleStatistic(-1))
+                    .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
+                    .addTooltip("Previous statistic")
+                    .setPos(12, 47)
+                    .setSize(12, 12))
+            .widget(
+                new TextWidget(Text.localised("<")).setTextAlignment(Alignment.Center)
+                    .setPos(12, 49)
+                    .setSize(12, 10))
+            .widget(
+                new TextWidget().setStringSupplier(() -> "Stat: " + getStatisticDisplayName(mStatistic))
+                    .setDefaultColor(Color.rgb(255, 220, 100))
+                    .setPos(28, 49))
+            .widget(
+                new ButtonWidget().setOnClick((clickData, widget) -> cycleStatistic(1))
+                    .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
+                    .addTooltip("Next statistic")
+                    .setPos(153, 47)
+                    .setSize(12, 12))
+            .widget(
+                new TextWidget(Text.localised(">")).setTextAlignment(Alignment.Center)
+                    .setPos(153, 49)
+                    .setSize(12, 10))
+            // Row 3: Output Signal
             .widget(
                 new TextWidget().setStringSupplier(() -> String.format("Output signal: %d / 15", mOutputStrength))
                     .setDefaultColor(Color.rgb(255, 80, 80))
-                    .setPos(12, 46))
-            .widget(
-                new ButtonWidget().setOnClick((clickData, widget) -> setMode(mMode - 1))
-                    .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                    .addTooltip("Previous mode")
-                    .setPos(12, 57)
-                    .setSize(14, 12))
-            .widget(
-                new TextWidget(Text.localised("<")).setTextAlignment(Alignment.Center)
-                    .setPos(12, 59)
-                    .setSize(14, 10))
-            .widget(
-                new ButtonWidget().setOnClick((clickData, widget) -> setMode(mMode + 1))
-                    .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                    .addTooltip("Next mode")
-                    .setPos(151, 57)
-                    .setSize(14, 12))
-            .widget(
-                new TextWidget(Text.localised(">")).setTextAlignment(Alignment.Center)
-                    .setPos(151, 59)
-                    .setSize(14, 10))
-            .widget(new FakeSyncWidget.IntegerSyncer(this::getMode, this::setMode))
+                    .setPos(12, 63))
+            // Syncers
+            .widget(new FakeSyncWidget.IntegerSyncer(this::getMetric, this::setMetric))
+            .widget(new FakeSyncWidget.IntegerSyncer(this::getStatistic, this::setStatistic))
             .widget(new FakeSyncWidget.ByteSyncer(this::getOutputStrength, this::setOutputStrengthDirect));
     }
 
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
-        aNBT.setInteger("mMode", mMode);
+        aNBT.setInteger("mMetric", mMetric);
+        aNBT.setInteger("mStatistic", mStatistic);
+        aNBT.setInteger("mMode", getMode());
         aNBT.setByte("mOutputStrength", mOutputStrength);
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
-        mMode = aNBT.getInteger("mMode");
+        if (aNBT.hasKey("mMetric")) {
+            mMetric = aNBT.getInteger("mMetric");
+            mStatistic = aNBT.getInteger("mStatistic");
+        } else if (aNBT.hasKey("mMode")) {
+            setMode(aNBT.getInteger("mMode"));
+        }
         mOutputStrength = aNBT.getByte("mOutputStrength");
     }
 
     @Override
     public ITexture[] getTexturesActive(ITexture aBaseTexture) {
-        ITexture base = Textures.BlockIcons.getCasingTextureForId(BlockNuclearCasing.CASING_TEXTURE_INDEX);
-        return new ITexture[] { base, TextureFactory.of(Textures.BlockIcons.OVERLAY_HATCH_SPLITTER_REDSTONE),
+        return new ITexture[] { aBaseTexture, TextureFactory.of(Textures.BlockIcons.OVERLAY_HATCH_SPLITTER_REDSTONE),
             TextureFactory.builder()
                 .addIcon(Textures.BlockIcons.OVERLAY_HATCH_SPLITTER_REDSTONE_GLOW)
                 .glow()
@@ -260,7 +381,6 @@ public class MTEHatchNuclearControl extends MTEHatch {
 
     @Override
     public ITexture[] getTexturesInactive(ITexture aBaseTexture) {
-        ITexture base = Textures.BlockIcons.getCasingTextureForId(BlockNuclearCasing.CASING_TEXTURE_INDEX);
-        return new ITexture[] { base, TextureFactory.of(Textures.BlockIcons.OVERLAY_HATCH_SPLITTER_REDSTONE) };
+        return new ITexture[] { aBaseTexture, TextureFactory.of(Textures.BlockIcons.OVERLAY_HATCH_SPLITTER_REDSTONE) };
     }
 }

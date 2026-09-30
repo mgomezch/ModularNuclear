@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControl;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
@@ -24,8 +25,11 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid;
+import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 
+import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.render.TextureFactory;
 
 public class NuclearSimulationEngineTest {
 
@@ -48,6 +52,16 @@ public class NuclearSimulationEngineTest {
 
         try {
             net.minecraft.init.Bootstrap.func_151354_b();
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
+
+        try {
+            ModularNuclearTextures.init();
+            Textures.BlockIcons.setCasingTexture(
+                (byte) BlockNuclearCasing.CASING_PAGE,
+                (byte) (BlockNuclearCasing.CASING_ID + 112),
+                TextureFactory.of(ModularNuclearTextures.MACHINE_CASING_NUCLEAR));
         } catch (Throwable t) {
             t.printStackTrace();
         }
@@ -1170,6 +1184,89 @@ public class NuclearSimulationEngineTest {
             .setOutputRedstoneSignal(net.minecraftforge.common.util.ForgeDirection.NORTH, (byte) 0);
         org.mockito.Mockito.verify(mockBase)
             .setOutputRedstoneSignal(net.minecraftforge.common.util.ForgeDirection.SOUTH, (byte) 0);
+    }
+
+    @Test
+    void testNuclearControlHatchSeparateMetricAndStatistic() {
+        MTEHatchNuclearControl controlHatch = new MTEHatchNuclearControl("test.control.sep", 4, new String[0], null);
+        assertEquals(MTEHatchNuclearControl.METRIC_TEMPERATURE, controlHatch.getMetric());
+        assertEquals(MTEHatchNuclearControl.STAT_MIN, controlHatch.getStatistic());
+        assertEquals("Temperature", MTEHatchNuclearControl.getMetricName(controlHatch.getMetric()));
+        assertEquals("Minimum", MTEHatchNuclearControl.getStatisticDisplayName(controlHatch.getStatistic()));
+
+        // Screwdriver right click cycles metric
+        net.minecraft.entity.player.EntityPlayer mockPlayer = org.mockito.Mockito
+            .mock(net.minecraft.entity.player.EntityPlayer.class);
+        controlHatch.onScrewdriverRightClick(ForgeDirection.UP, mockPlayer, 0.5f, 0.5f, 0.5f, null);
+        assertEquals(MTEHatchNuclearControl.METRIC_FUEL_DURABILITY, controlHatch.getMetric());
+        assertEquals(MTEHatchNuclearControl.STAT_MIN, controlHatch.getStatistic());
+
+        // Soldering iron right click cycles statistic
+        boolean handled = controlHatch
+            .onSolderingToolRightClick(ForgeDirection.UP, ForgeDirection.UP, mockPlayer, 0.5f, 0.5f, 0.5f, null);
+        assertTrue(handled);
+        assertEquals(MTEHatchNuclearControl.METRIC_FUEL_DURABILITY, controlHatch.getMetric());
+        assertEquals(MTEHatchNuclearControl.STAT_MAX, controlHatch.getStatistic());
+
+        // Mode mapping: Metric 1 (FUEL) * 3 + Stat 1 (MAX) = 4
+        assertEquals(4, controlHatch.getMode());
+
+        // Test NBT persistence with separate fields
+        NBTTagCompound nbt = new NBTTagCompound();
+        controlHatch.saveNBTData(nbt);
+        assertEquals(1, nbt.getInteger("mMetric"));
+        assertEquals(1, nbt.getInteger("mStatistic"));
+        assertEquals(4, nbt.getInteger("mMode"));
+
+        // Loading from separate fields
+        MTEHatchNuclearControl loaded = new MTEHatchNuclearControl("test.loaded.sep", 4, new String[0], null);
+        loaded.loadNBTData(nbt);
+        assertEquals(1, loaded.getMetric());
+        assertEquals(1, loaded.getStatistic());
+        assertEquals(4, loaded.getMode());
+
+        // Loading from legacy NBT with only mMode
+        NBTTagCompound legacyNbt = new NBTTagCompound();
+        legacyNbt.setInteger("mMode", 11); // Coolant level avg -> Metric 3, Stat 2
+        MTEHatchNuclearControl legacyLoaded = new MTEHatchNuclearControl("test.loaded.legacy", 4, new String[0], null);
+        legacyLoaded.loadNBTData(legacyNbt);
+        assertEquals(MTEHatchNuclearControl.METRIC_COOLANT_LEVEL, legacyLoaded.getMetric());
+        assertEquals(MTEHatchNuclearControl.STAT_AVG, legacyLoaded.getStatistic());
+        assertEquals(11, legacyLoaded.getMode());
+    }
+
+    @Test
+    void testNuclearHatchesFacingAndTextures() {
+        MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 4, new String[0], null);
+        MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 4, 32000, new String[0], null);
+        MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test.rod", 4, new String[0], null);
+        MTEHatchNuclearControl control = new MTEHatchNuclearControl("test.control", 4, new String[0], null);
+
+        // All 6 ForgeDirections must be valid for all nuclear hatches
+        for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
+            assertTrue(bus.isFacingValid(dir), "Bus facing " + dir + " must be valid");
+            assertTrue(hatch.isFacingValid(dir), "Hatch facing " + dir + " must be valid");
+            assertTrue(rod.isFacingValid(dir), "Rod facing " + dir + " must be valid");
+            assertTrue(control.isFacingValid(dir), "Control facing " + dir + " must be valid");
+        }
+
+        // Casing texture must default to Nuclear Casing
+        assertNotNull(bus.getCasingTexture(), "Bus casing texture must not be null");
+        assertNotNull(hatch.getCasingTexture(), "Hatch casing texture must not be null");
+        assertNotNull(rod.getCasingTexture(), "Rod casing texture must not be null");
+        assertNotNull(control.getCasingTexture(), "Control casing texture must not be null");
+
+        // Inventory textures rendering must not throw NPE when getBaseMetaTileEntity() is null
+        assertDoesNotThrow(() -> {
+            bus.getTexturesActive(bus.getCasingTexture());
+            bus.getTexturesInactive(bus.getCasingTexture());
+            hatch.getTexturesActive(hatch.getCasingTexture());
+            hatch.getTexturesInactive(hatch.getCasingTexture());
+            rod.getTexturesActive(rod.getCasingTexture());
+            rod.getTexturesInactive(rod.getCasingTexture());
+            control.getTexturesActive(control.getCasingTexture());
+            control.getTexturesInactive(control.getCasingTexture());
+        });
     }
 
     @Test

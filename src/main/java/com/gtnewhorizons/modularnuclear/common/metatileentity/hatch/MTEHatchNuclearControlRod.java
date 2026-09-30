@@ -11,6 +11,7 @@ import net.minecraftforge.oredict.OreDictionary;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearControlRodGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
@@ -274,8 +275,22 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     @Override
+    public boolean isFacingValid(ForgeDirection facing) {
+        return true;
+    }
+
+    @Override
+    public ITexture getCasingTexture() {
+        ITexture tex = super.getCasingTexture();
+        if (tex != null) return tex;
+        tex = Textures.BlockIcons.getCasingTextureForId(BlockNuclearCasing.CASING_TEXTURE_INDEX);
+        if (tex != null) return tex;
+        return Textures.BlockIcons.MACHINE_CASINGS[mTier][0];
+    }
+
+    @Override
     public ITexture[] getTexturesActive(ITexture aBaseTexture) {
-        byte color = getBaseMetaTileEntity().getColorization();
+        byte color = getBaseMetaTileEntity() == null ? -1 : getBaseMetaTileEntity().getColorization();
         ITexture coloredOverlay = TextureFactory.of(OVERLAY_PIPE_COLORS[color + 1]);
         return new ITexture[] { aBaseTexture, TextureFactory.of(OVERLAY_PIPE_IN), coloredOverlay,
             TextureFactory.of(Textures.BlockIcons.OVERLAY_HATCH_HEAT_SENSOR_GLOW) };
@@ -283,7 +298,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
 
     @Override
     public ITexture[] getTexturesInactive(ITexture aBaseTexture) {
-        byte color = getBaseMetaTileEntity().getColorization();
+        byte color = getBaseMetaTileEntity() == null ? -1 : getBaseMetaTileEntity().getColorization();
         ITexture coloredOverlay = TextureFactory.of(OVERLAY_PIPE_COLORS[color + 1]);
         return new ITexture[] { aBaseTexture, TextureFactory.of(OVERLAY_PIPE_IN), coloredOverlay,
             TextureFactory.of(Textures.BlockIcons.OVERLAY_HATCH_HEAT_SENSOR) };
