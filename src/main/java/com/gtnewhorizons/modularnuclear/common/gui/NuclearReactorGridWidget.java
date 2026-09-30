@@ -7,6 +7,8 @@ import java.util.TreeSet;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.EnumChatFormatting;
 
+import org.lwjgl.opengl.GL11;
+
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -166,6 +168,15 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
         return false;
     }
 
+    private void prepareGuiState() {
+        GlStateManager.disableLighting();
+        GlStateManager.disableDepth();
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+        GlStateManager.enableTexture2D();
+        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+
     @Override
     public void draw(float partialTicks) {
         ReactorGridSyncData sync = reactor.getClientGridData();
@@ -181,6 +192,9 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
         int gridPx = N * cellSize;
         int offset = (gridPx < 126) ? (126 - gridPx) / 2 : 0;
 
+        GlStateManager.pushMatrix();
+        prepareGuiState();
+
         for (int gx = 0; gx < N; gx++) {
             for (int gy = 0; gy < N; gy++) {
                 int renderGy = (N - 1) - gy;
@@ -194,6 +208,9 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
                 int idx = gx * N + gy;
                 ReactorGridSyncData.ReactorGridCellData cell = (idx < sync.cells.size()) ? sync.cells.get(idx) : null;
 
+                // Ensure clean 2D unlit GUI state before slot background
+                prepareGuiState();
+
                 // Draw slot border / background
                 if (cellSize == 18) {
                     GTUITextures.SLOT_DARK_GRAY.draw(px, py, 18, 18, partialTicks);
@@ -201,6 +218,9 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
                     GuiDraw.drawRect(px, py, cellSize, cellSize, 0xFF373737);
                     GuiDraw.drawRect(px + 1, py + 1, cellSize - 2, cellSize - 2, 0xFF1E1E1E);
                 }
+
+                // Reset state after slot background (UITexture.draw enables lighting!)
+                prepareGuiState();
 
                 if (cell != null && cell.exists) {
                     int innerSize = Math.max(1, cellSize - 2);
@@ -210,12 +230,16 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
                         GlStateManager.translate(px + 1, py + 1, 0);
                         new ItemDrawable(cell.itemStack).draw(0, 0, innerSize, innerSize, partialTicks);
                         GlStateManager.popMatrix();
+                        // ItemDrawable alters lighting, depth, matrix; restore clean state immediately
+                        prepareGuiState();
                     } else if (cell.fluidStack != null) {
                         new FluidDrawable().setFluid(cell.fluidStack)
                             .draw(px + 1, py + 1, innerSize, innerSize, partialTicks);
+                        prepareGuiState();
                     } else if (cell.isFluid) {
                         // Empty coolant hatch: subtle blue tint
                         GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, 0x300055AA);
+                        prepareGuiState();
                     }
 
                     // Mode Shading Overlays
@@ -223,12 +247,15 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
                         double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(sync.pipeTier);
                         int color = NuclearColorMaps.getTemperatureColor(cell.temperature, maxTemp);
                         GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, color);
+                        prepareGuiState();
                     } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_FLUX) {
                         int color = NuclearColorMaps.getNeutronColor(cell.fastFlux + cell.thermalFlux);
                         GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, color);
+                        prepareGuiState();
                     } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_ABSORPTION) {
                         int color = NuclearColorMaps.getNeutronColor(5.0 * (cell.fastAbsorbed + cell.thermalAbsorbed));
                         GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, color);
+                        prepareGuiState();
                     }
 
                     // Overheating warning flash (> 85% safe temp limit)
@@ -236,14 +263,21 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
                     if (cell.temperature > maxTemp * 0.85) {
                         if ((System.currentTimeMillis() / 400) % 2 == 0) {
                             GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, 0x60FF0000);
+                            prepareGuiState();
                         }
                     }
                 }
             }
         }
 
-        // Slot Hover Highlight
-        if ((isHovering() || (parentScrollable != null && parentScrollable.isHovering())) && getContext() != null) {
+        // Slot Hover Highlight (only active when window is stationary and not dragging)
+        boolean isWindowMoving = getWindow() != null && !getWindow().isEnabled();
+        boolean isDragging = getContext() != null && getContext().getCursor() != null
+            && getContext().getCursor()
+                .hasDraggable();
+        if (!isWindowMoving && !isDragging
+            && (isHovering() || (parentScrollable != null && parentScrollable.isHovering()))
+            && getContext() != null) {
             Cursor cursor = getContext().getCursor();
             if (cursor != null) {
                 Pos2d spos = parentScrollable != null ? parentScrollable.getAbsolutePos() : getAbsolutePos();
@@ -265,22 +299,33 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
                         if (!NuclearSimulationEngine.isCornerNullCell(hx, hy, N, N)) {
                             int hpx = offset + hx * cellSize;
                             int hpy = offset + renderHy * cellSize;
+                            prepareGuiState();
                             GuiDraw.drawRect(
                                 hpx + 1,
                                 hpy + 1,
                                 Math.max(1, cellSize - 2),
                                 Math.max(1, cellSize - 2),
                                 0x80FFFFFF);
+                            prepareGuiState();
                         }
                     }
                 }
             }
         }
+
+        prepareGuiState();
+        GlStateManager.popMatrix();
     }
 
     public List<String> getHoveredTooltip() {
         List<String> list = new ArrayList<>();
-        if ((!isHovering() && (parentScrollable == null || !parentScrollable.isHovering())) || getContext() == null) {
+        boolean isWindowMoving = getWindow() != null && !getWindow().isEnabled();
+        boolean isDragging = getContext() != null && getContext().getCursor() != null
+            && getContext().getCursor()
+                .hasDraggable();
+        if (isWindowMoving || isDragging
+            || (!isHovering() && (parentScrollable == null || !parentScrollable.isHovering()))
+            || getContext() == null) {
             return list;
         }
         ReactorGridSyncData sync = reactor.getClientGridData();

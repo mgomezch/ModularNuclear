@@ -1955,6 +1955,29 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
+    void testLeftRightWorldMapping() {
+        for (net.minecraftforge.common.util.ForgeDirection facing : new net.minecraftforge.common.util.ForgeDirection[] {
+            net.minecraftforge.common.util.ForgeDirection.NORTH, net.minecraftforge.common.util.ForgeDirection.SOUTH,
+            net.minecraftforge.common.util.ForgeDirection.EAST, net.minecraftforge.common.util.ForgeDirection.WEST }) {
+            com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing ext = com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing
+                .of(
+                    facing,
+                    com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL,
+                    com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE);
+            int[] leftWorld = new int[3];
+            int[] rightWorld = new int[3];
+            ext.getWorldOffset(new int[] { -2, -3, 0 }, leftWorld);
+            ext.getWorldOffset(new int[] { +2, -3, 0 }, rightWorld);
+            System.out.println(
+                "Facing " + facing
+                    + ": LeftWorld="
+                    + java.util.Arrays.toString(leftWorld)
+                    + ", RightWorld="
+                    + java.util.Arrays.toString(rightWorld));
+        }
+    }
+
+    @Test
     void testStructureExtendedFacingToGridCoordinates() {
         for (net.minecraftforge.common.util.ForgeDirection facing : new net.minecraftforge.common.util.ForgeDirection[] {
             net.minecraftforge.common.util.ForgeDirection.NORTH, net.minecraftforge.common.util.ForgeDirection.SOUTH,

@@ -54,6 +54,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
+import com.gtnewhorizons.modularui.api.GlStateManager;
 import com.gtnewhorizons.modularui.api.drawable.IDrawable;
 import com.gtnewhorizons.modularui.api.drawable.ItemDrawable;
 import com.gtnewhorizons.modularui.api.math.Alignment;
@@ -1553,6 +1554,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             @Override
             public void draw(float partialTicks) {
                 super.draw(partialTicks);
+                GlStateManager.pushMatrix();
                 if (mCurrentGuiMode == GUI_MODE_COMPONENTS) {
                     new ItemDrawable(ItemList.RodUranium.get(1L)).draw(1, 1, 16, 16, partialTicks);
                 } else if (mCurrentGuiMode == GUI_MODE_TEMPERATURE) {
@@ -1562,6 +1564,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 } else {
                     new ItemDrawable(new ItemStack(Blocks.iron_bars)).draw(1, 1, 16, 16, partialTicks);
                 }
+                GlStateManager.popMatrix();
+                GlStateManager.disableLighting();
+                GlStateManager.disableDepth();
+                GlStateManager.enableBlend();
+                GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
             }
         };
         modeButton.setPos(110, 4)
@@ -1591,7 +1598,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
             @Override
             public void draw(float partialTicks) {
+                GlStateManager.pushMatrix();
                 drawable.draw(0, 0, 16, 16, partialTicks);
+                GlStateManager.popMatrix();
+                GlStateManager.disableLighting();
+                GlStateManager.disableDepth();
+                GlStateManager.enableBlend();
+                GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
             }
         }.setPos(69, 154)
             .setSize(16, 16)
