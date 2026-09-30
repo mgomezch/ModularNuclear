@@ -466,11 +466,11 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
-    void testBetavoltaicGenerationAndSaturation() {
+    void testRadiovoltaicGenerationAndSaturation() {
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellHV = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.BETAVOLTAIC_HV);
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellEV = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.BETAVOLTAIC_EV);
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
 
         // 1. Check absorption properties
         assertEquals(1.0, cellHV.getAbsorptionProbability(NeutronType.FAST));
@@ -484,7 +484,7 @@ public class NuclearSimulationEngineTest {
         long fastEU = cellHV.getDirectEUProduced();
 
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellHVThermal = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.BETAVOLTAIC_HV);
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
         cellHVThermal.onNeutronAbsorbed(NeutronType.THERMAL, 10);
         cellHVThermal.nuclearTick(1.0);
         long thermalEU = cellHVThermal.getDirectEUProduced();
@@ -493,18 +493,18 @@ public class NuclearSimulationEngineTest {
 
         // 3. Saturation: HV caps around 1024 EU/t (2A HV)
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellHVSat = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.BETAVOLTAIC_HV);
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
         cellHVSat.onNeutronAbsorbed(NeutronType.FAST, 1000);
         cellHVSat.nuclearTick(1.0);
-        assertEquals(1024, cellHVSat.getDirectEUProduced(), "HV Betavoltaic cell must cap at 1024 EU/t (2A HV)");
+        assertEquals(1024, cellHVSat.getDirectEUProduced(), "HV Radiovoltaic cell must cap at 1024 EU/t (2A HV)");
         assertTrue(cellHVSat.getTemperature() > 24.0, "Excess energy beyond saturation must convert into heat");
 
         // 4. EV caps around 4096 EU/t (2A EV)
         cellEV.onNeutronAbsorbed(NeutronType.FAST, 1000);
         cellEV.nuclearTick(1.0);
-        assertEquals(4096, cellEV.getDirectEUProduced(), "EV Betavoltaic cell must cap at 4096 EU/t (2A EV)");
+        assertEquals(4096, cellEV.getDirectEUProduced(), "EV Radiovoltaic cell must cap at 4096 EU/t (2A EV)");
 
-        // 5. Grid integration test with fuel and betavoltaic
+        // 5. Grid integration test with fuel and radiovoltaic
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
             3,
             3,
@@ -513,10 +513,10 @@ public class NuclearSimulationEngineTest {
             1,
             1,
             com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD);
-        grid.setTile(0, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.BETAVOLTAIC_EV);
+        grid.setTile(0, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
         grid.step();
 
-        assertTrue(grid.getFlowDirectEU() > 0, "Grid must accumulate Betavoltaic direct EU");
+        assertTrue(grid.getFlowDirectEU() > 0, "Grid must accumulate Radiovoltaic direct EU");
         assertEquals(grid.getFlowDirectEU(), grid.getLastPowerResult().directPowerEUt);
         assertEquals(grid.getFlowDirectEU(), grid.getLastPowerResult().totalPowerEUt);
     }
@@ -603,7 +603,7 @@ public class NuclearSimulationEngineTest {
             3,
             NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
 
-        // Grid contains fuel, reflector, and betavoltaic
+        // Grid contains fuel, reflector, and radiovoltaic
         grid.setTile(
             1,
             1,
@@ -612,7 +612,7 @@ public class NuclearSimulationEngineTest {
             1,
             2,
             com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.REFLECTOR_BERYLLIUM);
-        grid.setTile(1, 0, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.BETAVOLTAIC_HV);
+        grid.setTile(1, 0, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
 
         // Dry superheated coolant hatch (> 100°C threshold)
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatch = grid.getTile(0, 1);
@@ -644,17 +644,17 @@ public class NuclearSimulationEngineTest {
         // Coolant must be voided
         assertEquals(0, hatch.getInputFluidAmount(), "Coolant fluid must be voided");
 
-        // Crucially, Reflector and Betavoltaic MUST be preserved!
+        // Crucially, Reflector and Radiovoltaic MUST be preserved!
         assertEquals(
             com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.REFLECTOR_BERYLLIUM,
             grid.getTile(1, 2)
                 .getType(),
             "Reflector must NOT be voided on dry coolant shutdown!");
         assertEquals(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.BETAVOLTAIC_HV,
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV,
             grid.getTile(1, 0)
                 .getType(),
-            "Betavoltaic cell must NOT be voided on dry coolant shutdown!");
+            "Radiovoltaic cell must NOT be voided on dry coolant shutdown!");
     }
 
     @Test

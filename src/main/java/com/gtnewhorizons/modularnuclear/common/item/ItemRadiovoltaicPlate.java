@@ -14,13 +14,13 @@ import gregtech.api.GregTechAPI;
 import ic2.api.reactor.IReactor;
 import ic2.api.reactor.IReactorComponent;
 
-public class ItemBetavoltaicPlate extends Item implements IReactorComponent {
+public class ItemRadiovoltaicPlate extends Item implements IReactorComponent {
 
     private final int tier; // 1 for HV (1024 EU/t), 2 for EV (4096 EU/t)
     @SideOnly(Side.CLIENT)
     private IIcon mIcon;
 
-    public ItemBetavoltaicPlate(String aUnlocalized, int aTier) {
+    public ItemRadiovoltaicPlate(String aUnlocalized, int aTier) {
         super();
         this.tier = aTier;
         this.setUnlocalizedName(aUnlocalized);
@@ -37,9 +37,9 @@ public class ItemBetavoltaicPlate extends Item implements IReactorComponent {
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister iconRegister) {
         if (tier == 1) {
-            mIcon = iconRegister.registerIcon("modularnuclear:gt.betavoltaic.plate.hv");
+            mIcon = iconRegister.registerIcon("modularnuclear:gt.radiovoltaic.plate.hv");
         } else {
-            mIcon = iconRegister.registerIcon("modularnuclear:gt.betavoltaic.plate.ev");
+            mIcon = iconRegister.registerIcon("modularnuclear:gt.radiovoltaic.plate.ev");
         }
     }
 

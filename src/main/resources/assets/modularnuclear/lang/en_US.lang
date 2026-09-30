@@ -1,6 +1,6 @@
 tile.modularnuclear.casing.name=Nuclear Casing
-item.modularnuclear.betavoltaic.plate.hv.name=Betavoltaic Plate (HV)
-item.modularnuclear.betavoltaic.plate.ev.name=Betavoltaic Plate (EV)
+item.modularnuclear.radiovoltaic.plate.hv.name=Radiovoltaic Plate (HV)
+item.modularnuclear.radiovoltaic.plate.ev.name=Radiovoltaic Plate (EV)
 
 gt.blockmachines.multimachine.nuclearreactor.name=Modular Nuclear Reactor
 gt.blockmachines.hatch.nuclear.bus.name=Nuclear Core Bus

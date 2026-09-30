@@ -836,7 +836,7 @@ public class NuclearSimulationCLI {
             }
             if (p.directPowerEUt > 0) {
                 System.out.println(
-                    "    - Betavoltaic Direct EU: "
+                    "    - Radiovoltaic Direct EU: "
                         + String.format("%.1f EU/t (%s)", p.directPowerEUt, getVoltageTier(p.directPowerEUt)));
             }
             if (!"NONE".equals(p.eheMode)) {

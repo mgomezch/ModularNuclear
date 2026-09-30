@@ -399,10 +399,10 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
                     + String.format(" (%d fast, %d thermal)", cell.fastAbsorbed, cell.thermalAbsorbed));
         }
 
-        // 5. Betavoltaic Power
+        // 5. Radiovoltaic Power
         if (cell.directEU > 0) {
             list.add(
-                EnumChatFormatting.AQUA + "Betavoltaic power: "
+                EnumChatFormatting.AQUA + "Radiovoltaic power: "
                     + EnumChatFormatting.GREEN
                     + "+"
                     + String.format("%,d", cell.directEU)

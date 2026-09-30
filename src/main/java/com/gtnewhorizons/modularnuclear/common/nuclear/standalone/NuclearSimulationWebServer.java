@@ -1102,8 +1102,8 @@ public class NuclearSimulationWebServer {
               { type: "REFLECTOR_CARBON", name: "Carbon Reflector", code: "RC", color: "#475569" },
               { type: "CONTROL_ROD", name: "Boron Control Rod", code: "CR", color: "#b91c1c" },
               { type: "COOLANT_CELL_60K", name: "60k Coolant Cell", code: "C6", color: "#06b6d4" },
-              { type: "BETAVOLTAIC_HV", name: "Betavoltaic Cell (HV)", code: "BH", color: "#f59e0b" },
-              { type: "BETAVOLTAIC_EV", name: "Betavoltaic Cell (EV)", code: "BV", color: "#f97316" }
+              { type: "RADIOVOLTAIC_HV", name: "Radiovoltaic Cell (HV)", code: "RH", color: "#f59e0b" },
+              { type: "RADIOVOLTAIC_EV", name: "Radiovoltaic Cell (EV)", code: "RV", color: "#f97316" }
             ];
 
             const TURBINE_MATERIALS = [

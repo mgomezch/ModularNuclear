@@ -224,16 +224,16 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             100_000_000L);
         addControlRod(Materials.Boron.getPlates(1), "Boron Plate", 0.10, 0.85, 0.05, 0.05, 0.95, 100_000_000L);
 
-        // 4. BETAVOLTAIC PLATES - 100% absorption, Direct EU generation
-        addBetavoltaic(
-            ModItems.betavoltaicPlateHV != null ? new ItemStack(ModItems.betavoltaicPlateHV) : null,
-            "Betavoltaic Plate (HV)",
+        // 4. RADIOVOLTAIC PLATES - 100% absorption, Direct EU generation
+        addRadiovoltaic(
+            ModItems.radiovoltaicPlateHV != null ? new ItemStack(ModItems.radiovoltaicPlateHV) : null,
+            "Radiovoltaic Plate (HV)",
             1,
             1024,
             20.0);
-        addBetavoltaic(
-            ModItems.betavoltaicPlateEV != null ? new ItemStack(ModItems.betavoltaicPlateEV) : null,
-            "Betavoltaic Plate (EV)",
+        addRadiovoltaic(
+            ModItems.radiovoltaicPlateEV != null ? new ItemStack(ModItems.radiovoltaicPlateEV) : null,
+            "Radiovoltaic Plate (EV)",
             2,
             4096,
             40.0);
@@ -538,13 +538,13 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         }
     }
 
-    private static void addBetavoltaic(ItemStack stack, String name, int tier, long maxEU, double euPerNeutron) {
+    private static void addRadiovoltaic(ItemStack stack, String name, int tier, long maxEU, double euPerNeutron) {
         if (stack != null) {
             ALL_COMPONENTS.add(
                 new NeutronComponentData(
                     stack,
                     name,
-                    "Betavoltaic Cell",
+                    "Radiovoltaic Cell",
                     0.00,
                     1.00,
                     0.00,

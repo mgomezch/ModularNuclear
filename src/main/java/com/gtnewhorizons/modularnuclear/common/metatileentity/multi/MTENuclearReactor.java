@@ -498,8 +498,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             .addInfo(" - Quantium: heavy water -> heavy water steam (max 2200 °C)")
             .addInfo(" - Fluxed Electrum: HP heavy water -> HW supercritical steam (max 2600 °C)")
             .addInfo(" - Black Plutonium: all coolants supported (max 3200 °C)")
-            .addInfo("Accepts dynamo and multi-amp dynamo hatches for direct betavoltaic EU output")
-            .addInfo(" - Betavoltaic cells convert absorbed neutron flux directly to EU (HV 2A, EV 2A)")
+            .addInfo("Accepts dynamo and multi-amp dynamo hatches for direct radiovoltaic EU output")
+            .addInfo(" - Radiovoltaic cells convert absorbed neutron flux directly to EU (HV 2A, EV 2A)")
             .addInfo("Outputs (depleted items, steam, byproducts, molten cheese) eject to output buses and hatches")
             .addInfo(EnumChatFormatting.RED + "Warning: regular water does not work!")
             .addInfo(EnumChatFormatting.RED + "Warning: overheating hatches void contents!")
@@ -516,7 +516,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             .addOtherStructurePart("Nuclear bus / hatch / control rod hatch", "Top layer octagonal core positions", 1)
             .addOtherStructurePart("Nuclear control hatch", "Any outer casing", 2)
             .addMaintenanceHatch("Any outer casing (exactly 1)", 1)
-            .addDynamoHatch("Any outer casing (optional for betavoltaic direct EU, max 1)", 1)
+            .addDynamoHatch("Any outer casing (optional for radiovoltaic direct EU, max 1)", 1)
             .addOutputBus("Any outer casing (optional)", 1)
             .addOutputHatch("Any outer casing (optional)", 1)
             .addSubChannel(GTStructureChannels.ITEM_PIPE_CASING)
@@ -1012,7 +1012,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     }
                 }
 
-                // Sum direct EU from betavoltaic cells across the grid
+                // Sum direct EU from radiovoltaic cells across the grid
                 long directEU = 0;
                 for (int x = 0; x < gridSize; x++) {
                     for (int y = 0; y < gridSize; y++) {
@@ -2031,22 +2031,35 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
     }
 
-    public boolean isItemBetavoltaic(ItemStack stack) {
+    public boolean isItemRadiovoltaic(ItemStack stack) {
         if (stack == null) return false;
-        if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemBetavoltaicPlate) return true;
+        if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate) return true;
         String name = stack.getUnlocalizedName()
             .toLowerCase();
-        return name.contains("betavoltaic") || name.contains("betacell") || name.contains("neutronovoltaic");
+        return name.contains("radiovoltaic") || name.contains("betavoltaic")
+            || name.contains("radiocell")
+            || name.contains("betacell")
+            || name.contains("neutronovoltaic");
     }
 
-    public int getBetavoltaicTier(ItemStack stack) {
+    public int getRadiovoltaicTier(ItemStack stack) {
         if (stack == null) return 0;
-        if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemBetavoltaicPlate plate)
+        if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate plate)
             return plate.getTier();
         String name = stack.getUnlocalizedName()
             .toLowerCase();
         if (name.contains("ev") || name.contains("extreme") || name.contains("tier2") || name.contains("t2")) return 2;
         return 1;
+    }
+
+    @Deprecated
+    public boolean isItemBetavoltaic(ItemStack stack) {
+        return isItemRadiovoltaic(stack);
+    }
+
+    @Deprecated
+    public int getBetavoltaicTier(ItemStack stack) {
+        return getRadiovoltaicTier(stack);
     }
 
     public ItemStack getItemDepletedForm(ItemStack fuel) {
@@ -2202,7 +2215,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
             if (stack == null) return 0.02;
             if (isItemInsulator(stack)) return 0.01;
-            if (isItemBetavoltaic(stack)) return 0.10;
+            if (isItemRadiovoltaic(stack)) return 0.10;
             String name = stack.getUnlocalizedName()
                 .toLowerCase();
             if (name.contains("coolant") || name.contains("vent")) return 0.40;
@@ -2316,7 +2329,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (stack == null) return 0.01;
             if (isNaquariteInsulatorFoil(stack)) return 1.0;
             if (isItemInsulator(stack)) return 0.01;
-            if (isItemBetavoltaic(stack)) return 1.0;
+            if (isItemRadiovoltaic(stack)) return 1.0;
             String name = stack.getUnlocalizedName()
                 .toLowerCase();
             if (name.contains("graphite") || name.contains("carbon") || name.contains("moderator")) {
@@ -2356,7 +2369,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (stack == null) return 0.02;
             if (isNaquariteInsulatorFoil(stack)) return 0.0;
             if (isItemInsulator(stack)) return 0.05;
-            if (isItemBetavoltaic(stack)) return 0.0;
+            if (isItemRadiovoltaic(stack)) return 0.0;
             String name = stack.getUnlocalizedName()
                 .toLowerCase();
             if (name.contains("graphite") || name.contains("carbon") || name.contains("moderator")) {
@@ -2390,7 +2403,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public double getTileModerationProbability(NuclearGridTile tile) {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            if (isItemBetavoltaic(stack)) return 0.0;
+            if (isItemRadiovoltaic(stack)) return 0.0;
             if (stack == null) return 0.05;
             String name = stack.getUnlocalizedName()
                 .toLowerCase();
@@ -2568,9 +2581,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 damageItemComponent(bus, damage);
             }
         }
-        // 2. BETAVOLTAIC DIRECT EU GENERATION
-        else if (isItemBetavoltaic(stack)) {
-            int tier = getBetavoltaicTier(stack);
+        // 2. RADIOVOLTAIC DIRECT EU GENERATION
+        else if (isItemRadiovoltaic(stack)) {
+            int tier = getRadiovoltaicTier(stack);
             long maxEU = (tier >= 2) ? 4096 : 1024;
             double weightedFlux = bus.mFastAbsorbed * 4.0 + bus.mThermalAbsorbed * 1.0;
             double satFlux = 60.0;

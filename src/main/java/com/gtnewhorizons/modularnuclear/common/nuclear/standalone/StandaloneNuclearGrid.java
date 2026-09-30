@@ -544,7 +544,7 @@ public class StandaloneNuclearGrid {
                         tile.setOutputFluidAmount(0);
                         tile.setWasDry(true);
                     } else if (tile.isFuel()) {
-                        // Void only fuel rods, keep reflectors and betavoltaics!
+                        // Void only fuel rods, keep reflectors and radiovoltaics!
                         tile.setType(SimTile.TileType.EMPTY);
                     }
                 }

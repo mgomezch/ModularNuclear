@@ -40,8 +40,8 @@ public class SimTile implements INuclearTile {
         COOLANT_CELL_10K("10k Coolant Cell", "C1"),
         COOLANT_CELL_60K("60k Coolant Cell", "C6"),
         COOLANT_CELL_360K("360k Coolant Cell", "C3"),
-        BETAVOLTAIC_HV("Betavoltaic Cell (HV)", "BH"),
-        BETAVOLTAIC_EV("Betavoltaic Cell (EV)", "BV"),
+        RADIOVOLTAIC_HV("Radiovoltaic Cell (HV)", "RH"),
+        RADIOVOLTAIC_EV("Radiovoltaic Cell (EV)", "RV"),
         INSULATOR_BASIC_THERMAL_CLOTH("Basic Thermal Cloth", "IT1"),
         INSULATOR_T2_THERMAL_CLOTH("T2 Thermal Cloth", "IT2"),
         INSULATOR_MICA_FOIL("Mica Insulator Foil", "IM"),
@@ -60,6 +60,8 @@ public class SimTile implements INuclearTile {
             if (code == null) return EMPTY;
             String trimmed = code.trim()
                 .toUpperCase();
+            if (trimmed.equals("BH") || trimmed.equals("BETAVOLTAIC_HV")) return RADIOVOLTAIC_HV;
+            if (trimmed.equals("BV") || trimmed.equals("BETAVOLTAIC_EV")) return RADIOVOLTAIC_EV;
             for (TileType type : values()) {
                 if (type.code.equalsIgnoreCase(trimmed) || type.name()
                     .equalsIgnoreCase(trimmed)) {
@@ -100,7 +102,7 @@ public class SimTile implements INuclearTile {
     private int maxCellHeat = 0;
     private int currentCellHeat = 0;
 
-    // Betavoltaic direct EU state
+    // Radiovoltaic direct EU state
     private long directEUProduced = 0;
 
     public long getDirectEUProduced() {
@@ -257,7 +259,7 @@ public class SimTile implements INuclearTile {
             case HATCH_DISTILLED_WATER, HATCH_HP_DISTILLED_WATER, HATCH_HEAVY_WATER, HATCH_HP_HEAVY_WATER -> 0.25;
             case COOLANT_CELL_10K, COOLANT_CELL_60K, COOLANT_CELL_360K -> 0.40;
             case REFLECTOR_BERYLLIUM, REFLECTOR_CARBON -> 0.15;
-            case BETAVOLTAIC_HV, BETAVOLTAIC_EV -> 0.10;
+            case RADIOVOLTAIC_HV, RADIOVOLTAIC_EV -> 0.10;
             case INSULATOR_BASIC_THERMAL_CLOTH, INSULATOR_T2_THERMAL_CLOTH, INSULATOR_MICA_FOIL, INSULATOR_NAQUARITE_FOIL -> 0.01;
             case FUEL_URANIUM_SINGLE, FUEL_URANIUM_DUAL, FUEL_URANIUM_QUAD, FUEL_MOX_SINGLE, FUEL_MOX_DUAL, FUEL_MOX_QUAD, FUEL_THORIUM_SINGLE, FUEL_THORIUM_DUAL, FUEL_THORIUM_QUAD, FUEL_NAQUADAH, FUEL_CORE -> 0.05;
             case HATCH_LIQUID_FUEL_URANIUM, HATCH_LIQUID_FUEL_THORIUM, HATCH_LIQUID_FUEL_PLUTONIUM -> 0.25;
@@ -286,8 +288,13 @@ public class SimTile implements INuclearTile {
         return getInsulationDampening() > 0.0;
     }
 
+    public boolean isRadiovoltaic() {
+        return type == TileType.RADIOVOLTAIC_HV || type == TileType.RADIOVOLTAIC_EV;
+    }
+
+    @Deprecated
     public boolean isBetavoltaic() {
-        return type == TileType.BETAVOLTAIC_HV || type == TileType.BETAVOLTAIC_EV;
+        return isRadiovoltaic();
     }
 
     @Override
@@ -353,7 +360,7 @@ public class SimTile implements INuclearTile {
         if (type == TileType.INSULATOR_NAQUARITE_FOIL) {
             return 1.0;
         }
-        if (isBetavoltaic()) {
+        if (isRadiovoltaic()) {
             return 1.0;
         }
         if (type == TileType.CONTROL_ROD) {
@@ -387,7 +394,7 @@ public class SimTile implements INuclearTile {
         if (type == TileType.INSULATOR_NAQUARITE_FOIL) {
             return 0.0;
         }
-        if (isBetavoltaic()) {
+        if (isRadiovoltaic()) {
             return 0.0;
         }
         if (type == TileType.REFLECTOR_BERYLLIUM || type == TileType.REFLECTOR_CARBON) {
@@ -412,7 +419,7 @@ public class SimTile implements INuclearTile {
 
     @Override
     public double getModerationProbability() {
-        if (isBetavoltaic()) {
+        if (isRadiovoltaic()) {
             return 0.0;
         }
         if (type == TileType.REFLECTOR_BERYLLIUM || type == TileType.REFLECTOR_CARBON) {
@@ -502,10 +509,10 @@ public class SimTile implements INuclearTile {
             }
         }
 
-        // Betavoltaic direct EU generation & excess heat
-        if (isBetavoltaic()) {
+        // Radiovoltaic direct EU generation & excess heat
+        if (isRadiovoltaic()) {
             double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
-            long maxEU = (type == TileType.BETAVOLTAIC_EV) ? 4096 : 1024;
+            long maxEU = (type == TileType.RADIOVOLTAIC_EV) ? 4096 : 1024;
             double weightedFlux = fastAbsorbed * 4.0 + thermalAbsorbed * 1.0;
             double satFlux = 60.0;
             long genEU = (long) Math.round(maxEU * Math.tanh(weightedFlux / satFlux) * effFactor);
