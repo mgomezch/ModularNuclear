@@ -30,7 +30,19 @@ public enum NuclearStructureChannels implements IStructureChannels {
 
     @Override
     public void registerAsIndicator(ItemStack indicator, int channelValue) {
-        StructureLibAPI.registerChannelItem(get(), "modularnuclear", channelValue, indicator);
+        try {
+            StructureLibAPI.registerChannelItem(get(), "modularnuclear", channelValue, indicator);
+        } catch (Throwable ignored) {}
+    }
+
+    @Override
+    public int getValueClamped(ItemStack trigger, int min, int max) {
+        if (trigger == null) {
+            return min;
+        }
+        int raw = com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor
+            .getChannelData(trigger, get());
+        return Math.max(min, Math.min(max, raw));
     }
 
     public static void register() {

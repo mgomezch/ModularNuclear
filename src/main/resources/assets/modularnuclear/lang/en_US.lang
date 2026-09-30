@@ -21,5 +21,7 @@ GT5U.gui.text.structure_error.missing_nuclear_hatch=Missing nuclear hatch or bus
 GT5U.gui.text.structure_error.inconsistent_nuclear_hatch_tier=All nuclear hatches must be of the same tier
 GT5U.gui.text.structure_error.invalid_pipe_tier=Invalid item pipe casing tier (requires Electrum or higher)
 
-channels.gregtech.nuclear_hatch=Decides the tier of Nuclear Hatches. Starts at §6Basic Nuclear Hatch (LV)§r at value 1 and ends at §6Divine Nuclear Hatch (UHV)§r at value 9.
+channels.modularnuclear.nuclear_hatch=Decides the type and tier of core hatches. Starts at §6Nuclear Core Bus (Items)§r at value 0, and §6Nuclear Core Hatches (LV-UHV for fluids)§r from value 1 to 9.
+channels.modularnuclear.master.nuclear_hatch=Nuclear Hatch Tier
+channels.gregtech.nuclear_hatch=Decides the type and tier of core hatches. Starts at §6Nuclear Core Bus (Items)§r at value 0, and §6Nuclear Core Hatches (LV-UHV for fluids)§r from value 1 to 9.
 channels.gregtech.master.nuclear_hatch=Nuclear Hatch Tier

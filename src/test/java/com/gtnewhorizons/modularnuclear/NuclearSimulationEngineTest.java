@@ -15,6 +15,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.NuclearStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControl;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
@@ -1296,6 +1298,78 @@ public class NuclearSimulationEngineTest {
         assertEquals((byte) 0, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_FUEL_DURABILITY_MIN));
         assertEquals((byte) 0, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_COMPONENT_DURABILITY_MIN));
         assertEquals((byte) 0, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_COOLANT_LEVEL_MIN));
+    }
+
+    @Test
+    void testHoloProjectorNuclearHatchChannel() {
+        ModMetaTileEntities.nuclearBus = new ItemStack(net.minecraft.init.Items.diamond, 1);
+        for (int i = 0; i < 9; i++) {
+            ModMetaTileEntities.nuclearHatches[i] = new ItemStack(net.minecraft.init.Items.emerald, 1, i + 1);
+        }
+
+        // Test getNuclearHatchStack: tier 0 returns nuclear bus, 1..9 return fluid hatches
+        ItemStack busStack = MTENuclearReactor.getNuclearHatchStack(0);
+        assertNotNull(busStack, "Hatch stack for tier 0 must not be null (Nuclear Core Bus)");
+        assertEquals(ModMetaTileEntities.nuclearBus.getItem(), busStack.getItem());
+        assertEquals(ModMetaTileEntities.nuclearBus.getItemDamage(), busStack.getItemDamage());
+
+        for (int i = 1; i <= 9; i++) {
+            ItemStack fluidHatch = MTENuclearReactor.getNuclearHatchStack(i);
+            assertNotNull(fluidHatch, "Hatch stack for tier " + i + " must not be null");
+            assertEquals(ModMetaTileEntities.nuclearHatches[i - 1].getItem(), fluidHatch.getItem());
+            assertEquals(ModMetaTileEntities.nuclearHatches[i - 1].getItemDamage(), fluidHatch.getItemDamage());
+        }
+
+        assertNull(MTENuclearReactor.getNuclearHatchStack(10), "Hatch stack for tier 10 must be null");
+
+        // Test NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped
+        assertEquals(0, NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(null, 0, 9));
+
+        // Helper to set channel integer tag
+        java.util.function.BiConsumer<ItemStack, Integer> setChannel = (stack, val) -> {
+            NBTTagCompound tag = stack.getTagCompound();
+            if (tag == null) {
+                tag = new NBTTagCompound();
+                stack.setTagCompound(tag);
+            }
+            NBTTagCompound ch = tag.getCompoundTag("channels");
+            ch.setInteger("nuclear_hatch", val);
+            tag.setTag("channels", ch);
+        };
+
+        // Trigger with explicit channel 0 (item bus)
+        ItemStack trigger0 = new ItemStack(net.minecraft.init.Items.feather, 1);
+        setChannel.accept(trigger0, 0);
+        assertEquals(0, NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(trigger0, 0, 9));
+
+        // Trigger with explicit channel 1 (LV fluid hatch)
+        ItemStack trigger1 = new ItemStack(net.minecraft.init.Items.feather, 1);
+        setChannel.accept(trigger1, 1);
+        assertEquals(1, NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(trigger1, 0, 9));
+
+        // Trigger with explicit channel 9 (UHV fluid hatch)
+        ItemStack trigger9 = new ItemStack(net.minecraft.init.Items.feather, 1);
+        setChannel.accept(trigger9, 9);
+        assertEquals(9, NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(trigger9, 0, 9));
+
+        // Clamping bounds
+        ItemStack triggerNegative = new ItemStack(net.minecraft.init.Items.feather, 1);
+        setChannel.accept(triggerNegative, -5);
+        assertEquals(0, NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(triggerNegative, 0, 9));
+
+        ItemStack triggerOver = new ItemStack(net.minecraft.init.Items.feather, 1);
+        setChannel.accept(triggerOver, 15);
+        assertEquals(9, NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(triggerOver, 0, 9));
+
+        // NuclearHatchElement getBlocksToPlace
+        MTENuclearReactor.NuclearHatchElement element = new MTENuclearReactor.NuclearHatchElement();
+        com.gtnewhorizon.structurelib.structure.IStructureElement.BlocksToPlace blocks0 = element
+            .getBlocksToPlace(null, null, 0, 0, 0, trigger0, null);
+        assertNotNull(blocks0);
+
+        com.gtnewhorizon.structurelib.structure.IStructureElement.BlocksToPlace blocks1 = element
+            .getBlocksToPlace(null, null, 0, 0, 0, trigger1, null);
+        assertNotNull(blocks1);
     }
 
     @Test

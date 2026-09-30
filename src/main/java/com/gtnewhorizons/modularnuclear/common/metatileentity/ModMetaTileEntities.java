@@ -28,6 +28,7 @@ public class ModMetaTileEntities {
         NuclearStructureChannels.register();
 
         nuclearBus = new MTEHatchNuclearBus(ID_NUCLEAR_BUS, "hatch.nuclearbus", "Nuclear Core Bus", 5).getStackForm(1L);
+        NuclearStructureChannels.NUCLEAR_HATCH.registerAsIndicator(nuclearBus, 0);
 
         for (int i = 0; i < 9; i++) {
             nuclearHatches[i] = new MTEHatchNuclearHatch(

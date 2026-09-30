@@ -239,6 +239,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public static ItemStack getNuclearHatchStack(int tier) {
+        if (tier == 0 && ModMetaTileEntities.nuclearBus != null) {
+            return ModMetaTileEntities.nuclearBus.copy();
+        }
         if (tier >= 1 && tier <= 9 && ModMetaTileEntities.nuclearHatches[tier - 1] != null) {
             return ModMetaTileEntities.nuclearHatches[tier - 1].copy();
         }
@@ -289,7 +292,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         @Override
         public boolean placeBlock(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger) {
-            int tier = NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(trigger, 1, 9);
+            int tier = NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(trigger, 0, 9);
             ItemStack stack = getNuclearHatchStack(tier);
             if (stack == null) return false;
             if (stack.getItem() instanceof ItemMachines itemMachines) {
@@ -310,7 +313,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (!StructureLibAPI.isBlockTriviallyReplaceable(world, x, y, z, env.getActor())) {
                 return PlaceResult.REJECT;
             }
-            int tier = NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(trigger, 1, 9);
+            int tier = NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(trigger, 0, 9);
             ItemStack stack = getNuclearHatchStack(tier);
             if (stack == null) return PlaceResult.REJECT;
 
@@ -335,7 +338,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         @Override
         public BlocksToPlace getBlocksToPlace(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger,
             AutoPlaceEnvironment env) {
-            int tier = NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(trigger, 1, 9);
+            int tier = NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(trigger, 0, 9);
             ItemStack stack = getNuclearHatchStack(tier);
             return stack != null ? BlocksToPlace.create(stack) : BlocksToPlace.createEmpty();
         }
