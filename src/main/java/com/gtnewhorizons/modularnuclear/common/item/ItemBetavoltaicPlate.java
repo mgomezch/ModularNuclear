@@ -2,20 +2,29 @@ package com.gtnewhorizons.modularnuclear.common.item;
 
 import java.util.List;
 
+import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.IIcon;
 
-import gregtech.api.items.GTGenericItem;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+import gregtech.api.GregTechAPI;
 import ic2.api.reactor.IReactor;
 import ic2.api.reactor.IReactorComponent;
 
-public class ItemBetavoltaicPlate extends GTGenericItem implements IReactorComponent {
+public class ItemBetavoltaicPlate extends Item implements IReactorComponent {
 
     private final int tier; // 1 for HV (1024 EU/t), 2 for EV (4096 EU/t)
+    @SideOnly(Side.CLIENT)
+    private IIcon mIcon;
 
-    public ItemBetavoltaicPlate(String aUnlocalized, String aEnglish, int aTier) {
-        super(aUnlocalized, aEnglish, "Indestructible");
+    public ItemBetavoltaicPlate(String aUnlocalized, int aTier) {
+        super();
         this.tier = aTier;
+        this.setUnlocalizedName(aUnlocalized);
+        this.setCreativeTab(GregTechAPI.TAB_GREGTECH);
         this.setMaxStackSize(64);
         this.setMaxDamage(0);
     }
@@ -25,9 +34,24 @@ public class ItemBetavoltaicPlate extends GTGenericItem implements IReactorCompo
     }
 
     @Override
+    @SideOnly(Side.CLIENT)
+    public void registerIcons(IIconRegister iconRegister) {
+        if (tier == 1) {
+            mIcon = iconRegister.registerIcon("modularnuclear:gt.betavoltaic.plate.hv");
+        } else {
+            mIcon = iconRegister.registerIcon("modularnuclear:gt.betavoltaic.plate.ev");
+        }
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public IIcon getIconFromDamage(int damage) {
+        return mIcon;
+    }
+
+    @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public void addAdditionalToolTips(List aList, ItemStack aStack, EntityPlayer aPlayer) {
-        super.addAdditionalToolTips(aList, aStack, aPlayer);
+    public void addInformation(ItemStack aStack, EntityPlayer aPlayer, List aList, boolean aF3_H) {
         if (tier == 1) {
             aList.add("Converts absorbed neutron flux into direct HV electricity");
             aList.add("Max Output: 1,024 EU/t (2A HV) via Dynamo Hatches");

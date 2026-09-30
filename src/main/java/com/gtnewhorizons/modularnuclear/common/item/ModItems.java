@@ -8,18 +8,10 @@ public class ModItems {
     public static ItemBetavoltaicPlate betavoltaicPlateEV;
 
     public static void init() {
-        betavoltaicPlateHV = new ItemBetavoltaicPlate(
-            "modularnuclear.betavoltaic.plate.hv",
-            "Betavoltaic Plate (HV)",
-            1);
-        betavoltaicPlateHV.setTextureName("modularnuclear:gt.betavoltaic.plate.hv");
+        betavoltaicPlateHV = new ItemBetavoltaicPlate("modularnuclear.betavoltaic.plate.hv", 1);
         GameRegistry.registerItem(betavoltaicPlateHV, "betavoltaic_plate_hv");
 
-        betavoltaicPlateEV = new ItemBetavoltaicPlate(
-            "modularnuclear.betavoltaic.plate.ev",
-            "Betavoltaic Plate (EV)",
-            2);
-        betavoltaicPlateEV.setTextureName("modularnuclear:gt.betavoltaic.plate.ev");
+        betavoltaicPlateEV = new ItemBetavoltaicPlate("modularnuclear.betavoltaic.plate.ev", 2);
         GameRegistry.registerItem(betavoltaicPlateEV, "betavoltaic_plate_ev");
     }
 }
