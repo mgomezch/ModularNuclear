@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
+import com.gtnewhorizons.modularnuclear.common.block.ItemNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.NuclearStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
@@ -1287,6 +1288,24 @@ public class NuclearSimulationEngineTest {
         ITexture[] sideTextures = reactor.getTexture(null, ForgeDirection.NORTH, ForgeDirection.SOUTH, 0, false, false);
         assertEquals(1, sideTextures.length, "Side face must have only casing texture");
         assertNotNull(sideTextures[0]);
+    }
+
+    @Test
+    void testNuclearCasingSubBlocksAndItemRegistration() {
+        BlockNuclearCasing casing = new BlockNuclearCasing();
+        List<ItemStack> subBlocks = new ArrayList<>();
+        casing.getSubBlocks(net.minecraft.init.Items.iron_ingot, null, subBlocks);
+        assertEquals(1, subBlocks.size(), "Nuclear casing must have exactly 1 subblock (metadata 0)");
+        assertEquals(
+            0,
+            subBlocks.get(0)
+                .getItemDamage(),
+            "Subblock must be metadata 0");
+        assertEquals(0, casing.damageDropped(5), "damageDropped must always return 0");
+
+        ItemNuclearCasing itemCasing = new ItemNuclearCasing(casing);
+        assertFalse(itemCasing.getHasSubtypes(), "Nuclear casing item must not have subtypes");
+        assertEquals(0, itemCasing.getMetadata(5), "Metadata must be forced to 0");
     }
 
     @Test

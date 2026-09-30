@@ -1,9 +1,22 @@
 tile.modularnuclear.casing.name=Nuclear Casing
+tile.modularnuclear.casing.0.name=Nuclear Casing
+modularnuclear.casing.name=Nuclear Casing
+modularnuclear.casing.0.name=Nuclear Casing
 item.modularnuclear.radiovoltaic.plate.hv.name=Radiovoltaic Plate (HV)
 item.modularnuclear.radiovoltaic.plate.ev.name=Radiovoltaic Plate (EV)
 
 gt.blockmachines.multimachine.nuclearreactor.name=Modular Nuclear Reactor
+gt.blockmachines.hatch.nuclearbus.name=Nuclear Core Bus
 gt.blockmachines.hatch.nuclear.bus.name=Nuclear Core Bus
+gt.blockmachines.hatch.nuclearhatch.lv.name=Nuclear Hatch (LV)
+gt.blockmachines.hatch.nuclearhatch.mv.name=Nuclear Hatch (MV)
+gt.blockmachines.hatch.nuclearhatch.hv.name=Nuclear Hatch (HV)
+gt.blockmachines.hatch.nuclearhatch.ev.name=Nuclear Hatch (EV)
+gt.blockmachines.hatch.nuclearhatch.iv.name=Nuclear Hatch (IV)
+gt.blockmachines.hatch.nuclearhatch.luv.name=Nuclear Hatch (LuV)
+gt.blockmachines.hatch.nuclearhatch.zpm.name=Nuclear Hatch (ZPM)
+gt.blockmachines.hatch.nuclearhatch.uv.name=Nuclear Hatch (UV)
+gt.blockmachines.hatch.nuclearhatch.uhv.name=Nuclear Hatch (UHV)
 gt.blockmachines.hatch.nuclear.fluid.tier.01.name=Nuclear Hatch (LV)
 gt.blockmachines.hatch.nuclear.fluid.tier.02.name=Nuclear Hatch (MV)
 gt.blockmachines.hatch.nuclear.fluid.tier.03.name=Nuclear Hatch (HV)
@@ -13,7 +26,9 @@ gt.blockmachines.hatch.nuclear.fluid.tier.06.name=Nuclear Hatch (LuV)
 gt.blockmachines.hatch.nuclear.fluid.tier.07.name=Nuclear Hatch (ZPM)
 gt.blockmachines.hatch.nuclear.fluid.tier.08.name=Nuclear Hatch (UV)
 gt.blockmachines.hatch.nuclear.fluid.tier.09.name=Nuclear Hatch (UHV)
+gt.blockmachines.hatch.nuclearcontrol.name=Nuclear Control Hatch
 gt.blockmachines.hatch.nuclear.control.name=Nuclear Control Hatch
+gt.blockmachines.hatch.nuclearcontrolrod.name=Nuclear Control Rod Hatch
 gt.blockmachines.hatch.nuclear.controlrod.name=Nuclear Control Rod Hatch
 
 GT5U.gui.button.reactor_hatches=Open reactor core hatches view

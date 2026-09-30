@@ -4,6 +4,7 @@ import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.IIcon;
 
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
@@ -13,7 +14,6 @@ import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.enums.Textures;
 import gregtech.api.render.TextureFactory;
 import gregtech.common.blocks.BlockCasingsAbstract;
-import gregtech.common.blocks.ItemCasings;
 
 public class BlockNuclearCasing extends BlockCasingsAbstract {
 
@@ -22,7 +22,7 @@ public class BlockNuclearCasing extends BlockCasingsAbstract {
     public static final int CASING_TEXTURE_INDEX = (CASING_PAGE << 7) | (CASING_ID + 112);
 
     public BlockNuclearCasing() {
-        super(ItemCasings.class, "modularnuclear.casing", Material.iron);
+        super(ItemNuclearCasing.class, "modularnuclear.casing", Material.iron);
         setHardness(5.0F);
         setResistance(10.0F);
         setStepSound(soundTypeMetal);
@@ -48,6 +48,17 @@ public class BlockNuclearCasing extends BlockCasingsAbstract {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister aIconRegister) {}
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void getSubBlocks(net.minecraft.item.Item aItem, CreativeTabs aCreativeTab, java.util.List aList) {
+        aList.add(new ItemStack(aItem, 1, 0));
+    }
+
+    @Override
+    public int damageDropped(int metadata) {
+        return 0;
+    }
 
     @Override
     public int getTextureIndex(int aMeta) {
