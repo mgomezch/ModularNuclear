@@ -1,0 +1,25 @@
+tile.modularnuclear.casing.name=Nuclear Casing
+item.modularnuclear.betavoltaic.plate.hv.name=Betavoltaic Plate (HV)
+item.modularnuclear.betavoltaic.plate.ev.name=Betavoltaic Plate (EV)
+
+gt.blockmachines.multimachine.nuclearreactor.name=Modular Nuclear Reactor
+gt.blockmachines.hatch.nuclear.bus.name=Nuclear Core Bus
+gt.blockmachines.hatch.nuclear.fluid.tier.01.name=Nuclear Hatch (LV)
+gt.blockmachines.hatch.nuclear.fluid.tier.02.name=Nuclear Hatch (MV)
+gt.blockmachines.hatch.nuclear.fluid.tier.03.name=Nuclear Hatch (HV)
+gt.blockmachines.hatch.nuclear.fluid.tier.04.name=Nuclear Hatch (EV)
+gt.blockmachines.hatch.nuclear.fluid.tier.05.name=Nuclear Hatch (IV)
+gt.blockmachines.hatch.nuclear.fluid.tier.06.name=Nuclear Hatch (LuV)
+gt.blockmachines.hatch.nuclear.fluid.tier.07.name=Nuclear Hatch (ZPM)
+gt.blockmachines.hatch.nuclear.fluid.tier.08.name=Nuclear Hatch (UV)
+gt.blockmachines.hatch.nuclear.fluid.tier.09.name=Nuclear Hatch (UHV)
+gt.blockmachines.hatch.nuclear.control.name=Nuclear Control Hatch
+gt.blockmachines.hatch.nuclear.controlrod.name=Nuclear Control Rod Hatch
+
+GT5U.gui.button.reactor_hatches=Open reactor core hatches view
+GT5U.gui.text.structure_error.missing_nuclear_hatch=Missing nuclear hatch or bus in core grid
+GT5U.gui.text.structure_error.inconsistent_nuclear_hatch_tier=All nuclear hatches must be of the same tier
+GT5U.gui.text.structure_error.invalid_pipe_tier=Invalid item pipe casing tier (requires Electrum or higher)
+
+channels.gregtech.nuclear_hatch=Decides the tier of Nuclear Hatches. Starts at §6Basic Nuclear Hatch (LV)§r at value 1 and ends at §6Divine Nuclear Hatch (UHV)§r at value 9.
+channels.gregtech.master.nuclear_hatch=Nuclear Hatch Tier
