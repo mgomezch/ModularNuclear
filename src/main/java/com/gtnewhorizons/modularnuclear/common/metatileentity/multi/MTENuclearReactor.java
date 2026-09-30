@@ -2036,10 +2036,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate) return true;
         String name = stack.getUnlocalizedName()
             .toLowerCase();
-        return name.contains("radiovoltaic") || name.contains("betavoltaic")
-            || name.contains("radiocell")
-            || name.contains("betacell")
-            || name.contains("neutronovoltaic");
+        return name.contains("radiovoltaic") || name.contains("radiocell") || name.contains("neutronovoltaic");
     }
 
     public int getRadiovoltaicTier(ItemStack stack) {
@@ -2050,16 +2047,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             .toLowerCase();
         if (name.contains("ev") || name.contains("extreme") || name.contains("tier2") || name.contains("t2")) return 2;
         return 1;
-    }
-
-    @Deprecated
-    public boolean isItemBetavoltaic(ItemStack stack) {
-        return isItemRadiovoltaic(stack);
-    }
-
-    @Deprecated
-    public int getBetavoltaicTier(ItemStack stack) {
-        return getRadiovoltaicTier(stack);
     }
 
     public ItemStack getItemDepletedForm(ItemStack fuel) {

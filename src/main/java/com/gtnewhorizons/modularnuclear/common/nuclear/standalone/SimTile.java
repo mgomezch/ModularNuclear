@@ -60,8 +60,6 @@ public class SimTile implements INuclearTile {
             if (code == null) return EMPTY;
             String trimmed = code.trim()
                 .toUpperCase();
-            if (trimmed.equals("BH") || trimmed.equals("BETAVOLTAIC_HV")) return RADIOVOLTAIC_HV;
-            if (trimmed.equals("BV") || trimmed.equals("BETAVOLTAIC_EV")) return RADIOVOLTAIC_EV;
             for (TileType type : values()) {
                 if (type.code.equalsIgnoreCase(trimmed) || type.name()
                     .equalsIgnoreCase(trimmed)) {
@@ -290,11 +288,6 @@ public class SimTile implements INuclearTile {
 
     public boolean isRadiovoltaic() {
         return type == TileType.RADIOVOLTAIC_HV || type == TileType.RADIOVOLTAIC_EV;
-    }
-
-    @Deprecated
-    public boolean isBetavoltaic() {
-        return isRadiovoltaic();
     }
 
     @Override
