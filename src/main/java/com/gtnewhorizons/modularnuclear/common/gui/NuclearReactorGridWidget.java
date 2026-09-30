@@ -7,6 +7,10 @@ import java.util.TreeSet;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.EnumChatFormatting;
 
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
 import com.gtnewhorizons.modularui.api.GlStateManager;
 import com.gtnewhorizons.modularui.api.drawable.FluidDrawable;
 import com.gtnewhorizons.modularui.api.drawable.ItemDrawable;

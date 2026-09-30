@@ -11,6 +11,10 @@ import net.minecraftforge.oredict.OreDictionary;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearControlRodGui;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
@@ -29,7 +33,6 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.objects.ItemData;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTOreDictUnificator;
-import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearControlRodGui;
 
 /**
  * Nuclear Control Rod Hatch.

@@ -10,10 +10,10 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControl;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
@@ -22,14 +22,41 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearRe
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
-import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid;
 
+import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+
 public class NuclearSimulationEngineTest {
+
+    @BeforeAll
+    static void initEnvironment() {
+        Thread.currentThread()
+            .setName("Server thread");
+        try {
+            cpw.mods.fml.common.Loader mockLoader = org.mockito.Mockito.mock(cpw.mods.fml.common.Loader.class);
+            org.mockito.Mockito.when(mockLoader.getCallableCrashInformation())
+                .thenReturn(org.mockito.Mockito.mock(cpw.mods.fml.common.ICrashCallable.class));
+            java.lang.reflect.Field f = cpw.mods.fml.common.Loader.class.getDeclaredField("instance");
+            f.setAccessible(true);
+            if (f.get(null) == null) {
+                f.set(null, mockLoader);
+            }
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
+
+        try {
+            net.minecraft.init.Bootstrap.func_151354_b();
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
+    }
 
     @BeforeEach
     void setUp() {
+        Thread.currentThread()
+            .setName("Server thread");
         NuclearSimulationEngine.resetDefaultParameters();
     }
 
@@ -486,10 +513,7 @@ public class NuclearSimulationEngineTest {
             1,
             1,
             com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD);
-        grid.setTile(
-            0,
-            1,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.BETAVOLTAIC_EV);
+        grid.setTile(0, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.BETAVOLTAIC_EV);
         grid.step();
 
         assertTrue(grid.getFlowDirectEU() > 0, "Grid must accumulate Betavoltaic direct EU");
@@ -507,8 +531,7 @@ public class NuclearSimulationEngineTest {
 
         // Put a superheated fuel rod and superheated coolant hatch
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile fuelTile = grid.getTile(1, 1);
-        fuelTile
-            .setType(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD);
+        fuelTile.setType(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD);
         fuelTile.setTemperature(3000.0); // Well above 1000°C limit
 
         NuclearSimulationEngine.coolantFeedRate = 0; // Prevent refilling so hatch actually overheats
@@ -589,15 +612,12 @@ public class NuclearSimulationEngineTest {
             1,
             2,
             com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.REFLECTOR_BERYLLIUM);
-        grid.setTile(
-            1,
-            0,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.BETAVOLTAIC_HV);
+        grid.setTile(1, 0, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.BETAVOLTAIC_HV);
 
         // Dry superheated coolant hatch (> 100°C threshold)
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatch = grid.getTile(0, 1);
-        hatch.setType(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER);
+        hatch
+            .setType(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER);
         hatch.setInputFluidAmount(0);
         hatch.setWasDry(true);
         hatch.setTemperature(350.0); // Superheated
@@ -856,7 +876,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testNeutronComponentInteractionData() {
-        gregtech.nei.GTNEINeutronInteractionHandler.NeutronComponentData graphite = new gregtech.nei.GTNEINeutronInteractionHandler.NeutronComponentData(
+        com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.NeutronComponentData graphite = new com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.NeutronComponentData(
             null,
             "Graphite Moderator Block",
             "Moderator",
@@ -884,7 +904,7 @@ public class NuclearSimulationEngineTest {
         assertFalse(graphite.hasCapture);
         assertFalse(graphite.hasAbsorption);
 
-        gregtech.nei.GTNEINeutronInteractionHandler.NeutronComponentData uraniumQuad = new gregtech.nei.GTNEINeutronInteractionHandler.NeutronComponentData(
+        com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.NeutronComponentData uraniumQuad = new com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.NeutronComponentData(
             null,
             "Quad Uranium Fuel Rod",
             "Fuel Rod",

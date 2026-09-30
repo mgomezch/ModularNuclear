@@ -14,12 +14,12 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.slot.FluidSlot;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 
 import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.api.modularui2.GTWidgetThemes;
 import gregtech.api.modularui2.common.CommonWidgets;
 import gregtech.common.gui.modularui.hatch.base.MTEHatchBaseGui;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 
 public class MTEHatchNuclearHatchGui extends MTEHatchBaseGui<MTEHatchNuclearHatch> {
 

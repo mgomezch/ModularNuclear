@@ -1,7 +1,10 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity;
 
+import net.minecraft.item.ItemStack;
+
 import com.gtnewhorizon.structurelib.StructureLibAPI;
-import com.gtnewhorizon.structurelib.structure.IStructureChannels;
+
+import gregtech.api.structure.IStructureChannels;
 
 public enum NuclearStructureChannels implements IStructureChannels {
 
@@ -16,7 +19,7 @@ public enum NuclearStructureChannels implements IStructureChannels {
     }
 
     @Override
-    public String getChannel() {
+    public String get() {
         return channel;
     }
 
@@ -25,9 +28,15 @@ public enum NuclearStructureChannels implements IStructureChannels {
         return defaultTooltip;
     }
 
+    @Override
+    public void registerAsIndicator(ItemStack indicator, int channelValue) {
+        StructureLibAPI.registerChannelItem(get(), "modularnuclear", channelValue, indicator);
+    }
+
     public static void register() {
         for (NuclearStructureChannels value : values()) {
-            StructureLibAPI.registerChannel(value.getChannel(), value.getDefaultTooltip());
+            StructureLibAPI
+                .registerChannelDescription(value.get(), "modularnuclear", "channels.modularnuclear." + value.get());
         }
     }
 }

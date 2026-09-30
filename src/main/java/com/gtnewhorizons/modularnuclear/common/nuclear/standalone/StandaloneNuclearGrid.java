@@ -58,8 +58,55 @@ public class StandaloneNuclearGrid {
 
     private TurbineCalculator.PowerEstimationResult lastPowerResult = new TurbineCalculator.PowerEstimationResult();
 
-    public record TickTelemetry(long tick, double maxTemp, double avgTemp, double efficiency, int neutrons,
-        double powerEUt, boolean safe) {}
+    public static class TickTelemetry {
+
+        public final long tick;
+        public final double maxTemp;
+        public final double avgTemp;
+        public final double efficiency;
+        public final int neutrons;
+        public final double powerEUt;
+        public final boolean safe;
+
+        public TickTelemetry(long tick, double maxTemp, double avgTemp, double efficiency, int neutrons,
+            double powerEUt, boolean safe) {
+            this.tick = tick;
+            this.maxTemp = maxTemp;
+            this.avgTemp = avgTemp;
+            this.efficiency = efficiency;
+            this.neutrons = neutrons;
+            this.powerEUt = powerEUt;
+            this.safe = safe;
+        }
+
+        public long tick() {
+            return tick;
+        }
+
+        public double maxTemp() {
+            return maxTemp;
+        }
+
+        public double avgTemp() {
+            return avgTemp;
+        }
+
+        public double efficiency() {
+            return efficiency;
+        }
+
+        public int neutrons() {
+            return neutrons;
+        }
+
+        public double powerEUt() {
+            return powerEUt;
+        }
+
+        public boolean safe() {
+            return safe;
+        }
+    }
 
     private final List<TickTelemetry> history = new ArrayList<>();
 

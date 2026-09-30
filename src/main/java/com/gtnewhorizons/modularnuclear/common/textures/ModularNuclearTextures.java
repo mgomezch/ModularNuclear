@@ -48,7 +48,5 @@ public class ModularNuclearTextures {
     public static final ModIcon OVERLAY_FRONT_FISSION_REACTOR_ACTIVE = new ModIcon(
         "modularnuclear",
         "OVERLAY_FRONT_FISSION_REACTOR_ACTIVE");
-    public static final ModIcon MACHINE_CASING_NUCLEAR = new ModIcon(
-        "modularnuclear",
-        "MACHINE_CASING_NUCLEAR");
+    public static final ModIcon MACHINE_CASING_NUCLEAR = new ModIcon("modularnuclear", "MACHINE_CASING_NUCLEAR");
 }

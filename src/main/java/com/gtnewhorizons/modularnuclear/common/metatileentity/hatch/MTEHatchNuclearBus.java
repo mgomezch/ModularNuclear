@@ -17,6 +17,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
@@ -338,7 +340,8 @@ public class MTEHatchNuclearBus extends MTEHatch {
     public com.cleanroommc.modularui.screen.ModularPanel buildUI(com.cleanroommc.modularui.factory.PosGuiData data,
         com.cleanroommc.modularui.value.sync.PanelSyncManager syncManager,
         com.cleanroommc.modularui.screen.UISettings uiSettings) {
-        return new com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearBusGui(this).build(data, syncManager, uiSettings);
+        return new com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearBusGui(this)
+            .build(data, syncManager, uiSettings);
     }
 
     @Override

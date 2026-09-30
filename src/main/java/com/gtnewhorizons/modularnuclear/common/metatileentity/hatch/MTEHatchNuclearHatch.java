@@ -11,6 +11,8 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
 
 import com.cleanroommc.modularui.utils.fluid.FluidStackTank;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;

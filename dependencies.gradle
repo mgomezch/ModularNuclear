@@ -33,15 +33,26 @@
  *
  * For more details, see https://docs.gradle.org/8.0.1/userguide/java_library_plugin.html#sec:java_library_configurations_graph
  */
+configurations {
+    testCompileClasspath.extendsFrom(compileOnly)
+    testRuntimeClasspath.extendsFrom(compileOnly)
+}
+
 dependencies {
-    compileOnly("com.github.GTNewHorizons:GT5-Unofficial:5.09.54.151:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:GT5-Unofficial:5.09.54.186:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:ModularUI:1.3.4:dev") { transitive = false }
     compileOnly("com.github.GTNewHorizons:ModularUI2:2.3.89-1.7.10:dev") { transitive = false }
-    compileOnly("com.github.GTNewHorizons:StructureLib:1.3.17:dev") { transitive = false }
-    compileOnly("com.github.GTNewHorizons:NotEnoughItems:2.8.139-GTNH:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:StructureLib:1.4.43:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:NotEnoughItems:2.8.139-GTNH:dev")
+    compileOnly("net.industrial-craft:industrialcraft-2:2.2.828-experimental:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:waila:1.19.34:dev") { transitive = false }
+    compileOnly("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-1070-GTNH:dev") { transitive = false }
     implementation("com.github.GTNewHorizons:GTNHLib:0.11.48:dev")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testImplementation("org.mockito:mockito-core:4.11.0")
-    testImplementation("org.mockito:mockito-inline:4.11.0")
+    testImplementation("org.mockito:mockito-core:5.+")
+    testImplementation("it.unimi.dsi:fastutil:8.5.18")
+    testImplementation("org.joml:joml:1.10.8")
+    testImplementation("org.lwjgl.lwjgl:lwjgl:2.9.3")
 }

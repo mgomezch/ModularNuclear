@@ -12,11 +12,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-
-import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 /**
  * Embedded standalone web server providing an interactive browser UI and REST API
@@ -80,17 +79,23 @@ public class NuclearSimulationWebServer {
         }
     }
 
+    private static String urlDecode(String s) {
+        try {
+            return URLDecoder.decode(s, "UTF-8");
+        } catch (Exception e) {
+            return s;
+        }
+    }
+
     private static Map<String, String> parseQueryParams(String query) {
         Map<String, String> map = new HashMap<>();
         if (query == null || query.isEmpty()) return map;
         for (String param : query.split("&")) {
             String[] entry = param.split("=");
             if (entry.length > 1) {
-                map.put(
-                    URLDecoder.decode(entry[0], StandardCharsets.UTF_8),
-                    URLDecoder.decode(entry[1], StandardCharsets.UTF_8));
+                map.put(urlDecode(entry[0]), urlDecode(entry[1]));
             } else if (entry.length == 1) {
-                map.put(URLDecoder.decode(entry[0], StandardCharsets.UTF_8), "");
+                map.put(urlDecode(entry[0]), "");
             }
         }
         return map;

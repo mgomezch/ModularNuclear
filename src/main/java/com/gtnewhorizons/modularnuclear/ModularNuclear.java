@@ -3,14 +3,14 @@ package com.gtnewhorizons.modularnuclear;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.item.ModItems;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
+
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
-
-import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
-import com.gtnewhorizons.modularnuclear.common.item.ModItems;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 
 @Mod(
     modid = ModularNuclear.MODID,

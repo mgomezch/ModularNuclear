@@ -2,13 +2,13 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity;
 
 import net.minecraft.item.ItemStack;
 
-import gregtech.api.enums.GTValues;
-
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControl;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+
+import gregtech.api.enums.GTValues;
 
 public class ModMetaTileEntities {
 
@@ -50,9 +50,7 @@ public class ModMetaTileEntities {
             "Nuclear Control Rod Hatch",
             5).getStackForm(1L);
 
-        reactor = new MTENuclearReactor(
-            ID_NUCLEAR_REACTOR,
-            "multimachine.nuclearreactor",
-            "Nuclear Fission Reactor").getStackForm(1L);
+        reactor = new MTENuclearReactor(ID_NUCLEAR_REACTOR, "multimachine.nuclearreactor", "Nuclear Fission Reactor")
+            .getStackForm(1L);
     }
 }

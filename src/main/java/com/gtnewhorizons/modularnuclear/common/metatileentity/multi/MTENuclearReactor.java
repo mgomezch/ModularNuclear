@@ -7,12 +7,6 @@ import static gregtech.api.metatileentity.BaseTileEntity.TOOLTIP_DELAY;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 import static gregtech.api.util.GTStructureUtility.chainItemPipeCasings;
 
-import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
-import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.NuclearStructureChannels;
-import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,6 +40,20 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.gtnewhorizon.structurelib.util.ItemStackPredicate;
+import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
+import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGridWidget;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.NuclearStructureChannels;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControl;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
+import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
+import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 import com.gtnewhorizons.modularui.api.drawable.IDrawable;
 import com.gtnewhorizons.modularui.api.drawable.ItemDrawable;
 import com.gtnewhorizons.modularui.api.math.Alignment;
@@ -160,13 +168,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public final List<IGregTechTileEntity> mLastFormedNuclearTiles = new ArrayList<>();
     public boolean mWorldSaved = false;
 
-    @Override
     public boolean isDisablingAllowed() {
         return false;
     }
 
     @Override
-    protected IAlignmentLimits getInitialAlignmentLimits() {
+    public IAlignmentLimits getInitialAlignmentLimits() {
         return (d, r, f) -> d.offsetY == 0 && f.isNotFlipped();
     }
 
@@ -451,7 +458,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                                 || t.addNuclearControlHatchToMachineList(te, index))
                         .casingIndex(CASING_INDEX)
                         .hint(1)
-                        .buildAndChain(StructureUtility.onElementPass(t -> t.mCasing++, StructureUtility.ofBlock(ModBlocks.nuclearCasing, 0))))
+                        .buildAndChain(
+                            StructureUtility
+                                .onElementPass(t -> t.mCasing++, StructureUtility.ofBlock(ModBlocks.nuclearCasing, 0))))
                 .addElement('p', chainItemPipeCasings(-1, (t, casingTier) -> {
                     if (casingTier < 3) {
                         t.mPipeTier = -1;
@@ -1556,7 +1565,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         // Controller Position Indicator (Statically located below the grid in the center-bottom)
         builder.widget(new com.gtnewhorizons.modularui.api.widget.Widget() {
 
-            private final ItemDrawable drawable = new ItemDrawable(ItemList.Machine_Nuclear_Reactor.get(1L));
+            private final ItemDrawable drawable = new ItemDrawable(ModMetaTileEntities.reactor.copy());
 
             @Override
             public void draw(float partialTicks) {
@@ -2017,8 +2026,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public boolean isItemBetavoltaic(ItemStack stack) {
         if (stack == null) return false;
         if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemBetavoltaicPlate) return true;
-        if (ItemList.Betavoltaic_Plate_HV.isStackEqual(stack, false, true)) return true;
-        if (ItemList.Betavoltaic_Plate_EV.isStackEqual(stack, false, true)) return true;
         String name = stack.getUnlocalizedName()
             .toLowerCase();
         return name.contains("betavoltaic") || name.contains("betacell") || name.contains("neutronovoltaic");
@@ -2026,9 +2033,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public int getBetavoltaicTier(ItemStack stack) {
         if (stack == null) return 0;
-        if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemBetavoltaicPlate plate) return plate.getTier();
-        if (ItemList.Betavoltaic_Plate_EV.isStackEqual(stack, false, true)) return 2;
-        if (ItemList.Betavoltaic_Plate_HV.isStackEqual(stack, false, true)) return 1;
+        if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemBetavoltaicPlate plate)
+            return plate.getTier();
         String name = stack.getUnlocalizedName()
             .toLowerCase();
         if (name.contains("ev") || name.contains("extreme") || name.contains("tier2") || name.contains("t2")) return 2;
