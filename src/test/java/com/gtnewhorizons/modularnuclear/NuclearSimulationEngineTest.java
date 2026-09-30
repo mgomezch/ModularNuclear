@@ -30,6 +30,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNucl
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.render.TextureFactory;
 
@@ -1269,6 +1270,23 @@ public class NuclearSimulationEngineTest {
             control.getTexturesActive(control.getCasingTexture());
             control.getTexturesInactive(control.getCasingTexture());
         });
+
+        // Controller front face must have casing and overlay textures, sides only casing
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.textures");
+        ITexture[] frontActive = reactor.getTexture(null, ForgeDirection.SOUTH, ForgeDirection.SOUTH, 0, true, false);
+        assertEquals(2, frontActive.length, "Active front face must have casing and overlay textures");
+        assertNotNull(frontActive[0]);
+        assertNotNull(frontActive[1]);
+
+        ITexture[] frontInactive = reactor
+            .getTexture(null, ForgeDirection.SOUTH, ForgeDirection.SOUTH, 0, false, false);
+        assertEquals(2, frontInactive.length, "Inactive front face must have casing and overlay textures");
+        assertNotNull(frontInactive[0]);
+        assertNotNull(frontInactive[1]);
+
+        ITexture[] sideTextures = reactor.getTexture(null, ForgeDirection.NORTH, ForgeDirection.SOUTH, 0, false, false);
+        assertEquals(1, sideTextures.length, "Side face must have only casing texture");
+        assertNotNull(sideTextures[0]);
     }
 
     @Test

@@ -28,6 +28,7 @@ public class BlockNuclearCasing extends BlockCasingsAbstract {
         setStepSound(soundTypeMetal);
         setCreativeTab(CreativeTabs.tabBlock);
 
+        ModularNuclearTextures.init();
         Textures.BlockIcons.setCasingTexture(
             (byte) CASING_PAGE,
             (byte) (CASING_ID + 112),

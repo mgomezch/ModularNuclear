@@ -10,6 +10,7 @@ public class ModularNuclearTextures {
     public static IIconContainer MACHINE_CASING_NUCLEAR;
 
     public static void init() {
+        if (OVERLAY_FRONT_FISSION_REACTOR != null) return;
         OVERLAY_FRONT_FISSION_REACTOR = Textures.BlockIcons.custom("modularnuclear", "OVERLAY_FRONT_FISSION_REACTOR");
         OVERLAY_FRONT_FISSION_REACTOR_ACTIVE = Textures.BlockIcons
             .custom("modularnuclear", "OVERLAY_FRONT_FISSION_REACTOR_ACTIVE");

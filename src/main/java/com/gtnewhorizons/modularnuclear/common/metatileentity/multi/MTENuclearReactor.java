@@ -371,23 +371,34 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     @Override
     public ITexture getCasingTexture() {
-        return gregtech.api.enums.Textures.BlockIcons.getCasingTextureForId(CASING_INDEX);
+        ITexture casingTex = gregtech.api.enums.Textures.BlockIcons.getCasingTextureForId(CASING_INDEX);
+        if (casingTex == null) {
+            casingTex = gregtech.api.enums.Textures.BlockIcons.casingTexturePages[0][16];
+        }
+        return casingTex;
+    }
+
+    @Override
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    public void registerIcons(net.minecraft.client.renderer.texture.IIconRegister aBlockIconRegister) {
+        ModularNuclearTextures.init();
+        super.registerIcons(aBlockIconRegister);
     }
 
     @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection aFacing,
         int colorIndex, boolean aActive, boolean redstoneLevel) {
-        ITexture casingTex = gregtech.api.enums.Textures.BlockIcons.getCasingTextureForId(CASING_INDEX);
-        if (casingTex == null) {
-            casingTex = gregtech.api.enums.Textures.BlockIcons.casingTexturePages[0][16];
-        }
+        ITexture casingTex = getCasingTexture();
         if (side == aFacing) {
-            com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures.init();
+            ModularNuclearTextures.init();
             gregtech.api.interfaces.IIconContainer overlay = aActive
                 ? ModularNuclearTextures.OVERLAY_FRONT_FISSION_REACTOR_ACTIVE
                 : ModularNuclearTextures.OVERLAY_FRONT_FISSION_REACTOR;
-            if (overlay != null && overlay.getIcon() != null) {
-                return new ITexture[] { casingTex, TextureFactory.of(overlay) };
+            if (overlay != null) {
+                return new ITexture[] { casingTex, TextureFactory.builder()
+                    .addIcon(overlay)
+                    .extFacing()
+                    .build() };
             }
             return new ITexture[] { casingTex };
         }
