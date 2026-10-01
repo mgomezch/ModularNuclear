@@ -526,11 +526,10 @@ public class NuclearSimulationCLI {
             .append(String.format(java.util.Locale.US, "%.1f", p != null ? p.directPowerEUt : 0.0))
             .append(",");
         sb.append("\"totalTurbinesNeeded\":")
-            .append(
-                String.format(
-                    java.util.Locale.US,
-                    "%.2f",
-                    p != null ? (p.xlstTurbinesNeeded + p.xlstHpTurbinesNeeded + p.xlstScTurbinesNeeded) : 0.0))
+            .append(String.format(java.util.Locale.US, "%.2f", p != null ? p.totalTurbinesNeeded : 0.0))
+            .append(",");
+        sb.append("\"lstTurbinesNeeded\":")
+            .append(String.format(java.util.Locale.US, "%.2f", p != null ? p.lstTurbinesNeeded : 0.0))
             .append(",");
         sb.append("\"xlstTurbinesNeeded\":")
             .append(String.format(java.util.Locale.US, "%.2f", p != null ? p.xlstTurbinesNeeded : 0.0))
@@ -541,6 +540,12 @@ public class NuclearSimulationCLI {
         sb.append("\"xlstScTurbinesNeeded\":")
             .append(String.format(java.util.Locale.US, "%.2f", p != null ? p.xlstScTurbinesNeeded : 0.0))
             .append(",");
+        sb.append("\"coolantMachine\":\"")
+            .append(p != null ? p.coolantMachine : "None")
+            .append("\",");
+        sb.append("\"coolantMachineMode\":\"")
+            .append(p != null ? p.coolantMachineMode : "Inactive")
+            .append("\",");
         sb.append("\"eheMode\":\"")
             .append(p != null ? p.eheMode : "Inactive")
             .append("\",");
@@ -803,7 +808,9 @@ public class NuclearSimulationCLI {
 
         TurbineCalculator.PowerEstimationResult p = grid.getLastPowerResult();
         if (p != null) {
-            System.out.println(ANSI_WHITE_BOLD + "Turbine Power Generation (XLST & EHE at Optimum Flow):" + ANSI_RESET);
+            String turbTitle = p.isLST ? "Turbine Power Generation (Large Steam Turbines at Optimum Flow):"
+                : "Turbine Power Generation (XLST & Heat Exchanger at Optimum Flow):";
+            System.out.println(ANSI_WHITE_BOLD + turbTitle + ANSI_RESET);
             System.out.println("  Rotor Material:       " + grid.getTurbineMaterial().displayName);
             System.out.println(
                 "  Rotor Size / Fitting: " + grid.getTurbineSize()
@@ -819,6 +826,11 @@ public class NuclearSimulationCLI {
                 "  Total Estimated Power:" + ANSI_GREEN
                     + String.format(" %.1f EU/t (%s)", p.totalPowerEUt, getVoltageTier(p.totalPowerEUt))
                     + ANSI_RESET);
+            if (p.isLST && p.lstPowerEUt > 0) {
+                System.out.println(
+                    "    - LST Power:        "
+                        + String.format("%.1f EU/t (%.2f turbines needed)", p.lstPowerEUt, p.lstTurbinesNeeded));
+            }
             if (p.xlstScPowerEUt > 0) {
                 System.out.println(
                     "    - XLST-SC Power:    "
@@ -829,7 +841,7 @@ public class NuclearSimulationCLI {
                     "    - XLST-HP Power:    "
                         + String.format("%.1f EU/t (%.2f turbines needed)", p.xlstHpPowerEUt, p.xlstHpTurbinesNeeded));
             }
-            if (p.xlstPowerEUt > 0) {
+            if (!p.isLST && p.xlstPowerEUt > 0) {
                 System.out.println(
                     "    - XLST Power:       "
                         + String.format("%.1f EU/t (%.2f turbines needed)", p.xlstPowerEUt, p.xlstTurbinesNeeded));
@@ -839,14 +851,17 @@ public class NuclearSimulationCLI {
                     "    - Radiovoltaic Direct EU: "
                         + String.format("%.1f EU/t (%s)", p.directPowerEUt, getVoltageTier(p.directPowerEUt)));
             }
-            if (!"NONE".equals(p.eheMode)) {
+            if (!"None".equals(p.coolantMachine)) {
                 System.out.println(
-                    "  EHE Status:           " + p.eheMode
+                    "  Coolant Exchanger:    " + p.coolantMachine
+                        + " ["
+                        + p.coolantMachineMode
+                        + "]"
                         + " (Produced: "
-                        + String.format("%.1f L/t", p.eheSteamProduced)
-                        + " steam, Consumed: "
-                        + String.format("%.1f L/t", p.eheDistilledWaterConsumed)
-                        + " DW)");
+                        + String.format("%.1f L/t", p.coolantSteamProduced)
+                        + " steam, Needed: "
+                        + String.format("%.0f", p.coolantMachineCount)
+                        + " machines)");
             }
             System.out.println(
                 "  Instant Steam Flows:  " + String.format(

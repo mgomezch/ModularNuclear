@@ -482,8 +482,9 @@ public class StandaloneNuclearGrid {
         totalDeuteriumProduced = dCount;
         totalTritiumProduced = tCount;
 
-        // Calculate power estimation with XLST, XLST-HP, XLST-SC at optimum flow & EHE for Hot Coolant
+        // Calculate power estimation with tier-specific turbines (LST for EV, XLST for IV+) and heat exchangers
         lastPowerResult = TurbineCalculator.calculatePower(
+            pipeTier,
             flowRegularSteam,
             flowSuperheatedSteam,
             flowSupercriticalSteam,

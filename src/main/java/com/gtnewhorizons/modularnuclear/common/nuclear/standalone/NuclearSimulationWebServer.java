@@ -246,6 +246,12 @@ public class NuclearSimulationWebServer {
             sb.append("\"directPowerEUt\":")
                 .append(String.format(java.util.Locale.US, "%.1f", p.directPowerEUt))
                 .append(",");
+            sb.append("\"isLST\":")
+                .append(p.isLST)
+                .append(",");
+            sb.append("\"lstPowerEUt\":")
+                .append(String.format(java.util.Locale.US, "%.1f", p.lstPowerEUt))
+                .append(",");
             sb.append("\"xlstPowerEUt\":")
                 .append(String.format(java.util.Locale.US, "%.1f", p.xlstPowerEUt))
                 .append(",");
@@ -254,6 +260,21 @@ public class NuclearSimulationWebServer {
                 .append(",");
             sb.append("\"xlstScPowerEUt\":")
                 .append(String.format(java.util.Locale.US, "%.1f", p.xlstScPowerEUt))
+                .append(",");
+            sb.append("\"coolantMachine\":\"")
+                .append(p.coolantMachine)
+                .append("\",");
+            sb.append("\"coolantMachineMode\":\"")
+                .append(p.coolantMachineMode)
+                .append("\",");
+            sb.append("\"coolantSteamProduced\":")
+                .append(String.format(java.util.Locale.US, "%.1f", p.coolantSteamProduced))
+                .append(",");
+            sb.append("\"coolantWaterConsumed\":")
+                .append(String.format(java.util.Locale.US, "%.1f", p.coolantWaterConsumed))
+                .append(",");
+            sb.append("\"coolantMachineCount\":")
+                .append(String.format(java.util.Locale.US, "%.0f", p.coolantMachineCount))
                 .append(",");
             sb.append("\"eheMode\":\"")
                 .append(p.eheMode)
@@ -264,6 +285,9 @@ public class NuclearSimulationWebServer {
             sb.append("\"eheDistilledWaterConsumed\":")
                 .append(String.format(java.util.Locale.US, "%.1f", p.eheDistilledWaterConsumed))
                 .append(",");
+            sb.append("\"lstTurbinesNeeded\":")
+                .append(String.format(java.util.Locale.US, "%.2f", p.lstTurbinesNeeded))
+                .append(",");
             sb.append("\"xlstTurbinesNeeded\":")
                 .append(String.format(java.util.Locale.US, "%.2f", p.xlstTurbinesNeeded))
                 .append(",");
@@ -272,6 +296,9 @@ public class NuclearSimulationWebServer {
                 .append(",");
             sb.append("\"xlstScTurbinesNeeded\":")
                 .append(String.format(java.util.Locale.US, "%.2f", p.xlstScTurbinesNeeded))
+                .append(",");
+            sb.append("\"totalTurbinesNeeded\":")
+                .append(String.format(java.util.Locale.US, "%.2f", p.totalTurbinesNeeded))
                 .append(",");
             sb.append("\"efficiency\":")
                 .append(String.format(java.util.Locale.US, "%.3f", p.efficiency))
