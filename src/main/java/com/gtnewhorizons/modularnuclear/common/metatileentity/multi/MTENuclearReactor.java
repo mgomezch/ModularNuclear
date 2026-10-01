@@ -42,7 +42,9 @@ import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.gtnewhorizon.structurelib.util.ItemStackPredicate;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.gui.ClientScreenHelper;
 import com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGridWidget;
+import com.gtnewhorizons.modularnuclear.common.gui.WindowResizeWidget;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.NuclearStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
@@ -1453,30 +1455,49 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public ModularWindow createReactorGridWindow(final EntityPlayer player) {
-        final int w = 154;
-        final int h = 198;
+        ReactorGridSyncData sync = getClientGridData();
+        int N = 7;
+        if (sync != null && sync.gridSize > 0) {
+            N = sync.gridSize;
+        } else if (mGrid != null && mGrid.length > 0) {
+            N = mGrid.length;
+        }
+
+        int screenW = ClientScreenHelper.getScaledScreenWidth();
+        int screenH = ClientScreenHelper.getScaledScreenHeight();
+
         final int parentW = getGUIWidth();
         final int parentH = getGUIHeight();
+        final int mainY = (screenH - parentH) / 2;
+
+        // Player inventory top inside standard GT multiblock GUI starts around mainY + 104
+        final int playerInvY = mainY + 104;
+        final int availH = Math.max(120, (playerInvY - 2) - 4);
+
+        final int targetW = Math.max(160, N * 18 + 20);
+        final int targetH = N * 18 + 64;
+
+        final int w = Math.min(targetW, screenW - 8);
+        final int h = Math.min(targetH, availH);
+
+        final int initX = Math.max(2, (screenW - w) / 2);
+        final int initY = Math.max(4, (playerInvY - 2) - h);
 
         ModularWindow.Builder builder = ModularWindow.builder(w, h);
         builder.setBackground(GTUITextures.BACKGROUND_SINGLEBLOCK_DEFAULT);
         builder.setGuiTint(getGUIColorization());
         builder.setDraggable(true);
-        builder.setPos((size, window) -> {
-            Pos2d mainPos = Alignment.Center.getAlignedPos(size, new Size(parentW, parentH));
-            int x = (int) mainPos.getX() - w - 2;
-            if (x < 2) {
-                x = 2;
-            }
-            return new Pos2d(x, Math.max(10, (int) mainPos.getY()));
-        });
+        builder.setPos((size, window) -> new Pos2d(initX, initY));
 
         NuclearReactorGridWidget gridWidget = new NuclearReactorGridWidget(this);
         Scrollable scrollable = new Scrollable().setVerticalScroll()
             .setHorizontalScroll();
         scrollable.widget(gridWidget);
-        scrollable.setPos(14, 24)
-            .setSize(126, 126);
+        scrollable.setPos(10, 24)
+            .setSizeProvider(
+                (size, window, parent) -> new Size(
+                    Math.max(80, window.getSize().width - 20),
+                    Math.max(50, window.getSize().height - 64)));
         gridWidget.setParentScrollable(scrollable);
         builder.widget(scrollable);
 
@@ -1571,7 +1592,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
             }
         };
-        modeButton.setPos(110, 4)
+        modeButton.setPosProvider((size, window, parent) -> new Pos2d(window.getSize().width - 44, 4))
             .setSize(18, 18);
         modeButton.setBackground(GTUITextures.BUTTON_STANDARD);
         modeButton.setUpdateTooltipEveryTick(true);
@@ -1588,10 +1609,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         // Close Button
         builder.widget(
             ButtonWidget.closeWindowButton(true)
-                .setPos(132, 4)
+                .setPosProvider((size, window, parent) -> new Pos2d(window.getSize().width - 22, 4))
                 .setSize(18, 18));
 
-        // Controller Position Indicator (Statically located below the grid in the center-bottom)
+        // Controller Position Indicator (Located below the grid in the center-bottom)
         builder.widget(new com.gtnewhorizons.modularui.api.widget.Widget() {
 
             private final ItemDrawable drawable = new ItemDrawable(ModMetaTileEntities.reactor.copy());
@@ -1606,34 +1627,38 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 GlStateManager.enableBlend();
                 GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
             }
-        }.setPos(69, 154)
+        }.setPosProvider(
+            (size, window, parent) -> new Pos2d((window.getSize().width - 16) / 2, window.getSize().height - 36))
             .setSize(16, 16)
             .addTooltip("Reactor controller (front face)"));
 
         // Subtitle / Telemetry at bottom
         builder.widget(new TextWidget().setStringSupplier(() -> {
-            ReactorGridSyncData sync = getClientGridData();
-            if (sync == null || sync.gridSize <= 0) {
+            ReactorGridSyncData syncData = getClientGridData();
+            if (syncData == null || syncData.gridSize <= 0) {
                 return EnumChatFormatting.RED + "Offline - structure incomplete";
             }
             if (mCurrentGuiMode == GUI_MODE_TEMPERATURE) {
-                return String.format(EnumChatFormatting.GOLD + "Max temp: %.1f °C", sync.coreTemp);
+                return String.format(EnumChatFormatting.GOLD + "Max temp: %.1f °C", syncData.coreTemp);
             }
             if (mCurrentGuiMode == GUI_MODE_NEUTRON_FLUX) {
                 return EnumChatFormatting.AQUA + "Flux: "
-                    + NuclearSimulationEngine.formatNeutronFlux(sync.neutronsProduced);
+                    + NuclearSimulationEngine.formatNeutronFlux(syncData.neutronsProduced);
             }
-            if (sync.efficiency > 0.0001) {
+            if (syncData.efficiency > 0.0001) {
                 return String.format(
                     EnumChatFormatting.DARK_GREEN + "Reactivity: %.1f%%  " + EnumChatFormatting.GOLD + "Max: %.0f°C",
-                    sync.efficiency * 100.0,
-                    sync.coreTemp);
+                    syncData.efficiency * 100.0,
+                    syncData.coreTemp);
             }
             return EnumChatFormatting.GRAY + "Status: ready / idle";
         })
             .setTextAlignment(Alignment.Center)
-            .setSize(146, 14)
-            .setPos(4, 177));
+            .setPosProvider((size, window, parent) -> new Pos2d(4, window.getSize().height - 18))
+            .setSizeProvider((size, window, parent) -> new Size(Math.max(60, window.getSize().width - 8), 14)));
+
+        // Window resize widget covering the window perimeter
+        builder.widget(new WindowResizeWidget(gridWidget));
 
         return builder.build();
     }

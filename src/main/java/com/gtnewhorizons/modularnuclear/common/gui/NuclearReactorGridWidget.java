@@ -71,10 +71,22 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
         setTooltipShowUpDelay(0);
         setUpdateTooltipEveryTick(true);
         dynamicTooltip(this::getHoveredTooltip);
+        resetZoom();
     }
 
     public void setParentScrollable(Scrollable parentScrollable) {
         this.parentScrollable = parentScrollable;
+        updateWidgetSize();
+    }
+
+    public int getViewportWidth() {
+        return (parentScrollable != null && parentScrollable.getSize().width > 0) ? parentScrollable.getSize().width
+            : 126;
+    }
+
+    public int getViewportHeight() {
+        return (parentScrollable != null && parentScrollable.getSize().height > 0) ? parentScrollable.getSize().height
+            : 126;
     }
 
     public int getGridSize() {
@@ -84,8 +96,10 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
 
     public int[] getZoomCellSizes(int N) {
         if (N <= 0) return new int[] { 18 };
-        int fit = (N <= 7) ? 18 : Math.max(4, 126 / N);
+        int vp = Math.min(getViewportWidth(), getViewportHeight());
+        int fit = Math.max(4, vp / N);
         TreeSet<Integer> sizes = new TreeSet<>();
+        sizes.add(18);
         sizes.add(fit);
         if (fit < 14) sizes.add(14);
         if (fit < 18) sizes.add(18);
@@ -105,11 +119,8 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
     }
 
     public int getZoomPercent() {
-        int N = getGridSize();
-        if (N <= 0) return 100;
-        int fit = (N <= 7) ? 18 : Math.max(4, 126 / N);
         int current = getCurrentCellSize();
-        return Math.round(((float) current / (float) fit) * 100.0f);
+        return Math.round(((float) current / 18.0f) * 100.0f);
     }
 
     public void zoomIn() {
@@ -128,7 +139,14 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
     }
 
     public void resetZoom() {
+        int[] sizes = getZoomCellSizes(getGridSize());
         mZoomIndex = 0;
+        for (int i = 0; i < sizes.length; i++) {
+            if (sizes[i] == 18) {
+                mZoomIndex = i;
+                break;
+            }
+        }
         updateWidgetSize();
         if (parentScrollable != null) {
             parentScrollable.setHorizontalScrollOffset(0);
@@ -138,12 +156,10 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
 
     public void updateWidgetSize() {
         int N = getGridSize();
-        int[] sizes = getZoomCellSizes(N);
-        mZoomIndex = Math.max(0, Math.min(mZoomIndex, sizes.length - 1));
-        int cellSize = sizes[mZoomIndex];
+        int cellSize = getCurrentCellSize();
         int gridPx = N * cellSize;
-        int targetW = Math.max(126, gridPx);
-        int targetH = Math.max(126, gridPx);
+        int targetW = Math.max(getViewportWidth(), gridPx);
+        int targetH = Math.max(getViewportHeight(), gridPx);
         setSize(targetW, targetH);
         if (parentScrollable != null) {
             parentScrollable.onRebuild();
@@ -153,8 +169,11 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
     @Override
     public void onScreenUpdate() {
         super.onScreenUpdate();
-        int targetW = Math.max(126, getGridSize() * getCurrentCellSize());
-        int targetH = Math.max(126, getGridSize() * getCurrentCellSize());
+        int N = getGridSize();
+        int cellSize = getCurrentCellSize();
+        int gridPx = N * cellSize;
+        int targetW = Math.max(getViewportWidth(), gridPx);
+        int targetH = Math.max(getViewportHeight(), gridPx);
         if (getSize().width != targetW || getSize().height != targetH) {
             setSize(targetW, targetH);
             if (parentScrollable != null) {
@@ -185,7 +204,10 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
         int N = sync.gridSize;
         int cellSize = getCurrentCellSize();
         int gridPx = N * cellSize;
-        int offset = (gridPx < 126) ? (126 - gridPx) / 2 : 0;
+        int vpW = getViewportWidth();
+        int vpH = getViewportHeight();
+        int offsetX = (gridPx < vpW) ? (vpW - gridPx) / 2 : 0;
+        int offsetY = (gridPx < vpH) ? (vpH - gridPx) / 2 : 0;
 
         int scrollX = parentScrollable != null ? parentScrollable.getHorizontalScrollOffset() : 0;
         int scrollY = parentScrollable != null ? parentScrollable.getVerticalScrollOffset() : 0;
@@ -193,8 +215,8 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
         int mx = cx - spx + scrollX;
         int my = cy - spy + scrollY;
 
-        int hx = (mx - offset) / cellSize;
-        int renderHy = (my - offset) / cellSize;
+        int hx = (mx - offsetX) / cellSize;
+        int renderHy = (my - offsetY) / cellSize;
         int hy = (N - 1) - renderHy;
 
         if (hx < 0 || hx >= N || hy < 0 || hy >= N) return null;
@@ -788,14 +810,22 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
         if (sync == null || sync.gridSize <= 0) {
             String msg = "Offline / unformed";
             int w = GuiDraw.getStringWidth(msg);
-            GuiDraw.drawString(msg, (126 - w) / 2, 58, 0x888888, false);
+            GuiDraw.drawString(
+                msg,
+                (getViewportWidth() - w) / 2,
+                Math.max(10, (getViewportHeight() - 10) / 2),
+                0x888888,
+                false);
             return;
         }
 
         int N = sync.gridSize;
         int cellSize = getCurrentCellSize();
         int gridPx = N * cellSize;
-        int offset = (gridPx < 126) ? (126 - gridPx) / 2 : 0;
+        int vpW = getViewportWidth();
+        int vpH = getViewportHeight();
+        int offsetX = (gridPx < vpW) ? (vpW - gridPx) / 2 : 0;
+        int offsetY = (gridPx < vpH) ? (vpH - gridPx) / 2 : 0;
 
         GlStateManager.pushMatrix();
         prepareGuiState();
@@ -803,8 +833,8 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
         for (int gx = 0; gx < N; gx++) {
             for (int gy = 0; gy < N; gy++) {
                 int renderGy = (N - 1) - gy;
-                int px = offset + gx * cellSize;
-                int py = offset + renderGy * cellSize;
+                int px = offsetX + gx * cellSize;
+                int py = offsetY + renderGy * cellSize;
 
                 if (NuclearSimulationEngine.isCornerNullCell(gx, gy, N, N)) {
                     continue;
@@ -878,8 +908,8 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                 int dx = code / 1000;
                 int dy = code % 1000;
                 int renderDy = (N - 1) - dy;
-                int dpx = offset + dx * cellSize;
-                int dpy = offset + renderDy * cellSize;
+                int dpx = offsetX + dx * cellSize;
+                int dpy = offsetY + renderDy * cellSize;
                 prepareGuiState();
                 GuiDraw.drawRect(dpx + 1, dpy + 1, Math.max(1, cellSize - 2), Math.max(1, cellSize - 2), 0x6000FF00);
                 prepareGuiState();
@@ -900,8 +930,8 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                 int hx = hCell[0];
                 int hy = hCell[1];
                 int renderHy = (N - 1) - hy;
-                int hpx = offset + hx * cellSize;
-                int hpy = offset + renderHy * cellSize;
+                int hpx = offsetX + hx * cellSize;
+                int hpy = offsetY + renderHy * cellSize;
                 prepareGuiState();
                 GuiDraw.drawRect(hpx + 1, hpy + 1, Math.max(1, cellSize - 2), Math.max(1, cellSize - 2), 0x80FFFFFF);
                 prepareGuiState();
