@@ -7,7 +7,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.renderer.entity.RenderItem;
+import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
@@ -30,15 +34,19 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
 import com.gtnewhorizons.modularui.api.GlStateManager;
 import com.gtnewhorizons.modularui.api.drawable.FluidDrawable;
+import com.gtnewhorizons.modularui.api.drawable.GuiHelper;
 import com.gtnewhorizons.modularui.api.drawable.ItemDrawable;
 import com.gtnewhorizons.modularui.api.math.Pos2d;
 import com.gtnewhorizons.modularui.api.screen.Cursor;
 import com.gtnewhorizons.modularui.api.screen.ModularUIContext;
 import com.gtnewhorizons.modularui.api.widget.Interactable;
+import com.gtnewhorizons.modularui.common.internal.wrapper.ModularGui;
 import com.gtnewhorizons.modularui.common.widget.Scrollable;
 import com.gtnewhorizons.modularui.common.widget.SyncedWidget;
 
 import codechicken.lib.gui.GuiDraw;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.util.GTUtility;
 
@@ -744,6 +752,36 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
+    @SideOnly(Side.CLIENT)
+    private void renderItemOverlay(ItemStack stack, int x, int y, int size) {
+        if (stack == null) return;
+        RenderItem itemRenderer = ModularGui.getItemRenderer();
+        if (itemRenderer == null) return;
+        FontRenderer fontRenderer = GuiHelper.getFontRenderer(stack);
+        if (fontRenderer == null) {
+            fontRenderer = Minecraft.getMinecraft().fontRenderer;
+        }
+        TextureManager textureManager = Minecraft.getMinecraft()
+            .getTextureManager();
+
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(x, y, 0);
+        float scale = (float) size / 16.0f;
+        GlStateManager.scale(scale, scale, 1.0f);
+
+        float prevZ = itemRenderer.zLevel;
+        itemRenderer.zLevel = 200.0f;
+
+        GlStateManager.disableLighting();
+        GlStateManager.disableDepth();
+        GlStateManager.enableBlend();
+
+        itemRenderer.renderItemOverlayIntoGUI(fontRenderer, textureManager, stack, 0, 0, null);
+
+        itemRenderer.zLevel = prevZ;
+        GlStateManager.popMatrix();
+    }
+
     @Override
     public void draw(float partialTicks) {
         ReactorGridSyncData sync = reactor.getClientGridData();
@@ -824,6 +862,11 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                             GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, 0x60FF0000);
                             prepareGuiState();
                         }
+                    }
+
+                    if (cell.itemStack != null) {
+                        renderItemOverlay(cell.itemStack, px + 1, py + 1, innerSize);
+                        prepareGuiState();
                     }
                 }
             }
