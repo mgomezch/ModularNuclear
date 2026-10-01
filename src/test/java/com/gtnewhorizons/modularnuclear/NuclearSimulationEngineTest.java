@@ -2696,4 +2696,95 @@ public class NuclearSimulationEngineTest {
         assertFalse(MTENuclearReactor.isNuclearHatchTile(mockOtherMachine));
         assertFalse(MTENuclearReactor.isNuclearHatchTile(null));
     }
+
+    @Test
+    void testNuclearHatchFacingRequirementAndAutobuild() {
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.facing");
+        assertEquals(ForgeDirection.UP, reactor.getNuclearHatchFacing(), "Default upright reactor requires UP facing");
+
+        // Rotate upside down
+        com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing upsideDownFacing = com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing
+            .of(
+                ForgeDirection.NORTH,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.UPSIDE_DOWN,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE);
+        reactor.setExtendedFacing(upsideDownFacing);
+        assertEquals(ForgeDirection.DOWN, reactor.getNuclearHatchFacing(), "Inverted reactor requires DOWN facing");
+
+        // Reset to default
+        reactor.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.DEFAULT);
+        assertEquals(ForgeDirection.UP, reactor.getNuclearHatchFacing());
+
+        // Test NuclearHatchElement check()
+        MTENuclearReactor.NuclearHatchElement element = new MTENuclearReactor.NuclearHatchElement();
+        List<String> desc = element.getDescription(reactor);
+        assertNotNull(desc);
+        assertTrue(
+            desc.get(0)
+                .contains("Top-layer hatches must face opposite to pipe casings"));
+
+        World mockWorld = org.mockito.Mockito.mock(World.class);
+        gregtech.api.metatileentity.BaseMetaTileEntity mockTe = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 4, new String[0], null);
+        org.mockito.Mockito.when(mockTe.getMetaTileEntity())
+            .thenReturn(bus);
+        org.mockito.Mockito.when(mockWorld.getTileEntity(10, 64, 10))
+            .thenReturn(mockTe);
+
+        // Wrong facing (NORTH) -> check fails
+        org.mockito.Mockito.when(mockTe.getFrontFacing())
+            .thenReturn(ForgeDirection.NORTH);
+        assertFalse(element.check(reactor, mockWorld, 10, 64, 10), "Hatch facing NORTH must fail check");
+
+        // Correct facing (UP) -> check succeeds
+        org.mockito.Mockito.when(mockTe.getFrontFacing())
+            .thenReturn(ForgeDirection.UP);
+        assertTrue(element.check(reactor, mockWorld, 10, 64, 10), "Hatch facing UP must pass check");
+
+        // Test Autobuild: placeBlock on existing hatch with wrong facing rotates it to UP
+        org.mockito.Mockito.when(mockTe.getFrontFacing())
+            .thenReturn(ForgeDirection.NORTH);
+        boolean placed = element.placeBlock(reactor, mockWorld, 10, 64, 10, null);
+        assertTrue(placed, "placeBlock must return true when rotating existing hatch");
+        org.mockito.Mockito.verify(mockTe)
+            .setFrontFacing(ForgeDirection.UP);
+
+        // Test Survival Autobuild: survivalPlaceBlock on existing hatch with wrong facing rotates it to UP and returns
+        // ACCEPT
+        org.mockito.Mockito.when(mockTe.getFrontFacing())
+            .thenReturn(ForgeDirection.NORTH);
+        com.gtnewhorizon.structurelib.structure.IStructureElement.PlaceResult res = element
+            .survivalPlaceBlock(reactor, mockWorld, 10, 64, 10, null, null);
+        assertEquals(
+            com.gtnewhorizon.structurelib.structure.IStructureElement.PlaceResult.ACCEPT,
+            res,
+            "survivalPlaceBlock must return ACCEPT when rotating existing hatch");
+
+        // When already UP, survivalPlaceBlock returns SKIP
+        org.mockito.Mockito.when(mockTe.getFrontFacing())
+            .thenReturn(ForgeDirection.UP);
+        res = element.survivalPlaceBlock(reactor, mockWorld, 10, 64, 10, null, null);
+        assertEquals(
+            com.gtnewhorizon.structurelib.structure.IStructureElement.PlaceResult.SKIP,
+            res,
+            "survivalPlaceBlock must return SKIP when hatch already has correct facing");
+
+        // Test checkNuclearHatchFacings
+        List<gregtech.api.structure.error.StructureError> errors = new ArrayList<>();
+        reactor.mNuclearTiles.clear();
+        reactor.mNuclearTiles.add(mockTe);
+
+        // With UP facing -> no errors
+        org.mockito.Mockito.when(mockTe.getFrontFacing())
+            .thenReturn(ForgeDirection.UP);
+        reactor.verifyNuclearHatchFacings(errors);
+        assertTrue(errors.isEmpty(), "Correct facing must pass verifyNuclearHatchFacings");
+
+        // With wrong facing (DOWN) -> error added
+        org.mockito.Mockito.when(mockTe.getFrontFacing())
+            .thenReturn(ForgeDirection.DOWN);
+        reactor.verifyNuclearHatchFacings(errors);
+        assertFalse(errors.isEmpty(), "Wrong facing must fail verifyNuclearHatchFacings");
+    }
 }

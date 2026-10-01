@@ -8,6 +8,7 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 import static gregtech.api.util.GTStructureUtility.chainItemPipeCasings;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -241,6 +242,24 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         return (d, r, f) -> d.offsetY == 0 && f.isNotFlipped();
     }
 
+    private ExtendedFacing mReactorExtendedFacing = null;
+
+    @Override
+    public ExtendedFacing getExtendedFacing() {
+        if (mReactorExtendedFacing != null) {
+            return mReactorExtendedFacing;
+        }
+        return super.getExtendedFacing();
+    }
+
+    @Override
+    public void setExtendedFacing(ExtendedFacing newExtendedFacing) {
+        this.mReactorExtendedFacing = newExtendedFacing;
+        if (getBaseMetaTileEntity() != null) {
+            super.setExtendedFacing(newExtendedFacing);
+        }
+    }
+
     @Override
     public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
         super.onFirstTick(aBaseMetaTileEntity);
@@ -313,11 +332,20 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         return null;
     }
 
+    public ForgeDirection getNuclearHatchFacing() {
+        ExtendedFacing ef = getExtendedFacing();
+        return ef != null ? ef.getRelativeUpInWorld() : ForgeDirection.UP;
+    }
+
     public static class NuclearHatchElement implements IStructureElement<MTENuclearReactor> {
 
         @Override
         public boolean check(MTENuclearReactor t, World world, int x, int y, int z) {
             if (world.getTileEntity(x, y, z) instanceof IGregTechTileEntity te) {
+                ForgeDirection requiredFacing = t != null ? t.getNuclearHatchFacing() : ForgeDirection.UP;
+                if (te.getFrontFacing() != requiredFacing) {
+                    return false;
+                }
                 IMetaTileEntity mte = te.getMetaTileEntity();
                 if (mte instanceof MTEHatchNuclearHatch hatch) {
                     hatch.mReactor = t;
@@ -353,6 +381,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
 
         @Override
+        public List<String> getDescription(MTENuclearReactor t) {
+            return Collections.singletonList("Top-layer hatches must face opposite to pipe casings");
+        }
+
+        @Override
         public boolean spawnHint(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger) {
             StructureLibAPI.hintParticle(world, x, y, z, GregTechAPI.sBlockMachines, 0);
             return true;
@@ -360,14 +393,21 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         @Override
         public boolean placeBlock(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger) {
+            ForgeDirection targetFacing = t != null ? t.getNuclearHatchFacing() : ForgeDirection.UP;
+            TileEntity existingTe = world.getTileEntity(x, y, z);
+            if (existingTe instanceof IGregTechTileEntity gte && isNuclearCoreHatch(gte.getMetaTileEntity())) {
+                gte.setFrontFacing(targetFacing);
+                return true;
+            }
+
             int tier = NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(trigger, 0, 9);
             ItemStack stack = getNuclearHatchStack(tier);
             if (stack == null) return false;
             if (stack.getItem() instanceof ItemMachines itemMachines) {
                 boolean success = itemMachines
-                    .placeBlockAt(stack, null, world, x, y, z, ForgeDirection.UP.ordinal(), 0.5f, 0.5f, 0.5f, 0);
+                    .placeBlockAt(stack, null, world, x, y, z, targetFacing.ordinal(), 0.5f, 0.5f, 0.5f, 0);
                 if (success && world.getTileEntity(x, y, z) instanceof ITurnable turnable) {
-                    turnable.setFrontFacing(ForgeDirection.UP);
+                    turnable.setFrontFacing(targetFacing);
                 }
                 return success;
             }
@@ -377,6 +417,16 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         @Override
         public PlaceResult survivalPlaceBlock(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger,
             AutoPlaceEnvironment env) {
+            ForgeDirection targetFacing = t != null ? t.getNuclearHatchFacing() : ForgeDirection.UP;
+            TileEntity existingTe = world.getTileEntity(x, y, z);
+            if (existingTe instanceof IGregTechTileEntity gte && isNuclearCoreHatch(gte.getMetaTileEntity())) {
+                if (gte.getFrontFacing() != targetFacing) {
+                    gte.setFrontFacing(targetFacing);
+                    return PlaceResult.ACCEPT;
+                }
+                return PlaceResult.SKIP;
+            }
+
             if (check(t, world, x, y, z)) return PlaceResult.SKIP;
             if (!StructureLibAPI.isBlockTriviallyReplaceable(world, x, y, z, env.getActor())) {
                 return PlaceResult.REJECT;
@@ -398,7 +448,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 env.getActor(),
                 env.getChatter());
             if (result == PlaceResult.ACCEPT && world.getTileEntity(x, y, z) instanceof ITurnable turnable) {
-                turnable.setFrontFacing(ForgeDirection.UP);
+                turnable.setFrontFacing(targetFacing);
             }
             return result;
         }
@@ -589,15 +639,20 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 EnumChatFormatting.RED
                     + "Warning: insufficient casing tier for HP coolants causes catastrophic explosion!")
             .addInfo(EnumChatFormatting.RED + "Note: This multiblock cannot share walls!")
+            .addInfo("Top-layer hatches must face opposite to pipe casings")
             .beginVariableStructureBlock(5, 13, 5, 5, 5, 13, true)
             .addStructureInfo(EnumChatFormatting.RED + "This multiblock cannot share walls")
+            .addStructureInfo("Top-layer hatches must face opposite to pipe casings")
             .addController("Front center, 2nd layer")
             .addCasing("22+", "Nuclear casings", false)
             .addCasing(
                 "21+",
                 "Item pipe casings (Electrum / Platinum / Osmium / Quantium / Fluxed Electrum / Black Plutonium)",
                 false)
-            .addOtherStructurePart("Nuclear bus / hatch / control rod hatch", "Top layer octagonal core positions", 1)
+            .addOtherStructurePart(
+                "Nuclear bus / hatch / control rod hatch",
+                "Top layer octagonal core positions (facing opposite to pipe casings)",
+                1)
             .addOtherStructurePart("Nuclear control hatch", "Any outer casing", 2)
             .addMaintenanceHatch("Any outer casing (exactly 1)", 1)
             .addDynamoHatch("Any outer casing (optional for radiovoltaic direct EU, max 1)", 1)
@@ -812,6 +867,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         checkNoWallsharingNuclearHatches(errors, aBaseMetaTileEntity.getWorld());
 
+        checkNuclearHatchFacings(errors);
+
         if (!errors.isEmpty()) {
             return;
         }
@@ -926,6 +983,20 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public void verifyNoWallsharingNuclearHatches(List<StructureError> errors, World world) {
         checkNoWallsharingNuclearHatches(errors, world);
+    }
+
+    public void checkNuclearHatchFacings(List<StructureError> errors) {
+        ForgeDirection requiredFacing = getNuclearHatchFacing();
+        for (IGregTechTileEntity te : mNuclearTiles) {
+            if (te != null && te.getFrontFacing() != requiredFacing) {
+                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.wrong_nuclear_hatch_facing"));
+                return;
+            }
+        }
+    }
+
+    public void verifyNuclearHatchFacings(List<StructureError> errors) {
+        checkNuclearHatchFacings(errors);
     }
 
     @Override
