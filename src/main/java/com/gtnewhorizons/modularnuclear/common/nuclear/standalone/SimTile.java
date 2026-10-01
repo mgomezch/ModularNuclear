@@ -349,6 +349,18 @@ public class SimTile implements INuclearTile {
     }
 
     @Override
+    public int getNeutronEmissionCount() {
+        return switch (type) {
+            case FUEL_URANIUM_SINGLE, FUEL_MOX_SINGLE, FUEL_THORIUM_SINGLE -> 1;
+            case FUEL_URANIUM_DUAL, FUEL_MOX_DUAL, FUEL_THORIUM_DUAL -> 2;
+            case FUEL_URANIUM_QUAD, FUEL_MOX_QUAD, FUEL_THORIUM_QUAD, FUEL_NAQUADAH -> 4;
+            case HATCH_LIQUID_FUEL_URANIUM, HATCH_LIQUID_FUEL_THORIUM, HATCH_LIQUID_FUEL_PLUTONIUM -> 4;
+            case FUEL_CORE -> 16;
+            default -> 1;
+        };
+    }
+
+    @Override
     public double getAbsorptionProbability(NeutronType nType) {
         if (type == TileType.INSULATOR_NAQUARITE_FOIL) {
             return 1.0;

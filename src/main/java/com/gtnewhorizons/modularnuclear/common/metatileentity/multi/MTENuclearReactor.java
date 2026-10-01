@@ -2357,6 +2357,35 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         return 0;
     }
 
+    public int getTileNeutronEmissionCount(NuclearGridTile tile) {
+        if (tile.isHatch()) {
+            return 4;
+        }
+        if (tile.isBus()) {
+            ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+            if (stack == null) return 1;
+            if (stack.getItem() instanceof ItemRadioactiveCellIC icCell) {
+                return Math.max(1, icCell.numberOfCells);
+            } else if (stack.getItem() instanceof ItemReactorUranium ic2Uran) {
+                return Math.max(1, ic2Uran.numberOfCells);
+            } else {
+                String name = stack.getUnlocalizedName();
+                if (name != null) {
+                    String lower = name.toLowerCase();
+                    if (lower.contains("naquadah32") || lower.contains("thecore")
+                        || (lower.contains("naquadah") && lower.contains("32"))) {
+                        return 16;
+                    } else if (lower.contains("quad") || lower.contains("4")) {
+                        return 4;
+                    } else if (lower.contains("dual") || lower.contains("2")) {
+                        return 2;
+                    }
+                }
+            }
+        }
+        return 1;
+    }
+
     public double getTileAbsorptionProbability(NuclearGridTile tile, NeutronType type) {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
@@ -2971,6 +3000,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         @Override
         public int generateNeutrons(double efficiency) {
             return reactor.generateTileNeutrons(this, efficiency);
+        }
+
+        @Override
+        public int getNeutronEmissionCount() {
+            return reactor.getTileNeutronEmissionCount(this);
         }
 
         @Override
