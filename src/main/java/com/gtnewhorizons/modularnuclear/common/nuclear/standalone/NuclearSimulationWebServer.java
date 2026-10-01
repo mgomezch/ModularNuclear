@@ -36,6 +36,7 @@ public class NuclearSimulationWebServer {
             HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
             server.createContext("/", new IndexHandler());
+            server.createContext("/api/icon", new IconHandler());
             server.createContext("/api/state", new StateHandler());
             server.createContext("/api/step", new StepHandler());
             server.createContext("/api/reset", new ResetHandler());
@@ -608,6 +609,75 @@ public class NuclearSimulationWebServer {
         }
     }
 
+    static class IconHandler implements HttpHandler {
+
+        private static final Map<String, byte[]> ICON_CACHE = new HashMap<>();
+
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String path = exchange.getRequestURI()
+                .getPath();
+            String name = path.substring(path.lastIndexOf('/') + 1);
+            if (name.endsWith(".png")) {
+                name = name.substring(0, name.length() - 4);
+            }
+
+            byte[] bytes = getIconBytes(name);
+            if (bytes == null || bytes.length == 0) {
+                exchange.sendResponseHeaders(404, -1);
+                return;
+            }
+
+            exchange.getResponseHeaders()
+                .set("Content-Type", "image/png");
+            exchange.getResponseHeaders()
+                .set("Cache-Control", "public, max-age=86400");
+            exchange.sendResponseHeaders(200, bytes.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(bytes);
+            }
+        }
+
+        private static synchronized byte[] getIconBytes(String name) {
+            if (ICON_CACHE.containsKey(name)) {
+                return ICON_CACHE.get(name);
+            }
+            String resPath = "/assets/modularnuclear/textures/sim/icons/" + name + ".png";
+            try (java.io.InputStream in = NuclearSimulationWebServer.class.getResourceAsStream(resPath)) {
+                if (in != null) {
+                    byte[] data = readAllStream(in);
+                    ICON_CACHE.put(name, data);
+                    return data;
+                }
+            } catch (Exception ignored) {}
+
+            java.io.File[] searchDirs = { new java.io.File("mods/ModularNuclear/src/main/resources" + resPath),
+                new java.io.File("src/main/resources" + resPath),
+                new java.io.File("/home/mgomezch/stuff/dev/nh-dev/mods/ModularNuclear/src/main/resources" + resPath) };
+            for (java.io.File f : searchDirs) {
+                if (f.exists()) {
+                    try {
+                        byte[] data = java.nio.file.Files.readAllBytes(f.toPath());
+                        ICON_CACHE.put(name, data);
+                        return data;
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            return null;
+        }
+
+        private static byte[] readAllStream(java.io.InputStream in) throws IOException {
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[2048];
+            int n;
+            while ((n = in.read(buf)) != -1) {
+                baos.write(buf, 0, n);
+            }
+            return baos.toByteArray();
+        }
+    }
+
     static class IndexHandler implements HttpHandler {
 
         @Override
@@ -782,13 +852,72 @@ public class NuclearSimulationWebServer {
               .cell.selected { border: 2px solid var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
               .cell.wall-cell { background: transparent !important; border: none !important; color: transparent; cursor: default !important; opacity: 0; pointer-events: none; }
               .cell.wall-cell:hover { transform: none !important; border: none !important; }
-              .cell .cell-temp { font-size: var(--cell-temp-size); opacity: 0.9; line-height: 1; margin-top: 1px; }
+              .cell .cell-icon {
+                width: calc(var(--cell-size) * 0.70);
+                height: calc(var(--cell-size) * 0.70);
+                image-rendering: pixelated;
+                image-rendering: -moz-crisp-edges;
+                image-rendering: crisp-edges;
+                pointer-events: none;
+                z-index: 1;
+                filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+              }
+              .cell .cell-temp {
+                font-size: var(--cell-temp-size);
+                opacity: 0.95;
+                line-height: 1;
+                margin-top: 1px;
+                z-index: 2;
+                text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+                font-weight: 700;
+              }
               .cell .cell-code { font-size: var(--cell-code-size); line-height: 1.1; }
+              .cell .cell-durability {
+                position: absolute;
+                bottom: 2px;
+                left: 3px;
+                right: 3px;
+                height: 3px;
+                background: rgba(0,0,0,0.7);
+                border-radius: 1px;
+                z-index: 3;
+                overflow: hidden;
+              }
+              .cell .cell-durability-fill {
+                height: 100%;
+                border-radius: 1px;
+                transition: width 0.15s ease;
+              }
 
               /* Palette */
               .palette { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-              .palette-btn { padding: 8px; text-align: left; font-size: 0.75rem; border-radius: 4px; display: flex; align-items: center; gap: 8px; min-height: 38px; }
+              .palette-btn { padding: 6px 8px; text-align: left; font-size: 0.75rem; border-radius: 4px; display: flex; align-items: center; gap: 8px; min-height: 38px; }
               .palette-btn.active { border-color: var(--accent); background: #29384f; box-shadow: inset 0 0 5px var(--accent-glow); }
+              .palette-icon {
+                width: 22px;
+                height: 22px;
+                image-rendering: pixelated;
+                image-rendering: -moz-crisp-edges;
+                image-rendering: crisp-edges;
+                flex-shrink: 0;
+              }
+              .palette-empty-icon {
+                width: 22px;
+                height: 22px;
+                border: 1px dashed rgba(255,255,255,0.25);
+                border-radius: 3px;
+              }
+              .inspector-icon {
+                width: 32px;
+                height: 32px;
+                image-rendering: pixelated;
+                image-rendering: -moz-crisp-edges;
+                image-rendering: crisp-edges;
+                background: rgba(0,0,0,0.3);
+                border-radius: 4px;
+                padding: 2px;
+                border: 1px solid var(--border-color);
+              }
 
               /* Stats display */
               .stat-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
@@ -1186,7 +1315,10 @@ public class NuclearSimulationWebServer {
                 btn.className = "palette-btn" + (interactionMode === "PAINT" && p.type === activePaletteType ? " active" : "");
                 btn.dataset.type = p.type;
                 btn.style.borderLeft = "4px solid " + p.color;
-                btn.innerHTML = `<strong>${p.code}</strong> <span>${p.name}</span>`;
+                const iconHtml = p.type !== "EMPTY"
+                  ? `<img class="palette-icon" src="/api/icon/${p.type}" alt="${p.code}" />`
+                  : `<div class="palette-icon palette-empty-icon"></div>`;
+                btn.innerHTML = `${iconHtml} <span>${p.name}</span>`;
                 btn.onclick = () => {
                   activePaletteType = p.type;
                   setInteractionMode("PAINT");
@@ -1453,7 +1585,12 @@ public class NuclearSimulationWebServer {
                     cell.className = "cell";
                     cell.dataset.x = x;
                     cell.dataset.y = y;
-                    cell.innerHTML = `<span class="cell-code"></span><span class="cell-temp"${hideTemp ? ' style="display:none;"' : ''}></span>`;
+                    cell.innerHTML = `
+                      <img class="cell-icon" style="display:none;" />
+                      <span class="cell-code" style="display:none;"></span>
+                      <span class="cell-temp"${hideTemp ? ' style="display:none;"' : ''}></span>
+                      <div class="cell-durability" style="display:none;"><div class="cell-durability-fill"></div></div>
+                    `;
                     cell.addEventListener("click", (e) => {
                       const cx = parseInt(cell.dataset.x);
                       const cy = parseInt(cell.dataset.y);
@@ -1471,9 +1608,19 @@ public class NuclearSimulationWebServer {
                 cell.dataset.y = t.y;
 
                 const isSelected = selectedTilePos && selectedTilePos.x === t.x && selectedTilePos.y === t.y;
+                const imgEl = cell.children[0];
+                const codeEl = cell.children[1];
+                const tempEl = cell.children[2];
+                const durEl = cell.children[3];
+                const durFillEl = durEl ? durEl.children[0] : null;
+
                 if (t.code === "NL") {
                   cell.className = "cell wall-cell" + (isSelected ? " selected" : "");
                   cell.style.backgroundColor = "#181b1f";
+                  if (imgEl) imgEl.style.display = "none";
+                  if (codeEl) codeEl.style.display = "none";
+                  if (tempEl) tempEl.style.display = "none";
+                  if (durEl) durEl.style.display = "none";
                 } else {
                   const desiredClass = "cell" + (isSelected ? " selected" : "");
                   if (cell.className !== desiredClass) {
@@ -1483,16 +1630,47 @@ public class NuclearSimulationWebServer {
                   if (cell.style.backgroundColor !== bg) {
                     cell.style.backgroundColor = bg;
                   }
-                }
 
-                const codeEl = cell.children[0];
-                const tempEl = cell.children[1];
-                if (codeEl.textContent !== t.code) {
-                  codeEl.textContent = t.code;
-                }
-                const tempStr = Math.round(t.temp) + "°C";
-                if (tempEl.textContent !== tempStr) {
-                  tempEl.textContent = tempStr;
+                  if (t.type && t.type !== "EMPTY") {
+                    const iconSrc = `/api/icon/${t.type}`;
+                    if (imgEl.getAttribute("src") !== iconSrc) {
+                      imgEl.src = iconSrc;
+                    }
+                    if (imgEl.style.display !== "block") {
+                      imgEl.style.display = "block";
+                    }
+                    if (codeEl.style.display !== "none") {
+                      codeEl.style.display = "none";
+                    }
+                  } else {
+                    if (imgEl.style.display !== "none") {
+                      imgEl.style.display = "none";
+                    }
+                    if (codeEl.style.display !== "none") {
+                      codeEl.style.display = "none";
+                    }
+                  }
+
+                  const tempStr = Math.round(t.temp) + "°C";
+                  if (tempEl.textContent !== tempStr) {
+                    tempEl.textContent = tempStr;
+                  }
+                  if (!hideTemp && tempEl.style.display === "none") {
+                    tempEl.style.display = "block";
+                  } else if (hideTemp && tempEl.style.display !== "none") {
+                    tempEl.style.display = "none";
+                  }
+
+                  if (t.isFuel && t.durabilityPct < 99.9) {
+                    if (durEl) {
+                      durEl.style.display = "block";
+                      const pct = Math.max(0, Math.min(100, t.durabilityPct));
+                      durFillEl.style.width = pct + "%";
+                      durFillEl.style.backgroundColor = pct > 50 ? "#22c55e" : (pct > 20 ? "#eab308" : "#ef4444");
+                    }
+                  } else if (durEl) {
+                    durEl.style.display = "none";
+                  }
                 }
               });
             }
@@ -1554,9 +1732,18 @@ public class NuclearSimulationWebServer {
                   <div class="stat-row"><span>Hatch Status:</span><span class="stat-val">${dryBadge}</span></div>
                 `;
               }
+              const iconHtml = (t.type && t.type !== "EMPTY" && t.code !== "NL")
+                ? `<img src="/api/icon/${t.type}" class="inspector-icon" alt="${t.code}" />`
+                : "";
+
               el.innerHTML = `
-                <div class="stat-row"><span>Position:</span><span class="stat-val">(${t.x}, ${t.y})</span></div>
-                <div class="stat-row"><span>Component:</span><span class="stat-val">${t.name}</span></div>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                  ${iconHtml}
+                  <div>
+                    <div style="font-weight:bold; font-size:1rem; color:#fff;">${t.name}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">Position: (${t.x}, ${t.y})</div>
+                  </div>
+                </div>
                 <div class="stat-row"><span>Temperature:</span><span class="stat-val">${t.temp} °C</span></div>
                 ${extraHtml}
               `;

@@ -40,3 +40,8 @@ channels.modularnuclear.nuclear_hatch=Decides the type and tier of core hatches.
 channels.modularnuclear.master.nuclear_hatch=Nuclear Hatch Tier
 channels.gregtech.nuclear_hatch=Decides the type and tier of core hatches. Starts at §6Nuclear Core Bus (Items)§r at value 0, and §6Nuclear Core Hatches (LV-UHV for fluids)§r from value 1 to 9.
 channels.gregtech.master.nuclear_hatch=Nuclear Hatch Tier
+
+fluid.heavywater=Heavy Water
+fluid.highpressuredistilledwater=High Pressure Distilled Water
+fluid.highpressureheavywater=High Pressure Heavy Water
+

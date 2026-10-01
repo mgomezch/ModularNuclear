@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
@@ -30,6 +31,7 @@ public class ModularNuclear {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         ModularNuclearTextures.init();
+        ModFluids.init();
         ModBlocks.init();
         ModItems.init();
     }
