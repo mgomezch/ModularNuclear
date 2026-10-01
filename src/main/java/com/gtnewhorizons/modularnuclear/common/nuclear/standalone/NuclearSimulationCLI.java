@@ -623,7 +623,110 @@ public class NuclearSimulationCLI {
             .append(NuclearSimulationEngine.ambientTemp)
             .append(",");
         sb.append("\"ic2CoolantHeatPerLiter\":")
-            .append(NuclearSimulationEngine.ic2CoolantHeatPerLiter);
+            .append(NuclearSimulationEngine.ic2CoolantHeatPerLiter)
+            .append(",");
+
+        TurbineCalculator.ScenarioHypotheticalResult sc = grid.getLastScenariosResult();
+        if (sc == null) {
+            sc = TurbineCalculator.calculateBothScenarios(
+                actualTier,
+                grid.getFlowRegularSteam(),
+                grid.getFlowSuperheatedSteam(),
+                grid.getFlowSupercriticalSteam(),
+                grid.getFlowHeavyWaterSteam(),
+                grid.getFlowHPHeavyWaterSteam(),
+                grid.getFlowHotCoolant(),
+                grid.getFlowDirectEU(),
+                null,
+                null);
+        }
+        sb.append("\"scenarios\":{");
+        sb.append("\"tight\":{")
+            .append("\"material\":\"")
+            .append(sc.tightConfig.material.displayName)
+            .append("\",")
+            .append("\"size\":\"")
+            .append(sc.tightConfig.size.displayName)
+            .append("\",")
+            .append("\"mode\":\"")
+            .append(sc.tightConfig.mode.name())
+            .append("\",")
+            .append("\"efficiency\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.tightConfig.efficiency))
+            .append(",")
+            .append("\"description\":\"")
+            .append(sc.tightConfig.description)
+            .append("\",")
+            .append("\"powerEUt\":")
+            .append(String.format(java.util.Locale.US, "%.1f", sc.tightResult.totalPowerEUt))
+            .append(",")
+            .append("\"totalTurbinesNeeded\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.totalTurbinesNeeded))
+            .append(",")
+            .append("\"lstTurbinesNeeded\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.lstTurbinesNeeded))
+            .append(",")
+            .append("\"xlstTurbinesNeeded\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.xlstTurbinesNeeded))
+            .append(",")
+            .append("\"xlstHpTurbinesNeeded\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.xlstHpTurbinesNeeded))
+            .append(",")
+            .append("\"xlstScTurbinesNeeded\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.xlstScTurbinesNeeded))
+            .append(",")
+            .append("\"coolantMachine\":\"")
+            .append(sc.tightResult.coolantMachine)
+            .append("\",")
+            .append("\"coolantMachineCount\":")
+            .append(String.format(java.util.Locale.US, "%.1f", sc.tightResult.coolantMachineCount))
+            .append("},");
+        sb.append("\"loose\":{")
+            .append("\"material\":\"")
+            .append(sc.looseConfig.material.displayName)
+            .append("\",")
+            .append("\"size\":\"")
+            .append(sc.looseConfig.size.displayName)
+            .append("\",")
+            .append("\"mode\":\"")
+            .append(sc.looseConfig.mode.name())
+            .append("\",")
+            .append("\"efficiency\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.looseConfig.efficiency))
+            .append(",")
+            .append("\"description\":\"")
+            .append(sc.looseConfig.description)
+            .append("\",")
+            .append("\"powerEUt\":")
+            .append(String.format(java.util.Locale.US, "%.1f", sc.looseResult.totalPowerEUt))
+            .append(",")
+            .append("\"totalTurbinesNeeded\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.totalTurbinesNeeded))
+            .append(",")
+            .append("\"lstTurbinesNeeded\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.lstTurbinesNeeded))
+            .append(",")
+            .append("\"xlstTurbinesNeeded\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.xlstTurbinesNeeded))
+            .append(",")
+            .append("\"xlstHpTurbinesNeeded\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.xlstHpTurbinesNeeded))
+            .append(",")
+            .append("\"xlstScTurbinesNeeded\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.xlstScTurbinesNeeded))
+            .append(",")
+            .append("\"coolantMachine\":\"")
+            .append(sc.looseResult.coolantMachine)
+            .append("\",")
+            .append("\"coolantMachineCount\":")
+            .append(String.format(java.util.Locale.US, "%.1f", sc.looseResult.coolantMachineCount))
+            .append("},");
+        sb.append("\"turbineReductionRatio\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.turbineReductionRatio))
+            .append(",");
+        sb.append("\"powerReductionRatio\":")
+            .append(String.format(java.util.Locale.US, "%.2f", sc.powerReductionRatio));
+        sb.append("}");
         sb.append("}");
         System.out.println(sb.toString());
     }
@@ -871,6 +974,57 @@ public class NuclearSimulationCLI {
                     grid.getFlowSupercriticalSteam(),
                     grid.getFlowHeavyWaterSteam(),
                     grid.getFlowHPHeavyWaterSteam()));
+            System.out.println();
+        }
+
+        TurbineCalculator.ScenarioHypotheticalResult sc = grid.getLastScenariosResult();
+        if (sc != null) {
+            System.out.println(ANSI_CYAN + "=== HYPOTHETICAL OPERATIONAL SCENARIOS ===" + ANSI_RESET);
+            System.out.println(String.format("  Scenario A [Tight / Max Efficiency]: %s", sc.tightConfig.description));
+            System.out.println(
+                String.format(
+                    "    - Power Generation:    %.1f EU/t (%s)",
+                    sc.tightResult.totalPowerEUt,
+                    getVoltageTier(sc.tightResult.totalPowerEUt)));
+            System.out.println(
+                String.format(
+                    "    - Turbines Needed:     %.2f turbines (Opt Flow: %.0f L/t)",
+                    sc.tightResult.totalTurbinesNeeded,
+                    sc.tightResult.optFlowPerTurbine));
+            if (!"None".equals(sc.tightResult.coolantMachine)) {
+                System.out.println(
+                    String.format(
+                        "    - Coolant Processing:  %.0f x %s",
+                        sc.tightResult.coolantMachineCount,
+                        sc.tightResult.coolantMachine));
+            }
+            System.out.println(String.format("  Scenario B [Loose / High Throughput]: %s", sc.looseConfig.description));
+            System.out.println(
+                String.format(
+                    "    - Power Generation:    %.1f EU/t (%s)",
+                    sc.looseResult.totalPowerEUt,
+                    getVoltageTier(sc.looseResult.totalPowerEUt)));
+            System.out.println(
+                String.format(
+                    "    - Turbines Needed:     %.2f turbines (Opt Flow: %.0f L/t)",
+                    sc.looseResult.totalTurbinesNeeded,
+                    sc.looseResult.optFlowPerTurbine));
+            if (!"None".equals(sc.looseResult.coolantMachine)) {
+                System.out.println(
+                    String.format(
+                        "    - Coolant Processing:  %.0f x %s",
+                        sc.looseResult.coolantMachineCount,
+                        sc.looseResult.coolantMachine));
+            }
+            System.out.println(
+                String.format(
+                    "  Infrastructure Comparison: Loose uses %.2fx fewer turbines (%.1f%% of Tight power output)",
+                    sc.looseResult.totalTurbinesNeeded > 0
+                        ? (sc.tightResult.totalTurbinesNeeded / sc.looseResult.totalTurbinesNeeded)
+                        : 1.0,
+                    sc.tightResult.totalPowerEUt > 0
+                        ? (sc.looseResult.totalPowerEUt / sc.tightResult.totalPowerEUt * 100.0)
+                        : 100.0));
             System.out.println();
         }
 

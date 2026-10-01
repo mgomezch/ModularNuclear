@@ -57,6 +57,7 @@ public class StandaloneNuclearGrid {
     private double flowDirectEU = 0;
 
     private TurbineCalculator.PowerEstimationResult lastPowerResult = new TurbineCalculator.PowerEstimationResult();
+    private TurbineCalculator.ScenarioHypotheticalResult lastScenariosResult = null;
 
     public static class TickTelemetry {
 
@@ -218,6 +219,8 @@ public class StandaloneNuclearGrid {
         this.width = width;
         this.height = height;
         this.pipeTier = pipeTier;
+        applyDefaultTurbinesForTier();
+        this.lastScenariosResult = TurbineCalculator.calculateBothScenarios(pipeTier, 0, 0, 0, 0, 0, 0, 0, null, null);
         this.grid = new SimTile[width][height];
         clearGrid();
     }
@@ -496,6 +499,18 @@ public class StandaloneNuclearGrid {
             turbineSize,
             turbineFitting);
 
+        lastScenariosResult = TurbineCalculator.calculateBothScenarios(
+            pipeTier,
+            flowRegularSteam,
+            flowSuperheatedSteam,
+            flowSupercriticalSteam,
+            flowHeavyWaterSteam,
+            flowHPHeavyWaterSteam,
+            flowHotCoolant,
+            flowDirectEU,
+            null,
+            null);
+
         totalEnergyEU += lastPowerResult.totalPowerEUt;
 
         // Telemetry sampling (keep last 500 ticks for charts)
@@ -563,62 +578,48 @@ public class StandaloneNuclearGrid {
         switch (presetName.toUpperCase()) {
             case "BEST_ELECTRUM_5X5", "ELECTRUM_POWER_5X5", "BASIC_ELECTRUM_5X5" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.fromString("Oriharukon");
-                this.turbineSize = TurbineCalculator.TurbineSize.NORMAL;
-                this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
+                applyDefaultTurbinesForTier();
                 loadLayout("RB,HC,HC,HC,RB;HC,U4,U2,U4,HC;HC,U2,HC,HC,HC;HC,U4,U2,U4,HC;RB,HC,HC,HC,RB");
                 updateHatchCapacities(NuclearSimulationEngine.hatchCoolantCapacity);
             }
             case "BEST_PLATINUM_9X9", "BREEDER_9X9", "BEST_PLATINUM_7X7", "BREEDER_7X7" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.ELVEN_ELEMENTIUM;
-                this.turbineSize = TurbineCalculator.TurbineSize.NORMAL;
-                this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
+                applyDefaultTurbinesForTier();
                 loadLayout(
                     "RB,RB,HC,HC,HC,HC,HC,RB,RB;RB,HC,HC,HC,HC,HC,HC,HC,RB;HC,HC,U4,HC,U4,HC,U4,HC,HC;HC,HC,HC,U4,HC,U4,HC,HC,HC;HC,HC,U4,HC,U4,HC,U4,HC,HC;HC,HC,HC,HC,HC,HC,HC,HC,HC;HC,HC,HC,HC,HC,HC,HC,HC,HC;RB,HC,HC,HC,HC,HC,HC,HC,RB;RB,RB,HC,HC,HC,HC,HC,RB,RB");
                 updateHatchCapacities(NuclearSimulationEngine.hatchCoolantCapacity);
             }
             case "BEST_OSMIUM_9X9", "SUPERHEATED_POWER_9X9", "BEST_OSMIUM_7X7", "SUPERHEATED_POWER_7X7" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_E;
-                this.turbineSize = TurbineCalculator.TurbineSize.NORMAL;
-                this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
+                applyDefaultTurbinesForTier();
                 loadLayout(
                     "RB,RB,HC,HC,HC,HC,HC,RB,RB;RB,M4,HC,M4,HC,M4,HC,M4,RB;HC,HC,M4,HC,M4,HC,M4,HC,HC;HC,M4,HC,M4,HC,M4,HC,M4,HC;HC,HC,M4,HC,M4,HC,M2,HC,HC;HC,M2,HC,M2,HC,HC,HC,HC,HC;HC,HC,HC,HC,HC,HC,HC,HC,HC;RB,HC,HC,HC,HC,HC,HC,HC,RB;RB,RB,HC,HC,HC,HC,HC,RB,RB");
                 updateHatchCapacities(NuclearSimulationEngine.hatchCoolantCapacity);
             }
             case "BEST_QUANTIUM_13X13", "CANDU_HEAVY_WATER_13X13", "BEST_QUANTIUM_9X9", "CANDU_HEAVY_WATER_9X9" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_QUANTIUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_E;
-                this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
-                this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
+                applyDefaultTurbinesForTier();
                 loadLayout(
                     "RB,RB,RB,HP,HP,HP,HP,HP,HP,HP,RB,RB,RB;RB,RB,HP,HP,HP,HP,HP,HP,HP,HP,HP,RB,RB;RB,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,RB;HP,HP,HP,NQ,HP,NQ,HP,NQ,HP,NQ,HP,HP,HP;HP,HP,HP,HP,NQ,HP,NQ,HP,NQ,HP,HP,HP,HP;HP,HP,HP,NQ,HP,NQ,HP,NQ,HP,NQ,HP,HP,HP;HP,HP,HP,HP,NQ,HP,NQ,HP,NQ,HP,HP,HP,HP;HP,HP,HP,NQ,HP,NQ,HP,NQ,HP,NQ,HP,HP,HP;HP,HP,HP,HP,NQ,HP,NQ,HP,HP,HP,HP,HP,HP;HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP;RB,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,RB;RB,RB,HP,HP,HP,HP,HP,HP,HP,HP,HP,RB,RB;RB,RB,RB,HP,HP,HP,HP,HP,HP,HP,RB,RB,RB");
                 updateHatchCapacities(NuclearSimulationEngine.hatchCoolantCapacity);
             }
             case "BEST_FLUXED_13X13", "FLUXED_SUPERCRITICAL_13X13", "BEST_FLUXED_9X9", "FLUXED_SUPERCRITICAL_9X9" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_S;
-                this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
-                this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
+                applyDefaultTurbinesForTier();
                 loadLayout(
                     "RB,RB,RB,HH,HH,HH,HH,HH,HH,HH,RB,RB,RB;RB,RB,HH,HH,HH,HH,HH,HH,HH,HH,HH,RB,RB;RB,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,RB;HH,HH,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,HH,HH;HH,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,HH;HH,HH,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,HH,HH;HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH;HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH;HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH;HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH;RB,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,RB;RB,RB,HH,HH,HH,HH,HH,HH,HH,HH,HH,RB,RB;RB,RB,RB,HH,HH,HH,HH,HH,HH,HH,RB,RB,RB");
                 updateHatchCapacities(NuclearSimulationEngine.hatchCoolantCapacity);
             }
             case "BEST_PLUTONIUM_13X13", "BLACK_PLUTONIUM_13X13", "BEST_PLUTONIUM_9X9", "BLACK_PLUTONIUM_9X9" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.INFINITY;
-                this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
-                this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
+                applyDefaultTurbinesForTier();
                 loadLayout(
                     "RB,RB,RB,HH,HH,HH,HH,HH,HH,HH,RB,RB,RB;RB,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,RB;RB,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,RB;HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH;HH,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,HH;HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH;HH,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,HH;HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH;HH,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,HH;HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,NQ,HH,HH,HH;RB,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,RB;RB,RB,HH,HH,HH,HH,HH,HH,HH,HH,HH,RB,RB;RB,RB,RB,HH,HH,HH,HH,HH,HH,HH,RB,RB,RB");
                 updateHatchCapacities(NuclearSimulationEngine.hatchCoolantCapacity);
             }
             default -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.fromString("Oriharukon");
-                this.turbineSize = TurbineCalculator.TurbineSize.NORMAL;
-                this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
+                applyDefaultTurbinesForTier();
                 loadLayout("RB,HC,HC,HC,RB;HC,U4,U2,U4,HC;HC,U2,HC,HC,HC;HC,U4,U2,U4,HC;RB,HC,HC,HC,RB");
                 updateHatchCapacities(NuclearSimulationEngine.hatchCoolantCapacity);
             }
@@ -719,6 +720,14 @@ public class StandaloneNuclearGrid {
 
     public void setPipeTier(int pipeTier) {
         this.pipeTier = pipeTier;
+        applyDefaultTurbinesForTier();
+    }
+
+    public void applyDefaultTurbinesForTier() {
+        TurbineCalculator.ScenarioTurbineConfig cfg = TurbineCalculator.getDefaultTightTurbine(this.pipeTier);
+        this.turbineMaterial = cfg.material;
+        this.turbineSize = cfg.size;
+        this.turbineFitting = cfg.mode;
     }
 
     public long getCurrentTick() {
@@ -859,6 +868,10 @@ public class StandaloneNuclearGrid {
 
     public TurbineCalculator.PowerEstimationResult getLastPowerResult() {
         return lastPowerResult;
+    }
+
+    public TurbineCalculator.ScenarioHypotheticalResult getLastScenariosResult() {
+        return lastScenariosResult;
     }
 
     public int getActiveFuelRodCount() {

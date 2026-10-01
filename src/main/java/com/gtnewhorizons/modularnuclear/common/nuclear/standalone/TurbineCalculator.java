@@ -15,11 +15,11 @@ public class TurbineCalculator {
         SHADOW_METAL("Shadow Metal", 1.45, 0.98, 76800, 950000),
         ICHORIUM("Ichorium", 2.25, 1.52, 460800, 12000000),
         DURANIUM("Duranium", 2.15, 1.66, 1228800, 103778507),
-        GAIA_SPIRIT("Gaia Spirit", 1.95, 1.74, 1500000, 7848249),
+        GAIA_SPIRIT("Gaia Spirit", 1.95, 1.54, 1125000, 3654858),
         ADAMANTIUM("Adamantium", 1.80, 1.58, 1200000, 5360459),
         EXT_UNST_NAQUADAH("Ext. Unst. Naquadah", 1.90, 1.66, 4000000, 20269239),
         COSMIC_NEUTRONIUM("Cosmic Neutronium", 2.00, 1.74, 5000000, 23544749),
-        INFINITY("Infinity", 2.40, 2.12, 35000000, 162850748),
+        INFINITY("Infinity", 2.12, 2.12, 122138061, 162850748),
         TUNGSTENSTEEL("Tungstensteel", 1.30, 0.88, 48000, 600000),
         TITANIUM("Titanium", 1.20, 0.81, 32000, 400000);
 
@@ -139,7 +139,13 @@ public class TurbineCalculator {
         PowerEstimationResult res = new PowerEstimationResult();
 
         boolean isTight = (mode == FittingMode.TIGHT);
-        res.efficiency = isTight ? material.tightEff : material.looseEff;
+        double eff = isTight ? material.tightEff : material.looseEff;
+        // User progression specifications:
+        // Huge Duranium Tight achieves 240% efficiency
+        if (material == TurbineMaterial.DURANIUM && size == TurbineSize.HUGE && isTight) {
+            eff = 2.40;
+        }
+        res.efficiency = eff;
         double baseOptFlow = isTight ? material.optFlowLargeTight : material.optFlowLargeLoose;
         double xlstOptFlow = baseOptFlow * size.multiplier;
 
@@ -299,5 +305,168 @@ public class TurbineCalculator {
             material,
             size,
             mode);
+    }
+
+    public static class ScenarioTurbineConfig {
+
+        public final TurbineMaterial material;
+        public final TurbineSize size;
+        public final FittingMode mode;
+        public final double efficiency;
+        public final String description;
+
+        public ScenarioTurbineConfig(TurbineMaterial material, TurbineSize size, FittingMode mode, double efficiency,
+            String description) {
+            this.material = material;
+            this.size = size;
+            this.mode = mode;
+            this.efficiency = efficiency;
+            this.description = description;
+        }
+    }
+
+    public static class ScenarioHypotheticalResult {
+
+        public PowerEstimationResult tightResult;
+        public PowerEstimationResult looseResult;
+        public ScenarioTurbineConfig tightConfig;
+        public ScenarioTurbineConfig looseConfig;
+        public double turbineReductionRatio;
+        public double powerReductionRatio;
+    }
+
+    public static ScenarioTurbineConfig getDefaultTightTurbine(int tier) {
+        return switch (tier) {
+            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_ELECTRUM -> new ScenarioTurbineConfig(
+                TurbineMaterial.ORINARUKON,
+                TurbineSize.NORMAL,
+                FittingMode.TIGHT,
+                1.55,
+                "Normal Oriharukon (155%)");
+            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_PLATINUM -> new ScenarioTurbineConfig(
+                TurbineMaterial.ICHORIUM,
+                TurbineSize.LARGE,
+                FittingMode.TIGHT,
+                2.25,
+                "Large Ichorium (225%)");
+            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_OSMIUM -> new ScenarioTurbineConfig(
+                TurbineMaterial.DURANIUM,
+                TurbineSize.LARGE,
+                FittingMode.TIGHT,
+                2.15,
+                "Large Duranium (215%)");
+            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_QUANTIUM, com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM -> new ScenarioTurbineConfig(
+                TurbineMaterial.DURANIUM,
+                TurbineSize.HUGE,
+                FittingMode.TIGHT,
+                2.40,
+                "Huge Duranium (240%)");
+            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM -> new ScenarioTurbineConfig(
+                TurbineMaterial.INFINITY,
+                TurbineSize.HUGE,
+                FittingMode.TIGHT,
+                2.12,
+                "Huge Infinity (212%)");
+            default -> new ScenarioTurbineConfig(
+                TurbineMaterial.ORINARUKON,
+                TurbineSize.NORMAL,
+                FittingMode.TIGHT,
+                1.55,
+                "Normal Oriharukon (155%)");
+        };
+    }
+
+    public static ScenarioTurbineConfig getDefaultLooseTurbine(int tier) {
+        return switch (tier) {
+            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_ELECTRUM -> new ScenarioTurbineConfig(
+                TurbineMaterial.ORINARUKON,
+                TurbineSize.NORMAL,
+                FittingMode.LOOSE,
+                1.05,
+                "Normal Oriharukon (105%)");
+            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_PLATINUM -> new ScenarioTurbineConfig(
+                TurbineMaterial.HSS_S,
+                TurbineSize.LARGE,
+                FittingMode.LOOSE,
+                1.23,
+                "Large HSS-S (123%)");
+            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_OSMIUM -> new ScenarioTurbineConfig(
+                TurbineMaterial.GAIA_SPIRIT,
+                TurbineSize.LARGE,
+                FittingMode.LOOSE,
+                1.54,
+                "Large Gaia Spirit (154%)");
+            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_QUANTIUM, com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM -> new ScenarioTurbineConfig(
+                TurbineMaterial.DURANIUM,
+                TurbineSize.HUGE,
+                FittingMode.LOOSE,
+                1.66,
+                "Huge Duranium (166%)");
+            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM -> new ScenarioTurbineConfig(
+                TurbineMaterial.INFINITY,
+                TurbineSize.HUGE,
+                FittingMode.LOOSE,
+                2.12,
+                "Huge Infinity (212%)");
+            default -> new ScenarioTurbineConfig(
+                TurbineMaterial.ORINARUKON,
+                TurbineSize.NORMAL,
+                FittingMode.LOOSE,
+                1.05,
+                "Normal Oriharukon (105%)");
+        };
+    }
+
+    public static ScenarioHypotheticalResult calculateBothScenarios(int tier, double regularSteamFlow,
+        double superheatedSteamFlow, double supercriticalSteamFlow, double heavyWaterSteamFlow,
+        double hpHeavyWaterSteamFlow, double hotCoolantFlow, double directPowerEU, ScenarioTurbineConfig tightOverride,
+        ScenarioTurbineConfig looseOverride) {
+
+        ScenarioTurbineConfig tightCfg = tightOverride != null ? tightOverride : getDefaultTightTurbine(tier);
+        ScenarioTurbineConfig looseCfg = looseOverride != null ? looseOverride : getDefaultLooseTurbine(tier);
+
+        ScenarioHypotheticalResult res = new ScenarioHypotheticalResult();
+        res.tightConfig = tightCfg;
+        res.looseConfig = looseCfg;
+
+        res.tightResult = calculatePower(
+            tier,
+            regularSteamFlow,
+            superheatedSteamFlow,
+            supercriticalSteamFlow,
+            heavyWaterSteamFlow,
+            hpHeavyWaterSteamFlow,
+            hotCoolantFlow,
+            directPowerEU,
+            tightCfg.material,
+            tightCfg.size,
+            tightCfg.mode);
+
+        res.looseResult = calculatePower(
+            tier,
+            regularSteamFlow,
+            superheatedSteamFlow,
+            supercriticalSteamFlow,
+            heavyWaterSteamFlow,
+            hpHeavyWaterSteamFlow,
+            hotCoolantFlow,
+            directPowerEU,
+            looseCfg.material,
+            looseCfg.size,
+            looseCfg.mode);
+
+        if (res.looseResult.totalTurbinesNeeded > 0) {
+            res.turbineReductionRatio = res.tightResult.totalTurbinesNeeded / res.looseResult.totalTurbinesNeeded;
+        } else {
+            res.turbineReductionRatio = 1.0;
+        }
+
+        if (res.tightResult.totalPowerEUt > 0) {
+            res.powerReductionRatio = res.looseResult.totalPowerEUt / res.tightResult.totalPowerEUt;
+        } else {
+            res.powerReductionRatio = 1.0;
+        }
+
+        return res;
     }
 }

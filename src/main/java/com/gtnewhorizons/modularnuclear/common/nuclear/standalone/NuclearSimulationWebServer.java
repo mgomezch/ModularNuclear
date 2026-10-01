@@ -307,6 +307,108 @@ public class NuclearSimulationWebServer {
                 .append(String.format(java.util.Locale.US, "%.0f", p.optFlowPerTurbine));
             sb.append("},");
 
+            TurbineCalculator.ScenarioHypotheticalResult sc = grid.getLastScenariosResult();
+            if (sc == null) {
+                sc = TurbineCalculator.calculateBothScenarios(
+                    grid.getPipeTier(),
+                    grid.getFlowRegularSteam(),
+                    grid.getFlowSuperheatedSteam(),
+                    grid.getFlowSupercriticalSteam(),
+                    grid.getFlowHeavyWaterSteam(),
+                    grid.getFlowHPHeavyWaterSteam(),
+                    grid.getFlowHotCoolant(),
+                    grid.getFlowDirectEU(),
+                    null,
+                    null);
+            }
+            sb.append("\"scenarios\":{");
+            sb.append("\"tight\":{")
+                .append("\"material\":\"")
+                .append(sc.tightConfig.material.displayName)
+                .append("\",")
+                .append("\"size\":\"")
+                .append(sc.tightConfig.size.displayName)
+                .append("\",")
+                .append("\"mode\":\"")
+                .append(sc.tightConfig.mode.name())
+                .append("\",")
+                .append("\"efficiency\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.tightConfig.efficiency))
+                .append(",")
+                .append("\"description\":\"")
+                .append(sc.tightConfig.description)
+                .append("\",")
+                .append("\"powerEUt\":")
+                .append(String.format(java.util.Locale.US, "%.1f", sc.tightResult.totalPowerEUt))
+                .append(",")
+                .append("\"totalTurbinesNeeded\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.totalTurbinesNeeded))
+                .append(",")
+                .append("\"lstTurbinesNeeded\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.lstTurbinesNeeded))
+                .append(",")
+                .append("\"xlstTurbinesNeeded\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.xlstTurbinesNeeded))
+                .append(",")
+                .append("\"xlstHpTurbinesNeeded\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.xlstHpTurbinesNeeded))
+                .append(",")
+                .append("\"xlstScTurbinesNeeded\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.xlstScTurbinesNeeded))
+                .append(",")
+                .append("\"coolantMachine\":\"")
+                .append(sc.tightResult.coolantMachine)
+                .append("\",")
+                .append("\"coolantMachineCount\":")
+                .append(String.format(java.util.Locale.US, "%.1f", sc.tightResult.coolantMachineCount))
+                .append("},");
+            sb.append("\"loose\":{")
+                .append("\"material\":\"")
+                .append(sc.looseConfig.material.displayName)
+                .append("\",")
+                .append("\"size\":\"")
+                .append(sc.looseConfig.size.displayName)
+                .append("\",")
+                .append("\"mode\":\"")
+                .append(sc.looseConfig.mode.name())
+                .append("\",")
+                .append("\"efficiency\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.looseConfig.efficiency))
+                .append(",")
+                .append("\"description\":\"")
+                .append(sc.looseConfig.description)
+                .append("\",")
+                .append("\"powerEUt\":")
+                .append(String.format(java.util.Locale.US, "%.1f", sc.looseResult.totalPowerEUt))
+                .append(",")
+                .append("\"totalTurbinesNeeded\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.totalTurbinesNeeded))
+                .append(",")
+                .append("\"lstTurbinesNeeded\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.lstTurbinesNeeded))
+                .append(",")
+                .append("\"xlstTurbinesNeeded\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.xlstTurbinesNeeded))
+                .append(",")
+                .append("\"xlstHpTurbinesNeeded\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.xlstHpTurbinesNeeded))
+                .append(",")
+                .append("\"xlstScTurbinesNeeded\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.xlstScTurbinesNeeded))
+                .append(",")
+                .append("\"coolantMachine\":\"")
+                .append(sc.looseResult.coolantMachine)
+                .append("\",")
+                .append("\"coolantMachineCount\":")
+                .append(String.format(java.util.Locale.US, "%.1f", sc.looseResult.coolantMachineCount))
+                .append("},");
+            sb.append("\"turbineReductionRatio\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.turbineReductionRatio))
+                .append(",");
+            sb.append("\"powerReductionRatio\":")
+                .append(String.format(java.util.Locale.US, "%.2f", sc.powerReductionRatio));
+            sb.append("},");
+
             sb.append("\"params\":{");
             sb.append("\"hatchCapacity\":")
                 .append(NuclearSimulationEngine.hatchCoolantCapacity)
@@ -1217,6 +1319,29 @@ public class NuclearSimulationWebServer {
                   <div class="stat-row" id="ehe-row" style="display:none;"><span>EHE Mode / DW:</span><span class="stat-val" id="turb-ehe-info" style="color:#38bdf8;">None</span></div>
                   <hr style="border:0; border-top:1px solid var(--border-color); margin:6px 0;">
                   <div class="stat-row" style="font-size:0.75rem;"><span>Live Flows (L/t):</span><span class="stat-val" id="turb-flows" style="font-size:0.75rem;">Reg: 0 | SH: 0 | SC: 0</span></div>
+                  <!-- Operational Scenarios (Tier Defaults) -->
+                  <div style="background:#0f172a; border:1px solid #334155; border-radius:6px; padding:8px; margin-top:8px;">
+                    <div style="font-size:0.8rem; font-weight:bold; color:var(--accent); margin-bottom:6px;">⚖️ Operational Scenarios (Tier Defaults)</div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+                      <div style="background:#1e293b; border:1px solid rgba(56,189,248,0.3); border-radius:4px; padding:6px;">
+                        <div style="font-size:0.72rem; font-weight:bold; color:#38bdf8;">Scenario A [Tight]</div>
+                        <div id="scen-a-desc" style="font-size:0.68rem; color:var(--text-muted); margin-bottom:3px;">-</div>
+                        <div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Power: </span><span id="scen-a-pwr" style="font-weight:bold; color:#4ade80;">-</span></div>
+                        <div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Turbines: </span><span id="scen-a-turb" style="font-weight:bold;">-</span></div>
+                        <div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Coolant: </span><span id="scen-a-mach">-</span></div>
+                        <button class="btn btn-sm" onclick="applyScenarioPreset('TIGHT')" style="margin-top:4px; width:100%; font-size:0.68rem; padding:2px 4px; background:#0284c7;">Apply Tight</button>
+                      </div>
+                      <div style="background:#1e293b; border:1px solid rgba(251,191,36,0.3); border-radius:4px; padding:6px;">
+                        <div style="font-size:0.72rem; font-weight:bold; color:#fbbf24;">Scenario B [Loose]</div>
+                        <div id="scen-b-desc" style="font-size:0.68rem; color:var(--text-muted); margin-bottom:3px;">-</div>
+                        <div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Power: </span><span id="scen-b-pwr" style="font-weight:bold; color:#4ade80;">-</span></div>
+                        <div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Turbines: </span><span id="scen-b-turb" style="font-weight:bold;">-</span></div>
+                        <div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Coolant: </span><span id="scen-b-mach">-</span></div>
+                        <button class="btn btn-sm" onclick="applyScenarioPreset('LOOSE')" style="margin-top:4px; width:100%; font-size:0.68rem; padding:2px 4px; background:#d97706;">Apply Loose</button>
+                      </div>
+                    </div>
+                    <div id="scen-compare-text" style="font-size:0.7rem; color:#94a3b8; margin-top:5px; text-align:center;">-</div>
+                  </div>
                 </div>
 
                 <h3>Reactor Telemetry</h3>
@@ -1288,6 +1413,19 @@ public class NuclearSimulationWebServer {
               await fetch(`/api/set-turbine?material=${encodeURIComponent(mat)}&size=${encodeURIComponent(size)}&fitting=${encodeURIComponent(fitting)}`);
               await fetchState();
               schedulePoll();
+            }
+
+            async function applyScenarioPreset(mode) {
+              if (!currentState || !currentState.scenarios) return;
+              const cfg = (mode === 'TIGHT') ? currentState.scenarios.tight : currentState.scenarios.loose;
+              if (!cfg) return;
+              const matSelect = document.getElementById("turbine-mat");
+              matSelect.value = cfg.material;
+              const sizeSelect = document.getElementById("turbine-size");
+              sizeSelect.value = cfg.size.toUpperCase();
+              const fitSelect = document.getElementById("turbine-fitting");
+              fitSelect.value = cfg.mode.toUpperCase();
+              await onTurbineConfigChange();
             }
 
             function getVoltageTier(eut) {
@@ -1480,6 +1618,30 @@ public class NuclearSimulationWebServer {
                   ? currentState.history[currentState.history.length - 1].power
                   : 0;
                 document.getElementById("stat-power").innerText = power.toLocaleString() + " EU/t";
+              }
+
+              // Update Scenario comparison card
+              if (currentState.scenarios) {
+                const sc = currentState.scenarios;
+                if (sc.tight) {
+                  document.getElementById("scen-a-desc").innerText = sc.tight.description || (sc.tight.size + " " + sc.tight.material);
+                  const tierA = getVoltageTier(sc.tight.powerEUt);
+                  document.getElementById("scen-a-pwr").innerText = Math.round(sc.tight.powerEUt).toLocaleString() + " EU/t (" + tierA + ")";
+                  document.getElementById("scen-a-turb").innerText = sc.tight.totalTurbinesNeeded.toFixed(2) + " units";
+                  document.getElementById("scen-a-mach").innerText = sc.tight.coolantMachine !== "None" ? (sc.tight.coolantMachineCount.toFixed(0) + "x " + sc.tight.coolantMachine) : "None";
+                }
+                if (sc.loose) {
+                  document.getElementById("scen-b-desc").innerText = sc.loose.description || (sc.loose.size + " " + sc.loose.material);
+                  const tierB = getVoltageTier(sc.loose.powerEUt);
+                  document.getElementById("scen-b-pwr").innerText = Math.round(sc.loose.powerEUt).toLocaleString() + " EU/t (" + tierB + ")";
+                  document.getElementById("scen-b-turb").innerText = sc.loose.totalTurbinesNeeded.toFixed(2) + " units";
+                  document.getElementById("scen-b-mach").innerText = sc.loose.coolantMachine !== "None" ? (sc.loose.coolantMachineCount.toFixed(0) + "x " + sc.loose.coolantMachine) : "None";
+                }
+                if (sc.tight && sc.loose) {
+                  const ratio = sc.loose.totalTurbinesNeeded > 0 ? (sc.tight.totalTurbinesNeeded / sc.loose.totalTurbinesNeeded).toFixed(1) : "1.0";
+                  const pwrPct = sc.tight.powerEUt > 0 ? ((sc.loose.powerEUt / sc.tight.powerEUt) * 100).toFixed(1) : "100.0";
+                  document.getElementById("scen-compare-text").innerText = `Loose mode uses ${ratio}x fewer turbines for ${pwrPct}% of Tight power output.`;
+                }
               }
 
               // Reconcile and update grid DOM without destroying elements
