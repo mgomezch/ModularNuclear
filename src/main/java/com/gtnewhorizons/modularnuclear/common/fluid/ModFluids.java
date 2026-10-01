@@ -1,16 +1,25 @@
 package com.gtnewhorizons.modularnuclear.common.fluid;
 
 import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.IIcon;
 import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
+
+import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 
 import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import gregtech.api.enums.ItemList;
+import ic2.core.item.ItemFluidCell;
 
 public class ModFluids {
 
@@ -27,6 +36,41 @@ public class ModFluids {
             .getSide()
             .isClient()) {
             registerClientEvents();
+        }
+    }
+
+    public static void registerContainers() {
+        registerFluidContainers(fluidHeavyWater, ModItems.cellHeavyWater);
+        registerFluidContainers(fluidHighPressureDistilledWater, ModItems.cellHighPressureDistilledWater);
+        registerFluidContainers(fluidHighPressureHeavyWater, ModItems.cellHighPressureHeavyWater);
+    }
+
+    private static void registerFluidContainers(Fluid fluid, Item cellItem) {
+        if (fluid == null) return;
+
+        ItemStack emptyCell = ItemList.Cell_Empty.get(1);
+        if (emptyCell != null && cellItem != null) {
+            FluidContainerRegistry.registerFluidContainer(
+                new FluidContainerRegistry.FluidContainerData(
+                    new FluidStack(fluid, 1000),
+                    new ItemStack(cellItem),
+                    emptyCell));
+        }
+
+        if (Loader.isModLoaded("IC2")) {
+            registerUniversalFluidCell(fluid);
+        }
+    }
+
+    private static void registerUniversalFluidCell(Fluid fluid) {
+        ItemStack emptyUniversalCell = ItemList.Cell_Universal_Fluid.get(1);
+        ItemStack filledUniversalCell = ItemFluidCell.getUniversalFluidCell(new FluidStack(fluid, 1000));
+        if (emptyUniversalCell != null && filledUniversalCell != null) {
+            FluidContainerRegistry.registerFluidContainer(
+                new FluidContainerRegistry.FluidContainerData(
+                    new FluidStack(fluid, 1000),
+                    filledUniversalCell,
+                    emptyUniversalCell));
         }
     }
 

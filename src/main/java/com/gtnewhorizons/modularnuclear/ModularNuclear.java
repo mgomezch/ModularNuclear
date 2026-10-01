@@ -7,6 +7,7 @@ import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.recipe.ModRecipes;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 
 import cpw.mods.fml.common.Mod;
@@ -39,10 +40,11 @@ public class ModularNuclear {
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         ModMetaTileEntities.init();
+        ModFluids.registerContainers();
     }
 
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
-        // PostInit recipes
+        ModRecipes.init();
     }
 }

@@ -45,3 +45,7 @@ fluid.heavywater=Heavy Water
 fluid.highpressuredistilledwater=High Pressure Distilled Water
 fluid.highpressureheavywater=High Pressure Heavy Water
 
+item.cellHeavyWater.name=Heavy Water Cell
+item.cellHighPressureDistilledWater.name=High Pressure Distilled Water Cell
+item.cellHighPressureHeavyWater.name=High Pressure Heavy Water Cell
+
