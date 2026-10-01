@@ -131,6 +131,20 @@ public class NuclearSimulationCLI {
                         } catch (NumberFormatException ignored) {}
                     }
                 }
+                case "--global-fission-mult" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            NuclearSimulationEngine.globalThermalFissionMultiplier = Double.parseDouble(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                case "--eu-per-degree" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            NuclearSimulationEngine.setEuPerDegree(Double.parseDouble(args[++i]));
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
                 case "--fission-heat" -> {
                     if (i + 1 < args.length) {
                         try {
@@ -338,6 +352,16 @@ public class NuclearSimulationCLI {
                         case "fission_mult", "fissionmult" -> {
                             try {
                                 NuclearSimulationEngine.thermalFissionMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "global_fission_mult", "globalfissionmult" -> {
+                            try {
+                                NuclearSimulationEngine.globalThermalFissionMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "eu_per_degree", "euperdegree" -> {
+                            try {
+                                NuclearSimulationEngine.setEuPerDegree(Double.parseDouble(v));
                             } catch (Exception ignored) {}
                         }
                         case "fission_heat", "fissionheat" -> {

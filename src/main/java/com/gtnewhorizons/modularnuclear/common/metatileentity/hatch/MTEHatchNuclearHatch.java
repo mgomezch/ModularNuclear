@@ -39,6 +39,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
 
     public FluidStack mInputFluid;
     public final int mCapacity;
+    public com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor mReactor;
 
     public double mTemperature = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     public double mHeatEU = 0.0;
@@ -308,6 +309,11 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity,
         net.minecraft.entity.player.EntityPlayer aPlayer) {
+        if (aPlayer != null && aPlayer.getHeldItem() != null && mReactor != null) {
+            if (mReactor.handleSensorCardLinking(aPlayer.getHeldItem(), aPlayer, mReactor.getBaseMetaTileEntity())) {
+                return true;
+            }
+        }
         openGui(aPlayer);
         return true;
     }

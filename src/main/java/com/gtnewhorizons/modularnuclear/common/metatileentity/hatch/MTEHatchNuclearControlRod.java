@@ -45,6 +45,7 @@ import gregtech.api.util.GTOreDictUnificator;
 public class MTEHatchNuclearControlRod extends MTEHatch {
 
     public static final int SLOT_ROD = 0;
+    public com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor mReactor;
 
     public enum ControlRodType {
 
@@ -307,6 +308,11 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity,
         net.minecraft.entity.player.EntityPlayer aPlayer) {
+        if (aPlayer != null && aPlayer.getHeldItem() != null && mReactor != null) {
+            if (mReactor.handleSensorCardLinking(aPlayer.getHeldItem(), aPlayer, mReactor.getBaseMetaTileEntity())) {
+                return true;
+            }
+        }
         openGui(aPlayer);
         return true;
     }

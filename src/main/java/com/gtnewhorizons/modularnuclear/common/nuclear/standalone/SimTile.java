@@ -4,6 +4,7 @@ import java.util.Random;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 /**
@@ -24,7 +25,15 @@ public class SimTile implements INuclearTile {
         FUEL_THORIUM_SINGLE("Thorium Single", "T1"),
         FUEL_THORIUM_DUAL("Thorium Dual", "T2"),
         FUEL_THORIUM_QUAD("Thorium Quad", "T4"),
+        FUEL_GLOWSTONE("Glowstone Rod", "G1"),
+        FUEL_LITHIUM("Lithium Rod", "LI1"),
+        FUEL_HD_URANIUM("HD Uranium Quad", "HDU"),
+        FUEL_HD_PLUTONIUM("HD Plutonium Quad", "HDP"),
+        FUEL_EXCITED_URANIUM("Excited Uranium Quad", "EXU"),
+        FUEL_EXCITED_PLUTONIUM("Excited Plutonium Quad", "EXP"),
         FUEL_NAQUADAH("Naquadah Rod", "NQ"),
+        FUEL_NAQUADRIA("Naquadria Quad", "NQR"),
+        FUEL_TIBERIUM("Tiberium Quad", "TIB"),
         FUEL_CORE("The Core", "NQ32"),
         HATCH_LIQUID_FUEL_URANIUM("Liquid Uranium Fuel Hatch", "LFU"),
         HATCH_LIQUID_FUEL_THORIUM("Liquid Thorium Fuel Hatch", "LFT"),
@@ -46,6 +55,13 @@ public class SimTile implements INuclearTile {
         INSULATOR_T2_THERMAL_CLOTH("T2 Thermal Cloth", "IT2"),
         INSULATOR_MICA_FOIL("Mica Insulator Foil", "IM"),
         INSULATOR_NAQUARITE_FOIL("Naquarite Universal Insulator Foil", "INQ"),
+        VENT_STANDARD("Heat Vent", "V1"),
+        VENT_ADVANCED("Advanced Heat Vent", "VA"),
+        VENT_OVERCLOCKED("Overclocked Heat Vent", "VO"),
+        VENT_COMPONENT("Component Heat Vent", "VC"),
+        EXCHANGER_STANDARD("Heat Exchanger", "X1"),
+        EXCHANGER_ADVANCED("Advanced Heat Exchanger", "XA"),
+        EXCHANGER_COMPONENT("Component Heat Exchanger", "XC"),
         NULL_WALL("Reflective Wall", "NL");
 
         public final String displayName;
@@ -135,102 +151,124 @@ public class SimTile implements INuclearTile {
         this.durabilityLossAccumulator = 0.0;
         this.directEUProduced = 0;
 
-        switch (this.type) {
-            case FUEL_URANIUM_SINGLE, FUEL_URANIUM_DUAL, FUEL_URANIUM_QUAD -> {
-                this.maxDurability = 20000;
-                this.durability = 20000;
-                this.inputFluidAmount = 0;
-            }
-            case FUEL_MOX_SINGLE, FUEL_MOX_DUAL, FUEL_MOX_QUAD -> {
-                this.maxDurability = 10000;
-                this.durability = 10000;
-                this.inputFluidAmount = 0;
-            }
-            case FUEL_THORIUM_SINGLE, FUEL_THORIUM_DUAL, FUEL_THORIUM_QUAD -> {
-                this.maxDurability = 50000;
-                this.durability = 50000;
-                this.inputFluidAmount = 0;
-            }
-            case FUEL_NAQUADAH -> {
-                this.maxDurability = 100000;
-                this.durability = 100000;
-                this.inputFluidAmount = 0;
-            }
-            case FUEL_CORE -> {
-                this.maxDurability = 320000;
-                this.durability = 320000;
-                this.inputFluidAmount = 0;
-            }
-            case HATCH_LIQUID_FUEL_URANIUM -> {
-                this.inputFluidName = "uraniumbasedliquidfuel";
-                this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
-                this.inputFluidAmount = this.inputFluidCapacity;
-                this.outputFluidName = "depleteduraniumbasedliquidfuel";
-            }
-            case HATCH_LIQUID_FUEL_THORIUM -> {
-                this.inputFluidName = "thoriumbasedliquidfuel";
-                this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
-                this.inputFluidAmount = this.inputFluidCapacity;
-                this.outputFluidName = "depletedthoriumbasedliquidfuel";
-            }
-            case HATCH_LIQUID_FUEL_PLUTONIUM -> {
-                this.inputFluidName = "plutoniumbasedliquidfuel";
-                this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
-                this.inputFluidAmount = this.inputFluidCapacity;
-                this.outputFluidName = "depletedplutoniumbasedliquidfuel";
-            }
-            case HATCH_DISTILLED_WATER -> {
-                this.inputFluidName = "distilledwater";
-                this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
-                this.inputFluidAmount = this.inputFluidCapacity;
-                this.outputFluidName = "steam";
-            }
-            case HATCH_HP_DISTILLED_WATER -> {
-                this.inputFluidName = "highpressuredistilledwater";
-                this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
-                this.inputFluidAmount = this.inputFluidCapacity;
-                this.outputFluidName = "ic2superheatedsteam";
-            }
-            case HATCH_HEAVY_WATER -> {
-                this.inputFluidName = "heavywater";
-                this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
-                this.inputFluidAmount = this.inputFluidCapacity;
-                this.outputFluidName = "fluid.heavywatersteam";
-            }
-            case HATCH_HP_HEAVY_WATER -> {
-                this.inputFluidName = "highpressureheavywater";
-                this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
-                this.inputFluidAmount = this.inputFluidCapacity;
-                this.outputFluidName = "fluid.highpressureheavywatersteam";
-            }
-            case HATCH_IC2_COOLANT -> {
-                this.inputFluidName = "ic2coolant";
-                this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
-                this.inputFluidAmount = this.inputFluidCapacity;
-                this.outputFluidName = "ic2hotcoolant";
-            }
-            case COOLANT_CELL_10K -> {
-                this.maxCellHeat = 10000;
-                this.currentCellHeat = 0;
-            }
-            case COOLANT_CELL_60K -> {
-                this.maxCellHeat = 60000;
-                this.currentCellHeat = 0;
-            }
-            case COOLANT_CELL_360K -> {
-                this.maxCellHeat = 360000;
-                this.currentCellHeat = 0;
-            }
-            default -> {
-                this.inputFluidAmount = 0;
-                this.maxCellHeat = 0;
-                this.currentCellHeat = 0;
+        NuclearFuelType fuel = getFuelType();
+        if (fuel != null && !isLiquidFuelHatch()) {
+            this.maxDurability = fuel.defaultDurability;
+            this.durability = fuel.defaultDurability;
+            this.inputFluidAmount = 0;
+        } else {
+            switch (this.type) {
+                case HATCH_LIQUID_FUEL_URANIUM -> {
+                    this.inputFluidName = "uraniumbasedliquidfuel";
+                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidAmount = this.inputFluidCapacity;
+                    this.outputFluidName = "depleteduraniumbasedliquidfuel";
+                }
+                case HATCH_LIQUID_FUEL_THORIUM -> {
+                    this.inputFluidName = "thoriumbasedliquidfuel";
+                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidAmount = this.inputFluidCapacity;
+                    this.outputFluidName = "depletedthoriumbasedliquidfuel";
+                }
+                case HATCH_LIQUID_FUEL_PLUTONIUM -> {
+                    this.inputFluidName = "plutoniumbasedliquidfuel";
+                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidAmount = this.inputFluidCapacity;
+                    this.outputFluidName = "depletedplutoniumbasedliquidfuel";
+                }
+                case HATCH_DISTILLED_WATER -> {
+                    this.inputFluidName = "distilledwater";
+                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidAmount = this.inputFluidCapacity;
+                    this.outputFluidName = "steam";
+                }
+                case HATCH_HP_DISTILLED_WATER -> {
+                    this.inputFluidName = "highpressuredistilledwater";
+                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidAmount = this.inputFluidCapacity;
+                    this.outputFluidName = "ic2superheatedsteam";
+                }
+                case HATCH_HEAVY_WATER -> {
+                    this.inputFluidName = "heavywater";
+                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidAmount = this.inputFluidCapacity;
+                    this.outputFluidName = "fluid.heavywatersteam";
+                }
+                case HATCH_HP_HEAVY_WATER -> {
+                    this.inputFluidName = "highpressureheavywater";
+                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidAmount = this.inputFluidCapacity;
+                    this.outputFluidName = "fluid.highpressureheavywatersteam";
+                }
+                case HATCH_IC2_COOLANT -> {
+                    this.inputFluidName = "ic2coolant";
+                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidAmount = this.inputFluidCapacity;
+                    this.outputFluidName = "ic2hotcoolant";
+                }
+                case COOLANT_CELL_10K -> {
+                    this.maxCellHeat = 10000;
+                    this.currentCellHeat = 0;
+                }
+                case COOLANT_CELL_60K -> {
+                    this.maxCellHeat = 60000;
+                    this.currentCellHeat = 0;
+                }
+                case COOLANT_CELL_360K -> {
+                    this.maxCellHeat = 360000;
+                    this.currentCellHeat = 0;
+                }
+                case VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED -> {
+                    this.maxCellHeat = 1000;
+                    this.currentCellHeat = 0;
+                }
+                case VENT_COMPONENT -> {
+                    this.maxCellHeat = 0;
+                    this.currentCellHeat = 0;
+                }
+                case EXCHANGER_STANDARD -> {
+                    this.maxCellHeat = 2500;
+                    this.currentCellHeat = 0;
+                }
+                case EXCHANGER_ADVANCED -> {
+                    this.maxCellHeat = 10000;
+                    this.currentCellHeat = 0;
+                }
+                case EXCHANGER_COMPONENT -> {
+                    this.maxCellHeat = 5000;
+                    this.currentCellHeat = 0;
+                }
+                default -> {
+                    this.inputFluidAmount = 0;
+                    this.maxCellHeat = 0;
+                    this.currentCellHeat = 0;
+                }
             }
         }
     }
 
     public TileType getType() {
         return type;
+    }
+
+    @Override
+    public NuclearFuelType getFuelType() {
+        return switch (type) {
+            case FUEL_GLOWSTONE -> NuclearFuelType.GLOWSTONE;
+            case FUEL_LITHIUM -> NuclearFuelType.LITHIUM;
+            case FUEL_THORIUM_SINGLE, FUEL_THORIUM_DUAL, FUEL_THORIUM_QUAD, HATCH_LIQUID_FUEL_THORIUM -> NuclearFuelType.THORIUM;
+            case FUEL_URANIUM_SINGLE, FUEL_URANIUM_DUAL, FUEL_URANIUM_QUAD, HATCH_LIQUID_FUEL_URANIUM -> NuclearFuelType.URANIUM;
+            case FUEL_MOX_SINGLE, FUEL_MOX_DUAL, FUEL_MOX_QUAD -> NuclearFuelType.MOX;
+            case FUEL_HD_URANIUM -> NuclearFuelType.HD_URANIUM;
+            case FUEL_HD_PLUTONIUM, HATCH_LIQUID_FUEL_PLUTONIUM -> NuclearFuelType.HD_PLUTONIUM;
+            case FUEL_EXCITED_URANIUM -> NuclearFuelType.EXCITED_URANIUM;
+            case FUEL_EXCITED_PLUTONIUM -> NuclearFuelType.EXCITED_PLUTONIUM;
+            case FUEL_NAQUADAH -> NuclearFuelType.NAQUADAH;
+            case FUEL_NAQUADRIA -> NuclearFuelType.NAQUADRIA;
+            case FUEL_TIBERIUM -> NuclearFuelType.TIBERIUM;
+            case FUEL_CORE -> NuclearFuelType.THE_CORE;
+            default -> null;
+        };
     }
 
     @Override
@@ -247,19 +285,21 @@ public class SimTile implements INuclearTile {
     public void addHeat(double heat) {
         this.heatEU += heat;
         this.temperature = Math
-            .max(NuclearSimulationEngine.AMBIENT_TEMP, this.temperature + heat / NuclearSimulationEngine.EU_PER_DEGREE);
+            .max(NuclearSimulationEngine.AMBIENT_TEMP, this.temperature + heat / NuclearSimulationEngine.euPerDegree);
     }
 
     @Override
     public double getHeatTransferCoeff() {
+        if (isFuel() && !isLiquidFuelHatch()) return 0.05;
         return switch (type) {
             case HATCH_IC2_COOLANT -> 0.50;
             case HATCH_DISTILLED_WATER, HATCH_HP_DISTILLED_WATER, HATCH_HEAVY_WATER, HATCH_HP_HEAVY_WATER -> 0.25;
             case COOLANT_CELL_10K, COOLANT_CELL_60K, COOLANT_CELL_360K -> 0.40;
+            case VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED, VENT_COMPONENT -> 0.35;
+            case EXCHANGER_STANDARD, EXCHANGER_ADVANCED, EXCHANGER_COMPONENT -> 0.40;
             case REFLECTOR_BERYLLIUM, REFLECTOR_CARBON -> 0.15;
             case RADIOVOLTAIC_HV, RADIOVOLTAIC_EV -> 0.10;
             case INSULATOR_BASIC_THERMAL_CLOTH, INSULATOR_T2_THERMAL_CLOTH, INSULATOR_MICA_FOIL, INSULATOR_NAQUARITE_FOIL -> 0.01;
-            case FUEL_URANIUM_SINGLE, FUEL_URANIUM_DUAL, FUEL_URANIUM_QUAD, FUEL_MOX_SINGLE, FUEL_MOX_DUAL, FUEL_MOX_QUAD, FUEL_THORIUM_SINGLE, FUEL_THORIUM_DUAL, FUEL_THORIUM_QUAD, FUEL_NAQUADAH, FUEL_CORE -> 0.05;
             case HATCH_LIQUID_FUEL_URANIUM, HATCH_LIQUID_FUEL_THORIUM, HATCH_LIQUID_FUEL_PLUTONIUM -> 0.25;
             default -> 0.02;
         };
@@ -293,10 +333,7 @@ public class SimTile implements INuclearTile {
     @Override
     public boolean isFuel() {
         if (depleted) return false;
-        return switch (type) {
-            case FUEL_URANIUM_SINGLE, FUEL_URANIUM_DUAL, FUEL_URANIUM_QUAD, FUEL_MOX_SINGLE, FUEL_MOX_DUAL, FUEL_MOX_QUAD, FUEL_THORIUM_SINGLE, FUEL_THORIUM_DUAL, FUEL_THORIUM_QUAD, FUEL_NAQUADAH, FUEL_CORE, HATCH_LIQUID_FUEL_URANIUM, HATCH_LIQUID_FUEL_THORIUM, HATCH_LIQUID_FUEL_PLUTONIUM -> true;
-            default -> false;
-        };
+        return getFuelType() != null;
     }
 
     public boolean isHatch() {
@@ -325,24 +362,35 @@ public class SimTile implements INuclearTile {
         }
 
         int baseNeutrons = switch (type) {
+            case FUEL_GLOWSTONE, FUEL_LITHIUM -> 1;
+            case FUEL_THORIUM_SINGLE -> 2;
+            case FUEL_THORIUM_DUAL -> 4;
+            case FUEL_THORIUM_QUAD -> 8;
             case FUEL_URANIUM_SINGLE -> 4;
             case FUEL_URANIUM_DUAL -> 8;
             case FUEL_URANIUM_QUAD -> 16;
             case FUEL_MOX_SINGLE -> 8;
             case FUEL_MOX_DUAL -> 16;
             case FUEL_MOX_QUAD -> 32;
-            case FUEL_THORIUM_SINGLE -> 2;
-            case FUEL_THORIUM_DUAL -> 4;
-            case FUEL_THORIUM_QUAD -> 8;
+            case FUEL_HD_URANIUM -> 16;
+            case FUEL_HD_PLUTONIUM -> 24;
+            case FUEL_EXCITED_URANIUM -> 32;
+            case FUEL_EXCITED_PLUTONIUM -> 48;
             case FUEL_NAQUADAH -> 16;
+            case FUEL_NAQUADRIA -> 32;
+            case FUEL_TIBERIUM -> 48;
             case FUEL_CORE -> 512;
             case HATCH_LIQUID_FUEL_THORIUM -> 4;
             case HATCH_LIQUID_FUEL_URANIUM -> 8;
             case HATCH_LIQUID_FUEL_PLUTONIUM -> 16;
-            default -> 0;
+            default -> 4;
         };
 
-        int chainNeutrons = (int) Math.round(lastThermalAbsorbed * NuclearSimulationEngine.thermalFissionMultiplier);
+        NuclearFuelType fuel = getFuelType();
+        double baseFissionMult = (fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0;
+        double effectiveFissionMult = baseFissionMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
+
+        int chainNeutrons = (int) Math.round(lastThermalAbsorbed * effectiveFissionMult);
         int produced = (int) Math.round((baseNeutrons + chainNeutrons) * efficiency);
         lastNeutronsGenerated = produced;
         return produced;
@@ -351,12 +399,10 @@ public class SimTile implements INuclearTile {
     @Override
     public int getNeutronEmissionCount() {
         return switch (type) {
-            case FUEL_URANIUM_SINGLE, FUEL_MOX_SINGLE, FUEL_THORIUM_SINGLE -> 1;
+            case FUEL_URANIUM_SINGLE, FUEL_MOX_SINGLE, FUEL_THORIUM_SINGLE, FUEL_GLOWSTONE, FUEL_LITHIUM -> 1;
             case FUEL_URANIUM_DUAL, FUEL_MOX_DUAL, FUEL_THORIUM_DUAL -> 2;
-            case FUEL_URANIUM_QUAD, FUEL_MOX_QUAD, FUEL_THORIUM_QUAD, FUEL_NAQUADAH -> 4;
-            case HATCH_LIQUID_FUEL_URANIUM, HATCH_LIQUID_FUEL_THORIUM, HATCH_LIQUID_FUEL_PLUTONIUM -> 4;
             case FUEL_CORE -> 16;
-            default -> 1;
+            default -> 4;
         };
     }
 
@@ -389,7 +435,7 @@ public class SimTile implements INuclearTile {
         }
         return switch (type) {
             case REFLECTOR_BERYLLIUM, REFLECTOR_CARBON -> 0.02;
-            case COOLANT_CELL_10K, COOLANT_CELL_60K, COOLANT_CELL_360K -> 0.05;
+            case COOLANT_CELL_10K, COOLANT_CELL_60K, COOLANT_CELL_360K, VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED, VENT_COMPONENT, EXCHANGER_STANDARD, EXCHANGER_ADVANCED, EXCHANGER_COMPONENT -> 0.03;
             default -> 0.01;
         };
     }
@@ -536,18 +582,48 @@ public class SimTile implements INuclearTile {
         fastAbsorbed = 0;
         thermalAbsorbed = 0;
 
-        // 2. Coolant cell absorption
-        if (maxCellHeat > 0 && currentCellHeat < maxCellHeat) {
+        // 2. Heat Vent & Coolant cell absorption & venting
+        if (isHeatVent()) {
+            int selfVent = switch (type) {
+                case VENT_STANDARD -> 6;
+                case VENT_ADVANCED -> 12;
+                case VENT_OVERCLOCKED -> 20;
+                default -> 0;
+            };
+
             double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
             double tempDiff = temperature - NuclearSimulationEngine.AMBIENT_TEMP;
-            if (tempDiff > 0) {
-                int heatToAbsorb = (int) Math.min(
-                    tempDiff * NuclearSimulationEngine.EU_PER_DEGREE * 0.1 * effFactor,
-                    maxCellHeat - currentCellHeat);
-                currentCellHeat += heatToAbsorb;
-                temperature = Math.max(
-                    NuclearSimulationEngine.AMBIENT_TEMP,
-                    temperature - heatToAbsorb / NuclearSimulationEngine.EU_PER_DEGREE);
+            if (selfVent > 0 && tempDiff > 0 && currentCellHeat < maxCellHeat) {
+                int maxHu = (int) Math.min(
+                    (double) (selfVent * 2),
+                    (tempDiff * NuclearSimulationEngine.EU_PER_DEGREE) / 25.0 * effFactor);
+                int toTake = Math.min(maxHu, maxCellHeat - currentCellHeat);
+                if (toTake > 0) {
+                    currentCellHeat += toTake;
+                    temperature = Math.max(
+                        NuclearSimulationEngine.AMBIENT_TEMP,
+                        temperature - (toTake * 25.0) / NuclearSimulationEngine.EU_PER_DEGREE);
+                }
+            }
+
+            if (selfVent > 0) {
+                int vented = Math.min(currentCellHeat, selfVent);
+                currentCellHeat -= vented;
+                lastCoolingDetails = String.format(java.util.Locale.US, "Vented %d Hu (%d EU)", vented, vented * 25);
+            }
+        } else if (isCoolantCell()) {
+            if (maxCellHeat > 0 && currentCellHeat < maxCellHeat) {
+                double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
+                double tempDiff = temperature - NuclearSimulationEngine.AMBIENT_TEMP;
+                if (tempDiff > 0) {
+                    int heatToAbsorb = (int) Math.min(
+                        tempDiff * NuclearSimulationEngine.EU_PER_DEGREE * 0.1 * effFactor,
+                        maxCellHeat - currentCellHeat);
+                    currentCellHeat += heatToAbsorb;
+                    temperature = Math.max(
+                        NuclearSimulationEngine.AMBIENT_TEMP,
+                        temperature - heatToAbsorb / NuclearSimulationEngine.EU_PER_DEGREE);
+                }
             }
         }
 
@@ -803,5 +879,126 @@ public class SimTile implements INuclearTile {
 
     public int getThermalAbsorbed() {
         return thermalAbsorbed;
+    }
+
+    public boolean isCoolantCell() {
+        return switch (type) {
+            case COOLANT_CELL_10K, COOLANT_CELL_60K, COOLANT_CELL_360K -> true;
+            default -> false;
+        };
+    }
+
+    public boolean isHeatVent() {
+        return switch (type) {
+            case VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED, VENT_COMPONENT -> true;
+            default -> false;
+        };
+    }
+
+    public boolean isHeatExchanger() {
+        return switch (type) {
+            case EXCHANGER_STANDARD, EXCHANGER_ADVANCED, EXCHANGER_COMPONENT -> true;
+            default -> false;
+        };
+    }
+
+    public boolean canStoreHeat() {
+        return maxCellHeat > 0;
+    }
+
+    public void setCurrentCellHeat(int heat) {
+        this.currentCellHeat = Math.max(0, Math.min(maxCellHeat, heat));
+    }
+
+    public int alterCellHeat(int delta) {
+        int target = this.currentCellHeat + delta;
+        if (target > maxCellHeat) {
+            int overflow = target - maxCellHeat;
+            this.currentCellHeat = maxCellHeat;
+            return overflow;
+        } else if (target < 0) {
+            int underflow = target;
+            this.currentCellHeat = 0;
+            return underflow;
+        } else {
+            this.currentCellHeat = target;
+            return 0;
+        }
+    }
+
+    public void processNeighborComponents(INuclearTile[][] grid, int x, int y, int sizeX, int sizeY) {
+        if (type == TileType.VENT_COMPONENT) {
+            final int sideVent = 4;
+            int[] dx = { 0, 0, -1, 1 };
+            int[] dy = { -1, 1, 0, 0 };
+            for (int k = 0; k < 4; k++) {
+                int nx = x + dx[k];
+                int ny = y + dy[k];
+                if (nx >= 0 && nx < sizeX && ny >= 0 && ny < sizeY && grid[nx][ny] instanceof SimTile neighbor) {
+                    if (neighbor.canStoreHeat()) {
+                        neighbor.alterCellHeat(-sideVent);
+                    }
+                }
+            }
+        } else if (isHeatExchanger()) {
+            int switchSide = switch (type) {
+                case EXCHANGER_STANDARD -> 12;
+                case EXCHANGER_ADVANCED -> 24;
+                case EXCHANGER_COMPONENT -> 36;
+                default -> 0;
+            };
+
+            // 1. Absorb heat from own tile if hotter than ambient
+            double tempDiff = temperature - NuclearSimulationEngine.ambientTemp;
+            if (tempDiff > 0 && currentCellHeat < maxCellHeat) {
+                int maxHu = (int) Math
+                    .min((double) switchSide, (tempDiff * NuclearSimulationEngine.euPerDegree) / 25.0);
+                int toTake = Math.min(maxHu, maxCellHeat - currentCellHeat);
+                if (toTake > 0) {
+                    currentCellHeat += toTake;
+                    temperature = Math.max(
+                        NuclearSimulationEngine.ambientTemp,
+                        temperature - (toTake * 25.0) / NuclearSimulationEngine.euPerDegree);
+                }
+            }
+
+            // 2. Balance heat % with up to 4 adjacent components
+            int[] dx = { 0, 0, -1, 1 };
+            int[] dy = { -1, 1, 0, 0 };
+            for (int k = 0; k < 4; k++) {
+                int nx = x + dx[k];
+                int ny = y + dy[k];
+                if (nx >= 0 && nx < sizeX && ny >= 0 && ny < sizeY && grid[nx][ny] instanceof SimTile neighbor) {
+                    if (neighbor.canStoreHeat() && neighbor.getMaxCellHeat() > 0) {
+                        double myPct = (currentCellHeat * 100.0) / maxCellHeat;
+                        double nPct = (neighbor.getCurrentCellHeat() * 100.0) / neighbor.getMaxCellHeat();
+                        double diff = nPct - myPct;
+                        if (Math.abs(diff) > 0.01) {
+                            int transfer = (int) Math.round((diff / 2.0) * (maxCellHeat / 100.0));
+                            transfer = Math.max(-switchSide, Math.min(switchSide, transfer));
+                            if (transfer > 0) {
+                                int actual = Math.min(
+                                    transfer,
+                                    Math.min(neighbor.getCurrentCellHeat(), maxCellHeat - currentCellHeat));
+                                if (actual > 0) {
+                                    currentCellHeat += actual;
+                                    neighbor.alterCellHeat(-actual);
+                                }
+                            } else if (transfer < 0) {
+                                int push = Math.min(
+                                    -transfer,
+                                    Math.min(
+                                        currentCellHeat,
+                                        neighbor.getMaxCellHeat() - neighbor.getCurrentCellHeat()));
+                                if (push > 0) {
+                                    currentCellHeat -= push;
+                                    neighbor.alterCellHeat(push);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

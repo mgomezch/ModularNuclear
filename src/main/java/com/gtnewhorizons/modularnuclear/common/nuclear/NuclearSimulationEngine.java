@@ -2,10 +2,14 @@ package com.gtnewhorizons.modularnuclear.common.nuclear;
 
 import java.util.Random;
 
+import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
+
 public class NuclearSimulationEngine {
 
     public static final double EU_FOR_FAST_NEUTRON = 8.0;
-    public static final double EU_PER_DEGREE = 64.0;
+    public static final double DEFAULT_EU_PER_DEGREE = 32.0;
+    public static double euPerDegree = DEFAULT_EU_PER_DEGREE;
+    public static double EU_PER_DEGREE = DEFAULT_EU_PER_DEGREE;
     public static final double BASE_HEAT_CONDUCTION = 0.01;
     public static final double DEFAULT_AMBIENT_TEMP = 20.0;
     public static double ambientTemp = DEFAULT_AMBIENT_TEMP;
@@ -13,7 +17,8 @@ public class NuclearSimulationEngine {
     public static final double DEFAULT_TEMP_THRESHOLD_LOW = 800.0;
     public static final double DEFAULT_TEMP_THRESHOLD_HIGH = 3200.0;
     public static final double DEFAULT_REACTIVITY_POWER = 1.2;
-    public static final double DEFAULT_THERMAL_FISSION_MULT = 1.30;
+    public static final double DEFAULT_GLOBAL_THERMAL_FISSION_MULT = 1.0;
+    public static final double DEFAULT_THERMAL_FISSION_MULT = DEFAULT_GLOBAL_THERMAL_FISSION_MULT;
     public static final double DEFAULT_FISSION_HEAT_PER_NEUTRON = 38.0;
     public static final double DEFAULT_HP_WATER_BOILING_POINT = 180.0;
 
@@ -47,7 +52,8 @@ public class NuclearSimulationEngine {
     public static double tempThresholdLow = DEFAULT_TEMP_THRESHOLD_LOW;
     public static double tempThresholdHigh = DEFAULT_TEMP_THRESHOLD_HIGH;
     public static double reactivityPower = DEFAULT_REACTIVITY_POWER;
-    public static double thermalFissionMultiplier = DEFAULT_THERMAL_FISSION_MULT;
+    public static double globalThermalFissionMultiplier = DEFAULT_GLOBAL_THERMAL_FISSION_MULT;
+    public static double thermalFissionMultiplier = DEFAULT_GLOBAL_THERMAL_FISSION_MULT;
     public static double fissionHeatPerNeutron = DEFAULT_FISSION_HEAT_PER_NEUTRON;
     public static double hpWaterBoilingPoint = DEFAULT_HP_WATER_BOILING_POINT;
 
@@ -67,6 +73,16 @@ public class NuclearSimulationEngine {
     public static final double DEFAULT_WALL_ABSORB_HEAT_PER_NEUTRON = 0.0;
     public static double wallAbsorbHeatPerNeutron = DEFAULT_WALL_ABSORB_HEAT_PER_NEUTRON;
 
+    public static void setEuPerDegree(double v) {
+        euPerDegree = Math.max(0.1, v);
+        EU_PER_DEGREE = euPerDegree;
+    }
+
+    public static void setGlobalThermalFissionMultiplier(double mult) {
+        globalThermalFissionMultiplier = Math.max(0.0, mult);
+        thermalFissionMultiplier = globalThermalFissionMultiplier;
+    }
+
     public static void setAmbientTemperature(double temp) {
         ambientTemp = temp;
         AMBIENT_TEMP = temp;
@@ -77,7 +93,7 @@ public class NuclearSimulationEngine {
         tempThresholdLow = low;
         tempThresholdHigh = high;
         reactivityPower = power;
-        thermalFissionMultiplier = fissionMult;
+        setGlobalThermalFissionMultiplier(fissionMult);
         fissionHeatPerNeutron = heatPerNeutron;
         hpWaterBoilingPoint = hpBoil;
     }
@@ -115,10 +131,11 @@ public class NuclearSimulationEngine {
     }
 
     public static void resetDefaultParameters() {
+        setEuPerDegree(DEFAULT_EU_PER_DEGREE);
+        setGlobalThermalFissionMultiplier(DEFAULT_GLOBAL_THERMAL_FISSION_MULT);
         tempThresholdLow = DEFAULT_TEMP_THRESHOLD_LOW;
         tempThresholdHigh = DEFAULT_TEMP_THRESHOLD_HIGH;
         reactivityPower = DEFAULT_REACTIVITY_POWER;
-        thermalFissionMultiplier = DEFAULT_THERMAL_FISSION_MULT;
         fissionHeatPerNeutron = DEFAULT_FISSION_HEAT_PER_NEUTRON;
         hpWaterBoilingPoint = DEFAULT_HP_WATER_BOILING_POINT;
         hatchCoolantCapacity = DEFAULT_HATCH_CAPACITY;
@@ -141,7 +158,7 @@ public class NuclearSimulationEngine {
     public static double calculateTurnoverFraction(double deltaT) {
         if (deltaT <= 0) return 0.0;
         double dtMax = Math.max(1.0, turnoverDeltaTMax);
-        return switch (turnoverCurve) {
+        double raw = switch (turnoverCurve) {
             case LINEAR -> Math.min(1.0, deltaT / dtMax);
             case EXPONENTIAL -> Math.min(1.0, Math.pow(Math.min(deltaT / dtMax, 1.0), turnoverExponent));
             case SIGMOID -> {
@@ -158,6 +175,8 @@ public class NuclearSimulationEngine {
                 yield 1.0;
             }
         };
+        // Boiling turnover is strictly capped at 80% (0.80) of hatch capacity
+        return Math.min(0.80, 0.80 * raw);
     }
 
     public static final int PIPE_TIER_ELECTRUM = 0;
@@ -349,7 +368,8 @@ public class NuclearSimulationEngine {
                     }
                     sumTemp += temp;
                     if (tile.isFuel()) {
-                        double eff = calculateEfficiency(temp);
+                        NuclearFuelType fuel = tile.getFuelType();
+                        double eff = calculateEfficiency(fuel, temp);
                         efficiency[x][y] = eff;
                         sumFuelReactivity += eff;
                         fuelTileCount++;
@@ -644,6 +664,16 @@ public class NuclearSimulationEngine {
             }
         }
 
+        // --- PASS 4.5: IC2 COMPONENT EXCHANGER & COMPONENT VENT PASS (STANDALONE SIM) ---
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                INuclearTile tile = grid[x][y];
+                if (tile instanceof SimTile simTile) {
+                    simTile.processNeighborComponents(grid, x, y, sizeX, sizeY);
+                }
+            }
+        }
+
         // --- PASS 5: TILE NUCLEAR UPDATE (BOILING, COOLING, DURABILITY, TRANSMUTATION) ---
         for (int x = 0; x < sizeX; x++) {
             for (int y = 0; y < sizeY; y++) {
@@ -684,7 +714,7 @@ public class NuclearSimulationEngine {
                     }
                     sumTemp += temp;
                     if (tile.isFuel()) {
-                        sumFuelReactivity += calculateEfficiency(temp);
+                        sumFuelReactivity += calculateEfficiency(tile.getFuelType(), temp);
                         fuelTileCount++;
                     }
                 }
@@ -714,16 +744,20 @@ public class NuclearSimulationEngine {
     }
 
     /**
-     * Reactivity efficiency curve: self-stabilizing negative temperature feedback.
+     * Reactivity efficiency curve: fuel-specific curve ramping up from 50% at 0 °C to 100% at peak temp,
+     * decaying to 5% at floor temp, and retaining 5% reactivity for all higher temperatures.
+     */
+    public static double calculateEfficiency(NuclearFuelType fuel, double avgTemp) {
+        if (fuel != null) {
+            return fuel.calculateReactivity(avgTemp);
+        }
+        return NuclearFuelType.URANIUM.calculateReactivity(avgTemp);
+    }
+
+    /**
+     * Legacy/default reactivity curve fallback using standard Uranium baseline.
      */
     public static double calculateEfficiency(double avgTemp) {
-        if (avgTemp <= tempThresholdLow) {
-            return 1.0;
-        } else if (avgTemp >= tempThresholdHigh) {
-            return 0.0;
-        } else {
-            double fraction = (avgTemp - tempThresholdLow) / (tempThresholdHigh - tempThresholdLow);
-            return Math.max(0.0, 1.0 - Math.pow(fraction, reactivityPower));
-        }
+        return calculateEfficiency(NuclearFuelType.URANIUM, avgTemp);
     }
 }

@@ -410,6 +410,9 @@ public class NuclearSimulationWebServer {
             sb.append("},");
 
             sb.append("\"params\":{");
+            sb.append("\"euPerDegree\":")
+                .append(String.format(java.util.Locale.US, "%.1f", NuclearSimulationEngine.euPerDegree))
+                .append(",");
             sb.append("\"hatchCapacity\":")
                 .append(NuclearSimulationEngine.hatchCoolantCapacity)
                 .append(",");
@@ -445,6 +448,10 @@ public class NuclearSimulationWebServer {
                 .append(",");
             sb.append("\"thermalFissionMultiplier\":")
                 .append(String.format(java.util.Locale.US, "%.2f", NuclearSimulationEngine.thermalFissionMultiplier))
+                .append(",");
+            sb.append("\"globalThermalFissionMultiplier\":")
+                .append(
+                    String.format(java.util.Locale.US, "%.2f", NuclearSimulationEngine.globalThermalFissionMultiplier))
                 .append(",");
             sb.append("\"fissionHeatPerNeutron\":")
                 .append(String.format(java.util.Locale.US, "%.1f", NuclearSimulationEngine.fissionHeatPerNeutron))
@@ -635,7 +642,21 @@ public class NuclearSimulationWebServer {
             try {
                 int tier = Integer.parseInt(params.get("tier"));
                 grid.setPipeTier(tier);
-                sendJsonResponse(exchange, 200, "{\"success\":true,\"tier\":" + tier + "}");
+                int tierCap = switch (tier) {
+                    case NuclearSimulationEngine.PIPE_TIER_ELECTRUM -> 8000;
+                    case NuclearSimulationEngine.PIPE_TIER_PLATINUM -> 16000;
+                    case NuclearSimulationEngine.PIPE_TIER_OSMIUM -> 32000;
+                    case NuclearSimulationEngine.PIPE_TIER_QUANTIUM -> 64000;
+                    case NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM -> 128000;
+                    case NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM -> 256000;
+                    default -> 8000;
+                };
+                NuclearSimulationEngine.hatchCoolantCapacity = tierCap;
+                grid.updateHatchCapacities(tierCap);
+                sendJsonResponse(
+                    exchange,
+                    200,
+                    "{\"success\":true,\"tier\":" + tier + ",\"hatchCapacity\":" + tierCap + "}");
             } catch (Exception e) {
                 sendJsonResponse(exchange, 400, "{\"error\":\"" + e.getMessage() + "\"}");
             }
@@ -683,6 +704,9 @@ public class NuclearSimulationWebServer {
                     return;
                 }
 
+                if (params.containsKey("euPerDegree")) {
+                    NuclearSimulationEngine.setEuPerDegree(Double.parseDouble(params.get("euPerDegree")));
+                }
                 if (params.containsKey("hatchCapacity")) {
                     int cap = Integer.parseInt(params.get("hatchCapacity"));
                     NuclearSimulationEngine.hatchCoolantCapacity = Math.max(100, cap);
@@ -715,11 +739,16 @@ public class NuclearSimulationWebServer {
                 if (params.containsKey("reactivityPow")) {
                     NuclearSimulationEngine.reactivityPower = Double.parseDouble(params.get("reactivityPow"));
                 }
-                if (params.containsKey("fissionMult")) {
-                    NuclearSimulationEngine.thermalFissionMultiplier = Double.parseDouble(params.get("fissionMult"));
+                if (params.containsKey("fissionMult") || params.containsKey("globalThermalFissionMultiplier")) {
+                    String val = params.containsKey("globalThermalFissionMultiplier")
+                        ? params.get("globalThermalFissionMultiplier")
+                        : params.get("fissionMult");
+                    NuclearSimulationEngine.setGlobalThermalFissionMultiplier(Double.parseDouble(val));
                 }
-                if (params.containsKey("fissionHeat")) {
-                    NuclearSimulationEngine.fissionHeatPerNeutron = Double.parseDouble(params.get("fissionHeat"));
+                if (params.containsKey("fissionHeat") || params.containsKey("fissionHeatPerNeutron")) {
+                    String val = params.containsKey("fissionHeatPerNeutron") ? params.get("fissionHeatPerNeutron")
+                        : params.get("fissionHeat");
+                    NuclearSimulationEngine.fissionHeatPerNeutron = Double.parseDouble(val);
                 }
                 if (params.containsKey("hpBoil")) {
                     NuclearSimulationEngine.hpWaterBoilingPoint = Double.parseDouble(params.get("hpBoil"));
@@ -1205,24 +1234,38 @@ public class NuclearSimulationWebServer {
                   </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">Hatch Capacity:</label>
-                      <select id="p-hatch-cap" onchange="submitSimParams()" style="width:100%;">
-                        <option value="500">500 L</option>
-                        <option value="1000">1,000 L</option>
-                        <option value="2000" selected>2,000 L (Default)</option>
-                        <option value="4000">4,000 L</option>
-                        <option value="8000">8,000 L</option>
-                        <option value="16000">16,000 L (GT)</option>
-                      </select>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">EU per Degree (°C):</label>
+                      <input id="p-eu-per-degree" type="number" step="1.0" value="32.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                     <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">Feed Rate:</label>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Fission Heat (EU/n):</label>
+                      <input id="p-fission-heat" type="number" step="1.0" value="38.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                    </div>
+                  </div>
+                  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Global Fission Mult (k):</label>
+                      <input id="p-fiss-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                    </div>
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Ambient Temp (°C):</label>
+                      <input id="p-ambient-temp" type="number" step="1.0" value="20.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                    </div>
+                  </div>
+                  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Hatch Capacity (L):</label>
+                      <input id="p-hatch-cap" type="number" step="1000" value="8000" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                    </div>
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Feed Rate (L/t):</label>
                       <select id="p-feed-rate" onchange="submitSimParams()" style="width:100%;">
                         <option value="500">500 L/t</option>
                         <option value="1000">1,000 L/t</option>
-                        <option value="2000" selected>2,000 L/t</option>
+                        <option value="2000">2,000 L/t</option>
                         <option value="4000">4,000 L/t</option>
-                        <option value="999999">Instant Max</option>
+                        <option value="8000">8,000 L/t</option>
+                        <option value="999999" selected>Instant Max</option>
                       </select>
                     </div>
                   </div>
@@ -1230,9 +1273,9 @@ public class NuclearSimulationWebServer {
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Turnover Curve:</label>
                       <select id="p-turn-curve" onchange="submitSimParams()" style="width:100%;">
-                        <option value="EXPONENTIAL" selected>Exponential</option>
+                        <option value="SIGMOID" selected>Sigmoid (S-Curve)</option>
+                        <option value="EXPONENTIAL">Exponential</option>
                         <option value="LINEAR">Linear</option>
-                        <option value="SIGMOID">Sigmoid (S-Curve)</option>
                         <option value="STEP">Step-Based</option>
                       </select>
                     </div>
@@ -1244,46 +1287,22 @@ public class NuclearSimulationWebServer {
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Turnover Exponent:</label>
-                      <input id="p-turn-exp" type="number" step="0.1" value="1.5" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      <input id="p-turn-exp" type="number" step="0.1" value="1.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">HP Boil Point (°C):</label>
-                      <input id="p-hp-boil" type="number" step="10" value="200" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-                    </div>
-                  </div>
-                  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-                    <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">Reactivity T-Low:</label>
-                      <input id="p-t-low" type="number" step="50" value="800" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-                    </div>
-                    <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">Reactivity T-High:</label>
-                      <input id="p-t-high" type="number" step="50" value="2800" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-                    </div>
-                  </div>
-                  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-                    <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">Reactivity Pow (p):</label>
-                      <input id="p-react-pow" type="number" step="0.1" value="1.2" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-                    </div>
-                    <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">Fission Mult (k):</label>
-                      <input id="p-fiss-mult" type="number" step="0.05" value="1.1" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      <input id="p-hp-boil" type="number" step="10" value="180" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                   </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:6px;">
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Water Heat (EU/L):</label>
-                      <input id="p-cooling-heat" type="number" step="0.5" value="4.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      <input id="p-cooling-heat" type="number" step="0.5" value="5.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">IC2 Heat (EU/L):</label>
                       <input id="p-ic2-cooling-heat" type="number" step="1.0" value="20.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
-                  </div>
-                  <div style="margin-top:6px;">
-                    <label style="font-size:0.7rem; color:var(--text-muted);">Ambient Temp (°C):</label>
-                    <input id="p-ambient-temp" type="number" step="1.0" value="24.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                   </div>
                 </div>
               </div>
@@ -1370,10 +1389,19 @@ public class NuclearSimulationWebServer {
 
             const PALETTE = [
               { type: "EMPTY", name: "Empty Slot", code: ".", color: "#1a2230" },
+              { type: "FUEL_GLOWSTONE", name: "Glowstone Rod", code: "G1", color: "#facc15" },
+              { type: "FUEL_LITHIUM", name: "Lithium Rod", code: "LI1", color: "#a3e635" },
+              { type: "FUEL_THORIUM_QUAD", name: "Thorium Quad Rod", code: "T4", color: "#a855f7" },
               { type: "FUEL_URANIUM_QUAD", name: "Uranium Quad Rod", code: "U4", color: "#22c55e" },
               { type: "FUEL_MOX_QUAD", name: "MOX Quad Rod", code: "M4", color: "#eab308" },
-              { type: "FUEL_THORIUM_QUAD", name: "Thorium Quad Rod", code: "T4", color: "#a855f7" },
+              { type: "FUEL_HD_URANIUM", name: "HD Uranium Quad", code: "HDU", color: "#16a34a" },
+              { type: "FUEL_HD_PLUTONIUM", name: "HD Plutonium Quad", code: "HDP", color: "#ea580c" },
+              { type: "FUEL_EXCITED_URANIUM", name: "Excited Uranium Quad", code: "EXU", color: "#10b981" },
+              { type: "FUEL_EXCITED_PLUTONIUM", name: "Excited Plutonium Quad", code: "EXP", color: "#f43f5e" },
               { type: "FUEL_NAQUADAH", name: "Naquadah Rod", code: "NQ", color: "#ec4899" },
+              { type: "FUEL_NAQUADRIA", name: "Naquadria Quad", code: "NQR", color: "#c026d3" },
+              { type: "FUEL_TIBERIUM", name: "Tiberium Quad", code: "TIB", color: "#14b8a6" },
+              { type: "FUEL_CORE", name: "The Core (NQ32)", code: "NQ32", color: "#dc2626" },
               { type: "HATCH_DISTILLED_WATER", name: "Distilled Water Hatch", code: "HD", color: "#38bdf8" },
               { type: "HATCH_HP_DISTILLED_WATER", name: "HP Distilled Water Hatch", code: "HP", color: "#0284c7" },
               { type: "HATCH_HEAVY_WATER", name: "Heavy Water Hatch", code: "HW", color: "#6366f1" },
@@ -1384,7 +1412,14 @@ public class NuclearSimulationWebServer {
               { type: "CONTROL_ROD", name: "Boron Control Rod", code: "CR", color: "#b91c1c" },
               { type: "COOLANT_CELL_60K", name: "60k Coolant Cell", code: "C6", color: "#06b6d4" },
               { type: "RADIOVOLTAIC_HV", name: "Radiovoltaic Cell (HV)", code: "RH", color: "#f59e0b" },
-              { type: "RADIOVOLTAIC_EV", name: "Radiovoltaic Cell (EV)", code: "RV", color: "#f97316" }
+              { type: "RADIOVOLTAIC_EV", name: "Radiovoltaic Cell (EV)", code: "RV", color: "#f97316" },
+              { type: "VENT_STANDARD", name: "Heat Vent", code: "V1", color: "#38bdf8" },
+              { type: "VENT_ADVANCED", name: "Advanced Heat Vent", code: "VA", color: "#0ea5e9" },
+              { type: "VENT_OVERCLOCKED", name: "Overclocked Heat Vent", code: "VO", color: "#eab308" },
+              { type: "VENT_COMPONENT", name: "Component Heat Vent", code: "VC", color: "#06b6d4" },
+              { type: "EXCHANGER_STANDARD", name: "Heat Exchanger", code: "X1", color: "#a855f7" },
+              { type: "EXCHANGER_ADVANCED", name: "Advanced Heat Exchanger", code: "XA", color: "#9333ea" },
+              { type: "EXCHANGER_COMPONENT", name: "Component Heat Exchanger", code: "XC", color: "#c084fc" }
             ];
 
             const TURBINE_MATERIALS = [
@@ -1946,6 +1981,10 @@ public class NuclearSimulationWebServer {
                 const el = document.getElementById(id);
                 if (el && active !== el && el.value != val) el.value = val;
               };
+              setVal("p-eu-per-degree", p.euPerDegree != null ? p.euPerDegree : 32.0);
+              setVal("p-fission-heat", p.fissionHeatPerNeutron != null ? p.fissionHeatPerNeutron : 38.0);
+              setVal("p-fiss-mult", p.globalThermalFissionMultiplier != null ? p.globalThermalFissionMultiplier : p.thermalFissionMultiplier);
+              setVal("p-ambient-temp", p.ambientTemp);
               setVal("p-hatch-cap", p.hatchCapacity);
               setVal("p-turn-curve", p.turnoverCurve);
               setVal("p-turn-dt", p.turnoverDeltaTMax);
@@ -1953,15 +1992,14 @@ public class NuclearSimulationWebServer {
               setVal("p-feed-rate", p.coolantFeedRate);
               setVal("p-cooling-heat", p.coolingHeatPerLiter);
               setVal("p-ic2-cooling-heat", p.ic2CoolantHeatPerLiter);
-              setVal("p-ambient-temp", p.ambientTemp);
-              setVal("p-t-low", p.tempThresholdLow);
-              setVal("p-t-high", p.tempThresholdHigh);
-              setVal("p-react-pow", p.reactivityPower);
-              setVal("p-fiss-mult", p.thermalFissionMultiplier);
               setVal("p-hp-boil", p.hpWaterBoilingPoint);
             }
 
             async function submitSimParams() {
+              const euDeg = document.getElementById("p-eu-per-degree") ? document.getElementById("p-eu-per-degree").value : 32.0;
+              const fHeat = document.getElementById("p-fission-heat") ? document.getElementById("p-fission-heat").value : 38.0;
+              const fMult = document.getElementById("p-fiss-mult").value;
+              const amb = document.getElementById("p-ambient-temp").value;
               const cap = document.getElementById("p-hatch-cap").value;
               const curve = document.getElementById("p-turn-curve").value;
               const dt = document.getElementById("p-turn-dt").value;
@@ -1969,14 +2007,9 @@ public class NuclearSimulationWebServer {
               const feed = document.getElementById("p-feed-rate").value;
               const ch = document.getElementById("p-cooling-heat").value;
               const ic2Ch = document.getElementById("p-ic2-cooling-heat").value;
-              const amb = document.getElementById("p-ambient-temp").value;
-              const tLow = document.getElementById("p-t-low").value;
-              const tHigh = document.getElementById("p-t-high").value;
-              const rPow = document.getElementById("p-react-pow").value;
-              const fMult = document.getElementById("p-fiss-mult").value;
               const hpBoil = document.getElementById("p-hp-boil").value;
 
-              const url = `/api/set-params?hatchCapacity=${cap}&turnoverCurve=${curve}&turnoverDeltaTMax=${dt}&turnoverExponent=${exp}&coolantFeedRate=${feed}&coolingHeat=${ch}&ic2CoolantHeat=${ic2Ch}&ambientTemp=${amb}&tempLow=${tLow}&tempHigh=${tHigh}&reactivityPow=${rPow}&fissionMult=${fMult}&hpBoil=${hpBoil}`;
+              const url = `/api/set-params?euPerDegree=${euDeg}&fissionHeat=${fHeat}&fissionMult=${fMult}&ambientTemp=${amb}&hatchCapacity=${cap}&turnoverCurve=${curve}&turnoverDeltaTMax=${dt}&turnoverExponent=${exp}&coolantFeedRate=${feed}&coolingHeat=${ch}&ic2CoolantHeat=${ic2Ch}&hpBoil=${hpBoil}`;
               await fetch(url);
               await fetchState();
               schedulePoll();

@@ -41,6 +41,9 @@ public class ModularNuclear {
     public void init(FMLInitializationEvent event) {
         ModMetaTileEntities.init();
         ModFluids.registerContainers();
+        com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration.init();
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS
+            .register(new com.gtnewhorizons.modularnuclear.common.item.NuclearFuelTooltipHandler());
     }
 
     @Mod.EventHandler

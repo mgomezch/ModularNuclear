@@ -25,15 +25,23 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid;
+import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemCardModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.render.TextureFactory;
+import shedar.mods.ic2.nuclearcontrol.api.CardState;
+import shedar.mods.ic2.nuclearcontrol.api.DisplaySettingHelper;
+import shedar.mods.ic2.nuclearcontrol.api.ICardWrapper;
+import shedar.mods.ic2.nuclearcontrol.api.PanelSetting;
+import shedar.mods.ic2.nuclearcontrol.api.PanelString;
+import shedar.mods.ic2.nuclearcontrol.panel.CardWrapperImpl;
 
 public class NuclearSimulationEngineTest {
 
@@ -208,13 +216,22 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testNegativeTemperatureEfficiencyCurve() {
-        NuclearSimulationEngine.setSimulationParameters(600.0, 2200.0, 1.0, 1.1, 18.0, 200.0);
-        assertEquals(1.0, NuclearSimulationEngine.calculateEfficiency(20.0), 1e-6);
-        assertEquals(1.0, NuclearSimulationEngine.calculateEfficiency(600.0), 1e-6);
-        assertEquals(0.5, NuclearSimulationEngine.calculateEfficiency(1400.0), 1e-6);
-        assertEquals(0.0, NuclearSimulationEngine.calculateEfficiency(2200.0), 1e-6);
-        assertEquals(0.0, NuclearSimulationEngine.calculateEfficiency(3000.0), 1e-6);
-        NuclearSimulationEngine.resetDefaultParameters();
+        assertEquals(0.5, NuclearSimulationEngine.calculateEfficiency(0.0), 1e-6);
+        assertEquals(
+            1.0,
+            NuclearSimulationEngine.calculateEfficiency(NuclearFuelType.URANIUM.peakReactivityTemp),
+            1e-6);
+        assertEquals(0.05, NuclearSimulationEngine.calculateEfficiency(NuclearFuelType.URANIUM.floorTemp), 1e-6);
+        assertEquals(0.05, NuclearSimulationEngine.calculateEfficiency(3000.0), 1e-6);
+
+        // Test Thorium
+        assertEquals(0.5, NuclearFuelType.THORIUM.calculateReactivity(0.0), 1e-6);
+        assertEquals(
+            1.0,
+            NuclearFuelType.THORIUM.calculateReactivity(NuclearFuelType.THORIUM.peakReactivityTemp),
+            1e-6);
+        assertEquals(0.05, NuclearFuelType.THORIUM.calculateReactivity(NuclearFuelType.THORIUM.floorTemp), 1e-6);
+        assertEquals(0.05, NuclearFuelType.THORIUM.calculateReactivity(2500.0), 1e-6);
     }
 
     @Test
@@ -245,7 +262,7 @@ public class NuclearSimulationEngineTest {
 
         NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine.simulate(grid, 3, 3);
         assertTrue(res.totalNeutronsGenerated > 0, "Fuel rod should generate neutrons");
-        assertEquals(100, res.totalNeutronsGenerated);
+        assertEquals((int) (100 * NuclearSimulationEngine.calculateEfficiency(20.0)), res.totalNeutronsGenerated);
         assertTrue(fuel.getTemperature() > 20.0, "Fuel rod should heat up due to fission");
         assertTrue(fuel.heatEU > 0, "Direct fission heat should be recorded");
         assertTrue(res.fastNeutronsAbsorbed + res.thermalNeutronsAbsorbed + res.neutronsEscaped > 0);
@@ -255,14 +272,14 @@ public class NuclearSimulationEngineTest {
     void testSelfStabilizationUnderHighTemp() {
         INuclearTile[][] grid = new INuclearTile[1][1];
         MockNuclearTile hotFuel = new MockNuclearTile(true, 100);
-        hotFuel.temperature = NuclearSimulationEngine.tempThresholdHigh;
+        hotFuel.temperature = 2500.0; // Above Uranium floor temp (2200°C)
         grid[0][0] = hotFuel;
 
         NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine.simulate(grid, 1, 1);
         assertEquals(
-            0,
+            5,
             res.totalNeutronsGenerated,
-            "Reactivity should shut down completely at or above tempThresholdHigh");
+            "Reactivity should smoothly decay to 5% floor at or above floor temp (never 0)");
     }
 
     @Test
@@ -285,6 +302,7 @@ public class NuclearSimulationEngineTest {
     void testNeutronScatteringAndModeration() {
         INuclearTile[][] grid = new INuclearTile[3][3];
         MockNuclearTile fuel = new MockNuclearTile(true, 500);
+        fuel.temperature = NuclearFuelType.URANIUM.peakReactivityTemp; // Peak reactivity
         grid[1][1] = fuel;
 
         MockNuclearTile reflector = new MockNuclearTile(false, 0);
@@ -313,13 +331,13 @@ public class NuclearSimulationEngineTest {
         double heatPerMB = 320.0;
         double currentTemp = 250.0;
         double heatAvailable = (currentTemp - boilingPoint) * NuclearSimulationEngine.EU_PER_DEGREE;
-        assertEquals(50.0 * 64.0, heatAvailable, 1e-6);
+        assertEquals(50.0 * NuclearSimulationEngine.EU_PER_DEGREE, heatAvailable, 1e-6);
 
         int fluidToBoil = (int) (heatAvailable / heatPerMB);
-        assertEquals(10, fluidToBoil);
+        assertEquals(5, fluidToBoil);
 
         int steamProduced = fluidToBoil * 160;
-        assertEquals(1600, steamProduced);
+        assertEquals(800, steamProduced);
 
         double heatConsumed = fluidToBoil * heatPerMB;
         double tempDrop = heatConsumed / NuclearSimulationEngine.EU_PER_DEGREE;
@@ -1220,12 +1238,12 @@ public class NuclearSimulationEngineTest {
         assertEquals(1, controlHatch.getMode());
         assertEquals("Temperature (max)", MTEHatchNuclearControl.getModeName(1));
 
-        controlHatch.setMode(12); // Wrap
+        controlHatch.setMode(15); // Wrap (MODE_COUNT = 15)
         assertEquals(0, controlHatch.getMode());
 
         controlHatch.setMode(-1); // Negative wrap
-        assertEquals(11, controlHatch.getMode());
-        assertEquals("Coolant level (avg)", MTEHatchNuclearControl.getModeName(11));
+        assertEquals(14, controlHatch.getMode());
+        assertEquals("Fuel hatch fill % (avg)", MTEHatchNuclearControl.getModeName(14));
 
         // Test NBT persistence
         net.minecraft.nbt.NBTTagCompound nbt = new net.minecraft.nbt.NBTTagCompound();
@@ -1267,21 +1285,21 @@ public class NuclearSimulationEngineTest {
         assertEquals("Temperature", MTEHatchNuclearControl.getMetricName(controlHatch.getMetric()));
         assertEquals("Minimum", MTEHatchNuclearControl.getStatisticDisplayName(controlHatch.getStatistic()));
 
-        // Screwdriver right click cycles metric
+        // Screwdriver right click cycles metric: 0 -> 1 (Coolant item durability)
         net.minecraft.entity.player.EntityPlayer mockPlayer = org.mockito.Mockito
             .mock(net.minecraft.entity.player.EntityPlayer.class);
         controlHatch.onScrewdriverRightClick(ForgeDirection.UP, mockPlayer, 0.5f, 0.5f, 0.5f, null);
-        assertEquals(MTEHatchNuclearControl.METRIC_FUEL_DURABILITY, controlHatch.getMetric());
+        assertEquals(MTEHatchNuclearControl.METRIC_COOLANT_ITEM_DURABILITY, controlHatch.getMetric());
         assertEquals(MTEHatchNuclearControl.STAT_MIN, controlHatch.getStatistic());
 
-        // Soldering iron right click cycles statistic
+        // Soldering iron right click cycles statistic: 0 -> 1 (MAX)
         boolean handled = controlHatch
             .onSolderingToolRightClick(ForgeDirection.UP, ForgeDirection.UP, mockPlayer, 0.5f, 0.5f, 0.5f, null);
         assertTrue(handled);
-        assertEquals(MTEHatchNuclearControl.METRIC_FUEL_DURABILITY, controlHatch.getMetric());
+        assertEquals(MTEHatchNuclearControl.METRIC_COOLANT_ITEM_DURABILITY, controlHatch.getMetric());
         assertEquals(MTEHatchNuclearControl.STAT_MAX, controlHatch.getStatistic());
 
-        // Mode mapping: Metric 1 (FUEL) * 3 + Stat 1 (MAX) = 4
+        // Mode mapping: Metric 1 (COOLANT_ITEM_DURABILITY) * 3 + Stat 1 (MAX) = 4
         assertEquals(4, controlHatch.getMode());
 
         // Test NBT persistence with separate fields
@@ -1300,10 +1318,10 @@ public class NuclearSimulationEngineTest {
 
         // Loading from legacy NBT with only mMode
         NBTTagCompound legacyNbt = new NBTTagCompound();
-        legacyNbt.setInteger("mMode", 11); // Coolant level avg -> Metric 3, Stat 2
+        legacyNbt.setInteger("mMode", 11); // Coolant hatch fill avg -> Metric 3, Stat 2
         MTEHatchNuclearControl legacyLoaded = new MTEHatchNuclearControl("test.loaded.legacy", 4, new String[0], null);
         legacyLoaded.loadNBTData(legacyNbt);
-        assertEquals(MTEHatchNuclearControl.METRIC_COOLANT_LEVEL, legacyLoaded.getMetric());
+        assertEquals(MTEHatchNuclearControl.METRIC_COOLANT_HATCH_FILL, legacyLoaded.getMetric());
         assertEquals(MTEHatchNuclearControl.STAT_AVG, legacyLoaded.getStatistic());
         assertEquals(11, legacyLoaded.getMode());
     }
@@ -1406,6 +1424,119 @@ public class NuclearSimulationEngineTest {
         assertEquals((byte) 0, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_FUEL_DURABILITY_MIN));
         assertEquals((byte) 0, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_COMPONENT_DURABILITY_MIN));
         assertEquals((byte) 0, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_COOLANT_LEVEL_MIN));
+    }
+
+    @Test
+    void testNuclearControlIntegrationAndSensorCard() {
+        ItemCardModularNuclear card = new ItemCardModularNuclear();
+        assertEquals(ItemCardModularNuclear.CARD_TYPE, card.getCardType());
+        List<PanelSetting> settings = card.getSettingsList();
+        assertNotNull(settings);
+        assertEquals(12, settings.size());
+
+        // Test wrapper NBT roundtrip with all 5 metric categories
+        ItemStack cardStack = new ItemStack(card);
+        ICardWrapper wrapper = new CardWrapperImpl(cardStack, -1);
+        wrapper.setTarget(10, 64, -20);
+        wrapper.setState(CardState.OK);
+        wrapper.setBoolean("isOnline", true);
+        wrapper.setDouble("tempMin", 250.0);
+        wrapper.setDouble("tempAvg", 450.0);
+        wrapper.setDouble("tempMax", 750.0);
+        wrapper.setDouble("coolItemDurMin", 60.0);
+        wrapper.setDouble("coolItemDurAvg", 80.0);
+        wrapper.setDouble("coolItemDurMax", 100.0);
+        wrapper.setDouble("fuelItemDurMin", 30.0);
+        wrapper.setDouble("fuelItemDurAvg", 50.0);
+        wrapper.setDouble("fuelItemDurMax", 90.0);
+        wrapper.setDouble("coolHatchFillMin", 40.0);
+        wrapper.setDouble("coolHatchFillAvg", 60.0);
+        wrapper.setDouble("coolHatchFillMax", 80.0);
+        wrapper.setDouble("fuelHatchFillMin", 20.0);
+        wrapper.setDouble("fuelHatchFillAvg", 40.0);
+        wrapper.setDouble("fuelHatchFillMax", 60.0);
+        wrapper.setInt("totalFuelItems", 4);
+        wrapper.setInt("totalCoolantItems", 8);
+        wrapper.setLong("totalCoolantFluid", 16000L);
+        wrapper.setLong("totalCoolantCapacity", 32000L);
+        wrapper.setLong("totalFuelFluid", 8000L);
+        wrapper.setLong("totalFuelCapacity", 16000L);
+        wrapper.setInt("coolantHatchCount", 2);
+        wrapper.setInt("fuelHatchCount", 1);
+        wrapper.setInt("zeroedCoolantLastCycle", 1);
+        wrapper.setInt("zeroedFuelLastCycle", 2);
+        wrapper.setLong("consumedCoolantLastCycle", 500L);
+        wrapper.setLong("producedHotCoolantLastCycle", 80000L);
+        wrapper.setLong("transmutationLossLastCycle", 3L);
+        wrapper.setLong("transmutationByproductsLastCycle", 6L);
+        wrapper.setLong("depletedLiquidFuelLastCycle", 10L);
+
+        // Test display formatting with all settings enabled
+        DisplaySettingHelper helper = new DisplaySettingHelper(true);
+
+        List<PanelString> lines = card.getStringData(helper, wrapper, true);
+        assertNotNull(lines);
+        assertFalse(lines.isEmpty());
+        assertEquals(13, lines.size());
+
+        // Verify each line corresponds to requested data
+        assertEquals("MPTR Reactor", lines.get(0).textLeft);
+        assertEquals("ONLINE", lines.get(0).textRight);
+        assertTrue(lines.get(1).textRight.contains("250 / 450 / 750 °C"));
+        assertTrue(lines.get(2).textRight.contains("60.0% / 80.0% / 100.0%"));
+        assertTrue(lines.get(3).textRight.contains("30.0% / 50.0% / 90.0%"));
+        assertTrue(lines.get(4).textRight.contains("40.0% / 60.0% / 80.0%"));
+        assertTrue(lines.get(5).textRight.contains("20.0% / 40.0% / 60.0%"));
+        assertEquals("4 / 8", lines.get(6).textRight);
+        assertTrue(lines.get(7).textLeft.contains("Coolant Fluid"));
+        assertTrue(lines.get(8).textLeft.contains("Fuel Fluid"));
+        assertEquals("2 / 1", lines.get(9).textRight);
+        assertTrue(lines.get(10).textRight.contains("Fuel: 2 itm, 10 L | Cool: 1 itm"));
+        assertTrue(lines.get(11).textRight.contains("-500 L in / +80,000 L out"));
+        assertTrue(lines.get(12).textRight.contains("Loss: -3 L | Byprod: +6 L"));
+    }
+
+    @Test
+    void testReactorTelemetryAndModes() {
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.full");
+        reactor.gridSize = 3;
+        reactor.mGrid = new INuclearTile[3][3];
+        reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM; // Max temp = 1000 °C
+
+        // Add tile temperatures
+        MockNuclearTile t1 = new MockNuclearTile(300.0, 0.05);
+        MockNuclearTile t2 = new MockNuclearTile(600.0, 0.05);
+        MockNuclearTile t3 = new MockNuclearTile(900.0, 0.05);
+        reactor.mGrid[0][0] = t1;
+        reactor.mGrid[0][1] = t2;
+        reactor.mGrid[0][2] = t3;
+
+        // Populate cycle values
+        reactor.mZeroedCoolantItemsLastCycle = 2;
+        reactor.mZeroedFuelItemsLastCycle = 1;
+        reactor.mConsumedCoolantLastCycle = 1000;
+        reactor.mProducedHotCoolantLastCycle = 160000;
+        reactor.mTransmutationLossLastCycle = 4;
+        reactor.mTransmutationByproductsLastCycle = 8;
+        reactor.mDepletedLiquidFuelLastCycle = 15;
+
+        // Calculate telemetry
+        reactor.calculateTelemetry();
+
+        assertEquals(300.0, reactor.mMinTileTemp);
+        assertEquals(900.0, reactor.mMaxTileTemp);
+        assertEquals(600.0, reactor.mAvgTileTemp);
+
+        // Verify redstone signal for all 3 temperature modes (300/1000 * 15 = 4.5 -> 5, 900/1000 * 15 = 13.5 -> 14,
+        // 600/1000 * 15 = 9)
+        assertEquals((byte) 5, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_MIN));
+        assertEquals((byte) 14, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_MAX));
+        assertEquals((byte) 9, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_AVG));
+
+        // When no fuel/coolant present, other 12 modes return 0
+        for (int m = 3; m < MTEHatchNuclearControl.MODE_COUNT; m++) {
+            assertEquals((byte) 0, reactor.calculateSignalForMode(m), "Mode " + m + " must return 0 signal");
+        }
     }
 
     @Test
@@ -1942,18 +2073,18 @@ public class NuclearSimulationEngineTest {
         // 3. Above 65°C: Extraction occurs!
         // Total EU = 128 * 4 = 512 EU.
         // Heat absorbed = 512 EU.
-        // Temp drop = 512 / 64 = 8.0 °C.
-        // Expected temperature = 80.0 - 8.0 = 72.0 °C.
+        // Temp drop = 512 / 32 = 16.0 °C.
+        // Expected temperature = 80.0 - 16.0 = 64.0 °C.
         bus.mTemperature = 80.0;
         assertTrue(reactor.processCheeseExtraction(bus), "Cheese must extract when above 65°C");
-        assertEquals(72.0, bus.mTemperature, 1e-4, "Temperature must drop by exactly recipe totalEU / 64.0");
+        assertEquals(64.0, bus.mTemperature, 1e-4, "Temperature must drop by exactly recipe totalEU / EU_PER_DEGREE");
         assertNull(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Single item input must be consumed");
 
         // 4. Second extraction with single item
         bus.mTemperature = 80.0;
         bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = cheeseStack.copy();
         assertTrue(reactor.processCheeseExtraction(bus));
-        assertEquals(72.0, bus.mTemperature, 1e-4);
+        assertEquals(64.0, bus.mTemperature, 1e-4);
         assertNull(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Second item consumed");
     }
 
@@ -2329,5 +2460,141 @@ public class NuclearSimulationEngineTest {
                 .get(MTENuclearReactor.STRUCTURE_TIER_3)
                 .contains("-"),
             "STRUCTURE_TIER_3 shape must contain '-' for hollow air cells");
+    }
+
+    @Test
+    void testHeatVentSelfCooling() {
+        // 1. Standard Vent: vents up to 6 Hu/t
+        SimTile ventStd = new SimTile(SimTile.TileType.VENT_STANDARD);
+        ventStd.setCurrentCellHeat(100);
+        ventStd.nuclearTick(1.0);
+        assertEquals(94, ventStd.getCurrentCellHeat(), "Standard vent must cool 6 Hu/t");
+
+        // 2. Advanced Vent: vents up to 12 Hu/t
+        SimTile ventAdv = new SimTile(SimTile.TileType.VENT_ADVANCED);
+        ventAdv.setCurrentCellHeat(100);
+        ventAdv.nuclearTick(1.0);
+        assertEquals(88, ventAdv.getCurrentCellHeat(), "Advanced vent must cool 12 Hu/t");
+
+        // 3. Overclocked Vent: vents up to 20 Hu/t
+        SimTile ventOver = new SimTile(SimTile.TileType.VENT_OVERCLOCKED);
+        ventOver.setCurrentCellHeat(100);
+        ventOver.nuclearTick(1.0);
+        assertEquals(80, ventOver.getCurrentCellHeat(), "Overclocked vent must cool 20 Hu/t");
+
+        // 4. Absorbs heat from tile when tile is hot
+        ventAdv.setTemperature(300.0);
+        ventAdv.setCurrentCellHeat(0);
+        ventAdv.nuclearTick(1.0);
+        assertTrue(ventAdv.getTemperature() < 300.0, "Vent must cool hot tile");
+        assertTrue(ventAdv.getCurrentCellHeat() > 0, "Vent must absorb heat from hot tile");
+    }
+
+    @Test
+    void testComponentHeatVentAdjacentCooling() {
+        SimTile[][] grid = new SimTile[3][3];
+        for (int x = 0; x < 3; x++) {
+            for (int y = 0; y < 3; y++) {
+                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+            }
+        }
+
+        // Center: Component Heat Vent (VC)
+        SimTile compVent = new SimTile(SimTile.TileType.VENT_COMPONENT);
+        grid[1][1] = compVent;
+
+        // 4 orthogonal neighbors: Heat Vents with 50 Hu each
+        SimTile top = new SimTile(SimTile.TileType.VENT_STANDARD);
+        top.setCurrentCellHeat(50);
+        grid[1][0] = top;
+
+        SimTile bottom = new SimTile(SimTile.TileType.VENT_STANDARD);
+        bottom.setCurrentCellHeat(50);
+        grid[1][2] = bottom;
+
+        SimTile left = new SimTile(SimTile.TileType.VENT_STANDARD);
+        left.setCurrentCellHeat(50);
+        grid[0][1] = left;
+
+        SimTile right = new SimTile(SimTile.TileType.VENT_STANDARD);
+        right.setCurrentCellHeat(50);
+        grid[2][1] = right;
+
+        // Process component interaction
+        compVent.processNeighborComponents(grid, 1, 1, 3, 3);
+
+        assertEquals(46, top.getCurrentCellHeat(), "Top neighbor must lose 4 Hu");
+        assertEquals(46, bottom.getCurrentCellHeat(), "Bottom neighbor must lose 4 Hu");
+        assertEquals(46, left.getCurrentCellHeat(), "Left neighbor must lose 4 Hu");
+        assertEquals(46, right.getCurrentCellHeat(), "Right neighbor must lose 4 Hu");
+    }
+
+    @Test
+    void testHeatExchangerBalancing() {
+        SimTile[][] grid = new SimTile[3][3];
+        for (int x = 0; x < 3; x++) {
+            for (int y = 0; y < 3; y++) {
+                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+            }
+        }
+
+        // Center: Component Heat Exchanger (XC, switchSide = 36)
+        SimTile exchanger = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
+        grid[1][1] = exchanger;
+
+        // Left: hot advanced vent (500 / 1000 = 50%)
+        SimTile hotVent = new SimTile(SimTile.TileType.VENT_ADVANCED);
+        hotVent.setCurrentCellHeat(500);
+        grid[0][1] = hotVent;
+
+        // Right: cold advanced vent (0 / 1000 = 0%)
+        SimTile coldVent = new SimTile(SimTile.TileType.VENT_ADVANCED);
+        coldVent.setCurrentCellHeat(0);
+        grid[2][1] = coldVent;
+
+        // Run exchanger balancing
+        exchanger.processNeighborComponents(grid, 1, 1, 3, 3);
+
+        // Heat should flow from hotVent into exchanger, and from exchanger into coldVent
+        assertTrue(hotVent.getCurrentCellHeat() < 500, "Hot vent should have transferred heat away");
+        assertTrue(
+            exchanger.getCurrentCellHeat() > 0 || coldVent.getCurrentCellHeat() > 0,
+            "Heat should have moved to exchanger or cold vent");
+    }
+
+    @Test
+    void testHeatVentAndExchangerGridSimulation() {
+        SimTile[][] grid = new SimTile[5][5];
+        for (int x = 0; x < 5; x++) {
+            for (int y = 0; y < 5; y++) {
+                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+            }
+        }
+
+        // Center: Uranium quad rod
+        grid[2][2] = new SimTile(SimTile.TileType.FUEL_URANIUM_QUAD);
+
+        // Surrounding: Component Heat Exchangers (XC)
+        grid[1][2] = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
+        grid[3][2] = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
+        grid[2][1] = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
+        grid[2][3] = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
+
+        // Outer: Advanced Heat Vents (VA) and Component Vents (VC)
+        grid[0][2] = new SimTile(SimTile.TileType.VENT_ADVANCED);
+        grid[4][2] = new SimTile(SimTile.TileType.VENT_ADVANCED);
+        grid[2][0] = new SimTile(SimTile.TileType.VENT_ADVANCED);
+        grid[2][4] = new SimTile(SimTile.TileType.VENT_ADVANCED);
+        grid[1][1] = new SimTile(SimTile.TileType.VENT_COMPONENT);
+        grid[3][3] = new SimTile(SimTile.TileType.VENT_COMPONENT);
+
+        // Run 20 ticks of simulation
+        for (int t = 0; t < 20; t++) {
+            NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine.simulate(grid, 5, 5, 1.0, 20.0);
+            assertNotNull(res);
+            assertTrue(
+                res.maxTemperature < 1000.0,
+                "Reactor temperature should remain within safe limits with vents/exchangers");
+        }
     }
 }

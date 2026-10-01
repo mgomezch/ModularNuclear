@@ -29,10 +29,11 @@ import gregtech.api.util.GTUtility;
 public class MTEHatchNuclearControl extends MTEHatch {
 
     public static final int METRIC_TEMPERATURE = 0;
-    public static final int METRIC_FUEL_DURABILITY = 1;
-    public static final int METRIC_COMPONENT_DURABILITY = 2;
-    public static final int METRIC_COOLANT_LEVEL = 3;
-    public static final int METRIC_COUNT = 4;
+    public static final int METRIC_COOLANT_ITEM_DURABILITY = 1;
+    public static final int METRIC_FUEL_ITEM_DURABILITY = 2;
+    public static final int METRIC_COOLANT_HATCH_FILL = 3;
+    public static final int METRIC_FUEL_HATCH_FILL = 4;
+    public static final int METRIC_COUNT = 5;
 
     public static final int STAT_MIN = 0;
     public static final int STAT_MAX = 1;
@@ -42,17 +43,48 @@ public class MTEHatchNuclearControl extends MTEHatch {
     public static final int MODE_TEMP_MIN = 0;
     public static final int MODE_TEMP_MAX = 1;
     public static final int MODE_TEMP_AVG = 2;
-    public static final int MODE_FUEL_DURABILITY_MIN = 3;
-    public static final int MODE_FUEL_DURABILITY_MAX = 4;
-    public static final int MODE_FUEL_DURABILITY_AVG = 5;
-    public static final int MODE_COMPONENT_DURABILITY_MIN = 6;
-    public static final int MODE_COMPONENT_DURABILITY_MAX = 7;
-    public static final int MODE_COMPONENT_DURABILITY_AVG = 8;
-    public static final int MODE_COOLANT_LEVEL_MIN = 9;
-    public static final int MODE_COOLANT_LEVEL_MAX = 10;
-    public static final int MODE_COOLANT_LEVEL_AVG = 11;
-    public static final int MODE_COUNT = 12;
+    public static final int MODE_COOLANT_ITEM_DUR_MIN = 3;
+    public static final int MODE_COOLANT_ITEM_DUR_MAX = 4;
+    public static final int MODE_COOLANT_ITEM_DUR_AVG = 5;
+    public static final int MODE_FUEL_ITEM_DUR_MIN = 6;
+    public static final int MODE_FUEL_ITEM_DUR_MAX = 7;
+    public static final int MODE_FUEL_ITEM_DUR_AVG = 8;
+    public static final int MODE_COOLANT_HATCH_FILL_MIN = 9;
+    public static final int MODE_COOLANT_HATCH_FILL_MAX = 10;
+    public static final int MODE_COOLANT_HATCH_FILL_AVG = 11;
+    public static final int MODE_FUEL_HATCH_FILL_MIN = 12;
+    public static final int MODE_FUEL_HATCH_FILL_MAX = 13;
+    public static final int MODE_FUEL_HATCH_FILL_AVG = 14;
+    public static final int MODE_COUNT = 15;
 
+    // Deprecated compatibility aliases
+    @Deprecated
+    public static final int METRIC_FUEL_DURABILITY = METRIC_FUEL_ITEM_DURABILITY;
+    @Deprecated
+    public static final int METRIC_COMPONENT_DURABILITY = METRIC_COOLANT_ITEM_DURABILITY;
+    @Deprecated
+    public static final int METRIC_COOLANT_LEVEL = METRIC_COOLANT_HATCH_FILL;
+
+    @Deprecated
+    public static final int MODE_FUEL_DURABILITY_MIN = MODE_FUEL_ITEM_DUR_MIN;
+    @Deprecated
+    public static final int MODE_FUEL_DURABILITY_MAX = MODE_FUEL_ITEM_DUR_MAX;
+    @Deprecated
+    public static final int MODE_FUEL_DURABILITY_AVG = MODE_FUEL_ITEM_DUR_AVG;
+    @Deprecated
+    public static final int MODE_COMPONENT_DURABILITY_MIN = MODE_COOLANT_ITEM_DUR_MIN;
+    @Deprecated
+    public static final int MODE_COMPONENT_DURABILITY_MAX = MODE_COOLANT_ITEM_DUR_MAX;
+    @Deprecated
+    public static final int MODE_COMPONENT_DURABILITY_AVG = MODE_COOLANT_ITEM_DUR_AVG;
+    @Deprecated
+    public static final int MODE_COOLANT_LEVEL_MIN = MODE_COOLANT_HATCH_FILL_MIN;
+    @Deprecated
+    public static final int MODE_COOLANT_LEVEL_MAX = MODE_COOLANT_HATCH_FILL_MAX;
+    @Deprecated
+    public static final int MODE_COOLANT_LEVEL_AVG = MODE_COOLANT_HATCH_FILL_AVG;
+
+    public com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor mReactor;
     private int mMetric = 0;
     private int mStatistic = 0;
     private byte mOutputStrength = 0;
@@ -81,9 +113,10 @@ public class MTEHatchNuclearControl extends MTEHatch {
     public static String getMetricName(int metric) {
         return switch (metric) {
             case METRIC_TEMPERATURE -> "Temperature";
-            case METRIC_FUEL_DURABILITY -> "Fuel durability";
-            case METRIC_COMPONENT_DURABILITY -> "Component durability";
-            case METRIC_COOLANT_LEVEL -> "Coolant level";
+            case METRIC_COOLANT_ITEM_DURABILITY -> "Coolant item durability";
+            case METRIC_FUEL_ITEM_DURABILITY -> "Fuel item durability";
+            case METRIC_COOLANT_HATCH_FILL -> "Coolant hatch fill %";
+            case METRIC_FUEL_HATCH_FILL -> "Fuel hatch fill %";
             default -> "Unknown";
         };
     }
@@ -270,6 +303,11 @@ public class MTEHatchNuclearControl extends MTEHatch {
 
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
+        if (aPlayer != null && aPlayer.getHeldItem() != null && mReactor != null) {
+            if (mReactor.handleSensorCardLinking(aPlayer.getHeldItem(), aPlayer, mReactor.getBaseMetaTileEntity())) {
+                return true;
+            }
+        }
         openGui(aPlayer);
         return true;
     }

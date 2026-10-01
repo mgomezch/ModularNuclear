@@ -82,4 +82,11 @@ public interface INuclearTile {
     default int getNeutronEmissionCount() {
         return 1;
     }
+
+    /**
+     * Nuclear fuel type if this tile is a fuel rod or liquid fuel hatch, or null otherwise.
+     */
+    default NuclearFuelType getFuelType() {
+        return null;
+    }
 }
