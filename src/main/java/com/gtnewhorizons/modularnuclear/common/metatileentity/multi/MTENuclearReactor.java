@@ -45,6 +45,7 @@ import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.gui.ClientScreenHelper;
 import com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGridWidget;
 import com.gtnewhorizons.modularnuclear.common.gui.WindowResizeWidget;
+import com.gtnewhorizons.modularnuclear.common.gui.ZoomSliderWidget;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.NuclearStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
@@ -1463,113 +1464,57 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             N = mGrid.length;
         }
 
+        final int idealH = N * 18 + 44;
+        final int idealW = Math.max(154, N * 18 + 20);
+
         int screenW = ClientScreenHelper.getScaledScreenWidth();
         int screenH = ClientScreenHelper.getScaledScreenHeight();
+        int topLimit = ClientScreenHelper.getTopReservedHeight();
+        int parentH = getGUIHeight();
+        int mainY = (screenH - parentH) / 2;
+        int playerInvY = mainY + 104;
+        int bottomLimit = playerInvY - 2;
+        int availH = Math.max(70, bottomLimit - topLimit);
 
-        final int parentW = getGUIWidth();
-        final int parentH = getGUIHeight();
-        final int mainY = (screenH - parentH) / 2;
-
-        // Player inventory top inside standard GT multiblock GUI starts around mainY + 104
-        final int playerInvY = mainY + 104;
-        final int availH = Math.max(120, (playerInvY - 2) - 4);
-
-        final int targetW = Math.max(160, N * 18 + 20);
-        final int targetH = N * 18 + 64;
-
-        final int w = Math.min(targetW, screenW - 8);
-        final int h = Math.min(targetH, availH);
-
-        final int initX = Math.max(2, (screenW - w) / 2);
-        final int initY = Math.max(4, (playerInvY - 2) - h);
+        final int w = Math.min(idealW, screenW - 8);
+        final int h = Math.min(idealH, availH);
 
         ModularWindow.Builder builder = ModularWindow.builder(w, h);
         builder.setBackground(GTUITextures.BACKGROUND_SINGLEBLOCK_DEFAULT);
         builder.setGuiTint(getGUIColorization());
         builder.setDraggable(true);
-        builder.setPos((size, window) -> new Pos2d(initX, initY));
+        builder.setPos((screenSize, mainWindow) -> {
+            int scW = (screenSize != null && screenSize.width > 0) ? screenSize.width
+                : ClientScreenHelper.getScaledScreenWidth();
+            int scH = (screenSize != null && screenSize.height > 0) ? screenSize.height
+                : ClientScreenHelper.getScaledScreenHeight();
+            int top = ClientScreenHelper.getTopReservedHeight();
+            int mY = (mainWindow != null) ? mainWindow.getPos().y : (scH - getGUIHeight()) / 2;
+            int pInvY = mY + 104;
+            int bLimit = pInvY - 2;
+            int avail = Math.max(70, bLimit - top);
+
+            int targetH = Math.min(idealH, avail);
+            int targetW = Math.min(idealW, scW - 8);
+
+            int px = Math.max(2, (scW - targetW) / 2);
+            int py = Math.max(top, top + (avail - targetH) / 2);
+            return new Pos2d(px, py);
+        });
 
         NuclearReactorGridWidget gridWidget = new NuclearReactorGridWidget(this);
         Scrollable scrollable = new Scrollable().setVerticalScroll()
             .setHorizontalScroll();
         scrollable.widget(gridWidget);
-        scrollable.setPos(10, 24)
+        scrollable.setPos(10, 18)
             .setSizeProvider(
                 (size, window, parent) -> new Size(
-                    Math.max(80, window.getSize().width - 20),
-                    Math.max(50, window.getSize().height - 64)));
+                    Math.max(60, window.getSize().width - 20),
+                    Math.max(30, window.getSize().height - 44)));
         gridWidget.setParentScrollable(scrollable);
         builder.widget(scrollable);
 
-        // Zoom Out Button
-        ButtonWidget zoomOutBtn = new ButtonWidget() {
-
-            @Override
-            public void draw(float partialTicks) {
-                super.draw(partialTicks);
-                String str = "-";
-                int sw = GuiDraw.getStringWidth(str);
-                GuiDraw.drawString(str, (getSize().width - sw) / 2, 5, 0xFFFFFF, false);
-            }
-        };
-        zoomOutBtn.setPos(4, 4)
-            .setSize(18, 18);
-        zoomOutBtn.setBackground(GTUITextures.BUTTON_STANDARD);
-        zoomOutBtn.addTooltip("Zoom out");
-        zoomOutBtn.setOnClick((clickData, widget) -> gridWidget.zoomOut());
-        builder.widget(zoomOutBtn);
-
-        // Zoom In Button
-        ButtonWidget zoomInBtn = new ButtonWidget() {
-
-            @Override
-            public void draw(float partialTicks) {
-                super.draw(partialTicks);
-                String str = "+";
-                int sw = GuiDraw.getStringWidth(str);
-                GuiDraw.drawString(str, (getSize().width - sw) / 2, 5, 0xFFFFFF, false);
-            }
-        };
-        zoomInBtn.setPos(24, 4)
-            .setSize(18, 18);
-        zoomInBtn.setBackground(GTUITextures.BUTTON_STANDARD);
-        zoomInBtn.addTooltip("Zoom in");
-        zoomInBtn.setOnClick((clickData, widget) -> gridWidget.zoomIn());
-        builder.widget(zoomInBtn);
-
-        // Reset Zoom Button
-        ButtonWidget zoomResetBtn = new ButtonWidget() {
-
-            @Override
-            public void draw(float partialTicks) {
-                super.draw(partialTicks);
-                String str = "1:1";
-                int sw = GuiDraw.getStringWidth(str);
-                GuiDraw.drawString(str, (getSize().width - sw) / 2, 5, 0xFFFFFF, false);
-            }
-        };
-        zoomResetBtn.setPos(44, 4)
-            .setSize(22, 18);
-        zoomResetBtn.setBackground(GTUITextures.BUTTON_STANDARD);
-        zoomResetBtn.dynamicTooltip(() -> {
-            List<String> tt = new ArrayList<>();
-            tt.add("Reset zoom");
-            tt.add(EnumChatFormatting.GRAY + "Current zoom: " + gridWidget.getZoomPercent() + "%");
-            return tt;
-        });
-        zoomResetBtn.setUpdateTooltipEveryTick(true);
-        zoomResetBtn.setOnClick((clickData, widget) -> gridWidget.resetZoom());
-        builder.widget(zoomResetBtn);
-
-        // Zoom Percentage Label
-        builder.widget(
-            new TextWidget().setStringSupplier(() -> gridWidget.getZoomPercent() + "%")
-                .setDefaultColor(Color.rgb(255, 255, 255))
-                .setTextAlignment(Alignment.Center)
-                .setSize(40, 10)
-                .setPos(68, 8));
-
-        // Mode Toggle Button
+        // Mode Toggle Button (Compact 16x16 at top-right)
         ButtonWidget modeButton = new ButtonWidget() {
 
             @Override
@@ -1577,13 +1522,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 super.draw(partialTicks);
                 GlStateManager.pushMatrix();
                 if (mCurrentGuiMode == GUI_MODE_COMPONENTS) {
-                    new ItemDrawable(ItemList.RodUranium.get(1L)).draw(1, 1, 16, 16, partialTicks);
+                    new ItemDrawable(ItemList.RodUranium.get(1L)).draw(0, 0, 16, 16, partialTicks);
                 } else if (mCurrentGuiMode == GUI_MODE_TEMPERATURE) {
-                    new ItemDrawable(new ItemStack(Items.fire_charge)).draw(1, 1, 16, 16, partialTicks);
+                    new ItemDrawable(new ItemStack(Items.fire_charge)).draw(0, 0, 16, 16, partialTicks);
                 } else if (mCurrentGuiMode == GUI_MODE_NEUTRON_FLUX) {
-                    new ItemDrawable(new ItemStack(Items.nether_star)).draw(1, 1, 16, 16, partialTicks);
+                    new ItemDrawable(new ItemStack(Items.nether_star)).draw(0, 0, 16, 16, partialTicks);
                 } else {
-                    new ItemDrawable(new ItemStack(Blocks.iron_bars)).draw(1, 1, 16, 16, partialTicks);
+                    new ItemDrawable(new ItemStack(Blocks.iron_bars)).draw(0, 0, 16, 16, partialTicks);
                 }
                 GlStateManager.popMatrix();
                 GlStateManager.disableLighting();
@@ -1592,8 +1537,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
             }
         };
-        modeButton.setPosProvider((size, window, parent) -> new Pos2d(window.getSize().width - 44, 4))
-            .setSize(18, 18);
+        modeButton.setPosProvider((size, window, parent) -> new Pos2d(window.getSize().width - 36, 1))
+            .setSize(16, 16);
         modeButton.setBackground(GTUITextures.BUTTON_STANDARD);
         modeButton.setUpdateTooltipEveryTick(true);
         modeButton.dynamicTooltip(this::getModeButtonTooltip);
@@ -1606,13 +1551,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         });
         builder.widget(modeButton);
 
-        // Close Button
+        // Close Button (Compact 16x16 at top-right corner)
         builder.widget(
             ButtonWidget.closeWindowButton(true)
-                .setPosProvider((size, window, parent) -> new Pos2d(window.getSize().width - 22, 4))
-                .setSize(18, 18));
+                .setPosProvider((size, window, parent) -> new Pos2d(window.getSize().width - 18, 1))
+                .setSize(16, 16));
 
-        // Controller Position Indicator (Located below the grid in the center-bottom)
+        // Controller Position Indicator (Front face orientation icon, centered above zoom controls)
         builder.widget(new com.gtnewhorizons.modularui.api.widget.Widget() {
 
             private final ItemDrawable drawable = new ItemDrawable(ModMetaTileEntities.reactor.copy());
@@ -1620,7 +1565,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             @Override
             public void draw(float partialTicks) {
                 GlStateManager.pushMatrix();
-                drawable.draw(0, 0, 16, 16, partialTicks);
+                drawable.draw(0, 0, 12, 12, partialTicks);
                 GlStateManager.popMatrix();
                 GlStateManager.disableLighting();
                 GlStateManager.disableDepth();
@@ -1628,34 +1573,80 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
             }
         }.setPosProvider(
-            (size, window, parent) -> new Pos2d((window.getSize().width - 16) / 2, window.getSize().height - 36))
-            .setSize(16, 16)
+            (size, window, parent) -> new Pos2d((window.getSize().width - 12) / 2, window.getSize().height - 25))
+            .setSize(12, 12)
             .addTooltip("Reactor controller (front face)"));
 
-        // Subtitle / Telemetry at bottom
-        builder.widget(new TextWidget().setStringSupplier(() -> {
-            ReactorGridSyncData syncData = getClientGridData();
-            if (syncData == null || syncData.gridSize <= 0) {
-                return EnumChatFormatting.RED + "Offline - structure incomplete";
+        // Zoom Out Button [-] (Compact 12x10 at bottom)
+        ButtonWidget zoomOutBtn = new ButtonWidget() {
+
+            @Override
+            public void draw(float partialTicks) {
+                super.draw(partialTicks);
+                String str = "-";
+                int sw = GuiDraw.getStringWidth(str);
+                GuiDraw.drawString(str, (getSize().width - sw) / 2, 1, 0xFFFFFF, false);
             }
-            if (mCurrentGuiMode == GUI_MODE_TEMPERATURE) {
-                return String.format(EnumChatFormatting.GOLD + "Max temp: %.1f °C", syncData.coreTemp);
+        };
+        zoomOutBtn
+            .setPosProvider(
+                (size, window, parent) -> new Pos2d((window.getSize().width - 119) / 2, window.getSize().height - 12))
+            .setSize(12, 10);
+        zoomOutBtn.setBackground(GTUITextures.BUTTON_STANDARD);
+        zoomOutBtn.addTooltip("Zoom out");
+        zoomOutBtn.setOnClick((clickData, widget) -> gridWidget.zoomOut());
+        builder.widget(zoomOutBtn);
+
+        // Zoom Slider [===O===] (Compact 70x10 at bottom)
+        ZoomSliderWidget zoomSlider = new ZoomSliderWidget(gridWidget);
+        zoomSlider.setPosProvider(
+            (size, window, parent) -> new Pos2d((window.getSize().width - 119) / 2 + 15, window.getSize().height - 12));
+        builder.widget(zoomSlider);
+
+        // Zoom In Button [+] (Compact 12x10 at bottom)
+        ButtonWidget zoomInBtn = new ButtonWidget() {
+
+            @Override
+            public void draw(float partialTicks) {
+                super.draw(partialTicks);
+                String str = "+";
+                int sw = GuiDraw.getStringWidth(str);
+                GuiDraw.drawString(str, (getSize().width - sw) / 2, 1, 0xFFFFFF, false);
             }
-            if (mCurrentGuiMode == GUI_MODE_NEUTRON_FLUX) {
-                return EnumChatFormatting.AQUA + "Flux: "
-                    + NuclearSimulationEngine.formatNeutronFlux(syncData.neutronsProduced);
+        };
+        zoomInBtn.setPosProvider(
+            (size, window, parent) -> new Pos2d((window.getSize().width - 119) / 2 + 88, window.getSize().height - 12))
+            .setSize(12, 10);
+        zoomInBtn.setBackground(GTUITextures.BUTTON_STANDARD);
+        zoomInBtn.addTooltip("Zoom in");
+        zoomInBtn.setOnClick((clickData, widget) -> gridWidget.zoomIn());
+        builder.widget(zoomInBtn);
+
+        // Reset Zoom Button [1:1] (Compact 16x10 at bottom)
+        ButtonWidget zoomResetBtn = new ButtonWidget() {
+
+            @Override
+            public void draw(float partialTicks) {
+                super.draw(partialTicks);
+                String str = "1:1";
+                int sw = GuiDraw.getStringWidth(str);
+                int color = (gridWidget.getCurrentCellSize() == 18) ? 0x88FF88 : 0xFFFFFF;
+                GuiDraw.drawString(str, (getSize().width - sw) / 2, 1, color, false);
             }
-            if (syncData.efficiency > 0.0001) {
-                return String.format(
-                    EnumChatFormatting.DARK_GREEN + "Reactivity: %.1f%%  " + EnumChatFormatting.GOLD + "Max: %.0f°C",
-                    syncData.efficiency * 100.0,
-                    syncData.coreTemp);
-            }
-            return EnumChatFormatting.GRAY + "Status: ready / idle";
-        })
-            .setTextAlignment(Alignment.Center)
-            .setPosProvider((size, window, parent) -> new Pos2d(4, window.getSize().height - 18))
-            .setSizeProvider((size, window, parent) -> new Size(Math.max(60, window.getSize().width - 8), 14)));
+        };
+        zoomResetBtn.setPosProvider(
+            (size, window, parent) -> new Pos2d((window.getSize().width - 119) / 2 + 103, window.getSize().height - 12))
+            .setSize(16, 10);
+        zoomResetBtn.setBackground(GTUITextures.BUTTON_STANDARD);
+        zoomResetBtn.dynamicTooltip(() -> {
+            List<String> tt = new ArrayList<>();
+            tt.add("Reset zoom (1:1)");
+            tt.add(EnumChatFormatting.GRAY + "Current zoom: " + gridWidget.getZoomPercent() + "%");
+            return tt;
+        });
+        zoomResetBtn.setUpdateTooltipEveryTick(true);
+        zoomResetBtn.setOnClick((clickData, widget) -> gridWidget.resetZoom());
+        builder.widget(zoomResetBtn);
 
         // Window resize widget covering the window perimeter
         builder.widget(new WindowResizeWidget(gridWidget));

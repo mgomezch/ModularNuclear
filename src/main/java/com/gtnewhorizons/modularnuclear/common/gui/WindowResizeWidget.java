@@ -21,8 +21,8 @@ public class WindowResizeWidget extends Widget implements IDraggable, Interactab
 
     public static final int BORDER = 5;
     public static final int CORNER = 12;
-    public static final int MIN_WIDTH = 154;
-    public static final int MIN_HEIGHT = 120;
+    public static final int MIN_WIDTH = 140;
+    public static final int MIN_HEIGHT = 70;
 
     private static Field sizeField;
 
@@ -60,11 +60,43 @@ public class WindowResizeWidget extends Widget implements IDraggable, Interactab
         setSizeProvider((size, window, parent) -> window.getSize());
     }
 
+    @Override
+    public void onInit() {
+        super.onInit();
+        ModularWindow win = getWindow();
+        if (win == null) return;
+        ModularUIContext ctx = win.getContext();
+        if (ctx == null || !ctx.isClient()) return;
+
+        Size screenSize = ctx.getScaledScreenSize();
+        int screenW = (screenSize != null && screenSize.width > 0) ? screenSize.width
+            : ClientScreenHelper.getScaledScreenWidth();
+        int screenH = (screenSize != null && screenSize.height > 0) ? screenSize.height
+            : ClientScreenHelper.getScaledScreenHeight();
+        int topLimit = ClientScreenHelper.getTopReservedHeight();
+
+        ModularWindow mainWin = ctx.getMainWindow();
+        int mainY = (mainWin != null) ? mainWin.getPos().y : (screenH - 192) / 2;
+        int playerInvY = mainY + 104;
+        int bottomLimit = playerInvY - 2;
+        int availH = Math.max(70, bottomLimit - topLimit);
+
+        int curW = win.getSize().width;
+        int curH = win.getSize().height;
+
+        int newW = Math.min(curW, screenW - 8);
+        int newH = Math.min(curH, availH);
+
+        int newX = Math.max(2, (screenW - newW) / 2);
+        int newY = Math.max(topLimit, topLimit + (availH - newH) / 2);
+
+        setWindowBounds(win, newX, newY, newW, newH);
+    }
+
     public Handle getHandleAt(int rx, int ry, int w, int h) {
-        // Exclude top-left zoom button area (4,4..22,22) and top-right close/mode button area (w-46..w-2, 4..22)
-        if (ry < 24) {
-            if (rx < 24) return Handle.NONE;
-            if (rx >= w - 46 && rx < w - 2) return Handle.NONE;
+        // Exclude top-right close/mode button area (w-38..w-2, 0..18)
+        if (ry < 18 && rx >= w - 38 && rx < w - 2) {
+            return Handle.NONE;
         }
 
         boolean left = rx < BORDER;
@@ -241,8 +273,9 @@ public class WindowResizeWidget extends Widget implements IDraggable, Interactab
             case N:
             case NW:
             case NE: {
+                int topLimit = ClientScreenHelper.getTopReservedHeight();
                 int targetH = startWinH - dy;
-                int maxH = startWinY + startWinH - 2;
+                int maxH = startWinY + startWinH - topLimit;
                 newH = Math.max(MIN_HEIGHT, Math.min(targetH, maxH));
                 newY = startWinY + (startWinH - newH);
                 break;
@@ -269,6 +302,10 @@ public class WindowResizeWidget extends Widget implements IDraggable, Interactab
             }
         } catch (Throwable ignored) {}
         win.setPos(new Pos2d(x, y));
+        if (win.getContext() != null) {
+            win.getContext()
+                .storeWindowPos(win, new Pos2d(x, y));
+        }
         win.markNeedsRebuild();
     }
 

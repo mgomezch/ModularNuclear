@@ -154,6 +154,35 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
         }
     }
 
+    public int getZoomIndex() {
+        int[] sizes = getZoomCellSizes(getGridSize());
+        return Math.max(0, Math.min(mZoomIndex, sizes.length - 1));
+    }
+
+    public void setZoomIndex(int index) {
+        int[] sizes = getZoomCellSizes(getGridSize());
+        int clamped = Math.max(0, Math.min(index, sizes.length - 1));
+        if (mZoomIndex != clamped) {
+            mZoomIndex = clamped;
+            updateWidgetSize();
+        }
+    }
+
+    public float getZoomProgress() {
+        int[] sizes = getZoomCellSizes(getGridSize());
+        if (sizes.length <= 1) return 1.0f;
+        int idx = getZoomIndex();
+        return (float) idx / (float) (sizes.length - 1);
+    }
+
+    public void setZoomProgress(float progress) {
+        int[] sizes = getZoomCellSizes(getGridSize());
+        if (sizes.length <= 1) return;
+        float p = Math.max(0.0f, Math.min(1.0f, progress));
+        int targetIdx = Math.round(p * (sizes.length - 1));
+        setZoomIndex(targetIdx);
+    }
+
     public void updateWidgetSize() {
         int N = getGridSize();
         int cellSize = getCurrentCellSize();
