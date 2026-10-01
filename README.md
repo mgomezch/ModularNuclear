@@ -1,54 +1,23 @@
-# Modular Nuclear (MPTR)
+# Modular Pressure Tube Reactor (MPTR)
 
-**Modular Pressure Tube Reactor (MPTR)** is a multi-block nuclear reactor and thermodynamics simulation mod for Minecraft 1.7.10 (Forge).
+This is a WIP small personal-project Minecraft mod meant to be deployed alongside GregTech: New Horizons.  This mod is not part of the GTNH project at all, and since it's currently 100% slopcoded, and there are already two open projects by actual GTNH developers to create new nuclear reactor machines for the pack ([RecursivePineapple's Nuclear Horizons](https://github.com/RecursivePineapple/NuclearHorizons) as a direct IC2 nuke replacement, and [@datlycan's AoI design document](https://docs.google.com/document/d/1gSaYIHG5dJFg5WUhulF6j5pab75Lc-buJcVvA96T6ps)), this mod will most likely never be part of GTNH.  The only part of this repository right now that actually comes from my head is this README.
 
-Inspired by Modern Industrialization's nuclear mechanics and adapted for advanced GregTech / GTNH environments, the MPTR introduces multi-chamber grid layouts with fast and thermal neutron kinetics, boiling curve thermodynamics, multi-tier pressure containment, and multi-stage power generation.
+That said: this is an adaptation of the Modern Industrialization nuclear reactor, because I really enjoyed playing that machine back when I played ATM10, and I was nostalgic for it.
 
-🎮 **Interactive Browser Simulator**: [https://mgomezch.github.io/modular-nuclear-simulator/](https://mgomezch.github.io/modular-nuclear-simulator/)  
-The simulator engine is compiled directly to client-side WebAssembly (WASM) with 100% mathematical parity to in-game simulation logic.
+To be clear: I haven't looked at a single line of code in this app; it all comes from Antigravity.  As a longtime software engineer, I have complicated / weird feelings about this.  But anyway, that whole can of worms aside, here it is.  Play with it, it's fun.  If you're interested, hit me up (mgomezch in GTNH Discord), which works as an add-on to GTNH 2.9 (tested on some daily shortly after release candidate 1).  It's unfinished, and completely unbalanced, but it's kinda fun to mess with anyway.  It does require a small change to GTNH GT5 since I added Compressor recipes that produce fluids, but otherwise it's stand-alone.
 
----
+License: GPL3, because I originally started the project as a bunch of modifications to GTNH's GT5-Unofficial repo, and this app has stuff extracted from that project, so its license holds.  See https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/LICENSE.txt
 
-## Key Features
-
-- **Chamber Grid Mechanics**:
-  - Modular reactor core chambers configurable from 5×5 up to 13×13+.
-  - Individual tile physics: temperatures, fuel burnup, neutron emission, and fluid turnover.
-  - Multi-tier pipe casings (Electrum, Platinum, Osmium, Quantium, Fluxed Electrum, Black Plutonium) defining maximum operating temperatures and boiling pressure thresholds.
-
-- **Neutron Kinetics & Fuel Transmutation**:
-  - Two-group neutron diffusion model (Fast and Thermal neutrons).
-  - Directional scattering through moderators (Graphite, Beryllium, Heavy Water).
-  - Control rod insertion for reactivity regulation.
-  - Nuclear breeding reactions (Thorium, Uranium-235/238, MOX, High-Density Uranium/Plutonium, Excited fuels, Naquadah, Naquadria, Tiberium, Lithium, and Glowstone).
-  - Tritium, Deuterium, and direct Radiovoltaic energy harvesting.
-
-- **Advanced Thermodynamics & Fluid Turnover**:
-  - Active coolant boiling kinetics for Distilled Water, High-Pressure Distilled Water, Heavy Water, High-Pressure Heavy Water, and IC2 Coolant.
-  - Non-linear turnover boiling curves with heat-transfer caps and dryout meltdown conditions.
-  - Multi-stage heat exchange (LHE, Thermal Boilers, Extreme Heat Exchangers) and Large / Extreme Large Steam Turbines (LST / XLST) modeling.
-
-- **Integrations**:
-  - **Nuclear Control 2**: 15-mode telemetry sensor cards and display panel support.
-  - **OpenComputers**: Dedicated `mptr_reactor` component driver exposing real-time core telemetry, hatch levels, thermal flux, and automated safety trips.
-  - **Embedded Web Simulator**: Built-in HTTP server and exportable static WASM webapp for visual layout testing and balance tuning.
+There's also a simulator as a stand-alone client-only Web app; see
+* Repo: https://mgomezch.github.io/modular-nuclear-simulator/
+* Live app: https://mgomezch.github.io/modular-nuclear-simulator
 
 ---
 
-## Building from Source
-
-This project targets Minecraft 1.7.10 using Java 17/21 with Gradle and JVM Downgrader to produce Java 8-compatible mod binaries.
+## Build
 
 ```bash
-# Clone the repository
-git clone https://github.com/mgomezch/ModularNuclear.git
-cd ModularNuclear
-
-# Build mod jar
 ./gradlew build
-
-# Run client in development environment
-./gradlew runClient
 
 # Build the WebAssembly standalone simulator
 ./gradlew generateWasm exportStaticDist
