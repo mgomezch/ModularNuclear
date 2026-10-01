@@ -8,7 +8,9 @@ import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 import static gregtech.api.util.GTStructureUtility.chainItemPipeCasings;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -586,7 +588,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             .addInfo(
                 EnumChatFormatting.RED
                     + "Warning: insufficient casing tier for HP coolants causes catastrophic explosion!")
+            .addInfo(EnumChatFormatting.RED + "Note: This multiblock cannot share walls!")
             .beginVariableStructureBlock(5, 13, 5, 5, 5, 13, true)
+            .addStructureInfo(EnumChatFormatting.RED + "This multiblock cannot share walls")
             .addController("Front center, 2nd layer")
             .addCasing("22+", "Nuclear casings", false)
             .addCasing(
@@ -806,6 +810,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         checkCasingMin(errors, mCasing, 22);
 
+        checkNoWallsharingNuclearHatches(errors, aBaseMetaTileEntity.getWorld());
+
         if (!errors.isEmpty()) {
             return;
         }
@@ -864,6 +870,62 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public void verifyCasingMin(List<StructureError> errors, int current, int required) {
         checkCasingMin(errors, current, required);
+    }
+
+    public static boolean isNuclearCoreHatch(IMetaTileEntity mte) {
+        return mte instanceof MTEHatchNuclearHatch || mte instanceof MTEHatchNuclearBus
+            || mte instanceof MTEHatchNuclearControlRod;
+    }
+
+    public static boolean isNuclearHatchTile(TileEntity te) {
+        if (te instanceof IGregTechTileEntity gte) {
+            return isNuclearCoreHatch(gte.getMetaTileEntity());
+        }
+        return false;
+    }
+
+    public void checkNoWallsharingNuclearHatches(List<StructureError> errors, World world) {
+        if (world == null || mNuclearTiles.isEmpty()) return;
+
+        Set<ChunkCoordinates> coreCoords = new HashSet<>();
+        for (IGregTechTileEntity te : mNuclearTiles) {
+            if (te != null) {
+                coreCoords.add(new ChunkCoordinates(te.getXCoord(), te.getYCoord(), te.getZCoord()));
+            }
+        }
+
+        Set<ChunkCoordinates> perimeterCoords = new HashSet<>();
+        for (ChunkCoordinates pos : coreCoords) {
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    if (dx == 0 && dz == 0) continue;
+                    ChunkCoordinates neighbor = new ChunkCoordinates(pos.posX + dx, pos.posY, pos.posZ + dz);
+                    if (!coreCoords.contains(neighbor)) {
+                        perimeterCoords.add(neighbor);
+                    }
+                }
+            }
+        }
+
+        for (ChunkCoordinates p : perimeterCoords) {
+            TileEntity te;
+            try {
+                te = world.blockExists(p.posX, p.posY, p.posZ) ? world.getTileEntity(p.posX, p.posY, p.posZ) : null;
+                if (te == null) {
+                    te = world.getTileEntity(p.posX, p.posY, p.posZ);
+                }
+            } catch (Throwable ignored) {
+                te = null;
+            }
+            if (isNuclearHatchTile(te)) {
+                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.cannot_wallshare_nuclear_hatches"));
+                return;
+            }
+        }
+    }
+
+    public void verifyNoWallsharingNuclearHatches(List<StructureError> errors, World world) {
+        checkNoWallsharingNuclearHatches(errors, world);
     }
 
     @Override

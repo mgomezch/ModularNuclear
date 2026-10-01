@@ -2597,4 +2597,103 @@ public class NuclearSimulationEngineTest {
                 "Reactor temperature should remain within safe limits with vents/exchangers");
         }
     }
+
+    @Test
+    void testWallsharingExclusionCheck() {
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.wallshare");
+        World mockWorld = org.mockito.Mockito.mock(World.class);
+
+        int baseX = 100;
+        int baseY = 64;
+        int baseZ = 100;
+
+        // Populate a 5x5 octagonal core (21 tiles)
+        int[][] coreOffsets = { { 1, 0 }, { 2, 0 }, { 3, 0 }, { 0, 1 }, { 1, 1 }, { 2, 1 }, { 3, 1 }, { 4, 1 },
+            { 0, 2 }, { 1, 2 }, { 2, 2 }, { 3, 2 }, { 4, 2 }, { 0, 3 }, { 1, 3 }, { 2, 3 }, { 3, 3 }, { 4, 3 },
+            { 1, 4 }, { 2, 4 }, { 3, 4 } };
+
+        MTEHatchNuclearBus sampleBus = new MTEHatchNuclearBus("sample.bus", 4, new String[0], null);
+        for (int[] offset : coreOffsets) {
+            IGregTechTileEntity mockCoreTile = org.mockito.Mockito.mock(IGregTechTileEntity.class);
+            org.mockito.Mockito.when(mockCoreTile.getXCoord())
+                .thenReturn(baseX + offset[0]);
+            org.mockito.Mockito.when(mockCoreTile.getYCoord())
+                .thenReturn((short) baseY);
+            org.mockito.Mockito.when(mockCoreTile.getZCoord())
+                .thenReturn(baseZ + offset[1]);
+            org.mockito.Mockito.when(mockCoreTile.getMetaTileEntity())
+                .thenReturn(sampleBus);
+            reactor.mNuclearTiles.add(mockCoreTile);
+        }
+
+        List<gregtech.api.structure.error.StructureError> errors = new ArrayList<>();
+
+        // Case 1: Isolated reactor surrounded by air / null tiles -> passes
+        reactor.verifyNoWallsharingNuclearHatches(errors, mockWorld);
+        assertTrue(errors.isEmpty(), "Isolated reactor must pass wallsharing check");
+
+        // Case 2: Surrounded by non-nuclear GT machine or regular block -> passes
+        gregtech.api.metatileentity.BaseMetaTileEntity mockOtherMachine = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        gregtech.api.interfaces.metatileentity.IMetaTileEntity mockMte = org.mockito.Mockito
+            .mock(gregtech.api.interfaces.metatileentity.IMetaTileEntity.class);
+        org.mockito.Mockito.when(mockOtherMachine.getMetaTileEntity())
+            .thenReturn(mockMte);
+        // Place at (baseX + 1, baseY, baseZ - 1), which is in the perimeter
+        org.mockito.Mockito.when(mockWorld.getTileEntity(baseX + 1, baseY, baseZ - 1))
+            .thenReturn(mockOtherMachine);
+
+        errors.clear();
+        reactor.verifyNoWallsharingNuclearHatches(errors, mockWorld);
+        assertTrue(errors.isEmpty(), "Non-nuclear blocks in perimeter must be permitted");
+
+        // Case 3: Nuclear hatch in perimeter (e.g. MTEHatchNuclearHatch) -> fails
+        gregtech.api.metatileentity.BaseMetaTileEntity mockNuclearHatchTile = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        MTEHatchNuclearHatch adjacentHatch = new MTEHatchNuclearHatch("adj.hatch", 1, 16000, new String[0], null);
+        org.mockito.Mockito.when(mockNuclearHatchTile.getMetaTileEntity())
+            .thenReturn(adjacentHatch);
+        org.mockito.Mockito.when(mockWorld.getTileEntity(baseX + 1, baseY, baseZ - 1))
+            .thenReturn(mockNuclearHatchTile);
+
+        errors.clear();
+        reactor.verifyNoWallsharingNuclearHatches(errors, mockWorld);
+        assertFalse(errors.isEmpty(), "Nuclear hatch directly in perimeter must fail structure check");
+
+        // Case 4: Nuclear bus in cut-corner perimeter -> fails
+        org.mockito.Mockito.when(mockWorld.getTileEntity(baseX + 1, baseY, baseZ - 1))
+            .thenReturn(null);
+        // (baseX, baseY, baseZ) is the cut-corner (0,0), which is in perimeter
+        org.mockito.Mockito.when(mockWorld.getTileEntity(baseX, baseY, baseZ))
+            .thenReturn(mockNuclearHatchTile);
+
+        errors.clear();
+        reactor.verifyNoWallsharingNuclearHatches(errors, mockWorld);
+        assertFalse(errors.isEmpty(), "Nuclear hatch in cut corner perimeter must fail structure check");
+
+        // Case 5: Control rod hatch in perimeter -> fails
+        gregtech.api.metatileentity.BaseMetaTileEntity mockRodTile = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        MTEHatchNuclearControlRod adjacentRod = new MTEHatchNuclearControlRod("adj.rod", 1, new String[0], null);
+        org.mockito.Mockito.when(mockRodTile.getMetaTileEntity())
+            .thenReturn(adjacentRod);
+        org.mockito.Mockito.when(mockWorld.getTileEntity(baseX, baseY, baseZ))
+            .thenReturn(mockRodTile);
+
+        errors.clear();
+        reactor.verifyNoWallsharingNuclearHatches(errors, mockWorld);
+        assertFalse(errors.isEmpty(), "Nuclear control rod in perimeter must fail structure check");
+
+        // Case 6: Test predicates isNuclearCoreHatch and isNuclearHatchTile
+        assertTrue(MTENuclearReactor.isNuclearCoreHatch(adjacentHatch));
+        assertTrue(MTENuclearReactor.isNuclearCoreHatch(sampleBus));
+        assertTrue(MTENuclearReactor.isNuclearCoreHatch(adjacentRod));
+        assertFalse(MTENuclearReactor.isNuclearCoreHatch(mockMte));
+        assertFalse(MTENuclearReactor.isNuclearCoreHatch(null));
+
+        assertTrue(MTENuclearReactor.isNuclearHatchTile(mockNuclearHatchTile));
+        assertTrue(MTENuclearReactor.isNuclearHatchTile(mockRodTile));
+        assertFalse(MTENuclearReactor.isNuclearHatchTile(mockOtherMachine));
+        assertFalse(MTENuclearReactor.isNuclearHatchTile(null));
+    }
 }
