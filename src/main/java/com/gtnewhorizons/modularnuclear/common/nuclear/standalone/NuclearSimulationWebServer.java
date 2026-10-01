@@ -630,7 +630,7 @@ public class NuclearSimulationWebServer {
             <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>GTNH Nuclear Reactor Simulator</title>
+            <title>GTNH MPTR - Modular Pressure Tube Reactor Simulator</title>
             <style>
               :root {
                 --bg-dark: #0f141c;
@@ -854,7 +854,7 @@ public class NuclearSimulationWebServer {
             </head>
             <body>
             <header>
-              <h1><span>⚛</span> GTNH Nuclear Reactor Standalone Simulator</h1>
+              <h1><span>⚛</span> GTNH Modular Pressure Tube Reactor (MPTR) Standalone Simulator</h1>
               <div style="display:flex; gap:10px; align-items:center;">
                 <span class="badge" id="casing-badge">Electrum Casing (1000°C Max)</span>
                 <span class="badge" id="status-badge" style="color:var(--success);">STATUS: STANDBY</span>

@@ -51,7 +51,9 @@ public class ModMetaTileEntities {
             "Nuclear Control Rod Hatch",
             5).getStackForm(1L);
 
-        reactor = new MTENuclearReactor(ID_NUCLEAR_REACTOR, "multimachine.nuclearreactor", "Nuclear Fission Reactor")
-            .getStackForm(1L);
+        reactor = new MTENuclearReactor(
+            ID_NUCLEAR_REACTOR,
+            "multimachine.nuclearreactor",
+            "Modular Pressure Tube Reactor (MPTR)").getStackForm(1L);
     }
 }

@@ -666,7 +666,7 @@ public class NuclearSimulationCLI {
         TurbineCalculator.FittingMode turbFitting, boolean tierSpecified, boolean turbSpecified, boolean traceEnabled,
         int traceSteps) {
         System.out.println(ANSI_CYAN + "============================================================" + ANSI_RESET);
-        System.out.println(ANSI_WHITE_BOLD + "   GTNH MODULAR NUCLEAR REACTOR STANDALONE SIMULATOR" + ANSI_RESET);
+        System.out.println(ANSI_WHITE_BOLD + "   GTNH MODULAR PRESSURE TUBE REACTOR (MPTR) SIMULATOR" + ANSI_RESET);
         System.out.println(ANSI_CYAN + "============================================================" + ANSI_RESET);
 
         StandaloneNuclearGrid grid = new StandaloneNuclearGrid(size, size, tier);

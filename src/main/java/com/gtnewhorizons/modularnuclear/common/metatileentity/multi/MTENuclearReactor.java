@@ -503,7 +503,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
         MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType("Nuclear Fission Reactor")
+        tt.addMachineType("Modular Pressure Tube Reactor (MPTR)")
             .addInfo("Modular nuclear reactor simulating discrete neutron transport and moderation")
             .addInfo("Supports self-stabilizing negative temperature reactivity feedback")
             .addInfo("Height is fixed at 5 blocks for all tiers (octagonal prism chamber)")

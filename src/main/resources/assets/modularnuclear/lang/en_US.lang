@@ -5,7 +5,7 @@ modularnuclear.casing.0.name=Nuclear Casing
 item.modularnuclear.radiovoltaic.plate.hv.name=Radiovoltaic Plate (HV)
 item.modularnuclear.radiovoltaic.plate.ev.name=Radiovoltaic Plate (EV)
 
-gt.blockmachines.multimachine.nuclearreactor.name=Modular Nuclear Reactor
+gt.blockmachines.multimachine.nuclearreactor.name=Modular Pressure Tube Reactor (MPTR)
 gt.blockmachines.hatch.nuclearbus.name=Nuclear Core Bus
 gt.blockmachines.hatch.nuclear.bus.name=Nuclear Core Bus
 gt.blockmachines.hatch.nuclearhatch.lv.name=Nuclear Hatch (LV)
