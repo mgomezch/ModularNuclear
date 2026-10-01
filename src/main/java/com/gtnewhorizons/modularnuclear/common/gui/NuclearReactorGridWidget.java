@@ -1,15 +1,30 @@
 package com.gtnewhorizons.modularnuclear.common.gui;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.IFluidContainerItem;
 
 import org.lwjgl.opengl.GL11;
 
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor.NuclearGridTile;
+import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
@@ -18,18 +33,29 @@ import com.gtnewhorizons.modularui.api.drawable.FluidDrawable;
 import com.gtnewhorizons.modularui.api.drawable.ItemDrawable;
 import com.gtnewhorizons.modularui.api.math.Pos2d;
 import com.gtnewhorizons.modularui.api.screen.Cursor;
+import com.gtnewhorizons.modularui.api.screen.ModularUIContext;
 import com.gtnewhorizons.modularui.api.widget.Interactable;
-import com.gtnewhorizons.modularui.api.widget.Widget;
 import com.gtnewhorizons.modularui.common.widget.Scrollable;
+import com.gtnewhorizons.modularui.common.widget.SyncedWidget;
 
 import codechicken.lib.gui.GuiDraw;
 import gregtech.api.gui.modularui.GTUITextures;
+import gregtech.api.util.GTUtility;
 
-public class NuclearReactorGridWidget extends Widget implements Interactable {
+public class NuclearReactorGridWidget extends SyncedWidget implements Interactable {
+
+    public static final int PACKET_SLOT_CLICK = 10;
+    public static final int PACKET_BATCH_SHIFT_INSERT = 11;
+    public static final int PACKET_DRAG_STEP = 12;
+    public static final int PACKET_SYNC_GRID = 13;
 
     private final MTENuclearReactor reactor;
     private Scrollable parentScrollable;
     private int mZoomIndex = 0;
+
+    private boolean mIsDraggingGrid = false;
+    private int mDragButton = 0;
+    private final Set<Integer> mDragVisitedCells = new LinkedHashSet<>();
 
     public NuclearReactorGridWidget(MTENuclearReactor reactor) {
         this.reactor = reactor;
@@ -129,8 +155,89 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
         }
     }
 
+    public int[] getCellUnderCursor() {
+        ReactorGridSyncData sync = reactor.getClientGridData();
+        if (sync == null || sync.gridSize <= 0) return null;
+        if (getContext() == null) return null;
+        Cursor cursor = getContext().getCursor();
+        if (cursor == null) return null;
+
+        Pos2d spos = parentScrollable != null ? parentScrollable.getAbsolutePos() : getAbsolutePos();
+        int cx = cursor.getX();
+        int cy = cursor.getY();
+        int spx = spos.x;
+        int spy = spos.y;
+        int spw = parentScrollable != null ? parentScrollable.getSize().width : getSize().width;
+        int sph = parentScrollable != null ? parentScrollable.getSize().height : getSize().height;
+
+        if (cx < spx || cx >= spx + spw || cy < spy || cy >= spy + sph) {
+            return null;
+        }
+
+        int N = sync.gridSize;
+        int cellSize = getCurrentCellSize();
+        int gridPx = N * cellSize;
+        int offset = (gridPx < 126) ? (126 - gridPx) / 2 : 0;
+
+        int scrollX = parentScrollable != null ? parentScrollable.getHorizontalScrollOffset() : 0;
+        int scrollY = parentScrollable != null ? parentScrollable.getVerticalScrollOffset() : 0;
+
+        int mx = cx - spx + scrollX;
+        int my = cy - spy + scrollY;
+
+        int hx = (mx - offset) / cellSize;
+        int renderHy = (my - offset) / cellSize;
+        int hy = (N - 1) - renderHy;
+
+        if (hx < 0 || hx >= N || hy < 0 || hy >= N) return null;
+        if (NuclearSimulationEngine.isCornerNullCell(hx, hy, N, N)) return null;
+
+        int idx = hx * N + hy;
+        if (idx < 0 || idx >= sync.cells.size()) return null;
+        ReactorGridSyncData.ReactorGridCellData cellData = sync.cells.get(idx);
+        if (cellData == null || !cellData.exists) return null;
+
+        return new int[] { hx, hy };
+    }
+
     @Override
     public ClickResult onClick(int button, boolean isShiftDown) {
+        int[] cell = getCellUnderCursor();
+        if (cell != null) {
+            ItemStack cursorStack = null;
+            if (getContext() != null && getContext().getPlayer() != null) {
+                cursorStack = getContext().getPlayer().inventory.getItemStack();
+            }
+
+            if (isShiftDown && cursorStack != null && cursorStack.stackSize > 0) {
+                // Batch shift-insert from top-left into empty buses
+                syncToServer(PACKET_BATCH_SHIFT_INSERT, buf -> buf.writeInt(button));
+                Interactable.playButtonClickSound();
+                return ClickResult.ACCEPT;
+            }
+
+            if (cursorStack != null && cursorStack.stackSize > 0) {
+                mIsDraggingGrid = true;
+                mDragButton = button;
+                mDragVisitedCells.clear();
+                mDragVisitedCells.add(cell[0] * 1000 + cell[1]);
+            } else {
+                mIsDraggingGrid = false;
+                mDragVisitedCells.clear();
+            }
+
+            final int hx = cell[0];
+            final int hy = cell[1];
+            syncToServer(PACKET_SLOT_CLICK, buf -> {
+                buf.writeInt(hx);
+                buf.writeInt(hy);
+                buf.writeInt(button);
+                buf.writeBoolean(isShiftDown);
+            });
+            Interactable.playButtonClickSound();
+            return ClickResult.ACCEPT;
+        }
+
         if (parentScrollable != null) {
             return parentScrollable.onClick(button, isShiftDown);
         }
@@ -139,6 +246,25 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
 
     @Override
     public void onMouseDragged(int button, long timeSinceLastClick) {
+        if (mIsDraggingGrid && button == mDragButton) {
+            int[] cell = getCellUnderCursor();
+            if (cell != null) {
+                int code = cell[0] * 1000 + cell[1];
+                if (!mDragVisitedCells.contains(code)) {
+                    mDragVisitedCells.add(code);
+                    final int hx = cell[0];
+                    final int hy = cell[1];
+                    syncToServer(PACKET_DRAG_STEP, buf -> {
+                        buf.writeInt(hx);
+                        buf.writeInt(hy);
+                        buf.writeInt(button);
+                    });
+                    Interactable.playButtonClickSound();
+                }
+            }
+            return;
+        }
+
         if (parentScrollable != null) {
             parentScrollable.onMouseDragged(button, timeSinceLastClick);
         }
@@ -146,6 +272,11 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
 
     @Override
     public boolean onClickReleased(int button) {
+        if (mIsDraggingGrid) {
+            mIsDraggingGrid = false;
+            mDragVisitedCells.clear();
+            return true;
+        }
         if (parentScrollable != null) {
             return parentScrollable.onClickReleased(button);
         }
@@ -166,6 +297,442 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
             return parentScrollable.onMouseScroll(direction);
         }
         return false;
+    }
+
+    @Override
+    public void readOnClient(int id, PacketBuffer buf) throws IOException {
+        if (id == PACKET_SYNC_GRID) {
+            ReactorGridSyncData data = ReactorGridSyncData.readFromBuffer(buf);
+            reactor.applyGridSyncData(data);
+        }
+    }
+
+    @Override
+    public void readOnServer(int id, PacketBuffer buf) throws IOException {
+        if (id == PACKET_SLOT_CLICK) {
+            int gx = buf.readInt();
+            int gy = buf.readInt();
+            int button = buf.readInt();
+            boolean isShift = buf.readBoolean();
+            handleSlotClickServer(gx, gy, button, isShift);
+        } else if (id == PACKET_BATCH_SHIFT_INSERT) {
+            int button = buf.readInt();
+            handleBatchShiftInsertServer(button);
+        } else if (id == PACKET_DRAG_STEP) {
+            int gx = buf.readInt();
+            int gy = buf.readInt();
+            int button = buf.readInt();
+            handleDragStepServer(gx, gy, button);
+        }
+    }
+
+    private void handleSlotClickServer(int gx, int gy, int button, boolean isShift) {
+        ModularUIContext ctx = getContext();
+        if (ctx == null) return;
+        EntityPlayer player = ctx.getPlayer();
+        if (!(player instanceof EntityPlayerMP playerMP)) return;
+        if (reactor.mGrid == null || gx < 0 || gx >= reactor.gridSize || gy < 0 || gy >= reactor.gridSize) return;
+        INuclearTile nTile = reactor.mGrid[gx][gy];
+        if (!(nTile instanceof NuclearGridTile gridTile)) return;
+
+        ItemStack cursorStack = player.inventory.getItemStack();
+
+        if (gridTile.isBus()) {
+            MTEHatchNuclearBus bus = gridTile.getBus();
+            ItemStack slotStack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+
+            if (isShift) {
+                if (cursorStack == null && slotStack != null) {
+                    if (player.inventory.addItemStackToInventory(slotStack)) {
+                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                    } else if (slotStack.stackSize <= 0) {
+                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                    }
+                    bus.markTileDirty();
+                    syncPlayerAndReactor(playerMP);
+                }
+            } else if (button == 0) {
+                if (cursorStack == null) {
+                    if (slotStack != null) {
+                        player.inventory.setItemStack(slotStack);
+                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                        bus.markTileDirty();
+                        syncPlayerAndReactor(playerMP);
+                    }
+                } else {
+                    if (slotStack == null) {
+                        ItemStack placed = cursorStack.copy();
+                        placed.stackSize = 1;
+                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = placed;
+                        bus.markTileDirty();
+                        cursorStack.stackSize--;
+                        if (cursorStack.stackSize <= 0) {
+                            player.inventory.setItemStack(null);
+                        }
+                        syncPlayerAndReactor(playerMP);
+                    } else if (cursorStack.stackSize == 1) {
+                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = cursorStack;
+                        player.inventory.setItemStack(slotStack);
+                        bus.markTileDirty();
+                        syncPlayerAndReactor(playerMP);
+                    }
+                }
+            } else if (button == 1) {
+                if (cursorStack == null) {
+                    if (slotStack != null) {
+                        player.inventory.setItemStack(slotStack);
+                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                        bus.markTileDirty();
+                        syncPlayerAndReactor(playerMP);
+                    }
+                } else if (slotStack == null) {
+                    ItemStack placed = cursorStack.copy();
+                    placed.stackSize = 1;
+                    bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = placed;
+                    bus.markTileDirty();
+                    cursorStack.stackSize--;
+                    if (cursorStack.stackSize <= 0) {
+                        player.inventory.setItemStack(null);
+                    }
+                    syncPlayerAndReactor(playerMP);
+                }
+            }
+        } else if (gridTile.isControlRod()) {
+            MTEHatchNuclearControlRod rod = gridTile.getControlRod();
+            ItemStack slotStack = rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD];
+
+            if (isShift) {
+                if (cursorStack == null && slotStack != null) {
+                    if (player.inventory.addItemStackToInventory(slotStack)) {
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                    } else if (slotStack.stackSize <= 0) {
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                    }
+                    rod.markTileDirty();
+                    syncPlayerAndReactor(playerMP);
+                }
+            } else if (button == 0) {
+                if (cursorStack == null) {
+                    if (slotStack != null) {
+                        player.inventory.setItemStack(slotStack);
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                        rod.markTileDirty();
+                        syncPlayerAndReactor(playerMP);
+                    }
+                } else if (MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
+                    if (slotStack == null) {
+                        ItemStack placed = cursorStack.copy();
+                        placed.stackSize = 1;
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
+                        rod.markTileDirty();
+                        cursorStack.stackSize--;
+                        if (cursorStack.stackSize <= 0) {
+                            player.inventory.setItemStack(null);
+                        }
+                        syncPlayerAndReactor(playerMP);
+                    } else if (cursorStack.stackSize == 1) {
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = cursorStack;
+                        player.inventory.setItemStack(slotStack);
+                        rod.markTileDirty();
+                        syncPlayerAndReactor(playerMP);
+                    }
+                }
+            } else if (button == 1) {
+                if (cursorStack == null) {
+                    if (slotStack != null) {
+                        player.inventory.setItemStack(slotStack);
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                        rod.markTileDirty();
+                        syncPlayerAndReactor(playerMP);
+                    }
+                } else if (slotStack == null && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
+                    ItemStack placed = cursorStack.copy();
+                    placed.stackSize = 1;
+                    rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
+                    rod.markTileDirty();
+                    cursorStack.stackSize--;
+                    if (cursorStack.stackSize <= 0) {
+                        player.inventory.setItemStack(null);
+                    }
+                    syncPlayerAndReactor(playerMP);
+                }
+            }
+        } else if (gridTile.isHatch()) {
+            MTEHatchNuclearHatch hatch = gridTile.getHatch();
+            if (isShift && cursorStack == null) {
+                handleFluidHatchShiftClick(hatch, playerMP);
+            } else if (cursorStack != null) {
+                handleFluidHatchClickWithContainer(hatch, playerMP, button);
+            }
+            syncPlayerAndReactor(playerMP);
+        }
+    }
+
+    private void handleBatchShiftInsertServer(int button) {
+        ModularUIContext ctx = getContext();
+        if (ctx == null) return;
+        EntityPlayer player = ctx.getPlayer();
+        if (!(player instanceof EntityPlayerMP playerMP)) return;
+        ItemStack cursorStack = player.inventory.getItemStack();
+        if (cursorStack == null || cursorStack.stackSize <= 0) return;
+        if (reactor.mGrid == null || reactor.gridSize <= 0) return;
+
+        int N = reactor.gridSize;
+        boolean insertedAny = false;
+
+        // Traverse visual rows from top to bottom (renderGy = 0 .. N-1), left to right (gx = 0 .. N-1)
+        for (int renderGy = 0; renderGy < N && cursorStack.stackSize > 0; renderGy++) {
+            int gy = (N - 1) - renderGy;
+            for (int gx = 0; gx < N && cursorStack.stackSize > 0; gx++) {
+                if (NuclearSimulationEngine.isCornerNullCell(gx, gy, N, N)) continue;
+                INuclearTile nTile = reactor.mGrid[gx][gy];
+                if (!(nTile instanceof NuclearGridTile gridTile)) continue;
+
+                if (gridTile.isBus()) {
+                    MTEHatchNuclearBus bus = gridTile.getBus();
+                    if (bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] == null) {
+                        ItemStack placed = cursorStack.copy();
+                        placed.stackSize = 1;
+                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = placed;
+                        bus.markTileDirty();
+                        cursorStack.stackSize--;
+                        insertedAny = true;
+                    }
+                } else if (gridTile.isControlRod() && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
+                    MTEHatchNuclearControlRod rod = gridTile.getControlRod();
+                    if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] == null) {
+                        ItemStack placed = cursorStack.copy();
+                        placed.stackSize = 1;
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
+                        rod.markTileDirty();
+                        cursorStack.stackSize--;
+                        insertedAny = true;
+                    }
+                }
+            }
+        }
+
+        if (cursorStack.stackSize <= 0) {
+            player.inventory.setItemStack(null);
+        }
+
+        if (insertedAny) {
+            syncPlayerAndReactor(playerMP);
+        }
+    }
+
+    private void handleDragStepServer(int gx, int gy, int button) {
+        ModularUIContext ctx = getContext();
+        if (ctx == null) return;
+        EntityPlayer player = ctx.getPlayer();
+        if (!(player instanceof EntityPlayerMP playerMP)) return;
+        ItemStack cursorStack = player.inventory.getItemStack();
+        if (cursorStack == null || cursorStack.stackSize <= 0) return;
+        if (reactor.mGrid == null || gx < 0 || gx >= reactor.gridSize || gy < 0 || gy >= reactor.gridSize) return;
+        INuclearTile nTile = reactor.mGrid[gx][gy];
+        if (!(nTile instanceof NuclearGridTile gridTile)) return;
+
+        if (gridTile.isBus()) {
+            MTEHatchNuclearBus bus = gridTile.getBus();
+            if (bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] == null) {
+                ItemStack placed = cursorStack.copy();
+                placed.stackSize = 1;
+                bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = placed;
+                bus.markTileDirty();
+                cursorStack.stackSize--;
+                if (cursorStack.stackSize <= 0) {
+                    player.inventory.setItemStack(null);
+                }
+                syncPlayerAndReactor(playerMP);
+            }
+        } else if (gridTile.isControlRod() && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
+            MTEHatchNuclearControlRod rod = gridTile.getControlRod();
+            if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] == null) {
+                ItemStack placed = cursorStack.copy();
+                placed.stackSize = 1;
+                rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
+                rod.markTileDirty();
+                cursorStack.stackSize--;
+                if (cursorStack.stackSize <= 0) {
+                    player.inventory.setItemStack(null);
+                }
+                syncPlayerAndReactor(playerMP);
+            }
+        } else if (gridTile.isHatch()) {
+            MTEHatchNuclearHatch hatch = gridTile.getHatch();
+            handleFluidHatchClickWithContainer(hatch, playerMP, button);
+            syncPlayerAndReactor(playerMP);
+        }
+    }
+
+    private void handleFluidHatchClickWithContainer(MTEHatchNuclearHatch hatch, EntityPlayerMP player, int button) {
+        ItemStack cursorStack = player.inventory.getItemStack();
+        if (cursorStack == null || cursorStack.stackSize <= 0) return;
+
+        FluidStack fluidInItem = GTUtility.getFluidForFilledItem(cursorStack, true);
+        if (fluidInItem != null && fluidInItem.amount > 0) {
+            if (!hatch.isFluidInputAllowed(fluidInItem)) return;
+            int space = hatch.mCapacity - (hatch.mInputFluid != null ? hatch.mInputFluid.amount : 0);
+            if (space <= 0) return;
+            if (hatch.mInputFluid != null && !hatch.mInputFluid.isFluidEqual(fluidInItem)) return;
+
+            if (cursorStack.stackSize == 1) {
+                if (cursorStack.getItem() instanceof IFluidContainerItem containerItem) {
+                    FluidStack drained = containerItem.drain(cursorStack, space, true);
+                    if (drained != null && drained.amount > 0) {
+                        hatch.fill(ForgeDirection.UNKNOWN, drained, true);
+                    }
+                } else if (space >= fluidInItem.amount) {
+                    hatch.fill(ForgeDirection.UNKNOWN, fluidInItem, true);
+                    ItemStack emptyCont = GTUtility.getContainerForFilledItem(cursorStack, true);
+                    player.inventory.setItemStack(emptyCont);
+                }
+            } else {
+                ItemStack single = cursorStack.copy();
+                single.stackSize = 1;
+                FluidStack singleFluid = GTUtility.getFluidForFilledItem(single, true);
+                if (singleFluid != null && space >= singleFluid.amount) {
+                    hatch.fill(ForgeDirection.UNKNOWN, singleFluid, true);
+                    cursorStack.stackSize--;
+                    if (cursorStack.stackSize <= 0) {
+                        player.inventory.setItemStack(null);
+                    }
+                    ItemStack emptyCont = GTUtility.getContainerForFilledItem(single, true);
+                    if (emptyCont != null) {
+                        if (!player.inventory.addItemStackToInventory(emptyCont)) {
+                            player.dropPlayerItemWithRandomChoice(emptyCont, false);
+                        }
+                    }
+                }
+            }
+            hatch.markTileDirty();
+        } else if (hatch.mInputFluid != null && hatch.mInputFluid.amount > 0) {
+            ItemStack filled = GTUtility.fillFluidContainer(hatch.mInputFluid.copy(), cursorStack, false, true);
+            if (filled != null) {
+                FluidStack filledFluid = GTUtility.getFluidForFilledItem(filled, true);
+                int needed = (filledFluid != null) ? filledFluid.amount : 1000;
+                if (hatch.mInputFluid.amount >= needed) {
+                    hatch.mInputFluid.amount -= needed;
+                    if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
+                    if (cursorStack.stackSize == 1) {
+                        if (cursorStack.getItem() instanceof IFluidContainerItem containerItem) {
+                            containerItem.fill(cursorStack, filledFluid, true);
+                        } else {
+                            player.inventory.setItemStack(filled);
+                        }
+                    } else {
+                        cursorStack.stackSize--;
+                        if (cursorStack.stackSize <= 0) {
+                            player.inventory.setItemStack(null);
+                        }
+                        if (!player.inventory.addItemStackToInventory(filled)) {
+                            player.dropPlayerItemWithRandomChoice(filled, false);
+                        }
+                    }
+                    hatch.markTileDirty();
+                }
+            }
+        }
+    }
+
+    private void handleFluidHatchShiftClick(MTEHatchNuclearHatch hatch, EntityPlayerMP player) {
+        int space = hatch.mCapacity - (hatch.mInputFluid != null ? hatch.mInputFluid.amount : 0);
+        boolean changed = false;
+
+        if (space > 0) {
+            for (int i = 0; i < player.inventory.mainInventory.length; i++) {
+                ItemStack invStack = player.inventory.mainInventory[i];
+                if (invStack == null) continue;
+                FluidStack fluidInItem = GTUtility.getFluidForFilledItem(invStack, true);
+                if (fluidInItem == null || fluidInItem.amount <= 0) continue;
+                if (!hatch.isFluidInputAllowed(fluidInItem)) continue;
+                if (hatch.mInputFluid != null && !hatch.mInputFluid.isFluidEqual(fluidInItem)) continue;
+
+                if (invStack.stackSize == 1) {
+                    if (invStack.getItem() instanceof IFluidContainerItem containerItem) {
+                        FluidStack drained = containerItem.drain(invStack, space, true);
+                        if (drained != null && drained.amount > 0) {
+                            hatch.fill(ForgeDirection.UNKNOWN, drained, true);
+                            changed = true;
+                            space = hatch.mCapacity - (hatch.mInputFluid != null ? hatch.mInputFluid.amount : 0);
+                        }
+                    } else if (space >= fluidInItem.amount) {
+                        hatch.fill(ForgeDirection.UNKNOWN, fluidInItem, true);
+                        player.inventory.mainInventory[i] = GTUtility.getContainerForFilledItem(invStack, true);
+                        changed = true;
+                        space = hatch.mCapacity - (hatch.mInputFluid != null ? hatch.mInputFluid.amount : 0);
+                    }
+                } else {
+                    ItemStack single = invStack.copy();
+                    single.stackSize = 1;
+                    FluidStack singleFluid = GTUtility.getFluidForFilledItem(single, true);
+                    if (singleFluid != null && space >= singleFluid.amount) {
+                        hatch.fill(ForgeDirection.UNKNOWN, singleFluid, true);
+                        invStack.stackSize--;
+                        if (invStack.stackSize <= 0) {
+                            player.inventory.mainInventory[i] = null;
+                        }
+                        ItemStack emptyCont = GTUtility.getContainerForFilledItem(single, true);
+                        if (emptyCont != null) {
+                            if (!player.inventory.addItemStackToInventory(emptyCont)) {
+                                player.dropPlayerItemWithRandomChoice(emptyCont, false);
+                            }
+                        }
+                        changed = true;
+                        space = hatch.mCapacity - (hatch.mInputFluid != null ? hatch.mInputFluid.amount : 0);
+                    }
+                }
+                if (space <= 0) break;
+            }
+        }
+
+        if (!changed && hatch.mInputFluid != null && hatch.mInputFluid.amount > 0) {
+            for (int i = 0; i < player.inventory.mainInventory.length; i++) {
+                ItemStack invStack = player.inventory.mainInventory[i];
+                if (invStack == null) continue;
+                ItemStack filled = GTUtility.fillFluidContainer(hatch.mInputFluid.copy(), invStack, false, true);
+                if (filled != null) {
+                    FluidStack filledFluid = GTUtility.getFluidForFilledItem(filled, true);
+                    int needed = (filledFluid != null) ? filledFluid.amount : 1000;
+                    if (hatch.mInputFluid.amount >= needed) {
+                        hatch.mInputFluid.amount -= needed;
+                        if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
+                        if (invStack.stackSize == 1) {
+                            if (invStack.getItem() instanceof IFluidContainerItem containerItem) {
+                                containerItem.fill(invStack, filledFluid, true);
+                            } else {
+                                player.inventory.mainInventory[i] = filled;
+                            }
+                        } else {
+                            invStack.stackSize--;
+                            if (invStack.stackSize <= 0) player.inventory.mainInventory[i] = null;
+                            if (!player.inventory.addItemStackToInventory(filled)) {
+                                player.dropPlayerItemWithRandomChoice(filled, false);
+                            }
+                        }
+                        changed = true;
+                        if (hatch.mInputFluid == null) break;
+                    }
+                }
+            }
+        }
+
+        if (changed) {
+            hatch.markTileDirty();
+        }
+    }
+
+    private void syncPlayerAndReactor(EntityPlayerMP playerMP) {
+        if (playerMP.openContainer != null) {
+            playerMP.openContainer.detectAndSendChanges();
+            playerMP.sendContainerToPlayer(playerMP.openContainer);
+        }
+        if (reactor.getBaseMetaTileEntity() != null) {
+            reactor.getBaseMetaTileEntity()
+                .markDirty();
+        }
+        ReactorGridSyncData sync = reactor.collectGridSyncData();
+        syncToClient(PACKET_SYNC_GRID, buf -> ReactorGridSyncData.writeToBuffer(buf, sync));
     }
 
     private void prepareGuiState() {
@@ -208,10 +775,8 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
                 int idx = gx * N + gy;
                 ReactorGridSyncData.ReactorGridCellData cell = (idx < sync.cells.size()) ? sync.cells.get(idx) : null;
 
-                // Ensure clean 2D unlit GUI state before slot background
                 prepareGuiState();
 
-                // Draw slot border / background
                 if (cellSize == 18) {
                     GTUITextures.SLOT_DARK_GRAY.draw(px, py, 18, 18, partialTicks);
                 } else {
@@ -219,30 +784,25 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
                     GuiDraw.drawRect(px + 1, py + 1, cellSize - 2, cellSize - 2, 0xFF1E1E1E);
                 }
 
-                // Reset state after slot background (UITexture.draw enables lighting!)
                 prepareGuiState();
 
                 if (cell != null && cell.exists) {
                     int innerSize = Math.max(1, cellSize - 2);
-                    // Draw cell contents (Item or Fluid)
                     if (cell.itemStack != null) {
                         GlStateManager.pushMatrix();
                         GlStateManager.translate(px + 1, py + 1, 0);
                         new ItemDrawable(cell.itemStack).draw(0, 0, innerSize, innerSize, partialTicks);
                         GlStateManager.popMatrix();
-                        // ItemDrawable alters lighting, depth, matrix; restore clean state immediately
                         prepareGuiState();
                     } else if (cell.fluidStack != null) {
                         new FluidDrawable().setFluid(cell.fluidStack)
                             .draw(px + 1, py + 1, innerSize, innerSize, partialTicks);
                         prepareGuiState();
                     } else if (cell.isFluid) {
-                        // Empty coolant hatch: subtle blue tint
                         GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, 0x300055AA);
                         prepareGuiState();
                     }
 
-                    // Mode Shading Overlays
                     if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_TEMPERATURE) {
                         double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(sync.pipeTier);
                         int color = NuclearColorMaps.getTemperatureColor(cell.temperature, maxTemp);
@@ -258,7 +818,6 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
                         prepareGuiState();
                     }
 
-                    // Overheating warning flash (> 85% safe temp limit)
                     double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(sync.pipeTier);
                     if (cell.temperature > maxTemp * 0.85) {
                         if ((System.currentTimeMillis() / 400) % 2 == 0) {
@@ -270,46 +829,39 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
             }
         }
 
+        // Draw dragged cells highlight preview if active
+        if (mIsDraggingGrid && !mDragVisitedCells.isEmpty()) {
+            for (int code : mDragVisitedCells) {
+                int dx = code / 1000;
+                int dy = code % 1000;
+                int renderDy = (N - 1) - dy;
+                int dpx = offset + dx * cellSize;
+                int dpy = offset + renderDy * cellSize;
+                prepareGuiState();
+                GuiDraw.drawRect(dpx + 1, dpy + 1, Math.max(1, cellSize - 2), Math.max(1, cellSize - 2), 0x6000FF00);
+                prepareGuiState();
+            }
+        }
+
         // Slot Hover Highlight (only active when window is stationary and not dragging)
         boolean isWindowMoving = getWindow() != null && !getWindow().isEnabled();
-        boolean isDragging = getContext() != null && getContext().getCursor() != null
+        boolean isDragging = (getContext() != null && getContext().getCursor() != null
             && getContext().getCursor()
-                .hasDraggable();
+                .hasDraggable())
+            || mIsDraggingGrid;
         if (!isWindowMoving && !isDragging
             && (isHovering() || (parentScrollable != null && parentScrollable.isHovering()))
             && getContext() != null) {
-            Cursor cursor = getContext().getCursor();
-            if (cursor != null) {
-                Pos2d spos = parentScrollable != null ? parentScrollable.getAbsolutePos() : getAbsolutePos();
-                int cx = cursor.getX();
-                int cy = cursor.getY();
-                int spx = spos.x;
-                int spy = spos.y;
-                int spw = parentScrollable != null ? parentScrollable.getSize().width : getSize().width;
-                int sph = parentScrollable != null ? parentScrollable.getSize().height : getSize().height;
-                if (cx >= spx && cx < spx + spw && cy >= spy && cy < spy + sph) {
-                    int scrollX = parentScrollable != null ? parentScrollable.getHorizontalScrollOffset() : 0;
-                    int scrollY = parentScrollable != null ? parentScrollable.getVerticalScrollOffset() : 0;
-                    int mx = cx - spx + scrollX;
-                    int my = cy - spy + scrollY;
-                    int hx = (mx - offset) / cellSize;
-                    int renderHy = (my - offset) / cellSize;
-                    int hy = (N - 1) - renderHy;
-                    if (hx >= 0 && hx < N && hy >= 0 && hy < N) {
-                        if (!NuclearSimulationEngine.isCornerNullCell(hx, hy, N, N)) {
-                            int hpx = offset + hx * cellSize;
-                            int hpy = offset + renderHy * cellSize;
-                            prepareGuiState();
-                            GuiDraw.drawRect(
-                                hpx + 1,
-                                hpy + 1,
-                                Math.max(1, cellSize - 2),
-                                Math.max(1, cellSize - 2),
-                                0x80FFFFFF);
-                            prepareGuiState();
-                        }
-                    }
-                }
+            int[] hCell = getCellUnderCursor();
+            if (hCell != null) {
+                int hx = hCell[0];
+                int hy = hCell[1];
+                int renderHy = (N - 1) - hy;
+                int hpx = offset + hx * cellSize;
+                int hpy = offset + renderHy * cellSize;
+                prepareGuiState();
+                GuiDraw.drawRect(hpx + 1, hpy + 1, Math.max(1, cellSize - 2), Math.max(1, cellSize - 2), 0x80FFFFFF);
+                prepareGuiState();
             }
         }
 
@@ -320,9 +872,10 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
     public List<String> getHoveredTooltip() {
         List<String> list = new ArrayList<>();
         boolean isWindowMoving = getWindow() != null && !getWindow().isEnabled();
-        boolean isDragging = getContext() != null && getContext().getCursor() != null
+        boolean isDragging = (getContext() != null && getContext().getCursor() != null
             && getContext().getCursor()
-                .hasDraggable();
+                .hasDraggable())
+            || mIsDraggingGrid;
         if (isWindowMoving || isDragging
             || (!isHovering() && (parentScrollable == null || !parentScrollable.isHovering()))
             || getContext() == null) {
@@ -331,38 +884,12 @@ public class NuclearReactorGridWidget extends Widget implements Interactable {
         ReactorGridSyncData sync = reactor.getClientGridData();
         if (sync == null || sync.gridSize <= 0) return list;
 
-        Cursor cursor = getContext().getCursor();
-        if (cursor == null) return list;
-
-        Pos2d spos = parentScrollable != null ? parentScrollable.getAbsolutePos() : getAbsolutePos();
-        int cx = cursor.getX();
-        int cy = cursor.getY();
-        int spx = spos.x;
-        int spy = spos.y;
-        int spw = parentScrollable != null ? parentScrollable.getSize().width : getSize().width;
-        int sph = parentScrollable != null ? parentScrollable.getSize().height : getSize().height;
-        if (cx < spx || cx >= spx + spw || cy < spy || cy >= spy + sph) {
-            return list;
-        }
+        int[] hCell = getCellUnderCursor();
+        if (hCell == null) return list;
+        int hx = hCell[0];
+        int hy = hCell[1];
 
         int N = sync.gridSize;
-        int cellSize = getCurrentCellSize();
-        int gridPx = N * cellSize;
-        int offset = (gridPx < 126) ? (126 - gridPx) / 2 : 0;
-
-        int scrollX = parentScrollable != null ? parentScrollable.getHorizontalScrollOffset() : 0;
-        int scrollY = parentScrollable != null ? parentScrollable.getVerticalScrollOffset() : 0;
-        int mx = cx - spx + scrollX;
-        int my = cy - spy + scrollY;
-        int hx = (mx - offset) / cellSize;
-        int renderHy = (my - offset) / cellSize;
-        int hy = (N - 1) - renderHy;
-        if (hx < 0 || hx >= N || hy < 0 || hy >= N) return list;
-
-        if (NuclearSimulationEngine.isCornerNullCell(hx, hy, N, N)) {
-            return list;
-        }
-
         int idx = hx * N + hy;
         if (idx < 0 || idx >= sync.cells.size()) return list;
         ReactorGridSyncData.ReactorGridCellData cell = sync.cells.get(idx);
