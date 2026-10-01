@@ -76,6 +76,8 @@ public class SimTile implements INuclearTile {
             if (code == null) return EMPTY;
             String trimmed = code.trim()
                 .toUpperCase();
+            if (trimmed.equals("BH")) return RADIOVOLTAIC_HV;
+            if (trimmed.equals("BV")) return RADIOVOLTAIC_EV;
             for (TileType type : values()) {
                 if (type.code.equalsIgnoreCase(trimmed) || type.name()
                     .equalsIgnoreCase(trimmed)) {
@@ -128,6 +130,10 @@ public class SimTile implements INuclearTile {
     private int thermalFlux = 0;
     private int fastAbsorbed = 0;
     private int thermalAbsorbed = 0;
+    private int lastFastFlux = 0;
+    private int lastThermalFlux = 0;
+    private int lastTotalFlux = 0;
+    private int lastFastAbsorbed = 0;
     private int lastThermalAbsorbed = 0;
     private String lastCoolingDetails = "";
 
@@ -147,6 +153,10 @@ public class SimTile implements INuclearTile {
         this.totalSteamProduced = 0;
         this.totalDeuteriumProduced = 0;
         this.totalTritiumProduced = 0;
+        this.lastFastFlux = 0;
+        this.lastThermalFlux = 0;
+        this.lastTotalFlux = 0;
+        this.lastFastAbsorbed = 0;
         this.lastThermalAbsorbed = 0;
         this.durabilityLossAccumulator = 0.0;
         this.directEUProduced = 0;
@@ -529,6 +539,10 @@ public class SimTile implements INuclearTile {
 
     @Override
     public void nuclearTick(double efficiency) {
+        lastFastFlux = fastFlux;
+        lastThermalFlux = thermalFlux;
+        lastTotalFlux = fastFlux + thermalFlux;
+        lastFastAbsorbed = fastAbsorbed;
         lastThermalAbsorbed = thermalAbsorbed;
         lastTickProduced = 0;
 
@@ -879,6 +893,26 @@ public class SimTile implements INuclearTile {
 
     public int getThermalAbsorbed() {
         return thermalAbsorbed;
+    }
+
+    public int getLastFastFlux() {
+        return lastFastFlux;
+    }
+
+    public int getLastThermalFlux() {
+        return lastThermalFlux;
+    }
+
+    public int getLastTotalFlux() {
+        return lastTotalFlux;
+    }
+
+    public int getLastFastAbsorbed() {
+        return lastFastAbsorbed;
+    }
+
+    public int getLastThermalAbsorbed() {
+        return lastThermalAbsorbed;
     }
 
     public boolean isCoolantCell() {

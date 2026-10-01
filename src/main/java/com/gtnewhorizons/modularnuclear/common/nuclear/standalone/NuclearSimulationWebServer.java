@@ -28,15 +28,56 @@ public class NuclearSimulationWebServer {
     private static ScheduledExecutorService ticker;
     private static int simDelayMs = 100;
 
+    public static void main(String[] args) {
+        if (args.length >= 2 && "--export-html".equals(args[0])) {
+            try {
+                java.io.File file = new java.io.File(args[1]);
+                file.getParentFile().mkdirs();
+                NuclearSimulationEngine.setGlobalThermalFissionMultiplier(0.348);
+                NuclearSimulationEngine.fissionHeatPerNeutron = 77.2;
+                grid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+                grid.loadPreset("BEST_PLATINUM_9X9");
+                String html = getIndexHtml()
+                    .replace("/*__INITIAL_STATE__*/", "window.__INITIAL_STATE__ = " + getStateJson() + ";");
+                java.nio.file.Files.write(file.toPath(), html.getBytes(StandardCharsets.UTF_8));
+                System.out.println("Exported static simulator HTML to " + file.getAbsolutePath());
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+            return;
+        }
+        int port = 8085;
+        if (args.length > 0) {
+            try {
+                port = Integer.parseInt(args[0]);
+            } catch (Exception ignored) {}
+        }
+        startServer(port);
+    }
+
     public static void startServer(int port) {
         try {
+            NuclearSimulationEngine.setGlobalThermalFissionMultiplier(0.348);
+            NuclearSimulationEngine.fissionHeatPerNeutron = 77.2;
             grid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
             grid.loadPreset("BEST_PLATINUM_9X9");
+
+            try {
+                java.io.File distDir = new java.io.File("build/nuclear-sim-dist");
+                if (distDir.exists()) {
+                    java.nio.file.Files.write(
+                        new java.io.File(distDir, "index.html").toPath(),
+                        getIndexHtml().getBytes(StandardCharsets.UTF_8)
+                    );
+                }
+            } catch (Exception ignored) {}
 
             HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
             server.createContext("/", new IndexHandler());
             server.createContext("/api/icon", new IconHandler());
+            server.createContext("/icons", new IconHandler());
             server.createContext("/api/state", new StateHandler());
             server.createContext("/api/step", new StepHandler());
             server.createContext("/api/reset", new ResetHandler());
@@ -46,6 +87,11 @@ public class NuclearSimulationWebServer {
             server.createContext("/api/set-tier", new SetTierHandler());
             server.createContext("/api/set-turbine", new SetTurbineHandler());
             server.createContext("/api/set-params", new SetParamsHandler());
+            server.createContext("/api/colormaps", new ColormapsHandler());
+            server.createContext("/nuclear-sim.wasm", new WasmResourceHandler("nuclear-sim.wasm", "application/wasm"));
+            server.createContext("/nuclear-sim.wasm-runtime.js", new WasmResourceHandler("nuclear-sim.wasm-runtime.js", "application/javascript"));
+            server.createContext("/nuclear-sim-bridge.js", new WasmResourceHandler("nuclear-sim-bridge.js", "application/javascript"));
+            server.createContext("/nuclear-sim.js", new WasmResourceHandler("nuclear-sim.js", "application/javascript"));
 
             server.setExecutor(Executors.newCachedThreadPool());
             server.start();
@@ -59,7 +105,7 @@ public class NuclearSimulationWebServer {
             }, 0, 50, TimeUnit.MILLISECONDS);
 
             System.out.println("\u001B[1;32m============================================================");
-            System.out.println("  GTNH Nuclear Simulator Web Server ACTIVE");
+            System.out.println("  Modular Nuclear Simulator Web Server ACTIVE");
             System.out.println("  Open in browser: http://localhost:" + port);
             System.out.println("============================================================\u001B[0m");
 
@@ -106,450 +152,12 @@ public class NuclearSimulationWebServer {
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            StringBuilder sb = new StringBuilder();
-            sb.append("{");
-            sb.append("\"width\":")
-                .append(grid.getWidth())
-                .append(",");
-            sb.append("\"height\":")
-                .append(grid.getHeight())
-                .append(",");
-            sb.append("\"pipeTier\":")
-                .append(grid.getPipeTier())
-                .append(",");
-            sb.append("\"pipeTierName\":\"")
-                .append(NuclearSimulationEngine.getPipeTierName(grid.getPipeTier()))
-                .append("\",");
-            sb.append("\"maxSafeTemp\":")
-                .append(NuclearSimulationEngine.getMaxOperatingTemperature(grid.getPipeTier()))
-                .append(",");
-            sb.append("\"currentTick\":")
-                .append(grid.getCurrentTick())
-                .append(",");
-            sb.append("\"isRunning\":")
-                .append(isRunning)
-                .append(",");
-            sb.append("\"exploded\":")
-                .append(grid.isExploded())
-                .append(",");
-            sb.append("\"explosionReason\":\"")
-                .append(
-                    grid.getExplosionReason()
-                        .replace("\"", "\\\""))
-                .append("\",");
-            sb.append("\"powerFailed\":")
-                .append(grid.isPowerFailed())
-                .append(",");
-            sb.append("\"powerFailReason\":\"")
-                .append(
-                    grid.getPowerFailReason()
-                        .replace("\"", "\\\""))
-                .append("\",");
-            sb.append("\"coreMaxTemp\":")
-                .append(String.format("%.2f", grid.getCoreMaxTemp()))
-                .append(",");
-            sb.append("\"coreAvgTemp\":")
-                .append(String.format("%.2f", grid.getCoreAvgTemp()))
-                .append(",");
-            sb.append("\"efficiency\":")
-                .append(String.format("%.3f", grid.getEfficiency()))
-                .append(",");
-            sb.append("\"lastNeutrons\":")
-                .append(grid.getLastNeutronsProduced())
-                .append(",");
-            sb.append("\"fastAbsorbed\":")
-                .append(grid.getLastFastAbsorbed())
-                .append(",");
-            sb.append("\"thermalAbsorbed\":")
-                .append(grid.getLastThermalAbsorbed())
-                .append(",");
-            sb.append("\"escapedNeutrons\":")
-                .append(grid.getLastEscapedNeutrons())
-                .append(",");
-            sb.append("\"wallReflected\":")
-                .append(grid.getLastWallReflected())
-                .append(",");
-            sb.append("\"wallAbsorbed\":")
-                .append(grid.getLastWallAbsorbed())
-                .append(",");
-            sb.append("\"wallHeatPool\":")
-                .append(String.format(java.util.Locale.US, "%.1f", grid.getLastWallHeatPool()))
-                .append(",");
-            sb.append("\"totalNeutrons\":")
-                .append(grid.getTotalNeutronsGenerated())
-                .append(",");
-            sb.append("\"totalSteam\":")
-                .append(grid.getTotalSteamProduced())
-                .append(",");
-            sb.append("\"totalEU\":")
-                .append(String.format("%.0f", grid.getTotalEnergyEU()))
-                .append(",");
-            sb.append("\"totalDeuterium\":")
-                .append(grid.getTotalDeuteriumProduced())
-                .append(",");
-            sb.append("\"totalTritium\":")
-                .append(grid.getTotalTritiumProduced())
-                .append(",");
-
-            sb.append("\"turbineMaterial\":\"")
-                .append(
-                    grid.getTurbineMaterial()
-                        .name())
-                .append("\",");
-            sb.append("\"turbineMaterialName\":\"")
-                .append(grid.getTurbineMaterial().displayName)
-                .append("\",");
-            sb.append("\"turbineSize\":\"")
-                .append(
-                    grid.getTurbineSize()
-                        .name())
-                .append("\",");
-            sb.append("\"turbineSizeName\":\"")
-                .append(grid.getTurbineSize().displayName)
-                .append("\",");
-            sb.append("\"turbineFitting\":\"")
-                .append(
-                    grid.getTurbineFitting()
-                        .name())
-                .append("\",");
-            sb.append("\"turbineFittingName\":\"")
-                .append(grid.getTurbineFitting().displayName)
-                .append("\",");
-
-            sb.append("\"flowRegularSteam\":")
-                .append(String.format(java.util.Locale.US, "%.1f", grid.getFlowRegularSteam()))
-                .append(",");
-            sb.append("\"flowSuperheatedSteam\":")
-                .append(String.format(java.util.Locale.US, "%.1f", grid.getFlowSuperheatedSteam()))
-                .append(",");
-            sb.append("\"flowSupercriticalSteam\":")
-                .append(String.format(java.util.Locale.US, "%.1f", grid.getFlowSupercriticalSteam()))
-                .append(",");
-            sb.append("\"flowHeavyWaterSteam\":")
-                .append(String.format(java.util.Locale.US, "%.1f", grid.getFlowHeavyWaterSteam()))
-                .append(",");
-            sb.append("\"flowHPHeavyWaterSteam\":")
-                .append(String.format(java.util.Locale.US, "%.1f", grid.getFlowHPHeavyWaterSteam()))
-                .append(",");
-            sb.append("\"flowHotCoolant\":")
-                .append(String.format(java.util.Locale.US, "%.1f", grid.getFlowHotCoolant()))
-                .append(",");
-            sb.append("\"flowDirectEU\":")
-                .append(String.format(java.util.Locale.US, "%.1f", grid.getFlowDirectEU()))
-                .append(",");
-
-            TurbineCalculator.PowerEstimationResult p = grid.getLastPowerResult();
-            sb.append("\"powerEstimate\":{");
-            sb.append("\"totalPowerEUt\":")
-                .append(String.format(java.util.Locale.US, "%.1f", p.totalPowerEUt))
-                .append(",");
-            sb.append("\"directPowerEUt\":")
-                .append(String.format(java.util.Locale.US, "%.1f", p.directPowerEUt))
-                .append(",");
-            sb.append("\"isLST\":")
-                .append(p.isLST)
-                .append(",");
-            sb.append("\"lstPowerEUt\":")
-                .append(String.format(java.util.Locale.US, "%.1f", p.lstPowerEUt))
-                .append(",");
-            sb.append("\"xlstPowerEUt\":")
-                .append(String.format(java.util.Locale.US, "%.1f", p.xlstPowerEUt))
-                .append(",");
-            sb.append("\"xlstHpPowerEUt\":")
-                .append(String.format(java.util.Locale.US, "%.1f", p.xlstHpPowerEUt))
-                .append(",");
-            sb.append("\"xlstScPowerEUt\":")
-                .append(String.format(java.util.Locale.US, "%.1f", p.xlstScPowerEUt))
-                .append(",");
-            sb.append("\"coolantMachine\":\"")
-                .append(p.coolantMachine)
-                .append("\",");
-            sb.append("\"coolantMachineMode\":\"")
-                .append(p.coolantMachineMode)
-                .append("\",");
-            sb.append("\"coolantSteamProduced\":")
-                .append(String.format(java.util.Locale.US, "%.1f", p.coolantSteamProduced))
-                .append(",");
-            sb.append("\"coolantWaterConsumed\":")
-                .append(String.format(java.util.Locale.US, "%.1f", p.coolantWaterConsumed))
-                .append(",");
-            sb.append("\"coolantMachineCount\":")
-                .append(String.format(java.util.Locale.US, "%.0f", p.coolantMachineCount))
-                .append(",");
-            sb.append("\"eheMode\":\"")
-                .append(p.eheMode)
-                .append("\",");
-            sb.append("\"eheSteamProduced\":")
-                .append(String.format(java.util.Locale.US, "%.1f", p.eheSteamProduced))
-                .append(",");
-            sb.append("\"eheDistilledWaterConsumed\":")
-                .append(String.format(java.util.Locale.US, "%.1f", p.eheDistilledWaterConsumed))
-                .append(",");
-            sb.append("\"lstTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", p.lstTurbinesNeeded))
-                .append(",");
-            sb.append("\"xlstTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", p.xlstTurbinesNeeded))
-                .append(",");
-            sb.append("\"xlstHpTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", p.xlstHpTurbinesNeeded))
-                .append(",");
-            sb.append("\"xlstScTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", p.xlstScTurbinesNeeded))
-                .append(",");
-            sb.append("\"totalTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", p.totalTurbinesNeeded))
-                .append(",");
-            sb.append("\"efficiency\":")
-                .append(String.format(java.util.Locale.US, "%.3f", p.efficiency))
-                .append(",");
-            sb.append("\"optFlowPerTurbine\":")
-                .append(String.format(java.util.Locale.US, "%.0f", p.optFlowPerTurbine));
-            sb.append("},");
-
-            TurbineCalculator.ScenarioHypotheticalResult sc = grid.getLastScenariosResult();
-            if (sc == null) {
-                sc = TurbineCalculator.calculateBothScenarios(
-                    grid.getPipeTier(),
-                    grid.getFlowRegularSteam(),
-                    grid.getFlowSuperheatedSteam(),
-                    grid.getFlowSupercriticalSteam(),
-                    grid.getFlowHeavyWaterSteam(),
-                    grid.getFlowHPHeavyWaterSteam(),
-                    grid.getFlowHotCoolant(),
-                    grid.getFlowDirectEU(),
-                    null,
-                    null);
-            }
-            sb.append("\"scenarios\":{");
-            sb.append("\"tight\":{")
-                .append("\"material\":\"")
-                .append(sc.tightConfig.material.displayName)
-                .append("\",")
-                .append("\"size\":\"")
-                .append(sc.tightConfig.size.displayName)
-                .append("\",")
-                .append("\"mode\":\"")
-                .append(sc.tightConfig.mode.name())
-                .append("\",")
-                .append("\"efficiency\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.tightConfig.efficiency))
-                .append(",")
-                .append("\"description\":\"")
-                .append(sc.tightConfig.description)
-                .append("\",")
-                .append("\"powerEUt\":")
-                .append(String.format(java.util.Locale.US, "%.1f", sc.tightResult.totalPowerEUt))
-                .append(",")
-                .append("\"totalTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.totalTurbinesNeeded))
-                .append(",")
-                .append("\"lstTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.lstTurbinesNeeded))
-                .append(",")
-                .append("\"xlstTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.xlstTurbinesNeeded))
-                .append(",")
-                .append("\"xlstHpTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.xlstHpTurbinesNeeded))
-                .append(",")
-                .append("\"xlstScTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.tightResult.xlstScTurbinesNeeded))
-                .append(",")
-                .append("\"coolantMachine\":\"")
-                .append(sc.tightResult.coolantMachine)
-                .append("\",")
-                .append("\"coolantMachineCount\":")
-                .append(String.format(java.util.Locale.US, "%.1f", sc.tightResult.coolantMachineCount))
-                .append("},");
-            sb.append("\"loose\":{")
-                .append("\"material\":\"")
-                .append(sc.looseConfig.material.displayName)
-                .append("\",")
-                .append("\"size\":\"")
-                .append(sc.looseConfig.size.displayName)
-                .append("\",")
-                .append("\"mode\":\"")
-                .append(sc.looseConfig.mode.name())
-                .append("\",")
-                .append("\"efficiency\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.looseConfig.efficiency))
-                .append(",")
-                .append("\"description\":\"")
-                .append(sc.looseConfig.description)
-                .append("\",")
-                .append("\"powerEUt\":")
-                .append(String.format(java.util.Locale.US, "%.1f", sc.looseResult.totalPowerEUt))
-                .append(",")
-                .append("\"totalTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.totalTurbinesNeeded))
-                .append(",")
-                .append("\"lstTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.lstTurbinesNeeded))
-                .append(",")
-                .append("\"xlstTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.xlstTurbinesNeeded))
-                .append(",")
-                .append("\"xlstHpTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.xlstHpTurbinesNeeded))
-                .append(",")
-                .append("\"xlstScTurbinesNeeded\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.looseResult.xlstScTurbinesNeeded))
-                .append(",")
-                .append("\"coolantMachine\":\"")
-                .append(sc.looseResult.coolantMachine)
-                .append("\",")
-                .append("\"coolantMachineCount\":")
-                .append(String.format(java.util.Locale.US, "%.1f", sc.looseResult.coolantMachineCount))
-                .append("},");
-            sb.append("\"turbineReductionRatio\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.turbineReductionRatio))
-                .append(",");
-            sb.append("\"powerReductionRatio\":")
-                .append(String.format(java.util.Locale.US, "%.2f", sc.powerReductionRatio));
-            sb.append("},");
-
-            sb.append("\"params\":{");
-            sb.append("\"euPerDegree\":")
-                .append(String.format(java.util.Locale.US, "%.1f", NuclearSimulationEngine.euPerDegree))
-                .append(",");
-            sb.append("\"hatchCapacity\":")
-                .append(NuclearSimulationEngine.hatchCoolantCapacity)
-                .append(",");
-            sb.append("\"turnoverCurve\":\"")
-                .append(NuclearSimulationEngine.turnoverCurve.name())
-                .append("\",");
-            sb.append("\"turnoverDeltaTMax\":")
-                .append(String.format(java.util.Locale.US, "%.1f", NuclearSimulationEngine.turnoverDeltaTMax))
-                .append(",");
-            sb.append("\"turnoverExponent\":")
-                .append(String.format(java.util.Locale.US, "%.2f", NuclearSimulationEngine.turnoverExponent))
-                .append(",");
-            sb.append("\"coolantFeedRate\":")
-                .append(NuclearSimulationEngine.coolantFeedRate)
-                .append(",");
-            sb.append("\"coolingHeatPerLiter\":")
-                .append(String.format(java.util.Locale.US, "%.1f", NuclearSimulationEngine.coolingHeatPerLiter))
-                .append(",");
-            sb.append("\"ambientTemp\":")
-                .append(String.format(java.util.Locale.US, "%.1f", NuclearSimulationEngine.ambientTemp))
-                .append(",");
-            sb.append("\"ic2CoolantHeatPerLiter\":")
-                .append(String.format(java.util.Locale.US, "%.1f", NuclearSimulationEngine.ic2CoolantHeatPerLiter))
-                .append(",");
-            sb.append("\"tempThresholdLow\":")
-                .append(String.format(java.util.Locale.US, "%.1f", NuclearSimulationEngine.tempThresholdLow))
-                .append(",");
-            sb.append("\"tempThresholdHigh\":")
-                .append(String.format(java.util.Locale.US, "%.1f", NuclearSimulationEngine.tempThresholdHigh))
-                .append(",");
-            sb.append("\"reactivityPower\":")
-                .append(String.format(java.util.Locale.US, "%.2f", NuclearSimulationEngine.reactivityPower))
-                .append(",");
-            sb.append("\"thermalFissionMultiplier\":")
-                .append(String.format(java.util.Locale.US, "%.2f", NuclearSimulationEngine.thermalFissionMultiplier))
-                .append(",");
-            sb.append("\"globalThermalFissionMultiplier\":")
-                .append(
-                    String.format(java.util.Locale.US, "%.2f", NuclearSimulationEngine.globalThermalFissionMultiplier))
-                .append(",");
-            sb.append("\"fissionHeatPerNeutron\":")
-                .append(String.format(java.util.Locale.US, "%.1f", NuclearSimulationEngine.fissionHeatPerNeutron))
-                .append(",");
-            sb.append("\"hpWaterBoilingPoint\":")
-                .append(String.format(java.util.Locale.US, "%.1f", NuclearSimulationEngine.hpWaterBoilingPoint));
-            sb.append("},");
-
-            // Tiles
-            sb.append("\"tiles\":[");
-            for (int y = 0; y < grid.getHeight(); y++) {
-                for (int x = 0; x < grid.getWidth(); x++) {
-                    SimTile t = grid.getTile(x, y);
-                    if (x > 0 || y > 0) sb.append(",");
-                    sb.append("{");
-                    sb.append("\"x\":")
-                        .append(x)
-                        .append(",");
-                    sb.append("\"y\":")
-                        .append(y)
-                        .append(",");
-                    sb.append("\"type\":\"")
-                        .append(
-                            t.getType()
-                                .name())
-                        .append("\",");
-                    sb.append("\"name\":\"")
-                        .append(t.getType().displayName)
-                        .append("\",");
-                    sb.append("\"code\":\"")
-                        .append(t.getType().code)
-                        .append("\",");
-                    sb.append("\"temp\":")
-                        .append(String.format("%.1f", t.getTemperature()))
-                        .append(",");
-                    sb.append("\"isFuel\":")
-                        .append(t.isFuel())
-                        .append(",");
-                    sb.append("\"durability\":")
-                        .append(t.getDurability())
-                        .append(",");
-                    sb.append("\"durabilityPct\":")
-                        .append(String.format("%.1f", t.getDurabilityPercent()))
-                        .append(",");
-                    sb.append("\"fluidName\":\"")
-                        .append(t.getInputFluidName())
-                        .append("\",");
-                    sb.append("\"fluidAmount\":")
-                        .append(t.getInputFluidAmount())
-                        .append(",");
-                    sb.append("\"fluidCapacity\":")
-                        .append(t.getInputFluidCapacity())
-                        .append(",");
-                    sb.append("\"wasDry\":")
-                        .append(t.isWasDry())
-                        .append(",");
-                    sb.append("\"lastProduced\":")
-                        .append(t.getLastTickProduced())
-                        .append(",");
-                    sb.append("\"steamAmount\":")
-                        .append(t.getTotalSteamProduced());
-                    sb.append("}");
-                }
-            }
-            sb.append("],");
-
-            // Telemetry history
-            sb.append("\"history\":[");
-            List<StandaloneNuclearGrid.TickTelemetry> hist = grid.getHistory();
-            int start = Math.max(0, hist.size() - 60);
-            for (int i = start; i < hist.size(); i++) {
-                if (i > start) sb.append(",");
-                StandaloneNuclearGrid.TickTelemetry entry = hist.get(i);
-                sb.append("{");
-                sb.append("\"t\":")
-                    .append(entry.tick())
-                    .append(",");
-                sb.append("\"maxT\":")
-                    .append(String.format("%.1f", entry.maxTemp()))
-                    .append(",");
-                sb.append("\"avgT\":")
-                    .append(String.format("%.1f", entry.avgTemp()))
-                    .append(",");
-                sb.append("\"eff\":")
-                    .append(String.format("%.2f", entry.efficiency()))
-                    .append(",");
-                sb.append("\"power\":")
-                    .append(String.format("%.1f", entry.powerEUt()))
-                    .append(",");
-                sb.append("\"safe\":")
-                    .append(entry.safe());
-                sb.append("}");
-            }
-            sb.append("]");
-
-            sb.append("}");
-            sendJsonResponse(exchange, 200, sb.toString());
+            sendJsonResponse(exchange, 200, getStateJson());
         }
+    }
+
+    public static String getStateJson() {
+        return NuclearSimWasmBridge.buildStateJson(grid, isRunning);
     }
 
     static class StepHandler implements HttpHandler {
@@ -767,6 +375,56 @@ public class NuclearSimulationWebServer {
         }
     }
 
+    static class ColormapsHandler implements HttpHandler {
+
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            StringBuilder sb = new StringBuilder();
+            sb.append("{\"temperature\":[");
+            for (int i = 0; i
+                < com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps.TEMPERATURE_COLORS.length; i++) {
+                if (i > 0) sb.append(",");
+                int c = com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps.TEMPERATURE_COLORS[i];
+                int a = (c >> 24) & 0xFF;
+                int r = (c >> 16) & 0xFF;
+                int g = (c >> 8) & 0xFF;
+                int b = c & 0xFF;
+                double alpha = Math.round((a / 255.0) * 100.0) / 100.0;
+                sb.append("\"rgba(")
+                    .append(r)
+                    .append(",")
+                    .append(g)
+                    .append(",")
+                    .append(b)
+                    .append(",")
+                    .append(alpha)
+                    .append(")\"");
+            }
+            sb.append("],\"neutron\":[");
+            for (int i = 0; i
+                < com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps.NEUTRON_COLORS.length; i++) {
+                if (i > 0) sb.append(",");
+                int c = com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps.NEUTRON_COLORS[i];
+                int a = (c >> 24) & 0xFF;
+                int r = (c >> 16) & 0xFF;
+                int g = (c >> 8) & 0xFF;
+                int b = c & 0xFF;
+                double alpha = Math.round((a / 255.0) * 100.0) / 100.0;
+                sb.append("\"rgba(")
+                    .append(r)
+                    .append(",")
+                    .append(g)
+                    .append(",")
+                    .append(b)
+                    .append(",")
+                    .append(alpha)
+                    .append(")\"");
+            }
+            sb.append("]}");
+            sendJsonResponse(exchange, 200, sb.toString());
+        }
+    }
+
     static class IconHandler implements HttpHandler {
 
         private static final Map<String, byte[]> ICON_CACHE = new HashMap<>();
@@ -797,35 +455,49 @@ public class NuclearSimulationWebServer {
         }
 
         private static synchronized byte[] getIconBytes(String name) {
+            if (name == null || name.isEmpty()) return null;
             if (ICON_CACHE.containsKey(name)) {
                 return ICON_CACHE.get(name);
             }
-            String resPath = "/assets/modularnuclear/textures/sim/icons/" + name + ".png";
+            byte[] data = loadRawIcon(name);
+            if (data == null && !name.equals(name.toUpperCase())) {
+                data = loadRawIcon(name.toUpperCase());
+            }
+            if (data == null) {
+                SimTile.TileType mapped = SimTile.TileType.fromCode(name);
+                if (mapped != SimTile.TileType.EMPTY && !mapped.name()
+                    .equalsIgnoreCase(name)) {
+                    data = getIconBytes(mapped.name());
+                }
+            }
+            if (data != null) {
+                ICON_CACHE.put(name, data);
+            }
+            return data;
+        }
+
+        private static byte[] loadRawIcon(String iconName) {
+            String resPath = "/assets/modularnuclear/textures/sim/icons/" + iconName + ".png";
             try (java.io.InputStream in = NuclearSimulationWebServer.class.getResourceAsStream(resPath)) {
                 if (in != null) {
-                    byte[] data = readAllStream(in);
-                    ICON_CACHE.put(name, data);
-                    return data;
+                    return readAllStream(in);
                 }
             } catch (Exception ignored) {}
 
             java.io.File[] searchDirs = { new java.io.File("mods/ModularNuclear/src/main/resources" + resPath),
-                new java.io.File("src/main/resources" + resPath),
+                new java.io.File("build/resources/main" + resPath), new java.io.File("src/main/resources" + resPath),
                 new java.io.File("/home/mgomezch/stuff/dev/nh-dev/mods/ModularNuclear/src/main/resources" + resPath) };
             for (java.io.File f : searchDirs) {
                 if (f.exists()) {
                     try {
-                        byte[] data = java.nio.file.Files.readAllBytes(f.toPath());
-                        ICON_CACHE.put(name, data);
-                        return data;
+                        return java.nio.file.Files.readAllBytes(f.toPath());
                     } catch (Exception ignored) {}
                 }
             }
-
             return null;
         }
 
-        private static byte[] readAllStream(java.io.InputStream in) throws IOException {
+        static byte[] readAllStream(java.io.InputStream in) throws IOException {
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
             byte[] buf = new byte[2048];
             int n;
@@ -836,11 +508,63 @@ public class NuclearSimulationWebServer {
         }
     }
 
+    static class WasmResourceHandler implements HttpHandler {
+
+        private final String resourceName;
+        private final String contentType;
+
+        public WasmResourceHandler(String resourceName, String contentType) {
+            this.resourceName = resourceName;
+            this.contentType = contentType;
+        }
+
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            byte[] data = loadResourceBytes(resourceName);
+            if (data == null || data.length == 0) {
+                exchange.sendResponseHeaders(404, -1);
+                return;
+            }
+            exchange.getResponseHeaders().set("Content-Type", contentType);
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            exchange.getResponseHeaders().set("Cache-Control", "public, max-age=3600");
+            exchange.sendResponseHeaders(200, data.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(data);
+            }
+        }
+
+        private static byte[] loadResourceBytes(String name) {
+            String resPath = "/nuclear-sim/" + name;
+            try (java.io.InputStream in = NuclearSimulationWebServer.class.getResourceAsStream(resPath)) {
+                if (in != null) return IconHandler.readAllStream(in);
+            } catch (Exception ignored) {}
+
+            java.io.File[] searchDirs = {
+                new java.io.File("src/main/resources" + resPath),
+                new java.io.File("mods/ModularNuclear/src/main/resources" + resPath),
+                new java.io.File("build/resources/main" + resPath),
+                new java.io.File("build/nuclear-sim-wasm/" + name),
+                new java.io.File("/home/mgomezch/stuff/dev/nh-dev/mods/ModularNuclear/src/main/resources" + resPath),
+                new java.io.File("/home/mgomezch/stuff/dev/nh-dev/mods/ModularNuclear/build/nuclear-sim-wasm/" + name)
+            };
+            for (java.io.File f : searchDirs) {
+                if (f.exists()) {
+                    try {
+                        return java.nio.file.Files.readAllBytes(f.toPath());
+                    } catch (Exception ignored) {}
+                }
+            }
+            return null;
+        }
+    }
+
     static class IndexHandler implements HttpHandler {
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            String html = getIndexHtml();
+            String html = getIndexHtml()
+                .replace("/*__INITIAL_STATE__*/", "window.__INITIAL_STATE__ = " + getStateJson() + ";");
             byte[] bytes = html.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders()
                 .set("Content-Type", "text/html; charset=UTF-8");
@@ -852,13 +576,17 @@ public class NuclearSimulationWebServer {
     }
 
     private static String getIndexHtml() {
+        return getHtmlHead() + getHtmlBody() + getHtmlScriptsPart1() + getHtmlScriptsPart2();
+    }
+
+    private static String getHtmlHead() {
         return """
             <!DOCTYPE html>
             <html lang="en">
             <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>GTNH MPTR - Modular Pressure Tube Reactor Simulator</title>
+            <title>Modular Pressure Tube Reactor (MPTR) Simulator</title>
             <style>
               :root {
                 --bg-dark: #0f141c;
@@ -898,7 +626,7 @@ public class NuclearSimulationWebServer {
               button.danger { background: #b91c1c; border-color: #dc2626; }
               select { background: #233044; border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem; min-height: 38px; cursor: pointer; }
 
-              /* Grid Toolbar & Zoom Controls */
+              /* Grid Toolbar & Controls */
               .grid-toolbar {
                 display: flex;
                 justify-content: space-between;
@@ -915,6 +643,54 @@ public class NuclearSimulationWebServer {
                 display: flex;
                 align-items: center;
                 gap: 8px;
+              }
+              .display-mode-selector {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                background: #131a24;
+                padding: 4px 8px;
+                border-radius: 6px;
+                border: 1px solid var(--border-color);
+              }
+              .mode-label {
+                font-size: 0.75rem;
+                color: var(--text-muted);
+                font-weight: 600;
+                margin-right: 2px;
+                user-select: none;
+              }
+              .segmented-control {
+                display: inline-flex;
+                background: #0d121a;
+                border: 1px solid #373737;
+                border-radius: 4px;
+                padding: 2px;
+                gap: 2px;
+              }
+              .seg-btn {
+                background: transparent;
+                border: none;
+                color: #94a3b8;
+                padding: 4px 8px;
+                border-radius: 3px;
+                font-size: 0.75rem;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                user-select: none;
+              }
+              .seg-btn:hover {
+                color: #fff;
+                background: rgba(255, 255, 255, 0.08);
+              }
+              .seg-btn.active {
+                background: #2563eb;
+                color: #ffffff;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
               }
               .zoom-controls {
                 display: flex;
@@ -971,18 +747,19 @@ public class NuclearSimulationWebServer {
                 -webkit-overflow-scrolling: touch;
               }
 
-              /* Core Grid */
+              /* Core Grid - In-Game Chamber Style */
               #reactor-grid {
                 --cell-size: 56px;
-                --cell-gap: 6px;
+                --cell-gap: 2px;
                 --cell-code-size: 0.8rem;
                 --cell-temp-size: 0.65rem;
                 display: grid;
                 gap: var(--cell-gap);
-                background: #0a0d13;
-                padding: 12px;
-                border-radius: 8px;
-                border: 2px solid var(--border-color);
+                background: #14171d;
+                padding: 4px;
+                border-radius: 2px;
+                border: 2px solid #373737;
+                box-shadow: inset 1px 1px 0px #0a0c10, inset -1px -1px 0px #2a2e38, 0 4px 16px rgba(0,0,0,0.5);
                 user-select: none;
                 transition: gap 0.12s ease;
                 margin: 0 auto;
@@ -990,55 +767,86 @@ public class NuclearSimulationWebServer {
               .cell {
                 width: var(--cell-size);
                 height: var(--cell-size);
-                border-radius: 6px;
+                border-radius: 0px;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
                 font-weight: bold;
                 cursor: pointer;
-                border: 1px solid rgba(255,255,255,0.1);
+                background-color: #1e1e1e;
+                border: 1px solid #373737;
+                box-shadow: inset 1px 1px 0px rgba(0,0,0,0.8), inset -1px -1px 0px rgba(255,255,255,0.06);
                 position: relative;
-                transition: transform 0.1s, width 0.12s ease, height 0.12s ease;
                 user-select: none;
                 overflow: hidden;
                 box-sizing: border-box;
               }
               @media (hover: hover) {
-                .cell:hover { transform: scale(1.06); z-index: 10; border-color: #fff; }
+                .cell:hover::after {
+                  content: '';
+                  position: absolute;
+                  top: 0; left: 0; right: 0; bottom: 0;
+                  background: rgba(255, 255, 255, 0.22);
+                  pointer-events: none;
+                  z-index: 5;
+                }
               }
-              .cell.selected { border: 2px solid var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
-              .cell.wall-cell { background: transparent !important; border: none !important; color: transparent; cursor: default !important; opacity: 0; pointer-events: none; }
-              .cell.wall-cell:hover { transform: none !important; border: none !important; }
+              .cell.selected {
+                outline: 2px solid #58a6ff;
+                outline-offset: -1px;
+                box-shadow: 0 0 8px rgba(88, 166, 255, 0.6);
+                z-index: 6;
+              }
+              .cell.wall-cell {
+                visibility: hidden !important;
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                pointer-events: none !important;
+              }
+              .cell .cell-overlay {
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+                pointer-events: none;
+                z-index: 2;
+                transition: background-color 0.1s ease;
+              }
               .cell .cell-icon {
-                width: calc(var(--cell-size) * 0.70);
-                height: calc(var(--cell-size) * 0.70);
+                width: calc(var(--cell-size) * 0.72);
+                height: calc(var(--cell-size) * 0.72);
                 image-rendering: pixelated;
                 image-rendering: -moz-crisp-edges;
                 image-rendering: crisp-edges;
                 pointer-events: none;
                 z-index: 1;
-                filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+                filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
               }
-              .cell .cell-temp {
+              .cell .cell-temp, .cell .cell-metric {
+                position: absolute;
+                bottom: 2px;
                 font-size: var(--cell-temp-size);
                 opacity: 0.95;
                 line-height: 1;
-                margin-top: 1px;
-                z-index: 2;
-                text-shadow: 0 1px 2px rgba(0,0,0,0.9);
-                font-weight: 700;
+                z-index: 3;
+                text-shadow: 0 1px 2px #000, 0 0 2px #000;
+                font-weight: 800;
+                letter-spacing: -0.3px;
+                pointer-events: none;
+                color: #ffffff;
+                text-align: center;
+                width: 100%;
               }
-              .cell .cell-code { font-size: var(--cell-code-size); line-height: 1.1; }
+              .cell .cell-code { font-size: var(--cell-code-size); line-height: 1.1; z-index: 3; }
               .cell .cell-durability {
                 position: absolute;
-                bottom: 2px;
-                left: 3px;
-                right: 3px;
+                bottom: 1px;
+                left: 2px;
+                right: 2px;
                 height: 3px;
-                background: rgba(0,0,0,0.7);
+                background: rgba(0,0,0,0.8);
                 border-radius: 1px;
-                z-index: 3;
+                z-index: 4;
                 overflow: hidden;
               }
               .cell .cell-durability-fill {
@@ -1138,11 +946,18 @@ public class NuclearSimulationWebServer {
                 }
               }
             </style>
+            <script src="nuclear-sim-bridge.js"></script>
             </head>
+            """;
+    }
+
+    private static String getHtmlBody() {
+        return """
             <body>
             <header>
-              <h1><span>⚛</span> GTNH Modular Pressure Tube Reactor (MPTR) Standalone Simulator</h1>
+              <h1><span>⚛</span> Modular Pressure Tube Reactor (MPTR) Standalone Simulator</h1>
               <div style="display:flex; gap:10px; align-items:center;">
+                <span class="badge" id="engine-badge" style="background:#065f46; border-color:#059669; color:#34d399; cursor:pointer;" onclick="toggleEngineMode()" title="Click to toggle between Client WASM and Server mode">⚡ WASM Client</span>
                 <span class="badge" id="casing-badge">Electrum Casing (1000°C Max)</span>
                 <span class="badge" id="status-badge" style="color:var(--success);">STATUS: STANDBY</span>
               </div>
@@ -1159,14 +974,24 @@ public class NuclearSimulationWebServer {
                   <button onclick="stepSim(100)">Step +100</button>
                   <button class="danger" onclick="resetSim()">↺ Reset</button>
                   <select id="preset-select" onchange="loadPreset(this.value)">
-                    <option value="BEST_ELECTRUM_5X5">⭐ EV 60A: Electrum 5x5 (127k EU/t · 196m)</option>
-                    <option value="BEST_PLATINUM_9X9" selected>⭐ IV 60A: Platinum 9x9 Breeder (509k EU/t · 139m)</option>
-                    <option value="BEST_OSMIUM_9X9">⭐ LuV 60A: Osmium 9x9 Superheated (1.96M EU/t · 27m)</option>
-                    <option value="BEST_QUANTIUM_13X13">⭐ ZPM 60A: Quantium 13x13 CANDU (7.51M EU/t · 113m)</option>
-                    <option value="BEST_FLUXED_13X13">⭐ UV 60A: Fluxed 13x13 Supercritical (31.7M EU/t · 21m)</option>
-                    <option value="BEST_PLUTONIUM_13X13">⭐ UHV 60A: Black Plutonium 13x13 Peak (126M EU/t · 17m)</option>
+                    <optgroup label="⚡ Calibrated 60A Baseline Designs">
+                      <option value="60A_ELECTRUM_5X5">EV 60A: Electrum 5x5 (123k EU/t · 60.0A)</option>
+                      <option value="60A_PLATINUM_9X9">IV 60A: Platinum 9x9 Breeder (492k EU/t · 60.0A)</option>
+                      <option value="60A_OSMIUM_9X9">LuV 60A: Osmium 9x9 Superheated (1.97M EU/t · 60.0A)</option>
+                      <option value="60A_QUANTIUM_13X13">ZPM 60A: Quantium 13x13 CANDU (7.86M EU/t · 60.0A)</option>
+                      <option value="60A_FLUXED_13X13">UV 60A: Fluxed 13x13 Supercritical (31.5M EU/t · 60.0A)</option>
+                      <option value="60A_PLUTONIUM_13X13">UHV 60A: Black Plutonium 13x13 Peak (126M EU/t · 60.0A)</option>
+                    </optgroup>
+                    <optgroup label="🏆 Maxxed-Out Optimum Ceilings (nuclear_ceiling_best.json)">
+                      <option value="BEST_ELECTRUM_5X5">EV Peak: Electrum 5x5 (934k EU/t · 456A · +660%)</option>
+                      <option value="BEST_PLATINUM_9X9" selected>IV Peak: Platinum 9x9 (5.24M EU/t · 640A · +966%)</option>
+                      <option value="BEST_OSMIUM_9X9">LuV Peak: Osmium 9x9 (31.7M EU/t · 967A · +1511%)</option>
+                      <option value="BEST_QUANTIUM_13X13">ZPM Peak: Quantium 13x13 (63.6M EU/t · 486A · +709%)</option>
+                      <option value="BEST_FLUXED_13X13">UV Peak: Fluxed 13x13 (109M EU/t · 207A · +246%)</option>
+                      <option value="BEST_PLUTONIUM_13X13">UHV Peak: Black Plutonium 13x13 (157M EU/t · 75A · +25%)</option>
+                    </optgroup>
                   </select>
-                  <select id="tier-select" onchange="changeTier(this.value)">
+                  <select id="tier-select" onchange="changeTier(this.value)" title="Reactor Pipe & Casing Tier">
                     <option value="0">Electrum (1000°C)</option>
                     <option value="1" selected>Platinum (1400°C)</option>
                     <option value="2">Osmium (1800°C)</option>
@@ -1174,12 +999,43 @@ public class NuclearSimulationWebServer {
                     <option value="4">Fluxed Electrum (2600°C)</option>
                     <option value="5">Black Plutonium (3200°C)</option>
                   </select>
+                  <div style="display:inline-flex; align-items:center; gap:4px;">
+                    <label for="voltage-tier-select" style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Voltage:</label>
+                    <select id="voltage-tier-select" onchange="onVoltageTierChange(this.value)" title="Voltage tier for live amperage conversion">
+                      <option value="ULV">ULV (8 V)</option>
+                      <option value="LV">LV (32 V)</option>
+                      <option value="MV">MV (128 V)</option>
+                      <option value="HV">HV (512 V)</option>
+                      <option value="EV">EV (2,048 V)</option>
+                      <option value="IV" selected>IV (8,192 V)</option>
+                      <option value="LuV">LuV (32,768 V)</option>
+                      <option value="ZPM">ZPM (131,072 V)</option>
+                      <option value="UV">UV (524,288 V)</option>
+                      <option value="UHV">UHV (2,097,152 V)</option>
+                      <option value="UEV">UEV (8,388,608 V)</option>
+                      <option value="UIV">UIV (33,554,432 V)</option>
+                      <option value="UMV">UMV (134,217,728 V)</option>
+                      <option value="UXV">UXV (536,870,912 V)</option>
+                      <option value="MAX">MAX (2,147,483,647 V)</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div class="grid-toolbar">
                   <div class="grid-toolbar-title">
                     <span id="grid-dim-label">Chamber Grid (9×9)</span>
                   </div>
+
+                  <div class="display-mode-selector">
+                    <span class="mode-label">Overlay:</span>
+                    <div class="segmented-control">
+                      <button type="button" class="seg-btn active" id="btn-mode-temp" onclick="setGridDisplayMode('TEMP')" title="Show Cell Temperature (°C) [Key: 1]">🌡️ Temp</button>
+                      <button type="button" class="seg-btn" id="btn-mode-total-flux" onclick="setGridDisplayMode('TOTAL_FLUX')" title="Show Total Neutron Flux (Fast + Thermal) [Key: 2]">⚛️ Total Flux</button>
+                      <button type="button" class="seg-btn" id="btn-mode-fast-flux" onclick="setGridDisplayMode('FAST_FLUX')" title="Show Fast Neutron Flux [Key: 3]">⚡ Fast Flux</button>
+                      <button type="button" class="seg-btn" id="btn-mode-thermal-flux" onclick="setGridDisplayMode('THERMAL_FLUX')" title="Show Thermal Neutron Flux [Key: 4]">🟢 Thermal Flux</button>
+                    </div>
+                  </div>
+
                   <div class="zoom-controls">
                     <span class="zoom-label">Zoom:</span>
                     <button type="button" class="zoom-btn" onclick="zoomGrid(-1)" title="Zoom Out (− or Key: -)">🔍−</button>
@@ -1239,13 +1095,13 @@ public class NuclearSimulationWebServer {
                     </div>
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Fission Heat (EU/n):</label>
-                      <input id="p-fission-heat" type="number" step="1.0" value="38.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      <input id="p-fission-heat" type="number" step="0.1" value="77.2" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                   </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Global Fission Mult (k):</label>
-                      <input id="p-fiss-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      <input id="p-fiss-mult" type="number" step="0.005" value="0.348" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Ambient Temp (°C):</label>
@@ -1363,6 +1219,72 @@ public class NuclearSimulationWebServer {
                   </div>
                 </div>
 
+                <!-- Full View of Energy Conversion Processes -->
+                <div style="background:#131a24; border:1px solid var(--border-color); border-radius:6px; padding:12px; margin-bottom:12px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <h3 style="font-size:0.95rem; color:#38bdf8; margin:0;">🔄 Machine Process Pipeline</h3>
+                    <span class="badge" id="proc-tier-badge" style="font-size:0.72rem; font-weight:bold; color:#fbbf24; border:1px solid #475569;">IV Pipeline</span>
+                  </div>
+                  <div id="proc-tier-desc" style="font-size:0.72rem; color:var(--text-muted); margin-bottom:10px; line-height:1.35; padding:6px 8px; background:#0f172a; border-radius:4px; border:1px solid #1e293b;">
+                    Loading tier process description...
+                  </div>
+
+                  <!-- Stage 0: Radiovoltaic Direct Power -->
+                  <div id="proc-stage-pv" style="margin-bottom:6px; padding:6px 8px; background:#0f172a; border-left:3px solid #f59e0b; border-radius:4px;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:#f59e0b;">
+                      <span>☀️ Stage 0: Direct Radiovoltaics</span>
+                      <span id="proc-pv-val">0 EU/t</span>
+                    </div>
+                    <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;" id="proc-pv-sub">Chamber cells direct EU output</div>
+                  </div>
+
+                  <!-- Stage 1: Hot Coolant Heat Exchanger -->
+                  <div id="proc-stage-coolant" style="margin-bottom:6px; padding:6px 8px; background:#0f172a; border-left:3px solid #06b6d4; border-radius:4px;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:#06b6d4;">
+                      <span id="proc-coolant-title">🔄 Stage 1: Coolant Exchanger</span>
+                      <span id="proc-coolant-count" style="color:#e2e8f0; font-weight:bold;">0x Machine</span>
+                    </div>
+                    <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" id="proc-coolant-detail">Input: 0 L/t Hot Coolant → Output: 0 L/t Steam</div>
+                    <div style="font-size:0.67rem; color:var(--text-muted); margin-top:1px;" id="proc-coolant-water">Water: 0 L/t</div>
+                  </div>
+
+                  <!-- Stage 2: Supercritical Steam (XLST-SC) -->
+                  <div id="proc-stage-sc" style="margin-bottom:6px; padding:6px 8px; background:#0f172a; border-left:3px solid #8b5cf6; border-radius:4px;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:#a78bfa;">
+                      <span id="proc-sc-title">⚡ Stage 2: XLST-SC (Supercritical)</span>
+                      <span id="proc-sc-pwr">0 EU/t</span>
+                    </div>
+                    <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" id="proc-sc-detail">0 L/t SC steam · 0.00 turbines</div>
+                    <div style="font-size:0.67rem; color:#94a3b8; margin-top:1px;" id="proc-sc-cascade">Cascades 1:1 into Superheated Steam</div>
+                  </div>
+
+                  <!-- Stage 3: Superheated Steam (XLST-HP) -->
+                  <div id="proc-stage-hp" style="margin-bottom:6px; padding:6px 8px; background:#0f172a; border-left:3px solid #ec4899; border-radius:4px;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:#f472b6;">
+                      <span id="proc-hp-title">⚡ Stage 3: XLST-HP (Superheated)</span>
+                      <span id="proc-hp-pwr">0 EU/t</span>
+                    </div>
+                    <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" id="proc-hp-detail">0 L/t SH steam · 0.00 turbines</div>
+                    <div style="font-size:0.67rem; color:#94a3b8; margin-top:1px;" id="proc-hp-cascade">Cascades 1:1 into Regular Steam</div>
+                  </div>
+
+                  <!-- Stage 4: Regular Steam Turbine (LST or XLST) -->
+                  <div id="proc-stage-reg" style="margin-bottom:6px; padding:6px 8px; background:#0f172a; border-left:3px solid #10b981; border-radius:4px;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:#34d399;">
+                      <span id="proc-reg-title">⚡ Stage 4: XLST (Regular Steam)</span>
+                      <span id="proc-reg-pwr">0 EU/t</span>
+                    </div>
+                    <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" id="proc-reg-detail">0 L/t steam · 0.00 turbines</div>
+                    <div style="font-size:0.67rem; color:#94a3b8; margin-top:1px;" id="proc-reg-eff">Base 0.5 EU/L × Rotor Eff</div>
+                  </div>
+
+                  <!-- Process Total Summary -->
+                  <div style="border-top:1px solid var(--border-color); padding-top:6px; margin-top:6px; display:flex; justify-content:space-between; align-items:center; font-size:0.78rem;">
+                    <span style="font-weight:700; color:var(--text-light);">Net Generation:</span>
+                    <span id="proc-net-pwr" style="font-weight:bold; color:var(--success);">0 EU/t (0.00 A)</span>
+                  </div>
+                </div>
+
                 <h3>Reactor Telemetry</h3>
                 <div class="stat-row"><span>Simulation Tick:</span><span class="stat-val" id="stat-tick">0</span></div>
                 <div class="stat-row"><span>Core Peak Temp:</span><span class="stat-val" id="stat-max-temp">20.0 °C</span></div>
@@ -1380,12 +1302,99 @@ public class NuclearSimulationWebServer {
                 <canvas id="chartCanvas" width="300" height="150"></canvas>
               </div>
             </div>
+            """;
+    }
 
+    private static String getHtmlScriptsPart1() {
+        return """
             <script>
             let currentState = null;
             let selectedTilePos = null;
             let activePaletteType = "FUEL_URANIUM_QUAD";
             let interactionMode = "INSPECT";
+            let isWasmMode = false;
+            let wasmSim = null;
+
+            function getIconUrl(type) {
+              return `icons/${type}.png`;
+            }
+
+            async function initEngine() {
+              if (typeof NuclearSimWasm !== "undefined") {
+                try {
+                  wasmSim = new NuclearSimWasm();
+                  const wasmPath = "nuclear-sim.wasm";
+                  await wasmSim.init(wasmPath);
+                  isWasmMode = true;
+                  const eb = document.getElementById("engine-badge");
+                  if (eb) {
+                    eb.innerText = "⚡ Client WASM (0ms)";
+                    eb.style.background = "#065f46";
+                    eb.style.borderColor = "#059669";
+                    eb.style.color = "#34d399";
+                  }
+                  wasmSim.onStateChange = (state) => {
+                    currentState = state;
+                    renderUI();
+                  };
+                  if (window.__INITIAL_STATE__ && window.__INITIAL_STATE__.tiles) {
+                    wasmSim.initGrid(window.__INITIAL_STATE__.width, window.__INITIAL_STATE__.height, window.__INITIAL_STATE__.pipeTier);
+                    window.__INITIAL_STATE__.tiles.forEach(t => {
+                      if (t.type && t.type !== "EMPTY" && t.code !== "NL") {
+                        wasmSim.setTile(t.x, t.y, t.type, false);
+                      }
+                    });
+                    if (window.__INITIAL_STATE__.turbineMaterial) {
+                      wasmSim.setTurbine(window.__INITIAL_STATE__.turbineMaterial, window.__INITIAL_STATE__.turbineSize, window.__INITIAL_STATE__.turbineFitting, false);
+                    }
+                  } else {
+                    wasmSim.initGrid(9, 9, 2);
+                    wasmSim.loadPreset("BEST_PLATINUM_9X9");
+                  }
+                  currentState = wasmSim.getState();
+                  renderUI();
+                  console.log("⚡ Modular Nuclear Simulator running via WebAssembly (WASM)!");
+                  return true;
+                } catch (err) {
+                  console.warn("WASM initialization fallback to Java server:", err);
+                  isWasmMode = false;
+                  const eb = document.getElementById("engine-badge");
+                  if (eb) {
+                    eb.innerText = "🌐 Java Server (HTTP)";
+                    eb.style.background = "#1e293b";
+                    eb.style.borderColor = "#334155";
+                    eb.style.color = "#94a3b8";
+                  }
+                  return false;
+                }
+              }
+              return false;
+            }
+
+            function toggleEngineMode() {
+              if (!wasmSim) {
+                alert("WebAssembly engine is not available in this environment.");
+                return;
+              }
+              isWasmMode = !isWasmMode;
+              const eb = document.getElementById("engine-badge");
+              if (isWasmMode) {
+                eb.innerText = "⚡ Client WASM (0ms)";
+                eb.style.background = "#065f46";
+                eb.style.borderColor = "#059669";
+                eb.style.color = "#34d399";
+                currentState = wasmSim.getState();
+                renderUI();
+              } else {
+                eb.innerText = "🌐 Java Server (HTTP)";
+                eb.style.background = "#1e293b";
+                eb.style.borderColor = "#334155";
+                eb.style.color = "#94a3b8";
+                if (wasmSim.running) wasmSim.setRunning(false);
+                fetchState();
+                schedulePoll();
+              }
+            }
 
             const PALETTE = [
               { type: "EMPTY", name: "Empty Slot", code: ".", color: "#1a2230" },
@@ -1422,11 +1431,67 @@ public class NuclearSimulationWebServer {
               { type: "EXCHANGER_COMPONENT", name: "Component Heat Exchanger", code: "XC", color: "#c084fc" }
             ];
 
+            const VOLTAGE_TIERS = {
+              ULV: 8,
+              LV: 32,
+              MV: 128,
+              HV: 512,
+              EV: 2048,
+              IV: 8192,
+              LuV: 32768,
+              ZPM: 131072,
+              UV: 524288,
+              UHV: 2097152,
+              UEV: 8388608,
+              UIV: 33554432,
+              UMV: 134217728,
+              UXV: 536870912,
+              MAX: 2147483647
+            };
+
+            let selectedVoltageTier = "IV";
+
+            function onVoltageTierChange(val) {
+              selectedVoltageTier = val;
+              renderUI();
+            }
+
+            function setVoltageTier(val) {
+              if (VOLTAGE_TIERS[val]) {
+                selectedVoltageTier = val;
+                const sel = document.getElementById("voltage-tier-select");
+                if (sel && sel.value !== val) sel.value = val;
+                renderUI();
+              }
+            }
+
+            function formatPowerAndAmps(eut, compact = false) {
+              if (eut === undefined || eut === null || isNaN(eut)) return "-";
+              const voltage = VOLTAGE_TIERS[selectedVoltageTier] || 8192;
+              const amps = eut / voltage;
+              const euStr = Math.round(eut).toLocaleString() + " EU/t";
+              const ampStr = (amps >= 100 ? amps.toFixed(1) : amps.toFixed(2)) + " A";
+              if (compact) {
+                return `${euStr} (${ampStr} @ ${selectedVoltageTier})`;
+              }
+              return `${euStr} · ${ampStr} @ ${selectedVoltageTier}`;
+            }
+
             const TURBINE_MATERIALS = [
-              "HSS-E", "HSS-S", "Elven Elementium", "Oriharukon", "Shadow Metal",
-              "Ichorium", "Duranium", "Gaia Spirit", "Adamantium",
-              "Ext. Unst. Naquadah", "Cosmic Neutronium", "Infinity",
-              "Tungstensteel", "Titanium"
+              { id: "HSS_E", name: "HSS-E (175% / 116%)" },
+              { id: "HSS_S", name: "HSS-S (185% / 123%)" },
+              { id: "ELVEN_ELEMENTIUM", name: "Elven Elementium (175% / 116%)" },
+              { id: "ORINARUKON", name: "Oriharukon (155% / 105%)" },
+              { id: "SHADOW_METAL", name: "Shadow Metal (145% / 98%)" },
+              { id: "ICHORIUM", name: "Ichorium (225% / 152%)" },
+              { id: "DURANIUM", name: "Duranium (215% / 166%)" },
+              { id: "GAIA_SPIRIT", name: "Gaia Spirit (195% / 154%)" },
+              { id: "ADAMANTIUM", name: "Adamantium (180% / 158%)" },
+              { id: "EXT_UNST_NAQUADAH", name: "Ext. Unst. Naquadah (190% / 166%)" },
+              { id: "COSMIC_NEUTRONIUM", name: "Cosmic Neutronium (200% / 174%)" },
+              { id: "INFINITY", name: "Infinity (212% / 212%)" },
+              { id: "TUNGSTENSTEEL", name: "Tungstensteel (130% / 88%)" },
+              { id: "TITANIUM", name: "Titanium (120% / 81%)" }
             ];
 
             function initTurbineSelects() {
@@ -1434,9 +1499,8 @@ public class NuclearSimulationWebServer {
               matSelect.innerHTML = "";
               TURBINE_MATERIALS.forEach(m => {
                 const opt = document.createElement("option");
-                opt.value = m;
-                opt.innerText = m;
-                if (m === "HSS-E") opt.selected = true;
+                opt.value = m.id;
+                opt.innerText = m.name;
                 matSelect.appendChild(opt);
               });
             }
@@ -1445,6 +1509,12 @@ public class NuclearSimulationWebServer {
               const mat = document.getElementById("turbine-mat").value;
               const size = document.getElementById("turbine-size").value;
               const fitting = document.getElementById("turbine-fitting").value;
+              if (isWasmMode && wasmSim) {
+                wasmSim.setTurbine(mat, size, fitting);
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
               await fetch(`/api/set-turbine?material=${encodeURIComponent(mat)}&size=${encodeURIComponent(size)}&fitting=${encodeURIComponent(fitting)}`);
               await fetchState();
               schedulePoll();
@@ -1455,7 +1525,12 @@ public class NuclearSimulationWebServer {
               const cfg = (mode === 'TIGHT') ? currentState.scenarios.tight : currentState.scenarios.loose;
               if (!cfg) return;
               const matSelect = document.getElementById("turbine-mat");
-              matSelect.value = cfg.material;
+              const opt = Array.from(matSelect.options).find(o => o.value.toLowerCase() === cfg.material.toLowerCase() || o.value.replace(/_/g,"").toLowerCase() === cfg.material.replace(/_/g,"").toLowerCase());
+              if (opt) {
+                matSelect.value = opt.value;
+              } else {
+                matSelect.value = cfg.material;
+              }
               const sizeSelect = document.getElementById("turbine-size");
               sizeSelect.value = cfg.size.toUpperCase();
               const fitSelect = document.getElementById("turbine-fitting");
@@ -1516,7 +1591,7 @@ public class NuclearSimulationWebServer {
                 btn.dataset.type = p.type;
                 btn.style.borderLeft = "4px solid " + p.color;
                 const iconHtml = p.type !== "EMPTY"
-                  ? `<img class="palette-icon" src="/api/icon/${p.type}" alt="${p.code}" />`
+                  ? `<img class="palette-icon" src="${getIconUrl(p.type)}" onerror="this.src='/api/icon/' + p.type" alt="${p.code}" />`
                   : `<div class="palette-icon palette-empty-icon"></div>`;
                 btn.innerHTML = `${iconHtml} <span>${p.name}</span>`;
                 btn.onclick = () => {
@@ -1527,20 +1602,106 @@ public class NuclearSimulationWebServer {
               });
             }
 
-            function getTempColor(t) {
-              if (t < 50) return "#1e293b";
-              if (t < 150) return "#1d4ed8";
-              if (t < 350) return "#059669";
-              if (t < 700) return "#d97706";
-              if (t < 1200) return "#dc2626";
-              if (t < 1800) return "#9333ea";
-              return "#f43f5e";
+            let gridDisplayMode = "TEMP";
+            let colorMaps = null;
+
+            async function loadColorMaps() {
+              if (isWasmMode && wasmSim) {
+                try {
+                  colorMaps = wasmSim.getColorMaps();
+                  return;
+                } catch (e) {
+                  console.error("Failed to load colormaps from WASM", e);
+                }
+              }
+              if (location.protocol === "file:" || location.hostname.endsWith("github.io")) {
+                return;
+              }
+              try {
+                const res = await fetch("/api/colormaps");
+                if (res.ok) {
+                  colorMaps = await res.json();
+                }
+              } catch (e) {
+                console.error("Failed to load colormaps", e);
+              }
+            }
+
+            function setGridDisplayMode(mode) {
+              gridDisplayMode = mode;
+              document.querySelectorAll(".display-mode-selector .seg-btn").forEach(btn => {
+                btn.classList.remove("active");
+              });
+              const idMap = {
+                "TEMP": "btn-mode-temp",
+                "TOTAL_FLUX": "btn-mode-total-flux",
+                "FAST_FLUX": "btn-mode-fast-flux",
+                "THERMAL_FLUX": "btn-mode-thermal-flux"
+              };
+              const activeBtn = document.getElementById(idMap[mode]);
+              if (activeBtn) activeBtn.classList.add("active");
+              if (currentState) {
+                updateGridDOM();
+                if (selectedTilePos) {
+                  const idx = selectedTilePos.y * currentState.width + selectedTilePos.x;
+                  if (currentState.tiles && currentState.tiles[idx]) {
+                    renderInspector(currentState.tiles[idx]);
+                  }
+                }
+              }
+            }
+
+            function getNeutronColor(rate) {
+              if (!colorMaps || !colorMaps.neutron) {
+                if (rate <= 0) return "transparent";
+                if (rate < 100) return "rgba(68, 1, 84, 0.55)";
+                if (rate < 500) return "rgba(59, 82, 139, 0.6)";
+                if (rate < 2000) return "rgba(33, 145, 140, 0.65)";
+                if (rate < 5000) return "rgba(94, 201, 98, 0.7)";
+                return "rgba(253, 231, 36, 0.75)";
+              }
+              const maxRate = 8192.0;
+              const r = Math.min(Math.max(0, rate), maxRate);
+              const factor = (r <= 0) ? 0.0 : Math.log1p(10.0 * r) / Math.log1p(10.0 * maxRate);
+              let u = Math.round(299.0 * Math.min(1.0, Math.max(0.0, factor)));
+              if (u < 0) u = 0;
+              if (u > 299) u = 299;
+              return colorMaps.neutron[u];
+            }
+
+            function getTemperatureColor(temp, maxTemp) {
+              if (!colorMaps || !colorMaps.temperature) {
+                if (temp < 100) return "rgba(12, 7, 134, 0.55)";
+                if (temp < 350) return "rgba(126, 3, 168, 0.6)";
+                if (temp < 800) return "rgba(204, 71, 120, 0.65)";
+                if (temp < 1500) return "rgba(248, 149, 64, 0.7)";
+                return "rgba(240, 249, 33, 0.75)";
+              }
+              if (!maxTemp || maxTemp <= 0) maxTemp = 3250.0;
+              let u = Math.round(299.0 * Math.min(1.0, Math.max(0.0, temp / maxTemp)));
+              if (u < 0) u = 0;
+              if (u > 299) u = 299;
+              return colorMaps.temperature[u];
+            }
+
+            function formatFluxValue(val) {
+              if (!val || val <= 0) return "0";
+              if (val >= 10000) return (val / 1000).toFixed(1) + "k";
+              return val.toString();
             }
 
             let isFetching = false;
             let pollTimer = null;
 
             async function fetchState() {
+              if (isWasmMode && wasmSim) {
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
+              if (location.protocol === "file:" || location.hostname.endsWith("github.io")) {
+                return;
+              }
               if (isFetching) return;
               isFetching = true;
               try {
@@ -1558,6 +1719,7 @@ public class NuclearSimulationWebServer {
 
             function schedulePoll() {
               clearTimeout(pollTimer);
+              if (isWasmMode || location.protocol === "file:" || location.hostname.endsWith("github.io")) return;
               const delay = (currentState && currentState.isRunning) ? 250 : 1000;
               pollTimer = setTimeout(async () => {
                 await fetchState();
@@ -1610,8 +1772,12 @@ public class NuclearSimulationWebServer {
               // Turbine config sync
               const activeEl = document.activeElement;
               const turbMat = document.getElementById("turbine-mat");
-              if (activeEl !== turbMat && currentState.turbineMaterial && turbMat.value !== currentState.turbineMaterial) {
-                turbMat.value = currentState.turbineMaterial;
+              if (activeEl !== turbMat && currentState.turbineMaterial) {
+                const target = currentState.turbineMaterial;
+                const opt = Array.from(turbMat.options).find(o => o.value.toLowerCase() === target.toLowerCase() || o.value.replace(/_/g,"").toLowerCase() === target.replace(/_/g,"").toLowerCase());
+                if (opt && turbMat.value !== opt.value) {
+                  turbMat.value = opt.value;
+                }
               }
               const turbSize = document.getElementById("turbine-size");
               if (activeEl !== turbSize && currentState.turbineSize && turbSize.value !== currentState.turbineSize) {
@@ -1629,19 +1795,18 @@ public class NuclearSimulationWebServer {
               // Turbine telemetry
               if (currentState.powerEstimate) {
                 const pe = currentState.powerEstimate;
-                const tier = getVoltageTier(pe.totalPowerEUt);
-                document.getElementById("stat-power-tier").innerText = Math.round(pe.totalPowerEUt).toLocaleString() + " EU/t (" + tier + ")";
-                document.getElementById("stat-power").innerText = Math.round(pe.totalPowerEUt).toLocaleString() + " EU/t (" + tier + ")";
+                document.getElementById("stat-power-tier").innerText = formatPowerAndAmps(pe.totalPowerEUt, false);
+                document.getElementById("stat-power").innerText = formatPowerAndAmps(pe.totalPowerEUt, false);
                 document.getElementById("turb-eff").innerText = (pe.efficiency * 100).toFixed(1) + " %";
                 document.getElementById("turb-opt-flow").innerText = Math.round(pe.optFlowPerTurbine).toLocaleString() + " L/t";
-                document.getElementById("turb-sc-pwr").innerText = Math.round(pe.xlstScPowerEUt).toLocaleString() + " EU/t (" + pe.xlstScTurbinesNeeded.toFixed(2) + " units)";
-                document.getElementById("turb-hp-pwr").innerText = Math.round(pe.xlstHpPowerEUt).toLocaleString() + " EU/t (" + pe.xlstHpTurbinesNeeded.toFixed(2) + " units)";
-                document.getElementById("turb-reg-pwr").innerText = Math.round(pe.xlstPowerEUt).toLocaleString() + " EU/t (" + pe.xlstTurbinesNeeded.toFixed(2) + " units)";
+                document.getElementById("turb-sc-pwr").innerText = formatPowerAndAmps(pe.xlstScPowerEUt, true) + " (" + pe.xlstScTurbinesNeeded.toFixed(2) + " units)";
+                document.getElementById("turb-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true) + " (" + pe.xlstHpTurbinesNeeded.toFixed(2) + " units)";
+                document.getElementById("turb-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true) + " (" + (pe.isLST ? pe.lstTurbinesNeeded : pe.xlstTurbinesNeeded).toFixed(2) + " units)";
 
                 const eheRow = document.getElementById("ehe-row");
-                if (pe.eheMode && pe.eheMode !== "NONE") {
+                if (pe.coolantMachine && pe.coolantMachine !== "None" && pe.coolantMachineMode && pe.coolantMachineMode !== "NONE") {
                   eheRow.style.display = "flex";
-                  document.getElementById("turb-ehe-info").innerText = pe.eheMode + " (" + Math.round(pe.eheSteamProduced).toLocaleString() + " L/t stm, " + Math.round(pe.eheDistilledWaterConsumed).toLocaleString() + " L/t DW)";
+                  document.getElementById("turb-ehe-info").innerText = pe.coolantMachine + " [" + pe.coolantMachineMode + "] (" + Math.round(pe.coolantSteamProduced).toLocaleString() + " L/t stm, " + Math.round(pe.coolantWaterConsumed).toLocaleString() + " L/t water)";
                 } else {
                   eheRow.style.display = "none";
                 }
@@ -1652,23 +1817,22 @@ public class NuclearSimulationWebServer {
                 const power = (currentState.history && currentState.history.length > 0)
                   ? currentState.history[currentState.history.length - 1].power
                   : 0;
-                document.getElementById("stat-power").innerText = power.toLocaleString() + " EU/t";
+                document.getElementById("stat-power-tier").innerText = formatPowerAndAmps(power, false);
+                document.getElementById("stat-power").innerText = formatPowerAndAmps(power, false);
               }
 
               // Update Scenario comparison card
               if (currentState.scenarios) {
                 const sc = currentState.scenarios;
                 if (sc.tight) {
-                  document.getElementById("scen-a-desc").innerText = sc.tight.description || (sc.tight.size + " " + sc.tight.material);
-                  const tierA = getVoltageTier(sc.tight.powerEUt);
-                  document.getElementById("scen-a-pwr").innerText = Math.round(sc.tight.powerEUt).toLocaleString() + " EU/t (" + tierA + ")";
+                  document.getElementById("scen-a-desc").innerText = sc.tight.description || ((sc.tight.sizeName || sc.tight.size) + " " + (sc.tight.materialName || sc.tight.material));
+                  document.getElementById("scen-a-pwr").innerText = formatPowerAndAmps(sc.tight.powerEUt, true);
                   document.getElementById("scen-a-turb").innerText = sc.tight.totalTurbinesNeeded.toFixed(2) + " units";
                   document.getElementById("scen-a-mach").innerText = sc.tight.coolantMachine !== "None" ? (sc.tight.coolantMachineCount.toFixed(0) + "x " + sc.tight.coolantMachine) : "None";
                 }
                 if (sc.loose) {
-                  document.getElementById("scen-b-desc").innerText = sc.loose.description || (sc.loose.size + " " + sc.loose.material);
-                  const tierB = getVoltageTier(sc.loose.powerEUt);
-                  document.getElementById("scen-b-pwr").innerText = Math.round(sc.loose.powerEUt).toLocaleString() + " EU/t (" + tierB + ")";
+                  document.getElementById("scen-b-desc").innerText = sc.loose.description || ((sc.loose.sizeName || sc.loose.size) + " " + (sc.loose.materialName || sc.loose.material));
+                  document.getElementById("scen-b-pwr").innerText = formatPowerAndAmps(sc.loose.powerEUt, true);
                   document.getElementById("scen-b-turb").innerText = sc.loose.totalTurbinesNeeded.toFixed(2) + " units";
                   document.getElementById("scen-b-mach").innerText = sc.loose.coolantMachine !== "None" ? (sc.loose.coolantMachineCount.toFixed(0) + "x " + sc.loose.coolantMachine) : "None";
                 }
@@ -1678,6 +1842,9 @@ public class NuclearSimulationWebServer {
                   document.getElementById("scen-compare-text").innerText = `Loose mode uses ${ratio}x fewer turbines for ${pwrPct}% of Tight power output.`;
                 }
               }
+
+              // Render Machine Process Pipeline
+              renderProcessPipeline();
 
               // Reconcile and update grid DOM without destroying elements
               updateGridDOM();
@@ -1731,8 +1898,8 @@ public class NuclearSimulationWebServer {
               const width = currentState.width;
               if (width <= 0 || availableWidth <= 60) return;
 
-              const ratio = width + (width - 1) * (6.0 / 56.0);
-              const targetCellSize = Math.max(16, (availableWidth - 24) / ratio);
+              const ratio = width + (width - 1) * (2.0 / 56.0);
+              const targetCellSize = Math.max(16, (availableWidth - 12) / ratio);
               const targetScale = Math.min(1.0, targetCellSize / 56.0);
               applyZoom(targetScale);
             }
@@ -1741,7 +1908,7 @@ public class NuclearSimulationWebServer {
               currentZoom = Math.min(2.0, Math.max(0.3, scale));
               const baseSize = 56;
               const cellSize = Math.max(16, Math.round(baseSize * currentZoom));
-              const gap = Math.max(2, Math.round(6 * currentZoom));
+              const gap = currentZoom < 0.5 ? 1 : 2;
               const codeSize = Math.max(8, Math.round(13 * currentZoom)) + "px";
               const tempSize = Math.max(7, Math.round(10.5 * currentZoom)) + "px";
               const hideTemp = cellSize < 32;
@@ -1771,12 +1938,16 @@ public class NuclearSimulationWebServer {
                 }
               }
 
-              const temps = document.querySelectorAll(".cell .cell-temp");
+              const temps = document.querySelectorAll(".cell .cell-temp, .cell .cell-metric");
               for (let i = 0; i < temps.length; i++) {
                 temps[i].style.display = hideTemp ? "none" : "";
               }
             }
+            """;
+    }
 
+    private static String getHtmlScriptsPart2() {
+        return """
             function updateGridDOM() {
               const gridElem = document.getElementById("reactor-grid");
               const width = currentState.width;
@@ -1812,7 +1983,8 @@ public class NuclearSimulationWebServer {
                     cell.innerHTML = `
                       <img class="cell-icon" style="display:none;" />
                       <span class="cell-code" style="display:none;"></span>
-                      <span class="cell-temp"${hideTemp ? ' style="display:none;"' : ''}></span>
+                      <div class="cell-overlay"></div>
+                      <span class="cell-metric"${hideTemp ? ' style="display:none;"' : ''}></span>
                       <div class="cell-durability" style="display:none;"><div class="cell-durability-fill"></div></div>
                     `;
                     cell.addEventListener("click", (e) => {
@@ -1834,31 +2006,64 @@ public class NuclearSimulationWebServer {
                 const isSelected = selectedTilePos && selectedTilePos.x === t.x && selectedTilePos.y === t.y;
                 const imgEl = cell.children[0];
                 const codeEl = cell.children[1];
-                const tempEl = cell.children[2];
-                const durEl = cell.children[3];
+                const overlayEl = cell.children[2];
+                const metricEl = cell.children[3];
+                const durEl = cell.children[4];
                 const durFillEl = durEl ? durEl.children[0] : null;
 
                 if (t.code === "NL") {
                   cell.className = "cell wall-cell" + (isSelected ? " selected" : "");
-                  cell.style.backgroundColor = "#181b1f";
                   if (imgEl) imgEl.style.display = "none";
                   if (codeEl) codeEl.style.display = "none";
-                  if (tempEl) tempEl.style.display = "none";
+                  if (overlayEl) overlayEl.style.backgroundColor = "transparent";
+                  if (metricEl) metricEl.style.display = "none";
                   if (durEl) durEl.style.display = "none";
                 } else {
                   const desiredClass = "cell" + (isSelected ? " selected" : "");
                   if (cell.className !== desiredClass) {
                     cell.className = desiredClass;
                   }
-                  const bg = getTempColor(t.temp);
-                  if (cell.style.backgroundColor !== bg) {
-                    cell.style.backgroundColor = bg;
+
+                  let overlayBg = "transparent";
+                  let metricStr = "";
+                  let tipText = "";
+
+                  if (gridDisplayMode === "TOTAL_FLUX") {
+                    const fl = t.totalFlux || 0;
+                    overlayBg = fl > 0 ? getNeutronColor(fl) : "transparent";
+                    metricStr = formatFluxValue(fl);
+                    tipText = `Total Flux: ${fl.toLocaleString()} n/t (Fast: ${(t.fastFlux||0).toLocaleString()}, Thermal: ${(t.thermalFlux||0).toLocaleString()})`;
+                  } else if (gridDisplayMode === "FAST_FLUX") {
+                    const fl = t.fastFlux || 0;
+                    overlayBg = fl > 0 ? getNeutronColor(fl) : "transparent";
+                    metricStr = formatFluxValue(fl);
+                    tipText = `Fast Flux: ${fl.toLocaleString()} n/t`;
+                  } else if (gridDisplayMode === "THERMAL_FLUX") {
+                    const fl = t.thermalFlux || 0;
+                    overlayBg = fl > 0 ? getNeutronColor(fl) : "transparent";
+                    metricStr = formatFluxValue(fl);
+                    tipText = `Thermal Flux: ${fl.toLocaleString()} n/t`;
+                  } else {
+                    overlayBg = getTemperatureColor(t.temp, currentState.maxSafeTemp);
+                    metricStr = Math.round(t.temp) + "°C";
+                    tipText = `Temperature: ${t.temp.toFixed(1)}°C (Max Safe: ${currentState.maxSafeTemp}°C)`;
+                  }
+
+                  if (t.temp > (currentState.maxSafeTemp || 3250) * 0.85) {
+                    if (Math.floor(Date.now() / 400) % 2 === 0) {
+                      overlayBg = "rgba(255, 0, 0, 0.45)";
+                    }
+                  }
+
+                  if (overlayEl && overlayEl.style.backgroundColor !== overlayBg) {
+                    overlayEl.style.backgroundColor = overlayBg;
                   }
 
                   if (t.type && t.type !== "EMPTY") {
-                    const iconSrc = `/api/icon/${t.type}`;
+                    const iconSrc = getIconUrl(t.type);
                     if (imgEl.getAttribute("src") !== iconSrc) {
                       imgEl.src = iconSrc;
+                      imgEl.onerror = () => { imgEl.src = '/api/icon/' + t.type; };
                     }
                     if (imgEl.style.display !== "block") {
                       imgEl.style.display = "block";
@@ -1875,15 +2080,16 @@ public class NuclearSimulationWebServer {
                     }
                   }
 
-                  const tempStr = Math.round(t.temp) + "°C";
-                  if (tempEl.textContent !== tempStr) {
-                    tempEl.textContent = tempStr;
+                  if (metricEl.textContent !== metricStr) {
+                    metricEl.textContent = metricStr;
                   }
-                  if (!hideTemp && tempEl.style.display === "none") {
-                    tempEl.style.display = "block";
-                  } else if (hideTemp && tempEl.style.display !== "none") {
-                    tempEl.style.display = "none";
+                  if (!hideTemp && metricEl.style.display === "none") {
+                    metricEl.style.display = "block";
+                  } else if (hideTemp && metricEl.style.display !== "none") {
+                    metricEl.style.display = "none";
                   }
+
+                  cell.title = `${t.name} (${t.x}, ${t.y})\n${tipText}`;
 
                   if (t.isFuel && t.durabilityPct < 99.9) {
                     if (durEl) {
@@ -1957,8 +2163,23 @@ public class NuclearSimulationWebServer {
                 `;
               }
               const iconHtml = (t.type && t.type !== "EMPTY" && t.code !== "NL")
-                ? `<img src="/api/icon/${t.type}" class="inspector-icon" alt="${t.code}" />`
+                ? `<img src="${getIconUrl(t.type)}" onerror="this.src='/api/icon/' + t.type" class="inspector-icon" alt="${t.code}" />`
                 : "";
+
+              let fluxHtml = "";
+              if (t.code !== "NL" && ((t.totalFlux && t.totalFlux > 0) || (t.fastFlux && t.fastFlux > 0) || (t.thermalFlux && t.thermalFlux > 0) || (t.fastAbsorbed && t.fastAbsorbed > 0) || (t.thermalAbsorbed && t.thermalAbsorbed > 0) || t.directEU)) {
+                fluxHtml = `
+                  <div style="background:#10141d; border:1px solid #373737; border-radius:3px; padding:6px 8px; margin-top:8px;">
+                    <div style="font-weight:700; font-size:0.75rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px;">Neutron Kinetics</div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Total Flux:</span><span class="stat-val" style="color:#38bdf8;">${(t.totalFlux || 0).toLocaleString()} n/t</span></div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Fast Flux:</span><span class="stat-val" style="color:#fbbf24;">${(t.fastFlux || 0).toLocaleString()} n/t</span></div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Thermal Flux:</span><span class="stat-val" style="color:#4ade80;">${(t.thermalFlux || 0).toLocaleString()} n/t</span></div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Fast Absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${(t.fastAbsorbed || 0).toLocaleString()} n/t</span></div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Thermal Absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${(t.thermalAbsorbed || 0).toLocaleString()} n/t</span></div>
+                    ${t.directEU ? `<div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #373737;"><span>Radiovoltaic Output:</span><span class="stat-val" style="color:#38bdf8;">${t.directEU.toLocaleString()} EU/t</span></div>` : ''}
+                  </div>
+                `;
+              }
 
               el.innerHTML = `
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
@@ -1970,6 +2191,7 @@ public class NuclearSimulationWebServer {
                 </div>
                 <div class="stat-row"><span>Temperature:</span><span class="stat-val">${t.temp} °C</span></div>
                 ${extraHtml}
+                ${fluxHtml}
               `;
             }
 
@@ -1982,8 +2204,8 @@ public class NuclearSimulationWebServer {
                 if (el && active !== el && el.value != val) el.value = val;
               };
               setVal("p-eu-per-degree", p.euPerDegree != null ? p.euPerDegree : 32.0);
-              setVal("p-fission-heat", p.fissionHeatPerNeutron != null ? p.fissionHeatPerNeutron : 38.0);
-              setVal("p-fiss-mult", p.globalThermalFissionMultiplier != null ? p.globalThermalFissionMultiplier : p.thermalFissionMultiplier);
+              setVal("p-fission-heat", p.fissionHeatPerNeutron != null ? p.fissionHeatPerNeutron : 77.2);
+              setVal("p-fiss-mult", p.globalThermalFissionMultiplier != null ? p.globalThermalFissionMultiplier : (p.thermalFissionMultiplier != null ? p.thermalFissionMultiplier : 0.348));
               setVal("p-ambient-temp", p.ambientTemp);
               setVal("p-hatch-cap", p.hatchCapacity);
               setVal("p-turn-curve", p.turnoverCurve);
@@ -1997,8 +2219,8 @@ public class NuclearSimulationWebServer {
 
             async function submitSimParams() {
               const euDeg = document.getElementById("p-eu-per-degree") ? document.getElementById("p-eu-per-degree").value : 32.0;
-              const fHeat = document.getElementById("p-fission-heat") ? document.getElementById("p-fission-heat").value : 38.0;
-              const fMult = document.getElementById("p-fiss-mult").value;
+              const fHeat = document.getElementById("p-fission-heat") ? document.getElementById("p-fission-heat").value : 77.2;
+              const fMult = document.getElementById("p-fiss-mult") ? document.getElementById("p-fiss-mult").value : 0.348;
               const amb = document.getElementById("p-ambient-temp").value;
               const cap = document.getElementById("p-hatch-cap").value;
               const curve = document.getElementById("p-turn-curve").value;
@@ -2009,6 +2231,24 @@ public class NuclearSimulationWebServer {
               const ic2Ch = document.getElementById("p-ic2-cooling-heat").value;
               const hpBoil = document.getElementById("p-hp-boil").value;
 
+              if (isWasmMode && wasmSim) {
+                wasmSim.setParam("euPerDegree", euDeg);
+                wasmSim.setParam("fissionHeat", fHeat);
+                wasmSim.setParam("fissionMult", fMult);
+                wasmSim.setParam("ambientTemp", amb);
+                wasmSim.setParam("hatchCapacity", cap);
+                wasmSim.setParam("turnoverCurve", curve);
+                wasmSim.setParam("turnoverDeltaTMax", dt);
+                wasmSim.setParam("turnoverExponent", exp);
+                wasmSim.setParam("coolantFeedRate", feed);
+                wasmSim.setParam("coolingHeat", ch);
+                wasmSim.setParam("ic2CoolantHeat", ic2Ch);
+                wasmSim.setParam("hpBoil", hpBoil);
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
+
               const url = `/api/set-params?euPerDegree=${euDeg}&fissionHeat=${fHeat}&fissionMult=${fMult}&ambientTemp=${amb}&hatchCapacity=${cap}&turnoverCurve=${curve}&turnoverDeltaTMax=${dt}&turnoverExponent=${exp}&coolantFeedRate=${feed}&coolingHeat=${ch}&ic2CoolantHeat=${ic2Ch}&hpBoil=${hpBoil}`;
               await fetch(url);
               await fetchState();
@@ -2016,6 +2256,12 @@ public class NuclearSimulationWebServer {
             }
 
             async function resetSimParams() {
+              if (isWasmMode && wasmSim) {
+                wasmSim.setParam("reset", "true");
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
               await fetch("/api/set-params?reset=true");
               await fetchState();
               schedulePoll();
@@ -2024,17 +2270,18 @@ public class NuclearSimulationWebServer {
             function applyProfilePreset(profile) {
               switch (profile) {
                 case "BALANCED":
-                  document.getElementById("p-hatch-cap").value = 2000;
-                  document.getElementById("p-turn-curve").value = "EXPONENTIAL";
+                  document.getElementById("p-hatch-cap").value = 8000;
+                  document.getElementById("p-turn-curve").value = "SIGMOID";
                   document.getElementById("p-turn-dt").value = 100;
-                  document.getElementById("p-turn-exp").value = 1.5;
-                  document.getElementById("p-feed-rate").value = 2000;
-                  document.getElementById("p-cooling-heat").value = 4.0;
+                  document.getElementById("p-turn-exp").value = 1.0;
+                  document.getElementById("p-feed-rate").value = 999999;
+                  document.getElementById("p-cooling-heat").value = 5.0;
                   document.getElementById("p-t-low").value = 800;
-                  document.getElementById("p-t-high").value = 2800;
+                  document.getElementById("p-t-high").value = 3200;
                   document.getElementById("p-react-pow").value = 1.2;
-                  document.getElementById("p-fiss-mult").value = 1.1;
-                  document.getElementById("p-hp-boil").value = 200;
+                  document.getElementById("p-fiss-mult").value = 0.348;
+                  if (document.getElementById("p-fission-heat")) document.getElementById("p-fission-heat").value = 77.2;
+                  document.getElementById("p-hp-boil").value = 180;
                   break;
                 case "DANGER":
                   document.getElementById("p-hatch-cap").value = 1000;
@@ -2128,12 +2375,24 @@ public class NuclearSimulationWebServer {
             }
 
             async function togglePlay() {
+              if (isWasmMode && wasmSim) {
+                wasmSim.togglePlay();
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
               await fetch("/api/play");
               await fetchState();
               schedulePoll();
             }
 
             async function stepSim(count) {
+              if (isWasmMode && wasmSim) {
+                wasmSim.stepTicks(count);
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
               await fetch(`/api/step?count=${count}`);
               await fetchState();
               schedulePoll();
@@ -2141,15 +2400,48 @@ public class NuclearSimulationWebServer {
 
             async function resetSim() {
               lastChartTick = -1;
+              if (isWasmMode && wasmSim) {
+                wasmSim.reset();
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
               await fetch("/api/reset");
               await fetchState();
               schedulePoll();
             }
 
+            const PRESET_TO_VOLTAGE = {
+              "60A_ELECTRUM_5X5": "EV",
+              "60A_PLATINUM_9X9": "IV",
+              "60A_OSMIUM_9X9": "LuV",
+              "60A_QUANTIUM_13X13": "ZPM",
+              "60A_FLUXED_13X13": "UV",
+              "60A_PLUTONIUM_13X13": "UHV",
+              "BEST_ELECTRUM_5X5": "EV",
+              "BEST_PLATINUM_9X9": "IV",
+              "BEST_OSMIUM_9X9": "LuV",
+              "BEST_QUANTIUM_13X13": "ZPM",
+              "BEST_FLUXED_13X13": "UV",
+              "BEST_PLUTONIUM_13X13": "UHV"
+            };
+
+            const TIER_TO_VOLTAGE = ["EV", "IV", "LuV", "ZPM", "UV", "UHV"];
+
             async function loadPreset(name) {
               lastChartTick = -1;
               if (window.innerWidth <= 800) {
                 isFitMode = true;
+              }
+              if (PRESET_TO_VOLTAGE[name]) {
+                setVoltageTier(PRESET_TO_VOLTAGE[name]);
+              }
+              if (isWasmMode && wasmSim) {
+                wasmSim.loadPreset(name);
+                currentState = wasmSim.getState();
+                if (isFitMode) recalculateFitZoom();
+                renderUI();
+                return;
               }
               await fetch(`/api/load-preset?name=${encodeURIComponent(name)}`);
               await fetchState();
@@ -2158,15 +2450,220 @@ public class NuclearSimulationWebServer {
             }
 
             async function setTile(x, y, type) {
+              if (isWasmMode && wasmSim) {
+                wasmSim.setTile(x, y, type);
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
               await fetch(`/api/set-tile?x=${x}&y=${y}&type=${type}`);
               await fetchState();
               schedulePoll();
             }
 
             async function changeTier(tier) {
+              const tierNum = parseInt(tier);
+              if (TIER_TO_VOLTAGE[tierNum]) {
+                setVoltageTier(TIER_TO_VOLTAGE[tierNum]);
+              }
+              if (isWasmMode && wasmSim) {
+                wasmSim.setPipeTier(tierNum);
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
               await fetch(`/api/set-tier?tier=${tier}`);
               await fetchState();
               schedulePoll();
+            }
+
+            function renderProcessPipeline() {
+              if (!currentState || !currentState.powerEstimate) return;
+              const pe = currentState.powerEstimate;
+              const tier = currentState.pipeTier !== undefined ? currentState.pipeTier : 1;
+              const tierBadge = document.getElementById("proc-tier-badge");
+              const tierDesc = document.getElementById("proc-tier-desc");
+
+              const stagePv = document.getElementById("proc-stage-pv");
+              const stageCoolant = document.getElementById("proc-stage-coolant");
+              const stageSc = document.getElementById("proc-stage-sc");
+              const stageHp = document.getElementById("proc-stage-hp");
+              const stageReg = document.getElementById("proc-stage-reg");
+
+              // Stage 0: Radiovoltaics
+              document.getElementById("proc-pv-val").innerText = formatPowerAndAmps(pe.directPowerEUt, true);
+              document.getElementById("proc-pv-sub").innerText = pe.directPowerEUt > 0
+                ? `${Math.round(pe.directPowerEUt).toLocaleString()} EU/t direct power from radiovoltaic cells`
+                : "No radiovoltaic cells generating direct power";
+
+              // Tier Policies
+              if (tier <= 0) {
+                // EV
+                tierBadge.innerText = "EV Pipeline";
+                tierBadge.style.color = "#38bdf8";
+                tierDesc.innerHTML = "<strong>EV Mode:</strong> Large Heat Exchanger (1L Hot Coolant → 400L Regular Steam) + Large Steam Turbines (LST, 0.5 EU/L) + Direct Radiovoltaics. <em>XLST and Superheated/Supercritical processing unavailable at EV.</em>";
+
+                // Stage 1: LHE
+                document.getElementById("proc-coolant-title").innerText = "🔄 Stage 1: Large Heat Exchanger (LHE)";
+                const hasCoolant = (currentState.flowHotCoolant || 0) > 0;
+                document.getElementById("proc-coolant-count").innerText = hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x LHE") : "0x LHE";
+                document.getElementById("proc-coolant-detail").innerText = hasCoolant
+                  ? `Input: ${Math.round(currentState.flowHotCoolant).toLocaleString()} L/t Hot Coolant → Output: ${Math.round(pe.coolantSteamProduced).toLocaleString()} L/t Regular Steam (1:400)`
+                  : "Chamber produces no IC2 Hot Coolant";
+                document.getElementById("proc-coolant-water").innerText = hasCoolant
+                  ? `Distilled Water consumed: ${Math.round(pe.coolantWaterConsumed).toLocaleString()} L/t`
+                  : "";
+
+                // Stage 2: Locked
+                stageSc.style.opacity = "0.45";
+                document.getElementById("proc-sc-title").innerText = "🔒 Stage 2: XLST-SC (Supercritical)";
+                document.getElementById("proc-sc-pwr").innerText = "Locked (ZPM+)";
+                document.getElementById("proc-sc-detail").innerText = "Requires ZPM or higher. Supercritical steam cannot be turbine-processed at EV.";
+                document.getElementById("proc-sc-cascade").innerText = "";
+
+                // Stage 3: Locked
+                stageHp.style.opacity = "0.45";
+                document.getElementById("proc-hp-title").innerText = "🔒 Stage 3: XLST-HP (Superheated)";
+                document.getElementById("proc-hp-pwr").innerText = "Locked (IV+)";
+                document.getElementById("proc-hp-detail").innerText = "Requires IV or higher. Superheated steam cannot be turbine-processed at EV.";
+                document.getElementById("proc-hp-cascade").innerText = "";
+
+                // Stage 4: LST
+                stageReg.style.opacity = "1.0";
+                document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: Large Steam Turbine (LST)";
+                document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.lstPowerEUt, true);
+                const regFlow = Math.round((currentState.flowRegularSteam || 0) + pe.coolantSteamProduced);
+                document.getElementById("proc-reg-detail").innerText = `${regFlow.toLocaleString()} L/t steam · ${pe.lstTurbinesNeeded.toFixed(2)} LST units (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
+                document.getElementById("proc-reg-eff").innerText = `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff (${pe.lstPowerEUt > 0 ? (pe.lstPowerEUt / Math.max(1, regFlow)).toFixed(3) : 0} EU/L)`;
+
+              } else if (tier === 1) {
+                // IV
+                tierBadge.innerText = "IV Pipeline";
+                tierBadge.style.color = "#a3e635";
+                tierDesc.innerHTML = "<strong>IV Mode:</strong> Thermal Boiler (1L Hot Coolant → 200L SH Steam) + XLST-HP (1.0 EU/L, cascades 1:1) + XLST (0.5 EU/L). <em>EHE and XLST-SC unavailable at IV.</em>";
+
+                // Stage 1: Thermal Boiler
+                document.getElementById("proc-coolant-title").innerText = "🔄 Stage 1: Thermal Boiler";
+                const hasCoolant = (currentState.flowHotCoolant || 0) > 0;
+                document.getElementById("proc-coolant-count").innerText = hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x Thermal Boiler") : "0x Thermal Boiler";
+                document.getElementById("proc-coolant-detail").innerText = hasCoolant
+                  ? `Input: ${Math.round(currentState.flowHotCoolant).toLocaleString()} L/t Hot Coolant → Output: ${Math.round(pe.coolantSteamProduced).toLocaleString()} L/t SH Steam (1:200)`
+                  : "Chamber produces no IC2 Hot Coolant";
+                document.getElementById("proc-coolant-water").innerText = hasCoolant
+                  ? `Water consumed: ${Math.round(pe.coolantWaterConsumed).toLocaleString()} L/t`
+                  : "";
+
+                // Stage 2: Locked
+                stageSc.style.opacity = "0.45";
+                document.getElementById("proc-sc-title").innerText = "🔒 Stage 2: XLST-SC (Supercritical)";
+                document.getElementById("proc-sc-pwr").innerText = "Locked (ZPM+)";
+                document.getElementById("proc-sc-detail").innerText = "Requires ZPM or higher. Supercritical steam cannot be turbine-processed at IV.";
+                document.getElementById("proc-sc-cascade").innerText = "";
+
+                // Stage 3: XLST-HP
+                stageHp.style.opacity = "1.0";
+                document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (Superheated Steam)";
+                document.getElementById("proc-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true);
+                const hpFlow = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + pe.coolantSteamProduced);
+                document.getElementById("proc-hp-detail").innerText = `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
+                document.getElementById("proc-hp-cascade").innerText = "Cascades 1:1 into Regular Steam for Stage 4";
+
+                // Stage 4: XLST Regular
+                stageReg.style.opacity = "1.0";
+                document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (Regular Steam)";
+                document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true);
+                const regFlow = Math.round((currentState.flowRegularSteam || 0) + hpFlow);
+                document.getElementById("proc-reg-detail").innerText = `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`;
+                document.getElementById("proc-reg-eff").innerText = `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff (${pe.xlstPowerEUt > 0 ? (pe.xlstPowerEUt / Math.max(1, regFlow)).toFixed(3) : 0} EU/L)`;
+
+              } else if (tier === 2) {
+                // LuV
+                tierBadge.innerText = "LuV Pipeline";
+                tierBadge.style.color = "#f59e0b";
+                tierDesc.innerHTML = "<strong>LuV Mode:</strong> Extreme Heat Exchanger (1L Hot Coolant → 200L SH Steam) + XLST-HP (1.0 EU/L, cascades 1:1) + XLST (0.5 EU/L). <em>XLST-SC unlocks at ZPM.</em>";
+
+                // Stage 1: EHE
+                document.getElementById("proc-coolant-title").innerText = "🔄 Stage 1: Extreme Heat Exchanger (EHE)";
+                const hasCoolant = (currentState.flowHotCoolant || 0) > 0;
+                document.getElementById("proc-coolant-count").innerText = hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x EHE") : "0x EHE";
+                document.getElementById("proc-coolant-detail").innerText = hasCoolant
+                  ? `Input: ${Math.round(currentState.flowHotCoolant).toLocaleString()} L/t Hot Coolant → Output: ${Math.round(pe.coolantSteamProduced).toLocaleString()} L/t SH Steam (1:200)`
+                  : "Chamber produces no IC2 Hot Coolant";
+                document.getElementById("proc-coolant-water").innerText = hasCoolant
+                  ? `Distilled Water consumed: ${Math.round(pe.coolantWaterConsumed).toLocaleString()} L/t`
+                  : "";
+
+                // Stage 2: Locked
+                stageSc.style.opacity = "0.45";
+                document.getElementById("proc-sc-title").innerText = "🔒 Stage 2: XLST-SC (Supercritical)";
+                document.getElementById("proc-sc-pwr").innerText = "Locked (ZPM+)";
+                document.getElementById("proc-sc-detail").innerText = "Requires ZPM or higher for XLST-SC.";
+                document.getElementById("proc-sc-cascade").innerText = "";
+
+                // Stage 3: XLST-HP
+                stageHp.style.opacity = "1.0";
+                document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (Superheated Steam)";
+                document.getElementById("proc-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true);
+                const hpFlow = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + pe.coolantSteamProduced);
+                document.getElementById("proc-hp-detail").innerText = `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
+                document.getElementById("proc-hp-cascade").innerText = "Cascades 1:1 into Regular Steam for Stage 4";
+
+                // Stage 4: XLST Regular
+                stageReg.style.opacity = "1.0";
+                document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (Regular Steam)";
+                document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true);
+                const regFlow = Math.round((currentState.flowRegularSteam || 0) + hpFlow);
+                document.getElementById("proc-reg-detail").innerText = `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`;
+                document.getElementById("proc-reg-eff").innerText = `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff`;
+
+              } else {
+                // ZPM+
+                const tierName = (tier === 3) ? "ZPM" : (tier === 4) ? "UV" : "UHV";
+                tierBadge.innerText = `${tierName} Full 3-Stage Cascade`;
+                tierBadge.style.color = "#ec4899";
+                tierDesc.innerHTML = "<strong>ZPM+ Mode:</strong> EHE (Supercritical if ≥8,000 L/s coolant, else SH) + Full 3-Stage Cascade: XLST-SC (1.0 EU/L) → XLST-HP (1.0 EU/L) → XLST (0.5 EU/L).";
+
+                // Stage 1: EHE
+                const isSC = pe.coolantMachineMode && pe.coolantMachineMode.includes("Supercritical");
+                document.getElementById("proc-coolant-title").innerText = `🔄 Stage 1: Extreme Heat Exchanger (EHE) [${isSC ? "Supercritical" : "Superheated"}]`;
+                const hasCoolant = (currentState.flowHotCoolant || 0) > 0;
+                document.getElementById("proc-coolant-count").innerText = hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x EHE") : "0x EHE";
+                document.getElementById("proc-coolant-detail").innerText = hasCoolant
+                  ? `Input: ${Math.round(currentState.flowHotCoolant).toLocaleString()} L/t (${Math.round(currentState.flowHotCoolant * 20).toLocaleString()} L/s) → Output: ${Math.round(pe.coolantSteamProduced).toLocaleString()} L/t ${isSC ? "SC" : "SH"} Steam`
+                  : "Chamber produces no IC2 Hot Coolant";
+                document.getElementById("proc-coolant-water").innerText = hasCoolant
+                  ? `Distilled Water consumed: ${Math.round(pe.coolantWaterConsumed).toLocaleString()} L/t`
+                  : "";
+
+                // Stage 2: XLST-SC
+                stageSc.style.opacity = "1.0";
+                document.getElementById("proc-sc-title").innerText = "⚡ Stage 2: XLST-SC (Supercritical Steam)";
+                document.getElementById("proc-sc-pwr").innerText = formatPowerAndAmps(pe.xlstScPowerEUt, true);
+                const scFlow = Math.round((currentState.flowSupercriticalSteam || 0) + (currentState.flowHPHeavyWaterSteam || 0) + (isSC ? pe.coolantSteamProduced : 0));
+                document.getElementById("proc-sc-detail").innerText = `${scFlow.toLocaleString()} L/t SC steam · ${pe.xlstScTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
+                document.getElementById("proc-sc-cascade").innerText = "Cascades 1:1 into Superheated Steam for Stage 3";
+
+                // Stage 3: XLST-HP
+                stageHp.style.opacity = "1.0";
+                document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (Superheated Steam)";
+                document.getElementById("proc-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true);
+                const hpDirect = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + (!isSC ? pe.coolantSteamProduced : 0));
+                const hpTotal = hpDirect + scFlow;
+                document.getElementById("proc-hp-detail").innerText = `${hpTotal.toLocaleString()} L/t SH steam (${scFlow.toLocaleString()} from SC cascade) · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines`;
+                document.getElementById("proc-hp-cascade").innerText = "Cascades 1:1 into Regular Steam for Stage 4";
+
+                // Stage 4: XLST Regular
+                stageReg.style.opacity = "1.0";
+                document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (Regular Steam)";
+                document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true);
+                const regDirect = Math.round(currentState.flowRegularSteam || 0);
+                const regTotal = regDirect + hpTotal;
+                document.getElementById("proc-reg-detail").innerText = `${regTotal.toLocaleString()} L/t steam (${hpTotal.toLocaleString()} from HP cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`;
+                document.getElementById("proc-reg-eff").innerText = `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff`;
+              }
+
+              // Net Generation
+              document.getElementById("proc-net-pwr").innerText = formatPowerAndAmps(pe.totalPowerEUt, false);
             }
 
             window.addEventListener("resize", () => {
@@ -2189,18 +2686,56 @@ public class NuclearSimulationWebServer {
                 resetZoom();
               } else if (e.key === "f" || e.key === "F") {
                 fitGridToScreen();
+              } else if (e.key === "1") {
+                setGridDisplayMode("TEMP");
+              } else if (e.key === "2") {
+                setGridDisplayMode("TOTAL_FLUX");
+              } else if (e.key === "3") {
+                setGridDisplayMode("FAST_FLUX");
+              } else if (e.key === "4") {
+                setGridDisplayMode("THERMAL_FLUX");
+              } else if (e.key === "m" || e.key === "M") {
+                const modes = ["TEMP", "TOTAL_FLUX", "FAST_FLUX", "THERMAL_FLUX"];
+                const nextIdx = (modes.indexOf(gridDisplayMode) + 1) % modes.length;
+                setGridDisplayMode(modes[nextIdx]);
               }
             });
 
             initTurbineSelects();
             initPalette();
             setInteractionMode("INSPECT");
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const overlayParam = urlParams.get("overlay") || urlParams.get("mode");
+            if (overlayParam) {
+              setGridDisplayMode(overlayParam.toUpperCase());
+            }
+            const selX = urlParams.get("x");
+            const selY = urlParams.get("y");
+            if (selX !== null && selY !== null) {
+              selectedTilePos = { x: parseInt(selX), y: parseInt(selY) };
+            }
+
+            /*__INITIAL_STATE__*/
+            if (window.__INITIAL_STATE__) {
+              currentState = window.__INITIAL_STATE__;
+              renderUI();
+            }
+
             if (window.innerWidth <= 800) {
               isFitMode = true;
             }
-            fetchState().then(() => {
-              if (isFitMode) recalculateFitZoom();
-              schedulePoll();
+
+            initEngine().then((wasmLoaded) => {
+              loadColorMaps();
+              if (wasmLoaded) {
+                if (isFitMode) recalculateFitZoom();
+              } else {
+                fetchState().then(() => {
+                  if (isFitMode) recalculateFitZoom();
+                  schedulePoll();
+                });
+              }
             });
             </script>
             </body>

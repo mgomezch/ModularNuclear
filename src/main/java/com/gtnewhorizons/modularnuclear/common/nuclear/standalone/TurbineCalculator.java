@@ -39,10 +39,24 @@ public class TurbineCalculator {
         }
 
         public static TurbineMaterial fromString(String name) {
-            if (name == null) return HSS_E;
+            if (name == null || name.trim()
+                .isEmpty()) return HSS_E;
+            String trimmed = name.trim();
             for (TurbineMaterial m : values()) {
                 if (m.name()
-                    .equalsIgnoreCase(name) || m.displayName.equalsIgnoreCase(name)) {
+                    .equalsIgnoreCase(trimmed) || m.displayName.equalsIgnoreCase(trimmed)) {
+                    return m;
+                }
+            }
+            String norm = trimmed.toUpperCase()
+                .replace("-", "_")
+                .replace(" ", "_")
+                .replace(".", "");
+            for (TurbineMaterial m : values()) {
+                String mNorm = m.name()
+                    .replace("_", "");
+                if (norm.replace("_", "")
+                    .equalsIgnoreCase(mNorm)) {
                     return m;
                 }
             }

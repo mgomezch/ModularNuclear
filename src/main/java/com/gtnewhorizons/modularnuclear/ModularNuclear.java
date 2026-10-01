@@ -42,6 +42,7 @@ public class ModularNuclear {
         ModMetaTileEntities.init();
         ModFluids.registerContainers();
         com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration.init();
+        com.gtnewhorizons.modularnuclear.common.opencomputers.OpenComputersIntegration.init();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS
             .register(new com.gtnewhorizons.modularnuclear.common.item.NuclearFuelTooltipHandler());
     }
