@@ -18,8 +18,8 @@ public class NuclearSimWasmBridge {
     private static boolean isRunning = false;
 
     public static void main(String[] args) {
-        initGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
-        loadPreset("BEST_PLATINUM_9X9");
+        initGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        loadPreset("BEST_PLATINUM_7X7");
     }
 
     @Export(name = "initGrid")
@@ -162,8 +162,8 @@ public class NuclearSimWasmBridge {
     @Export(name = "getStateJson")
     public static String getStateJson() {
         if (grid == null) {
-            initGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
-            loadPreset("BEST_PLATINUM_9X9");
+            initGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+            loadPreset("BEST_PLATINUM_7X7");
         }
         return buildStateJson(grid, isRunning);
     }

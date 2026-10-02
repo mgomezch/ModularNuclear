@@ -71,18 +71,7 @@ public class NuclearSimulationCLI {
                 case "--tier" -> {
                     if (i + 1 < args.length) {
                         tierSpecified = true;
-                        String t = args[++i].toLowerCase();
-                        if (t.contains("elec")) tier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
-                        else if (t.contains("plat")) tier = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
-                        else if (t.contains("osmi")) tier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
-                        else if (t.contains("quan")) tier = NuclearSimulationEngine.PIPE_TIER_QUANTIUM;
-                        else if (t.contains("flux")) tier = NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM;
-                        else if (t.contains("plut")) tier = NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM;
-                        else {
-                            try {
-                                tier = Integer.parseInt(t);
-                            } catch (NumberFormatException ignored) {}
-                        }
+                        tier = parseTier(args[++i]);
                     }
                 }
                 case "--material", "--turb-mat" -> {
@@ -316,18 +305,7 @@ public class NuclearSimulationCLI {
                         }
                         case "tier" -> {
                             tierSpecified = true;
-                            String t = v.toLowerCase();
-                            if (t.contains("elec")) tier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
-                            else if (t.contains("plat")) tier = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
-                            else if (t.contains("osmi")) tier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
-                            else if (t.contains("quan")) tier = NuclearSimulationEngine.PIPE_TIER_QUANTIUM;
-                            else if (t.contains("flux")) tier = NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM;
-                            else if (t.contains("plut")) tier = NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM;
-                            else {
-                                try {
-                                    tier = Integer.parseInt(t);
-                                } catch (Exception ignored) {}
-                            }
+                            tier = parseTier(v);
                         }
                         case "ticks" -> {
                             try {
@@ -522,6 +500,18 @@ public class NuclearSimulationCLI {
                 grid.getPowerFailReason()
                     .replace("\"", "\\\""))
             .append("\",");
+        sb.append("\"burnedFuelCount\":")
+            .append(grid.getBurnedFuelCount())
+            .append(",");
+        sb.append("\"fuelBurned\":")
+            .append(grid.hasFuelBurned())
+            .append(",");
+        sb.append("\"voidedHatchCount\":")
+            .append(grid.getVoidedHatchCount())
+            .append(",");
+        sb.append("\"peakLifetimeTemp\":")
+            .append(String.format(java.util.Locale.US, "%.2f", grid.getPeakLifetimeTemp()))
+            .append(",");
         sb.append("\"coreMaxTemp\":")
             .append(String.format(java.util.Locale.US, "%.2f", grid.getCoreMaxTemp()))
             .append(",");
@@ -760,7 +750,7 @@ public class NuclearSimulationCLI {
         System.out.println("Usage: gtnh-nuclear-sim [options]");
         System.out.println("Options:");
         System.out.println(
-            "  --preset <name>       Preset layout: BEST_ELECTRUM_5X5, BEST_PLATINUM_9X9, BEST_OSMIUM_9X9, BEST_QUANTIUM_13X13, BEST_FLUXED_13X13, BEST_PLUTONIUM_13X13");
+            "  --preset <name>       Preset layout: BEST_ELECTRUM_5X5, BEST_PLATINUM_7X7, BEST_OSMIUM_9X9, BEST_QUANTIUM_9X9, BEST_FLUXED_9X9, BEST_PLUTONIUM_9X9");
         System.out.println("  --size <N>            Grid dimensions N x N (default 5)");
         System.out.println(
             "  --tier <name/#>       Pipe casing tier: electrum(0), platinum(1), osmium(2), quantium(3), fluxed(4), black_plutonium(5)");
@@ -921,6 +911,13 @@ public class NuclearSimulationCLI {
                 + (grid.isExploded() ? ANSI_RED + "DESTROYED (Meltdown)" : ANSI_GREEN + "STABLE / OPERATIONAL")
                 + ANSI_RESET);
         System.out.println("Peak Core Temperature:  " + String.format("%.2f", grid.getCoreMaxTemp()) + " °C");
+        System.out.println("Peak Lifetime Temp:     " + String.format("%.2f", grid.getPeakLifetimeTemp()) + " °C");
+        if (grid.hasFuelBurned()) {
+            System.out.println(ANSI_RED + "WARNING:                " + grid.getBurnedFuelCount() + " fuel rod(s) burned up due to excessive heat!" + ANSI_RESET);
+        }
+        if (grid.getVoidedHatchCount() > 0) {
+            System.out.println(ANSI_RED + "WARNING:                " + grid.getVoidedHatchCount() + " hatch(es) voided due to over-temperature!" + ANSI_RESET);
+        }
         System.out.println("Average Core Temp:      " + String.format("%.2f", grid.getCoreAvgTemp()) + " °C");
         System.out.println(
             "Casing Max Allowed:     " + NuclearSimulationEngine.getMaxOperatingTemperature(grid.getPipeTier())
@@ -1081,5 +1078,20 @@ public class NuclearSimulationCLI {
         if (eut <= 33554432) return "UIV";
         if (eut <= 134217728) return "UMV";
         return "UXV+";
+    }
+
+    public static int parseTier(String t) {
+        if (t == null) return NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
+        String s = t.toLowerCase().trim();
+        if (s.contains("elec") || s.equals("ev")) return NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
+        if (s.contains("plat") || s.equals("iv")) return NuclearSimulationEngine.PIPE_TIER_PLATINUM;
+        if (s.contains("osmi") || s.equals("luv")) return NuclearSimulationEngine.PIPE_TIER_OSMIUM;
+        if (s.contains("quan") || s.equals("zpm")) return NuclearSimulationEngine.PIPE_TIER_QUANTIUM;
+        if (s.contains("flux") || s.equals("uv")) return NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM;
+        if (s.contains("plut") || s.equals("uhv")) return NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM;
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException ignored) {}
+        return NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
     }
 }

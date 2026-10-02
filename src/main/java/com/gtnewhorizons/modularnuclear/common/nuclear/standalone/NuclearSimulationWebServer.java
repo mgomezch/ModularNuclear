@@ -35,8 +35,8 @@ public class NuclearSimulationWebServer {
                 file.getParentFile().mkdirs();
                 NuclearSimulationEngine.setGlobalThermalFissionMultiplier(0.348);
                 NuclearSimulationEngine.fissionHeatPerNeutron = 77.2;
-                grid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
-                grid.loadPreset("BEST_PLATINUM_9X9");
+                grid = new StandaloneNuclearGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+                grid.loadPreset("BEST_PLATINUM_7X7");
                 String html = getIndexHtml()
                     .replace("/*__INITIAL_STATE__*/", "window.__INITIAL_STATE__ = " + getStateJson() + ";");
                 java.nio.file.Files.write(file.toPath(), html.getBytes(StandardCharsets.UTF_8));
@@ -60,8 +60,8 @@ public class NuclearSimulationWebServer {
         try {
             NuclearSimulationEngine.setGlobalThermalFissionMultiplier(0.348);
             NuclearSimulationEngine.fissionHeatPerNeutron = 77.2;
-            grid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
-            grid.loadPreset("BEST_PLATINUM_9X9");
+            grid = new StandaloneNuclearGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+            grid.loadPreset("BEST_PLATINUM_7X7");
 
             try {
                 java.io.File distDir = new java.io.File("build/nuclear-sim-dist");
@@ -213,7 +213,7 @@ public class NuclearSimulationWebServer {
             Map<String, String> params = parseQueryParams(
                 exchange.getRequestURI()
                     .getQuery());
-            String name = params.getOrDefault("name", "BEST_PLATINUM_9X9");
+            String name = params.getOrDefault("name", "BEST_PLATINUM_7X7");
             isRunning = false;
             grid.loadPreset(name);
             sendJsonResponse(exchange, 200, "{\"success\":true,\"preset\":\"" + name + "\"}");
@@ -983,12 +983,12 @@ public class NuclearSimulationWebServer {
                       <option value="60A_PLUTONIUM_13X13">UHV 60A: Black Plutonium 13x13 Peak (126M EU/t · 60.0A)</option>
                     </optgroup>
                     <optgroup label="🏆 Maxxed-Out Optimum Ceilings (nuclear_ceiling_best.json)">
-                      <option value="BEST_ELECTRUM_5X5">EV Peak: Electrum 5x5 (934k EU/t · 456A · +660%)</option>
-                      <option value="BEST_PLATINUM_9X9" selected>IV Peak: Platinum 9x9 (5.24M EU/t · 640A · +966%)</option>
-                      <option value="BEST_OSMIUM_9X9">LuV Peak: Osmium 9x9 (31.7M EU/t · 967A · +1511%)</option>
-                      <option value="BEST_QUANTIUM_13X13">ZPM Peak: Quantium 13x13 (63.6M EU/t · 486A · +709%)</option>
-                      <option value="BEST_FLUXED_13X13">UV Peak: Fluxed 13x13 (109M EU/t · 207A · +246%)</option>
-                      <option value="BEST_PLUTONIUM_13X13">UHV Peak: Black Plutonium 13x13 (157M EU/t · 75A · +25%)</option>
+                      <option value="BEST_ELECTRUM_5X5">EV Peak: Electrum 5x5 (319k EU/t · 156A)</option>
+                      <option value="BEST_PLATINUM_7X7" selected>IV Peak: Platinum 7x7 (888k EU/t · 108A)</option>
+                      <option value="BEST_OSMIUM_9X9">LuV Peak: Osmium 9x9 (6.55M EU/t · 200A)</option>
+                      <option value="BEST_QUANTIUM_9X9">ZPM Peak: Quantium 9x9 (4.27M EU/t · 33A)</option>
+                      <option value="BEST_FLUXED_9X9">UV Peak: Fluxed 9x9 (6.89M EU/t · 13A)</option>
+                      <option value="BEST_PLUTONIUM_9X9">UHV Peak: Black Plutonium 9x9 (4.43M EU/t · 2.1A)</option>
                     </optgroup>
                   </select>
                   <select id="tier-select" onchange="changeTier(this.value)" title="Reactor Pipe & Casing Tier">
@@ -1348,8 +1348,8 @@ public class NuclearSimulationWebServer {
                       wasmSim.setTurbine(window.__INITIAL_STATE__.turbineMaterial, window.__INITIAL_STATE__.turbineSize, window.__INITIAL_STATE__.turbineFitting, false);
                     }
                   } else {
-                    wasmSim.initGrid(9, 9, 2);
-                    wasmSim.loadPreset("BEST_PLATINUM_9X9");
+                    wasmSim.initGrid(7, 7, 1);
+                    wasmSim.loadPreset("BEST_PLATINUM_7X7");
                   }
                   currentState = wasmSim.getState();
                   renderUI();
@@ -2419,10 +2419,14 @@ public class NuclearSimulationWebServer {
               "60A_FLUXED_13X13": "UV",
               "60A_PLUTONIUM_13X13": "UHV",
               "BEST_ELECTRUM_5X5": "EV",
+              "BEST_PLATINUM_7X7": "IV",
               "BEST_PLATINUM_9X9": "IV",
               "BEST_OSMIUM_9X9": "LuV",
+              "BEST_QUANTIUM_9X9": "ZPM",
               "BEST_QUANTIUM_13X13": "ZPM",
+              "BEST_FLUXED_9X9": "UV",
               "BEST_FLUXED_13X13": "UV",
+              "BEST_PLUTONIUM_9X9": "UHV",
               "BEST_PLUTONIUM_13X13": "UHV"
             };
 

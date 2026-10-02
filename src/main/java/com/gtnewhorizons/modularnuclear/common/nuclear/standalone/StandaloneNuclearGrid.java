@@ -34,6 +34,9 @@ public class StandaloneNuclearGrid {
     private int lastWallReflected = 0;
     private int lastWallAbsorbed = 0;
     private double lastWallHeatPool = 0;
+    private int burnedFuelCount = 0;
+    private int voidedHatchCount = 0;
+    private double peakLifetimeTemp = NuclearSimulationEngine.AMBIENT_TEMP;
 
     // Historical accumulators
     private long totalNeutronsGenerated = 0;
@@ -258,6 +261,9 @@ public class StandaloneNuclearGrid {
         this.negativeTempReason = "";
         this.powerFailed = false;
         this.powerFailReason = "";
+        this.burnedFuelCount = 0;
+        this.voidedHatchCount = 0;
+        this.peakLifetimeTemp = NuclearSimulationEngine.AMBIENT_TEMP;
         this.stepTraceBuffer.clear();
         this.history.clear();
     }
@@ -395,6 +401,7 @@ public class StandaloneNuclearGrid {
 
         coreMaxTemp = res.maxTemperature;
         coreAvgTemp = res.averageTemperature;
+        peakLifetimeTemp = Math.max(peakLifetimeTemp, coreMaxTemp);
         lastNeutronsProduced = res.totalNeutronsGenerated;
         lastFastAbsorbed = res.fastNeutronsAbsorbed;
         lastThermalAbsorbed = res.thermalNeutronsAbsorbed;
@@ -438,9 +445,11 @@ public class StandaloneNuclearGrid {
                 SimTile tile = grid[x][y];
                 if (tile != null && tile.getTemperature() > maxTempAllowed) {
                     if (tile.isHatch()) {
+                        voidedHatchCount++;
                         tile.setInputFluidAmount(0);
                         tile.setOutputFluidAmount(0);
                     } else if (tile.isFuel()) {
+                        burnedFuelCount++;
                         tile.setType(SimTile.TileType.EMPTY);
                     }
                 }
@@ -622,55 +631,55 @@ public class StandaloneNuclearGrid {
             // ==================== MAXXED-OUT OPTIMUM CEILINGS (nuclear_ceiling_best.json) ====================
             case "BEST_ELECTRUM_5X5", "MAX_ELECTRUM_5X5", "ELECTRUM_POWER_5X5", "BASIC_ELECTRUM_5X5", "EV_PEAK" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.ORINARUKON;
-                this.turbineSize = TurbineCalculator.TurbineSize.NORMAL;
+                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_E;
+                this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
                 this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
-                loadLayout("RB,M2,M4,M2,RB;M4,M4,HD,M4,M4;HD,M4,M4,M4,HD;M4,M4,HD,M4,M4;RB,M2,M4,M2,RB");
+                loadLayout("T4,M2,M4,M2,T4;M4,RB,HC,RB,M4;HD,M4,RC,M4,HD;M4,RB,HC,RB,M4;T4,M2,M4,M2,T4");
                 updateHatchCapacities(8000);
             }
-            case "BEST_PLATINUM_9X9", "MAX_PLATINUM_9X9", "BREEDER_9X9", "BEST_PLATINUM_7X7", "BREEDER_7X7", "IV_PEAK" -> {
+            case "BEST_PLATINUM_7X7", "BEST_PLATINUM_9X9", "MAX_PLATINUM_9X9", "BREEDER_9X9", "BREEDER_7X7", "IV_PEAK" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.ICHORIUM;
+                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_S;
                 this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
                 this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
                 loadLayout(
-                    "RB,RB,HD,HDU,U4,HDU,HD,RB,RB;RB,M4,M4,RC,HDP,RC,M4,M4,RB;M4,RB,M4,M4,HD,M4,M4,RB,M4;M4,HC,RC,M4,HDP,M4,RC,HC,M4;M4,M4,U4,HD,U4,HD,U4,M4,M4;M4,HC,RC,M4,HDP,M4,RC,HC,M4;M4,RB,M4,M4,HD,M4,M4,RB,M4;RB,M4,M4,RC,HDP,RC,M4,M4,RB;RB,RB,HD,HDU,U4,HDU,HD,RB,RB");
+                    "U4,U4,U4,M4,U4,U4,U4;U4,M4,HD,HD,HD,M4,U4;T4,HD,M4,HD,M4,HD,T4;U4,M2,HD,HD,HD,M2,U4;T4,HD,M4,HD,M4,HD,T4;U4,M4,HD,HD,HD,M4,U4;U4,U4,U4,M4,U4,U4,U4");
                 updateHatchCapacities(16000);
             }
             case "BEST_OSMIUM_9X9", "MAX_OSMIUM_9X9", "SUPERHEATED_POWER_9X9", "BEST_OSMIUM_7X7", "SUPERHEATED_POWER_7X7", "LUV_PEAK" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.DURANIUM;
+                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_S;
                 this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
                 this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
                 loadLayout(
-                    "RB,RB,EXU,EXP,HP,EXP,EXU,RB,RB;RB,EXP,EXP,HP,EXP,HP,EXP,EXP,RB;U4,HP,HP,EXP,EXP,EXP,HP,HP,U4;EXP,HP,EXP,EXP,HP,EXP,EXP,HP,EXP;T4,EXP,EXP,HP,EXP,HP,EXP,EXP,T4;EXP,HP,EXP,EXP,HP,EXP,EXP,HP,EXP;U4,HP,HP,EXP,EXP,EXP,HP,HP,U4;RB,EXP,EXP,HP,EXP,HP,EXP,EXP,RB;RB,RB,EXU,EXP,HP,EXP,EXU,RB,RB");
+                    "M4,NQ,EXU,EXP,HP,EXP,EXU,NQ,M4;NQ,EXP,HD,HP,M2,HP,HD,EXP,NQ;U4,HP,HP,HP,M2,HP,HP,HP,U4;EXP,HP,M2,HP,HP,HP,M2,HP,EXP;T4,EXP,EXP,HP,HP,HP,EXP,EXP,T4;EXP,HP,M2,HP,HP,HP,M2,HP,EXP;U4,HP,HP,HP,M2,HP,HP,HP,U4;NQ,EXP,HD,HP,M2,HP,HD,EXP,NQ;M4,NQ,EXU,EXP,HP,EXP,EXU,NQ,M4");
                 updateHatchCapacities(32000);
             }
-            case "BEST_QUANTIUM_13X13", "MAX_QUANTIUM_13X13", "CANDU_HEAVY_WATER_13X13", "BEST_QUANTIUM_9X9", "CANDU_HEAVY_WATER_9X9", "ZPM_PEAK" -> {
+            case "BEST_QUANTIUM_9X9", "BEST_QUANTIUM_13X13", "MAX_QUANTIUM_13X13", "CANDU_HEAVY_WATER_13X13", "CANDU_HEAVY_WATER_9X9", "ZPM_PEAK" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_QUANTIUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.DURANIUM;
-                this.turbineSize = TurbineCalculator.TurbineSize.HUGE;
+                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_S;
+                this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
                 this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
                 loadLayout(
-                    "RB,RB,RB,EXP,HW,TIB,RH,TIB,HW,EXP,RB,RB,RB;RB,RB,M4,NQ32,M4,EXP,EXP,EXP,M4,NQ32,M4,RB,RB;RB,U1,TIB,HW,M4,TIB,HW,TIB,M4,HW,TIB,U1,RB;HDU,HW,HDP,HW,M1,HW,NQR,HW,M1,HW,HDP,HW,HDU;RV,M1,TIB,M2,HW,TIB,NQR,TIB,HW,M2,TIB,M1,RV;NQR,EXU,HW,TIB,HW,HP,M4,HP,HW,TIB,HW,EXU,NQR;RV,EXU,HDP,HW,TIB,M4,M2,M4,TIB,HW,HDP,EXU,RV;NQR,EXU,HW,TIB,HW,HP,M4,HP,HW,TIB,HW,EXU,NQR;RV,M1,TIB,M2,HW,TIB,NQR,TIB,HW,M2,TIB,M1,RV;HDU,HW,HDP,HW,M1,HW,NQR,HW,M1,HW,HDP,HW,HDU;RB,U1,TIB,HW,M4,TIB,HW,TIB,M4,HW,TIB,U1,RB;RB,RB,M4,NQ32,M4,EXP,EXP,EXP,M4,NQ32,M4,RB,RB;RB,RB,RB,EXP,HW,TIB,RH,TIB,HW,EXP,RB,RB,RB");
+                    "M4,M4,NQ,M4,M4,M4,NQ,M4,M4;M4,HW,BH,HC,HW,HC,BH,HW,M4;U4,NQ,NQ,M4,NQ,M4,NQ,NQ,U4;T4,HP,M4,T4,M4,T4,M4,HP,T4;U4,NQ,HC,M4,M4,M4,HC,NQ,U4;T4,HP,M4,T4,M4,T4,M4,HP,T4;U4,NQ,NQ,M4,NQ,M4,NQ,NQ,U4;M4,HW,BH,HC,HW,HC,BH,HW,M4;M4,M4,NQ,M4,M4,M4,NQ,M4,M4");
                 updateHatchCapacities(64000);
             }
-            case "BEST_FLUXED_13X13", "MAX_FLUXED_13X13", "FLUXED_SUPERCRITICAL_13X13", "BEST_FLUXED_9X9", "FLUXED_SUPERCRITICAL_9X9", "UV_PEAK" -> {
+            case "BEST_FLUXED_9X9", "BEST_FLUXED_13X13", "MAX_FLUXED_13X13", "FLUXED_SUPERCRITICAL_13X13", "FLUXED_SUPERCRITICAL_9X9", "UV_PEAK" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.DURANIUM;
+                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_S;
+                this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
+                this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
+                loadLayout(
+                    "NQ,RB,RB,RB,RB,RB,RB,RB,NQ;RB,BV,HH,T4,T1,T4,HH,BV,RB;RB,M4,T4,HH,T4,HH,T4,M4,RB;RB,HW,HH,NQ,T4,NQ,HH,HW,RB;RB,NQ,T4,HH,NQ,HH,T4,NQ,RB;RB,HW,HH,NQ,T4,NQ,HH,HW,RB;RB,M4,T4,HH,T4,HH,T4,M4,RB;RB,BV,HH,T4,T1,T4,HH,BV,RB;NQ,RB,RB,RB,RB,RB,RB,RB,NQ");
+                updateHatchCapacities(128000);
+            }
+            case "BEST_PLUTONIUM_9X9", "BEST_PLUTONIUM_13X13", "MAX_PLUTONIUM_13X13", "BLACK_PLUTONIUM_13X13", "BLACK_PLUTONIUM_9X9", "UHV_PEAK" -> {
+                this.pipeTier = NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM;
+                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_S;
                 this.turbineSize = TurbineCalculator.TurbineSize.HUGE;
                 this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
                 loadLayout(
-                    "RB,RB,RB,NQR,U1,TIB,HH,TIB,U1,NQR,RB,RB,RB;RB,RB,HH,NQR,HH,HH,HH,HH,HH,NQR,HH,RB,RB;RB,NQR,HH,NQR,HH,HH,TIB,HH,HH,NQR,HH,NQR,RB;NQ,HH,NQR,HH,NQR,NQR,HH,NQR,NQR,HH,NQR,HH,NQ;HH,TIB,HH,HH,NQR,HH,NQ,HH,NQR,HH,HH,TIB,HH;NQR,HH,TIB,NQR,HH,HH,HH,HH,HH,NQR,TIB,HH,NQR;TIB,RH,HH,HH,NQR,HDU,T4,HDU,NQR,HH,HH,RH,TIB;NQR,HH,TIB,NQR,HH,HH,HH,HH,HH,NQ,TIB,HH,NQR;HH,TIB,HH,HH,NQR,HH,NQ,HH,NQR,HH,HH,TIB,HH;NQ,HH,NQ,HH,NQ,NQ,HH,NQ,NQ,HH,NQ,HH,NQ;RB,NQR,HH,NQ,HH,HH,TIB,HH,HH,NQ,HH,NQR,RB;RB,RB,HH,NQR,HH,HH,HH,HH,HH,NQR,HH,RB,RB;RB,RB,RB,NQR,U1,TIB,HH,TIB,U1,NQR,RB,RB,RB");
-                updateHatchCapacities(128000);
-            }
-            case "BEST_PLUTONIUM_13X13", "MAX_PLUTONIUM_13X13", "BLACK_PLUTONIUM_13X13", "BEST_PLUTONIUM_9X9", "BLACK_PLUTONIUM_9X9", "UHV_PEAK" -> {
-                this.pipeTier = NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.INFINITY;
-                this.turbineSize = TurbineCalculator.TurbineSize.HUGE;
-                this.turbineFitting = TurbineCalculator.FittingMode.LOOSE;
-                loadLayout(
-                    "RB,RB,RB,M4,EXP,HH,HH,HH,EXP,M4,RB,RB,RB;RB,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,RB;RB,NQ,HH,HH,NQ,HH,NQR,HH,NQ,HH,HH,NQ,RB;HH,NQR,HH,TIB,HH,TIB,HH,TIB,HH,TIB,HH,NQR,HH;NQ32,HH,TIB,HH,TIB,HH,RH,HH,TIB,HH,TIB,HH,NQ32;HH,NQ,HH,NQR,HH,TIB,HH,TIB,HH,NQR,HH,NQ,HH;HH,HDP,HDU,HH,NQR,HH,HDU,HH,NQR,HH,HDU,HDP,HH;HH,NQ,HH,NQR,HH,TIB,HH,TIB,HH,NQR,HH,NQ,HH;NQ32,HH,TIB,HH,TIB,HH,RH,HH,TIB,HH,TIB,HH,NQ32;HH,NQR,HH,TIB,HH,TIB,HH,TIB,HH,TIB,HH,NQR,HH;RB,NQ,HH,HH,NQ,HH,NQR,HH,NQ,HH,HH,NQ,RB;RB,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,RB;RB,RB,RB,M4,EXP,HH,HH,HH,EXP,M4,RB,RB,RB");
+                    "U4,T4,M4,U4,T4,U4,M4,T4,U4;T4,RB,M4,NQ,NQ,NQ,M4,RB,T4;U4,M4,HH,U4,HH,U4,HH,M4,U4;U4,NQ,HH,NQ,NQ,NQ,HH,NQ,U4;M4,BH,M4,NQ,U4,NQ,M4,BH,M4;U4,NQ,HH,NQ,NQ,NQ,HH,NQ,U4;U4,M4,HH,U4,HH,U4,HH,M4,U4;T4,RB,M4,NQ,NQ,NQ,M4,RB,T4;U4,T4,M4,U4,T4,U4,M4,T4,U4");
                 updateHatchCapacities(256000);
             }
             default -> {
@@ -808,6 +817,22 @@ public class StandaloneNuclearGrid {
 
     public double getCoreMaxTemp() {
         return coreMaxTemp;
+    }
+
+    public double getPeakLifetimeTemp() {
+        return peakLifetimeTemp;
+    }
+
+    public int getBurnedFuelCount() {
+        return burnedFuelCount;
+    }
+
+    public int getVoidedHatchCount() {
+        return voidedHatchCount;
+    }
+
+    public boolean hasFuelBurned() {
+        return burnedFuelCount > 0;
     }
 
     public double getCoreAvgTemp() {
