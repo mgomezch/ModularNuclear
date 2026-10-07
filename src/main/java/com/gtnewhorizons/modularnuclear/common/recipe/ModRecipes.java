@@ -2,7 +2,6 @@ package com.gtnewhorizons.modularnuclear.common.recipe;
 
 import static gregtech.api.recipe.RecipeMaps.cannerRecipes;
 import static gregtech.api.recipe.RecipeMaps.centrifugeRecipes;
-import static gregtech.api.recipe.RecipeMaps.compressorRecipes;
 import static gregtech.api.util.GTRecipeBuilder.SECONDS;
 import static gregtech.api.util.GTRecipeBuilder.TICKS;
 
@@ -23,32 +22,8 @@ import ic2.core.item.ItemFluidCell;
 public class ModRecipes {
 
     public static void init() {
-        registerCompressorRecipes();
         registerCentrifugeRecipes();
         registerCannerRecipes();
-    }
-
-    private static void registerCompressorRecipes() {
-        // Distilled Water (1000 L) -> High Pressure Distilled Water (1000 L), EV (1920 EU/t), 30s
-        FluidStack distilledWater = GTModHandler.getDistilledWater(1000);
-        if (distilledWater != null && ModFluids.fluidHighPressureDistilledWater != null) {
-            GTValues.RA.stdBuilder()
-                .fluidInputs(distilledWater)
-                .fluidOutputs(new FluidStack(ModFluids.fluidHighPressureDistilledWater, 1000))
-                .eut(1920)
-                .duration(30 * SECONDS)
-                .addTo(compressorRecipes);
-        }
-
-        // Heavy Water (1000 L) -> High Pressure Heavy Water (1000 L), EV (1920 EU/t), 30s
-        if (ModFluids.fluidHeavyWater != null && ModFluids.fluidHighPressureHeavyWater != null) {
-            GTValues.RA.stdBuilder()
-                .fluidInputs(new FluidStack(ModFluids.fluidHeavyWater, 1000))
-                .fluidOutputs(new FluidStack(ModFluids.fluidHighPressureHeavyWater, 1000))
-                .eut(1920)
-                .duration(30 * SECONDS)
-                .addTo(compressorRecipes);
-        }
     }
 
     private static void registerCentrifugeRecipes() {
@@ -66,8 +41,6 @@ public class ModRecipes {
 
     private static void registerCannerRecipes() {
         registerFluidCanning(ModFluids.fluidHeavyWater, ModItems.cellHeavyWater);
-        registerFluidCanning(ModFluids.fluidHighPressureDistilledWater, ModItems.cellHighPressureDistilledWater);
-        registerFluidCanning(ModFluids.fluidHighPressureHeavyWater, ModItems.cellHighPressureHeavyWater);
     }
 
     private static void registerFluidCanning(Fluid fluid, Item cellItem) {

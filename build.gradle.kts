@@ -98,6 +98,17 @@ val exportStaticDist by tasks.registering(JavaExec::class) {
     mainClass.set("com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimulationWebServer")
     classpath = files(downgradedClassesDir, jvmDowngraderJar)
     args = listOf("--export-html", file("${distDir.absolutePath}/index.html").absolutePath)
+
+    doLast {
+        val localShareDir = file("${System.getProperty("user.home")}/.local/share/modular-nuclear/dist")
+        if (localShareDir.exists() || localShareDir.mkdirs()) {
+            copy {
+                from(distDir)
+                into(localShareDir)
+            }
+            println("Updated local share static web distribution: ${localShareDir.absolutePath}")
+        }
+    }
 }
 
 generateWasm.configure {
@@ -123,13 +134,29 @@ val publishPages by tasks.registering(Exec::class) {
         if git diff --cached --quiet; then
             echo "No changes to commit for GitHub Pages."
         else
-            git commit -m "fix(wasm): resolve setParam stack validation and optimize JSON serialization"
+            git commit -m "deploy: update WebAssembly simulator, incident pause toggle, and fuel logistics"
             git push origin main
             echo "Successfully deployed latest WebAssembly simulator to GitHub Pages!"
         fi
         rm -rf "${'$'}TMP_DIR"
         """
     )
+}
+
+val generateFuelStatsCharts by tasks.registering(JavaExec::class) {
+    dependsOn(tasks.compileJava)
+    group = "build"
+    description = "Generates nuclear fuel stats charts (reactivity and temperature durability damage curves)"
+
+    mainClass.set("com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver")
+    classpath = files(tasks.compileJava.get().destinationDirectory)
+
+    val outputDir = file("src/main/resources/assets/modularnuclear/textures/gui/nei/fuelstats")
+    args = listOf(outputDir.absolutePath)
+}
+
+tasks.processResources {
+    dependsOn(generateFuelStatsCharts)
 }
 
 

@@ -24,25 +24,29 @@ import ic2.core.item.ItemFluidCell;
 public class ModFluids {
 
     public static Fluid fluidHeavyWater;
-    public static Fluid fluidHighPressureDistilledWater;
-    public static Fluid fluidHighPressureHeavyWater;
+    public static Fluid fluidCorium;
 
     public static void init() {
         fluidHeavyWater = registerOrGet("heavywater", 1100, 1100, 300);
-        fluidHighPressureDistilledWater = registerOrGet("highpressuredistilledwater", 1000, 1000, 373);
-        fluidHighPressureHeavyWater = registerOrGet("highpressureheavywater", 1100, 1100, 374);
+        fluidCorium = registerOrGet("corium", 8000, 18000, 3000);
+        fluidCorium.setLuminosity(15);
+        fluidCorium.setDensity(8000);
+        fluidCorium.setViscosity(18000);
+        fluidCorium.setTemperature(3000);
 
-        if (FMLCommonHandler.instance()
-            .getSide()
-            .isClient()) {
-            registerClientEvents();
-        }
+        try {
+            if (FMLCommonHandler.instance() != null && FMLCommonHandler.instance()
+                .getSide() != null
+                && FMLCommonHandler.instance()
+                    .getSide()
+                    .isClient()) {
+                registerClientEvents();
+            }
+        } catch (Throwable ignored) {}
     }
 
     public static void registerContainers() {
         registerFluidContainers(fluidHeavyWater, ModItems.cellHeavyWater);
-        registerFluidContainers(fluidHighPressureDistilledWater, ModItems.cellHighPressureDistilledWater);
-        registerFluidContainers(fluidHighPressureHeavyWater, ModItems.cellHighPressureHeavyWater);
     }
 
     private static void registerFluidContainers(Fluid fluid, Item cellItem) {
@@ -105,14 +109,9 @@ public class ModFluids {
                     "modularnuclear:fluids/heavywater_flow");
                 registerIcons(
                     event.map,
-                    fluidHighPressureDistilledWater,
-                    "modularnuclear:fluids/highpressuredistilledwater_still",
-                    "modularnuclear:fluids/highpressuredistilledwater_flow");
-                registerIcons(
-                    event.map,
-                    fluidHighPressureHeavyWater,
-                    "modularnuclear:fluids/highpressureheavywater_still",
-                    "modularnuclear:fluids/highpressureheavywater_flow");
+                    fluidCorium,
+                    "modularnuclear:fluids/corium_still",
+                    "modularnuclear:fluids/corium_flow");
             }
         }
 

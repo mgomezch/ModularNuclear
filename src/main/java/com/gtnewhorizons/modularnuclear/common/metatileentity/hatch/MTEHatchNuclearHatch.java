@@ -81,8 +81,9 @@ public class MTEHatchNuclearHatch extends MTEHatch {
                 "Holds input coolant or liquid nuclear fuel", "Input-only core fluid hatch",
                 "All outputs (steam, hot coolant, byproducts, spent fuel) eject to reactor output hatches",
                 "Capacity: " + (8000 * (1 << aTier)) + " L", "Coolant boiling and transmutation under neutron flux",
+                "Conductance: " + NuclearSimulationEngine.getHatchConductance(aTier) + " EU/(t\u00b7\u00b0C)",
                 "Item pipe casing determines allowed coolants",
-                "Inserting water into a dry running reactor will cause an explosion!" });
+                "Inserting coolant into a dry superheated reactor will cause thermal shock!" });
         this.mCapacity = 8000 * (1 << aTier);
     }
 
@@ -136,8 +137,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
             .getName()
             .toLowerCase();
         if (name.equals("water")) return 0; // Regular water is completely disallowed
-        // Allow high-pressure fluids to enter so reactor detects them and explodes if casing is insufficient
-        if (mReactorPipeTier >= 0 && !name.contains("highpressure") && getRequiredFluidTier(name) > mReactorPipeTier) {
+        if (mReactorPipeTier >= 0 && getRequiredFluidTier(name) > mReactorPipeTier) {
             return 0;
         }
 
@@ -176,7 +176,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
         String name = fluid.getName()
             .toLowerCase();
         if (name.equals("water")) return false; // Regular water is completely disallowed
-        if (mReactorPipeTier >= 0 && !name.contains("highpressure") && getRequiredFluidTier(name) > mReactorPipeTier) {
+        if (mReactorPipeTier >= 0 && getRequiredFluidTier(name) > mReactorPipeTier) {
             return false;
         }
         return mInputFluid == null || (mInputFluid.getFluid() == fluid && mInputFluid.amount < mCapacity);
@@ -293,7 +293,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
             .getName()
             .toLowerCase();
         if (name.equals("water")) return false;
-        if (mReactorPipeTier >= 0 && !name.contains("highpressure") && getRequiredFluidTier(name) > mReactorPipeTier) {
+        if (mReactorPipeTier >= 0 && getRequiredFluidTier(name) > mReactorPipeTier) {
             return false;
         }
         return true;

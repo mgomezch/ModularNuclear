@@ -895,6 +895,9 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                         new FluidDrawable().setFluid(cell.fluidStack)
                             .draw(px + 1, py + 1, innerSize, innerSize, partialTicks);
                         prepareGuiState();
+                    } else if (cell.isHighPressure) {
+                        GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, 0x40FFA500);
+                        prepareGuiState();
                     } else if (cell.isFluid) {
                         GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, 0x300055AA);
                         prepareGuiState();
@@ -1014,6 +1017,9 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                 list.add(EnumChatFormatting.GOLD + "Nuclear liquid fuel");
             }
             list.add(EnumChatFormatting.GRAY + String.format("Amount: %,d L", cell.fluidStack.amount));
+        } else if (cell.isHighPressure) {
+            list.add(EnumChatFormatting.GOLD + "Nuclear Core High-Pressure Hatch");
+            list.add(EnumChatFormatting.GRAY + "Hermetic fluid passage for coolant loop");
         } else if (cell.isFluid) {
             list.add(EnumChatFormatting.GRAY + "Empty nuclear fluid hatch");
         } else {

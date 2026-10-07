@@ -1,5 +1,7 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear.standalone;
 
+import java.util.List;
+
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 /**
@@ -34,6 +36,26 @@ public class NuclearSimulationCLI {
         boolean batchMode = false;
         boolean traceEnabled = false;
         int traceSteps = 50;
+        CoolantLoopModel.CoolingMode coolingMode = CoolantLoopModel.CoolingMode.CONDUCTIVE;
+        boolean coolingModeSpecified = false;
+        double baseConductance = 32.0;
+        boolean baseConductanceSpecified = false;
+        boolean repair = false;
+        boolean autoReplaceFuel = true;
+        boolean autoReplaceFuelSpecified = false;
+        CoolantLoopModel.LoopMaterial loopMat = CoolantLoopModel.LoopMaterial.STEEL;
+        boolean loopMatSpecified = false;
+        CoolantLoopModel.LoopPipeSize loopSize = CoolantLoopModel.LoopPipeSize.NORMAL;
+        boolean loopSizeSpecified = false;
+        CoolantLoopModel.CoolantFluidType loopFluid = CoolantLoopModel.CoolantFluidType.DISTILLED_WATER;
+        boolean loopFluidSpecified = false;
+        double loopPumpPower = -1.0;
+        double loopFlowRate = -1.0;
+        String loopPoints = null;
+        boolean strictMode = false;
+        boolean strictModeSpecified = false;
+        boolean stopOnIncidents = false;
+        boolean stopOnIncidentsSpecified = false;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -218,6 +240,84 @@ public class NuclearSimulationCLI {
                         } catch (NumberFormatException ignored) {}
                     }
                 }
+                case "--base-conductance", "--conductance" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            baseConductance = Double.parseDouble(args[++i]);
+                            baseConductanceSpecified = true;
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                case "--repair" -> {
+                    repair = true;
+                }
+                case "--strict" -> {
+                    strictMode = true;
+                    strictModeSpecified = true;
+                }
+                case "--no-strict" -> {
+                    strictMode = false;
+                    strictModeSpecified = true;
+                }
+                case "--stop-on-incidents", "--stop-incidents" -> {
+                    stopOnIncidents = true;
+                    stopOnIncidentsSpecified = true;
+                }
+                case "--no-stop-on-incidents", "--no-stop-incidents" -> {
+                    stopOnIncidents = false;
+                    stopOnIncidentsSpecified = true;
+                }
+                case "--auto-supply-fuel", "--auto-refuel", "--auto-replace-fuel" -> {
+                    autoReplaceFuel = true;
+                    autoReplaceFuelSpecified = true;
+                }
+                case "--no-auto-supply-fuel", "--no-auto-refuel", "--no-auto-replace-fuel" -> {
+                    autoReplaceFuel = false;
+                    autoReplaceFuelSpecified = true;
+                }
+                case "--cooling-mode", "--cooling" -> {
+                    if (i + 1 < args.length) {
+                        coolingModeSpecified = true;
+                        coolingMode = CoolantLoopModel.CoolingMode.fromString(args[++i]);
+                    }
+                }
+                case "--loop-material", "--loop-mat" -> {
+                    if (i + 1 < args.length) {
+                        loopMatSpecified = true;
+                        loopMat = CoolantLoopModel.LoopMaterial.fromString(args[++i]);
+                    }
+                }
+                case "--loop-size" -> {
+                    if (i + 1 < args.length) {
+                        loopSizeSpecified = true;
+                        loopSize = CoolantLoopModel.LoopPipeSize.fromString(args[++i]);
+                    }
+                }
+                case "--loop-fluid" -> {
+                    if (i + 1 < args.length) {
+                        loopFluidSpecified = true;
+                        loopFluid = CoolantLoopModel.CoolantFluidType.fromString(args[++i]);
+                    }
+                }
+                case "--loop-power", "--loop-pump-power" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            loopPumpPower = Double.parseDouble(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                case "--loop-flow", "--loop-flow-rate" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            loopFlowRate = Double.parseDouble(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                case "--loop-points" -> {
+                    if (i + 1 < args.length) {
+                        loopPoints = args[++i];
+                    }
+                }
                 case "--json" -> {
                     jsonOutput = true;
                 }
@@ -230,7 +330,10 @@ public class NuclearSimulationCLI {
         }
 
         if (startWeb) {
-            NuclearSimulationWebServer.startServer(webPort);
+            System.out.println("The Java server version of the simulator webapp has been retired.");
+            System.out.println("The simulator is now a static WebAssembly application accessible at:");
+            System.out.println("  https://nuclear.maderita.mgomez.ch");
+            System.out.println("or locally at build/nuclear-sim-dist/index.html");
             return;
         }
 
@@ -250,7 +353,26 @@ public class NuclearSimulationCLI {
                 turbSize,
                 turbFitting,
                 tierSpecified,
-                turbSpecified);
+                turbSpecified,
+                coolingMode,
+                coolingModeSpecified,
+                loopMat,
+                loopMatSpecified,
+                loopSize,
+                loopSizeSpecified,
+                loopFluid,
+                loopFluidSpecified,
+                loopPumpPower,
+                loopFlowRate,
+                loopPoints,
+                baseConductance,
+                baseConductanceSpecified,
+                repair,
+                strictMode,
+                autoReplaceFuel,
+                autoReplaceFuelSpecified,
+                stopOnIncidents,
+                stopOnIncidentsSpecified);
         } else {
             runCliSimulation(
                 preset,
@@ -264,7 +386,26 @@ public class NuclearSimulationCLI {
                 tierSpecified,
                 turbSpecified,
                 traceEnabled,
-                traceSteps);
+                traceSteps,
+                coolingMode,
+                coolingModeSpecified,
+                loopMat,
+                loopMatSpecified,
+                loopSize,
+                loopSizeSpecified,
+                loopFluid,
+                loopFluidSpecified,
+                loopPumpPower,
+                loopFlowRate,
+                loopPoints,
+                baseConductance,
+                baseConductanceSpecified,
+                repair,
+                strictMode,
+                autoReplaceFuel,
+                autoReplaceFuelSpecified,
+                stopOnIncidents,
+                stopOnIncidentsSpecified);
         }
     }
 
@@ -287,6 +428,25 @@ public class NuclearSimulationCLI {
 
                 boolean tierSpecified = false;
                 boolean turbSpecified = false;
+                CoolantLoopModel.CoolingMode coolingMode = CoolantLoopModel.CoolingMode.CONDUCTIVE;
+                boolean coolingModeSpecified = false;
+                double baseConductance = 32.0;
+                boolean baseConductanceSpecified = false;
+                boolean repair = false;
+                boolean strictMode = true;
+                boolean autoReplaceFuel = true;
+                boolean autoReplaceFuelSpecified = false;
+                boolean stopOnIncidents = false;
+                boolean stopOnIncidentsSpecified = false;
+                CoolantLoopModel.LoopMaterial loopMat = CoolantLoopModel.LoopMaterial.STEEL;
+                boolean loopMatSpecified = false;
+                CoolantLoopModel.LoopPipeSize loopSize = CoolantLoopModel.LoopPipeSize.NORMAL;
+                boolean loopSizeSpecified = false;
+                CoolantLoopModel.CoolantFluidType loopFluid = CoolantLoopModel.CoolantFluidType.DISTILLED_WATER;
+                boolean loopFluidSpecified = false;
+                double loopPumpPower = -1.0;
+                double loopFlowRate = -1.0;
+                String loopPoints = null;
 
                 String[] tokens = line.split("\\s+");
                 for (String token : tokens) {
@@ -406,6 +566,53 @@ public class NuclearSimulationCLI {
                             turbFitting = TurbineCalculator.FittingMode.fromString(v);
                             turbSpecified = true;
                         }
+                        case "cooling", "cooling_mode", "coolingmode" -> {
+                            coolingMode = CoolantLoopModel.CoolingMode.fromString(v);
+                            coolingModeSpecified = true;
+                        }
+                        case "base_conductance", "baseconductance", "conductance" -> {
+                            try {
+                                baseConductance = Double.parseDouble(v);
+                                baseConductanceSpecified = true;
+                            } catch (Exception ignored) {}
+                        }
+                        case "repair" -> {
+                            repair = Boolean.parseBoolean(v) || "1".equals(v) || "true".equalsIgnoreCase(v);
+                        }
+                        case "strict", "strict_mode", "strictmode" -> {
+                            strictMode = Boolean.parseBoolean(v) || "1".equals(v) || "true".equalsIgnoreCase(v);
+                        }
+                        case "loop_material", "loop_mat", "loopmat" -> {
+                            loopMat = CoolantLoopModel.LoopMaterial.fromString(v);
+                            loopMatSpecified = true;
+                        }
+                        case "loop_size", "loopsize" -> {
+                            loopSize = CoolantLoopModel.LoopPipeSize.fromString(v);
+                            loopSizeSpecified = true;
+                        }
+                        case "loop_fluid", "loopfluid" -> {
+                            loopFluid = CoolantLoopModel.CoolantFluidType.fromString(v);
+                            loopFluidSpecified = true;
+                        }
+                        case "loop_power", "looppower" -> {
+                            try {
+                                loopPumpPower = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "loop_flow", "loopflow" -> {
+                            try {
+                                loopFlowRate = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "loop_points", "looppoints" -> loopPoints = v;
+                        case "auto_refuel", "autorefuel", "auto_replace_fuel", "autoreplacefuel", "auto_supply_fuel", "autosupplyfuel" -> {
+                            autoReplaceFuel = Boolean.parseBoolean(v) || "1".equals(v) || "true".equalsIgnoreCase(v);
+                            autoReplaceFuelSpecified = true;
+                        }
+                        case "stop_on_incidents", "stoponincidents" -> {
+                            stopOnIncidents = Boolean.parseBoolean(v) || "1".equals(v) || "true".equalsIgnoreCase(v);
+                            stopOnIncidentsSpecified = true;
+                        }
                         default -> {}
                     }
                 }
@@ -419,7 +626,26 @@ public class NuclearSimulationCLI {
                     turbSize,
                     turbFitting,
                     tierSpecified,
-                    turbSpecified);
+                    turbSpecified,
+                    coolingMode,
+                    coolingModeSpecified,
+                    loopMat,
+                    loopMatSpecified,
+                    loopSize,
+                    loopSizeSpecified,
+                    loopFluid,
+                    loopFluidSpecified,
+                    loopPumpPower,
+                    loopFlowRate,
+                    loopPoints,
+                    baseConductance,
+                    baseConductanceSpecified,
+                    repair,
+                    strictMode,
+                    autoReplaceFuel,
+                    autoReplaceFuelSpecified,
+                    stopOnIncidents,
+                    stopOnIncidentsSpecified);
                 System.out.flush();
             }
         } catch (java.io.IOException e) {
@@ -427,10 +653,76 @@ public class NuclearSimulationCLI {
         }
     }
 
+    private static void configureCoolantLoop(StandaloneNuclearGrid grid,
+        CoolantLoopModel.CoolingMode coolingMode, boolean coolingModeSpecified,
+        CoolantLoopModel.LoopMaterial loopMat, boolean loopMatSpecified,
+        CoolantLoopModel.LoopPipeSize loopSize, boolean loopSizeSpecified,
+        CoolantLoopModel.CoolantFluidType loopFluid, boolean loopFluidSpecified,
+        double loopPumpPower, double loopFlowRate, String loopPoints) {
+        if (coolingModeSpecified) {
+            if (!grid.setCoolingMode(coolingMode)) {
+                System.err.println("WARNING: Convective cooling mode requires Tier 2+ (IV Platinum / LuV Osmium). Falling back to CONDUCTIVE.");
+            }
+        }
+        CoolantLoopModel loop = grid.getCoolantLoop();
+        if (loop != null) {
+            if (loopMatSpecified) {
+                loop.setMaterial(loopMat);
+            }
+            if (loopSizeSpecified) {
+                loop.setPipeSize(loopSize);
+            }
+            if (loopFluidSpecified) {
+                loop.setFluidType(loopFluid);
+            }
+            if (loopPumpPower >= 0) {
+                loop.setPumpPowerEUt(loopPumpPower);
+            } else if (loopFlowRate >= 0) {
+                loop.setCirculationFlowLs(loopFlowRate);
+            }
+            if (loopPoints != null && !loopPoints.trim().isEmpty()) {
+                loop.clearAttachedPoints();
+                String[] pairs = loopPoints.split("[;\\s]+");
+                for (String pair : pairs) {
+                    if (pair.trim().isEmpty()) continue;
+                    String[] xy = pair.split("[,:]");
+                    if (xy.length == 2) {
+                        try {
+                            int px = Integer.parseInt(xy[0].trim());
+                            int py = Integer.parseInt(xy[1].trim());
+                            loop.attachPoint(px, py);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+            }
+        }
+    }
+
     private static void runJsonSimulation(String preset, String layout, int size, int tier, int ticks,
         TurbineCalculator.TurbineMaterial turbMat, TurbineCalculator.TurbineSize turbSize,
-        TurbineCalculator.FittingMode turbFitting, boolean tierSpecified, boolean turbSpecified) {
+        TurbineCalculator.FittingMode turbFitting, boolean tierSpecified, boolean turbSpecified,
+        CoolantLoopModel.CoolingMode coolingMode, boolean coolingModeSpecified,
+        CoolantLoopModel.LoopMaterial loopMat, boolean loopMatSpecified,
+        CoolantLoopModel.LoopPipeSize loopSize, boolean loopSizeSpecified,
+        CoolantLoopModel.CoolantFluidType loopFluid, boolean loopFluidSpecified,
+        double loopPumpPower, double loopFlowRate, String loopPoints,
+        double baseConductance, boolean baseConductanceSpecified, boolean repair,
+        boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified,
+        boolean stopOnIncidents, boolean stopOnIncidentsSpecified) {
         StandaloneNuclearGrid grid = new StandaloneNuclearGrid(size, size, tier);
+        grid.setStrictMode(strictMode);
+        if (autoReplaceFuelSpecified) {
+            grid.setAutoReplaceFuel(autoReplaceFuel);
+        }
+        if (stopOnIncidentsSpecified) {
+            grid.setStopOnIncidents(stopOnIncidents);
+        }
+        if (baseConductanceSpecified) {
+            grid.setBaseHatchConductance(baseConductance);
+        }
+        if (repair) {
+            grid.repair();
+        }
         if (layout != null && !layout.trim()
             .isEmpty()) {
             grid.loadLayout(layout);
@@ -444,6 +736,8 @@ public class NuclearSimulationCLI {
             grid.setTurbineSize(turbSize);
             grid.setTurbineFitting(turbFitting);
         }
+        configureCoolantLoop(grid, coolingMode, coolingModeSpecified, loopMat, loopMatSpecified,
+            loopSize, loopSizeSpecified, loopFluid, loopFluidSpecified, loopPumpPower, loopFlowRate, loopPoints);
 
         int tickReached = 0;
         for (int t = 1; t <= ticks; t++) {
@@ -500,6 +794,18 @@ public class NuclearSimulationCLI {
                 grid.getPowerFailReason()
                     .replace("\"", "\\\""))
             .append("\",");
+        sb.append("\"stopOnIncidents\":")
+            .append(grid.isStopOnIncidents())
+            .append(",");
+        sb.append("\"haltedByIncident\":")
+            .append(grid.isHaltedByIncident())
+            .append(",");
+        sb.append("\"lastHaltIncidentReason\":\"")
+            .append(escapeJson(grid.getLastHaltIncidentReason()))
+            .append("\",");
+        sb.append("\"autoSupplyFuel\":")
+            .append(grid.isAutoSupplyFuel())
+            .append(",");
         sb.append("\"burnedFuelCount\":")
             .append(grid.getBurnedFuelCount())
             .append(",");
@@ -520,6 +826,21 @@ public class NuclearSimulationCLI {
             .append(",");
         sb.append("\"efficiency\":")
             .append(String.format(java.util.Locale.US, "%.4f", grid.getEfficiency()))
+            .append(",");
+        sb.append("\"baseHatchConductance\":")
+            .append(String.format(java.util.Locale.US, "%.1f", grid.getBaseHatchConductance()))
+            .append(",");
+        sb.append("\"reactorDamage\":")
+            .append(String.format(java.util.Locale.US, "%.1f", grid.getReactorDamage()))
+            .append(",");
+        sb.append("\"maintenanceIssues\":")
+            .append(grid.getMaintenanceIssues())
+            .append(",");
+        sb.append("\"maintenanceEfficiency\":")
+            .append(String.format(java.util.Locale.US, "%.4f", grid.getMaintenanceEfficiency()))
+            .append(",");
+        sb.append("\"strictMode\":")
+            .append(grid.isStrictMode())
             .append(",");
         sb.append("\"totalNeutrons\":")
             .append(grid.getTotalNeutronsGenerated())
@@ -740,7 +1061,112 @@ public class NuclearSimulationCLI {
             .append(",");
         sb.append("\"powerReductionRatio\":")
             .append(String.format(java.util.Locale.US, "%.2f", sc.powerReductionRatio));
+        sb.append("},");
+        sb.append("\"coolingMode\":\"").append(grid.getCoolingMode().name()).append("\",");
+        sb.append("\"grossPowerEUt\":").append(String.format(java.util.Locale.US, "%.1f", grid.getGrossPowerEUt())).append(",");
+        sb.append("\"pumpPowerEUt\":").append(String.format(java.util.Locale.US, "%.1f", grid.getPumpPowerEUt())).append(",");
+        CoolantLoopModel cl = grid.getCoolantLoop();
+        sb.append("\"coolantLoop\":{");
+        sb.append("\"enabled\":").append(grid.getCoolingMode() == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP).append(",");
+        sb.append("\"material\":\"").append(cl.getMaterial().name()).append("\",");
+        sb.append("\"pipeSize\":\"").append(cl.getPipeSize().name()).append("\",");
+        sb.append("\"fluid\":\"").append(cl.getFluidType().name()).append("\",");
+        sb.append("\"pumpPowerEUt\":").append(String.format(java.util.Locale.US, "%.1f", cl.getLastPumpPowerEUt())).append(",");
+        sb.append("\"circulationFlowLs\":").append(String.format(java.util.Locale.US, "%.2f", cl.getCurrentFlowRateLPerSec())).append(",");
+        sb.append("\"loopTemperature\":").append(String.format(java.util.Locale.US, "%.2f", cl.getCurrentCoolantTempCelsius())).append(",");
+        sb.append("\"peakPressureBar\":").append(String.format(java.util.Locale.US, "%.2f", cl.getCurrentPressureBar())).append(",");
+        sb.append("\"maxSafePressureBar\":").append(String.format(java.util.Locale.US, "%.2f", cl.getMaterial().maxPressureBar)).append(",");
+        sb.append("\"maxSafeTemp\":").append(String.format(java.util.Locale.US, "%.2f", cl.getMaterial().maxTemperatureCelsius)).append(",");
+        sb.append("\"ruptured\":").append(cl.isRuptured()).append(",");
+        sb.append("\"ruptureReason\":\"").append(cl.getRuptureReason().replace("\"", "\\\"")).append("\",");
+        sb.append("\"convectiveHeatRemovedEUt\":").append(String.format(java.util.Locale.US, "%.2f", cl.getLastHeatExtractedEUt())).append(",");
+        sb.append("\"secondarySteamProduced\":").append(String.format(java.util.Locale.US, "%.2f", cl.getLastSecondarySteamProducedLt())).append(",");
+        sb.append("\"totalDeuteriumProduced\":").append(cl.getTotalDeuteriumProduced()).append(",");
+        sb.append("\"totalTritiumProduced\":").append(cl.getTotalTritiumProduced());
+        sb.append("},");
+
+        // Byproducts (depleted fuel items, depleted liquid fuels, and isotopes)
+        List<StandaloneNuclearGrid.SolidFuelByproduct> solidByproducts = grid.getSolidFuelByproducts();
+        List<StandaloneNuclearGrid.LiquidFuelByproduct> liquidByproducts = grid.getLiquidFuelByproducts();
+        List<StandaloneNuclearGrid.IsotopeByproduct> isotopeByproducts = grid.getIsotopeByproducts();
+
+        double totalSolidItemsPerMin = 0.0;
+        double totalSolidItemsPerHour = 0.0;
+        long totalDepletedItemsProduced = 0;
+        for (StandaloneNuclearGrid.SolidFuelByproduct s : solidByproducts) {
+            totalSolidItemsPerMin += s.itemsPerMinute;
+            totalSolidItemsPerHour += s.itemsPerHour;
+            totalDepletedItemsProduced += s.totalProduced;
+        }
+
+        double totalLiquidLitersPerMin = 0.0;
+        double totalLiquidLitersPerHour = 0.0;
+        long totalDepletedLiquidProduced = 0;
+        for (StandaloneNuclearGrid.LiquidFuelByproduct l : liquidByproducts) {
+            totalLiquidLitersPerMin += l.litersPerMinute;
+            totalLiquidLitersPerHour += l.litersPerHour;
+            totalDepletedLiquidProduced += l.totalLiters;
+        }
+
+        sb.append("\"byproducts\":{");
+        sb.append("\"autoReplaceFuel\":").append(grid.isAutoReplaceFuel()).append(",");
+        sb.append("\"totalSolidItemsPerMin\":").append(String.format(java.util.Locale.US, "%.2f", totalSolidItemsPerMin)).append(",");
+        sb.append("\"totalSolidItemsPerHour\":").append(String.format(java.util.Locale.US, "%.1f", totalSolidItemsPerHour)).append(",");
+        sb.append("\"totalLiquidLitersPerMin\":").append(String.format(java.util.Locale.US, "%.1f", totalLiquidLitersPerMin)).append(",");
+        sb.append("\"totalLiquidLitersPerHour\":").append(String.format(java.util.Locale.US, "%.0f", totalLiquidLitersPerHour)).append(",");
+        sb.append("\"totalDepletedItemsProduced\":").append(totalDepletedItemsProduced).append(",");
+        sb.append("\"totalDepletedLiquidProduced\":").append(totalDepletedLiquidProduced).append(",");
+
+        sb.append("\"solidRods\":[");
+        for (int i = 0; i < solidByproducts.size(); i++) {
+            if (i > 0) sb.append(",");
+            StandaloneNuclearGrid.SolidFuelByproduct s = solidByproducts.get(i);
+            sb.append("{");
+            sb.append("\"type\":\"").append(s.type.name()).append("\",");
+            sb.append("\"fuelName\":\"").append(escapeJson(s.fuelName)).append("\",");
+            sb.append("\"fuelCode\":\"").append(s.fuelCode).append("\",");
+            sb.append("\"depletedName\":\"").append(escapeJson(s.depletedName)).append("\",");
+            sb.append("\"depletedCode\":\"").append(s.depletedCode).append("\",");
+            sb.append("\"activeRods\":").append(s.activeRods).append(",");
+            sb.append("\"itemsPerMin\":").append(String.format(java.util.Locale.US, "%.2f", s.itemsPerMinute)).append(",");
+            sb.append("\"itemsPerHour\":").append(String.format(java.util.Locale.US, "%.1f", s.itemsPerHour)).append(",");
+            sb.append("\"totalProduced\":").append(s.totalProduced).append(",");
+            sb.append("\"avgLifespanMin\":").append(Double.isInfinite(s.avgLifespanMinutes) ? "\"Infinity\"" : String.format(java.util.Locale.US, "%.1f", s.avgLifespanMinutes));
+            sb.append("}");
+        }
+        sb.append("],");
+
+        sb.append("\"liquidFuels\":[");
+        for (int i = 0; i < liquidByproducts.size(); i++) {
+            if (i > 0) sb.append(",");
+            StandaloneNuclearGrid.LiquidFuelByproduct l = liquidByproducts.get(i);
+            sb.append("{");
+            sb.append("\"type\":\"").append(l.type.name()).append("\",");
+            sb.append("\"fluidName\":\"").append(l.fluidName).append("\",");
+            sb.append("\"displayName\":\"").append(escapeJson(l.displayName)).append("\",");
+            sb.append("\"activeHatches\":").append(l.activeHatches).append(",");
+            sb.append("\"litersPerMin\":").append(String.format(java.util.Locale.US, "%.1f", l.litersPerMinute)).append(",");
+            sb.append("\"litersPerHour\":").append(String.format(java.util.Locale.US, "%.0f", l.litersPerHour)).append(",");
+            sb.append("\"totalLiters\":").append(l.totalLiters);
+            sb.append("}");
+        }
+        sb.append("],");
+
+        sb.append("\"isotopes\":[");
+        for (int i = 0; i < isotopeByproducts.size(); i++) {
+            if (i > 0) sb.append(",");
+            StandaloneNuclearGrid.IsotopeByproduct iso = isotopeByproducts.get(i);
+            sb.append("{");
+            sb.append("\"name\":\"").append(iso.name).append("\",");
+            sb.append("\"code\":\"").append(iso.code).append("\",");
+            sb.append("\"litersPerMin\":").append(String.format(java.util.Locale.US, "%.2f", iso.litersPerMinute)).append(",");
+            sb.append("\"litersPerHour\":").append(String.format(java.util.Locale.US, "%.1f", iso.litersPerHour)).append(",");
+            sb.append("\"totalLiters\":").append(iso.totalLiters);
+            sb.append("}");
+        }
+        sb.append("]");
         sb.append("}");
+
         sb.append("}");
         System.out.println(sb.toString());
     }
@@ -777,6 +1203,29 @@ public class NuclearSimulationCLI {
         System.out.println("  --fission-heat <H>    Direct heat EU generated per fission neutron (default 18.0)");
         System.out.println("  --hp-boil <T>         High pressure coolant boiling point in °C (default 200.0)");
         System.out.println(
+            "  --cooling-mode <mode> Cooling mode: CONDUCTIVE, CONVECTIVE_LOOP (default CONDUCTIVE)");
+        System.out.println("  --base-conductance <U> Base hatch conductance in EU/(t·°C) (default 32.0)");
+        System.out.println("  --repair              Repair all reactor damage and clear maintenance issues");
+        System.out.println("  --strict              Fail-fast on thermal shock, casing overheat, or fuel burnup (calibration mode)");
+        System.out.println("  --no-strict           Disable fail-fast (accumulate damage and maintenance issues)");
+        System.out.println("  --auto-refuel         Automatically replace spent fuel rods for continuous run (default true)");
+        System.out.println("  --no-auto-refuel      Leave spent fuel rods depleted without replacement");
+        System.out.println("  --stop-on-incidents   Pause simulation automatically when an incident/damage occurs");
+        System.out.println("  --no-stop-on-incidents Do not pause on incidents (continue accumulating damage)");
+        System.out.println("  --auto-supply-fuel    Automatically replace spent fuel and replenish liquid fuel (default true)");
+        System.out.println("  --no-auto-supply-fuel Disable automatic fuel replacement and replenishment");
+        System.out.println("  --loop-material <mat> Coolant loop material: STEEL, STAINLESS_STEEL, TITANIUM, TUNGSTENSTEEL, NEUTRONIUM");
+        System.out.println(
+            "  --loop-size <size>    Coolant loop pipe size: TINY, SMALL, NORMAL, LARGE, HUGE (default NORMAL)");
+        System.out.println(
+            "  --loop-fluid <fluid>  Coolant loop fluid: DISTILLED_WATER, HEAVY_WATER (default DISTILLED_WATER)");
+        System.out.println(
+            "  --loop-power <EU/t>   Coolant loop pump power in EU/t (calculates flow from hydrodynamic polynomial)");
+        System.out.println(
+            "  --loop-flow <L/s>     Coolant loop target circulation flow in L/s");
+        System.out.println(
+            "  --loop-points <pts>   Semicolon-separated core coordinates to attach to loop (e.g. \"2,2;2,3;2,4\")");
+        System.out.println(
             "  --trace [N]           Enable intermediate step snapshot ring buffer (up to N steps, default 500)");
         System.out.println("  --json                Output compact JSON summary for automated test scripts");
         System.out.println("  --web [port]          Launch standalone Web GUI on specified port (default 8085)");
@@ -786,12 +1235,32 @@ public class NuclearSimulationCLI {
     private static void runCliSimulation(String preset, String layout, int size, int tier, int ticks,
         TurbineCalculator.TurbineMaterial turbMat, TurbineCalculator.TurbineSize turbSize,
         TurbineCalculator.FittingMode turbFitting, boolean tierSpecified, boolean turbSpecified, boolean traceEnabled,
-        int traceSteps) {
+        int traceSteps, CoolantLoopModel.CoolingMode coolingMode, boolean coolingModeSpecified,
+        CoolantLoopModel.LoopMaterial loopMat, boolean loopMatSpecified,
+        CoolantLoopModel.LoopPipeSize loopSize, boolean loopSizeSpecified,
+        CoolantLoopModel.CoolantFluidType loopFluid, boolean loopFluidSpecified,
+        double loopPumpPower, double loopFlowRate, String loopPoints,
+        double baseConductance, boolean baseConductanceSpecified, boolean repair,
+        boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified,
+        boolean stopOnIncidents, boolean stopOnIncidentsSpecified) {
         System.out.println(ANSI_CYAN + "============================================================" + ANSI_RESET);
         System.out.println(ANSI_WHITE_BOLD + "   GTNH MODULAR PRESSURE TUBE REACTOR (MPTR) SIMULATOR" + ANSI_RESET);
         System.out.println(ANSI_CYAN + "============================================================" + ANSI_RESET);
 
         StandaloneNuclearGrid grid = new StandaloneNuclearGrid(size, size, tier);
+        grid.setStrictMode(strictMode);
+        if (autoReplaceFuelSpecified) {
+            grid.setAutoReplaceFuel(autoReplaceFuel);
+        }
+        if (stopOnIncidentsSpecified) {
+            grid.setStopOnIncidents(stopOnIncidents);
+        }
+        if (baseConductanceSpecified) {
+            grid.setBaseHatchConductance(baseConductance);
+        }
+        if (repair) {
+            grid.repair();
+        }
         if (traceEnabled) {
             grid.enableDiagnosticTrace(traceSteps);
         }
@@ -808,6 +1277,8 @@ public class NuclearSimulationCLI {
             grid.setTurbineSize(turbSize);
             grid.setTurbineFitting(turbFitting);
         }
+        configureCoolantLoop(grid, coolingMode, coolingModeSpecified, loopMat, loopMatSpecified,
+            loopSize, loopSizeSpecified, loopFluid, loopFluidSpecified, loopPumpPower, loopFlowRate, loopPoints);
 
         if (layout != null && !layout.trim()
             .isEmpty()) {
@@ -819,6 +1290,22 @@ public class NuclearSimulationCLI {
         System.out.println("Casing Tier:   " + NuclearSimulationEngine.getPipeTierName(grid.getPipeTier()));
         System.out.println(
             "Max Safe Temp: " + NuclearSimulationEngine.getMaxOperatingTemperature(grid.getPipeTier()) + " °C");
+        System.out.println(
+            "Conductance:   " + String.format(java.util.Locale.US, "%.1f EU/(t·°C) [Base]", grid.getBaseHatchConductance()));
+        System.out.println("Strict Mode:   " + (strictMode
+            ? ANSI_YELLOW + "Enabled (Fail-Fast on Damage/Void)" + ANSI_RESET
+            : ANSI_GREEN + "Disabled (Permissive)" + ANSI_RESET));
+        System.out.println("Stop On Incidents: " + (grid.isStopOnIncidents()
+            ? ANSI_YELLOW + "Enabled (Pause on Damage/Thermal Shock)" + ANSI_RESET
+            : ANSI_GREEN + "Disabled" + ANSI_RESET));
+        System.out.println("Auto-Supply Fuel:  " + (grid.isAutoSupplyFuel()
+            ? ANSI_GREEN + "Enabled (Continuous Rod/Fluid Cycle)" + ANSI_RESET
+            : ANSI_YELLOW + "Disabled (Single Batch)" + ANSI_RESET));
+        if (grid.getReactorDamage() > 0.0 || grid.getMaintenanceIssues() > 0) {
+            System.out.println(
+                "Health/Maint:  " + ANSI_YELLOW + String.format(java.util.Locale.US, "Damage: %.1f%%, %d issues (Efficiency: %.1f%%)",
+                    grid.getReactorDamage(), grid.getMaintenanceIssues(), grid.getMaintenanceEfficiency() * 100.0) + ANSI_RESET);
+        }
         TurbineCalculator.TurbineMaterial activeMat = grid.getTurbineMaterial();
         TurbineCalculator.TurbineSize activeSize = grid.getTurbineSize();
         TurbineCalculator.FittingMode activeFit = grid.getTurbineFitting();
@@ -829,6 +1316,23 @@ public class NuclearSimulationCLI {
                 + ", "
                 + (activeFit != null ? activeFit.name() : "None")
                 + ")");
+        System.out.println("Cooling Mode:  " + (grid.getCoolingMode() == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP
+            ? ANSI_CYAN + "CONVECTIVE COOLANT LOOP"
+            : ANSI_YELLOW + "CONDUCTIVE (Sub-boiling Hatches)") + ANSI_RESET);
+        if (grid.getCoolingMode() == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP) {
+            CoolantLoopModel cl = grid.getCoolantLoop();
+            System.out.println("  Loop Mat:    " + cl.getMaterial().displayName + " (Max: " + cl.getMaterial().maxPressureBar + " bar, " + cl.getMaterial().maxTemperatureCelsius + " °C)");
+            System.out.println("  Pipe Size:   " + cl.getPipeSize().displayName + " (" + (int)(cl.getPipeSize().diameterMeters * 1000) + " mm ID)");
+            System.out.println("  Loop Fluid:  " + cl.getFluidType().displayName + " [Byproduct: " + cl.getFluidType().byproductGas + "]");
+            if (cl.isUseTargetFlowMode()) {
+                System.out.println("  Target Flow: " + String.format(java.util.Locale.US, "%.1f L/s (Hydrodynamic Power: %.1f EU/t)", cl.getTargetFlowRateLPerSec(), cl.getLastPumpPowerEUt()));
+            } else {
+                System.out.println("  Pump Power:  " + String.format(java.util.Locale.US, "%.1f EU/t", cl.getPumpElectricalPowerEUt()));
+            }
+            if (!cl.getAttachedPoints().isEmpty()) {
+                System.out.println("  Attached:    " + cl.getAttachedPoints().size() + " core cell(s)");
+            }
+        }
         System.out.println("Ticks to Sim:  " + ticks);
         System.out.println();
 
@@ -854,8 +1358,16 @@ public class NuclearSimulationCLI {
             boolean ok = grid.step();
             if (!ok) {
                 System.out.println();
-                System.out.println(ANSI_RED + ">>> EXPLOSION OCCURRED AT TICK " + t + " <<<" + ANSI_RESET);
-                System.out.println(ANSI_RED + "Cause: " + grid.getExplosionReason() + ANSI_RESET);
+                if (grid.isExploded()) {
+                    System.out.println(ANSI_RED + ">>> EXPLOSION OCCURRED AT TICK " + t + " <<<" + ANSI_RESET);
+                    System.out.println(ANSI_RED + "Cause: " + grid.getExplosionReason() + ANSI_RESET);
+                } else if (grid.isHaltedByIncident()) {
+                    System.out.println(ANSI_YELLOW + ">>> SIMULATION PAUSED DUE TO INCIDENT AT TICK " + t + " <<<" + ANSI_RESET);
+                    System.out.println(ANSI_YELLOW + "Reason: " + grid.getLastHaltIncidentReason() + ANSI_RESET);
+                } else if (grid.isPowerFailed()) {
+                    System.out.println(ANSI_YELLOW + ">>> STRICT CALIBRATION DISQUALIFICATION AT TICK " + t + " <<<" + ANSI_RESET);
+                    System.out.println(ANSI_YELLOW + "Cause: " + grid.getPowerFailReason() + ANSI_RESET);
+                }
                 break;
             }
 
@@ -863,6 +1375,11 @@ public class NuclearSimulationCLI {
                 TurbineCalculator.PowerEstimationResult pr = grid.getLastPowerResult();
                 double powerEUt = pr != null ? pr.totalPowerEUt : 0.0;
                 String tierName = getVoltageTier(powerEUt);
+                double grossPower = grid.getGrossPowerEUt();
+                double pumpPower = grid.getPumpPowerEUt();
+                String powerStr = (pumpPower > 0)
+                    ? String.format(java.util.Locale.US, "%.0f [Net, Gross: %.0f] (%s)", powerEUt, grossPower, tierName)
+                    : String.format(java.util.Locale.US, "%.0f (%s)", powerEUt, tierName);
                 System.out.println(
                     String.format(
                         "%-8d | %-12.1f | %-12.1f | %-10.2f | %-10d | %-14s",
@@ -871,7 +1388,7 @@ public class NuclearSimulationCLI {
                         grid.getCoreAvgTemp(),
                         grid.getEfficiency(),
                         grid.getLastNeutronsProduced(),
-                        String.format("%.0f (%s)", powerEUt, tierName)));
+                        powerStr));
             }
         }
 
@@ -913,15 +1430,35 @@ public class NuclearSimulationCLI {
         System.out.println("Peak Core Temperature:  " + String.format("%.2f", grid.getCoreMaxTemp()) + " °C");
         System.out.println("Peak Lifetime Temp:     " + String.format("%.2f", grid.getPeakLifetimeTemp()) + " °C");
         if (grid.hasFuelBurned()) {
-            System.out.println(ANSI_RED + "WARNING:                " + grid.getBurnedFuelCount() + " fuel rod(s) burned up due to excessive heat!" + ANSI_RESET);
+            System.out.println(
+                ANSI_RED + "WARNING:                "
+                    + grid.getBurnedFuelCount()
+                    + " fuel rod(s) burned up due to excessive heat!"
+                    + ANSI_RESET);
         }
         if (grid.getVoidedHatchCount() > 0) {
-            System.out.println(ANSI_RED + "WARNING:                " + grid.getVoidedHatchCount() + " hatch(es) voided due to over-temperature!" + ANSI_RESET);
+            System.out.println(
+                ANSI_RED + "WARNING:                "
+                    + grid.getVoidedHatchCount()
+                    + " hatch(es) voided due to over-temperature!"
+                    + ANSI_RESET);
         }
         System.out.println("Average Core Temp:      " + String.format("%.2f", grid.getCoreAvgTemp()) + " °C");
         System.out.println(
             "Casing Max Allowed:     " + NuclearSimulationEngine.getMaxOperatingTemperature(grid.getPipeTier())
                 + " °C");
+        if (grid.getReactorDamage() > 0.0) {
+            System.out.println(
+                ANSI_RED + "Reactor Damage:         "
+                    + String.format(java.util.Locale.US, "%.1f %% (Issues: %d/6, Maint Efficiency: %.1f %%)",
+                        grid.getReactorDamage(), grid.getMaintenanceIssues(), grid.getMaintenanceEfficiency() * 100.0)
+                    + ANSI_RESET);
+        } else {
+            System.out.println(
+                "Maintenance Health:     "
+                    + String.format(java.util.Locale.US, "%.1f %% (%d issues)", grid.getMaintenanceEfficiency() * 100.0, grid.getMaintenanceIssues()));
+        }
+        System.out.println("Base Conductance:       " + String.format(java.util.Locale.US, "%.1f EU/(t·°C)", grid.getBaseHatchConductance()));
         System.out.println("Reactivity Efficiency:  " + String.format("%.2f %%", grid.getEfficiency() * 100.0));
         System.out.println("Total Neutrons Emitted: " + grid.getTotalNeutronsGenerated());
         System.out.println("Total Steam Produced:   " + grid.getTotalSteamProduced() + " L");
@@ -1049,6 +1586,68 @@ public class NuclearSimulationCLI {
             System.out.println();
         }
 
+        if (grid.getCoolingMode() == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP) {
+            CoolantLoopModel cl = grid.getCoolantLoop();
+            System.out.println(ANSI_CYAN + "=== CONVECTIVE COOLANT LOOP TELEMETRY ===" + ANSI_RESET);
+            System.out.println("  Loop Status:          " + (cl.isRuptured() ? ANSI_RED + "RUPTURED (" + cl.getRuptureReason() + ")" : ANSI_GREEN + "INTACT / OPERATIONAL") + ANSI_RESET);
+            System.out.println("  Piping Material:      " + cl.getMaterial().displayName + " [" + cl.getMaterial().tierUnlocked + "]");
+            System.out.println("  Internal Diameter:    " + cl.getPipeSize().displayName + " (" + (int)(cl.getPipeSize().diameterMeters * 1000) + " mm)");
+            System.out.println("  Working Fluid:        " + cl.getFluidType().displayName);
+            System.out.println("  Operating Flow Rate:  " + String.format(java.util.Locale.US, "%.2f L/s", cl.getCurrentFlowRateLPerSec()));
+            double pressRatio = cl.getCurrentPressureBar() / cl.getMaterial().maxPressureBar * 100.0;
+            String pressColor = pressRatio > 85.0 ? ANSI_RED : pressRatio > 60.0 ? ANSI_YELLOW : ANSI_GREEN;
+            System.out.println("  Peak Loop Pressure:   " + pressColor + String.format(java.util.Locale.US, "%.1f bar / %.1f bar max (%.1f %%)", cl.getCurrentPressureBar(), cl.getMaterial().maxPressureBar, pressRatio) + ANSI_RESET);
+            double tempRatio = cl.getCurrentCoolantTempCelsius() / cl.getMaterial().maxTemperatureCelsius * 100.0;
+            String tempColor = tempRatio > 85.0 ? ANSI_RED : tempRatio > 60.0 ? ANSI_YELLOW : ANSI_GREEN;
+            System.out.println("  Coolant Temperature:  " + tempColor + String.format(java.util.Locale.US, "%.1f °C / %.1f °C max (%.1f %%)", cl.getCurrentCoolantTempCelsius(), cl.getMaterial().maxTemperatureCelsius, tempRatio) + ANSI_RESET);
+            System.out.println("  Heat Extracted:       " + String.format(java.util.Locale.US, "%.1f EU/t (%.2f MWth)", cl.getLastHeatExtractedEUt(), cl.getLastHeatExtractedWatts() / 1e6));
+            System.out.println("  Secondary PHE Steam:  " + String.format(java.util.Locale.US, "%.1f L/t (%.0f L total, 1:160 expansion)", cl.getLastSecondarySteamProducedLt(), (double) cl.getTotalSecondarySteamProduced()));
+            System.out.println("  Parasitic Pump Draw:  " + ANSI_YELLOW + String.format(java.util.Locale.US, "%.1f EU/t (Net: %.1f EU/t, Gross: %.1f EU/t)", cl.getLastPumpPowerEUt(), grid.getLastPowerResult() != null ? grid.getLastPowerResult().totalPowerEUt : 0.0, grid.getGrossPowerEUt()) + ANSI_RESET);
+            if (cl.getFluidType() == CoolantLoopModel.CoolantFluidType.HEAVY_WATER) {
+                System.out.println("  Tritium Radiolytic:   " + cl.getTotalTritiumProduced() + " L bred");
+            } else {
+                System.out.println("  Deuterium Radiolytic: " + cl.getTotalDeuteriumProduced() + " L bred");
+            }
+            if (!cl.getAttachedPoints().isEmpty()) {
+                System.out.println("  Attached Core Cells:  " + cl.getAttachedPoints().size() + " points " + cl.getAttachedPoints());
+            }
+            System.out.println();
+        }
+
+        List<StandaloneNuclearGrid.SolidFuelByproduct> solidByproducts = grid.getSolidFuelByproducts();
+        List<StandaloneNuclearGrid.LiquidFuelByproduct> liquidByproducts = grid.getLiquidFuelByproducts();
+        List<StandaloneNuclearGrid.IsotopeByproduct> isotopeByproducts = grid.getIsotopeByproducts();
+        if (!solidByproducts.isEmpty() || !liquidByproducts.isEmpty() || (grid.getTotalDeuteriumProduced() > 0 || grid.getTotalTritiumProduced() > 0)) {
+            System.out.println(ANSI_GREEN + "=== FUEL BYPRODUCTS & LOGISTICS ===" + ANSI_RESET);
+            System.out.println("  Auto-Refuel Mode:     " + (grid.isAutoReplaceFuel() ? ANSI_GREEN + "ENABLED (Continuous Cycling)" : ANSI_YELLOW + "DISABLED (Single Batch)") + ANSI_RESET);
+            if (!solidByproducts.isEmpty()) {
+                System.out.println(ANSI_WHITE_BOLD + "  Solid Fuel Rods (Depleted Item Output):" + ANSI_RESET);
+                for (StandaloneNuclearGrid.SolidFuelByproduct s : solidByproducts) {
+                    String lifespanStr = Double.isInfinite(s.avgLifespanMinutes) ? "Infinite" : String.format(java.util.Locale.US, "%.1f min", s.avgLifespanMinutes);
+                    System.out.println(String.format(java.util.Locale.US,
+                        "    • [%-4s] %-28s : %6.2f /min | %7.1f /h  (Active: %2d, Lifespan: %s, Total: %d)",
+                        s.depletedCode, s.depletedName, s.itemsPerMinute, s.itemsPerHour, s.activeRods, lifespanStr, s.totalProduced));
+                }
+            }
+            if (!liquidByproducts.isEmpty()) {
+                System.out.println(ANSI_WHITE_BOLD + "  Liquid Fuel Hatches (Depleted Fluid Output):" + ANSI_RESET);
+                for (StandaloneNuclearGrid.LiquidFuelByproduct l : liquidByproducts) {
+                    System.out.println(String.format(java.util.Locale.US,
+                        "    • %-32s : %8.1f L/min | %10.0f L/h  (Hatches: %2d, Total: %d L)",
+                        l.displayName, l.litersPerMinute, l.litersPerHour, l.activeHatches, l.totalLiters));
+                }
+            }
+            if (!isotopeByproducts.isEmpty() && (grid.getTotalDeuteriumProduced() > 0 || grid.getTotalTritiumProduced() > 0)) {
+                System.out.println(ANSI_WHITE_BOLD + "  Transmuted Isotopes (Breeding Output):" + ANSI_RESET);
+                for (StandaloneNuclearGrid.IsotopeByproduct iso : isotopeByproducts) {
+                    System.out.println(String.format(java.util.Locale.US,
+                        "    • %-10s (%-2s)                  : %8.2f L/min | %10.1f L/h  (Total: %d L)",
+                        iso.name, iso.code, iso.litersPerMinute, iso.litersPerHour, iso.totalLiters));
+                }
+            }
+            System.out.println();
+        }
+
         System.out.println(ANSI_WHITE_BOLD + "Core Heat Map (°C):" + ANSI_RESET);
         for (int y = 0; y < grid.getHeight(); y++) {
             for (int x = 0; x < grid.getWidth(); x++) {
@@ -1082,7 +1681,8 @@ public class NuclearSimulationCLI {
 
     public static int parseTier(String t) {
         if (t == null) return NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
-        String s = t.toLowerCase().trim();
+        String s = t.toLowerCase()
+            .trim();
         if (s.contains("elec") || s.equals("ev")) return NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
         if (s.contains("plat") || s.equals("iv")) return NuclearSimulationEngine.PIPE_TIER_PLATINUM;
         if (s.contains("osmi") || s.equals("luv")) return NuclearSimulationEngine.PIPE_TIER_OSMIUM;
@@ -1093,5 +1693,25 @@ public class NuclearSimulationCLI {
             return Integer.parseInt(s);
         } catch (NumberFormatException ignored) {}
         return NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
+    }
+
+    private static String escapeJson(String s) {
+        if (s == null || s.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '"') {
+                sb.append('\\').append('"');
+            } else if (c == '\\') {
+                sb.append('\\').append('\\');
+            } else if (c == '\n') {
+                sb.append('\\').append('n');
+            } else if (c == '\r') {
+                sb.append('\\').append('r');
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 }

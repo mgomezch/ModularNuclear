@@ -39,28 +39,32 @@ public class TurbineCalculator {
         }
 
         public static TurbineMaterial fromString(String name) {
-            if (name == null || name.trim()
-                .isEmpty()) return HSS_E;
+            if (name == null || name.trim().isEmpty()) return HSS_E;
             String trimmed = name.trim();
             for (TurbineMaterial m : values()) {
-                if (m.name()
-                    .equalsIgnoreCase(trimmed) || m.displayName.equalsIgnoreCase(trimmed)) {
+                if (m.name().equalsIgnoreCase(trimmed) || m.displayName.equalsIgnoreCase(trimmed)) {
                     return m;
                 }
             }
-            String norm = trimmed.toUpperCase()
-                .replace("-", "_")
-                .replace(" ", "_")
-                .replace(".", "");
+            String cleanTrimmed = cleanString(trimmed);
             for (TurbineMaterial m : values()) {
-                String mNorm = m.name()
-                    .replace("_", "");
-                if (norm.replace("_", "")
-                    .equalsIgnoreCase(mNorm)) {
+                if (cleanTrimmed.equalsIgnoreCase(cleanString(m.name()))) {
                     return m;
                 }
             }
             return HSS_E;
+        }
+
+        private static String cleanString(String s) {
+            if (s == null) return "";
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < s.length(); i++) {
+                char c = s.charAt(i);
+                if (Character.isLetterOrDigit(c)) {
+                    sb.append(Character.toUpperCase(c));
+                }
+            }
+            return sb.toString();
         }
     }
 

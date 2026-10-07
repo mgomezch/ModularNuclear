@@ -1,7 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear.standalone;
 
 import java.util.List;
-import java.util.Locale;
 
 import org.teavm.interop.Export;
 
@@ -31,17 +30,32 @@ public class NuclearSimWasmBridge {
 
     @Export(name = "step")
     public static void step() {
-        if (grid != null && !grid.isExploded()) {
-            grid.step();
+        if (grid == null) return;
+        if (grid.isExploded() || (grid.isStopOnIncidents() && grid.isHaltedByIncident())) {
+            isRunning = false;
+            return;
+        }
+        grid.step();
+        if (grid.isExploded() || (grid.isStopOnIncidents() && grid.isHaltedByIncident())) {
+            isRunning = false;
         }
     }
 
     @Export(name = "stepTicks")
     public static void stepTicks(int count) {
-        if (grid != null) {
-            for (int i = 0; i < count && !grid.isExploded(); i++) {
-                grid.step();
+        if (grid == null) return;
+        if (grid.isExploded() || (grid.isStopOnIncidents() && grid.isHaltedByIncident())) {
+            isRunning = false;
+            return;
+        }
+        for (int i = 0; i < count && !grid.isExploded() && !(grid.isStopOnIncidents() && grid.isHaltedByIncident()); i++) {
+            grid.step();
+            if (grid.isStopOnIncidents() && grid.isHaltedByIncident()) {
+                break;
             }
+        }
+        if (grid.isExploded() || (grid.isStopOnIncidents() && grid.isHaltedByIncident())) {
+            isRunning = false;
         }
     }
 
@@ -64,7 +78,7 @@ public class NuclearSimWasmBridge {
     public static void setTile(int x, int y, String typeStr) {
         if (grid != null && typeStr != null) {
             try {
-                SimTile.TileType type = SimTile.TileType.valueOf(typeStr);
+                SimTile.TileType type = SimTile.TileType.fromCode(typeStr);
                 grid.setTile(x, y, type);
             } catch (Exception ignored) {}
         }
@@ -96,7 +110,187 @@ public class NuclearSimWasmBridge {
 
     @Export(name = "setRunning")
     public static void setRunning(boolean running) {
+        if (running && grid != null && grid.isExploded()) {
+            isRunning = false;
+            return;
+        }
         isRunning = running;
+        if (running && grid != null && grid.isHaltedByIncident()) {
+            grid.clearHaltedByIncident();
+        }
+    }
+
+    @Export(name = "isRunning")
+    public static boolean isRunning() {
+        return isRunning;
+    }
+
+    public static StandaloneNuclearGrid getGrid() {
+        return grid;
+    }
+
+    @Export(name = "setCoolingMode")
+    public static void setCoolingMode(String modeStr) {
+        if (grid != null && modeStr != null) {
+            grid.setCoolingMode(CoolantLoopModel.CoolingMode.fromString(modeStr));
+        }
+    }
+
+    @Export(name = "setCoolantLoopMaterial")
+    public static void setCoolantLoopMaterial(String matStr) {
+        if (grid != null && matStr != null) {
+            grid.getCoolantLoop().setMaterial(CoolantLoopModel.LoopMaterial.fromString(matStr));
+        }
+    }
+
+    @Export(name = "setCoolantLoopPipeSize")
+    public static void setCoolantLoopPipeSize(String sizeStr) {
+        if (grid != null && sizeStr != null) {
+            grid.getCoolantLoop().setPipeSize(CoolantLoopModel.LoopPipeSize.fromString(sizeStr));
+        }
+    }
+
+    @Export(name = "setCoolantLoopFluid")
+    public static void setCoolantLoopFluid(String fluidStr) {
+        if (grid != null && fluidStr != null) {
+            grid.getCoolantLoop().setFluidType(CoolantLoopModel.CoolantFluidType.fromString(fluidStr));
+        }
+    }
+
+    @Export(name = "setCoolantLoopPumpPower")
+    public static void setCoolantLoopPumpPower(double powerEUt) {
+        if (grid != null) {
+            grid.getCoolantLoop().setPumpElectricalPowerEUt(powerEUt);
+            grid.getCoolantLoop().setUseTargetFlowMode(false);
+        }
+    }
+
+    @Export(name = "setCoolantLoopHatchTier")
+    public static void setCoolantLoopHatchTier(String tierStr) {
+        if (grid != null && tierStr != null) {
+            grid.getCoolantLoop().setHatchTier(CoolantLoopModel.EnergyHatchTier.fromString(tierStr));
+            grid.getCoolantLoop().setUseTargetFlowMode(false);
+        }
+    }
+
+    @Export(name = "setCoolantLoopDutyCycle")
+    public static void setCoolantLoopDutyCycle(double dutyPercent) {
+        if (grid != null) {
+            grid.getCoolantLoop().setDutyCyclePercent(dutyPercent);
+            grid.getCoolantLoop().setUseTargetFlowMode(false);
+        }
+    }
+
+    @Export(name = "setCoolantLoopMaxFlow")
+    public static void setCoolantLoopMaxFlow(double maxFlow) {
+        if (grid != null) {
+            grid.getCoolantLoop().setMaxFlowRateLPerSec(maxFlow);
+        }
+    }
+
+    @Export(name = "setCoolantLoopMaxPressure")
+    public static void setCoolantLoopMaxPressure(double maxPressure) {
+        if (grid != null) {
+            grid.getCoolantLoop().setMaxPressureBar(maxPressure);
+        }
+    }
+
+    @Export(name = "setCoolantLoopControl")
+    public static void setCoolantLoopControl(String hatchTier, double dutyCycle, double maxFlow, double maxPressure) {
+        if (grid != null) {
+            CoolantLoopModel cl = grid.getCoolantLoop();
+            if (hatchTier != null && !hatchTier.isEmpty()) {
+                cl.setHatchTier(CoolantLoopModel.EnergyHatchTier.fromString(hatchTier));
+            }
+            cl.setDutyCyclePercent(dutyCycle);
+            cl.setMaxFlowRateLPerSec(maxFlow);
+            cl.setMaxPressureBar(maxPressure);
+            cl.setUseTargetFlowMode(false);
+        }
+    }
+
+    @Export(name = "setCoolantLoopFlowRate")
+    public static void setCoolantLoopFlowRate(double flowRate) {
+        if (grid != null) {
+            grid.getCoolantLoop().setTargetFlowRateLPerSec(flowRate);
+            grid.getCoolantLoop().setUseTargetFlowMode(true);
+        }
+    }
+
+    @Export(name = "attachCoolantLoopPoint")
+    public static void attachCoolantLoopPoint(int x, int y) {
+        if (grid != null) {
+            grid.getCoolantLoop().attachPoint(x, y);
+        }
+    }
+
+    @Export(name = "detachCoolantLoopPoint")
+    public static void detachCoolantLoopPoint(int x, int y) {
+        if (grid != null) {
+            grid.getCoolantLoop().detachPoint(x, y);
+        }
+    }
+
+    @Export(name = "clearCoolantLoopPoints")
+    public static void clearCoolantLoopPoints() {
+        if (grid != null) {
+            grid.getCoolantLoop().clearAttachedPoints();
+        }
+    }
+
+    @Export(name = "setStrictMode")
+    public static void setStrictMode(boolean strict) {
+        if (grid != null) {
+            grid.setStrictMode(strict);
+        }
+    }
+
+    @Export(name = "clearIncidentLog")
+    public static void clearIncidentLog() {
+        if (grid != null) {
+            grid.clearIncidentLog();
+        }
+    }
+
+    @Export(name = "setStopOnIncidents")
+    public static void setStopOnIncidents(boolean stop) {
+        if (grid != null) {
+            grid.setStopOnIncidents(stop);
+        }
+    }
+
+    @Export(name = "isStopOnIncidents")
+    public static boolean isStopOnIncidents() {
+        return grid != null && grid.isStopOnIncidents();
+    }
+
+    @Export(name = "clearHaltedByIncident")
+    public static void clearHaltedByIncident() {
+        if (grid != null) {
+            grid.clearHaltedByIncident();
+        }
+    }
+
+    @Export(name = "setAutoSupplyFuel")
+    public static void setAutoSupplyFuel(boolean autoSupply) {
+        if (grid != null) {
+            grid.setAutoSupplyFuel(autoSupply);
+        }
+    }
+
+    @Export(name = "isAutoSupplyFuel")
+    public static boolean isAutoSupplyFuel() {
+        return grid != null && grid.isAutoSupplyFuel();
+    }
+
+    @Export(name = "setAutoReplaceFuel")
+    public static void setAutoReplaceFuel(boolean autoReplace) {
+        setAutoSupplyFuel(autoReplace);
+    }
+
+    @Export(name = "isAutoReplaceFuel")
+    public static boolean isAutoReplaceFuel() {
+        return isAutoSupplyFuel();
     }
 
     @Export(name = "setParam")
@@ -106,10 +300,46 @@ public class NuclearSimWasmBridge {
 
     private static void applyParam(String key, String value) {
         if (key == null || value == null) return;
+        if ("stopOnIncidents".equalsIgnoreCase(key) || "stopIncidents".equalsIgnoreCase(key)) {
+            if (grid != null) {
+                grid.setStopOnIncidents("true".equalsIgnoreCase(value) || "1".equals(value));
+            }
+            return;
+        }
+        if ("clearHaltedByIncident".equalsIgnoreCase(key)) {
+            if (grid != null) {
+                grid.clearHaltedByIncident();
+            }
+            return;
+        }
+        if ("autoSupplyFuel".equalsIgnoreCase(key) || "autoReplaceFuel".equalsIgnoreCase(key) || "autoRefuel".equalsIgnoreCase(key)) {
+            if (grid != null) {
+                grid.setAutoSupplyFuel("true".equalsIgnoreCase(value) || "1".equals(value));
+            }
+            return;
+        }
         if ("reset".equalsIgnoreCase(key)) {
             NuclearSimulationEngine.resetDefaultParameters();
             if (grid != null) {
                 grid.updateHatchCapacities(NuclearSimulationEngine.hatchCoolantCapacity);
+            }
+            return;
+        }
+        if ("repair".equalsIgnoreCase(key)) {
+            if (grid != null) {
+                grid.repairMaintenance();
+            }
+            return;
+        }
+        if ("strict".equalsIgnoreCase(key) || "strictMode".equalsIgnoreCase(key)) {
+            if (grid != null) {
+                grid.setStrictMode("true".equalsIgnoreCase(value) || "1".equals(value));
+            }
+            return;
+        }
+        if ("clearIncidents".equalsIgnoreCase(key) || "clearIncidentLog".equalsIgnoreCase(key)) {
+            if (grid != null) {
+                grid.clearIncidentLog();
             }
             return;
         }
@@ -125,6 +355,16 @@ public class NuclearSimWasmBridge {
         }
         if ("euPerDegree".equals(key)) {
             NuclearSimulationEngine.setEuPerDegree(d);
+        } else if ("baseHatchConductance".equals(key) || "baseConductance".equals(key) || "conductance".equals(key)) {
+            NuclearSimulationEngine.setBaseHatchConductance(d);
+        } else if ("reactorDamage".equals(key) || "damage".equals(key)) {
+            if (grid != null) {
+                grid.setReactorDamage(d);
+            }
+        } else if ("maintenanceIssues".equals(key)) {
+            if (grid != null) {
+                grid.setMaintenanceIssues((int) d);
+            }
         } else if ("hatchCapacity".equals(key)) {
             NuclearSimulationEngine.hatchCoolantCapacity = Math.max(100, (int) d);
             if (grid != null) {
@@ -233,6 +473,18 @@ public class NuclearSimWasmBridge {
         sb.append("\"pipeTierName\":\"")
             .append(NuclearSimulationEngine.getPipeTierName(targetGrid.getPipeTier()))
             .append("\",");
+        sb.append("\"coolingMode\":\"")
+            .append(targetGrid.getCoolingMode().name())
+            .append("\",");
+        sb.append("\"coolingModeName\":\"")
+            .append(targetGrid.getCoolingMode().displayName)
+            .append("\",");
+        sb.append("\"isTier2ConvectiveAllowed\":")
+            .append(targetGrid.getPipeTier() >= NuclearSimulationEngine.PIPE_TIER_PLATINUM)
+            .append(",");
+        sb.append("\"isCoolantLoopActive\":")
+            .append(targetGrid.isCoolantLoopActive())
+            .append(",");
         sb.append("\"maxSafeTemp\":")
             .append(NuclearSimulationEngine.getMaxOperatingTemperature(targetGrid.getPipeTier()))
             .append(",");
@@ -240,24 +492,54 @@ public class NuclearSimWasmBridge {
             .append(targetGrid.getCurrentTick())
             .append(",");
         sb.append("\"isRunning\":")
-            .append(running)
+            .append(running && !targetGrid.isExploded() && !(targetGrid.isStopOnIncidents() && targetGrid.isHaltedByIncident()))
             .append(",");
         sb.append("\"exploded\":")
             .append(targetGrid.isExploded())
             .append(",");
         sb.append("\"explosionReason\":\"")
-            .append(
-                targetGrid.getExplosionReason()
-                    .replace("\"", "\\\""))
+            .append(escapeJson(targetGrid.getExplosionReason()))
             .append("\",");
+        sb.append("\"stopOnIncidents\":")
+            .append(targetGrid.isStopOnIncidents())
+            .append(",");
+        sb.append("\"haltedByIncident\":")
+            .append(targetGrid.isHaltedByIncident())
+            .append(",");
+        sb.append("\"lastHaltIncidentReason\":\"")
+            .append(escapeJson(targetGrid.getLastHaltIncidentReason()))
+            .append("\",");
+        sb.append("\"autoSupplyFuel\":")
+            .append(targetGrid.isAutoSupplyFuel())
+            .append(",");
+        sb.append("\"autoReplaceFuel\":")
+            .append(targetGrid.isAutoSupplyFuel())
+            .append(",");
         sb.append("\"powerFailed\":")
             .append(targetGrid.isPowerFailed())
             .append(",");
         sb.append("\"powerFailReason\":\"")
-            .append(
-                targetGrid.getPowerFailReason()
-                    .replace("\"", "\\\""))
+            .append(escapeJson(targetGrid.getPowerFailReason()))
             .append("\",");
+        sb.append("\"strictMode\":")
+            .append(targetGrid.isStrictMode())
+            .append(",");
+        sb.append("\"lastIncidentTick\":")
+            .append(targetGrid.getLastIncidentTick())
+            .append(",");
+        sb.append("\"incidentLog\":[");
+        List<StandaloneNuclearGrid.IncidentEvent> incLog = targetGrid.getIncidentLog();
+        for (int i = 0; i < incLog.size(); i++) {
+            if (i > 0) sb.append(",");
+            StandaloneNuclearGrid.IncidentEvent ev = incLog.get(i);
+            sb.append("{")
+                .append("\"tick\":").append(ev.tick()).append(",")
+                .append("\"type\":\"").append(escapeJson(ev.type())).append("\",")
+                .append("\"message\":\"").append(escapeJson(ev.message())).append("\",")
+                .append("\"damage\":").append(fmt1(ev.damage()))
+                .append("}");
+        }
+        sb.append("],");
         sb.append("\"coreMaxTemp\":")
             .append(fmt2(targetGrid.getCoreMaxTemp()))
             .append(",");
@@ -266,6 +548,15 @@ public class NuclearSimWasmBridge {
             .append(",");
         sb.append("\"efficiency\":")
             .append(fmt3(targetGrid.getEfficiency()))
+            .append(",");
+        sb.append("\"reactorDamage\":")
+            .append(fmt1(targetGrid.getReactorDamage()))
+            .append(",");
+        sb.append("\"maintenanceIssues\":")
+            .append(targetGrid.getMaintenanceIssues())
+            .append(",");
+        sb.append("\"maintenanceEfficiency\":")
+            .append(fmt3(targetGrid.getMaintenanceEfficiency()))
             .append(",");
         sb.append("\"lastNeutrons\":")
             .append(targetGrid.getLastNeutronsProduced())
@@ -303,6 +594,76 @@ public class NuclearSimWasmBridge {
         sb.append("\"totalTritium\":")
             .append(targetGrid.getTotalTritiumProduced())
             .append(",");
+
+        CoolantLoopModel cl = targetGrid.getCoolantLoop();
+        sb.append("\"coolantLoop\":{");
+        sb.append("\"material\":\"").append(cl.getMaterial().name()).append("\",");
+        sb.append("\"materialName\":\"").append(cl.getMaterial().displayName).append("\",");
+        sb.append("\"materialTier\":\"").append(cl.getMaterial().tierUnlocked).append("\",");
+        sb.append("\"maxPressureBar\":").append(fmt1(cl.getMaterial().maxPressureBar)).append(",");
+        sb.append("\"maxTempC\":").append(fmt1(cl.getMaterial().maxTemperatureCelsius)).append(",");
+        sb.append("\"pipeSize\":\"").append(cl.getPipeSize().name()).append("\",");
+        sb.append("\"pipeSizeName\":\"").append(cl.getPipeSize().displayName).append("\",");
+        sb.append("\"fluid\":\"").append(cl.getFluidType().name()).append("\",");
+        sb.append("\"fluidName\":\"").append(cl.getFluidType().displayName).append("\",");
+        sb.append("\"byproductGas\":\"").append(cl.getFluidType().byproductGas).append("\",");
+        sb.append("\"hatchTier\":\"").append(cl.getHatchTier().name()).append("\",");
+        sb.append("\"hatchTierName\":\"").append(cl.getHatchTier().displayName).append("\",");
+        sb.append("\"hatchVoltage\":").append(fmt1(cl.getHatchTier().voltageEU)).append(",");
+        sb.append("\"dutyCyclePercent\":").append(fmt1(cl.getDutyCyclePercent())).append(",");
+        sb.append("\"effectiveDutyCyclePercent\":").append(fmt1(cl.getEffectiveDutyCyclePercent())).append(",");
+        sb.append("\"maxFlowRateLimit\":").append(fmt1(cl.getMaxFlowRateLPerSec())).append(",");
+        sb.append("\"maxPressureLimit\":").append(fmt1(cl.getMaxPressureBar())).append(",");
+        sb.append("\"pressureLimited\":").append(cl.isPressureLimited()).append(",");
+        sb.append("\"flowLimited\":").append(cl.isFlowLimited()).append(",");
+        sb.append("\"limitReason\":\"").append(escapeJson(cl.getLimitReason())).append("\",");
+        sb.append("\"pumpPowerEUt\":").append(fmt1(cl.getPumpElectricalPowerEUt())).append(",");
+        sb.append("\"targetFlowRateLPerSec\":").append(fmt1(cl.getTargetFlowRateLPerSec())).append(",");
+        sb.append("\"useTargetFlowMode\":").append(cl.isUseTargetFlowMode()).append(",");
+        sb.append("\"currentFlowRateLPerSec\":").append(fmt1(cl.getCurrentFlowRateLPerSec())).append(",");
+        sb.append("\"currentPressureBar\":").append(fmt2(cl.getCurrentPressureBar())).append(",");
+        sb.append("\"currentCoolantTempCelsius\":").append(fmt1(cl.getCurrentCoolantTempCelsius())).append(",");
+        sb.append("\"lastHeatExtractedWatts\":").append(fmt1(cl.getLastHeatExtractedWatts())).append(",");
+        sb.append("\"lastHeatExtractedEUt\":").append(fmt1(cl.getLastHeatExtractedEUt())).append(",");
+        sb.append("\"lastSecondarySteamProducedLt\":").append(fmt1(cl.getLastSecondarySteamProducedLt())).append(",");
+        sb.append("\"lastSecondaryWaterBoiledLt\":").append(fmt1(cl.getLastSecondaryWaterBoiledLt())).append(",");
+        sb.append("\"lastPumpPowerEUt\":").append(fmt1(cl.getLastPumpPowerEUt())).append(",");
+        sb.append("\"totalDeuteriumProduced\":").append(cl.getTotalDeuteriumProduced()).append(",");
+        sb.append("\"totalTritiumProduced\":").append(cl.getTotalTritiumProduced()).append(",");
+        sb.append("\"totalSecondarySteamProduced\":").append(cl.getTotalSecondarySteamProduced()).append(",");
+        sb.append("\"ruptured\":").append(cl.isRuptured()).append(",");
+        sb.append("\"ruptureReason\":\"").append(escapeJson(cl.getRuptureReason())).append("\",");
+        sb.append("\"attachedPoints\":[");
+        int ptIdx = 0;
+        for (String pt : cl.getAttachedPoints()) {
+            if (ptIdx++ > 0) sb.append(",");
+            sb.append("\"").append(pt).append("\"");
+        }
+        sb.append("],");
+        sb.append("\"energyHatchTiers\":[");
+        int tierIdx = 0;
+        for (CoolantLoopModel.EnergyHatchTier t : CoolantLoopModel.EnergyHatchTier.values()) {
+            if (tierIdx++ > 0) sb.append(",");
+            sb.append("{\"id\":\"").append(t.name()).append("\",\"name\":\"").append(t.displayName)
+              .append("\",\"voltage\":").append(fmt1(t.voltageEU)).append("}");
+        }
+        sb.append("],");
+        sb.append("\"allowedMaterials\":[");
+        int matIdx = 0;
+        for (CoolantLoopModel.LoopMaterial mat : CoolantLoopModel.LoopMaterial.values()) {
+            if (mat.isAllowedInReactorTier(targetGrid.getPipeTier())) {
+                if (matIdx++ > 0) sb.append(",");
+                sb.append("{\"id\":\"").append(mat.name()).append("\",\"name\":\"").append(mat.displayName)
+                    .append("\",\"maxPressure\":").append(mat.maxPressureBar)
+                    .append(",\"tier\":\"").append(mat.tierUnlocked)
+                    .append("\",\"progressionAppropriate\":").append(mat.isProgressionAppropriate(targetGrid.getPipeTier()))
+                    .append("}");
+            }
+        }
+        sb.append("]");
+        sb.append("},");
+        sb.append("\"grossPowerEUt\":").append(fmt1(targetGrid.getGrossPowerEUt())).append(",");
+        sb.append("\"pumpPowerEUt\":").append(fmt1(targetGrid.getPumpPowerEUt())).append(",");
 
         sb.append("\"turbineMaterial\":\"")
             .append(
@@ -581,7 +942,10 @@ public class NuclearSimWasmBridge {
             .append(fmt1(NuclearSimulationEngine.fissionHeatPerNeutron))
             .append(",");
         sb.append("\"hpWaterBoilingPoint\":")
-            .append(fmt1(NuclearSimulationEngine.hpWaterBoilingPoint));
+            .append(fmt1(NuclearSimulationEngine.hpWaterBoilingPoint))
+            .append(",");
+        sb.append("\"baseHatchConductance\":")
+            .append(fmt1(NuclearSimulationEngine.baseHatchConductance));
         sb.append("},");
 
         // Tiles
@@ -654,7 +1018,23 @@ public class NuclearSimWasmBridge {
                     .append(t.getLastThermalAbsorbed())
                     .append(",");
                 sb.append("\"directEU\":")
-                    .append(t.getDirectEUProduced());
+                    .append(t.getDirectEUProduced())
+                    .append(",");
+                sb.append("\"isDepleted\":")
+                    .append(t.isDepleted())
+                    .append(",");
+                sb.append("\"lastDurabilityLoss\":")
+                    .append(fmt2(t.getLastDurabilityLoss()))
+                    .append(",");
+                sb.append("\"lastLiquidBurned\":")
+                    .append(t.getLastLiquidFuelBurned())
+                    .append(",");
+                sb.append("\"depletedName\":\"")
+                    .append(escapeJson(t.getDepletedDisplayName()))
+                    .append("\",");
+                sb.append("\"depletedCode\":\"")
+                    .append(t.getDepletedCode())
+                    .append("\"");
                 sb.append("}");
             }
         }
@@ -687,7 +1067,89 @@ public class NuclearSimWasmBridge {
                 .append(entry.safe());
             sb.append("}");
         }
+        sb.append("],");
+
+        // Byproducts (depleted fuel items, depleted liquid fuels, and isotopes)
+        List<StandaloneNuclearGrid.SolidFuelByproduct> solidByproducts = targetGrid.getSolidFuelByproducts();
+        List<StandaloneNuclearGrid.LiquidFuelByproduct> liquidByproducts = targetGrid.getLiquidFuelByproducts();
+        List<StandaloneNuclearGrid.IsotopeByproduct> isotopeByproducts = targetGrid.getIsotopeByproducts();
+
+        double totalSolidItemsPerMin = 0.0;
+        double totalSolidItemsPerHour = 0.0;
+        long totalDepletedItemsProduced = 0;
+        for (StandaloneNuclearGrid.SolidFuelByproduct s : solidByproducts) {
+            totalSolidItemsPerMin += s.itemsPerMinute;
+            totalSolidItemsPerHour += s.itemsPerHour;
+            totalDepletedItemsProduced += s.totalProduced;
+        }
+
+        double totalLiquidLitersPerMin = 0.0;
+        double totalLiquidLitersPerHour = 0.0;
+        long totalDepletedLiquidProduced = 0;
+        for (StandaloneNuclearGrid.LiquidFuelByproduct l : liquidByproducts) {
+            totalLiquidLitersPerMin += l.litersPerMinute;
+            totalLiquidLitersPerHour += l.litersPerHour;
+            totalDepletedLiquidProduced += l.totalLiters;
+        }
+
+        sb.append("\"byproducts\":{");
+        sb.append("\"autoReplaceFuel\":").append(targetGrid.isAutoReplaceFuel()).append(",");
+        sb.append("\"totalSolidItemsPerMin\":").append(fmt2(totalSolidItemsPerMin)).append(",");
+        sb.append("\"totalSolidItemsPerHour\":").append(fmt1(totalSolidItemsPerHour)).append(",");
+        sb.append("\"totalLiquidLitersPerMin\":").append(fmt1(totalLiquidLitersPerMin)).append(",");
+        sb.append("\"totalLiquidLitersPerHour\":").append(fmt0(totalLiquidLitersPerHour)).append(",");
+        sb.append("\"totalDepletedItemsProduced\":").append(totalDepletedItemsProduced).append(",");
+        sb.append("\"totalDepletedLiquidProduced\":").append(totalDepletedLiquidProduced).append(",");
+
+        sb.append("\"solidRods\":[");
+        for (int i = 0; i < solidByproducts.size(); i++) {
+            if (i > 0) sb.append(",");
+            StandaloneNuclearGrid.SolidFuelByproduct s = solidByproducts.get(i);
+            sb.append("{");
+            sb.append("\"type\":\"").append(s.type.name()).append("\",");
+            sb.append("\"fuelName\":\"").append(escapeJson(s.fuelName)).append("\",");
+            sb.append("\"fuelCode\":\"").append(s.fuelCode).append("\",");
+            sb.append("\"depletedName\":\"").append(escapeJson(s.depletedName)).append("\",");
+            sb.append("\"depletedCode\":\"").append(s.depletedCode).append("\",");
+            sb.append("\"activeRods\":").append(s.activeRods).append(",");
+            sb.append("\"itemsPerMin\":").append(fmt2(s.itemsPerMinute)).append(",");
+            sb.append("\"itemsPerHour\":").append(fmt1(s.itemsPerHour)).append(",");
+            sb.append("\"totalProduced\":").append(s.totalProduced).append(",");
+            sb.append("\"avgLifespanMin\":").append(Double.isInfinite(s.avgLifespanMinutes) ? "\"Infinity\"" : fmt1(s.avgLifespanMinutes));
+            sb.append("}");
+        }
+        sb.append("],");
+
+        sb.append("\"liquidFuels\":[");
+        for (int i = 0; i < liquidByproducts.size(); i++) {
+            if (i > 0) sb.append(",");
+            StandaloneNuclearGrid.LiquidFuelByproduct l = liquidByproducts.get(i);
+            sb.append("{");
+            sb.append("\"type\":\"").append(l.type.name()).append("\",");
+            sb.append("\"fluidName\":\"").append(l.fluidName).append("\",");
+            sb.append("\"displayName\":\"").append(escapeJson(l.displayName)).append("\",");
+            sb.append("\"activeHatches\":").append(l.activeHatches).append(",");
+            sb.append("\"litersPerMin\":").append(fmt1(l.litersPerMinute)).append(",");
+            sb.append("\"litersPerHour\":").append(fmt0(l.litersPerHour)).append(",");
+            sb.append("\"totalLiters\":").append(l.totalLiters);
+            sb.append("}");
+        }
+        sb.append("],");
+
+        sb.append("\"isotopes\":[");
+        for (int i = 0; i < isotopeByproducts.size(); i++) {
+            if (i > 0) sb.append(",");
+            StandaloneNuclearGrid.IsotopeByproduct iso = isotopeByproducts.get(i);
+            sb.append("{");
+            sb.append("\"name\":\"").append(iso.name).append("\",");
+            sb.append("\"code\":\"").append(iso.code).append("\",");
+            sb.append("\"litersPerMin\":").append(fmt2(iso.litersPerMinute)).append(",");
+            sb.append("\"litersPerHour\":").append(fmt1(iso.litersPerHour)).append(",");
+            sb.append("\"totalLiters\":").append(iso.totalLiters);
+            sb.append("}");
+        }
         sb.append("]");
+        sb.append("}");
 
         sb.append("}");
         return sb.toString();
@@ -722,5 +1184,25 @@ public class NuclearSimWasmBridge {
         if (fracPart < 10) return intPart + ".00" + fracPart;
         if (fracPart < 100) return intPart + ".0" + fracPart;
         return intPart + "." + fracPart;
+    }
+
+    private static String escapeJson(String s) {
+        if (s == null || s.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '"') {
+                sb.append('\\').append('"');
+            } else if (c == '\\') {
+                sb.append('\\').append('\\');
+            } else if (c == '\n') {
+                sb.append('\\').append('n');
+            } else if (c == '\r') {
+                sb.append('\\').append('r');
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 }

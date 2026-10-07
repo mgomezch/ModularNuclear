@@ -39,6 +39,10 @@ public enum NuclearFuelType {
     public final double baseThermalFissionMultiplier;
     public final int defaultDurability;
     public final int baseNeutrons;
+    public final double damageK;
+    public final double damageA;
+    public final double temp10Percent;
+    public final double damageRatio;
 
     NuclearFuelType(String displayName, double peakReactivityTemp, double floorTemp,
         double baseThermalFissionMultiplier, int defaultDurability, int baseNeutrons) {
@@ -48,6 +52,27 @@ public enum NuclearFuelType {
         this.baseThermalFissionMultiplier = baseThermalFissionMultiplier;
         this.defaultDurability = defaultDurability;
         this.baseNeutrons = baseNeutrons;
+
+        FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver.solve(null, peakReactivityTemp, floorTemp, 20.0);
+        this.damageK = stats.k;
+        this.damageA = stats.A;
+        this.temp10Percent = stats.t10Percent;
+        this.damageRatio = stats.damageRatioPercent;
+    }
+
+    /**
+     * Temperature durability damage following a slowly-growing zero-crossing-adjusted exponential curve.
+     * Produces zero damage at or below ambient temperature.
+     */
+    public double calculateTemperatureDamage(double temp, double ambientTemp) {
+        if (temp <= ambientTemp) {
+            return 0.0;
+        }
+        return damageA * (Math.exp(damageK * (temp - ambientTemp)) - 1.0);
+    }
+
+    public double calculateTemperatureDamage(double temp) {
+        return calculateTemperatureDamage(temp, 20.0);
     }
 
     /**

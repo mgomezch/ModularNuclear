@@ -390,19 +390,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             true,
             getFluidDisplay("deuterium", 1000),
             1_000L,
-            "Platinum Tier (IV) | Boils at 100°C (1:160 Steam) -> Transmutes to Deuterium");
-        addFluidCoolant(
-            "highpressuredistilledwater",
-            "HP Distilled Water",
-            0.70,
-            0.05,
-            0.80,
-            0.70,
-            0.10,
-            true,
-            getFluidDisplay("deuterium", 2000),
-            1_000L,
-            "Osmium Tier (LuV) | Boils at 200°C (1:320 Superheated Steam) -> 2x Deuterium");
+            "Platinum Tier (IV) | Sub-boiling conductive cooling (Boils at 100°C) -> Transmutes to Deuterium");
         addFluidCoolant(
             "heavywater",
             "Heavy Water",
@@ -414,19 +402,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             true,
             getFluidDisplay("tritium", 1000),
             1_000L,
-            "Quantium Tier (ZPM) | Boils at 100°C (1:160 HW Steam) -> Transmutes to Tritium");
-        addFluidCoolant(
-            "highpressureheavywater",
-            "HP Heavy Water",
-            0.85,
-            0.005,
-            0.90,
-            0.85,
-            0.01,
-            true,
-            getFluidDisplay("tritium", 2000),
-            1_000L,
-            "Fluxed Electrum Tier (UV) | Boils at 200°C (1:320 SC HW Steam) -> 2x Tritium");
+            "Quantium Tier (ZPM) | Sub-boiling conductive cooling (Boils at 101.4°C) -> Transmutes to Tritium");
     }
 
     private static void addModerator(ItemStack stack, String name, double fScat, double fAbs, double slow, double tScat,

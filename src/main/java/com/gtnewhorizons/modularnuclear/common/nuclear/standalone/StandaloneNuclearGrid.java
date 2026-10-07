@@ -2,7 +2,9 @@ package com.gtnewhorizons.modularnuclear.common.nuclear.standalone;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -17,6 +19,13 @@ public class StandaloneNuclearGrid {
     private int height;
     private SimTile[][] grid;
     private int pipeTier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
+    private CoolantLoopModel.CoolingMode coolingMode = CoolantLoopModel.CoolingMode.MODULAR;
+    private CoolantLoopModel coolantLoop = new CoolantLoopModel();
+    private double grossPowerEUt = 0.0;
+
+    // Maintenance & Structural Integrity
+    private double reactorDamage = 0.0;
+    private int maintenanceIssues = 0;
 
     // Simulation metrics
     private long currentTick = 0;
@@ -71,9 +80,17 @@ public class StandaloneNuclearGrid {
         public final int neutrons;
         public final double powerEUt;
         public final boolean safe;
+        public final double reactorDamage;
+        public final int maintenanceIssues;
+        public final double maintenanceEfficiency;
 
         public TickTelemetry(long tick, double maxTemp, double avgTemp, double efficiency, int neutrons,
             double powerEUt, boolean safe) {
+            this(tick, maxTemp, avgTemp, efficiency, neutrons, powerEUt, safe, 0.0, 0, 1.0);
+        }
+
+        public TickTelemetry(long tick, double maxTemp, double avgTemp, double efficiency, int neutrons,
+            double powerEUt, boolean safe, double reactorDamage, int maintenanceIssues, double maintenanceEfficiency) {
             this.tick = tick;
             this.maxTemp = maxTemp;
             this.avgTemp = avgTemp;
@@ -81,6 +98,9 @@ public class StandaloneNuclearGrid {
             this.neutrons = neutrons;
             this.powerEUt = powerEUt;
             this.safe = safe;
+            this.reactorDamage = reactorDamage;
+            this.maintenanceIssues = maintenanceIssues;
+            this.maintenanceEfficiency = maintenanceEfficiency;
         }
 
         public long tick() {
@@ -110,9 +130,200 @@ public class StandaloneNuclearGrid {
         public boolean safe() {
             return safe;
         }
+
+        public double reactorDamage() {
+            return reactorDamage;
+        }
+
+        public int maintenanceIssues() {
+            return maintenanceIssues;
+        }
+
+        public double maintenanceEfficiency() {
+            return maintenanceEfficiency;
+        }
+    }
+
+    public static class IncidentEvent {
+
+        public final long tick;
+        public final String type;
+        public final String message;
+        public final double damage;
+
+        public IncidentEvent(long tick, String type, String message, double damage) {
+            this.tick = tick;
+            this.type = type;
+            this.message = message;
+            this.damage = damage;
+        }
+
+        public long tick() {
+            return tick;
+        }
+
+        public String type() {
+            return type;
+        }
+
+        public String message() {
+            return message;
+        }
+
+        public double damage() {
+            return damage;
+        }
+    }
+
+    public static class SolidFuelByproduct {
+
+        public final SimTile.TileType type;
+        public final String fuelName;
+        public final String fuelCode;
+        public final String depletedName;
+        public final String depletedCode;
+        public final int activeRods;
+        public final double itemsPerMinute;
+        public final double itemsPerHour;
+        public final long totalProduced;
+        public final double avgLifespanMinutes;
+
+        public SolidFuelByproduct(SimTile.TileType type, String fuelName, String fuelCode, String depletedName,
+            String depletedCode, int activeRods, double itemsPerMinute, double itemsPerHour, long totalProduced,
+            double avgLifespanMinutes) {
+            this.type = type;
+            this.fuelName = fuelName;
+            this.fuelCode = fuelCode;
+            this.depletedName = depletedName;
+            this.depletedCode = depletedCode;
+            this.activeRods = activeRods;
+            this.itemsPerMinute = itemsPerMinute;
+            this.itemsPerHour = itemsPerHour;
+            this.totalProduced = totalProduced;
+            this.avgLifespanMinutes = avgLifespanMinutes;
+        }
+    }
+
+    public static class LiquidFuelByproduct {
+
+        public final SimTile.TileType type;
+        public final String fluidName;
+        public final String displayName;
+        public final int activeHatches;
+        public final double litersPerMinute;
+        public final double litersPerHour;
+        public final long totalLiters;
+
+        public LiquidFuelByproduct(SimTile.TileType type, String fluidName, String displayName, int activeHatches,
+            double litersPerMinute, double litersPerHour, long totalLiters) {
+            this.type = type;
+            this.fluidName = fluidName;
+            this.displayName = displayName;
+            this.activeHatches = activeHatches;
+            this.litersPerMinute = litersPerMinute;
+            this.litersPerHour = litersPerHour;
+            this.totalLiters = totalLiters;
+        }
+    }
+
+    public static class IsotopeByproduct {
+
+        public final String name;
+        public final String code;
+        public final double litersPerMinute;
+        public final double litersPerHour;
+        public final long totalLiters;
+
+        public IsotopeByproduct(String name, String code, double litersPerMinute, double litersPerHour,
+            long totalLiters) {
+            this.name = name;
+            this.code = code;
+            this.litersPerMinute = litersPerMinute;
+            this.litersPerHour = litersPerHour;
+            this.totalLiters = totalLiters;
+        }
     }
 
     private final List<TickTelemetry> history = new ArrayList<>();
+    private boolean strictMode = false;
+    private final List<IncidentEvent> incidentLog = new ArrayList<>();
+    private long lastIncidentTick = 0;
+    private boolean autoReplaceFuel = true;
+    private boolean stopOnIncidents = false;
+    private boolean haltedByIncident = false;
+    private String lastHaltIncidentReason = "";
+    private final Map<SimTile.TileType, Long> cumulativeDepletedFuelItems = new EnumMap<>(SimTile.TileType.class);
+    private final Map<SimTile.TileType, Long> cumulativeDepletedLiquidLiters = new EnumMap<>(SimTile.TileType.class);
+
+    public boolean isStopOnIncidents() {
+        return stopOnIncidents;
+    }
+
+    public void setStopOnIncidents(boolean stopOnIncidents) {
+        this.stopOnIncidents = stopOnIncidents;
+        if (!stopOnIncidents) {
+            this.haltedByIncident = false;
+            this.lastHaltIncidentReason = "";
+        }
+    }
+
+    public boolean isHaltedByIncident() {
+        return haltedByIncident;
+    }
+
+    public void clearHaltedByIncident() {
+        this.haltedByIncident = false;
+        this.lastHaltIncidentReason = "";
+    }
+
+    public void setHaltedByIncident(boolean halted, String reason) {
+        this.haltedByIncident = halted;
+        this.lastHaltIncidentReason = (reason != null) ? reason : "";
+    }
+
+    public String getLastHaltIncidentReason() {
+        return lastHaltIncidentReason;
+    }
+
+    public boolean isAutoSupplyFuel() {
+        return autoReplaceFuel;
+    }
+
+    public void setAutoSupplyFuel(boolean autoSupplyFuel) {
+        this.autoReplaceFuel = autoSupplyFuel;
+    }
+
+    public boolean isStrictMode() {
+        return strictMode;
+    }
+
+    public void setStrictMode(boolean strictMode) {
+        this.strictMode = strictMode;
+    }
+
+    public List<IncidentEvent> getIncidentLog() {
+        return Collections.unmodifiableList(incidentLog);
+    }
+
+    public long getLastIncidentTick() {
+        return lastIncidentTick;
+    }
+
+    public void clearIncidentLog() {
+        this.incidentLog.clear();
+    }
+
+    public void logIncident(String type, String message, double damage) {
+        this.lastIncidentTick = this.currentTick;
+        if (this.incidentLog.size() >= 100) {
+            this.incidentLog.remove(0);
+        }
+        this.incidentLog.add(new IncidentEvent(this.currentTick, type, message, damage));
+        if (this.stopOnIncidents && damage > 0.0 && !this.haltedByIncident) {
+            this.haltedByIncident = true;
+            this.lastHaltIncidentReason = String.format(java.util.Locale.US, "[%s] %s (+%.1f%% damage)", type, message, damage);
+        }
+    }
 
     public static class IntermediateStepSnapshot {
 
@@ -264,8 +475,37 @@ public class StandaloneNuclearGrid {
         this.burnedFuelCount = 0;
         this.voidedHatchCount = 0;
         this.peakLifetimeTemp = NuclearSimulationEngine.AMBIENT_TEMP;
+        this.reactorDamage = 0.0;
+        this.maintenanceIssues = 0;
+        this.coolantLoop.reset();
+        this.grossPowerEUt = 0.0;
         this.stepTraceBuffer.clear();
         this.history.clear();
+        this.incidentLog.clear();
+        this.lastIncidentTick = 0;
+        this.haltedByIncident = false;
+        this.lastHaltIncidentReason = "";
+        this.cumulativeDepletedFuelItems.clear();
+        this.cumulativeDepletedLiquidLiters.clear();
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                SimTile tile = grid[x][y];
+                if (tile != null) {
+                    tile.setTemperature(NuclearSimulationEngine.AMBIENT_TEMP);
+                    if (tile.isFuel()) {
+                        tile.setDurability(tile.getMaxDurability());
+                        tile.setDepleted(false);
+                        tile.setDepletionLogged(false);
+                    }
+                    if (tile.isHatch()) {
+                        tile.setInputFluidAmount(tile.getInputFluidCapacity());
+                        tile.setOutputFluidAmount(0);
+                        tile.setWasDry(false);
+                        tile.setDepleted(false);
+                    }
+                }
+            }
+        }
     }
 
     public void setTile(int x, int y, SimTile.TileType type) {
@@ -274,6 +514,11 @@ public class StandaloneNuclearGrid {
                 return;
             }
             grid[x][y].setType(type);
+            if (grid[x][y].isHatch()) {
+                int hatchTier = Math.max(1, pipeTier + 4);
+                grid[x][y].setTier(hatchTier);
+                grid[x][y].setInputFluidCapacity(8000 * (1 << hatchTier));
+            }
         }
     }
 
@@ -300,42 +545,27 @@ public class StandaloneNuclearGrid {
      */
     public boolean step() {
         if (exploded || powerFailed) return false;
+        if (stopOnIncidents && haltedByIncident) return false;
 
+        double initialDamage = this.reactorDamage;
         currentTick++;
         recordTraceSnapshot("PRE_TICK", "State before coolant feed");
 
-        // 0. Check for high-pressure coolant in insufficient casing tier -> EXPLODE!
+        // 1. Coolant & Liquid Fuel Feed Phase: Replenish hatches that have space, checking dry thermal shock
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 SimTile tile = grid[x][y];
-                if (tile != null && tile.isHatch() && tile.getInputFluidAmount() > 0) {
-                    String name = tile.getInputFluidName();
-                    if (name != null && name.contains("highpressure")) {
-                        int reqTier = NuclearSimulationEngine.getRequiredFluidTier(name);
-                        if (pipeTier < reqTier) {
-                            triggerExplosion(
-                                "Catastrophic overpressure explosion: " + name
-                                    + " requires "
-                                    + NuclearSimulationEngine.getPipeTierVoltageName(reqTier)
-                                    + " ("
-                                    + NuclearSimulationEngine.getPipeTierName(reqTier)
-                                    + ") casing or higher, but reactor is only "
-                                    + NuclearSimulationEngine.getPipeTierVoltageName(pipeTier)
-                                    + " ("
-                                    + NuclearSimulationEngine.getPipeTierName(pipeTier)
-                                    + ")");
-                            return false;
+                if (tile == null) continue;
+                if (tile.isLiquidFuelHatch()) {
+                    if (autoReplaceFuel) {
+                        int space = tile.getInputFluidCapacity() - tile.getInputFluidAmount();
+                        if (space > 0) {
+                            tile.setInputFluidAmount(tile.getInputFluidCapacity());
+                            tile.setDepleted(false);
+                            tile.setWasDry(false);
                         }
                     }
-                }
-            }
-        }
-
-        // 1. Coolant Feed Phase: Replenish hatches that have space, checking dry thermal shock
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                SimTile tile = grid[x][y];
-                if (tile.isCoolantHatch() && tile.isAutoRefill()) {
+                } else if (tile.isCoolantHatch() && tile.isAutoRefill()) {
                     int space = tile.getInputFluidCapacity() - tile.getInputFluidAmount();
                     if (space > 0) {
                         int feed = Math.min(space, NuclearSimulationEngine.coolantFeedRate);
@@ -344,16 +574,20 @@ public class StandaloneNuclearGrid {
                                 double threshold = NuclearSimulationEngine
                                     .getCoolantBoilingThreshold(tile.getInputFluidName());
                                 if (tile.getTemperature() > threshold) {
-                                    triggerDryCoolantShutdown(
-                                        "Thermal Shock: Cold coolant fed into dry superheated hatch at (" + x
-                                            + ","
-                                            + y
-                                            + ") with temperature "
-                                            + String.format("%.1f", tile.getTemperature())
-                                            + "°C exceeding boiling threshold "
-                                            + threshold
-                                            + "°C");
-                                    return false;
+                                    triggerThermalShock(
+                                        x,
+                                        y,
+                                        String.format(
+                                            java.util.Locale.US,
+                                            "Thermal Shock: Cold coolant fed into dry superheated hatch at (%d,%d) with temperature %.1f°C exceeding boiling threshold %.1f°C",
+                                            x,
+                                            y,
+                                            tile.getTemperature(),
+                                            threshold));
+                                    tile.setInputFluidAmount(0);
+                                    tile.setWasDry(true);
+                                    if (exploded || powerFailed) return false;
+                                    continue;
                                 }
                                 tile.setWasDry(false);
                             }
@@ -365,28 +599,19 @@ public class StandaloneNuclearGrid {
         }
         recordTraceSnapshot("POST_COOLANT_FEED", "Coolant fed into hatches");
 
-        // 2. Check loss-of-coolant: if active reactor has coolant hatches and all of them are dry
-        boolean hasFuel = false;
-        boolean hasCoolantHatches = false;
-        boolean allCoolantDry = true;
+        // 2. Track empty coolant hatches as dry
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 SimTile tile = grid[x][y];
-                if (tile != null) {
-                    if (tile.isFuel()) hasFuel = true;
-                    else if (tile.isHatch()) {
-                        hasCoolantHatches = true;
-                        if (tile.getInputFluidAmount() > 0) allCoolantDry = false;
+                if (tile != null && tile.isCoolantHatch()) {
+                    if (tile.getInputFluidAmount() <= 0) {
+                        tile.setWasDry(true);
                     }
                 }
             }
         }
-        if (hasFuel && hasCoolantHatches && allCoolantDry) {
-            triggerDryCoolantShutdown("Loss of Coolant: All coolant hatches depleted on active reactor");
-            return false;
-        }
 
-        // 3. Call the mod's pure Java NuclearSimulationEngine
+        // 3. Call the mod's pure Java NuclearSimulationEngine with live maintenance efficiency
         INuclearTile[][] simGrid = new INuclearTile[width][height];
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
@@ -397,7 +622,8 @@ public class StandaloneNuclearGrid {
                 }
             }
         }
-        NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine.simulate(simGrid, width, height);
+        NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine.simulate(
+            simGrid, width, height, getMaintenanceEfficiency(), NuclearSimulationEngine.ambientTemp);
 
         coreMaxTemp = res.maxTemperature;
         coreAvgTemp = res.averageTemperature;
@@ -413,6 +639,75 @@ public class StandaloneNuclearGrid {
 
         totalNeutronsGenerated += lastNeutronsProduced;
         recordTraceSnapshot("POST_SIMULATE", "Nuclear fission, diffusion and boiling completed");
+
+        // 3.1. Fuel burnup & byproduct tracking
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                SimTile tile = grid[x][y];
+                if (tile == null) continue;
+
+                if (tile.isLiquidFuelHatch()) {
+                    int burned = tile.getLastLiquidFuelBurned();
+                    if (burned > 0) {
+                        cumulativeDepletedLiquidLiters.put(
+                            tile.getType(),
+                            cumulativeDepletedLiquidLiters.getOrDefault(tile.getType(), 0L) + burned);
+                    }
+                    if (autoReplaceFuel) {
+                        tile.setInputFluidAmount(tile.getInputFluidCapacity());
+                        tile.setDepleted(false);
+                        tile.setWasDry(false);
+                    }
+                } else if (tile.isFuel() || tile.isDepleted()) {
+                    if (tile.getDurability() <= 0 || tile.isDepleted()) {
+                        if (autoReplaceFuel) {
+                            cumulativeDepletedFuelItems.put(
+                                tile.getType(),
+                                cumulativeDepletedFuelItems.getOrDefault(tile.getType(), 0L) + 1L);
+                            tile.setDurability(tile.getMaxDurability());
+                            tile.setDepleted(false);
+                            logIncident(
+                                "FUEL_CYCLED",
+                                String.format(
+                                    java.util.Locale.US,
+                                    "Spent %s at (%d,%d) replaced with fresh rod (produced 1x %s [%s])",
+                                    tile.getType().displayName,
+                                    x,
+                                    y,
+                                    tile.getDepletedDisplayName(),
+                                    tile.getDepletedCode()),
+                                0.0);
+                        } else if (!tile.isDepletionLogged()) {
+                            cumulativeDepletedFuelItems.put(
+                                tile.getType(),
+                                cumulativeDepletedFuelItems.getOrDefault(tile.getType(), 0L) + 1L);
+                            tile.setDepletionLogged(true);
+                            logIncident(
+                                "FUEL_DEPLETED",
+                                String.format(
+                                    java.util.Locale.US,
+                                    "Fuel rod %s at (%d,%d) reached 0 durability and depleted (produced 1x %s [%s])",
+                                    tile.getType().displayName,
+                                    x,
+                                    y,
+                                    tile.getDepletedDisplayName(),
+                                    tile.getDepletedCode()),
+                                0.0);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3.5. Execute Coolant Loop Convective Heat Transfer & Secondary Boiling
+        if (shouldStepCoolantLoop()) {
+            boolean loopOk = coolantLoop.step(this, grid, width, height);
+            if (!loopOk || coolantLoop.isRuptured()) {
+                triggerExplosion("Coolant Loop Failure: " + coolantLoop.getRuptureReason());
+                return false;
+            }
+            recordTraceSnapshot("POST_COOLANT_LOOP", "Convective coolant loop heat extraction and PHE secondary boiling completed");
+        }
 
         // 4. Strict Check for Negative Temperature Anomaly
         for (int x = 0; x < width; x++) {
@@ -438,21 +733,65 @@ public class StandaloneNuclearGrid {
         }
 
         // 5. Check casing operating temperature limit:
-        // Overheating hatches void items and fluids inside, but do NOT explode!
+        // Overheating hatches void items and fluids inside and inflict 1% reactor damage per tile per tick
         double maxTempAllowed = NuclearSimulationEngine.getMaxOperatingTemperature(pipeTier);
+        int overheatingCount = 0;
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 SimTile tile = grid[x][y];
                 if (tile != null && tile.getTemperature() > maxTempAllowed) {
+                    overheatingCount++;
                     if (tile.isHatch()) {
                         voidedHatchCount++;
                         tile.setInputFluidAmount(0);
                         tile.setOutputFluidAmount(0);
+                        tile.setWasDry(true);
                     } else if (tile.isFuel()) {
                         burnedFuelCount++;
                         tile.setType(SimTile.TileType.EMPTY);
+                        logIncident(
+                            "FUEL_BURNED",
+                            String.format(
+                                java.util.Locale.US,
+                                "Fuel rod burned up at (%d,%d) due to casing overheat (%.1f °C > %.1f °C)",
+                                x,
+                                y,
+                                tile.getTemperature(),
+                                maxTempAllowed),
+                            1.0);
                     }
                 }
+            }
+        }
+        if (overheatingCount > 0) {
+            double addedDamage = overheatingCount * 1.0;
+            reactorDamage = Math.min(100.0, reactorDamage + addedDamage);
+            String overheatMsg = String.format(
+                java.util.Locale.US,
+                "%d tiles overheated casing max (%.1f°C). Reactor Damage +%.1f%% (now %.1f%%)",
+                overheatingCount,
+                maxTempAllowed,
+                addedDamage,
+                reactorDamage);
+            logIncident("CASING_OVERHEAT", overheatMsg, addedDamage);
+            recordTraceSnapshot("CASING_OVERHEAT", overheatMsg);
+            if (strictMode) {
+                triggerPowerFail(
+                    String.format(
+                        java.util.Locale.US,
+                        "Calibration Disqualification: %d tiles overheated casing max (%.1f°C)",
+                        overheatingCount,
+                        maxTempAllowed));
+                return false;
+            }
+            if (reactorDamage >= 100.0) {
+                triggerExplosion(
+                    String.format(
+                        java.util.Locale.US,
+                        "Meltdown: Reactor structural damage reached 100%% from casing overheating! (%d overheated tiles at >%.1f°C)",
+                        overheatingCount,
+                        maxTempAllowed));
+                return false;
             }
         }
 
@@ -481,15 +820,31 @@ public class StandaloneNuclearGrid {
                 if (tickProduced > 0) {
                     switch (tile.getType()) {
                         case HATCH_DISTILLED_WATER -> flowRegularSteam += tickProduced;
-                        case HATCH_HP_DISTILLED_WATER -> flowSuperheatedSteam += tickProduced;
                         case HATCH_HEAVY_WATER -> flowHeavyWaterSteam += tickProduced;
-                        case HATCH_HP_HEAVY_WATER -> flowHPHeavyWaterSteam += tickProduced;
                         case HATCH_IC2_COOLANT -> flowHotCoolant += tickProduced;
                         default -> {}
                     }
                 }
             }
         }
+
+        if (shouldStepCoolantLoop()) {
+            double loopSteam = coolantLoop.getLastSecondarySteamProducedLt();
+            if (loopSteam > 0) {
+                double temp = coolantLoop.getCurrentCoolantTempCelsius();
+                if (temp >= 700.0) {
+                    flowSupercriticalSteam += loopSteam;
+                } else if (temp >= 300.0) {
+                    flowSuperheatedSteam += loopSteam;
+                } else {
+                    flowRegularSteam += loopSteam;
+                }
+            }
+            cumSteam += (long) Math.round(coolantLoop.getTotalSecondarySteamProduced());
+            dCount += (int) coolantLoop.getTotalDeuteriumProduced();
+            tCount += (int) coolantLoop.getTotalTritiumProduced();
+        }
+
         totalSteamProduced = cumSteam;
         totalDeuteriumProduced = dCount;
         totalTritiumProduced = tCount;
@@ -520,6 +875,12 @@ public class StandaloneNuclearGrid {
             null,
             null);
 
+        grossPowerEUt = lastPowerResult.totalPowerEUt;
+        if (shouldStepCoolantLoop()) {
+            double pumpPower = coolantLoop.getLastPumpPowerEUt();
+            lastPowerResult.totalPowerEUt = Math.max(0.0, lastPowerResult.totalPowerEUt - pumpPower);
+        }
+
         totalEnergyEU += lastPowerResult.totalPowerEUt;
 
         // Telemetry sampling (keep last 500 ticks for charts)
@@ -534,7 +895,23 @@ public class StandaloneNuclearGrid {
                 efficiency,
                 lastNeutronsProduced,
                 lastPowerResult.totalPowerEUt,
-                true));
+                true,
+                reactorDamage,
+                maintenanceIssues,
+                getMaintenanceEfficiency()));
+
+        if (this.stopOnIncidents && !this.haltedByIncident && this.reactorDamage > initialDamage) {
+            this.haltedByIncident = true;
+            this.lastHaltIncidentReason = String.format(
+                java.util.Locale.US,
+                "Reactor structural damage increased from %.1f%% to %.1f%%",
+                initialDamage,
+                this.reactorDamage);
+        }
+
+        if (this.stopOnIncidents && this.haltedByIncident) {
+            return false;
+        }
 
         return true;
     }
@@ -542,6 +919,8 @@ public class StandaloneNuclearGrid {
     public void triggerExplosion(String reason) {
         this.exploded = true;
         this.explosionReason = reason;
+        logIncident("MELTDOWN", reason, 100.0 - this.reactorDamage);
+        this.reactorDamage = 100.0;
         if (!history.isEmpty()) {
             TickTelemetry last = history.get(history.size() - 1);
             history.set(
@@ -553,29 +932,104 @@ public class StandaloneNuclearGrid {
                     last.efficiency(),
                     last.neutrons(),
                     last.powerEUt(),
-                    false));
+                    false,
+                    100.0,
+                    last.maintenanceIssues,
+                    0.0));
+        }
+    }
+
+    public void triggerPowerFail(String reason) {
+        this.powerFailed = true;
+        this.powerFailReason = reason;
+        logIncident("POWER_FAIL", reason, 0.0);
+        if (!history.isEmpty()) {
+            TickTelemetry last = history.get(history.size() - 1);
+            history.set(
+                history.size() - 1,
+                new TickTelemetry(
+                    last.tick(),
+                    last.maxTemp(),
+                    last.avgTemp(),
+                    last.efficiency(),
+                    last.neutrons(),
+                    last.powerEUt(),
+                    false,
+                    last.reactorDamage,
+                    last.maintenanceIssues,
+                    last.maintenanceEfficiency));
+        }
+    }
+
+    public void triggerThermalShock(int x, int y, String reason) {
+        reactorDamage = Math.min(100.0, reactorDamage + 2.0);
+        causeNewMaintenanceIssue();
+        logIncident("THERMAL_SHOCK", reason, 2.0);
+        recordTraceSnapshot(
+            "THERMAL_SHOCK",
+            String.format(
+                java.util.Locale.US,
+                "%s [Reactor Damage: %.1f%%, Maint Issues: %d/6]",
+                reason,
+                reactorDamage,
+                maintenanceIssues));
+        if (strictMode) {
+            triggerPowerFail("Calibration Disqualification: Thermal Shock occurred (" + reason + ")");
+            return;
+        }
+        if (reactorDamage >= 100.0) {
+            triggerExplosion("Meltdown: Reactor structural damage reached 100% from catastrophic thermal shock! (" + reason + ")");
         }
     }
 
     public void triggerDryCoolantShutdown(String reason) {
-        this.powerFailed = true;
-        this.powerFailReason = reason;
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                SimTile tile = grid[x][y];
-                if (tile != null) {
-                    if (tile.isHatch()) {
-                        tile.setInputFluidAmount(0);
-                        tile.setOutputFluidAmount(0);
-                        tile.setWasDry(true);
-                    } else if (tile.isFuel()) {
-                        // Void only fuel rods, keep reflectors and radiovoltaics!
-                        tile.setType(SimTile.TileType.EMPTY);
-                    }
-                }
-            }
+        triggerThermalShock(-1, -1, reason);
+    }
+
+    public double getReactorDamage() {
+        return reactorDamage;
+    }
+
+    public void setReactorDamage(double damage) {
+        this.reactorDamage = Math.max(0.0, Math.min(100.0, damage));
+    }
+
+    public int getMaintenanceIssues() {
+        return maintenanceIssues;
+    }
+
+    public void setMaintenanceIssues(int issues) {
+        this.maintenanceIssues = Math.max(0, Math.min(6, issues));
+    }
+
+    public double getMaintenanceEfficiency() {
+        double baseEff = Math.max(0.0, Math.min(1.0, (6.0 - maintenanceIssues) / 6.0));
+        double damageFactor = Math.max(0.0, Math.min(1.0, (100.0 - reactorDamage) / 100.0));
+        return baseEff * damageFactor;
+    }
+
+    public void causeNewMaintenanceIssue() {
+        if (maintenanceIssues < 6) {
+            maintenanceIssues++;
         }
-        recordTraceSnapshot("DRY_COOLANT_SHUTDOWN", reason);
+    }
+
+    public void repairMaintenance() {
+        this.maintenanceIssues = 0;
+        this.reactorDamage = 0.0;
+        logIncident("REPAIR", "Reactor structural damage repaired and maintenance issues cleared", 0.0);
+    }
+
+    public void repair() {
+        repairMaintenance();
+    }
+
+    public double getBaseHatchConductance() {
+        return NuclearSimulationEngine.baseHatchConductance;
+    }
+
+    public void setBaseHatchConductance(double val) {
+        NuclearSimulationEngine.setBaseHatchConductance(val);
     }
 
     /**
@@ -603,28 +1057,28 @@ public class StandaloneNuclearGrid {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
                 applyDefaultTurbinesForTier();
                 loadLayout(
-                    "RB,RB,HP,HP,HP,HP,HP,RB,RB;RB,HP,HP,HP,HP,HP,HP,HP,RB;HP,HP,HP,M4,HP,M4,HP,HP,HP;HP,HP,M4,HP,HP,HP,M4,HP,HP;HP,HP,HP,HP,HP,HP,HP,HP,HP;HP,HP,M4,HP,HP,HP,M4,HP,HP;HP,HP,HP,M4,HP,M4,HP,HP,HP;RB,HP,M4,HP,HP,HP,M4,HP,RB;RB,RB,HP,HP,HP,HP,HP,RB,RB");
+                    "RB,RB,CP,CP,CP,CP,CP,RB,RB;RB,CP,CP,CP,CP,CP,CP,CP,RB;CP,CP,CP,M4,CP,M4,CP,CP,CP;CP,CP,M4,CP,CP,CP,M4,CP,CP;CP,CP,CP,CP,CP,CP,CP,CP,CP;CP,CP,M4,CP,CP,CP,M4,CP,CP;CP,CP,CP,M4,CP,M4,CP,CP,CP;RB,CP,M4,CP,CP,CP,M4,CP,RB;RB,RB,CP,CP,CP,CP,CP,RB,RB");
                 updateHatchCapacities(32000);
             }
             case "60A_QUANTIUM_13X13", "ZPM_60A", "QUANTIUM_60A" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_QUANTIUM;
                 applyDefaultTurbinesForTier();
                 loadLayout(
-                    "RB,RB,RB,HP,HP,HP,HP,HP,HP,HP,RB,RB,RB;RB,RB,HP,HP,HP,HP,HP,HP,HP,HP,HP,RB,RB;RB,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,RB;HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP;HP,HP,M4,HP,HP,M4,HP,M4,HP,HP,M4,HP,HP;HP,HP,HP,M4,HP,M4,HP,M4,HP,M4,HP,HP,HP;HP,HP,HP,HP,M4,HP,HP,HP,M4,HP,HP,HP,HP;HP,HP,HP,M4,HP,M4,HP,M4,HP,M4,HP,HP,HP;HP,HP,M4,HP,HP,M4,HP,M4,HP,HP,M4,HP,HP;HP,HP,HP,HP,HP,M4,HP,M4,HP,HP,HP,HP,HP;RB,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,HP,RB;RB,RB,HP,HP,HP,HP,HP,HP,HP,HP,HP,RB,RB;RB,RB,RB,HP,HP,HP,HP,HP,HP,HP,RB,RB,RB");
+                    "RB,RB,RB,CP,CP,CP,CP,CP,CP,CP,RB,RB,RB;RB,RB,CP,CP,CP,CP,CP,CP,CP,CP,CP,RB,RB;RB,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,RB;CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP;CP,CP,M4,CP,CP,M4,CP,M4,CP,CP,M4,CP,CP;CP,CP,CP,M4,CP,M4,CP,M4,CP,M4,CP,CP,CP;CP,CP,CP,CP,M4,CP,CP,CP,M4,CP,CP,CP,CP;CP,CP,CP,M4,CP,M4,CP,M4,CP,M4,CP,CP,CP;CP,CP,M4,CP,CP,M4,CP,M4,CP,CP,M4,CP,CP;CP,CP,CP,CP,CP,M4,CP,M4,CP,CP,CP,CP,CP;RB,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,RB;RB,RB,CP,CP,CP,CP,CP,CP,CP,CP,CP,RB,RB;RB,RB,RB,CP,CP,CP,CP,CP,CP,CP,RB,RB,RB");
                 updateHatchCapacities(64000);
             }
             case "60A_FLUXED_13X13", "UV_60A", "FLUXED_60A" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM;
                 applyDefaultTurbinesForTier();
                 loadLayout(
-                    "RB,RB,RB,HH,HH,HH,HH,HH,HH,HH,RB,RB,RB;RB,RB,HH,NQR,HH,HH,HH,HH,HH,NQR,HH,RB,RB;RB,NQR,HH,NQR,HH,HH,HH,HH,HH,NQR,HH,NQR,RB;NQR,HH,NQR,HH,NQR,NQR,HH,NQR,NQR,HH,NQR,HH,NQR;HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH;NQR,HH,HH,NQR,HH,HH,HH,HH,HH,NQR,HH,HH,NQR;HH,HH,HH,HH,NQR,NQR,CR,NQR,NQR,HH,HH,HH,HH;NQR,HH,HH,NQR,HH,HH,HH,HH,HH,NQ,HH,HH,NQ;HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH,HH;NQ,HH,NQ,HH,NQ,NQ,HH,NQ,NQ,HH,NQ,HH,NQ;RB,NQ,HH,NQ,HH,HH,HH,HH,HH,NQ,HH,NQ,RB;RB,RB,HH,NQ,HH,HH,HH,HH,HH,NQ,HH,RB,RB;RB,RB,RB,HH,HH,HH,HH,HH,HH,HH,RB,RB,RB");
+                    "RB,RB,RB,CP,CP,CP,CP,CP,CP,CP,RB,RB,RB;RB,RB,CP,NQR,CP,CP,CP,CP,CP,NQR,CP,RB,RB;RB,NQR,CP,NQR,CP,CP,CP,CP,CP,NQR,CP,NQR,RB;NQR,CP,NQR,CP,NQR,NQR,CP,NQR,NQR,CP,NQR,CP,NQR;CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP;NQR,CP,CP,NQR,CP,CP,CP,CP,CP,NQR,CP,CP,NQR;CP,CP,CP,CP,NQR,NQR,CR,NQR,NQR,CP,CP,CP,CP;NQR,CP,CP,NQR,CP,CP,CP,CP,CP,NQ,CP,CP,NQ;CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP,CP;NQ,CP,NQ,CP,NQ,NQ,CP,NQ,NQ,CP,NQ,CP,NQ;RB,NQ,CP,NQ,CP,CP,CP,CP,CP,NQ,CP,NQ,RB;RB,RB,CP,NQ,CP,CP,CP,CP,CP,NQ,CP,RB,RB;RB,RB,RB,CP,CP,CP,CP,CP,CP,CP,RB,RB,RB");
                 updateHatchCapacities(128000);
             }
             case "60A_PLUTONIUM_13X13", "UHV_60A", "PLUTONIUM_60A" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM;
                 applyDefaultTurbinesForTier();
                 loadLayout(
-                    "RB,RB,RB,HH,HH,HH,HH,HH,HH,HH,RB,RB,RB;RB,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,RB;RB,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,RB;HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH;HH,HH,NQR,HH,NQR,HH,CR,HH,NQR,HH,NQR,HH,HH;HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH;HH,HH,NQR,HH,CR,HH,NQR,HH,CR,HH,NQR,HH,HH;HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH;HH,HH,NQR,HH,NQR,HH,CR,HH,NQR,HH,NQR,HH,HH;HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH;RB,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,RB;RB,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,HH,NQR,RB;RB,RB,RB,HH,HH,HH,HH,HH,HH,HH,RB,RB,RB");
+                    "RB,RB,RB,CP,CP,CP,CP,CP,CP,CP,RB,RB,RB;RB,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,RB;RB,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,RB;CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP;CP,CP,NQR,CP,NQR,CP,CR,CP,NQR,CP,NQR,CP,CP;CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP;CP,CP,NQR,CP,CR,CP,NQR,CP,CR,CP,NQR,CP,CP;CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP;CP,CP,NQR,CP,NQR,CP,CR,CP,NQR,CP,NQR,CP,CP;CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP;RB,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,RB;RB,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,CP,NQR,RB;RB,RB,RB,CP,CP,CP,CP,CP,CP,CP,RB,RB,RB");
                 updateHatchCapacities(256000);
             }
 
@@ -652,7 +1106,7 @@ public class StandaloneNuclearGrid {
                 this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
                 this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
                 loadLayout(
-                    "M4,NQ,EXU,EXP,HP,EXP,EXU,NQ,M4;NQ,EXP,HD,HP,M2,HP,HD,EXP,NQ;U4,HP,HP,HP,M2,HP,HP,HP,U4;EXP,HP,M2,HP,HP,HP,M2,HP,EXP;T4,EXP,EXP,HP,HP,HP,EXP,EXP,T4;EXP,HP,M2,HP,HP,HP,M2,HP,EXP;U4,HP,HP,HP,M2,HP,HP,HP,U4;NQ,EXP,HD,HP,M2,HP,HD,EXP,NQ;M4,NQ,EXU,EXP,HP,EXP,EXU,NQ,M4");
+                    "M4,NQ,EXU,EXP,CP,EXP,EXU,NQ,M4;NQ,EXP,HD,CP,M2,CP,HD,EXP,NQ;U4,CP,CP,CP,M2,CP,CP,CP,U4;EXP,CP,M2,CP,CP,CP,M2,CP,EXP;T4,EXP,EXP,CP,CP,CP,EXP,EXP,T4;EXP,CP,M2,CP,CP,CP,M2,CP,EXP;U4,CP,CP,CP,M2,CP,CP,CP,U4;NQ,EXP,HD,CP,M2,CP,HD,EXP,NQ;M4,NQ,EXU,EXP,CP,EXP,EXU,NQ,M4");
                 updateHatchCapacities(32000);
             }
             case "BEST_QUANTIUM_9X9", "BEST_QUANTIUM_13X13", "MAX_QUANTIUM_13X13", "CANDU_HEAVY_WATER_13X13", "CANDU_HEAVY_WATER_9X9", "ZPM_PEAK" -> {
@@ -661,7 +1115,7 @@ public class StandaloneNuclearGrid {
                 this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
                 this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
                 loadLayout(
-                    "M4,M4,NQ,M4,M4,M4,NQ,M4,M4;M4,HW,BH,HC,HW,HC,BH,HW,M4;U4,NQ,NQ,M4,NQ,M4,NQ,NQ,U4;T4,HP,M4,T4,M4,T4,M4,HP,T4;U4,NQ,HC,M4,M4,M4,HC,NQ,U4;T4,HP,M4,T4,M4,T4,M4,HP,T4;U4,NQ,NQ,M4,NQ,M4,NQ,NQ,U4;M4,HW,BH,HC,HW,HC,BH,HW,M4;M4,M4,NQ,M4,M4,M4,NQ,M4,M4");
+                    "M4,M4,NQ,M4,M4,M4,NQ,M4,M4;M4,HW,BH,HC,HW,HC,BH,HW,M4;U4,NQ,NQ,M4,NQ,M4,NQ,NQ,U4;T4,CP,M4,T4,M4,T4,M4,CP,T4;U4,NQ,HC,M4,M4,M4,HC,NQ,U4;T4,CP,M4,T4,M4,T4,M4,CP,T4;U4,NQ,NQ,M4,NQ,M4,NQ,NQ,U4;M4,HW,BH,HC,HW,HC,BH,HW,M4;M4,M4,NQ,M4,M4,M4,NQ,M4,M4");
                 updateHatchCapacities(64000);
             }
             case "BEST_FLUXED_9X9", "BEST_FLUXED_13X13", "MAX_FLUXED_13X13", "FLUXED_SUPERCRITICAL_13X13", "FLUXED_SUPERCRITICAL_9X9", "UV_PEAK" -> {
@@ -670,7 +1124,7 @@ public class StandaloneNuclearGrid {
                 this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
                 this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
                 loadLayout(
-                    "NQ,RB,RB,RB,RB,RB,RB,RB,NQ;RB,BV,HH,T4,T1,T4,HH,BV,RB;RB,M4,T4,HH,T4,HH,T4,M4,RB;RB,HW,HH,NQ,T4,NQ,HH,HW,RB;RB,NQ,T4,HH,NQ,HH,T4,NQ,RB;RB,HW,HH,NQ,T4,NQ,HH,HW,RB;RB,M4,T4,HH,T4,HH,T4,M4,RB;RB,BV,HH,T4,T1,T4,HH,BV,RB;NQ,RB,RB,RB,RB,RB,RB,RB,NQ");
+                    "NQ,RB,RB,RB,RB,RB,RB,RB,NQ;RB,BV,CP,T4,T1,T4,CP,BV,RB;RB,M4,T4,CP,T4,CP,T4,M4,RB;RB,HW,CP,NQ,T4,NQ,CP,HW,RB;RB,NQ,T4,CP,NQ,CP,T4,NQ,RB;RB,HW,CP,NQ,T4,NQ,CP,HW,RB;RB,M4,T4,CP,T4,CP,T4,M4,RB;RB,BV,CP,T4,T1,T4,CP,BV,RB;NQ,RB,RB,RB,RB,RB,RB,RB,NQ");
                 updateHatchCapacities(128000);
             }
             case "BEST_PLUTONIUM_9X9", "BEST_PLUTONIUM_13X13", "MAX_PLUTONIUM_13X13", "BLACK_PLUTONIUM_13X13", "BLACK_PLUTONIUM_9X9", "UHV_PEAK" -> {
@@ -679,7 +1133,7 @@ public class StandaloneNuclearGrid {
                 this.turbineSize = TurbineCalculator.TurbineSize.HUGE;
                 this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
                 loadLayout(
-                    "U4,T4,M4,U4,T4,U4,M4,T4,U4;T4,RB,M4,NQ,NQ,NQ,M4,RB,T4;U4,M4,HH,U4,HH,U4,HH,M4,U4;U4,NQ,HH,NQ,NQ,NQ,HH,NQ,U4;M4,BH,M4,NQ,U4,NQ,M4,BH,M4;U4,NQ,HH,NQ,NQ,NQ,HH,NQ,U4;U4,M4,HH,U4,HH,U4,HH,M4,U4;T4,RB,M4,NQ,NQ,NQ,M4,RB,T4;U4,T4,M4,U4,T4,U4,M4,T4,U4");
+                    "U4,T4,M4,U4,T4,U4,M4,T4,U4;T4,RB,M4,NQ,NQ,NQ,M4,RB,T4;U4,M4,CP,U4,CP,U4,CP,M4,U4;U4,NQ,CP,NQ,NQ,NQ,CP,NQ,U4;M4,BH,M4,NQ,U4,NQ,M4,BH,M4;U4,NQ,CP,NQ,NQ,NQ,CP,NQ,U4;U4,M4,CP,U4,CP,U4,CP,M4,U4;T4,RB,M4,NQ,NQ,NQ,M4,RB,T4;U4,T4,M4,U4,T4,U4,M4,T4,U4");
                 updateHatchCapacities(256000);
             }
             default -> {
@@ -786,6 +1240,80 @@ public class StandaloneNuclearGrid {
     public void setPipeTier(int pipeTier) {
         this.pipeTier = pipeTier;
         applyDefaultTurbinesForTier();
+        int hatchTier = Math.max(1, pipeTier + 4);
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                SimTile tile = grid[x][y];
+                if (tile != null && tile.isHatch()) {
+                    tile.setTier(hatchTier);
+                    tile.setInputFluidCapacity(8000 * (1 << hatchTier));
+                }
+            }
+        }
+        if (pipeTier < NuclearSimulationEngine.PIPE_TIER_PLATINUM && coolingMode == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP) {
+            coolingMode = CoolantLoopModel.CoolingMode.MODULAR;
+        }
+    }
+
+    public CoolantLoopModel.CoolingMode getCoolingMode() {
+        return coolingMode;
+    }
+
+    public boolean setCoolingMode(CoolantLoopModel.CoolingMode mode) {
+        if (mode == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP) {
+            if (this.pipeTier < NuclearSimulationEngine.PIPE_TIER_PLATINUM) {
+                return false; // Convective loop requires Tier 2+
+            }
+        }
+        this.coolingMode = (mode != null) ? mode : CoolantLoopModel.CoolingMode.MODULAR;
+        return true;
+    }
+
+    public boolean isCoolantLoopActive() {
+        if (!isTier2ConvectiveAllowed()) return false;
+        if (coolantLoop == null) return false;
+        if (!coolantLoop.getAttachedPoints().isEmpty()) return true;
+        return hasCoolantLoopPassages();
+    }
+
+    public boolean hasCoolantLoopPassages() {
+        if (grid == null) return false;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                if (grid[x][y] != null && grid[x][y].getType() == SimTile.TileType.PASSAGE_CORE) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean shouldStepCoolantLoop() {
+        if (!isTier2ConvectiveAllowed()) {
+            return false;
+        }
+        if (coolingMode == CoolantLoopModel.CoolingMode.CONDUCTIVE) {
+            return false;
+        }
+        return coolingMode == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP || isCoolantLoopActive();
+    }
+
+    public CoolantLoopModel getCoolantLoop() {
+        return coolantLoop;
+    }
+
+    public void setCoolantLoop(CoolantLoopModel loop) {
+        if (loop != null) {
+            this.coolantLoop = loop;
+        }
+    }
+
+    public double getGrossPowerEUt() {
+        return grossPowerEUt;
+    }
+
+    public double getPumpPowerEUt() {
+        return shouldStepCoolantLoop() ? coolantLoop.getLastPumpPowerEUt() : 0.0;
     }
 
     public void applyDefaultTurbinesForTier() {
@@ -1025,5 +1553,128 @@ public class StandaloneNuclearGrid {
             }
         }
         return sum;
+    }
+
+    public boolean isTier2ConvectiveAllowed() {
+        return this.pipeTier >= NuclearSimulationEngine.PIPE_TIER_PLATINUM;
+    }
+
+    public boolean isAutoReplaceFuel() {
+        return autoReplaceFuel;
+    }
+
+    public void setAutoReplaceFuel(boolean autoReplaceFuel) {
+        this.autoReplaceFuel = autoReplaceFuel;
+    }
+
+    public long getCumulativeDepletedItems(SimTile.TileType type) {
+        return cumulativeDepletedFuelItems.getOrDefault(type, 0L);
+    }
+
+    public long getCumulativeDepletedLiquid(SimTile.TileType type) {
+        return cumulativeDepletedLiquidLiters.getOrDefault(type, 0L);
+    }
+
+    public List<SolidFuelByproduct> getSolidFuelByproducts() {
+        List<SolidFuelByproduct> list = new ArrayList<>();
+        for (SimTile.TileType type : SimTile.TileType.values()) {
+            int active = 0;
+            double totalDamage = 0.0;
+            int maxDur = 0;
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    SimTile tile = grid[x][y];
+                    if (tile != null && tile.getType() == type) {
+                        if (tile.isFuel() && !tile.isDepleted()) {
+                            active++;
+                            totalDamage += tile.getLastDurabilityLoss();
+                            maxDur = tile.getMaxDurability();
+                        }
+                    }
+                }
+            }
+            long produced = cumulativeDepletedFuelItems.getOrDefault(type, 0L);
+            if (active > 0 || produced > 0) {
+                if (maxDur <= 0) {
+                    com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType f =
+                        new SimTile(type).getFuelType();
+                    if (f != null) maxDur = f.defaultDurability;
+                }
+                double itemsPerMin = (maxDur > 0) ? (totalDamage / (double) maxDur) * 1200.0 : 0.0;
+                double itemsPerHour = itemsPerMin * 60.0;
+                double avgLifespan = (active > 0 && totalDamage > 0 && maxDur > 0)
+                    ? ((double) maxDur / (totalDamage / (double) active)) / 1200.0
+                    : Double.POSITIVE_INFINITY;
+                SimTile sample = new SimTile(type);
+                list.add(new SolidFuelByproduct(
+                    type,
+                    type.displayName,
+                    type.code,
+                    sample.getDepletedDisplayName(),
+                    sample.getDepletedCode(),
+                    active,
+                    itemsPerMin,
+                    itemsPerHour,
+                    produced,
+                    avgLifespan));
+            }
+        }
+        return list;
+    }
+
+    public List<LiquidFuelByproduct> getLiquidFuelByproducts() {
+        List<LiquidFuelByproduct> list = new ArrayList<>();
+        SimTile.TileType[] liquidTypes = new SimTile.TileType[] {
+            SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM,
+            SimTile.TileType.HATCH_LIQUID_FUEL_THORIUM,
+            SimTile.TileType.HATCH_LIQUID_FUEL_PLUTONIUM
+        };
+        for (SimTile.TileType type : liquidTypes) {
+            int active = 0;
+            int totalBurned = 0;
+            String fluidName = "";
+            String dispName = "";
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    SimTile tile = grid[x][y];
+                    if (tile != null && tile.getType() == type) {
+                        active++;
+                        totalBurned += tile.getLastLiquidFuelBurned();
+                        fluidName = tile.getOutputFluidName();
+                        dispName = tile.getDepletedDisplayName();
+                    }
+                }
+            }
+            long totalLiters = cumulativeDepletedLiquidLiters.getOrDefault(type, 0L);
+            if (active > 0 || totalLiters > 0) {
+                if (fluidName.isEmpty()) {
+                    SimTile sample = new SimTile(type);
+                    fluidName = sample.getOutputFluidName();
+                    dispName = sample.getDepletedDisplayName();
+                }
+                double lPerMin = totalBurned * 1200.0;
+                double lPerHour = lPerMin * 60.0;
+                list.add(new LiquidFuelByproduct(
+                    type,
+                    fluidName,
+                    dispName,
+                    active,
+                    lPerMin,
+                    lPerHour,
+                    totalLiters));
+            }
+        }
+        return list;
+    }
+
+    public List<IsotopeByproduct> getIsotopeByproducts() {
+        List<IsotopeByproduct> list = new ArrayList<>();
+        double dPerMin = (currentTick > 0) ? ((double) totalDeuteriumProduced / (double) currentTick) * 1200.0 : 0.0;
+        double dPerHour = dPerMin * 60.0;
+        double tPerMin = (currentTick > 0) ? ((double) totalTritiumProduced / (double) currentTick) * 1200.0 : 0.0;
+        double tPerHour = tPerMin * 60.0;
+        list.add(new IsotopeByproduct("Deuterium", "D", dPerMin, dPerHour, totalDeuteriumProduced));
+        list.add(new IsotopeByproduct("Tritium", "T", tPerMin, tPerHour, totalTritiumProduced));
+        return list;
     }
 }

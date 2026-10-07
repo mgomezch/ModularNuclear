@@ -16,6 +16,7 @@ import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearControlRodGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedIntegration;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
@@ -34,6 +35,7 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.objects.ItemData;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTOreDictUnificator;
+import gregtech.api.util.GTUtility;
 
 /**
  * Nuclear Control Rod Hatch.
@@ -81,6 +83,28 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     public int mLastFastAbsorbed = 0;
     public int mLastThermalAbsorbed = 0;
 
+    public static final int CHANNEL_AUTO = -1;
+
+    public static final String[] DYE_NAMES = new String[] { "White", "Orange", "Magenta", "Light Blue", "Yellow",
+        "Lime", "Pink", "Gray", "Light Gray", "Cyan", "Purple", "Blue", "Brown", "Green", "Red", "Black" };
+
+    public int mInputChannel = CHANNEL_AUTO;
+
+    public static String getChannelName(int channel) {
+        if (channel < 0 || channel >= 16) {
+            return "Auto (Strongest)";
+        }
+        return "Ch " + channel + " (" + DYE_NAMES[channel] + ")";
+    }
+
+    public void cycleInputChannel(int dir) {
+        int ch = mInputChannel + dir;
+        if (ch < -1) ch = 15;
+        else if (ch > 15) ch = -1;
+        this.mInputChannel = ch;
+        markTileDirty();
+    }
+
     public MTEHatchNuclearControlRod(int aID, String aName, String aNameRegional, int aTier) {
         super(
             aID,
@@ -90,9 +114,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
             1,
             new String[] { "Nuclear core control rod hatch",
                 "Holds long rods of Silver, Boron, Cadmium, Indium, or Hafnium",
-                "Controlled by external redstone signal (0..15)",
-                "0 signal = 0% insertion (retracted, zero absorption)",
-                "15 signal = 100% insertion (full absorption)" });
+                "Controlled by external redstone (0..15) or ProjectRed bundled cable (0..255)",
+                "Right-click with screwdriver to cycle bundled input channel",
+                "0 signal = 0% insertion (retracted), max signal = 100% insertion (full absorption)" });
     }
 
     public MTEHatchNuclearControlRod(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
@@ -176,8 +200,27 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         return base.getStrongestRedstone();
     }
 
+    public int getFineRedstoneSignal() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null || base.getWorld() == null) return -1;
+        return ProjectRedIntegration.getBundledInput(
+            base.getWorld(),
+            base.getXCoord(),
+            base.getYCoord(),
+            base.getZCoord(),
+            mInputChannel);
+    }
+
+    public boolean isInterfacingProjectRed() {
+        return getFineRedstoneSignal() >= 0;
+    }
+
     public double getInsertionRatio() {
         if (mScram) return 1.0;
+        int fine = getFineRedstoneSignal();
+        if (fine >= 0) {
+            return Math.max(0.0, Math.min(1.0, (double) fine / 255.0));
+        }
         byte rs = getRedstoneSignal();
         return Math.max(0.0, Math.min(1.0, (double) rs / 15.0));
     }
@@ -250,11 +293,19 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     @Override
+    public void onScrewdriverRightClick(ForgeDirection side, net.minecraft.entity.player.EntityPlayer aPlayer, float aX,
+        float aY, float aZ, ItemStack aTool) {
+        cycleInputChannel(1);
+        GTUtility.sendChatToPlayer(aPlayer, "Control rod bundled input channel: " + getChannelName(mInputChannel));
+    }
+
+    @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setDouble("mTemperature", mTemperature);
         aNBT.setDouble("mHeatEU", mHeatEU);
         aNBT.setBoolean("mScram", mScram);
+        aNBT.setInteger("mInputChannel", mInputChannel);
     }
 
     @Override
@@ -267,6 +318,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         }
         mHeatEU = aNBT.getDouble("mHeatEU");
         mScram = aNBT.getBoolean("mScram");
+        if (aNBT.hasKey("mInputChannel")) {
+            mInputChannel = aNBT.getInteger("mInputChannel");
+        }
     }
 
     public void markTileDirty() {
@@ -344,7 +398,13 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
             .widget(
                 new TextWidget()
                     .setStringSupplier(
-                        () -> String.format("Insert: %d%% (RS: %d)", getInsertionPercent(), getRedstoneSignal()))
+                        () -> {
+                            int fine = getFineRedstoneSignal();
+                            if (fine >= 0) {
+                                return String.format("Insert: %d%% (PR: %d/255)", getInsertionPercent(), fine);
+                            }
+                            return String.format("Insert: %d%% (RS: %d)", getInsertionPercent(), getRedstoneSignal());
+                        })
                     .setDefaultColor(Color.rgb(100, 255, 200))
                     .setPos(10, 42))
             .widget(

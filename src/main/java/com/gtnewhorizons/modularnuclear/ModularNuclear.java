@@ -43,8 +43,36 @@ public class ModularNuclear {
         ModFluids.registerContainers();
         com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration.init();
         com.gtnewhorizons.modularnuclear.common.opencomputers.OpenComputersIntegration.init();
+        com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedIntegration.init();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS
             .register(new com.gtnewhorizons.modularnuclear.common.item.NuclearFuelTooltipHandler());
+
+        cpw.mods.fml.common.registry.EntityRegistry.registerModEntity(
+            com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout.class,
+            "MeltdownFallout",
+            1,
+            ModularNuclear.instance,
+            160,
+            20,
+            false);
+
+        if (cpw.mods.fml.common.FMLCommonHandler.instance()
+            .getSide()
+            .isClient()) {
+            registerClientRenderers();
+            if (cpw.mods.fml.common.Loader.isModLoaded("NotEnoughItems")) {
+                try {
+                    new com.gtnewhorizons.modularnuclear.common.nei.NEIConfig().loadConfig();
+                } catch (Throwable ignored) {}
+            }
+        }
+    }
+
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    private void registerClientRenderers() {
+        cpw.mods.fml.client.registry.RenderingRegistry.registerEntityRenderingHandler(
+            com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout.class,
+            new com.gtnewhorizons.modularnuclear.client.renderer.RenderEmpty());
     }
 
     @Mod.EventHandler

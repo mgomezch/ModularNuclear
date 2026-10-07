@@ -16,6 +16,7 @@ public class ModMetaTileEntities {
     public static final int ID_NUCLEAR_HATCH_BASE = 32101; // 32101..32109 (LV through UHV)
     public static final int ID_NUCLEAR_CONTROL = 32110;
     public static final int ID_NUCLEAR_CONTROL_ROD = 32111;
+    public static final int ID_NUCLEAR_HIGH_PRESSURE = 32112;
     public static final int ID_NUCLEAR_REACTOR = 32115;
 
     public static ItemStack reactor;
@@ -23,6 +24,7 @@ public class ModMetaTileEntities {
     public static ItemStack[] nuclearHatches = new ItemStack[9];
     public static ItemStack nuclearControlHatch;
     public static ItemStack nuclearControlRodHatch;
+    public static ItemStack nuclearHighPressureHatch;
 
     public static void init() {
         NuclearStructureChannels.register();
@@ -50,6 +52,13 @@ public class ModMetaTileEntities {
             "hatch.nuclearcontrolrod",
             "Nuclear Control Rod Hatch",
             5).getStackForm(1L);
+
+        nuclearHighPressureHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure(
+            ID_NUCLEAR_HIGH_PRESSURE,
+            "hatch.nuclearhighpressure",
+            "Nuclear Core High-Pressure Hatch",
+            5).getStackForm(1L);
+        NuclearStructureChannels.NUCLEAR_HATCH.registerAsIndicator(nuclearHighPressureHatch, 10);
 
         reactor = new MTENuclearReactor(
             ID_NUCLEAR_REACTOR,

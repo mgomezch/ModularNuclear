@@ -36,18 +36,20 @@ GT5U.gui.text.structure_error.missing_nuclear_hatch=Missing nuclear hatch or bus
 GT5U.gui.text.structure_error.inconsistent_nuclear_hatch_tier=All nuclear hatches must be of the same tier
 GT5U.gui.text.structure_error.invalid_pipe_tier=Invalid item pipe casing tier (requires Electrum or higher)
 GT5U.gui.text.structure_error.cannot_wallshare_nuclear_hatches=This multiblock cannot share walls (adjacent nuclear hatches/buses detected)
-GT5U.gui.text.structure_error.wrong_nuclear_hatch_facing=Top-layer hatches must face opposite to pipe casings
+GT5U.gui.text.structure_error.wrong_nuclear_hatch_facing=Top-layer hatches must face UP; bottom-layer HP hatches must face DOWN
+GT5U.gui.text.structure_error.hp_hatch_tier=High-pressure coolant passage hatches require Tier 2 or Tier 3 reactor
+GT5U.gui.text.structure_error.hp_hatch_unpaired=High-pressure coolant passage hatches must be paired 1:1 between top inlet and bottom outlet
 
-channels.modularnuclear.nuclear_hatch=Decides the type and tier of core hatches. Starts at §6Nuclear Core Bus (Items)§r at value 0, and §6Nuclear Core Hatches (LV-UHV for fluids)§r from value 1 to 9.
+channels.modularnuclear.nuclear_hatch=Decides the type and tier of core hatches. Starts at §6Nuclear Core Bus (Items)§r at value 0, §6Nuclear Core Hatches (LV-UHV for fluids)§r from value 1 to 9, and §6Nuclear Core High-Pressure Hatch§r at value 10.
 channels.modularnuclear.master.nuclear_hatch=Nuclear Hatch Tier
-channels.gregtech.nuclear_hatch=Decides the type and tier of core hatches. Starts at §6Nuclear Core Bus (Items)§r at value 0, and §6Nuclear Core Hatches (LV-UHV for fluids)§r from value 1 to 9.
+channels.gregtech.nuclear_hatch=Decides the type and tier of core hatches. Starts at §6Nuclear Core Bus (Items)§r at value 0, §6Nuclear Core Hatches (LV-UHV for fluids)§r from value 1 to 9, and §6Nuclear Core High-Pressure Hatch§r at value 10.
 channels.gregtech.master.nuclear_hatch=Nuclear Hatch Tier
+gt.blockmachines.hatch.nuclearhighpressure.name=Nuclear Core High-Pressure Hatch
+gt.blockmachines.hatch.nuclear.highpressure.name=Nuclear Core High-Pressure Hatch
 
 fluid.heavywater=Heavy Water
-fluid.highpressuredistilledwater=High Pressure Distilled Water
-fluid.highpressureheavywater=High Pressure Heavy Water
 
 item.cellHeavyWater.name=Heavy Water Cell
-item.cellHighPressureDistilledWater.name=High Pressure Distilled Water Cell
-item.cellHighPressureHeavyWater.name=High Pressure Heavy Water Cell
 
+modularnuclear.nei.fuel_stats.name=MPTR Fuel Stats
+gt.nei.neutron_interaction.name=Neutron Interaction

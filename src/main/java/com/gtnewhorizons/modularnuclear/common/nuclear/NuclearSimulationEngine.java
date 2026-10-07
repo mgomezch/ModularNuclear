@@ -148,13 +148,76 @@ public class NuclearSimulationEngine {
         wallReflectionChance = DEFAULT_WALL_REFLECTION_CHANCE;
         wallAbsorbHeatPerNeutron = DEFAULT_WALL_ABSORB_HEAT_PER_NEUTRON;
         ic2CoolantHeatPerLiter = DEFAULT_IC2_COOLANT_HEAT_PER_LITER;
+        baseHatchConductance = DEFAULT_BASE_HATCH_CONDUCTANCE;
         setAmbientTemperature(DEFAULT_AMBIENT_TEMP);
+    }
+
+    public static final double DEFAULT_BASE_HATCH_CONDUCTANCE = 32.0;
+    public static double baseHatchConductance = DEFAULT_BASE_HATCH_CONDUCTANCE;
+
+    public static void setBaseHatchConductance(double val) {
+        baseHatchConductance = Math.max(0.01, val);
+    }
+
+    /**
+     * Calculates the thermal conductance U in EU/(t·°C) for a nuclear core hatch of the given tier.
+     * Tier scaling: LV(1)=0.50x, MV(2)=1.0x, HV(3)=2.0x, EV(4)=4.0x, IV(5)=8.0x, LuV(6)=16.0x... (base-2 exponential)
+     */
+    public static double getHatchConductance(int tier) {
+        double mult;
+        if (tier <= 1) {
+            mult = 0.50;
+        } else {
+            mult = Math.pow(2.0, Math.max(0, tier - 2));
+        }
+        return mult * baseHatchConductance;
+    }
+
+    /**
+     * Returns the effective sink temperature (°C) for a coolant fluid.
+     * IC2 coolant operates down to ambient, while water and heavy water boil at 100°C and 101.4°C.
+     */
+    public static double getCoolantSinkTemperature(String fluidName, double ambientTemp) {
+        if (fluidName == null) return ambientTemp;
+        String name = fluidName.toLowerCase();
+        if (name.contains("coolant")) {
+            return ambientTemp;
+        }
+        if (name.contains("heavywater")) {
+            return Math.max(ambientTemp, 101.4);
+        }
+        if (name.contains("distilledwater")) {
+            return Math.max(ambientTemp, 100.0);
+        }
+        return ambientTemp;
+    }
+
+    /**
+     * Analytical lumped-capacitance heat transfer model based on continuous exponential cooling.
+     * Calculates the maximum heat energy (EU) transferred from a hatch at temperature temp
+     * into a coolant heat sink at sinkTemp over a 1-tick interval (dt = 1).
+     *
+     * @param temp The hatch temperature in °C
+     * @param sinkTemp The coolant sink temperature in °C
+     * @param tier The tier of the nuclear core hatch (LV=1, MV=2, HV=3, EV=4, ...)
+     * @param efficiency Reactor efficiency multiplier [0.0, 1.0]
+     * @return Heat energy in EU transferred this tick
+     */
+    public static double calculateConductiveHeatTransfer(double temp, double sinkTemp, int tier, double efficiency) {
+        if (temp <= sinkTemp || efficiency <= 0.0) return 0.0;
+        double deltaT = temp - sinkTemp;
+        double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
+        double conductance = getHatchConductance(tier) * effFactor;
+        double ch = Math.max(EU_PER_DEGREE, conductance * 4.0);
+        return ch * deltaT * (1.0 - Math.exp(-conductance / ch));
     }
 
     /**
      * Calculates the fraction of hatch coolant capacity that turns over into steam
      * this tick based on excess temperature above boiling point.
+     * @deprecated Replaced by analytical {@link #calculateConductiveHeatTransfer(double, double, int, double)}.
      */
+    @Deprecated
     public static double calculateTurnoverFraction(double deltaT) {
         if (deltaT <= 0) return 0.0;
         double dtMax = Math.max(1.0, turnoverDeltaTMax);
@@ -189,10 +252,10 @@ public class NuclearSimulationEngine {
     public static String getPipeTierName(int tier) {
         return switch (tier) {
             case PIPE_TIER_ELECTRUM -> "Electrum (IC2 Coolant)";
-            case PIPE_TIER_PLATINUM -> "Platinum (Distilled Water -> Steam)";
-            case PIPE_TIER_OSMIUM -> "Osmium (HP Distilled Water -> Superheated)";
-            case PIPE_TIER_QUANTIUM -> "Quantium (Heavy Water -> HW Steam)";
-            case PIPE_TIER_FLUXED_ELECTRUM -> "Fluxed Electrum (HP Heavy Water -> HW SC Steam)";
+            case PIPE_TIER_PLATINUM -> "Platinum (Distilled Water)";
+            case PIPE_TIER_OSMIUM -> "Osmium (HP Core Hatches)";
+            case PIPE_TIER_QUANTIUM -> "Quantium (Heavy Water)";
+            case PIPE_TIER_FLUXED_ELECTRUM -> "Fluxed Electrum (Excited Fuel)";
             case PIPE_TIER_BLACK_PLUTONIUM -> "Black Plutonium (Max Tier / All Coolants)";
             default -> "None";
         };
@@ -238,10 +301,10 @@ public class NuclearSimulationEngine {
         if (fluidName == null || fluidName.contains("coolant")) {
             return Double.POSITIVE_INFINITY; // IC2 coolant never explodes
         }
-        if (fluidName.contains("highpressure")) {
-            return hpWaterBoilingPoint;
+        if (fluidName.contains("heavywater")) {
+            return 101.4; // Boiling point of heavy water at 1 atm
         }
-        return 100.0;
+        return 100.0; // Distilled water boiling point at 1 atm
     }
 
     public static int getRequiredFluidTier(String fluidName) {
@@ -250,10 +313,8 @@ public class NuclearSimulationEngine {
         if (name.equals("water")) return 999; // Regular water is completely disallowed
         if (name.contains("naquadah")) return 999; // Disallow Naquadah liquid fuels to avoid overlap with LNR
         if (name.contains("coolant") && !name.contains("hot")) return PIPE_TIER_ELECTRUM;
-        if (name.contains("distilledwater") && !name.contains("highpressure")) return PIPE_TIER_PLATINUM;
-        if (name.contains("highpressuredistilledwater")) return PIPE_TIER_OSMIUM;
-        if (name.contains("heavywater") && !name.contains("highpressure")) return PIPE_TIER_QUANTIUM;
-        if (name.contains("highpressureheavywater")) return PIPE_TIER_FLUXED_ELECTRUM;
+        if (name.contains("distilledwater")) return PIPE_TIER_PLATINUM;
+        if (name.contains("heavywater")) return PIPE_TIER_QUANTIUM;
 
         // Nuclear liquid fuels
         if (name.contains("thoriumbasedliquidfuel") || (name.contains("thorium") && name.contains("liquidfuel"))) {
@@ -275,13 +336,7 @@ public class NuclearSimulationEngine {
     }
 
     public static double getCoolingOperatingThreshold(String fluidName, double ambient) {
-        if (fluidName == null || fluidName.contains("coolant")) {
-            return ambient;
-        }
-        if (fluidName.contains("highpressure")) {
-            return hpWaterBoilingPoint;
-        }
-        return 100.0;
+        return ambient;
     }
 
     private static final int[] dX = { 1, 0, -1, 0, 1, -1, 1, -1 };

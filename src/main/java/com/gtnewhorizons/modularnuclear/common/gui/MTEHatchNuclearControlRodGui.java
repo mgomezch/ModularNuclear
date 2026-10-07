@@ -48,6 +48,9 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
             new com.cleanroommc.modularui.value.sync.BooleanSyncValue(
                 () -> machine.mScram,
                 val -> machine.mScram = val));
+        syncManager.syncValue(
+            "inputChannel",
+            new IntSyncValue(() -> machine.mInputChannel, val -> machine.mInputChannel = val));
     }
 
     @Override
@@ -56,8 +59,8 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
             .coverChildren()
             .childPadding(4);
 
-        // Status and Telemetry Screen (width 110, height 54)
-        ParentWidget<?> statsScreen = CommonWidgets.createFluidScreen(110, 54);
+        // Status and Telemetry Screen (width 118, height 64)
+        ParentWidget<?> statsScreen = CommonWidgets.createFluidScreen(118, 64);
         Flow textColumn = Flow.column()
             .childPadding(1)
             .crossAxisAlignment(Alignment.CrossAxis.START);
@@ -76,8 +79,13 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
             if (machine.mScram) {
                 return EnumChatFormatting.RED + "Insert: 100% (SCRAMMED)";
             }
+            int fine = machine.getFineRedstoneSignal();
+            if (fine >= 0) {
+                return EnumChatFormatting.GREEN
+                    + String.format("Insert: %d%% (PR: %d/255)", machine.getInsertionPercent(), fine);
+            }
             return EnumChatFormatting.GREEN
-                + String.format("Insert: %d%% (RS: %d)", machine.getInsertionPercent(), machine.getRedstoneSignal());
+                + String.format("Insert: %d%% (RS: %d/15)", machine.getInsertionPercent(), machine.getRedstoneSignal());
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
@@ -86,6 +94,12 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
             ItemStack rod = machine.mInventory[MTEHatchNuclearControlRod.SLOT_ROD];
             String rodName = MTEHatchNuclearControlRod.getRodType(rod).displayName;
             return EnumChatFormatting.AQUA + "Rod: " + rodName;
+        })
+            .asWidget()
+            .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
+
+        textColumn.child(IKey.dynamic(() -> {
+            return EnumChatFormatting.LIGHT_PURPLE + "PR In: " + MTEHatchNuclearControlRod.getChannelName(machine.mInputChannel);
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));

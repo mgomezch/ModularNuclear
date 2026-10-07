@@ -31,12 +31,14 @@ public class ReactorGridSyncData {
     public String outputCoolantName = "";
     public boolean scram = false;
     public float ambientTemp = 20.0f;
+    public float reactorDamage = 0.0f;
     public List<ReactorGridCellData> cells = new ArrayList<>();
 
     public static class ReactorGridCellData {
 
         public boolean exists = false;
         public boolean isFluid = false;
+        public boolean isHighPressure = false;
         public ItemStack itemStack = null;
         public FluidStack fluidStack = null;
         public float temperature = 20.0f;
@@ -51,7 +53,7 @@ public class ReactorGridSyncData {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             ReactorGridCellData that = (ReactorGridCellData) o;
-            if (exists != that.exists || isFluid != that.isFluid) return false;
+            if (exists != that.exists || isFluid != that.isFluid || isHighPressure != that.isHighPressure) return false;
             if (Math.abs(temperature - that.temperature) > 0.5f) return false;
             if (fastFlux != that.fastFlux || thermalFlux != that.thermalFlux) return false;
             if (fastAbsorbed != that.fastAbsorbed || thermalAbsorbed != that.thermalAbsorbed) return false;
@@ -88,6 +90,7 @@ public class ReactorGridSyncData {
         ByteBufUtils.writeUTF8String(buf, data.outputCoolantName != null ? data.outputCoolantName : "");
         buf.writeBoolean(data.scram);
         buf.writeFloat(data.ambientTemp);
+        buf.writeFloat(data.reactorDamage);
 
         buf.writeVarIntToBuffer(data.cells.size());
         for (ReactorGridCellData cell : data.cells) {
@@ -96,6 +99,7 @@ public class ReactorGridSyncData {
             if (cell.isFluid) mask |= 2;
             if (cell.itemStack != null) mask |= 4;
             if (cell.fluidStack != null) mask |= 8;
+            if (cell.isHighPressure) mask |= 16;
             buf.writeByte(mask);
             if (cell.exists) {
                 buf.writeFloat(cell.temperature);
@@ -134,6 +138,7 @@ public class ReactorGridSyncData {
         data.outputCoolantName = ByteBufUtils.readUTF8String(buf);
         data.scram = buf.readBoolean();
         data.ambientTemp = buf.readFloat();
+        data.reactorDamage = buf.readFloat();
 
         int cellCount = buf.readVarIntFromBuffer();
         for (int i = 0; i < cellCount; i++) {
@@ -143,6 +148,7 @@ public class ReactorGridSyncData {
             cell.isFluid = (mask & 2) != 0;
             boolean hasItem = (mask & 4) != 0;
             boolean hasFluid = (mask & 8) != 0;
+            cell.isHighPressure = (mask & 16) != 0;
             if (cell.exists) {
                 cell.temperature = buf.readFloat();
                 cell.fastFlux = buf.readVarIntFromBuffer();

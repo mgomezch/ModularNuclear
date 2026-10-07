@@ -13,8 +13,6 @@ public class ModItems {
     public static ItemRadiovoltaicPlate radiovoltaicPlateEV;
 
     public static ItemNuclearFluidCell cellHeavyWater;
-    public static ItemNuclearFluidCell cellHighPressureDistilledWater;
-    public static ItemNuclearFluidCell cellHighPressureHeavyWater;
 
     public static void init() {
         radiovoltaicPlateHV = new ItemRadiovoltaicPlate("modularnuclear.radiovoltaic.plate.hv", 1);
@@ -26,17 +24,5 @@ public class ModItems {
         cellHeavyWater = new ItemNuclearFluidCell("cellHeavyWater", ModFluids.fluidHeavyWater);
         GameRegistry.registerItem(cellHeavyWater, "cellHeavyWater");
         OreDictionary.registerOre("cellHeavyWater", new ItemStack(cellHeavyWater));
-
-        cellHighPressureDistilledWater = new ItemNuclearFluidCell(
-            "cellHighPressureDistilledWater",
-            ModFluids.fluidHighPressureDistilledWater);
-        GameRegistry.registerItem(cellHighPressureDistilledWater, "cellHighPressureDistilledWater");
-        OreDictionary.registerOre("cellHighPressureDistilledWater", new ItemStack(cellHighPressureDistilledWater));
-
-        cellHighPressureHeavyWater = new ItemNuclearFluidCell(
-            "cellHighPressureHeavyWater",
-            ModFluids.fluidHighPressureHeavyWater);
-        GameRegistry.registerItem(cellHighPressureHeavyWater, "cellHighPressureHeavyWater");
-        OreDictionary.registerOre("cellHighPressureHeavyWater", new ItemStack(cellHighPressureHeavyWater));
     }
 }
