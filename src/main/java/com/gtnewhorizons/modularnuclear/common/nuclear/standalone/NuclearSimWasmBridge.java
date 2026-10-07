@@ -1148,6 +1148,25 @@ public class NuclearSimWasmBridge {
             sb.append("\"totalLiters\":").append(iso.totalLiters);
             sb.append("}");
         }
+        sb.append("],");
+
+        List<StandaloneNuclearGrid.RawMaterialBalance> rawMaterials = targetGrid.getRawMaterialBalances();
+        sb.append("\"rawMaterials\":[");
+        for (int i = 0; i < rawMaterials.size(); i++) {
+            if (i > 0) sb.append(",");
+            StandaloneNuclearGrid.RawMaterialBalance r = rawMaterials.get(i);
+            sb.append("{");
+            sb.append("\"name\":\"").append(escapeJson(r.name)).append("\",");
+            sb.append("\"code\":\"").append(r.code).append("\",");
+            sb.append("\"unit\":\"").append(r.unit).append("\",");
+            sb.append("\"consumedPerMin\":").append(fmt2(r.consumedPerMinute)).append(",");
+            sb.append("\"consumedPerHour\":").append(fmt1(r.consumedPerHour)).append(",");
+            sb.append("\"producedPerMin\":").append(fmt2(r.producedPerMinute)).append(",");
+            sb.append("\"producedPerHour\":").append(fmt1(r.producedPerHour)).append(",");
+            sb.append("\"netPerMin\":").append(fmt2(r.netPerMinute)).append(",");
+            sb.append("\"netPerHour\":").append(fmt1(r.netPerHour));
+            sb.append("}");
+        }
         sb.append("]");
         sb.append("}");
 

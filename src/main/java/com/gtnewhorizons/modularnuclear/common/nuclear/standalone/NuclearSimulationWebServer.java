@@ -1087,6 +1087,16 @@ public class NuclearSimulationWebServer {
                       </div>
                       <div id="byproduct-isotope-list" style="display:flex; flex-direction:column; gap:4px;"></div>
                     </div>
+
+                    <div id="byproduct-raw-section" style="margin-top:8px; border-top:1px solid #1e293b; padding-top:8px;">
+                      <div style="font-weight:700; font-size:0.72rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px; display:flex; justify-content:space-between;">
+                        <span>📦 Raw Materials Net Forecast</span>
+                        <span id="byproduct-raw-summary" style="color:#f59e0b; font-weight:bold;">Logistics</span>
+                      </div>
+                      <div id="byproduct-raw-list" style="display:flex; flex-direction:column; gap:4px;">
+                        <div style="font-style:italic; color:#64748b; padding:2px 0;">No active raw material burn forecast.</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -3158,6 +3168,43 @@ public class NuclearSimulationWebServer {
                   });
                   isoTotalEl.innerText = `${totalIsoRate.toFixed(isHour ? 1 : 2)} ${fluidUnitLabel}`;
                   isoListEl.innerHTML = html;
+                }
+              }
+
+              const rawSec = document.getElementById("byproduct-raw-section");
+              const rawListEl = document.getElementById("byproduct-raw-list");
+              if (rawSec && rawListEl) {
+                if (!bp.rawMaterials || bp.rawMaterials.length === 0) {
+                  rawListEl.innerHTML = `<div style="font-style:italic; color:#64748b; padding:2px 0;">No active raw material burn forecast.</div>`;
+                } else {
+                  let html = "";
+                  bp.rawMaterials.forEach(r => {
+                    const consumed = isHour ? r.consumedPerHour : r.consumedPerMin;
+                    const produced = isHour ? r.producedPerHour : r.producedPerMin;
+                    const net = isHour ? r.netPerHour : r.netPerMin;
+                    const unitStr = `${r.unit}${unitLabel}`;
+                    const isBreeding = net > 0.001;
+                    const isDeficit = net < -0.001;
+                    const netSign = isBreeding ? "+" : "";
+                    const netColor = isBreeding ? "#4ade80" : (isDeficit ? "#f87171" : "#94a3b8");
+                    const badgeStyle = isBreeding ? "color:#34d399; border-color:#059669;" : (isDeficit ? "color:#f87171; border-color:#ef4444;" : "color:#94a3b8; border-color:#475569;");
+                    const tagText = isBreeding ? "BREEDING" : (isDeficit ? "DEFICIT" : "NEUTRAL");
+
+                    html += `
+                      <div style="display:flex; justify-content:space-between; align-items:center; background:#0f172a; border-radius:4px; padding:4px 6px; font-size:0.72rem;">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                          <span class="badge" style="font-size:0.65rem; padding:1px 4px; ${badgeStyle}">${r.code}</span>
+                          <span style="color:#e2e8f0; font-weight:500;">${r.name}</span>
+                          <span style="color:var(--text-muted); font-size:0.68rem;">(Req: ${consumed.toFixed(isHour ? 1 : 2)}, Prod: ${produced.toFixed(isHour ? 1 : 2)})</span>
+                        </div>
+                        <div style="text-align:right;">
+                          <span style="color:${netColor}; font-weight:700;">${netSign}${net.toFixed(isHour ? 1 : 2)} ${unitStr}</span>
+                          <span class="badge" style="font-size:0.62rem; padding:0 3px; margin-left:4px; ${badgeStyle}">${tagText}</span>
+                        </div>
+                      </div>
+                    `;
+                  });
+                  rawListEl.innerHTML = html;
                 }
               }
             }

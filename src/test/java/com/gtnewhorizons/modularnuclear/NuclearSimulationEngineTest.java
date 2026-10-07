@@ -3464,6 +3464,99 @@ public class NuclearSimulationEngineTest {
         assertTrue(json.contains("\"depletedCode\":\"DU4\""), "JSON must contain DU4 depleted code");
         assertTrue(json.contains("\"liquidFuels\":["), "JSON must contain liquidFuels array");
         assertTrue(json.contains("\"isotopes\":["), "JSON must contain isotopes array");
+        assertTrue(json.contains("\"rawMaterials\":["), "JSON must contain rawMaterials array");
+        assertTrue(json.contains("\"code\":\"U-235\""), "JSON must contain U-235 balance");
+        assertTrue(json.contains("\"code\":\"Pu-239\""), "JSON must contain Pu-239 breeding balance");
+    }
+
+    @Test
+    void testRawMaterialBalancesAndBreedingForecast() {
+        // 1. Uranium Quad Rod: Consumes U-235 and U-238, breeds Pu-239
+        StandaloneNuclearGrid gridU = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        gridU.setStrictMode(false);
+        gridU.setTile(2, 2, SimTile.TileType.FUEL_URANIUM_QUAD);
+        for (int i = 0; i < 5; i++) {
+            gridU.step();
+        }
+
+        List<StandaloneNuclearGrid.RawMaterialBalance> rawU = gridU.getRawMaterialBalances();
+        assertFalse(rawU.isEmpty(), "Raw material balances must not be empty for Uranium reactor");
+
+        StandaloneNuclearGrid.RawMaterialBalance u235 = null;
+        StandaloneNuclearGrid.RawMaterialBalance u238 = null;
+        StandaloneNuclearGrid.RawMaterialBalance pu239 = null;
+        for (StandaloneNuclearGrid.RawMaterialBalance r : rawU) {
+            if ("U-235".equals(r.code)) u235 = r;
+            if ("U-238".equals(r.code)) u238 = r;
+            if ("Pu-239".equals(r.code)) pu239 = r;
+        }
+
+        assertNotNull(u235, "U-235 balance must exist");
+        assertNotNull(u238, "U-238 balance must exist");
+        assertNotNull(pu239, "Pu-239 balance must exist");
+
+        // U-235 should have consumption > 0, production == 0, net < 0 (net deficit)
+        assertTrue(u235.consumedPerMinute > 0.0, "U-235 consumed must be positive");
+        assertEquals(0.0, u235.producedPerMinute, 1e-4, "U-235 produced should be zero");
+        assertTrue(u235.netPerMinute < 0.0, "U-235 net balance must be negative (deficit)");
+        assertEquals(u235.consumedPerMinute * 60.0, u235.consumedPerHour, 1e-3);
+        assertEquals(u235.netPerMinute * 60.0, u235.netPerHour, 1e-3);
+
+        // Pu-239 should have consumption == 0, production > 0, net > 0 (net surplus / breeding!)
+        assertEquals(0.0, pu239.consumedPerMinute, 1e-4, "Pu-239 consumed should be zero in Uranium reactor");
+        assertTrue(pu239.producedPerMinute > 0.0, "Pu-239 produced must be positive (bred)");
+        assertTrue(pu239.netPerMinute > 0.0, "Pu-239 net balance must be positive (surplus/breeding)");
+
+        // U-238 consumes 24 dust and recovers 16 dust per Quad rod -> net deficit of 8 dust per rod
+        assertTrue(u238.consumedPerMinute > u238.producedPerMinute, "U-238 consumed must exceed produced");
+        assertTrue(u238.netPerMinute < 0.0, "U-238 net balance must be negative");
+
+        // 2. Thorium Breeder: Consumes Th-232, breeds Lutetium (Lu) per GTNH FissionFuelLoader
+        StandaloneNuclearGrid gridTh = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        gridTh.setStrictMode(false);
+        gridTh.setTile(2, 2, SimTile.TileType.FUEL_THORIUM_QUAD);
+        for (int i = 0; i < 5; i++) {
+            gridTh.step();
+        }
+
+        List<StandaloneNuclearGrid.RawMaterialBalance> rawTh = gridTh.getRawMaterialBalances();
+        StandaloneNuclearGrid.RawMaterialBalance th232 = null;
+        StandaloneNuclearGrid.RawMaterialBalance lu = null;
+        for (StandaloneNuclearGrid.RawMaterialBalance r : rawTh) {
+            if ("Th-232".equals(r.code)) th232 = r;
+            if ("Lu".equals(r.code)) lu = r;
+        }
+
+        assertNotNull(th232, "Th-232 balance must exist");
+        assertNotNull(lu, "Lutetium balance must exist for Thorium breeder");
+        assertTrue(th232.consumedPerMinute > 0.0, "Th-232 consumed must be positive");
+        assertTrue(th232.netPerMinute < 0.0, "Th-232 net balance must be negative");
+        assertTrue(lu.producedPerMinute > 0.0, "Thorium breeding must produce Lutetium");
+        assertTrue(lu.netPerMinute > 0.0, "Lutetium net balance must be positive (bred)");
+
+        // 3. Lithium Breeder Rod: Consumes Lithium, breeds Tritium
+        StandaloneNuclearGrid gridLithium = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        gridLithium.setStrictMode(false);
+        gridLithium.setTile(2, 2, SimTile.TileType.FUEL_URANIUM_QUAD);
+        gridLithium.setTile(2, 3, SimTile.TileType.FUEL_LITHIUM);
+        for (int i = 0; i < 5; i++) {
+            gridLithium.step();
+        }
+
+        List<StandaloneNuclearGrid.RawMaterialBalance> rawLi = gridLithium.getRawMaterialBalances();
+        StandaloneNuclearGrid.RawMaterialBalance lithium = null;
+        StandaloneNuclearGrid.RawMaterialBalance tritium = null;
+        for (StandaloneNuclearGrid.RawMaterialBalance r : rawLi) {
+            if ("Li".equals(r.code)) lithium = r;
+            if ("T".equals(r.code)) tritium = r;
+        }
+
+        assertNotNull(lithium, "Lithium balance must exist");
+        assertNotNull(tritium, "Tritium balance must exist for Lithium breeder");
+        assertTrue(lithium.consumedPerMinute > 0.0, "Lithium consumed must be positive");
+        assertTrue(lithium.netPerMinute < 0.0, "Lithium net balance must be negative");
+        assertTrue(tritium.producedPerMinute > 0.0, "Lithium transmutation must produce Tritium");
+        assertTrue(tritium.netPerMinute > 0.0, "Tritium net balance must be positive (bred)");
     }
 
     @Test

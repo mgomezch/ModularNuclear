@@ -1164,6 +1164,25 @@ public class NuclearSimulationCLI {
             sb.append("\"totalLiters\":").append(iso.totalLiters);
             sb.append("}");
         }
+        sb.append("],");
+
+        List<StandaloneNuclearGrid.RawMaterialBalance> rawMaterials = grid.getRawMaterialBalances();
+        sb.append("\"rawMaterials\":[");
+        for (int i = 0; i < rawMaterials.size(); i++) {
+            if (i > 0) sb.append(",");
+            StandaloneNuclearGrid.RawMaterialBalance r = rawMaterials.get(i);
+            sb.append("{");
+            sb.append("\"name\":\"").append(escapeJson(r.name)).append("\",");
+            sb.append("\"code\":\"").append(r.code).append("\",");
+            sb.append("\"unit\":\"").append(r.unit).append("\",");
+            sb.append("\"consumedPerMin\":").append(String.format(java.util.Locale.US, "%.2f", r.consumedPerMinute)).append(",");
+            sb.append("\"consumedPerHour\":").append(String.format(java.util.Locale.US, "%.1f", r.consumedPerHour)).append(",");
+            sb.append("\"producedPerMin\":").append(String.format(java.util.Locale.US, "%.2f", r.producedPerMinute)).append(",");
+            sb.append("\"producedPerHour\":").append(String.format(java.util.Locale.US, "%.1f", r.producedPerHour)).append(",");
+            sb.append("\"netPerMin\":").append(String.format(java.util.Locale.US, "%.2f", r.netPerMinute)).append(",");
+            sb.append("\"netPerHour\":").append(String.format(java.util.Locale.US, "%.1f", r.netPerHour));
+            sb.append("}");
+        }
         sb.append("]");
         sb.append("}");
 
@@ -1643,6 +1662,21 @@ public class NuclearSimulationCLI {
                     System.out.println(String.format(java.util.Locale.US,
                         "    • %-10s (%-2s)                  : %8.2f L/min | %10.1f L/h  (Total: %d L)",
                         iso.name, iso.code, iso.litersPerMinute, iso.litersPerHour, iso.totalLiters));
+                }
+            }
+            List<StandaloneNuclearGrid.RawMaterialBalance> rawBalances = grid.getRawMaterialBalances();
+            if (!rawBalances.isEmpty()) {
+                System.out.println(ANSI_CYAN + "  Base Raw Material Logistics & Net Balance Forecast:" + ANSI_RESET);
+                for (StandaloneNuclearGrid.RawMaterialBalance r : rawBalances) {
+                    String netColor = r.netPerMinute > 0.001 ? ANSI_GREEN : (r.netPerMinute < -0.001 ? ANSI_RED : ANSI_RESET);
+                    String tag = r.netPerMinute > 0.001 ? "[SURPLUS / BREEDING]" : (r.netPerMinute < -0.001 ? "[NET DEFICIT / REQ]" : "[NEUTRAL]");
+                    String netSign = r.netPerMinute > 0.001 ? "+" : "";
+                    System.out.println(String.format(java.util.Locale.US,
+                        "    • %-6s (%-16s) : %s%s%6.2f %s/min | %s%7.1f %s/h%s  (Req: %5.2f, Prod: %5.2f) %s",
+                        r.code, r.name,
+                        netColor, netSign, r.netPerMinute, r.unit,
+                        netSign, r.netPerHour, r.unit, ANSI_RESET,
+                        r.consumedPerMinute, r.producedPerMinute, tag));
                 }
             }
             System.out.println();

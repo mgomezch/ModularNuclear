@@ -3,6 +3,7 @@ package com.gtnewhorizons.modularnuclear.common.nuclear.standalone;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -241,6 +242,33 @@ public class StandaloneNuclearGrid {
             this.litersPerMinute = litersPerMinute;
             this.litersPerHour = litersPerHour;
             this.totalLiters = totalLiters;
+        }
+    }
+
+    public static class RawMaterialBalance {
+
+        public final String name;
+        public final String code;
+        public final String unit;
+        public final double consumedPerMinute;
+        public final double consumedPerHour;
+        public final double producedPerMinute;
+        public final double producedPerHour;
+        public final double netPerMinute;
+        public final double netPerHour;
+
+        public RawMaterialBalance(String name, String code, String unit,
+            double consumedPerMinute, double consumedPerHour,
+            double producedPerMinute, double producedPerHour) {
+            this.name = name;
+            this.code = code;
+            this.unit = unit;
+            this.consumedPerMinute = consumedPerMinute;
+            this.consumedPerHour = consumedPerHour;
+            this.producedPerMinute = producedPerMinute;
+            this.producedPerHour = producedPerHour;
+            this.netPerMinute = producedPerMinute - consumedPerMinute;
+            this.netPerHour = producedPerHour - consumedPerHour;
         }
     }
 
@@ -1601,6 +1629,9 @@ public class StandaloneNuclearGrid {
                     if (f != null) maxDur = f.defaultDurability;
                 }
                 double itemsPerMin = (maxDur > 0) ? (totalDamage / (double) maxDur) * 1200.0 : 0.0;
+                if (itemsPerMin == 0.0 && currentTick == 0 && active > 0 && maxDur > 0) {
+                    itemsPerMin = ((double) active / (double) maxDur) * 1200.0;
+                }
                 double itemsPerHour = itemsPerMin * 60.0;
                 double avgLifespan = (active > 0 && totalDamage > 0 && maxDur > 0)
                     ? ((double) maxDur / (totalDamage / (double) active)) / 1200.0
@@ -1653,6 +1684,9 @@ public class StandaloneNuclearGrid {
                     dispName = sample.getDepletedDisplayName();
                 }
                 double lPerMin = totalBurned * 1200.0;
+                if (lPerMin == 0.0 && currentTick == 0 && active > 0) {
+                    lPerMin = active * 1200.0;
+                }
                 double lPerHour = lPerMin * 60.0;
                 list.add(new LiquidFuelByproduct(
                     type,
@@ -1676,5 +1710,212 @@ public class StandaloneNuclearGrid {
         list.add(new IsotopeByproduct("Deuterium", "D", dPerMin, dPerHour, totalDeuteriumProduced));
         list.add(new IsotopeByproduct("Tritium", "T", tPerMin, tPerHour, totalTritiumProduced));
         return list;
+    }
+
+    public List<RawMaterialBalance> getRawMaterialBalances() {
+        class MatAcc {
+            final String name;
+            final String code;
+            final String unit;
+            double consumedPerMin = 0.0;
+            double producedPerMin = 0.0;
+
+            MatAcc(String name, String code, String unit) {
+                this.name = name;
+                this.code = code;
+                this.unit = unit;
+            }
+        }
+
+        Map<String, MatAcc> map = new LinkedHashMap<>();
+        map.put("U-235", new MatAcc("Uranium-235", "U-235", "dust"));
+        map.put("U-238", new MatAcc("Uranium-238", "U-238", "dust"));
+        map.put("Pu-239", new MatAcc("Plutonium-239", "Pu-239", "dust"));
+        map.put("Pu-241", new MatAcc("Plutonium-241", "Pu-241", "dust"));
+        map.put("Th-232", new MatAcc("Thorium-232", "Th-232", "dust"));
+        map.put("Lu", new MatAcc("Lutetium", "Lu", "dust"));
+        map.put("NQ", new MatAcc("Naquadah", "NQ", "dust"));
+        map.put("NQ+", new MatAcc("Enriched Naquadah", "NQ+", "dust"));
+        map.put("NQR", new MatAcc("Naquadria", "NQR", "dust"));
+        map.put("TIB", new MatAcc("Tiberium", "TIB", "dust"));
+        map.put("Li", new MatAcc("Lithium", "Li", "dust"));
+        map.put("G", new MatAcc("Glowstone", "G", "dust"));
+        map.put("Sun", new MatAcc("Sunnarium", "Sun", "dust"));
+        map.put("He", new MatAcc("Helium", "He", "L"));
+        map.put("D", new MatAcc("Deuterium", "D", "L"));
+        map.put("T", new MatAcc("Tritium", "T", "L"));
+
+        // 1. Solid Fuel Rods (Exact GTNH Recipes from FissionFuelLoader.java & RecipeLoader.java)
+        List<SolidFuelByproduct> solid = getSolidFuelByproducts();
+        for (SolidFuelByproduct s : solid) {
+            double rate = s.itemsPerMinute;
+            if (rate <= 0.0) continue;
+            switch (s.type) {
+                case FUEL_URANIUM_SINGLE -> {
+                    // FissionFuelLoader: 6x U-238 + 3x Small U-235 (1/3 dust) -> Depleted: 4x U-238 + 1x Small Pu (1/9 dust)
+                    map.get("U-235").consumedPerMin += (3.0 / 9.0) * rate;
+                    map.get("U-238").consumedPerMin += 6.0 * rate;
+                    map.get("Pu-239").producedPerMin += (1.0 / 9.0) * rate;
+                    map.get("U-238").producedPerMin += 4.0 * rate;
+                }
+                case FUEL_URANIUM_DUAL -> {
+                    map.get("U-235").consumedPerMin += (6.0 / 9.0) * rate;
+                    map.get("U-238").consumedPerMin += 12.0 * rate;
+                    map.get("Pu-239").producedPerMin += (2.0 / 9.0) * rate;
+                    map.get("U-238").producedPerMin += 8.0 * rate;
+                }
+                case FUEL_URANIUM_QUAD -> {
+                    map.get("U-235").consumedPerMin += (12.0 / 9.0) * rate;
+                    map.get("U-238").consumedPerMin += 24.0 * rate;
+                    map.get("Pu-239").producedPerMin += (4.0 / 9.0) * rate;
+                    map.get("U-238").producedPerMin += 16.0 * rate;
+                }
+                case FUEL_MOX_SINGLE -> {
+                    // FissionFuelLoader: 6x U-238 + 3x Pu-239 -> Depleted: 3x Pu-239 + 1x Small Pu (1/9 dust)
+                    map.get("Pu-239").consumedPerMin += 3.0 * rate;
+                    map.get("U-238").consumedPerMin += 6.0 * rate;
+                    map.get("Pu-239").producedPerMin += (3.0 + 1.0 / 9.0) * rate;
+                }
+                case FUEL_MOX_DUAL -> {
+                    map.get("Pu-239").consumedPerMin += 6.0 * rate;
+                    map.get("U-238").consumedPerMin += 12.0 * rate;
+                    map.get("Pu-239").producedPerMin += (6.0 + 2.0 / 9.0) * rate;
+                }
+                case FUEL_MOX_QUAD -> {
+                    map.get("Pu-239").consumedPerMin += 12.0 * rate;
+                    map.get("U-238").consumedPerMin += 24.0 * rate;
+                    map.get("Pu-239").producedPerMin += (12.0 + 4.0 / 9.0) * rate;
+                }
+                case FUEL_THORIUM_SINGLE -> {
+                    // FissionFuelLoader: 3x Thorium -> Depleted: 1x Thorium + 2x Small Lutetium (2/9 dust)
+                    map.get("Th-232").consumedPerMin += 3.0 * rate;
+                    map.get("Th-232").producedPerMin += 1.0 * rate;
+                    map.get("Lu").producedPerMin += (2.0 / 9.0) * rate;
+                }
+                case FUEL_THORIUM_DUAL -> {
+                    map.get("Th-232").consumedPerMin += 6.0 * rate;
+                    map.get("Th-232").producedPerMin += 2.0 * rate;
+                    map.get("Lu").producedPerMin += 1.0 * rate;
+                }
+                case FUEL_THORIUM_QUAD -> {
+                    map.get("Th-232").consumedPerMin += 12.0 * rate;
+                    map.get("Th-232").producedPerMin += 4.0 * rate;
+                    map.get("Lu").producedPerMin += 2.0 * rate;
+                }
+                case FUEL_HD_URANIUM -> {
+                    // 4 HD nuggets = 16 Uranium dust -> Depleted: 8 Uranium, 2 Plutonium, 0.5 U-235, 0.3 Pu-241
+                    map.get("U-238").consumedPerMin += 16.0 * rate;
+                    map.get("U-238").producedPerMin += 8.0 * rate;
+                    map.get("Pu-239").producedPerMin += 2.0 * rate;
+                    map.get("U-235").producedPerMin += 0.5 * rate;
+                    map.get("Pu-241").producedPerMin += 0.3 * rate;
+                }
+                case FUEL_HD_PLUTONIUM -> {
+                    // 4 HD nuggets = 20 Plutonium dust + 4 Uranium dust -> Depleted: 16 Plutonium, 8 Pu-241, 2 Uranium, 1.2 U-235
+                    map.get("Pu-239").consumedPerMin += 20.0 * rate;
+                    map.get("U-238").consumedPerMin += 4.0 * rate;
+                    map.get("Pu-239").producedPerMin += 16.0 * rate;
+                    map.get("Pu-241").producedPerMin += 8.0 * rate;
+                    map.get("U-238").producedPerMin += 2.0 * rate;
+                    map.get("U-235").producedPerMin += 1.2 * rate;
+                }
+                case FUEL_EXCITED_URANIUM -> {
+                    // 1000 L = 36 Uranium dust
+                    map.get("U-238").consumedPerMin += 36.0 * rate;
+                }
+                case FUEL_EXCITED_PLUTONIUM -> {
+                    // 1000 L = 45 Plutonium dust + 9 Uranium dust
+                    map.get("Pu-239").consumedPerMin += 45.0 * rate;
+                    map.get("U-238").consumedPerMin += 9.0 * rate;
+                }
+                case FUEL_GLOWSTONE -> {
+                    // FissionFuelLoader: 9x Glowstone + 250L Helium -> Depleted: 2x Glowstone + 1x Sunnarium
+                    map.get("G").consumedPerMin += 9.0 * rate;
+                    map.get("He").consumedPerMin += 250.0 * rate;
+                    map.get("G").producedPerMin += 2.0 * rate;
+                    map.get("Sun").producedPerMin += 1.0 * rate;
+                }
+                case FUEL_LITHIUM -> {
+                    // FissionFuelLoader: 1x Tiny Lithium (1/9 dust) -> Depleted: 32L Tritium gas
+                    map.get("Li").consumedPerMin += (1.0 / 9.0) * rate;
+                    map.get("T").producedPerMin += 32.0 * rate;
+                }
+                case FUEL_NAQUADAH -> {
+                    // FissionFuelLoader: 3x Enriched Naquadah -> Depleted: 1.5 Naquadah, 0.111 Naquadria, 0.0555 Enriched Naquadah
+                    map.get("NQ+").consumedPerMin += 3.0 * rate;
+                    map.get("NQ").producedPerMin += 1.5 * rate;
+                    map.get("NQR").producedPerMin += (1.0 / 9.0) * rate;
+                    map.get("NQ+").producedPerMin += (0.5 / 9.0) * rate;
+                }
+                case FUEL_NAQUADRIA -> {
+                    // FissionFuelLoader: 12x Naquadria (Quad) -> Depleted: 6x Naquadah, 2x Enriched Naquadah, 0.222 Naquadria
+                    map.get("NQR").consumedPerMin += 12.0 * rate;
+                    map.get("NQ").producedPerMin += 6.0 * rate;
+                    map.get("NQ+").producedPerMin += 2.0 * rate;
+                    map.get("NQR").producedPerMin += (2.0 / 9.0) * rate;
+                }
+                case FUEL_TIBERIUM -> {
+                    // FissionFuelLoader: 12x Tiberium (Quad) -> Depleted: 2x Tiberium
+                    map.get("TIB").consumedPerMin += 12.0 * rate;
+                    map.get("TIB").producedPerMin += 2.0 * rate;
+                }
+                case FUEL_CORE -> {
+                    // FissionFuelLoader: 32x RodNaquadah (96 Enriched Naquadah) + 128 Tiberium -> Depleted: 8x Quad Naquadah rods
+                    // Reprocessing 8 Quads: 48 Naquadah, 8 Naquadria, 1.778 Enriched Naquadah
+                    map.get("NQ+").consumedPerMin += 96.0 * rate;
+                    map.get("TIB").consumedPerMin += 128.0 * rate;
+                    map.get("NQ").producedPerMin += 48.0 * rate;
+                    map.get("NQR").producedPerMin += 8.0 * rate;
+                    map.get("NQ+").producedPerMin += (16.0 / 9.0) * rate;
+                }
+                default -> {}
+            }
+        }
+
+        // 2. Liquid Fuels (Rates per 1000 L)
+        List<LiquidFuelByproduct> liquid = getLiquidFuelByproducts();
+        for (LiquidFuelByproduct l : liquid) {
+            double kLRate = l.litersPerMinute / 1000.0;
+            if (kLRate <= 0.0) continue;
+            switch (l.type) {
+                case HATCH_LIQUID_FUEL_URANIUM -> {
+                    map.get("U-238").consumedPerMin += 36.0 * kLRate;
+                }
+                case HATCH_LIQUID_FUEL_THORIUM -> {
+                    map.get("Th-232").consumedPerMin += 99.0 * kLRate;
+                    map.get("Th-232").producedPerMin += 76.8 * kLRate;
+                }
+                case HATCH_LIQUID_FUEL_PLUTONIUM -> {
+                    map.get("Pu-239").consumedPerMin += 45.0 * kLRate;
+                    map.get("U-238").consumedPerMin += 9.0 * kLRate;
+                }
+                default -> {}
+            }
+        }
+
+        // 3. Coolant Transmutation Isotopes
+        List<IsotopeByproduct> isotopes = getIsotopeByproducts();
+        for (IsotopeByproduct iso : isotopes) {
+            if ("Deuterium".equals(iso.name) || "D".equals(iso.code)) {
+                map.get("D").producedPerMin += iso.litersPerMinute;
+            } else if ("Tritium".equals(iso.name) || "T".equals(iso.code)) {
+                map.get("T").producedPerMin += iso.litersPerMinute;
+            }
+        }
+
+        List<RawMaterialBalance> result = new ArrayList<>();
+        for (MatAcc acc : map.values()) {
+            if (acc.consumedPerMin > 1e-6 || acc.producedPerMin > 1e-6) {
+                result.add(new RawMaterialBalance(
+                    acc.name,
+                    acc.code,
+                    acc.unit,
+                    acc.consumedPerMin,
+                    acc.consumedPerMin * 60.0,
+                    acc.producedPerMin,
+                    acc.producedPerMin * 60.0));
+            }
+        }
+        return result;
     }
 }
