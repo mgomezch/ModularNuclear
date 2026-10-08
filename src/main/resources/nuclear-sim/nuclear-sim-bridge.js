@@ -118,6 +118,13 @@ class NuclearSimWasm {
         if (this.onStateChange) this.onStateChange(this.getState());
     }
 
+    loadLayout(layout, notify = true) {
+        if (this.inst.exports.loadLayout) {
+            this.inst.exports.loadLayout(this.createJavaString(layout));
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     setTile(x, y, type, notify = true) {
         this.inst.exports.setTile(x, y, this.createJavaString(type));
         if (notify && this.onStateChange) this.onStateChange(this.getState());

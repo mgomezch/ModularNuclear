@@ -22,8 +22,10 @@ public class NuclearSimulationWebServer {
                 NuclearSimulationEngine.fissionHeatPerNeutron = 80.1;
                 grid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
                 grid.loadPreset("BEST_PLATINUM_9X9");
+                String presetsJson = loadCeilingPresetsJson(args);
                 String html = getIndexHtml()
-                    .replace("/*__INITIAL_STATE__*/", "window.__INITIAL_STATE__ = " + getStateJson() + ";");
+                    .replace("/*__INITIAL_STATE__*/", "window.__INITIAL_STATE__ = " + getStateJson() + ";")
+                    .replace("/*__CEILING_PRESETS__*/", "window.__CEILING_PRESETS__ = " + presetsJson + ";");
                 java.nio.file.Files.write(file.toPath(), html.getBytes(StandardCharsets.UTF_8));
                 System.out.println("Exported static simulator HTML to " + file.getAbsolutePath());
             } catch (Exception e) {
@@ -34,7 +36,35 @@ public class NuclearSimulationWebServer {
         }
         System.out.println("The Java server version of the simulator webapp has been retired.");
         System.out.println("The simulator is now an entirely client-side WebAssembly application.");
-        System.out.println("Usage: --export-html <path/to/index.html>");
+        System.out.println("Usage: --export-html <path/to/index.html> [--presets <path/to/nuclear_ceiling_best.json>]");
+    }
+
+    private static String loadCeilingPresetsJson(String[] args) {
+        for (int i = 0; i < args.length - 1; i++) {
+            if ("--presets".equals(args[i])) {
+                java.io.File f = new java.io.File(args[i + 1]);
+                if (f.exists() && f.isFile()) {
+                    try {
+                        return new String(java.nio.file.Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8).trim();
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        String[] candidatePaths = new String[] {
+            "../../tools/nuclear_ceiling_best.json",
+            "../tools/nuclear_ceiling_best.json",
+            "tools/nuclear_ceiling_best.json",
+            "/home/mgomezch/stuff/dev/nh-dev/tools/nuclear_ceiling_best.json"
+        };
+        for (String p : candidatePaths) {
+            java.io.File f = new java.io.File(p);
+            if (f.exists() && f.isFile()) {
+                try {
+                    return new String(java.nio.file.Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8).trim();
+                } catch (Exception ignored) {}
+            }
+        }
+        return "[]";
     }
 
     public static String getStateJson() {
@@ -42,7 +72,7 @@ public class NuclearSimulationWebServer {
     }
 
     private static String getIndexHtml() {
-        return getHtmlHead() + getHtmlBody() + getHtmlScriptsPart1() + getHtmlScriptsPart2();
+        return getHtmlHead() + getHtmlBody() + getHtmlScriptsPart1() + getHtmlScriptsPart2() + getHtmlScriptsPart3();
     }
 
     private static String getHtmlHead() {
@@ -629,7 +659,7 @@ public class NuclearSimulationWebServer {
                       <option value="60A_FLUXED_13X13">UV 60A: Fluxed 13x13 Supercritical (31.5M EU/t · 60.0A)</option>
                       <option value="60A_PLUTONIUM_13X13">UHV 60A: Black Plutonium 13x13 Peak (126M EU/t · 60.0A)</option>
                     </optgroup>
-                    <optgroup label="🏆 Maxxed-Out Optimum Ceilings (nuclear_ceiling_best.json)">
+                    <optgroup id="ceiling-presets-optgroup" label="🏆 Maxxed-Out Optimum Ceilings (nuclear_ceiling_best.json)">
                       <option value="BEST_ELECTRUM_5X5">EV Peak: Electrum 5x5 (565k EU/t · 276A)</option>
                       <option value="BEST_PLATINUM_9X9" selected>IV Peak: Platinum 9x9 (5.08M EU/t · 620A)</option>
                       <option value="BEST_OSMIUM_9X9">LuV Peak: Osmium 9x9 (9.46M EU/t · 289A)</option>
@@ -2962,7 +2992,11 @@ public class NuclearSimulationWebServer {
               await fetchState();
               schedulePoll();
             }
+            """;
+    }
 
+    private static String getHtmlScriptsPart3() {
+        return """
             const PRESET_TO_VOLTAGE = {
               "60A_ELECTRUM_5X5": "EV",
               "60A_PLATINUM_9X9": "IV",
@@ -2984,10 +3018,103 @@ public class NuclearSimulationWebServer {
 
             const TIER_TO_VOLTAGE = ["EV", "IV", "LuV", "ZPM", "UV", "UHV"];
 
+            function formatEuCompact(eut) {
+              if (!eut || isNaN(eut)) return "0 EU/t";
+              if (eut >= 1e8) return Math.round(eut / 1e6) + "M EU/t";
+              if (eut >= 1e6) {
+                const val = (eut / 1e6).toFixed(eut >= 1e7 ? 1 : 2).replace(/\\.0+$/, '');
+                return val + "M EU/t";
+              }
+              if (eut >= 1e3) return Math.round(eut / 1e3) + "k EU/t";
+              return Math.round(eut) + " EU/t";
+            }
+
+            function loadPresetFromData(p) {
+              if (!p || !p.layout) return;
+              lastChartTick = -1;
+              if (window.innerWidth <= 800) {
+                isFitMode = true;
+              }
+              const tierMap = { "EV": 0, "IV": 1, "LuV": 2, "ZPM": 3, "UV": 4, "UHV": 5 };
+              const pipeTier = (p.tier && tierMap[p.tier] !== undefined) ? tierMap[p.tier] : 1;
+              if (p.tier) {
+                setVoltageTier(p.tier);
+              }
+              if (isWasmMode && wasmSim) {
+                const rows = p.layout.trim().split(";");
+                const h = rows.length;
+                const w = rows[0].split(",").length;
+                if (w > 0 && h > 0) {
+                  wasmSim.initGrid(w, h, pipeTier);
+                }
+                if (wasmSim.loadLayout) {
+                  wasmSim.loadLayout(p.layout, false);
+                }
+                if (p.turbine && p.turbine.length >= 3 && wasmSim.setTurbine) {
+                  const mat = p.turbine[0].toUpperCase().replace(/-/g, '_');
+                  const sz = p.turbine[1].toUpperCase();
+                  const fit = p.turbine[2].toUpperCase();
+                  wasmSim.setTurbine(mat, sz, fit, false);
+                }
+                currentState = wasmSim.getState();
+                if (isFitMode) recalculateFitZoom();
+                renderUI();
+              }
+            }
+
+            window.__CEILING_PRESETS_MAP__ = {};
+            function initCeilingPresets() {
+              const optGroup = document.getElementById("ceiling-presets-optgroup");
+              if (!optGroup) return;
+              if (!window.__CEILING_PRESETS__ || !Array.isArray(window.__CEILING_PRESETS__) || window.__CEILING_PRESETS__.length === 0) {
+                return;
+              }
+              optGroup.innerHTML = "";
+              window.__CEILING_PRESETS__.forEach((p, idx) => {
+                const key = "CEILING_" + (p.tier ? p.tier.toUpperCase() : idx);
+                window.__CEILING_PRESETS_MAP__[key] = p;
+                if (p.tier) {
+                  window.__CEILING_PRESETS_MAP__["BEST_" + p.tier.toUpperCase()] = p;
+                }
+                const opt = document.createElement("option");
+                opt.value = key;
+                const pwr = formatEuCompact(p.peak_power_eut || p.steam_power_eut);
+                const amps = p.peak_amps != null ? (p.peak_amps >= 100 ? Math.round(p.peak_amps) : p.peak_amps.toFixed(1)) + "A" : "";
+                const cleanName = (p.name || "").replace(/\\s*\\([A-Z0-9]+\\)$/, '');
+                opt.textContent = `${p.tier} Peak: ${cleanName} (${pwr}${amps ? ' · ' + amps : ''})`;
+                if (p.tier === "IV") {
+                  opt.selected = true;
+                }
+                optGroup.appendChild(opt);
+              });
+            }
+
             async function loadPreset(name) {
               lastChartTick = -1;
               if (window.innerWidth <= 800) {
                 isFitMode = true;
+              }
+              if (window.__CEILING_PRESETS_MAP__ && window.__CEILING_PRESETS_MAP__[name]) {
+                loadPresetFromData(window.__CEILING_PRESETS_MAP__[name]);
+                return;
+              }
+              if (window.__CEILING_PRESETS_MAP__) {
+                const tierMatch = name.match(/BEST_([A-Z]+)/);
+                if (tierMatch) {
+                  const tierNameMap = {
+                    "ELECTRUM": "EV",
+                    "PLATINUM": "IV",
+                    "OSMIUM": "LuV",
+                    "QUANTIUM": "ZPM",
+                    "FLUXED": "UV",
+                    "PLUTONIUM": "UHV"
+                  };
+                  const t = tierNameMap[tierMatch[1]];
+                  if (t && window.__CEILING_PRESETS_MAP__["CEILING_" + t]) {
+                    loadPresetFromData(window.__CEILING_PRESETS_MAP__["CEILING_" + t]);
+                    return;
+                  }
+                }
               }
               if (PRESET_TO_VOLTAGE[name]) {
                 setVoltageTier(PRESET_TO_VOLTAGE[name]);
@@ -3557,6 +3684,9 @@ public class NuclearSimulationWebServer {
             if (selX !== null && selY !== null) {
               selectedTilePos = { x: parseInt(selX), y: parseInt(selY) };
             }
+
+            /*__CEILING_PRESETS__*/
+            initCeilingPresets();
 
             /*__INITIAL_STATE__*/
             if (window.__INITIAL_STATE__) {

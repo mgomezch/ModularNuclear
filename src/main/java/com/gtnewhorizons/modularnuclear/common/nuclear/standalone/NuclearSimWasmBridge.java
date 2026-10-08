@@ -75,6 +75,13 @@ public class NuclearSimWasmBridge {
         }
     }
 
+    @Export(name = "loadLayout")
+    public static void loadLayout(String layout) {
+        if (grid != null && layout != null) {
+            grid.loadLayout(layout);
+        }
+    }
+
     @Export(name = "setTile")
     public static void setTile(int x, int y, String typeStr) {
         if (grid != null && typeStr != null) {

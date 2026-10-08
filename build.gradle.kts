@@ -97,9 +97,21 @@ val exportStaticDist by tasks.registering(JavaExec::class) {
 
     mainClass.set("com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimulationWebServer")
     classpath = files(downgradedClassesDir, jvmDowngraderJar)
-    args = listOf("--export-html", file("${distDir.absolutePath}/index.html").absolutePath)
+    val presetsFile = file("${project.rootDir}/../../tools/nuclear_ceiling_best.json")
+    val altPresetsFile = file("/home/mgomezch/stuff/dev/nh-dev/tools/nuclear_ceiling_best.json")
+    val resolvedPresets = if (presetsFile.exists()) presetsFile else altPresetsFile
+    args = listOf(
+        "--export-html", file("${distDir.absolutePath}/index.html").absolutePath,
+        "--presets", resolvedPresets.absolutePath
+    )
 
     doLast {
+        if (resolvedPresets.exists()) {
+            copy {
+                from(resolvedPresets)
+                into(distDir)
+            }
+        }
         val localShareDir = file("${System.getProperty("user.home")}/.local/share/modular-nuclear/dist")
         if (localShareDir.exists() || localShareDir.mkdirs()) {
             copy {
