@@ -259,6 +259,10 @@ class NuclearSimWasm {
         this.setParam("repair", "true", notify);
     }
 
+    setReactorDamage(damage, notify = true) {
+        this.setParam("damage", String(damage), notify);
+    }
+
     setControlRod(x, y, hasRod, typeStr, insertion, notify = true) {
         if (this.inst.exports.setControlRod) {
             this.inst.exports.setControlRod(

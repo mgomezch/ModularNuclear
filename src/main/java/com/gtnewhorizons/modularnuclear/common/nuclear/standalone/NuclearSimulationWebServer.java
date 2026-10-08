@@ -550,6 +550,12 @@ public class NuclearSimulationWebServer {
                 background: rgba(16, 185, 129, 0.08);
                 color: #a7f3d0;
               }
+              .incident-entry.pending-incident {
+                border-left-color: #f59e0b;
+                background: rgba(245, 158, 11, 0.12);
+                color: #fde047;
+                font-weight: 500;
+              }
               .incident-tick {
                 color: #94a3b8;
                 font-family: monospace;
@@ -707,6 +713,17 @@ public class NuclearSimulationWebServer {
                     <span>🔄 Auto-Supply Fuel</span>
                     <span id="lbl-auto-supply-fuel" style="font-size:0.7rem; color:#34d399; font-weight:600;">(Enabled)</span>
                   </label>
+                  <div class="sim-damage-control" style="display:inline-flex; align-items:center; gap:8px; margin-left:auto; background:#1e293b; border:1px solid #334155; border-radius:6px; padding:3px 10px;">
+                    <span style="font-size:0.75rem; color:#f87171; font-weight:600;" title="Manual Core Structural Damage Slider">💥 Damage:</span>
+                    <input type="range" id="rng-reactor-damage" min="0" max="100" step="0.5" value="0"
+                      oninput="onDamageSliderInput(this.value)"
+                      onchange="onDamageSliderChange(this.value)"
+                      style="width:90px; cursor:pointer; accent-color:#ef4444;" title="Slide to adjust reactor structural damage (0% to 100%)">
+                    <span id="lbl-reactor-damage-val" style="font-size:0.75rem; color:#f87171; font-weight:bold; min-width:40px;">0.0%</span>
+                    <button type="button" onclick="setDamagePercent(0)" style="font-size:0.7rem; padding:1px 5px; background:#065f46; color:#34d399; border:1px solid #059669; border-radius:3px; cursor:pointer;" title="Reset damage to 0% (Clean Repair)">0%</button>
+                    <button type="button" onclick="setDamagePercent(50)" style="font-size:0.7rem; padding:1px 5px; background:#78350f; color:#fde047; border:1px solid #d97706; border-radius:3px; cursor:pointer;" title="Set damage to 50%">50%</button>
+                    <button type="button" onclick="setDamagePercent(95)" style="font-size:0.7rem; padding:1px 5px; background:#7f1d1d; color:#fca5a5; border:1px solid #dc2626; border-radius:3px; cursor:pointer;" title="Set damage to 95% (Near Meltdown)">95%</button>
+                  </div>
                 </div>
 
                 <div class="grid-toolbar">
@@ -1703,11 +1720,6 @@ public class NuclearSimulationWebServer {
             }
 
             async function quickRepair() {
-              if (currentState && currentState.canRepair === false) {
-                const thresh = currentState.repairThreshold || 120.0;
-                alert(`Cannot repair reactor: average core temperature (${currentState.coreAvgTemp.toFixed(1)}°C) exceeds safe repair threshold (${thresh.toFixed(1)}°C). Scram or cool the reactor before repairing.`);
-                return;
-              }
               if (isWasmMode && wasmSim) {
                 wasmSim.repair();
                 currentState = wasmSim.getState();
@@ -1745,10 +1757,20 @@ public class NuclearSimulationWebServer {
               const dmgBadge = document.getElementById("damage-badge");
               const maintBadge = document.getElementById("maint-badge");
               const repairBtn = document.getElementById("btn-quick-repair");
+              const currentDmg = (currentState && currentState.reactorDamage != null) ? currentState.reactorDamage : 0.0;
+              const rngDmg = document.getElementById("rng-reactor-damage");
+              const lblDmg = document.getElementById("lbl-reactor-damage-val");
+              if (rngDmg && document.activeElement !== rngDmg) {
+                rngDmg.value = currentDmg;
+              }
+              if (lblDmg && document.activeElement !== rngDmg) {
+                lblDmg.innerText = currentDmg.toFixed(1) + "%";
+              }
+
               if (dmgBadge) {
-                if (currentState.reactorDamage && currentState.reactorDamage > 0) {
+                if (currentDmg > 0.001) {
                   dmgBadge.style.display = "inline-block";
-                  dmgBadge.innerText = "Damage: " + currentState.reactorDamage.toFixed(1) + "%";
+                  dmgBadge.innerText = "Damage: " + currentDmg.toFixed(1) + "%";
                 } else {
                   dmgBadge.style.display = "none";
                 }
@@ -1757,25 +1779,15 @@ public class NuclearSimulationWebServer {
                 const effPct = (currentState.maintenanceEfficiency != null ? (currentState.maintenanceEfficiency * 100).toFixed(0) : "100");
                 const issues = currentState.maintenanceIssues || 0;
                 maintBadge.innerText = `Maint: ${effPct}% (${issues} issues)`;
-                maintBadge.style.color = (issues === 0 && (!currentState.reactorDamage || currentState.reactorDamage === 0)) ? "var(--success)" : "var(--warning)";
+                maintBadge.style.color = (issues === 0 && currentDmg < 0.001) ? "var(--success)" : "var(--warning)";
               }
               if (repairBtn) {
-                const hasDmg = (currentState.reactorDamage && currentState.reactorDamage > 0) || (currentState.maintenanceIssues && currentState.maintenanceIssues > 0);
+                const hasDmg = currentDmg > 0.001 || (currentState.maintenanceIssues && currentState.maintenanceIssues > 0);
                 repairBtn.style.display = hasDmg ? "inline-block" : "none";
-                if (hasDmg) {
-                  const thresh = currentState.repairThreshold || 120.0;
-                  const canRep = (currentState.canRepair !== undefined) ? currentState.canRepair : ((currentState.coreAvgTemp || 0) <= thresh);
-                  repairBtn.disabled = !canRep;
-                  if (!canRep) {
-                    repairBtn.style.opacity = "0.5";
-                    repairBtn.style.cursor = "not-allowed";
-                    repairBtn.title = `Core too hot to repair (${(currentState.coreAvgTemp||0).toFixed(1)}°C > ${thresh.toFixed(1)}°C safe limit). Cool reactor before repairing.`;
-                  } else {
-                    repairBtn.style.opacity = "1.0";
-                    repairBtn.style.cursor = "pointer";
-                    repairBtn.title = `Repair structural damage and clear maintenance issues (Safe limit: ≤${thresh.toFixed(1)}°C)`;
-                  }
-                }
+                repairBtn.disabled = false;
+                repairBtn.style.opacity = "1.0";
+                repairBtn.style.cursor = "pointer";
+                repairBtn.title = "Repair structural damage and clear maintenance issues (Reset damage to 0%)";
               }
 
               // Sync Simulation Options toggles
@@ -1858,7 +1870,7 @@ public class NuclearSimulationWebServer {
                 alertBox.className = "alert-warning flash";
                 alertBox.style.display = "block";
                 const reason = currentState.lastHaltIncidentReason || "Bad reactor condition detected";
-                alertBox.innerHTML = `<strong>🛑 SIMULATION PAUSED ON INCIDENT:</strong> ${reason} <span style="display:block; margin-top:4px; font-size:0.8rem; font-weight:normal;">Halted by "Stop on Incidents" option. Click <strong>▶ Resume Simulation</strong> to continue or <strong>Step +1</strong> to advance tick-by-tick.</span>`;
+                alertBox.innerHTML = `<strong>🛑 SIMULATION PAUSED ON PENDING INCIDENT:</strong> ${reason} <span style="display:block; margin-top:4px; font-size:0.8rem; font-weight:normal;">Halted by "Stop on Incidents" option. Click <strong>▶ Resume Simulation</strong> to continue, <strong>Step +1</strong> to advance tick-by-tick, or use the <strong>Damage Slider / 🔧 Repair</strong> to restore the core.</span>`;
               } else if (currentState.reactorDamage && currentState.reactorDamage > 0) {
                 // Active structural damage warning: flashes alert banner, but fission continues
                 const latestInc = (currentState.incidentLog && currentState.incidentLog.length > 0)
@@ -1941,6 +1953,11 @@ public class NuclearSimulationWebServer {
                         cls = "meltdown";
                         badgeColor = "#f87171";
                         badgeBg = "rgba(185,28,28,0.3)";
+                        break;
+                      case "PENDING_INCIDENT":
+                        cls = "pending-incident";
+                        badgeColor = "#f59e0b";
+                        badgeBg = "rgba(245,158,11,0.25)";
                         break;
                       case "REPAIR":
                         cls = "repair";
@@ -3416,6 +3433,31 @@ public class NuclearSimulationWebServer {
               if (minBtn) minBtn.classList.toggle("active", unit === "min");
               if (hourBtn) hourBtn.classList.toggle("active", unit === "hour");
               renderByproducts();
+            }
+
+            function onDamageSliderInput(val) {
+              const lbl = document.getElementById("lbl-reactor-damage-val");
+              if (lbl) lbl.innerText = parseFloat(val).toFixed(1) + "%";
+            }
+
+            async function onDamageSliderChange(val) {
+              const dmg = Math.max(0.0, Math.min(100.0, parseFloat(val) || 0.0));
+              if (isWasmMode && wasmSim) {
+                wasmSim.setReactorDamage(dmg);
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
+              await fetch(`/api/set-params?damage=${dmg}`);
+              await fetchState();
+            }
+
+            async function setDamagePercent(pct) {
+              const rng = document.getElementById("rng-reactor-damage");
+              if (rng) rng.value = pct;
+              const lbl = document.getElementById("lbl-reactor-damage-val");
+              if (lbl) lbl.innerText = pct.toFixed(1) + "%";
+              await onDamageSliderChange(pct);
             }
 
             function toggleStopOnIncidents(checked) {

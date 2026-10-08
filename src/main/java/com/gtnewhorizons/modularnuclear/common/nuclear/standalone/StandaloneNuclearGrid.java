@@ -350,6 +350,16 @@ public class StandaloneNuclearGrid {
             this.haltedByIncident = true;
             this.lastHaltIncidentReason = String
                 .format(java.util.Locale.US, "[%s] %s (+%.1f%% damage)", type, message, damage);
+            this.incidentLog.add(
+                new IncidentEvent(
+                    this.currentTick,
+                    "PENDING_INCIDENT",
+                    String.format(
+                        java.util.Locale.US,
+                        "Pending Incident: Simulation stopped on [%s] (%s). Action required to prevent further damage.",
+                        type,
+                        message),
+                    0.0));
         }
     }
 
@@ -602,6 +612,18 @@ public class StandaloneNuclearGrid {
                                 double threshold = NuclearSimulationEngine
                                     .getCoolantBoilingThreshold(tile.getInputFluidName());
                                 if (tile.getTemperature() > threshold) {
+                                    if (this.stopOnIncidents && !this.haltedByIncident) {
+                                        this.haltedByIncident = true;
+                                        this.lastHaltIncidentReason = String.format(
+                                            java.util.Locale.US,
+                                            "Pending Incident: Cold coolant is about to be fed into dry superheated hatch at (%d,%d) (%.1f°C > %.1f°C boiling threshold). Simulation stopped to prevent thermal shock.",
+                                            x,
+                                            y,
+                                            tile.getTemperature(),
+                                            threshold);
+                                        logIncident("PENDING_INCIDENT", this.lastHaltIncidentReason, 0.0);
+                                        return false;
+                                    }
                                     triggerThermalShock(
                                         x,
                                         y,
@@ -813,6 +835,16 @@ public class StandaloneNuclearGrid {
                 return false;
             }
             if (reactorDamage >= 100.0) {
+                if (this.stopOnIncidents && !this.haltedByIncident) {
+                    this.reactorDamage = 99.9;
+                    this.haltedByIncident = true;
+                    this.lastHaltIncidentReason = String.format(
+                        java.util.Locale.US,
+                        "Pending Incident: Reactor structural damage at 100%% from %d overheating tile(s). Simulation stopped to prevent meltdown.",
+                        overheatingCount);
+                    logIncident("PENDING_INCIDENT", this.lastHaltIncidentReason, 0.0);
+                    return false;
+                }
                 triggerExplosion(
                     String.format(
                         java.util.Locale.US,
@@ -935,6 +967,15 @@ public class StandaloneNuclearGrid {
                 "Reactor structural damage increased from %.1f%% to %.1f%%",
                 initialDamage,
                 this.reactorDamage);
+            this.incidentLog.add(
+                new IncidentEvent(
+                    this.currentTick,
+                    "PENDING_INCIDENT",
+                    String.format(
+                        java.util.Locale.US,
+                        "Pending Incident: %s. Simulation stopped to prevent further damage.",
+                        this.lastHaltIncidentReason),
+                    0.0));
         }
 
         if (this.stopOnIncidents && this.haltedByIncident) {
@@ -1021,6 +1062,18 @@ public class StandaloneNuclearGrid {
 
     public void setReactorDamage(double damage) {
         this.reactorDamage = Math.max(0.0, Math.min(100.0, damage));
+        if (this.reactorDamage < 100.0) {
+            if (this.exploded) {
+                this.exploded = false;
+                this.explosionReason = "";
+            }
+            if (this.haltedByIncident) {
+                this.haltedByIncident = false;
+                this.lastHaltIncidentReason = "";
+            }
+        } else if (this.reactorDamage >= 100.0 && !this.exploded) {
+            triggerExplosion("Reactor structural damage set to 100%");
+        }
     }
 
     public int getMaintenanceIssues() {
@@ -1052,7 +1105,11 @@ public class StandaloneNuclearGrid {
     }
 
     public boolean repairMaintenance() {
-        if (!canRepair()) {
+        return repairMaintenance(false);
+    }
+
+    public boolean repairMaintenance(boolean force) {
+        if (!force && !canRepair()) {
             logIncident(
                 "REPAIR_FAILED",
                 String.format(
@@ -1065,12 +1122,20 @@ public class StandaloneNuclearGrid {
         }
         this.maintenanceIssues = 0;
         this.reactorDamage = 0.0;
+        this.exploded = false;
+        this.explosionReason = "";
+        this.haltedByIncident = false;
+        this.lastHaltIncidentReason = "";
         logIncident("REPAIR", "Reactor structural damage repaired and maintenance issues cleared", 0.0);
         return true;
     }
 
     public boolean repair() {
-        return repairMaintenance();
+        return repairMaintenance(false);
+    }
+
+    public boolean forceRepair() {
+        return repairMaintenance(true);
     }
 
     public double getBaseHatchConductance() {

@@ -374,7 +374,7 @@ public class NuclearSimWasmBridge {
         }
         if ("repair".equalsIgnoreCase(key)) {
             if (grid != null) {
-                grid.repairMaintenance();
+                grid.forceRepair();
             }
             return;
         }

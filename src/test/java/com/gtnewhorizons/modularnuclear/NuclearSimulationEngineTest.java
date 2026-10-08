@@ -4064,5 +4064,72 @@ public class NuclearSimulationEngineTest {
                     grid.getIncidentLog()
                         .size() - 1)
                 .type());
+
+        // But forceRepair() succeeds even when hot (unconstrained webapp repair)
+        boolean forceOk = grid.forceRepair();
+        assertTrue(forceOk, "forceRepair must succeed even when core temperature exceeds safe threshold");
+        assertEquals(0.0, grid.getReactorDamage(), 1e-6, "forceRepair must reset damage to 0");
+        assertEquals(0, grid.getMaintenanceIssues(), "forceRepair must reset maintenance issues to 0");
+        assertEquals(
+            "REPAIR",
+            grid.getIncidentLog()
+                .get(
+                    grid.getIncidentLog()
+                        .size() - 1)
+                .type());
+    }
+
+    @Test
+    void testDamageSliderAndPendingIncidentLogging() {
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        grid.setStopOnIncidents(true);
+
+        // Test manual damage setting
+        grid.setReactorDamage(42.5);
+        assertEquals(42.5, grid.getReactorDamage(), 1e-6);
+
+        // Setting damage to 100% triggers explosion
+        grid.setReactorDamage(100.0);
+        assertTrue(grid.isExploded());
+
+        // Setting damage back down to 50% clears explosion and halted status
+        grid.setReactorDamage(50.0);
+        assertFalse(grid.isExploded());
+        assertFalse(grid.isHaltedByIncident());
+        assertEquals(50.0, grid.getReactorDamage(), 1e-6);
+
+        // Test pending incident logging when damage increases or impending incident occurs
+        grid.loadPreset("60A_ELECTRUM_5X5");
+        grid.setStopOnIncidents(true);
+        grid.setReactorDamage(50.0);
+        grid.clearHaltedByIncident();
+
+        // 1. Log incident with damage under stopOnIncidents -> triggers PENDING_INCIDENT in log
+        grid.logIncident("CASING_OVERHEAT", "Cell overheated casing limit", 2.0);
+        assertTrue(grid.isHaltedByIncident(), "Grid must be halted by incident");
+        boolean hasPending = grid.getIncidentLog()
+            .stream()
+            .anyMatch(e -> "PENDING_INCIDENT".equals(e.type()));
+        assertTrue(hasPending, "Incident log must record PENDING_INCIDENT when halted to prevent further damage");
+
+        // 2. Clear halt and test impending thermal shock prevention
+        grid.clearHaltedByIncident();
+        assertFalse(grid.isHaltedByIncident());
+        SimTile hatch = grid.getTile(0, 1);
+        assertNotNull(hatch);
+        hatch.setType(SimTile.TileType.HATCH_DISTILLED_WATER);
+        hatch.setInputFluidAmount(0);
+        hatch.setWasDry(true);
+        hatch.setAutoRefill(true);
+        hatch.setTemperature(150.0); // Exceeds 100°C boiling threshold
+
+        boolean stepOk = grid.step();
+        assertFalse(stepOk, "step() must return false when impending thermal shock is caught");
+        assertTrue(grid.isHaltedByIncident(), "Grid must be halted on impending thermal shock");
+        assertTrue(
+            grid.getLastHaltIncidentReason()
+                .contains("Impending thermal shock")
+                || grid.getLastHaltIncidentReason()
+                    .contains("thermal shock"));
     }
 }
