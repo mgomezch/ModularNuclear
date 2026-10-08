@@ -404,4 +404,31 @@ public class CoolantLoopModelTest {
         }
         assertTrue(loop.getTotalTritiumProduced() > 0, "Heavy water loop must produce radiolytic tritium");
     }
+
+    @Test
+    void testMoltenFluidTemperatureLimitsAndSolidificationRupture() {
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE);
+        assertEquals(46.85, loop.getFluidType().meltingPointCelsius, 0.01);
+        assertTrue(loop.getFluidType().isMolten());
+
+        // 1. Flow acceleration disallowed if coolant temperature is below melting point
+        loop.setCurrentCoolantTempCelsius(20.0); // 20 °C < 46.85 °C
+        loop.setPumpPowerEUt(250.0);
+        loop.updatePumpState();
+        assertEquals(0.0, loop.getCurrentFlowRateLPerSec(), 1e-5, "Pump must refuse to accelerate flow when cold");
+        assertTrue(loop.isFlowLimited());
+        assertTrue(loop.getLimitReason().contains("Pump blocked"));
+
+        // 2. Flow allowed if heated above melting point
+        loop.setCurrentCoolantTempCelsius(50.0); // 50 °C > 46.85 °C
+        loop.updatePumpState();
+        assertTrue(loop.getCurrentFlowRateLPerSec() > 0.0, "Flow must accelerate when above melting point");
+
+        // 3. If circulating and coolant drops below melting point, immediate catastrophic rupture!
+        grid.setTile(3, 4, SimTile.TileType.PASSAGE_CORE);
+        loop.setCurrentCoolantTempCelsius(30.0); // drops below 46.85 °C while circulating
+        assertFalse(grid.step(), "Step should fail on rupture");
+        assertTrue(loop.isRuptured(), "Circulating molten coolant below melting point must cause rupture");
+        assertTrue(loop.getRuptureReason().contains("Solidification"), "Rupture reason must mention solidification");
+    }
 }

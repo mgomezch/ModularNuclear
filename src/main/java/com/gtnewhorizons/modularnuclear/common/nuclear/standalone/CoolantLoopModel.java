@@ -157,9 +157,9 @@ public class CoolantLoopModel {
 
     public enum CoolantFluidType {
 
-        DISTILLED_WATER("Distilled Water", 1000.0, 4184.0, 0.001, 0.60, "Deuterium"),
-        HEAVY_WATER("Heavy Water", 1105.0, 4220.0, 0.00125, 0.59, "Tritium"),
-        MOLTEN_CHEESE("Molten Cheese", 1120.0, 3000.0, 0.557, 0.481, "None");
+        DISTILLED_WATER("Distilled Water", 1000.0, 4184.0, 0.001, 0.60, "Deuterium", 0.0),
+        HEAVY_WATER("Heavy Water", 1105.0, 4220.0, 0.00125, 0.59, "Tritium", 3.8),
+        MOLTEN_CHEESE("Molten Cheese", 1120.0, 3000.0, 0.557, 0.481, "None", 46.85);
 
         public final String displayName;
         public final double density; // kg/m^3
@@ -167,15 +167,21 @@ public class CoolantLoopModel {
         public final double dynamicViscosity; // Pa*s
         public final double thermalConductivity;// W/(m*K)
         public final String byproductGas;
+        public final double meltingPointCelsius;
 
         CoolantFluidType(String displayName, double density, double specificHeat, double dynamicViscosity,
-            double thermalConductivity, String byproductGas) {
+            double thermalConductivity, String byproductGas, double meltingPointCelsius) {
             this.displayName = displayName;
             this.density = density;
             this.specificHeat = specificHeat;
             this.dynamicViscosity = dynamicViscosity;
             this.thermalConductivity = thermalConductivity;
             this.byproductGas = byproductGas;
+            this.meltingPointCelsius = meltingPointCelsius;
+        }
+
+        public boolean isMolten() {
+            return this.name().contains("MOLTEN") || this.displayName.toLowerCase().contains("molten");
         }
 
         public static CoolantFluidType fromString(String str) {
@@ -414,6 +420,21 @@ public class CoolantLoopModel {
             return;
         }
 
+        // Solidification check: disallow acceleration if molten fluid is below declared melting point
+        if (fluidType.isMolten() && currentCoolantTempCelsius < fluidType.meltingPointCelsius) {
+            currentFlowRateLPerSec = 0.0;
+            lastPumpPowerEUt = 0.0;
+            effectiveDutyCyclePercent = 0.0;
+            currentPressureBar = 1.0;
+            flowLimited = true;
+            limitReason = String.format(
+                "Pump blocked: Coolant temperature (%.1f °C) is below declared melting point (%.1f °C) for %s! Fluid would solidify.",
+                currentCoolantTempCelsius,
+                fluidType.meltingPointCelsius,
+                fluidType.displayName);
+            return;
+        }
+
         // Control System: Calculate pump power, duty cycle, flow, and safety throttling
         double pumpAmps = pumpOverclocked ? 4.0 : 1.0;
         double maxPumpPowerEUt = hatchTier.voltageEU * pumpAmps;
@@ -498,6 +519,22 @@ public class CoolantLoopModel {
         }
 
         int reactorTier = grid.getPipeTier();
+
+        // 0. Solidification check for molten fluids
+        if (fluidType.isMolten() && currentCoolantTempCelsius < fluidType.meltingPointCelsius) {
+            if (currentFlowRateLPerSec > 0.0) {
+                this.ruptured = true;
+                this.ruptureReason = String.format(
+                    "Catastrophic Coolant Solidification! Coolant temperature %.1f °C dropped below declared GregTech melting point %.1f °C for molten fluid %s. Solidified plug ruptured loop!",
+                    currentCoolantTempCelsius,
+                    fluidType.meltingPointCelsius,
+                    fluidType.displayName);
+                return false;
+            } else {
+                updatePumpState();
+                return true;
+            }
+        }
 
         // 1. Verify Tier Constraint: Convective cooling availability
         if (reactorTier < NuclearSimulationEngine.PIPE_TIER_PLATINUM) {
@@ -728,6 +765,9 @@ public class CoolantLoopModel {
     public void setFluidType(CoolantFluidType fluidType) {
         if (fluidType != null) {
             this.fluidType = fluidType;
+            if (fluidType.isMolten() && currentCoolantTempCelsius < fluidType.meltingPointCelsius) {
+                currentCoolantTempCelsius = fluidType.meltingPointCelsius;
+            }
             updatePumpState();
         }
     }
