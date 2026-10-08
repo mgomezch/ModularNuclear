@@ -2237,11 +2237,15 @@ public class NuclearSimulationWebServer {
 
                 const bypEl = document.getElementById("loop-byproduct-val");
                 if (bypEl) {
-                  let bypStr = `${cl.totalDeuteriumProduced.toLocaleString()} L D₂ | ${cl.totalTritiumProduced.toLocaleString()} L T₂`;
-                  if (cl.totalMethaneProduced && cl.totalMethaneProduced > 0) {
-                    bypStr += ` | ${cl.totalMethaneProduced.toLocaleString()} L CH₄`;
+                  if (cl.byproductGas === "None") {
+                    bypEl.innerText = "None (No Radiolysis)";
+                  } else {
+                    let bypStr = `${cl.totalDeuteriumProduced.toLocaleString()} L D₂ | ${cl.totalTritiumProduced.toLocaleString()} L T₂`;
+                    if (cl.totalMethaneProduced && cl.totalMethaneProduced > 0) {
+                      bypStr += ` | ${cl.totalMethaneProduced.toLocaleString()} L CH₄`;
+                    }
+                    bypEl.innerText = bypStr;
                   }
-                  bypEl.innerText = bypStr;
                 }
 
                 const warnEl = document.getElementById("loop-tier-warning");

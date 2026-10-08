@@ -341,23 +341,19 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
                 mNeutronAccumulator %= 4;
                 CoolantFluidProperty prop = mConnectedPump.getCoolantFluidProperty();
                 String name = prop != null ? prop.getFluidName()
-                    .toLowerCase() : "water";
-                mConnectedPump.consumeCoolant(cycles * 2L);
+                    .toLowerCase() : "ic2distilledwater";
                 if (name.contains("heavy")) {
                     // 2 D2O -> 2 T2 + 1 O2
+                    mConnectedPump.consumeCoolant(cycles * 2L);
                     mConnectedPump.addDissolvedGas("Tritium", cycles * 2L);
                     mConnectedPump.addDissolvedGas("Oxygen", cycles * 1L);
-                } else if (name.contains("cheese")) {
-                    // Molten cheese irradiation -> Methane + Hydrogen
-                    mConnectedPump.addDissolvedGas("Methane", cycles * 2L);
-                    mConnectedPump.addDissolvedGas("Hydrogen", cycles * 1L);
-                } else if (name.contains("sodium")) {
-                    // Liquid sodium metal does not undergo radiolytic gas dissociation
-                } else {
+                } else if (name.contains("distill")) {
                     // 2 H2O -> 2 D2 + 1 O2
+                    mConnectedPump.consumeCoolant(cycles * 2L);
                     mConnectedPump.addDissolvedGas("Deuterium", cycles * 2L);
                     mConnectedPump.addDissolvedGas("Oxygen", cycles * 1L);
                 }
+                // Radiolysis is strictly disallowed for any fluid other than distilled water and heavy water
             }
         }
     }

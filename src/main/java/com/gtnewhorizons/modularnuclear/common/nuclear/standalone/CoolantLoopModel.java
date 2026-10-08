@@ -159,7 +159,7 @@ public class CoolantLoopModel {
 
         DISTILLED_WATER("Distilled Water", 1000.0, 4184.0, 0.001, 0.60, "Deuterium"),
         HEAVY_WATER("Heavy Water", 1105.0, 4220.0, 0.00125, 0.59, "Tritium"),
-        MOLTEN_CHEESE("Molten Cheese", 1120.0, 3000.0, 0.557, 0.481, "Methane");
+        MOLTEN_CHEESE("Molten Cheese", 1120.0, 3000.0, 0.557, 0.481, "None");
 
         public final String displayName;
         public final double density; // kg/m^3
@@ -610,11 +610,10 @@ public class CoolantLoopModel {
                     neutronTransmuteAccumulator %= 4;
                     if (fluidType == CoolantFluidType.HEAVY_WATER) {
                         totalTritiumProduced += cycles * 2L;
-                    } else if (fluidType == CoolantFluidType.MOLTEN_CHEESE) {
-                        totalMethaneProduced += cycles * 2L;
-                    } else {
+                    } else if (fluidType == CoolantFluidType.DISTILLED_WATER) {
                         totalDeuteriumProduced += cycles * 2L;
                     }
+                    // Radiolysis is strictly disallowed for any other fluid
                 }
             }
         }

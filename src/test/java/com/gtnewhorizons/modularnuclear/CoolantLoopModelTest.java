@@ -365,14 +365,14 @@ public class CoolantLoopModelTest {
     }
 
     @Test
-    void testMoltenCheeseFluidPropertiesAndMethaneRadiolysis() {
+    void testMoltenCheeseFluidPropertiesAndNoRadiolysis() {
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE);
         assertEquals("Molten Cheese", loop.getFluidType().displayName);
         assertEquals(1120.0, loop.getFluidType().density, 0.01);
         assertEquals(3000.0, loop.getFluidType().specificHeat, 0.01);
         assertEquals(0.557, loop.getFluidType().dynamicViscosity, 0.001);
         assertEquals(0.481, loop.getFluidType().thermalConductivity, 0.001);
-        assertEquals("Methane", loop.getFluidType().byproductGas);
+        assertEquals("None", loop.getFluidType().byproductGas);
 
         assertEquals(CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE, CoolantLoopModel.CoolantFluidType.fromString("cheese"));
         assertEquals(CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE, CoolantLoopModel.CoolantFluidType.fromString("MOLTEN_CHEESE"));
@@ -384,6 +384,24 @@ public class CoolantLoopModelTest {
         for (int t = 1; t <= 20; t++) {
             grid.step();
         }
-        assertTrue(loop.getTotalMethaneProduced() > 0, "Molten cheese loop should produce radiolytic methane gas");
+        assertEquals(0, loop.getTotalMethaneProduced(), "Molten cheese loop must not produce radiolytic methane");
+        assertEquals(0, loop.getTotalDeuteriumProduced(), "Molten cheese loop must not produce deuterium");
+        assertEquals(0, loop.getTotalTritiumProduced(), "Molten cheese loop must not produce tritium");
+
+        // Distilled water produces deuterium
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
+        for (int t = 1; t <= 20; t++) {
+            grid.step();
+        }
+        assertTrue(loop.getTotalDeuteriumProduced() > 0, "Distilled water loop must produce radiolytic deuterium");
+
+        // Heavy water produces tritium
+        grid.setTile(3, 3, SimTile.TileType.FUEL_URANIUM_QUAD);
+        grid.setTile(3, 4, SimTile.TileType.PASSAGE_CORE);
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
+        for (int t = 1; t <= 20; t++) {
+            grid.step();
+        }
+        assertTrue(loop.getTotalTritiumProduced() > 0, "Heavy water loop must produce radiolytic tritium");
     }
 }
