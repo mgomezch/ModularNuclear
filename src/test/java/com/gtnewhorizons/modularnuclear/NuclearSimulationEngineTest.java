@@ -536,30 +536,30 @@ public class NuclearSimulationEngineTest {
             com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_IC2_COOLANT);
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatch = grid.getTile(1, 1);
 
-        // Case 1: Coolant does NOT operate below 100°C operating threshold (like water/heavy water)
+        // Case 1: Coolant does NOT extract heat when at or below ambient temperature (20°C)
         hatch.setInputFluidAmount(2000);
-        hatch.setTemperature(80.0); // 80°C is below 100°C threshold, so IC2 coolant must be inactive
+        hatch.setTemperature(NuclearSimulationEngine.AMBIENT_TEMP);
         hatch.nuclearTick(1.0);
 
         assertEquals(
-            80.0,
+            NuclearSimulationEngine.AMBIENT_TEMP,
             hatch.getTemperature(),
             1e-4,
-            "IC2 coolant must NOT extract heat below 100°C threshold");
-        assertEquals(0, hatch.getLastTickProduced(), "No coolant produced below 100°C threshold");
-        assertEquals(0, hatch.getOutputFluidAmount(), "IC2 coolant must produce 0 hot coolant below 100°C threshold");
+            "IC2 coolant must NOT extract heat at ambient temperature");
+        assertEquals(0, hatch.getLastTickProduced(), "No coolant produced at ambient temperature");
+        assertEquals(0, hatch.getOutputFluidAmount(), "IC2 coolant must produce 0 hot coolant at ambient");
 
-        // Case 2: Above 100°C threshold (e.g. 150°C), IC2 coolant extracts heat conductively at 1:1 volume ratio
-        hatch.setTemperature(150.0);
+        // Case 2: Above ambient (e.g. 80°C), IC2 coolant extracts heat conductively at 1:1 volume ratio
+        hatch.setTemperature(80.0);
         hatch.nuclearTick(1.0);
 
         assertTrue(
-            hatch.getTemperature() < 150.0,
-            "IC2 coolant must extract heat above 100°C threshold");
+            hatch.getTemperature() < 80.0,
+            "IC2 coolant must extract heat above ambient threshold");
         assertTrue(
-            hatch.getTemperature() >= 100.0,
-            "IC2 coolant cannot cool below 100°C sink temperature");
-        assertTrue(hatch.getOutputFluidAmount() > 0, "IC2 coolant must produce hot coolant above 100°C threshold");
+            hatch.getTemperature() >= NuclearSimulationEngine.AMBIENT_TEMP,
+            "IC2 coolant cannot cool below ambient sink temperature");
+        assertTrue(hatch.getOutputFluidAmount() > 0, "IC2 coolant must produce hot coolant above ambient threshold");
         assertEquals(hatch.getLastTickProduced(), hatch.getOutputFluidAmount(), "1:1 liquid ratio for IC2 coolant");
         assertEquals(0, hatch.getTotalSteamProduced(), "IC2 coolant must NOT produce steam");
 
@@ -573,7 +573,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testCoolantSinkTemperatures() {
-        assertEquals(100.0, NuclearSimulationEngine.getCoolantSinkTemperature("ic2coolant", 24.0));
+        assertEquals(24.0, NuclearSimulationEngine.getCoolantSinkTemperature("ic2coolant", 24.0));
         assertEquals(100.0, NuclearSimulationEngine.getCoolantSinkTemperature("distilledwater", 24.0));
         assertEquals(101.4, NuclearSimulationEngine.getCoolantSinkTemperature("heavywater", 24.0));
         assertEquals(24.0, NuclearSimulationEngine.getCoolantSinkTemperature(null, 24.0));
@@ -3256,15 +3256,15 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testConductanceScalingAcrossTiers() {
-        assertEquals(16.0, NuclearSimulationEngine.getHatchConductance(1), 1e-6, "LV (tier 1) conductance");
-        assertEquals(32.0, NuclearSimulationEngine.getHatchConductance(2), 1e-6, "MV (tier 2) conductance");
-        assertEquals(64.0, NuclearSimulationEngine.getHatchConductance(3), 1e-6, "HV (tier 3) conductance");
-        assertEquals(128.0, NuclearSimulationEngine.getHatchConductance(4), 1e-6, "EV (tier 4) conductance");
-        assertEquals(256.0, NuclearSimulationEngine.getHatchConductance(5), 1e-6, "IV (tier 5) conductance");
-        assertEquals(512.0, NuclearSimulationEngine.getHatchConductance(6), 1e-6, "LuV (tier 6) conductance");
-        assertEquals(1024.0, NuclearSimulationEngine.getHatchConductance(7), 1e-6, "ZPM (tier 7) conductance");
-        assertEquals(2048.0, NuclearSimulationEngine.getHatchConductance(8), 1e-6, "UV (tier 8) conductance");
-        assertEquals(4096.0, NuclearSimulationEngine.getHatchConductance(9), 1e-6, "UHV (tier 9) conductance");
+        assertEquals(1.0, NuclearSimulationEngine.getHatchConductance(1), 1e-6, "LV (tier 1) conductance");
+        assertEquals(2.0, NuclearSimulationEngine.getHatchConductance(2), 1e-6, "MV (tier 2) conductance");
+        assertEquals(4.0, NuclearSimulationEngine.getHatchConductance(3), 1e-6, "HV (tier 3) conductance");
+        assertEquals(8.0, NuclearSimulationEngine.getHatchConductance(4), 1e-6, "EV (tier 4) conductance");
+        assertEquals(16.0, NuclearSimulationEngine.getHatchConductance(5), 1e-6, "IV (tier 5) conductance");
+        assertEquals(32.0, NuclearSimulationEngine.getHatchConductance(6), 1e-6, "LuV (tier 6) conductance");
+        assertEquals(64.0, NuclearSimulationEngine.getHatchConductance(7), 1e-6, "ZPM (tier 7) conductance");
+        assertEquals(128.0, NuclearSimulationEngine.getHatchConductance(8), 1e-6, "UV (tier 8) conductance");
+        assertEquals(256.0, NuclearSimulationEngine.getHatchConductance(9), 1e-6, "UHV (tier 9) conductance");
     }
 
     @Test
@@ -3276,19 +3276,131 @@ public class NuclearSimulationEngineTest {
         // When efficiency is 0: zero heat transfer
         assertEquals(0.0, NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 0.0), 1e-6);
 
-        // Tier 3 (HV, U = 64.0 EU/(t·°C)), Ch = 256.0 EU/°C, DeltaT = 100°C, eff = 1.0
-        // Expected Q = 256.0 * 100.0 * (1 - exp(-64.0 / 256.0)) = 5662.70 EU
+        // Tier 3 (HV, mult=2.0, base=2.0 => U = 4.0 EU/(t·°C)), Ch = 32.0 EU/°C, DeltaT = 100°C, eff = 1.0
+        // Expected Q = 32.0 * 100.0 * (1 - exp(-4.0 / 32.0)) = 3200 * (1 - exp(-0.125)) = 376.01 EU
         double qHV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 1.0);
-        assertEquals(5662.70, qHV, 0.01);
+        assertEquals(376.01, qHV, 0.02);
 
-        // Tier 4 (EV, U = 128.0 EU/(t·°C)), Ch = 512.0 EU/°C, DeltaT = 100°C, eff = 1.0
-        // Expected Q = 512.0 * 100.0 * (1 - exp(-128.0 / 512.0)) = 11325.40 EU
+        // Tier 4 (EV, mult=4.0, base=2.0 => U = 8.0 EU/(t·°C)), Ch = 32.0 EU/°C, DeltaT = 100°C, eff = 1.0
+        // Expected Q = 32.0 * 100.0 * (1 - exp(-8.0 / 32.0)) = 3200 * (1 - exp(-0.25)) = 707.84 EU
         double qEV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 4, 1.0);
-        assertEquals(11325.40, qEV, 0.01);
+        assertEquals(707.84, qEV, 0.02);
 
-        // Higher tier transfers more heat, exactly doubling with base-2 progression
+        // Higher tier transfers more heat
         assertTrue(qEV > qHV);
-        assertEquals(2.0, qEV / qHV, 1e-4);
+    }
+
+    @Test
+    void testHatchCoolingNeverOvershootsSinkTempInSingleTick() {
+        // In a physical lumped-capacitance model with Ch = EU_PER_DEGREE = 32.0,
+        // the temperature drop in 1 tick (Q / Ch) must be strictly less than DeltaT for all tiers.
+        double temp = 250.0;
+        double sinkTemp = 100.0;
+        double deltaT = temp - sinkTemp;
+
+        for (int tier = 1; tier <= 8; tier++) {
+            double qMax = NuclearSimulationEngine.calculateConductiveHeatTransfer(temp, sinkTemp, tier, 1.0);
+            double tempDrop = qMax / NuclearSimulationEngine.EU_PER_DEGREE;
+            assertTrue(
+                tempDrop < deltaT,
+                "Tier " + tier + " temp drop (" + tempDrop + ") must be strictly less than DeltaT (" + deltaT + ")");
+            double tempAfter = temp - tempDrop;
+            assertTrue(
+                tempAfter > sinkTemp,
+                "Tier " + tier + " temp after cooling (" + tempAfter + ") must remain strictly above sink temperature (" + sinkTemp + ")");
+        }
+    }
+
+    @Test
+    void testHatchTemperatureRisesAboveBoilingWithActiveFuel() {
+        // Verifies that in an active operating reactor, conductive coolant hatches
+        // can and do stabilize at temperatures above boiling point (100°C for distilled water),
+        // rather than being artificially pinned to 100.0°C.
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid =
+            new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
+                7, 7, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        grid.loadPreset("BEST_PLATINUM_7X7");
+
+        // Run 50 ticks of reactor simulation
+        for (int t = 0; t < 50; t++) {
+            grid.step();
+        }
+
+        // Find a distilled water hatch
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatch = null;
+        for (int x = 0; x < 7; x++) {
+            for (int y = 0; y < 7; y++) {
+                com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile tile = grid.getTile(x, y);
+                if (tile != null && tile.getType() == com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER) {
+                    hatch = tile;
+                    break;
+                }
+            }
+            if (hatch != null) break;
+        }
+
+        assertNotNull(hatch, "Grid must contain distilled water hatch");
+        assertTrue(
+            hatch.getTemperature() > 100.0,
+            "Hatch temperature (" + hatch.getTemperature() + "°C) must rise above boiling point under continuous heat input");
+        assertNotEquals(
+            100.0,
+            hatch.getTemperature(),
+            0.01,
+            "Hatch temperature must not be artificially clamped to exactly 100.0°C");
+        assertTrue(
+            hatch.getTotalSteamProduced() > 0,
+            "Hatch must actively produce steam while above boiling point");
+        assertTrue(
+            hatch.getTemperature() < 1000.0,
+            "Hatch temperature must remain safely bounded due to conductive cooling");
+    }
+
+    @Test
+    void testCoolantHatchHigherTierRunsCooler() {
+        // Compares cooling rate of MV (tier 2) vs HV (tier 3) vs EV (tier 4) hatches
+        // starting at 200°C. Higher tier hatches must achieve greater cooling and lower temperature.
+        SimTile hatchMV = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
+        hatchMV.setTier(2); // MV
+        hatchMV.setInputFluidAmount(8000);
+        hatchMV.setTemperature(200.0);
+        hatchMV.nuclearTick(1.0);
+
+        SimTile hatchHV = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
+        hatchHV.setTier(3); // HV
+        hatchHV.setInputFluidAmount(8000);
+        hatchHV.setTemperature(200.0);
+        hatchHV.nuclearTick(1.0);
+
+        SimTile hatchEV = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
+        hatchEV.setTier(4); // EV
+        hatchEV.setInputFluidAmount(8000);
+        hatchEV.setTemperature(200.0);
+        hatchEV.nuclearTick(1.0);
+
+        assertTrue(
+            hatchMV.getTemperature() > hatchHV.getTemperature(),
+            "MV hatch temp (" + hatchMV.getTemperature() + "°C) must be higher than HV hatch temp (" + hatchHV.getTemperature() + "°C)");
+        assertTrue(
+            hatchHV.getTemperature() > hatchEV.getTemperature(),
+            "HV hatch temp (" + hatchHV.getTemperature() + "°C) must be higher than EV hatch temp (" + hatchEV.getTemperature() + "°C)");
+        assertTrue(
+            hatchEV.getTemperature() > 100.0,
+            "EV hatch temp (" + hatchEV.getTemperature() + "°C) must still be strictly above 100°C boiling point after 1 tick");
+    }
+
+    @Test
+    void testIC2CoolantHatchTemperatureRisesAboveAmbient() {
+        SimTile hatch = new SimTile(SimTile.TileType.HATCH_IC2_COOLANT);
+        hatch.setTier(3); // HV
+        hatch.setInputFluidAmount(8000);
+        hatch.setTemperature(80.0);
+        hatch.nuclearTick(1.0);
+
+        assertTrue(hatch.getTemperature() < 80.0, "IC2 coolant must cool hatch");
+        assertTrue(hatch.getTemperature() > NuclearSimulationEngine.AMBIENT_TEMP, "IC2 coolant must not drop below ambient");
+        assertNotEquals(NuclearSimulationEngine.AMBIENT_TEMP, hatch.getTemperature(), 0.01, "IC2 coolant must not be pinned to ambient in 1 tick");
+        assertTrue(hatch.getOutputFluidAmount() > 0, "Hot coolant must be produced");
     }
 
     @Test

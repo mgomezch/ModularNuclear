@@ -745,7 +745,7 @@ public class NuclearSimulationWebServer {
                     </div>
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Base Conductance:</label>
-                      <input id="p-base-conductance" type="number" step="1.0" value="32.0" onchange="submitSimParams()" title="Base hatch conductance in EU/(t·°C)" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      <input id="p-base-conductance" type="number" step="0.5" value="2.0" onchange="submitSimParams()" title="Base hatch conductance in EU/(t·°C)" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                   </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
@@ -2510,7 +2510,7 @@ public class NuclearSimulationWebServer {
                 if (el && active !== el && el.value != val) el.value = val;
               };
               setVal("p-eu-per-degree", p.euPerDegree != null ? p.euPerDegree : 32.0);
-              setVal("p-base-conductance", p.baseHatchConductance != null ? p.baseHatchConductance : 32.0);
+              setVal("p-base-conductance", p.baseHatchConductance != null ? p.baseHatchConductance : 2.0);
               setVal("p-fission-heat", p.fissionHeatPerNeutron != null ? p.fissionHeatPerNeutron : 77.2);
               setVal("p-fiss-mult", p.globalThermalFissionMultiplier != null ? p.globalThermalFissionMultiplier : (p.thermalFissionMultiplier != null ? p.thermalFissionMultiplier : 0.348));
               setVal("p-ambient-temp", p.ambientTemp);
@@ -2526,7 +2526,7 @@ public class NuclearSimulationWebServer {
 
             async function submitSimParams() {
               const euDeg = document.getElementById("p-eu-per-degree") ? document.getElementById("p-eu-per-degree").value : 32.0;
-              const baseCond = document.getElementById("p-base-conductance") ? document.getElementById("p-base-conductance").value : 32.0;
+              const baseCond = document.getElementById("p-base-conductance") ? document.getElementById("p-base-conductance").value : 2.0;
               const fHeat = document.getElementById("p-fission-heat") ? document.getElementById("p-fission-heat").value : 77.2;
               const fMult = document.getElementById("p-fiss-mult") ? document.getElementById("p-fiss-mult").value : 0.348;
               const amb = document.getElementById("p-ambient-temp").value;
@@ -2579,7 +2579,7 @@ public class NuclearSimulationWebServer {
             function applyProfilePreset(profile) {
               switch (profile) {
                 case "BALANCED":
-                  if (document.getElementById("p-base-conductance")) document.getElementById("p-base-conductance").value = 32.0;
+                  if (document.getElementById("p-base-conductance")) document.getElementById("p-base-conductance").value = 2.0;
                   document.getElementById("p-hatch-cap").value = 8000;
                   document.getElementById("p-turn-curve").value = "SIGMOID";
                   document.getElementById("p-turn-dt").value = 100;
@@ -2594,7 +2594,7 @@ public class NuclearSimulationWebServer {
                   document.getElementById("p-hp-boil").value = 180;
                   break;
                 case "DANGER":
-                  if (document.getElementById("p-base-conductance")) document.getElementById("p-base-conductance").value = 24.0;
+                  if (document.getElementById("p-base-conductance")) document.getElementById("p-base-conductance").value = 1.5;
                   document.getElementById("p-hatch-cap").value = 1000;
                   document.getElementById("p-turn-curve").value = "EXPONENTIAL";
                   document.getElementById("p-turn-dt").value = 80;
@@ -2608,7 +2608,7 @@ public class NuclearSimulationWebServer {
                   document.getElementById("p-hp-boil").value = 200;
                   break;
                 case "FLASH_BOIL":
-                  if (document.getElementById("p-base-conductance")) document.getElementById("p-base-conductance").value = 32.0;
+                  if (document.getElementById("p-base-conductance")) document.getElementById("p-base-conductance").value = 2.0;
                   document.getElementById("p-hatch-cap").value = 500;
                   document.getElementById("p-turn-curve").value = "SIGMOID";
                   document.getElementById("p-turn-dt").value = 60;
@@ -2622,7 +2622,7 @@ public class NuclearSimulationWebServer {
                   document.getElementById("p-hp-boil").value = 200;
                   break;
                 case "SAFE":
-                  if (document.getElementById("p-base-conductance")) document.getElementById("p-base-conductance").value = 40.0;
+                  if (document.getElementById("p-base-conductance")) document.getElementById("p-base-conductance").value = 2.5;
                   document.getElementById("p-hatch-cap").value = 8000;
                   document.getElementById("p-turn-curve").value = "LINEAR";
                   document.getElementById("p-turn-dt").value = 150;

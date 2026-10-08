@@ -152,7 +152,7 @@ public class NuclearSimulationEngine {
         setAmbientTemperature(DEFAULT_AMBIENT_TEMP);
     }
 
-    public static final double DEFAULT_BASE_HATCH_CONDUCTANCE = 32.0;
+    public static final double DEFAULT_BASE_HATCH_CONDUCTANCE = 2.0;
     public static double baseHatchConductance = DEFAULT_BASE_HATCH_CONDUCTANCE;
 
     public static void setBaseHatchConductance(double val) {
@@ -175,13 +175,13 @@ public class NuclearSimulationEngine {
 
     /**
      * Returns the effective sink temperature (°C) for a coolant fluid.
-     * IC2 coolant and distilled water operate at 100°C threshold, while heavy water boils at 101.4°C.
+     * IC2 coolant operates down to ambient temperature, while heavy water boils at 101.4°C and distilled water at 100°C.
      */
     public static double getCoolantSinkTemperature(String fluidName, double ambientTemp) {
         if (fluidName == null) return ambientTemp;
         String name = fluidName.toLowerCase();
         if (name.contains("coolant")) {
-            return Math.max(ambientTemp, 100.0);
+            return ambientTemp;
         }
         if (name.contains("heavywater")) {
             return Math.max(ambientTemp, 101.4);
@@ -208,7 +208,7 @@ public class NuclearSimulationEngine {
         double deltaT = temp - sinkTemp;
         double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
         double conductance = getHatchConductance(tier) * effFactor;
-        double ch = Math.max(EU_PER_DEGREE, conductance * 4.0);
+        double ch = EU_PER_DEGREE;
         return ch * deltaT * (1.0 - Math.exp(-conductance / ch));
     }
 
