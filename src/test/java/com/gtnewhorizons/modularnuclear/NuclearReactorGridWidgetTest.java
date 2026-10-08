@@ -24,6 +24,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.opencomputers.NuclearControlEnvironment;
@@ -125,7 +126,7 @@ public class NuclearReactorGridWidgetTest {
     @Test
     void testBusLeftClickInsertAndPickup() throws IOException {
         MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 1, new String[0], null);
-        reactor.mGrid[1][1] = new MTENuclearReactor.NuclearGridTile(reactor, bus, 1, 1);
+        reactor.mGrid[1][1] = new NuclearGridTile(reactor, bus, 1, 1);
 
         // Player holds 5 apples on cursor
         ItemStack held = new ItemStack(Items.apple, 5);
@@ -170,7 +171,7 @@ public class NuclearReactorGridWidgetTest {
     @Test
     void testBusShiftClickQuickMoveToInventory() throws IOException {
         MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 1, new String[0], null);
-        reactor.mGrid[0][0] = new MTENuclearReactor.NuclearGridTile(reactor, bus, 0, 0);
+        reactor.mGrid[0][0] = new NuclearGridTile(reactor, bus, 0, 0);
 
         bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = new ItemStack(Items.stick, 1);
         player.inventory.setItemStack(null);
@@ -205,10 +206,10 @@ public class NuclearReactorGridWidgetTest {
 
         // In 3x3 grid, corners (0,0), (0,2), (2,0), (2,2) are null cells.
         // Visual row 0 (gy = 2): non-corner is gx = 1
-        reactor.mGrid[1][2] = new MTENuclearReactor.NuclearGridTile(reactor, bus0, 1, 2);
+        reactor.mGrid[1][2] = new NuclearGridTile(reactor, bus0, 1, 2);
         // Visual row 1 (gy = 1): non-corners are gx = 0, gx = 1
-        reactor.mGrid[0][1] = new MTENuclearReactor.NuclearGridTile(reactor, bus1, 0, 1);
-        reactor.mGrid[1][1] = new MTENuclearReactor.NuclearGridTile(reactor, bus2, 1, 1);
+        reactor.mGrid[0][1] = new NuclearGridTile(reactor, bus1, 0, 1);
+        reactor.mGrid[1][1] = new NuclearGridTile(reactor, bus2, 1, 1);
 
         // Cursor holds 2 items
         player.inventory.setItemStack(new ItemStack(Items.iron_ingot, 2));
@@ -235,7 +236,7 @@ public class NuclearReactorGridWidgetTest {
     @Test
     void testDragStep() throws IOException {
         MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 1, new String[0], null);
-        reactor.mGrid[1][1] = new MTENuclearReactor.NuclearGridTile(reactor, bus, 1, 1);
+        reactor.mGrid[1][1] = new NuclearGridTile(reactor, bus, 1, 1);
 
         player.inventory.setItemStack(new ItemStack(Items.gold_ingot, 4));
 
@@ -255,7 +256,7 @@ public class NuclearReactorGridWidgetTest {
     @Test
     void testFluidHatchContainerClick() throws IOException {
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 1, 16000, new String[0], null);
-        reactor.mGrid[1][1] = new MTENuclearReactor.NuclearGridTile(reactor, hatch, 1, 1);
+        reactor.mGrid[1][1] = new NuclearGridTile(reactor, hatch, 1, 1);
 
         Fluid water = FluidRegistry.WATER;
         if (water == null) {
@@ -284,7 +285,7 @@ public class NuclearReactorGridWidgetTest {
     @Test
     void testControlRodModeClickOnlyHandlesRodItemAndCannotAlterInsertion() throws IOException {
         MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test.rod", 1, new String[0], null);
-        MTENuclearReactor.NuclearGridTile tile = new MTENuclearReactor.NuclearGridTile(reactor, rod, 1, 1);
+        NuclearGridTile tile = new NuclearGridTile(reactor, rod, 1, 1);
         reactor.mGrid[1][1] = tile;
         reactor.mCurrentGuiMode = MTENuclearReactor.GUI_MODE_CONTROL_RODS;
 

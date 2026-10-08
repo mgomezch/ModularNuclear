@@ -382,9 +382,11 @@ public class CoolantLoopModelTest {
         loop.setCurrentCoolantTempCelsius(50.0);
         grid.setTile(3, 4, SimTile.TileType.PASSAGE_CORE);
         grid.setTile(3, 3, SimTile.TileType.FUEL_URANIUM_QUAD);
+        loop.attachPoint(2, 2);
+        loop.attachPoint(2, 3);
         loop.setPumpPowerEUt(250.0);
 
-        for (int t = 1; t <= 20; t++) {
+        for (int t = 1; t <= 30; t++) {
             grid.step();
         }
         assertEquals(0, loop.getTotalMethaneProduced(), "Molten cheese loop must not produce radiolytic methane");
@@ -394,16 +396,14 @@ public class CoolantLoopModelTest {
         // Distilled water produces deuterium
         NuclearSimulationEngine.resetDefaultParameters();
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
-        for (int t = 1; t <= 20; t++) {
+        for (int t = 1; t <= 30; t++) {
             grid.step();
         }
         assertTrue(loop.getTotalDeuteriumProduced() > 0, "Distilled water loop must produce radiolytic deuterium");
 
         // Heavy water produces tritium
-        grid.setTile(3, 3, SimTile.TileType.FUEL_URANIUM_QUAD);
-        grid.setTile(3, 4, SimTile.TileType.PASSAGE_CORE);
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
-        for (int t = 1; t <= 20; t++) {
+        for (int t = 1; t <= 30; t++) {
             grid.step();
         }
         assertTrue(loop.getTotalTritiumProduced() > 0, "Heavy water loop must produce radiolytic tritium");

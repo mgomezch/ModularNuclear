@@ -14,6 +14,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -220,7 +221,7 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
                 cellMap.put("gy", y);
 
                 INuclearTile rawTile = reactor.mGrid[x][y];
-                if (!(rawTile instanceof MTENuclearReactor.NuclearGridTile gt)) {
+                if (!(rawTile instanceof NuclearGridTile gt)) {
                     cellMap.put("exists", false);
                     cellMap.put("type", "EMPTY");
                     cellList.add(cellMap);

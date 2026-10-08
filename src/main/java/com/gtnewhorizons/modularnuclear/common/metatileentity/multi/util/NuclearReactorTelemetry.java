@@ -5,6 +5,8 @@ import net.minecraft.item.ItemStack;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.ReactorDummy;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
@@ -70,7 +72,7 @@ public final class NuclearReactorTelemetry {
                         sumTemp += temp;
                         tileCount++;
                     }
-                    if (tile instanceof MTENuclearReactor.NuclearGridTile gt) {
+                    if (tile instanceof NuclearGridTile gt) {
                         if (gt.isBus()) {
                             MTEHatchNuclearBus bus = gt.getBus();
                             ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
@@ -103,7 +105,7 @@ public final class NuclearReactorTelemetry {
                                         totalCoolantItems += stack.stackSize;
                                         double dur;
                                         if (stack.getItem() instanceof IReactorComponent comp) {
-                                            MTENuclearReactor.ReactorDummy dummy = reactor.getReactorDummy();
+                                            ReactorDummy dummy = reactor.getReactorDummy();
                                             dummy.setCurrentTile(gt);
                                             int maxH = comp.getMaxHeat(dummy, stack, gt.getGx(), gt.getGy());
                                             int curH = comp.getCurrentHeat(dummy, stack, gt.getGx(), gt.getGy());
