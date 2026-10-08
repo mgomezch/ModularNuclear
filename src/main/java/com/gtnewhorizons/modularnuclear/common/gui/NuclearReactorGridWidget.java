@@ -911,6 +911,12 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                         int color = NuclearColorMaps.getTemperatureColor(cell.temperature, maxTemp);
                         GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, color);
                         prepareGuiState();
+                    } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_HEAT_OUTPUT) {
+                        if (cell.heatOutput > 0) {
+                            int color = NuclearColorMaps.getHeatOutputColor(cell.heatOutput);
+                            GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, color);
+                            prepareGuiState();
+                        }
                     } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_FLUX) {
                         int color = NuclearColorMaps.getNeutronColor(cell.fastFlux + cell.thermalFlux);
                         GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, color);
@@ -1119,6 +1125,14 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                     + " EU/t");
         }
 
+        // 5.5 Heat Output
+        if (cell.heatOutput > 0) {
+            list.add(
+                EnumChatFormatting.GRAY + "Heat output: "
+                    + EnumChatFormatting.GOLD
+                    + String.format("%,.0f EU/t", cell.heatOutput));
+        }
+
         // 6. Control Rod Info
         if (cell.hasControlRod) {
             MTEHatchNuclearControlRod.ControlRodType rodType = (cell.controlRodType >= 0
@@ -1156,6 +1170,19 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
             float delta = cell.temperature - sync.avgTemp;
             String deltaSign = delta >= 0 ? "+" : "";
             list.add(EnumChatFormatting.DARK_GRAY + String.format("Core temp delta: %s%.1f °C", deltaSign, delta));
+        } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_HEAT_OUTPUT) {
+            double totalHeat = 0;
+            if (sync.cells != null) {
+                for (ReactorGridSyncData.ReactorGridCellData c : sync.cells) {
+                    if (c != null && c.exists) {
+                        totalHeat += c.heatOutput;
+                    }
+                }
+            }
+            if (totalHeat > 0 && cell.heatOutput > 0) {
+                double share = (cell.heatOutput / totalHeat) * 100.0;
+                list.add(EnumChatFormatting.DARK_GRAY + String.format("Core heat output share: %.1f%%", share));
+            }
         } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_FLUX) {
             if (sync.neutronsProduced > 0 && totalFlux > 0) {
                 double share = ((double) totalFlux / sync.neutronsProduced) * 100.0;

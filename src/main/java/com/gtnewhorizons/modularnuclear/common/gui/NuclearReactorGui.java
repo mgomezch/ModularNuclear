@@ -43,6 +43,7 @@ import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.util.GTOreDictUnificator;
+import ic2.core.Ic2Items;
 
 public class NuclearReactorGui {
 
@@ -195,7 +196,7 @@ public class NuclearReactorGui {
         }
 
         final int idealH = N * 18 + 52;
-        final int idealW = Math.max(154, N * 18 + 20);
+        final int idealW = Math.max(180, N * 18 + 20);
 
         int screenW = ClientScreenHelper.getScaledScreenWidth();
         int screenH = ClientScreenHelper.getScaledScreenHeight();
@@ -245,15 +246,17 @@ public class NuclearReactorGui {
         builder.widget(scrollable);
 
         final int[] MODES = { MTENuclearReactor.GUI_MODE_COMPONENTS, MTENuclearReactor.GUI_MODE_TEMPERATURE,
-            MTENuclearReactor.GUI_MODE_NEUTRON_FLUX, MTENuclearReactor.GUI_MODE_NEUTRON_ABSORPTION,
-            MTENuclearReactor.GUI_MODE_CONTROL_RODS };
+            MTENuclearReactor.GUI_MODE_HEAT_OUTPUT, MTENuclearReactor.GUI_MODE_NEUTRON_FLUX,
+            MTENuclearReactor.GUI_MODE_NEUTRON_ABSORPTION, MTENuclearReactor.GUI_MODE_CONTROL_RODS };
         final String[] TAB_NAMES = { StatCollector.translateToLocal("gt.gui.modularnuclear.tab.components"),
             StatCollector.translateToLocal("gt.gui.modularnuclear.tab.temperature"),
+            StatCollector.translateToLocal("gt.gui.modularnuclear.tab.heat_output"),
             StatCollector.translateToLocal("gt.gui.modularnuclear.tab.neutron_flux"),
             StatCollector.translateToLocal("gt.gui.modularnuclear.tab.neutron_absorption"),
             StatCollector.translateToLocal("gt.gui.modularnuclear.tab.control_rods") };
         final String[] TAB_DESCS = { StatCollector.translateToLocal("gt.gui.modularnuclear.tab.components.desc"),
             StatCollector.translateToLocal("gt.gui.modularnuclear.tab.temperature.desc"),
+            StatCollector.translateToLocal("gt.gui.modularnuclear.tab.heat_output.desc"),
             StatCollector.translateToLocal("gt.gui.modularnuclear.tab.neutron_flux.desc"),
             StatCollector.translateToLocal("gt.gui.modularnuclear.tab.neutron_absorption.desc"),
             StatCollector.translateToLocal("gt.gui.modularnuclear.tab.control_rods.desc") };
@@ -280,6 +283,12 @@ public class NuclearReactorGui {
                     ItemStack icon = switch (mode) {
                         case MTENuclearReactor.GUI_MODE_COMPONENTS -> ItemList.RodUranium.get(1L);
                         case MTENuclearReactor.GUI_MODE_TEMPERATURE -> new ItemStack(Items.fire_charge);
+                        case MTENuclearReactor.GUI_MODE_HEAT_OUTPUT -> {
+                            if (Ic2Items.hotcoolantCell != null) {
+                                yield Ic2Items.hotcoolantCell.copy();
+                            }
+                            yield ItemList.Cell_Empty.get(1L);
+                        }
                         case MTENuclearReactor.GUI_MODE_NEUTRON_FLUX -> new ItemStack(Items.nether_star);
                         case MTENuclearReactor.GUI_MODE_NEUTRON_ABSORPTION -> new ItemStack(Blocks.iron_bars);
                         case MTENuclearReactor.GUI_MODE_CONTROL_RODS -> {

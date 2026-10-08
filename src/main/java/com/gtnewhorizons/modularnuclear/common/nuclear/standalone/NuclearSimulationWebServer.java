@@ -736,9 +736,10 @@ public class NuclearSimulationWebServer {
                     <div class="segmented-control">
                       <button type="button" class="seg-btn" id="btn-mode-comp" onclick="setGridDisplayMode('COMPONENTS')" title="Show Component Icons [Key: 1]">📦 Components</button>
                       <button type="button" class="seg-btn active" id="btn-mode-temp" onclick="setGridDisplayMode('TEMP')" title="Show Cell Temperature (°C) [Key: 2]">🌡️ Temp</button>
-                      <button type="button" class="seg-btn" id="btn-mode-flux" onclick="setGridDisplayMode('TOTAL_FLUX')" title="Show Total Neutron Flux [Key: 3]">⚛️ Flux</button>
-                      <button type="button" class="seg-btn" id="btn-mode-absorb" onclick="setGridDisplayMode('ABSORPTION')" title="Show Neutron Absorption [Key: 4]">🛡️ Absorption</button>
-                      <button type="button" class="seg-btn" id="btn-mode-rods" onclick="setGridDisplayMode('CONTROL_RODS')" title="Show Control Rod Hatches [Key: 5]">🕹️ Control Rods</button>
+                      <button type="button" class="seg-btn" id="btn-mode-heat-output" onclick="setGridDisplayMode('HEAT_OUTPUT')" title="Show Heat Output (EU/t) [Key: 3]"><img src="icons/HOT_COOLANT_CELL.png" style="width:14px;height:14px;vertical-align:-2px;image-rendering:pixelated;margin-right:4px;" alt="" onerror="this.style.display='none'">Heat Output</button>
+                      <button type="button" class="seg-btn" id="btn-mode-flux" onclick="setGridDisplayMode('TOTAL_FLUX')" title="Show Total Neutron Flux [Key: 4]">⚛️ Flux</button>
+                      <button type="button" class="seg-btn" id="btn-mode-absorb" onclick="setGridDisplayMode('ABSORPTION')" title="Show Neutron Absorption [Key: 5]">🛡️ Absorption</button>
+                      <button type="button" class="seg-btn" id="btn-mode-rods" onclick="setGridDisplayMode('CONTROL_RODS')" title="Show Control Rod Hatches [Key: 6]">🕹️ Control Rods</button>
                     </div>
                   </div>
 
@@ -1640,6 +1641,7 @@ public class NuclearSimulationWebServer {
               const idMap = {
                 "COMPONENTS": "btn-mode-comp",
                 "TEMP": "btn-mode-temp",
+                "HEAT_OUTPUT": "btn-mode-heat-output",
                 "TOTAL_FLUX": "btn-mode-flux",
                 "FAST_FLUX": "btn-mode-flux",
                 "THERMAL_FLUX": "btn-mode-flux",
@@ -1710,6 +1712,24 @@ public class NuclearSimulationWebServer {
               if (u < 0) u = 0;
               if (u > 299) u = 299;
               return colorMaps.temperature[u];
+            }
+
+            function getHeatOutputColor(heatRate) {
+              if (!heatRate || heatRate <= 0) return "transparent";
+              if (!colorMaps || !colorMaps.heatOutput) {
+                if (heatRate < 500) return "rgba(60, 20, 5, 0.55)";
+                if (heatRate < 2500) return "rgba(160, 45, 10, 0.6)";
+                if (heatRate < 10000) return "rgba(230, 95, 15, 0.65)";
+                if (heatRate < 40000) return "rgba(255, 185, 30, 0.7)";
+                return "rgba(255, 245, 180, 0.75)";
+              }
+              const maxExpected = 100000.0;
+              const clamped = Math.min(Math.max(0, heatRate), maxExpected);
+              const factor = Math.log1p(20.0 * (clamped / maxExpected)) / Math.log1p(20.0);
+              let u = Math.round(299.0 * Math.min(1.0, Math.max(0.0, factor)));
+              if (u < 0) u = 0;
+              if (u > 299) u = 299;
+              return colorMaps.heatOutput[u];
             }
 
             function formatFluxValue(val) {
@@ -2537,6 +2557,11 @@ public class NuclearSimulationWebServer {
                       metricStr = "";
                       tipText = "No control rod hatch installed";
                     }
+                  } else if (gridDisplayMode === "HEAT_OUTPUT") {
+                    const ho = t.heatOutput || 0;
+                    overlayBg = ho > 0 ? getHeatOutputColor(ho) : "transparent";
+                    metricStr = ho > 0 ? (ho >= 10000 ? (ho / 1000).toFixed(1) + "k" : Math.round(ho).toString()) : "";
+                    tipText = `Heat Output: ${ho.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} EU/t`;
                   } else {
                     overlayBg = getTemperatureColor(t.temp, currentState.maxSafeTemp);
                     metricStr = Math.round(t.temp) + "°C";
@@ -2824,6 +2849,7 @@ public class NuclearSimulationWebServer {
                   </div>
                 </div>
                 <div class="stat-row"><span>Temperature:</span><span class="stat-val">${t.temp} °C</span></div>
+                ${t.heatOutput != null && t.heatOutput > 0 ? `<div class="stat-row"><span>Heat Output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${t.heatOutput.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} EU/t</span></div>` : ''}
                 ${coolingMethodHtml}
                 ${controlRodHtml}
                 ${extraHtml}
@@ -3798,15 +3824,17 @@ public class NuclearSimulationWebServer {
               } else if (e.key === "2") {
                 setGridDisplayMode("TEMP");
               } else if (e.key === "3") {
-                setGridDisplayMode("TOTAL_FLUX");
+                setGridDisplayMode("HEAT_OUTPUT");
               } else if (e.key === "4") {
-                setGridDisplayMode("ABSORPTION");
+                setGridDisplayMode("TOTAL_FLUX");
               } else if (e.key === "5") {
+                setGridDisplayMode("ABSORPTION");
+              } else if (e.key === "6") {
                 setGridDisplayMode("CONTROL_RODS");
               } else if (e.key === "s" || e.key === "S") {
                 quickScram();
               } else if (e.key === "m" || e.key === "M") {
-                const modes = ["COMPONENTS", "TEMP", "TOTAL_FLUX", "ABSORPTION", "CONTROL_RODS"];
+                const modes = ["COMPONENTS", "TEMP", "HEAT_OUTPUT", "TOTAL_FLUX", "ABSORPTION", "CONTROL_RODS"];
                 const nextIdx = (modes.indexOf(gridDisplayMode) + 1) % modes.length;
                 setGridDisplayMode(modes[nextIdx]);
               }

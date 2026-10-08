@@ -56,6 +56,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     public int mLastNeutronsGenerated = 0;
     public int mLastProducedAmount = 0;
     public String mLastProducedFluidName = "";
+    public double mLastHeatOutput = 0.0;
     public int mReactorPipeTier = -1;
     public boolean mWasDry = false;
     public boolean mUsedForCooling = false;

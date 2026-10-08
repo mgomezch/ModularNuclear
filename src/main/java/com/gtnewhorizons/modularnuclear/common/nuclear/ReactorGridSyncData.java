@@ -45,6 +45,7 @@ public class ReactorGridSyncData {
         public ItemStack itemStack = null;
         public FluidStack fluidStack = null;
         public float temperature = 20.0f;
+        public float heatOutput = 0.0f;
         public int fastFlux = 0;
         public int thermalFlux = 0;
         public int fastAbsorbed = 0;
@@ -62,6 +63,7 @@ public class ReactorGridSyncData {
                 || controlRodInsertion != that.controlRodInsertion
                 || controlRodType != that.controlRodType) return false;
             if (Math.abs(temperature - that.temperature) > 0.5f) return false;
+            if (Math.abs(heatOutput - that.heatOutput) > 0.5f) return false;
             if (fastFlux != that.fastFlux || thermalFlux != that.thermalFlux) return false;
             if (fastAbsorbed != that.fastAbsorbed || thermalAbsorbed != that.thermalAbsorbed) return false;
             if (directEU != that.directEU) return false;
@@ -112,6 +114,7 @@ public class ReactorGridSyncData {
             buf.writeByte(mask);
             if (cell.exists) {
                 buf.writeFloat(cell.temperature);
+                buf.writeFloat(cell.heatOutput);
                 buf.writeVarIntToBuffer(cell.fastFlux);
                 buf.writeVarIntToBuffer(cell.thermalFlux);
                 buf.writeVarIntToBuffer(cell.fastAbsorbed);
@@ -165,6 +168,7 @@ public class ReactorGridSyncData {
             cell.hasControlRod = (mask & 32) != 0;
             if (cell.exists) {
                 cell.temperature = buf.readFloat();
+                cell.heatOutput = buf.readFloat();
                 cell.fastFlux = buf.readVarIntFromBuffer();
                 cell.thermalFlux = buf.readVarIntFromBuffer();
                 cell.fastAbsorbed = buf.readVarIntFromBuffer();

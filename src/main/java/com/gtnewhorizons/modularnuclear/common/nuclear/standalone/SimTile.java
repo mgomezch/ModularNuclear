@@ -224,6 +224,16 @@ public class SimTile implements INuclearTile {
         return lastCoolingDetails;
     }
 
+    private double lastHeatOutput = 0.0;
+
+    public double getLastHeatOutput() {
+        return lastHeatOutput;
+    }
+
+    public void setLastHeatOutput(double lastHeatOutput) {
+        this.lastHeatOutput = lastHeatOutput;
+    }
+
     public SimTile(TileType type) {
         setType(type);
     }
@@ -688,6 +698,7 @@ public class SimTile implements INuclearTile {
         lastTickProduced = 0;
         lastDurabilityLoss = 0.0;
         lastLiquidFuelBurned = 0;
+        lastHeatOutput = 0.0;
 
         // 1. Fuel burnup (3 physical processes: emitting fast neutrons, absorbing any neutron, and temperature above
         // ambient)
@@ -798,6 +809,7 @@ public class SimTile implements INuclearTile {
                     temperature = Math.max(
                         NuclearSimulationEngine.AMBIENT_TEMP,
                         temperature - heatToAbsorb / NuclearSimulationEngine.EU_PER_DEGREE);
+                    lastHeatOutput = heatToAbsorb;
                 }
             }
         }
@@ -827,6 +839,7 @@ public class SimTile implements INuclearTile {
                     }
 
                     double heatConsumed = mbToCool * heatPerL;
+                    lastHeatOutput = heatConsumed;
                     double tempDrop = heatConsumed / NuclearSimulationEngine.EU_PER_DEGREE;
                     double tempBefore = temperature;
                     temperature = Math.max(operatingThreshold, temperature - tempDrop);

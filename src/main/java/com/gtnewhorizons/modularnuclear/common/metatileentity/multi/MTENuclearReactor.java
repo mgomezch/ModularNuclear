@@ -141,9 +141,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public String mOutputCoolantName = "";
     public static final int GUI_MODE_COMPONENTS = 0;
     public static final int GUI_MODE_TEMPERATURE = 1;
-    public static final int GUI_MODE_NEUTRON_FLUX = 2;
-    public static final int GUI_MODE_NEUTRON_ABSORPTION = 3;
-    public static final int GUI_MODE_CONTROL_RODS = 4;
+    public static final int GUI_MODE_HEAT_OUTPUT = 2;
+    public static final int GUI_MODE_NEUTRON_FLUX = 3;
+    public static final int GUI_MODE_NEUTRON_ABSORPTION = 4;
+    public static final int GUI_MODE_CONTROL_RODS = 5;
     private static final UITexture TAB_NEI_SELECTED = UITexture
         .partly(new ResourceLocation("nei", "textures/nei_tabbed_sprites.png"), 256, 256, 0, 16, 24, 40);
     private static final UITexture TAB_NEI_UNSELECTED = UITexture
@@ -1462,6 +1463,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             cell.fastAbsorbed = bus.mLastFastAbsorbed;
                             cell.thermalAbsorbed = bus.mLastThermalAbsorbed;
                             cell.directEU = bus.mDirectEUProduced;
+                            cell.heatOutput = (float) bus.mLastHeatOutput;
                         } else if (gt.isHatch()) {
                             MTEHatchNuclearHatch hatch = gt.getHatch();
                             cell.isFluid = true;
@@ -1470,6 +1472,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             cell.thermalFlux = hatch.mLastThermalFlux;
                             cell.fastAbsorbed = hatch.mLastFastAbsorbed;
                             cell.thermalAbsorbed = hatch.mLastThermalAbsorbed;
+                            cell.heatOutput = (float) hatch.mLastHeatOutput;
                         } else if (gt.isHighPressureHatch()) {
                             MTEHatchNuclearHighPressure hp = gt.getHighPressureHatch();
                             cell.isFluid = false;
@@ -1478,6 +1481,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             cell.thermalFlux = hp.mLastThermalFlux;
                             cell.fastAbsorbed = hp.mLastFastAbsorbed;
                             cell.thermalAbsorbed = hp.mLastThermalAbsorbed;
+                            cell.heatOutput = (float) hp.mLastHeatOutput;
                         }
 
                         if (gt.hasControlRod()) {
@@ -1507,6 +1511,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 break;
             case GUI_MODE_TEMPERATURE:
                 list.add(EnumChatFormatting.WHITE + "Mode: " + EnumChatFormatting.GOLD + "Temperature overlay");
+                list.add(EnumChatFormatting.GRAY + "Click: switch to " + EnumChatFormatting.GREEN + "component view");
+                list.add(EnumChatFormatting.DARK_GRAY + "Shift-click: cycle through all overlay modes");
+                break;
+            case GUI_MODE_HEAT_OUTPUT:
+                list.add(EnumChatFormatting.WHITE + "Mode: " + EnumChatFormatting.GOLD + "Heat output overlay");
                 list.add(EnumChatFormatting.GRAY + "Click: switch to " + EnumChatFormatting.GREEN + "component view");
                 list.add(EnumChatFormatting.DARK_GRAY + "Shift-click: cycle through all overlay modes");
                 break;
@@ -2367,6 +2376,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public void processBusNuclearTick(MTEHatchNuclearBus bus, NuclearGridTile tile, double efficiency) {
+        bus.mLastHeatOutput = 0.0;
         ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
         if (stack == null) {
             bus.mLastFastFlux = bus.mFastFlux;
@@ -2504,6 +2514,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                         comp.alterHeat(mReactorDummy, stack, 0, 0, heatToTake);
                         double heatConsumed = heatToTake * 25.0;
                         bus.mTemperature -= (heatConsumed / NuclearSimulationEngine.EU_PER_DEGREE);
+                        bus.mLastHeatOutput = heatConsumed;
                         bus.markTileDirty();
                     }
                 }
@@ -2533,6 +2544,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                         bus.mTemperature -= (heatToAbsorb / NuclearSimulationEngine.EU_PER_DEGREE);
                         int cellDamage = Math.max(1, (int) (heatToAbsorb / 50.0));
                         damageItemComponent(bus, cellDamage);
+                        bus.mLastHeatOutput = heatToAbsorb;
                     }
                 }
             }
@@ -2586,6 +2598,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         double heatAbsorbed = Math.max(1.0, (double) totalEU);
         double tempDrop = heatAbsorbed / NuclearSimulationEngine.EU_PER_DEGREE;
         bus.mTemperature = Math.max(getAmbientTemperature(), bus.mTemperature - tempDrop);
+        bus.mLastHeatOutput = heatAbsorbed;
 
         int consumeCount = 1;
         if (recipe.mInputs != null && recipe.mInputs.length > 0 && recipe.mInputs[0] != null) {
@@ -2619,6 +2632,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         hatch.mThermalFlux = 0;
         hatch.mFastAbsorbed = 0;
         hatch.mThermalAbsorbed = 0;
+        hatch.mLastHeatOutput = 0.0;
 
         if (hatch.mInputFluid == null || hatch.mInputFluid.amount <= 0) return;
 
@@ -2727,6 +2741,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 hatch.mLastProducedAmount = outAmount;
                 hatch.mLastProducedFluidName = outputFluidName;
                 double heatConsumed = fluidToProcess * heatPerMB;
+                hatch.mLastHeatOutput = heatConsumed;
                 hatch.mTemperature = Math
                     .max(minOperatingTemp, hatch.mTemperature - (heatConsumed / NuclearSimulationEngine.EU_PER_DEGREE));
                 hatch.markTileDirty();
@@ -2824,6 +2839,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         public MTEHatchNuclearHighPressure getHighPressureHatch() {
             return highPressureHatch;
+        }
+
+        public double getHeatOutput() {
+            if (isHatch()) return hatch.mLastHeatOutput;
+            if (isHighPressureHatch()) return highPressureHatch.mLastHeatOutput;
+            if (isBus()) return bus.mLastHeatOutput;
+            return 0.0;
         }
 
         public int getGx() {

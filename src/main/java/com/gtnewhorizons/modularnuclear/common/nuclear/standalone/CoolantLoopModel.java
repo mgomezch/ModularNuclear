@@ -594,6 +594,7 @@ public class CoolantLoopModel {
 
                 pTile.setTemperature(
                     Math.max(currentCoolantTempCelsius, cellTemp - euTick / NuclearSimulationEngine.euPerDegree));
+                pTile.setLastHeatOutput(pTile.getLastHeatOutput() + euTick);
                 totalHeatExtractedJoulesTick += joulesTick;
             }
 

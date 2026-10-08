@@ -41,6 +41,8 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
     public MTENuclearReactor mReactor = null;
     public double mTemperature = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     public double mHeatEU = 0.0;
+    public double mLastHeatOutput = 0.0;
+    public double mHeatOutputAccumulator = 0.0;
 
     protected boolean mIsInlet = true;
     protected IGregTechTileEntity mOppositeHatch = null;
@@ -261,6 +263,9 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
         }
 
         mTemperature -= coreTempChange;
+        if (coreTempChange > 0) {
+            mHeatOutputAccumulator += heatTransferredEU;
+        }
 
         // Coolant temperature rise
         double massFlowKgS = volumetricFlowRateM3s * rho;
@@ -369,6 +374,8 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
         mLastThermalFlux = mThermalFlux;
         mLastFastAbsorbed = mFastAbsorbed;
         mLastThermalAbsorbed = mThermalAbsorbed;
+        mLastHeatOutput = mHeatOutputAccumulator;
+        mHeatOutputAccumulator = 0.0;
         mFastFlux = 0;
         mThermalFlux = 0;
         mFastAbsorbed = 0;

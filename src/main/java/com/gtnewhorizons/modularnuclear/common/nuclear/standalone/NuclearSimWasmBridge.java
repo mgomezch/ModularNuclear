@@ -528,6 +528,25 @@ public class NuclearSimWasmBridge {
                 .append(alpha)
                 .append(")\"");
         }
+        sb.append("],\"heatOutput\":[");
+        for (int i = 0; i < NuclearColorMaps.HEAT_OUTPUT_COLORS.length; i++) {
+            if (i > 0) sb.append(",");
+            int c = NuclearColorMaps.HEAT_OUTPUT_COLORS[i];
+            int a = (c >> 24) & 0xFF;
+            int r = (c >> 16) & 0xFF;
+            int g = (c >> 8) & 0xFF;
+            int b = c & 0xFF;
+            double alpha = Math.round((a / 255.0) * 100.0) / 100.0;
+            sb.append("\"rgba(")
+                .append(r)
+                .append(",")
+                .append(g)
+                .append(",")
+                .append(b)
+                .append(",")
+                .append(alpha)
+                .append(")\"");
+        }
         sb.append("]}");
         return sb.toString();
     }
@@ -1270,7 +1289,10 @@ public class NuclearSimWasmBridge {
                     .append(t.getLastControlRodFastAbsorbed())
                     .append(",");
                 sb.append("\"controlRodThermalAbsorbed\":")
-                    .append(t.getLastControlRodThermalAbsorbed());
+                    .append(t.getLastControlRodThermalAbsorbed())
+                    .append(",");
+                sb.append("\"heatOutput\":")
+                    .append(fmt1(t.getLastHeatOutput()));
                 sb.append("}");
             }
         }

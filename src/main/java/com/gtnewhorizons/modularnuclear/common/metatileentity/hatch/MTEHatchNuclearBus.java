@@ -73,6 +73,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
     public int mLastThermalAbsorbed = 0;
     public int mLastNeutronsGenerated = 0;
     public long mDirectEUProduced = 0;
+    public double mLastHeatOutput = 0.0;
     public boolean mUsedForCooling = false;
     public long mLastCheeseTick = -1;
 
