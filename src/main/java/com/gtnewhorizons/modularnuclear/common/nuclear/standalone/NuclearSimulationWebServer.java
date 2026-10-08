@@ -928,6 +928,7 @@ public class NuclearSimulationWebServer {
                       <select id="loop-fluid-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
                         <option value="DISTILLED_WATER" selected>Distilled Water</option>
                         <option value="HEAVY_WATER">Heavy Water</option>
+                        <option value="MOLTEN_CHEESE">🧀 Molten Cheese</option>
                       </select>
                     </div>
                     <div>
@@ -2235,7 +2236,13 @@ public class NuclearSimulationWebServer {
                 if (ptsEl) ptsEl.innerText = `${cl.attachedPoints ? cl.attachedPoints.length : 0} cell(s) connected`;
 
                 const bypEl = document.getElementById("loop-byproduct-val");
-                if (bypEl) bypEl.innerText = `${cl.totalDeuteriumProduced.toLocaleString()} L D₂ | ${cl.totalTritiumProduced.toLocaleString()} L T₂`;
+                if (bypEl) {
+                  let bypStr = `${cl.totalDeuteriumProduced.toLocaleString()} L D₂ | ${cl.totalTritiumProduced.toLocaleString()} L T₂`;
+                  if (cl.totalMethaneProduced && cl.totalMethaneProduced > 0) {
+                    bypStr += ` | ${cl.totalMethaneProduced.toLocaleString()} L CH₄`;
+                  }
+                  bypEl.innerText = bypStr;
+                }
 
                 const warnEl = document.getElementById("loop-tier-warning");
                 if (warnEl) {

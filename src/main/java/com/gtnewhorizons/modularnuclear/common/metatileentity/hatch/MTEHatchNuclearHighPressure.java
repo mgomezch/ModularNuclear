@@ -347,6 +347,12 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
                     // 2 D2O -> 2 T2 + 1 O2
                     mConnectedPump.addDissolvedGas("Tritium", cycles * 2L);
                     mConnectedPump.addDissolvedGas("Oxygen", cycles * 1L);
+                } else if (name.contains("cheese")) {
+                    // Molten cheese irradiation -> Methane + Hydrogen
+                    mConnectedPump.addDissolvedGas("Methane", cycles * 2L);
+                    mConnectedPump.addDissolvedGas("Hydrogen", cycles * 1L);
+                } else if (name.contains("sodium")) {
+                    // Liquid sodium metal does not undergo radiolytic gas dissociation
                 } else {
                     // 2 H2O -> 2 D2 + 1 O2
                     mConnectedPump.addDissolvedGas("Deuterium", cycles * 2L);

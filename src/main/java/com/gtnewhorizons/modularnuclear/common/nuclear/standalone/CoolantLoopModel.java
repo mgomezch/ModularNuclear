@@ -158,7 +158,8 @@ public class CoolantLoopModel {
     public enum CoolantFluidType {
 
         DISTILLED_WATER("Distilled Water", 1000.0, 4184.0, 0.001, 0.60, "Deuterium"),
-        HEAVY_WATER("Heavy Water", 1105.0, 4220.0, 0.00125, 0.59, "Tritium");
+        HEAVY_WATER("Heavy Water", 1105.0, 4220.0, 0.00125, 0.59, "Tritium"),
+        MOLTEN_CHEESE("Molten Cheese", 1120.0, 3000.0, 0.557, 0.481, "Methane");
 
         public final String displayName;
         public final double density; // kg/m^3
@@ -186,6 +187,7 @@ public class CoolantLoopModel {
                     return fluid;
                 }
             }
+            if (containsSub(s, "CHEESE")) return MOLTEN_CHEESE;
             if (containsSub(s, "HEAVY")) return HEAVY_WATER;
             return DISTILLED_WATER;
         }
@@ -288,6 +290,7 @@ public class CoolantLoopModel {
     // Cumulative stats
     private long totalDeuteriumProduced = 0;
     private long totalTritiumProduced = 0;
+    private long totalMethaneProduced = 0;
     private double totalSecondarySteamProduced = 0.0;
     private int neutronTransmuteAccumulator = 0;
 
@@ -607,6 +610,8 @@ public class CoolantLoopModel {
                     neutronTransmuteAccumulator %= 4;
                     if (fluidType == CoolantFluidType.HEAVY_WATER) {
                         totalTritiumProduced += cycles * 2L;
+                    } else if (fluidType == CoolantFluidType.MOLTEN_CHEESE) {
+                        totalMethaneProduced += cycles * 2L;
                     } else {
                         totalDeuteriumProduced += cycles * 2L;
                     }
@@ -668,6 +673,7 @@ public class CoolantLoopModel {
         this.lastPumpPowerEUt = 0.0;
         this.totalDeuteriumProduced = 0;
         this.totalTritiumProduced = 0;
+        this.totalMethaneProduced = 0;
         this.totalSecondarySteamProduced = 0.0;
         this.neutronTransmuteAccumulator = 0;
     }
@@ -871,6 +877,10 @@ public class CoolantLoopModel {
 
     public long getTotalTritiumProduced() {
         return totalTritiumProduced;
+    }
+
+    public long getTotalMethaneProduced() {
+        return totalMethaneProduced;
     }
 
     public double getTotalSecondarySteamProduced() {

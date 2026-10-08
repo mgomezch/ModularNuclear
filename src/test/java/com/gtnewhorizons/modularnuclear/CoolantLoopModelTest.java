@@ -363,4 +363,27 @@ public class CoolantLoopModelTest {
             grid.getLastPowerResult().totalPowerEUt,
             0.01);
     }
+
+    @Test
+    void testMoltenCheeseFluidPropertiesAndMethaneRadiolysis() {
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE);
+        assertEquals("Molten Cheese", loop.getFluidType().displayName);
+        assertEquals(1120.0, loop.getFluidType().density, 0.01);
+        assertEquals(3000.0, loop.getFluidType().specificHeat, 0.01);
+        assertEquals(0.557, loop.getFluidType().dynamicViscosity, 0.001);
+        assertEquals(0.481, loop.getFluidType().thermalConductivity, 0.001);
+        assertEquals("Methane", loop.getFluidType().byproductGas);
+
+        assertEquals(CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE, CoolantLoopModel.CoolantFluidType.fromString("cheese"));
+        assertEquals(CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE, CoolantLoopModel.CoolantFluidType.fromString("MOLTEN_CHEESE"));
+
+        grid.setTile(3, 4, SimTile.TileType.PASSAGE_CORE);
+        grid.setTile(3, 3, SimTile.TileType.FUEL_URANIUM_QUAD);
+        loop.setPumpPowerEUt(250.0);
+
+        for (int t = 1; t <= 20; t++) {
+            grid.step();
+        }
+        assertTrue(loop.getTotalMethaneProduced() > 0, "Molten cheese loop should produce radiolytic methane gas");
+    }
 }

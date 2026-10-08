@@ -827,6 +827,9 @@ public class NuclearSimWasmBridge {
         sb.append("\"totalTritiumProduced\":")
             .append(cl.getTotalTritiumProduced())
             .append(",");
+        sb.append("\"totalMethaneProduced\":")
+            .append(cl.getTotalMethaneProduced())
+            .append(",");
         sb.append("\"totalSecondarySteamProduced\":")
             .append(cl.getTotalSecondarySteamProduced())
             .append(",");
