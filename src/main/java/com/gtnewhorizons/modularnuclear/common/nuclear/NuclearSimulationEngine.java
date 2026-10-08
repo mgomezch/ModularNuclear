@@ -46,7 +46,7 @@ public class NuclearSimulationEngine {
     public static final double DEFAULT_TURNOVER_DELTA_T_MAX = 100.0;
     public static final double DEFAULT_TURNOVER_EXPONENT = 1.0;
     public static final int DEFAULT_COOLANT_FEED_RATE = 999999;
-    public static final double DEFAULT_COOLING_HEAT_PER_LITER = 5.0;
+    public static final double DEFAULT_COOLING_HEAT_PER_LITER = 17.65625;
     public static final double DEFAULT_IC2_COOLANT_HEAT_PER_LITER = 20.0;
 
     public static double tempThresholdLow = DEFAULT_TEMP_THRESHOLD_LOW;

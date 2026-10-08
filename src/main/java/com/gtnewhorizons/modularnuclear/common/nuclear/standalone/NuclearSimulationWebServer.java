@@ -2782,8 +2782,8 @@ public class NuclearSimulationWebServer {
               };
               setVal("p-eu-per-degree", p.euPerDegree != null ? p.euPerDegree : 32.0);
               setVal("p-base-conductance", p.baseHatchConductance != null ? p.baseHatchConductance : 2.0);
-              setVal("p-fission-heat", p.fissionHeatPerNeutron != null ? p.fissionHeatPerNeutron : 77.2);
-              setVal("p-fiss-mult", p.globalThermalFissionMultiplier != null ? p.globalThermalFissionMultiplier : (p.thermalFissionMultiplier != null ? p.thermalFissionMultiplier : 0.348));
+              setVal("p-fission-heat", p.fissionHeatPerNeutron != null ? p.fissionHeatPerNeutron : 76.0);
+              setVal("p-fiss-mult", p.globalThermalFissionMultiplier != null ? p.globalThermalFissionMultiplier : (p.thermalFissionMultiplier != null ? p.thermalFissionMultiplier : 0.350));
               setVal("p-ambient-temp", p.ambientTemp);
               setVal("p-hatch-cap", p.hatchCapacity);
               setVal("p-turn-curve", p.turnoverCurve);
@@ -2798,8 +2798,8 @@ public class NuclearSimulationWebServer {
             async function submitSimParams() {
               const euDeg = document.getElementById("p-eu-per-degree") ? document.getElementById("p-eu-per-degree").value : 32.0;
               const baseCond = document.getElementById("p-base-conductance") ? document.getElementById("p-base-conductance").value : 2.0;
-              const fHeat = document.getElementById("p-fission-heat") ? document.getElementById("p-fission-heat").value : 77.2;
-              const fMult = document.getElementById("p-fiss-mult") ? document.getElementById("p-fiss-mult").value : 0.348;
+              const fHeat = document.getElementById("p-fission-heat") ? document.getElementById("p-fission-heat").value : 76.0;
+              const fMult = document.getElementById("p-fiss-mult") ? document.getElementById("p-fiss-mult").value : 0.350;
               const amb = document.getElementById("p-ambient-temp").value;
               const cap = document.getElementById("p-hatch-cap").value;
               const curve = document.getElementById("p-turn-curve").value;

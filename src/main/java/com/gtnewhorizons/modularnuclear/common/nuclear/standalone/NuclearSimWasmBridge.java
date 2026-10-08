@@ -23,8 +23,8 @@ public class NuclearSimWasmBridge {
 
     @Export(name = "initGrid")
     public static void initGrid(int width, int height, int pipeTier) {
-        NuclearSimulationEngine.setGlobalThermalFissionMultiplier(0.351);
-        NuclearSimulationEngine.fissionHeatPerNeutron = 80.1;
+        NuclearSimulationEngine.setGlobalThermalFissionMultiplier(0.350);
+        NuclearSimulationEngine.fissionHeatPerNeutron = 76.0;
         grid = new StandaloneNuclearGrid(width, height, pipeTier);
     }
 
