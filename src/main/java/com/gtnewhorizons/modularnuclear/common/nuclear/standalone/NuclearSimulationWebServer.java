@@ -3043,6 +3043,40 @@ public class NuclearSimulationWebServer {
               return Math.round(eut) + " EU/t";
             }
 
+            function applyTierCoolingDefaults(tierNum, p = null) {
+              if (!wasmSim) return;
+              const TIER_DEFAULTS = {
+                0: { mode: "CONDUCTIVE", mat: "TITANIUM", size: "NORMAL", fluid: "DISTILLED_WATER", hatch: "EV" },
+                1: { mode: "CONVECTIVE_LOOP", mat: "TUNGSTENSTEEL", size: "LARGE", fluid: "DISTILLED_WATER", hatch: "IV" },
+                2: { mode: "CONVECTIVE_LOOP", mat: "OSMIUM", size: "LARGE", fluid: "DISTILLED_WATER", hatch: "LUV" },
+                3: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "ZPM" },
+                4: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "UV" },
+                5: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "UHV" }
+              };
+              const def = TIER_DEFAULTS[tierNum] || TIER_DEFAULTS[1];
+              const mode = (p && p.cooling_mode) ? p.cooling_mode : def.mode;
+              wasmSim.setCoolingMode(mode);
+              if (mode === "CONVECTIVE_LOOP") {
+                let mat = def.mat;
+                let sz = def.size;
+                let fl = def.fluid;
+                let ht = def.hatch;
+                if (p && p.default_loop && Array.isArray(p.default_loop) && p.default_loop.length >= 3) {
+                  mat = p.default_loop[0];
+                  sz = p.default_loop[1];
+                  fl = p.default_loop[2];
+                }
+                if (p && p.loop_mat) mat = p.loop_mat;
+                if (p && p.loop_size) sz = p.loop_size;
+                if (p && p.loop_fluid) fl = p.loop_fluid;
+                if (p && p.hatch_tier) ht = p.hatch_tier;
+                wasmSim.setCoolantLoopMaterial(mat, false);
+                wasmSim.setCoolantLoopPipeSize(sz, false);
+                wasmSim.setCoolantLoopFluid(fl, false);
+                wasmSim.setCoolantLoopControl(ht, 100.0, 0.0, 0.0, false);
+              }
+            }
+
             function loadPresetFromData(p) {
               if (!p || !p.layout) return;
               lastChartTick = -1;
@@ -3061,6 +3095,7 @@ public class NuclearSimulationWebServer {
                 if (w > 0 && h > 0) {
                   wasmSim.initGrid(w, h, pipeTier);
                 }
+                applyTierCoolingDefaults(pipeTier, p);
                 if (wasmSim.loadLayout) {
                   wasmSim.loadLayout(p.layout, false);
                 }
@@ -3166,6 +3201,7 @@ public class NuclearSimulationWebServer {
               }
               if (isWasmMode && wasmSim) {
                 wasmSim.setPipeTier(tierNum);
+                applyTierCoolingDefaults(tierNum);
                 currentState = wasmSim.getState();
                 renderUI();
                 return;

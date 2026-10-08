@@ -52,7 +52,8 @@ public class CoolantLoopModel {
         STEEL("Steel", 35.0, 2226.85, 2500, "LV"),
         STAINLESS_STEEL("Stainless Steel", 70.0, 2726.85, 3000, "MV"),
         TITANIUM("Titanium", 140.0, 4726.85, 5000, "EV"),
-        TUNGSTENSTEEL("Tungstensteel", 280.0, 7226.85, 7500, "EV"),
+        TUNGSTENSTEEL("Tungstensteel", 280.0, 7226.85, 7500, "IV"),
+        OSMIUM("Osmium", 600.0, 3032.85, 3306, "LuV"),
         NEUTRONIUM("Neutronium", 3000.0, 99726.85, 100000, "ZPM");
 
         public final String displayName;
@@ -84,10 +85,14 @@ public class CoolantLoopModel {
          * Progression recommendation check for automated layout optimization searches.
          * In automated searches for Tier 2 reactors, Neutronium is excluded because a player
          * who has reached ZPM to craft Neutronium would build a larger Tier 3 reactor instead.
+         * For IV Platinum, Osmium (unlocked at LuV) is also excluded.
          */
         public boolean isProgressionAppropriate(int reactorTier) {
             if (reactorTier < NuclearSimulationEngine.PIPE_TIER_PLATINUM) {
                 return false;
+            }
+            if (reactorTier == NuclearSimulationEngine.PIPE_TIER_PLATINUM) {
+                return this != NEUTRONIUM && this != OSMIUM;
             }
             if (reactorTier <= NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
                 // Progression filter: exclude Neutronium from automated Tier 2 search space
@@ -107,6 +112,7 @@ public class CoolantLoopModel {
             }
             if (containsSub(s, "STAINLESS")) return STAINLESS_STEEL;
             if (containsSub(s, "TUNGSTEN")) return TUNGSTENSTEEL;
+            if (containsSub(s, "OSMIUM")) return OSMIUM;
             if (containsSub(s, "TITAN")) return TITANIUM;
             if (containsSub(s, "NEUTRON")) return NEUTRONIUM;
             if (containsSub(s, "STEEL")) return STEEL;

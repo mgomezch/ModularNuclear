@@ -54,6 +54,7 @@ public class CoolantLoopModelTest {
         assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isAllowedInReactorTier(tierIV));
         assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isAllowedInReactorTier(tierIV));
         assertTrue(CoolantLoopModel.LoopMaterial.TUNGSTENSTEEL.isAllowedInReactorTier(tierIV));
+        assertTrue(CoolantLoopModel.LoopMaterial.OSMIUM.isAllowedInReactorTier(tierIV));
         assertTrue(
             CoolantLoopModel.LoopMaterial.NEUTRONIUM.isAllowedInReactorTier(tierIV),
             "Neutronium is physically allowed on IV (sim app allows it)");
@@ -62,25 +63,57 @@ public class CoolantLoopModelTest {
         assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isAllowedInReactorTier(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isAllowedInReactorTier(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.TUNGSTENSTEEL.isAllowedInReactorTier(tierLuV));
+        assertTrue(CoolantLoopModel.LoopMaterial.OSMIUM.isAllowedInReactorTier(tierLuV));
         assertTrue(
             CoolantLoopModel.LoopMaterial.NEUTRONIUM.isAllowedInReactorTier(tierLuV),
             "Neutronium is physically allowed on LuV");
 
         // Progression appropriate check (for automated optimization searches):
-        // In Tier 2, Neutronium is excluded from optimization searches because player would build ZPM+ reactor instead
+        // In Tier 2 IV, Osmium and Neutronium are excluded from optimization searches because player unlocks them in LuV and ZPM
         assertTrue(CoolantLoopModel.LoopMaterial.STEEL.isProgressionAppropriate(tierIV));
         assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isProgressionAppropriate(tierIV));
         assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isProgressionAppropriate(tierIV));
         assertTrue(CoolantLoopModel.LoopMaterial.TUNGSTENSTEEL.isProgressionAppropriate(tierIV));
         assertFalse(
+            CoolantLoopModel.LoopMaterial.OSMIUM.isProgressionAppropriate(tierIV),
+            "Osmium is unlocked at LuV, not progression-appropriate for IV");
+        assertFalse(
             CoolantLoopModel.LoopMaterial.NEUTRONIUM.isProgressionAppropriate(tierIV),
             "Neutronium is not progression-appropriate for Tier 2 optimization searches");
+
+        // In LuV, Osmium is progression-appropriate!
+        assertTrue(CoolantLoopModel.LoopMaterial.OSMIUM.isProgressionAppropriate(tierLuV));
         assertFalse(
             CoolantLoopModel.LoopMaterial.NEUTRONIUM.isProgressionAppropriate(tierLuV),
-            "Neutronium is not progression-appropriate for Tier 2 optimization searches");
+            "Neutronium is not progression-appropriate for Tier 2 LuV optimization searches");
 
-        // In Tier 3+ (ZPM+), Neutronium is progression-appropriate
+        // In Tier 3+ (ZPM+), Neutronium and Osmium are progression-appropriate
+        assertTrue(CoolantLoopModel.LoopMaterial.OSMIUM.isProgressionAppropriate(tierZPM));
         assertTrue(CoolantLoopModel.LoopMaterial.NEUTRONIUM.isProgressionAppropriate(tierZPM));
+    }
+
+    @Test
+    void testOsmiumAllowedAndOperationalInLuV() {
+        StandaloneNuclearGrid luvGrid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_OSMIUM);
+        luvGrid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
+        CoolantLoopModel luvLoop = luvGrid.getCoolantLoop();
+        luvLoop.setMaterial(CoolantLoopModel.LoopMaterial.OSMIUM);
+        luvLoop.setPipeSize(CoolantLoopModel.LoopPipeSize.LARGE);
+        luvLoop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
+        luvLoop.setPumpPowerEUt(32768.0);
+        luvLoop.attachPoint(2, 2);
+        luvLoop.attachPoint(2, 3);
+
+        for (int t = 1; t <= 20; t++) {
+            boolean ok = luvGrid.step();
+            assertTrue(ok, "Grid step should succeed with Osmium loop on LuV");
+            assertFalse(luvGrid.isExploded(), "Grid should not explode");
+            assertFalse(luvLoop.isRuptured(), "Osmium loop should not rupture on LuV");
+        }
+
+        assertEquals(CoolantLoopModel.LoopMaterial.OSMIUM, luvLoop.getMaterial());
+        assertEquals(600.0, luvLoop.getMaterial().maxPressureBar);
+        assertEquals("LuV", luvLoop.getMaterial().tierUnlocked);
     }
 
     @Test

@@ -1363,6 +1363,7 @@ public class StandaloneNuclearGrid {
     public void setPipeTier(int pipeTier) {
         this.pipeTier = pipeTier;
         applyDefaultTurbinesForTier();
+        applyDefaultCoolingForTier();
         int hatchTier = Math.max(1, pipeTier + 4);
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
@@ -1446,6 +1447,54 @@ public class StandaloneNuclearGrid {
         this.turbineMaterial = cfg.material;
         this.turbineSize = cfg.size;
         this.turbineFitting = cfg.mode;
+    }
+
+    public void applyDefaultCoolingForTier() {
+        if (coolantLoop == null) return;
+        switch (this.pipeTier) {
+            case NuclearSimulationEngine.PIPE_TIER_ELECTRUM -> {
+                coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.TITANIUM);
+                coolantLoop.setPipeSize(CoolantLoopModel.LoopPipeSize.NORMAL);
+                coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
+                coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.EV);
+                coolantLoop.setPumpElectricalPowerEUt(2048.0);
+            }
+            case NuclearSimulationEngine.PIPE_TIER_PLATINUM -> {
+                coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.TUNGSTENSTEEL);
+                coolantLoop.setPipeSize(CoolantLoopModel.LoopPipeSize.LARGE);
+                coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
+                coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.IV);
+                coolantLoop.setPumpElectricalPowerEUt(8192.0);
+            }
+            case NuclearSimulationEngine.PIPE_TIER_OSMIUM -> {
+                coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.OSMIUM);
+                coolantLoop.setPipeSize(CoolantLoopModel.LoopPipeSize.LARGE);
+                coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
+                coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.LUV);
+                coolantLoop.setPumpElectricalPowerEUt(32768.0);
+            }
+            case NuclearSimulationEngine.PIPE_TIER_QUANTIUM -> {
+                coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.NEUTRONIUM);
+                coolantLoop.setPipeSize(CoolantLoopModel.LoopPipeSize.HUGE);
+                coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
+                coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.ZPM);
+                coolantLoop.setPumpElectricalPowerEUt(131072.0);
+            }
+            case NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM -> {
+                coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.NEUTRONIUM);
+                coolantLoop.setPipeSize(CoolantLoopModel.LoopPipeSize.HUGE);
+                coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
+                coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.UV);
+                coolantLoop.setPumpElectricalPowerEUt(524288.0);
+            }
+            case NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM -> {
+                coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.NEUTRONIUM);
+                coolantLoop.setPipeSize(CoolantLoopModel.LoopPipeSize.HUGE);
+                coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
+                coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.UHV);
+                coolantLoop.setPumpElectricalPowerEUt(2097152.0);
+            }
+        }
     }
 
     public long getCurrentTick() {
