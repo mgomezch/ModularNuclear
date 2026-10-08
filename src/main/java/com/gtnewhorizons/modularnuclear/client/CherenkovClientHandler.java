@@ -61,7 +61,8 @@ public class CherenkovClientHandler {
         if (world == null) return;
 
         if (!ModularNuclearConfig.enableCherenkovRadiation || !base.isActive()) {
-            if (reactor.mClientWaterBlocks > 0 || LIT_HATCHES.containsKey(reactor) || ACTIVE_BEAMS.containsKey(reactor)) {
+            if (reactor.mClientWaterBlocks > 0 || LIT_HATCHES.containsKey(reactor)
+                || ACTIVE_BEAMS.containsKey(reactor)) {
                 clearHatchLights(reactor, world);
                 reactor.mClientWaterBlocks = 0;
                 reactor.mClientCherenkovIntensity = 0f;

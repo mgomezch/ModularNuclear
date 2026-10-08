@@ -8,6 +8,7 @@ tasks.test {
 }
 
 val teavmClasspath by configurations.creating
+val jvmDowngraderConfig by configurations.creating
 
 dependencies {
     teavmClasspath("org.teavm:teavm-cli:0.10.2")
@@ -15,6 +16,9 @@ dependencies {
     teavmClasspath("org.teavm:teavm-tooling:0.10.2")
     teavmClasspath("org.teavm:teavm-interop:0.10.2")
     teavmClasspath("org.teavm:teavm-jso:0.10.2")
+    jvmDowngraderConfig("xyz.wagyourtail.jvmdowngrader:jvmdowngrader-java-api:1.3.5:downgraded-8") {
+        isTransitive = false
+    }
 }
 
 val generateWasm by tasks.registering(JavaExec::class) {
@@ -38,7 +42,7 @@ val generateWasm by tasks.registering(JavaExec::class) {
     val distDir = layout.buildDirectory.dir("nuclear-sim-dist").get().asFile
     val iconsSourceDir = file("src/main/resources/assets/modularnuclear/textures/sim/icons")
 
-    val jvmDowngraderJar = file("/home/mgomezch/.gradle/caches/modules-2/files-2.1/xyz.wagyourtail.jvmdowngrader/jvmdowngrader-java-api/1.3.5/37ff40ae57b7293af685185c291d0b52d73008a8/jvmdowngrader-java-api-1.3.5-downgraded-8.jar")
+    val jvmDowngraderJar = jvmDowngraderConfig.singleFile
     val downgradedClassesDir = layout.buildDirectory.dir("tmp/downgradeMainClasses/main").get().asFile
 
     args = listOf(
@@ -92,7 +96,7 @@ val exportStaticDist by tasks.registering(JavaExec::class) {
         setExecutable(jdk21.absolutePath)
     }
     val downgradedClassesDir = layout.buildDirectory.dir("tmp/downgradeMainClasses/main").get().asFile
-    val jvmDowngraderJar = file("/home/mgomezch/.gradle/caches/modules-2/files-2.1/xyz.wagyourtail.jvmdowngrader/jvmdowngrader-java-api/1.3.5/37ff40ae57b7293af685185c291d0b52d73008a8/jvmdowngrader-java-api-1.3.5-downgraded-8.jar")
+    val jvmDowngraderJar = jvmDowngraderConfig.singleFile
     val distDir = layout.buildDirectory.dir("nuclear-sim-dist").get().asFile
 
     mainClass.set("com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimulationWebServer")

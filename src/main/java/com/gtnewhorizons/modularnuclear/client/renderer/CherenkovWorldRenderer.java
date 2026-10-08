@@ -3,15 +3,8 @@ package com.gtnewhorizons.modularnuclear.client.renderer;
 import java.util.Collections;
 import java.util.Set;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.OpenGlHelper;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.entity.EntityLivingBase;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 
-import org.lwjgl.opengl.GL11;
-
-import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;

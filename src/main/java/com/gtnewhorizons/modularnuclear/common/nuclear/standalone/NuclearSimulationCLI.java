@@ -741,11 +741,37 @@ public class NuclearSimulationCLI {
         boolean repair, boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified,
         boolean stopOnIncidents, boolean stopOnIncidentsSpecified) {
         runJsonSimulation(
-            preset, layout, size, tier, ticks, turbMat, turbSize, turbFitting, tierSpecified, turbSpecified,
-            coolingMode, coolingModeSpecified, loopMat, loopMatSpecified, loopSize, loopSizeSpecified,
-            loopFluid, loopFluidSpecified, loopPumpPower, loopFlowRate, loopPoints, baseConductance,
-            baseConductanceSpecified, repair, strictMode, autoReplaceFuel, autoReplaceFuelSpecified,
-            stopOnIncidents, stopOnIncidentsSpecified, false, 200);
+            preset,
+            layout,
+            size,
+            tier,
+            ticks,
+            turbMat,
+            turbSize,
+            turbFitting,
+            tierSpecified,
+            turbSpecified,
+            coolingMode,
+            coolingModeSpecified,
+            loopMat,
+            loopMatSpecified,
+            loopSize,
+            loopSizeSpecified,
+            loopFluid,
+            loopFluidSpecified,
+            loopPumpPower,
+            loopFlowRate,
+            loopPoints,
+            baseConductance,
+            baseConductanceSpecified,
+            repair,
+            strictMode,
+            autoReplaceFuel,
+            autoReplaceFuelSpecified,
+            stopOnIncidents,
+            stopOnIncidentsSpecified,
+            false,
+            200);
     }
 
     private static void runJsonSimulation(String preset, String layout, int size, int tier, int ticks,
@@ -758,11 +784,38 @@ public class NuclearSimulationCLI {
         boolean repair, boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified,
         boolean stopOnIncidents, boolean stopOnIncidentsSpecified, boolean steadyStateStop, int steadyWindow) {
         runJsonSimulation(
-            preset, layout, size, tier, ticks, turbMat, turbSize, turbFitting, tierSpecified, turbSpecified,
-            coolingMode, coolingModeSpecified, loopMat, loopMatSpecified, loopSize, loopSizeSpecified,
-            loopFluid, loopFluidSpecified, loopPumpPower, loopFlowRate, loopPoints, baseConductance,
-            baseConductanceSpecified, repair, strictMode, autoReplaceFuel, autoReplaceFuelSpecified,
-            stopOnIncidents, stopOnIncidentsSpecified, steadyStateStop, steadyWindow, false);
+            preset,
+            layout,
+            size,
+            tier,
+            ticks,
+            turbMat,
+            turbSize,
+            turbFitting,
+            tierSpecified,
+            turbSpecified,
+            coolingMode,
+            coolingModeSpecified,
+            loopMat,
+            loopMatSpecified,
+            loopSize,
+            loopSizeSpecified,
+            loopFluid,
+            loopFluidSpecified,
+            loopPumpPower,
+            loopFlowRate,
+            loopPoints,
+            baseConductance,
+            baseConductanceSpecified,
+            repair,
+            strictMode,
+            autoReplaceFuel,
+            autoReplaceFuelSpecified,
+            stopOnIncidents,
+            stopOnIncidentsSpecified,
+            steadyStateStop,
+            steadyWindow,
+            false);
     }
 
     private static void runJsonSimulation(String preset, String layout, int size, int tier, int ticks,
@@ -830,12 +883,15 @@ public class NuclearSimulationCLI {
             boolean ok = grid.step();
             if (!ok) break;
 
-            TurbineCalculator.PowerEstimationResult pr = (steadyStateStop || trackHistory) ? grid.getLastPowerResult() : null;
+            TurbineCalculator.PowerEstimationResult pr = (steadyStateStop || trackHistory) ? grid.getLastPowerResult()
+                : null;
             double curPower = pr != null ? pr.totalPowerEUt : 0.0;
             double curAvgTemp = grid.getCoreAvgTemp();
             double curMaxTemp = grid.getCoreMaxTemp();
             double curLoopTemp = grid.getCoolingMode() == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP
-                ? grid.getCoolantLoop().getCurrentCoolantTempCelsius() : 0.0;
+                ? grid.getCoolantLoop()
+                    .getCurrentCoolantTempCelsius()
+                : 0.0;
 
             if (trackHistory) {
                 powerHist[t - 1] = curPower;
@@ -2312,9 +2368,9 @@ public class NuclearSimulationCLI {
                 // B. Phase Transition Boundary Proximity Check:
                 // If coolant loop is heating up (slopeLt > 0.005 °C/tick), prevent early exit
                 // when in the approach band for a major steam phase change:
-                //   100°C: Sub-boiling -> Secondary Steam generation (1:160 expansion)
-                //   300°C: Regular Steam -> Superheated Steam (3x power multiplier in XLST-HP)
-                //   700°C: Superheated Steam -> Supercritical Steam (5x power multiplier in XLST-SC)
+                // 100°C: Sub-boiling -> Secondary Steam generation (1:160 expansion)
+                // 300°C: Regular Steam -> Superheated Steam (3x power multiplier in XLST-HP)
+                // 700°C: Superheated Steam -> Supercritical Steam (5x power multiplier in XLST-SC)
                 double lastLoopT = ltArr[n - 1];
                 if (slopeLt > 0.005) {
                     if (lastLoopT >= 85.0 && lastLoopT < 105.0) {

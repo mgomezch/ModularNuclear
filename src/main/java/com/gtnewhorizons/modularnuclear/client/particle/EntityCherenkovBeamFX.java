@@ -47,8 +47,10 @@ public class EntityCherenkovBeamFX extends EntityFX {
     public void onUpdate() {
         if (!ModularNuclearConfig.enableCherenkovRadiation || reactor == null
             || reactor.getBaseMetaTileEntity() == null
-            || reactor.getBaseMetaTileEntity().isDead()
-            || !reactor.getBaseMetaTileEntity().isActive()
+            || reactor.getBaseMetaTileEntity()
+                .isDead()
+            || !reactor.getBaseMetaTileEntity()
+                .isActive()
             || reactor.mClientWaterBlocks <= 0
             || reactor.mClientCherenkovIntensity <= 0f) {
             this.setDead();
@@ -78,7 +80,8 @@ public class EntityCherenkovBeamFX extends EntityFX {
         float f5) {
         if (!ModularNuclearConfig.enableCherenkovRadiation || reactor == null
             || reactor.getBaseMetaTileEntity() == null
-            || reactor.getBaseMetaTileEntity().isDead()
+            || reactor.getBaseMetaTileEntity()
+                .isDead()
             || reactor.mClientWaterBlocks <= 0
             || reactor.mClientCherenkovIntensity <= 0f) {
             return;
@@ -99,7 +102,8 @@ public class EntityCherenkovBeamFX extends EntityFX {
         double distSq = cx * cx + cz * cz;
         if (distSq > 128.0 * 128.0) return;
 
-        float intensity = Math.min(1.0f, reactor.mClientCherenkovIntensity) * ModularNuclearConfig.cherenkovIntensityMultiplier;
+        float intensity = Math.min(1.0f, reactor.mClientCherenkovIntensity)
+            * ModularNuclearConfig.cherenkovIntensityMultiplier;
         if (intensity <= 0.001f) return;
 
         long worldTime = view.worldObj != null ? view.worldObj.getTotalWorldTime() : 0;

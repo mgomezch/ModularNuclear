@@ -1,0 +1,71 @@
+name: Build ModularNuclear
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Package Mod
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout ModularNuclear
+        uses: actions/checkout@v4
+        with:
+          path: ModularNuclear
+          fetch-depth: 0
+
+      - name: Checkout CoolantLoops
+        uses: actions/checkout@v4
+        with:
+          repository: mgomezch/CoolantLoops
+          path: CoolantLoops
+          fetch-depth: 0
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build CoolantLoops Dependency Jar
+        working-directory: CoolantLoops
+        run: |
+          chmod +x gradlew
+          ./gradlew jar assemble
+
+      - name: Build ModularNuclear
+        working-directory: ModularNuclear
+        run: |
+          chmod +x gradlew
+          ./gradlew build generateWasm exportStaticDist
+
+      - name: Upload Mod Jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: ModularNuclear-jars
+          path: |
+            ModularNuclear/build/libs/modularnuclear-*.jar
+            !ModularNuclear/build/libs/*-sources.jar
+            !ModularNuclear/build/libs/*-predowngrade.jar
+            !ModularNuclear/build/libs/*-dirty*.jar
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ModularNuclear/build/libs/modularnuclear-*.jar
+            !ModularNuclear/build/libs/*-sources.jar
+            !ModularNuclear/build/libs/*-predowngrade.jar
+            !ModularNuclear/build/libs/*-dirty*.jar
