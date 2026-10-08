@@ -149,6 +149,7 @@ public class NuclearSimWasmBridge {
         if (grid != null && matStr != null) {
             grid.getCoolantLoop()
                 .setMaterial(CoolantLoopModel.LoopMaterial.fromString(matStr));
+            grid.updatePowerResultNet();
         }
     }
 
@@ -157,6 +158,7 @@ public class NuclearSimWasmBridge {
         if (grid != null && sizeStr != null) {
             grid.getCoolantLoop()
                 .setPipeSize(CoolantLoopModel.LoopPipeSize.fromString(sizeStr));
+            grid.updatePowerResultNet();
         }
     }
 
@@ -165,6 +167,7 @@ public class NuclearSimWasmBridge {
         if (grid != null && fluidStr != null) {
             grid.getCoolantLoop()
                 .setFluidType(CoolantLoopModel.CoolantFluidType.fromString(fluidStr));
+            grid.updatePowerResultNet();
         }
     }
 
@@ -175,6 +178,7 @@ public class NuclearSimWasmBridge {
                 .setPumpElectricalPowerEUt(powerEUt);
             grid.getCoolantLoop()
                 .setUseTargetFlowMode(false);
+            grid.updatePowerResultNet();
         }
     }
 
@@ -185,6 +189,7 @@ public class NuclearSimWasmBridge {
                 .setHatchTier(CoolantLoopModel.EnergyHatchTier.fromString(tierStr));
             grid.getCoolantLoop()
                 .setUseTargetFlowMode(false);
+            grid.updatePowerResultNet();
         }
     }
 
@@ -195,6 +200,7 @@ public class NuclearSimWasmBridge {
                 .setDutyCyclePercent(dutyPercent);
             grid.getCoolantLoop()
                 .setUseTargetFlowMode(false);
+            grid.updatePowerResultNet();
         }
     }
 
@@ -203,6 +209,7 @@ public class NuclearSimWasmBridge {
         if (grid != null) {
             grid.getCoolantLoop()
                 .setMaxFlowRateLPerSec(maxFlow);
+            grid.updatePowerResultNet();
         }
     }
 
@@ -211,6 +218,7 @@ public class NuclearSimWasmBridge {
         if (grid != null) {
             grid.getCoolantLoop()
                 .setMaxPressureBar(maxPressure);
+            grid.updatePowerResultNet();
         }
     }
 
@@ -225,6 +233,7 @@ public class NuclearSimWasmBridge {
             cl.setMaxFlowRateLPerSec(maxFlow);
             cl.setMaxPressureBar(maxPressure);
             cl.setUseTargetFlowMode(false);
+            grid.updatePowerResultNet();
         }
     }
 
@@ -233,6 +242,7 @@ public class NuclearSimWasmBridge {
         if (grid != null) {
             grid.getCoolantLoop()
                 .setPumpOverclocked(oc);
+            grid.updatePowerResultNet();
         }
     }
 
@@ -241,6 +251,7 @@ public class NuclearSimWasmBridge {
         if (grid != null && material != null) {
             grid.getCoolantLoop()
                 .setImpellerMaterial(material);
+            grid.updatePowerResultNet();
         }
     }
 
@@ -251,6 +262,7 @@ public class NuclearSimWasmBridge {
                 .setTargetFlowRateLPerSec(flowRate);
             grid.getCoolantLoop()
                 .setUseTargetFlowMode(true);
+            grid.updatePowerResultNet();
         }
     }
 

@@ -300,6 +300,7 @@ public class CoolantLoopModel {
 
     public CoolantLoopModel() {
         // Defaults: Titanium material, normal pipe, distilled water
+        updatePumpState();
     }
 
     public boolean isPumpOverclocked() {
@@ -308,6 +309,7 @@ public class CoolantLoopModel {
 
     public void setPumpOverclocked(boolean pumpOverclocked) {
         this.pumpOverclocked = pumpOverclocked;
+        updatePumpState();
     }
 
     public TurbineCalculator.TurbineMaterial getImpellerMaterial() {
@@ -317,11 +319,13 @@ public class CoolantLoopModel {
     public void setImpellerMaterial(TurbineCalculator.TurbineMaterial mat) {
         if (mat != null) {
             this.impellerMaterial = mat;
+            updatePumpState();
         }
     }
 
     public void setImpellerMaterial(String name) {
         this.impellerMaterial = TurbineCalculator.TurbineMaterial.fromString(name);
+        updatePumpState();
     }
 
     public double getImpellerEfficiency() {
@@ -399,23 +403,15 @@ public class CoolantLoopModel {
     }
 
     /**
-     * Executes one tick (0.05 seconds) of joint coolant loop simulation.
+     * Updates pump electrical power consumption, hydrodynamic flow rate,
+     * system pressure, effective duty cycle, and limit status based on current configuration.
      */
-    public boolean step(StandaloneNuclearGrid grid, SimTile[][] tiles, int width, int height) {
-        if (ruptured) {
-            return false;
+    public void updatePumpState() {
+        if (this.ruptured) {
+            return;
         }
 
-        int reactorTier = grid.getPipeTier();
-
-        // 1. Verify Tier Constraint: Convective cooling availability
-        if (reactorTier < NuclearSimulationEngine.PIPE_TIER_PLATINUM) {
-            this.ruptured = true;
-            this.ruptureReason = "Tier Violation: Convective coolant loops require Tier 2+ (IV Platinum / LuV Osmium) casing!";
-            return false;
-        }
-
-        // 2. Control System: Calculate pump power, duty cycle, flow, and safety throttling
+        // Control System: Calculate pump power, duty cycle, flow, and safety throttling
         double pumpAmps = pumpOverclocked ? 4.0 : 1.0;
         double maxPumpPowerEUt = hatchTier.voltageEU * pumpAmps;
 
@@ -426,6 +422,7 @@ public class CoolantLoopModel {
             pressureLimited = false;
             flowLimited = false;
             limitReason = "";
+            currentPressureBar = calculatePeakPressureBar(currentFlowRateLPerSec);
         } else {
             double requestedDuty = Math.max(0.0, Math.min(100.0, dutyCyclePercent));
             double nominalPower = maxPumpPowerEUt * (requestedDuty / 100.0);
@@ -487,6 +484,27 @@ public class CoolantLoopModel {
                 }
             }
         }
+    }
+
+    /**
+     * Executes one tick (0.05 seconds) of joint coolant loop simulation.
+     */
+    public boolean step(StandaloneNuclearGrid grid, SimTile[][] tiles, int width, int height) {
+        if (ruptured) {
+            return false;
+        }
+
+        int reactorTier = grid.getPipeTier();
+
+        // 1. Verify Tier Constraint: Convective cooling availability
+        if (reactorTier < NuclearSimulationEngine.PIPE_TIER_PLATINUM) {
+            this.ruptured = true;
+            this.ruptureReason = "Tier Violation: Convective coolant loops require Tier 2+ (IV Platinum / LuV Osmium) casing!";
+            return false;
+        }
+
+        // 2. Control System: Calculate pump power, duty cycle, flow, and safety throttling
+        updatePumpState();
 
         // 3. Safety Burst Verification (in case of forced external flow or edge conditions)
         currentPressureBar = calculatePeakPressureBar(currentFlowRateLPerSec);
@@ -682,6 +700,7 @@ public class CoolantLoopModel {
     public void setMaterial(LoopMaterial material) {
         if (material != null) {
             this.material = material;
+            updatePumpState();
         }
     }
 
@@ -692,6 +711,7 @@ public class CoolantLoopModel {
     public void setPipeSize(LoopPipeSize pipeSize) {
         if (pipeSize != null) {
             this.pipeSize = pipeSize;
+            updatePumpState();
         }
     }
 
@@ -702,6 +722,7 @@ public class CoolantLoopModel {
     public void setFluidType(CoolantFluidType fluidType) {
         if (fluidType != null) {
             this.fluidType = fluidType;
+            updatePumpState();
         }
     }
 
@@ -713,6 +734,7 @@ public class CoolantLoopModel {
         if (hatchTier != null) {
             this.hatchTier = hatchTier;
             this.useTargetFlowMode = false;
+            updatePumpState();
         }
     }
 
@@ -723,6 +745,7 @@ public class CoolantLoopModel {
     public void setDutyCyclePercent(double dutyCyclePercent) {
         this.dutyCyclePercent = Math.max(0.0, Math.min(100.0, dutyCyclePercent));
         this.useTargetFlowMode = false;
+        updatePumpState();
     }
 
     public double getMaxFlowRateLPerSec() {
@@ -731,6 +754,7 @@ public class CoolantLoopModel {
 
     public void setMaxFlowRateLPerSec(double maxFlowRateLPerSec) {
         this.maxFlowRateLPerSec = Math.max(0.0, maxFlowRateLPerSec);
+        updatePumpState();
     }
 
     public double getMaxPressureBar() {
@@ -739,6 +763,7 @@ public class CoolantLoopModel {
 
     public void setMaxPressureBar(double maxPressureBar) {
         this.maxPressureBar = Math.max(0.0, maxPressureBar);
+        updatePumpState();
     }
 
     public boolean isPressureLimited() {
@@ -768,11 +793,13 @@ public class CoolantLoopModel {
             if (power <= tier.voltageEU) {
                 this.hatchTier = tier;
                 this.dutyCyclePercent = Math.min(100.0, (power / tier.voltageEU) * 100.0);
+                updatePumpState();
                 return;
             }
         }
         this.hatchTier = EnergyHatchTier.UHV;
         this.dutyCyclePercent = Math.min(100.0, (power / EnergyHatchTier.UHV.voltageEU) * 100.0);
+        updatePumpState();
     }
 
     public double getTargetFlowRateLPerSec() {
@@ -781,6 +808,7 @@ public class CoolantLoopModel {
 
     public void setTargetFlowRateLPerSec(double flow) {
         this.targetFlowRateLPerSec = Math.max(0.0, flow);
+        updatePumpState();
     }
 
     public boolean isUseTargetFlowMode() {
@@ -789,6 +817,7 @@ public class CoolantLoopModel {
 
     public void setUseTargetFlowMode(boolean useTargetFlowMode) {
         this.useTargetFlowMode = useTargetFlowMode;
+        updatePumpState();
     }
 
     public double getCurrentFlowRateLPerSec() {

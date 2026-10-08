@@ -68,11 +68,13 @@ public class CoolantLoopModelTest {
         loop.setHatchTier(CoolantLoopModel.EnergyHatchTier.IV); // 8192 EU/t
         loop.setPumpOverclocked(false);
         loop.setDutyCyclePercent(100.0);
+        assertEquals(8192.0, loop.getLastPumpPowerEUt(), 1.0, "Normal pump draws 1A immediately");
         grid.step();
         assertEquals(8192.0, loop.getLastPumpPowerEUt(), 1.0, "Normal pump draws 1A (8192 EU/t at IV)");
 
         loop.setPumpOverclocked(true);
         assertTrue(loop.isPumpOverclocked());
+        assertEquals(32768.0, loop.getLastPumpPowerEUt(), 1.0, "Overclocked pump draws 4A immediately without step");
         grid.step();
         assertEquals(32768.0, loop.getLastPumpPowerEUt(), 1.0, "Overclocked pump draws 4A (32768 EU/t at IV)");
     }

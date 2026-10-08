@@ -1260,9 +1260,24 @@ public class NuclearSimulationWebServer {
                     if (window.__INITIAL_STATE__.turbineMaterial) {
                       wasmSim.setTurbine(window.__INITIAL_STATE__.turbineMaterial, window.__INITIAL_STATE__.turbineSize, window.__INITIAL_STATE__.turbineFitting, false);
                     }
+                    if (window.__INITIAL_STATE__.coolantLoop) {
+                      const cl = window.__INITIAL_STATE__.coolantLoop;
+                      if (cl.coolingMode) wasmSim.setCoolingMode(cl.coolingMode, false);
+                      if (cl.material) wasmSim.setCoolantLoopMaterial(cl.material, false);
+                      if (cl.pipeSize) wasmSim.setCoolantLoopPipeSize(cl.pipeSize, false);
+                      if (cl.fluidType) wasmSim.setCoolantLoopFluid(cl.fluidType, false);
+                      if (cl.hatchTier) {
+                        wasmSim.setCoolantLoopControl(cl.hatchTier, cl.dutyCyclePercent !== undefined ? cl.dutyCyclePercent : 100.0, cl.maxFlowRateLimit || 0.0, cl.maxPressureLimit || 0.0, false);
+                      }
+                      if (cl.pumpOverclocked !== undefined) wasmSim.setCoolantLoopOverclocked(cl.pumpOverclocked, false);
+                      if (cl.impellerMaterial) wasmSim.setCoolantLoopImpeller(cl.impellerMaterial, false);
+                    } else if (window.__INITIAL_STATE__.pipeTier >= 1) {
+                      applyTierCoolingDefaults(window.__INITIAL_STATE__.pipeTier);
+                    }
                   } else {
                     wasmSim.initGrid(9, 9, 1);
                     wasmSim.loadPreset("BEST_PLATINUM_9X9");
+                    applyTierCoolingDefaults(1);
                   }
                   currentState = wasmSim.getState();
                   renderUI();
@@ -1454,12 +1469,15 @@ public class NuclearSimulationWebServer {
               const impeller = impSelect ? impSelect.value : "ORIHARUKON";
 
               if (isWasmMode && wasmSim) {
+                if (currentState && currentState.pipeTier >= 1) {
+                  wasmSim.setCoolingMode("CONVECTIVE_LOOP", false);
+                }
                 wasmSim.setCoolantLoopMaterial(mat, false);
                 wasmSim.setCoolantLoopPipeSize(size, false);
                 wasmSim.setCoolantLoopFluid(fluid, false);
                 wasmSim.setCoolantLoopControl(hatch, duty, maxFlow, maxPress, false);
                 wasmSim.setCoolantLoopOverclocked(isOc, false);
-                wasmSim.setCoolantLoopImpeller(impeller, true);
+                wasmSim.setCoolantLoopImpeller(impeller, false);
                 currentState = wasmSim.getState();
                 renderUI();
                 return;
