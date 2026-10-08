@@ -29,17 +29,52 @@ public class CoolantLoopModelTest {
         double pZero = loop.calculatePumpPowerForFlow(0.0);
         assertTrue(pZero >= 0.0);
 
-        // At 50 L/s
+        // At 50 L/s: mechanical power is ~175 EU/t; electrical power is pMech / eff
         double p50 = loop.calculatePumpPowerForFlow(50.0);
-        assertTrue(p50 > 150.0 && p50 < 250.0, "Pump power at 50 L/s should be ~175 EU/t, got " + p50);
+        double eff = loop.getImpellerEfficiency();
+        double pMech50 = p50 * eff;
+        assertTrue(pMech50 > 150.0 && pMech50 < 250.0, "Mechanical pump power at 50 L/s should be ~175 EU/t, got " + pMech50);
 
-        // At 100 L/s
+        // At 100 L/s: mechanical power is ~1390 EU/t
         double p100 = loop.calculatePumpPowerForFlow(100.0);
-        assertTrue(p100 > 1300.0 && p100 < 1500.0, "Pump power at 100 L/s should be ~1390 EU/t, got " + p100);
+        double pMech100 = p100 * eff;
+        assertTrue(pMech100 > 1300.0 && pMech100 < 1500.0, "Mechanical pump power at 100 L/s should be ~1390 EU/t, got " + pMech100);
 
         // Inversion check: flow from pump power
         double qCalculated = loop.calculateFlowFromPumpPower(p50);
         assertEquals(50.0, qCalculated, 0.5, "Inverted flow should match 50 L/s");
+    }
+
+    @Test
+    void testPumpOverclockAndImpellerEfficiency() {
+        assertFalse(loop.isPumpOverclocked(), "Pump should not be overclocked by default");
+        assertEquals(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.TurbineCalculator.TurbineMaterial.ORINARUKON, loop.getImpellerMaterial());
+
+        // Higher efficiency impeller requires less electrical power for the same flow
+        loop.setImpellerMaterial("ICHORIUM"); // 2.25 eff vs Oriharukon 1.55 eff
+        assertEquals(2.25, loop.getImpellerEfficiency(), 0.001);
+        double pIchorium = loop.calculatePumpPowerForFlow(50.0);
+
+        loop.setImpellerMaterial("ORINARUKON");
+        assertEquals(1.55, loop.getImpellerEfficiency(), 0.001);
+        double pOriharukon = loop.calculatePumpPowerForFlow(50.0);
+
+        assertTrue(pIchorium < pOriharukon, "Higher efficiency impeller must require less electrical EU/t");
+        assertEquals(pOriharukon * (1.55 / 2.25), pIchorium, 0.1, "Electrical power should scale inversely with impeller efficiency");
+
+        // Overclocking toggle increases max pump power draw to 4A
+        grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
+        loop.attachPoint(2, 2);
+        loop.setHatchTier(CoolantLoopModel.EnergyHatchTier.IV); // 8192 EU/t
+        loop.setPumpOverclocked(false);
+        loop.setDutyCyclePercent(100.0);
+        grid.step();
+        assertEquals(8192.0, loop.getLastPumpPowerEUt(), 1.0, "Normal pump draws 1A (8192 EU/t at IV)");
+
+        loop.setPumpOverclocked(true);
+        assertTrue(loop.isPumpOverclocked());
+        grid.step();
+        assertEquals(32768.0, loop.getLastPumpPowerEUt(), 1.0, "Overclocked pump draws 4A (32768 EU/t at IV)");
     }
 
     @Test

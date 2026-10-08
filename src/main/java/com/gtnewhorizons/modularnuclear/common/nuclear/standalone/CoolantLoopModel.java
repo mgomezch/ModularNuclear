@@ -265,6 +265,8 @@ public class CoolantLoopModel {
     private double pumpElectricalPowerEUt = 2048.0; // EU/t
     private double targetFlowRateLPerSec = 100.0; // L/s
     private boolean useTargetFlowMode = false; // If true, flow is set directly and pump EU is calculated
+    private boolean pumpOverclocked = false; // If true, pump draws 4A instead of 1A
+    private TurbineCalculator.TurbineMaterial impellerMaterial = TurbineCalculator.TurbineMaterial.ORINARUKON;
     private final Set<String> attachedPoints = new HashSet<>(); // Set of "x,y" strings
 
     // Dynamic state
@@ -300,9 +302,35 @@ public class CoolantLoopModel {
         // Defaults: Titanium material, normal pipe, distilled water
     }
 
+    public boolean isPumpOverclocked() {
+        return pumpOverclocked;
+    }
+
+    public void setPumpOverclocked(boolean pumpOverclocked) {
+        this.pumpOverclocked = pumpOverclocked;
+    }
+
+    public TurbineCalculator.TurbineMaterial getImpellerMaterial() {
+        return impellerMaterial;
+    }
+
+    public void setImpellerMaterial(TurbineCalculator.TurbineMaterial mat) {
+        if (mat != null) {
+            this.impellerMaterial = mat;
+        }
+    }
+
+    public void setImpellerMaterial(String name) {
+        this.impellerMaterial = TurbineCalculator.TurbineMaterial.fromString(name);
+    }
+
+    public double getImpellerEfficiency() {
+        return impellerMaterial != null ? impellerMaterial.tightEff : 1.0;
+    }
+
     /**
      * Calculates the required electrical pump power (EU/t) for a given flow rate Q (L/s)
-     * using the calibrated cubic hydrodynamic scaling polynomial.
+     * using the calibrated cubic hydrodynamic scaling polynomial and impeller efficiency.
      */
     public double calculatePumpPowerForFlow(double flowLPerSec) {
         if (flowLPerSec <= 0.0) return 0.0;
@@ -312,17 +340,19 @@ public class CoolantLoopModel {
         // Pressure drop scales as (1/D)^5 approximately for same flow rate
         double geomFactor = Math.pow(dScale, 4.5);
         double basePower = P_COEFF_C0 + P_COEFF_C1 * q + P_COEFF_C2 * q * q + P_COEFF_C3 * q * q * q;
-        return Math.max(1.0, basePower * geomFactor);
+        double mechanicalPower = Math.max(1.0, basePower * geomFactor);
+        return mechanicalPower / Math.max(0.1, getImpellerEfficiency());
     }
 
     /**
-     * Estimates flow rate Q (L/s) from available pump electrical power (EU/t).
+     * Estimates flow rate Q (L/s) from available pump electrical power (EU/t) and impeller efficiency.
      */
-    public double calculateFlowFromPumpPower(double pumpEUt) {
-        if (pumpEUt <= 0.0) return 0.0;
+    public double calculateFlowFromPumpPower(double pumpElectricalEUt) {
+        if (pumpElectricalEUt <= 0.0) return 0.0;
+        double mechanicalPowerEUt = pumpElectricalEUt * getImpellerEfficiency();
         double dScale = LoopPipeSize.NORMAL.diameterMeters / pipeSize.diameterMeters;
         double geomFactor = Math.pow(dScale, 4.5);
-        double effectiveP = pumpEUt / geomFactor;
+        double effectiveP = mechanicalPowerEUt / geomFactor;
         // Invert cubic term P ~ c3 * Q^3 -> Q ~ (P / c3)^(1/3)
         double qEst = Math.pow(Math.max(0.1, effectiveP / P_COEFF_C3), 1.0 / 3.0);
         // Fine-tune with Newton-Raphson iterations
@@ -386,18 +416,19 @@ public class CoolantLoopModel {
         }
 
         // 2. Control System: Calculate pump power, duty cycle, flow, and safety throttling
+        double pumpAmps = pumpOverclocked ? 4.0 : 1.0;
+        double maxPumpPowerEUt = hatchTier.voltageEU * pumpAmps;
+
         if (useTargetFlowMode) {
             currentFlowRateLPerSec = Math.max(0.0, targetFlowRateLPerSec);
             lastPumpPowerEUt = calculatePumpPowerForFlow(currentFlowRateLPerSec);
-            effectiveDutyCyclePercent = hatchTier.voltageEU > 0 ? (lastPumpPowerEUt / hatchTier.voltageEU) * 100.0
-                : 0.0;
+            effectiveDutyCyclePercent = maxPumpPowerEUt > 0 ? (lastPumpPowerEUt / maxPumpPowerEUt) * 100.0 : 0.0;
             pressureLimited = false;
             flowLimited = false;
             limitReason = "";
         } else {
-            double nominalVoltage = hatchTier.voltageEU;
             double requestedDuty = Math.max(0.0, Math.min(100.0, dutyCyclePercent));
-            double nominalPower = nominalVoltage * (requestedDuty / 100.0);
+            double nominalPower = maxPumpPowerEUt * (requestedDuty / 100.0);
 
             pressureLimited = false;
             flowLimited = false;
@@ -432,7 +463,7 @@ public class CoolantLoopModel {
                     lastPumpPowerEUt = Math.max(0.0, maxAllowedPower);
                     currentFlowRateLPerSec = allowedFlow;
                     currentPressureBar = calculatePeakPressureBar(currentFlowRateLPerSec);
-                    effectiveDutyCyclePercent = nominalVoltage > 0 ? (lastPumpPowerEUt / nominalVoltage) * 100.0 : 0.0;
+                    effectiveDutyCyclePercent = maxPumpPowerEUt > 0 ? (lastPumpPowerEUt / maxPumpPowerEUt) * 100.0 : 0.0;
 
                     if (userFlowActive && allowedFlow == maxFlowRateLPerSec) {
                         flowLimited = true;

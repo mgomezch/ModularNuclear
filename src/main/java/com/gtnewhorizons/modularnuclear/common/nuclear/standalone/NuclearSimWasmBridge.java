@@ -228,6 +228,22 @@ public class NuclearSimWasmBridge {
         }
     }
 
+    @Export(name = "setCoolantLoopOverclocked")
+    public static void setCoolantLoopOverclocked(boolean oc) {
+        if (grid != null) {
+            grid.getCoolantLoop()
+                .setPumpOverclocked(oc);
+        }
+    }
+
+    @Export(name = "setCoolantLoopImpeller")
+    public static void setCoolantLoopImpeller(String material) {
+        if (grid != null && material != null) {
+            grid.getCoolantLoop()
+                .setImpellerMaterial(material);
+        }
+    }
+
     @Export(name = "setCoolantLoopFlowRate")
     public static void setCoolantLoopFlowRate(double flowRate) {
         if (grid != null) {
@@ -709,7 +725,7 @@ public class NuclearSimWasmBridge {
             .append(cl.getHatchTier().displayName)
             .append("\",");
         sb.append("\"hatchVoltage\":")
-            .append(fmt1(cl.getHatchTier().voltageEU))
+            .append(fmt1(cl.getHatchTier().voltageEU * (cl.isPumpOverclocked() ? 4.0 : 1.0)))
             .append(",");
         sb.append("\"dutyCyclePercent\":")
             .append(fmt1(cl.getDutyCyclePercent()))
@@ -734,6 +750,15 @@ public class NuclearSimWasmBridge {
             .append("\",");
         sb.append("\"pumpPowerEUt\":")
             .append(fmt1(cl.getPumpElectricalPowerEUt()))
+            .append(",");
+        sb.append("\"pumpOverclocked\":")
+            .append(cl.isPumpOverclocked())
+            .append(",");
+        sb.append("\"impellerMaterial\":\"")
+            .append(cl.getImpellerMaterial().name())
+            .append("\",");
+        sb.append("\"impellerEfficiency\":")
+            .append(fmt2(cl.getImpellerEfficiency()))
             .append(",");
         sb.append("\"targetFlowRateLPerSec\":")
             .append(fmt1(cl.getTargetFlowRateLPerSec()))
@@ -799,6 +824,19 @@ public class NuclearSimWasmBridge {
                 .append(t.displayName)
                 .append("\",\"voltage\":")
                 .append(fmt1(t.voltageEU))
+                .append("}");
+        }
+        sb.append("],");
+        sb.append("\"impellerMaterials\":[");
+        int impIdx = 0;
+        for (TurbineCalculator.TurbineMaterial m : TurbineCalculator.TurbineMaterial.values()) {
+            if (impIdx++ > 0) sb.append(",");
+            sb.append("{\"id\":\"")
+                .append(m.name())
+                .append("\",\"name\":\"")
+                .append(m.displayName)
+                .append("\",\"tightEff\":")
+                .append(fmt2(m.tightEff))
                 .append("}");
         }
         sb.append("],");

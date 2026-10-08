@@ -944,6 +944,18 @@ public class NuclearSimulationWebServer {
                       </select>
                     </div>
                   </div>
+                  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px; align-items:center;">
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Pump Impeller (Rotor):</label>
+                      <select id="loop-impeller-select" onchange="onCoolantLoopConfigChange()" style="width:100%;"></select>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px; padding-top:14px;">
+                      <label style="font-size:0.75rem; color:#fde047; cursor:pointer; display:flex; align-items:center; gap:5px; user-select:none;">
+                        <input id="loop-overclock-check" type="checkbox" onchange="onCoolantLoopConfigChange()" style="cursor:pointer; accent-color:#f59e0b;">
+                        ⚡ Overclock Pump (4A)
+                      </label>
+                    </div>
+                  </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Duty Cycle (%):</label>
@@ -1436,17 +1448,23 @@ public class NuclearSimulationWebServer {
               const maxFlow = maxFlowVal !== "" ? (parseFloat(maxFlowVal) || 0) : 0;
               const maxPressVal = document.getElementById("loop-max-pressure-input").value;
               const maxPress = maxPressVal !== "" ? (parseFloat(maxPressVal) || 0) : 0;
+              const ocCheck = document.getElementById("loop-overclock-check");
+              const isOc = ocCheck ? ocCheck.checked : false;
+              const impSelect = document.getElementById("loop-impeller-select");
+              const impeller = impSelect ? impSelect.value : "ORIHARUKON";
 
               if (isWasmMode && wasmSim) {
                 wasmSim.setCoolantLoopMaterial(mat, false);
                 wasmSim.setCoolantLoopPipeSize(size, false);
                 wasmSim.setCoolantLoopFluid(fluid, false);
-                wasmSim.setCoolantLoopControl(hatch, duty, maxFlow, maxPress, true);
+                wasmSim.setCoolantLoopControl(hatch, duty, maxFlow, maxPress, false);
+                wasmSim.setCoolantLoopOverclocked(isOc, false);
+                wasmSim.setCoolantLoopImpeller(impeller, true);
                 currentState = wasmSim.getState();
                 renderUI();
                 return;
               }
-              const url = `/api/set-coolant-loop?material=${encodeURIComponent(mat)}&size=${encodeURIComponent(size)}&fluid=${encodeURIComponent(fluid)}&hatchTier=${encodeURIComponent(hatch)}&dutyCycle=${duty}&maxFlow=${maxFlow}&maxPressure=${maxPress}`;
+              const url = `/api/set-coolant-loop?material=${encodeURIComponent(mat)}&size=${encodeURIComponent(size)}&fluid=${encodeURIComponent(fluid)}&hatchTier=${encodeURIComponent(hatch)}&dutyCycle=${duty}&maxFlow=${maxFlow}&maxPressure=${maxPress}&overclocked=${isOc}&impeller=${encodeURIComponent(impeller)}`;
               await fetch(url);
               await fetchState();
               schedulePoll();
@@ -2051,6 +2069,27 @@ public class NuclearSimulationWebServer {
                 if (hatchSel && activeEl !== hatchSel && cl.hatchTier && hatchSel.value !== cl.hatchTier) {
                   hatchSel.value = cl.hatchTier;
                 }
+                const impSelect = document.getElementById("loop-impeller-select");
+                if (impSelect && cl.impellerMaterials) {
+                  const impKeys = cl.impellerMaterials.map(m => m.id).join(",");
+                  if (impSelect.dataset.lastKeys !== impKeys) {
+                    impSelect.dataset.lastKeys = impKeys;
+                    impSelect.innerHTML = "";
+                    cl.impellerMaterials.forEach(m => {
+                      const opt = document.createElement("option");
+                      opt.value = m.id;
+                      opt.innerText = `${m.name} (${(m.tightEff * 100).toFixed(0)}% eff)`;
+                      impSelect.appendChild(opt);
+                    });
+                  }
+                  if (activeEl !== impSelect && cl.impellerMaterial && impSelect.value !== cl.impellerMaterial) {
+                    impSelect.value = cl.impellerMaterial;
+                  }
+                }
+                const ocCheck = document.getElementById("loop-overclock-check");
+                if (ocCheck && activeEl !== ocCheck && cl.pumpOverclocked !== undefined) {
+                  ocCheck.checked = !!cl.pumpOverclocked;
+                }
                 const dutyIn = document.getElementById("loop-duty-cycle-input");
                 if (dutyIn && activeEl !== dutyIn && cl.dutyCyclePercent !== undefined) {
                   if (Math.abs(parseFloat(dutyIn.value || 0) - cl.dutyCyclePercent) > 0.01) {
@@ -2147,7 +2186,9 @@ public class NuclearSimulationWebServer {
                 if (pumpEl) {
                   let pText = `-${Math.round(cl.lastPumpPowerEUt).toLocaleString()} EU/t`;
                   if (cl.hatchTier) {
-                    pText += ` (${cl.effectiveDutyCyclePercent.toFixed(0)}% duty of ${cl.hatchTier} ${Math.round(cl.hatchVoltage || 0).toLocaleString()} EU/t)`;
+                    const ocTag = cl.pumpOverclocked ? " [4A OC]" : " [1A]";
+                    const effPct = Math.round((cl.impellerEfficiency || 1.0) * 100);
+                    pText += ` (${cl.effectiveDutyCyclePercent.toFixed(0)}% duty of ${cl.hatchTier}${ocTag} ${Math.round(cl.hatchVoltage || 0).toLocaleString()} EU/t · Rotor: ${effPct}%)`;
                   }
                   pumpEl.innerText = pText;
                 }
@@ -3046,12 +3087,12 @@ public class NuclearSimulationWebServer {
             function applyTierCoolingDefaults(tierNum, p = null) {
               if (!wasmSim) return;
               const TIER_DEFAULTS = {
-                0: { mode: "CONDUCTIVE", mat: "TITANIUM", size: "NORMAL", fluid: "DISTILLED_WATER", hatch: "EV" },
-                1: { mode: "CONVECTIVE_LOOP", mat: "TUNGSTENSTEEL", size: "LARGE", fluid: "DISTILLED_WATER", hatch: "IV" },
-                2: { mode: "CONVECTIVE_LOOP", mat: "OSMIUM", size: "LARGE", fluid: "DISTILLED_WATER", hatch: "LUV" },
-                3: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "ZPM" },
-                4: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "UV" },
-                5: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "UHV" }
+                0: { mode: "CONDUCTIVE", mat: "TITANIUM", size: "NORMAL", fluid: "DISTILLED_WATER", hatch: "EV", impeller: "ORIHARUKON" },
+                1: { mode: "CONVECTIVE_LOOP", mat: "TUNGSTENSTEEL", size: "LARGE", fluid: "DISTILLED_WATER", hatch: "IV", impeller: "ICHORIUM" },
+                2: { mode: "CONVECTIVE_LOOP", mat: "OSMIUM", size: "LARGE", fluid: "DISTILLED_WATER", hatch: "LUV", impeller: "DURANIUM" },
+                3: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "ZPM", impeller: "DURANIUM" },
+                4: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "UV", impeller: "DURANIUM" },
+                5: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "UHV", impeller: "INFINITY" }
               };
               const def = TIER_DEFAULTS[tierNum] || TIER_DEFAULTS[1];
               const mode = (p && p.cooling_mode) ? p.cooling_mode : def.mode;
@@ -3061,6 +3102,7 @@ public class NuclearSimulationWebServer {
                 let sz = def.size;
                 let fl = def.fluid;
                 let ht = def.hatch;
+                let imp = def.impeller;
                 if (p && p.default_loop && Array.isArray(p.default_loop) && p.default_loop.length >= 3) {
                   mat = p.default_loop[0];
                   sz = p.default_loop[1];
@@ -3070,10 +3112,17 @@ public class NuclearSimulationWebServer {
                 if (p && p.loop_size) sz = p.loop_size;
                 if (p && p.loop_fluid) fl = p.loop_fluid;
                 if (p && p.hatch_tier) ht = p.hatch_tier;
+                if (p && p.turbine && p.turbine.length >= 1) {
+                  imp = p.turbine[0].toUpperCase().replace(/-/g, '_');
+                }
+                if (p && p.loop_impeller) imp = p.loop_impeller;
+                const oc = (p && p.pump_overclocked !== undefined) ? p.pump_overclocked : false;
                 wasmSim.setCoolantLoopMaterial(mat, false);
                 wasmSim.setCoolantLoopPipeSize(sz, false);
                 wasmSim.setCoolantLoopFluid(fl, false);
                 wasmSim.setCoolantLoopControl(ht, 100.0, 0.0, 0.0, false);
+                wasmSim.setCoolantLoopOverclocked(oc, false);
+                wasmSim.setCoolantLoopImpeller(imp, false);
               }
             }
 

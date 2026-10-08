@@ -219,6 +219,20 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    setCoolantLoopOverclocked(isOverclocked, notify = true) {
+        if (this.inst.exports.setCoolantLoopOverclocked) {
+            this.inst.exports.setCoolantLoopOverclocked(isOverclocked ? 1 : 0);
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    setCoolantLoopImpeller(material, notify = true) {
+        if (this.inst.exports.setCoolantLoopImpeller) {
+            this.inst.exports.setCoolantLoopImpeller(this.createJavaString(material));
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     setCoolantLoopFlowRate(flowRateLPerSec, notify = true) {
         if (this.inst.exports.setCoolantLoopFlowRate) {
             this.inst.exports.setCoolantLoopFlowRate(flowRateLPerSec);
