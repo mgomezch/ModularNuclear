@@ -252,6 +252,33 @@ class NuclearSimWasm {
         this.setParam("repair", "true", notify);
     }
 
+    setControlRod(x, y, hasRod, typeStr, insertion, notify = true) {
+        if (this.inst.exports.setControlRod) {
+            this.inst.exports.setControlRod(
+                x,
+                y,
+                Boolean(hasRod),
+                this.createJavaString(typeStr),
+                Math.round(insertion)
+            );
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    setAllControlRodsInsertion(insertion, notify = true) {
+        if (this.inst.exports.setAllControlRodsInsertion) {
+            this.inst.exports.setAllControlRodsInsertion(Math.round(insertion));
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    scram(notify = true) {
+        if (this.inst.exports.scram) {
+            this.inst.exports.scram();
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     setStrictMode(strict, notify = true) {
         if (this.inst.exports.setStrictMode) {
             this.inst.exports.setStrictMode(Boolean(strict));

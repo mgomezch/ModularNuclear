@@ -287,7 +287,7 @@ public class NuclearSimulationEngine {
 
     public static double getMaxOperatingTemperature(int tier) {
         return switch (tier) {
-            case PIPE_TIER_ELECTRUM -> 1000.0;
+            case PIPE_TIER_ELECTRUM -> 1200.0;
             case PIPE_TIER_PLATINUM -> 1400.0;
             case PIPE_TIER_OSMIUM -> 1800.0;
             case PIPE_TIER_QUANTIUM -> 2200.0;
@@ -295,6 +295,14 @@ public class NuclearSimulationEngine {
             case PIPE_TIER_BLACK_PLUTONIUM -> 3200.0;
             default -> 800.0;
         };
+    }
+
+    /**
+     * Calculates the maximum average core temperature under which structural damage repair is permitted.
+     * Uniformly calculated as 10% of the casing tier's maximum operating temperature.
+     */
+    public static double getRepairTemperatureThreshold(int tier) {
+        return 0.10 * getMaxOperatingTemperature(tier);
     }
 
     public static double getCoolantBoilingThreshold(String fluidName) {

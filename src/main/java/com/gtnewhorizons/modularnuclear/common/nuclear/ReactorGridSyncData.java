@@ -39,6 +39,9 @@ public class ReactorGridSyncData {
         public boolean exists = false;
         public boolean isFluid = false;
         public boolean isHighPressure = false;
+        public boolean hasControlRod = false;
+        public int controlRodInsertion = 0;
+        public int controlRodType = 0;
         public ItemStack itemStack = null;
         public FluidStack fluidStack = null;
         public float temperature = 20.0f;
@@ -53,7 +56,9 @@ public class ReactorGridSyncData {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             ReactorGridCellData that = (ReactorGridCellData) o;
-            if (exists != that.exists || isFluid != that.isFluid || isHighPressure != that.isHighPressure) return false;
+            if (exists != that.exists || isFluid != that.isFluid || isHighPressure != that.isHighPressure
+                || hasControlRod != that.hasControlRod || controlRodInsertion != that.controlRodInsertion
+                || controlRodType != that.controlRodType) return false;
             if (Math.abs(temperature - that.temperature) > 0.5f) return false;
             if (fastFlux != that.fastFlux || thermalFlux != that.thermalFlux) return false;
             if (fastAbsorbed != that.fastAbsorbed || thermalAbsorbed != that.thermalAbsorbed) return false;
@@ -66,7 +71,7 @@ public class ReactorGridSyncData {
 
         @Override
         public int hashCode() {
-            return Objects.hash(exists, isFluid, (int) temperature, fastFlux, thermalFlux);
+            return Objects.hash(exists, isFluid, (int) temperature, fastFlux, thermalFlux, hasControlRod, controlRodInsertion);
         }
     }
 
@@ -100,6 +105,7 @@ public class ReactorGridSyncData {
             if (cell.itemStack != null) mask |= 4;
             if (cell.fluidStack != null) mask |= 8;
             if (cell.isHighPressure) mask |= 16;
+            if (cell.hasControlRod) mask |= 32;
             buf.writeByte(mask);
             if (cell.exists) {
                 buf.writeFloat(cell.temperature);
@@ -108,6 +114,10 @@ public class ReactorGridSyncData {
                 buf.writeVarIntToBuffer(cell.fastAbsorbed);
                 buf.writeVarIntToBuffer(cell.thermalAbsorbed);
                 buf.writeLong(cell.directEU);
+                if (cell.hasControlRod) {
+                    buf.writeByte(cell.controlRodInsertion);
+                    buf.writeByte(cell.controlRodType);
+                }
                 if (cell.itemStack != null) {
                     NetworkUtils.writeItemStack(buf, cell.itemStack);
                 }
@@ -149,6 +159,7 @@ public class ReactorGridSyncData {
             boolean hasItem = (mask & 4) != 0;
             boolean hasFluid = (mask & 8) != 0;
             cell.isHighPressure = (mask & 16) != 0;
+            cell.hasControlRod = (mask & 32) != 0;
             if (cell.exists) {
                 cell.temperature = buf.readFloat();
                 cell.fastFlux = buf.readVarIntFromBuffer();
@@ -156,6 +167,10 @@ public class ReactorGridSyncData {
                 cell.fastAbsorbed = buf.readVarIntFromBuffer();
                 cell.thermalAbsorbed = buf.readVarIntFromBuffer();
                 cell.directEU = buf.readLong();
+                if (cell.hasControlRod) {
+                    cell.controlRodInsertion = buf.readByte() & 0xFF;
+                    cell.controlRodType = buf.readByte() & 0xFF;
+                }
                 if (hasItem) {
                     cell.itemStack = NetworkUtils.readItemStack(buf);
                 }

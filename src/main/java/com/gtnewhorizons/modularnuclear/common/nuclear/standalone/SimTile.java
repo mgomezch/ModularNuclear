@@ -91,6 +91,39 @@ public class SimTile implements INuclearTile {
         }
     }
 
+    public enum ControlRodType {
+
+        NONE("None", 0.0, 0.0, 0.02),
+        SILVER("Silver", 0.50, 0.20, 0.20),
+        BORON("Boron", 0.70, 0.35, 0.08),
+        CADMIUM("Cadmium", 0.85, 0.50, 0.12),
+        INDIUM("Indium", 0.95, 0.65, 0.14),
+        HAFNIUM("Hafnium", 0.99, 0.80, 0.16);
+
+        public final String displayName;
+        public final double maxThermalAbsorption;
+        public final double maxFastAbsorption;
+        public final double heatTransferCoeff;
+
+        ControlRodType(String displayName, double maxThermalAbsorption, double maxFastAbsorption,
+            double heatTransferCoeff) {
+            this.displayName = displayName;
+            this.maxThermalAbsorption = maxThermalAbsorption;
+            this.maxFastAbsorption = maxFastAbsorption;
+            this.heatTransferCoeff = heatTransferCoeff;
+        }
+
+        public static ControlRodType fromName(String name) {
+            if (name == null) return NONE;
+            for (ControlRodType t : values()) {
+                if (t.name().equalsIgnoreCase(name) || t.displayName.equalsIgnoreCase(name)) {
+                    return t;
+                }
+            }
+            return NONE;
+        }
+    }
+
     private static final Random RAND = new Random();
 
     private TileType type = TileType.EMPTY;
@@ -143,6 +176,47 @@ public class SimTile implements INuclearTile {
     private int lastFastAbsorbed = 0;
     private int lastThermalAbsorbed = 0;
     private String lastCoolingDetails = "";
+
+    // Control rod state (bottom-layer hatch)
+    private boolean hasControlRod = false;
+    private ControlRodType controlRodType = ControlRodType.NONE;
+    private int controlRodInsertion = 0; // 0 to 100%
+    private int lastControlRodFastAbsorbed = 0;
+    private int lastControlRodThermalAbsorbed = 0;
+    private int controlRodFastAbsorbed = 0;
+    private int controlRodThermalAbsorbed = 0;
+
+    public boolean hasControlRod() {
+        return hasControlRod;
+    }
+
+    public void setHasControlRod(boolean hasControlRod) {
+        this.hasControlRod = hasControlRod;
+    }
+
+    public ControlRodType getControlRodType() {
+        return controlRodType;
+    }
+
+    public void setControlRodType(ControlRodType controlRodType) {
+        this.controlRodType = (controlRodType != null) ? controlRodType : ControlRodType.NONE;
+    }
+
+    public int getControlRodInsertion() {
+        return controlRodInsertion;
+    }
+
+    public void setControlRodInsertion(int controlRodInsertion) {
+        this.controlRodInsertion = Math.max(0, Math.min(100, controlRodInsertion));
+    }
+
+    public int getLastControlRodFastAbsorbed() {
+        return lastControlRodFastAbsorbed;
+    }
+
+    public int getLastControlRodThermalAbsorbed() {
+        return lastControlRodThermalAbsorbed;
+    }
 
     public String getLastCoolingDetails() {
         return lastCoolingDetails;
@@ -425,8 +499,7 @@ public class SimTile implements INuclearTile {
         };
     }
 
-    @Override
-    public double getAbsorptionProbability(NeutronType nType) {
+    public double getBaseAbsorptionProbability(NeutronType nType) {
         if (type == TileType.INSULATOR_NAQUARITE_FOIL) {
             return 1.0;
         }
@@ -463,7 +536,18 @@ public class SimTile implements INuclearTile {
     }
 
     @Override
-    public double getScatteringProbability(NeutronType nType) {
+    public double getAbsorptionProbability(NeutronType nType) {
+        double pBase = getBaseAbsorptionProbability(nType);
+        if (hasControlRod && controlRodType != ControlRodType.NONE && controlRodInsertion > 0) {
+            double ratio = controlRodInsertion / 100.0;
+            double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption : controlRodType.maxFastAbsorption;
+            double pRod = Math.max(0.0, ratio * max);
+            return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
+        }
+        return pBase;
+    }
+
+    public double getBaseScatteringProbability(NeutronType nType) {
         if (type == TileType.INSULATOR_NAQUARITE_FOIL) {
             return 0.0;
         }
@@ -494,6 +578,17 @@ public class SimTile implements INuclearTile {
     }
 
     @Override
+    public double getScatteringProbability(NeutronType nType) {
+        double pBase = getBaseScatteringProbability(nType);
+        if (hasControlRod && controlRodType != ControlRodType.NONE) {
+            double ratio = controlRodInsertion / 100.0;
+            double pRod = Math.max(0.01, 0.05 * (1.0 - ratio));
+            return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
+        }
+        return pBase;
+    }
+
+    @Override
     public double getModerationProbability() {
         if (isRadiovoltaic()) {
             return 0.0;
@@ -521,6 +616,30 @@ public class SimTile implements INuclearTile {
 
     @Override
     public void onNeutronAbsorbed(NeutronType nType, int count) {
+        if (count <= 0) return;
+        if (hasControlRod && controlRodType != ControlRodType.NONE && controlRodInsertion > 0) {
+            double ratio = controlRodInsertion / 100.0;
+            double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption : controlRodType.maxFastAbsorption;
+            double pRod = Math.max(0.0, ratio * max);
+            double pBase = getBaseAbsorptionProbability(nType);
+            double sum = pBase + pRod;
+            int nRod = (sum > 0) ? (int) Math.round(count * (pRod / sum)) : count / 2;
+            nRod = Math.min(count, Math.max(0, nRod));
+            int nBase = count - nRod;
+
+            if (nRod > 0) {
+                if (nType == NeutronType.FAST) controlRodFastAbsorbed += nRod;
+                else controlRodThermalAbsorbed += nRod;
+            }
+            if (nBase > 0) {
+                onBaseNeutronAbsorbed(nType, nBase);
+            }
+        } else {
+            onBaseNeutronAbsorbed(nType, count);
+        }
+    }
+
+    public void onBaseNeutronAbsorbed(NeutronType nType, int count) {
         if (nType == NeutronType.FAST) fastAbsorbed += count;
         else thermalAbsorbed += count;
 
@@ -558,6 +677,10 @@ public class SimTile implements INuclearTile {
         lastTotalFlux = fastFlux + thermalFlux;
         lastFastAbsorbed = fastAbsorbed;
         lastThermalAbsorbed = thermalAbsorbed;
+        lastControlRodFastAbsorbed = controlRodFastAbsorbed;
+        lastControlRodThermalAbsorbed = controlRodThermalAbsorbed;
+        controlRodFastAbsorbed = 0;
+        controlRodThermalAbsorbed = 0;
         lastTickProduced = 0;
         lastDurabilityLoss = 0.0;
         lastLiquidFuelBurned = 0;

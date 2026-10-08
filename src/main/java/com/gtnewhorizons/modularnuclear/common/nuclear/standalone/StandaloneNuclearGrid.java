@@ -1042,14 +1042,34 @@ public class StandaloneNuclearGrid {
         }
     }
 
-    public void repairMaintenance() {
+    public double getRepairTemperatureThreshold() {
+        return NuclearSimulationEngine.getRepairTemperatureThreshold(pipeTier);
+    }
+
+    public boolean canRepair() {
+        return coreAvgTemp <= getRepairTemperatureThreshold();
+    }
+
+    public boolean repairMaintenance() {
+        if (!canRepair()) {
+            logIncident(
+                "REPAIR_FAILED",
+                String.format(
+                    java.util.Locale.US,
+                    "Repair blocked: core average temperature (%.1f°C) exceeds safe repair threshold (%.1f°C)",
+                    coreAvgTemp,
+                    getRepairTemperatureThreshold()),
+                0.0);
+            return false;
+        }
         this.maintenanceIssues = 0;
         this.reactorDamage = 0.0;
         logIncident("REPAIR", "Reactor structural damage repaired and maintenance issues cleared", 0.0);
+        return true;
     }
 
-    public void repair() {
-        repairMaintenance();
+    public boolean repair() {
+        return repairMaintenance();
     }
 
     public double getBaseHatchConductance() {
@@ -1917,5 +1937,46 @@ public class StandaloneNuclearGrid {
             }
         }
         return result;
+    }
+
+    public void setControlRod(int x, int y, boolean hasRod, SimTile.ControlRodType type, int insertion) {
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+            SimTile tile = grid[x][y];
+            if (tile != null) {
+                tile.setHasControlRod(hasRod);
+                tile.setControlRodType(type != null ? type : SimTile.ControlRodType.NONE);
+                tile.setControlRodInsertion(Math.max(0, Math.min(100, insertion)));
+            }
+        }
+    }
+
+    public void setAllControlRodsInsertion(int insertion) {
+        int ins = Math.max(0, Math.min(100, insertion));
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                SimTile tile = grid[x][y];
+                if (tile != null && tile.hasControlRod()) {
+                    tile.setControlRodInsertion(ins);
+                }
+            }
+        }
+    }
+
+    public void scram() {
+        setAllControlRodsInsertion(100);
+        logIncident("SCRAM", "Emergency SCRAM: All bottom control rods fully inserted (100%)", 0.0);
+    }
+
+    public int getControlRodCount() {
+        int count = 0;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                SimTile tile = grid[x][y];
+                if (tile != null && tile.hasControlRod()) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 }

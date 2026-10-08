@@ -149,6 +149,7 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
         Map<String, Object> hatchCounts = new LinkedHashMap<>();
         hatchCounts.put("coolant", reactor.mCoolantHatchCount);
         hatchCounts.put("fuel", reactor.mFuelHatchCount);
+        hatchCounts.put("controlRod", reactor.mBottomControlRodHatches.size());
         data.put("hatchCounts", hatchCounts);
 
         // Last Cycle Statistics
@@ -278,26 +279,26 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
                         cellMap.put("fluid", null);
                     }
 
-                } else if (gt.isControlRod()) {
-                    cellMap.put("type", "CONTROL_ROD");
-                    cellMap.put("isFluid", false);
-                    MTEHatchNuclearControlRod rod = gt.getControlRod();
-                    cellMap.put("fastFlux", rod.mLastFastFlux);
-                    cellMap.put("thermalFlux", rod.mLastThermalFlux);
-                    cellMap.put("fastAbsorbed", rod.mLastFastAbsorbed);
-                    cellMap.put("thermalAbsorbed", rod.mLastThermalAbsorbed);
-                    cellMap.put("directEU", 0L);
+                }
 
+                if (gt.hasControlRod()) {
+                    MTEHatchNuclearControlRod rod = gt.getBottomControlRod();
+                    Map<String, Object> rodMap = new LinkedHashMap<>();
+                    rodMap.put("hasRod", true);
+                    rodMap.put("insertion", rod.getInsertionPercent());
                     ItemStack rodStack = rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD];
                     if (rodStack != null) {
-                        Map<String, Object> rodMap = serializeItemStack(rodStack);
-                        rodMap.put("rodType", MTEHatchNuclearControlRod.getRodType(rodStack).displayName);
-                        rodMap.put("rodDamage", rodStack.getItemDamage());
-                        rodMap.put("rodMaxDamage", rodStack.getMaxDamage());
-                        cellMap.put("controlRodItem", rodMap);
+                        Map<String, Object> itemMap = serializeItemStack(rodStack);
+                        itemMap.put("rodType", MTEHatchNuclearControlRod.getRodType(rodStack).displayName);
+                        itemMap.put("rodDamage", rodStack.getItemDamage());
+                        itemMap.put("rodMaxDamage", rodStack.getMaxDamage());
+                        rodMap.put("item", itemMap);
                     } else {
-                        cellMap.put("controlRodItem", null);
+                        rodMap.put("item", null);
                     }
+                    cellMap.put("controlRod", rodMap);
+                } else {
+                    cellMap.put("controlRod", null);
                 }
 
                 cellList.add(cellMap);

@@ -205,6 +205,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public final List<IGregTechTileEntity> mNuclearTiles = new ArrayList<>();
     public final List<MTEHatchNuclearHighPressure> mTopHighPressureHatches = new ArrayList<>();
     public final List<MTEHatchNuclearHighPressure> mBottomHighPressureHatches = new ArrayList<>();
+    public final List<MTEHatchNuclearControlRod> mBottomControlRodHatches = new ArrayList<>();
 
     public int getReactorTier() {
         if (gridSize == 5) return 1;
@@ -233,6 +234,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public static final int GUI_MODE_TEMPERATURE = 1;
     public static final int GUI_MODE_NEUTRON_FLUX = 2;
     public static final int GUI_MODE_NEUTRON_ABSORPTION = 3;
+    public static final int GUI_MODE_CONTROL_RODS = 4;
     public int mCurrentGuiMode = GUI_MODE_COMPONENTS;
     public ReactorGridSyncData mClientGridData = null;
 
@@ -358,6 +360,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
         mTopHighPressureHatches.clear();
         mBottomHighPressureHatches.clear();
+        mBottomControlRodHatches.clear();
     }
 
     public double getMaintenanceEfficiency() {
@@ -440,10 +443,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     bus.mReactor = t;
                     t.mNuclearTiles.add(te);
                     return true;
-                } else if (mte instanceof MTEHatchNuclearControlRod rod) {
-                    rod.mReactor = t;
-                    t.mNuclearTiles.add(te);
-                    return true;
                 } else if (mte instanceof MTEHatchNuclearHighPressure hp) {
                     hp.mReactor = t;
                     hp.setIsInlet(true);
@@ -460,7 +459,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (world.getTileEntity(x, y, z) instanceof IGregTechTileEntity te) {
                 IMetaTileEntity mte = te.getMetaTileEntity();
                 return mte instanceof MTEHatchNuclearHatch || mte instanceof MTEHatchNuclearBus
-                    || mte instanceof MTEHatchNuclearControlRod
                     || mte instanceof MTEHatchNuclearHighPressure;
             }
             return world.getBlock(x, y, z) == GregTechAPI.sBlockMachines;
@@ -574,6 +572,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                         t.mBottomHighPressureHatches.add(hpHatch);
                     }
                     return true;
+                } else if (mte instanceof MTEHatchNuclearControlRod rod) {
+                    if (t != null) {
+                        rod.mReactor = t;
+                        t.mBottomControlRodHatches.add(rod);
+                    }
+                    return true;
                 }
             }
             return false;
@@ -587,7 +591,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 return true;
             }
             if (world.getTileEntity(x, y, z) instanceof IGregTechTileEntity te) {
-                return te.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure;
+                return te.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure
+                    || te.getMetaTileEntity() instanceof MTEHatchNuclearControlRod;
             }
             return block == GregTechAPI.sBlockMachines;
         }
@@ -595,7 +600,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         @Override
         public List<String> getDescription(MTENuclearReactor t) {
             return Collections.singletonList(
-                "Bottom core position: Nuclear Casing or Nuclear Core High-Pressure Hatch (facing DOWN)");
+                "Bottom core position: Nuclear Casing, Nuclear Core High-Pressure Hatch, or Nuclear Control Rod Hatch (facing DOWN)");
         }
 
         @Override
@@ -609,7 +614,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             ForgeDirection targetFacing = (t != null ? t.getNuclearHatchFacing() : ForgeDirection.UP).getOpposite();
             TileEntity existingTe = world.getTileEntity(x, y, z);
             if (existingTe instanceof IGregTechTileEntity gte
-                && gte.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure) {
+                && (gte.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure
+                    || gte.getMetaTileEntity() instanceof MTEHatchNuclearControlRod)) {
                 gte.setFrontFacing(targetFacing);
                 return true;
             }
@@ -771,10 +777,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 EnumChatFormatting.RED
                     + "Warning: HP coolant passage hatches require Tier 2+ and 1:1 top/bottom pairing!")
             .addInfo(EnumChatFormatting.RED + "Note: This multiblock cannot share walls!")
-            .addInfo("Top-layer hatches must face UP; bottom-layer HP hatches must face DOWN")
+            .addInfo("Top-layer hatches must face UP; bottom-layer hatches must face DOWN")
             .beginVariableStructureBlock(7, 15, 5, 5, 7, 15, true)
             .addStructureInfo(EnumChatFormatting.RED + "This multiblock cannot share walls")
-            .addStructureInfo("Top-layer hatches face UP; bottom-layer HP hatches face DOWN")
+            .addStructureInfo("Top-layer hatches face UP; bottom-layer hatches face DOWN")
             .addController("Front center, 2nd layer")
             .addCasing("50+", "Nuclear casings", false)
             .addCasing(
@@ -782,12 +788,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 "Item pipe casings (Electrum / Platinum / Osmium / Quantium / Fluxed Electrum / Black Plutonium)",
                 false)
             .addOtherStructurePart(
-                "Nuclear bus / hatch / control rod / HP hatch",
+                "Nuclear bus / hatch / HP hatch",
                 "Top layer octagonal core positions (facing UP)",
                 1)
             .addOtherStructurePart(
-                "Nuclear casing or Nuclear core HP hatch",
-                "Bottom layer core positions (HP hatch facing DOWN, paired with top)",
+                "Nuclear casing, Nuclear core HP hatch, or Nuclear control rod hatch",
+                "Bottom layer core positions (facing DOWN)",
                 1)
             .addOtherStructurePart("Nuclear control hatch", "Any outer casing", 2)
             .addMaintenanceHatch("Any outer casing (exactly 1)", 1)
@@ -856,6 +862,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
 
         for (MTEHatchNuclearHighPressure bottom : mBottomHighPressureHatches) {
+            IGregTechTileEntity bTe = bottom.getBaseMetaTileEntity();
+            if (bTe != null && !bTe.isDead()) {
+                world.setBlock(bTe.getXCoord(), bTe.getYCoord(), bTe.getZCoord(), Blocks.air);
+            }
+        }
+
+        for (MTEHatchNuclearControlRod bottom : mBottomControlRodHatches) {
             IGregTechTileEntity bTe = bottom.getBaseMetaTileEntity();
             if (bTe != null && !bTe.isDead()) {
                 world.setBlock(bTe.getXCoord(), bTe.getYCoord(), bTe.getZCoord(), Blocks.air);
@@ -1127,10 +1140,27 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     mGrid[gx][gy] = new NuclearGridTile(this, bus, gx, gy);
                 } else if (mte instanceof MTEHatchNuclearHatch hatch) {
                     mGrid[gx][gy] = new NuclearGridTile(this, hatch, gx, gy);
-                } else if (mte instanceof MTEHatchNuclearControlRod rod) {
-                    mGrid[gx][gy] = new NuclearGridTile(this, rod, gx, gy);
                 } else if (mte instanceof MTEHatchNuclearHighPressure hp) {
                     mGrid[gx][gy] = new NuclearGridTile(this, hp, gx, gy);
+                }
+            }
+        }
+
+        // Attach bottom-layer control rod hatches to corresponding grid cells
+        for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
+            IGregTechTileEntity bTe = rod.getBaseMetaTileEntity();
+            if (bTe != null) {
+                int[] gCoords = calculateGridCoords(bTe, cX, cY, cZ, ef, isUpsideDown, hOffset);
+                if (gCoords != null && gCoords[0] >= 0 && gCoords[0] < gridSize
+                    && gCoords[1] >= 0 && gCoords[1] < gridSize) {
+                    INuclearTile tile = mGrid[gCoords[0]][gCoords[1]];
+                    if (tile instanceof NuclearGridTile gt) {
+                        gt.setBottomControlRod(rod);
+                        rod.mReactor = this;
+                        if (mScram) {
+                            rod.setScram(true);
+                        }
+                    }
                 }
             }
         }
@@ -1145,8 +1175,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         mCachedAmbientTemp = getAmbientTemperature();
         if (mScram) {
-            for (IGregTechTileEntity te : mNuclearTiles) {
-                if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearControlRod rod) {
+            for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
+                if (rod != null) {
                     rod.setScram(true);
                 }
             }
@@ -1289,12 +1319,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         int repaired = Math.max(0, repairAfter - repairBefore);
 
         if (repaired > 0 && mReactorDamage > 0.0) {
-            IGregTechTileEntity base = getBaseMetaTileEntity();
-            double ambient = (base != null && base.getWorld() != null)
-                ? calculateAmbientTemperature(base.getWorld(), base.getXCoord(), base.getYCoord(), base.getZCoord())
-                : NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
             double avgTemp = Math.max(mAvgTemp, mAvgTileTemp);
-            if (avgTemp <= 1.50 * ambient) {
+            double repairThreshold = NuclearSimulationEngine.getRepairTemperatureThreshold(mPipeTier);
+            if (avgTemp <= repairThreshold) {
                 mReactorDamage = Math.max(0.0, mReactorDamage - 2.0 * repaired);
             }
         }
@@ -1355,6 +1382,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     if (rod.mTemperature > 100.0) return true;
                 }
             }
+        }
+        for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
+            if (rod != null && rod.mTemperature > 100.0) return true;
         }
         return false;
     }
@@ -1545,13 +1575,14 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                                     bus.markTileDirty();
                                 }
                             }
-                        } else if (te.getMetaTileEntity() instanceof MTEHatchNuclearControlRod rod) {
-                            if (rod.mTemperature > maxTemp) {
-                                overheatingHatchesCount++;
-                                rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
-                                rod.markTileDirty();
-                            }
                         }
+                    }
+                }
+                for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
+                    if (rod != null && rod.mTemperature > maxTemp) {
+                        overheatingHatchesCount++;
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                        rod.markTileDirty();
                     }
                 }
                 if (overheatingHatchesCount > 0) {
@@ -1798,15 +1829,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             cell.thermalFlux = hatch.mLastThermalFlux;
                             cell.fastAbsorbed = hatch.mLastFastAbsorbed;
                             cell.thermalAbsorbed = hatch.mLastThermalAbsorbed;
-                        } else if (gt.isControlRod()) {
-                            MTEHatchNuclearControlRod rod = gt.getControlRod();
-                            cell.isFluid = false;
-                            ItemStack in = rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD];
-                            cell.itemStack = (in != null) ? in.copy() : null;
-                            cell.fastFlux = rod.mLastFastFlux;
-                            cell.thermalFlux = rod.mLastThermalFlux;
-                            cell.fastAbsorbed = rod.mLastFastAbsorbed;
-                            cell.thermalAbsorbed = rod.mLastThermalAbsorbed;
                         } else if (gt.isHighPressureHatch()) {
                             MTEHatchNuclearHighPressure hp = gt.getHighPressureHatch();
                             cell.isFluid = false;
@@ -1815,6 +1837,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             cell.thermalFlux = hp.mLastThermalFlux;
                             cell.fastAbsorbed = hp.mLastFastAbsorbed;
                             cell.thermalAbsorbed = hp.mLastThermalAbsorbed;
+                        }
+
+                        if (gt.hasControlRod()) {
+                            MTEHatchNuclearControlRod rod = gt.getBottomControlRod();
+                            cell.hasControlRod = true;
+                            cell.controlRodInsertion = rod.getInsertionPercent();
+                            cell.controlRodType = MTEHatchNuclearControlRod.getRodType(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD]).ordinal();
                         }
                     }
                     data.cells.add(cell);
@@ -1887,8 +1916,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public void setScram(boolean scram) {
         this.mScram = scram;
-        for (IGregTechTileEntity te : mNuclearTiles) {
-            if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearControlRod rod) {
+        for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
+            if (rod != null) {
                 rod.setScram(scram);
             }
         }
@@ -2105,42 +2134,89 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         gridWidget.setParentScrollable(scrollable);
         builder.widget(scrollable);
 
-        // Mode Toggle Button (Compact 16x16 at top-right)
-        ButtonWidget modeButton = new ButtonWidget() {
-
-            @Override
-            public void draw(float partialTicks) {
-                super.draw(partialTicks);
-                GlStateManager.pushMatrix();
-                if (mCurrentGuiMode == GUI_MODE_COMPONENTS) {
-                    new ItemDrawable(ItemList.RodUranium.get(1L)).draw(0, 0, 16, 16, partialTicks);
-                } else if (mCurrentGuiMode == GUI_MODE_TEMPERATURE) {
-                    new ItemDrawable(new ItemStack(Items.fire_charge)).draw(0, 0, 16, 16, partialTicks);
-                } else if (mCurrentGuiMode == GUI_MODE_NEUTRON_FLUX) {
-                    new ItemDrawable(new ItemStack(Items.nether_star)).draw(0, 0, 16, 16, partialTicks);
-                } else {
-                    new ItemDrawable(new ItemStack(Blocks.iron_bars)).draw(0, 0, 16, 16, partialTicks);
-                }
-                GlStateManager.popMatrix();
-                GlStateManager.disableLighting();
-                GlStateManager.disableDepth();
-                GlStateManager.enableBlend();
-                GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
-            }
+        // Mode Tabs (Components, Temperature, Flux, Absorption, Control Rods)
+        final int[] MODES = {
+            GUI_MODE_COMPONENTS,
+            GUI_MODE_TEMPERATURE,
+            GUI_MODE_NEUTRON_FLUX,
+            GUI_MODE_NEUTRON_ABSORPTION,
+            GUI_MODE_CONTROL_RODS
         };
-        modeButton.setPosProvider((size, window, parent) -> new Pos2d(window.getSize().width - 36, 1))
-            .setSize(16, 16);
-        modeButton.setBackground(GTUITextures.BUTTON_STANDARD);
-        modeButton.setUpdateTooltipEveryTick(true);
-        modeButton.dynamicTooltip(this::getModeButtonTooltip);
-        modeButton.setOnClick((clickData, widget) -> {
-            if (clickData.shift) {
-                mCurrentGuiMode = (mCurrentGuiMode + 1) % 4;
-            } else {
-                mCurrentGuiMode = (mCurrentGuiMode == GUI_MODE_COMPONENTS) ? GUI_MODE_TEMPERATURE : GUI_MODE_COMPONENTS;
-            }
-        });
-        builder.widget(modeButton);
+        final String[] TAB_NAMES = {
+            "Components",
+            "Temperature",
+            "Neutron Flux",
+            "Neutron Absorption",
+            "Control Rods"
+        };
+        final String[] TAB_DESCS = {
+            "Grid components view (fuel rods, coolant, insulators)",
+            "Temperature heatmap across all reactor cells",
+            "Fast and thermal neutron flux intensity heatmap",
+            "Neutron absorption and transmutation heatmap",
+            "Inspect bottom-layer control rod hatches and insertion levels"
+        };
+
+        for (int i = 0; i < MODES.length; i++) {
+            final int mode = MODES[i];
+            final String tabName = TAB_NAMES[i];
+            final String tabDesc = TAB_DESCS[i];
+
+            ButtonWidget tabBtn = new ButtonWidget() {
+
+                @Override
+                public void draw(float partialTicks) {
+                    boolean active = (mCurrentGuiMode == mode);
+                    int x = 0;
+                    int y = 0;
+                    int w = getSize().width;
+                    int h = getSize().height;
+                    if (active) {
+                        GuiDraw.drawRect(x, y, w, h, 0xFF00AAFF);
+                        GuiDraw.drawRect(x + 1, y + 1, w - 2, h - 2, 0xFF1E293B);
+                    } else {
+                        GTUITextures.BUTTON_STANDARD.draw(x, y, w, h);
+                    }
+
+                    GlStateManager.pushMatrix();
+                    ItemStack icon = switch (mode) {
+                        case GUI_MODE_COMPONENTS -> ItemList.RodUranium.get(1L);
+                        case GUI_MODE_TEMPERATURE -> new ItemStack(Items.fire_charge);
+                        case GUI_MODE_NEUTRON_FLUX -> new ItemStack(Items.nether_star);
+                        case GUI_MODE_NEUTRON_ABSORPTION -> new ItemStack(Blocks.iron_bars);
+                        case GUI_MODE_CONTROL_RODS -> ModMetaTileEntities.nuclearControlRodHatch;
+                        default -> new ItemStack(Blocks.stone);
+                    };
+                    if (icon != null) {
+                        new ItemDrawable(icon).draw(0, 0, 16, 16, partialTicks);
+                    }
+                    GlStateManager.popMatrix();
+                    GlStateManager.disableLighting();
+                    GlStateManager.disableDepth();
+                    GlStateManager.enableBlend();
+                    GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
+                }
+            };
+            tabBtn.setPos(4 + i * 18, 1)
+                .setSize(16, 16);
+            tabBtn.setUpdateTooltipEveryTick(true);
+            tabBtn.dynamicTooltip(() -> {
+                List<String> tt = new ArrayList<>();
+                boolean active = (mCurrentGuiMode == mode);
+                tt.add((active ? (EnumChatFormatting.GREEN + "" + EnumChatFormatting.BOLD) : EnumChatFormatting.WHITE) + tabName);
+                tt.add(EnumChatFormatting.GRAY + tabDesc);
+                if (active) {
+                    tt.add(EnumChatFormatting.AQUA + "● Currently Active Tab");
+                } else {
+                    tt.add(EnumChatFormatting.DARK_GRAY + "Click to switch to this tab");
+                }
+                return tt;
+            });
+            tabBtn.setOnClick((clickData, widget) -> {
+                mCurrentGuiMode = mode;
+            });
+            builder.widget(tabBtn);
+        }
 
         // Close Button (Compact 16x16 at top-right corner)
         builder.widget(
@@ -2933,9 +3009,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public double getTileTemperature(NuclearGridTile tile) {
         if (tile.isBus()) return tile.getBus().mTemperature;
         if (tile.isHatch()) return tile.getHatch().mTemperature;
-        if (tile.isControlRod()) return tile.getControlRod().mTemperature;
-        if (tile.isHighPressureHatch()) return tile.getHighPressureHatch()
-            .getTemperature();
+        if (tile.isHighPressureHatch()) return tile.getHighPressureHatch().getTemperature();
+        if (tile.hasControlRod()) return tile.getBottomControlRod().mTemperature;
         return getAmbientTemperature();
     }
 
@@ -2947,11 +3022,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             double minTemp = tile.getHatch()
                 .hasWaterCoolant() ? Math.max(0.0, ambient) : ambient;
             tile.getHatch().mTemperature = Math.max(minTemp, temp);
-        } else if (tile.isControlRod()) {
-            tile.getControlRod().mTemperature = Math.max(ambient, temp);
         } else if (tile.isHighPressureHatch()) {
             tile.getHighPressureHatch()
                 .setTemperature(Math.max(ambient, temp));
+        }
+        if (tile.hasControlRod()) {
+            tile.getBottomControlRod().mTemperature = Math.max(ambient, temp);
         }
     }
 
@@ -2962,12 +3038,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         } else if (tile.isHatch()) {
             tile.getHatch().mHeatEU += heatEU;
             tile.getHatch().mTemperature += heatEU / NuclearSimulationEngine.EU_PER_DEGREE;
-        } else if (tile.isControlRod()) {
-            tile.getControlRod().mHeatEU += heatEU;
-            tile.getControlRod().mTemperature += heatEU / NuclearSimulationEngine.EU_PER_DEGREE;
         } else if (tile.isHighPressureHatch()) {
             tile.getHighPressureHatch()
                 .addHeat(heatEU);
+        }
+        if (tile.hasControlRod()) {
+            tile.getBottomControlRod().mHeatEU += heatEU;
+            tile.getBottomControlRod().mTemperature += heatEU / NuclearSimulationEngine.EU_PER_DEGREE;
         }
     }
 
@@ -3138,7 +3215,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         return 1;
     }
 
-    public double getTileAbsorptionProbability(NuclearGridTile tile, NeutronType type) {
+    public double getBaseAbsorptionProbability(NuclearGridTile tile, NeutronType type) {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
             if (stack == null) return 0.01;
@@ -3171,9 +3248,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (name.contains("boron")) return 0.95;
             if (isFluidFuel(fluid)) return (type == NeutronType.THERMAL) ? 0.85 : 0.25;
             return 0.05;
-        } else if (tile.isControlRod()) {
-            return tile.getControlRod()
-                .getAbsorptionProbability(type);
         } else if (tile.isHighPressureHatch()) {
             return tile.getHighPressureHatch()
                 .getAbsorptionProbability(type);
@@ -3181,7 +3255,16 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         return 0.01;
     }
 
-    public double getTileScatteringProbability(NuclearGridTile tile, NeutronType type) {
+    public double getTileAbsorptionProbability(NuclearGridTile tile, NeutronType type) {
+        double pBase = getBaseAbsorptionProbability(tile, type);
+        if (tile.hasControlRod()) {
+            double pRod = tile.getBottomControlRod().getAbsorptionProbability(type);
+            return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
+        }
+        return pBase;
+    }
+
+    public double getBaseScatteringProbability(NuclearGridTile tile, NeutronType type) {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
             if (stack == null) return 0.02;
@@ -3211,14 +3294,20 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (name.contains("coolant")) return 0.45;
             if (name.contains("sodium")) return 0.20;
             return 0.10;
-        } else if (tile.isControlRod()) {
-            return tile.getControlRod()
-                .getScatteringProbability(type);
         } else if (tile.isHighPressureHatch()) {
             return tile.getHighPressureHatch()
                 .getScatteringProbability(type);
         }
         return 0.02;
+    }
+
+    public double getTileScatteringProbability(NuclearGridTile tile, NeutronType type) {
+        double pBase = getBaseScatteringProbability(tile, type);
+        if (tile.hasControlRod()) {
+            double pRod = tile.getBottomControlRod().getScatteringProbability(type);
+            return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
+        }
+        return pBase;
     }
 
     public double getTileModerationProbability(NuclearGridTile tile) {
@@ -3245,8 +3334,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (name.contains("coolant")) return 0.40;
             if (name.contains("sodium")) return 0.05;
             return 0.20;
-        } else if (tile.isControlRod()) {
-            return 0.01;
         } else if (tile.isHighPressureHatch()) {
             return tile.getHighPressureHatch()
                 .getModerationProbability();
@@ -3255,6 +3342,29 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public void onTileNeutronAbsorbed(NuclearGridTile tile, NeutronType type, int count) {
+        if (count <= 0) return;
+        if (tile.hasControlRod()) {
+            double pRod = tile.getBottomControlRod().getAbsorptionProbability(type);
+            double pBase = getBaseAbsorptionProbability(tile, type);
+            double sum = pBase + pRod;
+            int nRod = (sum > 0) ? (int) Math.round(count * (pRod / sum)) : count / 2;
+            nRod = Math.min(count, Math.max(0, nRod));
+            int nBase = count - nRod;
+
+            if (nRod > 0) {
+                MTEHatchNuclearControlRod rod = tile.getBottomControlRod();
+                if (type == NeutronType.FAST) rod.mFastAbsorbed += nRod;
+                else rod.mThermalAbsorbed += nRod;
+            }
+            if (nBase > 0) {
+                onBaseTileNeutronAbsorbed(tile, type, nBase);
+            }
+        } else {
+            onBaseTileNeutronAbsorbed(tile, type, count);
+        }
+    }
+
+    public void onBaseTileNeutronAbsorbed(NuclearGridTile tile, NeutronType type, int count) {
         if (tile.isBus()) {
             MTEHatchNuclearBus bus = tile.getBus();
             if (type == NeutronType.FAST) bus.mFastAbsorbed += count;
@@ -3300,10 +3410,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     }
                 }
             }
-        } else if (tile.isControlRod()) {
-            MTEHatchNuclearControlRod rod = tile.getControlRod();
-            if (type == NeutronType.FAST) rod.mFastAbsorbed += count;
-            else rod.mThermalAbsorbed += count;
         } else if (tile.isHighPressureHatch()) {
             tile.getHighPressureHatch()
                 .onNeutronAbsorbed(type, count);
@@ -3336,12 +3442,15 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         } else if (tile.isHatch()) {
             if (type == NeutronType.FAST) tile.getHatch().mFastFlux += count;
             else tile.getHatch().mThermalFlux += count;
-        } else if (tile.isControlRod()) {
-            if (type == NeutronType.FAST) tile.getControlRod().mFastFlux += count;
-            else tile.getControlRod().mThermalFlux += count;
         } else if (tile.isHighPressureHatch()) {
             tile.getHighPressureHatch()
                 .addNeutronFlux(type, count);
+        }
+
+        if (tile.hasControlRod()) {
+            MTEHatchNuclearControlRod rod = tile.getBottomControlRod();
+            if (type == NeutronType.FAST) rod.mFastFlux += count;
+            else rod.mThermalFlux += count;
         }
     }
 
@@ -3350,11 +3459,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             processBusNuclearTick(tile.getBus(), tile, efficiency);
         } else if (tile.isHatch()) {
             processHatchNuclearTick(tile.getHatch(), tile, efficiency);
-        } else if (tile.isControlRod()) {
-            processControlRodNuclearTick(tile.getControlRod(), tile, efficiency);
         } else if (tile.isHighPressureHatch()) {
             tile.getHighPressureHatch()
                 .nuclearTick(efficiency);
+        }
+
+        if (tile.hasControlRod()) {
+            processControlRodNuclearTick(tile.getBottomControlRod(), tile, efficiency);
         }
     }
 
@@ -3742,8 +3853,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         private final MTENuclearReactor reactor;
         private final MTEHatchNuclearBus bus;
         private final MTEHatchNuclearHatch hatch;
-        private final MTEHatchNuclearControlRod controlRod;
         private final MTEHatchNuclearHighPressure highPressureHatch;
+        private MTEHatchNuclearControlRod bottomControlRod;
         private final int gx;
         private final int gy;
 
@@ -3751,7 +3862,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             this.reactor = reactor;
             this.bus = bus;
             this.hatch = null;
-            this.controlRod = null;
             this.highPressureHatch = null;
             this.gx = gx;
             this.gy = gy;
@@ -3761,7 +3871,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             this.reactor = reactor;
             this.bus = null;
             this.hatch = hatch;
-            this.controlRod = null;
             this.highPressureHatch = null;
             this.gx = gx;
             this.gy = gy;
@@ -3771,7 +3880,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             this.reactor = reactor;
             this.bus = null;
             this.hatch = null;
-            this.controlRod = controlRod;
+            this.bottomControlRod = controlRod;
             this.highPressureHatch = null;
             this.gx = gx;
             this.gy = gy;
@@ -3782,10 +3891,21 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             this.reactor = reactor;
             this.bus = null;
             this.hatch = null;
-            this.controlRod = null;
             this.highPressureHatch = highPressureHatch;
             this.gx = gx;
             this.gy = gy;
+        }
+
+        public boolean hasControlRod() {
+            return bottomControlRod != null;
+        }
+
+        public MTEHatchNuclearControlRod getBottomControlRod() {
+            return bottomControlRod;
+        }
+
+        public void setBottomControlRod(MTEHatchNuclearControlRod bottomControlRod) {
+            this.bottomControlRod = bottomControlRod;
         }
 
         public boolean isBus() {
@@ -3797,7 +3917,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
 
         public boolean isControlRod() {
-            return controlRod != null;
+            return bottomControlRod != null && bus == null && hatch == null && highPressureHatch == null;
         }
 
         public boolean isHighPressureHatch() {
@@ -3813,7 +3933,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
 
         public MTEHatchNuclearControlRod getControlRod() {
-            return controlRod;
+            return bottomControlRod;
         }
 
         public MTEHatchNuclearHighPressure getHighPressureHatch() {
@@ -3927,7 +4047,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         int fuelCount = 0;
         int coolantHatchCount = 0;
-        int controlRodCount = 0;
+        int controlRodCount = mBottomControlRodHatches.size();
         int hpPassageCount = 0;
         for (IGregTechTileEntity te : mNuclearTiles) {
             if (te != null) {
@@ -3936,8 +4056,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     fuelCount++;
                 } else if (mte instanceof MTEHatchNuclearHatch) {
                     coolantHatchCount++;
-                } else if (mte instanceof MTEHatchNuclearControlRod) {
-                    controlRodCount++;
                 } else if (mte instanceof MTEHatchNuclearHighPressure) {
                     hpPassageCount++;
                 }
@@ -4087,7 +4205,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             String.format("Neutrons: %,d fast, %,d therm, %,d esc", mFastAbsorbed, mThermalAbsorbed, mEscapedNeutrons));
         int fuelCount = 0;
         int coolantHatchCount = 0;
-        int controlRodCount = 0;
+        int controlRodCount = mBottomControlRodHatches.size();
         int hpPassageCount = 0;
         for (IGregTechTileEntity te : mNuclearTiles) {
             if (te != null) {
@@ -4096,8 +4214,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     fuelCount++;
                 } else if (mte instanceof MTEHatchNuclearHatch) {
                     coolantHatchCount++;
-                } else if (mte instanceof MTEHatchNuclearControlRod) {
-                    controlRodCount++;
                 } else if (mte instanceof MTEHatchNuclearHighPressure) {
                     hpPassageCount++;
                 }

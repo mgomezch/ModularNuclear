@@ -264,6 +264,28 @@ public class NuclearSimWasmBridge {
         return grid != null && grid.isStopOnIncidents();
     }
 
+    @Export(name = "setControlRod")
+    public static void setControlRod(int x, int y, boolean hasRod, String typeStr, int insertion) {
+        if (grid != null) {
+            SimTile.ControlRodType rodType = SimTile.ControlRodType.fromName(typeStr);
+            grid.setControlRod(x, y, hasRod, rodType, insertion);
+        }
+    }
+
+    @Export(name = "setAllControlRodsInsertion")
+    public static void setAllControlRodsInsertion(int insertion) {
+        if (grid != null) {
+            grid.setAllControlRodsInsertion(insertion);
+        }
+    }
+
+    @Export(name = "scram")
+    public static void scram() {
+        if (grid != null) {
+            grid.scram();
+        }
+    }
+
     @Export(name = "clearHaltedByIncident")
     public static void clearHaltedByIncident() {
         if (grid != null) {
@@ -557,6 +579,15 @@ public class NuclearSimWasmBridge {
             .append(",");
         sb.append("\"maintenanceEfficiency\":")
             .append(fmt3(targetGrid.getMaintenanceEfficiency()))
+            .append(",");
+        sb.append("\"repairThreshold\":")
+            .append(fmt1(targetGrid.getRepairTemperatureThreshold()))
+            .append(",");
+        sb.append("\"canRepair\":")
+            .append(targetGrid.canRepair())
+            .append(",");
+        sb.append("\"controlRodCount\":")
+            .append(targetGrid.getControlRodCount())
             .append(",");
         sb.append("\"lastNeutrons\":")
             .append(targetGrid.getLastNeutronsProduced())
@@ -1037,7 +1068,24 @@ public class NuclearSimWasmBridge {
                     .append("\",");
                 sb.append("\"depletedCode\":\"")
                     .append(t.getDepletedCode())
-                    .append("\"");
+                    .append("\",");
+                sb.append("\"hasControlRod\":")
+                    .append(t.hasControlRod())
+                    .append(",");
+                sb.append("\"controlRodType\":\"")
+                    .append(t.getControlRodType().name())
+                    .append("\",");
+                sb.append("\"controlRodTypeName\":\"")
+                    .append(escapeJson(t.getControlRodType().displayName))
+                    .append("\",");
+                sb.append("\"controlRodInsertion\":")
+                    .append(t.getControlRodInsertion())
+                    .append(",");
+                sb.append("\"controlRodFastAbsorbed\":")
+                    .append(t.getLastControlRodFastAbsorbed())
+                    .append(",");
+                sb.append("\"controlRodThermalAbsorbed\":")
+                    .append(t.getLastControlRodThermalAbsorbed());
                 sb.append("}");
             }
         }

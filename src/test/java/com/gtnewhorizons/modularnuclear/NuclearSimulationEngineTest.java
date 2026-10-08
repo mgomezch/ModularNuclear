@@ -429,7 +429,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testMaxOperatingTemperatures() {
-        assertEquals(1000.0, NuclearSimulationEngine.getMaxOperatingTemperature(0));
+        assertEquals(1200.0, NuclearSimulationEngine.getMaxOperatingTemperature(0));
         assertEquals(1400.0, NuclearSimulationEngine.getMaxOperatingTemperature(1));
         assertEquals(1800.0, NuclearSimulationEngine.getMaxOperatingTemperature(2));
         assertEquals(2200.0, NuclearSimulationEngine.getMaxOperatingTemperature(3));
@@ -1516,13 +1516,13 @@ public class NuclearSimulationEngineTest {
         reactor.mGrid[0][1] = t2;
         reactor.mGrid[0][2] = t3;
 
-        // Temperature modes (Max operating temp = 1000 °C)
-        // Min = 200 -> 200/1000 * 15 = 3
+        // Temperature modes (Max operating temp = 1200 °C)
+        // Min = 200 -> 200/1200 * 15 = 2.5 -> 3
         assertEquals((byte) 3, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_MIN));
-        // Max = 800 -> 800/1000 * 15 = 12
-        assertEquals((byte) 12, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_MAX));
-        // Avg = 500 -> 500/1000 * 15 = 7.5 -> 8
-        assertEquals((byte) 8, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_AVG));
+        // Max = 800 -> 800/1200 * 15 = 10
+        assertEquals((byte) 10, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_MAX));
+        // Avg = 500 -> 500/1200 * 15 = 6.25 -> 6
+        assertEquals((byte) 6, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_AVG));
 
         // When no fuel/component/coolant present, durabilities and coolant levels return 0
         assertEquals((byte) 0, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_FUEL_DURABILITY_MIN));
@@ -1631,11 +1631,11 @@ public class NuclearSimulationEngineTest {
         assertEquals(900.0, reactor.mMaxTileTemp);
         assertEquals(600.0, reactor.mAvgTileTemp);
 
-        // Verify redstone signal for all 3 temperature modes (300/1000 * 15 = 4.5 -> 5, 900/1000 * 15 = 13.5 -> 14,
-        // 600/1000 * 15 = 9)
-        assertEquals((byte) 5, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_MIN));
-        assertEquals((byte) 14, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_MAX));
-        assertEquals((byte) 9, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_AVG));
+        // Verify redstone signal for all 3 temperature modes (300/1200 * 15 = 3.75 -> 4, 900/1200 * 15 = 11.25 -> 11,
+        // 600/1200 * 15 = 7.5 -> 8)
+        assertEquals((byte) 4, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_MIN));
+        assertEquals((byte) 11, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_MAX));
+        assertEquals((byte) 8, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_AVG));
 
         // When no fuel/coolant present, other 12 modes return 0
         for (int m = 3; m < MTEHatchNuclearControl.MODE_COUNT; m++) {
@@ -2087,7 +2087,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn((byte) 0);
         rod.setBaseMetaTileEntity(teRod);
 
-        reactor.mNuclearTiles.add(teRod);
+        reactor.mBottomControlRodHatches.add(rod);
 
         // Default state: 0 RS signal -> 0% insertion
         assertFalse(rod.mScram);
@@ -3015,7 +3015,12 @@ public class NuclearSimulationEngineTest {
         MTEHatchNuclearControlRod controlRod = new MTEHatchNuclearControlRod("test.rod", 4, new String[0], null);
         org.mockito.Mockito.when(mockBotTe.getMetaTileEntity())
             .thenReturn(controlRod);
-        assertFalse(bottomElement.check(reactor, mockWorld, 10, 64, 15), "Control rod must fail BottomCoreElement");
+        org.mockito.Mockito.when(mockBotTe.getFrontFacing())
+            .thenReturn(ForgeDirection.DOWN);
+        assertTrue(bottomElement.check(reactor, mockWorld, 10, 64, 15), "Control rod facing DOWN must pass BottomCoreElement");
+        org.mockito.Mockito.when(mockBotTe.getFrontFacing())
+            .thenReturn(ForgeDirection.UP);
+        assertFalse(bottomElement.check(reactor, mockWorld, 10, 64, 15), "Control rod facing UP must fail BottomCoreElement");
 
         // Pairing checks
         List<gregtech.api.structure.error.StructureError> errors = new ArrayList<>();
@@ -3103,7 +3108,7 @@ public class NuclearSimulationEngineTest {
     void testMeltdownThresholdAndTierGating() {
         // Temperature limits per pipe tier
         assertEquals(
-            1000.0,
+            1200.0,
             NuclearSimulationEngine.getMaxOperatingTemperature(NuclearSimulationEngine.PIPE_TIER_ELECTRUM));
         assertEquals(
             1400.0,
@@ -3540,10 +3545,10 @@ public class NuclearSimulationEngineTest {
             new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         grid.setStrictMode(true);
 
-        // Electrum casing limit is 1000°C. Set all tiles to 1050°C so diffusion does not cool them below limit
+        // Electrum casing limit is 1200°C. Set all tiles to 1250°C so diffusion does not cool them below limit
         for (int x = 0; x < 5; x++) {
             for (int y = 0; y < 5; y++) {
-                grid.getTile(x, y).setTemperature(1050.0);
+                grid.getTile(x, y).setTemperature(1250.0);
             }
         }
 
@@ -3871,6 +3876,50 @@ public class NuclearSimulationEngineTest {
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.setRunning(true);
         assertFalse(g.isHaltedByIncident(), "Bridge resuming must clear haltedByIncident");
         assertTrue(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.isRunning());
+    }
+
+    @Test
+    void testRepairTemperatureThresholdScalingAndGating() {
+        // Verify formula: max(120.0, 10% of max operating temperature)
+        assertEquals(120.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_ELECTRUM), 1e-6);
+        assertEquals(140.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_PLATINUM), 1e-6);
+        assertEquals(180.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_OSMIUM), 1e-6);
+        assertEquals(220.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_QUANTIUM), 1e-6);
+        assertEquals(260.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM), 1e-6);
+        assertEquals(320.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM), 1e-6);
+
+        // Grid temperature gating verification
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        grid.setReactorDamage(25.0);
+        grid.setMaintenanceIssues(1);
+
+        // At ambient temp (20°C <= 140°C), repair succeeds
+        assertTrue(grid.canRepair(), "Must be eligible for repair at ambient temperature");
+        boolean repOk = grid.repair();
+        assertTrue(repOk, "Repair must succeed when core is cool");
+        assertEquals(0.0, grid.getReactorDamage(), 1e-6);
+        assertEquals(0, grid.getMaintenanceIssues());
+
+        // Heat the core above threshold (150°C > 140°C threshold)
+        grid.setReactorDamage(30.0);
+        grid.setMaintenanceIssues(1);
+        for (int x = 0; x < 5; x++) {
+            for (int y = 0; y < 5; y++) {
+                if (grid.getTile(x, y) != null) {
+                    grid.getTile(x, y).setTemperature(150.0);
+                }
+            }
+        }
+        grid.step(); // compute coreAvgTemp
+
+        assertTrue(grid.getCoreAvgTemp() > grid.getRepairTemperatureThreshold(), "Core must be above repair threshold");
+        assertFalse(grid.canRepair(), "canRepair must be false when core is too hot");
+
+        boolean repBlocked = grid.repair();
+        assertFalse(repBlocked, "Repair must be blocked when core average temperature is above threshold");
+        assertEquals(30.0, grid.getReactorDamage(), 1e-6, "Damage must NOT be cleared when repair is blocked");
+        assertEquals(1, grid.getMaintenanceIssues(), "Maintenance issues must NOT be cleared when repair is blocked");
+        assertEquals("REPAIR_FAILED", grid.getIncidentLog().get(grid.getIncidentLog().size() - 1).type());
     }
 }
 

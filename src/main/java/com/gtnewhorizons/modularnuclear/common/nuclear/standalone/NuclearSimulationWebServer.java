@@ -320,6 +320,34 @@ public class NuclearSimulationWebServer {
                 pointer-events: none;
                 z-index: 4;
               }
+              .cell.has-rod .rod-badge {
+                display: block !important;
+              }
+              .cell .rod-badge {
+                display: none;
+                position: absolute;
+                bottom: 1px;
+                right: 2px;
+                font-size: 10px;
+                color: #00e5ff;
+                font-weight: 900;
+                line-height: 1;
+                text-shadow: 0 1px 2px #000;
+                pointer-events: none;
+                z-index: 4;
+              }
+              .cell.rod-mode-active {
+                outline: 2px solid #00e5ff !important;
+                outline-offset: -1px;
+                box-shadow: inset 0 0 6px rgba(0, 229, 255, 0.45) !important;
+              }
+              .cell.rod-mode-empty {
+                outline: 1px dashed #64748b !important;
+                outline-offset: -1px;
+              }
+              .cell.rod-mode-dimmed {
+                opacity: 0.35;
+              }
               .cell.wall-cell {
                 visibility: hidden !important;
                 background: transparent !important;
@@ -591,6 +619,7 @@ public class NuclearSimulationWebServer {
                   <button onclick="stepSim(1)">Step +1</button>
                   <button onclick="stepSim(10)">Step +10</button>
                   <button onclick="stepSim(100)">Step +100</button>
+                  <button class="danger" onclick="quickScram()" title="Emergency SCRAM: Insert all bottom control rods to 100% [Key: s]">🚨 SCRAM</button>
                   <button class="danger" onclick="resetSim()">↺ Reset</button>
                   <select id="preset-select" onchange="loadPreset(this.value)">
                     <optgroup label="⚡ Calibrated 60A Baseline Designs">
@@ -611,7 +640,7 @@ public class NuclearSimulationWebServer {
                     </optgroup>
                   </select>
                   <select id="tier-select" onchange="changeTier(this.value)" title="Reactor Pipe & Casing Tier">
-                    <option value="0">Electrum (1000°C)</option>
+                    <option value="0">Electrum (1200°C)</option>
                     <option value="1" selected>Platinum (1400°C)</option>
                     <option value="2">Osmium (1800°C)</option>
                     <option value="3">Quantium (2200°C)</option>
@@ -660,12 +689,13 @@ public class NuclearSimulationWebServer {
                   </div>
 
                   <div class="display-mode-selector">
-                    <span class="mode-label">Overlay:</span>
+                    <span class="mode-label">Mode:</span>
                     <div class="segmented-control">
-                      <button type="button" class="seg-btn active" id="btn-mode-temp" onclick="setGridDisplayMode('TEMP')" title="Show Cell Temperature (°C) [Key: 1]">🌡️ Temp</button>
-                      <button type="button" class="seg-btn" id="btn-mode-total-flux" onclick="setGridDisplayMode('TOTAL_FLUX')" title="Show Total Neutron Flux (Fast + Thermal) [Key: 2]">⚛️ Total Flux</button>
-                      <button type="button" class="seg-btn" id="btn-mode-fast-flux" onclick="setGridDisplayMode('FAST_FLUX')" title="Show Fast Neutron Flux [Key: 3]">⚡ Fast Flux</button>
-                      <button type="button" class="seg-btn" id="btn-mode-thermal-flux" onclick="setGridDisplayMode('THERMAL_FLUX')" title="Show Thermal Neutron Flux [Key: 4]">🟢 Thermal Flux</button>
+                      <button type="button" class="seg-btn" id="btn-mode-comp" onclick="setGridDisplayMode('COMPONENTS')" title="Show Component Icons [Key: 1]">📦 Components</button>
+                      <button type="button" class="seg-btn active" id="btn-mode-temp" onclick="setGridDisplayMode('TEMP')" title="Show Cell Temperature (°C) [Key: 2]">🌡️ Temp</button>
+                      <button type="button" class="seg-btn" id="btn-mode-flux" onclick="setGridDisplayMode('TOTAL_FLUX')" title="Show Total Neutron Flux [Key: 3]">⚛️ Flux</button>
+                      <button type="button" class="seg-btn" id="btn-mode-absorb" onclick="setGridDisplayMode('ABSORPTION')" title="Show Neutron Absorption [Key: 4]">🛡️ Absorption</button>
+                      <button type="button" class="seg-btn" id="btn-mode-rods" onclick="setGridDisplayMode('CONTROL_RODS')" title="Show Bottom Control Rod Hatches [Key: 5]">🕹️ Control Rods</button>
                     </div>
                   </div>
 
@@ -903,6 +933,31 @@ public class NuclearSimulationWebServer {
                   <div class="stat-row"><span>Pump Power (Parasitic):</span><span class="stat-val" id="loop-pump-val" style="color:#fbbf24;">0 EU/t</span></div>
                   <div class="stat-row"><span>Attached Core Points:</span><span class="stat-val" id="loop-points-val">0 cells</span></div>
                   <div class="stat-row"><span>Byproduct (Transmutation):</span><span class="stat-val" id="loop-byproduct-val" style="color:#a855f7;">0 L</span></div>
+                </div>
+
+                <!-- Bottom Control Rods Subsystem -->
+                <div style="background:#131a24; border:1px solid var(--border-color); border-radius:6px; padding:12px; margin-bottom:12px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <h3 style="font-size:0.95rem; color:#00e5ff; margin:0;">🕹️ Bottom Control Rods</h3>
+                    <span class="badge" id="rods-count-badge" style="font-weight:bold; color:#00e5ff;">0 Hatches</span>
+                  </div>
+                  <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">
+                    Bottom-layer non-outer-wall hatches providing vertical neutron absorption shielding.
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; margin-bottom:4px;">
+                    <span>Global Insertion:</span>
+                    <span id="lbl-global-rod-ins" style="font-weight:700; color:#00e5ff;">0%</span>
+                  </div>
+                  <input type="range" id="rng-global-rod-ins" min="0" max="100" value="0"
+                    oninput="document.getElementById('lbl-global-rod-ins').innerText = this.value + '%'"
+                    onchange="setAllControlRodsInsertion(parseInt(this.value))"
+                    style="width:100%; cursor:pointer; accent-color:#00e5ff; margin-bottom:6px;" />
+                  <div style="display:flex; gap:6px; margin-bottom:8px;">
+                    <button type="button" onclick="setAllControlRodsInsertion(0)" style="flex:1; font-size:0.75rem; padding:4px 6px;">Retract (0%)</button>
+                    <button type="button" onclick="setAllControlRodsInsertion(50)" style="flex:1; font-size:0.75rem; padding:4px 6px;">Insert 50%</button>
+                    <button type="button" class="danger" onclick="quickScram()" style="flex:1; font-size:0.75rem; padding:4px 6px; background:#b91c1c; border-color:#dc2626;" title="Emergency SCRAM [Key: s]">🚨 SCRAM (100%)</button>
+                  </div>
+                  <div class="stat-row"><span>Total Rod Absorption:</span><span class="stat-val" id="rods-total-abs-val" style="color:#00e5ff;">0 n/t</span></div>
                 </div>
 
                 <div style="background:#131a24; border:1px solid var(--border-color); border-radius:6px; padding:12px; margin-bottom:12px;">
@@ -1194,7 +1249,6 @@ public class NuclearSimulationWebServer {
               { type: "PASSAGE_CORE", name: "Coolant Loop Passage", code: "CP", color: "#00d2ff" },
               { type: "REFLECTOR_BERYLLIUM", name: "Beryllium Reflector", code: "RB", color: "#94a3b8" },
               { type: "REFLECTOR_CARBON", name: "Carbon Reflector", code: "RC", color: "#475569" },
-              { type: "CONTROL_ROD", name: "Boron Control Rod", code: "CR", color: "#b91c1c" },
               { type: "COOLANT_CELL_60K", name: "60k Coolant Cell", code: "C6", color: "#06b6d4" },
               { type: "RADIOVOLTAIC_HV", name: "Radiovoltaic Cell (HV)", code: "RH", color: "#f59e0b" },
               { type: "RADIOVOLTAIC_EV", name: "Radiovoltaic Cell (EV)", code: "RV", color: "#f97316" },
@@ -1505,10 +1559,13 @@ public class NuclearSimulationWebServer {
                 btn.classList.remove("active");
               });
               const idMap = {
+                "COMPONENTS": "btn-mode-comp",
                 "TEMP": "btn-mode-temp",
-                "TOTAL_FLUX": "btn-mode-total-flux",
-                "FAST_FLUX": "btn-mode-fast-flux",
-                "THERMAL_FLUX": "btn-mode-thermal-flux"
+                "TOTAL_FLUX": "btn-mode-flux",
+                "FAST_FLUX": "btn-mode-flux",
+                "THERMAL_FLUX": "btn-mode-flux",
+                "ABSORPTION": "btn-mode-absorb",
+                "CONTROL_RODS": "btn-mode-rods"
               };
               const activeBtn = document.getElementById(idMap[mode]);
               if (activeBtn) activeBtn.classList.add("active");
@@ -1521,6 +1578,26 @@ public class NuclearSimulationWebServer {
                   }
                 }
               }
+            }
+
+            function getControlRodColor(type) {
+              switch (type) {
+                case "SILVER": return "#94a3b8";
+                case "BORON": return "#3b82f6";
+                case "CADMIUM": return "#06b6d4";
+                case "INDIUM": return "#a855f7";
+                case "HAFNIUM": return "#f97316";
+                default: return "#64748b";
+              }
+            }
+
+            function getAbsorptionColor(rate) {
+              if (rate <= 0) return "transparent";
+              if (rate < 50) return "rgba(120, 53, 15, 0.4)";
+              if (rate < 200) return "rgba(180, 83, 9, 0.5)";
+              if (rate < 800) return "rgba(217, 119, 6, 0.6)";
+              if (rate < 2500) return "rgba(245, 158, 11, 0.7)";
+              return "rgba(251, 191, 36, 0.85)";
             }
 
             function getNeutronColor(rate) {
@@ -1600,6 +1677,11 @@ public class NuclearSimulationWebServer {
             }
 
             async function quickRepair() {
+              if (currentState && currentState.canRepair === false) {
+                const thresh = currentState.repairThreshold || 120.0;
+                alert(`Cannot repair reactor: average core temperature (${currentState.coreAvgTemp.toFixed(1)}°C) exceeds safe repair threshold (${thresh.toFixed(1)}°C). Scram or cool the reactor before repairing.`);
+                return;
+              }
               if (isWasmMode && wasmSim) {
                 wasmSim.repair();
                 currentState = wasmSim.getState();
@@ -1652,7 +1734,22 @@ public class NuclearSimulationWebServer {
                 maintBadge.style.color = (issues === 0 && (!currentState.reactorDamage || currentState.reactorDamage === 0)) ? "var(--success)" : "var(--warning)";
               }
               if (repairBtn) {
-                repairBtn.style.display = (currentState.reactorDamage > 0 || (currentState.maintenanceIssues && currentState.maintenanceIssues > 0)) ? "inline-block" : "none";
+                const hasDmg = (currentState.reactorDamage && currentState.reactorDamage > 0) || (currentState.maintenanceIssues && currentState.maintenanceIssues > 0);
+                repairBtn.style.display = hasDmg ? "inline-block" : "none";
+                if (hasDmg) {
+                  const thresh = currentState.repairThreshold || 120.0;
+                  const canRep = (currentState.canRepair !== undefined) ? currentState.canRepair : ((currentState.coreAvgTemp || 0) <= thresh);
+                  repairBtn.disabled = !canRep;
+                  if (!canRep) {
+                    repairBtn.style.opacity = "0.5";
+                    repairBtn.style.cursor = "not-allowed";
+                    repairBtn.title = `Core too hot to repair (${(currentState.coreAvgTemp||0).toFixed(1)}°C > ${thresh.toFixed(1)}°C safe limit). Cool reactor before repairing.`;
+                  } else {
+                    repairBtn.style.opacity = "1.0";
+                    repairBtn.style.cursor = "pointer";
+                    repairBtn.title = `Repair structural damage and clear maintenance issues (Safe limit: ≤${thresh.toFixed(1)}°C)`;
+                  }
+                }
               }
 
               // Sync Simulation Options toggles
@@ -1687,6 +1784,31 @@ public class NuclearSimulationWebServer {
                   lblAutoRefuel.style.color = autoSupplyVal ? "#34d399" : "var(--text-muted)";
                 }
               }
+
+              // Update Bottom Control Rods subsystem card
+              let controlRodHatchesCount = (currentState.controlRodCount !== undefined) ? currentState.controlRodCount : 0;
+              let totalRodAbsorbed = 0;
+              let totalRodInsertion = 0;
+              if (currentState.tiles) {
+                let counted = 0;
+                currentState.tiles.forEach(t => {
+                  if (t.hasControlRod) {
+                    counted++;
+                    totalRodAbsorbed += (t.controlRodFastAbsorbed || 0) + (t.controlRodThermalAbsorbed || 0);
+                    totalRodInsertion += (t.controlRodInsertion || 0);
+                  }
+                });
+                if (controlRodHatchesCount === 0) controlRodHatchesCount = counted;
+              }
+              const avgRodIns = controlRodHatchesCount > 0 ? Math.round(totalRodInsertion / controlRodHatchesCount) : 0;
+              const rodsBadge = document.getElementById("rods-count-badge");
+              if (rodsBadge) rodsBadge.innerText = `${controlRodHatchesCount} Hatches`;
+              const lblGlobalRod = document.getElementById("lbl-global-rod-ins");
+              if (lblGlobalRod) lblGlobalRod.innerText = `${avgRodIns}%`;
+              const rngGlobalRod = document.getElementById("rng-global-rod-ins");
+              if (rngGlobalRod && document.activeElement !== rngGlobalRod) rngGlobalRod.value = avgRodIns;
+              const rodsAbsVal = document.getElementById("rods-total-abs-val");
+              if (rodsAbsVal) rodsAbsVal.innerText = `${totalRodAbsorbed.toLocaleString()} n/t`;
 
               if (currentState.exploded) {
                 if (isWasmMode && wasmSim && wasmSim.running) {
@@ -2201,6 +2323,7 @@ public class NuclearSimulationWebServer {
                       <span class="cell-metric"${hideTemp ? ' style="display:none;"' : ''}></span>
                       <div class="cell-durability" style="display:none;"><div class="cell-durability-fill"></div></div>
                       <span class="loop-badge">⟳</span>
+                      <span class="rod-badge">🕹️</span>
                     `;
                     let lastTrigger = 0;
                     const triggerAction = (e) => {
@@ -2251,7 +2374,16 @@ public class NuclearSimulationWebServer {
                   if (durEl) durEl.style.display = "none";
                 } else {
                   const isAttached = (currentState.coolantLoop && currentState.coolantLoop.attachedPoints && currentState.coolantLoop.attachedPoints.includes(t.x + "," + t.y)) || t.type === "PASSAGE_CORE";
-                  const desiredClass = "cell" + (isSelected ? " selected" : "") + (isAttached ? " loop-attached" : "");
+                  let rodClass = "";
+                  if (t.hasControlRod) {
+                    rodClass = " has-rod";
+                    if (gridDisplayMode === "CONTROL_RODS") {
+                      rodClass += (t.controlRodType && t.controlRodType !== "NONE") ? " rod-mode-active" : " rod-mode-empty";
+                    }
+                  } else if (gridDisplayMode === "CONTROL_RODS") {
+                    rodClass = " rod-mode-dimmed";
+                  }
+                  const desiredClass = "cell" + (isSelected ? " selected" : "") + (isAttached ? " loop-attached" : "") + rodClass;
                   if (cell.className !== desiredClass) {
                     cell.className = desiredClass;
                   }
@@ -2260,7 +2392,11 @@ public class NuclearSimulationWebServer {
                   let metricStr = "";
                   let tipText = "";
 
-                  if (gridDisplayMode === "TOTAL_FLUX") {
+                  if (gridDisplayMode === "COMPONENTS") {
+                    overlayBg = "transparent";
+                    metricStr = "";
+                    tipText = `${t.name} (${t.x}, ${t.y})` + (t.hasControlRod ? " [Bottom Control Rod Hatch]" : "");
+                  } else if (gridDisplayMode === "TOTAL_FLUX") {
                     const fl = t.totalFlux || 0;
                     overlayBg = fl > 0 ? getNeutronColor(fl) : "transparent";
                     metricStr = formatFluxValue(fl);
@@ -2275,13 +2411,37 @@ public class NuclearSimulationWebServer {
                     overlayBg = fl > 0 ? getNeutronColor(fl) : "transparent";
                     metricStr = formatFluxValue(fl);
                     tipText = `Thermal Flux: ${fl.toLocaleString()} n/t`;
+                  } else if (gridDisplayMode === "ABSORPTION") {
+                    const abs = (t.fastAbsorbed || 0) + (t.thermalAbsorbed || 0);
+                    const rodAbs = (t.controlRodFastAbsorbed || 0) + (t.controlRodThermalAbsorbed || 0);
+                    overlayBg = abs > 0 ? getAbsorptionColor(abs) : "transparent";
+                    metricStr = abs > 0 ? formatFluxValue(abs) : "";
+                    tipText = `Absorbed: ${abs.toLocaleString()} n/t (Base: ${(abs - rodAbs).toLocaleString()}, Bottom Rod: ${rodAbs.toLocaleString()})`;
+                  } else if (gridDisplayMode === "CONTROL_RODS") {
+                    if (t.hasControlRod) {
+                      if (t.controlRodType && t.controlRodType !== "NONE") {
+                        const ins = Math.round(t.controlRodInsertion || 0);
+                        const rodCol = getControlRodColor(t.controlRodType);
+                        overlayBg = ins > 0 ? `linear-gradient(to top, ${rodCol} ${ins}%, rgba(15, 23, 42, 0.75) ${ins}%)` : "rgba(30, 41, 59, 0.6)";
+                        metricStr = ins + "%";
+                        tipText = `Bottom Control Rod: ${t.controlRodTypeName || t.controlRodType} (${ins}% inserted)`;
+                      } else {
+                        overlayBg = "rgba(30, 41, 59, 0.5)";
+                        metricStr = "EMPTY";
+                        tipText = "Bottom Control Rod Hatch: Empty (No rod inserted)";
+                      }
+                    } else {
+                      overlayBg = "rgba(15, 20, 28, 0.85)";
+                      metricStr = "";
+                      tipText = "No bottom control rod hatch installed";
+                    }
                   } else {
                     overlayBg = getTemperatureColor(t.temp, currentState.maxSafeTemp);
                     metricStr = Math.round(t.temp) + "°C";
                     tipText = `Temperature: ${t.temp.toFixed(1)}°C (Max Safe: ${currentState.maxSafeTemp}°C)`;
                   }
 
-                  if (t.temp > (currentState.maxSafeTemp || 3250) * 0.85) {
+                  if (gridDisplayMode !== "COMPONENTS" && gridDisplayMode !== "CONTROL_RODS" && t.temp > (currentState.maxSafeTemp || 3250) * 0.85) {
                     if (Math.floor(Date.now() / 400) % 2 === 0) {
                       overlayBg = "rgba(255, 0, 0, 0.45)";
                     }
@@ -2486,6 +2646,73 @@ public class NuclearSimulationWebServer {
                 coolingMethodHtml = `<div class="stat-row"><span>Cell Cooling:</span><span class="stat-val" style="color:var(--text-muted);">None (Passive Conduction)</span></div>`;
               }
 
+              let controlRodHtml = "";
+              if (t.code !== "NL") {
+                if (isLoopAttached) {
+                  controlRodHtml = `
+                    <div style="background:#10141d; border:1px solid #373737; border-radius:3px; padding:6px 8px; margin-top:8px;">
+                      <div style="font-weight:700; font-size:0.75rem; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">🕹️ Bottom Control Rod Hatch</div>
+                      <div style="font-size:0.72rem; color:var(--warning); margin-top:4px;">⚠️ Bottom casing occupied by Convective Loop Passage. Control rod hatches cannot be installed on loop cells.</div>
+                    </div>
+                  `;
+                } else if (!t.hasControlRod) {
+                  controlRodHtml = `
+                    <div style="background:#10141d; border:1px solid #373737; border-radius:3px; padding:6px 8px; margin-top:8px;">
+                      <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:700; font-size:0.75rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">🕹️ Bottom Control Rod Hatch</span>
+                        <button type="button" onclick="toggleTileControlRod(${t.x}, ${t.y}, true)" style="padding:2px 8px; font-size:0.72rem; background:#1e293b; border-color:#00d2ff; color:#00d2ff;">+ Install Hatch</button>
+                      </div>
+                      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">No bottom control rod hatch installed at this coordinate.</div>
+                    </div>
+                  `;
+                } else {
+                  const ins = Math.round(t.controlRodInsertion || 0);
+                  const rodType = t.controlRodType || "NONE";
+                  const fastAbs = t.controlRodFastAbsorbed || 0;
+                  const thermAbs = t.controlRodThermalAbsorbed || 0;
+                  controlRodHtml = `
+                    <div style="background:#10141d; border:1px solid #00e5ff; border-radius:3px; padding:6px 8px; margin-top:8px;">
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <span style="font-weight:700; font-size:0.75rem; color:#00e5ff; text-transform:uppercase; letter-spacing:0.5px;">🕹️ Bottom Control Rod Hatch</span>
+                        <button type="button" onclick="toggleTileControlRod(${t.x}, ${t.y}, false)" style="padding:1px 6px; font-size:0.68rem; background:#29151b; border-color:var(--danger); color:var(--danger);" title="Remove hatch from bottom layer">Remove</button>
+                      </div>
+                      <div style="margin-bottom:6px;">
+                        <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:2px;">Rod Material:</div>
+                        <select onchange="changeTileControlRodMaterial(${t.x}, ${t.y}, this.value)" style="width:100%; font-size:0.75rem; padding:3px 6px; height:auto; min-height:28px;">
+                          <option value="NONE" ${rodType === 'NONE' ? 'selected' : ''}>Empty (No rod inserted)</option>
+                          <option value="SILVER" ${rodType === 'SILVER' ? 'selected' : ''}>Silver-Indium-Cadmium (85% F / 80% Th)</option>
+                          <option value="BORON" ${rodType === 'BORON' ? 'selected' : ''}>Boron Carbide (70% F / 90% Th)</option>
+                          <option value="CADMIUM" ${rodType === 'CADMIUM' ? 'selected' : ''}>Cadmium (50% F / 95% Th)</option>
+                          <option value="INDIUM" ${rodType === 'INDIUM' ? 'selected' : ''}>Indium (60% F / 85% Th)</option>
+                          <option value="HAFNIUM" ${rodType === 'HAFNIUM' ? 'selected' : ''}>Hafnium (80% F / 75% Th)</option>
+                        </select>
+                      </div>
+                      <div style="margin-bottom:6px;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.72rem; margin-bottom:2px;">
+                          <span>Insertion:</span>
+                          <span id="lbl-rod-ins-${t.x}-${t.y}" style="font-weight:700; color:#00e5ff;">${ins}%</span>
+                        </div>
+                        <input type="range" min="0" max="100" value="${ins}"
+                          oninput="document.getElementById('lbl-rod-ins-${t.x}-${t.y}').innerText = this.value + '%'"
+                          onchange="updateTileControlRodInsertion(${t.x}, ${t.y}, parseInt(this.value))"
+                          style="width:100%; cursor:pointer; accent-color:#00e5ff;" />
+                        <div style="display:flex; gap:4px; margin-top:3px;">
+                          <button type="button" onclick="updateTileControlRodInsertion(${t.x}, ${t.y}, 0)" style="flex:1; padding:2px; font-size:0.68rem; min-height:24px;">0% (Retract)</button>
+                          <button type="button" onclick="updateTileControlRodInsertion(${t.x}, ${t.y}, 50)" style="flex:1; padding:2px; font-size:0.68rem; min-height:24px;">50%</button>
+                          <button type="button" onclick="updateTileControlRodInsertion(${t.x}, ${t.y}, 100)" style="flex:1; padding:2px; font-size:0.68rem; min-height:24px; background:#b91c1c; border-color:#dc2626;">100% (SCRAM)</button>
+                        </div>
+                      </div>
+                      ${(fastAbs > 0 || thermAbs > 0) ? `
+                        <div style="border-top:1px dashed #373737; padding-top:4px; margin-top:4px; font-size:0.72rem;">
+                          <div class="stat-row" style="margin-bottom:1px;"><span>Rod Fast Absorbed:</span><span class="stat-val" style="color:#fbbf24;">${fastAbs.toLocaleString()} n/t</span></div>
+                          <div class="stat-row" style="margin-bottom:1px;"><span>Rod Thermal Absorbed:</span><span class="stat-val" style="color:#4ade80;">${thermAbs.toLocaleString()} n/t</span></div>
+                        </div>
+                      ` : ''}
+                    </div>
+                  `;
+                }
+              }
+
               el.innerHTML = `
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
                   ${iconHtml}
@@ -2496,6 +2723,7 @@ public class NuclearSimulationWebServer {
                 </div>
                 <div class="stat-row"><span>Temperature:</span><span class="stat-val">${t.temp} °C</span></div>
                 ${coolingMethodHtml}
+                ${controlRodHtml}
                 ${extraHtml}
                 ${fluxHtml}
               `;
@@ -2805,6 +3033,68 @@ public class NuclearSimulationWebServer {
               await fetch(`/api/set-tier?tier=${tier}`);
               await fetchState();
               schedulePoll();
+            }
+
+            async function toggleTileControlRod(x, y, hasRod) {
+              if (isWasmMode && wasmSim) {
+                const tile = currentState && currentState.tiles.find(t => t.x === x && t.y === y);
+                const curType = (tile && tile.controlRodType && tile.controlRodType !== "NONE") ? tile.controlRodType : "BORON";
+                const curIns = (tile && tile.controlRodInsertion != null) ? tile.controlRodInsertion : 0;
+                wasmSim.setControlRod(x, y, hasRod, curType, curIns);
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
+              await fetch(`/api/set-control-rod?x=${x}&y=${y}&hasRod=${hasRod}`);
+              await fetchState();
+            }
+
+            async function changeTileControlRodMaterial(x, y, material) {
+              if (isWasmMode && wasmSim) {
+                const tile = currentState && currentState.tiles.find(t => t.x === x && t.y === y);
+                const curIns = (tile && tile.controlRodInsertion != null) ? tile.controlRodInsertion : 0;
+                wasmSim.setControlRod(x, y, true, material, curIns);
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
+              await fetch(`/api/set-control-rod?x=${x}&y=${y}&hasRod=true&material=${encodeURIComponent(material)}`);
+              await fetchState();
+            }
+
+            async function updateTileControlRodInsertion(x, y, insertion) {
+              if (isWasmMode && wasmSim) {
+                const tile = currentState && currentState.tiles.find(t => t.x === x && t.y === y);
+                const curType = (tile && tile.controlRodType) ? tile.controlRodType : "BORON";
+                wasmSim.setControlRod(x, y, true, curType, insertion);
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
+              await fetch(`/api/set-control-rod?x=${x}&y=${y}&hasRod=true&insertion=${insertion}`);
+              await fetchState();
+            }
+
+            async function quickScram() {
+              if (isWasmMode && wasmSim) {
+                wasmSim.scram();
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
+              await fetch("/api/scram");
+              await fetchState();
+            }
+
+            async function setAllControlRodsInsertion(ins) {
+              if (isWasmMode && wasmSim) {
+                wasmSim.setAllControlRodsInsertion(ins);
+                currentState = wasmSim.getState();
+                renderUI();
+                return;
+              }
+              await fetch(`/api/set-all-control-rods?insertion=${ins}`);
+              await fetchState();
             }
 
             function renderProcessPipeline() {
@@ -3236,15 +3526,19 @@ public class NuclearSimulationWebServer {
               } else if (e.key === "f" || e.key === "F") {
                 fitGridToScreen();
               } else if (e.key === "1") {
-                setGridDisplayMode("TEMP");
+                setGridDisplayMode("COMPONENTS");
               } else if (e.key === "2") {
-                setGridDisplayMode("TOTAL_FLUX");
+                setGridDisplayMode("TEMP");
               } else if (e.key === "3") {
-                setGridDisplayMode("FAST_FLUX");
+                setGridDisplayMode("TOTAL_FLUX");
               } else if (e.key === "4") {
-                setGridDisplayMode("THERMAL_FLUX");
+                setGridDisplayMode("ABSORPTION");
+              } else if (e.key === "5") {
+                setGridDisplayMode("CONTROL_RODS");
+              } else if (e.key === "s" || e.key === "S") {
+                quickScram();
               } else if (e.key === "m" || e.key === "M") {
-                const modes = ["TEMP", "TOTAL_FLUX", "FAST_FLUX", "THERMAL_FLUX"];
+                const modes = ["COMPONENTS", "TEMP", "TOTAL_FLUX", "ABSORPTION", "CONTROL_RODS"];
                 const nextIdx = (modes.indexOf(gridDisplayMode) + 1) % modes.length;
                 setGridDisplayMode(modes[nextIdx]);
               }

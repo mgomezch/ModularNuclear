@@ -396,6 +396,69 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
 
         ItemStack cursorStack = player.inventory.getItemStack();
 
+        if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS && gridTile.hasControlRod()) {
+            MTEHatchNuclearControlRod rod = gridTile.getBottomControlRod();
+            ItemStack slotStack = rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD];
+
+            if (isShift) {
+                if (cursorStack == null && slotStack != null) {
+                    if (player.inventory.addItemStackToInventory(slotStack)) {
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                    } else if (slotStack.stackSize <= 0) {
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                    }
+                    rod.markTileDirty();
+                    syncPlayerAndReactor(playerMP);
+                }
+            } else if (button == 0) {
+                if (cursorStack == null) {
+                    if (slotStack != null) {
+                        player.inventory.setItemStack(slotStack);
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                        rod.markTileDirty();
+                        syncPlayerAndReactor(playerMP);
+                    }
+                } else if (MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
+                    if (slotStack == null) {
+                        ItemStack placed = cursorStack.copy();
+                        placed.stackSize = 1;
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
+                        rod.markTileDirty();
+                        cursorStack.stackSize--;
+                        if (cursorStack.stackSize <= 0) {
+                            player.inventory.setItemStack(null);
+                        }
+                        syncPlayerAndReactor(playerMP);
+                    } else if (cursorStack.stackSize == 1) {
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = cursorStack;
+                        player.inventory.setItemStack(slotStack);
+                        rod.markTileDirty();
+                        syncPlayerAndReactor(playerMP);
+                    }
+                }
+            } else if (button == 1) {
+                if (cursorStack == null) {
+                    if (slotStack != null) {
+                        player.inventory.setItemStack(slotStack);
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                        rod.markTileDirty();
+                        syncPlayerAndReactor(playerMP);
+                    }
+                } else if (slotStack == null && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
+                    ItemStack placed = cursorStack.copy();
+                    placed.stackSize = 1;
+                    rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
+                    rod.markTileDirty();
+                    cursorStack.stackSize--;
+                    if (cursorStack.stackSize <= 0) {
+                        player.inventory.setItemStack(null);
+                    }
+                    syncPlayerAndReactor(playerMP);
+                }
+            }
+            return;
+        }
+
         if (gridTile.isBus()) {
             MTEHatchNuclearBus bus = gridTile.getBus();
             ItemStack slotStack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
@@ -456,66 +519,6 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                     syncPlayerAndReactor(playerMP);
                 }
             }
-        } else if (gridTile.isControlRod()) {
-            MTEHatchNuclearControlRod rod = gridTile.getControlRod();
-            ItemStack slotStack = rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD];
-
-            if (isShift) {
-                if (cursorStack == null && slotStack != null) {
-                    if (player.inventory.addItemStackToInventory(slotStack)) {
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
-                    } else if (slotStack.stackSize <= 0) {
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
-                    }
-                    rod.markTileDirty();
-                    syncPlayerAndReactor(playerMP);
-                }
-            } else if (button == 0) {
-                if (cursorStack == null) {
-                    if (slotStack != null) {
-                        player.inventory.setItemStack(slotStack);
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
-                        rod.markTileDirty();
-                        syncPlayerAndReactor(playerMP);
-                    }
-                } else if (MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
-                    if (slotStack == null) {
-                        ItemStack placed = cursorStack.copy();
-                        placed.stackSize = 1;
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
-                        rod.markTileDirty();
-                        cursorStack.stackSize--;
-                        if (cursorStack.stackSize <= 0) {
-                            player.inventory.setItemStack(null);
-                        }
-                        syncPlayerAndReactor(playerMP);
-                    } else if (cursorStack.stackSize == 1) {
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = cursorStack;
-                        player.inventory.setItemStack(slotStack);
-                        rod.markTileDirty();
-                        syncPlayerAndReactor(playerMP);
-                    }
-                }
-            } else if (button == 1) {
-                if (cursorStack == null) {
-                    if (slotStack != null) {
-                        player.inventory.setItemStack(slotStack);
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
-                        rod.markTileDirty();
-                        syncPlayerAndReactor(playerMP);
-                    }
-                } else if (slotStack == null && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
-                    ItemStack placed = cursorStack.copy();
-                    placed.stackSize = 1;
-                    rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
-                    rod.markTileDirty();
-                    cursorStack.stackSize--;
-                    if (cursorStack.stackSize <= 0) {
-                        player.inventory.setItemStack(null);
-                    }
-                    syncPlayerAndReactor(playerMP);
-                }
-            }
         } else if (gridTile.isHatch()) {
             MTEHatchNuclearHatch hatch = gridTile.getHatch();
             if (isShift && cursorStack == null) {
@@ -557,8 +560,8 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                         cursorStack.stackSize--;
                         insertedAny = true;
                     }
-                } else if (gridTile.isControlRod() && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
-                    MTEHatchNuclearControlRod rod = gridTile.getControlRod();
+                } else if (gridTile.hasControlRod() && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
+                    MTEHatchNuclearControlRod rod = gridTile.getBottomControlRod();
                     if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] == null) {
                         ItemStack placed = cursorStack.copy();
                         placed.stackSize = 1;
@@ -604,8 +607,8 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                 }
                 syncPlayerAndReactor(playerMP);
             }
-        } else if (gridTile.isControlRod() && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
-            MTEHatchNuclearControlRod rod = gridTile.getControlRod();
+        } else if (gridTile.hasControlRod() && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
+            MTEHatchNuclearControlRod rod = gridTile.getBottomControlRod();
             if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] == null) {
                 ItemStack placed = cursorStack.copy();
                 placed.stackSize = 1;
@@ -916,6 +919,33 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                         int color = NuclearColorMaps.getNeutronColor(5.0 * (cell.fastAbsorbed + cell.thermalAbsorbed));
                         GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, color);
                         prepareGuiState();
+                    } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
+                        if (cell.hasControlRod) {
+                            // Dark backdrop tint
+                            GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, 0x881E293B);
+
+                            // Control rod fill bar
+                            int rodColor = switch (cell.controlRodType) {
+                                case 1 -> 0xFFC0C0C0; // Silver
+                                case 2 -> 0xFF5A5A6E; // Boron
+                                case 3 -> 0xFF5588AA; // Cadmium
+                                case 4 -> 0xFF3366BB; // Indium
+                                case 5 -> 0xFFAA3333; // Hafnium
+                                default -> 0x88666666; // None
+                            };
+
+                            int barH = Math.max(1, Math.round((innerSize - 4) * (cell.controlRodInsertion / 100.0f)));
+                            GuiDraw.drawRect(px + 3, py + innerSize - 1 - barH, innerSize - 4, barH, rodColor);
+
+                            // Control rod hatch border
+                            GuiDraw.drawRect(px + 1, py + 1, innerSize, 1, 0xFF00AAFF);
+                            GuiDraw.drawRect(px + 1, py + innerSize, innerSize, 1, 0xFF00AAFF);
+                            GuiDraw.drawRect(px + 1, py + 1, 1, innerSize, 0xFF00AAFF);
+                            GuiDraw.drawRect(px + innerSize, py + 1, 1, innerSize, 0xFF00AAFF);
+                        } else {
+                            GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, 0x77000000);
+                        }
+                        prepareGuiState();
                     }
 
                     double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(sync.pipeTier);
@@ -1089,7 +1119,31 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                     + " EU/t");
         }
 
-        // 6. Mode Context Telemetry
+        // 6. Control Rod Info
+        if (cell.hasControlRod) {
+            MTEHatchNuclearControlRod.ControlRodType rodType = (cell.controlRodType >= 0
+                && cell.controlRodType < MTEHatchNuclearControlRod.ControlRodType.values().length)
+                    ? MTEHatchNuclearControlRod.ControlRodType.values()[cell.controlRodType]
+                    : MTEHatchNuclearControlRod.ControlRodType.NONE;
+            list.add(
+                EnumChatFormatting.GOLD + "Bottom Control Rod: "
+                    + EnumChatFormatting.WHITE
+                    + rodType.displayName
+                    + EnumChatFormatting.YELLOW
+                    + " ("
+                    + cell.controlRodInsertion
+                    + "%)");
+            list.add(
+                EnumChatFormatting.DARK_GRAY + String.format(
+                    java.util.Locale.US,
+                    "Max Absorption: %.0f%% therm, %.0f%% fast",
+                    rodType.maxThermalAbsorption * 100.0,
+                    rodType.maxFastAbsorption * 100.0));
+        } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
+            list.add(EnumChatFormatting.DARK_GRAY + "No bottom control rod hatch installed");
+        }
+
+        // 7. Mode Context Telemetry
         if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_TEMPERATURE) {
             float delta = cell.temperature - sync.avgTemp;
             String deltaSign = delta >= 0 ? "+" : "";
