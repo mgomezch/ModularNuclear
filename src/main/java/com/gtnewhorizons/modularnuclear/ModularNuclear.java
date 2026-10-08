@@ -29,8 +29,14 @@ public class ModularNuclear {
     @Mod.Instance(MODID)
     public static ModularNuclear instance;
 
+    @cpw.mods.fml.common.SidedProxy(
+        clientSide = "com.gtnewhorizons.modularnuclear.client.ClientProxy",
+        serverSide = "com.gtnewhorizons.modularnuclear.common.CommonProxy")
+    public static com.gtnewhorizons.modularnuclear.common.CommonProxy proxy;
+
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
+        com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.init(event.getSuggestedConfigurationFile());
         ModularNuclearTextures.init();
         ModFluids.init();
         ModBlocks.init();
@@ -73,6 +79,8 @@ public class ModularNuclear {
         cpw.mods.fml.client.registry.RenderingRegistry.registerEntityRenderingHandler(
             com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout.class,
             new com.gtnewhorizons.modularnuclear.client.renderer.RenderEmpty());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS
+            .register(new com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer());
     }
 
     @Mod.EventHandler

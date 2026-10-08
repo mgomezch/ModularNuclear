@@ -78,7 +78,8 @@ public class SimTile implements INuclearTile {
             if (trimmed.equals("BH")) return RADIOVOLTAIC_HV;
             if (trimmed.equals("BV")) return RADIOVOLTAIC_EV;
             if (trimmed.equals("HP") || trimmed.equals("HH")
-                || trimmed.equals("HATCH_HP_DISTILLED_WATER") || trimmed.equals("HATCH_HP_HEAVY_WATER")) {
+                || trimmed.equals("HATCH_HP_DISTILLED_WATER")
+                || trimmed.equals("HATCH_HP_HEAVY_WATER")) {
                 return PASSAGE_CORE;
             }
             for (TileType type : values()) {
@@ -116,7 +117,8 @@ public class SimTile implements INuclearTile {
         public static ControlRodType fromName(String name) {
             if (name == null) return NONE;
             for (ControlRodType t : values()) {
-                if (t.name().equalsIgnoreCase(name) || t.displayName.equalsIgnoreCase(name)) {
+                if (t.name()
+                    .equalsIgnoreCase(name) || t.displayName.equalsIgnoreCase(name)) {
                     return t;
                 }
             }
@@ -540,7 +542,8 @@ public class SimTile implements INuclearTile {
         double pBase = getBaseAbsorptionProbability(nType);
         if (hasControlRod && controlRodType != ControlRodType.NONE && controlRodInsertion > 0) {
             double ratio = controlRodInsertion / 100.0;
-            double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption : controlRodType.maxFastAbsorption;
+            double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption
+                : controlRodType.maxFastAbsorption;
             double pRod = Math.max(0.0, ratio * max);
             return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
         }
@@ -619,7 +622,8 @@ public class SimTile implements INuclearTile {
         if (count <= 0) return;
         if (hasControlRod && controlRodType != ControlRodType.NONE && controlRodInsertion > 0) {
             double ratio = controlRodInsertion / 100.0;
-            double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption : controlRodType.maxFastAbsorption;
+            double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption
+                : controlRodType.maxFastAbsorption;
             double pRod = Math.max(0.0, ratio * max);
             double pBase = getBaseAbsorptionProbability(nType);
             double sum = pBase + pRod;
@@ -685,7 +689,8 @@ public class SimTile implements INuclearTile {
         lastDurabilityLoss = 0.0;
         lastLiquidFuelBurned = 0;
 
-        // 1. Fuel burnup (3 physical processes: emitting fast neutrons, absorbing any neutron, and temperature above ambient)
+        // 1. Fuel burnup (3 physical processes: emitting fast neutrons, absorbing any neutron, and temperature above
+        // ambient)
         if (isLiquidFuelHatch()) {
             if (inputFluidAmount > 0) {
                 double tempDmg = 0.0;
@@ -695,9 +700,8 @@ public class SimTile implements INuclearTile {
                 } else if (temperature > NuclearSimulationEngine.AMBIENT_TEMP) {
                     tempDmg = (temperature - NuclearSimulationEngine.AMBIENT_TEMP) / 100.0;
                 }
-                int burn = (int) Math.round(Math.max(0.0, lastNeutronsGenerated * 0.25)
-                    + (fastAbsorbed + thermalAbsorbed) * 1.0
-                    + tempDmg);
+                int burn = (int) Math.round(
+                    Math.max(0.0, lastNeutronsGenerated * 0.25) + (fastAbsorbed + thermalAbsorbed) * 1.0 + tempDmg);
                 int toConsume = Math.max(1, Math.min(inputFluidAmount, burn));
                 inputFluidAmount -= toConsume;
                 outputFluidAmount += toConsume;
@@ -717,8 +721,7 @@ public class SimTile implements INuclearTile {
             } else if (temperature > NuclearSimulationEngine.AMBIENT_TEMP) {
                 tempDmg = (temperature - NuclearSimulationEngine.AMBIENT_TEMP) / 100.0;
             }
-            double rawDamage = (Math.max(0.0, lastNeutronsGenerated * 0.25)
-                + (fastAbsorbed + thermalAbsorbed) * 1.0
+            double rawDamage = (Math.max(0.0, lastNeutronsGenerated * 0.25) + (fastAbsorbed + thermalAbsorbed) * 1.0
                 + tempDmg) * NuclearSimulationEngine.fuelBurnupMultiplier;
             lastDurabilityLoss = rawDamage;
             durabilityLossAccumulator += rawDamage;

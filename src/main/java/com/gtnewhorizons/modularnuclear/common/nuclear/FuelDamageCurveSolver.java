@@ -24,7 +24,7 @@ import javax.imageio.ImageIO;
  * - D_temp(T) = 0 for T <= T_ambient
  * - D_temp(T) = A * (exp(k * (T - T_ambient)) - 1) for T > T_ambient
  * - The point of peak reactivity T_peak produces no more than 25% of the damage at the 10% reactivity point T_10%:
- *     D_temp(T_peak) / D_temp(T_10%) <= 0.25
+ * D_temp(T_peak) / D_temp(T_10%) <= 0.25
  */
 public class FuelDamageCurveSolver {
 
@@ -188,7 +188,8 @@ public class FuelDamageCurveSolver {
             g.drawLine(x, padT, x, padT + plotH);
             g.setColor(new Color(0x6A, 0x73, 0x7D));
             String tStr = String.valueOf(t);
-            int sw = g.getFontMetrics().stringWidth(tStr);
+            int sw = g.getFontMetrics()
+                .stringWidth(tStr);
             g.drawString(tStr, x - sw / 2, height - 4);
             g.setColor(new Color(0x2D, 0x31, 0x39));
         }
@@ -271,7 +272,10 @@ public class FuelDamageCurveSolver {
             System.out.println(stats);
 
             BufferedImage chart = renderChart(fuel, 154, 76);
-            File outFile = new File(outputDir, "chart_" + fuel.name().toLowerCase(Locale.US) + ".png");
+            File outFile = new File(
+                outputDir,
+                "chart_" + fuel.name()
+                    .toLowerCase(Locale.US) + ".png");
             ImageIO.write(chart, "PNG", outFile);
         }
         System.out.println("=========================================================================================");
@@ -279,8 +283,7 @@ public class FuelDamageCurveSolver {
     }
 
     public static void main(String[] args) throws Exception {
-        File outDir = (args.length > 0)
-            ? new File(args[0])
+        File outDir = (args.length > 0) ? new File(args[0])
             : new File("src/main/resources/assets/modularnuclear/textures/gui/nei/fuelstats");
         generateAllChartImages(outDir);
     }

@@ -1048,7 +1048,7 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
             }
             list.add(EnumChatFormatting.GRAY + String.format("Amount: %,d L", cell.fluidStack.amount));
         } else if (cell.isHighPressure) {
-            list.add(EnumChatFormatting.GOLD + "Nuclear Core High-Pressure Hatch");
+            list.add(EnumChatFormatting.GOLD + "Nuclear core high-pressure hatch");
             list.add(EnumChatFormatting.GRAY + "Hermetic fluid passage for coolant loop");
         } else if (cell.isFluid) {
             list.add(EnumChatFormatting.GRAY + "Empty nuclear fluid hatch");
@@ -1126,7 +1126,7 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                     ? MTEHatchNuclearControlRod.ControlRodType.values()[cell.controlRodType]
                     : MTEHatchNuclearControlRod.ControlRodType.NONE;
             list.add(
-                EnumChatFormatting.GOLD + "Bottom Control Rod: "
+                EnumChatFormatting.GOLD + "Control rod: "
                     + EnumChatFormatting.WHITE
                     + rodType.displayName
                     + EnumChatFormatting.YELLOW
@@ -1136,19 +1136,19 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
             list.add(
                 EnumChatFormatting.DARK_GRAY + String.format(
                     java.util.Locale.US,
-                    "Max Absorption: %.0f%% therm, %.0f%% fast",
+                    "Max absorption: %.0f%% therm, %.0f%% fast",
                     rodType.maxThermalAbsorption * 100.0,
                     rodType.maxFastAbsorption * 100.0));
             if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
                 if (sync.scram) {
                     list.add(EnumChatFormatting.RED + "State: SCRAMMED (100% insertion)");
                 } else {
-                    list.add(EnumChatFormatting.GRAY + "Controlled via bottom hatch redstone signal");
+                    list.add(EnumChatFormatting.GRAY + "Controlled via hatch redstone signal");
                 }
                 list.add(EnumChatFormatting.DARK_GRAY + "Click with rod item to insert/extract");
             }
         } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
-            list.add(EnumChatFormatting.DARK_GRAY + "No bottom control rod hatch installed");
+            list.add(EnumChatFormatting.DARK_GRAY + "No control rod hatch installed");
         }
 
         // 7. Mode Context Telemetry

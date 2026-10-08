@@ -29,14 +29,14 @@ public class ModMetaTileEntities {
     public static void init() {
         NuclearStructureChannels.register();
 
-        nuclearBus = new MTEHatchNuclearBus(ID_NUCLEAR_BUS, "hatch.nuclearbus", "Nuclear Core Bus", 5).getStackForm(1L);
+        nuclearBus = new MTEHatchNuclearBus(ID_NUCLEAR_BUS, "hatch.nuclearbus", "Nuclear core bus", 5).getStackForm(1L);
         NuclearStructureChannels.NUCLEAR_HATCH.registerAsIndicator(nuclearBus, 0);
 
         for (int i = 0; i < 9; i++) {
             nuclearHatches[i] = new MTEHatchNuclearHatch(
                 ID_NUCLEAR_HATCH_BASE + i,
                 "hatch.nuclearhatch." + GTValues.VN[i + 1].toLowerCase(),
-                "Nuclear Core Hatch (" + GTValues.VN[i + 1] + ")",
+                "Nuclear core hatch (" + GTValues.VN[i + 1] + ")",
                 i + 1).getStackForm(1L);
             NuclearStructureChannels.NUCLEAR_HATCH.registerAsIndicator(nuclearHatches[i], i + 1);
         }
@@ -44,19 +44,19 @@ public class ModMetaTileEntities {
         nuclearControlHatch = new MTEHatchNuclearControl(
             ID_NUCLEAR_CONTROL,
             "hatch.nuclearcontrol",
-            "Nuclear Control Hatch",
+            "Nuclear control hatch",
             5).getStackForm(1L);
 
         nuclearControlRodHatch = new MTEHatchNuclearControlRod(
             ID_NUCLEAR_CONTROL_ROD,
             "hatch.nuclearcontrolrod",
-            "Nuclear Control Rod Hatch",
+            "Nuclear core control rod",
             5).getStackForm(1L);
 
         nuclearHighPressureHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure(
             ID_NUCLEAR_HIGH_PRESSURE,
             "hatch.nuclearhighpressure",
-            "Nuclear Core High-Pressure Hatch",
+            "Nuclear core high-pressure hatch",
             5).getStackForm(1L);
         NuclearStructureChannels.NUCLEAR_HATCH.registerAsIndicator(nuclearHighPressureHatch, 10);
 

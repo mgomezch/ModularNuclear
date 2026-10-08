@@ -56,8 +56,10 @@ public class ReactorGridSyncData {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             ReactorGridCellData that = (ReactorGridCellData) o;
-            if (exists != that.exists || isFluid != that.isFluid || isHighPressure != that.isHighPressure
-                || hasControlRod != that.hasControlRod || controlRodInsertion != that.controlRodInsertion
+            if (exists != that.exists || isFluid != that.isFluid
+                || isHighPressure != that.isHighPressure
+                || hasControlRod != that.hasControlRod
+                || controlRodInsertion != that.controlRodInsertion
                 || controlRodType != that.controlRodType) return false;
             if (Math.abs(temperature - that.temperature) > 0.5f) return false;
             if (fastFlux != that.fastFlux || thermalFlux != that.thermalFlux) return false;
@@ -71,7 +73,8 @@ public class ReactorGridSyncData {
 
         @Override
         public int hashCode() {
-            return Objects.hash(exists, isFluid, (int) temperature, fastFlux, thermalFlux, hasControlRod, controlRodInsertion);
+            return Objects
+                .hash(exists, isFluid, (int) temperature, fastFlux, thermalFlux, hasControlRod, controlRodInsertion);
         }
     }
 

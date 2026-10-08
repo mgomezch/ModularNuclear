@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 /**
@@ -18,6 +17,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 public class CoolantLoopModel {
 
     public enum CoolingMode {
+
         MODULAR("Modular (Per-Cell Cooling)"),
         CONDUCTIVE("Conductive (Sub-boiling Hatches)"),
         CONVECTIVE_LOOP("Convective (Closed Coolant Loop)");
@@ -32,7 +32,8 @@ public class CoolantLoopModel {
             if (str == null) return MODULAR;
             String s = str.trim();
             for (CoolingMode mode : values()) {
-                if (mode.name().equalsIgnoreCase(s) || mode.displayName.equalsIgnoreCase(s)) {
+                if (mode.name()
+                    .equalsIgnoreCase(s) || mode.displayName.equalsIgnoreCase(s)) {
                     return mode;
                 }
             }
@@ -47,6 +48,7 @@ public class CoolantLoopModel {
     }
 
     public enum LoopMaterial {
+
         STEEL("Steel", 35.0, 2226.85, 2500, "LV"),
         STAINLESS_STEEL("Stainless Steel", 70.0, 2726.85, 3000, "MV"),
         TITANIUM("Titanium", 140.0, 4726.85, 5000, "EV"),
@@ -59,8 +61,8 @@ public class CoolantLoopModel {
         public final int maxTemperatureKelvin;
         public final String tierUnlocked;
 
-        LoopMaterial(String displayName, double maxPressureBar, double maxTemperatureCelsius,
-            int maxTemperatureKelvin, String tierUnlocked) {
+        LoopMaterial(String displayName, double maxPressureBar, double maxTemperatureCelsius, int maxTemperatureKelvin,
+            String tierUnlocked) {
             this.displayName = displayName;
             this.maxPressureBar = maxPressureBar;
             this.maxTemperatureCelsius = maxTemperatureCelsius;
@@ -98,7 +100,8 @@ public class CoolantLoopModel {
             if (str == null) return TITANIUM;
             String s = str.trim();
             for (LoopMaterial mat : values()) {
-                if (mat.name().equalsIgnoreCase(s) || mat.displayName.equalsIgnoreCase(s)) {
+                if (mat.name()
+                    .equalsIgnoreCase(s) || mat.displayName.equalsIgnoreCase(s)) {
                     return mat;
                 }
             }
@@ -112,6 +115,7 @@ public class CoolantLoopModel {
     }
 
     public enum LoopPipeSize {
+
         TINY("Tiny", 0.05, 0.5),
         SMALL("Small", 0.075, 0.75),
         NORMAL("Normal", 0.10, 1.0),
@@ -132,7 +136,8 @@ public class CoolantLoopModel {
             if (str == null) return NORMAL;
             String s = str.trim();
             for (LoopPipeSize size : values()) {
-                if (size.name().equalsIgnoreCase(s) || size.displayName.equalsIgnoreCase(s)) {
+                if (size.name()
+                    .equalsIgnoreCase(s) || size.displayName.equalsIgnoreCase(s)) {
                     return size;
                 }
             }
@@ -145,13 +150,14 @@ public class CoolantLoopModel {
     }
 
     public enum CoolantFluidType {
+
         DISTILLED_WATER("Distilled Water", 1000.0, 4184.0, 0.001, 0.60, "Deuterium"),
         HEAVY_WATER("Heavy Water", 1105.0, 4220.0, 0.00125, 0.59, "Tritium");
 
         public final String displayName;
-        public final double density;            // kg/m^3
-        public final double specificHeat;       // J/(kg*K)
-        public final double dynamicViscosity;  // Pa*s
+        public final double density; // kg/m^3
+        public final double specificHeat; // J/(kg*K)
+        public final double dynamicViscosity; // Pa*s
         public final double thermalConductivity;// W/(m*K)
         public final String byproductGas;
 
@@ -169,7 +175,8 @@ public class CoolantLoopModel {
             if (str == null) return DISTILLED_WATER;
             String s = str.trim();
             for (CoolantFluidType fluid : values()) {
-                if (fluid.name().equalsIgnoreCase(s) || fluid.displayName.equalsIgnoreCase(s)) {
+                if (fluid.name()
+                    .equalsIgnoreCase(s) || fluid.displayName.equalsIgnoreCase(s)) {
                     return fluid;
                 }
             }
@@ -179,6 +186,7 @@ public class CoolantLoopModel {
     }
 
     public enum EnergyHatchTier {
+
         LV("LV", 32.0),
         MV("MV", 128.0),
         HV("HV", 512.0),
@@ -201,7 +209,8 @@ public class CoolantLoopModel {
             if (str == null) return EV;
             String s = str.trim();
             for (EnergyHatchTier tier : values()) {
-                if (tier.name().equalsIgnoreCase(s) || tier.displayName.equalsIgnoreCase(s)) {
+                if (tier.name()
+                    .equalsIgnoreCase(s) || tier.displayName.equalsIgnoreCase(s)) {
                     return tier;
                 }
             }
@@ -246,10 +255,10 @@ public class CoolantLoopModel {
     private EnergyHatchTier hatchTier = EnergyHatchTier.EV;
     private double dutyCyclePercent = 100.0;
     private double maxFlowRateLPerSec = 0.0; // 0 = no user limit
-    private double maxPressureBar = 0.0;     // 0 = no user limit
+    private double maxPressureBar = 0.0; // 0 = no user limit
     private double pumpElectricalPowerEUt = 2048.0; // EU/t
-    private double targetFlowRateLPerSec = 100.0;    // L/s
-    private boolean useTargetFlowMode = false;      // If true, flow is set directly and pump EU is calculated
+    private double targetFlowRateLPerSec = 100.0; // L/s
+    private boolean useTargetFlowMode = false; // If true, flow is set directly and pump EU is calculated
     private final Set<String> attachedPoints = new HashSet<>(); // Set of "x,y" strings
 
     // Dynamic state
@@ -374,7 +383,8 @@ public class CoolantLoopModel {
         if (useTargetFlowMode) {
             currentFlowRateLPerSec = Math.max(0.0, targetFlowRateLPerSec);
             lastPumpPowerEUt = calculatePumpPowerForFlow(currentFlowRateLPerSec);
-            effectiveDutyCyclePercent = hatchTier.voltageEU > 0 ? (lastPumpPowerEUt / hatchTier.voltageEU) * 100.0 : 0.0;
+            effectiveDutyCyclePercent = hatchTier.voltageEU > 0 ? (lastPumpPowerEUt / hatchTier.voltageEU) * 100.0
+                : 0.0;
             pressureLimited = false;
             flowLimited = false;
             limitReason = "";
@@ -426,7 +436,10 @@ public class CoolantLoopModel {
                         if (userPressureActive) {
                             limitReason = "Pressure capped at " + fmt1(maxPressureBar) + " bar";
                         } else {
-                            limitReason = "Throttled by " + material.displayName + " pipe limit (" + fmt1(material.maxPressureBar) + " bar)";
+                            limitReason = "Throttled by " + material.displayName
+                                + " pipe limit ("
+                                + fmt1(material.maxPressureBar)
+                                + " bar)";
                         }
                     }
                 } else {
@@ -496,7 +509,8 @@ public class CoolantLoopModel {
         double vel = flowArea > 0 ? (flowPerPassageM3s / flowArea) : 0.0;
 
         double re = (fluidType.density * vel * passageDiameter) / Math.max(1e-6, fluidType.dynamicViscosity);
-        double pr = (fluidType.dynamicViscosity * fluidType.specificHeat) / Math.max(1e-4, fluidType.thermalConductivity);
+        double pr = (fluidType.dynamicViscosity * fluidType.specificHeat)
+            / Math.max(1e-4, fluidType.thermalConductivity);
 
         double nu;
         if (re < 2300.0) {
@@ -523,7 +537,8 @@ public class CoolantLoopModel {
                     joulesTick = euTick * 128.0;
                 }
 
-                pTile.setTemperature(Math.max(currentCoolantTempCelsius, cellTemp - euTick / NuclearSimulationEngine.euPerDegree));
+                pTile.setTemperature(
+                    Math.max(currentCoolantTempCelsius, cellTemp - euTick / NuclearSimulationEngine.euPerDegree));
                 totalHeatExtractedJoulesTick += joulesTick;
             }
 
@@ -560,9 +575,12 @@ public class CoolantLoopModel {
             double pheArea = 24.0; // 24 m^2 tube bundle area
             // h_phe ~ 2500 W/(m^2*K) for water-to-water heat exchanger
             double qPheWatts = 2500.0 * pheArea * deltaTPhe;
-            double qPheJoules = Math.min(totalHeatExtractedJoulesTick + (deltaTPhe * loopFluidMassKg * fluidType.specificHeat * 0.5), qPheWatts * 0.05);
+            double qPheJoules = Math.min(
+                totalHeatExtractedJoulesTick + (deltaTPhe * loopFluidMassKg * fluidType.specificHeat * 0.5),
+                qPheWatts * 0.05);
 
-            // 1 Liter (mB) water requires 2260 J (2.26 MJ/L) latent heat to vaporize -> produces 160 L (mB) steam (1:160 expansion)
+            // 1 Liter (mB) water requires 2260 J (2.26 MJ/L) latent heat to vaporize -> produces 160 L (mB) steam
+            // (1:160 expansion)
             double waterBoiledL = qPheJoules / 2260.0;
             steamGeneratedL = waterBoiledL * 160.0; // 1:160 expansion
 

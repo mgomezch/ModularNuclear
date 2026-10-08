@@ -11,6 +11,7 @@ import net.minecraft.util.IIcon;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
+import gregtech.api.util.GTSplit;
 import ic2.api.reactor.IReactor;
 import ic2.api.reactor.IReactorComponent;
 
@@ -53,15 +54,11 @@ public class ItemRadiovoltaicPlate extends Item implements IReactorComponent {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void addInformation(ItemStack aStack, EntityPlayer aPlayer, List aList, boolean aF3_H) {
         if (tier == 1) {
-            aList.add("Converts absorbed neutron flux into direct HV electricity");
-            aList.add("Max Output: 1,024 EU/t (2A HV) via Dynamo Hatches");
+            GTSplit.splitLocalizedFormatted(aList, "item.modularnuclear.radiovoltaic.plate.hv.desc");
         } else {
-            aList.add("Converts absorbed neutron flux into direct EV electricity");
-            aList.add("Max Output: 4,096 EU/t (2A EV) via Dynamo Hatches");
+            GTSplit.splitLocalizedFormatted(aList, "item.modularnuclear.radiovoltaic.plate.ev.desc");
         }
-        aList.add("Absorbs 100% of incident neutron flux");
-        aList.add("Fast neutrons yield 4x electricity vs thermal neutrons");
-        aList.add("Excess absorbed energy converts directly into core heat");
+        GTSplit.splitLocalizedFormatted(aList, "item.modularnuclear.radiovoltaic.plate.common.desc");
     }
 
     @Override

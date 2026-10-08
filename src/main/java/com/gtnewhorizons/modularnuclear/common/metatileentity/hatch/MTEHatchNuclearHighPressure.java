@@ -27,6 +27,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.util.GTSplit;
 
 /**
  * Nuclear Core High-Pressure Hatch.
@@ -59,11 +60,16 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
     public boolean mUsedForCooling = false;
 
     public MTEHatchNuclearHighPressure(int aID, String aName, String aNameRegional, int aTier) {
-        super(aID, aName, aNameRegional, aTier, 0, "Hermetic core passage endpoint for closed coolant loops");
+        super(aID, aName, aNameRegional, aTier, 0, (String) null);
     }
 
     public MTEHatchNuclearHighPressure(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, 0, aDescription, aTextures);
+    }
+
+    @Override
+    public String[] getDescription() {
+        return GTSplit.splitLocalized("gt.blockmachines.hatch.nuclearhighpressure.desc");
     }
 
     @Override

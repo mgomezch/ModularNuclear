@@ -175,7 +175,8 @@ public class NuclearSimulationEngine {
 
     /**
      * Returns the effective sink temperature (°C) for a coolant fluid.
-     * IC2 coolant operates down to ambient temperature, while heavy water boils at 101.4°C and distilled water at 100°C.
+     * IC2 coolant operates down to ambient temperature, while heavy water boils at 101.4°C and distilled water at
+     * 100°C.
      */
     public static double getCoolantSinkTemperature(String fluidName, double ambientTemp) {
         if (fluidName == null) return ambientTemp;
@@ -197,9 +198,9 @@ public class NuclearSimulationEngine {
      * Calculates the maximum heat energy (EU) transferred from a hatch at temperature temp
      * into a coolant heat sink at sinkTemp over a 1-tick interval (dt = 1).
      *
-     * @param temp The hatch temperature in °C
-     * @param sinkTemp The coolant sink temperature in °C
-     * @param tier The tier of the nuclear core hatch (LV=1, MV=2, HV=3, EV=4, ...)
+     * @param temp       The hatch temperature in °C
+     * @param sinkTemp   The coolant sink temperature in °C
+     * @param tier       The tier of the nuclear core hatch (LV=1, MV=2, HV=3, EV=4, ...)
      * @param efficiency Reactor efficiency multiplier [0.0, 1.0]
      * @return Heat energy in EU transferred this tick
      */
@@ -210,36 +211,6 @@ public class NuclearSimulationEngine {
         double conductance = getHatchConductance(tier) * effFactor;
         double ch = EU_PER_DEGREE;
         return ch * deltaT * (1.0 - Math.exp(-conductance / ch));
-    }
-
-    /**
-     * Calculates the fraction of hatch coolant capacity that turns over into steam
-     * this tick based on excess temperature above boiling point.
-     * @deprecated Replaced by analytical {@link #calculateConductiveHeatTransfer(double, double, int, double)}.
-     */
-    @Deprecated
-    public static double calculateTurnoverFraction(double deltaT) {
-        if (deltaT <= 0) return 0.0;
-        double dtMax = Math.max(1.0, turnoverDeltaTMax);
-        double raw = switch (turnoverCurve) {
-            case LINEAR -> Math.min(1.0, deltaT / dtMax);
-            case EXPONENTIAL -> Math.min(1.0, Math.pow(Math.min(deltaT / dtMax, 1.0), turnoverExponent));
-            case SIGMOID -> {
-                double k = 6.0 / dtMax;
-                double val = 1.0 / (1.0 + Math.exp(-k * (deltaT - 0.5 * dtMax)));
-                double v0 = 1.0 / (1.0 + Math.exp(3.0));
-                double v1 = 1.0 / (1.0 + Math.exp(-3.0));
-                yield Math.max(0.0, Math.min(1.0, (val - v0) / (v1 - v0)));
-            }
-            case STEP -> {
-                if (deltaT < 0.25 * dtMax) yield 0.10;
-                if (deltaT < 0.50 * dtMax) yield 0.35;
-                if (deltaT < 0.75 * dtMax) yield 0.70;
-                yield 1.0;
-            }
-        };
-        // Boiling turnover is strictly capped at 80% (0.80) of hatch capacity
-        return Math.min(0.80, 0.80 * raw);
     }
 
     public static final int PIPE_TIER_ELECTRUM = 0;

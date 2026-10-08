@@ -17,14 +17,14 @@ public class NuclearSimWasmBridge {
     private static boolean isRunning = false;
 
     public static void main(String[] args) {
-        initGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
-        loadPreset("BEST_PLATINUM_7X7");
+        initGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        loadPreset("BEST_PLATINUM_9X9");
     }
 
     @Export(name = "initGrid")
     public static void initGrid(int width, int height, int pipeTier) {
-        NuclearSimulationEngine.setGlobalThermalFissionMultiplier(0.348);
-        NuclearSimulationEngine.fissionHeatPerNeutron = 77.2;
+        NuclearSimulationEngine.setGlobalThermalFissionMultiplier(0.351);
+        NuclearSimulationEngine.fissionHeatPerNeutron = 80.1;
         grid = new StandaloneNuclearGrid(width, height, pipeTier);
     }
 
@@ -48,7 +48,8 @@ public class NuclearSimWasmBridge {
             isRunning = false;
             return;
         }
-        for (int i = 0; i < count && !grid.isExploded() && !(grid.isStopOnIncidents() && grid.isHaltedByIncident()); i++) {
+        for (int i = 0; i < count && !grid.isExploded()
+            && !(grid.isStopOnIncidents() && grid.isHaltedByIncident()); i++) {
             grid.step();
             if (grid.isStopOnIncidents() && grid.isHaltedByIncident()) {
                 break;
@@ -139,59 +140,70 @@ public class NuclearSimWasmBridge {
     @Export(name = "setCoolantLoopMaterial")
     public static void setCoolantLoopMaterial(String matStr) {
         if (grid != null && matStr != null) {
-            grid.getCoolantLoop().setMaterial(CoolantLoopModel.LoopMaterial.fromString(matStr));
+            grid.getCoolantLoop()
+                .setMaterial(CoolantLoopModel.LoopMaterial.fromString(matStr));
         }
     }
 
     @Export(name = "setCoolantLoopPipeSize")
     public static void setCoolantLoopPipeSize(String sizeStr) {
         if (grid != null && sizeStr != null) {
-            grid.getCoolantLoop().setPipeSize(CoolantLoopModel.LoopPipeSize.fromString(sizeStr));
+            grid.getCoolantLoop()
+                .setPipeSize(CoolantLoopModel.LoopPipeSize.fromString(sizeStr));
         }
     }
 
     @Export(name = "setCoolantLoopFluid")
     public static void setCoolantLoopFluid(String fluidStr) {
         if (grid != null && fluidStr != null) {
-            grid.getCoolantLoop().setFluidType(CoolantLoopModel.CoolantFluidType.fromString(fluidStr));
+            grid.getCoolantLoop()
+                .setFluidType(CoolantLoopModel.CoolantFluidType.fromString(fluidStr));
         }
     }
 
     @Export(name = "setCoolantLoopPumpPower")
     public static void setCoolantLoopPumpPower(double powerEUt) {
         if (grid != null) {
-            grid.getCoolantLoop().setPumpElectricalPowerEUt(powerEUt);
-            grid.getCoolantLoop().setUseTargetFlowMode(false);
+            grid.getCoolantLoop()
+                .setPumpElectricalPowerEUt(powerEUt);
+            grid.getCoolantLoop()
+                .setUseTargetFlowMode(false);
         }
     }
 
     @Export(name = "setCoolantLoopHatchTier")
     public static void setCoolantLoopHatchTier(String tierStr) {
         if (grid != null && tierStr != null) {
-            grid.getCoolantLoop().setHatchTier(CoolantLoopModel.EnergyHatchTier.fromString(tierStr));
-            grid.getCoolantLoop().setUseTargetFlowMode(false);
+            grid.getCoolantLoop()
+                .setHatchTier(CoolantLoopModel.EnergyHatchTier.fromString(tierStr));
+            grid.getCoolantLoop()
+                .setUseTargetFlowMode(false);
         }
     }
 
     @Export(name = "setCoolantLoopDutyCycle")
     public static void setCoolantLoopDutyCycle(double dutyPercent) {
         if (grid != null) {
-            grid.getCoolantLoop().setDutyCyclePercent(dutyPercent);
-            grid.getCoolantLoop().setUseTargetFlowMode(false);
+            grid.getCoolantLoop()
+                .setDutyCyclePercent(dutyPercent);
+            grid.getCoolantLoop()
+                .setUseTargetFlowMode(false);
         }
     }
 
     @Export(name = "setCoolantLoopMaxFlow")
     public static void setCoolantLoopMaxFlow(double maxFlow) {
         if (grid != null) {
-            grid.getCoolantLoop().setMaxFlowRateLPerSec(maxFlow);
+            grid.getCoolantLoop()
+                .setMaxFlowRateLPerSec(maxFlow);
         }
     }
 
     @Export(name = "setCoolantLoopMaxPressure")
     public static void setCoolantLoopMaxPressure(double maxPressure) {
         if (grid != null) {
-            grid.getCoolantLoop().setMaxPressureBar(maxPressure);
+            grid.getCoolantLoop()
+                .setMaxPressureBar(maxPressure);
         }
     }
 
@@ -212,29 +224,34 @@ public class NuclearSimWasmBridge {
     @Export(name = "setCoolantLoopFlowRate")
     public static void setCoolantLoopFlowRate(double flowRate) {
         if (grid != null) {
-            grid.getCoolantLoop().setTargetFlowRateLPerSec(flowRate);
-            grid.getCoolantLoop().setUseTargetFlowMode(true);
+            grid.getCoolantLoop()
+                .setTargetFlowRateLPerSec(flowRate);
+            grid.getCoolantLoop()
+                .setUseTargetFlowMode(true);
         }
     }
 
     @Export(name = "attachCoolantLoopPoint")
     public static void attachCoolantLoopPoint(int x, int y) {
         if (grid != null) {
-            grid.getCoolantLoop().attachPoint(x, y);
+            grid.getCoolantLoop()
+                .attachPoint(x, y);
         }
     }
 
     @Export(name = "detachCoolantLoopPoint")
     public static void detachCoolantLoopPoint(int x, int y) {
         if (grid != null) {
-            grid.getCoolantLoop().detachPoint(x, y);
+            grid.getCoolantLoop()
+                .detachPoint(x, y);
         }
     }
 
     @Export(name = "clearCoolantLoopPoints")
     public static void clearCoolantLoopPoints() {
         if (grid != null) {
-            grid.getCoolantLoop().clearAttachedPoints();
+            grid.getCoolantLoop()
+                .clearAttachedPoints();
         }
     }
 
@@ -334,7 +351,8 @@ public class NuclearSimWasmBridge {
             }
             return;
         }
-        if ("autoSupplyFuel".equalsIgnoreCase(key) || "autoReplaceFuel".equalsIgnoreCase(key) || "autoRefuel".equalsIgnoreCase(key)) {
+        if ("autoSupplyFuel".equalsIgnoreCase(key) || "autoReplaceFuel".equalsIgnoreCase(key)
+            || "autoRefuel".equalsIgnoreCase(key)) {
             if (grid != null) {
                 grid.setAutoSupplyFuel("true".equalsIgnoreCase(value) || "1".equals(value));
             }
@@ -496,7 +514,9 @@ public class NuclearSimWasmBridge {
             .append(NuclearSimulationEngine.getPipeTierName(targetGrid.getPipeTier()))
             .append("\",");
         sb.append("\"coolingMode\":\"")
-            .append(targetGrid.getCoolingMode().name())
+            .append(
+                targetGrid.getCoolingMode()
+                    .name())
             .append("\",");
         sb.append("\"coolingModeName\":\"")
             .append(targetGrid.getCoolingMode().displayName)
@@ -514,7 +534,9 @@ public class NuclearSimWasmBridge {
             .append(targetGrid.getCurrentTick())
             .append(",");
         sb.append("\"isRunning\":")
-            .append(running && !targetGrid.isExploded() && !(targetGrid.isStopOnIncidents() && targetGrid.isHaltedByIncident()))
+            .append(
+                running && !targetGrid.isExploded()
+                    && !(targetGrid.isStopOnIncidents() && targetGrid.isHaltedByIncident()))
             .append(",");
         sb.append("\"exploded\":")
             .append(targetGrid.isExploded())
@@ -555,10 +577,17 @@ public class NuclearSimWasmBridge {
             if (i > 0) sb.append(",");
             StandaloneNuclearGrid.IncidentEvent ev = incLog.get(i);
             sb.append("{")
-                .append("\"tick\":").append(ev.tick()).append(",")
-                .append("\"type\":\"").append(escapeJson(ev.type())).append("\",")
-                .append("\"message\":\"").append(escapeJson(ev.message())).append("\",")
-                .append("\"damage\":").append(fmt1(ev.damage()))
+                .append("\"tick\":")
+                .append(ev.tick())
+                .append(",")
+                .append("\"type\":\"")
+                .append(escapeJson(ev.type()))
+                .append("\",")
+                .append("\"message\":\"")
+                .append(escapeJson(ev.message()))
+                .append("\",")
+                .append("\"damage\":")
+                .append(fmt1(ev.damage()))
                 .append("}");
         }
         sb.append("],");
@@ -628,55 +657,142 @@ public class NuclearSimWasmBridge {
 
         CoolantLoopModel cl = targetGrid.getCoolantLoop();
         sb.append("\"coolantLoop\":{");
-        sb.append("\"material\":\"").append(cl.getMaterial().name()).append("\",");
-        sb.append("\"materialName\":\"").append(cl.getMaterial().displayName).append("\",");
-        sb.append("\"materialTier\":\"").append(cl.getMaterial().tierUnlocked).append("\",");
-        sb.append("\"maxPressureBar\":").append(fmt1(cl.getMaterial().maxPressureBar)).append(",");
-        sb.append("\"maxTempC\":").append(fmt1(cl.getMaterial().maxTemperatureCelsius)).append(",");
-        sb.append("\"pipeSize\":\"").append(cl.getPipeSize().name()).append("\",");
-        sb.append("\"pipeSizeName\":\"").append(cl.getPipeSize().displayName).append("\",");
-        sb.append("\"fluid\":\"").append(cl.getFluidType().name()).append("\",");
-        sb.append("\"fluidName\":\"").append(cl.getFluidType().displayName).append("\",");
-        sb.append("\"byproductGas\":\"").append(cl.getFluidType().byproductGas).append("\",");
-        sb.append("\"hatchTier\":\"").append(cl.getHatchTier().name()).append("\",");
-        sb.append("\"hatchTierName\":\"").append(cl.getHatchTier().displayName).append("\",");
-        sb.append("\"hatchVoltage\":").append(fmt1(cl.getHatchTier().voltageEU)).append(",");
-        sb.append("\"dutyCyclePercent\":").append(fmt1(cl.getDutyCyclePercent())).append(",");
-        sb.append("\"effectiveDutyCyclePercent\":").append(fmt1(cl.getEffectiveDutyCyclePercent())).append(",");
-        sb.append("\"maxFlowRateLimit\":").append(fmt1(cl.getMaxFlowRateLPerSec())).append(",");
-        sb.append("\"maxPressureLimit\":").append(fmt1(cl.getMaxPressureBar())).append(",");
-        sb.append("\"pressureLimited\":").append(cl.isPressureLimited()).append(",");
-        sb.append("\"flowLimited\":").append(cl.isFlowLimited()).append(",");
-        sb.append("\"limitReason\":\"").append(escapeJson(cl.getLimitReason())).append("\",");
-        sb.append("\"pumpPowerEUt\":").append(fmt1(cl.getPumpElectricalPowerEUt())).append(",");
-        sb.append("\"targetFlowRateLPerSec\":").append(fmt1(cl.getTargetFlowRateLPerSec())).append(",");
-        sb.append("\"useTargetFlowMode\":").append(cl.isUseTargetFlowMode()).append(",");
-        sb.append("\"currentFlowRateLPerSec\":").append(fmt1(cl.getCurrentFlowRateLPerSec())).append(",");
-        sb.append("\"currentPressureBar\":").append(fmt2(cl.getCurrentPressureBar())).append(",");
-        sb.append("\"currentCoolantTempCelsius\":").append(fmt1(cl.getCurrentCoolantTempCelsius())).append(",");
-        sb.append("\"lastHeatExtractedWatts\":").append(fmt1(cl.getLastHeatExtractedWatts())).append(",");
-        sb.append("\"lastHeatExtractedEUt\":").append(fmt1(cl.getLastHeatExtractedEUt())).append(",");
-        sb.append("\"lastSecondarySteamProducedLt\":").append(fmt1(cl.getLastSecondarySteamProducedLt())).append(",");
-        sb.append("\"lastSecondaryWaterBoiledLt\":").append(fmt1(cl.getLastSecondaryWaterBoiledLt())).append(",");
-        sb.append("\"lastPumpPowerEUt\":").append(fmt1(cl.getLastPumpPowerEUt())).append(",");
-        sb.append("\"totalDeuteriumProduced\":").append(cl.getTotalDeuteriumProduced()).append(",");
-        sb.append("\"totalTritiumProduced\":").append(cl.getTotalTritiumProduced()).append(",");
-        sb.append("\"totalSecondarySteamProduced\":").append(cl.getTotalSecondarySteamProduced()).append(",");
-        sb.append("\"ruptured\":").append(cl.isRuptured()).append(",");
-        sb.append("\"ruptureReason\":\"").append(escapeJson(cl.getRuptureReason())).append("\",");
+        sb.append("\"material\":\"")
+            .append(
+                cl.getMaterial()
+                    .name())
+            .append("\",");
+        sb.append("\"materialName\":\"")
+            .append(cl.getMaterial().displayName)
+            .append("\",");
+        sb.append("\"materialTier\":\"")
+            .append(cl.getMaterial().tierUnlocked)
+            .append("\",");
+        sb.append("\"maxPressureBar\":")
+            .append(fmt1(cl.getMaterial().maxPressureBar))
+            .append(",");
+        sb.append("\"maxTempC\":")
+            .append(fmt1(cl.getMaterial().maxTemperatureCelsius))
+            .append(",");
+        sb.append("\"pipeSize\":\"")
+            .append(
+                cl.getPipeSize()
+                    .name())
+            .append("\",");
+        sb.append("\"pipeSizeName\":\"")
+            .append(cl.getPipeSize().displayName)
+            .append("\",");
+        sb.append("\"fluid\":\"")
+            .append(
+                cl.getFluidType()
+                    .name())
+            .append("\",");
+        sb.append("\"fluidName\":\"")
+            .append(cl.getFluidType().displayName)
+            .append("\",");
+        sb.append("\"byproductGas\":\"")
+            .append(cl.getFluidType().byproductGas)
+            .append("\",");
+        sb.append("\"hatchTier\":\"")
+            .append(
+                cl.getHatchTier()
+                    .name())
+            .append("\",");
+        sb.append("\"hatchTierName\":\"")
+            .append(cl.getHatchTier().displayName)
+            .append("\",");
+        sb.append("\"hatchVoltage\":")
+            .append(fmt1(cl.getHatchTier().voltageEU))
+            .append(",");
+        sb.append("\"dutyCyclePercent\":")
+            .append(fmt1(cl.getDutyCyclePercent()))
+            .append(",");
+        sb.append("\"effectiveDutyCyclePercent\":")
+            .append(fmt1(cl.getEffectiveDutyCyclePercent()))
+            .append(",");
+        sb.append("\"maxFlowRateLimit\":")
+            .append(fmt1(cl.getMaxFlowRateLPerSec()))
+            .append(",");
+        sb.append("\"maxPressureLimit\":")
+            .append(fmt1(cl.getMaxPressureBar()))
+            .append(",");
+        sb.append("\"pressureLimited\":")
+            .append(cl.isPressureLimited())
+            .append(",");
+        sb.append("\"flowLimited\":")
+            .append(cl.isFlowLimited())
+            .append(",");
+        sb.append("\"limitReason\":\"")
+            .append(escapeJson(cl.getLimitReason()))
+            .append("\",");
+        sb.append("\"pumpPowerEUt\":")
+            .append(fmt1(cl.getPumpElectricalPowerEUt()))
+            .append(",");
+        sb.append("\"targetFlowRateLPerSec\":")
+            .append(fmt1(cl.getTargetFlowRateLPerSec()))
+            .append(",");
+        sb.append("\"useTargetFlowMode\":")
+            .append(cl.isUseTargetFlowMode())
+            .append(",");
+        sb.append("\"currentFlowRateLPerSec\":")
+            .append(fmt1(cl.getCurrentFlowRateLPerSec()))
+            .append(",");
+        sb.append("\"currentPressureBar\":")
+            .append(fmt2(cl.getCurrentPressureBar()))
+            .append(",");
+        sb.append("\"currentCoolantTempCelsius\":")
+            .append(fmt1(cl.getCurrentCoolantTempCelsius()))
+            .append(",");
+        sb.append("\"lastHeatExtractedWatts\":")
+            .append(fmt1(cl.getLastHeatExtractedWatts()))
+            .append(",");
+        sb.append("\"lastHeatExtractedEUt\":")
+            .append(fmt1(cl.getLastHeatExtractedEUt()))
+            .append(",");
+        sb.append("\"lastSecondarySteamProducedLt\":")
+            .append(fmt1(cl.getLastSecondarySteamProducedLt()))
+            .append(",");
+        sb.append("\"lastSecondaryWaterBoiledLt\":")
+            .append(fmt1(cl.getLastSecondaryWaterBoiledLt()))
+            .append(",");
+        sb.append("\"lastPumpPowerEUt\":")
+            .append(fmt1(cl.getLastPumpPowerEUt()))
+            .append(",");
+        sb.append("\"totalDeuteriumProduced\":")
+            .append(cl.getTotalDeuteriumProduced())
+            .append(",");
+        sb.append("\"totalTritiumProduced\":")
+            .append(cl.getTotalTritiumProduced())
+            .append(",");
+        sb.append("\"totalSecondarySteamProduced\":")
+            .append(cl.getTotalSecondarySteamProduced())
+            .append(",");
+        sb.append("\"ruptured\":")
+            .append(cl.isRuptured())
+            .append(",");
+        sb.append("\"ruptureReason\":\"")
+            .append(escapeJson(cl.getRuptureReason()))
+            .append("\",");
         sb.append("\"attachedPoints\":[");
         int ptIdx = 0;
         for (String pt : cl.getAttachedPoints()) {
             if (ptIdx++ > 0) sb.append(",");
-            sb.append("\"").append(pt).append("\"");
+            sb.append("\"")
+                .append(pt)
+                .append("\"");
         }
         sb.append("],");
         sb.append("\"energyHatchTiers\":[");
         int tierIdx = 0;
         for (CoolantLoopModel.EnergyHatchTier t : CoolantLoopModel.EnergyHatchTier.values()) {
             if (tierIdx++ > 0) sb.append(",");
-            sb.append("{\"id\":\"").append(t.name()).append("\",\"name\":\"").append(t.displayName)
-              .append("\",\"voltage\":").append(fmt1(t.voltageEU)).append("}");
+            sb.append("{\"id\":\"")
+                .append(t.name())
+                .append("\",\"name\":\"")
+                .append(t.displayName)
+                .append("\",\"voltage\":")
+                .append(fmt1(t.voltageEU))
+                .append("}");
         }
         sb.append("],");
         sb.append("\"allowedMaterials\":[");
@@ -684,17 +800,27 @@ public class NuclearSimWasmBridge {
         for (CoolantLoopModel.LoopMaterial mat : CoolantLoopModel.LoopMaterial.values()) {
             if (mat.isAllowedInReactorTier(targetGrid.getPipeTier())) {
                 if (matIdx++ > 0) sb.append(",");
-                sb.append("{\"id\":\"").append(mat.name()).append("\",\"name\":\"").append(mat.displayName)
-                    .append("\",\"maxPressure\":").append(mat.maxPressureBar)
-                    .append(",\"tier\":\"").append(mat.tierUnlocked)
-                    .append("\",\"progressionAppropriate\":").append(mat.isProgressionAppropriate(targetGrid.getPipeTier()))
+                sb.append("{\"id\":\"")
+                    .append(mat.name())
+                    .append("\",\"name\":\"")
+                    .append(mat.displayName)
+                    .append("\",\"maxPressure\":")
+                    .append(mat.maxPressureBar)
+                    .append(",\"tier\":\"")
+                    .append(mat.tierUnlocked)
+                    .append("\",\"progressionAppropriate\":")
+                    .append(mat.isProgressionAppropriate(targetGrid.getPipeTier()))
                     .append("}");
             }
         }
         sb.append("]");
         sb.append("},");
-        sb.append("\"grossPowerEUt\":").append(fmt1(targetGrid.getGrossPowerEUt())).append(",");
-        sb.append("\"pumpPowerEUt\":").append(fmt1(targetGrid.getPumpPowerEUt())).append(",");
+        sb.append("\"grossPowerEUt\":")
+            .append(fmt1(targetGrid.getGrossPowerEUt()))
+            .append(",");
+        sb.append("\"pumpPowerEUt\":")
+            .append(fmt1(targetGrid.getPumpPowerEUt()))
+            .append(",");
 
         sb.append("\"turbineMaterial\":\"")
             .append(
@@ -1073,7 +1199,9 @@ public class NuclearSimWasmBridge {
                     .append(t.hasControlRod())
                     .append(",");
                 sb.append("\"controlRodType\":\"")
-                    .append(t.getControlRodType().name())
+                    .append(
+                        t.getControlRodType()
+                            .name())
                     .append("\",");
                 sb.append("\"controlRodTypeName\":\"")
                     .append(escapeJson(t.getControlRodType().displayName))
@@ -1144,29 +1272,62 @@ public class NuclearSimWasmBridge {
         }
 
         sb.append("\"byproducts\":{");
-        sb.append("\"autoReplaceFuel\":").append(targetGrid.isAutoReplaceFuel()).append(",");
-        sb.append("\"totalSolidItemsPerMin\":").append(fmt2(totalSolidItemsPerMin)).append(",");
-        sb.append("\"totalSolidItemsPerHour\":").append(fmt1(totalSolidItemsPerHour)).append(",");
-        sb.append("\"totalLiquidLitersPerMin\":").append(fmt1(totalLiquidLitersPerMin)).append(",");
-        sb.append("\"totalLiquidLitersPerHour\":").append(fmt0(totalLiquidLitersPerHour)).append(",");
-        sb.append("\"totalDepletedItemsProduced\":").append(totalDepletedItemsProduced).append(",");
-        sb.append("\"totalDepletedLiquidProduced\":").append(totalDepletedLiquidProduced).append(",");
+        sb.append("\"autoReplaceFuel\":")
+            .append(targetGrid.isAutoReplaceFuel())
+            .append(",");
+        sb.append("\"totalSolidItemsPerMin\":")
+            .append(fmt2(totalSolidItemsPerMin))
+            .append(",");
+        sb.append("\"totalSolidItemsPerHour\":")
+            .append(fmt1(totalSolidItemsPerHour))
+            .append(",");
+        sb.append("\"totalLiquidLitersPerMin\":")
+            .append(fmt1(totalLiquidLitersPerMin))
+            .append(",");
+        sb.append("\"totalLiquidLitersPerHour\":")
+            .append(fmt0(totalLiquidLitersPerHour))
+            .append(",");
+        sb.append("\"totalDepletedItemsProduced\":")
+            .append(totalDepletedItemsProduced)
+            .append(",");
+        sb.append("\"totalDepletedLiquidProduced\":")
+            .append(totalDepletedLiquidProduced)
+            .append(",");
 
         sb.append("\"solidRods\":[");
         for (int i = 0; i < solidByproducts.size(); i++) {
             if (i > 0) sb.append(",");
             StandaloneNuclearGrid.SolidFuelByproduct s = solidByproducts.get(i);
             sb.append("{");
-            sb.append("\"type\":\"").append(s.type.name()).append("\",");
-            sb.append("\"fuelName\":\"").append(escapeJson(s.fuelName)).append("\",");
-            sb.append("\"fuelCode\":\"").append(s.fuelCode).append("\",");
-            sb.append("\"depletedName\":\"").append(escapeJson(s.depletedName)).append("\",");
-            sb.append("\"depletedCode\":\"").append(s.depletedCode).append("\",");
-            sb.append("\"activeRods\":").append(s.activeRods).append(",");
-            sb.append("\"itemsPerMin\":").append(fmt2(s.itemsPerMinute)).append(",");
-            sb.append("\"itemsPerHour\":").append(fmt1(s.itemsPerHour)).append(",");
-            sb.append("\"totalProduced\":").append(s.totalProduced).append(",");
-            sb.append("\"avgLifespanMin\":").append(Double.isInfinite(s.avgLifespanMinutes) ? "\"Infinity\"" : fmt1(s.avgLifespanMinutes));
+            sb.append("\"type\":\"")
+                .append(s.type.name())
+                .append("\",");
+            sb.append("\"fuelName\":\"")
+                .append(escapeJson(s.fuelName))
+                .append("\",");
+            sb.append("\"fuelCode\":\"")
+                .append(s.fuelCode)
+                .append("\",");
+            sb.append("\"depletedName\":\"")
+                .append(escapeJson(s.depletedName))
+                .append("\",");
+            sb.append("\"depletedCode\":\"")
+                .append(s.depletedCode)
+                .append("\",");
+            sb.append("\"activeRods\":")
+                .append(s.activeRods)
+                .append(",");
+            sb.append("\"itemsPerMin\":")
+                .append(fmt2(s.itemsPerMinute))
+                .append(",");
+            sb.append("\"itemsPerHour\":")
+                .append(fmt1(s.itemsPerHour))
+                .append(",");
+            sb.append("\"totalProduced\":")
+                .append(s.totalProduced)
+                .append(",");
+            sb.append("\"avgLifespanMin\":")
+                .append(Double.isInfinite(s.avgLifespanMinutes) ? "\"Infinity\"" : fmt1(s.avgLifespanMinutes));
             sb.append("}");
         }
         sb.append("],");
@@ -1176,13 +1337,26 @@ public class NuclearSimWasmBridge {
             if (i > 0) sb.append(",");
             StandaloneNuclearGrid.LiquidFuelByproduct l = liquidByproducts.get(i);
             sb.append("{");
-            sb.append("\"type\":\"").append(l.type.name()).append("\",");
-            sb.append("\"fluidName\":\"").append(l.fluidName).append("\",");
-            sb.append("\"displayName\":\"").append(escapeJson(l.displayName)).append("\",");
-            sb.append("\"activeHatches\":").append(l.activeHatches).append(",");
-            sb.append("\"litersPerMin\":").append(fmt1(l.litersPerMinute)).append(",");
-            sb.append("\"litersPerHour\":").append(fmt0(l.litersPerHour)).append(",");
-            sb.append("\"totalLiters\":").append(l.totalLiters);
+            sb.append("\"type\":\"")
+                .append(l.type.name())
+                .append("\",");
+            sb.append("\"fluidName\":\"")
+                .append(l.fluidName)
+                .append("\",");
+            sb.append("\"displayName\":\"")
+                .append(escapeJson(l.displayName))
+                .append("\",");
+            sb.append("\"activeHatches\":")
+                .append(l.activeHatches)
+                .append(",");
+            sb.append("\"litersPerMin\":")
+                .append(fmt1(l.litersPerMinute))
+                .append(",");
+            sb.append("\"litersPerHour\":")
+                .append(fmt0(l.litersPerHour))
+                .append(",");
+            sb.append("\"totalLiters\":")
+                .append(l.totalLiters);
             sb.append("}");
         }
         sb.append("],");
@@ -1192,11 +1366,20 @@ public class NuclearSimWasmBridge {
             if (i > 0) sb.append(",");
             StandaloneNuclearGrid.IsotopeByproduct iso = isotopeByproducts.get(i);
             sb.append("{");
-            sb.append("\"name\":\"").append(iso.name).append("\",");
-            sb.append("\"code\":\"").append(iso.code).append("\",");
-            sb.append("\"litersPerMin\":").append(fmt2(iso.litersPerMinute)).append(",");
-            sb.append("\"litersPerHour\":").append(fmt1(iso.litersPerHour)).append(",");
-            sb.append("\"totalLiters\":").append(iso.totalLiters);
+            sb.append("\"name\":\"")
+                .append(iso.name)
+                .append("\",");
+            sb.append("\"code\":\"")
+                .append(iso.code)
+                .append("\",");
+            sb.append("\"litersPerMin\":")
+                .append(fmt2(iso.litersPerMinute))
+                .append(",");
+            sb.append("\"litersPerHour\":")
+                .append(fmt1(iso.litersPerHour))
+                .append(",");
+            sb.append("\"totalLiters\":")
+                .append(iso.totalLiters);
             sb.append("}");
         }
         sb.append("],");
@@ -1207,15 +1390,32 @@ public class NuclearSimWasmBridge {
             if (i > 0) sb.append(",");
             StandaloneNuclearGrid.RawMaterialBalance r = rawMaterials.get(i);
             sb.append("{");
-            sb.append("\"name\":\"").append(escapeJson(r.name)).append("\",");
-            sb.append("\"code\":\"").append(r.code).append("\",");
-            sb.append("\"unit\":\"").append(r.unit).append("\",");
-            sb.append("\"consumedPerMin\":").append(fmt2(r.consumedPerMinute)).append(",");
-            sb.append("\"consumedPerHour\":").append(fmt1(r.consumedPerHour)).append(",");
-            sb.append("\"producedPerMin\":").append(fmt2(r.producedPerMinute)).append(",");
-            sb.append("\"producedPerHour\":").append(fmt1(r.producedPerHour)).append(",");
-            sb.append("\"netPerMin\":").append(fmt2(r.netPerMinute)).append(",");
-            sb.append("\"netPerHour\":").append(fmt1(r.netPerHour));
+            sb.append("\"name\":\"")
+                .append(escapeJson(r.name))
+                .append("\",");
+            sb.append("\"code\":\"")
+                .append(r.code)
+                .append("\",");
+            sb.append("\"unit\":\"")
+                .append(r.unit)
+                .append("\",");
+            sb.append("\"consumedPerMin\":")
+                .append(fmt2(r.consumedPerMinute))
+                .append(",");
+            sb.append("\"consumedPerHour\":")
+                .append(fmt1(r.consumedPerHour))
+                .append(",");
+            sb.append("\"producedPerMin\":")
+                .append(fmt2(r.producedPerMinute))
+                .append(",");
+            sb.append("\"producedPerHour\":")
+                .append(fmt1(r.producedPerHour))
+                .append(",");
+            sb.append("\"netPerMin\":")
+                .append(fmt2(r.netPerMinute))
+                .append(",");
+            sb.append("\"netPerHour\":")
+                .append(fmt1(r.netPerHour));
             sb.append("}");
         }
         sb.append("]");
@@ -1262,13 +1462,17 @@ public class NuclearSimWasmBridge {
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             if (c == '"') {
-                sb.append('\\').append('"');
+                sb.append('\\')
+                    .append('"');
             } else if (c == '\\') {
-                sb.append('\\').append('\\');
+                sb.append('\\')
+                    .append('\\');
             } else if (c == '\n') {
-                sb.append('\\').append('n');
+                sb.append('\\')
+                    .append('n');
             } else if (c == '\r') {
-                sb.append('\\').append('r');
+                sb.append('\\')
+                    .append('r');
             } else {
                 sb.append(c);
             }

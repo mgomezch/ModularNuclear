@@ -516,7 +516,9 @@ public class NuclearSimulationEngineTest {
 
         // Step with hot dry hatch receiving coolant
         grid.step();
-        assertFalse(grid.isExploded(), "Injecting coolant into dry hatch above boiling threshold must NOT explode on first hit");
+        assertFalse(
+            grid.isExploded(),
+            "Injecting coolant into dry hatch above boiling threshold must NOT explode on first hit");
         assertEquals(2.0, grid.getReactorDamage(), 1e-4, "Thermal shock must inflict 2% reactor damage");
         assertEquals(1, grid.getMaintenanceIssues(), "Thermal shock must increase maintenance issues by 1");
         assertEquals(0, hatch.getInputFluidAmount(), "Coolant injected into hot dry hatch must flash and void");
@@ -553,9 +555,7 @@ public class NuclearSimulationEngineTest {
         hatch.setTemperature(80.0);
         hatch.nuclearTick(1.0);
 
-        assertTrue(
-            hatch.getTemperature() < 80.0,
-            "IC2 coolant must extract heat above ambient threshold");
+        assertTrue(hatch.getTemperature() < 80.0, "IC2 coolant must extract heat above ambient threshold");
         assertTrue(
             hatch.getTemperature() >= NuclearSimulationEngine.AMBIENT_TEMP,
             "IC2 coolant cannot cool below ambient sink temperature");
@@ -595,7 +595,10 @@ public class NuclearSimulationEngineTest {
         waterTile.nuclearTick(1.0);
         int waterConsumed = initialWater - waterTile.getInputFluidAmount();
         assertTrue(waterConsumed > 0, "Superheated distilled water must boil");
-        assertEquals(waterConsumed * 160, waterTile.getLastTickProduced(), "Distilled water must expand 160:1 into steam");
+        assertEquals(
+            waterConsumed * 160,
+            waterTile.getLastTickProduced(),
+            "Distilled water must expand 160:1 into steam");
         assertEquals(waterConsumed * 160, waterTile.getTotalSteamProduced());
         assertEquals(waterConsumed * 160, waterTile.getOutputFluidAmount());
 
@@ -607,7 +610,10 @@ public class NuclearSimulationEngineTest {
         heavyWaterTile.nuclearTick(1.0);
         int hwConsumed = initialHw - heavyWaterTile.getInputFluidAmount();
         assertTrue(hwConsumed > 0, "Superheated heavy water must boil");
-        assertEquals(hwConsumed * 160, heavyWaterTile.getLastTickProduced(), "Heavy water must expand 160:1 into steam");
+        assertEquals(
+            hwConsumed * 160,
+            heavyWaterTile.getLastTickProduced(),
+            "Heavy water must expand 160:1 into steam");
         assertEquals(hwConsumed * 160, heavyWaterTile.getTotalSteamProduced());
         assertEquals(hwConsumed * 160, heavyWaterTile.getOutputFluidAmount());
 
@@ -739,8 +745,14 @@ public class NuclearSimulationEngineTest {
 
         grid.step();
         assertFalse(grid.isExploded(), "Boiling coolant inside reactor core must NOT explode!");
-        assertTrue(grid.getTile(0, 1).getTotalSteamProduced() > 0, "Boiling coolant must produce steam");
-        assertTrue(grid.getTile(0, 1).getTemperature() < 300.0, "Boiling coolant must cool the hatch");
+        assertTrue(
+            grid.getTile(0, 1)
+                .getTotalSteamProduced() > 0,
+            "Boiling coolant must produce steam");
+        assertTrue(
+            grid.getTile(0, 1)
+                .getTemperature() < 300.0,
+            "Boiling coolant must cool the hatch");
 
         // Sub-boiling coolant (< 100°C) must NOT explode
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid safeGrid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
@@ -823,7 +835,9 @@ public class NuclearSimulationEngineTest {
         hatch.setTemperature(350.0);
         grid.step();
         assertTrue(grid.isExploded(), "Reactor must explode when cumulative damage reaches 100%");
-        assertTrue(grid.getExplosionReason().contains("100%"));
+        assertTrue(
+            grid.getExplosionReason()
+                .contains("100%"));
     }
 
     @Test
@@ -1525,9 +1539,9 @@ public class NuclearSimulationEngineTest {
         assertEquals((byte) 6, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_TEMP_AVG));
 
         // When no fuel/component/coolant present, durabilities and coolant levels return 0
-        assertEquals((byte) 0, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_FUEL_DURABILITY_MIN));
-        assertEquals((byte) 0, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_COMPONENT_DURABILITY_MIN));
-        assertEquals((byte) 0, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_COOLANT_LEVEL_MIN));
+        assertEquals((byte) 0, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_FUEL_ITEM_DUR_MIN));
+        assertEquals((byte) 0, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_COOLANT_ITEM_DUR_MIN));
+        assertEquals((byte) 0, reactor.calculateSignalForMode(MTEHatchNuclearControl.MODE_COOLANT_HATCH_FILL_MIN));
     }
 
     @Test
@@ -1705,7 +1719,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(9, NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(triggerOver, 0, 9));
 
         // NuclearHatchElement getBlocksToPlace
-        MTENuclearReactor.NuclearHatchElement element = new MTENuclearReactor.NuclearHatchElement();
+        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.NuclearHatchElement element = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.NuclearHatchElement();
         com.gtnewhorizon.structurelib.structure.IStructureElement.BlocksToPlace blocks0 = element
             .getBlocksToPlace(null, null, 0, 0, 0, trigger0, null);
         assertNotNull(blocks0);
@@ -2057,7 +2071,10 @@ public class NuclearSimulationEngineTest {
         hatch.mInputFluid = coolantIn;
         reactor.triggerThermalShock(hatch, "Test thermal shock 2");
         assertEquals(4.0, reactor.mReactorDamage, 1e-6, "2nd thermal shock must increase reactor damage to 4%");
-        assertEquals(4, reactor.getRepairStatus(), "2nd thermal shock must increase maintenance issues to 2 (4 working)");
+        assertEquals(
+            4,
+            reactor.getRepairStatus(),
+            "2nd thermal shock must increase maintenance issues to 2 (4 working)");
 
         // 3rd through 6th thermal shocks
         for (int i = 3; i <= 6; i++) {
@@ -2854,7 +2871,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(ForgeDirection.UP, reactor.getNuclearHatchFacing());
 
         // Test NuclearHatchElement check()
-        MTENuclearReactor.NuclearHatchElement element = new MTENuclearReactor.NuclearHatchElement();
+        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.NuclearHatchElement element = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.NuclearHatchElement();
         List<String> desc = element.getDescription(reactor);
         assertNotNull(desc);
         assertTrue(
@@ -2966,7 +2983,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn(15);
 
         // BottomCoreElement tests
-        MTENuclearReactor.BottomCoreElement bottomElement = new MTENuclearReactor.BottomCoreElement();
+        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.BottomCoreElement bottomElement = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.BottomCoreElement();
         World mockWorld = org.mockito.Mockito.mock(World.class);
 
         // 1. Nuclear casing at bottom
@@ -3017,10 +3034,14 @@ public class NuclearSimulationEngineTest {
             .thenReturn(controlRod);
         org.mockito.Mockito.when(mockBotTe.getFrontFacing())
             .thenReturn(ForgeDirection.DOWN);
-        assertTrue(bottomElement.check(reactor, mockWorld, 10, 64, 15), "Control rod facing DOWN must pass BottomCoreElement");
+        assertTrue(
+            bottomElement.check(reactor, mockWorld, 10, 64, 15),
+            "Control rod facing DOWN must pass BottomCoreElement");
         org.mockito.Mockito.when(mockBotTe.getFrontFacing())
             .thenReturn(ForgeDirection.UP);
-        assertFalse(bottomElement.check(reactor, mockWorld, 10, 64, 15), "Control rod facing UP must fail BottomCoreElement");
+        assertFalse(
+            bottomElement.check(reactor, mockWorld, 10, 64, 15),
+            "Control rod facing UP must fail BottomCoreElement");
 
         // Pairing checks
         List<gregtech.api.structure.error.StructureError> errors = new ArrayList<>();
@@ -3135,13 +3156,25 @@ public class NuclearSimulationEngineTest {
         reactor.mHardHammer = true;
         reactor.mSolderingTool = true;
         reactor.mCrowbar = true;
-        assertEquals(1.0, reactor.getMaintenanceEfficiency(), 1e-6, "Undamaged machine with perfect maintenance must have 100% efficiency");
+        assertEquals(
+            1.0,
+            reactor.getMaintenanceEfficiency(),
+            1e-6,
+            "Undamaged machine with perfect maintenance must have 100% efficiency");
 
         reactor.mReactorDamage = 20.0;
-        assertEquals(0.80, reactor.getMaintenanceEfficiency(), 1e-6, "20% reactor damage must scale cooling efficiency to 80%");
+        assertEquals(
+            0.80,
+            reactor.getMaintenanceEfficiency(),
+            1e-6,
+            "20% reactor damage must scale cooling efficiency to 80%");
 
         reactor.mReactorDamage = 50.0;
-        assertEquals(0.50, reactor.getMaintenanceEfficiency(), 1e-6, "50% reactor damage must scale cooling efficiency to 50%");
+        assertEquals(
+            0.50,
+            reactor.getMaintenanceEfficiency(),
+            1e-6,
+            "50% reactor damage must scale cooling efficiency to 50%");
 
         // Verify all 13 fuels satisfy peak/10% damage ratio <= 25%
         for (NuclearFuelType fuel : NuclearFuelType.values()) {
@@ -3231,14 +3264,16 @@ public class NuclearSimulationEngineTest {
         controllerStack.setTagCompound(itemNbt);
         List<String> tooltip = new ArrayList<>();
         reactor.addAdditionalTooltipInformation(controllerStack, tooltip);
-        boolean foundDamageTooltip = tooltip.stream().anyMatch(s -> s.contains("Reactor Damage: 42.5%"));
+        boolean foundDamageTooltip = tooltip.stream()
+            .anyMatch(s -> s.contains("Reactor Damage: 42.5%"));
         assertTrue(foundDamageTooltip, "Controller item tooltip must display reactor damage percentage");
 
         // 3. When new controller is placed and loadNBTData is called, damage is restored
         MTENuclearReactor placedReactor = new MTENuclearReactor("nuclear.reactor.test");
         gregtech.api.interfaces.tileentity.IGregTechTileEntity tePlaced = org.mockito.Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-        org.mockito.Mockito.when(tePlaced.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+        org.mockito.Mockito.when(tePlaced.getFrontFacing())
+            .thenReturn(ForgeDirection.NORTH);
         placedReactor.setBaseMetaTileEntity(tePlaced);
         placedReactor.loadNBTData(itemNbt);
         assertEquals(42.5, placedReactor.mReactorDamage, 1e-6, "Damage must be restored upon placing controller");
@@ -3253,7 +3288,8 @@ public class NuclearSimulationEngineTest {
         MTENuclearReactor placedCleanReactor = new MTENuclearReactor("nuclear.reactor.test");
         gregtech.api.interfaces.tileentity.IGregTechTileEntity teClean = org.mockito.Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-        org.mockito.Mockito.when(teClean.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+        org.mockito.Mockito.when(teClean.getFrontFacing())
+            .thenReturn(ForgeDirection.NORTH);
         placedCleanReactor.setBaseMetaTileEntity(teClean);
         placedCleanReactor.loadNBTData(cleanNbt);
         assertEquals(0.0, placedCleanReactor.mReactorDamage, 1e-6);
@@ -3312,7 +3348,12 @@ public class NuclearSimulationEngineTest {
             double tempAfter = temp - tempDrop;
             assertTrue(
                 tempAfter > sinkTemp,
-                "Tier " + tier + " temp after cooling (" + tempAfter + ") must remain strictly above sink temperature (" + sinkTemp + ")");
+                "Tier " + tier
+                    + " temp after cooling ("
+                    + tempAfter
+                    + ") must remain strictly above sink temperature ("
+                    + sinkTemp
+                    + ")");
         }
     }
 
@@ -3321,9 +3362,10 @@ public class NuclearSimulationEngineTest {
         // Verifies that in an active operating reactor, conductive coolant hatches
         // can and do stabilize at temperatures above boiling point (100°C for distilled water),
         // rather than being artificially pinned to 100.0°C.
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid =
-            new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-                7, 7, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
+            7,
+            7,
+            NuclearSimulationEngine.PIPE_TIER_PLATINUM);
         grid.loadPreset("BEST_PLATINUM_7X7");
 
         // Run 50 ticks of reactor simulation
@@ -3336,7 +3378,8 @@ public class NuclearSimulationEngineTest {
         for (int x = 0; x < 7; x++) {
             for (int y = 0; y < 7; y++) {
                 com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile tile = grid.getTile(x, y);
-                if (tile != null && tile.getType() == com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER) {
+                if (tile != null && tile.getType()
+                    == com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER) {
                     hatch = tile;
                     break;
                 }
@@ -3347,15 +3390,14 @@ public class NuclearSimulationEngineTest {
         assertNotNull(hatch, "Grid must contain distilled water hatch");
         assertTrue(
             hatch.getTemperature() > 100.0,
-            "Hatch temperature (" + hatch.getTemperature() + "°C) must rise above boiling point under continuous heat input");
+            "Hatch temperature (" + hatch.getTemperature()
+                + "°C) must rise above boiling point under continuous heat input");
         assertNotEquals(
             100.0,
             hatch.getTemperature(),
             0.01,
             "Hatch temperature must not be artificially clamped to exactly 100.0°C");
-        assertTrue(
-            hatch.getTotalSteamProduced() > 0,
-            "Hatch must actively produce steam while above boiling point");
+        assertTrue(hatch.getTotalSteamProduced() > 0, "Hatch must actively produce steam while above boiling point");
         assertTrue(
             hatch.getTemperature() < 1000.0,
             "Hatch temperature must remain safely bounded due to conductive cooling");
@@ -3385,13 +3427,20 @@ public class NuclearSimulationEngineTest {
 
         assertTrue(
             hatchMV.getTemperature() > hatchHV.getTemperature(),
-            "MV hatch temp (" + hatchMV.getTemperature() + "°C) must be higher than HV hatch temp (" + hatchHV.getTemperature() + "°C)");
+            "MV hatch temp (" + hatchMV.getTemperature()
+                + "°C) must be higher than HV hatch temp ("
+                + hatchHV.getTemperature()
+                + "°C)");
         assertTrue(
             hatchHV.getTemperature() > hatchEV.getTemperature(),
-            "HV hatch temp (" + hatchHV.getTemperature() + "°C) must be higher than EV hatch temp (" + hatchEV.getTemperature() + "°C)");
+            "HV hatch temp (" + hatchHV.getTemperature()
+                + "°C) must be higher than EV hatch temp ("
+                + hatchEV.getTemperature()
+                + "°C)");
         assertTrue(
             hatchEV.getTemperature() > 100.0,
-            "EV hatch temp (" + hatchEV.getTemperature() + "°C) must still be strictly above 100°C boiling point after 1 tick");
+            "EV hatch temp (" + hatchEV.getTemperature()
+                + "°C) must still be strictly above 100°C boiling point after 1 tick");
     }
 
     @Test
@@ -3403,8 +3452,14 @@ public class NuclearSimulationEngineTest {
         hatch.nuclearTick(1.0);
 
         assertTrue(hatch.getTemperature() < 80.0, "IC2 coolant must cool hatch");
-        assertTrue(hatch.getTemperature() > NuclearSimulationEngine.AMBIENT_TEMP, "IC2 coolant must not drop below ambient");
-        assertNotEquals(NuclearSimulationEngine.AMBIENT_TEMP, hatch.getTemperature(), 0.01, "IC2 coolant must not be pinned to ambient in 1 tick");
+        assertTrue(
+            hatch.getTemperature() > NuclearSimulationEngine.AMBIENT_TEMP,
+            "IC2 coolant must not drop below ambient");
+        assertNotEquals(
+            NuclearSimulationEngine.AMBIENT_TEMP,
+            hatch.getTemperature(),
+            0.01,
+            "IC2 coolant must not be pinned to ambient in 1 tick");
         assertTrue(hatch.getOutputFluidAmount() > 0, "Hot coolant must be produced");
     }
 
@@ -3415,12 +3470,14 @@ public class NuclearSimulationEngineTest {
         reactor.mEfficiency = 10000;
 
         if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("distilledwater")) {
-            net.minecraftforge.fluids.FluidRegistry.registerFluid(new net.minecraftforge.fluids.Fluid("distilledwater"));
+            net.minecraftforge.fluids.FluidRegistry
+                .registerFluid(new net.minecraftforge.fluids.Fluid("distilledwater"));
         }
         if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("steam")) {
             net.minecraftforge.fluids.FluidRegistry.registerFluid(new net.minecraftforge.fluids.Fluid("steam"));
         }
-        net.minecraftforge.fluids.Fluid distilledWater = net.minecraftforge.fluids.FluidRegistry.getFluid("distilledwater");
+        net.minecraftforge.fluids.Fluid distilledWater = net.minecraftforge.fluids.FluidRegistry
+            .getFluid("distilledwater");
 
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 3, 32000, new String[0], null);
         hatch.mTemperature = 150.0; // Above 100°C boiling point
@@ -3447,17 +3504,21 @@ public class NuclearSimulationEngineTest {
 
         gregtech.api.interfaces.tileentity.IGregTechTileEntity teMock = org.mockito.Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-        org.mockito.Mockito.when(teMock.isServerSide()).thenReturn(true);
-        org.mockito.Mockito.when(teMock.getWorld()).thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
+        org.mockito.Mockito.when(teMock.isServerSide())
+            .thenReturn(true);
+        org.mockito.Mockito.when(teMock.getWorld())
+            .thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
         reactor.setBaseMetaTileEntity(teMock);
 
         if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("distilledwater")) {
-            net.minecraftforge.fluids.FluidRegistry.registerFluid(new net.minecraftforge.fluids.Fluid("distilledwater"));
+            net.minecraftforge.fluids.FluidRegistry
+                .registerFluid(new net.minecraftforge.fluids.Fluid("distilledwater"));
         }
         if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("steam")) {
             net.minecraftforge.fluids.FluidRegistry.registerFluid(new net.minecraftforge.fluids.Fluid("steam"));
         }
-        net.minecraftforge.fluids.Fluid distilledWater = net.minecraftforge.fluids.FluidRegistry.getFluid("distilledwater");
+        net.minecraftforge.fluids.Fluid distilledWater = net.minecraftforge.fluids.FluidRegistry
+            .getFluid("distilledwater");
 
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch.starve", 3, 32000, new String[0], null);
         hatch.mTemperature = 200.0;
@@ -3479,13 +3540,18 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testStandaloneGridStrictModeThermalShockFailsFast() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid =
-            new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
+            5,
+            5,
+            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         grid.setStrictMode(true);
         assertTrue(grid.isStrictMode());
 
         // Place a coolant hatch and set it dry and superheated
-        grid.setTile(2, 2, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER);
+        grid.setTile(
+            2,
+            2,
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER);
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatch = grid.getTile(2, 2);
         hatch.setTemperature(150.0);
         hatch.setInputFluidAmount(0);
@@ -3496,20 +3562,35 @@ public class NuclearSimulationEngineTest {
         boolean ok = grid.step();
         assertFalse(ok, "Step must halt immediately in strict mode on thermal shock");
         assertTrue(grid.isPowerFailed(), "Power failed flag must be set in strict mode");
-        assertTrue(grid.getPowerFailReason().contains("Thermal Shock"), "Power fail reason must cite thermal shock: " + grid.getPowerFailReason());
-        assertFalse(grid.getIncidentLog().isEmpty(), "Incident log must capture thermal shock event");
-        assertEquals("THERMAL_SHOCK", grid.getIncidentLog().get(0).type());
+        assertTrue(
+            grid.getPowerFailReason()
+                .contains("Thermal Shock"),
+            "Power fail reason must cite thermal shock: " + grid.getPowerFailReason());
+        assertFalse(
+            grid.getIncidentLog()
+                .isEmpty(),
+            "Incident log must capture thermal shock event");
+        assertEquals(
+            "THERMAL_SHOCK",
+            grid.getIncidentLog()
+                .get(0)
+                .type());
     }
 
     @Test
     void testStandaloneGridPermissiveModeAccumulatesDamageAndLogs() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid =
-            new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
+            5,
+            5,
+            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         grid.setStrictMode(false); // Interactive webapp mode
         assertFalse(grid.isStrictMode());
 
         // Place a coolant hatch and set it dry and superheated
-        grid.setTile(2, 2, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER);
+        grid.setTile(
+            2,
+            2,
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER);
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatch = grid.getTile(2, 2);
         hatch.setTemperature(150.0);
         hatch.setInputFluidAmount(0);
@@ -3525,8 +3606,13 @@ public class NuclearSimulationEngineTest {
         assertEquals(1, grid.getMaintenanceIssues(), "Maintenance issues must increase to 1");
 
         // Verify incident log contains the event
-        assertFalse(grid.getIncidentLog().isEmpty(), "Incident log must contain the event");
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid.IncidentEvent ev = grid.getIncidentLog().get(0);
+        assertFalse(
+            grid.getIncidentLog()
+                .isEmpty(),
+            "Incident log must contain the event");
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid.IncidentEvent ev = grid
+            .getIncidentLog()
+            .get(0);
         assertEquals("THERMAL_SHOCK", ev.type());
         assertEquals(2.0, ev.damage(), 1e-6);
 
@@ -3534,28 +3620,37 @@ public class NuclearSimulationEngineTest {
         grid.repair();
         assertEquals(0.0, grid.getReactorDamage(), 1e-6);
         assertEquals(0, grid.getMaintenanceIssues());
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid.IncidentEvent repEv =
-            grid.getIncidentLog().get(grid.getIncidentLog().size() - 1);
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid.IncidentEvent repEv = grid
+            .getIncidentLog()
+            .get(
+                grid.getIncidentLog()
+                    .size() - 1);
         assertEquals("REPAIR", repEv.type());
     }
 
     @Test
     void testStandaloneGridStrictModeCasingOverheatFailsFast() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid =
-            new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
+            5,
+            5,
+            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         grid.setStrictMode(true);
 
         // Electrum casing limit is 1200°C. Set all tiles to 1250°C so diffusion does not cool them below limit
         for (int x = 0; x < 5; x++) {
             for (int y = 0; y < 5; y++) {
-                grid.getTile(x, y).setTemperature(1250.0);
+                grid.getTile(x, y)
+                    .setTemperature(1250.0);
             }
         }
 
         boolean ok = grid.step();
         assertFalse(ok, "Step must halt immediately in strict mode on casing overheat");
         assertTrue(grid.isPowerFailed(), "Power failed flag must be set on casing overheat");
-        assertTrue(grid.getPowerFailReason().contains("overheated casing max"), "Power fail reason must cite casing overheat");
+        assertTrue(
+            grid.getPowerFailReason()
+                .contains("overheated casing max"),
+            "Power fail reason must cite casing overheat");
     }
 
     @Test
@@ -3569,7 +3664,9 @@ public class NuclearSimulationEngineTest {
         assertNotNull(tile);
         assertTrue(tile.isFuel());
         assertEquals("DU4", tile.getDepletedCode());
-        assertTrue(tile.getDepletedDisplayName().contains("Depleted Uranium"));
+        assertTrue(
+            tile.getDepletedDisplayName()
+                .contains("Depleted Uranium"));
 
         // Step grid to produce neutrons and burn durability
         for (int i = 0; i < 5; i++) {
@@ -3603,7 +3700,10 @@ public class NuclearSimulationEngineTest {
         grid.step();
         assertTrue(tile.isDepleted(), "Tile should remain depleted when auto-refuel is disabled");
         assertEquals(0, tile.getDurability());
-        assertEquals(2, grid.getCumulativeDepletedItems(SimTile.TileType.FUEL_URANIUM_QUAD), "Should increment to 2 depleted rods");
+        assertEquals(
+            2,
+            grid.getCumulativeDepletedItems(SimTile.TileType.FUEL_URANIUM_QUAD),
+            "Should increment to 2 depleted rods");
     }
 
     @Test
@@ -3642,7 +3742,8 @@ public class NuclearSimulationEngineTest {
             grid.step();
         }
 
-        String json = com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.buildStateJson(grid, false);
+        String json = com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge
+            .buildStateJson(grid, false);
         assertNotNull(json);
         assertTrue(json.contains("\"byproducts\":{"), "JSON must contain byproducts section");
         assertTrue(json.contains("\"autoReplaceFuel\":true"), "JSON must contain autoReplaceFuel");
@@ -3762,11 +3863,14 @@ public class NuclearSimulationEngineTest {
         assertFalse(stepResult, "step() must return false once exploded");
 
         // Test with WasmBridge
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.initGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge
+            .initGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.setRunning(true);
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.getGrid().triggerExplosion("WASM Meltdown test");
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.getGrid()
+            .triggerExplosion("WASM Meltdown test");
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.step();
-        assertFalse(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.isRunning(),
+        assertFalse(
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.isRunning(),
             "Bridge isRunning must become false immediately upon meltdown");
     }
 
@@ -3785,7 +3889,10 @@ public class NuclearSimulationEngineTest {
         // Log an incident with damage
         grid.logIncident("CELL_OVERHEAT", "Overheated cell (2,2) exceeding casing limit", 4.5);
         assertTrue(grid.isHaltedByIncident(), "Grid must be marked as halted by incident");
-        assertTrue(grid.getLastHaltIncidentReason().contains("Overheated cell"), "Last halt incident reason must match");
+        assertTrue(
+            grid.getLastHaltIncidentReason()
+                .contains("Overheated cell"),
+            "Last halt incident reason must match");
 
         // Next step should return false because it is paused by incident
         assertFalse(grid.step(), "step() must return false while halted by incident");
@@ -3821,9 +3928,15 @@ public class NuclearSimulationEngineTest {
         fuelTile.setDepleted(true);
         grid.step();
 
-        assertEquals(fuelTile.getMaxDurability(), fuelTile.getDurability(), "Fuel rod must be replenished to 100% durability");
+        assertEquals(
+            fuelTile.getMaxDurability(),
+            fuelTile.getDurability(),
+            "Fuel rod must be replenished to 100% durability");
         assertFalse(fuelTile.isDepleted(), "Fresh fuel rod must not be marked depleted");
-        assertEquals(1, grid.getCumulativeDepletedItems(SimTile.TileType.FUEL_URANIUM_QUAD), "Should track 1 depleted rod byproduct");
+        assertEquals(
+            1,
+            grid.getCumulativeDepletedItems(SimTile.TileType.FUEL_URANIUM_QUAD),
+            "Should track 1 depleted rod byproduct");
 
         // Auto-supply fuel OFF: depleting rod leaves it depleted
         grid.setAutoSupplyFuel(false);
@@ -3845,31 +3958,37 @@ public class NuclearSimulationEngineTest {
         // With auto-supply fuel ON, step should replenish fluid to full capacity
         grid.setAutoSupplyFuel(true);
         grid.step();
-        assertEquals(liquidHatch.getInputFluidCapacity(), liquidHatch.getInputFluidAmount(),
+        assertEquals(
+            liquidHatch.getInputFluidCapacity(),
+            liquidHatch.getInputFluidAmount(),
             "Liquid fuel hatch must be replenished to capacity by autoSupplyFuel");
 
         // With auto-supply fuel OFF, drained hatch is NOT automatically topped off to capacity
         grid.setAutoSupplyFuel(false);
         liquidHatch.setInputFluidAmount(300);
         grid.step();
-        assertTrue(liquidHatch.getInputFluidAmount() <= 300,
+        assertTrue(
+            liquidHatch.getInputFluidAmount() <= 300,
             "Liquid fuel hatch must not be topped off to capacity when autoSupplyFuel is disabled");
     }
 
     @Test
     void testWasmBridgeIncidentHaltAndResume() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.initGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge
+            .initGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.setStopOnIncidents(true);
         assertTrue(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.isStopOnIncidents());
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.setRunning(true);
 
-        StandaloneNuclearGrid g = com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.getGrid();
+        StandaloneNuclearGrid g = com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge
+            .getGrid();
         g.logIncident("CELL_HEAT", "Cell heat damage at (1,1)", 3.0);
         assertTrue(g.isHaltedByIncident());
 
         // Step should detect incident halt and set isRunning = false
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.step();
-        assertFalse(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.isRunning(),
+        assertFalse(
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.isRunning(),
             "Bridge isRunning must become false on incident halt");
 
         // Resuming by setting running = true clears the incident halt
@@ -3881,12 +4000,30 @@ public class NuclearSimulationEngineTest {
     @Test
     void testRepairTemperatureThresholdScalingAndGating() {
         // Verify formula: max(120.0, 10% of max operating temperature)
-        assertEquals(120.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_ELECTRUM), 1e-6);
-        assertEquals(140.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_PLATINUM), 1e-6);
-        assertEquals(180.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_OSMIUM), 1e-6);
-        assertEquals(220.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_QUANTIUM), 1e-6);
-        assertEquals(260.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM), 1e-6);
-        assertEquals(320.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM), 1e-6);
+        assertEquals(
+            120.0,
+            NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_ELECTRUM),
+            1e-6);
+        assertEquals(
+            140.0,
+            NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_PLATINUM),
+            1e-6);
+        assertEquals(
+            180.0,
+            NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_OSMIUM),
+            1e-6);
+        assertEquals(
+            220.0,
+            NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_QUANTIUM),
+            1e-6);
+        assertEquals(
+            260.0,
+            NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM),
+            1e-6);
+        assertEquals(
+            320.0,
+            NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM),
+            1e-6);
 
         // Grid temperature gating verification
         StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
@@ -3906,7 +4043,8 @@ public class NuclearSimulationEngineTest {
         for (int x = 0; x < 5; x++) {
             for (int y = 0; y < 5; y++) {
                 if (grid.getTile(x, y) != null) {
-                    grid.getTile(x, y).setTemperature(150.0);
+                    grid.getTile(x, y)
+                        .setTemperature(150.0);
                 }
             }
         }
@@ -3919,7 +4057,12 @@ public class NuclearSimulationEngineTest {
         assertFalse(repBlocked, "Repair must be blocked when core average temperature is above threshold");
         assertEquals(30.0, grid.getReactorDamage(), 1e-6, "Damage must NOT be cleared when repair is blocked");
         assertEquals(1, grid.getMaintenanceIssues(), "Maintenance issues must NOT be cleared when repair is blocked");
-        assertEquals("REPAIR_FAILED", grid.getIncidentLog().get(grid.getIncidentLog().size() - 1).type());
+        assertEquals(
+            "REPAIR_FAILED",
+            grid.getIncidentLog()
+                .get(
+                    grid.getIncidentLog()
+                        .size() - 1)
+                .type());
     }
 }
-

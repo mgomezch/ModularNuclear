@@ -53,7 +53,8 @@ public enum NuclearFuelType {
         this.defaultDurability = defaultDurability;
         this.baseNeutrons = baseNeutrons;
 
-        FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver.solve(null, peakReactivityTemp, floorTemp, 20.0);
+        FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver
+            .solve(null, peakReactivityTemp, floorTemp, 20.0);
         this.damageK = stats.k;
         this.damageA = stats.A;
         this.temp10Percent = stats.t10Percent;

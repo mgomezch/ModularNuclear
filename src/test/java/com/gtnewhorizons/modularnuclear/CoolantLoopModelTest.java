@@ -54,14 +54,16 @@ public class CoolantLoopModelTest {
         assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isAllowedInReactorTier(tierIV));
         assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isAllowedInReactorTier(tierIV));
         assertTrue(CoolantLoopModel.LoopMaterial.TUNGSTENSTEEL.isAllowedInReactorTier(tierIV));
-        assertTrue(CoolantLoopModel.LoopMaterial.NEUTRONIUM.isAllowedInReactorTier(tierIV),
+        assertTrue(
+            CoolantLoopModel.LoopMaterial.NEUTRONIUM.isAllowedInReactorTier(tierIV),
             "Neutronium is physically allowed on IV (sim app allows it)");
 
         assertTrue(CoolantLoopModel.LoopMaterial.STEEL.isAllowedInReactorTier(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isAllowedInReactorTier(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isAllowedInReactorTier(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.TUNGSTENSTEEL.isAllowedInReactorTier(tierLuV));
-        assertTrue(CoolantLoopModel.LoopMaterial.NEUTRONIUM.isAllowedInReactorTier(tierLuV),
+        assertTrue(
+            CoolantLoopModel.LoopMaterial.NEUTRONIUM.isAllowedInReactorTier(tierLuV),
             "Neutronium is physically allowed on LuV");
 
         // Progression appropriate check (for automated optimization searches):
@@ -70,9 +72,11 @@ public class CoolantLoopModelTest {
         assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isProgressionAppropriate(tierIV));
         assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isProgressionAppropriate(tierIV));
         assertTrue(CoolantLoopModel.LoopMaterial.TUNGSTENSTEEL.isProgressionAppropriate(tierIV));
-        assertFalse(CoolantLoopModel.LoopMaterial.NEUTRONIUM.isProgressionAppropriate(tierIV),
+        assertFalse(
+            CoolantLoopModel.LoopMaterial.NEUTRONIUM.isProgressionAppropriate(tierIV),
             "Neutronium is not progression-appropriate for Tier 2 optimization searches");
-        assertFalse(CoolantLoopModel.LoopMaterial.NEUTRONIUM.isProgressionAppropriate(tierLuV),
+        assertFalse(
+            CoolantLoopModel.LoopMaterial.NEUTRONIUM.isProgressionAppropriate(tierLuV),
             "Neutronium is not progression-appropriate for Tier 2 optimization searches");
 
         // In Tier 3+ (ZPM+), Neutronium is progression-appropriate
@@ -107,7 +111,8 @@ public class CoolantLoopModelTest {
     void testTier1ConvectiveCoolingRejection() {
         StandaloneNuclearGrid tier1Grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         assertFalse(tier1Grid.isTier2ConvectiveAllowed());
-        assertFalse(tier1Grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP),
+        assertFalse(
+            tier1Grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP),
             "Convective cooling mode must reject Tier 1 (Electrum / EV)");
         assertEquals(CoolantLoopModel.CoolingMode.MODULAR, tier1Grid.getCoolingMode());
     }
@@ -138,8 +143,10 @@ public class CoolantLoopModelTest {
         assertTrue(loop.getCurrentCoolantTempCelsius() > 20.0, "Coolant should warm up");
         assertTrue(grid.getGrossPowerEUt() > 0, "Gross power should be positive");
         assertTrue(grid.getPumpPowerEUt() > 0, "Pump power should be subtracted");
-        assertEquals(grid.getGrossPowerEUt() - grid.getPumpPowerEUt(),
-            grid.getLastPowerResult().totalPowerEUt, 0.01,
+        assertEquals(
+            grid.getGrossPowerEUt() - grid.getPumpPowerEUt(),
+            grid.getLastPowerResult().totalPowerEUt,
+            0.01,
             "Net power should equal gross minus pump draw");
     }
 
@@ -174,21 +181,30 @@ public class CoolantLoopModelTest {
         assertFalse(stepResult, "Extreme flow in tiny pipe should exceed burst limit");
         assertTrue(grid.isExploded());
         assertTrue(loop.isRuptured());
-        assertTrue(loop.getRuptureReason().contains("Coolant Loop Burst"));
+        assertTrue(
+            loop.getRuptureReason()
+                .contains("Coolant Loop Burst"));
     }
 
     @Test
     void testPassageCoreTileRecognition() {
         grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
         loop.clearAttachedPoints();
-        assertEquals(0, loop.getAttachedPoints().size());
+        assertEquals(
+            0,
+            loop.getAttachedPoints()
+                .size());
 
         // Place a PASSAGE_CORE cell
         grid.setTile(3, 3, SimTile.TileType.PASSAGE_CORE);
-        assertTrue(grid.getTile(3, 3).isCoolantPassage());
+        assertTrue(
+            grid.getTile(3, 3)
+                .isCoolantPassage());
 
         grid.step();
-        assertTrue(loop.getLastHeatExtractedEUt() > 0, "PASSAGE_CORE tile should automatically be cooled by convective loop");
+        assertTrue(
+            loop.getLastHeatExtractedEUt() > 0,
+            "PASSAGE_CORE tile should automatically be cooled by convective loop");
     }
 
     @Test
@@ -200,10 +216,14 @@ public class CoolantLoopModelTest {
         // (1, 1): Fuel rod cooled by (1, 2) conductive boiling hatch
         grid.setTile(1, 1, SimTile.TileType.FUEL_URANIUM_QUAD);
         grid.setTile(1, 2, SimTile.TileType.HATCH_DISTILLED_WATER);
-        grid.getTile(1, 2).setInputFluidAmount(8000);
-        grid.getTile(1, 2).setAutoRefill(true);
-        grid.getTile(1, 1).setTemperature(600.0);
-        grid.getTile(1, 2).setTemperature(200.0);
+        grid.getTile(1, 2)
+            .setInputFluidAmount(8000);
+        grid.getTile(1, 2)
+            .setAutoRefill(true);
+        grid.getTile(1, 1)
+            .setTemperature(600.0);
+        grid.getTile(1, 2)
+            .setTemperature(200.0);
 
         // (3, 3): Fuel rod cooled by convective loop via attached point and (3, 4) Passage Core
         grid.setTile(3, 3, SimTile.TileType.FUEL_URANIUM_QUAD);
@@ -223,8 +243,10 @@ public class CoolantLoopModelTest {
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
         loop.setPumpPowerEUt(250.0);
         loop.setCurrentCoolantTempCelsius(120.0);
-        grid.getTile(3, 3).setTemperature(600.0);
-        grid.getTile(3, 4).setTemperature(500.0);
+        grid.getTile(3, 3)
+            .setTemperature(600.0);
+        grid.getTile(3, 4)
+            .setTemperature(500.0);
 
         assertTrue(grid.isCoolantLoopActive(), "Grid should recognize PASSAGE_CORE and activate loop");
         assertTrue(grid.shouldStepCoolantLoop(), "Grid should step coolant loop in MODULAR mode");
@@ -237,24 +259,38 @@ public class CoolantLoopModelTest {
         }
 
         // 1. Conductive boiling hatch boiled water
-        assertTrue(grid.getTile(1, 2).getTotalSteamProduced() > 0, "Boiling hatch should produce conductive steam");
+        assertTrue(
+            grid.getTile(1, 2)
+                .getTotalSteamProduced() > 0,
+            "Boiling hatch should produce conductive steam");
 
         // 2. Convective loop extracted heat and produced secondary steam
         assertTrue(loop.getLastHeatExtractedEUt() > 0, "Loop should convectively extract heat");
         assertTrue(loop.getTotalSecondarySteamProduced() > 0, "Loop should produce secondary steam");
 
         // 3. Steam generation accounts for BOTH conductive hatch steam and loop secondary steam
-        assertTrue(grid.getTotalSteamProduced() > grid.getTile(1, 2).getTotalSteamProduced(),
+        assertTrue(
+            grid.getTotalSteamProduced() > grid.getTile(1, 2)
+                .getTotalSteamProduced(),
             "Total steam should include both conductive hatch and convective loop steam");
 
         // 4. IC2 vent tile actively dissipates heat
-        assertTrue(grid.getTile(5, 4).getTemperature() > NuclearSimulationEngine.AMBIENT_TEMP, "Heat vent should absorb and dissipate heat");
+        assertTrue(
+            grid.getTile(5, 4)
+                .getTemperature() > NuclearSimulationEngine.AMBIENT_TEMP,
+            "Heat vent should absorb and dissipate heat");
 
         // 5. Uncooled fuel rod heats up freely via fission
-        assertTrue(grid.getTile(5, 1).getTemperature() > 100.0, "Uncooled fuel rod should heat up without direct cooling");
+        assertTrue(
+            grid.getTile(5, 1)
+                .getTemperature() > 100.0,
+            "Uncooled fuel rod should heat up without direct cooling");
 
         // 6. Parasitic power is subtracted from gross output
         assertTrue(grid.getPumpPowerEUt() > 0, "Active loop should consume pump power");
-        assertEquals(Math.max(0.0, grid.getGrossPowerEUt() - grid.getPumpPowerEUt()), grid.getLastPowerResult().totalPowerEUt, 0.01);
+        assertEquals(
+            Math.max(0.0, grid.getGrossPowerEUt() - grid.getPumpPowerEUt()),
+            grid.getLastPowerResult().totalPowerEUt,
+            0.01);
     }
 }

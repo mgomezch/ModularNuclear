@@ -99,7 +99,8 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
-            return EnumChatFormatting.LIGHT_PURPLE + "PR In: " + MTEHatchNuclearControlRod.getChannelName(machine.mInputChannel);
+            return EnumChatFormatting.LIGHT_PURPLE + "PR In: "
+                + MTEHatchNuclearControlRod.getChannelName(machine.mInputChannel);
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));

@@ -13,6 +13,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
@@ -415,17 +416,14 @@ public class ItemCardModularNuclear extends ItemCardBase implements IRemoteSenso
         ChunkCoordinates target = wrapper.getTarget();
         if (target != null) {
             list.add(
-                EnumChatFormatting.GRAY + "Target: "
-                    + EnumChatFormatting.YELLOW
-                    + "["
-                    + target.posX
-                    + ", "
-                    + target.posY
-                    + ", "
-                    + target.posZ
-                    + "]");
+                EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
+                    "item.modularnuclear.sensorcard.target",
+                    target.posX,
+                    target.posY,
+                    target.posZ));
         } else {
-            list.add(EnumChatFormatting.RED + "Unlinked. Right-click on MPTR Reactor to bind.");
+            list.add(
+                EnumChatFormatting.RED + StatCollector.translateToLocal("item.modularnuclear.sensorcard.unlinked"));
         }
     }
 }

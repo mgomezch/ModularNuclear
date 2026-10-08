@@ -35,6 +35,7 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.objects.ItemData;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTOreDictUnificator;
+import gregtech.api.util.GTSplit;
 import gregtech.api.util.GTUtility;
 
 /**
@@ -106,21 +107,16 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public MTEHatchNuclearControlRod(int aID, String aName, String aNameRegional, int aTier) {
-        super(
-            aID,
-            aName,
-            aNameRegional,
-            aTier,
-            1,
-            new String[] { "Nuclear core control rod hatch",
-                "Holds long rods of Silver, Boron, Cadmium, Indium, or Hafnium",
-                "Controlled by external redstone (0..15) or ProjectRed bundled cable (0..255)",
-                "Right-click with screwdriver to cycle bundled input channel",
-                "0 signal = 0% insertion (retracted), max signal = 100% insertion (full absorption)" });
+        super(aID, aName, aNameRegional, aTier, 1, (String) null);
     }
 
     public MTEHatchNuclearControlRod(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, 1, aDescription, aTextures);
+    }
+
+    @Override
+    public String[] getDescription() {
+        return GTSplit.splitLocalized("gt.blockmachines.hatch.nuclearcontrolrod.desc");
     }
 
     @Override
@@ -203,12 +199,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     public int getFineRedstoneSignal() {
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null || base.getWorld() == null) return -1;
-        return ProjectRedIntegration.getBundledInput(
-            base.getWorld(),
-            base.getXCoord(),
-            base.getYCoord(),
-            base.getZCoord(),
-            mInputChannel);
+        return ProjectRedIntegration
+            .getBundledInput(base.getWorld(), base.getXCoord(), base.getYCoord(), base.getZCoord(), mInputChannel);
     }
 
     public boolean isInterfacingProjectRed() {
@@ -395,18 +387,15 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 new TextWidget().setStringSupplier(() -> String.format("Temp: %.1f °C", mTemperature))
                     .setDefaultColor(Color.rgb(255, 200, 0))
                     .setPos(10, 31))
-            .widget(
-                new TextWidget()
-                    .setStringSupplier(
-                        () -> {
-                            int fine = getFineRedstoneSignal();
-                            if (fine >= 0) {
-                                return String.format("Insert: %d%% (PR: %d/255)", getInsertionPercent(), fine);
-                            }
-                            return String.format("Insert: %d%% (RS: %d)", getInsertionPercent(), getRedstoneSignal());
-                        })
-                    .setDefaultColor(Color.rgb(100, 255, 200))
-                    .setPos(10, 42))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                int fine = getFineRedstoneSignal();
+                if (fine >= 0) {
+                    return String.format("Insert: %d%% (PR: %d/255)", getInsertionPercent(), fine);
+                }
+                return String.format("Insert: %d%% (RS: %d)", getInsertionPercent(), getRedstoneSignal());
+            })
+                .setDefaultColor(Color.rgb(100, 255, 200))
+                .setPos(10, 42))
             .widget(
                 new TextWidget().setStringSupplier(() -> "Rod: " + getRodType(mInventory[SLOT_ROD]).displayName)
                     .setDefaultColor(Color.rgb(200, 200, 255))

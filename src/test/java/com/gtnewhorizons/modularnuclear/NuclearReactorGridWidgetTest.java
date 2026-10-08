@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Items;
@@ -17,17 +18,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Method;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGridWidget;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
-import com.gtnewhorizons.modularnuclear.common.opencomputers.NuclearControlEnvironment;
-import li.cil.oc.api.machine.Callback;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.opencomputers.NuclearControlEnvironment;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 import com.gtnewhorizons.modularui.api.screen.ModularUIContext;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
@@ -35,6 +34,7 @@ import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import gregtech.api.enums.Textures;
 import gregtech.api.render.TextureFactory;
 import io.netty.buffer.Unpooled;
+import li.cil.oc.api.machine.Callback;
 
 public class NuclearReactorGridWidgetTest {
 
@@ -327,12 +327,14 @@ public class NuclearReactorGridWidgetTest {
     @Test
     void testScramIsSingleGlobalButtonOverridingIndividualRedstone() {
         MTEHatchNuclearControlRod rodA = new MTEHatchNuclearControlRod("rodA", 1, new String[0], null) {
+
             @Override
             public byte getRedstoneSignal() {
                 return 3; // 3/15 = 20%
             }
         };
         MTEHatchNuclearControlRod rodB = new MTEHatchNuclearControlRod("rodB", 1, new String[0], null) {
+
             @Override
             public byte getRedstoneSignal() {
                 return 8; // 8/15 = 53%
@@ -374,12 +376,26 @@ public class NuclearReactorGridWidgetTest {
             if (cb != null) {
                 callbackCount++;
                 String name = m.getName();
-                assertTrue(name.startsWith("get"),
-                    "All OpenComputers reactor callbacks must be strictly read-only getters! Found forbidden method: " + name);
-                assertFalse(name.toLowerCase().contains("set"), "Reactor OpenComputers API must never contain setters: " + name);
-                assertFalse(name.toLowerCase().contains("scram"), "Reactor OpenComputers API must never contain SCRAM controls: " + name);
-                assertFalse(name.toLowerCase().contains("rod"), "Reactor OpenComputers API must never contain control rod controls: " + name);
-                assertFalse(name.toLowerCase().contains("insert"), "Reactor OpenComputers API must never contain insertion controls: " + name);
+                assertTrue(
+                    name.startsWith("get"),
+                    "All OpenComputers reactor callbacks must be strictly read-only getters! Found forbidden method: "
+                        + name);
+                assertFalse(
+                    name.toLowerCase()
+                        .contains("set"),
+                    "Reactor OpenComputers API must never contain setters: " + name);
+                assertFalse(
+                    name.toLowerCase()
+                        .contains("scram"),
+                    "Reactor OpenComputers API must never contain SCRAM controls: " + name);
+                assertFalse(
+                    name.toLowerCase()
+                        .contains("rod"),
+                    "Reactor OpenComputers API must never contain control rod controls: " + name);
+                assertFalse(
+                    name.toLowerCase()
+                        .contains("insert"),
+                    "Reactor OpenComputers API must never contain insertion controls: " + name);
             }
         }
         assertTrue(callbackCount > 0, "NuclearControlEnvironment must define callbacks");

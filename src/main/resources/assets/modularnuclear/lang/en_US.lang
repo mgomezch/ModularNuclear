@@ -1,55 +1,152 @@
-tile.modularnuclear.casing.name=Nuclear Casing
-tile.modularnuclear.casing.0.name=Nuclear Casing
-modularnuclear.casing.name=Nuclear Casing
-modularnuclear.casing.0.name=Nuclear Casing
-item.modularnuclear.radiovoltaic.plate.hv.name=Radiovoltaic Plate (HV)
-item.modularnuclear.radiovoltaic.plate.ev.name=Radiovoltaic Plate (EV)
+tile.modularnuclear.casing.name=Nuclear casing
+tile.modularnuclear.casing.0.name=Nuclear casing
+modularnuclear.casing.name=Nuclear casing
+modularnuclear.casing.0.name=Nuclear casing
+item.modularnuclear.radiovoltaic.plate.hv.name=Radiovoltaic plate (HV)
+item.modularnuclear.radiovoltaic.plate.ev.name=Radiovoltaic plate (EV)
 
 gt.blockmachines.multimachine.nuclearreactor.name=Modular Pressure Tube Reactor (MPTR)
-gt.blockmachines.hatch.nuclearbus.name=Nuclear Core Bus
-gt.blockmachines.hatch.nuclear.bus.name=Nuclear Core Bus
-gt.blockmachines.hatch.nuclearhatch.lv.name=Nuclear Hatch (LV)
-gt.blockmachines.hatch.nuclearhatch.mv.name=Nuclear Hatch (MV)
-gt.blockmachines.hatch.nuclearhatch.hv.name=Nuclear Hatch (HV)
-gt.blockmachines.hatch.nuclearhatch.ev.name=Nuclear Hatch (EV)
-gt.blockmachines.hatch.nuclearhatch.iv.name=Nuclear Hatch (IV)
-gt.blockmachines.hatch.nuclearhatch.luv.name=Nuclear Hatch (LuV)
-gt.blockmachines.hatch.nuclearhatch.zpm.name=Nuclear Hatch (ZPM)
-gt.blockmachines.hatch.nuclearhatch.uv.name=Nuclear Hatch (UV)
-gt.blockmachines.hatch.nuclearhatch.uhv.name=Nuclear Hatch (UHV)
-gt.blockmachines.hatch.nuclear.fluid.tier.01.name=Nuclear Hatch (LV)
-gt.blockmachines.hatch.nuclear.fluid.tier.02.name=Nuclear Hatch (MV)
-gt.blockmachines.hatch.nuclear.fluid.tier.03.name=Nuclear Hatch (HV)
-gt.blockmachines.hatch.nuclear.fluid.tier.04.name=Nuclear Hatch (EV)
-gt.blockmachines.hatch.nuclear.fluid.tier.05.name=Nuclear Hatch (IV)
-gt.blockmachines.hatch.nuclear.fluid.tier.06.name=Nuclear Hatch (LuV)
-gt.blockmachines.hatch.nuclear.fluid.tier.07.name=Nuclear Hatch (ZPM)
-gt.blockmachines.hatch.nuclear.fluid.tier.08.name=Nuclear Hatch (UV)
-gt.blockmachines.hatch.nuclear.fluid.tier.09.name=Nuclear Hatch (UHV)
-gt.blockmachines.hatch.nuclearcontrol.name=Nuclear Control Hatch
-gt.blockmachines.hatch.nuclear.control.name=Nuclear Control Hatch
-gt.blockmachines.hatch.nuclearcontrolrod.name=Nuclear Control Rod Hatch
-gt.blockmachines.hatch.nuclear.controlrod.name=Nuclear Control Rod Hatch
+gt.blockmachines.hatch.nuclearbus.name=Nuclear core bus
+gt.blockmachines.hatch.nuclear.bus.name=Nuclear core bus
+gt.blockmachines.hatch.nuclearhatch.lv.name=Nuclear core hatch (LV)
+gt.blockmachines.hatch.nuclearhatch.mv.name=Nuclear core hatch (MV)
+gt.blockmachines.hatch.nuclearhatch.hv.name=Nuclear core hatch (HV)
+gt.blockmachines.hatch.nuclearhatch.ev.name=Nuclear core hatch (EV)
+gt.blockmachines.hatch.nuclearhatch.iv.name=Nuclear core hatch (IV)
+gt.blockmachines.hatch.nuclearhatch.luv.name=Nuclear core hatch (LuV)
+gt.blockmachines.hatch.nuclearhatch.zpm.name=Nuclear core hatch (ZPM)
+gt.blockmachines.hatch.nuclearhatch.uv.name=Nuclear core hatch (UV)
+gt.blockmachines.hatch.nuclearhatch.uhv.name=Nuclear core hatch (UHV)
+gt.blockmachines.hatch.nuclear.fluid.tier.01.name=Nuclear core hatch (LV)
+gt.blockmachines.hatch.nuclear.fluid.tier.02.name=Nuclear core hatch (MV)
+gt.blockmachines.hatch.nuclear.fluid.tier.03.name=Nuclear core hatch (HV)
+gt.blockmachines.hatch.nuclear.fluid.tier.04.name=Nuclear core hatch (EV)
+gt.blockmachines.hatch.nuclear.fluid.tier.05.name=Nuclear core hatch (IV)
+gt.blockmachines.hatch.nuclear.fluid.tier.06.name=Nuclear core hatch (LuV)
+gt.blockmachines.hatch.nuclear.fluid.tier.07.name=Nuclear core hatch (ZPM)
+gt.blockmachines.hatch.nuclear.fluid.tier.08.name=Nuclear core hatch (UV)
+gt.blockmachines.hatch.nuclear.fluid.tier.09.name=Nuclear core hatch (UHV)
+gt.blockmachines.hatch.nuclearcontrol.name=Nuclear control hatch
+gt.blockmachines.hatch.nuclear.control.name=Nuclear control hatch
+gt.blockmachines.hatch.nuclearcontrolrod.name=Nuclear core control rod
+gt.blockmachines.hatch.nuclear.controlrod.name=Nuclear core control rod
 
 GT5U.gui.button.reactor_hatches=Open reactor core hatches view
 GT5U.gui.text.structure_error.missing_nuclear_hatch=Missing nuclear hatch or bus in core grid
 GT5U.gui.text.structure_error.inconsistent_nuclear_hatch_tier=All nuclear hatches must be of the same tier
 GT5U.gui.text.structure_error.invalid_pipe_tier=Invalid item pipe casing tier (requires Electrum or higher)
 GT5U.gui.text.structure_error.cannot_wallshare_nuclear_hatches=This multiblock cannot share walls (adjacent nuclear hatches/buses detected)
-GT5U.gui.text.structure_error.wrong_nuclear_hatch_facing=Top-layer hatches must face UP; bottom-layer HP hatches must face DOWN
+GT5U.gui.text.structure_error.wrong_nuclear_hatch_facing=Top-layer hatches must face up; bottom-layer HP hatches must face down
 GT5U.gui.text.structure_error.hp_hatch_tier=High-pressure coolant passage hatches require Tier 2 or Tier 3 reactor
 GT5U.gui.text.structure_error.hp_hatch_unpaired=High-pressure coolant passage hatches must be paired 1:1 between top inlet and bottom outlet
 
-channels.modularnuclear.nuclear_hatch=Decides the type and tier of core hatches. Starts at §6Nuclear Core Bus (Items)§r at value 0, §6Nuclear Core Hatches (LV-UHV for fluids)§r from value 1 to 9, and §6Nuclear Core High-Pressure Hatch§r at value 10.
-channels.modularnuclear.master.nuclear_hatch=Nuclear Hatch Tier
-channels.gregtech.nuclear_hatch=Decides the type and tier of core hatches. Starts at §6Nuclear Core Bus (Items)§r at value 0, §6Nuclear Core Hatches (LV-UHV for fluids)§r from value 1 to 9, and §6Nuclear Core High-Pressure Hatch§r at value 10.
-channels.gregtech.master.nuclear_hatch=Nuclear Hatch Tier
-gt.blockmachines.hatch.nuclearhighpressure.name=Nuclear Core High-Pressure Hatch
-gt.blockmachines.hatch.nuclear.highpressure.name=Nuclear Core High-Pressure Hatch
+channels.modularnuclear.nuclear_hatch=Decides the type and tier of core hatches. Starts at §6Nuclear core bus (items)§r at value 0, §6Nuclear core hatches (LV-UHV for fluids)§r from value 1 to 9, and §6Nuclear core high-pressure hatch§r at value 10.
+channels.modularnuclear.master.nuclear_hatch=Nuclear hatch tier
+channels.gregtech.nuclear_hatch=Decides the type and tier of core hatches. Starts at §6Nuclear core bus (items)§r at value 0, §6Nuclear core hatches (LV-UHV for fluids)§r from value 1 to 9, and §6Nuclear core high-pressure hatch§r at value 10.
+channels.gregtech.master.nuclear_hatch=Nuclear hatch tier
+gt.blockmachines.hatch.nuclearhighpressure.name=Nuclear core high-pressure hatch
+gt.blockmachines.hatch.nuclear.highpressure.name=Nuclear core high-pressure hatch
 
-fluid.heavywater=Heavy Water
+fluid.heavywater=Heavy water
 
-item.cellHeavyWater.name=Heavy Water Cell
+item.cellHeavyWater.name=Heavy water cell
 
-modularnuclear.nei.fuel_stats.name=MPTR Fuel Stats
-gt.nei.neutron_interaction.name=Neutron Interaction
+modularnuclear.nei.fuel_stats.name=MPTR fuels
+gt.nei.neutron_interaction.name=Neutron interaction
+
+# Multiblock Tooltips
+gt.multiblock.nuclearreactor.machine_type=Modular Pressure Tube Reactor (MPTR)
+gt.multiblock.nuclearreactor.desc1=Modular nuclear reactor simulating discrete neutron transport and moderation
+gt.multiblock.nuclearreactor.desc2=Supports self-stabilizing negative temperature reactivity feedback
+gt.multiblock.nuclearreactor.desc3=Height is fixed at 5 blocks for all tiers (octagonal prism chamber)
+gt.multiblock.nuclearreactor.desc4=Core chamber features cut-corner null cells with reflecting/absorbing casing walls
+gt.multiblock.nuclearreactor.desc5=Wall heat dissipation is uniformly distributed to all active cells via coolant pool
+gt.multiblock.nuclearreactor.desc6=Item pipe casings determine operating temperature and allowed coolants:
+gt.multiblock.nuclearreactor.desc7= - Electrum: IC2 coolant (sub-boiling conductive cooling, max 1000 °C)
+gt.multiblock.nuclearreactor.desc8= - Platinum: distilled water (sub-boiling conductive cooling, max 1400 °C)
+gt.multiblock.nuclearreactor.desc9= - Osmium: external coolant loops via HP passage hatches (max 1800 °C)
+gt.multiblock.nuclearreactor.desc10= - Quantium: heavy water (sub-boiling conductive cooling, max 2200 °C)
+gt.multiblock.nuclearreactor.desc11= - Fluxed Electrum: external coolant loops with heavy water (max 2600 °C)
+gt.multiblock.nuclearreactor.desc12= - Black Plutonium: all coolants and loop configurations (max 3200 °C)
+gt.multiblock.nuclearreactor.desc13=Accepts dynamo and multi-amp dynamo hatches for direct radiovoltaic EU output
+gt.multiblock.nuclearreactor.desc14= - Radiovoltaic cells convert absorbed neutron flux directly to EU (HV 2A, EV 2A)
+gt.multiblock.nuclearreactor.desc15=Outputs (depleted items, byproducts, molten cheese) eject to output buses and hatches
+gt.multiblock.nuclearreactor.desc16=Warning: fluid hatches only support sub-boiling cooling (boiling causes explosion)!
+gt.multiblock.nuclearreactor.desc17=Warning: overheating hatches void contents!
+gt.multiblock.nuclearreactor.desc18=Warning: HP coolant passage hatches require Tier 2+ and 1:1 top/bottom pairing!
+gt.multiblock.nuclearreactor.desc19=Note: This multiblock cannot share walls!
+gt.multiblock.nuclearreactor.desc20=Top-layer hatches must face up; bottom-layer hatches must face down
+gt.multiblock.nuclearreactor.finisher=GregTech nuclear power
+
+gt.multiblock.nuclearreactor.structure.wallshare=This multiblock cannot share walls
+gt.multiblock.nuclearreactor.structure.facing=Top-layer hatches face up; bottom-layer hatches face down
+gt.multiblock.nuclearreactor.structure.casings=Nuclear casings
+gt.multiblock.nuclearreactor.structure.pipe_casings=Item pipe casings (Electrum / Platinum / Osmium / Quantium / Fluxed Electrum / Black Plutonium)
+gt.multiblock.nuclearreactor.structure.hatches_top=Nuclear bus / hatch / HP hatch
+gt.multiblock.nuclearreactor.structure.hatches_top_pos=Top layer octagonal core positions (facing up)
+gt.multiblock.nuclearreactor.structure.hatches_bot=Nuclear casing, nuclear core HP hatch, or nuclear core control rod
+gt.multiblock.nuclearreactor.structure.hatches_bot_pos=Opposite core layer positions (facing outward)
+gt.multiblock.nuclearreactor.structure.control_hatch=Nuclear control hatch
+gt.multiblock.nuclearreactor.structure.maintenance=Any outer casing (exactly 1)
+gt.multiblock.nuclearreactor.structure.dynamo=Any outer casing (optional for radiovoltaic direct EU, max 1)
+gt.multiblock.nuclearreactor.structure.optional_outer=Any outer casing (optional)
+
+# Hatch Tooltips
+gt.blockmachines.hatch.nuclearbus.desc=Nuclear core bus for items\nHolds fuel rods, reflectors, coolant cells, control rods, or insulators\nInput-only core component bus\nOutputs eject to reactor output buses and hatches
+gt.blockmachines.hatch.nuclearhatch.desc=Tiered nuclear fluid hatch (%s)\nHolds input coolant or liquid nuclear fuel\nInput-only core fluid hatch\nAll outputs (steam, hot coolant, byproducts, spent fuel) eject to reactor output hatches\nCapacity: %s L\nCoolant boiling and transmutation under neutron flux\nConductance: %s EU/(t·°C)\nItem pipe casing determines allowed coolants\nInserting coolant into a dry superheated reactor will cause thermal shock!
+gt.blockmachines.hatch.nuclearhighpressure.desc=Hermetic core passage endpoint for closed coolant loops\nConnects top inlet to bottom outlet for external heat exchange loops\nPairs strictly by column coordinates (Slice 0 top <-> Slice 4 bottom)\nAccepts coolant flow from pumps and heat exchangers without storing fluids
+gt.blockmachines.hatch.nuclearcontrol.desc=Emits redstone signals based on nuclear reactor conditions\nRight-click with screwdriver to cycle metric (sneak+right-click for bundled mode)\nRight-click with soldering iron to cycle statistic\nOutputs 0-15 vanilla redstone or 0-255 ProjectRed bundled signals strictly from front face\nSupports 16-channel ProjectRed bundled cables with 8-bit precision
+gt.blockmachines.hatch.nuclearcontrolrod.desc=Nuclear core control rod\nHolds long rods of Silver, Boron, Cadmium, Indium, or Hafnium\nControlled by external redstone (0..15) or ProjectRed bundled cable (0..255)\nRight-click with screwdriver to cycle bundled input channel\n0 signal = 0%% insertion (retracted), max signal = 100%% insertion (full absorption)
+
+# Item Tooltips
+item.modularnuclear.radiovoltaic.plate.hv.desc=Converts absorbed neutron flux into direct HV electricity\nMax output: 1,024 EU/t (2A HV) via dynamo hatches
+item.modularnuclear.radiovoltaic.plate.ev.desc=Converts absorbed neutron flux into direct EV electricity\nMax output: 4,096 EU/t (2A EV) via dynamo hatches
+item.modularnuclear.radiovoltaic.plate.common.desc=Absorbs 100%% of incident neutron flux\nFast neutrons yield 4x electricity vs thermal neutrons\nExcess absorbed energy converts directly into core heat
+item.modularnuclear.sensorcard.target=Target: [%d, %d, %d]
+item.modularnuclear.sensorcard.unlinked=Unlinked. Right-click on MPTR reactor to bind.
+item.modularnuclear.sensorkit.desc=Right-click on MPTR reactor to link and create sensor card
+
+# GUI Tabs
+gt.gui.modularnuclear.tab.components=Components
+gt.gui.modularnuclear.tab.components.desc=Grid components view (fuel rods, coolant, insulators)
+gt.gui.modularnuclear.tab.temperature=Temperature
+gt.gui.modularnuclear.tab.temperature.desc=Temperature heatmap across all reactor cells
+gt.gui.modularnuclear.tab.neutron_flux=Neutron flux
+gt.gui.modularnuclear.tab.neutron_flux.desc=Fast and thermal neutron flux intensity heatmap
+gt.gui.modularnuclear.tab.neutron_absorption=Neutron absorption
+gt.gui.modularnuclear.tab.neutron_absorption.desc=Neutron absorption and transmutation heatmap
+gt.gui.modularnuclear.tab.control_rods=Control rods
+gt.gui.modularnuclear.tab.control_rods.desc=Inspect control rod hatches and insertion levels
+gt.gui.modularnuclear.tab.active=● Currently active tab
+gt.gui.modularnuclear.tab.switch=Click to switch to this tab
+
+# NEI Tooltips
+gt.nei.neutron_interaction.fast=Fast neutrons
+gt.nei.neutron_interaction.thermal=Thermal neutrons
+gt.nei.neutron_interaction.capture=Neutron capture
+gt.nei.neutron_interaction.absorption=Neutron absorption
+gt.nei.neutron_interaction.scattering=Scattering probability
+gt.nei.neutron_interaction.scattering_fast.desc=Chance of fast neutrons bouncing off this component
+gt.nei.neutron_interaction.absorption_title=Absorption probability
+gt.nei.neutron_interaction.absorption_fast.desc=Chance of fast neutrons being absorbed by this component
+gt.nei.neutron_interaction.thermal_fraction=Thermal scattered neutron fraction
+gt.nei.neutron_interaction.thermal_fraction.desc=%.1f%%%% of scattered neutrons become thermal
+gt.nei.neutron_interaction.fast_fraction=Fast scattered neutron fraction
+gt.nei.neutron_interaction.fast_fraction.desc=%.1f%%%% of scattered neutrons remain fast
+gt.nei.neutron_interaction.scattering_thermal.desc=Chance of thermal neutrons bouncing off this component
+gt.nei.neutron_interaction.absorption_thermal.desc=Chance of thermal neutrons being absorbed by this component
+gt.nei.neutron_interaction.fast_energy=Fast neutron energy
+gt.nei.neutron_interaction.fast_energy.desc=Energy transferred to heat upon absorption (8 EU)
+gt.nei.neutron_interaction.direct_heat=Direct heat by disintegration
+gt.nei.neutron_interaction.direct_heat.desc=Fission heat: %.2f °C per fission reaction
+gt.nei.neutron_interaction.direct_energy=Direct energy
+gt.nei.neutron_interaction.direct_energy.desc=Energy released: %.0f EU per fission reaction
+gt.nei.neutron_interaction.multiplication=Neutrons multiplication
+gt.nei.neutron_interaction.multiplication.desc=New fast neutrons produced (varies with core temperature)
+gt.nei.neutron_interaction.absorption_capacity=Neutron absorption capacity
+gt.nei.neutron_interaction.absorption_capacity.desc=Total neutrons absorbed before component depletion/transmutation
+gt.nei.neutron_interaction.role=Reactor role: %s
+gt.nei.neutron_interaction.fast_stats=Fast: Scatter %.1f%%%%, Absorb %.1f%%%%, Slow %.1f%%%%
+gt.nei.neutron_interaction.thermal_stats=Thermal: Scatter %.1f%%%%, Absorb %.1f%%%%
+gt.nei.neutron_interaction.depleted_title=Depleted component (byproduct)
+gt.nei.neutron_interaction.depleted_desc=Produced after absorbing full neutron capacity in the nuclear reactor

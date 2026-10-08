@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
@@ -67,6 +68,6 @@ public class ItemKitModularNuclear extends ItemSensorKitBase {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
         super.addInformation(stack, player, list, advanced);
-        list.add(EnumChatFormatting.GRAY + "Right-click on MPTR Reactor to link and create Sensor Card");
+        list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("item.modularnuclear.sensorkit.desc"));
     }
 }

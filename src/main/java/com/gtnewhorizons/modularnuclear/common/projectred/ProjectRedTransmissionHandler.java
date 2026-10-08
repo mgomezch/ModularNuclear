@@ -44,8 +44,11 @@ public class ProjectRedTransmissionHandler implements IBundledTileInteraction {
         if (te instanceof IGregTechTileEntity gt) {
             IMetaTileEntity mte = gt.getMetaTileEntity();
             if (mte instanceof MTEHatchNuclearControl) {
-                int front = gt.getFrontFacing().ordinal();
-                int opp = gt.getFrontFacing().getOpposite().ordinal();
+                int front = gt.getFrontFacing()
+                    .ordinal();
+                int opp = gt.getFrontFacing()
+                    .getOpposite()
+                    .ordinal();
                 return side == front || side == opp;
             }
             if (mte instanceof MTEHatchNuclearControlRod) {
@@ -61,8 +64,11 @@ public class ProjectRedTransmissionHandler implements IBundledTileInteraction {
         if (te instanceof IGregTechTileEntity gt) {
             IMetaTileEntity mte = gt.getMetaTileEntity();
             if (mte instanceof MTEHatchNuclearControl hatch) {
-                int front = gt.getFrontFacing().ordinal();
-                int opp = gt.getFrontFacing().getOpposite().ordinal();
+                int front = gt.getFrontFacing()
+                    .ordinal();
+                int opp = gt.getFrontFacing()
+                    .getOpposite()
+                    .ordinal();
                 if (side == front || side == opp) {
                     return hatch.getBundledSignal();
                 }
@@ -89,7 +95,13 @@ public class ProjectRedTransmissionHandler implements IBundledTileInteraction {
             }
         }
         if (ProjectRedAPI.transmissionAPI != null) {
-            if (ProjectRedAPI.transmissionAPI.containsBundledCable(world, tx, ty, tz, facing.getOpposite().ordinal())) {
+            if (ProjectRedAPI.transmissionAPI.containsBundledCable(
+                world,
+                tx,
+                ty,
+                tz,
+                facing.getOpposite()
+                    .ordinal())) {
                 return true;
             }
             if (ProjectRedAPI.transmissionAPI.containsBundledCable(world, tx, ty, tz, 6)) {

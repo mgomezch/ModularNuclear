@@ -33,13 +33,13 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
         public CachedFuelStatsRecipe(NuclearFuelType fuel, List<ItemStack> items) {
             this.fuel = fuel;
-            List<ItemStack> displayItems = (items != null && !items.isEmpty())
-                ? items
+            List<ItemStack> displayItems = (items != null && !items.isEmpty()) ? items
                 : Collections.singletonList(ItemList.RodThorium.get(1L));
             this.fuelStack = new PositionedStack(displayItems, 12, 10);
             this.chartTexture = new ResourceLocation(
                 "modularnuclear",
-                "textures/gui/nei/fuelstats/chart_" + fuel.name().toLowerCase(Locale.US) + ".png");
+                "textures/gui/nei/fuelstats/chart_" + fuel.name()
+                    .toLowerCase(Locale.US) + ".png");
         }
 
         @Override
@@ -128,7 +128,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
     public String getRecipeName() {
         return StatCollector.canTranslate("modularnuclear.nei.fuel_stats.name")
             ? StatCollector.translateToLocal("modularnuclear.nei.fuel_stats.name")
-            : "MPTR Fuel Stats";
+            : "MPTR fuels";
     }
 
     @Override

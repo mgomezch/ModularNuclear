@@ -8,7 +8,7 @@ import gregtech.api.structure.IStructureChannels;
 
 public enum NuclearStructureChannels implements IStructureChannels {
 
-    NUCLEAR_HATCH("nuclear_hatch", "Nuclear Hatch Tier");
+    NUCLEAR_HATCH("nuclear_hatch", "Nuclear hatch tier");
 
     private final String channel;
     private final String defaultTooltip;

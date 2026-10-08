@@ -257,9 +257,8 @@ public class StandaloneNuclearGrid {
         public final double netPerMinute;
         public final double netPerHour;
 
-        public RawMaterialBalance(String name, String code, String unit,
-            double consumedPerMinute, double consumedPerHour,
-            double producedPerMinute, double producedPerHour) {
+        public RawMaterialBalance(String name, String code, String unit, double consumedPerMinute,
+            double consumedPerHour, double producedPerMinute, double producedPerHour) {
             this.name = name;
             this.code = code;
             this.unit = unit;
@@ -349,7 +348,8 @@ public class StandaloneNuclearGrid {
         this.incidentLog.add(new IncidentEvent(this.currentTick, type, message, damage));
         if (this.stopOnIncidents && damage > 0.0 && !this.haltedByIncident) {
             this.haltedByIncident = true;
-            this.lastHaltIncidentReason = String.format(java.util.Locale.US, "[%s] %s (+%.1f%% damage)", type, message, damage);
+            this.lastHaltIncidentReason = String
+                .format(java.util.Locale.US, "[%s] %s (+%.1f%% damage)", type, message, damage);
         }
     }
 
@@ -650,8 +650,8 @@ public class StandaloneNuclearGrid {
                 }
             }
         }
-        NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine.simulate(
-            simGrid, width, height, getMaintenanceEfficiency(), NuclearSimulationEngine.ambientTemp);
+        NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine
+            .simulate(simGrid, width, height, getMaintenanceEfficiency(), NuclearSimulationEngine.ambientTemp);
 
         coreMaxTemp = res.maxTemperature;
         coreAvgTemp = res.averageTemperature;
@@ -689,9 +689,8 @@ public class StandaloneNuclearGrid {
                 } else if (tile.isFuel() || tile.isDepleted()) {
                     if (tile.getDurability() <= 0 || tile.isDepleted()) {
                         if (autoReplaceFuel) {
-                            cumulativeDepletedFuelItems.put(
-                                tile.getType(),
-                                cumulativeDepletedFuelItems.getOrDefault(tile.getType(), 0L) + 1L);
+                            cumulativeDepletedFuelItems
+                                .put(tile.getType(), cumulativeDepletedFuelItems.getOrDefault(tile.getType(), 0L) + 1L);
                             tile.setDurability(tile.getMaxDurability());
                             tile.setDepleted(false);
                             logIncident(
@@ -706,9 +705,8 @@ public class StandaloneNuclearGrid {
                                     tile.getDepletedCode()),
                                 0.0);
                         } else if (!tile.isDepletionLogged()) {
-                            cumulativeDepletedFuelItems.put(
-                                tile.getType(),
-                                cumulativeDepletedFuelItems.getOrDefault(tile.getType(), 0L) + 1L);
+                            cumulativeDepletedFuelItems
+                                .put(tile.getType(), cumulativeDepletedFuelItems.getOrDefault(tile.getType(), 0L) + 1L);
                             tile.setDepletionLogged(true);
                             logIncident(
                                 "FUEL_DEPLETED",
@@ -734,7 +732,9 @@ public class StandaloneNuclearGrid {
                 triggerExplosion("Coolant Loop Failure: " + coolantLoop.getRuptureReason());
                 return false;
             }
-            recordTraceSnapshot("POST_COOLANT_LOOP", "Convective coolant loop heat extraction and PHE secondary boiling completed");
+            recordTraceSnapshot(
+                "POST_COOLANT_LOOP",
+                "Convective coolant loop heat extraction and PHE secondary boiling completed");
         }
 
         // 4. Strict Check for Negative Temperature Anomaly
@@ -1006,7 +1006,8 @@ public class StandaloneNuclearGrid {
             return;
         }
         if (reactorDamage >= 100.0) {
-            triggerExplosion("Meltdown: Reactor structural damage reached 100% from catastrophic thermal shock! (" + reason + ")");
+            triggerExplosion(
+                "Meltdown: Reactor structural damage reached 100% from catastrophic thermal shock! (" + reason + ")");
         }
     }
 
@@ -1133,13 +1134,13 @@ public class StandaloneNuclearGrid {
             // ==================== MAXXED-OUT OPTIMUM CEILINGS (nuclear_ceiling_best.json) ====================
             case "BEST_ELECTRUM_5X5", "MAX_ELECTRUM_5X5", "ELECTRUM_POWER_5X5", "BASIC_ELECTRUM_5X5", "EV_PEAK" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_E;
-                this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
+                this.turbineMaterial = TurbineCalculator.TurbineMaterial.ORINARUKON;
+                this.turbineSize = TurbineCalculator.TurbineSize.NORMAL;
                 this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
-                loadLayout("T4,M2,M4,M2,T4;M4,RB,HC,RB,M4;HD,M4,RC,M4,HD;M4,RB,HC,RB,M4;T4,M2,M4,M2,T4");
+                loadLayout("RB,HD,M4,HD,RB;U4,M4,M4,M4,U4;M4,HD,HD,HD,M4;U4,M4,M4,M4,U4;RB,HD,M4,HD,RB");
                 updateHatchCapacities(8000);
             }
-            case "BEST_PLATINUM_7X7", "BEST_PLATINUM_9X9", "MAX_PLATINUM_9X9", "BREEDER_9X9", "BREEDER_7X7", "IV_PEAK" -> {
+            case "BREEDER_7X7", "BEST_PLATINUM_7X7" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
                 this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_S;
                 this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
@@ -1148,40 +1149,49 @@ public class StandaloneNuclearGrid {
                     "U4,U4,U4,M4,U4,U4,U4;U4,M4,HD,HD,HD,M4,U4;T4,HD,M4,HD,M4,HD,T4;U4,M2,HD,HD,HD,M2,U4;T4,HD,M4,HD,M4,HD,T4;U4,M4,HD,HD,HD,M4,U4;U4,U4,U4,M4,U4,U4,U4");
                 updateHatchCapacities(16000);
             }
+            case "BEST_PLATINUM_9X9", "MAX_PLATINUM_9X9", "BREEDER_9X9", "IV_PEAK" -> {
+                this.pipeTier = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
+                this.turbineMaterial = TurbineCalculator.TurbineMaterial.ICHORIUM;
+                this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
+                this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
+                loadLayout(
+                    "RB,RB,HD,M4,HDP,M4,HD,RB,RB;RB,M4,HD,HDP,CP,HDP,HD,M4,RB;HDP,HD,M4,HP,HDP,HP,M4,HD,HDP;M4,M4,HC,M4,CP,M4,HC,M4,M4;G1,M4,CP,HC,U4,HC,CP,M4,G1;M4,M4,HC,M4,CP,M4,HC,M4,M4;HDP,HD,M4,HP,HDP,HP,M4,HD,HDP;RB,M4,HD,HDP,CP,HDP,HD,M4,RB;RB,RB,HD,M4,HDP,M4,HD,RB,RB");
+                updateHatchCapacities(16000);
+            }
             case "BEST_OSMIUM_9X9", "MAX_OSMIUM_9X9", "SUPERHEATED_POWER_9X9", "BEST_OSMIUM_7X7", "SUPERHEATED_POWER_7X7", "LUV_PEAK" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_S;
+                this.turbineMaterial = TurbineCalculator.TurbineMaterial.DURANIUM;
                 this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
                 this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
                 loadLayout(
-                    "M4,NQ,EXU,EXP,CP,EXP,EXU,NQ,M4;NQ,EXP,HD,CP,M2,CP,HD,EXP,NQ;U4,CP,CP,CP,M2,CP,CP,CP,U4;EXP,CP,M2,CP,CP,CP,M2,CP,EXP;T4,EXP,EXP,CP,CP,CP,EXP,EXP,T4;EXP,CP,M2,CP,CP,CP,M2,CP,EXP;U4,CP,CP,CP,M2,CP,CP,CP,U4;NQ,EXP,HD,CP,M2,CP,HD,EXP,NQ;M4,NQ,EXU,EXP,CP,EXP,EXU,NQ,M4");
+                    "RB,RB,HDP,EXP,CP,EXP,HDP,RB,RB;RB,EXU,HD,EXP,EXP,EXP,HD,EXU,RB;HDP,HD,EXP,HD,HDP,HD,EXP,HD,HDP;EXP,EXP,CP,EXP,HC,EXP,CP,EXP,EXP;HD,CP,EXU,CP,CP,CP,EXU,CP,HD;EXP,EXP,CP,EXP,HC,EXP,CP,EXP,EXP;HDP,HD,EXP,HD,HDP,HD,EXP,HD,HDP;RB,EXU,HD,EXP,EXP,EXP,HD,EXU,RB;RB,RB,HDP,EXP,CP,EXP,HDP,RB,RB");
                 updateHatchCapacities(32000);
             }
-            case "BEST_QUANTIUM_9X9", "BEST_QUANTIUM_13X13", "MAX_QUANTIUM_13X13", "CANDU_HEAVY_WATER_13X13", "CANDU_HEAVY_WATER_9X9", "ZPM_PEAK" -> {
+            case "BEST_QUANTIUM_13X13", "BEST_QUANTIUM_9X9", "MAX_QUANTIUM_13X13", "CANDU_HEAVY_WATER_13X13", "CANDU_HEAVY_WATER_9X9", "ZPM_PEAK" -> {
                 this.pipeTier = NuclearSimulationEngine.PIPE_TIER_QUANTIUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_S;
-                this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
-                this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
-                loadLayout(
-                    "M4,M4,NQ,M4,M4,M4,NQ,M4,M4;M4,HW,BH,HC,HW,HC,BH,HW,M4;U4,NQ,NQ,M4,NQ,M4,NQ,NQ,U4;T4,CP,M4,T4,M4,T4,M4,CP,T4;U4,NQ,HC,M4,M4,M4,HC,NQ,U4;T4,CP,M4,T4,M4,T4,M4,CP,T4;U4,NQ,NQ,M4,NQ,M4,NQ,NQ,U4;M4,HW,BH,HC,HW,HC,BH,HW,M4;M4,M4,NQ,M4,M4,M4,NQ,M4,M4");
-                updateHatchCapacities(64000);
-            }
-            case "BEST_FLUXED_9X9", "BEST_FLUXED_13X13", "MAX_FLUXED_13X13", "FLUXED_SUPERCRITICAL_13X13", "FLUXED_SUPERCRITICAL_9X9", "UV_PEAK" -> {
-                this.pipeTier = NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_S;
-                this.turbineSize = TurbineCalculator.TurbineSize.LARGE;
-                this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
-                loadLayout(
-                    "NQ,RB,RB,RB,RB,RB,RB,RB,NQ;RB,BV,CP,T4,T1,T4,CP,BV,RB;RB,M4,T4,CP,T4,CP,T4,M4,RB;RB,HW,CP,NQ,T4,NQ,CP,HW,RB;RB,NQ,T4,CP,NQ,CP,T4,NQ,RB;RB,HW,CP,NQ,T4,NQ,CP,HW,RB;RB,M4,T4,CP,T4,CP,T4,M4,RB;RB,BV,CP,T4,T1,T4,CP,BV,RB;NQ,RB,RB,RB,RB,RB,RB,RB,NQ");
-                updateHatchCapacities(128000);
-            }
-            case "BEST_PLUTONIUM_9X9", "BEST_PLUTONIUM_13X13", "MAX_PLUTONIUM_13X13", "BLACK_PLUTONIUM_13X13", "BLACK_PLUTONIUM_9X9", "UHV_PEAK" -> {
-                this.pipeTier = NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM;
-                this.turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_S;
+                this.turbineMaterial = TurbineCalculator.TurbineMaterial.DURANIUM;
                 this.turbineSize = TurbineCalculator.TurbineSize.HUGE;
                 this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
                 loadLayout(
-                    "U4,T4,M4,U4,T4,U4,M4,T4,U4;T4,RB,M4,NQ,NQ,NQ,M4,RB,T4;U4,M4,CP,U4,CP,U4,CP,M4,U4;U4,NQ,CP,NQ,NQ,NQ,CP,NQ,U4;M4,BH,M4,NQ,U4,NQ,M4,BH,M4;U4,NQ,CP,NQ,NQ,NQ,CP,NQ,U4;U4,M4,CP,U4,CP,U4,CP,M4,U4;T4,RB,M4,NQ,NQ,NQ,M4,RB,T4;U4,T4,M4,U4,T4,U4,M4,T4,U4");
+                    "RB,RB,RB,HW,HW,U4,X1,U4,HW,HW,RB,RB,RB;RB,RB,HW,HW,EXP,NQ,HW,NQ,EXP,HW,HW,RB,RB;RB,HW,HW,EXU,HW,XA,HW,XA,HW,EXU,HW,HW,RB;HW,HDU,NQ,HW,TIB,HW,HW,HW,TIB,HW,NQ,HDU,HW;EXP,XA,HDP,NQ,HW,CP,HW,CP,HW,NQ,HDP,XA,EXP;EXP,U4,CP,HW,NQ,HW,NQ,HW,NQ,HW,CP,U4,EXP;CP,HW,NQ,M4,HW,NQ,XA,NQ,HW,M4,NQ,HW,CP;EXP,U4,CP,HW,NQ,HW,NQ,HW,NQ,HW,CP,U4,EXP;EXP,XA,HDP,NQ,HW,CP,HW,CP,HW,NQ,HDP,XA,EXP;HW,HDU,NQ,HW,TIB,HW,HW,HW,TIB,HW,NQ,HDU,HW;RB,HW,HW,EXU,HW,XA,HW,XA,HW,EXU,HW,HW,RB;RB,RB,HW,HW,EXP,NQ,HW,NQ,EXP,HW,HW,RB,RB;RB,RB,RB,HW,HW,U4,X1,U4,HW,HW,RB,RB,RB");
+                updateHatchCapacities(64000);
+            }
+            case "BEST_FLUXED_13X13", "BEST_FLUXED_9X9", "MAX_FLUXED_13X13", "FLUXED_SUPERCRITICAL_13X13", "FLUXED_SUPERCRITICAL_9X9", "UV_PEAK" -> {
+                this.pipeTier = NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM;
+                this.turbineMaterial = TurbineCalculator.TurbineMaterial.DURANIUM;
+                this.turbineSize = TurbineCalculator.TurbineSize.HUGE;
+                this.turbineFitting = TurbineCalculator.FittingMode.TIGHT;
+                loadLayout(
+                    "RB,RB,RB,VA,XC,HW,HH,HW,XC,VA,RB,RB,RB;RB,RB,EXU,HW,HW,NQR,HW,NQR,HW,HW,EXU,RB,RB;RB,HW,HW,NQR,CP,NQR,HH,NQR,CP,NQR,HW,HW,RB;M4,HW,NQR,HW,NQR,CP,NQR,CP,NQR,HW,NQR,HW,M4;HW,NQR,HW,NQR,HW,CP,NQR,CP,HW,NQR,HW,NQR,HW;TIB,HW,NQR,HW,HW,HW,RH,HW,HW,HW,NQR,HW,TIB;HW,NQR,HH,M4,NQ,HW,HW,HW,NQ,M4,HH,NQR,HW;TIB,HW,NQR,HW,HW,HW,RH,HW,HW,HW,NQR,HW,TIB;HW,NQR,HW,NQR,HW,CP,NQR,CP,HW,NQR,HW,NQR,HW;M4,HW,NQR,HW,NQR,CP,NQR,CP,NQR,HW,NQR,HW,M4;RB,HW,HW,NQR,CP,NQR,HH,NQR,CP,NQR,HW,HW,RB;RB,RB,EXU,HW,HW,NQR,HW,NQR,HW,HW,EXU,RB,RB;RB,RB,RB,VA,XC,HW,HH,HW,XC,VA,RB,RB,RB");
+                updateHatchCapacities(128000);
+            }
+            case "BEST_PLUTONIUM_13X13", "BEST_PLUTONIUM_9X9", "MAX_PLUTONIUM_13X13", "BLACK_PLUTONIUM_13X13", "BLACK_PLUTONIUM_9X9", "UHV_PEAK" -> {
+                this.pipeTier = NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM;
+                this.turbineMaterial = TurbineCalculator.TurbineMaterial.INFINITY;
+                this.turbineSize = TurbineCalculator.TurbineSize.HUGE;
+                this.turbineFitting = TurbineCalculator.FittingMode.LOOSE;
+                loadLayout(
+                    "RB,RB,RB,M2,CP,T4,T1,T4,CP,M2,RB,RB,RB;RB,RB,HW,CP,U4,HW,CP,HW,U4,CP,HW,RB,RB;RB,U1,HW,NQ32,HW,NQ32,CP,NQ32,HW,NQ32,HW,U1,RB;NQR,HW,NQR,CP,HW,HH,HW,HH,HW,CP,NQR,HW,NQR;NQ,CP,X1,HW,TIB,HW,T4,HW,TIB,HW,X1,CP,NQ;CP,NQ32,HW,NQR,HC,NQR,VA,NQR,HC,NQR,HW,NQ32,CP;HW,CP,RH,V1,HP,HW,HW,HW,HP,V1,RH,CP,HW;CP,NQ32,HW,NQR,HC,NQR,VA,NQR,HC,NQR,HW,NQ32,CP;NQ,CP,X1,HW,TIB,HW,T4,HW,TIB,HW,X1,CP,NQ;NQR,HW,NQR,CP,HW,HH,HW,HH,HW,CP,NQR,HW,NQR;RB,U1,HW,NQ32,HW,NQ32,CP,NQ32,HW,NQ32,HW,U1,RB;RB,RB,HW,CP,U4,HW,CP,HW,U4,CP,HW,RB,RB;RB,RB,RB,M2,CP,T4,T1,T4,CP,M2,RB,RB,RB");
                 updateHatchCapacities(256000);
             }
             default -> {
@@ -1298,7 +1308,8 @@ public class StandaloneNuclearGrid {
                 }
             }
         }
-        if (pipeTier < NuclearSimulationEngine.PIPE_TIER_PLATINUM && coolingMode == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP) {
+        if (pipeTier < NuclearSimulationEngine.PIPE_TIER_PLATINUM
+            && coolingMode == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP) {
             coolingMode = CoolantLoopModel.CoolingMode.MODULAR;
         }
     }
@@ -1320,7 +1331,8 @@ public class StandaloneNuclearGrid {
     public boolean isCoolantLoopActive() {
         if (!isTier2ConvectiveAllowed()) return false;
         if (coolantLoop == null) return false;
-        if (!coolantLoop.getAttachedPoints().isEmpty()) return true;
+        if (!coolantLoop.getAttachedPoints()
+            .isEmpty()) return true;
         return hasCoolantLoopPassages();
     }
 
@@ -1644,8 +1656,7 @@ public class StandaloneNuclearGrid {
             long produced = cumulativeDepletedFuelItems.getOrDefault(type, 0L);
             if (active > 0 || produced > 0) {
                 if (maxDur <= 0) {
-                    com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType f =
-                        new SimTile(type).getFuelType();
+                    com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType f = new SimTile(type).getFuelType();
                     if (f != null) maxDur = f.defaultDurability;
                 }
                 double itemsPerMin = (maxDur > 0) ? (totalDamage / (double) maxDur) * 1200.0 : 0.0;
@@ -1657,17 +1668,18 @@ public class StandaloneNuclearGrid {
                     ? ((double) maxDur / (totalDamage / (double) active)) / 1200.0
                     : Double.POSITIVE_INFINITY;
                 SimTile sample = new SimTile(type);
-                list.add(new SolidFuelByproduct(
-                    type,
-                    type.displayName,
-                    type.code,
-                    sample.getDepletedDisplayName(),
-                    sample.getDepletedCode(),
-                    active,
-                    itemsPerMin,
-                    itemsPerHour,
-                    produced,
-                    avgLifespan));
+                list.add(
+                    new SolidFuelByproduct(
+                        type,
+                        type.displayName,
+                        type.code,
+                        sample.getDepletedDisplayName(),
+                        sample.getDepletedCode(),
+                        active,
+                        itemsPerMin,
+                        itemsPerHour,
+                        produced,
+                        avgLifespan));
             }
         }
         return list;
@@ -1675,11 +1687,8 @@ public class StandaloneNuclearGrid {
 
     public List<LiquidFuelByproduct> getLiquidFuelByproducts() {
         List<LiquidFuelByproduct> list = new ArrayList<>();
-        SimTile.TileType[] liquidTypes = new SimTile.TileType[] {
-            SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM,
-            SimTile.TileType.HATCH_LIQUID_FUEL_THORIUM,
-            SimTile.TileType.HATCH_LIQUID_FUEL_PLUTONIUM
-        };
+        SimTile.TileType[] liquidTypes = new SimTile.TileType[] { SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM,
+            SimTile.TileType.HATCH_LIQUID_FUEL_THORIUM, SimTile.TileType.HATCH_LIQUID_FUEL_PLUTONIUM };
         for (SimTile.TileType type : liquidTypes) {
             int active = 0;
             int totalBurned = 0;
@@ -1708,14 +1717,7 @@ public class StandaloneNuclearGrid {
                     lPerMin = active * 1200.0;
                 }
                 double lPerHour = lPerMin * 60.0;
-                list.add(new LiquidFuelByproduct(
-                    type,
-                    fluidName,
-                    dispName,
-                    active,
-                    lPerMin,
-                    lPerHour,
-                    totalLiters));
+                list.add(new LiquidFuelByproduct(type, fluidName, dispName, active, lPerMin, lPerHour, totalLiters));
             }
         }
         return list;
@@ -1734,6 +1736,7 @@ public class StandaloneNuclearGrid {
 
     public List<RawMaterialBalance> getRawMaterialBalances() {
         class MatAcc {
+
             final String name;
             final String code;
             final String unit;
@@ -1772,7 +1775,8 @@ public class StandaloneNuclearGrid {
             if (rate <= 0.0) continue;
             switch (s.type) {
                 case FUEL_URANIUM_SINGLE -> {
-                    // FissionFuelLoader: 6x U-238 + 3x Small U-235 (1/3 dust) -> Depleted: 4x U-238 + 1x Small Pu (1/9 dust)
+                    // FissionFuelLoader: 6x U-238 + 3x Small U-235 (1/3 dust) -> Depleted: 4x U-238 + 1x Small Pu (1/9
+                    // dust)
                     map.get("U-235").consumedPerMin += (3.0 / 9.0) * rate;
                     map.get("U-238").consumedPerMin += 6.0 * rate;
                     map.get("Pu-239").producedPerMin += (1.0 / 9.0) * rate;
@@ -1831,7 +1835,8 @@ public class StandaloneNuclearGrid {
                     map.get("Pu-241").producedPerMin += 0.3 * rate;
                 }
                 case FUEL_HD_PLUTONIUM -> {
-                    // 4 HD nuggets = 20 Plutonium dust + 4 Uranium dust -> Depleted: 16 Plutonium, 8 Pu-241, 2 Uranium, 1.2 U-235
+                    // 4 HD nuggets = 20 Plutonium dust + 4 Uranium dust -> Depleted: 16 Plutonium, 8 Pu-241, 2 Uranium,
+                    // 1.2 U-235
                     map.get("Pu-239").consumedPerMin += 20.0 * rate;
                     map.get("U-238").consumedPerMin += 4.0 * rate;
                     map.get("Pu-239").producedPerMin += 16.0 * rate;
@@ -1861,14 +1866,16 @@ public class StandaloneNuclearGrid {
                     map.get("T").producedPerMin += 32.0 * rate;
                 }
                 case FUEL_NAQUADAH -> {
-                    // FissionFuelLoader: 3x Enriched Naquadah -> Depleted: 1.5 Naquadah, 0.111 Naquadria, 0.0555 Enriched Naquadah
+                    // FissionFuelLoader: 3x Enriched Naquadah -> Depleted: 1.5 Naquadah, 0.111 Naquadria, 0.0555
+                    // Enriched Naquadah
                     map.get("NQ+").consumedPerMin += 3.0 * rate;
                     map.get("NQ").producedPerMin += 1.5 * rate;
                     map.get("NQR").producedPerMin += (1.0 / 9.0) * rate;
                     map.get("NQ+").producedPerMin += (0.5 / 9.0) * rate;
                 }
                 case FUEL_NAQUADRIA -> {
-                    // FissionFuelLoader: 12x Naquadria (Quad) -> Depleted: 6x Naquadah, 2x Enriched Naquadah, 0.222 Naquadria
+                    // FissionFuelLoader: 12x Naquadria (Quad) -> Depleted: 6x Naquadah, 2x Enriched Naquadah, 0.222
+                    // Naquadria
                     map.get("NQR").consumedPerMin += 12.0 * rate;
                     map.get("NQ").producedPerMin += 6.0 * rate;
                     map.get("NQ+").producedPerMin += 2.0 * rate;
@@ -1880,7 +1887,8 @@ public class StandaloneNuclearGrid {
                     map.get("TIB").producedPerMin += 2.0 * rate;
                 }
                 case FUEL_CORE -> {
-                    // FissionFuelLoader: 32x RodNaquadah (96 Enriched Naquadah) + 128 Tiberium -> Depleted: 8x Quad Naquadah rods
+                    // FissionFuelLoader: 32x RodNaquadah (96 Enriched Naquadah) + 128 Tiberium -> Depleted: 8x Quad
+                    // Naquadah rods
                     // Reprocessing 8 Quads: 48 Naquadah, 8 Naquadria, 1.778 Enriched Naquadah
                     map.get("NQ+").consumedPerMin += 96.0 * rate;
                     map.get("TIB").consumedPerMin += 128.0 * rate;
@@ -1926,14 +1934,15 @@ public class StandaloneNuclearGrid {
         List<RawMaterialBalance> result = new ArrayList<>();
         for (MatAcc acc : map.values()) {
             if (acc.consumedPerMin > 1e-6 || acc.producedPerMin > 1e-6) {
-                result.add(new RawMaterialBalance(
-                    acc.name,
-                    acc.code,
-                    acc.unit,
-                    acc.consumedPerMin,
-                    acc.consumedPerMin * 60.0,
-                    acc.producedPerMin,
-                    acc.producedPerMin * 60.0));
+                result.add(
+                    new RawMaterialBalance(
+                        acc.name,
+                        acc.code,
+                        acc.unit,
+                        acc.consumedPerMin,
+                        acc.consumedPerMin * 60.0,
+                        acc.producedPerMin,
+                        acc.producedPerMin * 60.0));
             }
         }
         return result;
@@ -1964,7 +1973,7 @@ public class StandaloneNuclearGrid {
 
     public void scram() {
         setAllControlRodsInsertion(100);
-        logIncident("SCRAM", "Emergency SCRAM: All bottom control rods fully inserted (100%)", 0.0);
+        logIncident("SCRAM", "Emergency SCRAM: All control rods fully inserted (100%)", 0.0);
     }
 
     public int getControlRodCount() {

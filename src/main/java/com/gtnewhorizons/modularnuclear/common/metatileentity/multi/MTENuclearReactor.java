@@ -1,11 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
 import static com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil.formatNumber;
-import static com.gtnewhorizon.structurelib.structure.StructureUtility.transpose;
-import static gregtech.api.enums.HatchElement.Maintenance;
-import static gregtech.api.metatileentity.BaseTileEntity.TOOLTIP_DELAY;
-import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
-import static gregtech.api.util.GTStructureUtility.chainItemPipeCasings;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,16 +10,15 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 
-import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
-import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -32,35 +26,25 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
-import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
-import com.gtnewhorizon.structurelib.structure.AutoPlaceEnvironment;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
-import com.gtnewhorizon.structurelib.structure.IStructureElement;
-import com.gtnewhorizon.structurelib.structure.IStructureElement.BlocksToPlace;
-import com.gtnewhorizon.structurelib.structure.IStructureElement.PlaceResult;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
-import com.gtnewhorizon.structurelib.structure.StructureDefinition;
-import com.gtnewhorizon.structurelib.structure.StructureUtility;
-import com.gtnewhorizon.structurelib.util.ItemStackPredicate;
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
-import com.gtnewhorizons.modularnuclear.common.gui.ClientScreenHelper;
-import com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGridWidget;
-import com.gtnewhorizons.modularnuclear.common.gui.WindowResizeWidget;
-import com.gtnewhorizons.modularnuclear.common.gui.ZoomSliderWidget;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.NuclearStructureChannels;
+import com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControl;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.NuclearReactorTelemetry;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.NuclearReactorTooltipValues;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
@@ -70,38 +54,24 @@ import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemCardModularNuc
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemKitModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
-import com.gtnewhorizons.modularui.api.GlStateManager;
-import com.gtnewhorizons.modularui.api.drawable.IDrawable;
-import com.gtnewhorizons.modularui.api.drawable.ItemDrawable;
-import com.gtnewhorizons.modularui.api.math.Alignment;
-import com.gtnewhorizons.modularui.api.math.Color;
-import com.gtnewhorizons.modularui.api.math.Pos2d;
-import com.gtnewhorizons.modularui.api.math.Size;
+import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
+import com.gtnewhorizons.modularui.api.drawable.UITexture;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
 import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
-import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
 import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
-import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
-import com.gtnewhorizons.modularui.common.widget.Scrollable;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
-import com.gtnewhorizons.modularui.common.widget.TextWidget;
 
-import codechicken.lib.gui.GuiDraw;
 import cpw.mods.fml.common.Loader;
-import goodgenerator.items.GGMaterial;
 import gregtech.GTMod;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.SoundResource;
-import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.ICasingTextureProvider;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.interfaces.tileentity.ITurnable;
-import gregtech.api.items.ItemCoolantCell;
 import gregtech.api.items.ItemRadioactiveCell;
 import gregtech.api.items.ItemRadioactiveCellIC;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
@@ -115,17 +85,11 @@ import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
-import gregtech.common.blocks.ItemMachines;
-import gregtech.common.misc.GTStructureChannels;
 import gregtech.common.pollution.Pollution;
 import ic2.api.reactor.IReactor;
 import ic2.api.reactor.IReactorComponent;
-import ic2.core.Ic2Items;
-import ic2.core.item.reactor.ItemReactorHeatSwitch;
 import ic2.core.item.reactor.ItemReactorMOX;
 import ic2.core.item.reactor.ItemReactorUranium;
-import ic2.core.item.reactor.ItemReactorVent;
-import ic2.core.item.reactor.ItemReactorVentSpread;
 import mcp.mobius.waila.api.IWailaConfigHandler;
 import mcp.mobius.waila.api.IWailaDataAccessor;
 import mcp.mobius.waila.overlay.tooltiprenderers.TTRenderBar;
@@ -135,68 +99,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     implements ISurvivalConstructable, ICasingTextureProvider {
 
     public static final int CASING_INDEX = BlockNuclearCasing.CASING_TEXTURE_INDEX;
-    public static final String STRUCTURE_TIER_1 = "tier_1";
-    public static final String STRUCTURE_TIER_2 = "tier_2";
-    public static final String STRUCTURE_TIER_3 = "tier_3";
-    @Deprecated
-    protected static final String STRUCTURE_3X3 = STRUCTURE_TIER_1;
-    @Deprecated
-    protected static final String STRUCTURE_5X5 = STRUCTURE_TIER_2;
-    @Deprecated
-    protected static final String STRUCTURE_7X7 = STRUCTURE_TIER_3;
+    public static final String STRUCTURE_TIER_1 = NuclearReactorStructure.STRUCTURE_TIER_1;
+    public static final String STRUCTURE_TIER_2 = NuclearReactorStructure.STRUCTURE_TIER_2;
+    public static final String STRUCTURE_TIER_3 = NuclearReactorStructure.STRUCTURE_TIER_3;
 
-    public static final String[][] SHAPE_TIER_1 = new String[][] {
-        // Slice 0 (Top - Nuclear Hatches & Casings)
-        { " ccccc ", "ccgggcc", "cgggggc", "cgggggc", "cgggggc", "ccgggcc", " ccccc " },
-        // Slice 1 (Second from top - Item Pipe Casings & Casings)
-        { " ccccc ", "ccpppcc", "cpppppc", "cpppppc", "cpppppc", "ccpppcc", " ccccc " },
-        // Slice 2 (Third from top - Nuclear Casing Walls, Hollow Interior)
-        { " ccccc ", "cc---cc", "c-----c", "c-----c", "c-----c", "cc---cc", " ccccc " },
-        // Slice 3 (Fourth from top / Controller layer - Front Center)
-        { " cc~cc ", "cc---cc", "c-----c", "c-----c", "c-----c", "cc---cc", " ccccc " },
-        // Slice 4 (Bottom - Nuclear Core Bottom Casings / HP Hatches & Perimeter Casings)
-        { " ccccc ", "ccbbbcc", "cbbbbbc", "cbbbbbc", "cbbbbbc", "ccbbbcc", " ccccc " } };
-
-    public static final String[][] SHAPE_TIER_2 = new String[][] {
-        // Slice 0 (Top - Nuclear Hatches & Casings)
-        { "  ccccccc  ", " ccgggggcc ", "ccgggggggcc", "cgggggggggc", "cgggggggggc", "cgggggggggc", "cgggggggggc",
-            "cgggggggggc", "ccgggggggcc", " ccgggggcc ", "  ccccccc  " },
-        // Slice 1 (Second from top - Item Pipe Casings & Casings)
-        { "  ccccccc  ", " ccpppppcc ", "ccpppppppcc", "cpppppppppc", "cpppppppppc", "cpppppppppc", "cpppppppppc",
-            "cpppppppppc", "ccpppppppcc", " ccpppppcc ", "  ccccccc  " },
-        // Slice 2 (Third from top - Nuclear Casing Walls, Hollow Interior)
-        { "  ccccccc  ", " cc-----cc ", "cc-------cc", "c---------c", "c---------c", "c---------c", "c---------c",
-            "c---------c", "cc-------cc", " cc-----cc ", "  ccccccc  " },
-        // Slice 3 (Fourth from top / Controller layer - Front Center)
-        { "  ccc~ccc  ", " cc-----cc ", "cc-------cc", "c---------c", "c---------c", "c---------c", "c---------c",
-            "c---------c", "cc-------cc", " cc-----cc ", "  ccccccc  " },
-        // Slice 4 (Bottom - Nuclear Core Bottom Casings / HP Hatches & Perimeter Casings)
-        { "  ccccccc  ", " ccbbbbbcc ", "ccbbbbbbbcc", "cbbbbbbbbbc", "cbbbbbbbbbc", "cbbbbbbbbbc", "cbbbbbbbbbc",
-            "cbbbbbbbbbc", "ccbbbbbbbcc", " ccbbbbbcc ", "  ccccccc  " } };
-
-    public static final String[][] SHAPE_TIER_3 = new String[][] {
-        // Slice 0 (Top - Nuclear Hatches & Casings)
-        { "   ccccccccc   ", "  ccgggggggcc  ", " ccgggggggggcc ", "ccgggggggggggcc", "cgggggggggggggc",
-            "cgggggggggggggc", "cgggggggggggggc", "cgggggggggggggc", "cgggggggggggggc", "cgggggggggggggc",
-            "cgggggggggggggc", "ccgggggggggggcc", " ccgggggggggcc ", "  ccgggggggcc  ", "   ccccccccc   " },
-        // Slice 1 (Second from top - Item Pipe Casings & Casings)
-        { "   ccccccccc   ", "  ccpppppppcc  ", " ccpppppppppcc ", "ccpppppppppppcc", "cpppppppppppppc",
-            "cpppppppppppppc", "cpppppppppppppc", "cpppppppppppppc", "cpppppppppppppc", "cpppppppppppppc",
-            "cpppppppppppppc", "ccpppppppppppcc", " ccpppppppppcc ", "  ccpppppppcc  ", "   ccccccccc   " },
-        // Slice 2 (Third from top - Nuclear Casing Walls, Hollow Interior)
-        { "   ccccccccc   ", "  cc-------cc  ", " cc---------cc ", "cc-----------cc", "c-------------c",
-            "c-------------c", "c-------------c", "c-------------c", "c-------------c", "c-------------c",
-            "c-------------c", "cc-----------cc", " cc---------cc ", "  cc-------cc  ", "   ccccccccc   " },
-        // Slice 3 (Fourth from top / Controller layer - Front Center)
-        { "   cccc~cccc   ", "  cc-------cc  ", " cc---------cc ", "cc-----------cc", "c-------------c",
-            "c-------------c", "c-------------c", "c-------------c", "c-------------c", "c-------------c",
-            "c-------------c", "cc-----------cc", " cc---------cc ", "  cc-------cc  ", "   ccccccccc   " },
-        // Slice 4 (Bottom - Nuclear Core Bottom Casings / HP Hatches & Perimeter Casings)
-        { "   ccccccccc   ", "  ccbbbbbbbcc  ", " ccbbbbbbbbbcc ", "ccbbbbbbbbbbbcc", "cbbbbbbbbbbbbbc",
-            "cbbbbbbbbbbbbbc", "cbbbbbbbbbbbbbc", "cbbbbbbbbbbbbbc", "cbbbbbbbbbbbbbc", "cbbbbbbbbbbbbbc",
-            "cbbbbbbbbbbbbbc", "ccbbbbbbbbbbbcc", " ccbbbbbbbbbcc ", "  ccbbbbbbbcc  ", "   ccccccccc   " } };
-
-    private static IStructureDefinition<MTENuclearReactor> STRUCTURE_DEFINITION = null;
+    public static final String[][] SHAPE_TIER_1 = NuclearReactorStructure.SHAPE_TIER_1;
+    public static final String[][] SHAPE_TIER_2 = NuclearReactorStructure.SHAPE_TIER_2;
+    public static final String[][] SHAPE_TIER_3 = NuclearReactorStructure.SHAPE_TIER_3;
 
     public int mPipeTier = -1;
     public int gridSize = 0;
@@ -235,8 +144,22 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public static final int GUI_MODE_NEUTRON_FLUX = 2;
     public static final int GUI_MODE_NEUTRON_ABSORPTION = 3;
     public static final int GUI_MODE_CONTROL_RODS = 4;
+    private static final UITexture TAB_NEI_SELECTED = UITexture
+        .partly(new ResourceLocation("nei", "textures/nei_tabbed_sprites.png"), 256, 256, 0, 16, 24, 40);
+    private static final UITexture TAB_NEI_UNSELECTED = UITexture
+        .partly(new ResourceLocation("nei", "textures/nei_tabbed_sprites.png"), 256, 256, 24, 16, 48, 40);
     public int mCurrentGuiMode = GUI_MODE_COMPONENTS;
     public ReactorGridSyncData mClientGridData = null;
+
+    // Client-side Cherenkov radiation state
+    public int mClientTier = 1;
+    public int mClientWaterBlocks = -1;
+    public double mClientWaterMinY = 0;
+    public double mClientWaterMaxY = 0;
+    public double mClientCenterX = 0;
+    public double mClientCenterZ = 0;
+    public double mClientRadius = 2.5;
+    public float mClientCherenkovIntensity = 0f;
 
     public int mHatchTier = -1;
     public boolean mHatchTierInconsistent = false;
@@ -383,8 +306,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (mCrowbar) working.add(5);
         if (!working.isEmpty()) {
             IGregTechTileEntity base = getBaseMetaTileEntity();
-            int randIdx = (base != null)
-                ? base.getRandomNumber(working.size())
+            int randIdx = (base != null) ? base.getRandomNumber(working.size())
                 : (int) (Math.random() * working.size());
             int pick = working.get(randIdx);
             switch (pick) {
@@ -402,253 +324,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public static ItemStack getNuclearHatchStack(int tier) {
-        if (tier == 0 && ModMetaTileEntities.nuclearBus != null) {
-            return ModMetaTileEntities.nuclearBus.copy();
-        }
-        if (tier >= 1 && tier <= 9 && ModMetaTileEntities.nuclearHatches[tier - 1] != null) {
-            return ModMetaTileEntities.nuclearHatches[tier - 1].copy();
-        }
-        if (tier == 10 && ModMetaTileEntities.nuclearHighPressureHatch != null) {
-            return ModMetaTileEntities.nuclearHighPressureHatch.copy();
-        }
-        return null;
+        return NuclearReactorStructure.getNuclearHatchStack(tier);
     }
 
     public ForgeDirection getNuclearHatchFacing() {
         ExtendedFacing ef = getExtendedFacing();
         return ef != null ? ef.getRelativeUpInWorld() : ForgeDirection.UP;
-    }
-
-    public static class NuclearHatchElement implements IStructureElement<MTENuclearReactor> {
-
-        @Override
-        public boolean check(MTENuclearReactor t, World world, int x, int y, int z) {
-            if (world.getTileEntity(x, y, z) instanceof IGregTechTileEntity te) {
-                ForgeDirection requiredFacing = t != null ? t.getNuclearHatchFacing() : ForgeDirection.UP;
-                if (te.getFrontFacing() != requiredFacing) {
-                    return false;
-                }
-                IMetaTileEntity mte = te.getMetaTileEntity();
-                if (mte instanceof MTEHatchNuclearHatch hatch) {
-                    hatch.mReactor = t;
-                    int tier = hatch.mTier;
-                    if (t.mHatchTier == -1) {
-                        t.mHatchTier = tier;
-                    } else if (t.mHatchTier != tier) {
-                        t.mHatchTierInconsistent = true;
-                    }
-                    t.mNuclearTiles.add(te);
-                    return true;
-                } else if (mte instanceof MTEHatchNuclearBus bus) {
-                    bus.mReactor = t;
-                    t.mNuclearTiles.add(te);
-                    return true;
-                } else if (mte instanceof MTEHatchNuclearHighPressure hp) {
-                    hp.mReactor = t;
-                    hp.setIsInlet(true);
-                    t.mNuclearTiles.add(te);
-                    t.mTopHighPressureHatches.add(hp);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        @Override
-        public boolean couldBeValid(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger) {
-            if (world.getTileEntity(x, y, z) instanceof IGregTechTileEntity te) {
-                IMetaTileEntity mte = te.getMetaTileEntity();
-                return mte instanceof MTEHatchNuclearHatch || mte instanceof MTEHatchNuclearBus
-                    || mte instanceof MTEHatchNuclearHighPressure;
-            }
-            return world.getBlock(x, y, z) == GregTechAPI.sBlockMachines;
-        }
-
-        @Override
-        public List<String> getDescription(MTENuclearReactor t) {
-            return Collections.singletonList("Top-layer hatches must face opposite to pipe casings");
-        }
-
-        @Override
-        public boolean spawnHint(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger) {
-            StructureLibAPI.hintParticle(world, x, y, z, GregTechAPI.sBlockMachines, 0);
-            return true;
-        }
-
-        @Override
-        public boolean placeBlock(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger) {
-            ForgeDirection targetFacing = t != null ? t.getNuclearHatchFacing() : ForgeDirection.UP;
-            TileEntity existingTe = world.getTileEntity(x, y, z);
-            if (existingTe instanceof IGregTechTileEntity gte && isNuclearCoreHatch(gte.getMetaTileEntity())) {
-                gte.setFrontFacing(targetFacing);
-                return true;
-            }
-
-            int tier = NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(trigger, 0, 10);
-            ItemStack stack = getNuclearHatchStack(tier);
-            if (stack == null) return false;
-            if (stack.getItem() instanceof ItemMachines itemMachines) {
-                boolean success = itemMachines
-                    .placeBlockAt(stack, null, world, x, y, z, targetFacing.ordinal(), 0.5f, 0.5f, 0.5f, 0);
-                if (success && world.getTileEntity(x, y, z) instanceof ITurnable turnable) {
-                    turnable.setFrontFacing(targetFacing);
-                }
-                return success;
-            }
-            return false;
-        }
-
-        @Override
-        public PlaceResult survivalPlaceBlock(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger,
-            AutoPlaceEnvironment env) {
-            ForgeDirection targetFacing = t != null ? t.getNuclearHatchFacing() : ForgeDirection.UP;
-            TileEntity existingTe = world.getTileEntity(x, y, z);
-            if (existingTe instanceof IGregTechTileEntity gte && isNuclearCoreHatch(gte.getMetaTileEntity())) {
-                if (gte.getFrontFacing() != targetFacing) {
-                    gte.setFrontFacing(targetFacing);
-                    return PlaceResult.ACCEPT;
-                }
-                return PlaceResult.SKIP;
-            }
-
-            if (check(t, world, x, y, z)) return PlaceResult.SKIP;
-            if (!StructureLibAPI.isBlockTriviallyReplaceable(world, x, y, z, env.getActor())) {
-                return PlaceResult.REJECT;
-            }
-            int tier = NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(trigger, 0, 10);
-            ItemStack stack = getNuclearHatchStack(tier);
-            if (stack == null) return PlaceResult.REJECT;
-
-            PlaceResult result = StructureUtility.survivalPlaceBlock(
-                stack,
-                ItemStackPredicate.NBTMode.EXACT,
-                null,
-                false,
-                world,
-                x,
-                y,
-                z,
-                env.getSource(),
-                env.getActor(),
-                env.getChatter());
-            if (result == PlaceResult.ACCEPT && world.getTileEntity(x, y, z) instanceof ITurnable turnable) {
-                turnable.setFrontFacing(targetFacing);
-            }
-            return result;
-        }
-
-        @Override
-        public BlocksToPlace getBlocksToPlace(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger,
-            AutoPlaceEnvironment env) {
-            int tier = NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(trigger, 0, 10);
-            ItemStack stack = getNuclearHatchStack(tier);
-            return stack != null ? BlocksToPlace.create(stack) : BlocksToPlace.createEmpty();
-        }
-    }
-
-    public static class BottomCoreElement implements IStructureElement<MTENuclearReactor> {
-
-        @Override
-        public boolean check(MTENuclearReactor t, World world, int x, int y, int z) {
-            Block block = world.getBlock(x, y, z);
-            int meta = world.getBlockMetadata(x, y, z);
-            if (block == ModBlocks.nuclearCasing && meta == 0) {
-                if (t != null) {
-                    t.mCasing++;
-                }
-                return true;
-            }
-            if (world.getTileEntity(x, y, z) instanceof IGregTechTileEntity te) {
-                ForgeDirection requiredFacing = (t != null ? t.getNuclearHatchFacing() : ForgeDirection.UP)
-                    .getOpposite();
-                if (te.getFrontFacing() != requiredFacing) {
-                    return false;
-                }
-                IMetaTileEntity mte = te.getMetaTileEntity();
-                if (mte instanceof MTEHatchNuclearHighPressure hpHatch) {
-                    if (t != null) {
-                        hpHatch.mReactor = t;
-                        hpHatch.setIsInlet(false);
-                        t.mBottomHighPressureHatches.add(hpHatch);
-                    }
-                    return true;
-                } else if (mte instanceof MTEHatchNuclearControlRod rod) {
-                    if (t != null) {
-                        rod.mReactor = t;
-                        t.mBottomControlRodHatches.add(rod);
-                    }
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        @Override
-        public boolean couldBeValid(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger) {
-            Block block = world.getBlock(x, y, z);
-            int meta = world.getBlockMetadata(x, y, z);
-            if (block == ModBlocks.nuclearCasing && meta == 0) {
-                return true;
-            }
-            if (world.getTileEntity(x, y, z) instanceof IGregTechTileEntity te) {
-                return te.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure
-                    || te.getMetaTileEntity() instanceof MTEHatchNuclearControlRod;
-            }
-            return block == GregTechAPI.sBlockMachines;
-        }
-
-        @Override
-        public List<String> getDescription(MTENuclearReactor t) {
-            return Collections.singletonList(
-                "Bottom core position: Nuclear Casing, Nuclear Core High-Pressure Hatch, or Nuclear Control Rod Hatch (facing DOWN)");
-        }
-
-        @Override
-        public boolean spawnHint(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger) {
-            StructureLibAPI.hintParticle(world, x, y, z, ModBlocks.nuclearCasing, 0);
-            return true;
-        }
-
-        @Override
-        public boolean placeBlock(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger) {
-            ForgeDirection targetFacing = (t != null ? t.getNuclearHatchFacing() : ForgeDirection.UP).getOpposite();
-            TileEntity existingTe = world.getTileEntity(x, y, z);
-            if (existingTe instanceof IGregTechTileEntity gte
-                && (gte.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure
-                    || gte.getMetaTileEntity() instanceof MTEHatchNuclearControlRod)) {
-                gte.setFrontFacing(targetFacing);
-                return true;
-            }
-            return world.setBlock(x, y, z, ModBlocks.nuclearCasing, 0, 3);
-        }
-
-        @Override
-        public PlaceResult survivalPlaceBlock(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger,
-            AutoPlaceEnvironment env) {
-            if (check(t, world, x, y, z)) return PlaceResult.SKIP;
-            if (!StructureLibAPI.isBlockTriviallyReplaceable(world, x, y, z, env.getActor())) {
-                return PlaceResult.REJECT;
-            }
-            ItemStack casingStack = new ItemStack(ModBlocks.nuclearCasing, 1, 0);
-            return StructureUtility.survivalPlaceBlock(
-                casingStack,
-                ItemStackPredicate.NBTMode.EXACT,
-                null,
-                false,
-                world,
-                x,
-                y,
-                z,
-                env.getSource(),
-                env.getActor(),
-                env.getChatter());
-        }
-
-        @Override
-        public BlocksToPlace getBlocksToPlace(MTENuclearReactor t, World world, int x, int y, int z, ItemStack trigger,
-            AutoPlaceEnvironment env) {
-            return BlocksToPlace.create(new ItemStack(ModBlocks.nuclearCasing, 1, 0));
-        }
     }
 
     public int getPipeTier() {
@@ -714,108 +395,23 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     @Override
     public IStructureDefinition<MTENuclearReactor> getStructureDefinition() {
-        if (STRUCTURE_DEFINITION == null) {
-            STRUCTURE_DEFINITION = StructureDefinition.<MTENuclearReactor>builder()
-                // Tier 1: 7x7 Footprint, 5x5 Octagonal Chamber (21 cells), Height 5
-                .addShape(STRUCTURE_TIER_1, transpose(SHAPE_TIER_1))
-                // Tier 2: 11x11 Footprint, 9x9 Octagonal Chamber (69 cells), Height 5
-                .addShape(STRUCTURE_TIER_2, transpose(SHAPE_TIER_2))
-                // Tier 3: 15x15 Footprint, 13x13 Octagonal Chamber (145 cells), Height 5
-                .addShape(STRUCTURE_TIER_3, transpose(SHAPE_TIER_3))
-                .addElement(
-                    'c',
-                    buildHatchAdder(MTENuclearReactor.class).atLeast(Maintenance)
-                        .adder(
-                            (t, te, index) -> t.addMaintenanceToMachineList(te, index)
-                                || t.addOutputToMachineList(te, index)
-                                || t.addDynamoToMachineList(te, index)
-                                || t.addExoticDynamoToMachineList(te, index)
-                                || t.addNuclearControlHatchToMachineList(te, index))
-                        .casingIndex(CASING_INDEX)
-                        .hint(1)
-                        .buildAndChain(
-                            StructureUtility
-                                .onElementPass(t -> t.mCasing++, StructureUtility.ofBlock(ModBlocks.nuclearCasing, 0))))
-                .addElement('p', chainItemPipeCasings(-1, (t, casingTier) -> {
-                    if (casingTier < 3) {
-                        t.mPipeTier = -1;
-                    } else {
-                        t.mPipeTier = casingTier - 3;
-                    }
-                }, t -> t.mPipeTier == -1 ? -1 : t.mPipeTier + 3))
-                .addElement('g', NuclearStructureChannels.NUCLEAR_HATCH.use(new NuclearHatchElement()))
-                .addElement('b', new BottomCoreElement())
-                .build();
-        }
-        return STRUCTURE_DEFINITION;
+        return NuclearReactorStructure.getStructureDefinition();
     }
 
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
-        MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
-        tt.addMachineType("Modular Pressure Tube Reactor (MPTR)")
-            .addInfo("Modular nuclear reactor simulating discrete neutron transport and moderation")
-            .addInfo("Supports self-stabilizing negative temperature reactivity feedback")
-            .addInfo("Height is fixed at 5 blocks for all tiers (octagonal prism chamber)")
-            .addInfo("Core chamber features cut-corner null cells with reflecting/absorbing casing walls")
-            .addInfo("Wall heat dissipation is uniformly distributed to all active cells via coolant pool")
-            .addInfo("Item pipe casings determine operating temperature and allowed coolants:")
-            .addInfo(" - Electrum: IC2 coolant (sub-boiling conductive cooling, max 1000 °C)")
-            .addInfo(" - Platinum: distilled water (sub-boiling conductive cooling, max 1400 °C)")
-            .addInfo(" - Osmium: external coolant loops via HP passage hatches (max 1800 °C)")
-            .addInfo(" - Quantium: heavy water (sub-boiling conductive cooling, max 2200 °C)")
-            .addInfo(" - Fluxed Electrum: external coolant loops with heavy water (max 2600 °C)")
-            .addInfo(" - Black Plutonium: all coolants and loop configurations (max 3200 °C)")
-            .addInfo("Accepts dynamo and multi-amp dynamo hatches for direct radiovoltaic EU output")
-            .addInfo(" - Radiovoltaic cells convert absorbed neutron flux directly to EU (HV 2A, EV 2A)")
-            .addInfo("Outputs (depleted items, byproducts, molten cheese) eject to output buses and hatches")
-            .addInfo(
-                EnumChatFormatting.RED
-                    + "Warning: fluid hatches only support sub-boiling cooling (boiling causes explosion)!")
-            .addInfo(EnumChatFormatting.RED + "Warning: overheating hatches void contents!")
-            .addInfo(
-                EnumChatFormatting.RED
-                    + "Warning: HP coolant passage hatches require Tier 2+ and 1:1 top/bottom pairing!")
-            .addInfo(EnumChatFormatting.RED + "Note: This multiblock cannot share walls!")
-            .addInfo("Top-layer hatches must face UP; bottom-layer hatches must face DOWN")
-            .beginVariableStructureBlock(7, 15, 5, 5, 7, 15, true)
-            .addStructureInfo(EnumChatFormatting.RED + "This multiblock cannot share walls")
-            .addStructureInfo("Top-layer hatches face UP; bottom-layer hatches face DOWN")
-            .addController("Front center, 2nd layer")
-            .addCasing("50+", "Nuclear casings", false)
-            .addCasing(
-                "21+",
-                "Item pipe casings (Electrum / Platinum / Osmium / Quantium / Fluxed Electrum / Black Plutonium)",
-                false)
-            .addOtherStructurePart(
-                "Nuclear bus / hatch / HP hatch",
-                "Top layer octagonal core positions (facing UP)",
-                1)
-            .addOtherStructurePart(
-                "Nuclear casing, Nuclear core HP hatch, or Nuclear control rod hatch",
-                "Bottom layer core positions (facing DOWN)",
-                1)
-            .addOtherStructurePart("Nuclear control hatch", "Any outer casing", 2)
-            .addMaintenanceHatch("Any outer casing (exactly 1)", 1)
-            .addDynamoHatch("Any outer casing (optional for radiovoltaic direct EU, max 1)", 1)
-            .addOutputBus("Any outer casing (optional)", 1)
-            .addOutputHatch("Any outer casing (optional)", 1)
-            .addAir("Interior of the structure")
-            .addSubChannel(GTStructureChannels.ITEM_PIPE_CASING)
-            .addSubChannel(NuclearStructureChannels.NUCLEAR_HATCH)
-            .toolTipFinisher(EnumChatFormatting.AQUA + "GregTech nuclear power");
-        return tt;
+        return NuclearReactorTooltipValues.createTooltip();
     }
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
         int tier = stackSize == null ? 1 : stackSize.stackSize;
         if (tier >= 3) {
-            buildPiece(STRUCTURE_7X7, stackSize, hintsOnly, 7, 3, 0);
+            buildPiece(STRUCTURE_TIER_3, stackSize, hintsOnly, 7, 3, 0);
         } else if (tier == 2) {
-            buildPiece(STRUCTURE_5X5, stackSize, hintsOnly, 5, 3, 0);
+            buildPiece(STRUCTURE_TIER_2, stackSize, hintsOnly, 5, 3, 0);
         } else {
-            buildPiece(STRUCTURE_3X3, stackSize, hintsOnly, 3, 3, 0);
+            buildPiece(STRUCTURE_TIER_1, stackSize, hintsOnly, 3, 3, 0);
         }
     }
 
@@ -824,11 +420,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (mMachine) return -1;
         int tier = stackSize == null ? 1 : stackSize.stackSize;
         if (tier >= 3) {
-            return survivalBuildPiece(STRUCTURE_7X7, stackSize, 7, 3, 0, elementBudget, env, false, true);
+            return survivalBuildPiece(STRUCTURE_TIER_3, stackSize, 7, 3, 0, elementBudget, env, false, true);
         } else if (tier == 2) {
-            return survivalBuildPiece(STRUCTURE_5X5, stackSize, 5, 3, 0, elementBudget, env, false, true);
+            return survivalBuildPiece(STRUCTURE_TIER_2, stackSize, 5, 3, 0, elementBudget, env, false, true);
         } else {
-            return survivalBuildPiece(STRUCTURE_3X3, stackSize, 3, 3, 0, elementBudget, env, false, true);
+            return survivalBuildPiece(STRUCTURE_TIER_1, stackSize, 3, 3, 0, elementBudget, env, false, true);
         }
     }
 
@@ -1032,12 +628,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     @Override
     public void onMachineBlockUpdate() {
         super.onMachineBlockUpdate();
-        if (!mMachine) {
+        if (!mMachine && !mNuclearTiles.isEmpty()) {
             mWallNeutronAccumulator = 0;
             mWallMaintenanceTimer = 0;
             mOutputCoolantRate = 0;
             mOutputCoolantName = "";
-            for (IGregTechTileEntity te : mNuclearTiles) {
+            for (IGregTechTileEntity te : new ArrayList<>(mNuclearTiles)) {
                 if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
                     hatch.mWasDry = false;
                 }
@@ -1057,7 +653,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         mHatchTierInconsistent = false;
         mCasing = 0;
 
-        if (checkPiece(STRUCTURE_3X3, 3, 3, 0, errors)) {
+        if (checkPiece(STRUCTURE_TIER_1, 3, 3, 0, errors)) {
             gridSize = 5;
             coreDimension = 5;
         } else {
@@ -1068,7 +664,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             mHatchTierInconsistent = false;
             mCasing = 0;
             errors.clear();
-            if (checkPiece(STRUCTURE_5X5, 5, 3, 0, errors)) {
+            if (checkPiece(STRUCTURE_TIER_2, 5, 3, 0, errors)) {
                 gridSize = 9;
                 coreDimension = 9;
             } else {
@@ -1079,7 +675,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 mHatchTierInconsistent = false;
                 mCasing = 0;
                 errors.clear();
-                if (checkPiece(STRUCTURE_7X7, 7, 3, 0, errors)) {
+                if (checkPiece(STRUCTURE_TIER_3, 7, 3, 0, errors)) {
                     gridSize = 13;
                     coreDimension = 13;
                 } else {
@@ -1151,8 +747,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             IGregTechTileEntity bTe = rod.getBaseMetaTileEntity();
             if (bTe != null) {
                 int[] gCoords = calculateGridCoords(bTe, cX, cY, cZ, ef, isUpsideDown, hOffset);
-                if (gCoords != null && gCoords[0] >= 0 && gCoords[0] < gridSize
-                    && gCoords[1] >= 0 && gCoords[1] < gridSize) {
+                if (gCoords != null && gCoords[0] >= 0
+                    && gCoords[0] < gridSize
+                    && gCoords[1] >= 0
+                    && gCoords[1] < gridSize) {
                     INuclearTile tile = mGrid[gCoords[0]][gCoords[1]];
                     if (tile instanceof NuclearGridTile gt) {
                         gt.setBottomControlRod(rod);
@@ -1350,6 +948,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             mWasMachineFormed = true;
             mLastFormedNuclearTiles.clear();
             mLastFormedNuclearTiles.addAll(mNuclearTiles);
+            int tier = (gridSize >= 145) ? 3 : (gridSize >= 69) ? 2 : 1;
+            aBaseMetaTileEntity.sendBlockEvent((byte) 100, (byte) tier);
         } else if (mWasMachineFormed) {
             mWasMachineFormed = false;
             handleStructureBreak();
@@ -1364,7 +964,18 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             handleStructureBreak();
             mLastFormedNuclearTiles.clear();
         }
+        ModularNuclear.proxy.removeReactor(this);
         super.onRemoval();
+    }
+
+    @Override
+    public void receiveClientEvent(byte aEventID, byte aValue) {
+        super.receiveClientEvent(aEventID, aValue);
+        if (aEventID == 100) {
+            this.mClientTier = aValue;
+            this.mClientRadius = (mClientTier == 3) ? 6.5 : (mClientTier == 2) ? 4.5 : 2.5;
+            this.mClientWaterBlocks = -1;
+        }
     }
 
     public boolean isAnyTemperatureAbove100() {
@@ -1425,6 +1036,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
 
         if (aBaseMetaTileEntity.isServerSide() && mMachine) {
+            boolean shouldBeActive = !mScram && (mNeutronsProduced > 0);
+            if (aBaseMetaTileEntity.isActive() != shouldBeActive) {
+                aBaseMetaTileEntity.setActive(shouldBeActive);
+                aBaseMetaTileEntity.setLightValue((byte) (shouldBeActive ? 15 : 0));
+            }
+
             if (mStartUpCheck >= 0) {
                 checkMaintenance();
             }
@@ -1554,7 +1171,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
                 // 4. Check casing-dependent maximum operating temperature:
                 // Overheating hatches increase reactor damage by 1% per overheating hatch.
-                // Overheating non-fuel contents in hatches/buses are voided, but fuel rods and fluids are NOT directly voided!
+                // Overheating non-fuel contents in hatches/buses are voided, but fuel rods and fluids are NOT directly
+                // voided!
                 double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(mPipeTier);
                 int overheatingHatchesCount = 0;
                 for (IGregTechTileEntity te : mNuclearTiles) {
@@ -1609,12 +1227,23 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 }
             }
         } else if (aBaseMetaTileEntity.isServerSide()) {
+            if (aBaseMetaTileEntity.isActive()) {
+                aBaseMetaTileEntity.setActive(false);
+                aBaseMetaTileEntity.setLightValue((byte) 0);
+            }
             for (MTEHatchNuclearControl hatch : mControlHatches) {
                 if (hatch != null && hatch.isValid()) {
                     hatch.setOutputRedstone((byte) 0);
                 }
             }
+        } else if (aBaseMetaTileEntity.isClientSide()) {
+            ModularNuclear.proxy.updateCherenkov(this, aBaseMetaTileEntity);
         }
+    }
+
+    @Override
+    public boolean needsClientTick() {
+        return true;
     }
 
     @Override
@@ -1679,8 +1308,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     @Override
     public void addAdditionalTooltipInformation(ItemStack aItemStack, List<String> aList) {
         super.addAdditionalTooltipInformation(aItemStack, aList);
-        if (aItemStack != null && aItemStack.hasTagCompound() && aItemStack.getTagCompound().hasKey("mReactorDamage")) {
-            double dmg = aItemStack.getTagCompound().getDouble("mReactorDamage");
+        if (aItemStack != null && aItemStack.hasTagCompound()
+            && aItemStack.getTagCompound()
+                .hasKey("mReactorDamage")) {
+            double dmg = aItemStack.getTagCompound()
+                .getDouble("mReactorDamage");
             if (dmg > 0.0) {
                 aList.add(EnumChatFormatting.RED + String.format(Locale.US, "Reactor Damage: %.1f%%", dmg));
             }
@@ -1767,6 +1399,15 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (data.gridSize > 0) this.mMachine = true;
             this.gridSize = data.gridSize;
             this.coreDimension = data.coreDimension;
+            if (data.gridSize >= 145) {
+                this.mClientTier = 3;
+            } else if (data.gridSize >= 69) {
+                this.mClientTier = 2;
+            } else if (data.gridSize > 0) {
+                this.mClientTier = 1;
+            }
+            this.mClientRadius = (mClientTier == 3) ? 6.5 : (mClientTier == 2) ? 4.5 : 2.5;
+            this.mClientWaterBlocks = -1;
             this.mCoreTemp = data.coreTemp;
             this.mAvgTemp = data.avgTemp;
             this.mReactivity = data.efficiency;
@@ -1843,7 +1484,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             MTEHatchNuclearControlRod rod = gt.getBottomControlRod();
                             cell.hasControlRod = true;
                             cell.controlRodInsertion = rod.getInsertionPercent();
-                            cell.controlRodType = MTEHatchNuclearControlRod.getRodType(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD]).ordinal();
+                            cell.controlRodType = MTEHatchNuclearControlRod
+                                .getRodType(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD])
+                                .ordinal();
                         }
                     }
                     data.cells.add(cell);
@@ -1939,389 +1582,35 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
     }
 
-    public ButtonWidget createScramButton(IWidgetBuilder<?> builder) {
-        ButtonWidget scramButton = new ButtonWidget() {
+    public static final int REACTOR_GRID_WINDOW_ID = NuclearReactorGui.REACTOR_GRID_WINDOW_ID;
 
-            @Override
-            public void draw(float partialTicks) {
-                int x = 0;
-                int y = 0;
-                int w = getSize().width;
-                int h = getSize().height;
-                // Outer dark red/black border
-                GuiDraw.drawRect(x, y, w, h, 0xFF330000);
-                // Background red
-                boolean active = mScram;
-                int bgColor = isHovering() ? (active ? 0xFFFF3333 : 0xFFDD1111) : (active ? 0xFFCC0000 : 0xFFAA0000);
-                GuiDraw.drawRect(x + 1, y + 1, w - 2, h - 2, bgColor);
-                // Highlight line at top
-                GuiDraw.drawRect(x + 1, y + 1, w - 2, 1, 0x55FFFFFF);
-                // Text: SCRAM or SCRAMMED in bold white letters
-                String text = active ? (EnumChatFormatting.BOLD + "SCRAMMED") : (EnumChatFormatting.BOLD + "SCRAM");
-                int strW = GuiDraw.getStringWidth(text);
-                int strH = 8;
-                GuiDraw.drawString(text, (w - strW) / 2, (h - strH) / 2, 0xFFFFFFFF, true);
-            }
-        };
-        scramButton.setPos(8, 91)
-            .setSize(64, 16);
-        scramButton.setPlayClickSound(true);
-        scramButton.dynamicTooltip(() -> {
-            List<String> tt = new ArrayList<>();
-            tt.add(EnumChatFormatting.RED + "" + EnumChatFormatting.BOLD + "Emergency SCRAM");
-            tt.add(EnumChatFormatting.GRAY + "Immediately inserts all control rods to 100%.");
-            if (mScram) {
-                tt.add(EnumChatFormatting.YELLOW + "Status: active (click to reset/disengage)");
-            } else {
-                tt.add(EnumChatFormatting.GREEN + "Status: disengaged (normal redstone control)");
-            }
-            return tt;
-        });
-        scramButton.setUpdateTooltipEveryTick(true);
-        scramButton.setOnClick((clickData, widget) -> { setScram(!mScram); });
-        return scramButton;
+    public ButtonWidget createScramButton(IWidgetBuilder<?> builder) {
+        return NuclearReactorGui.createScramButton(this, builder);
     }
 
-    public static final int REACTOR_GRID_WINDOW_ID = 20;
-
     public ButtonWidget createReactorGridButton(IWidgetBuilder<?> builder) {
-        ButtonWidget button = (ButtonWidget) ButtonWidget.openSyncedWindowButton(REACTOR_GRID_WINDOW_ID)
-            .setPlayClickSound(true)
-            .setBackground(
-                () -> new IDrawable[] { GTUITextures.BUTTON_STANDARD, new ItemDrawable(ItemList.RodUranium.get(1L)) })
-            .setPos(174, 91)
-            .setSize(16, 16);
-        button.addTooltip(StatCollector.translateToLocal("GT5U.gui.button.reactor_hatches"))
-            .setTooltipShowUpDelay(TOOLTIP_DELAY);
-        return button;
+        return NuclearReactorGui.createReactorGridButton(this);
     }
 
     @Override
     public void addUIWidgets(ModularWindow.Builder builder, UIBuildContext buildContext) {
-        builder.widget(
-            new DrawableWidget().setDrawable(GTUITextures.PICTURE_SCREEN_BLACK)
-                .setPos(4, 4)
-                .setSize(190, 85));
-        final SlotWidget inventorySlot = new SlotWidget(inventoryHandler, 1);
-        builder.widget(
-            inventorySlot.setPos(173, 167)
-                .setBackground(GTUITextures.SLOT_DARK_GRAY));
-
-        final DynamicPositionedColumn screenElements = new DynamicPositionedColumn();
-        drawTexts(screenElements, inventorySlot);
-        builder.widget(
-            new Scrollable().setVerticalScroll()
-                .widget(screenElements)
-                .setPos(10, 7)
-                .setSize(182, 79));
-
-        builder.widget(createStructureUpdateButton(builder));
-
-        // Add Reactor Hatches button on the right column
-        builder.widget(createReactorGridButton(builder));
-
-        // Add big red SCRAM button
-        builder.widget(createScramButton(builder));
-
-        // Register synced window for the Reactor Hatches view
-        buildContext.addSyncedWindow(REACTOR_GRID_WINDOW_ID, this::createReactorGridWindow);
-
-        // Network syncer for reactor grid & telemetry
-        builder.widget(
-            new FakeSyncWidget<>(
-                this::collectGridSyncData,
-                this::applyGridSyncData,
-                ReactorGridSyncData::writeToBuffer,
-                ReactorGridSyncData::readFromBuffer));
+        NuclearReactorGui.buildMainUI(this, builder, buildContext);
     }
 
     @Override
     protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
-        super.drawTexts(screenElements, inventorySlot);
-
-        screenElements.widget(
-            new TextWidget()
-                .setStringSupplier(
-                    () -> String.format(
-                        "Core Temp: %.1f / %.0f °C",
-                        mCoreTemp,
-                        NuclearSimulationEngine.getMaxOperatingTemperature(mPipeTier)))
-                .setDefaultColor(Color.rgb(255, 200, 0))
-                .setTextAlignment(Alignment.CenterLeft)
-                .setEnabled(widget -> mMachine));
-        screenElements.widget(
-            new TextWidget().setStringSupplier(() -> String.format("Avg Reactivity: %.1f%%", mReactivity * 100.0))
-                .setDefaultColor(Color.rgb(100, 200, 255))
-                .setTextAlignment(Alignment.CenterLeft)
-                .setEnabled(widget -> mMachine));
-        screenElements.widget(
-            new TextWidget()
-                .setStringSupplier(() -> "Flux: " + NuclearSimulationEngine.formatNeutronFlux(mNeutronsProduced))
-                .setDefaultColor(Color.rgb(100, 220, 255))
-                .setTextAlignment(Alignment.CenterLeft)
-                .setEnabled(widget -> mMachine));
-        screenElements.widget(
-            new TextWidget().setStringSupplier(
-                () -> String
-                    .format("Neutrons: %d fast, %d therm, %d esc", mFastAbsorbed, mThermalAbsorbed, mEscapedNeutrons))
-                .setDefaultColor(Color.rgb(200, 200, 200))
-                .setTextAlignment(Alignment.CenterLeft)
-                .setEnabled(widget -> mMachine));
-        screenElements.widget(
-            new TextWidget()
-                .setStringSupplier(() -> String.format(Locale.US, "Damage: %.1f%%", mReactorDamage))
-                .setDefaultColor(Color.rgb(255, 80, 80))
-                .setTextAlignment(Alignment.CenterLeft)
-                .setEnabled(widget -> mMachine && mReactorDamage > 0.0));
+        NuclearReactorGui.drawTexts(this, screenElements, inventorySlot);
     }
 
     public ModularWindow createReactorGridWindow(final EntityPlayer player) {
-        ReactorGridSyncData sync = getClientGridData();
-        int N = 7;
-        if (sync != null && sync.gridSize > 0) {
-            N = sync.gridSize;
-        } else if (mGrid != null && mGrid.length > 0) {
-            N = mGrid.length;
-        }
-
-        final int idealH = N * 18 + 44;
-        final int idealW = Math.max(154, N * 18 + 20);
-
-        int screenW = ClientScreenHelper.getScaledScreenWidth();
-        int screenH = ClientScreenHelper.getScaledScreenHeight();
-        int topLimit = ClientScreenHelper.getTopReservedHeight();
-        int parentH = getGUIHeight();
-        int mainY = (screenH - parentH) / 2;
-        int playerInvY = mainY + 104;
-        int bottomLimit = playerInvY - 2;
-        int availH = Math.max(70, bottomLimit - topLimit);
-
-        final int w = Math.min(idealW, screenW - 8);
-        final int h = Math.min(idealH, availH);
-
-        ModularWindow.Builder builder = ModularWindow.builder(w, h);
-        builder.setBackground(GTUITextures.BACKGROUND_SINGLEBLOCK_DEFAULT);
-        builder.setGuiTint(getGUIColorization());
-        builder.setDraggable(true);
-        builder.setPos((screenSize, mainWindow) -> {
-            int scW = (screenSize != null && screenSize.width > 0) ? screenSize.width
-                : ClientScreenHelper.getScaledScreenWidth();
-            int scH = (screenSize != null && screenSize.height > 0) ? screenSize.height
-                : ClientScreenHelper.getScaledScreenHeight();
-            int top = ClientScreenHelper.getTopReservedHeight();
-            int mY = (mainWindow != null) ? mainWindow.getPos().y : (scH - getGUIHeight()) / 2;
-            int pInvY = mY + 104;
-            int bLimit = pInvY - 2;
-            int avail = Math.max(70, bLimit - top);
-
-            int targetH = Math.min(idealH, avail);
-            int targetW = Math.min(idealW, scW - 8);
-
-            int px = Math.max(2, (scW - targetW) / 2);
-            int py = Math.max(top, top + (avail - targetH) / 2);
-            return new Pos2d(px, py);
-        });
-
-        NuclearReactorGridWidget gridWidget = new NuclearReactorGridWidget(this);
-        Scrollable scrollable = new Scrollable().setVerticalScroll()
-            .setHorizontalScroll();
-        scrollable.widget(gridWidget);
-        scrollable.setPos(10, 18)
-            .setSizeProvider(
-                (size, window, parent) -> new Size(
-                    Math.max(60, window.getSize().width - 20),
-                    Math.max(30, window.getSize().height - 44)));
-        gridWidget.setParentScrollable(scrollable);
-        builder.widget(scrollable);
-
-        // Mode Tabs (Components, Temperature, Flux, Absorption, Control Rods)
-        final int[] MODES = {
-            GUI_MODE_COMPONENTS,
-            GUI_MODE_TEMPERATURE,
-            GUI_MODE_NEUTRON_FLUX,
-            GUI_MODE_NEUTRON_ABSORPTION,
-            GUI_MODE_CONTROL_RODS
-        };
-        final String[] TAB_NAMES = {
-            "Components",
-            "Temperature",
-            "Neutron Flux",
-            "Neutron Absorption",
-            "Control Rods"
-        };
-        final String[] TAB_DESCS = {
-            "Grid components view (fuel rods, coolant, insulators)",
-            "Temperature heatmap across all reactor cells",
-            "Fast and thermal neutron flux intensity heatmap",
-            "Neutron absorption and transmutation heatmap",
-            "Inspect bottom-layer control rod hatches and insertion levels"
-        };
-
-        for (int i = 0; i < MODES.length; i++) {
-            final int mode = MODES[i];
-            final String tabName = TAB_NAMES[i];
-            final String tabDesc = TAB_DESCS[i];
-
-            ButtonWidget tabBtn = new ButtonWidget() {
-
-                @Override
-                public void draw(float partialTicks) {
-                    boolean active = (mCurrentGuiMode == mode);
-                    int x = 0;
-                    int y = 0;
-                    int w = getSize().width;
-                    int h = getSize().height;
-                    if (active) {
-                        GuiDraw.drawRect(x, y, w, h, 0xFF00AAFF);
-                        GuiDraw.drawRect(x + 1, y + 1, w - 2, h - 2, 0xFF1E293B);
-                    } else {
-                        GTUITextures.BUTTON_STANDARD.draw(x, y, w, h);
-                    }
-
-                    GlStateManager.pushMatrix();
-                    ItemStack icon = switch (mode) {
-                        case GUI_MODE_COMPONENTS -> ItemList.RodUranium.get(1L);
-                        case GUI_MODE_TEMPERATURE -> new ItemStack(Items.fire_charge);
-                        case GUI_MODE_NEUTRON_FLUX -> new ItemStack(Items.nether_star);
-                        case GUI_MODE_NEUTRON_ABSORPTION -> new ItemStack(Blocks.iron_bars);
-                        case GUI_MODE_CONTROL_RODS -> ModMetaTileEntities.nuclearControlRodHatch;
-                        default -> new ItemStack(Blocks.stone);
-                    };
-                    if (icon != null) {
-                        new ItemDrawable(icon).draw(0, 0, 16, 16, partialTicks);
-                    }
-                    GlStateManager.popMatrix();
-                    GlStateManager.disableLighting();
-                    GlStateManager.disableDepth();
-                    GlStateManager.enableBlend();
-                    GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
-                }
-            };
-            tabBtn.setPos(4 + i * 18, 1)
-                .setSize(16, 16);
-            tabBtn.setUpdateTooltipEveryTick(true);
-            tabBtn.dynamicTooltip(() -> {
-                List<String> tt = new ArrayList<>();
-                boolean active = (mCurrentGuiMode == mode);
-                tt.add((active ? (EnumChatFormatting.GREEN + "" + EnumChatFormatting.BOLD) : EnumChatFormatting.WHITE) + tabName);
-                tt.add(EnumChatFormatting.GRAY + tabDesc);
-                if (active) {
-                    tt.add(EnumChatFormatting.AQUA + "● Currently Active Tab");
-                } else {
-                    tt.add(EnumChatFormatting.DARK_GRAY + "Click to switch to this tab");
-                }
-                return tt;
-            });
-            tabBtn.setOnClick((clickData, widget) -> {
-                mCurrentGuiMode = mode;
-            });
-            builder.widget(tabBtn);
-        }
-
-        // Close Button (Compact 16x16 at top-right corner)
-        builder.widget(
-            ButtonWidget.closeWindowButton(true)
-                .setPosProvider((size, window, parent) -> new Pos2d(window.getSize().width - 18, 1))
-                .setSize(16, 16));
-
-        // Controller Position Indicator (Front face orientation icon, centered above zoom controls)
-        builder.widget(new com.gtnewhorizons.modularui.api.widget.Widget() {
-
-            private final ItemDrawable drawable = new ItemDrawable(ModMetaTileEntities.reactor.copy());
-
-            @Override
-            public void draw(float partialTicks) {
-                GlStateManager.pushMatrix();
-                drawable.draw(0, 0, 12, 12, partialTicks);
-                GlStateManager.popMatrix();
-                GlStateManager.disableLighting();
-                GlStateManager.disableDepth();
-                GlStateManager.enableBlend();
-                GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
-            }
-        }.setPosProvider(
-            (size, window, parent) -> new Pos2d((window.getSize().width - 12) / 2, window.getSize().height - 25))
-            .setSize(12, 12)
-            .addTooltip("Reactor controller (front face)"));
-
-        // Zoom Out Button [-] (Compact 12x10 at bottom)
-        ButtonWidget zoomOutBtn = new ButtonWidget() {
-
-            @Override
-            public void draw(float partialTicks) {
-                super.draw(partialTicks);
-                String str = "-";
-                int sw = GuiDraw.getStringWidth(str);
-                GuiDraw.drawString(str, (getSize().width - sw) / 2, 1, 0xFFFFFF, false);
-            }
-        };
-        zoomOutBtn
-            .setPosProvider(
-                (size, window, parent) -> new Pos2d((window.getSize().width - 119) / 2, window.getSize().height - 12))
-            .setSize(12, 10);
-        zoomOutBtn.setBackground(GTUITextures.BUTTON_STANDARD);
-        zoomOutBtn.addTooltip("Zoom out");
-        zoomOutBtn.setOnClick((clickData, widget) -> gridWidget.zoomOut());
-        builder.widget(zoomOutBtn);
-
-        // Zoom Slider [===O===] (Compact 70x10 at bottom)
-        ZoomSliderWidget zoomSlider = new ZoomSliderWidget(gridWidget);
-        zoomSlider.setPosProvider(
-            (size, window, parent) -> new Pos2d((window.getSize().width - 119) / 2 + 15, window.getSize().height - 12));
-        builder.widget(zoomSlider);
-
-        // Zoom In Button [+] (Compact 12x10 at bottom)
-        ButtonWidget zoomInBtn = new ButtonWidget() {
-
-            @Override
-            public void draw(float partialTicks) {
-                super.draw(partialTicks);
-                String str = "+";
-                int sw = GuiDraw.getStringWidth(str);
-                GuiDraw.drawString(str, (getSize().width - sw) / 2, 1, 0xFFFFFF, false);
-            }
-        };
-        zoomInBtn.setPosProvider(
-            (size, window, parent) -> new Pos2d((window.getSize().width - 119) / 2 + 88, window.getSize().height - 12))
-            .setSize(12, 10);
-        zoomInBtn.setBackground(GTUITextures.BUTTON_STANDARD);
-        zoomInBtn.addTooltip("Zoom in");
-        zoomInBtn.setOnClick((clickData, widget) -> gridWidget.zoomIn());
-        builder.widget(zoomInBtn);
-
-        // Reset Zoom Button [1:1] (Compact 16x10 at bottom)
-        ButtonWidget zoomResetBtn = new ButtonWidget() {
-
-            @Override
-            public void draw(float partialTicks) {
-                super.draw(partialTicks);
-                String str = "1:1";
-                int sw = GuiDraw.getStringWidth(str);
-                int color = (gridWidget.getCurrentCellSize() == 18) ? 0x88FF88 : 0xFFFFFF;
-                GuiDraw.drawString(str, (getSize().width - sw) / 2, 1, color, false);
-            }
-        };
-        zoomResetBtn.setPosProvider(
-            (size, window, parent) -> new Pos2d((window.getSize().width - 119) / 2 + 103, window.getSize().height - 12))
-            .setSize(16, 10);
-        zoomResetBtn.setBackground(GTUITextures.BUTTON_STANDARD);
-        zoomResetBtn.dynamicTooltip(() -> {
-            List<String> tt = new ArrayList<>();
-            tt.add("Reset zoom (1:1)");
-            tt.add(EnumChatFormatting.GRAY + "Current zoom: " + gridWidget.getZoomPercent() + "%");
-            return tt;
-        });
-        zoomResetBtn.setUpdateTooltipEveryTick(true);
-        zoomResetBtn.setOnClick((clickData, widget) -> gridWidget.resetZoom());
-        builder.widget(zoomResetBtn);
-
-        // Window resize widget covering the window perimeter
-        builder.widget(new WindowResizeWidget(gridWidget));
-
-        return builder.build();
+        return NuclearReactorGui.createReactorGridWindow(this, player);
     }
 
     private final ReactorDummy mReactorDummy = new ReactorDummy(this);
+
+    public ReactorDummy getReactorDummy() {
+        return mReactorDummy;
+    }
 
     public static double calculateAmbientTemperature(World world, int x, int y, int z) {
         if (world != null) {
@@ -2353,180 +1642,35 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public boolean isItemFuel(ItemStack stack) {
-        if (stack == null) return false;
-        if (stack.getItem() instanceof ItemRadioactiveCell) return true;
-        if (stack.getItem() instanceof ItemReactorUranium) return true;
-        if (NuclearFuelType.fromName(stack.getUnlocalizedName()) != null) return true;
-        String name = stack.getUnlocalizedName();
-        if (name != null) {
-            String lower = name.toLowerCase();
-            return lower.contains("uranium") || lower.contains("mox")
-                || lower.contains("thorium")
-                || lower.contains("plutonium")
-                || lower.contains("naquadah")
-                || lower.contains("naquadria")
-                || lower.contains("tiberium")
-                || lower.contains("thecore")
-                || lower.contains("glowstone")
-                || lower.contains("lithium")
-                || lower.contains("fuelrod");
-        }
-        return false;
+        return NuclearFuelClassification.isItemFuel(stack);
     }
 
     public static boolean isFluidFuel(FluidStack fluid) {
-        if (fluid == null || fluid.getFluid() == null) return false;
-        String name = fluid.getFluid()
-            .getName()
-            .toLowerCase();
-        if (name.contains("naquadah")) return false; // Avoid overlap with Large Naquadah Reactor
-        if (name.contains("thoriumbasedliquidfuel") || (name.contains("thorium") && name.contains("liquidfuel")))
-            return true;
-        if (name.contains("uraniumbasedliquidfuel") || (name.contains("uranium") && name.contains("liquidfuel")))
-            return true;
-        if (name.contains("plutoniumbasedliquidfuel") || (name.contains("plutonium") && name.contains("liquidfuel")))
-            return true;
-        if (name.contains("uraniumhexafluoride")) return true;
-        try {
-            if (fluid.isFluidEqual(GGMaterial.uraniumBasedLiquidFuel.getFluidOrGas(1))
-                || fluid.isFluidEqual(GGMaterial.uraniumBasedLiquidFuelExcited.getFluidOrGas(1))
-                || fluid.isFluidEqual(GGMaterial.thoriumBasedLiquidFuel.getFluidOrGas(1))
-                || fluid.isFluidEqual(GGMaterial.thoriumBasedLiquidFuelExcited.getFluidOrGas(1))
-                || fluid.isFluidEqual(GGMaterial.plutoniumBasedLiquidFuel.getFluidOrGas(1))
-                || fluid.isFluidEqual(GGMaterial.plutoniumBasedLiquidFuelExcited.getFluidOrGas(1))) {
-                return true;
-            }
-        } catch (Throwable ignored) {}
-        return false;
+        return NuclearFuelClassification.isFluidFuel(fluid);
     }
 
     public static Fluid getSpentFluid(FluidStack fuel) {
-        if (fuel == null || fuel.getFluid() == null) return null;
-        String name = fuel.getFluid()
-            .getName()
-            .toLowerCase();
-        if (name.contains("thorium")) {
-            try {
-                return GGMaterial.thoriumBasedLiquidFuelDepleted.getFluidOrGas(1)
-                    .getFluid();
-            } catch (Throwable ignored) {}
-            Fluid f = FluidRegistry.getFluid("thoriumbasedliquidfueldepleted");
-            if (f != null) return f;
-            return FluidRegistry.getFluid("fluid.thoriumbasedliquidfueldepleted");
-        }
-        if (name.contains("uraniumbased") || (name.contains("uranium") && name.contains("liquidfuel"))) {
-            try {
-                return GGMaterial.uraniumBasedLiquidFuelDepleted.getFluidOrGas(1)
-                    .getFluid();
-            } catch (Throwable ignored) {}
-            Fluid f = FluidRegistry.getFluid("uraniumbasedliquidfueldepleted");
-            if (f != null) return f;
-            return FluidRegistry.getFluid("fluid.uraniumbasedliquidfueldepleted");
-        }
-        if (name.contains("plutonium")) {
-            try {
-                return GGMaterial.plutoniumBasedLiquidFuelDepleted.getFluidOrGas(1)
-                    .getFluid();
-            } catch (Throwable ignored) {}
-            Fluid f = FluidRegistry.getFluid("plutoniumbasedliquidfueldepleted");
-            if (f != null) return f;
-            return FluidRegistry.getFluid("fluid.plutoniumbasedliquidfueldepleted");
-        }
-        if (name.contains("uraniumhexafluoride")) {
-            Fluid tetra = FluidRegistry.getFluid("uraniumtetrafluoride");
-            if (tetra != null) return tetra;
-            return FluidRegistry.getFluid("fluid.uraniumtetrafluoride");
-        }
-        return null;
+        return NuclearFuelClassification.getSpentFluid(fuel);
     }
 
     public static boolean isCoolantFluid(FluidStack fluid) {
-        if (fluid == null || fluid.getFluid() == null) return false;
-        String name = fluid.getFluid()
-            .getName()
-            .toLowerCase();
-        return name.contains("water") || name.contains("coolant") || name.contains("sodium") || name.contains("lead");
+        return NuclearFuelClassification.isCoolantFluid(fluid);
     }
 
     public static boolean isItemCoolant(ItemStack stack) {
-        if (stack == null) return false;
-        if (stack.getItem() instanceof ItemCoolantCell) return true;
-        String name = stack.getUnlocalizedName()
-            .toLowerCase();
-        return name.contains("coolant") || name.contains("heatcapacitor");
+        return NuclearFuelClassification.isItemCoolant(stack);
     }
 
     public static boolean isItemHeatVent(ItemStack stack) {
-        if (stack == null || stack.getItem() == null) return false;
-        String name = stack.getUnlocalizedName()
-            .toLowerCase();
-        // Skip reactor heat vent as requested (no reactor hull heat)
-        if (name.contains("core")) return false;
-        if (stack.getItem() instanceof ItemReactorVent || stack.getItem() instanceof ItemReactorVentSpread) return true;
-        return name.contains("reactorvent");
+        return NuclearFuelClassification.isItemHeatVent(stack);
     }
 
     public static boolean isItemHeatExchanger(ItemStack stack) {
-        if (stack == null || stack.getItem() == null) return false;
-        String name = stack.getUnlocalizedName()
-            .toLowerCase();
-        // Skip reactor heat exchanger as requested (no reactor hull heat)
-        if (name.contains("core")) return false;
-        if (stack.getItem() instanceof ItemReactorHeatSwitch) return true;
-        return name.contains("heatswitch") || name.contains("heatexchanger");
+        return NuclearFuelClassification.isItemHeatExchanger(stack);
     }
 
     public static double getInsulationDampening(ItemStack stack) {
-        if (stack == null || stack.getItem() == null) return 0.0;
-
-        // 1. Naquarite Universal Insulator Foil: rejects 100% heat & radiation
-        try {
-            if (ItemList.Naquarite_Universal_Insulator_Foil.isStackEqual(stack, false, true)) {
-                return 1.0;
-            }
-        } catch (Throwable ignored) {}
-
-        String unlocalizedName = stack.getUnlocalizedName();
-        if (unlocalizedName != null) {
-            String lower = unlocalizedName.toLowerCase();
-            if (lower.contains("naquarite_universal_insulator_foil")
-                || lower.contains("naquariteuniversalinsulatorfoil")
-                || (lower.contains("naquarite") && lower.contains("insulator"))) {
-                return 1.0;
-            }
-            if (lower.contains("micainsulatorfoil") || lower.contains("mica_insulator_foil")
-                || (lower.contains("mica") && lower.contains("foil"))) {
-                return 0.60;
-            }
-            if (lower.contains("thermalclotht2") || lower.contains("thermal_cloth_t2")
-                || (lower.contains("thermalcloth") && (lower.contains("t2") || lower.contains("2")))) {
-                return 0.40;
-            }
-            if (lower.contains("itembasicasteroids") && stack.getItemDamage() == 7) {
-                return 0.20;
-            }
-            if (lower.contains("thermalcloth") || lower.contains("thermal_cloth")) {
-                return 0.20;
-            }
-        }
-
-        try {
-            ItemStack gcCloth = gregtech.api.util.GTModHandler
-                .getModItem("GalacticraftMars", "item.itemBasicAsteroids", 1, 7);
-            if (gcCloth != null && GTUtility.areStacksEqual(stack, gcCloth, false)) {
-                return 0.20;
-            }
-            ItemStack gsClothT2 = gregtech.api.util.GTModHandler.getModItem("GalaxySpace", "item.ThermalClothT2", 1);
-            if (gsClothT2 != null && GTUtility.areStacksEqual(stack, gsClothT2, true)) {
-                return 0.40;
-            }
-            ItemStack micaFoil = gregtech.api.util.GTModHandler.getModItem("dreamcraft", "MicaInsulatorFoil", 1);
-            if (micaFoil != null && GTUtility.areStacksEqual(stack, micaFoil, true)) {
-                return 0.60;
-            }
-        } catch (Throwable ignored) {}
-
-        return 0.0;
+        return NuclearFuelClassification.getInsulationDampening(stack);
     }
 
     public static boolean isItemInsulator(ItemStack stack) {
@@ -2632,9 +1776,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             case MTEHatchNuclearControl.MODE_FUEL_HATCH_FILL_MAX -> mMaxFuelHatchFill / 100.0;
             case MTEHatchNuclearControl.MODE_FUEL_HATCH_FILL_AVG -> mAvgFuelHatchFill / 100.0;
 
-            case MTEHatchNuclearControl.MODE_DAMAGE_MIN,
-                 MTEHatchNuclearControl.MODE_DAMAGE_MAX,
-                 MTEHatchNuclearControl.MODE_DAMAGE_AVG -> mReactorDamage / 100.0;
+            case MTEHatchNuclearControl.MODE_DAMAGE_MIN, MTEHatchNuclearControl.MODE_DAMAGE_MAX, MTEHatchNuclearControl.MODE_DAMAGE_AVG -> mReactorDamage
+                / 100.0;
 
             default -> 0.0;
         };
@@ -2651,174 +1794,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public void calculateTelemetry() {
-        double minTemp = Double.MAX_VALUE;
-        double maxTemp = -Double.MAX_VALUE;
-        double sumTemp = 0.0;
-        int tileCount = 0;
-
-        double minCoolDur = Double.MAX_VALUE;
-        double maxCoolDur = -Double.MAX_VALUE;
-        double sumCoolDur = 0.0;
-        int coolItemCount = 0;
-        int totalCoolantItems = 0;
-
-        double minFuelDur = Double.MAX_VALUE;
-        double maxFuelDur = -Double.MAX_VALUE;
-        double sumFuelDur = 0.0;
-        int fuelItemCount = 0;
-        int totalFuelItems = 0;
-
-        double minCoolFill = Double.MAX_VALUE;
-        double maxCoolFill = -Double.MAX_VALUE;
-        double sumCoolFill = 0.0;
-        int coolantFluidHatchCount = 0;
-        long totalCoolantFluid = 0;
-        long totalCoolantCapacity = 0;
-
-        double minFuelFill = Double.MAX_VALUE;
-        double maxFuelFill = -Double.MAX_VALUE;
-        double sumFuelFill = 0.0;
-        int fuelFluidHatchCount = 0;
-        long totalFuelFluid = 0;
-        long totalFuelCapacity = 0;
-
-        int totalCoolantCoreHatches = 0;
-        int totalFuelCoreHatches = 0;
-
-        if (mGrid != null && gridSize > 0) {
-            for (int x = 0; x < gridSize; x++) {
-                for (int y = 0; y < gridSize; y++) {
-                    INuclearTile tile = mGrid[x][y];
-                    if (tile != null) {
-                        double temp = tile.getTemperature();
-                        if (temp < minTemp) minTemp = temp;
-                        if (temp > maxTemp) maxTemp = temp;
-                        sumTemp += temp;
-                        tileCount++;
-                    }
-                    if (tile instanceof NuclearGridTile gt) {
-                        if (gt.isBus()) {
-                            MTEHatchNuclearBus bus = gt.getBus();
-                            ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-                            boolean isCoolant = bus.mUsedForCooling;
-                            if (stack != null && stack.stackSize > 0) {
-                                if (isItemFuel(stack)) {
-                                    isCoolant = false;
-                                    totalFuelItems += stack.stackSize;
-                                    double dur;
-                                    if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
-                                        int max = radCell.getMaxDamageEx();
-                                        int cur = radCell.getDamageOfStack(stack);
-                                        dur = max > 0 ? ((double) (max - cur) / max) * 100.0 : 0.0;
-                                    } else if (stack.isItemStackDamageable() && stack.getMaxDamage() > 0) {
-                                        dur = ((double) (stack.getMaxDamage() - stack.getItemDamage())
-                                            / stack.getMaxDamage()) * 100.0;
-                                    } else {
-                                        dur = 100.0;
-                                    }
-                                    dur = Math.max(0.0, Math.min(100.0, dur));
-                                    if (dur < minFuelDur) minFuelDur = dur;
-                                    if (dur > maxFuelDur) maxFuelDur = dur;
-                                    sumFuelDur += dur;
-                                    fuelItemCount++;
-                                } else if (isItemCoolant(stack) || isItemHeatVent(stack)
-                                    || isItemHeatExchanger(stack)
-                                    || (stack.getItem() instanceof IReactorComponent)) {
-                                        isCoolant = true;
-                                        totalCoolantItems += stack.stackSize;
-                                        double dur;
-                                        if (stack.getItem() instanceof IReactorComponent comp) {
-                                            mReactorDummy.setCurrentTile(gt);
-                                            int maxH = comp.getMaxHeat(mReactorDummy, stack, gt.getGx(), gt.getGy());
-                                            int curH = comp
-                                                .getCurrentHeat(mReactorDummy, stack, gt.getGx(), gt.getGy());
-                                            dur = maxH > 0 ? ((double) (maxH - curH) / maxH) * 100.0 : 100.0;
-                                        } else if (stack.isItemStackDamageable() && stack.getMaxDamage() > 0) {
-                                            dur = ((double) (stack.getMaxDamage() - stack.getItemDamage())
-                                                / stack.getMaxDamage()) * 100.0;
-                                        } else {
-                                            dur = 100.0;
-                                        }
-                                        dur = Math.max(0.0, Math.min(100.0, dur));
-                                        if (dur < minCoolDur) minCoolDur = dur;
-                                        if (dur > maxCoolDur) maxCoolDur = dur;
-                                        sumCoolDur += dur;
-                                        coolItemCount++;
-                                    }
-                            }
-                            if (isCoolant) {
-                                totalCoolantCoreHatches++;
-                            } else {
-                                totalFuelCoreHatches++;
-                            }
-                        } else if (gt.isHatch()) {
-                            MTEHatchNuclearHatch hatch = gt.getHatch();
-                            boolean isCoolant = hatch.mUsedForCooling;
-                            if (hatch.mInputFluid != null && hatch.mInputFluid.amount > 0) {
-                                if (isCoolantFluid(hatch.mInputFluid) && !isFluidFuel(hatch.mInputFluid)) {
-                                    isCoolant = true;
-                                } else if (isFluidFuel(hatch.mInputFluid)) {
-                                    isCoolant = false;
-                                }
-                            }
-                            long cap = hatch.mCapacity;
-                            long amt = (hatch.mInputFluid != null) ? hatch.mInputFluid.amount : 0;
-                            double fill = cap > 0 ? ((double) amt / cap) * 100.0 : 0.0;
-                            fill = Math.max(0.0, Math.min(100.0, fill));
-
-                            if (isCoolant) {
-                                totalCoolantCoreHatches++;
-                                coolantFluidHatchCount++;
-                                totalCoolantFluid += amt;
-                                totalCoolantCapacity += cap;
-                                if (fill < minCoolFill) minCoolFill = fill;
-                                if (fill > maxCoolFill) maxCoolFill = fill;
-                                sumCoolFill += fill;
-                            } else {
-                                totalFuelCoreHatches++;
-                                fuelFluidHatchCount++;
-                                totalFuelFluid += amt;
-                                totalFuelCapacity += cap;
-                                if (fill < minFuelFill) minFuelFill = fill;
-                                if (fill > maxFuelFill) maxFuelFill = fill;
-                                sumFuelFill += fill;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        mMinTileTemp = (tileCount > 0) ? minTemp : 0.0;
-        mMaxTileTemp = (tileCount > 0) ? maxTemp : 0.0;
-        mAvgTileTemp = (tileCount > 0) ? sumTemp / tileCount : 0.0;
-
-        mMinCoolantItemDur = (coolItemCount > 0) ? minCoolDur : 0.0;
-        mMaxCoolantItemDur = (coolItemCount > 0) ? maxCoolDur : 0.0;
-        mAvgCoolantItemDur = (coolItemCount > 0) ? sumCoolDur / coolItemCount : 0.0;
-
-        mMinFuelItemDur = (fuelItemCount > 0) ? minFuelDur : 0.0;
-        mMaxFuelItemDur = (fuelItemCount > 0) ? maxFuelDur : 0.0;
-        mAvgFuelItemDur = (fuelItemCount > 0) ? sumFuelDur / fuelItemCount : 0.0;
-
-        mMinCoolantHatchFill = (coolantFluidHatchCount > 0) ? minCoolFill : 0.0;
-        mMaxCoolantHatchFill = (coolantFluidHatchCount > 0) ? maxCoolFill : 0.0;
-        mAvgCoolantHatchFill = (coolantFluidHatchCount > 0) ? sumCoolFill / coolantFluidHatchCount : 0.0;
-
-        mMinFuelHatchFill = (fuelFluidHatchCount > 0) ? minFuelFill : 0.0;
-        mMaxFuelHatchFill = (fuelFluidHatchCount > 0) ? maxFuelFill : 0.0;
-        mAvgFuelHatchFill = (fuelFluidHatchCount > 0) ? sumFuelFill / fuelFluidHatchCount : 0.0;
-
-        mTotalFuelItems = totalFuelItems;
-        mTotalCoolantItems = totalCoolantItems;
-
-        mTotalCoolantFluid = totalCoolantFluid;
-        mTotalCoolantCapacity = totalCoolantCapacity;
-        mTotalFuelFluid = totalFuelFluid;
-        mTotalFuelCapacity = totalFuelCapacity;
-
-        mCoolantHatchCount = totalCoolantCoreHatches;
-        mFuelHatchCount = totalFuelCoreHatches;
+        NuclearReactorTelemetry.update(this);
     }
 
     public boolean handleSensorCardLinking(ItemStack stack, EntityPlayer player, IGregTechTileEntity target) {
@@ -2887,101 +1863,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public ItemStack getItemDepletedForm(ItemStack fuel) {
-        if (fuel == null) return null;
-
-        // 1. Check if fuel is ItemRadioactiveCellIC with sDepleted
-        if (fuel.getItem() instanceof ItemRadioactiveCellIC icCell && icCell.sDepleted != null) {
-            return icCell.sDepleted.copy();
-        }
-
-        // 2. Check IC2 native fuel items
-        if (fuel.getItem() instanceof ItemReactorUranium ic2Uran) {
-            boolean isMox = ic2Uran instanceof ItemReactorMOX;
-            int cells = ic2Uran.numberOfCells;
-            if (isMox) {
-                if (cells >= 4 && Ic2Items.reactorDepletedMOXQuad != null)
-                    return Ic2Items.reactorDepletedMOXQuad.copy();
-                if (cells >= 2 && Ic2Items.reactorDepletedMOXDual != null)
-                    return Ic2Items.reactorDepletedMOXDual.copy();
-                if (Ic2Items.reactorDepletedMOXSimple != null) return Ic2Items.reactorDepletedMOXSimple.copy();
-                return (cells >= 4) ? ItemList.DepletedRodMOX4.get(1L)
-                    : (cells >= 2) ? ItemList.DepletedRodMOX2.get(1L) : ItemList.DepletedRodMOX.get(1L);
-            } else {
-                if (cells >= 4 && Ic2Items.reactorDepletedUraniumQuad != null)
-                    return Ic2Items.reactorDepletedUraniumQuad.copy();
-                if (cells >= 2 && Ic2Items.reactorDepletedUraniumDual != null)
-                    return Ic2Items.reactorDepletedUraniumDual.copy();
-                if (Ic2Items.reactorDepletedUraniumSimple != null) return Ic2Items.reactorDepletedUraniumSimple.copy();
-                return (cells >= 4) ? ItemList.DepletedRodUranium4.get(1L)
-                    : (cells >= 2) ? ItemList.DepletedRodUranium2.get(1L) : ItemList.DepletedRodUranium.get(1L);
-            }
-        }
-
-        String name = fuel.getUnlocalizedName();
-        if (name == null) return null;
-        String lower = name.toLowerCase();
-
-        // 3. The Core (RodNaquadah32)
-        if (lower.contains("naquadah32") || lower.contains("thecore")
-            || (lower.contains("naquadah") && lower.contains("32"))) {
-            return ItemList.DepletedRodNaquadah32.get(1L);
-        }
-
-        // 4. Excited variants
-        if (lower.contains("exciteduranium") || (lower.contains("excited") && lower.contains("uranium"))) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodExcitedUranium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodExcitedUranium2.get(1L);
-            return ItemList.DepletedRodExcitedUranium.get(1L);
-        }
-        if (lower.contains("excitedplutonium") || (lower.contains("excited") && lower.contains("plutonium"))) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodExcitedPlutonium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodExcitedPlutonium2.get(1L);
-            return ItemList.DepletedRodExcitedPlutonium.get(1L);
-        }
-
-        // 5. High density variants
-        if (lower.contains("highdensityuranium") || (lower.contains("highdensity") && lower.contains("uranium"))) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodHighDensityUranium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodHighDensityUranium2.get(1L);
-            return ItemList.DepletedRodHighDensityUranium.get(1L);
-        }
-        if (lower.contains("highdensityplutonium") || (lower.contains("highdensity") && lower.contains("plutonium"))) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodHighDensityPlutonium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodHighDensityPlutonium2.get(1L);
-            return ItemList.DepletedRodHighDensityPlutonium.get(1L);
-        }
-
-        // 6. Naquadria & Tiberium
-        if (lower.contains("naquadria")) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodNaquadria4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodNaquadria2.get(1L);
-            return ItemList.DepletedRodNaquadria.get(1L);
-        }
-        if (lower.contains("tiberium")) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodTiberium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodTiberium2.get(1L);
-            return ItemList.DepletedRodTiberium.get(1L);
-        }
-
-        // 7. Standard fuels: Naquadah, Thorium, MOX, Uranium
-        if (lower.contains("naquadah")) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodNaquadah4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodNaquadah2.get(1L);
-            return ItemList.DepletedRodNaquadah.get(1L);
-        } else if (lower.contains("mox")) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodMOX4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodMOX2.get(1L);
-            return ItemList.DepletedRodMOX.get(1L);
-        } else if (lower.contains("thorium")) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodThorium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodThorium2.get(1L);
-            return ItemList.DepletedRodThorium.get(1L);
-        } else if (lower.contains("uranium")) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodUranium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodUranium2.get(1L);
-            return ItemList.DepletedRodUranium.get(1L);
-        }
-        return null;
+        return NuclearFuelClassification.getItemDepletedForm(fuel);
     }
 
     public void damageItemComponent(MTEHatchNuclearBus bus, int damage) {
@@ -3009,7 +1891,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public double getTileTemperature(NuclearGridTile tile) {
         if (tile.isBus()) return tile.getBus().mTemperature;
         if (tile.isHatch()) return tile.getHatch().mTemperature;
-        if (tile.isHighPressureHatch()) return tile.getHighPressureHatch().getTemperature();
+        if (tile.isHighPressureHatch()) return tile.getHighPressureHatch()
+            .getTemperature();
         if (tile.hasControlRod()) return tile.getBottomControlRod().mTemperature;
         return getAmbientTemperature();
     }
@@ -3258,7 +2141,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public double getTileAbsorptionProbability(NuclearGridTile tile, NeutronType type) {
         double pBase = getBaseAbsorptionProbability(tile, type);
         if (tile.hasControlRod()) {
-            double pRod = tile.getBottomControlRod().getAbsorptionProbability(type);
+            double pRod = tile.getBottomControlRod()
+                .getAbsorptionProbability(type);
             return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
         }
         return pBase;
@@ -3304,7 +2188,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public double getTileScatteringProbability(NuclearGridTile tile, NeutronType type) {
         double pBase = getBaseScatteringProbability(tile, type);
         if (tile.hasControlRod()) {
-            double pRod = tile.getBottomControlRod().getScatteringProbability(type);
+            double pRod = tile.getBottomControlRod()
+                .getScatteringProbability(type);
             return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
         }
         return pBase;
@@ -3344,7 +2229,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public void onTileNeutronAbsorbed(NuclearGridTile tile, NeutronType type, int count) {
         if (count <= 0) return;
         if (tile.hasControlRod()) {
-            double pRod = tile.getBottomControlRod().getAbsorptionProbability(type);
+            double pRod = tile.getBottomControlRod()
+                .getAbsorptionProbability(type);
             double pBase = getBaseAbsorptionProbability(tile, type);
             double sum = pBase + pRod;
             int nRod = (sum > 0) ? (int) Math.round(count * (pRod / sum)) : count / 2;
@@ -3495,13 +2381,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             return;
         }
 
-        // 1. FUEL DEPLETION (Driven by 3 physical processes: emitting fast neutrons, absorbing any neutron, and temperature above ambient)
+        // 1. FUEL DEPLETION (Driven by 3 physical processes: emitting fast neutrons, absorbing any neutron, and
+        // temperature above ambient)
         if (isItemFuel(stack)) {
             bus.mDirectEUProduced = 0;
             double ambient = bus.getAmbientTemperature();
             NuclearFuelType fuelType = NuclearFuelType.fromName(stack.getUnlocalizedName());
-            double tempDmg = (fuelType != null)
-                ? fuelType.calculateTemperatureDamage(bus.mTemperature, ambient)
+            double tempDmg = (fuelType != null) ? fuelType.calculateTemperatureDamage(bus.mTemperature, ambient)
                 : (bus.mTemperature > ambient ? (bus.mTemperature - ambient) / 100.0 : 0.0);
 
             double totalDmg = Math.max(0.0, bus.mLastNeutronsGenerated * 0.25)
@@ -3741,11 +2627,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             FluidStack fluid = hatch.mInputFluid;
             Fluid spentFluid = getSpentFluid(fluid);
             double ambient = hatch.getAmbientTemperature();
-            NuclearFuelType fuelType = (fluid != null && fluid.getFluid() != null)
-                ? NuclearFuelType.fromName(fluid.getFluid().getName())
+            NuclearFuelType fuelType = (fluid != null && fluid.getFluid() != null) ? NuclearFuelType.fromName(
+                fluid.getFluid()
+                    .getName())
                 : null;
-            double tempDmg = (fuelType != null)
-                ? fuelType.calculateTemperatureDamage(hatch.mTemperature, ambient)
+            double tempDmg = (fuelType != null) ? fuelType.calculateTemperatureDamage(hatch.mTemperature, ambient)
                 : (hatch.mTemperature > ambient ? (hatch.mTemperature - ambient) / 100.0 : 0.0);
 
             double totalBurn = Math.max(0.0, hatch.mLastNeutronsGenerated * 0.25)
@@ -3809,8 +2695,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         hatch.mLastProducedFluidName = "";
         if (hatch.mTemperature > minOperatingTemp) {
             double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
-            double qMax = NuclearSimulationEngine.calculateConductiveHeatTransfer(
-                hatch.mTemperature, minOperatingTemp, hatch.mTier, effFactor);
+            double qMax = NuclearSimulationEngine
+                .calculateConductiveHeatTransfer(hatch.mTemperature, minOperatingTemp, hatch.mTier, effFactor);
             int desiredTurnover = (heatPerMB > 0) ? (int) Math.round(qMax / heatPerMB) : 0;
             int fluidToProcess = Math.min(hatch.mInputFluid.amount, desiredTurnover);
 

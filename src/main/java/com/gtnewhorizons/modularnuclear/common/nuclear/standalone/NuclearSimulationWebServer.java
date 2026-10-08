@@ -18,10 +18,10 @@ public class NuclearSimulationWebServer {
                 java.io.File file = new java.io.File(args[1]);
                 file.getParentFile()
                     .mkdirs();
-                NuclearSimulationEngine.setGlobalThermalFissionMultiplier(0.348);
-                NuclearSimulationEngine.fissionHeatPerNeutron = 77.2;
-                grid = new StandaloneNuclearGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
-                grid.loadPreset("BEST_PLATINUM_7X7");
+                NuclearSimulationEngine.setGlobalThermalFissionMultiplier(0.351);
+                NuclearSimulationEngine.fissionHeatPerNeutron = 80.1;
+                grid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+                grid.loadPreset("BEST_PLATINUM_9X9");
                 String html = getIndexHtml()
                     .replace("/*__INITIAL_STATE__*/", "window.__INITIAL_STATE__ = " + getStateJson() + ";");
                 java.nio.file.Files.write(file.toPath(), html.getBytes(StandardCharsets.UTF_8));
@@ -40,7 +40,6 @@ public class NuclearSimulationWebServer {
     public static String getStateJson() {
         return NuclearSimWasmBridge.buildStateJson(grid, false);
     }
-
 
     private static String getIndexHtml() {
         return getHtmlHead() + getHtmlBody() + getHtmlScriptsPart1() + getHtmlScriptsPart2();
@@ -619,7 +618,7 @@ public class NuclearSimulationWebServer {
                   <button onclick="stepSim(1)">Step +1</button>
                   <button onclick="stepSim(10)">Step +10</button>
                   <button onclick="stepSim(100)">Step +100</button>
-                  <button class="danger" onclick="quickScram()" title="Emergency SCRAM: Insert all bottom control rods to 100% [Key: s]">🚨 SCRAM</button>
+                  <button class="danger" onclick="quickScram()" title="Emergency SCRAM: Insert all control rods to 100% [Key: s]">🚨 SCRAM</button>
                   <button class="danger" onclick="resetSim()">↺ Reset</button>
                   <select id="preset-select" onchange="loadPreset(this.value)">
                     <optgroup label="⚡ Calibrated 60A Baseline Designs">
@@ -631,12 +630,12 @@ public class NuclearSimulationWebServer {
                       <option value="60A_PLUTONIUM_13X13">UHV 60A: Black Plutonium 13x13 Peak (126M EU/t · 60.0A)</option>
                     </optgroup>
                     <optgroup label="🏆 Maxxed-Out Optimum Ceilings (nuclear_ceiling_best.json)">
-                      <option value="BEST_ELECTRUM_5X5">EV Peak: Electrum 5x5 (319k EU/t · 156A)</option>
-                      <option value="BEST_PLATINUM_7X7" selected>IV Peak: Platinum 7x7 (888k EU/t · 108A)</option>
-                      <option value="BEST_OSMIUM_9X9">LuV Peak: Osmium 9x9 (6.55M EU/t · 200A)</option>
-                      <option value="BEST_QUANTIUM_9X9">ZPM Peak: Quantium 9x9 (4.27M EU/t · 33A)</option>
-                      <option value="BEST_FLUXED_9X9">UV Peak: Fluxed 9x9 (6.89M EU/t · 13A)</option>
-                      <option value="BEST_PLUTONIUM_9X9">UHV Peak: Black Plutonium 9x9 (4.43M EU/t · 2.1A)</option>
+                      <option value="BEST_ELECTRUM_5X5">EV Peak: Electrum 5x5 (565k EU/t · 276A)</option>
+                      <option value="BEST_PLATINUM_9X9" selected>IV Peak: Platinum 9x9 (5.08M EU/t · 620A)</option>
+                      <option value="BEST_OSMIUM_9X9">LuV Peak: Osmium 9x9 (9.46M EU/t · 289A)</option>
+                      <option value="BEST_QUANTIUM_13X13">ZPM Peak: Quantium 13x13 (51.9M EU/t · 396A)</option>
+                      <option value="BEST_FLUXED_13X13">UV Peak: Fluxed 13x13 (112M EU/t · 213A)</option>
+                      <option value="BEST_PLUTONIUM_13X13">UHV Peak: Black Plutonium 13x13 (141M EU/t · 67A)</option>
                     </optgroup>
                   </select>
                   <select id="tier-select" onchange="changeTier(this.value)" title="Reactor Pipe & Casing Tier">
@@ -695,7 +694,7 @@ public class NuclearSimulationWebServer {
                       <button type="button" class="seg-btn active" id="btn-mode-temp" onclick="setGridDisplayMode('TEMP')" title="Show Cell Temperature (°C) [Key: 2]">🌡️ Temp</button>
                       <button type="button" class="seg-btn" id="btn-mode-flux" onclick="setGridDisplayMode('TOTAL_FLUX')" title="Show Total Neutron Flux [Key: 3]">⚛️ Flux</button>
                       <button type="button" class="seg-btn" id="btn-mode-absorb" onclick="setGridDisplayMode('ABSORPTION')" title="Show Neutron Absorption [Key: 4]">🛡️ Absorption</button>
-                      <button type="button" class="seg-btn" id="btn-mode-rods" onclick="setGridDisplayMode('CONTROL_RODS')" title="Show Bottom Control Rod Hatches [Key: 5]">🕹️ Control Rods</button>
+                      <button type="button" class="seg-btn" id="btn-mode-rods" onclick="setGridDisplayMode('CONTROL_RODS')" title="Show Control Rod Hatches [Key: 5]">🕹️ Control Rods</button>
                     </div>
                   </div>
 
@@ -935,14 +934,14 @@ public class NuclearSimulationWebServer {
                   <div class="stat-row"><span>Byproduct (Transmutation):</span><span class="stat-val" id="loop-byproduct-val" style="color:#a855f7;">0 L</span></div>
                 </div>
 
-                <!-- Bottom Control Rods Subsystem -->
+                <!-- Control Rods Subsystem -->
                 <div style="background:#131a24; border:1px solid var(--border-color); border-radius:6px; padding:12px; margin-bottom:12px;">
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                    <h3 style="font-size:0.95rem; color:#00e5ff; margin:0;">🕹️ Bottom Control Rods</h3>
+                    <h3 style="font-size:0.95rem; color:#00e5ff; margin:0;">🕹️ Control Rods</h3>
                     <span class="badge" id="rods-count-badge" style="font-weight:bold; color:#00e5ff;">0 Hatches</span>
                   </div>
                   <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">
-                    Bottom-layer non-outer-wall hatches providing vertical neutron absorption shielding.
+                    Non-outer-wall hatches providing vertical neutron absorption shielding.
                   </div>
                   <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; margin-bottom:4px;">
                     <span>Global Insertion:</span>
@@ -1206,8 +1205,8 @@ public class NuclearSimulationWebServer {
                       wasmSim.setTurbine(window.__INITIAL_STATE__.turbineMaterial, window.__INITIAL_STATE__.turbineSize, window.__INITIAL_STATE__.turbineFitting, false);
                     }
                   } else {
-                    wasmSim.initGrid(7, 7, 1);
-                    wasmSim.loadPreset("BEST_PLATINUM_7X7");
+                    wasmSim.initGrid(9, 9, 1);
+                    wasmSim.loadPreset("BEST_PLATINUM_9X9");
                   }
                   currentState = wasmSim.getState();
                   renderUI();
@@ -1785,7 +1784,7 @@ public class NuclearSimulationWebServer {
                 }
               }
 
-              // Update Bottom Control Rods subsystem card
+              // Update Control Rods subsystem card
               let controlRodHatchesCount = (currentState.controlRodCount !== undefined) ? currentState.controlRodCount : 0;
               let totalRodAbsorbed = 0;
               let totalRodInsertion = 0;
@@ -2395,7 +2394,7 @@ public class NuclearSimulationWebServer {
                   if (gridDisplayMode === "COMPONENTS") {
                     overlayBg = "transparent";
                     metricStr = "";
-                    tipText = `${t.name} (${t.x}, ${t.y})` + (t.hasControlRod ? " [Bottom Control Rod Hatch]" : "");
+                    tipText = `${t.name} (${t.x}, ${t.y})` + (t.hasControlRod ? " [Control Rod Hatch]" : "");
                   } else if (gridDisplayMode === "TOTAL_FLUX") {
                     const fl = t.totalFlux || 0;
                     overlayBg = fl > 0 ? getNeutronColor(fl) : "transparent";
@@ -2424,16 +2423,16 @@ public class NuclearSimulationWebServer {
                         const rodCol = getControlRodColor(t.controlRodType);
                         overlayBg = ins > 0 ? `linear-gradient(to top, ${rodCol} ${ins}%, rgba(15, 23, 42, 0.75) ${ins}%)` : "rgba(30, 41, 59, 0.6)";
                         metricStr = ins + "%";
-                        tipText = `Bottom Control Rod: ${t.controlRodTypeName || t.controlRodType} (${ins}% inserted)`;
+                        tipText = `Control rod: ${t.controlRodTypeName || t.controlRodType} (${ins}% inserted)`;
                       } else {
                         overlayBg = "rgba(30, 41, 59, 0.5)";
                         metricStr = "EMPTY";
-                        tipText = "Bottom Control Rod Hatch: Empty (No rod inserted)";
+                        tipText = "Control rod hatch: empty (no rod inserted)";
                       }
                     } else {
                       overlayBg = "rgba(15, 20, 28, 0.85)";
                       metricStr = "";
-                      tipText = "No bottom control rod hatch installed";
+                      tipText = "No control rod hatch installed";
                     }
                   } else {
                     overlayBg = getTemperatureColor(t.temp, currentState.maxSafeTemp);
@@ -2651,18 +2650,18 @@ public class NuclearSimulationWebServer {
                 if (isLoopAttached) {
                   controlRodHtml = `
                     <div style="background:#10141d; border:1px solid #373737; border-radius:3px; padding:6px 8px; margin-top:8px;">
-                      <div style="font-weight:700; font-size:0.75rem; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">🕹️ Bottom Control Rod Hatch</div>
-                      <div style="font-size:0.72rem; color:var(--warning); margin-top:4px;">⚠️ Bottom casing occupied by Convective Loop Passage. Control rod hatches cannot be installed on loop cells.</div>
+                      <div style="font-weight:700; font-size:0.75rem; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">🕹️ Control Rod Hatch</div>
+                      <div style="font-size:0.72rem; color:var(--warning); margin-top:4px;">⚠️ Core face occupied by convective loop passage. Control rod hatches cannot be installed on loop cells.</div>
                     </div>
                   `;
                 } else if (!t.hasControlRod) {
                   controlRodHtml = `
                     <div style="background:#10141d; border:1px solid #373737; border-radius:3px; padding:6px 8px; margin-top:8px;">
                       <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:700; font-size:0.75rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">🕹️ Bottom Control Rod Hatch</span>
+                        <span style="font-weight:700; font-size:0.75rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">🕹️ Control Rod Hatch</span>
                         <button type="button" onclick="toggleTileControlRod(${t.x}, ${t.y}, true)" style="padding:2px 8px; font-size:0.72rem; background:#1e293b; border-color:#00d2ff; color:#00d2ff;">+ Install Hatch</button>
                       </div>
-                      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">No bottom control rod hatch installed at this coordinate.</div>
+                      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">No control rod hatch installed at this coordinate.</div>
                     </div>
                   `;
                 } else {
@@ -2673,8 +2672,8 @@ public class NuclearSimulationWebServer {
                   controlRodHtml = `
                     <div style="background:#10141d; border:1px solid #00e5ff; border-radius:3px; padding:6px 8px; margin-top:8px;">
                       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <span style="font-weight:700; font-size:0.75rem; color:#00e5ff; text-transform:uppercase; letter-spacing:0.5px;">🕹️ Bottom Control Rod Hatch</span>
-                        <button type="button" onclick="toggleTileControlRod(${t.x}, ${t.y}, false)" style="padding:1px 6px; font-size:0.68rem; background:#29151b; border-color:var(--danger); color:var(--danger);" title="Remove hatch from bottom layer">Remove</button>
+                        <span style="font-weight:700; font-size:0.75rem; color:#00e5ff; text-transform:uppercase; letter-spacing:0.5px;">🕹️ Control Rod Hatch</span>
+                        <button type="button" onclick="toggleTileControlRod(${t.x}, ${t.y}, false)" style="padding:1px 6px; font-size:0.68rem; background:#29151b; border-color:var(--danger); color:var(--danger);" title="Remove hatch from this cell">Remove</button>
                       </div>
                       <div style="margin-bottom:6px;">
                         <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:2px;">Rod Material:</div>

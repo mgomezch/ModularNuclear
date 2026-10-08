@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.hatch;
 
+import static com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil.formatNumber;
 import static gregtech.api.enums.Textures.BlockIcons.FLUID_IN_SIGN;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_COLORS;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_IN;
@@ -29,6 +30,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.util.GTSplit;
 
 /**
  * Dumb fluid container hatch for the modular nuclear reactor.
@@ -71,19 +73,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     }
 
     public MTEHatchNuclearHatch(int aID, String aName, String aNameRegional, int aTier) {
-        super(
-            aID,
-            aName,
-            aNameRegional,
-            aTier,
-            0,
-            new String[] { "Tiered nuclear fluid hatch (" + GTValues.VN[aTier] + ")",
-                "Holds input coolant or liquid nuclear fuel", "Input-only core fluid hatch",
-                "All outputs (steam, hot coolant, byproducts, spent fuel) eject to reactor output hatches",
-                "Capacity: " + (8000 * (1 << aTier)) + " L", "Coolant boiling and transmutation under neutron flux",
-                "Conductance: " + NuclearSimulationEngine.getHatchConductance(aTier) + " EU/(t\u00b7\u00b0C)",
-                "Item pipe casing determines allowed coolants",
-                "Inserting coolant into a dry superheated reactor will cause thermal shock!" });
+        super(aID, aName, aNameRegional, aTier, 0, (String) null);
         this.mCapacity = 8000 * (1 << aTier);
     }
 
@@ -91,6 +81,15 @@ public class MTEHatchNuclearHatch extends MTEHatch {
         ITexture[][][] aTextures) {
         super(aName, aTier, 0, aDescription, aTextures);
         this.mCapacity = aCapacity;
+    }
+
+    @Override
+    public String[] getDescription() {
+        return GTSplit.splitLocalizedFormatted(
+            "gt.blockmachines.hatch.nuclearhatch.desc",
+            GTValues.VN[mTier],
+            formatNumber(mCapacity),
+            NuclearSimulationEngine.getHatchConductance(mTier));
     }
 
     @Override

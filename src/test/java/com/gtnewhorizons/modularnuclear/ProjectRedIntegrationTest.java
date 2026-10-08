@@ -267,40 +267,70 @@ public class ProjectRedIntegrationTest {
 
     @Test
     public void testTransmissionHandlerInteractionLogic() {
-        com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedTransmissionHandler handler =
-            new com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedTransmissionHandler();
+        com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedTransmissionHandler handler = new com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedTransmissionHandler();
         net.minecraft.world.World mockWorld = org.mockito.Mockito.mock(net.minecraft.world.World.class);
-        gregtech.api.metatileentity.BaseMetaTileEntity mockGt =
-            org.mockito.Mockito.mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        gregtech.api.metatileentity.BaseMetaTileEntity mockGt = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
 
         org.mockito.Mockito.when(mockWorld.getTileEntity(10, 20, 30))
             .thenReturn(mockGt);
 
         MTEHatchNuclearControl hatch = new MTEHatchNuclearControl("test_hatch", 1, new String[0], null);
-        org.mockito.Mockito.when(mockGt.getMetaTileEntity()).thenReturn(hatch);
+        org.mockito.Mockito.when(mockGt.getMetaTileEntity())
+            .thenReturn(hatch);
         org.mockito.Mockito.when(mockGt.getFrontFacing())
             .thenReturn(net.minecraftforge.common.util.ForgeDirection.SOUTH);
 
         assertTrue(handler.isValidInteractionFor(mockWorld, 10, 20, 30));
 
         // Front facing is SOUTH (3), opposite is NORTH (2)
-        assertTrue(handler.canConnectBundled(mockWorld, 10, 20, 30, net.minecraftforge.common.util.ForgeDirection.SOUTH.ordinal()));
-        assertTrue(handler.canConnectBundled(mockWorld, 10, 20, 30, net.minecraftforge.common.util.ForgeDirection.NORTH.ordinal()));
+        assertTrue(
+            handler.canConnectBundled(
+                mockWorld,
+                10,
+                20,
+                30,
+                net.minecraftforge.common.util.ForgeDirection.SOUTH.ordinal()));
+        assertTrue(
+            handler.canConnectBundled(
+                mockWorld,
+                10,
+                20,
+                30,
+                net.minecraftforge.common.util.ForgeDirection.NORTH.ordinal()));
         // Sides UP (1), DOWN (0) should not connect for control hatch
-        assertFalse(handler.canConnectBundled(mockWorld, 10, 20, 30, net.minecraftforge.common.util.ForgeDirection.UP.ordinal()));
-        assertFalse(handler.canConnectBundled(mockWorld, 10, 20, 30, net.minecraftforge.common.util.ForgeDirection.DOWN.ordinal()));
+        assertFalse(
+            handler
+                .canConnectBundled(mockWorld, 10, 20, 30, net.minecraftforge.common.util.ForgeDirection.UP.ordinal()));
+        assertFalse(
+            handler.canConnectBundled(
+                mockWorld,
+                10,
+                20,
+                30,
+                net.minecraftforge.common.util.ForgeDirection.DOWN.ordinal()));
 
         // Signal return:
         hatch.setOutputs((byte) 5, 85, null);
-        byte[] sig = handler.getBundledSignal(mockWorld, 10, 20, 30, net.minecraftforge.common.util.ForgeDirection.SOUTH.ordinal());
+        byte[] sig = handler
+            .getBundledSignal(mockWorld, 10, 20, 30, net.minecraftforge.common.util.ForgeDirection.SOUTH.ordinal());
         assertNotNull(sig);
         assertEquals(16, sig.length);
 
         // Control Rod hatch connects on all sides
         MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test_rod", 1, new String[0], null);
-        org.mockito.Mockito.when(mockGt.getMetaTileEntity()).thenReturn(rod);
+        org.mockito.Mockito.when(mockGt.getMetaTileEntity())
+            .thenReturn(rod);
         assertTrue(handler.isValidInteractionFor(mockWorld, 10, 20, 30));
-        assertTrue(handler.canConnectBundled(mockWorld, 10, 20, 30, net.minecraftforge.common.util.ForgeDirection.UP.ordinal()));
-        assertTrue(handler.canConnectBundled(mockWorld, 10, 20, 30, net.minecraftforge.common.util.ForgeDirection.NORTH.ordinal()));
+        assertTrue(
+            handler
+                .canConnectBundled(mockWorld, 10, 20, 30, net.minecraftforge.common.util.ForgeDirection.UP.ordinal()));
+        assertTrue(
+            handler.canConnectBundled(
+                mockWorld,
+                10,
+                20,
+                30,
+                net.minecraftforge.common.util.ForgeDirection.NORTH.ordinal()));
     }
 }

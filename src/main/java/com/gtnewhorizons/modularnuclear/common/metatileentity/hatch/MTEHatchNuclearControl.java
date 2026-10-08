@@ -28,6 +28,7 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.util.GTSplit;
 import gregtech.api.util.GTUtility;
 import mrtjp.projectred.api.IBundledEmitter;
 
@@ -74,33 +75,6 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter 
     public static final String[] DYE_NAMES = new String[] { "White", "Orange", "Magenta", "Light Blue", "Yellow",
         "Lime", "Pink", "Gray", "Light Gray", "Cyan", "Purple", "Blue", "Brown", "Green", "Red", "Black" };
 
-    // Deprecated compatibility aliases
-    @Deprecated
-    public static final int METRIC_FUEL_DURABILITY = METRIC_FUEL_ITEM_DURABILITY;
-    @Deprecated
-    public static final int METRIC_COMPONENT_DURABILITY = METRIC_COOLANT_ITEM_DURABILITY;
-    @Deprecated
-    public static final int METRIC_COOLANT_LEVEL = METRIC_COOLANT_HATCH_FILL;
-
-    @Deprecated
-    public static final int MODE_FUEL_DURABILITY_MIN = MODE_FUEL_ITEM_DUR_MIN;
-    @Deprecated
-    public static final int MODE_FUEL_DURABILITY_MAX = MODE_FUEL_ITEM_DUR_MAX;
-    @Deprecated
-    public static final int MODE_FUEL_DURABILITY_AVG = MODE_FUEL_ITEM_DUR_AVG;
-    @Deprecated
-    public static final int MODE_COMPONENT_DURABILITY_MIN = MODE_COOLANT_ITEM_DUR_MIN;
-    @Deprecated
-    public static final int MODE_COMPONENT_DURABILITY_MAX = MODE_COOLANT_ITEM_DUR_MAX;
-    @Deprecated
-    public static final int MODE_COMPONENT_DURABILITY_AVG = MODE_COOLANT_ITEM_DUR_AVG;
-    @Deprecated
-    public static final int MODE_COOLANT_LEVEL_MIN = MODE_COOLANT_HATCH_FILL_MIN;
-    @Deprecated
-    public static final int MODE_COOLANT_LEVEL_MAX = MODE_COOLANT_HATCH_FILL_MAX;
-    @Deprecated
-    public static final int MODE_COOLANT_LEVEL_AVG = MODE_COOLANT_HATCH_FILL_AVG;
-
     public com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor mReactor;
     private int mMetric = 0;
     private int mStatistic = 0;
@@ -110,21 +84,16 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter 
     private final byte[] mBundledSignal = new byte[16];
 
     public MTEHatchNuclearControl(int aID, String aName, String aNameRegional, int aTier) {
-        super(
-            aID,
-            aName,
-            aNameRegional,
-            aTier,
-            0,
-            new String[] { "Emits redstone signals based on nuclear reactor conditions",
-                "Right-click with screwdriver to cycle metric (Sneak+Right-click for bundled mode)",
-                "Right-click with soldering iron to cycle statistic",
-                "Outputs 0-15 vanilla redstone or 0-255 ProjectRed bundled signals strictly from front face",
-                "Supports 16-channel ProjectRed bundled cables with 8-bit precision" });
+        super(aID, aName, aNameRegional, aTier, 0, (String) null);
     }
 
     public MTEHatchNuclearControl(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, 0, aDescription, aTextures);
+    }
+
+    @Override
+    public String[] getDescription() {
+        return GTSplit.splitLocalized("gt.blockmachines.hatch.nuclearcontrol.desc");
     }
 
     @Override
@@ -276,8 +245,11 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter 
     public byte[] getBundledSignal(int side) {
         IGregTechTileEntity te = getBaseMetaTileEntity();
         if (te != null) {
-            int front = te.getFrontFacing().ordinal();
-            int opp = te.getFrontFacing().getOpposite().ordinal();
+            int front = te.getFrontFacing()
+                .ordinal();
+            int opp = te.getFrontFacing()
+                .getOpposite()
+                .ordinal();
             if (side == front || side == opp) {
                 return mBundledSignal;
             }
@@ -288,12 +260,8 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter 
     public boolean isInterfacingProjectRed() {
         IGregTechTileEntity te = getBaseMetaTileEntity();
         if (te == null || te.getWorld() == null) return false;
-        return ProjectRedIntegration.isInterfacing(
-            te.getWorld(),
-            te.getXCoord(),
-            te.getYCoord(),
-            te.getZCoord(),
-            te.getFrontFacing());
+        return ProjectRedIntegration
+            .isInterfacing(te.getWorld(), te.getXCoord(), te.getYCoord(), te.getZCoord(), te.getFrontFacing());
     }
 
     public void setOutputs(byte vanillaSignal, int fineSignal, byte[] allSignals) {
@@ -416,7 +384,8 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter 
         ItemStack aTool) {
         if (aPlayer != null && aPlayer.isSneaking()) {
             cycleBundledMode(1);
-            GTUtility.sendChatToPlayer(aPlayer, "Control hatch bundled mode: " + getBundledModeName(mBundledChannelMode));
+            GTUtility
+                .sendChatToPlayer(aPlayer, "Control hatch bundled mode: " + getBundledModeName(mBundledChannelMode));
         } else {
             cycleMetric(1);
             GTUtility.sendChatToPlayer(aPlayer, "Control hatch metric: " + getMetricName(mMetric));
@@ -507,15 +476,14 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter 
                     .setPos(153, 49)
                     .setSize(12, 10))
             // Row 3: Output Signal
-            .widget(
-                new TextWidget().setStringSupplier(() -> {
-                    if (isInterfacingProjectRed()) {
-                        return String.format("Output: %d / 15 (PR: %d / 255)", mOutputStrength, mFineOutputStrength);
-                    }
-                    return String.format("Output: %d / 15 (Fine: %d / 255)", mOutputStrength, mFineOutputStrength);
-                })
-                    .setDefaultColor(Color.rgb(255, 80, 80))
-                    .setPos(12, 62))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                if (isInterfacingProjectRed()) {
+                    return String.format("Output: %d / 15 (PR: %d / 255)", mOutputStrength, mFineOutputStrength);
+                }
+                return String.format("Output: %d / 15 (Fine: %d / 255)", mOutputStrength, mFineOutputStrength);
+            })
+                .setDefaultColor(Color.rgb(255, 80, 80))
+                .setPos(12, 62))
             // Row 4: ProjectRed Bundled Cable Mode
             .widget(
                 new ButtonWidget().setOnClick((clickData, widget) -> cycleBundledMode(-1))

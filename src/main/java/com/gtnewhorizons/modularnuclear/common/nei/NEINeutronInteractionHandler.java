@@ -881,56 +881,86 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (rec instanceof CachedNeutronInteractionRecipe r1) {
             // Page 1 Tooltips
             if (relX >= 25 && relX <= 65 && relY >= 10 && relY <= 24) {
-                currenttip.add(EnumChatFormatting.WHITE + "Scattering Probability");
-                currenttip.add(EnumChatFormatting.GRAY + "Chance of fast neutrons bouncing off this component");
+                currenttip.add(
+                    EnumChatFormatting.WHITE + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
+                currenttip.add(
+                    EnumChatFormatting.GRAY
+                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering_fast.desc"));
             } else if (relX >= 80 && relX <= 115 && relY >= 46 && relY <= 62) {
-                currenttip.add(EnumChatFormatting.GREEN + "Absorption Probability");
-                currenttip.add(EnumChatFormatting.GRAY + "Chance of fast neutrons being absorbed by this component");
+                currenttip.add(
+                    EnumChatFormatting.GREEN
+                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_title"));
+                currenttip.add(
+                    EnumChatFormatting.GRAY
+                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_fast.desc"));
             } else if ((relX >= 105 && relX <= 145 && relY >= 10 && relY <= 24)
                 || (relX >= 112 && relX <= 134 && relY >= 26 && relY <= 46)) {
-                    currenttip.add(EnumChatFormatting.BLUE + "Thermal Scattered Neutron Fraction");
                     currenttip.add(
-                        EnumChatFormatting.GRAY + String.format(
-                            Locale.US,
-                            "%.1f%% of scattered neutrons become thermal",
+                        EnumChatFormatting.BLUE
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.thermal_fraction"));
+                    currenttip.add(
+                        EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
+                            "gt.nei.neutron_interaction.thermal_fraction.desc",
                             r1.data.slowingProbability * 100.0));
                 } else if (relX >= 105 && relX <= 145 && relY >= 40 && relY <= 54) {
-                    currenttip.add(EnumChatFormatting.RED + "Fast Scattered Neutron Fraction");
                     currenttip.add(
-                        EnumChatFormatting.GRAY + String.format(
-                            Locale.US,
-                            "%.1f%% of scattered neutrons remain fast",
+                        EnumChatFormatting.RED
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.fast_fraction"));
+                    currenttip.add(
+                        EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
+                            "gt.nei.neutron_interaction.fast_fraction.desc",
                             (1.0 - r1.data.slowingProbability) * 100.0));
                 } else if (relX >= 25 && relX <= 65 && relY >= 74 && relY <= 90) {
-                    currenttip.add(EnumChatFormatting.WHITE + "Scattering Probability");
-                    currenttip.add(EnumChatFormatting.GRAY + "Chance of thermal neutrons bouncing off this component");
+                    currenttip.add(
+                        EnumChatFormatting.WHITE
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
+                    currenttip.add(
+                        EnumChatFormatting.GRAY
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering_thermal.desc"));
                 } else if (relX >= 80 && relX <= 115 && relY >= 112 && relY <= 128) {
-                    currenttip.add(EnumChatFormatting.GREEN + "Absorption Probability");
-                    currenttip
-                        .add(EnumChatFormatting.GRAY + "Chance of thermal neutrons being absorbed by this component");
+                    currenttip.add(
+                        EnumChatFormatting.GREEN
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_title"));
+                    currenttip.add(
+                        EnumChatFormatting.GRAY
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_thermal.desc"));
                 }
         } else if (rec instanceof CachedNeutronCaptureRecipe r2) {
             // Page 2 Tooltips
             if (relX >= 20 && relX <= 55 && relY >= 44 && relY <= 62) {
-                currenttip.add(EnumChatFormatting.GREEN + "Fast Neutron Energy");
-                currenttip.add(EnumChatFormatting.GRAY + "Energy transferred to heat upon absorption (8 EU)");
+                currenttip.add(
+                    EnumChatFormatting.GREEN
+                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.fast_energy"));
+                currenttip.add(
+                    EnumChatFormatting.GRAY
+                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.fast_energy.desc"));
             } else if (relX >= 95 && relX <= 145 && relY >= 12 && relY <= 28) {
-                currenttip.add(EnumChatFormatting.GOLD + "Direct Heat by Disintegration");
                 currenttip.add(
-                    EnumChatFormatting.GRAY
-                        + String.format(Locale.US, "Fission heat: %.2f °C per fission reaction", r2.data.directHeatC));
+                    EnumChatFormatting.GOLD + StatCollector.translateToLocal("gt.nei.neutron_interaction.direct_heat"));
+                currenttip.add(
+                    EnumChatFormatting.GRAY + StatCollector
+                        .translateToLocalFormatted("gt.nei.neutron_interaction.direct_heat.desc", r2.data.directHeatC));
             } else if (relX >= 95 && relX <= 145 && relY >= 44 && relY <= 62) {
-                currenttip.add(EnumChatFormatting.YELLOW + "Direct Energy");
+                currenttip.add(
+                    EnumChatFormatting.YELLOW
+                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.direct_energy"));
+                currenttip.add(
+                    EnumChatFormatting.GRAY + StatCollector
+                        .translateToLocalFormatted("gt.nei.neutron_interaction.direct_energy.desc", r2.data.directEU));
+            } else if (relX >= 25 && relX <= 140 && relY >= 52 && relY <= 66) {
+                currenttip.add(
+                    EnumChatFormatting.GREEN
+                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.multiplication"));
                 currenttip.add(
                     EnumChatFormatting.GRAY
-                        + String.format(Locale.US, "Energy released: %.0f EU per fission reaction", r2.data.directEU));
-            } else if (relX >= 25 && relX <= 140 && relY >= 52 && relY <= 66) {
-                currenttip.add(EnumChatFormatting.GREEN + "Neutrons Multiplication");
-                currenttip.add(EnumChatFormatting.GRAY + "New fast neutrons produced (varies with core temperature)");
+                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.multiplication.desc"));
             } else if (relX >= 45 && relX <= 120 && relY >= 90 && relY <= 130) {
-                currenttip.add(EnumChatFormatting.WHITE + "Neutron Absorption Capacity");
-                currenttip
-                    .add(EnumChatFormatting.GRAY + "Total neutrons absorbed before component depletion/transmutation");
+                currenttip.add(
+                    EnumChatFormatting.WHITE
+                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_capacity"));
+                currenttip.add(
+                    EnumChatFormatting.GRAY
+                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_capacity.desc"));
             }
         }
         return currenttip;
@@ -947,32 +977,29 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (data == null) return currenttip;
 
         if (matches(stack, data.stack)) {
-            currenttip.add(EnumChatFormatting.GOLD + "Reactor Role: " + EnumChatFormatting.WHITE + data.category);
             currenttip.add(
-                EnumChatFormatting.YELLOW + "Fast: "
-                    + EnumChatFormatting.WHITE
-                    + String.format(
-                        Locale.US,
-                        "Scatter %.1f%%, Absorb %.1f%%, Slow %.1f%%",
-                        data.fastScattering * 100.0,
-                        data.fastAbsorption * 100.0,
-                        data.slowingProbability * 100.0));
+                EnumChatFormatting.GOLD
+                    + StatCollector.translateToLocalFormatted("gt.nei.neutron_interaction.role", data.category));
             currenttip.add(
-                EnumChatFormatting.AQUA + "Thermal: "
-                    + EnumChatFormatting.WHITE
-                    + String.format(
-                        Locale.US,
-                        "Scatter %.1f%%, Absorb %.1f%%",
-                        data.thermalScattering * 100.0,
-                        data.thermalAbsorption * 100.0));
+                EnumChatFormatting.YELLOW + StatCollector.translateToLocalFormatted(
+                    "gt.nei.neutron_interaction.fast_stats",
+                    data.fastScattering * 100.0,
+                    data.fastAbsorption * 100.0,
+                    data.slowingProbability * 100.0));
+            currenttip.add(
+                EnumChatFormatting.AQUA + StatCollector.translateToLocalFormatted(
+                    "gt.nei.neutron_interaction.thermal_stats",
+                    data.thermalScattering * 100.0,
+                    data.thermalAbsorption * 100.0));
             if (data.extraInfo != null) {
                 currenttip.add(EnumChatFormatting.GRAY + data.extraInfo);
             }
         } else if (data.absorptionOutput != null && matches(stack, data.absorptionOutput)) {
-            currenttip
-                .add(EnumChatFormatting.DARK_RED + "Depleted Component" + EnumChatFormatting.GRAY + " (Byproduct)");
-            currenttip
-                .add(EnumChatFormatting.GRAY + "Produced after absorbing full neutron capacity in the Nuclear Reactor");
+            currenttip.add(
+                EnumChatFormatting.DARK_RED
+                    + StatCollector.translateToLocal("gt.nei.neutron_interaction.depleted_title"));
+            currenttip.add(
+                EnumChatFormatting.GRAY + StatCollector.translateToLocal("gt.nei.neutron_interaction.depleted_desc"));
         }
         return currenttip;
     }

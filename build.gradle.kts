@@ -134,7 +134,7 @@ val publishPages by tasks.registering(Exec::class) {
         if git diff --cached --quiet; then
             echo "No changes to commit for GitHub Pages."
         else
-            git commit -m "deploy: update WebAssembly simulator with bottom control rod hatches, 5-tab GUI, and Electrum 1200C"
+            git commit -m "deploy: update WebAssembly simulator with calibrated peak layouts and coolant loop phase transitions"
             git push origin main
             echo "Successfully deployed latest WebAssembly simulator to GitHub Pages!"
         fi

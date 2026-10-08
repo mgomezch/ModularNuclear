@@ -37,6 +37,7 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTRecipe;
+import gregtech.api.util.GTSplit;
 
 /**
  * Dumb item container hatch for the modular nuclear reactor.
@@ -76,19 +77,16 @@ public class MTEHatchNuclearBus extends MTEHatch {
     public long mLastCheeseTick = -1;
 
     public MTEHatchNuclearBus(int aID, String aName, String aNameRegional, int aTier) {
-        super(
-            aID,
-            aName,
-            aNameRegional,
-            aTier,
-            1,
-            new String[] { "Nuclear core bus for items",
-                "Holds fuel rods, reflectors, coolant cells, control rods, or insulators",
-                "Input-only core component bus", "Outputs eject to reactor output buses and hatches" });
+        super(aID, aName, aNameRegional, aTier, 1, (String) null);
     }
 
     public MTEHatchNuclearBus(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, 1, aDescription, aTextures);
+    }
+
+    @Override
+    public String[] getDescription() {
+        return GTSplit.splitLocalized("gt.blockmachines.hatch.nuclearbus.desc");
     }
 
     @Override
