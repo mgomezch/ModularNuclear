@@ -377,6 +377,9 @@ public class CoolantLoopModelTest {
         assertEquals(CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE, CoolantLoopModel.CoolantFluidType.fromString("cheese"));
         assertEquals(CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE, CoolantLoopModel.CoolantFluidType.fromString("MOLTEN_CHEESE"));
 
+        // Set hot ambient biome (Nether) for molten cheese circulation
+        NuclearSimulationEngine.ambientTemp = 50.0;
+        loop.setCurrentCoolantTempCelsius(50.0);
         grid.setTile(3, 4, SimTile.TileType.PASSAGE_CORE);
         grid.setTile(3, 3, SimTile.TileType.FUEL_URANIUM_QUAD);
         loop.setPumpPowerEUt(250.0);
@@ -389,6 +392,7 @@ public class CoolantLoopModelTest {
         assertEquals(0, loop.getTotalTritiumProduced(), "Molten cheese loop must not produce tritium");
 
         // Distilled water produces deuterium
+        NuclearSimulationEngine.resetDefaultParameters();
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
         for (int t = 1; t <= 20; t++) {
             grid.step();
@@ -411,18 +415,19 @@ public class CoolantLoopModelTest {
         assertEquals(46.85, loop.getFluidType().meltingPointCelsius, 0.01);
         assertTrue(loop.getFluidType().isMolten());
 
-        // 1. Flow acceleration disallowed if coolant temperature is below melting point
-        loop.setCurrentCoolantTempCelsius(20.0); // 20 °C < 46.85 °C
+        // 1. In standard biome (ambientTemp 20 °C < 46.85 °C), pump refuses to start
         loop.setPumpPowerEUt(250.0);
         loop.updatePumpState();
         assertEquals(0.0, loop.getCurrentFlowRateLPerSec(), 1e-5, "Pump must refuse to accelerate flow when cold");
         assertTrue(loop.isFlowLimited());
         assertTrue(loop.getLimitReason().contains("Pump blocked"));
+        assertTrue(loop.getLimitReason().contains("Biome ambient temperature"));
 
-        // 2. Flow allowed if heated above melting point
-        loop.setCurrentCoolantTempCelsius(50.0); // 50 °C > 46.85 °C
+        // 2. In hot biome (ambientTemp 50 °C > 46.85 °C) with warm coolant, flow is allowed
+        NuclearSimulationEngine.ambientTemp = 50.0;
+        loop.setCurrentCoolantTempCelsius(50.0);
         loop.updatePumpState();
-        assertTrue(loop.getCurrentFlowRateLPerSec() > 0.0, "Flow must accelerate when above melting point");
+        assertTrue(loop.getCurrentFlowRateLPerSec() > 0.0, "Flow must accelerate when above melting point in hot biome");
 
         // 3. If circulating and coolant drops below melting point, immediate catastrophic rupture!
         grid.setTile(3, 4, SimTile.TileType.PASSAGE_CORE);

@@ -421,17 +421,25 @@ public class CoolantLoopModel {
         }
 
         // Solidification check: disallow acceleration if molten fluid is below declared melting point
-        if (fluidType.isMolten() && currentCoolantTempCelsius < fluidType.meltingPointCelsius) {
+        if (fluidType.isMolten() && (NuclearSimulationEngine.ambientTemp < fluidType.meltingPointCelsius || currentCoolantTempCelsius < fluidType.meltingPointCelsius)) {
             currentFlowRateLPerSec = 0.0;
             lastPumpPowerEUt = 0.0;
             effectiveDutyCyclePercent = 0.0;
             currentPressureBar = 1.0;
             flowLimited = true;
-            limitReason = String.format(
-                "Pump blocked: Coolant temperature (%.1f °C) is below declared melting point (%.1f °C) for %s! Fluid would solidify.",
-                currentCoolantTempCelsius,
-                fluidType.meltingPointCelsius,
-                fluidType.displayName);
+            if (NuclearSimulationEngine.ambientTemp < fluidType.meltingPointCelsius) {
+                limitReason = String.format(
+                    "Pump blocked: Biome ambient temperature (%.1f °C) is below declared melting point (%.1f °C) for %s! Fluid would solidify in this biome.",
+                    NuclearSimulationEngine.ambientTemp,
+                    fluidType.meltingPointCelsius,
+                    fluidType.displayName);
+            } else {
+                limitReason = String.format(
+                    "Pump blocked: Coolant temperature (%.1f °C) is below declared melting point (%.1f °C) for %s! Fluid would solidify.",
+                    currentCoolantTempCelsius,
+                    fluidType.meltingPointCelsius,
+                    fluidType.displayName);
+            }
             return;
         }
 
@@ -765,9 +773,6 @@ public class CoolantLoopModel {
     public void setFluidType(CoolantFluidType fluidType) {
         if (fluidType != null) {
             this.fluidType = fluidType;
-            if (fluidType.isMolten() && currentCoolantTempCelsius < fluidType.meltingPointCelsius) {
-                currentCoolantTempCelsius = fluidType.meltingPointCelsius;
-            }
             updatePumpState();
         }
     }
