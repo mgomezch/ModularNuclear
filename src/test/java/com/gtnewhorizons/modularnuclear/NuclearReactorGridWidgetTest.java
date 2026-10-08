@@ -17,11 +17,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGridWidget;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.opencomputers.NuclearControlEnvironment;
+import li.cil.oc.api.machine.Callback;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
@@ -275,5 +279,109 @@ public class NuclearReactorGridWidgetTest {
 
         widget.readOnServer(NuclearReactorGridWidget.PACKET_SLOT_CLICK, buf);
         assertEquals(5000, hatch.mInputFluid.amount);
+    }
+
+    @Test
+    void testControlRodModeClickOnlyHandlesRodItemAndCannotAlterInsertion() throws IOException {
+        MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test.rod", 1, new String[0], null);
+        MTENuclearReactor.NuclearGridTile tile = new MTENuclearReactor.NuclearGridTile(reactor, rod, 1, 1);
+        reactor.mGrid[1][1] = tile;
+        reactor.mCurrentGuiMode = MTENuclearReactor.GUI_MODE_CONTROL_RODS;
+
+        // Initially no redstone signal, 0% insertion
+        assertEquals(0, rod.getInsertionPercent());
+        assertNull(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD]);
+
+        // Create a long rod item for Boron
+        net.minecraft.item.Item testRodItem = new net.minecraft.item.Item().setUnlocalizedName("stickLongBoron");
+        ItemStack boronRod = new ItemStack(testRodItem);
+        player.inventory.setItemStack(boronRod);
+
+        // Click on the control rod cell
+        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
+        buf.writeInt(1); // gx
+        buf.writeInt(1); // gy
+        buf.writeInt(0); // button left click
+        buf.writeBoolean(false); // isShift
+
+        widget.readOnServer(NuclearReactorGridWidget.PACKET_SLOT_CLICK, buf);
+
+        // Rod item was placed into the hatch
+        assertNotNull(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD]);
+        // But insertion percent must REMAIN 0% because GUI clicking never alters insertion!
+        assertEquals(0, rod.getInsertionPercent());
+
+        // Now click again to take it out
+        buf = new PacketBuffer(Unpooled.buffer());
+        buf.writeInt(1);
+        buf.writeInt(1);
+        buf.writeInt(0);
+        buf.writeBoolean(false);
+
+        widget.readOnServer(NuclearReactorGridWidget.PACKET_SLOT_CLICK, buf);
+
+        assertNull(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD]);
+        assertEquals(0, rod.getInsertionPercent());
+    }
+
+    @Test
+    void testScramIsSingleGlobalButtonOverridingIndividualRedstone() {
+        MTEHatchNuclearControlRod rodA = new MTEHatchNuclearControlRod("rodA", 1, new String[0], null) {
+            @Override
+            public byte getRedstoneSignal() {
+                return 3; // 3/15 = 20%
+            }
+        };
+        MTEHatchNuclearControlRod rodB = new MTEHatchNuclearControlRod("rodB", 1, new String[0], null) {
+            @Override
+            public byte getRedstoneSignal() {
+                return 8; // 8/15 = 53%
+            }
+        };
+
+        reactor.mBottomControlRodHatches.add(rodA);
+        reactor.mBottomControlRodHatches.add(rodB);
+
+        assertEquals(20, rodA.getInsertionPercent());
+        assertEquals(53, rodB.getInsertionPercent());
+
+        // Engage emergency SCRAM (single button on controller UI)
+        reactor.setScram(true);
+        assertTrue(reactor.mScram);
+
+        // Both rods must be forced to 100% insertion
+        assertEquals(100, rodA.getInsertionPercent());
+        assertEquals(100, rodB.getInsertionPercent());
+        assertEquals(1.0, rodA.getInsertionRatio());
+        assertEquals(1.0, rodB.getInsertionRatio());
+
+        // Disengage SCRAM
+        reactor.setScram(false);
+        assertFalse(reactor.mScram);
+
+        // Both rods revert to their individual redstone signals
+        assertEquals(20, rodA.getInsertionPercent());
+        assertEquals(53, rodB.getInsertionPercent());
+    }
+
+    @Test
+    void testOpenComputersApiIsStrictlyReadOnly() {
+        // Enforce the architectural rule that all OpenComputers callbacks for the reactor are strictly read-only
+        Method[] methods = NuclearControlEnvironment.class.getDeclaredMethods();
+        int callbackCount = 0;
+        for (Method m : methods) {
+            Callback cb = m.getAnnotation(Callback.class);
+            if (cb != null) {
+                callbackCount++;
+                String name = m.getName();
+                assertTrue(name.startsWith("get"),
+                    "All OpenComputers reactor callbacks must be strictly read-only getters! Found forbidden method: " + name);
+                assertFalse(name.toLowerCase().contains("set"), "Reactor OpenComputers API must never contain setters: " + name);
+                assertFalse(name.toLowerCase().contains("scram"), "Reactor OpenComputers API must never contain SCRAM controls: " + name);
+                assertFalse(name.toLowerCase().contains("rod"), "Reactor OpenComputers API must never contain control rod controls: " + name);
+                assertFalse(name.toLowerCase().contains("insert"), "Reactor OpenComputers API must never contain insertion controls: " + name);
+            }
+        }
+        assertTrue(callbackCount > 0, "NuclearControlEnvironment must define callbacks");
     }
 }

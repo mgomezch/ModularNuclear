@@ -27,6 +27,18 @@ import li.cil.oc.api.machine.Context;
 import li.cil.oc.api.network.Visibility;
 import li.cil.oc.api.prefab.ManagedEnvironment;
 
+/**
+ * OpenComputers component environment for {@link MTEHatchNuclearControl}.
+ * <p>
+ * ARCHITECTURAL DESIGN INVARIANT:
+ * Reactor OpenComputers APIs are STRICTLY READ-ONLY telemetry interfaces.
+ * They deliberately expose no methods to modify, configure, or actuate any aspect of
+ * the reactor state (such as control rods, SCRAM, or setpoints) directly.
+ * <p>
+ * If players wish to automate control rod actuation or emergency trips via OpenComputers,
+ * they must interface via OpenComputers Redstone components (e.g., Redstone I/O, bundled cable
+ * cards) driving the physical redstone/ProjectRed inputs on individual hatches.
+ */
 public class NuclearControlEnvironment extends ManagedEnvironment implements NamedBlock {
 
     private final MTEHatchNuclearControl hatch;

@@ -1139,6 +1139,14 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                     "Max Absorption: %.0f%% therm, %.0f%% fast",
                     rodType.maxThermalAbsorption * 100.0,
                     rodType.maxFastAbsorption * 100.0));
+            if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
+                if (sync.scram) {
+                    list.add(EnumChatFormatting.RED + "State: SCRAMMED (100% insertion)");
+                } else {
+                    list.add(EnumChatFormatting.GRAY + "Controlled via bottom hatch redstone signal");
+                }
+                list.add(EnumChatFormatting.DARK_GRAY + "Click with rod item to insert/extract");
+            }
         } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
             list.add(EnumChatFormatting.DARK_GRAY + "No bottom control rod hatch installed");
         }
