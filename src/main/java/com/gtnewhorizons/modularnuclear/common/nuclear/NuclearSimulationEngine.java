@@ -175,13 +175,13 @@ public class NuclearSimulationEngine {
 
     /**
      * Returns the effective sink temperature (°C) for a coolant fluid.
-     * IC2 coolant operates down to ambient, while water and heavy water boil at 100°C and 101.4°C.
+     * IC2 coolant and distilled water operate at 100°C threshold, while heavy water boils at 101.4°C.
      */
     public static double getCoolantSinkTemperature(String fluidName, double ambientTemp) {
         if (fluidName == null) return ambientTemp;
         String name = fluidName.toLowerCase();
         if (name.contains("coolant")) {
-            return ambientTemp;
+            return Math.max(ambientTemp, 100.0);
         }
         if (name.contains("heavywater")) {
             return Math.max(ambientTemp, 101.4);
@@ -332,11 +332,11 @@ public class NuclearSimulationEngine {
     }
 
     public static double getCoolingOperatingThreshold(String fluidName) {
-        return getCoolingOperatingThreshold(fluidName, ambientTemp);
+        return getCoolantSinkTemperature(fluidName, ambientTemp);
     }
 
     public static double getCoolingOperatingThreshold(String fluidName, double ambient) {
-        return ambient;
+        return getCoolantSinkTemperature(fluidName, ambient);
     }
 
     private static final int[] dX = { 1, 0, -1, 0, 1, -1, 1, -1 };

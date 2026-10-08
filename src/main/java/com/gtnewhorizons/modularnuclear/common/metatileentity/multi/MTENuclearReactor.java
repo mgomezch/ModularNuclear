@@ -3676,19 +3676,19 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         String outputFluidName = "steam";
 
         if (name.contains("coolant") && !name.contains("hot")) {
-            minOperatingTemp = getAmbientTemperature();
+            minOperatingTemp = NuclearSimulationEngine.getCoolantSinkTemperature(name, getAmbientTemperature());
             heatPerMB = NuclearSimulationEngine.ic2CoolantHeatPerLiter;
             steamRatio = 1;
             outputFluidName = "ic2hotcoolant";
         } else if (name.contains("heavywater") && !name.contains("steam")) {
             minOperatingTemp = NuclearSimulationEngine.getCoolantSinkTemperature(name, getAmbientTemperature());
             heatPerMB = NuclearSimulationEngine.coolingHeatPerLiter;
-            steamRatio = 1;
+            steamRatio = 160;
             outputFluidName = "heavywatersteam";
         } else if (name.contains("distilledwater")) {
             minOperatingTemp = NuclearSimulationEngine.getCoolantSinkTemperature(name, getAmbientTemperature());
             heatPerMB = NuclearSimulationEngine.coolingHeatPerLiter;
-            steamRatio = 1;
+            steamRatio = 160;
             outputFluidName = "steam";
         } else {
             return;

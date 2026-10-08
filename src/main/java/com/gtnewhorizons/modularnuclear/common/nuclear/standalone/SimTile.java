@@ -683,6 +683,7 @@ public class SimTile implements INuclearTile {
                 .getCoolantSinkTemperature(inputFluidName, NuclearSimulationEngine.AMBIENT_TEMP);
             double heatPerL = (type == TileType.HATCH_IC2_COOLANT) ? NuclearSimulationEngine.ic2CoolantHeatPerLiter
                 : NuclearSimulationEngine.coolingHeatPerLiter;
+            int steamRatio = (type == TileType.HATCH_IC2_COOLANT) ? 1 : 160;
 
             if (inputFluidAmount > 0 && temperature > operatingThreshold) {
                 double qMax = NuclearSimulationEngine
@@ -691,10 +692,13 @@ public class SimTile implements INuclearTile {
                 int mbToCool = Math.min(inputFluidAmount, desiredTurnover);
 
                 if (mbToCool > 0) {
+                    int fluidOut = mbToCool * steamRatio;
                     inputFluidAmount -= mbToCool;
-                    lastTickProduced = mbToCool;
-                    outputFluidAmount += mbToCool;
-                    totalSteamProduced += mbToCool;
+                    lastTickProduced = fluidOut;
+                    outputFluidAmount += fluidOut;
+                    if (type != TileType.HATCH_IC2_COOLANT) {
+                        totalSteamProduced += fluidOut;
+                    }
 
                     double heatConsumed = mbToCool * heatPerL;
                     double tempDrop = heatConsumed / NuclearSimulationEngine.EU_PER_DEGREE;

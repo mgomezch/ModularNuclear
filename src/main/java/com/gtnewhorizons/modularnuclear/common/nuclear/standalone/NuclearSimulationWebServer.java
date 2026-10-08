@@ -2420,11 +2420,14 @@ public class NuclearSimulationWebServer {
               } else if (t.fluidName && t.fluidName.length > 0) {
                 const cap = t.fluidCapacity || 2000;
                 const pct = Math.round((t.fluidAmount / cap) * 100);
+                const isCoolant = t.type === "HATCH_IC2_COOLANT";
+                const ratio = isCoolant ? 1 : 160;
                 const dryBadge = t.wasDry
-                  ? '<span class="badge" style="color:var(--danger); background:rgba(255,71,87,0.2);">⚠️ BOILED DRY</span>'
+                  ? `<span class="badge" style="color:var(--danger); background:rgba(255,71,87,0.2);">${isCoolant ? "⚠️ DRAINED DRY" : "⚠️ BOILED DRY"}</span>`
                   : '<span class="badge" style="color:var(--success);">NORMAL</span>';
                 const steamFlow = t.lastProduced || 0;
-                const coolantTurnover = steamFlow > 0 ? (steamFlow / 160).toFixed(0) : 0;
+                const coolantTurnover = steamFlow > 0 ? (steamFlow / ratio).toFixed(0) : 0;
+                const cumProduced = isCoolant ? (t.outputFluidAmount || 0) : (t.steamAmount || 0);
                 const isLiquidFuel = t.type && t.type.startsWith("HATCH_LIQUID_FUEL_");
                 let liqFuelHtml = "";
                 if (isLiquidFuel) {
@@ -2438,8 +2441,8 @@ public class NuclearSimulationWebServer {
                   <div class="stat-row"><span>Coolant:</span><span class="stat-val">${t.fluidName}</span></div>
                   <div class="stat-row"><span>Coolant Volume:</span><span class="stat-val">${t.fluidAmount} / ${cap} L (${pct}%)</span></div>
                   ${liqFuelHtml}
-                  <div class="stat-row"><span>Live Turnover:</span><span class="stat-val" style="color:#38bdf8;">${coolantTurnover} L/t coolant &rarr; ${steamFlow} L/t steam</span></div>
-                  <div class="stat-row"><span>Cumulative Steam:</span><span class="stat-val">${t.steamAmount ? t.steamAmount.toLocaleString() : 0} L</span></div>
+                  <div class="stat-row"><span>Live Turnover:</span><span class="stat-val" style="color:#38bdf8;">${coolantTurnover} L/t coolant &rarr; ${steamFlow} L/t ${isCoolant ? "hot coolant" : "steam"}</span></div>
+                  <div class="stat-row"><span>Cumulative ${isCoolant ? "Hot Coolant" : "Steam"}:</span><span class="stat-val">${cumProduced.toLocaleString()} L</span></div>
                   <div class="stat-row"><span>Hatch Status:</span><span class="stat-val">${dryBadge}</span></div>
                 `;
               }
@@ -2467,7 +2470,10 @@ public class NuclearSimulationWebServer {
               if (isLoopAttached) {
                 coolingMethodHtml = `<div class="stat-row"><span>Cell Cooling:</span><span class="stat-val" style="color:#00d2ff; font-weight:600;">🔄 Convective Loop (${t.type === "PASSAGE_CORE" ? "Passage Tile" : "Attached Cell"})</span></div>`;
               } else if (t.fluidName && t.fluidName.length > 0) {
-                coolingMethodHtml = `<div class="stat-row"><span>Cell Cooling:</span><span class="stat-val" style="color:#38bdf8; font-weight:600;">💧 Conductive Fluid Boiling (${t.fluidName})</span></div>`;
+                const methodLabel = t.fluidName.includes("coolant")
+                  ? `💧 Conductive Liquid Cooling (${t.fluidName})`
+                  : `💧 Conductive Fluid Boiling (${t.fluidName})`;
+                coolingMethodHtml = `<div class="stat-row"><span>Cell Cooling:</span><span class="stat-val" style="color:#38bdf8; font-weight:600;">${methodLabel}</span></div>`;
               } else if (t.type && t.type.startsWith("VENT_")) {
                 coolingMethodHtml = `<div class="stat-row"><span>Cell Cooling:</span><span class="stat-val" style="color:#a855f7; font-weight:600;">🌬️ IC2 Component Heat Vent</span></div>`;
               } else if (t.type && t.type.startsWith("EXCHANGER_")) {

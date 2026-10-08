@@ -1002,6 +1002,9 @@ public class NuclearSimWasmBridge {
                 sb.append("\"steamAmount\":")
                     .append(t.getTotalSteamProduced())
                     .append(",");
+                sb.append("\"outputFluidAmount\":")
+                    .append(t.getOutputFluidAmount())
+                    .append(",");
                 sb.append("\"fastFlux\":")
                     .append(t.getLastFastFlux())
                     .append(",");

@@ -524,7 +524,7 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
-    void testIC2CoolantContinuousAmbientExchange() {
+    void testIC2CoolantContinuousConductiveExchange() {
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
             3,
             3,
@@ -536,22 +536,92 @@ public class NuclearSimulationEngineTest {
             com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_IC2_COOLANT);
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatch = grid.getTile(1, 1);
 
-        // Case 1: Coolant works below 100°C down to ambient (24°C)
+        // Case 1: Coolant does NOT operate below 100°C operating threshold (like water/heavy water)
         hatch.setInputFluidAmount(2000);
-        hatch.setTemperature(80.0); // 80°C is below water boiling, but IC2 coolant must absorb heat!
-        grid.step();
+        hatch.setTemperature(80.0); // 80°C is below 100°C threshold, so IC2 coolant must be inactive
+        hatch.nuclearTick(1.0);
+
+        assertEquals(
+            80.0,
+            hatch.getTemperature(),
+            1e-4,
+            "IC2 coolant must NOT extract heat below 100°C threshold");
+        assertEquals(0, hatch.getLastTickProduced(), "No coolant produced below 100°C threshold");
+        assertEquals(0, hatch.getOutputFluidAmount(), "IC2 coolant must produce 0 hot coolant below 100°C threshold");
+
+        // Case 2: Above 100°C threshold (e.g. 150°C), IC2 coolant extracts heat conductively at 1:1 volume ratio
+        hatch.setTemperature(150.0);
+        hatch.nuclearTick(1.0);
 
         assertTrue(
-            hatch.getTemperature() < 80.0,
-            "IC2 coolant must extract heat below 100°C down to ambient temperature");
-        assertTrue(hatch.getOutputFluidAmount() > 0, "IC2 coolant must produce hot coolant below 100°C");
+            hatch.getTemperature() < 150.0,
+            "IC2 coolant must extract heat above 100°C threshold");
+        assertTrue(
+            hatch.getTemperature() >= 100.0,
+            "IC2 coolant cannot cool below 100°C sink temperature");
+        assertTrue(hatch.getOutputFluidAmount() > 0, "IC2 coolant must produce hot coolant above 100°C threshold");
+        assertEquals(hatch.getLastTickProduced(), hatch.getOutputFluidAmount(), "1:1 liquid ratio for IC2 coolant");
+        assertEquals(0, hatch.getTotalSteamProduced(), "IC2 coolant must NOT produce steam");
 
-        // Case 2: Dry hatch at 300°C refilling IC2 coolant NEVER explodes
+        // Case 3: Dry hatch at 300°C refilling IC2 coolant NEVER explodes (no thermal shock)
         hatch.setInputFluidAmount(0);
         hatch.setWasDry(true);
         hatch.setTemperature(300.0);
         boolean refilled = hatch.refillCoolant();
         assertTrue(refilled, "IC2 coolant must never trigger thermal shock explosion when refilling dry hot hatch");
+    }
+
+    @Test
+    void testCoolantSinkTemperatures() {
+        assertEquals(100.0, NuclearSimulationEngine.getCoolantSinkTemperature("ic2coolant", 24.0));
+        assertEquals(100.0, NuclearSimulationEngine.getCoolantSinkTemperature("distilledwater", 24.0));
+        assertEquals(101.4, NuclearSimulationEngine.getCoolantSinkTemperature("heavywater", 24.0));
+        assertEquals(24.0, NuclearSimulationEngine.getCoolantSinkTemperature(null, 24.0));
+        assertEquals(24.0, NuclearSimulationEngine.getCoolantSinkTemperature("unknown_liquid", 24.0));
+
+        // High ambient temperature clamped
+        assertEquals(120.0, NuclearSimulationEngine.getCoolantSinkTemperature("ic2coolant", 120.0));
+        assertEquals(120.0, NuclearSimulationEngine.getCoolantSinkTemperature("distilledwater", 120.0));
+        assertEquals(120.0, NuclearSimulationEngine.getCoolantSinkTemperature("heavywater", 120.0));
+    }
+
+    @Test
+    void testCoolantPhaseChangeAndExpansionRatios() {
+        // Distilled water: 160:1 expansion into steam
+        SimTile waterTile = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
+        waterTile.setInputFluidAmount(1000);
+        waterTile.setTemperature(200.0);
+        int initialWater = waterTile.getInputFluidAmount();
+        waterTile.nuclearTick(1.0);
+        int waterConsumed = initialWater - waterTile.getInputFluidAmount();
+        assertTrue(waterConsumed > 0, "Superheated distilled water must boil");
+        assertEquals(waterConsumed * 160, waterTile.getLastTickProduced(), "Distilled water must expand 160:1 into steam");
+        assertEquals(waterConsumed * 160, waterTile.getTotalSteamProduced());
+        assertEquals(waterConsumed * 160, waterTile.getOutputFluidAmount());
+
+        // Heavy water: 160:1 expansion into heavy water steam
+        SimTile heavyWaterTile = new SimTile(SimTile.TileType.HATCH_HEAVY_WATER);
+        heavyWaterTile.setInputFluidAmount(1000);
+        heavyWaterTile.setTemperature(200.0);
+        int initialHw = heavyWaterTile.getInputFluidAmount();
+        heavyWaterTile.nuclearTick(1.0);
+        int hwConsumed = initialHw - heavyWaterTile.getInputFluidAmount();
+        assertTrue(hwConsumed > 0, "Superheated heavy water must boil");
+        assertEquals(hwConsumed * 160, heavyWaterTile.getLastTickProduced(), "Heavy water must expand 160:1 into steam");
+        assertEquals(hwConsumed * 160, heavyWaterTile.getTotalSteamProduced());
+        assertEquals(hwConsumed * 160, heavyWaterTile.getOutputFluidAmount());
+
+        // IC2 coolant: 1:1 liquid exchange (NO steam, NO volume expansion)
+        SimTile ic2Tile = new SimTile(SimTile.TileType.HATCH_IC2_COOLANT);
+        ic2Tile.setInputFluidAmount(1000);
+        ic2Tile.setTemperature(200.0);
+        int initialIc2 = ic2Tile.getInputFluidAmount();
+        ic2Tile.nuclearTick(1.0);
+        int ic2Consumed = initialIc2 - ic2Tile.getInputFluidAmount();
+        assertTrue(ic2Consumed > 0, "Superheated IC2 coolant must exchange heat");
+        assertEquals(ic2Consumed * 1, ic2Tile.getLastTickProduced(), "IC2 coolant must have 1:1 liquid ratio");
+        assertEquals(ic2Consumed * 1, ic2Tile.getOutputFluidAmount());
+        assertEquals(0, ic2Tile.getTotalSteamProduced(), "IC2 coolant must produce 0 steam");
     }
 
     @Test
