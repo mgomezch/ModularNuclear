@@ -29,10 +29,16 @@ jobs:
           path: CoolantLoops
           fetch-depth: 0
 
-      - name: Set up Java 21
+      - name: Set up Java 21 (for TeaVM WebAssembly compilation)
         uses: actions/setup-java@v4
         with:
           java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set up Java 25 (Primary build JDK)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
           distribution: 'temurin'
 
       - name: Setup Gradle
