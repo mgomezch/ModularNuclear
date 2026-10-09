@@ -181,7 +181,10 @@ public class CoolantLoopModel {
         }
 
         public boolean isMolten() {
-            return this.name().contains("MOLTEN") || this.displayName.toLowerCase().contains("molten");
+            return this.name()
+                .contains("MOLTEN")
+                || this.displayName.toLowerCase()
+                    .contains("molten");
         }
 
         public static CoolantFluidType fromString(String str) {
@@ -421,7 +424,8 @@ public class CoolantLoopModel {
         }
 
         // Solidification check: disallow acceleration if molten fluid is below declared melting point
-        if (fluidType.isMolten() && (NuclearSimulationEngine.ambientTemp < fluidType.meltingPointCelsius || currentCoolantTempCelsius < fluidType.meltingPointCelsius)) {
+        if (fluidType.isMolten() && (NuclearSimulationEngine.ambientTemp < fluidType.meltingPointCelsius
+            || currentCoolantTempCelsius < fluidType.meltingPointCelsius)) {
             currentFlowRateLPerSec = 0.0;
             lastPumpPowerEUt = 0.0;
             effectiveDutyCyclePercent = 0.0;
@@ -492,7 +496,8 @@ public class CoolantLoopModel {
                     lastPumpPowerEUt = Math.max(0.0, maxAllowedPower);
                     currentFlowRateLPerSec = allowedFlow;
                     currentPressureBar = calculatePeakPressureBar(currentFlowRateLPerSec);
-                    effectiveDutyCyclePercent = maxPumpPowerEUt > 0 ? (lastPumpPowerEUt / maxPumpPowerEUt) * 100.0 : 0.0;
+                    effectiveDutyCyclePercent = maxPumpPowerEUt > 0 ? (lastPumpPowerEUt / maxPumpPowerEUt) * 100.0
+                        : 0.0;
 
                     if (userFlowActive && allowedFlow == maxFlowRateLPerSec) {
                         flowLimited = true;

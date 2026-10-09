@@ -557,7 +557,8 @@ public class StandaloneNuclearGrid {
                 grid[x][y].setTier(hatchTier);
                 grid[x][y].setInputFluidCapacity(8000 * (1 << hatchTier));
             }
-            if (type == SimTile.TileType.PASSAGE_CORE && isTier2ConvectiveAllowed() && coolingMode == CoolantLoopModel.CoolingMode.MODULAR) {
+            if (type == SimTile.TileType.PASSAGE_CORE && isTier2ConvectiveAllowed()
+                && coolingMode == CoolantLoopModel.CoolingMode.MODULAR) {
                 coolingMode = CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP;
             }
         }

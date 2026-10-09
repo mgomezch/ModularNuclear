@@ -1,12 +1,13 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
-import ic2.api.reactor.IReactor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
+
+import ic2.api.reactor.IReactor;
 
 public class ReactorDummy implements IReactor {
 

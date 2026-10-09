@@ -182,7 +182,8 @@ public class NuclearReactorWailaProvider {
         }
         if (reactor.mOutputCoolantRate > 0 && reactor.mOutputCoolantName != null
             && !reactor.mOutputCoolantName.isEmpty()) {
-            info.add(String.format("Coolant Output: %,d L/s %s", reactor.mOutputCoolantRate, reactor.mOutputCoolantName));
+            info.add(
+                String.format("Coolant Output: %,d L/s %s", reactor.mOutputCoolantRate, reactor.mOutputCoolantName));
         }
         info.add(String.format("Reactivity: %.1f%%", reactor.mReactivity * 100.0));
         info.add("Flux: " + NuclearSimulationEngine.formatNeutronFlux(reactor.mNeutronsProduced));

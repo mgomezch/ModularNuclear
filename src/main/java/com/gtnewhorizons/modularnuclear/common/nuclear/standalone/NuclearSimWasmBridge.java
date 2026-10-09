@@ -786,7 +786,9 @@ public class NuclearSimWasmBridge {
             .append(cl.isPumpOverclocked())
             .append(",");
         sb.append("\"impellerMaterial\":\"")
-            .append(cl.getImpellerMaterial().name())
+            .append(
+                cl.getImpellerMaterial()
+                    .name())
             .append("\",");
         sb.append("\"impellerEfficiency\":")
             .append(fmt2(cl.getImpellerEfficiency()))

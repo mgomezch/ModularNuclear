@@ -1,8 +1,5 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
-import ic2.api.reactor.IReactorComponent;
-import ic2.core.item.reactor.ItemReactorMOX;
-import ic2.core.item.reactor.ItemReactorUranium;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -18,13 +15,17 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import gregtech.api.items.ItemRadioactiveCell;
 import gregtech.api.items.ItemRadioactiveCellIC;
 import gregtech.api.util.GTRecipe;
+import ic2.api.reactor.IReactorComponent;
+import ic2.core.item.reactor.ItemReactorMOX;
+import ic2.core.item.reactor.ItemReactorUranium;
 
 public class NuclearReactorPhysics {
 
     public static double getTileTemperature(MTENuclearReactor reactor, NuclearGridTile tile) {
         if (tile.isBus()) return tile.getBus().mTemperature;
         if (tile.isHatch()) return tile.getHatch().mTemperature;
-        if (tile.isHighPressureHatch()) return tile.getHighPressureHatch().getTemperature();
+        if (tile.isHighPressureHatch()) return tile.getHighPressureHatch()
+            .getTemperature();
         if (tile.hasControlRod()) return tile.getBottomControlRod().mTemperature;
         return reactor.getAmbientTemperature();
     }
@@ -34,10 +35,12 @@ public class NuclearReactorPhysics {
         if (tile.isBus()) {
             tile.getBus().mTemperature = Math.max(ambient, temp);
         } else if (tile.isHatch()) {
-            double minTemp = tile.getHatch().hasWaterCoolant() ? Math.max(0.0, ambient) : ambient;
+            double minTemp = tile.getHatch()
+                .hasWaterCoolant() ? Math.max(0.0, ambient) : ambient;
             tile.getHatch().mTemperature = Math.max(minTemp, temp);
         } else if (tile.isHighPressureHatch()) {
-            tile.getHighPressureHatch().setTemperature(Math.max(ambient, temp));
+            tile.getHighPressureHatch()
+                .setTemperature(Math.max(ambient, temp));
         }
         if (tile.hasControlRod()) {
             tile.getBottomControlRod().mTemperature = Math.max(ambient, temp);
@@ -52,7 +55,8 @@ public class NuclearReactorPhysics {
             tile.getHatch().mHeatEU += heatEU;
             tile.getHatch().mTemperature += heatEU / NuclearSimulationEngine.EU_PER_DEGREE;
         } else if (tile.isHighPressureHatch()) {
-            tile.getHighPressureHatch().addHeat(heatEU);
+            tile.getHighPressureHatch()
+                .addHeat(heatEU);
         }
         if (tile.hasControlRod()) {
             tile.getBottomControlRod().mHeatEU += heatEU;
@@ -66,7 +70,8 @@ public class NuclearReactorPhysics {
             if (stack == null) return 0.02;
             if (reactor.isItemInsulator(stack)) return 0.01;
             if (reactor.isItemRadiovoltaic(stack)) return 0.10;
-            String name = stack.getUnlocalizedName().toLowerCase();
+            String name = stack.getUnlocalizedName()
+                .toLowerCase();
             if (name.contains("coolant") || name.contains("vent")
                 || name.contains("switch")
                 || name.contains("heatexchanger")) return 0.40;
@@ -77,15 +82,19 @@ public class NuclearReactorPhysics {
         } else if (tile.isHatch()) {
             FluidStack fluid = tile.getHatch().mInputFluid;
             if (fluid == null) return 0.05;
-            String name = fluid.getFluid().getName().toLowerCase();
+            String name = fluid.getFluid()
+                .getName()
+                .toLowerCase();
             if (name.contains("water")) return 0.25;
             if (name.contains("coolant")) return 0.50;
             if (name.contains("sodium") || name.contains("lead")) return 0.70;
             return 0.15;
         } else if (tile.isControlRod()) {
-            return tile.getControlRod().getHeatTransferCoeff();
+            return tile.getControlRod()
+                .getHeatTransferCoeff();
         } else if (tile.isHighPressureHatch()) {
-            return tile.getHighPressureHatch().getHeatTransferCoeff();
+            return tile.getHighPressureHatch()
+                .getHeatTransferCoeff();
         }
         return 0.05;
     }
@@ -108,7 +117,9 @@ public class NuclearReactorPhysics {
         } else if (tile.isHatch()) {
             FluidStack fluid = tile.getHatch().mInputFluid;
             if (fluid != null && fluid.getFluid() != null) {
-                return NuclearFuelType.fromName(fluid.getFluid().getName());
+                return NuclearFuelType.fromName(
+                    fluid.getFluid()
+                        .getName());
             }
         }
         return null;
@@ -169,7 +180,9 @@ public class NuclearReactorPhysics {
                 hatch.mLastNeutronsGenerated = 0;
                 return 0;
             }
-            String name = fluid.getFluid().getName().toLowerCase();
+            String name = fluid.getFluid()
+                .getName()
+                .toLowerCase();
             int baseNeutrons = 8;
             if (name.contains("thorium")) {
                 baseNeutrons = name.contains("excited") ? 8 : 4;
@@ -226,7 +239,8 @@ public class NuclearReactorPhysics {
             if (reactor.isNaquariteInsulatorFoil(stack)) return 1.0;
             if (reactor.isItemInsulator(stack)) return 0.01;
             if (reactor.isItemRadiovoltaic(stack)) return 1.0;
-            String name = stack.getUnlocalizedName().toLowerCase();
+            String name = stack.getUnlocalizedName()
+                .toLowerCase();
             if (name.contains("graphite") || name.contains("carbon") || name.contains("moderator")) {
                 return (type == NeutronType.THERMAL) ? 0.009 : 0.002;
             }
@@ -242,7 +256,9 @@ public class NuclearReactorPhysics {
         } else if (tile.isHatch()) {
             FluidStack fluid = tile.getHatch().mInputFluid;
             if (fluid == null) return 0.01;
-            String name = fluid.getFluid().getName().toLowerCase();
+            String name = fluid.getFluid()
+                .getName()
+                .toLowerCase();
             if (name.contains("heavywater")) return (type == NeutronType.THERMAL) ? 0.01 : 0.005;
             if (name.contains("distilledwater")) return (type == NeutronType.THERMAL) ? 0.10 : 0.05;
             if (name.contains("coolant")) return (type == NeutronType.THERMAL) ? 0.12 : 0.03;
@@ -250,7 +266,8 @@ public class NuclearReactorPhysics {
             if (MTENuclearReactor.isFluidFuel(fluid)) return (type == NeutronType.THERMAL) ? 0.85 : 0.25;
             return 0.05;
         } else if (tile.isHighPressureHatch()) {
-            return tile.getHighPressureHatch().getAbsorptionProbability(type);
+            return tile.getHighPressureHatch()
+                .getAbsorptionProbability(type);
         }
         return 0.01;
     }
@@ -259,7 +276,8 @@ public class NuclearReactorPhysics {
         NeutronType type) {
         double pBase = getBaseAbsorptionProbability(reactor, tile, type);
         if (tile.hasControlRod()) {
-            double pRod = tile.getBottomControlRod().getAbsorptionProbability(type);
+            double pRod = tile.getBottomControlRod()
+                .getAbsorptionProbability(type);
             return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
         }
         return pBase;
@@ -273,7 +291,8 @@ public class NuclearReactorPhysics {
             if (reactor.isNaquariteInsulatorFoil(stack)) return 0.0;
             if (reactor.isItemInsulator(stack)) return 0.05;
             if (reactor.isItemRadiovoltaic(stack)) return 0.0;
-            String name = stack.getUnlocalizedName().toLowerCase();
+            String name = stack.getUnlocalizedName()
+                .toLowerCase();
             if (name.contains("graphite") || name.contains("carbon") || name.contains("moderator")) {
                 return (type == NeutronType.THERMAL) ? 0.621 : 0.93;
             }
@@ -287,14 +306,17 @@ public class NuclearReactorPhysics {
         } else if (tile.isHatch()) {
             FluidStack fluid = tile.getHatch().mInputFluid;
             if (fluid == null) return 0.02;
-            String name = fluid.getFluid().getName().toLowerCase();
+            String name = fluid.getFluid()
+                .getName()
+                .toLowerCase();
             if (name.contains("heavywater")) return 0.85;
             if (name.contains("distilledwater")) return 0.70;
             if (name.contains("coolant")) return 0.45;
             if (name.contains("sodium")) return 0.20;
             return 0.10;
         } else if (tile.isHighPressureHatch()) {
-            return tile.getHighPressureHatch().getScatteringProbability(type);
+            return tile.getHighPressureHatch()
+                .getScatteringProbability(type);
         }
         return 0.02;
     }
@@ -303,7 +325,8 @@ public class NuclearReactorPhysics {
         NeutronType type) {
         double pBase = getBaseScatteringProbability(reactor, tile, type);
         if (tile.hasControlRod()) {
-            double pRod = tile.getBottomControlRod().getScatteringProbability(type);
+            double pRod = tile.getBottomControlRod()
+                .getScatteringProbability(type);
             return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
         }
         return pBase;
@@ -312,26 +335,32 @@ public class NuclearReactorPhysics {
     public static double getTileModerationProbability(NuclearGridTile tile) {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            if (tile.getReactor().isItemRadiovoltaic(stack)) return 0.0;
+            if (tile.getReactor()
+                .isItemRadiovoltaic(stack)) return 0.0;
             if (stack == null) return 0.05;
-            String name = stack.getUnlocalizedName().toLowerCase();
+            String name = stack.getUnlocalizedName()
+                .toLowerCase();
             if (name.contains("graphite") || name.contains("carbon") || name.contains("moderator")) return 0.50;
             if (name.contains("reflector")) return 0.20;
             if (name.contains("coolant")) return 0.40;
-            if (tile.getReactor().isItemFuel(stack)) return 0.10;
+            if (tile.getReactor()
+                .isItemFuel(stack)) return 0.10;
             if (name.contains("boron") || name.contains("cadmium") || name.contains("control")) return 0.05;
             return 0.05;
         } else if (tile.isHatch()) {
             FluidStack fluid = tile.getHatch().mInputFluid;
             if (fluid == null) return 0.05;
-            String name = fluid.getFluid().getName().toLowerCase();
+            String name = fluid.getFluid()
+                .getName()
+                .toLowerCase();
             if (name.contains("heavywater")) return 0.90;
             if (name.contains("distilledwater")) return 0.80;
             if (name.contains("coolant")) return 0.40;
             if (name.contains("sodium")) return 0.05;
             return 0.20;
         } else if (tile.isHighPressureHatch()) {
-            return tile.getHighPressureHatch().getModerationProbability();
+            return tile.getHighPressureHatch()
+                .getModerationProbability();
         }
         return 0.05;
     }
@@ -340,7 +369,8 @@ public class NuclearReactorPhysics {
         int count) {
         if (count <= 0) return;
         if (tile.hasControlRod()) {
-            double pRod = tile.getBottomControlRod().getAbsorptionProbability(type);
+            double pRod = tile.getBottomControlRod()
+                .getAbsorptionProbability(type);
             double pBase = getBaseAbsorptionProbability(reactor, tile, type);
             double sum = pBase + pRod;
             int nRod = (sum > 0) ? (int) Math.round(count * (pRod / sum)) : count / 2;
@@ -372,7 +402,9 @@ public class NuclearReactorPhysics {
             else hatch.mThermalAbsorbed += count;
 
             if (type == NeutronType.FAST && hatch.mInputFluid != null && hatch.mInputFluid.amount > 0) {
-                String name = hatch.mInputFluid.getFluid().getName().toLowerCase();
+                String name = hatch.mInputFluid.getFluid()
+                    .getName()
+                    .toLowerCase();
                 boolean isHP = name.contains("highpressure");
                 int chance = isHP ? Math.min(100, count * 10) : Math.min(100, count * 5);
                 int yield = isHP ? 2 : 1;
@@ -406,7 +438,8 @@ public class NuclearReactorPhysics {
                 }
             }
         } else if (tile.isHighPressureHatch()) {
-            tile.getHighPressureHatch().onNeutronAbsorbed(type, count);
+            tile.getHighPressureHatch()
+                .onNeutronAbsorbed(type, count);
         }
     }
 
@@ -416,7 +449,8 @@ public class NuclearReactorPhysics {
             MTEHatchNuclearBus bus = tile.getBus();
             ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
             if (stack != null && stack.isItemStackDamageable()) {
-                String name = stack.getUnlocalizedName().toLowerCase();
+                String name = stack.getUnlocalizedName()
+                    .toLowerCase();
                 if (name.contains("reflector")) {
                     if (reactor.getRandomNumber(20) == 0) {
                         reactor.damageItemComponent(bus, 1);
@@ -424,7 +458,8 @@ public class NuclearReactorPhysics {
                 }
             }
         } else if (tile.isHighPressureHatch()) {
-            tile.getHighPressureHatch().onNeutronScattered(type, count);
+            tile.getHighPressureHatch()
+                .onNeutronScattered(type, count);
         }
     }
 
@@ -436,7 +471,8 @@ public class NuclearReactorPhysics {
             if (type == NeutronType.FAST) tile.getHatch().mFastFlux += count;
             else tile.getHatch().mThermalFlux += count;
         } else if (tile.isHighPressureHatch()) {
-            tile.getHighPressureHatch().addNeutronFlux(type, count);
+            tile.getHighPressureHatch()
+                .addNeutronFlux(type, count);
         }
 
         if (tile.hasControlRod()) {
@@ -452,7 +488,8 @@ public class NuclearReactorPhysics {
         } else if (tile.isHatch()) {
             processHatchNuclearTick(reactor, tile.getHatch(), tile, efficiency);
         } else if (tile.isHighPressureHatch()) {
-            tile.getHighPressureHatch().nuclearTick(efficiency);
+            tile.getHighPressureHatch()
+                .nuclearTick(efficiency);
         }
 
         if (tile.hasControlRod()) {
@@ -560,7 +597,8 @@ public class NuclearReactorPhysics {
         else if (MTENuclearReactor.isItemHeatVent(stack) || MTENuclearReactor.isItemHeatExchanger(stack)) {
             bus.mDirectEUProduced = 0;
             if (stack.getItem() instanceof IReactorComponent comp) {
-                reactor.getReactorDummy().setCurrentTile(tile);
+                reactor.getReactorDummy()
+                    .setCurrentTile(tile);
                 int gx = tile.getGx();
                 int gy = tile.getGy();
 
@@ -593,7 +631,8 @@ public class NuclearReactorPhysics {
         }
         // 4. COOLANT CELL HEAT ABSORPTION (Capacity-based scaling via IReactorComponent)
         else if (stack.getItem() instanceof IReactorComponent comp) {
-            reactor.getReactorDummy().setCurrentTile(tile);
+            reactor.getReactorDummy()
+                .setCurrentTile(tile);
             if (comp.canStoreHeat(reactor.getReactorDummy(), stack, 0, 0)) {
                 bus.mDirectEUProduced = 0;
                 int maxHeat = comp.getMaxHeat(reactor.getReactorDummy(), stack, 0, 0);
@@ -630,25 +669,28 @@ public class NuclearReactorPhysics {
             }
         }
         // 4. GENERIC COOLANT/VENT FALLBACK
-        else if (stack.getUnlocalizedName().toLowerCase().contains("coolant")) {
-            bus.mDirectEUProduced = 0;
-            double ambient = reactor.getAmbientTemperature();
-            if (bus.mTemperature > ambient) {
-                double heatToAbsorb = Math.min(bus.mTemperature - ambient, 100.0)
-                    * NuclearSimulationEngine.EU_PER_DEGREE;
-                if (heatToAbsorb > 0) {
-                    bus.mTemperature -= (heatToAbsorb / NuclearSimulationEngine.EU_PER_DEGREE);
-                    int cellDamage = Math.max(1, (int) (heatToAbsorb / 50.0));
-                    reactor.damageItemComponent(bus, cellDamage);
-                    bus.mLastHeatOutput = heatToAbsorb;
+        else if (stack.getUnlocalizedName()
+            .toLowerCase()
+            .contains("coolant")) {
+                bus.mDirectEUProduced = 0;
+                double ambient = reactor.getAmbientTemperature();
+                if (bus.mTemperature > ambient) {
+                    double heatToAbsorb = Math.min(bus.mTemperature - ambient, 100.0)
+                        * NuclearSimulationEngine.EU_PER_DEGREE;
+                    if (heatToAbsorb > 0) {
+                        bus.mTemperature -= (heatToAbsorb / NuclearSimulationEngine.EU_PER_DEGREE);
+                        int cellDamage = Math.max(1, (int) (heatToAbsorb / 50.0));
+                        reactor.damageItemComponent(bus, cellDamage);
+                        bus.mLastHeatOutput = heatToAbsorb;
+                    }
                 }
             }
-        }
         // 5. EASTER EGG: MOLTEN CHEESE EXTRACTION ABOVE 65°C
         else if (bus.mTemperature > 65.0) {
             bus.mDirectEUProduced = 0;
             if (reactor.getBaseMetaTileEntity() != null) {
-                long aTick = reactor.getBaseMetaTileEntity().getTimer();
+                long aTick = reactor.getBaseMetaTileEntity()
+                    .getTimer();
                 if (aTick != bus.mLastCheeseTick) {
                     bus.mLastCheeseTick = aTick;
                     processCheeseExtraction(reactor, bus);
@@ -739,7 +781,9 @@ public class NuclearReactorPhysics {
             Fluid spentFluid = MTENuclearReactor.getSpentFluid(fluid);
             double ambient = hatch.getAmbientTemperature();
             NuclearFuelType fuelType = (fluid != null && fluid.getFluid() != null) ? NuclearFuelType.fromName(
-                fluid.getFluid().getName()) : null;
+                fluid.getFluid()
+                    .getName())
+                : null;
             double tempDmg = (fuelType != null) ? fuelType.calculateTemperatureDamage(hatch.mTemperature, ambient)
                 : (hatch.mTemperature > ambient ? (hatch.mTemperature - ambient) / 100.0 : 0.0);
 
@@ -766,7 +810,9 @@ public class NuclearReactorPhysics {
             return;
         }
 
-        String name = hatch.mInputFluid.getFluid().getName().toLowerCase();
+        String name = hatch.mInputFluid.getFluid()
+            .getName()
+            .toLowerCase();
         if (name.equals("water")) return; // Regular water is completely disallowed
 
         int reqTier = MTEHatchNuclearHatch.getRequiredFluidTier(name);
@@ -774,7 +820,8 @@ public class NuclearReactorPhysics {
             return;
         }
 
-        double minOperatingTemp = NuclearSimulationEngine.getCoolantSinkTemperature(name, reactor.getAmbientTemperature());
+        double minOperatingTemp = NuclearSimulationEngine
+            .getCoolantSinkTemperature(name, reactor.getAmbientTemperature());
         double heatPerMB = NuclearSimulationEngine.coolingHeatPerLiter;
         int steamRatio = 1;
         String outputFluidName = "steam";

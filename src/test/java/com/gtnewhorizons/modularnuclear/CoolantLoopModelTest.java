@@ -33,12 +33,16 @@ public class CoolantLoopModelTest {
         double p50 = loop.calculatePumpPowerForFlow(50.0);
         double eff = loop.getImpellerEfficiency();
         double pMech50 = p50 * eff;
-        assertTrue(pMech50 > 150.0 && pMech50 < 250.0, "Mechanical pump power at 50 L/s should be ~175 EU/t, got " + pMech50);
+        assertTrue(
+            pMech50 > 150.0 && pMech50 < 250.0,
+            "Mechanical pump power at 50 L/s should be ~175 EU/t, got " + pMech50);
 
         // At 100 L/s: mechanical power is ~1390 EU/t
         double p100 = loop.calculatePumpPowerForFlow(100.0);
         double pMech100 = p100 * eff;
-        assertTrue(pMech100 > 1300.0 && pMech100 < 1500.0, "Mechanical pump power at 100 L/s should be ~1390 EU/t, got " + pMech100);
+        assertTrue(
+            pMech100 > 1300.0 && pMech100 < 1500.0,
+            "Mechanical pump power at 100 L/s should be ~1390 EU/t, got " + pMech100);
 
         // Inversion check: flow from pump power
         double qCalculated = loop.calculateFlowFromPumpPower(p50);
@@ -48,7 +52,9 @@ public class CoolantLoopModelTest {
     @Test
     void testPumpOverclockAndImpellerEfficiency() {
         assertFalse(loop.isPumpOverclocked(), "Pump should not be overclocked by default");
-        assertEquals(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.TurbineCalculator.TurbineMaterial.ORINARUKON, loop.getImpellerMaterial());
+        assertEquals(
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.TurbineCalculator.TurbineMaterial.ORINARUKON,
+            loop.getImpellerMaterial());
 
         // Higher efficiency impeller requires less electrical power for the same flow
         loop.setImpellerMaterial("ICHORIUM"); // 2.25 eff vs Oriharukon 1.55 eff
@@ -60,7 +66,11 @@ public class CoolantLoopModelTest {
         double pOriharukon = loop.calculatePumpPowerForFlow(50.0);
 
         assertTrue(pIchorium < pOriharukon, "Higher efficiency impeller must require less electrical EU/t");
-        assertEquals(pOriharukon * (1.55 / 2.25), pIchorium, 0.1, "Electrical power should scale inversely with impeller efficiency");
+        assertEquals(
+            pOriharukon * (1.55 / 2.25),
+            pIchorium,
+            0.1,
+            "Electrical power should scale inversely with impeller efficiency");
 
         // Overclocking toggle increases max pump power draw to 4A
         grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
@@ -106,7 +116,8 @@ public class CoolantLoopModelTest {
             "Neutronium is physically allowed on LuV");
 
         // Progression appropriate check (for automated optimization searches):
-        // In Tier 2 IV, Osmium and Neutronium are excluded from optimization searches because player unlocks them in LuV and ZPM
+        // In Tier 2 IV, Osmium and Neutronium are excluded from optimization searches because player unlocks them in
+        // LuV and ZPM
         assertTrue(CoolantLoopModel.LoopMaterial.STEEL.isProgressionAppropriate(tierIV));
         assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isProgressionAppropriate(tierIV));
         assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isProgressionAppropriate(tierIV));
@@ -374,8 +385,12 @@ public class CoolantLoopModelTest {
         assertEquals(0.481, loop.getFluidType().thermalConductivity, 0.001);
         assertEquals("None", loop.getFluidType().byproductGas);
 
-        assertEquals(CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE, CoolantLoopModel.CoolantFluidType.fromString("cheese"));
-        assertEquals(CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE, CoolantLoopModel.CoolantFluidType.fromString("MOLTEN_CHEESE"));
+        assertEquals(
+            CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE,
+            CoolantLoopModel.CoolantFluidType.fromString("cheese"));
+        assertEquals(
+            CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE,
+            CoolantLoopModel.CoolantFluidType.fromString("MOLTEN_CHEESE"));
 
         // Set hot ambient biome (Nether) for molten cheese circulation
         NuclearSimulationEngine.ambientTemp = 50.0;
@@ -413,27 +428,38 @@ public class CoolantLoopModelTest {
     void testMoltenFluidTemperatureLimitsAndSolidificationRupture() {
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.MOLTEN_CHEESE);
         assertEquals(46.85, loop.getFluidType().meltingPointCelsius, 0.01);
-        assertTrue(loop.getFluidType().isMolten());
+        assertTrue(
+            loop.getFluidType()
+                .isMolten());
 
         // 1. In standard biome (ambientTemp 20 °C < 46.85 °C), pump refuses to start
         loop.setPumpPowerEUt(250.0);
         loop.updatePumpState();
         assertEquals(0.0, loop.getCurrentFlowRateLPerSec(), 1e-5, "Pump must refuse to accelerate flow when cold");
         assertTrue(loop.isFlowLimited());
-        assertTrue(loop.getLimitReason().contains("Pump blocked"));
-        assertTrue(loop.getLimitReason().contains("Biome ambient temperature"));
+        assertTrue(
+            loop.getLimitReason()
+                .contains("Pump blocked"));
+        assertTrue(
+            loop.getLimitReason()
+                .contains("Biome ambient temperature"));
 
         // 2. In hot biome (ambientTemp 50 °C > 46.85 °C) with warm coolant, flow is allowed
         NuclearSimulationEngine.ambientTemp = 50.0;
         loop.setCurrentCoolantTempCelsius(50.0);
         loop.updatePumpState();
-        assertTrue(loop.getCurrentFlowRateLPerSec() > 0.0, "Flow must accelerate when above melting point in hot biome");
+        assertTrue(
+            loop.getCurrentFlowRateLPerSec() > 0.0,
+            "Flow must accelerate when above melting point in hot biome");
 
         // 3. If circulating and coolant drops below melting point, immediate catastrophic rupture!
         grid.setTile(3, 4, SimTile.TileType.PASSAGE_CORE);
         loop.setCurrentCoolantTempCelsius(30.0); // drops below 46.85 °C while circulating
         assertFalse(grid.step(), "Step should fail on rupture");
         assertTrue(loop.isRuptured(), "Circulating molten coolant below melting point must cause rupture");
-        assertTrue(loop.getRuptureReason().contains("Solidification"), "Rupture reason must mention solidification");
+        assertTrue(
+            loop.getRuptureReason()
+                .contains("Solidification"),
+            "Rupture reason must mention solidification");
     }
 }
