@@ -213,6 +213,18 @@ val generateFuelStatsCharts by tasks.registering(JavaExec::class) {
     args = listOf(outputDir.absolutePath)
 }
 
+val generateProceduralTextures by tasks.registering(Exec::class) {
+    group = "build"
+    description = "Procedurally generates all nuclear textures (atlas, arrows, overlays, fluids, cells, casings, plates) from pure code"
+    commandLine("python3", file("tools/textures/generate_all.py").absolutePath)
+}
+
+val generateAllTextures by tasks.registering {
+    dependsOn(generateFuelStatsCharts, generateProceduralTextures)
+    group = "build"
+    description = "Regenerates all procedural textures (fuel stats charts and procedural art assets)"
+}
+
 tasks.processResources {
     dependsOn(generateFuelStatsCharts)
 }
