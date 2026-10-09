@@ -26,13 +26,10 @@ val generateWasm by tasks.registering(JavaExec::class) {
     group = "build"
     description = "Compiles core nuclear simulation engine to WebAssembly using TeaVM"
 
-    val jdk17 = file("/home/mgomezch/.gradle/jdks/azul_systems__inc_-17-amd64-linux.2/bin/java")
-    val jdk21 = file("/home/mgomezch/.gradle/jdks/azul_systems__inc_-21-amd64-linux.2/bin/java")
-    if (jdk17.exists()) {
-        setExecutable(jdk17.absolutePath)
-    } else if (jdk21.exists()) {
-        setExecutable(jdk21.absolutePath)
-    }
+    val javaToolchains = project.extensions.getByType(JavaToolchainService::class.java)
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    })
 
     mainClass.set("org.teavm.cli.TeaVMRunner")
     classpath = teavmClasspath
@@ -88,13 +85,10 @@ val exportStaticDist by tasks.registering(JavaExec::class) {
     group = "build"
     description = "Exports standalone index.html into nuclear-sim-dist"
 
-    val jdk17 = file("/home/mgomezch/.gradle/jdks/azul_systems__inc_-17-amd64-linux.2/bin/java")
-    val jdk21 = file("/home/mgomezch/.gradle/jdks/azul_systems__inc_-21-amd64-linux.2/bin/java")
-    if (jdk17.exists()) {
-        setExecutable(jdk17.absolutePath)
-    } else if (jdk21.exists()) {
-        setExecutable(jdk21.absolutePath)
-    }
+    val javaToolchains = project.extensions.getByType(JavaToolchainService::class.java)
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    })
     val downgradedClassesDir = layout.buildDirectory.dir("tmp/downgradeMainClasses/main").get().asFile
     val jvmDowngraderJar = jvmDowngraderConfig.singleFile
     val distDir = layout.buildDirectory.dir("nuclear-sim-dist").get().asFile
