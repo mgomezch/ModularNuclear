@@ -401,4 +401,44 @@ public class NuclearReactorGridWidgetTest {
         }
         assertTrue(callbackCount > 0, "NuclearControlEnvironment must define callbacks");
     }
+
+    @Test
+    void testMixedNuclearHatchTiersAllowed() {
+        MTENuclearReactor r = new MTENuclearReactor("test.nuclear.reactor");
+        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.NuclearHatchElement element = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.NuclearHatchElement();
+
+        MTEHatchNuclearHatch hatchLV = new MTEHatchNuclearHatch("hatch.lv", 1, 16000, new String[0], null);
+        MTEHatchNuclearHatch hatchHV = new MTEHatchNuclearHatch("hatch.hv", 3, 64000, new String[0], null);
+        MTEHatchNuclearHatch hatchIV = new MTEHatchNuclearHatch("hatch.iv", 5, 256000, new String[0], null);
+
+        gregtech.api.metatileentity.BaseMetaTileEntity mockTeLV = mock(
+            gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        when(mockTeLV.getFrontFacing()).thenReturn(net.minecraftforge.common.util.ForgeDirection.UP);
+        when(mockTeLV.getMetaTileEntity()).thenReturn(hatchLV);
+
+        gregtech.api.metatileentity.BaseMetaTileEntity mockTeHV = mock(
+            gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        when(mockTeHV.getFrontFacing()).thenReturn(net.minecraftforge.common.util.ForgeDirection.UP);
+        when(mockTeHV.getMetaTileEntity()).thenReturn(hatchHV);
+
+        gregtech.api.metatileentity.BaseMetaTileEntity mockTeIV = mock(
+            gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        when(mockTeIV.getFrontFacing()).thenReturn(net.minecraftforge.common.util.ForgeDirection.UP);
+        when(mockTeIV.getMetaTileEntity()).thenReturn(hatchIV);
+
+        net.minecraft.world.World mockWorld = mock(net.minecraft.world.World.class);
+        when(mockWorld.getTileEntity(0, 0, 0)).thenReturn(mockTeLV);
+        when(mockWorld.getTileEntity(1, 0, 0)).thenReturn(mockTeHV);
+        when(mockWorld.getTileEntity(2, 0, 0)).thenReturn(mockTeIV);
+
+        assertTrue(element.check(r, mockWorld, 0, 0, 0));
+        assertTrue(element.check(r, mockWorld, 1, 0, 0));
+        assertTrue(element.check(r, mockWorld, 2, 0, 0));
+
+        assertFalse(
+            r.mHatchTierInconsistent,
+            "Mixed hatch tiers must be allowed without setting mHatchTierInconsistent");
+        assertEquals(3, r.mNuclearTiles.size());
+        assertEquals(1, r.mHatchTier, "mHatchTier should track lowest hatch tier encountered");
+    }
 }

@@ -18,7 +18,7 @@ gt.blockmachines.hatch.nuclearcontrol.name=Nuclear control hatch
 gt.blockmachines.hatch.nuclearcontrolrod.name=Nuclear core control rod
 gt.blockmachines.hatch.nuclearhighpressure.name=Nuclear core high-pressure hatch
 
-GT5U.gui.button.reactor_hatches=Open reactor core hatches view
+GT5U.gui.button.reactor_hatches=Inspect core
 GT5U.gui.text.structure_error.missing_nuclear_hatch=Missing nuclear hatch or bus in core grid
 GT5U.gui.text.structure_error.inconsistent_nuclear_hatch_tier=All nuclear hatches must be of the same tier
 GT5U.gui.text.structure_error.invalid_pipe_tier=Invalid item pipe casing tier (requires Electrum or higher)

@@ -686,10 +686,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             errors.add(StructureErrors.of("GT5U.gui.text.structure_error.invalid_pipe_tier"));
         }
 
-        if (mHatchTierInconsistent) {
-            errors.add(StructureErrors.of("GT5U.gui.text.structure_error.inconsistent_nuclear_hatch_tier"));
-        }
-
         checkCasingMin(errors, mCasing, 50);
 
         checkNuclearHatchFacings(errors);

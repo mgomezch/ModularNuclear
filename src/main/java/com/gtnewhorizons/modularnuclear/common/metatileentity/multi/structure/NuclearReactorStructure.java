@@ -156,6 +156,8 @@ public class NuclearReactorStructure {
 
     public static class NuclearHatchElement implements IStructureElement<MTENuclearReactor> {
 
+        public NuclearHatchElement() {}
+
         @Override
         public boolean check(MTENuclearReactor t, World world, int x, int y, int z) {
             if (world.getTileEntity(x, y, z) instanceof IGregTechTileEntity te) {
@@ -167,10 +169,8 @@ public class NuclearReactorStructure {
                 if (mte instanceof MTEHatchNuclearHatch hatch) {
                     hatch.mReactor = t;
                     int tier = hatch.mTier;
-                    if (t.mHatchTier == -1) {
+                    if (t.mHatchTier == -1 || tier < t.mHatchTier) {
                         t.mHatchTier = tier;
-                    } else if (t.mHatchTier != tier) {
-                        t.mHatchTierInconsistent = true;
                     }
                     t.mNuclearTiles.add(te);
                     return true;
