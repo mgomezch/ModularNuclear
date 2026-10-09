@@ -10,9 +10,9 @@ It works as an add-on to GTNH 2.9 (tested on some daily shortly after release ca
 
 License: GPL3, because I originally started the project as a bunch of modifications to GTNH's GT5-Unofficial repo, and this app has stuff extracted from that project, so its license holds.  See https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/LICENSE.txt
 
-There's also a simulator as a stand-alone client-only Web app; see
-* Repo: https://github.com/mgomezch/modular-nuclear-simulator
-* Live app: https://mgomezch.github.io/modular-nuclear-simulator
+There's also a simulator as a stand-alone client-only Web app hosted on GitHub Pages:
+* Production: https://mgomezch.github.io/ModularNuclear/
+* Staging: https://mgomezch.github.io/ModularNuclear/staging/
 
 ---
 

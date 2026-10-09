@@ -116,7 +116,14 @@ val exportStaticDist by tasks.registering(JavaExec::class) {
                 from(distDir)
                 into(localShareDir)
             }
-            println("Updated local share static web distribution: ${localShareDir.absolutePath}")
+            val localStagingDir = file("${localShareDir.absolutePath}/staging")
+            if (localStagingDir.exists() || localStagingDir.mkdirs()) {
+                copy {
+                    from(distDir)
+                    into(localStagingDir)
+                }
+            }
+            println("Updated local share static web distribution (production and staging): ${localShareDir.absolutePath}")
         }
     }
 }
@@ -125,32 +132,73 @@ generateWasm.configure {
     finalizedBy(exportStaticDist)
 }
 
-val publishPages by tasks.registering(Exec::class) {
+val deploySimulatorStaging by tasks.registering(Exec::class) {
     dependsOn(exportStaticDist)
     group = "publishing"
-    description = "Pushes latest build/nuclear-sim-dist to mgomezch/modular-nuclear-simulator on GitHub Pages"
+    description = "Pushes latest build/nuclear-sim-dist to /staging/ on the gh-pages branch of ModularNuclear"
     commandLine(
         "bash", "-c",
         """
         set -e
+        ROOT_DIR="${'$'}(git rev-parse --show-toplevel)"
         TMP_DIR="${'$'}(mktemp -d)"
-        git clone https://github.com/mgomezch/modular-nuclear-simulator.git "${'$'}TMP_DIR"
-        cp -r build/nuclear-sim-dist/* "${'$'}TMP_DIR/"
+        git fetch github gh-pages:gh-pages || git fetch github gh-pages
+        git worktree add "${'$'}TMP_DIR" gh-pages
+        mkdir -p "${'$'}TMP_DIR/staging"
+        cp -r build/nuclear-sim-dist/* "${'$'}TMP_DIR/staging/"
         touch "${'$'}TMP_DIR/.nojekyll"
         cd "${'$'}TMP_DIR"
-        git config user.name "mgomezch"
-        git config user.email "mgomezch@users.noreply.github.com"
-        git add -A
+        git add staging .nojekyll
         if git diff --cached --quiet; then
-            echo "No changes to commit for GitHub Pages."
+            echo "No changes to commit for staging."
         else
-            git commit -m "deploy: update WebAssembly simulator with calibrated peak layouts and coolant loop phase transitions"
-            git push origin main
-            echo "Successfully deployed latest WebAssembly simulator to GitHub Pages!"
+            git commit -m "deploy(staging): update simulator webapp in /staging/"
+            git push github gh-pages
+            git push forgejo gh-pages || true
+            echo "Successfully deployed simulator to ModularNuclear GitHub Pages (staging)!"
         fi
-        rm -rf "${'$'}TMP_DIR"
+        cd "${'$'}ROOT_DIR"
+        git worktree remove --force "${'$'}TMP_DIR"
         """
     )
+}
+
+val deploySimulatorProduction by tasks.registering(Exec::class) {
+    dependsOn(exportStaticDist)
+    group = "publishing"
+    description = "Pushes latest build/nuclear-sim-dist to root / on the gh-pages branch of ModularNuclear"
+    commandLine(
+        "bash", "-c",
+        """
+        set -e
+        ROOT_DIR="${'$'}(git rev-parse --show-toplevel)"
+        TMP_DIR="${'$'}(mktemp -d)"
+        git fetch github gh-pages:gh-pages || git fetch github gh-pages
+        git worktree add "${'$'}TMP_DIR" gh-pages
+        cp -r build/nuclear-sim-dist/* "${'$'}TMP_DIR/"
+        mkdir -p "${'$'}TMP_DIR/staging"
+        cp -r build/nuclear-sim-dist/* "${'$'}TMP_DIR/staging/"
+        touch "${'$'}TMP_DIR/.nojekyll"
+        cd "${'$'}TMP_DIR"
+        git add -A
+        if git diff --cached --quiet; then
+            echo "No changes to commit for production."
+        else
+            git commit -m "deploy(prod): update simulator webapp in root /"
+            git push github gh-pages
+            git push forgejo gh-pages || true
+            echo "Successfully deployed simulator to ModularNuclear GitHub Pages (production)!"
+        fi
+        cd "${'$'}ROOT_DIR"
+        git worktree remove --force "${'$'}TMP_DIR"
+        """
+    )
+}
+
+val publishPages by tasks.registering {
+    dependsOn(deploySimulatorStaging)
+    group = "publishing"
+    description = "Deploys latest simulator build to staging on ModularNuclear GitHub Pages"
 }
 
 val generateFuelStatsCharts by tasks.registering(JavaExec::class) {

@@ -75,3 +75,53 @@ jobs:
             !ModularNuclear/build/libs/*-sources.jar
             !ModularNuclear/build/libs/*-predowngrade.jar
             !ModularNuclear/build/libs/*-dirty*.jar
+
+      - name: Deploy Simulator WebApp to GitHub Pages (Staging)
+        if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) || github.event_name == 'workflow_dispatch'
+        working-directory: ModularNuclear
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          WORKTREE_DIR="$(mktemp -d)"
+          git fetch origin gh-pages:gh-pages
+          git worktree add "$WORKTREE_DIR" gh-pages
+          mkdir -p "$WORKTREE_DIR/staging"
+          cp -r build/nuclear-sim-dist/* "$WORKTREE_DIR/staging/"
+          touch "$WORKTREE_DIR/.nojekyll"
+          cd "$WORKTREE_DIR"
+          git add staging .nojekyll
+          if git diff --cached --quiet; then
+            echo "No changes in simulator webapp for staging."
+          else
+            git commit -m "deploy(staging): update simulator webapp in /staging/ [skip ci]"
+            git push origin gh-pages
+            echo "Successfully deployed simulator webapp to Staging!"
+          fi
+          cd -
+          git worktree remove --force "$WORKTREE_DIR"
+
+      - name: Deploy Simulator WebApp to GitHub Pages (Production)
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: ModularNuclear
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          WORKTREE_DIR="$(mktemp -d)"
+          git fetch origin gh-pages:gh-pages
+          git worktree add "$WORKTREE_DIR" gh-pages
+          cp -r build/nuclear-sim-dist/* "$WORKTREE_DIR/"
+          mkdir -p "$WORKTREE_DIR/staging"
+          cp -r build/nuclear-sim-dist/* "$WORKTREE_DIR/staging/"
+          touch "$WORKTREE_DIR/.nojekyll"
+          cd "$WORKTREE_DIR"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes in simulator webapp for production."
+          else
+            git commit -m "deploy(prod): publish release ${GITHUB_REF_NAME} simulator webapp to root / [skip ci]"
+            git push origin gh-pages
+            echo "Successfully deployed simulator webapp to Production!"
+          fi
+          cd -
+          git worktree remove --force "$WORKTREE_DIR"
+
