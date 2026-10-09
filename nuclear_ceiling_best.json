@@ -1,0 +1,154 @@
+[
+  {
+    "tier": "EV",
+    "name": "Electrum 5x5 Power (EV)",
+    "peak_power_eut": 360220.0,
+    "direct_power_eut": 0.0,
+    "steam_power_eut": 360220.0,
+    "peak_amps": 175.888671875,
+    "overpower_pct": 293.14778645833337,
+    "longevity_mins": 75.56,
+    "peak_temp": 939.46,
+    "turbine": [
+      "Oriharukon",
+      "NORMAL",
+      "TIGHT"
+    ],
+    "cooling_mode": "CONDUCTIVE",
+    "default_loop": null,
+    "pump_power_eut": 2048.0,
+    "state": "EXHAUSTED",
+    "local_maxima_count": 1,
+    "layout": "RB,U4,M4,U4,RB;U4,M4,HC,M4,U4;M4,HC,M4,HC,M4;U4,M4,HC,M4,U4;RB,U4,M4,U4,RB"
+  },
+  {
+    "tier": "IV",
+    "name": "Platinum 9x9 Breeder (IV)",
+    "peak_power_eut": 3931783.3,
+    "direct_power_eut": 0.0,
+    "steam_power_eut": 3931783.3,
+    "peak_amps": 479.9540161132812,
+    "overpower_pct": 799.923360188802,
+    "longevity_mins": 35.21,
+    "peak_temp": 1146.72,
+    "turbine": [
+      "Ichorium",
+      "LARGE",
+      "TIGHT"
+    ],
+    "cooling_mode": "CONVECTIVE_LOOP",
+    "default_loop": [
+      "TUNGSTENSTEEL",
+      "LARGE",
+      "DISTILLED_WATER"
+    ],
+    "pump_power_eut": 8192.0,
+    "state": "EXHAUSTED",
+    "local_maxima_count": 1,
+    "layout": "RB,RB,HDP,U4,M4,U4,HDP,RB,RB;RB,M4,HC,M4,HP,M4,HC,M4,RB;HC,HP,HC,CP,M4,CP,HC,HP,HC;HDP,M4,M4,M4,CP,M4,M4,M4,HDP;M4,CP,CP,HC,HDP,HC,CP,CP,M4;HDP,M4,M4,M4,CP,M4,M4,M4,HDP;HC,HP,HC,CP,M4,CP,HC,HP,HC;RB,M4,HC,M4,HP,M4,HC,M4,RB;RB,RB,HDP,U4,M4,U4,HDP,RB,RB"
+  },
+  {
+    "tier": "LuV",
+    "name": "Osmium 9x9 Superheated (LuV)",
+    "peak_power_eut": 7024822.0,
+    "direct_power_eut": 0.0,
+    "steam_power_eut": 7024822.0,
+    "peak_amps": 214.38055419921875,
+    "overpower_pct": 357.30092366536456,
+    "longevity_mins": 14.18,
+    "peak_temp": 1783.93,
+    "turbine": [
+      "Duranium",
+      "LARGE",
+      "TIGHT"
+    ],
+    "cooling_mode": "CONVECTIVE_LOOP",
+    "default_loop": [
+      "OSMIUM",
+      "LARGE",
+      "DISTILLED_WATER"
+    ],
+    "pump_power_eut": 32768.0,
+    "state": "IN_ESCAPE",
+    "local_maxima_count": 2,
+    "layout": "RB,RB,M4,EXP,HC,EXP,M4,RB,RB;RB,EXP,HC,EXP,CP,EXP,HC,EXP,RB;HC,CP,EXP,CP,CP,CP,EXP,CP,HC;EXP,EXP,CP,EXP,CP,EXP,CP,EXP,EXP;T2,HC,CP,CP,CP,CP,CP,HC,T2;EXP,EXP,CP,EXP,CP,EXP,CP,EXP,EXP;HC,CP,EXP,CP,CP,CP,EXP,CP,HC;RB,EXP,HC,EXP,CP,EXP,HC,EXP,RB;RB,RB,M4,EXP,HC,EXP,M4,RB,RB"
+  },
+  {
+    "tier": "ZPM",
+    "name": "Quantium 13x13 CANDU (ZPM)",
+    "peak_power_eut": 33922979.4,
+    "direct_power_eut": 32730.0,
+    "steam_power_eut": 33890249.4,
+    "peak_amps": 258.8117935180664,
+    "overpower_pct": 431.35298919677734,
+    "longevity_mins": 10.07,
+    "peak_temp": 1881.39,
+    "turbine": [
+      "Duranium",
+      "HUGE",
+      "TIGHT"
+    ],
+    "cooling_mode": "CONVECTIVE_LOOP",
+    "default_loop": [
+      "NEUTRONIUM",
+      "HUGE",
+      "HEAVY_WATER"
+    ],
+    "pump_power_eut": 131072.0,
+    "state": "EXHAUSTED",
+    "local_maxima_count": 2,
+    "layout": "RB,RB,RB,U2,RH,U1,TIB,U1,RH,U2,RB,RB,RB;RB,RB,RV,EXU,HC,NQR,CP,NQR,HC,EXU,RV,RB,RB;RB,EXU,TIB,CP,HP,EXP,HW,EXP,HP,CP,TIB,EXU,RB;RH,CP,CP,NQR,U1,TIB,XA,TIB,U1,NQR,CP,CP,RH;HW,NQ,NQR,HW,CP,HC,HDP,HC,CP,HW,NQR,NQ,HW;RV,EXU,HC,EXP,HC,EXP,HW,EXP,HC,EXP,HC,EXU,RV;U1,T1,CP,NQ,NQ32,HC,CP,HC,NQ32,NQ,CP,T1,U1;RV,EXU,HC,EXP,HC,EXP,HW,EXP,HC,EXP,HC,EXU,RV;HW,NQ,NQR,HW,CP,HC,HDP,HC,CP,HW,NQR,NQ,HW;RH,CP,CP,NQR,U1,TIB,XA,TIB,U1,NQR,CP,CP,RH;RB,EXU,TIB,CP,HP,EXP,HW,EXP,HP,CP,TIB,EXU,RB;RB,RB,RV,EXU,HC,NQR,CP,NQR,HC,EXU,RV,RB,RB;RB,RB,RB,U2,RH,U1,TIB,U1,RH,U2,RB,RB,RB"
+  },
+  {
+    "tier": "UV",
+    "name": "Fluxed 13x13 Supercritical (UV)",
+    "peak_power_eut": 50059485.3,
+    "direct_power_eut": 2031.0,
+    "steam_power_eut": 50057454.3,
+    "peak_amps": 95.48089084625244,
+    "overpower_pct": 159.1348180770874,
+    "longevity_mins": 11.52,
+    "peak_temp": 2370.08,
+    "turbine": [
+      "Duranium",
+      "HUGE",
+      "TIGHT"
+    ],
+    "cooling_mode": "CONVECTIVE_LOOP",
+    "default_loop": [
+      "NEUTRONIUM",
+      "HUGE",
+      "HEAVY_WATER"
+    ],
+    "pump_power_eut": 524288.0,
+    "state": "EXHAUSTED",
+    "local_maxima_count": 1,
+    "layout": "RB,RB,RB,HC,HC,HH,RH,HH,HC,HC,RB,RB,RB;RB,RB,HC,NQ32,HC,CP,HC,CP,HC,NQ32,HC,RB,RB;RB,HH,NQ32,HC,NQ32,HC,NQ32,HC,NQ32,HC,NQ32,HH,RB;HH,HC,HC,NQ32,HC,VC,HC,VC,HC,TIB,HC,HC,HH;NQR,HC,TIB,U4,TIB,CP,HDP,CP,TIB,U4,TIB,HC,NQR;CP,HH,HC,TIB,HC,V1,HH,V1,HC,TIB,HC,HH,CP;HD,HC,M1,HC,TIB,VC,EXP,VC,TIB,HC,M1,HC,HD;CP,HH,HC,TIB,HC,V1,HH,V1,HC,TIB,HC,HH,CP;NQR,HC,TIB,U4,TIB,CP,HDP,CP,TIB,U4,TIB,HC,NQR;HH,HC,HC,TIB,HC,VC,HC,VC,HC,TIB,HC,HC,HH;RB,HH,TIB,HC,TIB,HC,TIB,HC,TIB,HC,TIB,HH,RB;RB,RB,HC,NQ32,HC,CP,HC,CP,HC,NQ32,HC,RB,RB;RB,RB,RB,HC,HC,HH,RH,HH,HC,HC,RB,RB,RB"
+  },
+  {
+    "tier": "UHV",
+    "name": "Black Plutonium 13x13 Peak (UHV)",
+    "peak_power_eut": 111483727.4,
+    "direct_power_eut": 0.0,
+    "steam_power_eut": 111483727.4,
+    "peak_amps": 53.159583759307864,
+    "overpower_pct": 88.5993062655131,
+    "longevity_mins": 18.85,
+    "peak_temp": 2971.96,
+    "turbine": [
+      "Infinity",
+      "HUGE",
+      "LOOSE"
+    ],
+    "cooling_mode": "CONVECTIVE_LOOP",
+    "default_loop": [
+      "NEUTRONIUM",
+      "HUGE",
+      "HEAVY_WATER"
+    ],
+    "pump_power_eut": 2097152.0,
+    "state": "EXHAUSTED",
+    "local_maxima_count": 2,
+    "layout": "RB,RB,RB,CP,HH,HC,CP,HC,HH,CP,RB,RB,RB;RB,RB,HC,HC,HC,HC,HC,HC,HC,HC,HC,RB,RB;RB,HC,NQ32,HC,NQ32,HC,NQ32,HC,NQ32,HC,NQ32,HC,RB;HC,HC,HC,NQ32,HC,NQ32,HC,NQ32,HC,NQ32,HC,HC,HC;HC,HC,NQ32,HC,NQ32,HC,NQ32,HC,NQ32,HC,NQ32,HC,HC;HC,HH,HC,NQ32,HC,NQ32,HC,NQ32,HC,NQ32,HC,HH,HC;HC,HC,NQ32,HH,CP,HC,TIB,HC,CP,HH,TIB,HC,HC;HC,HH,HC,TIB,HC,TIB,HC,TIB,HC,TIB,HC,HH,HC;HC,HC,TIB,HC,TIB,HC,TIB,HC,TIB,HC,TIB,HC,HC;HC,HC,HC,TIB,HC,TIB,HC,TIB,HC,TIB,HC,HC,HC;RB,HC,TIB,HC,TIB,HC,TIB,HC,TIB,HC,TIB,HC,RB;RB,RB,HC,HC,HC,HC,HC,HC,HC,HC,HC,RB,RB;RB,RB,RB,CP,HH,HC,CP,HC,HH,CP,RB,RB,RB"
+  }
+]
