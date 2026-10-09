@@ -50,6 +50,7 @@ public class ModularNuclear {
         com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration.init();
         com.gtnewhorizons.modularnuclear.common.opencomputers.OpenComputersIntegration.init();
         com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedIntegration.init();
+        com.gtnewhorizons.modularnuclear.common.quest.ModularNuclearQuestIntegration.init();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS
             .register(new com.gtnewhorizons.modularnuclear.common.item.NuclearFuelTooltipHandler());
 

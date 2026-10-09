@@ -6,7 +6,7 @@ That said: this is an adaptation of the Modern Industrialization nuclear reactor
 
 To be clear: I haven't looked at a single line of code in this app; it all comes from Antigravity.  As a longtime software engineer, I have complicated / weird feelings about this.  But anyway, that whole can of worms aside, here it is.  Play with it, it's fun.  If you're interested, hit me up (mgomezch in GTNH Discord).
 
-It works as an add-on to GTNH 2.9 (tested on some daily shortly after release candidate 1).  It's unfinished, and completely unbalanced, but it's kinda fun to mess with anyway.  It does require a small change to GTNH GT5 since I added Compressor recipes that produce fluids, but otherwise it's stand-alone.
+It works as an add-on to GTNH 2.9 (tested on some daily shortly after release candidate 1).  It's unfinished, and completely unbalanced, but it's kinda fun to mess with anyway.  You can get built jars from the GitHub actions, I think.
 
 License: GPL3, because I originally started the project as a bunch of modifications to GTNH's GT5-Unofficial repo, and this app has stuff extracted from that project, so its license holds.  See https://github.com/GTNewHorizons/GT5-Unofficial/blob/master/LICENSE.txt
 
