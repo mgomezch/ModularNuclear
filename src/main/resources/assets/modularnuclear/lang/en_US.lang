@@ -23,9 +23,9 @@ GT5U.gui.text.structure_error.missing_nuclear_hatch=Missing nuclear hatch or bus
 GT5U.gui.text.structure_error.inconsistent_nuclear_hatch_tier=All nuclear hatches must be of the same tier
 GT5U.gui.text.structure_error.invalid_pipe_tier=Invalid item pipe casing tier (requires Electrum or higher)
 GT5U.gui.text.structure_error.cannot_wallshare_nuclear_hatches=This multiblock cannot share walls (adjacent nuclear hatches/buses detected)
-GT5U.gui.text.structure_error.wrong_nuclear_hatch_facing=Top-layer hatches must face up; bottom-layer HP hatches must face down
-GT5U.gui.text.structure_error.hp_hatch_tier=High-pressure coolant passage hatches require Tier 2 or Tier 3 reactor
-GT5U.gui.text.structure_error.hp_hatch_unpaired=High-pressure coolant passage hatches must be paired 1:1 between top inlet and bottom outlet
+GT5U.gui.text.structure_error.wrong_nuclear_hatch_facing=Core hatches must face away from structure
+GT5U.gui.text.structure_error.hp_hatch_tier=High-pressure cooling requires Tier 2+ structure
+GT5U.gui.text.structure_error.hp_hatch_unpaired=Mismatched high-pressure cooling inlet / outlet
 
 channels.modularnuclear.nuclear_hatch=Decides the type and tier of core hatches. Starts at §6Nuclear core bus (items)§r at value 0, §6Nuclear core hatches (LV-UHV for fluids)§r from value 1 to 9, and §6Nuclear core high-pressure hatch§r at value 10.
 channels.modularnuclear.master.nuclear_hatch=Nuclear hatch tier
