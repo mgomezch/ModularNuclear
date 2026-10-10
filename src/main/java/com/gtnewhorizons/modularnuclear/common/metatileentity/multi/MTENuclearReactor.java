@@ -2010,6 +2010,16 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     @Override
+    public boolean isGivingInformation() {
+        return true;
+    }
+
+    @Override
+    public String[] getInfoData() {
+        return NuclearReactorWailaProvider.getInfoData(this);
+    }
+
+    @Override
     public void getExtraInfoData(List<String> info) {
         NuclearReactorWailaProvider.getExtraInfoData(this, info);
     }

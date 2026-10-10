@@ -173,30 +173,123 @@ public class NuclearReactorWailaProvider {
         } catch (Throwable ignored) {}
     }
 
-    public static void getExtraInfoData(MTENuclearReactor reactor, List<String> info) {
-        if (!reactor.mMachine) return;
+    public static String[] getInfoData(MTENuclearReactor reactor) {
+        if (!reactor.mMachine) {
+            return new String[] { EnumChatFormatting.RED + "Structure Incomplete" + EnumChatFormatting.RESET };
+        }
+        reactor.calculateTelemetry();
+        List<String> list = new java.util.ArrayList<>();
+
+        // Operational State
+        String stateStr;
+        if (reactor.mReactorDamage >= 90.0) {
+            stateStr = EnumChatFormatting.RED + EnumChatFormatting.BOLD.toString()
+                + "MELTDOWN IMMINENT ("
+                + String.format(Locale.US, "%.1f%% damage", reactor.mReactorDamage)
+                + ")"
+                + EnumChatFormatting.RESET;
+        } else if (reactor.mScram) {
+            stateStr = EnumChatFormatting.GOLD + "SCRAM (Emergency Shutdown Active)" + EnumChatFormatting.RESET;
+        } else if (reactor.mTotalFuelItems > 0 || reactor.mNeutronsProduced > 0) {
+            stateStr = EnumChatFormatting.GREEN + "Operational (Running)" + EnumChatFormatting.RESET;
+        } else {
+            stateStr = EnumChatFormatting.GRAY + "Standby (Offline / No Active Fuel)" + EnumChatFormatting.RESET;
+        }
+        list.add(EnumChatFormatting.YELLOW + "State: " + EnumChatFormatting.RESET + stateStr);
+
+        // Core & Tile Temperatures
         double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(reactor.mPipeTier);
-        info.add(String.format("Core Temp: %,.1f / %,.0f °C", reactor.mCoreTemp, maxTemp));
-        if (reactor.mDirectPowerEUt > 0) {
-            info.add(String.format("EU Output: +%,d EU/t", reactor.mDirectPowerEUt));
-        }
-        if (reactor.mOutputCoolantRate > 0 && reactor.mOutputCoolantName != null
-            && !reactor.mOutputCoolantName.isEmpty()) {
-            info.add(
-                String.format("Coolant Output: %,d L/s %s", reactor.mOutputCoolantRate, reactor.mOutputCoolantName));
-        }
-        info.add(String.format("Reactivity: %.1f%%", reactor.mReactivity * 100.0));
-        info.add("Flux: " + NuclearSimulationEngine.formatNeutronFlux(reactor.mNeutronsProduced));
-        info.add(
+        String casingName = NuclearSimulationEngine.getPipeTierName(reactor.mPipeTier);
+        list.add(
             String.format(
-                "Neutrons: %,d fast, %,d therm, %,d esc",
+                Locale.US,
+                "%sCore Temp: %s%,.1f / %,.0f °C (%s)",
+                EnumChatFormatting.YELLOW,
+                EnumChatFormatting.RESET,
+                reactor.mCoreTemp,
+                maxTemp,
+                casingName));
+        list.add(
+            String.format(
+                Locale.US,
+                "%sTile Temps: %sMin %,.1f °C | Avg %,.1f °C | Max %,.1f °C",
+                EnumChatFormatting.YELLOW,
+                EnumChatFormatting.RESET,
+                reactor.mMinTileTemp,
+                reactor.mAvgTileTemp,
+                reactor.mMaxTileTemp));
+
+        // Hull Integrity & Damage
+        if (reactor.mReactorDamage > 0.0) {
+            double repairThreshold = NuclearSimulationEngine.getRepairTemperatureThreshold(reactor.mPipeTier);
+            list.add(
+                String.format(
+                    Locale.US,
+                    "%sHull Damage: %s%.1f%%%s (Repair threshold: %,.0f °C)",
+                    EnumChatFormatting.YELLOW,
+                    EnumChatFormatting.RED,
+                    reactor.mReactorDamage,
+                    EnumChatFormatting.RESET,
+                    repairThreshold));
+        } else {
+            list.add(
+                EnumChatFormatting.YELLOW + "Hull Damage: "
+                    + EnumChatFormatting.GREEN
+                    + "0.0% (Nominal)"
+                    + EnumChatFormatting.RESET);
+        }
+
+        // Reactivity & Neutron Flux
+        list.add(
+            String.format(
+                Locale.US,
+                "%sReactivity: %s%.1f%%%s | %sFlux: %s%s",
+                EnumChatFormatting.YELLOW,
+                EnumChatFormatting.RESET,
+                reactor.mReactivity * 100.0,
+                EnumChatFormatting.RESET,
+                EnumChatFormatting.YELLOW,
+                EnumChatFormatting.RESET,
+                NuclearSimulationEngine.formatNeutronFlux(reactor.mNeutronsProduced)));
+        list.add(
+            String.format(
+                Locale.US,
+                "%sNeutrons: %s%,d fast, %,d therm, %,d esc",
+                EnumChatFormatting.YELLOW,
+                EnumChatFormatting.RESET,
                 reactor.mFastAbsorbed,
                 reactor.mThermalAbsorbed,
                 reactor.mEscapedNeutrons));
+
+        // Power & Coolant Output
+        if (reactor.mDirectPowerEUt > 0) {
+            list.add(
+                String.format(
+                    Locale.US,
+                    "%sEU Output: %s+%,d EU/t%s",
+                    EnumChatFormatting.YELLOW,
+                    EnumChatFormatting.GREEN,
+                    reactor.mDirectPowerEUt,
+                    EnumChatFormatting.RESET));
+        }
+        if (reactor.mOutputCoolantRate > 0 && reactor.mOutputCoolantName != null
+            && !reactor.mOutputCoolantName.isEmpty()) {
+            list.add(
+                String.format(
+                    Locale.US,
+                    "%sCoolant Output: %s%,d L/s %s%s",
+                    EnumChatFormatting.YELLOW,
+                    EnumChatFormatting.AQUA,
+                    reactor.mOutputCoolantRate,
+                    reactor.mOutputCoolantName,
+                    EnumChatFormatting.RESET));
+        }
+
+        // Core Cells Summary
         int fuelCount = 0;
         int coolantHatchCount = 0;
+        int hpPassageCount = reactor.mTopHighPressureHatches.size();
         int controlRodCount = reactor.mBottomControlRodHatches.size();
-        int hpPassageCount = 0;
         for (IGregTechTileEntity te : reactor.mNuclearTiles) {
             if (te != null) {
                 IMetaTileEntity mte = te.getMetaTileEntity();
@@ -204,20 +297,70 @@ public class NuclearReactorWailaProvider {
                     fuelCount++;
                 } else if (mte instanceof MTEHatchNuclearHatch) {
                     coolantHatchCount++;
-                } else if (mte instanceof MTEHatchNuclearHighPressure) {
-                    hpPassageCount++;
                 }
             }
         }
         if (!reactor.mNuclearTiles.isEmpty()) {
-            info.add(
+            list.add(
                 String.format(
-                    "Grid Cells: %d Fuel, %d Coolant, %d HP Loop, %d Control / %d Total",
+                    Locale.US,
+                    "%sCore Cells: %s%d Fuel, %d Coolant, %d HP Loop, %d Control / %d Total",
+                    EnumChatFormatting.YELLOW,
+                    EnumChatFormatting.RESET,
                     fuelCount,
                     coolantHatchCount,
                     hpPassageCount,
                     controlRodCount,
                     reactor.mNuclearTiles.size()));
         }
+
+        // Active Core Inventory Items & Fluids
+        if (reactor.mTotalFuelItems > 0 || reactor.mTotalCoolantItems > 0) {
+            list.add(
+                String.format(
+                    Locale.US,
+                    "%sCore Items: %s%d fuel items (%d hatches), %d coolant items (%d hatches)",
+                    EnumChatFormatting.YELLOW,
+                    EnumChatFormatting.RESET,
+                    reactor.mTotalFuelItems,
+                    reactor.mFuelHatchCount,
+                    reactor.mTotalCoolantItems,
+                    reactor.mCoolantHatchCount));
+        }
+        if (reactor.mTotalFuelFluid > 0 || reactor.mTotalCoolantFluid > 0) {
+            list.add(
+                String.format(
+                    Locale.US,
+                    "%sCore Fluids: %s%,d / %,d L fuel | %,d / %,d L coolant",
+                    EnumChatFormatting.YELLOW,
+                    EnumChatFormatting.RESET,
+                    reactor.mTotalFuelFluid,
+                    reactor.mTotalFuelCapacity,
+                    reactor.mTotalCoolantFluid,
+                    reactor.mTotalCoolantCapacity));
+        }
+
+        // Maintenance Status
+        if (reactor.getRepairStatus() == reactor.getIdealStatus()) {
+            list.add(
+                EnumChatFormatting.YELLOW + "Maintenance: "
+                    + EnumChatFormatting.GREEN
+                    + "Optimal"
+                    + EnumChatFormatting.RESET);
+        } else {
+            int problems = reactor.getIdealStatus() - reactor.getRepairStatus();
+            list.add(
+                EnumChatFormatting.YELLOW + "Maintenance: "
+                    + EnumChatFormatting.RED
+                    + String.format(Locale.US, "Has Problems (%d)", problems)
+                    + EnumChatFormatting.RESET);
+        }
+
+        return list.toArray(new String[0]);
+    }
+
+    public static void getExtraInfoData(MTENuclearReactor reactor, List<String> info) {
+        // Main telemetry is exposed through getInfoData() so portable scanners and GT sensor cards
+        // do not display duplicate entries.
     }
 }

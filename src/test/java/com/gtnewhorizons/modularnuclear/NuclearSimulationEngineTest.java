@@ -8,6 +8,7 @@ import java.util.List;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -4131,5 +4132,77 @@ public class NuclearSimulationEngineTest {
                 .contains("Impending thermal shock")
                 || grid.getLastHaltIncidentReason()
                     .contains("thermal shock"));
+    }
+
+    @Test
+    void testInfoDataScannerIntegration() {
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.scanner");
+        assertTrue(reactor.isGivingInformation());
+
+        // 1. Unformed machine
+        reactor.mMachine = false;
+        String[] unformedInfo = reactor.getInfoData();
+        assertNotNull(unformedInfo);
+        assertEquals(1, unformedInfo.length);
+        assertTrue(unformedInfo[0].contains("Structure Incomplete"));
+
+        // 2. Formed machine, operational / running
+        reactor.mMachine = true;
+        reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
+        reactor.gridSize = 3;
+        reactor.mGrid = new INuclearTile[3][3];
+        reactor.mCoreTemp = 425.5;
+        reactor.mReactorDamage = 0.0;
+        reactor.mReactivity = 1.0;
+        reactor.mNeutronsProduced = 5000;
+        reactor.mFastAbsorbed = 3000;
+        reactor.mThermalAbsorbed = 1800;
+        reactor.mEscapedNeutrons = 200;
+        reactor.mDirectPowerEUt = 2048;
+        reactor.mOutputCoolantRate = 1500;
+        reactor.mOutputCoolantName = "Supercritical Carbon Dioxide";
+
+        String[] info = reactor.getInfoData();
+        assertNotNull(info);
+        assertTrue(info.length >= 6);
+
+        String combined = EnumChatFormatting.getTextWithoutFormattingCodes(String.join("\n", info));
+        assertTrue(combined.contains("Operational (Running)"), "State should show operational when neutrons produced");
+        assertTrue(combined.contains("425.5"), "Core temp should be reported");
+        assertTrue(combined.contains("1,800 °C"), "Max temp for Osmium tier should be 1800 °C");
+        assertTrue(combined.contains("Osmium"), "Tier name should be reported");
+        assertTrue(combined.contains("0.0% (Nominal)"), "Hull damage should be nominal");
+        assertTrue(combined.contains("100.0%"), "Reactivity should be 100%");
+        assertTrue(
+            combined.contains("Flux: " + NuclearSimulationEngine.formatNeutronFlux(5000)),
+            "Neutron flux should be formatted");
+        assertTrue(combined.contains("3,000 fast"), "Fast neutrons should be reported");
+        assertTrue(combined.contains("+2,048 EU/t"), "EU output should be reported");
+        assertTrue(combined.contains("1,500 L/s Supercritical Carbon Dioxide"), "Coolant output should be reported");
+
+        // 3. Test SCRAM state
+        reactor.mScram = true;
+        String[] scramInfo = reactor.getInfoData();
+        String scramCombined = String.join("\n", scramInfo);
+        assertTrue(scramCombined.contains("SCRAM (Emergency Shutdown Active)"));
+
+        // 4. Test Damaged state
+        reactor.mScram = false;
+        reactor.mReactorDamage = 25.0;
+        String[] damagedInfo = reactor.getInfoData();
+        String damagedCombined = String.join("\n", damagedInfo);
+        assertTrue(damagedCombined.contains("25.0%"));
+        assertTrue(damagedCombined.contains("Repair threshold: 180 °C")); // 10% of 1800 °C
+
+        // 5. Test Meltdown Imminent state
+        reactor.mReactorDamage = 95.0;
+        String[] meltdownInfo = reactor.getInfoData();
+        String meltdownCombined = String.join("\n", meltdownInfo);
+        assertTrue(meltdownCombined.contains("MELTDOWN IMMINENT"));
+
+        // 6. Test getExtraInfoData does not duplicate info
+        List<String> extraList = new ArrayList<>();
+        reactor.getExtraInfoData(extraList);
+        assertTrue(extraList.isEmpty(), "getExtraInfoData should be empty to prevent duplication in portable scanner");
     }
 }
