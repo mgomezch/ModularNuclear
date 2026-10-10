@@ -354,7 +354,7 @@ public class NuclearReactorPhysics {
                 .getName()
                 .toLowerCase();
             if (name.contains("heavywater")) return 0.90;
-            if (name.contains("distilledwater")) return 0.80;
+            if (name.contains("distilledwater")) return 0.25;
             if (name.contains("coolant")) return 0.40;
             if (name.contains("sodium")) return 0.05;
             return 0.20;
@@ -406,11 +406,11 @@ public class NuclearReactorPhysics {
                     .getName()
                     .toLowerCase();
                 boolean isHP = name.contains("highpressure");
-                int chance = isHP ? Math.min(100, count * 10) : Math.min(100, count * 5);
                 int yield = isHP ? 2 : 1;
 
                 if (name.contains("distilledwater")) {
-                    if (reactor.getRandomNumber(100) < chance) {
+                    int chance = isHP ? Math.min(1000, count * 50) : Math.min(1000, count * 25);
+                    if (reactor.getRandomNumber(1000) < chance) {
                         hatch.mInputFluid.amount -= 1;
                         if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
                         reactor.mCycleTransmutationLoss += 1;
@@ -423,7 +423,8 @@ public class NuclearReactorPhysics {
                         hatch.markTileDirty();
                     }
                 } else if (name.contains("heavywater")) {
-                    if (reactor.getRandomNumber(100) < chance) {
+                    int chance = isHP ? Math.min(1000, count * 20) : Math.min(1000, count * 10);
+                    if (reactor.getRandomNumber(1000) < chance) {
                         hatch.mInputFluid.amount -= 1;
                         if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
                         reactor.mCycleTransmutationLoss += 1;

@@ -322,7 +322,16 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
 
     @Override
     public double getModerationProbability() {
-        return 0.85; // Coolant passage acts as a moderator
+        if (mConnectedPump != null && mConnectedPump.getCoolantFluidProperty() != null) {
+            String name = mConnectedPump.getCoolantFluidProperty()
+                .getFluidName()
+                .toLowerCase();
+            if (name.contains("heavy")) return 0.90;
+            if (name.contains("distill") || name.contains("water")) return 0.25;
+            if (name.contains("coolant")) return 0.40;
+            if (name.contains("sodium")) return 0.05;
+        }
+        return 0.25; // Coolant passage acts as a moderator
     }
 
     @Override

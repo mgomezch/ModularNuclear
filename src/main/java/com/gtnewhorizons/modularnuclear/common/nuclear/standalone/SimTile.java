@@ -619,7 +619,7 @@ public class SimTile implements INuclearTile {
             if (inputFluidAmount <= 0) return 0.05;
             return switch (type) {
                 case HATCH_HEAVY_WATER -> 0.90;
-                case HATCH_DISTILLED_WATER -> 0.80;
+                case HATCH_DISTILLED_WATER -> 0.25;
                 case HATCH_IC2_COOLANT -> 0.40;
                 default -> 0.20;
             };
@@ -660,14 +660,14 @@ public class SimTile implements INuclearTile {
         // Fast neutron capture transmutation
         if (nType == NeutronType.FAST && isCoolantHatch() && inputFluidAmount > 0) {
             if (type == TileType.HATCH_DISTILLED_WATER) {
-                int chance = Math.min(100, count * 5);
-                if (RAND.nextInt(100) < chance) {
+                int chance = Math.min(1000, count * 25);
+                if (RAND.nextInt(1000) < chance) {
                     inputFluidAmount -= 1;
                     totalDeuteriumProduced += 1;
                 }
             } else if (type == TileType.HATCH_HEAVY_WATER) {
-                int chance = Math.min(100, count * 5);
-                if (RAND.nextInt(100) < chance) {
+                int chance = Math.min(1000, count * 10);
+                if (RAND.nextInt(1000) < chance) {
                     inputFluidAmount -= 1;
                     totalTritiumProduced += 1;
                 }

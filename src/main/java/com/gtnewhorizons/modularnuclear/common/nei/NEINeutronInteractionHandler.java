@@ -384,7 +384,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             "Distilled Water",
             0.70,
             0.05,
-            0.80,
+            0.25,
             0.70,
             0.10,
             true,

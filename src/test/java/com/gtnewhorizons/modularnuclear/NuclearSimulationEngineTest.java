@@ -4205,4 +4205,57 @@ public class NuclearSimulationEngineTest {
         reactor.getExtraInfoData(extraList);
         assertTrue(extraList.isEmpty(), "getExtraInfoData should be empty to prevent duplication in portable scanner");
     }
+
+    @Test
+    void testDistilledWaterVsHeavyWaterModerationAndTransmutation() {
+        // 1. SimTile moderation probabilities
+        SimTile dwTile = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
+        dwTile.setInputFluidAmount(1000);
+        assertEquals(0.25, dwTile.getModerationProbability(), 1e-4, "Distilled water moderation must be 0.25");
+
+        SimTile hwTile = new SimTile(SimTile.TileType.HATCH_HEAVY_WATER);
+        hwTile.setInputFluidAmount(1000);
+        assertEquals(0.90, hwTile.getModerationProbability(), 1e-4, "Heavy water moderation must be 0.90");
+
+        // 2. High-pressure passage moderation probabilities
+        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 4, new String[0], null);
+        ICoolantLoopPump mockPump = org.mockito.Mockito.mock(ICoolantLoopPump.class);
+        hp.setConnectedPump(mockPump);
+
+        org.mockito.Mockito.when(mockPump.getCoolantFluidProperty())
+            .thenReturn(CoolantFluidProperty.WATER);
+        assertEquals(
+            0.25,
+            hp.getModerationProbability(),
+            1e-4,
+            "Distilled water high pressure passage moderation must be 0.25");
+
+        org.mockito.Mockito.when(mockPump.getCoolantFluidProperty())
+            .thenReturn(CoolantFluidProperty.HEAVY_WATER);
+        assertEquals(
+            0.90,
+            hp.getModerationProbability(),
+            1e-4,
+            "Heavy water high pressure passage moderation must be 0.90");
+
+        // 3. SimTile fast-neutron transmutation rate verification
+        int dwSuccess = 0;
+        int hwSuccess = 0;
+        int trials = 10_000;
+        for (int i = 0; i < trials; i++) {
+            SimTile testDw = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
+            testDw.setInputFluidAmount(1000);
+            testDw.onNeutronAbsorbed(NeutronType.FAST, 1);
+            if (testDw.getTotalDeuteriumProduced() > 0) dwSuccess++;
+
+            SimTile testHw = new SimTile(SimTile.TileType.HATCH_HEAVY_WATER);
+            testHw.setInputFluidAmount(1000);
+            testHw.onNeutronAbsorbed(NeutronType.FAST, 1);
+            if (testHw.getTotalTritiumProduced() > 0) hwSuccess++;
+        }
+        double dwRate = (double) dwSuccess / trials;
+        double hwRate = (double) hwSuccess / trials;
+        assertEquals(0.025, dwRate, 0.010, "Deuterium transmutation rate should be ~2.5%");
+        assertEquals(0.010, hwRate, 0.007, "Tritium transmutation rate should be ~1.0%");
+    }
 }
