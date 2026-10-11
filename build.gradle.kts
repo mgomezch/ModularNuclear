@@ -225,8 +225,5 @@ val generateAllTextures by tasks.registering {
     description = "Regenerates all procedural textures (fuel stats charts and procedural art assets)"
 }
 
-tasks.processResources {
-    dependsOn(generateFuelStatsCharts)
-}
 
 

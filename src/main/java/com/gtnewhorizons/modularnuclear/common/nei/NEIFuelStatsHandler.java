@@ -1,22 +1,29 @@
 package com.gtnewhorizons.modularnuclear.common.nei;
 
+import java.awt.Dimension;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.oredict.OreDictionary;
+
+import org.lwjgl.opengl.GL11;
 
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 
 import codechicken.lib.gui.GuiDraw;
 import codechicken.nei.PositionedStack;
+import codechicken.nei.recipe.GuiRecipe;
 import codechicken.nei.recipe.TemplateRecipeHandler;
 import gregtech.api.enums.ItemList;
 import gregtech.api.util.GTUtility;
@@ -25,21 +32,47 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
     public static final String OVERLAY_ID = "modularnuclear.fuel_stats";
 
+    public static final int PANEL_X = 6;
+    public static final int PANEL_Y = 68;
+    public static final int PANEL_W = 154;
+    public static final int PANEL_H = 78;
+
+    public static final int SCREEN_X = PANEL_X + 2;
+    public static final int SCREEN_Y = PANEL_Y + 2;
+    public static final int SCREEN_W = PANEL_W - 4;
+    public static final int SCREEN_H = PANEL_H - 4;
+
+    public static final int PLOT_X = 28;
+    public static final int PLOT_Y = 80;
+    public static final int PLOT_W = 104;
+    public static final int PLOT_H = 50;
+
+    public static boolean isMouseOverPlot(int x, int y) {
+        return x >= PLOT_X && x <= PLOT_X + PLOT_W && y >= PLOT_Y && y <= PLOT_Y + PLOT_H;
+    }
+
+    public static Point getMouseInRecipe(GuiRecipe<?> gui, int recipeIndex) {
+        if (gui == null) return null;
+        Point mousepos = GuiDraw.getMousePosition();
+        Dimension displaySize = GuiDraw.displaySize();
+        int ySize = Math.min(Math.max(displaySize.height - 68, 166), 370);
+        int guiLeft = (displaySize.width - 176) / 2;
+        int guiTop = (displaySize.height - ySize) / 2 + 10;
+        Point offset = gui.getRecipePosition(recipeIndex);
+        if (offset == null) return null;
+        return new Point(mousepos.x - guiLeft - offset.x, mousepos.y - guiTop - offset.y);
+    }
+
     public class CachedFuelStatsRecipe extends CachedRecipe {
 
         public final NuclearFuelType fuel;
         public final PositionedStack fuelStack;
-        public final ResourceLocation chartTexture;
 
         public CachedFuelStatsRecipe(NuclearFuelType fuel, List<ItemStack> items) {
             this.fuel = fuel;
             List<ItemStack> displayItems = (items != null && !items.isEmpty()) ? items
                 : Collections.singletonList(ItemList.RodThorium.get(1L));
             this.fuelStack = new PositionedStack(displayItems, 12, 10);
-            this.chartTexture = new ResourceLocation(
-                "modularnuclear",
-                "textures/gui/nei/fuelstats/chart_" + fuel.name()
-                    .toLowerCase(Locale.US) + ".png");
         }
 
         @Override
@@ -148,7 +181,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
     @Override
     public void loadTransferRects() {
-        this.transferRects.add(new RecipeTransferRect(new Rectangle(6, 68, 154, 76), getOverlayIdentifier()));
+        this.transferRects.add(new RecipeTransferRect(new Rectangle(11, 9, 18, 18), getOverlayIdentifier()));
     }
 
     @Override
@@ -218,11 +251,35 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         NEINeutronInteractionHandler.drawSlotBox(11, 9);
 
         // Chart container panel
-        NEINeutronInteractionHandler.drawPanel(6, 68, 154, 78);
+        NEINeutronInteractionHandler.drawPanel(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
 
-        // Render dual reactivity & durability damage curve chart
-        GuiDraw.changeTexture(recipe.chartTexture);
-        NEINeutronInteractionHandler.drawCustomTexturedModalRect(6, 69, 0, 0, 154, 76, 154, 76);
+        // Lab monitor dark background screen
+        GuiDraw.drawRect(SCREEN_X, SCREEN_Y, SCREEN_W, SCREEN_H, 0xFF14171D);
+
+        // Inner plot area backdrop
+        GuiDraw.drawRect(PLOT_X, PLOT_Y, PLOT_W, PLOT_H, 0xFF1B1F27);
+
+        // Inner plot border
+        GuiDraw.drawRect(PLOT_X - 1, PLOT_Y - 1, PLOT_W + 2, 1, 0xFF2D333F);
+        GuiDraw.drawRect(PLOT_X - 1, PLOT_Y + PLOT_H, PLOT_W + 2, 1, 0xFF2D333F);
+        GuiDraw.drawRect(PLOT_X - 1, PLOT_Y, 1, PLOT_H, 0xFF2D333F);
+        GuiDraw.drawRect(PLOT_X + PLOT_W, PLOT_Y, 1, PLOT_H, 0xFF2D333F);
+
+        NuclearFuelType fuel = recipe.fuel;
+        double maxTemp = Math.ceil((fuel.floorTemp + 200.0) / 500.0) * 500.0;
+
+        // Horizontal grid lines (25%, 50%, 75%, 100%)
+        for (int p = 25; p <= 100; p += 25) {
+            int gy = PLOT_Y + PLOT_H - (int) Math.round((p / 100.0) * PLOT_H);
+            GuiDraw.drawRect(PLOT_X, gy, PLOT_W, 1, 0x1FFFFFFF);
+        }
+
+        // Vertical grid lines (e.g. 500°C steps)
+        double step = (maxTemp > 3000.0) ? 1000.0 : 500.0;
+        for (double t = step; t < maxTemp; t += step) {
+            int gx = PLOT_X + (int) Math.round((t / maxTemp) * PLOT_W);
+            GuiDraw.drawRect(gx, PLOT_Y, 1, PLOT_H, 0x1FFFFFFF);
+        }
     }
 
     @Override
@@ -281,5 +338,183 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             EnumChatFormatting.BLACK,
             fuel.damageK);
         GuiDraw.drawString(l4, 12, 55, 0x333333, false);
+
+        // --- DYNAMIC VECTOR PLOT RENDERING ---
+        double maxTemp = Math.ceil((fuel.floorTemp + 200.0) / 500.0) * 500.0;
+        double damageAtFloor = fuel.calculateTemperatureDamage(fuel.floorTemp, 20.0);
+        double maxDamage = Math.max(6.0, Math.ceil(damageAtFloor * 1.1));
+
+        // Sub-pixel 0.5x labels for axes and legend
+        FontRenderer font = Minecraft.getMinecraft().fontRenderer;
+        GL11.glPushMatrix();
+        GL11.glScalef(0.5f, 0.5f, 1.0f);
+
+        // 1. Legend at top of plot screen
+        GuiDraw.drawRect((SCREEN_X + 6) * 2, (SCREEN_Y + 4) * 2 + 3, 10, 2, 0xFF00D4FF);
+        font.drawString("Reactivity", (SCREEN_X + 13) * 2, (SCREEN_Y + 3) * 2, 0xFF00D4FF);
+
+        GuiDraw.drawRect((SCREEN_X + 78) * 2, (SCREEN_Y + 4) * 2 + 3, 10, 2, 0xFFFF5500);
+        font.drawString("Durability loss / t", (SCREEN_X + 85) * 2, (SCREEN_Y + 3) * 2, 0xFFFF5500);
+
+        // 2. Left Axis: Reactivity % labels
+        for (int p = 0; p <= 100; p += 25) {
+            int gy = PLOT_Y + PLOT_H - (int) Math.round((p / 100.0) * PLOT_H);
+            String pStr = p + "%";
+            int sw = font.getStringWidth(pStr);
+            font.drawString(pStr, (PLOT_X - 2) * 2 - sw, (gy - 2) * 2, 0xFF38BDF8);
+        }
+
+        // 3. Right Axis: Damage rate labels
+        for (int p = 0; p <= 100; p += 25) {
+            int gy = PLOT_Y + PLOT_H - (int) Math.round((p / 100.0) * PLOT_H);
+            double dVal = (p / 100.0) * maxDamage;
+            String dStr = String.format(Locale.US, "%.1f", dVal);
+            font.drawString(dStr, (PLOT_X + PLOT_W + 3) * 2, (gy - 2) * 2, 0xFFF59E0B);
+        }
+
+        // 4. Bottom Axis: Temperature labels
+        double step = (maxTemp > 3000.0) ? 1000.0 : 500.0;
+        font.drawString("0", (PLOT_X - 1) * 2, (PLOT_Y + PLOT_H + 3) * 2, 0xFF94A3B8);
+        for (double t = step; t < maxTemp; t += step) {
+            int gx = PLOT_X + (int) Math.round((t / maxTemp) * PLOT_W);
+            String tStr = (t >= 1000.0 && t % 1000.0 == 0) ? String.format(Locale.US, "%.0fk", t / 1000.0)
+                : String.valueOf((int) t);
+            int sw = font.getStringWidth(tStr);
+            font.drawString(tStr, gx * 2 - sw / 2, (PLOT_Y + PLOT_H + 3) * 2, 0xFF94A3B8);
+        }
+        font.drawString("°C", (PLOT_X + PLOT_W + 1) * 2, (PLOT_Y + PLOT_H + 3) * 2, 0xFF94A3B8);
+
+        GL11.glPopMatrix();
+
+        // 5. Draw Dynamic Anti-aliased Vector Curves
+        GL11.glPushMatrix();
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+        GL11.glEnable(GL11.GL_LINE_SMOOTH);
+        GL11.glHint(GL11.GL_LINE_SMOOTH_HINT, GL11.GL_NICEST);
+        GL11.glLineWidth(2.0f);
+
+        // Reactivity curve (Cyan: #00D4FF)
+        GL11.glColor4f(0.0f, 0.83f, 1.0f, 1.0f);
+        GL11.glBegin(GL11.GL_LINE_STRIP);
+        for (int i = 0; i <= PLOT_W; i++) {
+            double temp = (i / (double) PLOT_W) * maxTemp;
+            double r = fuel.calculateReactivity(temp);
+            float y = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, r)) * PLOT_H);
+            GL11.glVertex2f(PLOT_X + i, y);
+        }
+        GL11.glEnd();
+
+        // Durability damage curve (Orange-Red: #FF5500)
+        GL11.glColor4f(1.0f, 0.33f, 0.0f, 1.0f);
+        GL11.glBegin(GL11.GL_LINE_STRIP);
+        for (int i = 0; i <= PLOT_W; i++) {
+            double temp = (i / (double) PLOT_W) * maxTemp;
+            double d = fuel.calculateTemperatureDamage(temp);
+            float y = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, d / maxDamage)) * PLOT_H);
+            GL11.glVertex2f(PLOT_X + i, y);
+        }
+        GL11.glEnd();
+
+        // 6. Interactive Crosshair & Guide Lines on Hover
+        Point mouseInRecipe = null;
+        if (Minecraft.getMinecraft().currentScreen instanceof GuiRecipe<?>guiRecipe) {
+            mouseInRecipe = getMouseInRecipe(guiRecipe, recipeIndex);
+        }
+
+        if (mouseInRecipe != null && isMouseOverPlot(mouseInRecipe.x, mouseInRecipe.y)) {
+            int mx = mouseInRecipe.x;
+            double tempAtMouse = ((mx - PLOT_X) / (double) PLOT_W) * maxTemp;
+            double rAtMouse = fuel.calculateReactivity(tempAtMouse);
+            double dAtMouse = fuel.calculateTemperatureDamage(tempAtMouse);
+            float yr = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, rAtMouse)) * PLOT_H);
+            float yd = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, dAtMouse / maxDamage)) * PLOT_H);
+
+            // Vertical cursor line
+            GL11.glLineWidth(1.0f);
+            GL11.glColor4f(1.0f, 1.0f, 1.0f, 0.6f);
+            GL11.glBegin(GL11.GL_LINES);
+            GL11.glVertex2f(mx, PLOT_Y);
+            GL11.glVertex2f(mx, PLOT_Y + PLOT_H);
+            GL11.glEnd();
+
+            // Horizontal projection to left axis for Reactivity
+            GL11.glColor4f(0.0f, 0.83f, 1.0f, 0.45f);
+            GL11.glBegin(GL11.GL_LINES);
+            GL11.glVertex2f(PLOT_X, yr);
+            GL11.glVertex2f(mx, yr);
+            GL11.glEnd();
+
+            // Horizontal projection to right axis for Damage
+            GL11.glColor4f(1.0f, 0.33f, 0.0f, 0.45f);
+            GL11.glBegin(GL11.GL_LINES);
+            GL11.glVertex2f(mx, yd);
+            GL11.glVertex2f(PLOT_X + PLOT_W, yd);
+            GL11.glEnd();
+
+            // Draw snap indicator dots (diamonds)
+            drawIndicatorDot(mx, yr, 0.0f, 0.83f, 1.0f);
+            drawIndicatorDot(mx, yd, 1.0f, 0.33f, 0.0f);
+        }
+
+        GL11.glDisable(GL11.GL_LINE_SMOOTH);
+        GL11.glLineWidth(1.0f);
+        GL11.glEnable(GL11.GL_ALPHA_TEST);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        GL11.glPopMatrix();
+    }
+
+    private static void drawIndicatorDot(float x, float y, float r, float g, float b) {
+        // Outer colored diamond (radius 2.5)
+        GL11.glColor4f(r, g, b, 1.0f);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glVertex2f(x - 2.5f, y);
+        GL11.glVertex2f(x, y + 2.5f);
+        GL11.glVertex2f(x + 2.5f, y);
+        GL11.glVertex2f(x, y - 2.5f);
+        GL11.glEnd();
+
+        // Inner white diamond core (radius 1.0)
+        GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glVertex2f(x - 1.0f, y);
+        GL11.glVertex2f(x, y + 1.0f);
+        GL11.glVertex2f(x + 1.0f, y);
+        GL11.glVertex2f(x, y - 1.0f);
+        GL11.glEnd();
+    }
+
+    @Override
+    public List<String> handleTooltip(GuiRecipe<?> gui, List<String> currenttip, int recipeIndex) {
+        currenttip = super.handleTooltip(gui, currenttip, recipeIndex);
+        if (recipeIndex < 0 || recipeIndex >= arecipes.size()) return currenttip;
+        CachedRecipe cached = this.arecipes.get(recipeIndex);
+        if (!(cached instanceof CachedFuelStatsRecipe recipe)) return currenttip;
+
+        Point mouseInRecipe = getMouseInRecipe(gui, recipeIndex);
+        if (mouseInRecipe != null && isMouseOverPlot(mouseInRecipe.x, mouseInRecipe.y)) {
+            NuclearFuelType fuel = recipe.fuel;
+            double maxTemp = Math.ceil((fuel.floorTemp + 200.0) / 500.0) * 500.0;
+            double temp = ((mouseInRecipe.x - PLOT_X) / (double) PLOT_W) * maxTemp;
+            double r = fuel.calculateReactivity(temp);
+            double d = fuel.calculateTemperatureDamage(temp);
+
+            currenttip.add(
+                EnumChatFormatting.WHITE + "" + EnumChatFormatting.BOLD + String.format(Locale.US, "%.0f °C", temp));
+
+            String peakNote = (Math.abs(temp - fuel.peakReactivityTemp) <= (maxTemp / PLOT_W * 0.75))
+                ? EnumChatFormatting.GOLD + " (Peak)"
+                : "";
+            currenttip
+                .add(EnumChatFormatting.AQUA + String.format(Locale.US, "Reactivity: %.1f %%", r * 100.0) + peakNote);
+
+            String dmgNote = (temp <= 20.0) ? EnumChatFormatting.GRAY + " (None)" : "";
+            currenttip
+                .add(EnumChatFormatting.GOLD + String.format(Locale.US, "Durability damage: %.2f / t", d) + dmgNote);
+        }
+        return currenttip;
     }
 }
