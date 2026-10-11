@@ -1,6 +1,5 @@
 package com.gtnewhorizons.modularnuclear.common.nei;
 
-import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.util.ArrayList;
@@ -51,16 +50,54 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         return x >= PLOT_X && x <= PLOT_X + PLOT_W && y >= PLOT_Y && y <= PLOT_Y + PLOT_H;
     }
 
+    private static java.lang.reflect.Field fieldGuiLeft;
+    private static java.lang.reflect.Field fieldGuiTop;
+
+    static {
+        try {
+            fieldGuiLeft = net.minecraft.client.gui.inventory.GuiContainer.class.getDeclaredField("guiLeft");
+            fieldGuiLeft.setAccessible(true);
+        } catch (Throwable t) {
+            try {
+                fieldGuiLeft = net.minecraft.client.gui.inventory.GuiContainer.class.getDeclaredField("field_147003_i");
+                fieldGuiLeft.setAccessible(true);
+            } catch (Throwable ignored) {}
+        }
+        try {
+            fieldGuiTop = net.minecraft.client.gui.inventory.GuiContainer.class.getDeclaredField("guiTop");
+            fieldGuiTop.setAccessible(true);
+        } catch (Throwable t) {
+            try {
+                fieldGuiTop = net.minecraft.client.gui.inventory.GuiContainer.class.getDeclaredField("field_147009_r");
+                fieldGuiTop.setAccessible(true);
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    private static int getGuiLeft(GuiRecipe<?> gui) {
+        if (fieldGuiLeft != null) {
+            try {
+                return fieldGuiLeft.getInt(gui);
+            } catch (Throwable ignored) {}
+        }
+        return (gui.width - 176) / 2;
+    }
+
+    private static int getGuiTop(GuiRecipe<?> gui) {
+        if (fieldGuiTop != null) {
+            try {
+                return fieldGuiTop.getInt(gui);
+            } catch (Throwable ignored) {}
+        }
+        return (gui.height - 166) / 2;
+    }
+
     public static Point getMouseInRecipe(GuiRecipe<?> gui, int recipeIndex) {
         if (gui == null) return null;
         Point mousepos = GuiDraw.getMousePosition();
-        Dimension displaySize = GuiDraw.displaySize();
-        int ySize = Math.min(Math.max(displaySize.height - 68, 166), 370);
-        int guiLeft = (displaySize.width - 176) / 2;
-        int guiTop = (displaySize.height - ySize) / 2 + 10;
         Point offset = gui.getRecipePosition(recipeIndex);
         if (offset == null) return null;
-        return new Point(mousepos.x - guiLeft - offset.x, mousepos.y - guiTop - offset.y);
+        return new Point(mousepos.x - getGuiLeft(gui) - offset.x, mousepos.y - getGuiTop(gui) - offset.y);
     }
 
     public class CachedFuelStatsRecipe extends CachedRecipe {
@@ -70,8 +107,10 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
         public CachedFuelStatsRecipe(NuclearFuelType fuel, List<ItemStack> items) {
             this.fuel = fuel;
+            ItemStack fallback = (ItemList.RodThorium.hasBeenSet()) ? ItemList.RodThorium.get(1L)
+                : new ItemStack(net.minecraft.init.Items.coal);
             List<ItemStack> displayItems = (items != null && !items.isEmpty()) ? items
-                : Collections.singletonList(ItemList.RodThorium.get(1L));
+                : Collections.singletonList(fallback);
             this.fuelStack = new PositionedStack(displayItems, 12, 10);
         }
 
@@ -157,6 +196,21 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
     public NEIFuelStatsHandler() {}
 
+    public static ItemStack getControllerStack() {
+        if (ModMetaTileEntities.reactor != null) {
+            return ModMetaTileEntities.reactor.copy();
+        }
+        if (gregtech.api.GregTechAPI.METATILEENTITIES[ModMetaTileEntities.ID_NUCLEAR_REACTOR] != null) {
+            return gregtech.api.GregTechAPI.METATILEENTITIES[ModMetaTileEntities.ID_NUCLEAR_REACTOR].getStackForm(1L);
+        }
+        return null;
+    }
+
+    @Override
+    public String getHandlerId() {
+        return OVERLAY_ID;
+    }
+
     @Override
     public String getRecipeName() {
         return StatCollector.canTranslate("modularnuclear.nei.fuel_stats.name")
@@ -198,6 +252,12 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
     @Override
     public void loadCraftingRecipes(ItemStack result) {
         if (result == null) return;
+        if (isController(result)) {
+            for (NuclearFuelType fuel : NuclearFuelType.values()) {
+                this.arecipes.add(new CachedFuelStatsRecipe(fuel, getFuelStacks(fuel)));
+            }
+            return;
+        }
         for (NuclearFuelType fuel : NuclearFuelType.values()) {
             if (matches(result, fuel)) {
                 this.arecipes.add(new CachedFuelStatsRecipe(fuel, getFuelStacks(fuel)));
@@ -210,7 +270,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         if (ingredient == null) return;
 
         // Clicking on the nuclear reactor catalyst shows all fuels
-        if (ModMetaTileEntities.reactor != null && ModMetaTileEntities.reactor.isItemEqual(ingredient)) {
+        if (isController(ingredient)) {
             for (NuclearFuelType fuel : NuclearFuelType.values()) {
                 this.arecipes.add(new CachedFuelStatsRecipe(fuel, getFuelStacks(fuel)));
             }
@@ -222,6 +282,12 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                 this.arecipes.add(new CachedFuelStatsRecipe(fuel, getFuelStacks(fuel)));
             }
         }
+    }
+
+    private static boolean isController(ItemStack stack) {
+        if (stack == null) return false;
+        ItemStack ctrl = getControllerStack();
+        return ctrl != null && ctrl.isItemEqual(stack);
     }
 
     private boolean matches(ItemStack target, NuclearFuelType fuel) {
@@ -290,9 +356,16 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
         NuclearFuelType fuel = recipe.fuel;
 
-        // Fuel display title
+        FontRenderer font = Minecraft.getMinecraft().fontRenderer;
+
+        // Fuel display title (auto-scaled if longer than header width)
         String title = EnumChatFormatting.BOLD + fuel.displayName + " Fuel";
-        GuiDraw.drawString(title, 36, 10, 0x111111, false);
+        int titleWidth = font.getStringWidth(title);
+        float titleScale = (titleWidth > 115) ? (115.0f / titleWidth) : 1.0f;
+        drawScaledString(title, 36, 10, titleScale, 0x111111);
+
+        // Non-heading stats scaled at 0.75x to prevent right-edge clipping
+        final float STATS_SCALE = 0.75f;
 
         // Line 1: Peak & Floor Reactivity Temperatures
         String l1 = String.format(
@@ -303,7 +376,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             EnumChatFormatting.DARK_GRAY,
             EnumChatFormatting.RED,
             fuel.floorTemp);
-        GuiDraw.drawString(l1, 36, 21, 0x333333, false);
+        drawScaledString(l1, 36, 22, STATS_SCALE, 0x333333);
 
         // Line 2: 10% Reactivity Point & Damage Ratio
         String l2 = String.format(
@@ -315,7 +388,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             EnumChatFormatting.DARK_GREEN,
             fuel.damageRatio,
             EnumChatFormatting.DARK_GRAY);
-        GuiDraw.drawString(l2, 12, 33, 0x333333, false);
+        drawScaledString(l2, 12, 33, STATS_SCALE, 0x333333);
 
         // Line 3: Fission Multiplier & Base Neutron Output
         String l3 = String.format(
@@ -326,7 +399,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             EnumChatFormatting.DARK_GRAY,
             EnumChatFormatting.DARK_RED,
             fuel.baseNeutrons);
-        GuiDraw.drawString(l3, 12, 44, 0x333333, false);
+        drawScaledString(l3, 12, 44, STATS_SCALE, 0x333333);
 
         // Line 4: Durability & Growth Parameter k
         String l4 = String.format(
@@ -337,7 +410,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             EnumChatFormatting.DARK_GRAY,
             EnumChatFormatting.BLACK,
             fuel.damageK);
-        GuiDraw.drawString(l4, 12, 55, 0x333333, false);
+        drawScaledString(l4, 12, 55, STATS_SCALE, 0x333333);
 
         // --- DYNAMIC VECTOR PLOT RENDERING ---
         double maxTemp = Math.ceil((fuel.floorTemp + 200.0) / 500.0) * 500.0;
@@ -345,7 +418,6 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         double maxDamage = Math.max(6.0, Math.ceil(damageAtFloor * 1.1));
 
         // Sub-pixel 0.5x labels for axes and legend
-        FontRenderer font = Minecraft.getMinecraft().fontRenderer;
         GL11.glPushMatrix();
         GL11.glScalef(0.5f, 0.5f, 1.0f);
 
@@ -465,6 +537,52 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         GL11.glPopMatrix();
+
+        // 7. Interactive Tooltip rendering
+        if (mouseInRecipe != null && isMouseOverPlot(mouseInRecipe.x, mouseInRecipe.y)
+            && Minecraft.getMinecraft().currentScreen instanceof GuiRecipe<?>guiRecipe) {
+            Point offset = guiRecipe.getRecipePosition(recipeIndex);
+            if (offset != null) {
+                int mx = mouseInRecipe.x;
+                double tempAtMouse = ((mx - PLOT_X) / (double) PLOT_W) * maxTemp;
+                double rAtMouse = fuel.calculateReactivity(tempAtMouse);
+                double dAtMouse = fuel.calculateTemperatureDamage(tempAtMouse);
+
+                List<String> tip = new ArrayList<>();
+                tip.add(
+                    EnumChatFormatting.WHITE + ""
+                        + EnumChatFormatting.BOLD
+                        + String.format(Locale.US, "%.0f °C", tempAtMouse));
+
+                String peakNote = (Math.abs(tempAtMouse - fuel.peakReactivityTemp) <= (maxTemp / PLOT_W * 0.75))
+                    ? EnumChatFormatting.GOLD + " (Peak)"
+                    : "";
+                tip.add(
+                    EnumChatFormatting.AQUA + String.format(Locale.US, "Reactivity: %.1f %%", rAtMouse * 100.0)
+                        + peakNote);
+
+                String dmgNote = (tempAtMouse <= 20.0) ? EnumChatFormatting.GRAY + " (None)" : "";
+                tip.add(
+                    EnumChatFormatting.GOLD + String.format(Locale.US, "Durability damage: %.2f / t", dAtMouse)
+                        + dmgNote);
+
+                GL11.glPushMatrix();
+                GL11.glTranslatef(-getGuiLeft(guiRecipe) - offset.x, -getGuiTop(guiRecipe) - offset.y, 400.0f);
+                Point mousepos = GuiDraw.getMousePosition();
+                GuiDraw.drawMultilineTip(mousepos.x, mousepos.y, tip);
+                GL11.glPopMatrix();
+            }
+        }
+    }
+
+    private static void drawScaledString(String text, float x, float y, float scale, int color) {
+        FontRenderer font = Minecraft.getMinecraft().fontRenderer;
+        GL11.glPushMatrix();
+        GL11.glTranslatef(x, y, 0.0f);
+        GL11.glScalef(scale, scale, 1.0f);
+        font.drawString(text, 0, 0, color, false);
+        GL11.glPopMatrix();
+        GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     private static void drawIndicatorDot(float x, float y, float r, float g, float b) {
@@ -490,6 +608,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
     @Override
     public List<String> handleTooltip(GuiRecipe<?> gui, List<String> currenttip, int recipeIndex) {
         currenttip = super.handleTooltip(gui, currenttip, recipeIndex);
+        if (currenttip == null) currenttip = new ArrayList<>();
         if (recipeIndex < 0 || recipeIndex >= arecipes.size()) return currenttip;
         CachedRecipe cached = this.arecipes.get(recipeIndex);
         if (!(cached instanceof CachedFuelStatsRecipe recipe)) return currenttip;

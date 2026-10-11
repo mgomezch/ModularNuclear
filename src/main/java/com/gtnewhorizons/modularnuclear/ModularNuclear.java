@@ -67,6 +67,7 @@ public class ModularNuclear {
             .getSide()
             .isClient()) {
             registerClientRenderers();
+            proxy.registerNEIHandlerInfo();
             if (cpw.mods.fml.common.Loader.isModLoaded("NotEnoughItems")) {
                 try {
                     new com.gtnewhorizons.modularnuclear.common.nei.NEIConfig().loadConfig();

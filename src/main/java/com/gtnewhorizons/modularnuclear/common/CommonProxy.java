@@ -9,4 +9,6 @@ public class CommonProxy {
     public void updateCherenkov(MTENuclearReactor reactor, IGregTechTileEntity base) {}
 
     public void removeReactor(MTENuclearReactor reactor) {}
+
+    public void registerNEIHandlerInfo() {}
 }
