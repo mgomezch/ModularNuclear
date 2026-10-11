@@ -123,11 +123,9 @@ gt.nei.neutron_interaction.absorption_thermal.desc=Chance of thermal neutrons be
 gt.nei.neutron_interaction.fast_energy=Fast neutron energy
 gt.nei.neutron_interaction.fast_energy.desc=Energy transferred to heat upon absorption (8 EU)
 gt.nei.neutron_interaction.direct_heat=Fission heat
-gt.nei.neutron_interaction.direct_heat.desc=Direct heat from fission events: %.2f °C per reaction
-gt.nei.neutron_interaction.direct_energy=Direct energy
-gt.nei.neutron_interaction.direct_energy.desc=Energy released: %.0f EU per fission reaction
+gt.nei.neutron_interaction.direct_heat.desc=Fuel self-heating from fission: %.2f °C per reaction
 gt.nei.neutron_interaction.multiplication=Neutron multiplication
-gt.nei.neutron_interaction.multiplication.desc=New fast neutrons produced by chain reaction (temperature-dependent)
+gt.nei.neutron_interaction.multiplication.desc=New fast neutrons produced by a chain reaction (temperature-dependent)
 gt.nei.neutron_interaction.absorption_capacity=Neutron absorption capacity
 gt.nei.neutron_interaction.absorption_capacity.desc=Total neutrons absorbed before depletion
 gt.nei.neutron_interaction.role=Reactor role: %s
@@ -137,7 +135,7 @@ gt.nei.neutron_interaction.depleted_title=Depleted component (byproduct)
 gt.nei.neutron_interaction.depleted_desc=Produced after absorbing full neutron capacity in the nuclear reactor
 
 # BetterQuesting
-modularnuclear=Modular Nuclear
-betterquesting.questline.MplGC3IbNjeXKp+jOByJ9Q.name=Modular Nuclear
-betterquesting.questline.MplGC3IbNjeXKp+jOByJ9Q.desc=Modular pebble bed and nuclear thermal reactor systems.
+modularnuclear=Modern nuclear engineering
+betterquesting.questline.MplGC3IbNjeXKp+jOByJ9Q.name=Modern nuclear engineering
+betterquesting.questline.MplGC3IbNjeXKp+jOByJ9Q.desc=Let's build large industrial-style nuclear reactor facilities!  The Modular Pressure Tube Reactor (MPTR) is a GTNH-style take on nuclear reactors inspired by modern nuclear reactor mods, e.g. Modern Industrialization.  We'll also build pressurized loops of coolant fluids to keep our reactor nice and fresh and have some fun with simple industrial thermodynamics.
 

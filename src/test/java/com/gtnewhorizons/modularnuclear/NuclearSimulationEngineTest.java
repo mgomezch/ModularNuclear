@@ -1080,7 +1080,6 @@ public class NuclearSimulationEngineTest {
             0,
             0,
             0,
-            0,
             false,
             null,
             0,
@@ -1106,7 +1105,6 @@ public class NuclearSimulationEngineTest {
             0.80,
             true,
             8,
-            56.0,
             0.88,
             16.0,
             true,
@@ -1116,7 +1114,6 @@ public class NuclearSimulationEngineTest {
 
         assertTrue(uraniumQuad.hasCapture);
         assertEquals(8, uraniumQuad.fastNeutronEnergyEU);
-        assertEquals(56.0, uraniumQuad.directEU, 1e-4);
         assertEquals(0.88, uraniumQuad.directHeatC, 1e-4);
         assertEquals(16.0, uraniumQuad.maxNeutronsEmitted, 1e-4);
         assertTrue(uraniumQuad.hasAbsorption);

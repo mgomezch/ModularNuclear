@@ -60,7 +60,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         // Page 2: Capture (Fission / Reaction)
         public final boolean hasCapture;
         public final int fastNeutronEnergyEU;
-        public final double directEU;
         public final double directHeatC;
         public final double maxNeutronsEmitted;
 
@@ -73,7 +72,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         public NeutronComponentData(ItemStack stack, String name, String category, double fastScattering,
             double fastAbsorption, double slowingProbability, double thermalScattering, double thermalAbsorption,
-            boolean hasCapture, int fastNeutronEnergyEU, double directEU, double directHeatC, double maxNeutronsEmitted,
+            boolean hasCapture, int fastNeutronEnergyEU, double directHeatC, double maxNeutronsEmitted,
             boolean hasAbsorption, ItemStack absorptionOutput, long neutronsRequired, String extraInfo) {
             this.stack = stack;
             this.name = name;
@@ -85,7 +84,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             this.thermalAbsorption = thermalAbsorption;
             this.hasCapture = hasCapture;
             this.fastNeutronEnergyEU = fastNeutronEnergyEU;
-            this.directEU = directEU;
             this.directHeatC = directHeatC;
             this.maxNeutronsEmitted = maxNeutronsEmitted;
             this.hasAbsorption = hasAbsorption;
@@ -229,21 +227,18 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             ModItems.radiovoltaicPlateHV != null ? new ItemStack(ModItems.radiovoltaicPlateHV) : null,
             "Radiovoltaic Plate (HV)",
             1,
-            1024,
-            20.0);
+            1024);
         addRadiovoltaic(
             ModItems.radiovoltaicPlateEV != null ? new ItemStack(ModItems.radiovoltaicPlateEV) : null,
             "Radiovoltaic Plate (EV)",
             2,
-            4096,
-            40.0);
+            4096);
 
         // 5. FUEL RODS - Fission, heat, neutron multiplication, and depleted fuel rods
         // Uranium
         addFuelRod(
             ItemList.RodUranium,
             "Uranium Fuel Rod",
-            14.0,
             0.22,
             4.0,
             ItemList.DepletedRodUranium.get(1L),
@@ -252,7 +247,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addFuelRod(
             ItemList.RodUranium2,
             "Dual Uranium Fuel Rod",
-            28.0,
             0.44,
             8.0,
             ItemList.DepletedRodUranium2.get(1L),
@@ -261,7 +255,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addFuelRod(
             ItemList.RodUranium4,
             "Quad Uranium Fuel Rod",
-            56.0,
             0.88,
             16.0,
             ItemList.DepletedRodUranium4.get(1L),
@@ -272,7 +265,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addFuelRod(
             ItemList.RodMOX,
             "MOX Fuel Rod",
-            28.0,
             0.44,
             8.0,
             ItemList.DepletedRodMOX.get(1L),
@@ -281,7 +273,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addFuelRod(
             ItemList.RodMOX2,
             "Dual MOX Fuel Rod",
-            56.0,
             0.88,
             16.0,
             ItemList.DepletedRodMOX2.get(1L),
@@ -290,7 +281,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addFuelRod(
             ItemList.RodMOX4,
             "Quad MOX Fuel Rod",
-            112.0,
             1.75,
             32.0,
             ItemList.DepletedRodMOX4.get(1L),
@@ -301,7 +291,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addFuelRod(
             ItemList.RodThorium,
             "Thorium Fuel Rod",
-            10.0,
             0.16,
             4.0,
             ItemList.DepletedRodThorium.get(1L),
@@ -310,7 +299,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addFuelRod(
             ItemList.RodThorium2,
             "Dual Thorium Fuel Rod",
-            20.0,
             0.31,
             8.0,
             ItemList.DepletedRodThorium2.get(1L),
@@ -319,7 +307,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addFuelRod(
             ItemList.RodThorium4,
             "Quad Thorium Fuel Rod",
-            40.0,
             0.63,
             16.0,
             ItemList.DepletedRodThorium4.get(1L),
@@ -330,7 +317,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addFuelRod(
             ItemList.RodNaquadah,
             "Naquadah Fuel Rod",
-            64.0,
             1.00,
             16.0,
             ItemList.DepletedRodNaquadah.get(1L),
@@ -339,7 +325,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addFuelRod(
             ItemList.RodNaquadah2,
             "Dual Naquadah Fuel Rod",
-            128.0,
             2.00,
             32.0,
             ItemList.DepletedRodNaquadah2.get(1L),
@@ -348,7 +333,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addFuelRod(
             ItemList.RodNaquadah4,
             "Quad Naquadah Fuel Rod",
-            256.0,
             4.00,
             64.0,
             ItemList.DepletedRodNaquadah4.get(1L),
@@ -422,7 +406,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     0,
                     0,
                     0,
-                    0,
                     false,
                     null,
                     0,
@@ -444,7 +427,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     tScat,
                     tAbs,
                     false,
-                    0,
                     0,
                     0,
                     0,
@@ -471,7 +453,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     tScat,
                     tAbs,
                     false,
-                    0,
                     0,
                     0,
                     0,
@@ -506,7 +487,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     0,
                     0,
                     0,
-                    0,
                     true,
                     null,
                     capacity,
@@ -514,7 +494,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         }
     }
 
-    private static void addRadiovoltaic(ItemStack stack, String name, int tier, long maxEU, double euPerNeutron) {
+    private static void addRadiovoltaic(ItemStack stack, String name, int tier, long maxEU) {
         if (stack != null) {
             ALL_COMPONENTS.add(
                 new NeutronComponentData(
@@ -526,19 +506,18 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     0.00,
                     0.00,
                     1.00,
-                    true,
-                    8,
-                    euPerNeutron,
+                    false,
+                    0,
                     0.0,
                     0.0,
-                    true,
+                    false,
                     null,
                     0,
                     "Generates up to " + maxEU + " EU/t (2A " + (tier >= 2 ? "EV" : "HV") + ") directly"));
         }
     }
 
-    private static void addFuelRod(ItemList item, String name, double directEU, double directHeatC, double maxNeutrons,
+    private static void addFuelRod(ItemList item, String name, double directHeatC, double maxNeutrons,
         ItemStack depleted, long neutronsRequired, String extra) {
         if (item != null && item.hasBeenSet()) {
             ALL_COMPONENTS.add(
@@ -553,7 +532,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     0.80,
                     true,
                     8,
-                    directEU,
                     directHeatC,
                     maxNeutrons,
                     true,
@@ -578,7 +556,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     0.45,
                     0.12,
                     false,
-                    0,
                     0,
                     0,
                     0,
@@ -611,7 +588,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                         tAbs,
                         true,
                         8,
-                        0,
                         0,
                         0,
                         transmutes,
@@ -833,7 +809,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 false);
             GuiDraw.drawString(recipe.data.fastNeutronEnergyEU + " EU", 36, 52, 0x00A000, false);
             GuiDraw.drawString(String.format(Locale.US, "%.2f °C", recipe.data.directHeatC), 113, 18, 0x404040, false);
-            GuiDraw.drawString(String.format(Locale.US, "%.0f EU", recipe.data.directEU), 113, 52, 0x404040, false);
 
             if (recipe.data.maxNeutronsEmitted > 0) {
                 String emitted = String.format(Locale.US, "Max %.1f neutrons emitted", recipe.data.maxNeutronsEmitted);
@@ -940,13 +915,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 currenttip.add(
                     EnumChatFormatting.GRAY + StatCollector
                         .translateToLocalFormatted("gt.nei.neutron_interaction.direct_heat.desc", r2.data.directHeatC));
-            } else if (relX >= 95 && relX <= 145 && relY >= 44 && relY <= 62) {
-                currenttip.add(
-                    EnumChatFormatting.YELLOW
-                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.direct_energy"));
-                currenttip.add(
-                    EnumChatFormatting.GRAY + StatCollector
-                        .translateToLocalFormatted("gt.nei.neutron_interaction.direct_energy.desc", r2.data.directEU));
             } else if (relX >= 25 && relX <= 140 && relY >= 52 && relY <= 66) {
                 currenttip.add(
                     EnumChatFormatting.GREEN
