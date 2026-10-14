@@ -18,8 +18,10 @@ public class ModMetaTileEntities {
     public static final int ID_NUCLEAR_CONTROL_ROD = 32111;
     public static final int ID_NUCLEAR_HIGH_PRESSURE = 32112;
     public static final int ID_NUCLEAR_REACTOR = 32115;
+    public static final int ID_ACTINIDE_COMPOUNDER = 32116;
 
     public static ItemStack reactor;
+    public static ItemStack actinideCompounder;
     public static ItemStack nuclearBus;
     public static ItemStack[] nuclearHatches = new ItemStack[9];
     public static ItemStack nuclearControlHatch;
@@ -64,5 +66,10 @@ public class ModMetaTileEntities {
             ID_NUCLEAR_REACTOR,
             "multimachine.nuclearreactor",
             "Modular Pressure Tube Reactor (MPTR)").getStackForm(1L);
+
+        actinideCompounder = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEActinideCompounder(
+            ID_ACTINIDE_COMPOUNDER,
+            "multimachine.actinidecompounder",
+            "Actinide Fuel Compounder").getStackForm(1L);
     }
 }

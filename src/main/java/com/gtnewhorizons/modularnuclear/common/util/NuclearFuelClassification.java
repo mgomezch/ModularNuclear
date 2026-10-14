@@ -1,10 +1,14 @@
 package com.gtnewhorizons.modularnuclear.common.util;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
+import com.gtnewhorizons.modularnuclear.common.item.ModItems;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 
 import goodgenerator.items.GGMaterial;
@@ -30,6 +34,7 @@ public final class NuclearFuelClassification {
 
     public static boolean isItemFuel(ItemStack stack) {
         if (stack == null) return false;
+        if (CustomFuelMix.hasCustomMix(stack) || stack.getItem() instanceof ItemCustomFuelRod) return true;
         if (stack.getItem() instanceof ItemRadioactiveCell) return true;
         if (stack.getItem() instanceof ItemReactorUranium) return true;
         if (NuclearFuelType.fromName(stack.getUnlocalizedName()) != null) return true;
@@ -207,6 +212,17 @@ public final class NuclearFuelClassification {
 
     public static ItemStack getItemDepletedForm(ItemStack fuel) {
         if (fuel == null) return null;
+
+        // 0. Check custom fuel rods
+        if (fuel.getItem() instanceof ItemCustomFuelRod || CustomFuelMix.hasCustomMix(fuel)) {
+            ItemStack depleted = new ItemStack(ModItems.rodCustomDepletedFuel4);
+            if (fuel.getTagCompound() != null) {
+                depleted.setTagCompound(
+                    (NBTTagCompound) fuel.getTagCompound()
+                        .copy());
+            }
+            return depleted;
+        }
 
         // 1. Check if fuel is ItemRadioactiveCellIC with sDepleted
         if (fuel.getItem() instanceof ItemRadioactiveCellIC icCell && icCell.sDepleted != null) {

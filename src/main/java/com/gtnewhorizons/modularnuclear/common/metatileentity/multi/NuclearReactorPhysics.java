@@ -5,9 +5,11 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -125,9 +127,21 @@ public class NuclearReactorPhysics {
         return null;
     }
 
+    public static CustomFuelMix getTileCustomFuelMix(NuclearGridTile tile) {
+        if (tile != null && tile.isBus()) {
+            ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+            if (stack != null) {
+                return CustomFuelMix.fromStack(stack);
+            }
+        }
+        return null;
+    }
+
     public static int generateTileNeutrons(MTENuclearReactor reactor, NuclearGridTile tile, double efficiency) {
+        CustomFuelMix customMix = getTileCustomFuelMix(tile);
         NuclearFuelType fuel = getTileFuelType(tile);
-        double baseFissMult = (fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0;
+        double baseFissMult = (customMix != null) ? customMix.baseThermalFissionMultiplier
+            : (fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0;
         double effectiveFissMult = baseFissMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
 
         if (tile.isBus()) {
@@ -138,7 +152,9 @@ public class NuclearReactorPhysics {
                 return 0;
             }
             int baseNeutrons = 4;
-            if (stack.getItem() instanceof ItemRadioactiveCellIC icCell) {
+            if (customMix != null) {
+                baseNeutrons = customMix.baseNeutrons;
+            } else if (stack.getItem() instanceof ItemRadioactiveCellIC icCell) {
                 baseNeutrons = 4 * icCell.numberOfCells;
                 if (icCell.sMox) baseNeutrons *= 2;
             } else if (stack.getItem() instanceof ItemReactorUranium ic2Uran) {
@@ -209,6 +225,9 @@ public class NuclearReactorPhysics {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
             if (stack == null) return 1;
+            if (stack.getItem() instanceof ItemCustomFuelRod || CustomFuelMix.hasCustomMix(stack)) {
+                return 4;
+            }
             if (stack.getItem() instanceof ItemRadioactiveCellIC icCell) {
                 return Math.max(1, icCell.numberOfCells);
             } else if (stack.getItem() instanceof ItemReactorUranium ic2Uran) {
@@ -532,9 +551,11 @@ public class NuclearReactorPhysics {
         if (reactor.isItemFuel(stack)) {
             bus.mDirectEUProduced = 0;
             double ambient = bus.getAmbientTemperature();
+            CustomFuelMix customMix = CustomFuelMix.fromStack(stack);
             NuclearFuelType fuelType = NuclearFuelType.fromName(stack.getUnlocalizedName());
-            double tempDmg = (fuelType != null) ? fuelType.calculateTemperatureDamage(bus.mTemperature, ambient)
-                : (bus.mTemperature > ambient ? (bus.mTemperature - ambient) / 100.0 : 0.0);
+            double tempDmg = (customMix != null) ? customMix.calculateTemperatureDamage(bus.mTemperature, ambient)
+                : (fuelType != null) ? fuelType.calculateTemperatureDamage(bus.mTemperature, ambient)
+                    : (bus.mTemperature > ambient ? (bus.mTemperature - ambient) / 100.0 : 0.0);
 
             double totalDmg = Math.max(0.0, bus.mLastNeutronsGenerated * 0.25)
                 + (bus.mFastAbsorbed + bus.mThermalAbsorbed) * 1.0
@@ -546,7 +567,8 @@ public class NuclearReactorPhysics {
             }
             if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
                 radCell.damageItemStack(stack, damage);
-                if (radCell.getDamageOfStack(stack) >= radCell.getMaxDamageEx()) {
+                int maxDur = (customMix != null) ? customMix.defaultDurability : radCell.getMaxDamageEx();
+                if (radCell.getDamageOfStack(stack) >= maxDur) {
                     reactor.mCycleZeroedFuelItems++;
                     ItemStack depleted = null;
                     if (radCell instanceof ItemRadioactiveCellIC icCell && icCell.sDepleted != null) {

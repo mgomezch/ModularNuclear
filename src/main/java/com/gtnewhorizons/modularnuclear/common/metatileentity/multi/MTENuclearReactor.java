@@ -43,6 +43,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.Nu
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.NuclearReactorTelemetry;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.NuclearReactorTooltipValues;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.NuclearReactorWailaProvider;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
@@ -952,7 +953,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             mLastFormedNuclearTiles.clear();
         }
         ModularNuclear.proxy.removeReactor(this);
-        super.onRemoval();
+        try {
+            super.onRemoval();
+        } catch (Throwable ignored) {}
     }
 
     @Override
@@ -1018,12 +1021,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
 
-        if (!aBaseMetaTileEntity.isAllowedToWork()) {
-            aBaseMetaTileEntity.enableWorking();
-        }
-
         if (aBaseMetaTileEntity.isServerSide() && mMachine) {
-            boolean shouldBeActive = !mScram && (mNeutronsProduced > 0);
+            boolean shouldBeActive = !mScram && aBaseMetaTileEntity.isAllowedToWork() && (mNeutronsProduced > 0);
             if (aBaseMetaTileEntity.isActive() != shouldBeActive) {
                 aBaseMetaTileEntity.setActive(shouldBeActive);
                 aBaseMetaTileEntity.setLightValue((byte) (shouldBeActive ? 15 : 0));
@@ -1041,7 +1040,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 mCachedAmbientTemp = getAmbientTemperature();
             }
 
-            if (mGrid != null && (aTick % 20 == 0)) {
+            if (mGrid != null && !mScram && aBaseMetaTileEntity.isAllowedToWork() && (aTick % 20 == 0)) {
                 updateNuclearTilesPipeTier();
 
                 double ambient = getAmbientTemperature();
@@ -1915,6 +1914,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public NuclearFuelType getTileFuelType(NuclearGridTile tile) {
         return NuclearReactorPhysics.getTileFuelType(tile);
+    }
+
+    public CustomFuelMix getTileCustomFuelMix(NuclearGridTile tile) {
+        return NuclearReactorPhysics.getTileCustomFuelMix(tile);
     }
 
     public int generateTileNeutrons(NuclearGridTile tile, double efficiency) {

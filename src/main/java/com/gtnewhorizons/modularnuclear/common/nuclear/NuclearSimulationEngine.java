@@ -402,8 +402,7 @@ public class NuclearSimulationEngine {
                     }
                     sumTemp += temp;
                     if (tile.isFuel()) {
-                        NuclearFuelType fuel = tile.getFuelType();
-                        double eff = calculateEfficiency(fuel, temp);
+                        double eff = calculateEfficiency(tile, temp);
                         efficiency[x][y] = eff;
                         sumFuelReactivity += eff;
                         fuelTileCount++;
@@ -748,7 +747,7 @@ public class NuclearSimulationEngine {
                     }
                     sumTemp += temp;
                     if (tile.isFuel()) {
-                        sumFuelReactivity += calculateEfficiency(tile.getFuelType(), temp);
+                        sumFuelReactivity += calculateEfficiency(tile, temp);
                         fuelTileCount++;
                     }
                 }
@@ -775,6 +774,20 @@ public class NuclearSimulationEngine {
         int dX = Math.min(x, n - 1 - x);
         int dY = Math.min(y, n - 1 - y);
         return (dX + dY) < cutDepth;
+    }
+
+    /**
+     * Reactivity efficiency curve for an INuclearTile: handles custom fuel mixes and standard fuels.
+     */
+    public static double calculateEfficiency(INuclearTile tile, double avgTemp) {
+        if (tile != null) {
+            CustomFuelMix mix = tile.getCustomFuelMix();
+            if (mix != null) {
+                return mix.calculateReactivity(avgTemp);
+            }
+            return calculateEfficiency(tile.getFuelType(), avgTemp);
+        }
+        return calculateEfficiency(NuclearFuelType.URANIUM, avgTemp);
     }
 
     /**

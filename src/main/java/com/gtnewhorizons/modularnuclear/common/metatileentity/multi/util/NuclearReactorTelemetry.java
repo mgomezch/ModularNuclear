@@ -7,6 +7,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.ReactorDummy;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
@@ -84,6 +85,10 @@ public final class NuclearReactorTelemetry {
                                     double dur;
                                     if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
                                         int max = radCell.getMaxDamageEx();
+                                        CustomFuelMix customMix = CustomFuelMix.fromStack(stack);
+                                        if (customMix != null) {
+                                            max = customMix.defaultDurability;
+                                        }
                                         int cur = radCell.getDamageOfStack(stack);
                                         dur = max > 0 ? ((double) (max - cur) / max) * 100.0 : 0.0;
                                     } else if (stack.isItemStackDamageable() && stack.getMaxDamage() > 0) {

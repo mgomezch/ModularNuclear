@@ -89,4 +89,11 @@ public interface INuclearTile {
     default NuclearFuelType getFuelType() {
         return null;
     }
+
+    /**
+     * Custom fuel mix if this tile contains a custom compounded fuel rod, or null otherwise.
+     */
+    default CustomFuelMix getCustomFuelMix() {
+        return null;
+    }
 }

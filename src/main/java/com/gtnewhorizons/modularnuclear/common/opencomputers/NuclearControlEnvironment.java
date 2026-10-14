@@ -342,6 +342,11 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
 
         if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
             int max = radCell.getMaxDamageEx();
+            com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix mix = com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix
+                .fromStack(stack);
+            if (mix != null) {
+                max = mix.defaultDurability;
+            }
             int cur = radCell.getDamageOfStack(stack);
             map.put("durability", max - cur);
             map.put("maxDurability", max);
