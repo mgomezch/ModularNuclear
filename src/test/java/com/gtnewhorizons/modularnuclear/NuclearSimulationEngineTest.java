@@ -133,6 +133,7 @@ public class NuclearSimulationEngineTest {
         double heatCoeff = 0.05;
         double insulationDampening = 0.0;
         int emissionCount = 1;
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fuelData = null;
 
         int fluxReceived = 0;
         int fastAbsorbed = 0;
@@ -222,6 +223,11 @@ public class NuclearSimulationEngineTest {
         @Override
         public int getNeutronEmissionCount() {
             return emissionCount;
+        }
+
+        @Override
+        public com.gtnewhorizons.modularnuclear.common.config.data.FuelData getFuelData() {
+            return fuelData;
         }
     }
 
@@ -5365,6 +5371,113 @@ public class NuclearSimulationEngineTest {
         assertTrue(resOpen.totalNeutronsGenerated > 0);
         assertEquals(0, resOpen.fastNeutronsAbsorbed);
         assertEquals(resOpen.totalNeutronsGenerated, resOpen.neutronsEscaped, "All neutrons escaping into boundary/null cells must be counted exactly once");
+    }
+
+    @Test
+    void testExplicitFuelDataConfiguration() {
+        List<com.gtnewhorizons.modularnuclear.common.config.data.FuelData> fuels =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllFuels();
+        assertFalse(fuels.isEmpty());
+
+        // Check Lithium & Glowstone breeder targets
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData lithium = null;
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData glowstone = null;
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData quadUranium = null;
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData theCore = null;
+
+        for (com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd : fuels) {
+            if ("fuel_lithium".equals(fd.id)) lithium = fd;
+            if ("fuel_glowstone".equals(fd.id)) glowstone = fd;
+            if ("fuel_uranium_4".equals(fd.id)) quadUranium = fd;
+            if ("fuel_naquadah_32".equals(fd.id)) theCore = fd;
+        }
+
+        assertNotNull(lithium, "fuel_lithium must be registered");
+        assertEquals(1, lithium.packetCount);
+        assertEquals(1, lithium.baseNeutrons);
+        assertEquals(390.0, lithium.peakReactivityTemp, 1e-3);
+        assertEquals(2100.0, lithium.floorTemp, 1e-3);
+        assertEquals("ItemList.DepletedRodLithium", lithium.spentProduct);
+
+        assertNotNull(glowstone, "fuel_glowstone must be registered");
+        assertEquals(1, glowstone.packetCount);
+        assertEquals(1, glowstone.baseNeutrons);
+        assertEquals(200.0, glowstone.peakReactivityTemp, 1e-3);
+        assertEquals(2000.0, glowstone.floorTemp, 1e-3);
+        assertEquals("ItemList.DepletedRodGlowstone", glowstone.spentProduct);
+
+        assertNotNull(quadUranium, "fuel_uranium_4 must be registered");
+        assertEquals(4, quadUranium.packetCount);
+        assertEquals(16, quadUranium.baseNeutrons);
+        assertEquals(770.0, quadUranium.peakReactivityTemp, 1e-3);
+        assertEquals(2300.0, quadUranium.floorTemp, 1e-3);
+        assertEquals("ItemList.DepletedRodUranium4", quadUranium.spentProduct);
+
+        assertNotNull(theCore, "fuel_naquadah_32 must be registered");
+        assertEquals(16, theCore.packetCount);
+        assertEquals(512, theCore.baseNeutrons);
+        assertEquals(2500.0, theCore.peakReactivityTemp, 1e-3);
+        assertEquals(3200.0, theCore.floorTemp, 1e-3);
+        assertEquals("ItemList.DepletedRodNaquadah32", theCore.spentProduct);
+
+        // Test reactivity curve and damage calculations on FuelData
+        assertEquals(0.50, quadUranium.calculateReactivity(0.0), 1e-3);
+        assertEquals(1.00, quadUranium.calculateReactivity(quadUranium.peakReactivityTemp), 1e-3);
+        assertEquals(0.05, quadUranium.calculateReactivity(quadUranium.floorTemp), 1e-3);
+        assertEquals(0.05, quadUranium.calculateReactivity(quadUranium.floorTemp + 500.0), 1e-3);
+
+        assertEquals(0.0, quadUranium.calculateTemperatureDamage(20.0, 20.0), 1e-6);
+        assertTrue(quadUranium.calculateTemperatureDamage(1000.0, 20.0) > 0.0);
+
+        // Test INuclearTile calculateEfficiency delegation
+        MockNuclearTile tile = new MockNuclearTile(true, 100);
+        tile.fuelData = quadUranium;
+        assertEquals(1.00, NuclearSimulationEngine.calculateEfficiency(tile, 770.0), 1e-3);
+        assertEquals(0.05, NuclearSimulationEngine.calculateEfficiency(tile, 2300.0), 1e-3);
+    }
+
+    @Test
+    void testBreederTargetDepletedProducts() {
+        if (!gregtech.api.enums.ItemList.DepletedRodLithium.hasBeenSet()) {
+            gregtech.api.enums.ItemList.DepletedRodLithium.set(new ItemStack(Blocks.iron_block));
+        }
+        if (!gregtech.api.enums.ItemList.DepletedRodGlowstone.hasBeenSet()) {
+            gregtech.api.enums.ItemList.DepletedRodGlowstone.set(new ItemStack(Blocks.gold_block));
+        }
+        if (!gregtech.api.enums.ItemList.RodLithium.hasBeenSet()) {
+            gregtech.api.enums.ItemList.RodLithium.set(new ItemStack(Blocks.lapis_block));
+        }
+        if (!gregtech.api.enums.ItemList.RodGlowstone.hasBeenSet()) {
+            gregtech.api.enums.ItemList.RodGlowstone.set(new ItemStack(Blocks.redstone_block));
+        }
+
+        // Test resolving ItemList names via ReactorDataRegistry
+        ItemStack depLithium = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .resolveItemStack("ItemList.DepletedRodLithium");
+        assertNotNull(depLithium, "ItemList.DepletedRodLithium must resolve");
+
+        ItemStack depGlowstone = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .resolveItemStack("ItemList.DepletedRodGlowstone");
+        assertNotNull(depGlowstone, "ItemList.DepletedRodGlowstone must resolve");
+
+        // Test getItemDepletedForm for Lithium and Glowstone rods
+        ItemStack activeLithium = gregtech.api.enums.ItemList.RodLithium.get(1L);
+        ItemStack depletedResultLithium = com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
+            .getItemDepletedForm(activeLithium);
+        assertNotNull(depletedResultLithium, "Lithium rod must not be voided on depletion");
+        assertTrue(gregtech.api.enums.ItemList.DepletedRodLithium.isStackEqual(depletedResultLithium, false, true));
+
+        ItemStack activeGlowstone = gregtech.api.enums.ItemList.RodGlowstone.get(1L);
+        ItemStack depletedResultGlowstone = com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
+            .getItemDepletedForm(activeGlowstone);
+        assertNotNull(depletedResultGlowstone, "Glowstone rod must not be voided on depletion");
+        assertTrue(gregtech.api.enums.ItemList.DepletedRodGlowstone.isStackEqual(depletedResultGlowstone, false, true));
+
+        // Test that depleted rods are recognized by isDepletedOrEmptyRod
+        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
+            .isDepletedOrEmptyRod(depletedResultLithium));
+        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
+            .isDepletedOrEmptyRod(depletedResultGlowstone));
     }
 
     private static void deleteRecursively(File file) {

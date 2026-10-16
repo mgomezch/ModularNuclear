@@ -493,40 +493,36 @@ After conduction, every cell runs its own update (§7–§8 and §11): fuel wear
 
 ### 7.1 Fuel parameters
 
-A fuel item is recognised by a substring of its unlocalized name, checked in this priority order:
+Fuel specifications and physics behaviors are **data-driven** and defined in the YAML configuration (`config/modularnuclear/fuels.yaml` via `ReactorDataRegistry` / `FuelData`). Server administrators can fine-tune every operational parameter on an individual fuel rod or fluid basis without code modifications.
 
-> thecore / naquadah32 → glowstone → lithium → excited uranium → excited plutonium → high-density uranium → high-density plutonium → naquadria → naquadah → tiberium → MOX → thorium → uranium
+Rather than relying on runtime substring matching, each fuel entry explicitly configures:
 
-The first match decides the fuel type. It sets:
+- `packet_count`: Number of discrete neutron rays / packets emitted per 20-tick cycle (e.g. 1 for single rods, 2 for dual rods, 4 for quad rods and liquid fuels, 16 for The Core).
+- `base_neutrons`: Base unscaled neutron yield emitted per cycle ($N_{base}$).
+- `peak_reactivity_temp` ($T_{pk}$): Temperature (°C) of maximum reactivity.
+- `floor_temp` ($T_{fl}$): Temperature (°C) where reactivity drops to zero and thermal damage accelerates.
+- `fission_mult` ($m_{fiss}$): Thermal fission multiplication factor.
+- `spent_product`: Depleted item or fluid produced upon reaching 0 durability (e.g. `ItemList.DepletedRodLithium`, `ItemList.DepletedRodGlowstone`, `ItemList.DepletedRodUranium4`, `thoriumbasedliquidfueldepleted`).
+- `durability`: Total wear budget of the fuel rod (§7.3).
+- `matching`: Item/ore/fluid identifiers mapped to this entry (e.g. `ItemList.RodUranium4`, `ore:...`, `IC2:...`, `modid:name:meta`).
 
-- the reactivity curve ($T_{pk}$, $T_{fl}$);
-- the thermal fission multiplier $m_{fiss}$;
-- the base neutron output $N_{base}$.
+The default fuel registry populates explicit entries for every fuel rod tier (Quad, Dual, and Single variants) in strict order of density to ensure unambiguous matching:
 
-| Fuel | $T_{pk}$ (°C) | $T_{fl}$ (°C) | $m_{fiss}$ | $N_{base}$ single / dual / quad | Durability |
-|---|---|---|---|---|---|
-| Glowstone (breeder) | 200 | 2000 | 0.60 | 1 / 1 / 1 | 10 000 |
-| Lithium (breeder) | 390 | 2100 | 0.80 | 1 / 1 / 1 | 10 000 |
-| Thorium | 580 | 2200 | 1.00 | 2 / 4 / 8 | 50 000 |
-| Uranium | 770 | 2300 | 1.25 | 4 / 8 / 16 | 20 000 |
-| MOX | 960 | 2400 | 1.50 | 8 / 16 / 32 | 10 000 |
-| High-Density Uranium | 1150 | 2500 | 1.80 | 4 / 8 / 16 | 70 000 |
-| High-Density Plutonium | 1350 | 2600 | 2.10 | 8 / 16 / 32 | 70 000 |
-| Excited Uranium | 1540 | 2700 | 2.50 | 4 / 8 / 16 | 6 000 |
-| Excited Plutonium | 1730 | 2800 | 2.90 | 8 / 16 / 32 | 10 000 |
-| Naquadah | 1920 | 2900 | 3.40 | 16 / 32 / 64 | 100 000 |
-| Naquadria | 2110 | 3000 | 4.00 | 32 / 64 / 128 | 100 000 |
-| Tiberium | 2300 | 3100 | 4.70 | 8 / 16 / 32 | 50 000 |
-| The Core | 2500 | 3200 | 5.50 | 512 | 100 000 |
-
-How $N_{base}$ is derived:
-
-- every GT/IC2 rod cell contributes 4;
-- MOX-type rods double this;
-- thorium halves it;
-- naquadah and naquadria multiply it by 4;
-- tiberium doubles it;
-- glowstone and lithium cells always produce 1.
+| Fuel | $T_{pk}$ (°C) | $T_{fl}$ (°C) | $m_{fiss}$ | Packets (S / D / Q) | $N_{base}$ single / dual / quad | Durability | Depleted product |
+|---|---|---|---|---|---|---|---|
+| Glowstone (breeder) | 200 | 2000 | 0.60 | 1 / — / — | 1 | 10 000 | `DepletedRodGlowstone` |
+| Lithium (breeder) | 390 | 2100 | 0.80 | 1 / — / — | 1 | 10 000 | `DepletedRodLithium` |
+| Thorium | 580 | 2200 | 1.00 | 1 / 2 / 4 | 2 / 4 / 8 | 50 000 | `DepletedRodThorium[2,4]` |
+| Uranium | 770 | 2300 | 1.25 | 1 / 2 / 4 | 4 / 8 / 16 | 20 000 | `DepletedRodUranium[2,4]` |
+| MOX | 960 | 2400 | 1.50 | 1 / 2 / 4 | 8 / 16 / 32 | 10 000 | `DepletedRodMOX[2,4]` |
+| High-Density Uranium | 1150 | 2500 | 1.80 | 1 / 2 / 4 | 8 / 16 / 32 | 70 000 | `DepletedRodHighDensityUranium[2,4]` |
+| High-Density Plutonium | 1350 | 2600 | 2.10 | 1 / 2 / 4 | 12 / 24 / 48 | 70 000 | `DepletedRodHighDensityPlutonium[2,4]` |
+| Excited Uranium | 1540 | 2700 | 2.50 | 1 / 2 / 4 | 16 / 32 / 64 | 6 000 | `DepletedRodExcitedUranium[2,4]` |
+| Excited Plutonium | 1730 | 2800 | 2.90 | 1 / 2 / 4 | 24 / 48 / 96 | 10 000 | `DepletedRodExcitedPlutonium[2,4]` |
+| Naquadah | 1920 | 2900 | 3.40 | 1 / 2 / 4 | 16 / 32 / 64 | 100 000 | `DepletedRodNaquadah[2,4]` |
+| The Core (Naquadah-32) | 2500 | 3200 | 5.50 | 16 | 512 | 320 000 | `DepletedRodNaquadah32` |
+| Naquadria | 2110 | 3000 | 4.00 | 1 / 2 / 4 | 20 / 40 / 80 | 100 000 | `DepletedRodNaquadria[2,4]` |
+| Tiberium | 2300 | 3100 | 4.70 | 1 / 2 / 4 | 24 / 48 / 96 | 50 000 | `DepletedRodTiberium[2,4]` |
 
 "Durability" is the item's maximum damage, the total wear budget of the rod (§7.3).
 
@@ -534,12 +530,20 @@ Things to read off the table:
 
 - **Peak temperatures rise with fuel tier.** Higher-tier fuels must run hotter to reach full reactivity. They therefore need higher pipe tiers to be operated near their peak without overheating the core.
 - **Fission multipliers rise with tier.** In a well-moderated core, higher-tier fuels gain proportionally more from chain reactions relative to their base output.
-- **Fuels with low $N_{base}$ and high $m_{fiss}$** (High-Density and Excited Uranium) depend almost entirely on moderation to produce power. Unmoderated, they barely run.
+- **Fuels with low $N_{base}$ and high $m_{fiss}$** depend almost entirely on moderation to produce power. Unmoderated, they barely run.
 
-Glowstone and lithium cells are breeder targets in GregTech. Here they behave as very weak fuels with low peak temperatures. They are **voided** when their durability is exhausted. No breeding product is produced (no tritium from lithium, no sunnarium from glowstone).
+#### Breeder targets (Lithium and Glowstone)
+
+Glowstone and lithium cells are breeder targets in GregTech. In the reactor core, they behave as low-temperature fuels with peak reactivity at 200 °C (glowstone) and 390 °C (lithium).
+
+Unlike legacy mechanics where breeder targets were voided upon depletion, **they now reliably deplete into their proper breeding forms**:
+- Lithium fuel rods deplete into **Depleted Lithium Fuel Rod** (`ItemList.DepletedRodLithium`), which is centrifuged in GregTech into **Tritium**.
+- Glowstone fuel rods deplete into **Depleted Glowstone Fuel Rod** (`ItemList.DepletedRodGlowstone`), which is centrifuged in GregTech into **Sunnarium**.
+
+Depleted breeder rods are ejected to the ring output bus just like any other depleted fuel rod and are never voided on normal depletion.
 
 > [!NOTE]
-> **Implementation note.** The fuel-type table in code also defines `baseNeutrons` and `defaultDurability` per fuel. These are shown in NEI and the OpenComputers API but are not used by the in-game simulation. In-game base output and durability come from the rod item, as above. NEI lists The Core at 320 000 durability; the item's actual budget is 100 000.
+> **Implementation note.** All fuel parameters (`packet_count`, `base_neutrons`, `peak_reactivity_temp`, `floor_temp`, `durability`, and `spent_product`) are authoritative in `fuels.yaml` and directly drive the in-game physics simulation, NEI display handlers, and OpenComputers telemetry.
 
 ### 7.2 What happens when a fuel item is placed
 
@@ -590,12 +594,17 @@ Liquid fuels go in Nuclear Core Hatches (subject to the tier gate in §2.5). A h
 |---|---|---|---|---|---|
 | 0.25 | 0.85 | 0.10 | 0.20 | 0.15 | 4 |
 
-| Liquid fuel | $N_{base}$ (normal / excited) | Reactivity curve used |
-|---|---|---|
-| Thorium | 4 / 8 | Thorium |
-| Uranium | 8 / 16 | Uranium (excited: Excited Uranium) |
-| Plutonium | 16 / 32 | Uranium (plain plutonium matches no fuel type; excited: Excited Plutonium) |
-| Uranium hexafluoride | 8 | Uranium |
+Liquid fuels are explicitly defined in `fuels.yaml` with dedicated operational and physics parameters:
+
+| Liquid fuel | $N_{base}$ | $T_{pk}$ (°C) | $T_{fl}$ (°C) | $m_{fiss}$ | Spent fluid product |
+|---|---|---|---|---|---|
+| Thorium-Based Liquid Fuel | 4 | 580 | 2200 | 1.00 | `thoriumbasedliquidfueldepleted` |
+| Excited Thorium-Based Liquid Fuel | 8 | 580 | 2200 | 1.50 | `thoriumbasedliquidfueldepleted` |
+| Uranium-Based Liquid Fuel | 8 | 770 | 2300 | 1.25 | `uraniumbasedliquidfueldepleted` |
+| Excited Uranium-Based Liquid Fuel | 16 | 1540 | 2700 | 2.50 | `uraniumbasedliquidfueldepleted` |
+| Plutonium-Based Liquid Fuel | 16 | 1350 | 2600 | 1.80 | `plutoniumbasedliquidfueldepleted` |
+| Excited Plutonium-Based Liquid Fuel | 32 | 1730 | 2800 | 2.90 | `plutoniumbasedliquidfueldepleted` |
+| Uranium Hexafluoride | 12 | 770 | 2300 | 1.25 | `uraniumtetrafluoride` |
 
 Instead of losing durability, a liquid-fuel hatch consumes $\max(1, W)$ litres per cycle, with $W$ the wear formula of §7.3. It outputs the same volume of the corresponding spent fluid to the ring output hatches. A liquid-fuel hatch **does not cool**. It is subject to thermal shock like any non-coolant hatch (§13.1), with a threshold of 100 °C.
 
@@ -651,11 +660,12 @@ The mix lets the operator **tune a fuel's peak temperature to the pipe tier**, a
 | Rod | Product on depletion |
 |---|---|
 | GT/IC2 fuel rods | Their depleted form, to the ring output bus |
+| Breeder rods (Lithium) | Depleted Lithium Fuel Rod (`ItemList.DepletedRodLithium`), to ring output bus (centrifuged to Tritium) |
+| Breeder rods (Glowstone) | Depleted Glowstone Fuel Rod (`ItemList.DepletedRodGlowstone`), to ring output bus (centrifuged to Sunnarium) |
 | Custom fuel rod | Depleted Custom Fuel Rod (quad), with the original mix NBT copied |
-| Glowstone / lithium cells | Nothing (voided) |
 | Liquid fuels | Spent fluid, 1 L per litre burned, to the output hatch |
 
-There is no breeding or transmutation inside fuel rods.
+Breeder rods undergo standard nuclear depletion into their centrifugable depleted forms; there is no secondary transmutation inside standard fuel rods.
 
 ### 7.7 Component allowlist and insertion rules
 
@@ -1494,7 +1504,7 @@ Damage accrues **per overheated block per cycle**. Twenty overheated cells add 2
 | Mechanism | Fuel | Coolant fluid | Item components | Rods | Passage / loop |
 |---|---|---|---|---|---|
 | Normal fuel depletion | → depleted form | — | — | — | — |
-| Breeder cell (glowstone, lithium) end of life | voided | — | — | — | — |
+| Breeder cell (glowstone, lithium) end of life | → depleted form (`DepletedRodLithium` / `DepletedRodGlowstone`) | — | — | — | — |
 | Coolant cell full | — | — | ejected intact | — | — |
 | Reflector wear | — | — | destroyed at 0 durability | — | — |
 | Thermal shock | — | voided (that hatch) | — | — | — |
@@ -2128,9 +2138,9 @@ The following behaviours, described in the body of this manual, appear to differ
 | 4 | Neutronics | Packets absorbed on their final step are also counted as escaped | §4.6 |
 | 5 | Neutronics | *Resolved:* Escaped neutrons dynamically drive vessel maintenance wear (1.0× to 10.0× sigmoid) and Cherenkov radiation intensity | §4.5, §12.3 |
 | 6 | Neutronics | RNG is a shared unseeded `Random` | §4.1 |
-| 7 | Fuel | Fuel-type `baseNeutrons` / `defaultDurability` are unused in-game; NEI shows The Core at 320 000 durability vs 100 000 actual | §7.1 |
-| 8 | Fuel | No breeding products (lithium → tritium, glowstone → sunnarium) | §7.1 |
-| 9 | Fuel | Plain plutonium liquid fuel matches no fuel type and uses the uranium curve; the UF6 "12 neutrons" branch is unreachable | §7.4 |
+| 7 | Fuel | *Resolved:* Fuel operational and neutronic parameters (packet count, base neutrons, peak/floor temps, durability, spent product) are explicitly defined in YAML (fuels.yaml) on a per-fuel basis; runtime substring parsing eliminated | §7.1 |
+| 8 | Fuel | *Resolved:* Breeder rods (Lithium, Glowstone) now deplete into DepletedRodLithium and DepletedRodGlowstone (centrifuged to Tritium and Sunnarium respectively) instead of being voided | §7.1, §7.6 |
+| 9 | Fuel | *Resolved:* Plutonium liquid fuels and Uranium Hexafluoride have dedicated explicit FuelData entries with correct peak temperatures and 12 base neutrons in fuels.yaml | §7.4 |
 | 10 | Fuel | Custom rod item max damage fixed at 40 000 while depletion uses the mix durability | §7.5 |
 | 11 | Fuel | Custom-fuel fast multiplier is stored but unused (fast absorption never fissions) | §7.5 |
 | 12 | Fuel | GT depleted rods yield one cycle of neutrons; items named `fuelrod` act as permanent non-depleting fuel | §7.7 |

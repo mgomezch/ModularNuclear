@@ -96,4 +96,11 @@ public interface INuclearTile {
     default CustomFuelMix getCustomFuelMix() {
         return null;
     }
+
+    /**
+     * Data-driven YAML fuel configuration if this tile is a fuel rod or liquid fuel hatch, or null otherwise.
+     */
+    default com.gtnewhorizons.modularnuclear.common.config.data.FuelData getFuelData() {
+        return null;
+    }
 }

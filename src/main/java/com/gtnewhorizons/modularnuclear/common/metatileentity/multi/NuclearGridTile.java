@@ -149,6 +149,11 @@ public class NuclearGridTile implements INuclearTile {
     }
 
     @Override
+    public com.gtnewhorizons.modularnuclear.common.config.data.FuelData getFuelData() {
+        return reactor.getTileFuelData(this);
+    }
+
+    @Override
     public com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix getCustomFuelMix() {
         return reactor.getTileCustomFuelMix(this);
     }

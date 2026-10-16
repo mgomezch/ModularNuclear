@@ -618,12 +618,33 @@ public final class NuclearFuelClassification {
             return depleted;
         }
 
-        // 1. Check if fuel is ItemRadioactiveCellIC with sDepleted
+        // 1. Check YAML FuelData spentProduct
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(fuel);
+        if (fd != null && fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
+            ItemStack spent = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.resolveItemStack(fd.spentProduct);
+            if (spent != null) {
+                return spent;
+            }
+        }
+
+        // 2. Direct ACTIVE_FUEL_RODS -> DEPLETED_FUEL_RODS mapping (handles Lithium & Glowstone explicitly)
+        for (int i = 0; i < ACTIVE_FUEL_RODS.length && i < DEPLETED_FUEL_RODS.length; i++) {
+            ItemList active = ACTIVE_FUEL_RODS[i];
+            ItemList depleted = DEPLETED_FUEL_RODS[i];
+            if (active != null && active.hasBeenSet() && active.isStackEqual(fuel, false, true)) {
+                if (depleted != null && depleted.hasBeenSet()) {
+                    return depleted.get(1L);
+                }
+            }
+        }
+
+        // 3. Check if fuel is ItemRadioactiveCellIC with sDepleted
         if (fuel.getItem() instanceof ItemRadioactiveCellIC icCell && icCell.sDepleted != null) {
             return icCell.sDepleted.copy();
         }
 
-        // 2. Check IC2 native fuel items
+        // 4. Check IC2 native fuel items
         if (fuel.getItem() instanceof ItemReactorUranium ic2Uran) {
             boolean isMox = ic2Uran instanceof ItemReactorMOX;
             int cells = ic2Uran.numberOfCells;
@@ -650,13 +671,23 @@ public final class NuclearFuelClassification {
         if (name == null) return null;
         String lower = name.toLowerCase();
 
-        // 3. The Core (RodNaquadah32)
+        // 5. Breeder target fallback (Lithium & Glowstone)
+        if (lower.contains("lithium")) {
+            return ItemList.DepletedRodLithium != null && ItemList.DepletedRodLithium.hasBeenSet()
+                ? ItemList.DepletedRodLithium.get(1L) : null;
+        }
+        if (lower.contains("glowstone")) {
+            return ItemList.DepletedRodGlowstone != null && ItemList.DepletedRodGlowstone.hasBeenSet()
+                ? ItemList.DepletedRodGlowstone.get(1L) : null;
+        }
+
+        // 6. The Core (RodNaquadah32)
         if (lower.contains("naquadah32") || lower.contains("thecore")
             || (lower.contains("naquadah") && lower.contains("32"))) {
             return ItemList.DepletedRodNaquadah32.get(1L);
         }
 
-        // 4. Excited variants
+        // 7. Excited variants
         if (lower.contains("exciteduranium") || (lower.contains("excited") && lower.contains("uranium"))) {
             if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodExcitedUranium4.get(1L);
             if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodExcitedUranium2.get(1L);

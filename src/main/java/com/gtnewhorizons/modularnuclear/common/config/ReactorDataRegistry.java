@@ -18,6 +18,8 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
+import gregtech.api.enums.ItemList;
+import ic2.core.Ic2Items;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData;
@@ -408,6 +410,74 @@ public final class ReactorDataRegistry {
         return null;
     }
 
+    public static ItemStack resolveItemStack(String identifier) {
+        if (identifier == null || identifier.trim().isEmpty()) return null;
+        String id = identifier.trim();
+
+        // 1. Try ItemList enum (e.g. "DepletedRodLithium" or "ItemList.DepletedRodLithium")
+        String itemListName = id.startsWith("ItemList.") ? id.substring("ItemList.".length()) : id;
+        try {
+            ItemList il = ItemList.valueOf(itemListName);
+            if (il != null && il.hasBeenSet()) {
+                ItemStack is = il.get(1L);
+                if (is != null) return is;
+            }
+        } catch (Throwable ignored) {}
+
+        // 2. Try OreDictionary (e.g. "ore:dustTritium")
+        if (id.startsWith("ore:")) {
+            try {
+                List<ItemStack> ores = OreDictionary.getOres(id.substring(4));
+                if (ores != null && !ores.isEmpty()) {
+                    ItemStack is = ores.get(0).copy();
+                    is.stackSize = 1;
+                    return is;
+                }
+            } catch (Throwable ignored) {}
+        }
+
+        // 3. Try IC2 item by name (e.g. "IC2:reactorDepletedUraniumSimple")
+        if (id.toUpperCase().startsWith("IC2:")) {
+            String ic2Name = id.substring(4);
+            try {
+                java.lang.reflect.Field f = Ic2Items.class.getField(ic2Name);
+                Object val = f.get(null);
+                if (val instanceof ItemStack is) {
+                    ItemStack res = is.copy();
+                    res.stackSize = 1;
+                    return res;
+                }
+            } catch (Throwable ignored) {}
+            try {
+                ItemStack is = gregtech.api.util.GTModHandler.getModItem("IC2", ic2Name, 1);
+                if (is != null) return is;
+            } catch (Throwable ignored) {}
+        }
+
+        // 4. Try GameRegistry (e.g. "modularnuclear:rodCustomDepletedFuel4", "minecraft:diamond", "modid:item:meta")
+        if (id.contains(":")) {
+            String[] parts = id.split(":");
+            if (parts.length >= 2) {
+                String modId = parts[0];
+                String name = parts[1];
+                int meta = 0;
+                if (parts.length >= 3) {
+                    try {
+                        meta = Integer.parseInt(parts[2]);
+                    } catch (NumberFormatException ignored) {}
+                }
+                try {
+                    Item it = GameRegistry.findItem(modId, name);
+                    if (it != null) {
+                        return new ItemStack(it, 1, meta);
+                    }
+                } catch (Throwable ignored) {}
+            }
+        }
+
+        return null;
+    }
+
     // =========================================================================
     // Pattern Matching Helpers
     // =========================================================================
@@ -464,6 +534,15 @@ public final class ReactorDataRegistry {
 
         for (String pattern : patterns) {
             if (pattern == null || pattern.isEmpty()) continue;
+
+            if (pattern.startsWith("ItemList.")) {
+                try {
+                    ItemList il = ItemList.valueOf(pattern.substring("ItemList.".length()));
+                    if (il != null && il.hasBeenSet() && il.isStackEqual(stack, false, true)) {
+                        return true;
+                    }
+                } catch (Throwable ignored) {}
+            }
 
             String oreTarget = pattern.startsWith("ore:") ? pattern.substring(4) : pattern;
             if (oreIDs != null && oreIDs.length > 0) {
@@ -525,67 +604,89 @@ public final class ReactorDataRegistry {
         return list;
     }
 
+    private static void addRodTrio(List<FuelData> list, String baseId, String baseName,
+        int baseNeutrons, double thermalFissMult, double fastFissMult,
+        double absFast, double absThermal, double scattFast, double scattThermal, double moderation,
+        double heatTransferCoeff, double heatPerReaction, int defaultDurability,
+        double peakReactivityTemp, double floorTemp, double maxTemperature,
+        double peakMult, double peakPoint, double endMult,
+        String singleItem, String dualItem, String quadItem,
+        String singleSpent, String dualSpent, String quadSpent,
+        String singleIc2, String dualIc2, String quadIc2,
+        String unlocRoot) {
+
+        // Quad rod first (highest cell density)
+        list.add(new FuelData(
+            baseId + "_4", "Quad " + baseName + " Fuel Rod", false, 4, baseNeutrons * 4,
+            thermalFissMult, fastFissMult, absFast, absThermal, scattFast, scattThermal, moderation,
+            heatTransferCoeff, heatPerReaction, defaultDurability, peakReactivityTemp, floorTemp,
+            peakMult, peakPoint, endMult, "ItemList." + quadSpent, maxTemperature,
+            "ItemList." + quadItem, quadItem, "gt.reactor" + quadItem,
+            quadIc2 != null ? quadIc2 : "", "*" + unlocRoot + "4*", "*" + unlocRoot + "*quad*"
+        ));
+
+        // Dual rod
+        list.add(new FuelData(
+            baseId + "_2", "Dual " + baseName + " Fuel Rod", false, 2, baseNeutrons * 2,
+            thermalFissMult, fastFissMult, absFast, absThermal, scattFast, scattThermal, moderation,
+            heatTransferCoeff, heatPerReaction, defaultDurability, peakReactivityTemp, floorTemp,
+            peakMult, peakPoint, endMult, "ItemList." + dualSpent, maxTemperature,
+            "ItemList." + dualItem, dualItem, "gt.reactor" + dualItem,
+            dualIc2 != null ? dualIc2 : "", "*" + unlocRoot + "2*", "*" + unlocRoot + "*dual*"
+        ));
+
+        // Single rod
+        list.add(new FuelData(
+            baseId + "_1", baseName + " Fuel Rod", false, 1, baseNeutrons,
+            thermalFissMult, fastFissMult, absFast, absThermal, scattFast, scattThermal, moderation,
+            heatTransferCoeff, heatPerReaction, defaultDurability, peakReactivityTemp, floorTemp,
+            peakMult, peakPoint, endMult, "ItemList." + singleSpent, maxTemperature,
+            "ItemList." + singleItem, singleItem, "gt.reactor" + singleItem,
+            singleIc2 != null ? singleIc2 : "", "*" + unlocRoot + "*"
+        ));
+    }
+
     public static List<FuelData> buildDefaultFuels() {
         List<FuelData> list = new ArrayList<>();
 
-        // Lithium & Glowstone
-        list.add(new FuelData("fuel_lithium", "Lithium Fuel Rod", false, 1, 1.0, 0.05, 0.20, 0.85, 0.15, 0.10, 0.10, 0.05, 1.0, 10000, 1.0, 0.0, 0.1, "DepletedRodLithium", 2000.0, "*lithium*", "IC2:reactorLithiumCell"));
-        list.add(new FuelData("fuel_glowstone", "Glowstone Fuel Rod", false, 1, 1.0, 0.05, 0.20, 0.80, 0.15, 0.10, 0.10, 0.05, 1.0, 10000, 1.0, 0.0, 0.1, "DepletedRodGlowstone", 2000.0, "*glowstone*"));
+        // Lithium & Glowstone (Breeder Targets)
+        list.add(new FuelData("fuel_lithium", "Lithium Fuel Rod", false, 1, 1, 0.80, 0.05, 0.20, 0.85, 0.15, 0.10, 0.10, 0.05, 1.0, 10000, 390.0, 2100.0, 1.0, 0.0, 0.10, "ItemList.DepletedRodLithium", 2000.0, "ItemList.RodLithium", "RodLithium", "IC2:reactorLithiumCell", "gt.reactorLithium", "*lithium*"));
+        list.add(new FuelData("fuel_glowstone", "Glowstone Fuel Rod", false, 1, 1, 0.60, 0.05, 0.20, 0.80, 0.15, 0.10, 0.10, 0.05, 1.0, 10000, 200.0, 2000.0, 1.0, 0.0, 0.10, "ItemList.DepletedRodGlowstone", 2000.0, "ItemList.RodGlowstone", "RodGlowstone", "gt.reactorGlowstone", "*glowstone*"));
 
         // Thorium
-        list.add(new FuelData("fuel_thorium_1", "Thorium Fuel Rod", false, 2, 1.0, 0.08, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 50000, 1.0, 0.0, 0.1, "DepletedRodThorium", 2200.0, "*thorium*", "gregtech:gt.reactorThorium"));
-        list.add(new FuelData("fuel_thorium_2", "Dual Thorium Fuel Rod", false, 4, 1.0, 0.08, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 50000, 1.0, 0.0, 0.1, "DepletedRodThorium2", 2200.0, "*thorium2*", "*thorium*dual*"));
-        list.add(new FuelData("fuel_thorium_4", "Quad Thorium Fuel Rod", false, 8, 1.0, 0.08, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 50000, 1.0, 0.0, 0.1, "DepletedRodThorium4", 2200.0, "*thorium4*", "*thorium*quad*"));
+        addRodTrio(list, "fuel_thorium", "Thorium", 2, 1.00, 0.08, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 50000, 580.0, 2200.0, 2200.0, 1.0, 0.0, 0.10, "RodThorium", "RodThorium2", "RodThorium4", "DepletedRodThorium", "DepletedRodThorium2", "DepletedRodThorium4", null, null, null, "thorium");
 
         // Uranium
-        list.add(new FuelData("fuel_uranium_1", "Uranium Fuel Rod", false, 4, 1.0, 0.10, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 10000, 1.0, 0.0, 0.1, "DepletedRodUranium", 2000.0, "*uranium*", "IC2:reactorUraniumSimple", "gregtech:gt.reactorUranium"));
-        list.add(new FuelData("fuel_uranium_2", "Dual Uranium Fuel Rod", false, 8, 1.0, 0.10, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 10000, 1.0, 0.0, 0.1, "DepletedRodUranium2", 2000.0, "*uranium2*", "IC2:reactorUraniumDual", "*uranium*dual*"));
-        list.add(new FuelData("fuel_uranium_4", "Quad Uranium Fuel Rod", false, 16, 1.0, 0.10, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 10000, 1.0, 0.0, 0.1, "DepletedRodUranium4", 2000.0, "*uranium4*", "IC2:reactorUraniumQuad", "*uranium*quad*"));
+        addRodTrio(list, "fuel_uranium", "Uranium", 4, 1.25, 0.10, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 20000, 770.0, 2300.0, 2300.0, 1.0, 0.0, 0.10, "RodUranium", "RodUranium2", "RodUranium4", "DepletedRodUranium", "DepletedRodUranium2", "DepletedRodUranium4", "IC2:reactorUraniumSimple", "IC2:reactorUraniumDual", "IC2:reactorUraniumQuad", "uranium");
 
         // MOX
-        list.add(new FuelData("fuel_mox_1", "MOX Fuel Rod", false, 8, 1.5, 0.15, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 3.0, 10000, 2.0, 0.5, 0.2, "DepletedRodMOX", 2200.0, "*mox*", "IC2:reactorMOXSimple", "gregtech:gt.reactorMOX"));
-        list.add(new FuelData("fuel_mox_2", "Dual MOX Fuel Rod", false, 16, 1.5, 0.15, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 3.0, 10000, 2.0, 0.5, 0.2, "DepletedRodMOX2", 2200.0, "*mox2*", "IC2:reactorMOXDual", "*mox*dual*"));
-        list.add(new FuelData("fuel_mox_4", "Quad MOX Fuel Rod", false, 32, 1.5, 0.15, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 3.0, 10000, 2.0, 0.5, 0.2, "DepletedRodMOX4", 2200.0, "*mox4*", "IC2:reactorMOXQuad", "*mox*quad*"));
+        addRodTrio(list, "fuel_mox", "MOX", 8, 1.50, 0.15, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 3.0, 10000, 960.0, 2400.0, 2400.0, 2.0, 0.5, 0.20, "RodMOX", "RodMOX2", "RodMOX4", "DepletedRodMOX", "DepletedRodMOX2", "DepletedRodMOX4", "IC2:reactorMOXSimple", "IC2:reactorMOXDual", "IC2:reactorMOXQuad", "mox");
 
         // High Density Uranium & Plutonium
-        list.add(new FuelData("fuel_hd_uranium_1", "High Density Uranium Rod", false, 8, 1.2, 0.12, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.5, 20000, 1.0, 0.0, 0.1, "DepletedRodHighDensityUranium", 2400.0, "*highdensityuranium*"));
-        list.add(new FuelData("fuel_hd_uranium_2", "Dual High Density Uranium Rod", false, 16, 1.2, 0.12, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.5, 20000, 1.0, 0.0, 0.1, "DepletedRodHighDensityUranium2", 2400.0, "*highdensityuranium2*"));
-        list.add(new FuelData("fuel_hd_uranium_4", "Quad High Density Uranium Rod", false, 32, 1.2, 0.12, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.5, 20000, 1.0, 0.0, 0.1, "DepletedRodHighDensityUranium4", 2400.0, "*highdensityuranium4*"));
-        list.add(new FuelData("fuel_hd_plutonium_1", "High Density Plutonium Rod", false, 16, 1.8, 0.20, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 3.5, 20000, 1.2, 0.3, 0.15, "DepletedRodHighDensityPlutonium", 2400.0, "*highdensityplutonium*"));
-        list.add(new FuelData("fuel_hd_plutonium_2", "Dual High Density Plutonium Rod", false, 32, 1.8, 0.20, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 3.5, 20000, 1.2, 0.3, 0.15, "DepletedRodHighDensityPlutonium2", 2400.0, "*highdensityplutonium2*"));
-        list.add(new FuelData("fuel_hd_plutonium_4", "Quad High Density Plutonium Rod", false, 64, 1.8, 0.20, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 3.5, 20000, 1.2, 0.3, 0.15, "DepletedRodHighDensityPlutonium4", 2400.0, "*highdensityplutonium4*"));
+        addRodTrio(list, "fuel_hd_uranium", "High Density Uranium", 8, 1.80, 0.12, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.5, 70000, 1150.0, 2500.0, 2500.0, 1.0, 0.0, 0.10, "RodHighDensityUranium", "RodHighDensityUranium2", "RodHighDensityUranium4", "DepletedRodHighDensityUranium", "DepletedRodHighDensityUranium2", "DepletedRodHighDensityUranium4", null, null, null, "highdensityuranium");
+        addRodTrio(list, "fuel_hd_plutonium", "High Density Plutonium", 12, 2.10, 0.20, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 3.5, 70000, 1350.0, 2600.0, 2600.0, 1.2, 0.3, 0.15, "RodHighDensityPlutonium", "RodHighDensityPlutonium2", "RodHighDensityPlutonium4", "DepletedRodHighDensityPlutonium", "DepletedRodHighDensityPlutonium2", "DepletedRodHighDensityPlutonium4", null, null, null, "highdensityplutonium");
 
         // Excited Uranium & Plutonium
-        list.add(new FuelData("fuel_excited_uranium_1", "Excited Uranium Rod", false, 16, 1.5, 0.15, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 3.0, 15000, 1.0, 0.0, 0.1, "DepletedRodExcitedUranium", 2500.0, "*exciteduranium*"));
-        list.add(new FuelData("fuel_excited_uranium_2", "Dual Excited Uranium Rod", false, 32, 1.5, 0.15, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 3.0, 15000, 1.0, 0.0, 0.1, "DepletedRodExcitedUranium2", 2500.0, "*exciteduranium2*"));
-        list.add(new FuelData("fuel_excited_uranium_4", "Quad Excited Uranium Rod", false, 64, 1.5, 0.15, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 3.0, 15000, 1.0, 0.0, 0.1, "DepletedRodExcitedUranium4", 2500.0, "*exciteduranium4*"));
-        list.add(new FuelData("fuel_excited_plutonium_1", "Excited Plutonium Rod", false, 32, 2.0, 0.25, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 4.0, 15000, 1.2, 0.3, 0.15, "DepletedRodExcitedPlutonium", 2500.0, "*excitedplutonium*"));
-        list.add(new FuelData("fuel_excited_plutonium_2", "Dual Excited Plutonium Rod", false, 64, 2.0, 0.25, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 4.0, 15000, 1.2, 0.3, 0.15, "DepletedRodExcitedPlutonium2", 2500.0, "*excitedplutonium2*"));
-        list.add(new FuelData("fuel_excited_plutonium_4", "Quad Excited Plutonium Rod", false, 128, 2.0, 0.25, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 4.0, 15000, 1.2, 0.3, 0.15, "DepletedRodExcitedPlutonium4", 2500.0, "*excitedplutonium4*"));
+        addRodTrio(list, "fuel_excited_uranium", "Excited Uranium", 16, 2.50, 0.15, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 3.0, 6000, 1540.0, 2700.0, 2700.0, 1.0, 0.0, 0.10, "RodExcitedUranium", "RodExcitedUranium2", "RodExcitedUranium4", "DepletedRodExcitedUranium", "DepletedRodExcitedUranium2", "DepletedRodExcitedUranium4", null, null, null, "exciteduranium");
+        addRodTrio(list, "fuel_excited_plutonium", "Excited Plutonium", 24, 2.90, 0.25, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 4.0, 10000, 1730.0, 2800.0, 2800.0, 1.2, 0.3, 0.15, "RodExcitedPlutonium", "RodExcitedPlutonium2", "RodExcitedPlutonium4", "DepletedRodExcitedPlutonium", "DepletedRodExcitedPlutonium2", "DepletedRodExcitedPlutonium4", null, null, null, "excitedplutonium");
 
         // Naquadah, The Core, Naquadria, Tiberium
-        list.add(new FuelData("fuel_naquadah_1", "Naquadah Fuel Rod", false, 16, 2.0, 0.25, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 4.0, 40000, 1.0, 0.0, 0.1, "DepletedRodNaquadah", 2800.0, "*naquadah*"));
-        list.add(new FuelData("fuel_naquadah_2", "Dual Naquadah Fuel Rod", false, 32, 2.0, 0.25, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 4.0, 40000, 1.0, 0.0, 0.1, "DepletedRodNaquadah2", 2800.0, "*naquadah2*"));
-        list.add(new FuelData("fuel_naquadah_4", "Quad Naquadah Fuel Rod", false, 64, 2.0, 0.25, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 4.0, 40000, 1.0, 0.0, 0.1, "DepletedRodNaquadah4", 2800.0, "*naquadah4*"));
-        list.add(new FuelData("fuel_naquadah_32", "The Core (Naquadah-32)", false, 128, 4.0, 0.50, 0.35, 0.90, 0.15, 0.10, 0.10, 0.05, 8.0, 100000, 1.0, 0.0, 0.1, "DepletedRodNaquadah32", 3500.0, "*naquadah32*", "*thecore*"));
-        list.add(new FuelData("fuel_naquadria_1", "Naquadria Fuel Rod", false, 16, 2.5, 0.30, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 5.0, 30000, 1.0, 0.0, 0.1, "DepletedRodNaquadria", 3000.0, "*naquadria*"));
-        list.add(new FuelData("fuel_naquadria_2", "Dual Naquadria Fuel Rod", false, 32, 2.5, 0.30, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 5.0, 30000, 1.0, 0.0, 0.1, "DepletedRodNaquadria2", 3000.0, "*naquadria2*"));
-        list.add(new FuelData("fuel_naquadria_4", "Quad Naquadria Fuel Rod", false, 64, 2.5, 0.30, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 5.0, 30000, 1.0, 0.0, 0.1, "DepletedRodNaquadria4", 3000.0, "*naquadria4*"));
-        list.add(new FuelData("fuel_tiberium_1", "Tiberium Fuel Rod", false, 8, 1.8, 0.20, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 3.5, 25000, 1.0, 0.0, 0.1, "DepletedRodTiberium", 2600.0, "*tiberium*"));
-        list.add(new FuelData("fuel_tiberium_2", "Dual Tiberium Fuel Rod", false, 16, 1.8, 0.20, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 3.5, 25000, 1.0, 0.0, 0.1, "DepletedRodTiberium2", 2600.0, "*tiberium2*"));
-        list.add(new FuelData("fuel_tiberium_4", "Quad Tiberium Fuel Rod", false, 32, 1.8, 0.20, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 3.5, 25000, 1.0, 0.0, 0.1, "DepletedRodTiberium4", 2600.0, "*tiberium4*"));
+        addRodTrio(list, "fuel_naquadah", "Naquadah", 16, 3.40, 0.25, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 4.0, 100000, 1920.0, 2900.0, 2900.0, 1.0, 0.0, 0.10, "RodNaquadah", "RodNaquadah2", "RodNaquadah4", "DepletedRodNaquadah", "DepletedRodNaquadah2", "DepletedRodNaquadah4", null, null, null, "naquadah");
+        list.add(new FuelData("fuel_naquadah_32", "The Core (Naquadah-32)", false, 16, 512, 5.50, 0.50, 0.35, 0.90, 0.15, 0.10, 0.10, 0.05, 8.0, 320000, 2500.0, 3200.0, 1.0, 0.0, 0.10, "ItemList.DepletedRodNaquadah32", 3500.0, "ItemList.RodNaquadah32", "RodNaquadah32", "gt.reactorNaquadah32", "*naquadah32*", "*thecore*"));
+        addRodTrio(list, "fuel_naquadria", "Naquadria", 20, 4.00, 0.30, 0.30, 0.85, 0.15, 0.10, 0.10, 0.05, 5.0, 100000, 2110.0, 3000.0, 3000.0, 1.0, 0.0, 0.10, "RodNaquadria", "RodNaquadria2", "RodNaquadria4", "DepletedRodNaquadria", "DepletedRodNaquadria2", "DepletedRodNaquadria4", null, null, null, "naquadria");
+        addRodTrio(list, "fuel_tiberium", "Tiberium", 24, 4.70, 0.20, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 3.5, 50000, 2300.0, 3100.0, 3100.0, 1.0, 0.0, 0.10, "RodTiberium", "RodTiberium2", "RodTiberium4", "DepletedRodTiberium", "DepletedRodTiberium2", "DepletedRodTiberium4", null, null, null, "tiberium");
 
         // Custom Fuel Rod
-        list.add(new FuelData("fuel_custom_rod", "Custom Fuel Rod", false, 4, 1.0, 0.10, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 20000, 1.0, 0.0, 0.1, "modularnuclear:rodCustomDepletedFuel4", 2500.0, "modularnuclear:rodCustomFuel4", "*rodcustomfuel*"));
+        list.add(new FuelData("fuel_custom_rod", "Custom Fuel Rod", false, 4, 4, 1.0, 0.10, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 20000, 770.0, 2300.0, 1.0, 0.0, 0.10, "modularnuclear:rodCustomDepletedFuel4", 2500.0, "modularnuclear:rodCustomFuel4", "*rodcustomfuel*"));
 
         // Liquid fuels
-        list.add(new FuelData("fluid_fuel_thorium", "Thorium-Based Liquid Fuel", true, 4, 1.0, 0.08, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 2.0, 50000, 1.0, 0.0, 0.1, "thoriumbasedliquidfueldepleted", 2500.0, "thoriumbasedliquidfuel"));
-        list.add(new FuelData("fluid_fuel_thorium_excited", "Excited Thorium-Based Liquid Fuel", true, 8, 1.5, 0.12, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 3.0, 35000, 1.0, 0.0, 0.1, "thoriumbasedliquidfueldepleted", 2500.0, "thoriumbasedliquidfuelexcited"));
-        list.add(new FuelData("fluid_fuel_uranium", "Uranium-Based Liquid Fuel", true, 8, 1.0, 0.10, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 2.0, 20000, 1.0, 0.0, 0.1, "uraniumbasedliquidfueldepleted", 2500.0, "uraniumbasedliquidfuel"));
-        list.add(new FuelData("fluid_fuel_uranium_excited", "Excited Uranium-Based Liquid Fuel", true, 16, 1.5, 0.15, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 3.0, 15000, 1.0, 0.0, 0.1, "uraniumbasedliquidfueldepleted", 2500.0, "uraniumbasedliquidfuelexcited"));
-        list.add(new FuelData("fluid_fuel_plutonium", "Plutonium-Based Liquid Fuel", true, 16, 1.8, 0.20, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 3.5, 20000, 1.0, 0.0, 0.1, "plutoniumbasedliquidfueldepleted", 2500.0, "plutoniumbasedliquidfuel"));
-        list.add(new FuelData("fluid_fuel_plutonium_excited", "Excited Plutonium-Based Liquid Fuel", true, 32, 2.0, 0.25, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 4.0, 15000, 1.0, 0.0, 0.1, "plutoniumbasedliquidfueldepleted", 2500.0, "plutoniumbasedliquidfuelexcited"));
-        list.add(new FuelData("fluid_fuel_u_hexafluoride", "Uranium Hexafluoride", true, 12, 1.2, 0.12, 0.25, 0.85, 0.15, 0.10, 0.10, 0.12, 2.5, 25000, 1.0, 0.0, 0.1, "uraniumtetrafluoride", 2500.0, "uraniumhexafluoride"));
+        list.add(new FuelData("fluid_fuel_thorium", "Thorium-Based Liquid Fuel", true, 4, 4, 1.00, 0.08, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 2.0, 50000, 580.0, 2200.0, 1.0, 0.0, 0.10, "thoriumbasedliquidfueldepleted", 2500.0, "thoriumbasedliquidfuel"));
+        list.add(new FuelData("fluid_fuel_thorium_excited", "Excited Thorium-Based Liquid Fuel", true, 4, 8, 1.50, 0.12, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 3.0, 35000, 580.0, 2200.0, 1.0, 0.0, 0.10, "thoriumbasedliquidfueldepleted", 2500.0, "thoriumbasedliquidfuelexcited"));
+        list.add(new FuelData("fluid_fuel_uranium", "Uranium-Based Liquid Fuel", true, 4, 8, 1.25, 0.10, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 2.0, 20000, 770.0, 2300.0, 1.0, 0.0, 0.10, "uraniumbasedliquidfueldepleted", 2500.0, "uraniumbasedliquidfuel"));
+        list.add(new FuelData("fluid_fuel_uranium_excited", "Excited Uranium-Based Liquid Fuel", true, 4, 16, 2.50, 0.15, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 3.0, 15000, 1540.0, 2700.0, 1.0, 0.0, 0.10, "uraniumbasedliquidfueldepleted", 2500.0, "uraniumbasedliquidfuelexcited"));
+        list.add(new FuelData("fluid_fuel_plutonium", "Plutonium-Based Liquid Fuel", true, 4, 16, 1.80, 0.20, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 3.5, 20000, 1350.0, 2600.0, 1.0, 0.0, 0.10, "plutoniumbasedliquidfueldepleted", 2500.0, "plutoniumbasedliquidfuel"));
+        list.add(new FuelData("fluid_fuel_plutonium_excited", "Excited Plutonium-Based Liquid Fuel", true, 4, 32, 2.90, 0.25, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 4.0, 15000, 1730.0, 2800.0, 1.0, 0.0, 0.10, "plutoniumbasedliquidfueldepleted", 2500.0, "plutoniumbasedliquidfuelexcited"));
+        list.add(new FuelData("fluid_fuel_u_hexafluoride", "Uranium Hexafluoride", true, 4, 12, 1.25, 0.12, 0.25, 0.85, 0.15, 0.10, 0.10, 0.12, 2.5, 25000, 770.0, 2300.0, 1.0, 0.0, 0.10, "uraniumtetrafluoride", 2500.0, "uraniumhexafluoride"));
 
         return list;
     }

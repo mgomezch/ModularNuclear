@@ -174,10 +174,28 @@ public class NuclearReactorPhysics {
         return null;
     }
 
+    public static FuelData getTileFuelData(NuclearGridTile tile) {
+        if (tile == null) return null;
+        if (tile.isBus()) {
+            ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+            if (stack != null) {
+                return ReactorDataRegistry.findFuel(stack);
+            }
+        } else if (tile.isHatch()) {
+            FluidStack fluid = tile.getHatch().mInputFluid;
+            if (fluid != null) {
+                return ReactorDataRegistry.findFuel(fluid);
+            }
+        }
+        return null;
+    }
+
     public static int generateTileNeutrons(MTENuclearReactor reactor, NuclearGridTile tile, double efficiency) {
         CustomFuelMix customMix = getTileCustomFuelMix(tile);
+        FuelData tileFuelData = getTileFuelData(tile);
         NuclearFuelType fuel = getTileFuelType(tile);
         double baseFissMult = (customMix != null) ? customMix.baseThermalFissionMultiplier
+            : (tileFuelData != null) ? tileFuelData.thermalFissionMultiplier
             : (fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0;
 
         if (tile.isBus()) {
@@ -188,7 +206,7 @@ public class NuclearReactorPhysics {
                 return 0;
             }
             int baseNeutrons = 4;
-            FuelData fd = ReactorDataRegistry.findFuel(stack);
+            FuelData fd = (tileFuelData != null) ? tileFuelData : ReactorDataRegistry.findFuel(stack);
             if (customMix != null) {
                 baseNeutrons = customMix.baseNeutrons;
                 baseFissMult = customMix.baseThermalFissionMultiplier;
@@ -201,31 +219,9 @@ public class NuclearReactorPhysics {
             } else if (stack.getItem() instanceof ItemReactorUranium ic2Uran) {
                 baseNeutrons = 4 * ic2Uran.numberOfCells;
                 if (ic2Uran instanceof ItemReactorMOX) baseNeutrons *= 2;
-            } else {
-                String name = stack.getUnlocalizedName();
-                if (name != null) {
-                    String lower = name.toLowerCase();
-                    if (lower.contains("naquadah32") || lower.contains("thecore")
-                        || (lower.contains("naquadah") && lower.contains("32"))) {
-                        baseNeutrons = 128;
-                    } else if (lower.contains("quad") || lower.contains("4")) {
-                        baseNeutrons = 16;
-                    } else if (lower.contains("dual") || lower.contains("2")) {
-                        baseNeutrons = 8;
-                    }
-                    if (lower.contains("mox")) baseNeutrons *= 2;
-                }
-            }
-            if (customMix == null && fd == null) {
-                String name = stack.getUnlocalizedName();
-                if (name != null) {
-                    String lower = name.toLowerCase();
-                    if (lower.contains("glowstone") || lower.contains("lithium")) baseNeutrons = 1;
-                    if (lower.contains("thorium")) baseNeutrons = Math.max(1, baseNeutrons / 2);
-                    if (lower.contains("naquadah")) baseNeutrons *= 4;
-                    if (lower.contains("naquadria")) baseNeutrons *= 4;
-                    if (lower.contains("tiberium")) baseNeutrons *= 2;
-                }
+            } else if (fuel != null) {
+                baseNeutrons = fuel.baseNeutrons;
+                baseFissMult = fuel.baseThermalFissionMultiplier;
             }
 
             double effectiveFissMult = baseFissMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
@@ -241,23 +237,13 @@ public class NuclearReactorPhysics {
                 return 0;
             }
             int baseNeutrons = 8;
-            FuelData fd = ReactorDataRegistry.findFuel(fluid);
+            FuelData fd = (tileFuelData != null) ? tileFuelData : ReactorDataRegistry.findFuel(fluid);
             if (fd != null) {
                 baseNeutrons = fd.baseNeutrons;
                 baseFissMult = fd.thermalFissionMultiplier;
-            } else {
-                String name = fluid.getFluid()
-                    .getName()
-                    .toLowerCase();
-                if (name.contains("thorium")) {
-                    baseNeutrons = name.contains("excited") ? 8 : 4;
-                } else if (name.contains("uranium")) {
-                    baseNeutrons = name.contains("excited") ? 16 : 8;
-                } else if (name.contains("plutonium")) {
-                    baseNeutrons = name.contains("excited") ? 32 : 16;
-                } else if (name.contains("uraniumhexafluoride")) {
-                    baseNeutrons = 12;
-                }
+            } else if (fuel != null) {
+                baseNeutrons = fuel.baseNeutrons;
+                baseFissMult = fuel.baseThermalFissionMultiplier;
             }
 
             double effectiveFissMult = baseFissMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
@@ -271,6 +257,11 @@ public class NuclearReactorPhysics {
 
     public static int getTileNeutronEmissionCount(NuclearGridTile tile) {
         if (tile.isHatch()) {
+            FluidStack fluid = tile.getHatch().mInputFluid;
+            if (fluid != null) {
+                FuelData fd = ReactorDataRegistry.findFuel(fluid);
+                if (fd != null) return fd.packetCount;
+            }
             return 4;
         }
         if (tile.isBus()) {
@@ -279,24 +270,17 @@ public class NuclearReactorPhysics {
             if (stack.getItem() instanceof ItemCustomFuelRod || CustomFuelMix.hasCustomMix(stack)) {
                 return 4;
             }
+            FuelData fd = ReactorDataRegistry.findFuel(stack);
+            if (fd != null) {
+                return fd.packetCount;
+            }
             if (stack.getItem() instanceof ItemRadioactiveCellIC icCell) {
                 return Math.max(1, icCell.numberOfCells);
             } else if (stack.getItem() instanceof ItemReactorUranium ic2Uran) {
                 return Math.max(1, ic2Uran.numberOfCells);
-            } else {
-                String name = stack.getUnlocalizedName();
-                if (name != null) {
-                    String lower = name.toLowerCase();
-                    if (lower.contains("naquadah32") || lower.contains("thecore")
-                        || (lower.contains("naquadah") && lower.contains("32"))) {
-                        return 16;
-                    } else if (lower.contains("quad") || lower.contains("4")) {
-                        return 4;
-                    } else if (lower.contains("dual") || lower.contains("2")) {
-                        return 2;
-                    }
-                }
             }
+            NuclearFuelType fuel = getTileFuelType(tile);
+            if (fuel == NuclearFuelType.THE_CORE) return 16;
         }
         return 1;
     }
@@ -648,8 +632,10 @@ public class NuclearReactorPhysics {
             bus.mDirectEUProduced = 0;
             double ambient = bus.getAmbientTemperature();
             CustomFuelMix customMix = CustomFuelMix.fromStack(stack);
-            NuclearFuelType fuelType = NuclearFuelType.fromName(stack.getUnlocalizedName());
+            FuelData fd = ReactorDataRegistry.findFuel(stack);
+            NuclearFuelType fuelType = getTileFuelType(tile);
             double tempDmg = (customMix != null) ? customMix.calculateTemperatureDamage(bus.mTemperature, ambient)
+                : (fd != null) ? fd.calculateTemperatureDamage(bus.mTemperature, ambient)
                 : (fuelType != null) ? fuelType.calculateTemperatureDamage(bus.mTemperature, ambient)
                     : (bus.mTemperature > ambient ? (bus.mTemperature - ambient) / 100.0 : 0.0);
 
@@ -663,13 +649,18 @@ public class NuclearReactorPhysics {
             }
             if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
                 radCell.damageItemStack(stack, damage);
-                int maxDur = (customMix != null) ? customMix.defaultDurability : radCell.getMaxDamageEx();
+                int maxDur = (customMix != null) ? customMix.defaultDurability
+                    : (fd != null && fd.defaultDurability > 0) ? fd.defaultDurability
+                    : radCell.getMaxDamageEx();
                 if (radCell.getDamageOfStack(stack) >= maxDur) {
                     reactor.mCycleZeroedFuelItems++;
                     ItemStack depleted = null;
-                    if (radCell instanceof ItemRadioactiveCellIC icCell && icCell.sDepleted != null) {
+                    if (fd != null && fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
+                        depleted = ReactorDataRegistry.resolveItemStack(fd.spentProduct);
+                    }
+                    if (depleted == null && radCell instanceof ItemRadioactiveCellIC icCell && icCell.sDepleted != null) {
                         depleted = icCell.sDepleted.copy();
-                    } else {
+                    } else if (depleted == null) {
                         depleted = reactor.getItemDepletedForm(stack);
                     }
                     bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
@@ -680,11 +671,17 @@ public class NuclearReactorPhysics {
                 bus.markTileDirty();
             } else if (stack.getItem() instanceof ItemReactorUranium) {
                 int curDmg = stack.getItemDamage();
-                int maxDmg = stack.getMaxDamage();
+                int maxDmg = (fd != null && fd.defaultDurability > 0) ? fd.defaultDurability : stack.getMaxDamage();
                 int newDmg = curDmg + damage;
                 if (newDmg >= maxDmg) {
                     reactor.mCycleZeroedFuelItems++;
-                    ItemStack depleted = reactor.getItemDepletedForm(stack);
+                    ItemStack depleted = null;
+                    if (fd != null && fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
+                        depleted = ReactorDataRegistry.resolveItemStack(fd.spentProduct);
+                    }
+                    if (depleted == null) {
+                        depleted = reactor.getItemDepletedForm(stack);
+                    }
                     bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
                     if (depleted != null) {
                         reactor.addOutputPartial(depleted);

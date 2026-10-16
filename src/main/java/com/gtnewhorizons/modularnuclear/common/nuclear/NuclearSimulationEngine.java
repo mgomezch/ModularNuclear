@@ -875,6 +875,10 @@ public class NuclearSimulationEngine {
             if (mix != null) {
                 return mix.calculateReactivity(avgTemp);
             }
+            com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = tile.getFuelData();
+            if (fd != null) {
+                return fd.calculateReactivity(avgTemp);
+            }
             return calculateEfficiency(tile.getFuelType(), avgTemp);
         }
         return calculateEfficiency(NuclearFuelType.URANIUM, avgTemp);

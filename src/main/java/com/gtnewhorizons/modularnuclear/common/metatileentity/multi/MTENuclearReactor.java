@@ -32,6 +32,7 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 import com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
@@ -2091,6 +2092,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public NuclearFuelType getTileFuelType(NuclearGridTile tile) {
         return NuclearReactorPhysics.getTileFuelType(tile);
+    }
+
+    public FuelData getTileFuelData(NuclearGridTile tile) {
+        return NuclearReactorPhysics.getTileFuelData(tile);
     }
 
     public CustomFuelMix getTileCustomFuelMix(NuclearGridTile tile) {
