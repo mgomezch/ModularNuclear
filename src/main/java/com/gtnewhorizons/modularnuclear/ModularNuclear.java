@@ -37,6 +37,7 @@ public class ModularNuclear {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.init(event.getSuggestedConfigurationFile());
+        com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.init(event.getModConfigurationDirectory());
         ModularNuclearTextures.init();
         ModFluids.init();
         ModBlocks.init();

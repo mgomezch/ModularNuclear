@@ -74,7 +74,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public double mTemperature = 20.0;
-    public double mHeatEU = 0.0;
+    public double mHeatHu = 0.0;
+    public double mHeatEU = 0.0; // Backwards-compatible alias
+    public long mCumulativeFluence = 0L;
     public int mFastFlux = 0;
     public int mThermalFlux = 0;
     public int mFastAbsorbed = 0;
@@ -125,7 +127,16 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public static ControlRodType getRodType(ItemStack stack) {
-        if (stack == null || stack.getItem() == null) return ControlRodType.NONE;
+        if (stack == null) return ControlRodType.NONE;
+
+        try {
+            String cfgType = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.getControlRodType(stack);
+            if (cfgType != null) {
+                return ControlRodType.valueOf(cfgType.toUpperCase());
+            }
+        } catch (Throwable ignored) {}
+
+        if (stack.getItem() == null) return ControlRodType.NONE;
 
         try {
             ItemData itemData = GTOreDictUnificator.getItemData(stack);
@@ -169,6 +180,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public static boolean isControlRod(ItemStack stack) {
+        if (stack == null) return false;
+        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(stack) != null) return true;
         return getRodType(stack) != ControlRodType.NONE;
     }
 
@@ -222,6 +235,13 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public double getAbsorptionProbability(NeutronType type) {
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(mInventory[SLOT_ROD]);
+        if (crData != null) {
+            double ratio = getInsertionRatio();
+            double max = (type == NeutronType.THERMAL) ? crData.maxThermalAbsorption : crData.maxFastAbsorption;
+            return Math.max(0.01, ratio * max);
+        }
         ControlRodType rod = getRodType(mInventory[SLOT_ROD]);
         if (rod == ControlRodType.NONE) return 0.01;
         double ratio = getInsertionRatio();
@@ -230,6 +250,13 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public double getScatteringProbability(NeutronType type) {
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(mInventory[SLOT_ROD]);
+        if (crData != null) {
+            double ratio = getInsertionRatio();
+            double scatt = (type == NeutronType.THERMAL) ? crData.scatteringThermal : crData.scatteringFast;
+            return Math.max(0.01, scatt * (1.0 - ratio));
+        }
         ControlRodType rod = getRodType(mInventory[SLOT_ROD]);
         if (rod == ControlRodType.NONE) return 0.02;
         double ratio = getInsertionRatio();
@@ -237,6 +264,11 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public double getHeatTransferCoeff() {
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(mInventory[SLOT_ROD]);
+        if (crData != null) {
+            return crData.heatTransferCoeff;
+        }
         ControlRodType rod = getRodType(mInventory[SLOT_ROD]);
         if (rod == ControlRodType.NONE) return 0.02;
         return rod.heatTransferCoeff;
@@ -273,6 +305,11 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     @Override
+    public boolean isItemValidForSlot(int aIndex, ItemStack aStack) {
+        return aIndex == SLOT_ROD && isControlRod(aStack);
+    }
+
+    @Override
     public boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection aSide,
         ItemStack aStack) {
         return aIndex == SLOT_ROD && isControlRod(aStack) && (mInventory[SLOT_ROD] == null);
@@ -295,7 +332,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setDouble("mTemperature", mTemperature);
-        aNBT.setDouble("mHeatEU", mHeatEU);
+        aNBT.setDouble("mHeatHu", mHeatHu);
+        aNBT.setDouble("mHeatEU", mHeatHu);
+        aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setBoolean("mScram", mScram);
         aNBT.setInteger("mInputChannel", mInputChannel);
     }
@@ -308,7 +347,15 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         } else {
             mTemperature = getAmbientTemperature();
         }
-        mHeatEU = aNBT.getDouble("mHeatEU");
+        if (aNBT.hasKey("mHeatHu")) {
+            mHeatHu = aNBT.getDouble("mHeatHu");
+        } else if (aNBT.hasKey("mHeatEU")) {
+            mHeatHu = aNBT.getDouble("mHeatEU");
+        }
+        mHeatEU = mHeatHu;
+        if (aNBT.hasKey("mCumulativeFluence")) {
+            mCumulativeFluence = aNBT.getLong("mCumulativeFluence");
+        }
         mScram = aNBT.getBoolean("mScram");
         if (aNBT.hasKey("mInputChannel")) {
             mInputChannel = aNBT.getInteger("mInputChannel");
@@ -405,6 +452,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                     .setPos(125, 16))
             .widget(
                 new SlotWidget(inventoryHandler, SLOT_ROD)
+                    .setFilter(MTEHatchNuclearControlRod::isControlRod)
                     .setBackground(getGUITextureSet().getItemSlot(), GTUITextures.OVERLAY_SLOT_IN)
                     .setPos(122, 28));
     }

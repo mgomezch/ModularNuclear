@@ -48,9 +48,11 @@ public class MTEHatchNuclearBus extends MTEHatch {
 
     public static final int SLOT_INPUT = 0;
 
-    public com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor mReactor;
+    public MTENuclearReactor mReactor;
     public double mTemperature = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
-    public double mHeatEU = 0.0;
+    public double mHeatHu = 0.0;
+    public double mHeatEU = 0.0; // Backwards-compatible alias
+    public long mCumulativeFluence = 0L;
 
     public double getAmbientTemperature() {
         if (getBaseMetaTileEntity() != null && getBaseMetaTileEntity().getWorld() != null) {
@@ -125,16 +127,25 @@ public class MTEHatchNuclearBus extends MTEHatch {
         return 1;
     }
 
+    public boolean isItemAllowed(ItemStack aStack) {
+        return com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(aStack, this);
+    }
+
     @Override
     public boolean isValidSlot(int aIndex) {
         return aIndex == SLOT_INPUT;
     }
 
     @Override
+    public boolean isItemValidForSlot(int aIndex, ItemStack aStack) {
+        return aIndex == SLOT_INPUT && isItemAllowed(aStack);
+    }
+
+    @Override
     public boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection aSide,
         ItemStack aStack) {
-        // Automation can ONLY insert fresh components into slot 0, and only if empty (stack size 1)
-        return aIndex == SLOT_INPUT && mInventory[SLOT_INPUT] == null;
+        // Automation can ONLY insert allowlisted components into slot 0, and only if empty (stack size 1)
+        return aIndex == SLOT_INPUT && mInventory[SLOT_INPUT] == null && isItemAllowed(aStack);
     }
 
     @Override
@@ -178,7 +189,9 @@ public class MTEHatchNuclearBus extends MTEHatch {
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setDouble("mTemperature", mTemperature);
-        aNBT.setDouble("mHeatEU", mHeatEU);
+        aNBT.setDouble("mHeatHu", mHeatHu);
+        aNBT.setDouble("mHeatEU", mHeatHu);
+        aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setBoolean("mUsedForCooling", mUsedForCooling);
     }
 
@@ -190,7 +203,15 @@ public class MTEHatchNuclearBus extends MTEHatch {
         } else {
             mTemperature = getAmbientTemperature();
         }
-        mHeatEU = aNBT.getDouble("mHeatEU");
+        if (aNBT.hasKey("mHeatHu")) {
+            mHeatHu = aNBT.getDouble("mHeatHu");
+        } else if (aNBT.hasKey("mHeatEU")) {
+            mHeatHu = aNBT.getDouble("mHeatEU");
+        }
+        mHeatEU = mHeatHu;
+        if (aNBT.hasKey("mCumulativeFluence")) {
+            mCumulativeFluence = aNBT.getLong("mCumulativeFluence");
+        }
         if (aNBT.hasKey("mUsedForCooling")) {
             mUsedForCooling = aNBT.getBoolean("mUsedForCooling");
         }
@@ -340,6 +361,29 @@ public class MTEHatchNuclearBus extends MTEHatch {
         return null;
     }
 
+    public static boolean isCheeseRecipeInput(ItemStack stack) {
+        if (stack == null) return false;
+        if (!sCheeseRecipesLoaded) {
+            loadCheeseRecipes();
+        }
+
+        RecipeCacheKey key = new RecipeCacheKey(stack);
+        Optional<GTRecipe> cached = CHEESE_RECIPE_CACHE.get(key);
+        if (cached != null) {
+            return cached.isPresent();
+        }
+
+        for (GTRecipe recipe : CHEESE_EXTRACTION_RECIPES) {
+            if (recipe.isRecipeInputEqual(false, true, null, stack)) {
+                CHEESE_RECIPE_CACHE.put(key, Optional.of(recipe));
+                return true;
+            }
+        }
+
+        CHEESE_RECIPE_CACHE.put(key, Optional.empty());
+        return false;
+    }
+
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity,
         net.minecraft.entity.player.EntityPlayer aPlayer) {
@@ -391,6 +435,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
                     .setPos(134, 16))
             .widget(
                 new SlotWidget(inventoryHandler, SLOT_INPUT)
+                    .setFilter(this::isItemAllowed)
                     .setBackground(getGUITextureSet().getItemSlot(), GTUITextures.OVERLAY_SLOT_IN)
                     .setPos(131, 28));
     }

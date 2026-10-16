@@ -72,30 +72,26 @@ public class CoolantLoopModel {
         }
 
         /**
-         * Checks if this material is physically allowed for convective loop cooling in the given reactor tier.
-         * Tier 1 (Electrum / EV): Convective loop cooling not allowed in reactor structure.
-         * Tier 2+ (Platinum / IV, Osmium / LuV, Quantium / ZPM+): All valid loop materials (including Neutronium)
+         * Checks if this material is physically allowed for convective loop cooling in the given reactor pipe tier.
+         * Pipe Tier < Osmium (Electrum / EV, Platinum / IV): Convective loop cooling not allowed in reactor structure.
+         * Pipe Tier >= Osmium (Osmium / LuV, Quantium / ZPM+): All valid loop materials (including Neutronium)
          * can physically be installed and will function.
          */
         public boolean isAllowedInReactorTier(int reactorTier) {
-            return reactorTier >= NuclearSimulationEngine.PIPE_TIER_PLATINUM;
+            return reactorTier >= NuclearSimulationEngine.PIPE_TIER_OSMIUM;
         }
 
         /**
          * Progression recommendation check for automated layout optimization searches.
-         * In automated searches for Tier 2 reactors, Neutronium is excluded because a player
+         * In automated searches for LuV reactors, Neutronium is excluded because a player
          * who has reached ZPM to craft Neutronium would build a larger Tier 3 reactor instead.
-         * For IV Platinum, Osmium (unlocked at LuV) is also excluded.
          */
         public boolean isProgressionAppropriate(int reactorTier) {
-            if (reactorTier < NuclearSimulationEngine.PIPE_TIER_PLATINUM) {
+            if (reactorTier < NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
                 return false;
             }
-            if (reactorTier == NuclearSimulationEngine.PIPE_TIER_PLATINUM) {
-                return this != NEUTRONIUM && this != OSMIUM;
-            }
             if (reactorTier <= NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
-                // Progression filter: exclude Neutronium from automated Tier 2 search space
+                // Progression filter: exclude Neutronium from automated LuV search space
                 return this != NEUTRONIUM;
             }
             return true;
@@ -285,6 +281,7 @@ public class CoolantLoopModel {
     private double currentPressureBar = 1.0;
     private double currentCoolantTempCelsius = 20.0;
     private double lastHeatExtractedWatts = 0.0;
+    private double lastHeatExtractedHut = 0.0;
     private double lastHeatExtractedEUt = 0.0;
     private double lastSecondarySteamProducedLt = 0.0;
     private double lastSecondaryWaterBoiledLt = 0.0;
@@ -301,6 +298,8 @@ public class CoolantLoopModel {
     private long totalTritiumProduced = 0;
     private long totalMethaneProduced = 0;
     private double totalSecondarySteamProduced = 0.0;
+    private double totalHeatExtractedJoules = 0.0;
+    private double totalHeatExtractedHut = 0.0;
     private int neutronTransmuteAccumulator = 0;
 
     // Polynomial coefficients derived from detailed hydrodynamic CFD simulation:
@@ -599,6 +598,7 @@ public class CoolantLoopModel {
         // If no passage tiles are attached, the loop circulates without core thermal exchange
         if (passageTiles.isEmpty()) {
             lastHeatExtractedWatts = 0.0;
+            lastHeatExtractedHut = 0.0;
             lastHeatExtractedEUt = 0.0;
             lastSecondarySteamProducedLt = 0.0;
             lastSecondaryWaterBoiledLt = 0.0;
@@ -669,7 +669,10 @@ public class CoolantLoopModel {
         }
 
         lastHeatExtractedWatts = totalHeatExtractedJoulesTick / 0.05;
-        lastHeatExtractedEUt = totalHeatExtractedJoulesTick / 128.0;
+        lastHeatExtractedHut = totalHeatExtractedJoulesTick / 128.0;
+        lastHeatExtractedEUt = lastHeatExtractedHut;
+        totalHeatExtractedJoules += totalHeatExtractedJoulesTick;
+        totalHeatExtractedHut += lastHeatExtractedHut;
 
         // 7. Coolant Temperature Rise
         // Mass flow per tick (kg)
@@ -716,6 +719,7 @@ public class CoolantLoopModel {
         this.currentPressureBar = 1.0;
         this.currentCoolantTempCelsius = NuclearSimulationEngine.ambientTemp;
         this.lastHeatExtractedWatts = 0.0;
+        this.lastHeatExtractedHut = 0.0;
         this.lastHeatExtractedEUt = 0.0;
         this.lastSecondarySteamProducedLt = 0.0;
         this.lastSecondaryWaterBoiledLt = 0.0;
@@ -724,6 +728,8 @@ public class CoolantLoopModel {
         this.totalTritiumProduced = 0;
         this.totalMethaneProduced = 0;
         this.totalSecondarySteamProduced = 0.0;
+        this.totalHeatExtractedJoules = 0.0;
+        this.totalHeatExtractedHut = 0.0;
         this.neutronTransmuteAccumulator = 0;
     }
 
@@ -896,8 +902,32 @@ public class CoolantLoopModel {
         return lastHeatExtractedWatts;
     }
 
+    public double getLastHeatExtractedHut() {
+        return lastHeatExtractedHut;
+    }
+
+    public double getTotalHeatExtractedJoules() {
+        return totalHeatExtractedJoules;
+    }
+
+    public double getTotalHeatExtractedHut() {
+        return totalHeatExtractedHut;
+    }
+
+    /**
+     * @deprecated Use {@link #getTotalHeatExtractedHut()} instead.
+     */
+    @Deprecated
+    public double getTotalHeatExtractedEUt() {
+        return totalHeatExtractedHut;
+    }
+
+    /**
+     * @deprecated Use {@link #getLastHeatExtractedHut()} instead.
+     */
+    @Deprecated
     public double getLastHeatExtractedEUt() {
-        return lastHeatExtractedEUt;
+        return lastHeatExtractedHut;
     }
 
     public double getLastSecondarySteamProducedLt() {

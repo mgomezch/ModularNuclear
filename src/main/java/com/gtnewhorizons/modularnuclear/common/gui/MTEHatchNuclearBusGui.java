@@ -64,12 +64,12 @@ public class MTEHatchNuclearBusGui extends MTEHatchBaseGui<MTEHatchNuclearBus> {
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(
-            IKey.dynamic(() -> EnumChatFormatting.AQUA + String.format("Fast: %d n/t", machine.mLastFastFlux))
+            IKey.dynamic(() -> EnumChatFormatting.AQUA + String.format("Fast: %d n/s", machine.mLastFastFlux))
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(
-            IKey.dynamic(() -> EnumChatFormatting.BLUE + String.format("Thermal: %d n/t", machine.mLastThermalFlux))
+            IKey.dynamic(() -> EnumChatFormatting.BLUE + String.format("Thermal: %d n/s", machine.mLastThermalFlux))
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
@@ -82,7 +82,7 @@ public class MTEHatchNuclearBusGui extends MTEHatchBaseGui<MTEHatchNuclearBus> {
             } else if (damp > 0.0) {
                 return EnumChatFormatting.LIGHT_PURPLE + String.format("Insulation: %.0f%%", damp * 100.0);
             }
-            return EnumChatFormatting.GRAY + String.format("Neutrons: %d/t", machine.mLastNeutronsGenerated);
+            return EnumChatFormatting.GRAY + String.format("Neutrons: %d n/s", machine.mLastNeutronsGenerated);
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
@@ -103,7 +103,10 @@ public class MTEHatchNuclearBusGui extends MTEHatchBaseGui<MTEHatchNuclearBus> {
 
         inputCol.child(
             new ItemSlot()
-                .slot(new ModularSlot(machine.inventoryHandler, MTEHatchNuclearBus.SLOT_INPUT).singletonSlotGroup())
+                .slot(
+                    new ModularSlot(machine.inventoryHandler, MTEHatchNuclearBus.SLOT_INPUT)
+                        .filter(machine::isItemAllowed)
+                        .singletonSlotGroup())
                 .backgroundOverlay(GTGuiTextures.OVERLAY_SLOT_IN_STANDARD));
 
         mainRow.child(inputCol);

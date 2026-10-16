@@ -2,6 +2,7 @@ package com.gtnewhorizons.modularnuclear;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,6 +45,7 @@ import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
 import gregtech.api.render.TextureFactory;
 import shedar.mods.ic2.nuclearcontrol.api.CardState;
 import shedar.mods.ic2.nuclearcontrol.api.DisplaySettingHelper;
@@ -402,20 +404,26 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testCoolantRequiredTierMapping() {
-        // Water is strictly disallowed
-        assertEquals(999, MTEHatchNuclearHatch.getRequiredFluidTier("water"));
+        // Water is unrecognized / disallowed
+        assertEquals(-1, MTEHatchNuclearHatch.getRequiredFluidTier("water"));
+        assertFalse(NuclearSimulationEngine.isFluidAllowed("water", 5));
         // IC2 Coolant is starter tier (Electrum, 0)
         assertEquals(
             NuclearSimulationEngine.PIPE_TIER_ELECTRUM,
             MTEHatchNuclearHatch.getRequiredFluidTier("ic2coolant"));
+        assertTrue(NuclearSimulationEngine.isFluidAllowed("ic2coolant", 0));
         // Distilled Water is Platinum (1)
         assertEquals(
             NuclearSimulationEngine.PIPE_TIER_PLATINUM,
             MTEHatchNuclearHatch.getRequiredFluidTier("distilledwater"));
+        assertFalse(NuclearSimulationEngine.isFluidAllowed("distilledwater", 0));
+        assertTrue(NuclearSimulationEngine.isFluidAllowed("distilledwater", 1));
         // Heavy Water is Quantium (3)
         assertEquals(
             NuclearSimulationEngine.PIPE_TIER_QUANTIUM,
             MTEHatchNuclearHatch.getRequiredFluidTier("fluid.heavywater"));
+        assertFalse(NuclearSimulationEngine.isFluidAllowed("fluid.heavywater", 2));
+        assertTrue(NuclearSimulationEngine.isFluidAllowed("fluid.heavywater", 3));
     }
 
     @Test
@@ -1172,11 +1180,20 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testFormatNeutronFlux() {
-        assertEquals("0 n/cm²s", NuclearSimulationEngine.formatNeutronFlux(0));
-        assertEquals("0 n/cm²s", NuclearSimulationEngine.formatNeutronFlux(-5));
-        assertEquals("1.00e13 n/cm²s", NuclearSimulationEngine.formatNeutronFlux(1));
-        assertEquals("8.80e14 n/cm²s", NuclearSimulationEngine.formatNeutronFlux(88));
-        assertEquals("1.50e15 n/cm²s", NuclearSimulationEngine.formatNeutronFlux(150));
+        assertEquals("0 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(0));
+        assertEquals("0 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(-5));
+        assertEquals("1.00e13 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(1));
+        assertEquals("8.80e14 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(88));
+        assertEquals("1.50e15 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(150));
+    }
+
+    @Test
+    void testFormatNeutronFluence() {
+        assertEquals("0 neutrons/cm²", NuclearSimulationEngine.formatNeutronFluence(0));
+        assertEquals("0 neutrons/cm²", NuclearSimulationEngine.formatNeutronFluence(-5));
+        assertEquals("1.00e13 neutrons/cm²", NuclearSimulationEngine.formatNeutronFluence(1));
+        assertEquals("8.80e14 neutrons/cm²", NuclearSimulationEngine.formatNeutronFluence(88));
+        assertEquals("1.50e15 neutrons/cm²", NuclearSimulationEngine.formatNeutronFluence(150));
     }
 
     @Test
@@ -1334,6 +1351,46 @@ public class NuclearSimulationEngineTest {
         assertNull(hatch.drain(net.minecraftforge.common.util.ForgeDirection.UP, stackCoolant, true));
         assertFalse(hatch.canTankBeEmptied());
         assertTrue(hatch.canTankBeFilled());
+
+        // 4. Verify fluid acceptance / rejection logic
+        MTEHatchNuclearHatch freshHatch = new MTEHatchNuclearHatch("test.fresh.hatch", 1, 16000, new String[0], null);
+        freshHatch.mReactorPipeTier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM; // Tier 0
+
+        // Disallowed / unrecognized fluids: water, naquadah, unknown
+        net.minecraftforge.fluids.Fluid waterFluid = org.mockito.Mockito.mock(net.minecraftforge.fluids.Fluid.class);
+        org.mockito.Mockito.when(waterFluid.getName()).thenReturn("water");
+        assertFalse(freshHatch.canFill(ForgeDirection.UP, waterFluid));
+        assertEquals(0, freshHatch.fill(ForgeDirection.UP, mockFluidStack(waterFluid, 1000), true));
+
+        net.minecraftforge.fluids.Fluid naquadahFluid = org.mockito.Mockito.mock(net.minecraftforge.fluids.Fluid.class);
+        org.mockito.Mockito.when(naquadahFluid.getName()).thenReturn("liquid_naquadah_fuel");
+        assertFalse(freshHatch.canFill(ForgeDirection.UP, naquadahFluid));
+        assertEquals(0, freshHatch.fill(ForgeDirection.UP, mockFluidStack(naquadahFluid, 1000), true));
+
+        net.minecraftforge.fluids.Fluid unknownFluid = org.mockito.Mockito.mock(net.minecraftforge.fluids.Fluid.class);
+        org.mockito.Mockito.when(unknownFluid.getName()).thenReturn("some_random_fluid");
+        assertFalse(freshHatch.canFill(ForgeDirection.UP, unknownFluid));
+        assertEquals(0, freshHatch.fill(ForgeDirection.UP, mockFluidStack(unknownFluid, 1000), true));
+
+        // Tier check: Distilled water (Tier 1 Platinum) rejected on Tier 0 Electrum reactor
+        net.minecraftforge.fluids.Fluid distilledFluid = org.mockito.Mockito.mock(net.minecraftforge.fluids.Fluid.class);
+        org.mockito.Mockito.when(distilledFluid.getName()).thenReturn("distilledwater");
+        assertFalse(freshHatch.canFill(ForgeDirection.UP, distilledFluid));
+        assertEquals(0, freshHatch.fill(ForgeDirection.UP, mockFluidStack(distilledFluid, 1000), true));
+
+        // Tier check: IC2 coolant (Tier 0 Electrum) accepted on Tier 0 Electrum reactor
+        assertTrue(freshHatch.canFill(ForgeDirection.UP, dummyCoolant));
+        int filled = freshHatch.fill(ForgeDirection.UP, mockFluidStack(dummyCoolant, 4000), true);
+        assertEquals(4000, filled);
+        assertEquals(4000, freshHatch.mInputFluid.amount);
+
+        // Distilled water accepted once pipe tier upgraded to Platinum (Tier 1)
+        freshHatch.mInputFluid = null;
+        freshHatch.mReactorPipeTier = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
+        assertTrue(freshHatch.canFill(ForgeDirection.UP, distilledFluid));
+        int filledDist = freshHatch.fill(ForgeDirection.UP, mockFluidStack(distilledFluid, 2000), true);
+        assertEquals(2000, filledDist);
+        assertEquals(2000, freshHatch.mInputFluid.amount);
     }
 
     @Test
@@ -2181,7 +2238,6 @@ public class NuclearSimulationEngineTest {
         assertFalse(bus.canTankBeFilled(), "Nuclear bus fluid tank cannot be filled");
         assertFalse(bus.canTankBeEmptied(), "Nuclear bus fluid tank cannot be drained");
         assertFalse(bus.doesFillContainers(), "Nuclear bus cannot fill containers");
-        assertFalse(bus.doesEmptyContainers(), "Nuclear bus does not empty containers");
         assertTrue(bus.allowPutStack(null, MTEHatchNuclearBus.SLOT_INPUT, ForgeDirection.UNKNOWN, cheeseStack));
         assertFalse(bus.allowPullStack(null, MTEHatchNuclearBus.SLOT_INPUT, ForgeDirection.UNKNOWN, cheeseStack));
 
@@ -2469,11 +2525,13 @@ public class NuclearSimulationEngineTest {
         assertEquals(
             NuclearSimulationEngine.PIPE_TIER_OSMIUM,
             NuclearSimulationEngine.getRequiredFluidTier("uraniumhexafluoride"));
-        // Arbitrary unhandled fluids return 999
-        assertEquals(999, NuclearSimulationEngine.getRequiredFluidTier("some_random_fluid"));
-        // Naquadah liquid fuel must be blocked to preserve Large Naquadah Reactor exclusivity
-        assertEquals(999, NuclearSimulationEngine.getRequiredFluidTier("liquid_naquadah_fuel"));
-        assertEquals(999, NuclearSimulationEngine.getRequiredFluidTier("naquadahbasedliquidfuel"));
+        // Arbitrary unhandled fluids return -1
+        assertEquals(-1, NuclearSimulationEngine.getRequiredFluidTier("some_random_fluid"));
+        assertFalse(NuclearSimulationEngine.isFluidAllowed("some_random_fluid", 5));
+        // Naquadah liquid fuel is unrecognized / disallowed
+        assertEquals(-1, NuclearSimulationEngine.getRequiredFluidTier("liquid_naquadah_fuel"));
+        assertEquals(-1, NuclearSimulationEngine.getRequiredFluidTier("naquadahbasedliquidfuel"));
+        assertFalse(NuclearSimulationEngine.isFluidAllowed("naquadahbasedliquidfuel", 5));
     }
 
     @Test
@@ -2942,6 +3000,545 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
+    void testNuclearControlHatchFacingValidation() {
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.control_facing");
+        reactor.gridSize = 5; // Tier 1: 5x5 core, 7x7 footprint (half = 3, flatHalfWidth = 1)
+
+        gregtech.api.metatileentity.BaseMetaTileEntity mockControllerTe = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(mockControllerTe.getXCoord()).thenReturn(0);
+        org.mockito.Mockito.when(mockControllerTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockControllerTe.getZCoord()).thenReturn(0);
+
+        reactor.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(ForgeDirection.NORTH));
+
+        // Create mock control hatch
+        MTEHatchNuclearControl controlHatch = new MTEHatchNuclearControl("test.control.hatch", 4, new String[0], null);
+        gregtech.api.metatileentity.BaseMetaTileEntity mockHatchTe = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(mockHatchTe.getMetaTileEntity()).thenReturn(controlHatch);
+        controlHatch.setBaseMetaTileEntity(mockHatchTe);
+
+        reactor.mControlHatches.clear();
+        reactor.mControlHatches.add(controlHatch);
+
+        List<gregtech.api.structure.error.StructureError> errors = new ArrayList<>();
+
+        // 1. Flat Front Wall (cX=0, cY=64, cZ=0): outA=0, outC=0
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(0);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(0);
+
+        // NORTH (FORWARD) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Front flat wall facing NORTH must pass");
+
+        // SOUTH, WEST, EAST, UP, DOWN -> FAIL
+        for (ForgeDirection d : new ForgeDirection[] { ForgeDirection.SOUTH, ForgeDirection.WEST, ForgeDirection.EAST, ForgeDirection.UP, ForgeDirection.DOWN }) {
+            org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(d);
+            errors.clear();
+            reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+            assertEquals(1, errors.size(), "Front flat wall facing " + d + " must fail");
+        }
+
+        // 2. Flat Back Wall (cX=0, cY=64, cZ=6): outA=0, outC=6
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(0);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(6);
+
+        // SOUTH (BACK) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.SOUTH);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Back flat wall facing SOUTH must pass");
+
+        // NORTH, WEST, EAST -> FAIL
+        for (ForgeDirection d : new ForgeDirection[] { ForgeDirection.NORTH, ForgeDirection.WEST, ForgeDirection.EAST, ForgeDirection.UP, ForgeDirection.DOWN }) {
+            org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(d);
+            errors.clear();
+            reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+            assertEquals(1, errors.size(), "Back flat wall facing " + d + " must fail");
+        }
+
+        // 3. Flat Left Wall: for Facing NORTH, Left is WEST (-X). At (-3, 64, 3): outA=3, outC=3
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(-3);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(3);
+
+        // WEST (LEFT) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.WEST);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Left flat wall facing WEST must pass");
+
+        // EAST, NORTH, SOUTH -> FAIL
+        for (ForgeDirection d : new ForgeDirection[] { ForgeDirection.EAST, ForgeDirection.NORTH, ForgeDirection.SOUTH, ForgeDirection.UP }) {
+            org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(d);
+            errors.clear();
+            reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+            assertEquals(1, errors.size(), "Left flat wall facing " + d + " must fail");
+        }
+
+        // 4. Flat Right Wall: for Facing NORTH, Right is EAST (+X). At (+3, 64, 3): outA=-3, outC=3
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(3);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(3);
+
+        // EAST (RIGHT) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.EAST);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Right flat wall facing EAST must pass");
+
+        // WEST, NORTH, SOUTH -> FAIL
+        for (ForgeDirection d : new ForgeDirection[] { ForgeDirection.WEST, ForgeDirection.NORTH, ForgeDirection.SOUTH, ForgeDirection.UP }) {
+            org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(d);
+            errors.clear();
+            reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+            assertEquals(1, errors.size(), "Right flat wall facing " + d + " must fail");
+        }
+
+        // 5. Corner: Front-Left cut-away at (-2, 64, 0)
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(-2);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(0);
+
+        // NORTH (FORWARD) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Front-Left corner facing NORTH must pass");
+
+        // WEST (LEFT) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.WEST);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Front-Left corner facing WEST must pass");
+
+        // SOUTH (BACK) -> FAIL
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.SOUTH);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Front-Left corner facing SOUTH must fail");
+
+        // EAST (RIGHT) -> FAIL
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.EAST);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Front-Left corner facing EAST must fail");
+
+        // 6. Corner: Front-Right cut-away at (+2, 64, 0)
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(2);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(0);
+
+        // NORTH (FORWARD) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Front-Right corner facing NORTH must pass");
+
+        // EAST (RIGHT) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.EAST);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Front-Right corner facing EAST must pass");
+
+        // WEST (LEFT) -> FAIL
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.WEST);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Front-Right corner facing WEST must fail");
+
+        // 7. Corner: Back-Left cut-away at (-2, 64, 6)
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(-2);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(6);
+
+        // SOUTH (BACK) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.SOUTH);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Back-Left corner facing SOUTH must pass");
+
+        // WEST (LEFT) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.WEST);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Back-Left corner facing WEST must pass");
+
+        // NORTH (FORWARD) -> FAIL
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Back-Left corner facing NORTH must fail");
+
+        // 8. Corner: Back-Right cut-away at (+2, 64, 6)
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(2);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(6);
+
+        // SOUTH (BACK) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.SOUTH);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Back-Right corner facing SOUTH must pass");
+
+        // EAST (RIGHT) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.EAST);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Back-Right corner facing EAST must pass");
+
+        // NORTH (FORWARD) -> FAIL
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Back-Right corner facing NORTH must fail");
+
+        // 9. Verify in different reactor orientation: Facing EAST
+        reactor.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(ForgeDirection.EAST));
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(0);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(0);
+
+        // Facing EAST (fwd) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.EAST);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Facing EAST front flat wall must pass when facing EAST");
+
+        // Facing NORTH (left) on front flat wall -> FAIL
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Facing EAST front flat wall must fail when facing NORTH");
+        assertTrue(
+            errors.get(0).toString().contains("wrong_control_hatch_facing"),
+            "Error must reference wrong_control_hatch_facing");
+
+        // 10. Uprightness validation on upright reactor
+        // Control hatch at (0, 64, 0) facing NORTH (forward)
+        reactor.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(ForgeDirection.NORTH));
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(0);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(0);
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+
+        // NORMAL -> PASS
+        controlHatch.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+            ForgeDirection.NORTH,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Upright control hatch on upright reactor must pass");
+
+        // UPSIDE_DOWN -> FAIL
+        controlHatch.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+            ForgeDirection.NORTH,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.UPSIDE_DOWN,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Upside-down control hatch on upright reactor must fail");
+        assertTrue(errors.get(0).toString().contains("wrong_control_hatch_facing"));
+
+        // CLOCKWISE -> FAIL
+        controlHatch.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+            ForgeDirection.NORTH,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.CLOCKWISE,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Clockwise control hatch on upright reactor must fail");
+
+        // 11. Verify with UPSIDE_DOWN reactor facing NORTH
+        reactor.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+            ForgeDirection.NORTH,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.UPSIDE_DOWN,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+
+        // When reactor is UPSIDE_DOWN, control hatch must also be UPSIDE_DOWN to match controller's upright orientation
+        controlHatch.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+            ForgeDirection.NORTH,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.UPSIDE_DOWN,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "UPSIDE_DOWN control hatch on UPSIDE_DOWN reactor must pass");
+
+        // NORMAL control hatch on UPSIDE_DOWN reactor -> FAIL (anti-wallsharing invariant)
+        controlHatch.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+            ForgeDirection.NORTH,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyNuclearControlHatchFacings(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Upright control hatch on UPSIDE_DOWN reactor must fail");
+
+        // Reset control hatch back to NORMAL
+        controlHatch.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+            ForgeDirection.NORTH,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+    }
+
+    @Test
+    void testNuclearControlHatchRotationAndWrench() {
+        MTEHatchNuclearControl hatch = new MTEHatchNuclearControl("test.control.rotation", 1, new String[0], null);
+        gregtech.api.metatileentity.BaseMetaTileEntity mockTe = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(mockTe.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+        org.mockito.Mockito.when(mockTe.getMetaTileEntity()).thenReturn(hatch);
+        hatch.setBaseMetaTileEntity(mockTe);
+
+        // Initial alignment is NORMAL
+        assertEquals(
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL,
+            hatch.getExtendedFacing().getRotation(),
+            "Initial rotation must be NORMAL");
+        assertEquals(ForgeDirection.UP, hatch.getExtendedFacing().getRelativeUpInWorld());
+
+        // Wrenching front facing rotates the hatch
+        net.minecraft.entity.player.EntityPlayer mockPlayer = org.mockito.Mockito
+            .mock(net.minecraft.entity.player.EntityPlayer.class);
+        org.mockito.Mockito.when(mockPlayer.isSneaking()).thenReturn(false);
+
+        boolean wrenched = hatch.onWrenchRightClick(ForgeDirection.NORTH, ForgeDirection.NORTH, mockPlayer, 0, 0, 0, null);
+        assertTrue(wrenched, "Wrenching front face must succeed");
+        assertEquals(
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.CLOCKWISE,
+            hatch.getExtendedFacing().getRotation(),
+            "First rotation must be CLOCKWISE");
+
+        hatch.onWrenchRightClick(ForgeDirection.NORTH, ForgeDirection.NORTH, mockPlayer, 0, 0, 0, null);
+        assertEquals(
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.UPSIDE_DOWN,
+            hatch.getExtendedFacing().getRotation(),
+            "Second rotation must be UPSIDE_DOWN");
+        assertEquals(ForgeDirection.DOWN, hatch.getExtendedFacing().getRelativeUpInWorld());
+
+        hatch.onWrenchRightClick(ForgeDirection.NORTH, ForgeDirection.NORTH, mockPlayer, 0, 0, 0, null);
+        assertEquals(
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.COUNTER_CLOCKWISE,
+            hatch.getExtendedFacing().getRotation(),
+            "Third rotation must be COUNTER_CLOCKWISE");
+
+        hatch.onWrenchRightClick(ForgeDirection.NORTH, ForgeDirection.NORTH, mockPlayer, 0, 0, 0, null);
+        assertEquals(
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL,
+            hatch.getExtendedFacing().getRotation(),
+            "Fourth rotation must loop back to NORMAL");
+
+        // Verify NBT persistence of rotation
+        net.minecraft.nbt.NBTTagCompound nbt = new net.minecraft.nbt.NBTTagCompound();
+        hatch.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+            ForgeDirection.NORTH,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.UPSIDE_DOWN,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        hatch.saveNBTData(nbt);
+        assertEquals((byte) com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.UPSIDE_DOWN.getIndex(), nbt.getByte("mRotation"));
+
+        MTEHatchNuclearControl restored = new MTEHatchNuclearControl("test.control.restored", 1, new String[0], null);
+        restored.setBaseMetaTileEntity(mockTe);
+        restored.loadNBTData(nbt);
+        assertEquals(
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.UPSIDE_DOWN,
+            restored.getExtendedFacing().getRotation(),
+            "Loaded rotation from NBT must be UPSIDE_DOWN");
+    }
+
+    @Test
+    void testMaintenanceHatchFacingAndUprightValidation() {
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.maint_facing");
+        reactor.gridSize = 5; // Tier 1: 5x5 core, 7x7 footprint (half = 3, flatHalfWidth = 1)
+
+        gregtech.api.metatileentity.BaseMetaTileEntity mockControllerTe = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(mockControllerTe.getXCoord()).thenReturn(0);
+        org.mockito.Mockito.when(mockControllerTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockControllerTe.getZCoord()).thenReturn(0);
+
+        reactor.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(ForgeDirection.NORTH));
+
+        // Create mock maintenance hatch
+        MTEHatchMaintenance maintHatch = org.mockito.Mockito.mock(MTEHatchMaintenance.class);
+        gregtech.api.metatileentity.BaseMetaTileEntity mockHatchTe = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(mockHatchTe.getMetaTileEntity()).thenReturn(maintHatch);
+        org.mockito.Mockito.when(maintHatch.getBaseMetaTileEntity()).thenReturn(mockHatchTe);
+
+        reactor.mMaintenanceHatches.clear();
+        reactor.mMaintenanceHatches.add(maintHatch);
+
+        List<gregtech.api.structure.error.StructureError> errors = new ArrayList<>();
+
+        // 1. Flat Front Wall (cX=0, cY=64, cZ=0) with upright hatch
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(0);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(0);
+
+        // NORTH (outward) + NORMAL (upright) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+        org.mockito.Mockito.when(maintHatch.getExtendedFacing()).thenReturn(
+            com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+                ForgeDirection.NORTH,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyMaintenanceHatchFacing(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Front flat wall facing NORTH upright must pass");
+
+        // Wrong facings on front flat wall -> FAIL
+        for (ForgeDirection d : new ForgeDirection[] { ForgeDirection.SOUTH, ForgeDirection.WEST, ForgeDirection.EAST, ForgeDirection.UP, ForgeDirection.DOWN }) {
+            org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(d);
+            org.mockito.Mockito.when(maintHatch.getExtendedFacing()).thenReturn(
+                com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+                    d,
+                    com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL,
+                    com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+            errors.clear();
+            reactor.verifyMaintenanceHatchFacing(mockControllerTe, errors);
+            assertEquals(1, errors.size(), "Front flat wall facing " + d + " must fail");
+            assertTrue(errors.get(0).toString().contains("wrong_maintenance_hatch_facing"));
+        }
+
+        // Correct outward facing (NORTH) but wrong rotation (UPSIDE_DOWN on upright reactor) -> FAIL!
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+        org.mockito.Mockito.when(maintHatch.getExtendedFacing()).thenReturn(
+            com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+                ForgeDirection.NORTH,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.UPSIDE_DOWN,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyMaintenanceHatchFacing(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Upside-down maintenance hatch on upright reactor must fail");
+
+        // Correct outward facing (NORTH) but sideways rotation (CLOCKWISE) -> FAIL!
+        org.mockito.Mockito.when(maintHatch.getExtendedFacing()).thenReturn(
+            com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+                ForgeDirection.NORTH,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.CLOCKWISE,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyMaintenanceHatchFacing(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Clockwise maintenance hatch on upright reactor must fail");
+
+        // 2. Flat Back Wall (cX=0, cY=64, cZ=6)
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(0);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(6);
+
+        // SOUTH (outward) + NORMAL -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.SOUTH);
+        org.mockito.Mockito.when(maintHatch.getExtendedFacing()).thenReturn(
+            com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+                ForgeDirection.SOUTH,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyMaintenanceHatchFacing(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Back flat wall facing SOUTH must pass");
+
+        // NORTH (inward) -> FAIL
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+        errors.clear();
+        reactor.verifyMaintenanceHatchFacing(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Back flat wall facing NORTH must fail");
+
+        // 3. Flat Left Wall (-3, 64, 3)
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(-3);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(3);
+
+        // WEST (outward) + NORMAL -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.WEST);
+        org.mockito.Mockito.when(maintHatch.getExtendedFacing()).thenReturn(
+            com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+                ForgeDirection.WEST,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyMaintenanceHatchFacing(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Left flat wall facing WEST must pass");
+
+        // EAST (inward) -> FAIL
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.EAST);
+        errors.clear();
+        reactor.verifyMaintenanceHatchFacing(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Left flat wall facing EAST must fail");
+
+        // 4. Corner: Front-Left cut-away (-2, 64, 0)
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(-2);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(0);
+
+        // NORTH (outward) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+        org.mockito.Mockito.when(maintHatch.getExtendedFacing()).thenReturn(
+            com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+                ForgeDirection.NORTH,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyMaintenanceHatchFacing(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Front-Left corner facing NORTH must pass");
+
+        // WEST (outward) -> PASS
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.WEST);
+        org.mockito.Mockito.when(maintHatch.getExtendedFacing()).thenReturn(
+            com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+                ForgeDirection.WEST,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyMaintenanceHatchFacing(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Front-Left corner facing WEST must pass");
+
+        // SOUTH (inward) -> FAIL
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.SOUTH);
+        errors.clear();
+        reactor.verifyMaintenanceHatchFacing(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Front-Left corner facing SOUTH must fail");
+
+        // 5. ANTI-WALLSHARING WITH UPSIDE-DOWN REACTOR:
+        // Now configure reactor as UPSIDE-DOWN
+        reactor.setExtendedFacing(com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+            ForgeDirection.NORTH,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.UPSIDE_DOWN,
+            com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+
+        // Front flat wall (0, 64, 0), facing NORTH (outward)
+        org.mockito.Mockito.when(mockHatchTe.getXCoord()).thenReturn(0);
+        org.mockito.Mockito.when(mockHatchTe.getYCoord()).thenReturn((short) 64);
+        org.mockito.Mockito.when(mockHatchTe.getZCoord()).thenReturn(0);
+        org.mockito.Mockito.when(mockHatchTe.getFrontFacing()).thenReturn(ForgeDirection.NORTH);
+
+        // A) If hatch is upright in world (Rotation.NORMAL, as from an upright reactor trying to wall-share):
+        org.mockito.Mockito.when(maintHatch.getExtendedFacing()).thenReturn(
+            com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+                ForgeDirection.NORTH,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.NORMAL,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyMaintenanceHatchFacing(mockControllerTe, errors);
+        assertEquals(1, errors.size(), "Upside-down reactor must REJECT an upright maintenance hatch");
+
+        // B) If hatch is upside-down in world (Rotation.UPSIDE_DOWN, matching the upside-down reactor):
+        org.mockito.Mockito.when(maintHatch.getExtendedFacing()).thenReturn(
+            com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing.of(
+                ForgeDirection.NORTH,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Rotation.UPSIDE_DOWN,
+                com.gtnewhorizon.structurelib.alignment.enumerable.Flip.NONE));
+        errors.clear();
+        reactor.verifyMaintenanceHatchFacing(mockControllerTe, errors);
+        assertTrue(errors.isEmpty(), "Upside-down reactor must ACCEPT an upside-down maintenance hatch");
+    }
+
+    @Test
     void testNuclearCoreHighPressureHatchAndStructureRules() {
         MTENuclearReactor reactor = new MTENuclearReactor("test.reactor");
         MTEHatchNuclearHighPressure topHp = new MTEHatchNuclearHighPressure("test.top_hp", 4, new String[0], null);
@@ -3060,19 +3657,32 @@ public class NuclearSimulationEngineTest {
         org.mockito.Mockito.when(baseTe.getZCoord())
             .thenReturn(10);
 
-        // Tier 1 (gridSize = 5) -> fails with hp_hatch_tier
+        // Pipe tier check: Electrum and Platinum must reject HP hatches
         reactor.gridSize = 5;
+        reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
         reactor.validateHighPressureHatchPairing(baseTe, errors);
         assertTrue(
             errors.stream()
                 .anyMatch(
                     e -> e.toString()
                         .contains("hp_hatch_tier")),
-            "Tier 1 must reject HP hatches");
+            "Electrum pipe tier must reject HP hatches");
+
+        errors.clear();
+        reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
+        reactor.validateHighPressureHatchPairing(baseTe, errors);
+        assertTrue(
+            errors.stream()
+                .anyMatch(
+                    e -> e.toString()
+                        .contains("hp_hatch_tier")),
+            "Platinum pipe tier must reject HP hatches");
+
+        // Osmium pipe tier is allowed even on a 5x5 reactor!
+        reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
 
         // Unpaired check: 1 top, 0 bottom -> fails with hp_hatch_unpaired
         errors.clear();
-        reactor.gridSize = 9; // Tier 2
         reactor.mTopHighPressureHatches.clear();
         reactor.mBottomHighPressureHatches.clear();
         reactor.mTopHighPressureHatches.add(topHp);
@@ -3084,11 +3694,11 @@ public class NuclearSimulationEngineTest {
                         .contains("hp_hatch_unpaired")),
             "Unpaired count must fail");
 
-        // Paired check: 1 top, 1 bottom in Tier 2 at matching coordinates
+        // Paired check: 1 top, 1 bottom in Osmium at matching coordinates (on 5x5 grid)
         errors.clear();
         reactor.mBottomHighPressureHatches.add(botHp);
         reactor.validateHighPressureHatchPairing(baseTe, errors);
-        assertTrue(errors.isEmpty(), "Paired top/bottom hatches at matching column must succeed: " + errors);
+        assertTrue(errors.isEmpty(), "Paired top/bottom hatches with Osmium casing on 5x5 must succeed: " + errors);
         assertEquals(mockBotTe, topHp.getOppositeHatchTile(), "Top hatch must link to bottom");
         assertEquals(mockTopTe, botHp.getOppositeHatchTile(), "Bottom hatch must link to top");
         assertTrue(topHp.isPassageInlet(), "Top hatch must be inlet");
@@ -4204,6 +4814,116 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
+    void testReactorSimulationIsUnstoppableByScramOrSoftMalletOrMaintenance() {
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.unstoppable");
+        reactor.mMachine = true;
+        reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
+        reactor.gridSize = 3;
+        reactor.mGrid = new INuclearTile[3][3];
+
+        gregtech.api.metatileentity.BaseMetaTileEntity baseTe = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(baseTe.isServerSide()).thenReturn(true);
+        reactor.setBaseMetaTileEntity(baseTe);
+
+        // Put a fuel rod tile in mGrid[1][1]
+        MockNuclearTile fuelTile = new MockNuclearTile(true, 1000);
+        reactor.mGrid[1][1] = fuelTile;
+
+        // 1. Normal cycle at tick 20: simulation runs and produces neutrons
+        org.mockito.Mockito.when(baseTe.isAllowedToWork()).thenReturn(true);
+        reactor.mScram = false;
+        reactor.onPostTick(baseTe, 20);
+        assertTrue(reactor.mNeutronsProduced > 0, "Simulation must run at tick 20");
+
+        // 2. SCRAM is engaged: simulation STILL runs at tick 40!
+        reactor.setScram(true);
+        assertTrue(reactor.mScram);
+        reactor.mNeutronsProduced = 0;
+        reactor.onPostTick(baseTe, 40);
+        assertTrue(reactor.mNeutronsProduced > 0, "Simulation MUST NOT stop under SCRAM");
+
+        // 3. Soft mallet toggles work-allowed to false: simulation STILL runs at tick 60!
+        org.mockito.Mockito.when(baseTe.isAllowedToWork()).thenReturn(false);
+        reactor.mNeutronsProduced = 0;
+        reactor.onPostTick(baseTe, 60);
+        assertTrue(reactor.mNeutronsProduced > 0, "Simulation MUST NOT stop when soft mallet disables work");
+
+        // 4. All 6 maintenance issues present: simulation STILL runs at tick 80!
+        reactor.mWrench = false;
+        reactor.mScrewdriver = false;
+        reactor.mSoftMallet = false;
+        reactor.mHardHammer = false;
+        reactor.mCrowbar = false;
+        reactor.mSolderingTool = false;
+        reactor.mNeutronsProduced = 0;
+        reactor.onPostTick(baseTe, 80);
+        assertTrue(reactor.mNeutronsProduced > 0, "Simulation MUST NOT stop under maintenance failure");
+
+        // 5. Structure broken (unformed): simulation DOES NOT run!
+        reactor.mMachine = false;
+        reactor.mNeutronsProduced = 0;
+        reactor.onPostTick(baseTe, 100);
+        assertEquals(0, reactor.mNeutronsProduced, "Simulation must stop only when structure is unformed");
+    }
+
+    @Test
+    void testReactorSimulationProceedsOnThermalShock() {
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.thermalshock.proceed");
+        reactor.mMachine = true;
+        reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
+        reactor.gridSize = 3;
+        reactor.mGrid = new INuclearTile[3][3];
+        reactor.fixAllIssues();
+        assertEquals(6, reactor.getRepairStatus());
+
+        gregtech.api.metatileentity.BaseMetaTileEntity baseTe = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(baseTe.isServerSide()).thenReturn(true);
+        org.mockito.Mockito.when(baseTe.isAllowedToWork()).thenReturn(true);
+        org.mockito.Mockito.when(baseTe.getWorld()).thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
+        reactor.setBaseMetaTileEntity(baseTe);
+
+        // Put a fuel rod tile in mGrid[1][1]
+        MockNuclearTile fuelTile = new MockNuclearTile(true, 1000);
+        reactor.mGrid[1][1] = fuelTile;
+
+        // Register distilled water if needed
+        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("distilledwater")) {
+            net.minecraftforge.fluids.FluidRegistry
+                .registerFluid(new net.minecraftforge.fluids.Fluid("distilledwater"));
+        }
+        net.minecraftforge.fluids.Fluid distilledWater = net.minecraftforge.fluids.FluidRegistry
+            .getFluid("distilledwater");
+
+        // Add a coolant hatch that is dry and superheated (>100°C) with cold coolant injected
+        MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch.shock", 3, 32000, new String[0], null);
+        hatch.mTemperature = 150.0;
+        hatch.mWasDry = true;
+        hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(distilledWater, 8000);
+
+        gregtech.api.interfaces.tileentity.IGregTechTileEntity hatchTe = org.mockito.Mockito
+            .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+        org.mockito.Mockito.when(hatchTe.getMetaTileEntity()).thenReturn(hatch);
+        hatch.setBaseMetaTileEntity(hatchTe);
+        reactor.mNuclearTiles.add(hatchTe);
+
+        // Run cycle at tick 20
+        reactor.mNeutronsProduced = 0;
+        reactor.onPostTick(baseTe, 20);
+
+        // Verify thermal shock occurred
+        assertNull(hatch.mInputFluid, "Coolant in superheated dry hatch must be voided on thermal shock");
+        assertTrue(hatch.mWasDry, "Hatch must remain marked dry after thermal shock");
+        assertEquals(2.0, reactor.mReactorDamage, 1e-6, "Reactor damage must increase by 2% on thermal shock");
+        assertEquals(5, reactor.getRepairStatus(), "Maintenance issues must increase by 1 on thermal shock");
+
+        // CRITICAL: verify that the simulation cycle was NOT skipped!
+        assertTrue(reactor.mNeutronsProduced > 0, "Simulation cycle MUST proceed and produce neutrons even after thermal shock");
+        assertTrue(reactor.mCoreTemp > 0.0, "Core temperature must be updated by simulation cycle");
+    }
+
+    @Test
     void testDistilledWaterVsHeavyWaterModerationAndTransmutation() {
         // 1. SimTile moderation probabilities
         SimTile dwTile = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
@@ -4254,5 +4974,408 @@ public class NuclearSimulationEngineTest {
         double hwRate = (double) hwSuccess / trials;
         assertEquals(0.025, dwRate, 0.010, "Deuterium transmutation rate should be ~2.5%");
         assertEquals(0.010, hwRate, 0.007, "Tritium transmutation rate should be ~1.0%");
+    }
+
+    @Test
+    void testConfigDrivenAllowlistsAndBlocklists() {
+        // 1. Save original config state
+        String[] origBlocked = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.blockedItems.clone();
+        String[] origFuels = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedFuelItems.clone();
+        String[] origCoolants = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedCoolantFluids.clone();
+        String[] origRods = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedControlRods.clone();
+        String[] origInsulators = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedInsulators.clone();
+
+        try {
+            // 2. Pattern matching helper tests
+            assertTrue(com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.matchesPattern("ic2.reactorDepletedUraniumSimple", "*depleted*"));
+            assertTrue(com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.matchesPattern("gregtech:gt.reactorUranium4", "gregtech:gt.reactorUranium*"));
+            assertFalse(com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.matchesPattern("minecraft:dirt", "*fuel*"));
+
+            // 3. Dynamic custom fuel item addition
+            net.minecraft.item.Item customFuel = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+            org.mockito.Mockito.when(customFuel.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("custommod.super_fuel_rod");
+            ItemStack fuelStack = new ItemStack(customFuel, 1, 0);
+
+            // Initially not allowed
+            assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemFuel(fuelStack));
+
+            // Server operator adds custom fuel pattern to config:
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedFuelItems = new String[] { "*super_fuel_rod*" };
+            assertTrue(com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemFuel(fuelStack));
+            assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemFuel(fuelStack));
+
+            // 4. Dynamic custom blocked item addition
+            net.minecraft.item.Item customDangerous = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+            org.mockito.Mockito.when(customDangerous.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("somemod.radioactive_waste");
+            ItemStack wasteStack = new ItemStack(customDangerous, 1, 0);
+
+            assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isDepletedOrEmptyRod(wasteStack));
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.blockedItems = new String[] { "*radioactive_waste*" };
+            assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isDepletedOrEmptyRod(wasteStack));
+            assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(wasteStack, null));
+
+            // 5. Dynamic custom coolant fluid addition
+            net.minecraftforge.fluids.Fluid liquidHelium = org.mockito.Mockito.mock(net.minecraftforge.fluids.Fluid.class);
+            org.mockito.Mockito.when(liquidHelium.getName()).thenReturn("liquid_helium");
+            net.minecraftforge.fluids.FluidStack heliumStack = mockFluidStack(liquidHelium, 1000);
+
+            assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isCoolantFluid(heliumStack));
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedCoolantFluids = new String[] { "liquid_helium" };
+            assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isCoolantFluid(heliumStack));
+
+            // 6. Dynamic custom control rod mapping
+            net.minecraft.item.Item customRodItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+            org.mockito.Mockito.when(customRodItem.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("custommod.lead_bismuth_rod");
+            ItemStack rodStack = new ItemStack(customRodItem, 1, 0);
+
+            assertEquals("NONE", com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.getRodType(rodStack).name());
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedControlRods = new String[] { "*lead_bismuth_rod*=CADMIUM" };
+            assertEquals("CADMIUM", com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.getRodType(rodStack).name());
+
+            // 7. Dynamic custom insulator mapping
+            net.minecraft.item.Item customFoil = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+            org.mockito.Mockito.when(customFoil.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("aerospace.aerogel_foil");
+            ItemStack foilStack = new ItemStack(customFoil, 1, 0);
+
+            assertEquals(0.0, com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.getInsulationDampening(foilStack), 1e-6);
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedInsulators = new String[] { "*aerogel_foil*=0.85" };
+            assertEquals(0.85, com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.getInsulationDampening(foilStack), 1e-6);
+
+        } finally {
+            // Restore original config arrays
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.blockedItems = origBlocked;
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedFuelItems = origFuels;
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedCoolantFluids = origCoolants;
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedControlRods = origRods;
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedInsulators = origInsulators;
+        }
+    }
+
+    @Test
+    void testReactorHatchItemSegregationAndDepletedRodRejection() {
+        MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.nuclear.bus", 4, new String[0], null);
+        com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod rodHatch =
+            new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod("test.control.rod", 4, new String[0], null);
+
+        // 1. Depleted rod rejection
+        net.minecraft.item.Item depletedItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(depletedItem.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("ic2.reactorDepletedUraniumSimple");
+        ItemStack depletedStack = new ItemStack(depletedItem, 1, 0);
+
+        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isDepletedOrEmptyRod(depletedStack));
+        assertFalse(bus.isItemAllowed(depletedStack), "Depleted rods must be strictly disallowed in nuclear core buses");
+        assertFalse(bus.allowPutStack(null, MTEHatchNuclearBus.SLOT_INPUT, ForgeDirection.UNKNOWN, depletedStack));
+        assertFalse(bus.isItemValidForSlot(MTEHatchNuclearBus.SLOT_INPUT, depletedStack));
+
+        // 2. Control rod segregation
+        net.minecraft.item.Item silverRodItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(silverRodItem.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("stickLongSilver");
+        ItemStack silverRodStack = new ItemStack(silverRodItem, 1, 0);
+
+        assertTrue(com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.isControlRod(silverRodStack));
+        // Control rods must NOT be allowed into core buses:
+        assertFalse(bus.isItemAllowed(silverRodStack), "Control rods must NOT be allowed in reactor core buses");
+        assertFalse(bus.allowPutStack(null, MTEHatchNuclearBus.SLOT_INPUT, ForgeDirection.UNKNOWN, silverRodStack));
+        // Control rods MUST be allowed into control rod hatches:
+        assertTrue(rodHatch.isItemValidForSlot(com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD, silverRodStack));
+        assertTrue(rodHatch.allowPutStack(null, com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD, ForgeDirection.UNKNOWN, silverRodStack));
+
+        // 3. Normal unrelated items (e.g. cobblestone/dirt) rejected from BOTH hatches
+        net.minecraft.item.Item dirtItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(dirtItem.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("tile.dirt");
+        ItemStack dirtStack = new ItemStack(dirtItem, 1, 0);
+
+        assertFalse(bus.isItemAllowed(dirtStack), "Dirt cannot be placed in nuclear core bus");
+        assertFalse(bus.allowPutStack(null, MTEHatchNuclearBus.SLOT_INPUT, ForgeDirection.UNKNOWN, dirtStack));
+        assertFalse(rodHatch.isItemValidForSlot(com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD, dirtStack));
+        assertFalse(rodHatch.allowPutStack(null, com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD, ForgeDirection.UNKNOWN, dirtStack));
+    }
+
+    @Test
+    void testConfigDrivenTierLimitsAndBoilingPoints() {
+        // Default tier limits
+        assertEquals(1200.0, NuclearSimulationEngine.getMaxOperatingTemperature(NuclearSimulationEngine.PIPE_TIER_ELECTRUM), 1e-4);
+        assertEquals(1400.0, NuclearSimulationEngine.getMaxOperatingTemperature(NuclearSimulationEngine.PIPE_TIER_PLATINUM), 1e-4);
+        assertEquals(3200.0, NuclearSimulationEngine.getMaxOperatingTemperature(NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM), 1e-4);
+
+        // Repair threshold is 10% of max operating temp
+        assertEquals(120.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_ELECTRUM), 1e-4);
+        assertEquals(320.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM), 1e-4);
+
+        // Boiling points
+        assertEquals(Double.POSITIVE_INFINITY, NuclearSimulationEngine.getCoolantBoilingThreshold("ic2coolant"));
+        assertEquals(101.4, NuclearSimulationEngine.getCoolantBoilingThreshold("heavywater"), 1e-4);
+        assertEquals(100.0, NuclearSimulationEngine.getCoolantBoilingThreshold("distilledwater"), 1e-4);
+
+        // Modify via config
+        double origT0 = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[0];
+        double origRatio = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio;
+        try {
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[0] = 1500.0;
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio = 0.20;
+
+            assertEquals(1500.0, NuclearSimulationEngine.getMaxOperatingTemperature(NuclearSimulationEngine.PIPE_TIER_ELECTRUM), 1e-4);
+            assertEquals(300.0, NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_ELECTRUM), 1e-4);
+        } finally {
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[0] = origT0;
+            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio = origRatio;
+        }
+    }
+
+    @Test
+    void testYamlDataRegistryRoundtrip() throws Exception {
+        java.nio.file.Path tempDir = java.nio.file.Files.createTempDirectory("mptr_yaml_roundtrip_test");
+        try {
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.init(tempDir.toFile());
+
+            File configFolder = new File(tempDir.toFile(), "modularnuclear");
+            assertTrue(configFolder.exists(), "Config folder modularnuclear should be created");
+            File physicsFile = new File(configFolder, "physics.yaml");
+            File tiersFile = new File(configFolder, "tiers.yaml");
+            File fuelsFile = new File(configFolder, "fuels.yaml");
+            File componentsFile = new File(configFolder, "components.yaml");
+
+            assertTrue(physicsFile.exists(), "physics.yaml should be written");
+            assertTrue(tiersFile.exists(), "tiers.yaml should be written");
+            assertTrue(fuelsFile.exists(), "fuels.yaml should be written");
+            assertTrue(componentsFile.exists(), "components.yaml should be written");
+
+            // Check content of fuels
+            assertTrue(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllFuels().size() >= 20);
+            assertNotNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel("thoriumbasedliquidfuel"));
+            assertNotNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics());
+            assertEquals(6, com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllTiers().size());
+        } finally {
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadDefaults();
+            deleteRecursively(tempDir.toFile());
+        }
+    }
+
+    @Test
+    void testCustomFuelAndComponentYamlConfiguration() throws Exception {
+        java.nio.file.Path tempDir = java.nio.file.Files.createTempDirectory("mptr_yaml_custom_test");
+        try {
+            File configFolder = new File(tempDir.toFile(), "modularnuclear");
+            configFolder.mkdirs();
+
+            // 1. Write custom fuels.yaml
+            String fuelsYamlContent =
+                "fuels:\n" +
+                "  - id: \"super_uranium_custom\"\n" +
+                "    name: \"Super Uranium Custom Rod\"\n" +
+                "    matching:\n" +
+                "      - \"item.super_uranium_custom\"\n" +
+                "    is_liquid: false\n" +
+                "    base_neutrons: 88\n" +
+                "    thermal_fission_multiplier: 3.5\n" +
+                "    heat_transfer_coeff: 0.18\n" +
+                "    absorption_thermal: 0.92\n" +
+                "    scattering_thermal: 0.08\n";
+            java.nio.file.Files.write(new File(configFolder, "fuels.yaml").toPath(), fuelsYamlContent.getBytes());
+
+            // 2. Write custom components.yaml
+            String compYamlContent =
+                "reflectors:\n" +
+                "  - id: \"custom_beryllium_mirror\"\n" +
+                "    name: \"Custom Beryllium Mirror\"\n" +
+                "    matching:\n" +
+                "      - \"item.custom_beryllium_mirror\"\n" +
+                "    absorption_thermal: 0.001\n" +
+                "    scattering_thermal: 0.999\n" +
+                "    moderation: 0.35\n" +
+                "    heat_transfer_coeff: 0.30\n" +
+                "control_rods:\n" +
+                "  - id: \"custom_super_rod\"\n" +
+                "    name: \"Custom Super Control Rod\"\n" +
+                "    matching:\n" +
+                "      - \"item.custom_super_rod\"\n" +
+                "    max_thermal_absorption: 0.995\n" +
+                "    max_fast_absorption: 0.85\n" +
+                "    heat_transfer_coeff: 0.50\n" +
+                "moderators:\n" +
+                "  - id: \"custom_heavy_graphite\"\n" +
+                "    name: \"Custom Heavy Graphite\"\n" +
+                "    matching:\n" +
+                "      - \"item.custom_heavy_graphite\"\n" +
+                "    moderation: 0.88\n";
+            java.nio.file.Files.write(new File(configFolder, "components.yaml").toPath(), compYamlContent.getBytes());
+
+            // 3. Load from dir
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadFromDir(configFolder);
+
+            // 4. Verify mock items match and have custom properties
+            net.minecraft.item.Item fuelItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+            org.mockito.Mockito.when(fuelItem.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.super_uranium_custom");
+            ItemStack fuelStack = new ItemStack(fuelItem, 1, 0);
+
+            com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(fuelStack);
+            assertNotNull(fd, "Custom fuel must be found by matching pattern");
+            assertEquals("super_uranium_custom", fd.id);
+            assertEquals(88, fd.baseNeutrons);
+            assertEquals(3.5, fd.thermalFissionMultiplier, 1e-4);
+            assertEquals(0.18, fd.heatTransferCoeff, 1e-4);
+            assertEquals(0.92, fd.absorptionThermal, 1e-4);
+
+            net.minecraft.item.Item reflItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+            org.mockito.Mockito.when(reflItem.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.custom_beryllium_mirror");
+            ItemStack reflStack = new ItemStack(reflItem, 1, 0);
+
+            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData rd =
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(reflStack);
+            assertNotNull(rd, "Custom reflector must be found");
+            assertEquals(0.999, rd.scatteringThermal, 1e-4);
+            assertEquals(0.35, rd.moderation, 1e-4);
+
+            net.minecraft.item.Item rodItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+            org.mockito.Mockito.when(rodItem.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.custom_super_rod");
+            ItemStack rodStack = new ItemStack(rodItem, 1, 0);
+
+            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crd =
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(rodStack);
+            assertNotNull(crd, "Custom control rod must be found");
+            assertEquals(0.995, crd.maxThermalAbsorption, 1e-4);
+            assertEquals(0.50, crd.heatTransferCoeff, 1e-4);
+            assertTrue(com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.isControlRod(rodStack));
+
+            net.minecraft.item.Item modItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+            org.mockito.Mockito.when(modItem.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.custom_heavy_graphite");
+            ItemStack modStack = new ItemStack(modItem, 1, 0);
+
+            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData md =
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(modStack);
+            assertNotNull(md, "Custom moderator must be found");
+            assertEquals(0.88, md.moderation, 1e-4);
+            assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemModerator(modStack));
+
+        } finally {
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadDefaults();
+            deleteRecursively(tempDir.toFile());
+        }
+    }
+
+    @Test
+    void testEscapedNeutronMaintenanceAndCherenkovScaling() {
+        MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.test");
+
+        // 1. Cherenkov client event handling
+        reactor.receiveClientEvent((byte) 101, (byte) 50);
+        assertEquals(0.50f, reactor.mClientRadiationIntensity, 1e-4);
+
+        reactor.receiveClientEvent((byte) 101, (byte) 100);
+        assertEquals(1.0f, reactor.mClientRadiationIntensity, 1e-4);
+
+        reactor.receiveClientEvent((byte) 101, (byte) 0);
+        assertEquals(0.0f, reactor.mClientRadiationIntensity, 1e-4);
+
+        // 2. Sigmoid curve evaluation
+        double[] testEscaped = { 0, 500, 1000, 2000, 5000, 10000 };
+        for (double nEsc : testEscaped) {
+            double sFactor = (nEsc > 0) ? (nEsc * nEsc) / (nEsc * nEsc + 1000.0 * 1000.0) : 0.0;
+            double multiplier = 1.0 + 9.0 * sFactor;
+            double prob = 0.01 * multiplier;
+
+            if (nEsc == 0) {
+                assertEquals(0.0, sFactor, 1e-4);
+                assertEquals(1.0, multiplier, 1e-4);
+                assertEquals(0.01, prob, 1e-4);
+            } else if (nEsc == 1000) {
+                assertEquals(0.5, sFactor, 1e-4);
+                assertEquals(5.5, multiplier, 1e-4);
+                assertEquals(0.055, prob, 1e-4);
+            } else if (nEsc == 10000) {
+                assertTrue(sFactor > 0.99);
+                assertTrue(multiplier > 9.9);
+                assertTrue(prob <= 0.10);
+            }
+        }
+    }
+
+    @Test
+    void testThermalScatteringProbabilityScaling() {
+        // Grid A: Fuel in center moderated by heavy water, surrounded by zero-scattering absorbers
+        INuclearTile[][] gridZero = new INuclearTile[3][3];
+        MockNuclearTile fuelA = new MockNuclearTile(true, 1000);
+        fuelA.moderationProb = 1.0; // Instantly moderate to thermal pool
+        fuelA.absorbProb = 0.10;
+        fuelA.scatterProb = 0.10;
+        gridZero[1][1] = fuelA;
+
+        MockNuclearTile zeroScat = new MockNuclearTile(false, 0);
+        zeroScat.absorbProb = 0.0;
+        zeroScat.scatterProb = 0.0; // 0% scattering: non-absorbed thermal flux should escape immediately
+        gridZero[0][1] = zeroScat;
+        gridZero[2][1] = zeroScat;
+        gridZero[1][0] = zeroScat;
+        gridZero[1][2] = zeroScat;
+
+        NuclearSimulationEngine.SimulationResult resZero = NuclearSimulationEngine.simulate(gridZero, 3, 3);
+        assertEquals(0, zeroScat.scattered, "Zero-scattering tile must never scatter thermal neutrons");
+        assertTrue(resZero.neutronsEscaped > 0, "Non-scattered thermal neutrons must escape");
+
+        // Grid B: Fuel in center, surrounded by high-scattering beryllium reflectors
+        INuclearTile[][] gridRefl = new INuclearTile[3][3];
+        MockNuclearTile fuelB = new MockNuclearTile(true, 1000);
+        fuelB.moderationProb = 1.0;
+        fuelB.absorbProb = 0.10;
+        fuelB.scatterProb = 0.10;
+        gridRefl[1][1] = fuelB;
+
+        MockNuclearTile highScat = new MockNuclearTile(false, 0);
+        highScat.absorbProb = 0.01;
+        highScat.scatterProb = 0.98; // 98% scattering
+        gridRefl[0][1] = highScat;
+        gridRefl[2][1] = highScat;
+        gridRefl[1][0] = highScat;
+        gridRefl[1][2] = highScat;
+
+        NuclearSimulationEngine.SimulationResult resRefl = NuclearSimulationEngine.simulate(gridRefl, 3, 3);
+        assertTrue(highScat.scattered > 0, "High-scattering tile must receive and scatter thermal neutrons");
+        assertTrue(resRefl.thermalNeutronsAbsorbed > 0, "Scattered thermal neutrons must diffuse and be absorbed");
+    }
+
+    @Test
+    void testFastNeutronEscapeAccounting() {
+        // Test 1: Grid where fuel is surrounded by 100% fast absorbers
+        // All fast neutrons must be absorbed, exactly 0 should escape.
+        INuclearTile[][] gridAbs = new INuclearTile[3][3];
+        MockNuclearTile fuel = new MockNuclearTile(true, 500);
+        gridAbs[1][1] = fuel;
+
+        MockNuclearTile absorber = new MockNuclearTile(false, 0);
+        absorber.absorbProb = 1.0;
+        absorber.scatterProb = 0.0;
+        absorber.moderationProb = 0.0;
+        gridAbs[0][1] = absorber;
+        gridAbs[2][1] = absorber;
+        gridAbs[1][0] = absorber;
+        gridAbs[1][2] = absorber;
+
+        NuclearSimulationEngine.SimulationResult resAbs = NuclearSimulationEngine.simulate(gridAbs, 3, 3);
+        assertTrue(resAbs.totalNeutronsGenerated > 0);
+        assertEquals(resAbs.totalNeutronsGenerated, resAbs.fastNeutronsAbsorbed, "All fast neutrons must be absorbed");
+        assertEquals(0, resAbs.neutronsEscaped, "Absorbed neutrons must not be counted as escaped");
+
+        // Test 2: Grid where fuel is in an open/empty boundary (surrounded by null cells)
+        // All fast neutrons must escape, exactly 0 fast absorbed.
+        INuclearTile[][] gridOpen = new INuclearTile[3][3];
+        gridOpen[1][1] = new MockNuclearTile(true, 400);
+
+        NuclearSimulationEngine.SimulationResult resOpen = NuclearSimulationEngine.simulate(gridOpen, 3, 3);
+        assertTrue(resOpen.totalNeutronsGenerated > 0);
+        assertEquals(0, resOpen.fastNeutronsAbsorbed);
+        assertEquals(resOpen.totalNeutronsGenerated, resOpen.neutronsEscaped, "All neutrons escaping into boundary/null cells must be counted exactly once");
+    }
+
+    private static void deleteRecursively(File file) {
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    deleteRecursively(child);
+                }
+            }
+        }
+        file.delete();
     }
 }

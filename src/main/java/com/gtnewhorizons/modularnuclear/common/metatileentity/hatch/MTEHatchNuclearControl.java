@@ -7,8 +7,16 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.gtnewhorizon.structurelib.StructureLibAPI;
+import com.gtnewhorizon.structurelib.alignment.IAlignment;
+import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
+import com.gtnewhorizon.structurelib.alignment.IAlignmentProvider;
+import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
+import com.gtnewhorizon.structurelib.alignment.enumerable.Flip;
+import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedIntegration;
+import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 import com.gtnewhorizons.modularui.api.drawable.IDrawable;
 import com.gtnewhorizons.modularui.api.drawable.Text;
 import com.gtnewhorizons.modularui.api.math.Alignment;
@@ -21,6 +29,10 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 
 import cpw.mods.fml.common.Optional;
+import cpw.mods.fml.common.network.NetworkRegistry;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
@@ -30,10 +42,11 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTSplit;
 import gregtech.api.util.GTUtility;
+import io.netty.buffer.ByteBuf;
 import mrtjp.projectred.api.IBundledEmitter;
 
 @Optional.Interface(iface = "mrtjp.projectred.api.IBundledEmitter", modid = "ProjRed|Transmission")
-public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter {
+public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter, IAlignment {
 
     public static final int METRIC_TEMPERATURE = 0;
     public static final int METRIC_COOLANT_ITEM_DURABILITY = 1;
@@ -82,6 +95,7 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter 
     private int mFineOutputStrength = 0;
     private int mBundledChannelMode = BUNDLED_MODE_MULTI;
     private final byte[] mBundledSignal = new byte[16];
+    private Rotation rotation = Rotation.NORMAL;
 
     public MTEHatchNuclearControl(int aID, String aName, String aNameRegional, int aTier) {
         super(aID, aName, aNameRegional, aTier, 0, (String) null);
@@ -296,6 +310,7 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter 
 
         IGregTechTileEntity te = getBaseMetaTileEntity();
         if (te != null) {
+            te.setActive(cappedVanilla > 0 || cappedFine > 0);
             ForgeDirection facing = te.getFrontFacing();
             for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
                 te.setOutputRedstoneSignal(side, side == facing ? mOutputStrength : (byte) 0);
@@ -377,6 +392,17 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter 
         for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
             aBaseMetaTileEntity.setOutputRedstoneSignal(side, side == facing ? mOutputStrength : (byte) 0);
         }
+    }
+
+    @Override
+    public boolean onWrenchRightClick(ForgeDirection side, ForgeDirection wrenchingSide, EntityPlayer entityPlayer,
+        float aX, float aY, float aZ, ItemStack aTool) {
+        if (wrenchingSide == getBaseMetaTileEntity().getFrontFacing() && !entityPlayer.isSneaking()
+            && isRotationChangeAllowed()) {
+            toolSetRotation(null);
+            return true;
+        }
+        return super.onWrenchRightClick(side, wrenchingSide, entityPlayer, aX, aY, aZ, aTool);
     }
 
     @Override
@@ -518,8 +544,70 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter 
     }
 
     @Override
+    public void writeToStream(ByteBuf buffer) {
+        super.writeToStream(buffer);
+        buffer.writeByte(rotation.getIndex());
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void readFromStream(ByteBuf buffer) {
+        super.readFromStream(buffer);
+        rotation = Rotation.byIndex(buffer.readByte());
+    }
+
+    @Override
+    public ExtendedFacing getExtendedFacing() {
+        return ExtendedFacing.of(getBaseMetaTileEntity().getFrontFacing(), rotation, Flip.NONE);
+    }
+
+    @Override
+    public void setExtendedFacing(ExtendedFacing alignment) {
+        boolean changed = false;
+        final IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base.getFrontFacing() != alignment.getDirection()) {
+            base.setFrontFacing(alignment.getDirection());
+            changed = true;
+        }
+        if (rotation != alignment.getRotation()) {
+            rotation = alignment.getRotation();
+            changed = true;
+        }
+        if (changed) {
+            if (base.isServerSide() && !GregTechAPI.isDummyWorld(base.getWorld())) {
+                StructureLibAPI.sendAlignment(
+                    (IAlignmentProvider) base,
+                    new NetworkRegistry.TargetPoint(
+                        base.getWorld().provider.dimensionId,
+                        base.getXCoord(),
+                        base.getYCoord(),
+                        base.getZCoord(),
+                        512));
+            } else {
+                base.issueTextureUpdate();
+            }
+        }
+    }
+
+    @Override
+    public IAlignmentLimits getAlignmentLimits() {
+        return (d, r, f) -> f.isNotFlipped();
+    }
+
+    @Override
+    public boolean isFlipChangeAllowed() {
+        return false;
+    }
+
+    @Override
+    public boolean isRotationChangeAllowed() {
+        return true;
+    }
+
+    @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
+        aNBT.setByte("mRotation", (byte) rotation.getIndex());
         aNBT.setInteger("mMetric", mMetric);
         aNBT.setInteger("mStatistic", mStatistic);
         aNBT.setInteger("mMode", getMode());
@@ -532,6 +620,9 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
+        if (aNBT.hasKey("mRotation")) {
+            rotation = Rotation.byIndex(aNBT.getByte("mRotation"));
+        }
         if (aNBT.hasKey("mMetric")) {
             mMetric = aNBT.getInteger("mMetric");
             mStatistic = aNBT.getInteger("mStatistic");
@@ -555,15 +646,43 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter 
 
     @Override
     public ITexture[] getTexturesActive(ITexture aBaseTexture) {
-        return new ITexture[] { aBaseTexture, TextureFactory.of(Textures.BlockIcons.OVERLAY_HATCH_SPLITTER_REDSTONE),
+        ModularNuclearTextures.init();
+        if (ModularNuclearTextures.OVERLAY_HATCH_NUCLEAR_CONTROL != null) {
+            return new ITexture[] { aBaseTexture, TextureFactory.builder()
+                .addIcon(ModularNuclearTextures.OVERLAY_HATCH_NUCLEAR_CONTROL)
+                .extFacing()
+                .build(),
+                TextureFactory.builder()
+                    .addIcon(ModularNuclearTextures.OVERLAY_HATCH_NUCLEAR_CONTROL_GLOW != null
+                        ? ModularNuclearTextures.OVERLAY_HATCH_NUCLEAR_CONTROL_GLOW
+                        : ModularNuclearTextures.OVERLAY_HATCH_NUCLEAR_CONTROL)
+                    .extFacing()
+                    .glow()
+                    .build() };
+        }
+        return new ITexture[] { aBaseTexture, TextureFactory.builder()
+            .addIcon(Textures.BlockIcons.OVERLAY_HATCH_SPLITTER_REDSTONE)
+            .extFacing()
+            .build(),
             TextureFactory.builder()
                 .addIcon(Textures.BlockIcons.OVERLAY_HATCH_SPLITTER_REDSTONE_GLOW)
+                .extFacing()
                 .glow()
                 .build() };
     }
 
     @Override
     public ITexture[] getTexturesInactive(ITexture aBaseTexture) {
-        return new ITexture[] { aBaseTexture, TextureFactory.of(Textures.BlockIcons.OVERLAY_HATCH_SPLITTER_REDSTONE) };
+        ModularNuclearTextures.init();
+        if (ModularNuclearTextures.OVERLAY_HATCH_NUCLEAR_CONTROL != null) {
+            return new ITexture[] { aBaseTexture, TextureFactory.builder()
+                .addIcon(ModularNuclearTextures.OVERLAY_HATCH_NUCLEAR_CONTROL)
+                .extFacing()
+                .build() };
+        }
+        return new ITexture[] { aBaseTexture, TextureFactory.builder()
+            .addIcon(Textures.BlockIcons.OVERLAY_HATCH_SPLITTER_REDSTONE)
+            .extFacing()
+            .build() };
     }
 }

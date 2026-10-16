@@ -6,10 +6,16 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
 
 public class NuclearSimulationEngine {
 
-    public static final double EU_FOR_FAST_NEUTRON = 8.0;
-    public static final double DEFAULT_EU_PER_DEGREE = 32.0;
-    public static double euPerDegree = DEFAULT_EU_PER_DEGREE;
-    public static double EU_PER_DEGREE = DEFAULT_EU_PER_DEGREE;
+    public static final double HU_FOR_FAST_NEUTRON = 8.0;
+    public static final double DEFAULT_HU_PER_DEGREE = 32.0;
+    public static double huPerDegree = DEFAULT_HU_PER_DEGREE;
+    public static double HU_PER_DEGREE = DEFAULT_HU_PER_DEGREE;
+
+    // Backwards-compatible aliases for legacy EU-based naming
+    public static final double EU_FOR_FAST_NEUTRON = HU_FOR_FAST_NEUTRON;
+    public static final double DEFAULT_EU_PER_DEGREE = DEFAULT_HU_PER_DEGREE;
+    public static double euPerDegree = huPerDegree;
+    public static double EU_PER_DEGREE = HU_PER_DEGREE;
     public static final double BASE_HEAT_CONDUCTION = 0.01;
     public static final double DEFAULT_AMBIENT_TEMP = 20.0;
     public static double ambientTemp = DEFAULT_AMBIENT_TEMP;
@@ -73,9 +79,15 @@ public class NuclearSimulationEngine {
     public static final double DEFAULT_WALL_ABSORB_HEAT_PER_NEUTRON = 0.0;
     public static double wallAbsorbHeatPerNeutron = DEFAULT_WALL_ABSORB_HEAT_PER_NEUTRON;
 
+    public static void setHuPerDegree(double v) {
+        huPerDegree = Math.max(0.1, v);
+        HU_PER_DEGREE = huPerDegree;
+        euPerDegree = huPerDegree;
+        EU_PER_DEGREE = huPerDegree;
+    }
+
     public static void setEuPerDegree(double v) {
-        euPerDegree = Math.max(0.1, v);
-        EU_PER_DEGREE = euPerDegree;
+        setHuPerDegree(v);
     }
 
     public static void setGlobalThermalFissionMultiplier(double mult) {
@@ -131,7 +143,7 @@ public class NuclearSimulationEngine {
     }
 
     public static void resetDefaultParameters() {
-        setEuPerDegree(DEFAULT_EU_PER_DEGREE);
+        setHuPerDegree(DEFAULT_HU_PER_DEGREE);
         setGlobalThermalFissionMultiplier(DEFAULT_GLOBAL_THERMAL_FISSION_MULT);
         tempThresholdLow = DEFAULT_TEMP_THRESHOLD_LOW;
         tempThresholdHigh = DEFAULT_TEMP_THRESHOLD_HIGH;
@@ -160,7 +172,7 @@ public class NuclearSimulationEngine {
     }
 
     /**
-     * Calculates the thermal conductance U in EU/(t·°C) for a nuclear core hatch of the given tier.
+     * Calculates the thermal conductance U in Hu/(t·°C) for a nuclear core hatch of the given tier.
      * Tier scaling: LV(1)=0.50x, MV(2)=1.0x, HV(3)=2.0x, EV(4)=4.0x, IV(5)=8.0x, LuV(6)=16.0x... (base-2 exponential)
      */
     public static double getHatchConductance(int tier) {
@@ -195,21 +207,21 @@ public class NuclearSimulationEngine {
 
     /**
      * Analytical lumped-capacitance heat transfer model based on continuous exponential cooling.
-     * Calculates the maximum heat energy (EU) transferred from a hatch at temperature temp
+     * Calculates the maximum heat energy (Hu) transferred from a hatch at temperature temp
      * into a coolant heat sink at sinkTemp over a 1-tick interval (dt = 1).
      *
      * @param temp       The hatch temperature in °C
      * @param sinkTemp   The coolant sink temperature in °C
      * @param tier       The tier of the nuclear core hatch (LV=1, MV=2, HV=3, EV=4, ...)
      * @param efficiency Reactor efficiency multiplier [0.0, 1.0]
-     * @return Heat energy in EU transferred this tick
+     * @return Heat energy in Hu transferred this tick
      */
     public static double calculateConductiveHeatTransfer(double temp, double sinkTemp, int tier, double efficiency) {
         if (temp <= sinkTemp || efficiency <= 0.0) return 0.0;
         double deltaT = temp - sinkTemp;
         double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
         double conductance = getHatchConductance(tier) * effFactor;
-        double ch = EU_PER_DEGREE;
+        double ch = HU_PER_DEGREE;
         return ch * deltaT * (1.0 - Math.exp(-conductance / ch));
     }
 
@@ -257,23 +269,31 @@ public class NuclearSimulationEngine {
     }
 
     public static double getMaxOperatingTemperature(int tier) {
-        return switch (tier) {
-            case PIPE_TIER_ELECTRUM -> 1200.0;
-            case PIPE_TIER_PLATINUM -> 1400.0;
-            case PIPE_TIER_OSMIUM -> 1800.0;
-            case PIPE_TIER_QUANTIUM -> 2200.0;
-            case PIPE_TIER_FLUXED_ELECTRUM -> 2600.0;
-            case PIPE_TIER_BLACK_PLUTONIUM -> 3200.0;
-            default -> 800.0;
-        };
+        if (tier >= 0 && tier < com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier.length) {
+            double cfg = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[tier];
+            if (cfg != com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.DEFAULT_MAX_OPERATING_TEMP_TIER[tier]) {
+                return cfg;
+            }
+        }
+        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getTier(tier);
+        if (td != null) return td.maxOperatingTemp;
+        if (tier >= 0 && tier < com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier.length) {
+            return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[tier];
+        }
+        return 800.0;
     }
 
     /**
      * Calculates the maximum average core temperature under which structural damage repair is permitted.
-     * Uniformly calculated as 10% of the casing tier's maximum operating temperature.
+     * Uniformly calculated as configured percentage of the casing tier's maximum operating temperature.
      */
     public static double getRepairTemperatureThreshold(int tier) {
-        return 0.10 * getMaxOperatingTemperature(tier);
+        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio != 0.10) {
+            return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio * getMaxOperatingTemperature(tier);
+        }
+        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getTier(tier);
+        if (td != null) return td.repairTempThreshold;
+        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio * getMaxOperatingTemperature(tier);
     }
 
     public static double getCoolantBoilingThreshold(String fluidName) {
@@ -281,16 +301,28 @@ public class NuclearSimulationEngine {
             return Double.POSITIVE_INFINITY; // IC2 coolant never explodes
         }
         if (fluidName.contains("heavywater")) {
-            return 101.4; // Boiling point of heavy water at 1 atm
+            if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.coolantBoilingThresholdHeavyWater != 101.4) {
+                return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.coolantBoilingThresholdHeavyWater;
+            }
         }
-        return 100.0; // Distilled water boiling point at 1 atm
+        if (fluidName.contains("distilledwater")) {
+            if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.coolantBoilingThresholdDistilledWater != 100.0) {
+                return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.coolantBoilingThresholdDistilledWater;
+            }
+        }
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(fluidName);
+        if (cfd != null) {
+            return cfd.boilingTemperature;
+        }
+        if (fluidName.contains("heavywater")) {
+            return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.coolantBoilingThresholdHeavyWater;
+        }
+        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.coolantBoilingThresholdDistilledWater;
     }
 
     public static int getRequiredFluidTier(String fluidName) {
-        if (fluidName == null) return 999;
+        if (fluidName == null) return -1;
         String name = fluidName.toLowerCase();
-        if (name.equals("water")) return 999; // Regular water is completely disallowed
-        if (name.contains("naquadah")) return 999; // Disallow Naquadah liquid fuels to avoid overlap with LNR
         if (name.contains("coolant") && !name.contains("hot")) return PIPE_TIER_ELECTRUM;
         if (name.contains("distilledwater")) return PIPE_TIER_PLATINUM;
         if (name.contains("heavywater")) return PIPE_TIER_QUANTIUM;
@@ -307,7 +339,20 @@ public class NuclearSimulationEngine {
         }
         if (name.contains("uraniumhexafluoride")) return PIPE_TIER_OSMIUM;
 
-        return 999;
+        return -1;
+    }
+
+    public static boolean isFluidAllowed(String fluidName, int pipeTier) {
+        if (fluidName == null) return false;
+        int reqTier = getRequiredFluidTier(fluidName);
+        if (reqTier < 0) return false;
+        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getTier(pipeTier);
+        if (td != null && !td.allowedCoolants.isEmpty()) {
+            if (td.allowedCoolants.contains("*") || com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.matchesFluid(fluidName, td.allowedCoolants)) {
+                return true;
+            }
+        }
+        return pipeTier < 0 || pipeTier >= reqTier;
     }
 
     public static double getCoolingOperatingThreshold(String fluidName) {
@@ -338,20 +383,46 @@ public class NuclearSimulationEngine {
         public double maxTemperature = AMBIENT_TEMP;
         public double averageTemperature = AMBIENT_TEMP;
         public double averageReactivity = 0.0;
-        public double totalHeatEU = 0;
+        public double totalHeatHU = 0;
+        public double totalHeatEU = 0; // Backwards-compatible alias for totalHeatHU
     }
 
     /**
-     * Formats neutron flux into a realistic physical unit (multiples of 10¹³ n/cm²s).
+     * Formats neutron flux into realistic physical units (multiples of 10¹³ neutrons/cm²/sec).
+     * Follows the US Nuclear Regulatory Commission (NRC) definition:
+     * Rate of flow of neutrons per unit area per second (nv = n·v), measured in neutrons/cm²/sec.
      */
-    public static String formatNeutronFlux(int neutronsProduced) {
+    public static String formatNeutronFlux(double neutronsProduced) {
         if (neutronsProduced <= 0) {
-            return "0 n/cm²s";
+            return "0 neutrons/cm²/sec";
         }
-        double physicalFlux = (double) neutronsProduced * 1.0e13;
-        return String.format(java.util.Locale.US, "%.2e n/cm²s", physicalFlux)
+        double physicalFlux = neutronsProduced * 1.0e13;
+        return String.format(java.util.Locale.US, "%.2e neutrons/cm²/sec", physicalFlux)
             .replace("+0", "")
             .replace("+", "");
+    }
+
+    public static String formatNeutronFlux(int neutronsProduced) {
+        return formatNeutronFlux((double) neutronsProduced);
+    }
+
+    /**
+     * Formats cumulative neutron fluence into physical units (neutrons/cm²).
+     * Follows the US Nuclear Regulatory Commission (NRC) definition:
+     * Time-integrated neutron flux (∫ φ dt), measured in neutrons/cm².
+     */
+    public static String formatNeutronFluence(double cumulativeNeutrons) {
+        if (cumulativeNeutrons <= 0) {
+            return "0 neutrons/cm²";
+        }
+        double physicalFluence = cumulativeNeutrons * 1.0e13;
+        return String.format(java.util.Locale.US, "%.2e neutrons/cm²", physicalFluence)
+            .replace("+0", "")
+            .replace("+", "");
+    }
+
+    public static String formatNeutronFluence(long cumulativeNeutrons) {
+        return formatNeutronFluence((double) cumulativeNeutrons);
     }
 
     /**
@@ -439,6 +510,7 @@ public class NuclearSimulationEngine {
         double[][] tileFluxFast = new double[sizeX][sizeY];
         double[][] tileFluxThermal = new double[sizeX][sizeY];
         double[][] tileAbsThermal = new double[sizeX][sizeY];
+        double[][] tileScatThermal = new double[sizeX][sizeY];
 
         // Part A: Fast Neutron Emission & Monte Carlo Propagation
         for (int i = 0; i < sizeX; i++) {
@@ -459,8 +531,10 @@ public class NuclearSimulationEngine {
                     int posX = i;
                     int posY = j;
                     int steps = 0;
+                    boolean terminated = false;
 
-                    while (steps++ < MAX_FAST_STEPS) {
+                    while (steps < MAX_FAST_STEPS) {
+                        steps++;
                         posX += dX[dir];
                         posY += dY[dir];
 
@@ -476,12 +550,14 @@ public class NuclearSimulationEngine {
                                 continue;
                             } else {
                                 result.neutronsEscaped += rayNeutrons;
+                                terminated = true;
                                 break;
                             }
                         }
 
                         if (isNullCell) {
                             result.neutronsEscaped += rayNeutrons;
+                            terminated = true;
                             break;
                         }
 
@@ -499,8 +575,9 @@ public class NuclearSimulationEngine {
                                 hitTile.onNeutronAbsorbed(NeutronType.FAST, rayNeutrons);
                                 result.fastNeutronsAbsorbed += rayNeutrons;
                                 if (hitTile.getInsulationDampening() < 1.0) {
-                                    pendingHeat[posX][posY] += rayNeutrons * EU_FOR_FAST_NEUTRON;
+                                    pendingHeat[posX][posY] += rayNeutrons * HU_FOR_FAST_NEUTRON;
                                 }
+                                terminated = true;
                                 break;
                             } else {
                                 hitTile.onNeutronScattered(NeutronType.FAST, rayNeutrons);
@@ -513,16 +590,17 @@ public class NuclearSimulationEngine {
                                 double pMod = hitTile.getModerationProbability();
                                 if (RAND.nextDouble() < pMod) {
                                     if (hitTile.getInsulationDampening() < 1.0) {
-                                        pendingHeat[posX][posY] += rayNeutrons * EU_FOR_FAST_NEUTRON;
+                                        pendingHeat[posX][posY] += rayNeutrons * HU_FOR_FAST_NEUTRON;
                                     }
                                     thermalPool[posX][posY] += rayNeutrons;
+                                    terminated = true;
                                     break;
                                 }
                             }
                         }
                     }
 
-                    if (steps >= MAX_FAST_STEPS) {
+                    if (!terminated) {
                         result.neutronsEscaped += rayNeutrons;
                     }
                 }
@@ -565,16 +643,21 @@ public class NuclearSimulationEngine {
                             if (hitTile.isFuel()) {
                                 pendingHeat[x][y] += absT * fissionHeatPerNeutron * 1.25;
                             } else {
-                                pendingHeat[x][y] += absT * (EU_FOR_FAST_NEUTRON * 0.5);
+                                pendingHeat[x][y] += absT * (HU_FOR_FAST_NEUTRON * 0.5);
                             }
                         }
                     }
 
                     double survT = Math.max(0.0, arrivingT - absT);
+                    double pScatT = Math.max(0.0, Math.min(1.0, hitTile.getScatteringProbability(NeutronType.THERMAL)));
+                    double scatterT = survT * pScatT;
+                    double unscatteredT = Math.max(0.0, survT - scatterT);
+                    result.neutronsEscaped += (int) Math.round(unscatteredT);
+                    tileScatThermal[x][y] += scatterT;
 
                     for (int d = 0; d < 8; d++) {
                         double w = DIR_WEIGHTS[d];
-                        double outT = survT * w;
+                        double outT = scatterT * w;
                         int nx = x + dX[d];
                         int ny = y + dY[d];
 
@@ -626,6 +709,11 @@ public class NuclearSimulationEngine {
                     tile.onNeutronAbsorbed(NeutronType.THERMAL, aT);
                     result.thermalNeutronsAbsorbed += aT;
                 }
+
+                int sT = (int) Math.round(tileScatThermal[x][y]);
+                if (sT > 0) {
+                    tile.onNeutronScattered(NeutronType.THERMAL, sT);
+                }
             }
         }
 
@@ -635,7 +723,8 @@ public class NuclearSimulationEngine {
                 INuclearTile tile = grid[x][y];
                 if (tile != null && pendingHeat[x][y] > 0.0) {
                     tile.addHeat(pendingHeat[x][y]);
-                    result.totalHeatEU += pendingHeat[x][y];
+                    result.totalHeatHU += pendingHeat[x][y];
+                    result.totalHeatEU = result.totalHeatHU;
                 }
             }
         }
@@ -718,7 +807,8 @@ public class NuclearSimulationEngine {
         }
 
         // --- PASS 6: WALL HEAT DISTRIBUTION ---
-        result.totalHeatEU += result.wallHeatPool;
+        result.totalHeatHU += result.wallHeatPool;
+        result.totalHeatEU = result.totalHeatHU;
         if (activeTileCount > 0 && result.wallHeatPool > 0) {
             double heatPerCell = result.wallHeatPool / activeTileCount;
             for (int x = 0; x < sizeX; x++) {

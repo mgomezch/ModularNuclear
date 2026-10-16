@@ -393,7 +393,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         // Line 3: Fission Multiplier & Base Neutron Output
         String l3 = String.format(
             Locale.US,
-            "Fission Mult: %s%.2fx%s | Neutrons: %s%d/t",
+            "Fission Mult: %s%.2fx%s | Neutrons: %s%d/s",
             EnumChatFormatting.DARK_PURPLE,
             fuel.baseThermalFissionMultiplier,
             EnumChatFormatting.DARK_GRAY,

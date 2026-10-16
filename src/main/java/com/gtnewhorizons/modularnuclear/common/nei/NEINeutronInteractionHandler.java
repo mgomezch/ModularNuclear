@@ -59,7 +59,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         // Page 2: Capture (Fission / Reaction)
         public final boolean hasCapture;
-        public final int fastNeutronEnergyEU;
+        public final int fastNeutronEnergyHu;
+        public final int fastNeutronEnergyEU; // Backwards-compatible alias
         public final double directHeatC;
         public final double maxNeutronsEmitted;
 
@@ -83,6 +84,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             this.thermalScattering = thermalScattering;
             this.thermalAbsorption = thermalAbsorption;
             this.hasCapture = hasCapture;
+            this.fastNeutronEnergyHu = fastNeutronEnergyEU;
             this.fastNeutronEnergyEU = fastNeutronEnergyEU;
             this.directHeatC = directHeatC;
             this.maxNeutronsEmitted = maxNeutronsEmitted;
@@ -243,7 +245,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             4.0,
             ItemList.DepletedRodUranium.get(1L),
             40_960_000L,
-            "Base: 4 Fast Neutrons/t | Standard fission fuel");
+            "Base: 4 Fast Neutrons/s | Standard fission fuel");
         addFuelRod(
             ItemList.RodUranium2,
             "Dual Uranium Fuel Rod",
@@ -251,7 +253,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             8.0,
             ItemList.DepletedRodUranium2.get(1L),
             81_920_000L,
-            "Base: 8 Fast Neutrons/t | Standard fission fuel");
+            "Base: 8 Fast Neutrons/s | Standard fission fuel");
         addFuelRod(
             ItemList.RodUranium4,
             "Quad Uranium Fuel Rod",
@@ -259,7 +261,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             16.0,
             ItemList.DepletedRodUranium4.get(1L),
             163_840_000L,
-            "Base: 16 Fast Neutrons/t | Standard fission fuel");
+            "Base: 16 Fast Neutrons/s | Standard fission fuel");
 
         // MOX (Higher yield, 2x reaction)
         addFuelRod(
@@ -269,7 +271,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             8.0,
             ItemList.DepletedRodMOX.get(1L),
             40_960_000L,
-            "Base: 8 Fast Neutrons/t | High reaction rate");
+            "Base: 8 Fast Neutrons/s | High reaction rate");
         addFuelRod(
             ItemList.RodMOX2,
             "Dual MOX Fuel Rod",
@@ -277,7 +279,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             16.0,
             ItemList.DepletedRodMOX2.get(1L),
             81_920_000L,
-            "Base: 16 Fast Neutrons/t | High reaction rate");
+            "Base: 16 Fast Neutrons/s | High reaction rate");
         addFuelRod(
             ItemList.RodMOX4,
             "Quad MOX Fuel Rod",
@@ -285,7 +287,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             32.0,
             ItemList.DepletedRodMOX4.get(1L),
             163_840_000L,
-            "Base: 32 Fast Neutrons/t | High reaction rate");
+            "Base: 32 Fast Neutrons/s | High reaction rate");
 
         // Thorium (Long-lived breeder fuel, 4x lifetime)
         addFuelRod(
@@ -295,7 +297,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             4.0,
             ItemList.DepletedRodThorium.get(1L),
             163_840_000L,
-            "Base: 4 Fast Neutrons/t | Extended core life");
+            "Base: 4 Fast Neutrons/s | Extended core life");
         addFuelRod(
             ItemList.RodThorium2,
             "Dual Thorium Fuel Rod",
@@ -303,7 +305,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             8.0,
             ItemList.DepletedRodThorium2.get(1L),
             327_680_000L,
-            "Base: 8 Fast Neutrons/t | Extended core life");
+            "Base: 8 Fast Neutrons/s | Extended core life");
         addFuelRod(
             ItemList.RodThorium4,
             "Quad Thorium Fuel Rod",
@@ -311,7 +313,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             16.0,
             ItemList.DepletedRodThorium4.get(1L),
             655_360_000L,
-            "Base: 16 Fast Neutrons/t | Extended core life");
+            "Base: 16 Fast Neutrons/s | Extended core life");
 
         // Naquadah (Extremely energetic advanced fuel)
         addFuelRod(
@@ -321,7 +323,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             16.0,
             ItemList.DepletedRodNaquadah.get(1L),
             80_000_000L,
-            "Base: 16 Fast Neutrons/t | 4x Fission power");
+            "Base: 16 Fast Neutrons/s | 4x Fission power");
         addFuelRod(
             ItemList.RodNaquadah2,
             "Dual Naquadah Fuel Rod",
@@ -329,7 +331,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             32.0,
             ItemList.DepletedRodNaquadah2.get(1L),
             160_000_000L,
-            "Base: 32 Fast Neutrons/t | 4x Fission power");
+            "Base: 32 Fast Neutrons/s | 4x Fission power");
         addFuelRod(
             ItemList.RodNaquadah4,
             "Quad Naquadah Fuel Rod",
@@ -337,7 +339,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             64.0,
             ItemList.DepletedRodNaquadah4.get(1L),
             320_000_000L,
-            "Base: 64 Fast Neutrons/t | 4x Fission power");
+            "Base: 64 Fast Neutrons/s | 4x Fission power");
 
         // 6. COOLANT CELLS (IC2 Heat Sinks)
         addIC2CoolantCell("reactorCoolantSimple", "10k Coolant Cell", 10_000);
@@ -807,7 +809,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 5,
                 0x404040,
                 false);
-            GuiDraw.drawString(recipe.data.fastNeutronEnergyEU + " EU", 36, 52, 0x00A000, false);
+            GuiDraw.drawString(recipe.data.fastNeutronEnergyHu + " Hu", 36, 52, 0x00A000, false);
             GuiDraw.drawString(String.format(Locale.US, "%.2f °C", recipe.data.directHeatC), 113, 18, 0x404040, false);
 
             if (recipe.data.maxNeutronsEmitted > 0) {

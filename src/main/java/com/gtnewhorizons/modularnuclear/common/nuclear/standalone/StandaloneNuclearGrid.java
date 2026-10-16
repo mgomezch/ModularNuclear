@@ -1378,7 +1378,7 @@ public class StandaloneNuclearGrid {
                 }
             }
         }
-        if (pipeTier < NuclearSimulationEngine.PIPE_TIER_PLATINUM
+        if (pipeTier < NuclearSimulationEngine.PIPE_TIER_OSMIUM
             && coolingMode == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP) {
             coolingMode = CoolantLoopModel.CoolingMode.MODULAR;
         }
@@ -1390,8 +1390,8 @@ public class StandaloneNuclearGrid {
 
     public boolean setCoolingMode(CoolantLoopModel.CoolingMode mode) {
         if (mode == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP) {
-            if (this.pipeTier < NuclearSimulationEngine.PIPE_TIER_PLATINUM) {
-                return false; // Convective loop requires Tier 2+
+            if (this.pipeTier < NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
+                return false; // Convective loop requires Osmium+ pipe tier
             }
         }
         this.coolingMode = (mode != null) ? mode : CoolantLoopModel.CoolingMode.MODULAR;
@@ -1752,7 +1752,7 @@ public class StandaloneNuclearGrid {
     }
 
     public boolean isTier2ConvectiveAllowed() {
-        return this.pipeTier >= NuclearSimulationEngine.PIPE_TIER_PLATINUM;
+        return this.pipeTier >= NuclearSimulationEngine.PIPE_TIER_OSMIUM;
     }
 
     public boolean isAutoReplaceFuel() {

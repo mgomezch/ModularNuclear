@@ -108,7 +108,7 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
         textColumn.child(
             IKey.dynamic(
                 () -> EnumChatFormatting.GRAY
-                    + String.format("Absorbed: %d n/t", machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed))
+                    + String.format("Absorbed: %d n/s", machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed))
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
@@ -129,7 +129,9 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
         slotCol.child(
             new ItemSlot()
                 .slot(
-                    new ModularSlot(machine.inventoryHandler, MTEHatchNuclearControlRod.SLOT_ROD).singletonSlotGroup())
+                    new ModularSlot(machine.inventoryHandler, MTEHatchNuclearControlRod.SLOT_ROD)
+                        .filter(MTEHatchNuclearControlRod::isControlRod)
+                        .singletonSlotGroup())
                 .backgroundOverlay(GTGuiTextures.OVERLAY_SLOT_IN_STANDARD));
 
         mainRow.child(slotCol);

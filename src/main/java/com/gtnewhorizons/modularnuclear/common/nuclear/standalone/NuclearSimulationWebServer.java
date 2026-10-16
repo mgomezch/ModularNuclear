@@ -736,7 +736,7 @@ public class NuclearSimulationWebServer {
                     <div class="segmented-control">
                       <button type="button" class="seg-btn" id="btn-mode-comp" onclick="setGridDisplayMode('COMPONENTS')" title="Show Component Icons [Key: 1]">📦 Components</button>
                       <button type="button" class="seg-btn active" id="btn-mode-temp" onclick="setGridDisplayMode('TEMP')" title="Show Cell Temperature (°C) [Key: 2]">🌡️ Temp</button>
-                      <button type="button" class="seg-btn" id="btn-mode-heat-output" onclick="setGridDisplayMode('HEAT_OUTPUT')" title="Show Heat Output (EU/t) [Key: 3]"><img src="icons/HOT_COOLANT_CELL.png" style="width:14px;height:14px;vertical-align:-2px;image-rendering:pixelated;margin-right:4px;" alt="" onerror="this.style.display='none'">Heat Output</button>
+                      <button type="button" class="seg-btn" id="btn-mode-heat-output" onclick="setGridDisplayMode('HEAT_OUTPUT')" title="Show Heat Output (Hu/s) [Key: 3]"><img src="icons/HOT_COOLANT_CELL.png" style="width:14px;height:14px;vertical-align:-2px;image-rendering:pixelated;margin-right:4px;" alt="" onerror="this.style.display='none'">Heat Output</button>
                       <button type="button" class="seg-btn" id="btn-mode-flux" onclick="setGridDisplayMode('TOTAL_FLUX')" title="Show Total Neutron Flux [Key: 4]">⚛️ Flux</button>
                       <button type="button" class="seg-btn" id="btn-mode-absorb" onclick="setGridDisplayMode('ABSORPTION')" title="Show Neutron Absorption [Key: 5]">🛡️ Absorption</button>
                       <button type="button" class="seg-btn" id="btn-mode-rods" onclick="setGridDisplayMode('CONTROL_RODS')" title="Show Control Rod Hatches [Key: 6]">🕹️ Control Rods</button>
@@ -814,17 +814,17 @@ public class NuclearSimulationWebServer {
                   </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">EU per Degree (°C):</label>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Hu per Degree (°C):</label>
                       <input id="p-eu-per-degree" type="number" step="1.0" value="32.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Base Conductance:</label>
-                      <input id="p-base-conductance" type="number" step="0.5" value="2.0" onchange="submitSimParams()" title="Base hatch conductance in EU/(t·°C)" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      <input id="p-base-conductance" type="number" step="0.5" value="2.0" onchange="submitSimParams()" title="Base hatch conductance in Hu/(s·°C)" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                   </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">Fission Heat (EU/n):</label>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Fission Heat (Hu/n):</label>
                       <input id="p-fission-heat" type="number" step="0.1" value="77.2" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                     <div>
@@ -881,11 +881,11 @@ public class NuclearSimulationWebServer {
                   </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:6px;">
                     <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">Water Heat (EU/L):</label>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Water Heat (Hu/L):</label>
                       <input id="p-cooling-heat" type="number" step="0.5" value="5.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                     <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">IC2 Heat (EU/L):</label>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">IC2 Heat (Hu/L):</label>
                       <input id="p-ic2-cooling-heat" type="number" step="1.0" value="20.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                   </div>
@@ -904,7 +904,7 @@ public class NuclearSimulationWebServer {
                     Per-cell convective cooling for <b style="color:#00d2ff;">Coolant Passage</b> tiles or attached cells.
                   </div>
                   <div id="loop-tier-warning" style="display:none; font-size:0.72rem; color:#fbbf24; background:rgba(251,191,36,0.15); border:1px solid #fbbf24; border-radius:4px; padding:6px; margin-bottom:8px;">
-                    ⚠️ Convective loops require Tier 2+ (IV Platinum 9x9 or LuV Osmium 9x9+). Neutronium pipes are forbidden in Tier 2!
+                    ⚠️ Convective loops require Osmium or higher item pipe casings (LuV+). Available on all reactor sizes (5×5, 9×9, 13×13).
                   </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
@@ -985,7 +985,7 @@ public class NuclearSimulationWebServer {
                     <div id="loop-pressure-bar" style="width:5%; height:100%; background:#22c55e; transition:width 0.2s, background 0.2s;"></div>
                   </div>
                   <div class="stat-row"><span>Loop Fluid Temp:</span><span class="stat-val" id="loop-temp-val">20.0 °C</span></div>
-                  <div class="stat-row"><span>Convective Heat Extracted:</span><span class="stat-val" id="loop-heat-val" style="color:#38bdf8;">0 EU/t (0.0 MWth)</span></div>
+                  <div class="stat-row"><span>Convective Heat Extracted:</span><span class="stat-val" id="loop-heat-val" style="color:#38bdf8;">0 Hu/s (0.0 MWth)</span></div>
                   <div class="stat-row"><span>Secondary PHE Steam:</span><span class="stat-val" id="loop-steam-val">0 L/t (1:160)</span></div>
                   <div class="stat-row"><span>Pump Power (Parasitic):</span><span class="stat-val" id="loop-pump-val" style="color:#fbbf24;">0 EU/t</span></div>
                   <div class="stat-row"><span>Attached Core Points:</span><span class="stat-val" id="loop-points-val">0 cells</span></div>
@@ -1903,7 +1903,7 @@ public class NuclearSimulationWebServer {
               const rngGlobalRod = document.getElementById("rng-global-rod-ins");
               if (rngGlobalRod && document.activeElement !== rngGlobalRod) rngGlobalRod.value = avgRodIns;
               const rodsAbsVal = document.getElementById("rods-total-abs-val");
-              if (rodsAbsVal) rodsAbsVal.innerText = `${totalRodAbsorbed.toLocaleString()} n/t`;
+              if (rodsAbsVal) rodsAbsVal.innerText = `${totalRodAbsorbed.toLocaleString()} n/s`;
 
               if (currentState.exploded) {
                 if (isWasmMode && wasmSim && wasmSim.running) {
@@ -2215,7 +2215,8 @@ public class NuclearSimulationWebServer {
                 const heatEl = document.getElementById("loop-heat-val");
                 if (heatEl) {
                   const mw = (cl.lastHeatExtractedWatts || 0) / 1000000;
-                  heatEl.innerText = `${Math.round(cl.lastHeatExtractedEUt).toLocaleString()} EU/t (${mw.toFixed(2)} MWth)`;
+                  const hut = cl.lastHeatExtractedHut != null ? cl.lastHeatExtractedHut : cl.lastHeatExtractedEUt;
+                  heatEl.innerText = `${Math.round(hut).toLocaleString()} Hu/s (${mw.toFixed(2)} MWth)`;
                 }
 
                 const steamEl = document.getElementById("loop-steam-val");
@@ -2533,23 +2534,23 @@ public class NuclearSimulationWebServer {
                     const fl = t.totalFlux || 0;
                     overlayBg = fl > 0 ? getNeutronColor(fl) : "transparent";
                     metricStr = formatFluxValue(fl);
-                    tipText = `Total Flux: ${fl.toLocaleString()} n/t (Fast: ${(t.fastFlux||0).toLocaleString()}, Thermal: ${(t.thermalFlux||0).toLocaleString()})`;
+                    tipText = `Total Flux: ${fl.toLocaleString()} n/s (Fast: ${(t.fastFlux||0).toLocaleString()}, Thermal: ${(t.thermalFlux||0).toLocaleString()})`;
                   } else if (gridDisplayMode === "FAST_FLUX") {
                     const fl = t.fastFlux || 0;
                     overlayBg = fl > 0 ? getNeutronColor(fl) : "transparent";
                     metricStr = formatFluxValue(fl);
-                    tipText = `Fast Flux: ${fl.toLocaleString()} n/t`;
+                    tipText = `Fast Flux: ${fl.toLocaleString()} n/s`;
                   } else if (gridDisplayMode === "THERMAL_FLUX") {
                     const fl = t.thermalFlux || 0;
                     overlayBg = fl > 0 ? getNeutronColor(fl) : "transparent";
                     metricStr = formatFluxValue(fl);
-                    tipText = `Thermal Flux: ${fl.toLocaleString()} n/t`;
+                    tipText = `Thermal Flux: ${fl.toLocaleString()} n/s`;
                   } else if (gridDisplayMode === "ABSORPTION") {
                     const abs = (t.fastAbsorbed || 0) + (t.thermalAbsorbed || 0);
                     const rodAbs = (t.controlRodFastAbsorbed || 0) + (t.controlRodThermalAbsorbed || 0);
                     overlayBg = abs > 0 ? getAbsorptionColor(abs) : "transparent";
                     metricStr = abs > 0 ? formatFluxValue(abs) : "";
-                    tipText = `Absorbed: ${abs.toLocaleString()} n/t (Base: ${(abs - rodAbs).toLocaleString()}, Bottom Rod: ${rodAbs.toLocaleString()})`;
+                    tipText = `Absorbed: ${abs.toLocaleString()} n/s (Base: ${(abs - rodAbs).toLocaleString()}, Bottom Rod: ${rodAbs.toLocaleString()})`;
                   } else if (gridDisplayMode === "CONTROL_RODS") {
                     if (t.hasControlRod) {
                       if (t.controlRodType && t.controlRodType !== "NONE") {
@@ -2572,7 +2573,7 @@ public class NuclearSimulationWebServer {
                     const ho = t.heatOutput || 0;
                     overlayBg = ho > 0 ? getHeatOutputColor(ho) : "transparent";
                     metricStr = ho > 0 ? (ho >= 10000 ? (ho / 1000).toFixed(1) + "k" : Math.round(ho).toString()) : "";
-                    tipText = `Heat Output: ${ho.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} EU/t`;
+                    tipText = `Heat Output: ${ho.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/s`;
                   } else {
                     overlayBg = getTemperatureColor(t.temp, currentState.maxSafeTemp);
                     metricStr = Math.round(t.temp) + "°C";
@@ -2689,7 +2690,7 @@ public class NuclearSimulationWebServer {
                 extraHtml = `
                   <div class="stat-row"><span>Structure:</span><span class="stat-val" style="color:var(--text-muted);">Reflective Casing Wall</span></div>
                   <div class="stat-row"><span>Wall Reflection:</span><span class="stat-val" style="color:#38bdf8;">50% Bounce</span></div>
-                  <div class="stat-row"><span>Wall Absorption:</span><span class="stat-val" style="color:#f59e0b;">12 EU/n &rarr; Pool</span></div>
+                  <div class="stat-row"><span>Wall Absorption:</span><span class="stat-val" style="color:#f59e0b;">12 Hu/n &rarr; Pool</span></div>
                 `;
               } else if (t.type === "PASSAGE_CORE") {
                 extraHtml = `
@@ -2753,11 +2754,11 @@ public class NuclearSimulationWebServer {
                 fluxHtml = `
                   <div style="background:#10141d; border:1px solid #373737; border-radius:3px; padding:6px 8px; margin-top:8px;">
                     <div style="font-weight:700; font-size:0.75rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px;">Neutron Kinetics</div>
-                    <div class="stat-row" style="margin-bottom:2px;"><span>Total Flux:</span><span class="stat-val" style="color:#38bdf8;">${(t.totalFlux || 0).toLocaleString()} n/t</span></div>
-                    <div class="stat-row" style="margin-bottom:2px;"><span>Fast Flux:</span><span class="stat-val" style="color:#fbbf24;">${(t.fastFlux || 0).toLocaleString()} n/t</span></div>
-                    <div class="stat-row" style="margin-bottom:2px;"><span>Thermal Flux:</span><span class="stat-val" style="color:#4ade80;">${(t.thermalFlux || 0).toLocaleString()} n/t</span></div>
-                    <div class="stat-row" style="margin-bottom:2px;"><span>Fast Absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${(t.fastAbsorbed || 0).toLocaleString()} n/t</span></div>
-                    <div class="stat-row" style="margin-bottom:2px;"><span>Thermal Absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${(t.thermalAbsorbed || 0).toLocaleString()} n/t</span></div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Total Flux:</span><span class="stat-val" style="color:#38bdf8;">${(t.totalFlux || 0).toLocaleString()} n/s</span></div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Fast Flux:</span><span class="stat-val" style="color:#fbbf24;">${(t.fastFlux || 0).toLocaleString()} n/s</span></div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Thermal Flux:</span><span class="stat-val" style="color:#4ade80;">${(t.thermalFlux || 0).toLocaleString()} n/s</span></div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Fast Absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${(t.fastAbsorbed || 0).toLocaleString()} n/s</span></div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Thermal Absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${(t.thermalAbsorbed || 0).toLocaleString()} n/s</span></div>
                     ${t.directEU ? `<div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #373737;"><span>Radiovoltaic Output:</span><span class="stat-val" style="color:#38bdf8;">${t.directEU.toLocaleString()} EU/t</span></div>` : ''}
                   </div>
                 `;
@@ -2842,8 +2843,8 @@ public class NuclearSimulationWebServer {
                       </div>
                       ${(fastAbs > 0 || thermAbs > 0) ? `
                         <div style="border-top:1px dashed #373737; padding-top:4px; margin-top:4px; font-size:0.72rem;">
-                          <div class="stat-row" style="margin-bottom:1px;"><span>Rod Fast Absorbed:</span><span class="stat-val" style="color:#fbbf24;">${fastAbs.toLocaleString()} n/t</span></div>
-                          <div class="stat-row" style="margin-bottom:1px;"><span>Rod Thermal Absorbed:</span><span class="stat-val" style="color:#4ade80;">${thermAbs.toLocaleString()} n/t</span></div>
+                          <div class="stat-row" style="margin-bottom:1px;"><span>Rod Fast Absorbed:</span><span class="stat-val" style="color:#fbbf24;">${fastAbs.toLocaleString()} n/s</span></div>
+                          <div class="stat-row" style="margin-bottom:1px;"><span>Rod Thermal Absorbed:</span><span class="stat-val" style="color:#4ade80;">${thermAbs.toLocaleString()} n/s</span></div>
                         </div>
                       ` : ''}
                     </div>
@@ -2860,7 +2861,7 @@ public class NuclearSimulationWebServer {
                   </div>
                 </div>
                 <div class="stat-row"><span>Temperature:</span><span class="stat-val">${t.temp} °C</span></div>
-                ${t.heatOutput != null && t.heatOutput > 0 ? `<div class="stat-row"><span>Heat Output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${t.heatOutput.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} EU/t</span></div>` : ''}
+                ${t.heatOutput != null && t.heatOutput > 0 ? `<div class="stat-row"><span>Heat Output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${t.heatOutput.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/s</span></div>` : ''}
                 ${coolingMethodHtml}
                 ${controlRodHtml}
                 ${extraHtml}
@@ -3143,7 +3144,7 @@ public class NuclearSimulationWebServer {
               if (!wasmSim) return;
               const TIER_DEFAULTS = {
                 0: { mode: "CONDUCTIVE", mat: "TITANIUM", size: "NORMAL", fluid: "DISTILLED_WATER", hatch: "EV", impeller: "ORIHARUKON" },
-                1: { mode: "CONVECTIVE_LOOP", mat: "TUNGSTENSTEEL", size: "LARGE", fluid: "DISTILLED_WATER", hatch: "IV", impeller: "ICHORIUM" },
+                1: { mode: "CONDUCTIVE", mat: "TUNGSTENSTEEL", size: "LARGE", fluid: "DISTILLED_WATER", hatch: "IV", impeller: "ICHORIUM" },
                 2: { mode: "CONVECTIVE_LOOP", mat: "OSMIUM", size: "LARGE", fluid: "DISTILLED_WATER", hatch: "LUV", impeller: "DURANIUM" },
                 3: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "ZPM", impeller: "DURANIUM" },
                 4: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "UV", impeller: "DURANIUM" },

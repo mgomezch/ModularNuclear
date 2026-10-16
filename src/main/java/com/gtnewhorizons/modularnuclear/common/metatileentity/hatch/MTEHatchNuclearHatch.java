@@ -44,7 +44,9 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     public com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor mReactor;
 
     public double mTemperature = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
-    public double mHeatEU = 0.0;
+    public double mHeatHu = 0.0;
+    public double mHeatEU = 0.0; // Backwards-compatible alias
+    public long mCumulativeFluence = 0L;
     public int mFastFlux = 0;
     public int mThermalFlux = 0;
     public int mFastAbsorbed = 0;
@@ -133,18 +135,22 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     @Override
     public int fill(ForgeDirection side, FluidStack resource, boolean doFill) {
         if (resource == null || resource.amount <= 0) return 0;
-        String name = resource.getFluid()
-            .getName()
+        Fluid fluid = null;
+        try {
+            fluid = resource.getFluid();
+        } catch (Exception ignored) {}
+        if (fluid == null) return 0;
+        String name = fluid.getName()
             .toLowerCase();
-        if (name.equals("water")) return 0; // Regular water is completely disallowed
-        if (mReactorPipeTier >= 0 && getRequiredFluidTier(name) > mReactorPipeTier) {
+        if (!isFluidAllowed(name)) {
             return 0;
         }
 
         if (mInputFluid == null) {
             int toFill = Math.min(resource.amount, mCapacity);
             if (doFill) {
-                mInputFluid = new FluidStack(resource.getFluid(), toFill);
+                mInputFluid = resource.copy();
+                mInputFluid.amount = toFill;
                 markTileDirty();
             }
             return toFill;
@@ -175,8 +181,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
         if (fluid == null) return false;
         String name = fluid.getName()
             .toLowerCase();
-        if (name.equals("water")) return false; // Regular water is completely disallowed
-        if (mReactorPipeTier >= 0 && getRequiredFluidTier(name) > mReactorPipeTier) {
+        if (!isFluidAllowed(name)) {
             return false;
         }
         return mInputFluid == null || (mInputFluid.getFluid() == fluid && mInputFluid.amount < mCapacity);
@@ -226,7 +231,9 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setDouble("mTemperature", mTemperature);
-        aNBT.setDouble("mHeatEU", mHeatEU);
+        aNBT.setDouble("mHeatHu", mHeatHu);
+        aNBT.setDouble("mHeatEU", mHeatHu);
+        aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setInteger("mReactorPipeTier", mReactorPipeTier);
         aNBT.setBoolean("mWasDry", mWasDry);
         aNBT.setBoolean("mUsedForCooling", mUsedForCooling);
@@ -266,7 +273,15 @@ public class MTEHatchNuclearHatch extends MTEHatch {
         } else {
             mTemperature = getAmbientTemperature();
         }
-        mHeatEU = aNBT.getDouble("mHeatEU");
+        if (aNBT.hasKey("mHeatHu")) {
+            mHeatHu = aNBT.getDouble("mHeatHu");
+        } else if (aNBT.hasKey("mHeatEU")) {
+            mHeatHu = aNBT.getDouble("mHeatEU");
+        }
+        mHeatEU = mHeatHu;
+        if (aNBT.hasKey("mCumulativeFluence")) {
+            mCumulativeFluence = aNBT.getLong("mCumulativeFluence");
+        }
         if (aNBT.hasKey("mReactorPipeTier")) {
             mReactorPipeTier = aNBT.getInteger("mReactorPipeTier");
         }
@@ -287,16 +302,18 @@ public class MTEHatchNuclearHatch extends MTEHatch {
         }
     }
 
+    public boolean isFluidAllowed(String fluidName) {
+        return NuclearSimulationEngine.isFluidAllowed(fluidName, mReactorPipeTier);
+    }
+
+    public boolean isFluidTierValid() {
+        if (mInputFluid == null || mInputFluid.getFluid() == null) return true;
+        return isFluidAllowed(mInputFluid.getFluid().getName());
+    }
+
     public boolean isFluidInputAllowed(FluidStack aFluid) {
         if (aFluid == null || aFluid.getFluid() == null) return false;
-        String name = aFluid.getFluid()
-            .getName()
-            .toLowerCase();
-        if (name.equals("water")) return false;
-        if (mReactorPipeTier >= 0 && getRequiredFluidTier(name) > mReactorPipeTier) {
-            return false;
-        }
-        return true;
+        return isFluidAllowed(aFluid.getFluid().getName());
     }
 
     public com.cleanroommc.modularui.utils.fluid.FluidStackTank getInputTank() {
@@ -341,11 +358,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
                 new TextWidget("Stats").setDefaultColor(Color.rgb(0, 255, 200))
                     .setPos(10, 20))
             .widget(new TextWidget().setStringSupplier(() -> {
-                if (mInputFluid != null && mReactorPipeTier >= 0
-                    && getRequiredFluidTier(
-                        mInputFluid.getFluid()
-                            .getName())
-                        > mReactorPipeTier) {
+                if (!isFluidTierValid()) {
                     return "ERR: TIER";
                 }
                 return String.format("%.0f °C", mTemperature);

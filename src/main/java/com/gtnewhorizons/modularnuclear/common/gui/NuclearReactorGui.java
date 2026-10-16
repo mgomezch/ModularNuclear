@@ -171,6 +171,13 @@ public class NuclearReactorGui {
         screenElements.widget(
             new TextWidget()
                 .setStringSupplier(
+                    () -> "Fluence: " + NuclearSimulationEngine.formatNeutronFluence(reactor.mCumulativeNeutrons))
+                .setDefaultColor(Color.rgb(180, 200, 255))
+                .setTextAlignment(Alignment.CenterLeft)
+                .setEnabled(widget -> reactor.mMachine));
+        screenElements.widget(
+            new TextWidget()
+                .setStringSupplier(
                     () -> String.format(
                         "Neutrons: %d fast, %d therm, %d esc",
                         reactor.mFastAbsorbed,

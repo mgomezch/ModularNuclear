@@ -811,6 +811,9 @@ public class NuclearSimWasmBridge {
         sb.append("\"lastHeatExtractedWatts\":")
             .append(fmt1(cl.getLastHeatExtractedWatts()))
             .append(",");
+        sb.append("\"lastHeatExtractedHut\":")
+            .append(fmt1(cl.getLastHeatExtractedHut()))
+            .append(",");
         sb.append("\"lastHeatExtractedEUt\":")
             .append(fmt1(cl.getLastHeatExtractedEUt()))
             .append(",");
@@ -831,6 +834,9 @@ public class NuclearSimWasmBridge {
             .append(",");
         sb.append("\"totalMethaneProduced\":")
             .append(cl.getTotalMethaneProduced())
+            .append(",");
+        sb.append("\"totalHeatExtractedHut\":")
+            .append(fmt1(cl.getTotalHeatExtractedHut()))
             .append(",");
         sb.append("\"totalSecondarySteamProduced\":")
             .append(cl.getTotalSecondarySteamProduced())

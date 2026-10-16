@@ -5,6 +5,17 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantItemData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.InsulatorData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.PlatingData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData;
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
@@ -13,6 +24,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
 import gregtech.api.items.ItemRadioactiveCell;
 import gregtech.api.items.ItemRadioactiveCellIC;
@@ -49,20 +61,23 @@ public class NuclearReactorPhysics {
         }
     }
 
-    public static void addTileHeat(NuclearGridTile tile, double heatEU) {
+    public static void addTileHeat(NuclearGridTile tile, double heatHu) {
         if (tile.isBus()) {
-            tile.getBus().mHeatEU += heatEU;
-            tile.getBus().mTemperature += heatEU / NuclearSimulationEngine.EU_PER_DEGREE;
+            tile.getBus().mHeatHu += heatHu;
+            tile.getBus().mHeatEU = tile.getBus().mHeatHu;
+            tile.getBus().mTemperature += heatHu / NuclearSimulationEngine.HU_PER_DEGREE;
         } else if (tile.isHatch()) {
-            tile.getHatch().mHeatEU += heatEU;
-            tile.getHatch().mTemperature += heatEU / NuclearSimulationEngine.EU_PER_DEGREE;
+            tile.getHatch().mHeatHu += heatHu;
+            tile.getHatch().mHeatEU = tile.getHatch().mHeatHu;
+            tile.getHatch().mTemperature += heatHu / NuclearSimulationEngine.HU_PER_DEGREE;
         } else if (tile.isHighPressureHatch()) {
             tile.getHighPressureHatch()
-                .addHeat(heatEU);
+                .addHeat(heatHu);
         }
         if (tile.hasControlRod()) {
-            tile.getBottomControlRod().mHeatEU += heatEU;
-            tile.getBottomControlRod().mTemperature += heatEU / NuclearSimulationEngine.EU_PER_DEGREE;
+            tile.getBottomControlRod().mHeatHu += heatHu;
+            tile.getBottomControlRod().mHeatEU = tile.getBottomControlRod().mHeatHu;
+            tile.getBottomControlRod().mTemperature += heatHu / NuclearSimulationEngine.HU_PER_DEGREE;
         }
     }
 
@@ -70,20 +85,42 @@ public class NuclearReactorPhysics {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
             if (stack == null) return 0.02;
+
+            FuelData fuel = ReactorDataRegistry.findFuel(stack);
+            if (fuel != null) return fuel.heatTransferCoeff;
+            InsulatorData ins = ReactorDataRegistry.findInsulator(stack);
+            if (ins != null) return ins.heatTransferCoeff;
+            RadiovoltaicData rv = ReactorDataRegistry.findRadiovoltaic(stack);
+            if (rv != null) return rv.heatTransferCoeff;
+            ReflectorData refl = ReactorDataRegistry.findReflector(stack);
+            if (refl != null) return refl.heatTransferCoeff;
+            ModeratorData mod = ReactorDataRegistry.findModerator(stack);
+            if (mod != null) return mod.heatTransferCoeff;
+            HeatVentData vent = ReactorDataRegistry.findHeatVent(stack);
+            if (vent != null) return vent.heatTransferCoeff;
+            HeatExchangerData hex = ReactorDataRegistry.findHeatExchanger(stack);
+            if (hex != null) return hex.heatTransferCoeff;
+            PlatingData plat = ReactorDataRegistry.findPlating(stack);
+            if (plat != null) return plat.heatTransferCoeff;
+            CoolantItemData cItem = ReactorDataRegistry.findCoolantItem(stack);
+            if (cItem != null) return cItem.heatTransferCoeff;
+
             if (reactor.isItemInsulator(stack)) return 0.01;
             if (reactor.isItemRadiovoltaic(stack)) return 0.10;
-            String name = stack.getUnlocalizedName()
-                .toLowerCase();
-            if (name.contains("coolant") || name.contains("vent")
-                || name.contains("switch")
-                || name.contains("heatexchanger")) return 0.40;
-            if (name.contains("reflector")) return 0.15;
-            if (name.contains("fuel") || name.contains("uranium") || name.contains("mox") || name.contains("thorium"))
-                return 0.05;
+            if (NuclearFuelClassification.isItemCoolant(stack) || NuclearFuelClassification.isItemHeatVent(stack)
+                || NuclearFuelClassification.isItemHeatExchanger(stack)) return 0.40;
+            if (NuclearFuelClassification.isItemReflector(stack)) return 0.15;
+            if (reactor.isItemFuel(stack)) return 0.05;
             return 0.03;
         } else if (tile.isHatch()) {
             FluidStack fluid = tile.getHatch().mInputFluid;
             if (fluid == null) return 0.05;
+
+            CoolantFluidData cFluid = ReactorDataRegistry.findCoolantFluid(fluid);
+            if (cFluid != null) return cFluid.heatTransferCoeff;
+            FuelData fFluid = ReactorDataRegistry.findFuel(fluid);
+            if (fFluid != null) return fFluid.heatTransferCoeff;
+
             String name = fluid.getFluid()
                 .getName()
                 .toLowerCase();
@@ -142,7 +179,6 @@ public class NuclearReactorPhysics {
         NuclearFuelType fuel = getTileFuelType(tile);
         double baseFissMult = (customMix != null) ? customMix.baseThermalFissionMultiplier
             : (fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0;
-        double effectiveFissMult = baseFissMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
 
         if (tile.isBus()) {
             MTEHatchNuclearBus bus = tile.getBus();
@@ -152,8 +188,13 @@ public class NuclearReactorPhysics {
                 return 0;
             }
             int baseNeutrons = 4;
+            FuelData fd = ReactorDataRegistry.findFuel(stack);
             if (customMix != null) {
                 baseNeutrons = customMix.baseNeutrons;
+                baseFissMult = customMix.baseThermalFissionMultiplier;
+            } else if (fd != null) {
+                baseNeutrons = fd.baseNeutrons;
+                baseFissMult = fd.thermalFissionMultiplier;
             } else if (stack.getItem() instanceof ItemRadioactiveCellIC icCell) {
                 baseNeutrons = 4 * icCell.numberOfCells;
                 if (icCell.sMox) baseNeutrons *= 2;
@@ -175,16 +216,19 @@ public class NuclearReactorPhysics {
                     if (lower.contains("mox")) baseNeutrons *= 2;
                 }
             }
-            String name = stack.getUnlocalizedName();
-            if (name != null) {
-                String lower = name.toLowerCase();
-                if (lower.contains("glowstone") || lower.contains("lithium")) baseNeutrons = 1;
-                if (lower.contains("thorium")) baseNeutrons = Math.max(1, baseNeutrons / 2);
-                if (lower.contains("naquadah")) baseNeutrons *= 4;
-                if (lower.contains("naquadria")) baseNeutrons *= 4;
-                if (lower.contains("tiberium")) baseNeutrons *= 2;
+            if (customMix == null && fd == null) {
+                String name = stack.getUnlocalizedName();
+                if (name != null) {
+                    String lower = name.toLowerCase();
+                    if (lower.contains("glowstone") || lower.contains("lithium")) baseNeutrons = 1;
+                    if (lower.contains("thorium")) baseNeutrons = Math.max(1, baseNeutrons / 2);
+                    if (lower.contains("naquadah")) baseNeutrons *= 4;
+                    if (lower.contains("naquadria")) baseNeutrons *= 4;
+                    if (lower.contains("tiberium")) baseNeutrons *= 2;
+                }
             }
 
+            double effectiveFissMult = baseFissMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
             int chainNeutrons = (int) Math.round(bus.mLastThermalAbsorbed * effectiveFissMult);
             int produced = (int) Math.round((baseNeutrons + chainNeutrons) * efficiency);
             bus.mLastNeutronsGenerated = produced;
@@ -196,20 +240,27 @@ public class NuclearReactorPhysics {
                 hatch.mLastNeutronsGenerated = 0;
                 return 0;
             }
-            String name = fluid.getFluid()
-                .getName()
-                .toLowerCase();
             int baseNeutrons = 8;
-            if (name.contains("thorium")) {
-                baseNeutrons = name.contains("excited") ? 8 : 4;
-            } else if (name.contains("uranium")) {
-                baseNeutrons = name.contains("excited") ? 16 : 8;
-            } else if (name.contains("plutonium")) {
-                baseNeutrons = name.contains("excited") ? 32 : 16;
-            } else if (name.contains("uraniumhexafluoride")) {
-                baseNeutrons = 12;
+            FuelData fd = ReactorDataRegistry.findFuel(fluid);
+            if (fd != null) {
+                baseNeutrons = fd.baseNeutrons;
+                baseFissMult = fd.thermalFissionMultiplier;
+            } else {
+                String name = fluid.getFluid()
+                    .getName()
+                    .toLowerCase();
+                if (name.contains("thorium")) {
+                    baseNeutrons = name.contains("excited") ? 8 : 4;
+                } else if (name.contains("uranium")) {
+                    baseNeutrons = name.contains("excited") ? 16 : 8;
+                } else if (name.contains("plutonium")) {
+                    baseNeutrons = name.contains("excited") ? 32 : 16;
+                } else if (name.contains("uraniumhexafluoride")) {
+                    baseNeutrons = 12;
+                }
             }
 
+            double effectiveFissMult = baseFissMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
             int chainNeutrons = (int) Math.round(hatch.mLastThermalAbsorbed * effectiveFissMult);
             int produced = (int) Math.round((baseNeutrons + chainNeutrons) * efficiency);
             hatch.mLastNeutronsGenerated = produced;
@@ -255,26 +306,41 @@ public class NuclearReactorPhysics {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
             if (stack == null) return 0.01;
+
+            InsulatorData ins = ReactorDataRegistry.findInsulator(stack);
+            if (ins != null) return (type == NeutronType.FAST) ? ins.absorptionFast : ins.absorptionThermal;
+            RadiovoltaicData rv = ReactorDataRegistry.findRadiovoltaic(stack);
+            if (rv != null) return (type == NeutronType.FAST) ? rv.absorptionFast : rv.absorptionThermal;
+            ModeratorData mod = ReactorDataRegistry.findModerator(stack);
+            if (mod != null) return (type == NeutronType.FAST) ? mod.absorptionFast : mod.absorptionThermal;
+            ReflectorData refl = ReactorDataRegistry.findReflector(stack);
+            if (refl != null) return (type == NeutronType.FAST) ? refl.absorptionFast : refl.absorptionThermal;
+            FuelData fuel = ReactorDataRegistry.findFuel(stack);
+            if (fuel != null) return (type == NeutronType.FAST) ? fuel.absorptionFast : fuel.absorptionThermal;
+            CoolantItemData cItem = ReactorDataRegistry.findCoolantItem(stack);
+            if (cItem != null) return (type == NeutronType.FAST) ? cItem.absorptionFast : cItem.absorptionThermal;
+
             if (reactor.isNaquariteInsulatorFoil(stack)) return 1.0;
             if (reactor.isItemInsulator(stack)) return 0.01;
             if (reactor.isItemRadiovoltaic(stack)) return 1.0;
-            String name = stack.getUnlocalizedName()
-                .toLowerCase();
-            if (name.contains("graphite") || name.contains("carbon") || name.contains("moderator")) {
+            if (NuclearFuelClassification.isItemModerator(stack)) {
                 return (type == NeutronType.THERMAL) ? 0.009 : 0.002;
             }
-            if (name.contains("reflector")) return (type == NeutronType.THERMAL) ? 0.02 : 0.01;
-            if (name.contains("boron") || name.contains("cadmium") || name.contains("control")) {
-                return (type == NeutronType.THERMAL) ? 0.95 : 0.85;
-            }
+            if (NuclearFuelClassification.isItemReflector(stack)) return (type == NeutronType.THERMAL) ? 0.02 : 0.01;
             if (reactor.isItemFuel(stack)) {
                 return (type == NeutronType.THERMAL) ? 0.80 : 0.25;
             }
-            if (name.contains("coolant")) return 0.05;
+            if (NuclearFuelClassification.isItemCoolant(stack)) return 0.05;
             return 0.02;
         } else if (tile.isHatch()) {
             FluidStack fluid = tile.getHatch().mInputFluid;
             if (fluid == null) return 0.01;
+
+            CoolantFluidData cFluid = ReactorDataRegistry.findCoolantFluid(fluid);
+            if (cFluid != null) return (type == NeutronType.FAST) ? cFluid.absorptionFast : cFluid.absorptionThermal;
+            FuelData fFluid = ReactorDataRegistry.findFuel(fluid);
+            if (fFluid != null) return (type == NeutronType.FAST) ? fFluid.absorptionFast : fFluid.absorptionThermal;
+
             String name = fluid.getFluid()
                 .getName()
                 .toLowerCase();
@@ -307,24 +373,39 @@ public class NuclearReactorPhysics {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
             if (stack == null) return 0.02;
+
+            InsulatorData ins = ReactorDataRegistry.findInsulator(stack);
+            if (ins != null) return (type == NeutronType.FAST) ? ins.scatteringFast : ins.scatteringThermal;
+            RadiovoltaicData rv = ReactorDataRegistry.findRadiovoltaic(stack);
+            if (rv != null) return 0.0;
+            ModeratorData mod = ReactorDataRegistry.findModerator(stack);
+            if (mod != null) return (type == NeutronType.FAST) ? mod.scatteringFast : mod.scatteringThermal;
+            ReflectorData refl = ReactorDataRegistry.findReflector(stack);
+            if (refl != null) return (type == NeutronType.FAST) ? refl.scatteringFast : refl.scatteringThermal;
+            CoolantItemData cItem = ReactorDataRegistry.findCoolantItem(stack);
+            if (cItem != null) return (type == NeutronType.FAST) ? cItem.scatteringFast : cItem.scatteringThermal;
+            FuelData fuel = ReactorDataRegistry.findFuel(stack);
+            if (fuel != null) return (type == NeutronType.FAST) ? fuel.scatteringFast : fuel.scatteringThermal;
+
             if (reactor.isNaquariteInsulatorFoil(stack)) return 0.0;
             if (reactor.isItemInsulator(stack)) return 0.05;
             if (reactor.isItemRadiovoltaic(stack)) return 0.0;
-            String name = stack.getUnlocalizedName()
-                .toLowerCase();
-            if (name.contains("graphite") || name.contains("carbon") || name.contains("moderator")) {
+            if (NuclearFuelClassification.isItemModerator(stack)) {
                 return (type == NeutronType.THERMAL) ? 0.621 : 0.93;
             }
-            if (name.contains("reflector")) return (type == NeutronType.THERMAL) ? 0.98 : 0.95;
-            if (name.contains("boron") || name.contains("cadmium") || name.contains("control")) {
-                return (type == NeutronType.THERMAL) ? 0.05 : 0.10;
-            }
-            if (name.contains("coolant")) return 0.45;
+            if (NuclearFuelClassification.isItemReflector(stack)) return (type == NeutronType.THERMAL) ? 0.98 : 0.95;
+            if (NuclearFuelClassification.isItemCoolant(stack)) return 0.45;
             if (reactor.isItemFuel(stack)) return (type == NeutronType.THERMAL) ? 0.10 : 0.15;
             return 0.05;
         } else if (tile.isHatch()) {
             FluidStack fluid = tile.getHatch().mInputFluid;
             if (fluid == null) return 0.02;
+
+            CoolantFluidData cFluid = ReactorDataRegistry.findCoolantFluid(fluid);
+            if (cFluid != null) return (type == NeutronType.FAST) ? cFluid.scatteringFast : cFluid.scatteringThermal;
+            FuelData fFluid = ReactorDataRegistry.findFuel(fluid);
+            if (fFluid != null) return (type == NeutronType.FAST) ? fFluid.scatteringFast : fFluid.scatteringThermal;
+
             String name = fluid.getFluid()
                 .getName()
                 .toLowerCase();
@@ -354,21 +435,36 @@ public class NuclearReactorPhysics {
     public static double getTileModerationProbability(NuclearGridTile tile) {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+            if (stack == null) return 0.05;
+
+            RadiovoltaicData rv = ReactorDataRegistry.findRadiovoltaic(stack);
+            if (rv != null) return 0.0;
+            ModeratorData mod = ReactorDataRegistry.findModerator(stack);
+            if (mod != null) return mod.moderation;
+            ReflectorData refl = ReactorDataRegistry.findReflector(stack);
+            if (refl != null) return refl.moderation;
+            CoolantItemData cItem = ReactorDataRegistry.findCoolantItem(stack);
+            if (cItem != null) return cItem.moderation;
+            FuelData fuel = ReactorDataRegistry.findFuel(stack);
+            if (fuel != null) return fuel.moderation;
+
             if (tile.getReactor()
                 .isItemRadiovoltaic(stack)) return 0.0;
-            if (stack == null) return 0.05;
-            String name = stack.getUnlocalizedName()
-                .toLowerCase();
-            if (name.contains("graphite") || name.contains("carbon") || name.contains("moderator")) return 0.50;
-            if (name.contains("reflector")) return 0.20;
-            if (name.contains("coolant")) return 0.40;
+            if (NuclearFuelClassification.isItemModerator(stack)) return 0.50;
+            if (NuclearFuelClassification.isItemReflector(stack)) return 0.20;
+            if (NuclearFuelClassification.isItemCoolant(stack)) return 0.40;
             if (tile.getReactor()
                 .isItemFuel(stack)) return 0.10;
-            if (name.contains("boron") || name.contains("cadmium") || name.contains("control")) return 0.05;
             return 0.05;
         } else if (tile.isHatch()) {
             FluidStack fluid = tile.getHatch().mInputFluid;
             if (fluid == null) return 0.05;
+
+            CoolantFluidData cFluid = ReactorDataRegistry.findCoolantFluid(fluid);
+            if (cFluid != null) return cFluid.moderation;
+            FuelData fFluid = ReactorDataRegistry.findFuel(fluid);
+            if (fFluid != null) return fFluid.moderation;
+
             String name = fluid.getFluid()
                 .getName()
                 .toLowerCase();
@@ -469,9 +565,7 @@ public class NuclearReactorPhysics {
             MTEHatchNuclearBus bus = tile.getBus();
             ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
             if (stack != null && stack.isItemStackDamageable()) {
-                String name = stack.getUnlocalizedName()
-                    .toLowerCase();
-                if (name.contains("reflector")) {
+                if (NuclearFuelClassification.isItemReflector(stack)) {
                     if (reactor.getRandomNumber(20) == 0) {
                         reactor.damageItemComponent(bus, 1);
                     }
@@ -519,6 +613,7 @@ public class NuclearReactorPhysics {
 
     public static void processControlRodNuclearTick(MTEHatchNuclearControlRod rod, NuclearGridTile tile,
         double efficiency) {
+        rod.mCumulativeFluence += (rod.mFastFlux + rod.mThermalFlux);
         rod.mLastFastFlux = rod.mFastFlux;
         rod.mLastThermalFlux = rod.mThermalFlux;
         rod.mLastFastAbsorbed = rod.mFastAbsorbed;
@@ -534,6 +629,7 @@ public class NuclearReactorPhysics {
         bus.mLastHeatOutput = 0.0;
         ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
         if (stack == null) {
+            bus.mCumulativeFluence += (bus.mFastFlux + bus.mThermalFlux);
             bus.mLastFastFlux = bus.mFastFlux;
             bus.mLastThermalFlux = bus.mThermalFlux;
             bus.mLastFastAbsorbed = bus.mFastAbsorbed;
@@ -631,7 +727,7 @@ public class NuclearReactorPhysics {
                     double ambient = reactor.getAmbientTemperature();
                     if (maxHeat > 0 && bus.mTemperature > ambient) {
                         int maxTransferPerTick = Math.max(20, maxHeat / 50);
-                        double heatAvailable = (bus.mTemperature - ambient) * NuclearSimulationEngine.EU_PER_DEGREE;
+                        double heatAvailable = (bus.mTemperature - ambient) * NuclearSimulationEngine.HU_PER_DEGREE;
                         double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
                         int heatToTake = (int) Math
                             .round(Math.min(heatAvailable / 25.0, (double) maxTransferPerTick) * effFactor);
@@ -641,7 +737,7 @@ public class NuclearReactorPhysics {
                         if (heatToTake > 0) {
                             comp.alterHeat(reactor.getReactorDummy(), stack, gx, gy, heatToTake);
                             double heatConsumed = heatToTake * 25.0;
-                            bus.mTemperature -= (heatConsumed / NuclearSimulationEngine.EU_PER_DEGREE);
+                            bus.mTemperature -= (heatConsumed / NuclearSimulationEngine.HU_PER_DEGREE);
                             bus.markTileDirty();
                         }
                     }
@@ -663,7 +759,7 @@ public class NuclearReactorPhysics {
                 double ambient = reactor.getAmbientTemperature();
                 if (maxHeat > 0 && bus.mTemperature > ambient) {
                     int maxTransferPerTick = Math.max(1, maxHeat / 100);
-                    double heatAvailable = (bus.mTemperature - ambient) * NuclearSimulationEngine.EU_PER_DEGREE;
+                    double heatAvailable = (bus.mTemperature - ambient) * NuclearSimulationEngine.HU_PER_DEGREE;
                     double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
                     int heatToTake = (int) Math
                         .round(Math.min(heatAvailable / 25.0, (double) maxTransferPerTick) * effFactor);
@@ -673,7 +769,7 @@ public class NuclearReactorPhysics {
                     if (heatToTake > 0) {
                         comp.alterHeat(reactor.getReactorDummy(), stack, 0, 0, heatToTake);
                         double heatConsumed = heatToTake * 25.0;
-                        bus.mTemperature -= (heatConsumed / NuclearSimulationEngine.EU_PER_DEGREE);
+                        bus.mTemperature -= (heatConsumed / NuclearSimulationEngine.HU_PER_DEGREE);
                         bus.mLastHeatOutput = heatConsumed;
                         bus.markTileDirty();
                     }
@@ -692,16 +788,14 @@ public class NuclearReactorPhysics {
             }
         }
         // 4. GENERIC COOLANT/VENT FALLBACK
-        else if (stack.getUnlocalizedName()
-            .toLowerCase()
-            .contains("coolant")) {
+        else if (NuclearFuelClassification.isItemCoolant(stack)) {
                 bus.mDirectEUProduced = 0;
                 double ambient = reactor.getAmbientTemperature();
                 if (bus.mTemperature > ambient) {
                     double heatToAbsorb = Math.min(bus.mTemperature - ambient, 100.0)
-                        * NuclearSimulationEngine.EU_PER_DEGREE;
+                        * NuclearSimulationEngine.HU_PER_DEGREE;
                     if (heatToAbsorb > 0) {
-                        bus.mTemperature -= (heatToAbsorb / NuclearSimulationEngine.EU_PER_DEGREE);
+                        bus.mTemperature -= (heatToAbsorb / NuclearSimulationEngine.HU_PER_DEGREE);
                         int cellDamage = Math.max(1, (int) (heatToAbsorb / 50.0));
                         reactor.damageItemComponent(bus, cellDamage);
                         bus.mLastHeatOutput = heatToAbsorb;
@@ -726,6 +820,7 @@ public class NuclearReactorPhysics {
         }
 
         // Reset transient flux counters for next tick's display
+        bus.mCumulativeFluence += (bus.mFastFlux + bus.mThermalFlux);
         bus.mLastFastFlux = bus.mFastFlux;
         bus.mLastThermalFlux = bus.mThermalFlux;
         bus.mLastFastAbsorbed = bus.mFastAbsorbed;
@@ -757,7 +852,7 @@ public class NuclearReactorPhysics {
 
         long totalEU = (long) recipe.mDuration * recipe.mEUt;
         double heatAbsorbed = Math.max(1.0, (double) totalEU);
-        double tempDrop = heatAbsorbed / NuclearSimulationEngine.EU_PER_DEGREE;
+        double tempDrop = heatAbsorbed / NuclearSimulationEngine.HU_PER_DEGREE;
         bus.mTemperature = Math.max(reactor.getAmbientTemperature(), bus.mTemperature - tempDrop);
         bus.mLastHeatOutput = heatAbsorbed;
 
@@ -786,6 +881,7 @@ public class NuclearReactorPhysics {
 
     public static void processHatchNuclearTick(MTENuclearReactor reactor, MTEHatchNuclearHatch hatch,
         NuclearGridTile tile, double efficiency) {
+        hatch.mCumulativeFluence += (hatch.mFastFlux + hatch.mThermalFlux);
         hatch.mLastFastFlux = hatch.mFastFlux;
         hatch.mLastThermalFlux = hatch.mThermalFlux;
         hatch.mLastFastAbsorbed = hatch.mFastAbsorbed;
@@ -836,10 +932,9 @@ public class NuclearReactorPhysics {
         String name = hatch.mInputFluid.getFluid()
             .getName()
             .toLowerCase();
-        if (name.equals("water")) return; // Regular water is completely disallowed
 
         int reqTier = MTEHatchNuclearHatch.getRequiredFluidTier(name);
-        if (reactor.mPipeTier >= 0 && reactor.mPipeTier < reqTier) {
+        if (reqTier < 0 || (reactor.mPipeTier >= 0 && reactor.mPipeTier < reqTier)) {
             return;
         }
 
@@ -906,7 +1001,7 @@ public class NuclearReactorPhysics {
                 double heatConsumed = fluidToProcess * heatPerMB;
                 hatch.mLastHeatOutput = heatConsumed;
                 hatch.mTemperature = Math
-                    .max(minOperatingTemp, hatch.mTemperature - (heatConsumed / NuclearSimulationEngine.EU_PER_DEGREE));
+                    .max(minOperatingTemp, hatch.mTemperature - (heatConsumed / NuclearSimulationEngine.HU_PER_DEGREE));
                 hatch.markTileDirty();
             }
         }

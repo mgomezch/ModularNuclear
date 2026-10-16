@@ -32,6 +32,7 @@ public class ReactorGridSyncData {
     public boolean scram = false;
     public float ambientTemp = 20.0f;
     public float reactorDamage = 0.0f;
+    public long cumulativeNeutrons = 0L;
     public List<ReactorGridCellData> cells = new ArrayList<>();
 
     public static class ReactorGridCellData {
@@ -51,6 +52,7 @@ public class ReactorGridSyncData {
         public int fastAbsorbed = 0;
         public int thermalAbsorbed = 0;
         public long directEU = 0;
+        public long cumulativeFluence = 0L;
 
         @Override
         public boolean equals(Object o) {
@@ -67,6 +69,7 @@ public class ReactorGridSyncData {
             if (fastFlux != that.fastFlux || thermalFlux != that.thermalFlux) return false;
             if (fastAbsorbed != that.fastAbsorbed || thermalAbsorbed != that.thermalAbsorbed) return false;
             if (directEU != that.directEU) return false;
+            if (cumulativeFluence != that.cumulativeFluence) return false;
             if (!ItemStack.areItemStacksEqual(itemStack, that.itemStack)) return false;
             if (fluidStack == null ? that.fluidStack != null : !fluidStack.isFluidStackIdentical(that.fluidStack))
                 return false;
@@ -101,6 +104,7 @@ public class ReactorGridSyncData {
         buf.writeBoolean(data.scram);
         buf.writeFloat(data.ambientTemp);
         buf.writeFloat(data.reactorDamage);
+        buf.writeLong(data.cumulativeNeutrons);
 
         buf.writeVarIntToBuffer(data.cells.size());
         for (ReactorGridCellData cell : data.cells) {
@@ -120,6 +124,7 @@ public class ReactorGridSyncData {
                 buf.writeVarIntToBuffer(cell.fastAbsorbed);
                 buf.writeVarIntToBuffer(cell.thermalAbsorbed);
                 buf.writeLong(cell.directEU);
+                buf.writeLong(cell.cumulativeFluence);
                 if (cell.hasControlRod) {
                     buf.writeByte(cell.controlRodInsertion);
                     buf.writeByte(cell.controlRodType);
@@ -155,6 +160,7 @@ public class ReactorGridSyncData {
         data.scram = buf.readBoolean();
         data.ambientTemp = buf.readFloat();
         data.reactorDamage = buf.readFloat();
+        data.cumulativeNeutrons = buf.readLong();
 
         int cellCount = buf.readVarIntFromBuffer();
         for (int i = 0; i < cellCount; i++) {
@@ -174,6 +180,7 @@ public class ReactorGridSyncData {
                 cell.fastAbsorbed = buf.readVarIntFromBuffer();
                 cell.thermalAbsorbed = buf.readVarIntFromBuffer();
                 cell.directEU = buf.readLong();
+                cell.cumulativeFluence = buf.readLong();
                 if (cell.hasControlRod) {
                     cell.controlRodInsertion = buf.readByte() & 0xFF;
                     cell.controlRodType = buf.readByte() & 0xFF;
@@ -202,7 +209,7 @@ public class ReactorGridSyncData {
         ReactorGridSyncData that = (ReactorGridSyncData) o;
         if (gridSize != that.gridSize || pipeTier != that.pipeTier || directPowerEUt != that.directPowerEUt)
             return false;
-        if (scram != that.scram) return false;
+        if (scram != that.scram || cumulativeNeutrons != that.cumulativeNeutrons) return false;
         if (Math.abs(ambientTemp - that.ambientTemp) > 0.5f) return false;
         if (Math.abs(coreTemp - that.coreTemp) > 0.5f) return false;
         if (Math.abs(avgTemp - that.avgTemp) > 0.5f) return false;

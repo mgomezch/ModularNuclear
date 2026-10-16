@@ -81,8 +81,16 @@ public class CherenkovClientHandler {
             scanWater(reactor, base, world);
         }
 
-        if (reactor.mClientWaterBlocks > 0 && reactor.mClientCherenkovIntensity > 0f) {
-            spawnParticles(reactor, base, world);
+        if (reactor.mClientWaterBlocks > 0) {
+            float waterFactor = Math.min(1.0f, 0.40f + (reactor.mClientWaterBlocks / 15.0f) * 0.60f);
+            reactor.mClientCherenkovIntensity = waterFactor * reactor.mClientRadiationIntensity;
+            if (reactor.mClientCherenkovIntensity > 0f) {
+                spawnParticles(reactor, base, world);
+            } else if (LIT_HATCHES.containsKey(reactor)) {
+                clearHatchLights(reactor, world);
+            }
+        } else {
+            reactor.mClientCherenkovIntensity = 0f;
         }
     }
 
@@ -134,8 +142,8 @@ public class CherenkovClientHandler {
             reactor.mClientWaterMaxY = maxY + 1.0;
             reactor.mClientCenterX = centerX + 0.5;
             reactor.mClientCenterZ = centerZ + 0.5;
-            reactor.mClientRadius = radius + 0.5;
-            reactor.mClientCherenkovIntensity = Math.min(1.0f, 0.40f + (totalWaterAbove / 15.0f) * 0.60f);
+            float waterFactor = Math.min(1.0f, 0.40f + (totalWaterAbove / 15.0f) * 0.60f);
+            reactor.mClientCherenkovIntensity = waterFactor * reactor.mClientRadiationIntensity;
             CherenkovWorldRenderer.register(reactor);
 
             EntityCherenkovBeamFX beam = ACTIVE_BEAMS.get(reactor);
@@ -145,7 +153,7 @@ public class CherenkovClientHandler {
                 ACTIVE_BEAMS.put(reactor, beam);
             }
 
-            updateHatchesLight(reactor, world, centerX, centerZ, hatchTopY, radius, true);
+            updateHatchesLight(reactor, world, centerX, centerZ, hatchTopY, radius, reactor.mClientCherenkovIntensity > 0.05f);
         } else {
             reactor.mClientWaterBlocks = 0;
             reactor.mClientCherenkovIntensity = 0f;

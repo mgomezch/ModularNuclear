@@ -61,11 +61,7 @@ public class MTEHatchNuclearHatchGui extends MTEHatchBaseGui<MTEHatchNuclearHatc
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
-            if (machine.mInputFluid != null && machine.mReactorPipeTier >= 0
-                && MTEHatchNuclearHatch.getRequiredFluidTier(
-                    machine.mInputFluid.getFluid()
-                        .getName())
-                    > machine.mReactorPipeTier) {
+            if (!machine.isFluidTierValid()) {
                 return EnumChatFormatting.RED + "ERR: TIER";
             }
             return EnumChatFormatting.GOLD + String.format("%.0f °C", machine.mTemperature);
@@ -83,13 +79,13 @@ public class MTEHatchNuclearHatchGui extends MTEHatchBaseGui<MTEHatchNuclearHatc
         textColumn.child(
             IKey.dynamic(
                 () -> EnumChatFormatting.GRAY
-                    + String.format("Absorbed: %d n/t", machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed))
+                    + String.format("Absorbed: %d n/s", machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed))
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
             if (machine.mLastProducedAmount > 0) {
-                return EnumChatFormatting.GREEN + String.format("Out: %d L/t", machine.mLastProducedAmount);
+                return EnumChatFormatting.GREEN + String.format("Out: %d L/s", machine.mLastProducedAmount);
             }
             return EnumChatFormatting.DARK_GRAY + "Out: idle";
         })

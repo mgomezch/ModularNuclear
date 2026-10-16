@@ -18,8 +18,9 @@ public class CoolantLoopModelTest {
     @BeforeEach
     void setUp() {
         NuclearSimulationEngine.resetDefaultParameters();
-        grid = new StandaloneNuclearGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
-        grid.loadPreset("BEST_PLATINUM_7X7");
+        grid = new StandaloneNuclearGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_OSMIUM);
+        grid.loadLayout(
+            "U4,U4,U4,M4,U4,U4,U4;U4,M4,HD,HD,HD,M4,U4;T4,HD,M4,HD,M4,HD,T4;U4,M2,HD,HD,HD,M2,U4;T4,HD,M4,HD,M4,HD,T4;U4,M4,HD,HD,HD,M4,U4;U4,U4,U4,M4,U4,U4,U4");
         loop = grid.getCoolantLoop();
     }
 
@@ -90,22 +91,18 @@ public class CoolantLoopModelTest {
     }
 
     @Test
-    void testTier2MaterialRestrictions() {
-        // Tier 2 (IV Platinum / LuV Osmium)
+    void testReactorMaterialRestrictions() {
+        // Electrum (EV) and Platinum (IV) reject all loop materials
+        int tierEV = NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
         int tierIV = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
         int tierLuV = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
         int tierZPM = NuclearSimulationEngine.PIPE_TIER_QUANTIUM;
 
-        // All materials MUST be physically allowed in Tier 2+
-        assertTrue(CoolantLoopModel.LoopMaterial.STEEL.isAllowedInReactorTier(tierIV));
-        assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isAllowedInReactorTier(tierIV));
-        assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isAllowedInReactorTier(tierIV));
-        assertTrue(CoolantLoopModel.LoopMaterial.TUNGSTENSTEEL.isAllowedInReactorTier(tierIV));
-        assertTrue(CoolantLoopModel.LoopMaterial.OSMIUM.isAllowedInReactorTier(tierIV));
-        assertTrue(
-            CoolantLoopModel.LoopMaterial.NEUTRONIUM.isAllowedInReactorTier(tierIV),
-            "Neutronium is physically allowed on IV (sim app allows it)");
+        assertFalse(CoolantLoopModel.LoopMaterial.STEEL.isAllowedInReactorTier(tierEV));
+        assertFalse(CoolantLoopModel.LoopMaterial.STEEL.isAllowedInReactorTier(tierIV));
+        assertFalse(CoolantLoopModel.LoopMaterial.OSMIUM.isAllowedInReactorTier(tierIV));
 
+        // In Osmium (LuV) and above, loop materials are physically allowed
         assertTrue(CoolantLoopModel.LoopMaterial.STEEL.isAllowedInReactorTier(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isAllowedInReactorTier(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isAllowedInReactorTier(tierLuV));
@@ -116,24 +113,18 @@ public class CoolantLoopModelTest {
             "Neutronium is physically allowed on LuV");
 
         // Progression appropriate check (for automated optimization searches):
-        // In Tier 2 IV, Osmium and Neutronium are excluded from optimization searches because player unlocks them in
-        // LuV and ZPM
-        assertTrue(CoolantLoopModel.LoopMaterial.STEEL.isProgressionAppropriate(tierIV));
-        assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isProgressionAppropriate(tierIV));
-        assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isProgressionAppropriate(tierIV));
-        assertTrue(CoolantLoopModel.LoopMaterial.TUNGSTENSTEEL.isProgressionAppropriate(tierIV));
-        assertFalse(
-            CoolantLoopModel.LoopMaterial.OSMIUM.isProgressionAppropriate(tierIV),
-            "Osmium is unlocked at LuV, not progression-appropriate for IV");
-        assertFalse(
-            CoolantLoopModel.LoopMaterial.NEUTRONIUM.isProgressionAppropriate(tierIV),
-            "Neutronium is not progression-appropriate for Tier 2 optimization searches");
+        assertFalse(CoolantLoopModel.LoopMaterial.STEEL.isProgressionAppropriate(tierEV));
+        assertFalse(CoolantLoopModel.LoopMaterial.STEEL.isProgressionAppropriate(tierIV));
 
-        // In LuV, Osmium is progression-appropriate!
+        // In LuV, Osmium and below are progression-appropriate, but Neutronium is excluded
+        assertTrue(CoolantLoopModel.LoopMaterial.STEEL.isProgressionAppropriate(tierLuV));
+        assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isProgressionAppropriate(tierLuV));
+        assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isProgressionAppropriate(tierLuV));
+        assertTrue(CoolantLoopModel.LoopMaterial.TUNGSTENSTEEL.isProgressionAppropriate(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.OSMIUM.isProgressionAppropriate(tierLuV));
         assertFalse(
             CoolantLoopModel.LoopMaterial.NEUTRONIUM.isProgressionAppropriate(tierLuV),
-            "Neutronium is not progression-appropriate for Tier 2 LuV optimization searches");
+            "Neutronium is not progression-appropriate for LuV optimization searches");
 
         // In Tier 3+ (ZPM+), Neutronium and Osmium are progression-appropriate
         assertTrue(CoolantLoopModel.LoopMaterial.OSMIUM.isProgressionAppropriate(tierZPM));
@@ -189,13 +180,28 @@ public class CoolantLoopModelTest {
     }
 
     @Test
-    void testTier1ConvectiveCoolingRejection() {
-        StandaloneNuclearGrid tier1Grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
-        assertFalse(tier1Grid.isTier2ConvectiveAllowed());
+    void testConvectiveCoolingTierGating() {
+        StandaloneNuclearGrid electrumGrid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        assertFalse(electrumGrid.isTier2ConvectiveAllowed());
         assertFalse(
-            tier1Grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP),
-            "Convective cooling mode must reject Tier 1 (Electrum / EV)");
-        assertEquals(CoolantLoopModel.CoolingMode.MODULAR, tier1Grid.getCoolingMode());
+            electrumGrid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP),
+            "Convective cooling mode must reject Electrum (EV)");
+        assertEquals(CoolantLoopModel.CoolingMode.MODULAR, electrumGrid.getCoolingMode());
+
+        StandaloneNuclearGrid platinumGrid = new StandaloneNuclearGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        assertFalse(platinumGrid.isTier2ConvectiveAllowed());
+        assertFalse(
+            platinumGrid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP),
+            "Convective cooling mode must reject Platinum (IV)");
+        assertEquals(CoolantLoopModel.CoolingMode.MODULAR, platinumGrid.getCoolingMode());
+
+        // Osmium on 5x5 must be allowed!
+        StandaloneNuclearGrid osmiumSmallGrid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_OSMIUM);
+        assertTrue(osmiumSmallGrid.isTier2ConvectiveAllowed(), "Osmium on 5x5 must allow convective loop");
+        assertTrue(
+            osmiumSmallGrid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP),
+            "Convective cooling mode must accept Osmium (LuV) even on 5x5");
+        assertEquals(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP, osmiumSmallGrid.getCoolingMode());
     }
 
     @Test
@@ -346,7 +352,7 @@ public class CoolantLoopModelTest {
             "Boiling hatch should produce conductive steam");
 
         // 2. Convective loop extracted heat and produced secondary steam
-        assertTrue(loop.getLastHeatExtractedEUt() > 0, "Loop should convectively extract heat");
+        assertTrue(loop.getTotalHeatExtractedHut() > 0, "Loop should convectively extract heat");
         assertTrue(loop.getTotalSecondarySteamProduced() > 0, "Loop should produce secondary steam");
 
         // 3. Steam generation accounts for BOTH conductive hatch steam and loop secondary steam

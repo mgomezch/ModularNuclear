@@ -130,7 +130,8 @@ public class SimTile implements INuclearTile {
 
     private TileType type = TileType.EMPTY;
     private double temperature = NuclearSimulationEngine.AMBIENT_TEMP;
-    private double heatEU = 0;
+    private double heatHu = 0;
+    private double heatEU = 0; // Backwards-compatible alias
 
     // Fuel state
     private int maxDurability = 10000;
@@ -383,9 +384,18 @@ public class SimTile implements INuclearTile {
 
     @Override
     public void addHeat(double heat) {
-        this.heatEU += heat;
+        this.heatHu += heat;
+        this.heatEU = this.heatHu;
         this.temperature = Math
-            .max(NuclearSimulationEngine.AMBIENT_TEMP, this.temperature + heat / NuclearSimulationEngine.euPerDegree);
+            .max(NuclearSimulationEngine.AMBIENT_TEMP, this.temperature + heat / NuclearSimulationEngine.HU_PER_DEGREE);
+    }
+
+    public double getHeatHu() {
+        return heatHu;
+    }
+
+    public double getHeatEU() {
+        return heatEU;
     }
 
     @Override
@@ -568,25 +578,25 @@ public class SimTile implements INuclearTile {
             return 0.0;
         }
         if (type == TileType.REFLECTOR_BERYLLIUM || type == TileType.REFLECTOR_CARBON) {
-            return 0.95;
+            return (nType == NeutronType.THERMAL) ? 0.98 : 0.95;
         }
         if (type == TileType.PASSAGE_CORE) {
             return 0.80;
         }
         if (isLiquidFuelHatch()) {
             if (inputFluidAmount <= 0) return 0.02;
-            return 0.15;
+            return (nType == NeutronType.THERMAL) ? 0.10 : 0.15;
         }
         if (isCoolantHatch()) {
             if (inputFluidAmount <= 0) return 0.02;
             return switch (type) {
-                case HATCH_HEAVY_WATER -> 0.85;
-                case HATCH_DISTILLED_WATER -> 0.70;
-                case HATCH_IC2_COOLANT -> 0.45;
+                case HATCH_HEAVY_WATER -> (nType == NeutronType.THERMAL) ? 0.85 : 0.80;
+                case HATCH_DISTILLED_WATER -> (nType == NeutronType.THERMAL) ? 0.70 : 0.60;
+                case HATCH_IC2_COOLANT -> (nType == NeutronType.THERMAL) ? 0.45 : 0.40;
                 default -> 0.10;
             };
         }
-        if (isFuel()) return 0.15;
+        if (isFuel()) return (nType == NeutronType.THERMAL) ? 0.10 : 0.15;
         return 0.05;
     }
 
@@ -782,20 +792,20 @@ public class SimTile implements INuclearTile {
             if (selfVent > 0 && tempDiff > 0 && currentCellHeat < maxCellHeat) {
                 int maxHu = (int) Math.min(
                     (double) (selfVent * 2),
-                    (tempDiff * NuclearSimulationEngine.EU_PER_DEGREE) / 25.0 * effFactor);
+                    (tempDiff * NuclearSimulationEngine.HU_PER_DEGREE) / 25.0 * effFactor);
                 int toTake = Math.min(maxHu, maxCellHeat - currentCellHeat);
                 if (toTake > 0) {
                     currentCellHeat += toTake;
                     temperature = Math.max(
                         NuclearSimulationEngine.AMBIENT_TEMP,
-                        temperature - (toTake * 25.0) / NuclearSimulationEngine.EU_PER_DEGREE);
+                        temperature - (toTake * 25.0) / NuclearSimulationEngine.HU_PER_DEGREE);
                 }
             }
 
             if (selfVent > 0) {
                 int vented = Math.min(currentCellHeat, selfVent);
                 currentCellHeat -= vented;
-                lastCoolingDetails = String.format(java.util.Locale.US, "Vented %d Hu (%d EU)", vented, vented * 25);
+                lastCoolingDetails = String.format(java.util.Locale.US, "Vented %d Hu", vented * 25);
             }
         } else if (isCoolantCell()) {
             if (maxCellHeat > 0 && currentCellHeat < maxCellHeat) {
@@ -803,12 +813,12 @@ public class SimTile implements INuclearTile {
                 double tempDiff = temperature - NuclearSimulationEngine.AMBIENT_TEMP;
                 if (tempDiff > 0) {
                     int heatToAbsorb = (int) Math.min(
-                        tempDiff * NuclearSimulationEngine.EU_PER_DEGREE * 0.1 * effFactor,
+                        tempDiff * NuclearSimulationEngine.HU_PER_DEGREE * 0.1 * effFactor,
                         maxCellHeat - currentCellHeat);
                     currentCellHeat += heatToAbsorb;
                     temperature = Math.max(
                         NuclearSimulationEngine.AMBIENT_TEMP,
-                        temperature - heatToAbsorb / NuclearSimulationEngine.EU_PER_DEGREE);
+                        temperature - heatToAbsorb / NuclearSimulationEngine.HU_PER_DEGREE);
                     lastHeatOutput = heatToAbsorb;
                 }
             }
@@ -840,12 +850,12 @@ public class SimTile implements INuclearTile {
 
                     double heatConsumed = mbToCool * heatPerL;
                     lastHeatOutput = heatConsumed;
-                    double tempDrop = heatConsumed / NuclearSimulationEngine.EU_PER_DEGREE;
+                    double tempDrop = heatConsumed / NuclearSimulationEngine.HU_PER_DEGREE;
                     double tempBefore = temperature;
                     temperature = Math.max(operatingThreshold, temperature - tempDrop);
                     lastCoolingDetails = String.format(
                         java.util.Locale.US,
-                        "%s %dL (cap %dL, qMax %.1f EU, heatPerL %.1f), consumed %.1f EU, temp %.1f°C -> %.1f°C (drop %.1f°C)",
+                        "%s %dL (cap %dL, qMax %.1f Hu, heatPerL %.1f), consumed %.1f Hu, temp %.1f°C -> %.1f°C (drop %.1f°C)",
                         type.displayName,
                         mbToCool,
                         inputFluidCapacity,

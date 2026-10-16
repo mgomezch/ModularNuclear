@@ -1100,9 +1100,16 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
             list.add(
                 EnumChatFormatting.GRAY + "Neutron flux: "
                     + EnumChatFormatting.AQUA
-                    + String.format("%,d /s", totalFlux)
+                    + NuclearSimulationEngine.formatNeutronFlux(totalFlux)
                     + EnumChatFormatting.DARK_GRAY
                     + String.format(" (%d fast, %d thermal)", cell.fastFlux, cell.thermalFlux));
+        }
+
+        if (cell.cumulativeFluence > 0) {
+            list.add(
+                EnumChatFormatting.GRAY + "Neutron fluence: "
+                    + EnumChatFormatting.LIGHT_PURPLE
+                    + NuclearSimulationEngine.formatNeutronFluence(cell.cumulativeFluence));
         }
 
         int totalAbs = cell.fastAbsorbed + cell.thermalAbsorbed;
@@ -1130,7 +1137,7 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
             list.add(
                 EnumChatFormatting.GRAY + "Heat output: "
                     + EnumChatFormatting.GOLD
-                    + String.format("%,.0f EU/t", cell.heatOutput));
+                    + String.format("%,.1f Hu/s", cell.heatOutput));
         }
 
         // 6. Control Rod Info

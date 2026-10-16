@@ -13,9 +13,9 @@ public interface INuclearTile {
     void setTemperature(double temperature);
 
     /**
-     * Deposits heat into this tile in EU equivalent (64 EU = 1 degree C).
+     * Deposits heat into this tile in Hu (heat units, default 32 Hu = 1 °C).
      */
-    void addHeat(double heatEU);
+    void addHeat(double heatHu);
 
     /**
      * Heat transfer coefficient between 0.0 and 1.0.

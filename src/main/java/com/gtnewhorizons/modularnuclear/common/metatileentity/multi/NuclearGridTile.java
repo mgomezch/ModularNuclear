@@ -129,8 +129,8 @@ public class NuclearGridTile implements INuclearTile {
     }
 
     @Override
-    public void addHeat(double heatEU) {
-        reactor.addTileHeat(this, heatEU);
+    public void addHeat(double heatHu) {
+        reactor.addTileHeat(this, heatHu);
     }
 
     @Override

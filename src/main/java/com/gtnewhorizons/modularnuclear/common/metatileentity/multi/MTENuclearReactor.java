@@ -72,6 +72,7 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.ICasingTextureProvider;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
+import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
@@ -121,6 +122,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public double mReactorDamage = 0.0;
     public boolean mScram = false;
     public int mNeutronsProduced = 0;
+    public long mCumulativeNeutrons = 0L;
     public int mFastAbsorbed = 0;
     public int mThermalAbsorbed = 0;
     public int mEscapedNeutrons = 0;
@@ -152,6 +154,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public double mClientCenterZ = 0;
     public double mClientRadius = 2.5;
     public float mClientCherenkovIntensity = 0f;
+    public float mClientRadiationIntensity = 0f;
+    private byte mLastSentCherenkovMetricByte = -1;
 
     public int mHatchTier = -1;
     public boolean mHatchTierInconsistent = false;
@@ -690,6 +694,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         checkCasingMin(errors, mCasing, 50);
 
         checkNuclearHatchFacings(errors);
+        checkNuclearControlHatchFacings(aBaseMetaTileEntity, errors);
+        checkMaintenanceHatchFacing(aBaseMetaTileEntity, errors);
         validateHighPressureHatchPairing(aBaseMetaTileEntity, errors);
 
         if (!errors.isEmpty()) {
@@ -812,9 +818,122 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         checkNuclearHatchFacings(errors);
     }
 
+    public static boolean isOuterWallFacingValid(IGregTechTileEntity bTe, int cX, int cY, int cZ, ExtendedFacing ef,
+        int gridSize) {
+        if (bTe == null || ef == null || gridSize <= 0) return false;
+
+        int half = (gridSize + 1) / 2;
+        int flatHalfWidth = (gridSize - 1) / 4;
+
+        ForgeDirection fwd = ef.getRelativeForwardInWorld();
+        ForgeDirection back = ef.getRelativeBackInWorld();
+        ForgeDirection left = ef.getRelativeLeftInWorld();
+        ForgeDirection right = ef.getRelativeRightInWorld();
+
+        int[] in = new int[] { bTe.getXCoord() - cX, bTe.getYCoord() - cY, bTe.getZCoord() - cZ };
+        int[] out = new int[3];
+        ef.getOffsetABC(in, out);
+
+        int outA = out[0]; // +A is Left, -A is Right
+        int outC = out[2]; // 0 is Front, 2*half is Back
+
+        ForgeDirection facing = bTe.getFrontFacing();
+
+        if (outC == 0 && Math.abs(outA) <= flatHalfWidth) {
+            // Front flat wall
+            return facing == fwd;
+        } else if (outC == 2 * half && Math.abs(outA) <= flatHalfWidth) {
+            // Back flat wall
+            return facing == back;
+        } else if (outA == half && Math.abs(outC - half) <= flatHalfWidth) {
+            // Left flat wall
+            return facing == left;
+        } else if (outA == -half && Math.abs(outC - half) <= flatHalfWidth) {
+            // Right flat wall
+            return facing == right;
+        } else {
+            // Corner cut-away columns: permit only outside-facing directions for that corner quadrant
+            boolean isFront = outC <= half;
+            boolean isLeft = outA >= 0;
+
+            ForgeDirection allowed1 = isFront ? fwd : back;
+            ForgeDirection allowed2 = isLeft ? left : right;
+
+            return facing == allowed1 || facing == allowed2;
+        }
+    }
+
+    public void checkNuclearControlHatchFacings(IGregTechTileEntity aBaseMetaTileEntity, List<StructureError> errors) {
+        if (mControlHatches.isEmpty() || gridSize <= 0) return;
+        ExtendedFacing ef = getExtendedFacing();
+        if (ef == null) return;
+        int cX = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getXCoord() : 0;
+        int cY = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getYCoord() : 0;
+        int cZ = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getZCoord() : 0;
+
+        ForgeDirection controllerUp = ef.getRelativeUpInWorld();
+
+        for (MTEHatchNuclearControl hatch : mControlHatches) {
+            if (hatch == null) continue;
+            IGregTechTileEntity bTe = hatch.getBaseMetaTileEntity();
+            if (bTe == null) continue;
+
+            // 1. Must face outward away from the center of the structure
+            if (!isOuterWallFacingValid(bTe, cX, cY, cZ, ef, gridSize)) {
+                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.wrong_control_hatch_facing"));
+                return;
+            }
+
+            // 2. Must be upright relative to the controller on lateral faces
+            ExtendedFacing hatchEF = hatch.getExtendedFacing();
+            if (hatchEF == null || hatchEF.getRelativeUpInWorld() != controllerUp) {
+                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.wrong_control_hatch_facing"));
+                return;
+            }
+        }
+    }
+
+    public void verifyNuclearControlHatchFacings(IGregTechTileEntity aBaseMetaTileEntity, List<StructureError> errors) {
+        checkNuclearControlHatchFacings(aBaseMetaTileEntity, errors);
+    }
+
+    public void checkMaintenanceHatchFacing(IGregTechTileEntity aBaseMetaTileEntity, List<StructureError> errors) {
+        if (mMaintenanceHatches.isEmpty() || gridSize <= 0) return;
+        ExtendedFacing ef = getExtendedFacing();
+        if (ef == null) return;
+        int cX = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getXCoord() : 0;
+        int cY = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getYCoord() : 0;
+        int cZ = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getZCoord() : 0;
+
+        ForgeDirection controllerUp = ef.getRelativeUpInWorld();
+
+        for (MTEHatchMaintenance hatch : mMaintenanceHatches) {
+            if (hatch == null) continue;
+            IGregTechTileEntity bTe = hatch.getBaseMetaTileEntity();
+            if (bTe == null) continue;
+
+            // 1. Must face outward away from the center of the structure
+            if (!isOuterWallFacingValid(bTe, cX, cY, cZ, ef, gridSize)) {
+                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.wrong_maintenance_hatch_facing"));
+                return;
+            }
+
+            // 2. Must be upright relative to the controller
+            ExtendedFacing hatchEF = hatch.getExtendedFacing();
+            if (hatchEF != null && hatchEF.getRelativeUpInWorld() != controllerUp) {
+                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.wrong_maintenance_hatch_facing"));
+                return;
+            }
+        }
+    }
+
+    public void verifyMaintenanceHatchFacing(IGregTechTileEntity aBaseMetaTileEntity, List<StructureError> errors) {
+        checkMaintenanceHatchFacing(aBaseMetaTileEntity, errors);
+    }
+
     public void validateHighPressureHatchPairing(IGregTechTileEntity aBaseMetaTileEntity, List<StructureError> errors) {
         if (!mTopHighPressureHatches.isEmpty() || !mBottomHighPressureHatches.isEmpty()) {
-            if (getReactorTier() < 2) {
+            if (mPipeTier < NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
                 errors.add(StructureErrors.of("GT5U.gui.text.structure_error.hp_hatch_tier"));
             }
             if (mTopHighPressureHatches.size() != mBottomHighPressureHatches.size()) {
@@ -965,6 +1084,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             this.mClientTier = aValue;
             this.mClientRadius = (mClientTier == 3) ? 6.5 : (mClientTier == 2) ? 4.5 : 2.5;
             this.mClientWaterBlocks = -1;
+        } else if (aEventID == 101) {
+            this.mClientRadiationIntensity = Math.max(0.0f, Math.min(1.0f, (aValue & 0xFF) / 100.0f));
         }
     }
 
@@ -1022,7 +1143,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         super.onPostTick(aBaseMetaTileEntity, aTick);
 
         if (aBaseMetaTileEntity.isServerSide() && mMachine) {
-            boolean shouldBeActive = !mScram && aBaseMetaTileEntity.isAllowedToWork() && (mNeutronsProduced > 0);
+            boolean shouldBeActive = (mNeutronsProduced > 0);
             if (aBaseMetaTileEntity.isActive() != shouldBeActive) {
                 aBaseMetaTileEntity.setActive(shouldBeActive);
                 aBaseMetaTileEntity.setLightValue((byte) (shouldBeActive ? 15 : 0));
@@ -1040,7 +1161,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 mCachedAmbientTemp = getAmbientTemperature();
             }
 
-            if (mGrid != null && !mScram && aBaseMetaTileEntity.isAllowedToWork() && (aTick % 20 == 0)) {
+            if (mGrid != null && (aTick % 20 == 0)) {
                 updateNuclearTilesPipeTier();
 
                 double ambient = getAmbientTemperature();
@@ -1062,7 +1183,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                                         + "C >= boiling threshold="
                                         + boilingThreshold
                                         + "C)");
-                                return;
+                                if (mReactorDamage >= 100.0 || !mMachine) return;
+                                continue;
                             }
                             if (hatch.mWasDry) {
                                 if (hatch.mTemperature > boilingThreshold) {
@@ -1074,7 +1196,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                                             + "C > threshold="
                                             + boilingThreshold
                                             + "C)");
-                                    return;
+                                    if (mReactorDamage >= 100.0 || !mMachine) return;
+                                    continue;
                                 }
                                 hatch.mWasDry = false;
                             }
@@ -1099,23 +1222,40 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 mCoreTemp = res.maxTemperature;
                 mAvgTemp = res.averageTemperature;
                 mNeutronsProduced = res.totalNeutronsGenerated;
+                mCumulativeNeutrons += mNeutronsProduced;
                 mFastAbsorbed = res.fastNeutronsAbsorbed;
                 mThermalAbsorbed = res.thermalNeutronsAbsorbed;
                 mEscapedNeutrons = res.neutronsEscaped;
                 mReactivity = res.averageReactivity;
 
-                // Accumulate wall neutron impacts for custom maintenance mechanic
-                int wallHits = res.wallNeutronsReflected + res.wallNeutronsAbsorbed;
-                mWallNeutronAccumulator += wallHits;
+                // Dynamic Cherenkov radiation intensity metric: S(N) = N^2 / (N^2 + 1000^2)
+                double nEsc = res.neutronsEscaped;
+                float cherenkovMetric = (float) ((nEsc > 0)
+                    ? (nEsc * nEsc) / (nEsc * nEsc + 1000.0 * 1000.0)
+                    : 0.0);
+                byte metricByte = (byte) Math.round(cherenkovMetric * 100.0f);
+                if (metricByte != mLastSentCherenkovMetricByte) {
+                    mLastSentCherenkovMetricByte = metricByte;
+                    aBaseMetaTileEntity.sendBlockEvent((byte) 101, metricByte);
+                }
+
+                // Accumulate escaped neutrons for vessel maintenance wear mechanic
+                mWallNeutronAccumulator += res.neutronsEscaped;
                 mWallMaintenanceTimer += 20;
 
-                // Once per minute (1200 ticks = 60s), check maintenance issue probability: min(0.1, N/10000)
+                // Once per minute (1200 ticks = 60s), check maintenance issue probability:
+                // S(N) = N^2 / (N^2 + 1000^2), scaling maintenance wear from 1.0x to 10.0x base rate (0.01 per minute)
                 if (mWallMaintenanceTimer >= 1200) {
                     mWallMaintenanceTimer = 0;
-                    long N = mWallNeutronAccumulator;
+                    double avgEscaped = (double) mWallNeutronAccumulator / 60.0;
                     mWallNeutronAccumulator = 0;
-                    double prob = Math.min(0.1, (double) N / 10000.0);
-                    if (prob > 0.0 && (aBaseMetaTileEntity.getRandomNumber(1000000) / 1000000.0) < prob) {
+                    double sFactor = (avgEscaped > 0.0)
+                        ? (avgEscaped * avgEscaped) / (avgEscaped * avgEscaped + 1000.0 * 1000.0)
+                        : 0.0;
+                    double multiplier = 1.0 + 9.0 * sFactor;
+                    double baseProb = 0.01;
+                    double prob = baseProb * multiplier;
+                    if ((aBaseMetaTileEntity.getRandomNumber(1000000) / 1000000.0) < prob) {
                         causeNewMaintenanceIssue();
                     }
                 }
@@ -1217,6 +1357,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 aBaseMetaTileEntity.setActive(false);
                 aBaseMetaTileEntity.setLightValue((byte) 0);
             }
+            if (mLastSentCherenkovMetricByte != 0) {
+                mLastSentCherenkovMetricByte = 0;
+                aBaseMetaTileEntity.sendBlockEvent((byte) 101, (byte) 0);
+            }
             for (MTEHatchNuclearControl hatch : mControlHatches) {
                 if (hatch != null && hatch.isValid()) {
                     hatch.setOutputRedstone((byte) 0);
@@ -1248,6 +1392,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         aNBT.setInteger("mWallMaintenanceTimer", mWallMaintenanceTimer);
         aNBT.setInteger("mOutputCoolantRate", mOutputCoolantRate);
         aNBT.setString("mOutputCoolantName", mOutputCoolantName != null ? mOutputCoolantName : "");
+        aNBT.setLong("mCumulativeNeutrons", mCumulativeNeutrons);
 
         aNBT.setDouble("mMinTileTemp", mMinTileTemp);
         aNBT.setDouble("mMaxTileTemp", mMaxTileTemp);
@@ -1338,6 +1483,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         mWallMaintenanceTimer = aNBT.getInteger("mWallMaintenanceTimer");
         mOutputCoolantRate = aNBT.getInteger("mOutputCoolantRate");
         mOutputCoolantName = aNBT.getString("mOutputCoolantName");
+        if (aNBT.hasKey("mCumulativeNeutrons")) {
+            mCumulativeNeutrons = aNBT.getLong("mCumulativeNeutrons");
+        }
 
         mMinTileTemp = aNBT.getDouble("mMinTileTemp");
         mMaxTileTemp = aNBT.getDouble("mMaxTileTemp");
@@ -1400,9 +1548,14 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             this.mPipeTier = data.pipeTier;
             this.mDirectPowerEUt = data.directPowerEUt;
             this.mNeutronsProduced = data.neutronsProduced;
+            this.mCumulativeNeutrons = data.cumulativeNeutrons;
             this.mFastAbsorbed = data.fastAbsorbed;
             this.mThermalAbsorbed = data.thermalAbsorbed;
             this.mEscapedNeutrons = data.escapedNeutrons;
+            double nEsc = this.mEscapedNeutrons;
+            this.mClientRadiationIntensity = (float) ((nEsc > 0)
+                ? (nEsc * nEsc) / (nEsc * nEsc + 1000.0 * 1000.0)
+                : 0.0);
             this.mOutputCoolantRate = data.outputCoolantRate;
             this.mOutputCoolantName = data.outputCoolantName;
             this.mScram = data.scram;
@@ -1421,6 +1574,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         data.pipeTier = this.mPipeTier;
         data.directPowerEUt = this.mDirectPowerEUt;
         data.neutronsProduced = this.mNeutronsProduced;
+        data.cumulativeNeutrons = this.mCumulativeNeutrons;
         data.fastAbsorbed = this.mFastAbsorbed;
         data.thermalAbsorbed = this.mThermalAbsorbed;
         data.escapedNeutrons = this.mEscapedNeutrons;
@@ -1449,6 +1603,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             cell.thermalAbsorbed = bus.mLastThermalAbsorbed;
                             cell.directEU = bus.mDirectEUProduced;
                             cell.heatOutput = (float) bus.mLastHeatOutput;
+                            cell.cumulativeFluence = bus.mCumulativeFluence;
                         } else if (gt.isHatch()) {
                             MTEHatchNuclearHatch hatch = gt.getHatch();
                             cell.isFluid = true;
@@ -1458,6 +1613,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             cell.fastAbsorbed = hatch.mLastFastAbsorbed;
                             cell.thermalAbsorbed = hatch.mLastThermalAbsorbed;
                             cell.heatOutput = (float) hatch.mLastHeatOutput;
+                            cell.cumulativeFluence = hatch.mCumulativeFluence;
                         } else if (gt.isHighPressureHatch()) {
                             MTEHatchNuclearHighPressure hp = gt.getHighPressureHatch();
                             cell.isFluid = false;
@@ -1467,6 +1623,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             cell.fastAbsorbed = hp.mLastFastAbsorbed;
                             cell.thermalAbsorbed = hp.mLastThermalAbsorbed;
                             cell.heatOutput = (float) hp.mLastHeatOutput;
+                            cell.cumulativeFluence = hp.mCumulativeFluence;
                         }
 
                         if (gt.hasControlRod()) {
@@ -1661,6 +1818,26 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public static boolean isItemHeatExchanger(ItemStack stack) {
         return NuclearFuelClassification.isItemHeatExchanger(stack);
+    }
+
+    public static boolean isItemReflector(ItemStack stack) {
+        return NuclearFuelClassification.isItemReflector(stack);
+    }
+
+    public static boolean isItemModerator(ItemStack stack) {
+        return NuclearFuelClassification.isItemModerator(stack);
+    }
+
+    public static boolean isItemReactorPlating(ItemStack stack) {
+        return NuclearFuelClassification.isItemReactorPlating(stack);
+    }
+
+    public boolean isItemAllowedInBus(ItemStack stack) {
+        return NuclearFuelClassification.isItemAllowedInBus(stack, null);
+    }
+
+    public static boolean isDepletedOrEmptyRod(ItemStack stack) {
+        return NuclearFuelClassification.isDepletedOrEmptyRod(stack);
     }
 
     public static double getInsulationDampening(ItemStack stack) {
