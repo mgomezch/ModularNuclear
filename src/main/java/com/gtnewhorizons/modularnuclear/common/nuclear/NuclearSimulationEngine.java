@@ -616,9 +616,8 @@ public class NuclearSimulationEngine {
                                 if (hitTile.getInsulationDampening() < 1.0) {
                                     pendingHeat[posX][posY] += rayNeutrons * HU_FOR_FAST_NEUTRON;
                                 }
-                                double thermalEmission = hitTile.getThermalNeutronEmissionYield(rayNeutrons);
-                                if (thermalEmission > 0.0) {
-                                    thermalPool[posX][posY] += thermalEmission;
+                                if (hitTile.getModeratorData() != null && hitTile.getModeratorData().wignerEnergyPerFast > 0.0) {
+                                    hitTile.addWignerEnergy(rayNeutrons * hitTile.getModeratorData().wignerEnergyPerFast);
                                 }
                                 terminated = true;
                                 break;
@@ -634,6 +633,9 @@ public class NuclearSimulationEngine {
                                 if (RAND.nextDouble() < pMod) {
                                     if (hitTile.getInsulationDampening() < 1.0) {
                                         pendingHeat[posX][posY] += rayNeutrons * HU_FOR_FAST_NEUTRON;
+                                    }
+                                    if (hitTile.getModeratorData() != null && hitTile.getModeratorData().wignerEnergyPerFast > 0.0) {
+                                        hitTile.addWignerEnergy(rayNeutrons * hitTile.getModeratorData().wignerEnergyPerFast);
                                     }
                                     thermalPool[posX][posY] += rayNeutrons;
                                     terminated = true;
@@ -764,10 +766,16 @@ public class NuclearSimulationEngine {
         for (int x = 0; x < sizeX; x++) {
             for (int y = 0; y < sizeY; y++) {
                 INuclearTile tile = grid[x][y];
-                if (tile != null && pendingHeat[x][y] > 0.0) {
-                    tile.addHeat(pendingHeat[x][y]);
-                    result.totalHeatHU += pendingHeat[x][y];
-                    result.totalHeatEU = result.totalHeatHU;
+                if (tile != null) {
+                    double wignerHeat = tile.releaseWignerEnergy();
+                    if (wignerHeat > 0.0) {
+                        pendingHeat[x][y] += wignerHeat;
+                    }
+                    if (pendingHeat[x][y] > 0.0) {
+                        tile.addHeat(pendingHeat[x][y]);
+                        result.totalHeatHU += pendingHeat[x][y];
+                        result.totalHeatEU = result.totalHeatHU;
+                    }
                 }
             }
         }

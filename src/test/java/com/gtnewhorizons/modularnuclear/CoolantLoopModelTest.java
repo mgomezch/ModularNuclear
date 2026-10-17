@@ -98,11 +98,14 @@ public class CoolantLoopModelTest {
         int tierLuV = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
         int tierZPM = NuclearSimulationEngine.PIPE_TIER_QUANTIUM;
 
+        assertFalse(CoolantLoopModel.LoopMaterial.CAST_IRON.isAllowedInReactorTier(tierEV));
         assertFalse(CoolantLoopModel.LoopMaterial.STEEL.isAllowedInReactorTier(tierEV));
+        assertFalse(CoolantLoopModel.LoopMaterial.CAST_IRON.isAllowedInReactorTier(tierIV));
         assertFalse(CoolantLoopModel.LoopMaterial.STEEL.isAllowedInReactorTier(tierIV));
         assertFalse(CoolantLoopModel.LoopMaterial.OSMIUM.isAllowedInReactorTier(tierIV));
 
         // In Osmium (LuV) and above, loop materials are physically allowed
+        assertTrue(CoolantLoopModel.LoopMaterial.CAST_IRON.isAllowedInReactorTier(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.STEEL.isAllowedInReactorTier(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isAllowedInReactorTier(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isAllowedInReactorTier(tierLuV));
@@ -113,10 +116,13 @@ public class CoolantLoopModelTest {
             "Neutronium is physically allowed on LuV");
 
         // Progression appropriate check (for automated optimization searches):
+        assertFalse(CoolantLoopModel.LoopMaterial.CAST_IRON.isProgressionAppropriate(tierEV));
         assertFalse(CoolantLoopModel.LoopMaterial.STEEL.isProgressionAppropriate(tierEV));
+        assertFalse(CoolantLoopModel.LoopMaterial.CAST_IRON.isProgressionAppropriate(tierIV));
         assertFalse(CoolantLoopModel.LoopMaterial.STEEL.isProgressionAppropriate(tierIV));
 
         // In LuV, Osmium and below are progression-appropriate, but Neutronium is excluded
+        assertTrue(CoolantLoopModel.LoopMaterial.CAST_IRON.isProgressionAppropriate(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.STEEL.isProgressionAppropriate(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isProgressionAppropriate(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isProgressionAppropriate(tierLuV));
@@ -467,5 +473,78 @@ public class CoolantLoopModelTest {
             loop.getRuptureReason()
                 .contains("Solidification"),
             "Rupture reason must mention solidification");
+    }
+
+    @Test
+    void testCastIronMaterialPropertiesAndParsing() {
+        assertEquals("Cast Iron", CoolantLoopModel.LoopMaterial.CAST_IRON.displayName);
+        assertEquals(16.0, CoolantLoopModel.LoopMaterial.CAST_IRON.maxPressureBar, 1e-4);
+        assertEquals(1538.0, CoolantLoopModel.LoopMaterial.CAST_IRON.maxTemperatureCelsius, 1e-4);
+        assertEquals("ULV", CoolantLoopModel.LoopMaterial.CAST_IRON.tierUnlocked);
+
+        assertEquals(CoolantLoopModel.LoopMaterial.CAST_IRON, CoolantLoopModel.LoopMaterial.fromString("CAST_IRON"));
+        assertEquals(CoolantLoopModel.LoopMaterial.CAST_IRON, CoolantLoopModel.LoopMaterial.fromString("cast iron"));
+        assertEquals(CoolantLoopModel.LoopMaterial.CAST_IRON, CoolantLoopModel.LoopMaterial.fromString("Cast"));
+        assertEquals(CoolantLoopModel.LoopMaterial.CAST_IRON, CoolantLoopModel.LoopMaterial.fromString("Iron"));
+    }
+
+    @Test
+    void testAllCoolantFluidsPropertiesAndParsing() {
+        // IC2 Coolant
+        assertEquals(CoolantLoopModel.CoolantFluidType.IC2_COOLANT, CoolantLoopModel.CoolantFluidType.fromString("IC2_COOLANT"));
+        assertEquals(CoolantLoopModel.CoolantFluidType.IC2_COOLANT, CoolantLoopModel.CoolantFluidType.fromString("coolant"));
+        assertEquals("IC2 Coolant", CoolantLoopModel.CoolantFluidType.IC2_COOLANT.displayName);
+        assertEquals(1080.0, CoolantLoopModel.CoolantFluidType.IC2_COOLANT.density, 1e-2);
+        assertEquals(3800.0, CoolantLoopModel.CoolantFluidType.IC2_COOLANT.specificHeat, 1e-2);
+        assertFalse(CoolantLoopModel.CoolantFluidType.IC2_COOLANT.isMolten());
+
+        // Sodium
+        assertEquals(CoolantLoopModel.CoolantFluidType.SODIUM, CoolantLoopModel.CoolantFluidType.fromString("SODIUM"));
+        assertEquals(CoolantLoopModel.CoolantFluidType.SODIUM, CoolantLoopModel.CoolantFluidType.fromString("sodium"));
+        assertEquals("Sodium", CoolantLoopModel.CoolantFluidType.SODIUM.displayName);
+        assertEquals(927.0, CoolantLoopModel.CoolantFluidType.SODIUM.density, 1e-2);
+        assertEquals(1260.0, CoolantLoopModel.CoolantFluidType.SODIUM.specificHeat, 1e-2);
+        assertEquals(86.0, CoolantLoopModel.CoolantFluidType.SODIUM.thermalConductivity, 1e-2);
+        assertEquals(97.8, CoolantLoopModel.CoolantFluidType.SODIUM.meltingPointCelsius, 1e-2);
+        assertFalse(CoolantLoopModel.CoolantFluidType.SODIUM.isMolten());
+
+        // Lava
+        assertEquals(CoolantLoopModel.CoolantFluidType.LAVA, CoolantLoopModel.CoolantFluidType.fromString("LAVA"));
+        assertEquals(CoolantLoopModel.CoolantFluidType.LAVA, CoolantLoopModel.CoolantFluidType.fromString("lava"));
+        assertEquals("Lava", CoolantLoopModel.CoolantFluidType.LAVA.displayName);
+        assertEquals(3000.0, CoolantLoopModel.CoolantFluidType.LAVA.density, 1e-2);
+        assertEquals(1250.0, CoolantLoopModel.CoolantFluidType.LAVA.specificHeat, 1e-2);
+        assertEquals(1000.0, CoolantLoopModel.CoolantFluidType.LAVA.meltingPointCelsius, 1e-2);
+        assertTrue(CoolantLoopModel.CoolantFluidType.LAVA.isMolten());
+    }
+
+    @Test
+    void testSecondarySteamGenerationLatentHeatEnergyConservation() {
+        grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
+        loop.setMaterial(CoolantLoopModel.LoopMaterial.TITANIUM);
+        loop.setPipeSize(CoolantLoopModel.LoopPipeSize.NORMAL);
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
+        loop.setPumpPowerEUt(500.0);
+        loop.attachPoint(2, 2);
+        loop.attachPoint(2, 3);
+        loop.attachPoint(2, 4);
+
+        // Pre-heat coolant to 150 °C to trigger PHE secondary boiling (> 100 °C)
+        loop.setCurrentCoolantTempCelsius(150.0);
+
+        boolean ok = grid.step();
+        assertTrue(ok, "Grid step should succeed");
+
+        double waterBoiledL = loop.getLastSecondaryWaterBoiledLt();
+        double steamProducedL = loop.getLastSecondarySteamProducedLt();
+        assertTrue(waterBoiledL > 0.0, "Water boiled should be positive");
+        assertEquals(waterBoiledL * 160.0, steamProducedL, 1e-3, "Steam produced should be exactly 160x water boiled");
+
+        // Verify sensible order of magnitude:
+        // Core generates around 1-10k HU/t (128-1280 kJ/t).
+        // At 2.26 MJ/L (2,260,000 J/L), 1000 kJ vaporizes ~0.44 L/t of water -> ~70 L/t steam.
+        // It must NOT be thousands of L/t of water boiled per tick!
+        assertTrue(waterBoiledL < 10.0, "Water boiled per tick should be realistic (< 10 L/t), not 1000x inflated");
+        assertTrue(steamProducedL < 1600.0, "Steam produced per tick should be realistic (< 1600 L/t)");
     }
 }

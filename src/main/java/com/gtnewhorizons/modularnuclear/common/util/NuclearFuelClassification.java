@@ -366,197 +366,69 @@ public final class NuclearFuelClassification {
         return name.contains("water") || name.contains("coolant") || name.contains("sodium") || name.contains("lead");
     }
 
-    public static boolean isItemCoolant(ItemStack stack) {
+    public static boolean isHullOnlyComponent(ItemStack stack) {
         if (stack == null) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantItem(stack) != null) return true;
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemCoolant(stack)) return true;
-        if (stack.getItem() instanceof ItemCoolantCell) return true;
-        for (ItemList item : GT_COOLANT_CELLS) {
-            if (item != null && item.hasBeenSet() && item.isStackEqual(stack, false, true)) return true;
-        }
-        if (Ic2Items.reactorCoolantSimple != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorCoolantSimple, true))
-            return true;
-        if (Ic2Items.reactorCoolantTriple != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorCoolantTriple, true))
-            return true;
-        if (Ic2Items.reactorCoolantSix != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorCoolantSix, true))
-            return true;
-        if (Ic2Items.reactorCondensator != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorCondensator, true))
-            return true;
-        if (Ic2Items.reactorCondensatorLap != null
-            && GTUtility.areStacksEqual(stack, Ic2Items.reactorCondensatorLap, true))
-            return true;
-
-        if (stack.getItem() instanceof ItemReactorCondensator) return true;
-        if (stack.getItem() instanceof ItemReactorHeatStorage) return true;
-
+        if (Ic2Items.reactorVentCore != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorVentCore, true)) return true;
+        if (Ic2Items.reactorHeatSwitchCore != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorHeatSwitchCore, true)) return true;
         String name = stack.getUnlocalizedName();
         if (name != null) {
             String lower = name.toLowerCase();
-            if (lower.contains("coolantcell") || lower.contains("heatcapacitor")) return true;
+            if (lower.contains("ventcore") || lower.contains("reactorventcore")
+                || lower.contains("heatswitchcore") || lower.contains("reactorswitchcore")) {
+                return true;
+            }
         }
-
         return false;
+    }
+
+    public static boolean isItemCoolant(ItemStack stack) {
+        if (stack == null || isHullOnlyComponent(stack)) return false;
+        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantItem(stack) != null) return true;
+        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemCoolant(stack);
     }
 
     public static boolean isItemHeatVent(ItemStack stack) {
-        if (stack == null) return false;
+        if (stack == null || isHullOnlyComponent(stack)) return false;
         if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findHeatVent(stack) != null) return true;
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemHeatVent(stack)) return true;
-        if (stack.getItem() == null) return false;
-        String name = stack.getUnlocalizedName();
-        if (name != null && name.toLowerCase().contains("core")) return false; // Skip reactor heat vent as requested (no reactor hull heat)
-
-        if (stack.getItem() instanceof ItemReactorVent || stack.getItem() instanceof ItemReactorVentSpread) return true;
-        if (Ic2Items.reactorVent != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorVent, true)) return true;
-        if (Ic2Items.reactorVentGold != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorVentGold, true))
-            return true;
-        if (Ic2Items.reactorVentSpread != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorVentSpread, true))
-            return true;
-        if (Ic2Items.reactorVentDiamond != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorVentDiamond, true))
-            return true;
-        return false;
+        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemHeatVent(stack);
     }
 
     public static boolean isItemHeatExchanger(ItemStack stack) {
-        if (stack == null) return false;
+        if (stack == null || isHullOnlyComponent(stack)) return false;
         if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findHeatExchanger(stack) != null) return true;
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemHeatExchanger(stack)) return true;
-        if (stack.getItem() == null) return false;
-        String name = stack.getUnlocalizedName();
-        if (name != null && name.toLowerCase().contains("core")) return false; // Skip reactor heat exchanger (no reactor hull heat)
-
-        if (stack.getItem() instanceof ItemReactorHeatSwitch) return true;
-        if (Ic2Items.reactorHeatSwitch != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorHeatSwitch, true))
-            return true;
-        if (Ic2Items.reactorHeatSwitchSpread != null
-            && GTUtility.areStacksEqual(stack, Ic2Items.reactorHeatSwitchSpread, true))
-            return true;
-        if (Ic2Items.reactorHeatSwitchDiamond != null
-            && GTUtility.areStacksEqual(stack, Ic2Items.reactorHeatSwitchDiamond, true))
-            return true;
-        return false;
+        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemHeatExchanger(stack);
     }
 
     public static boolean isItemReflector(ItemStack stack) {
-        if (stack == null) return false;
+        if (stack == null || isHullOnlyComponent(stack)) return false;
         if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(stack) != null) return true;
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemReflector(stack)) return true;
-        if (stack.getItem() == null) return false;
-        if (stack.getItem() instanceof ItemReactorReflector) return true;
-        if (Ic2Items.reactorReflector != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorReflector, true))
-            return true;
-        if (Ic2Items.reactorReflectorThick != null
-            && GTUtility.areStacksEqual(stack, Ic2Items.reactorReflectorThick, true))
-            return true;
-        if (ItemList.Neutron_Reflector != null && ItemList.Neutron_Reflector.hasBeenSet()
-            && ItemList.Neutron_Reflector.isStackEqual(stack, false, true))
-            return true;
-
-        if (isOreDictMatch(stack, "plateBeryllium") || isOreDictMatch(stack, "blockBeryllium")) return true;
-        try {
-            if (Materials.Beryllium != null) {
-                if (GTUtility.areStacksEqual(stack, Materials.Beryllium.getPlates(1), true)) return true;
-                if (GTUtility.areStacksEqual(stack, Materials.Beryllium.getBlocks(1), true)) return true;
-            }
-        } catch (Throwable ignored) {}
-
-        String name = stack.getUnlocalizedName();
-        if (name != null && name.toLowerCase().contains("reflector")) return true;
-
-        return false;
+        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemReflector(stack);
     }
 
     public static boolean isItemModerator(ItemStack stack) {
-        if (stack == null) return false;
+        if (stack == null || isHullOnlyComponent(stack)) return false;
         if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack) != null) return true;
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemModerator(stack)) return true;
-        return false;
+        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemModerator(stack);
     }
 
     public static boolean isItemReactorPlating(ItemStack stack) {
-        if (stack == null) return false;
+        if (stack == null || isHullOnlyComponent(stack)) return false;
         if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findPlating(stack) != null) return true;
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemReactorPlating(stack)) return true;
-        if (stack.getItem() == null) return false;
-        if (stack.getItem() instanceof ItemReactorPlating) return true;
-        if (Ic2Items.reactorPlating != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorPlating, true))
-            return true;
-        if (Ic2Items.reactorPlatingHeat != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorPlatingHeat, true))
-            return true;
-        if (Ic2Items.reactorPlatingExplosive != null
-            && GTUtility.areStacksEqual(stack, Ic2Items.reactorPlatingExplosive, true))
-            return true;
-        return false;
+        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemReactorPlating(stack);
     }
 
     public static boolean isItemRadiovoltaic(ItemStack stack) {
-        if (stack == null) return false;
+        if (stack == null || isHullOnlyComponent(stack)) return false;
         if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findRadiovoltaic(stack) != null) return true;
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemRadiovoltaic(stack)) return true;
-        if (stack.getItem() == null) return false;
-        if (stack.getItem() instanceof ItemRadiovoltaicPlate) return true;
-        if (ModItems.radiovoltaicPlateHV != null && stack.getItem() == ModItems.radiovoltaicPlateHV) return true;
-        if (ModItems.radiovoltaicPlateEV != null && stack.getItem() == ModItems.radiovoltaicPlateEV) return true;
-        return false;
+        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemRadiovoltaic(stack);
     }
 
     public static double getInsulationDampening(ItemStack stack) {
-        if (stack == null) return 0.0;
+        if (stack == null || isHullOnlyComponent(stack)) return 0.0;
         com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.InsulatorData ins =
             com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findInsulator(stack);
         if (ins != null) return ins.dampening;
-        double cfgVal = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.getInsulatorDampening(stack);
-        if (cfgVal > 0.0) return cfgVal;
-        if (stack.getItem() == null) return 0.0;
-
-        // 1. Naquarite Universal Insulator Foil: rejects 100% heat & radiation
-        try {
-            if (ItemList.Naquarite_Universal_Insulator_Foil.isStackEqual(stack, false, true)) {
-                return 1.0;
-            }
-        } catch (Throwable ignored) {}
-
-        String unlocalizedName = stack.getUnlocalizedName();
-        if (unlocalizedName != null) {
-            String lower = unlocalizedName.toLowerCase();
-            if (lower.contains("naquarite_universal_insulator_foil")
-                || lower.contains("naquariteuniversalinsulatorfoil")
-                || (lower.contains("naquarite") && lower.contains("insulator"))) {
-                return 1.0;
-            }
-            if (lower.contains("micainsulatorfoil") || lower.contains("mica_insulator_foil")
-                || (lower.contains("mica") && lower.contains("foil"))) {
-                return 0.60;
-            }
-            if (lower.contains("thermalclotht2") || lower.contains("thermal_cloth_t2")
-                || (lower.contains("thermalcloth") && (lower.contains("t2") || lower.contains("2")))) {
-                return 0.40;
-            }
-            if (lower.contains("itembasicasteroids") && stack.getItemDamage() == 7) {
-                return 0.20;
-            }
-            if (lower.contains("thermalcloth") || lower.contains("thermal_cloth")) {
-                return 0.20;
-            }
-        }
-
-        try {
-            ItemStack gcCloth = gregtech.api.util.GTModHandler
-                .getModItem("GalacticraftMars", "item.itemBasicAsteroids", 1, 7);
-            if (gcCloth != null && GTUtility.areStacksEqual(stack, gcCloth, false)) {
-                return 0.20;
-            }
-            ItemStack gsClothT2 = gregtech.api.util.GTModHandler.getModItem("GalaxySpace", "item.ThermalClothT2", 1);
-            if (gsClothT2 != null && GTUtility.areStacksEqual(stack, gsClothT2, true)) {
-                return 0.40;
-            }
-            ItemStack micaFoil = gregtech.api.util.GTModHandler.getModItem("dreamcraft", "MicaInsulatorFoil", 1);
-            if (micaFoil != null && GTUtility.areStacksEqual(stack, micaFoil, true)) {
-                return 0.60;
-            }
-        } catch (Throwable ignored) {}
-
-        return 0.0;
+        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.getInsulatorDampening(stack);
     }
 
     public static boolean isItemAllowedInBus(ItemStack stack, MTEHatchNuclearBus bus) {
@@ -575,7 +447,10 @@ public final class NuclearFuelClassification {
         // 3. Depleted rods and empty fuel rods are strictly forbidden from reactor core hatches!
         if (isDepletedOrEmptyRod(stack)) return false;
 
-        // 4. Explicitly allowlisted reactor core items:
+        // 4. Hull-only components (interact with nonexistent reactor hull heat) are strictly forbidden!
+        if (isHullOnlyComponent(stack)) return false;
+
+        // 5. Explicitly allowlisted reactor core items:
         if (isItemFuel(stack)) return true;
         if (isItemCoolant(stack)) return true;
         if (isItemHeatVent(stack)) return true;

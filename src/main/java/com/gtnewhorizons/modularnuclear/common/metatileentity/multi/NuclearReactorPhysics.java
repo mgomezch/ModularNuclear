@@ -479,6 +479,10 @@ public class NuclearReactorPhysics {
             if (mod != null) return mod.moderation;
             ReflectorData refl = ReactorDataRegistry.findReflector(stack);
             if (refl != null) return refl.moderation;
+            HeatVentData vent = ReactorDataRegistry.findHeatVent(stack);
+            if (vent != null) return vent.moderation;
+            HeatExchangerData hex = ReactorDataRegistry.findHeatExchanger(stack);
+            if (hex != null) return hex.moderation;
             CoolantItemData cItem = ReactorDataRegistry.findCoolantItem(stack);
             if (cItem != null) return cItem.moderation;
             FuelData fuel = ReactorDataRegistry.findFuel(stack);
@@ -488,7 +492,9 @@ public class NuclearReactorPhysics {
                 .isItemRadiovoltaic(stack)) return 0.0;
             if (NuclearFuelClassification.isItemModerator(stack)) return 0.50;
             if (NuclearFuelClassification.isItemReflector(stack)) return 0.20;
-            if (NuclearFuelClassification.isItemCoolant(stack)) return 0.40;
+            if (NuclearFuelClassification.isItemCoolant(stack)) return 0.05;
+            if (NuclearFuelClassification.isItemHeatVent(stack)) return 0.05;
+            if (NuclearFuelClassification.isItemHeatExchanger(stack)) return 0.05;
             if (tile.getReactor()
                 .isItemFuel(stack)) return 0.10;
             return 0.05;
@@ -505,10 +511,10 @@ public class NuclearReactorPhysics {
                 .getName()
                 .toLowerCase();
             if (name.contains("heavywater")) return 0.90;
-            if (name.contains("distilledwater")) return 0.25;
-            if (name.contains("coolant")) return 0.40;
+            if (name.contains("distilledwater") || name.contains("water")) return 0.25;
+            if (name.contains("coolant")) return 0.05;
             if (name.contains("sodium")) return 0.05;
-            return 0.20;
+            return 0.05;
         } else if (tile.isHighPressureHatch()) {
             return tile.getHighPressureHatch()
                 .getModerationProbability();
@@ -918,21 +924,6 @@ public class NuclearReactorPhysics {
                 bus.mDirectEUProduced = 0;
             }
         }
-        // 4. GENERIC COOLANT/VENT FALLBACK
-        else if (NuclearFuelClassification.isItemCoolant(stack)) {
-                bus.mDirectEUProduced = 0;
-                double ambient = reactor.getAmbientTemperature();
-                if (bus.mTemperature > ambient) {
-                    double heatToAbsorb = Math.min(bus.mTemperature - ambient, 100.0)
-                        * NuclearSimulationEngine.HU_PER_DEGREE;
-                    if (heatToAbsorb > 0) {
-                        bus.mTemperature -= (heatToAbsorb / NuclearSimulationEngine.HU_PER_DEGREE);
-                        int cellDamage = Math.max(1, (int) (heatToAbsorb / 50.0));
-                        reactor.damageItemComponent(bus, cellDamage);
-                        bus.mLastHeatOutput = heatToAbsorb;
-                    }
-                }
-            }
         // 5. EASTER EGG: MOLTEN CHEESE EXTRACTION ABOVE 65°C
         else if (bus.mTemperature > 65.0) {
             bus.mDirectEUProduced = 0;

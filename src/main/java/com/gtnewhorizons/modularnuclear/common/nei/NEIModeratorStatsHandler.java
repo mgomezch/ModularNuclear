@@ -288,7 +288,8 @@ public class NEIModeratorStatsHandler extends TemplateRecipeHandler {
         GuiDraw.drawRect(PLOT_X + PLOT_W, PLOT_Y, 1, PLOT_H, 0xFF2D333F);
 
         ModeratorData mod = recipe.moderator;
-        double maxTemp = (mod.thermalEmissionMaxPerFast > 0.0) ? 3500.0 : mod.maxTemperature;
+        boolean isWigner = mod.wignerEnergyPerFast > 0.0;
+        double maxTemp = isWigner ? 3500.0 : mod.maxTemperature;
         if (maxTemp <= 0.0) maxTemp = 2500.0;
 
         // Horizontal grid lines (25%, 50%, 75%, 100%)
@@ -369,25 +370,25 @@ public class NEIModeratorStatsHandler extends TemplateRecipeHandler {
         drawScaledString(l4, 12, 55, STATS_SCALE, 0x333333);
 
         // Plot Axis Labels & Curves
-        boolean isHazard = mod.thermalEmissionMaxPerFast > 0.0;
-        double maxTemp = isHazard ? 3500.0 : mod.maxTemperature;
+        boolean isWigner = mod.wignerEnergyPerFast > 0.0;
+        double maxTemp = isWigner ? 3500.0 : mod.maxTemperature;
         if (maxTemp <= 0.0) maxTemp = 2500.0;
 
         GL11.glPushMatrix();
         GL11.glScalef(0.5f, 0.5f, 0.5f);
 
         // Graph Banner Title inside panel
-        String chartTitle = isHazard ? "Thermal Emission Hazard (th-n / fast-n absorbed)"
+        String chartTitle = isWigner ? "Wigner Heat Release Rate (HU/t max)"
             : "Thermal Durability Wear Rate (/tick)";
-        int chartTitleCol = isHazard ? 0xFF38BDF8 : 0xFFF59E0B;
+        int chartTitleCol = isWigner ? 0xFF38BDF8 : 0xFFF59E0B;
         font.drawString(chartTitle, (PLOT_X + 2) * 2, (PLOT_Y - 9) * 2, chartTitleCol);
 
         // Left Axis: Values
-        double maxEmission = isHazard ? mod.thermalEmissionMaxPerFast : 10.0;
+        double maxAxis = isWigner ? mod.wignerMaxReleaseRate : 10.0;
         for (int p = 0; p <= 100; p += 50) {
             int gy = PLOT_Y + PLOT_H - (int) Math.round((p / 100.0) * PLOT_H);
-            double val = (p / 100.0) * maxEmission;
-            String valStr = isHazard ? String.format(Locale.US, "%.1f", val) : String.format(Locale.US, "%.0f", val);
+            double val = (p / 100.0) * maxAxis;
+            String valStr = isWigner ? String.format(Locale.US, "%.0f", val) : String.format(Locale.US, "%.0f", val);
             font.drawString(valStr, (PLOT_X - 14) * 2, (gy - 2) * 2, chartTitleCol);
         }
 
@@ -415,14 +416,14 @@ public class NEIModeratorStatsHandler extends TemplateRecipeHandler {
         GL11.glHint(GL11.GL_LINE_SMOOTH_HINT, GL11.GL_NICEST);
         GL11.glLineWidth(2.0f);
 
-        if (isHazard) {
-            // Thermal emission curve (Cyan / Blue: #00D4FF)
+        if (isWigner) {
+            // Wigner heat release rate curve (Cyan / Blue: #00D4FF)
             GL11.glColor4f(0.0f, 0.83f, 1.0f, 1.0f);
             GL11.glBegin(GL11.GL_LINE_STRIP);
             for (int i = 0; i <= PLOT_W; i++) {
                 double temp = (i / (double) PLOT_W) * maxTemp;
-                double emission = mod.calculateThermalEmission(temp, 1);
-                float y = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, emission / maxEmission)) * PLOT_H);
+                double rate = mod.calculateWignerHeatRelease(temp, mod.wignerMaxReleaseRate);
+                float y = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, rate / maxAxis)) * PLOT_H);
                 GL11.glVertex2f(PLOT_X + i, y);
             }
             GL11.glEnd();
@@ -433,7 +434,7 @@ public class NEIModeratorStatsHandler extends TemplateRecipeHandler {
             for (int i = 0; i <= PLOT_W; i++) {
                 double temp = (i / (double) PLOT_W) * maxTemp;
                 double wear = mod.calculateTemperatureDamage(temp, 20.0);
-                float y = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, wear / maxEmission)) * PLOT_H);
+                float y = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, wear / maxAxis)) * PLOT_H);
                 GL11.glVertex2f(PLOT_X + i, y);
             }
             GL11.glEnd();
@@ -448,9 +449,9 @@ public class NEIModeratorStatsHandler extends TemplateRecipeHandler {
         if (mouseInRecipe != null && isMouseOverPlot(mouseInRecipe.x, mouseInRecipe.y)) {
             int mx = mouseInRecipe.x;
             double tempAtMouse = ((mx - PLOT_X) / (double) PLOT_W) * maxTemp;
-            double valAtMouse = isHazard ? mod.calculateThermalEmission(tempAtMouse, 1)
+            double valAtMouse = isWigner ? mod.calculateWignerHeatRelease(tempAtMouse, mod.wignerMaxReleaseRate)
                 : mod.calculateTemperatureDamage(tempAtMouse, 20.0);
-            float yVal = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, valAtMouse / maxEmission)) * PLOT_H);
+            float yVal = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, valAtMouse / maxAxis)) * PLOT_H);
 
             // Vertical cursor line
             GL11.glLineWidth(1.0f);
@@ -461,7 +462,7 @@ public class NEIModeratorStatsHandler extends TemplateRecipeHandler {
             GL11.glEnd();
 
             // Horizontal projection
-            if (isHazard) {
+            if (isWigner) {
                 GL11.glColor4f(0.0f, 0.83f, 1.0f, 0.5f);
             } else {
                 GL11.glColor4f(1.0f, 0.33f, 0.0f, 0.5f);
@@ -471,7 +472,7 @@ public class NEIModeratorStatsHandler extends TemplateRecipeHandler {
             GL11.glVertex2f(mx, yVal);
             GL11.glEnd();
 
-            drawIndicatorDot(mx, yVal, isHazard ? 0.0f : 1.0f, isHazard ? 0.83f : 0.33f, isHazard ? 1.0f : 0.0f);
+            drawIndicatorDot(mx, yVal, isWigner ? 0.0f : 1.0f, isWigner ? 0.83f : 0.33f, isWigner ? 1.0f : 0.0f);
         }
 
         GL11.glDisable(GL11.GL_LINE_SMOOTH);
@@ -491,17 +492,18 @@ public class NEIModeratorStatsHandler extends TemplateRecipeHandler {
                 List<String> tip = new ArrayList<>();
                 tip.add(EnumChatFormatting.WHITE + "" + EnumChatFormatting.BOLD + String.format(Locale.US, "%.0f °C", tempAtMouse));
 
-                if (isHazard) {
-                    double emission = mod.calculateThermalEmission(tempAtMouse, 1);
+                if (isWigner) {
+                    double releaseRate = mod.calculateWignerHeatRelease(tempAtMouse, mod.wignerMaxReleaseRate);
                     String statusNote = "";
-                    if (tempAtMouse < mod.thermalEmissionOnsetTemp) {
+                    if (tempAtMouse < mod.wignerReleaseOnsetTemp) {
                         statusNote = EnumChatFormatting.GRAY + " (Sub-threshold)";
-                    } else if (tempAtMouse >= mod.thermalEmissionHalfTemp) {
+                    } else if (tempAtMouse >= mod.wignerReleaseHalfTemp) {
                         statusNote = EnumChatFormatting.RED + " (Saturated > 50%)";
                     } else {
-                        statusNote = EnumChatFormatting.GOLD + " (Active Hazard)";
+                        statusNote = EnumChatFormatting.GOLD + " (Active Release)";
                     }
-                    tip.add(EnumChatFormatting.AQUA + String.format(Locale.US, "Emission: %.2f th-n / fast", emission) + statusNote);
+                    tip.add(EnumChatFormatting.AQUA + String.format(Locale.US, "Release Rate: %.0f HU/t", releaseRate) + statusNote);
+                    tip.add(EnumChatFormatting.GRAY + String.format(Locale.US, "Storage: %.0f HU / fast (Cap: %,.0f HU)", mod.wignerEnergyPerFast, mod.wignerMaxEnergy));
                 } else {
                     double wear = mod.calculateTemperatureDamage(tempAtMouse, 20.0);
                     String tempNote = (tempAtMouse > mod.maxTemperature) ? EnumChatFormatting.RED + " (OVERHEATING)"

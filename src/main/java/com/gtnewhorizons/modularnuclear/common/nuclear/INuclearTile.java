@@ -119,8 +119,28 @@ public interface INuclearTile {
     }
 
     /**
+     * Stores Wigner energy in this tile from fast neutron interactions (Hu).
+     */
+    default void addWignerEnergy(double amountHu) {}
+
+    /**
+     * Releases stored Wigner energy as heat (Hu) based on the moderator's temperature curve,
+     * consuming the released energy from the stored pool.
+     */
+    default double releaseWignerEnergy() {
+        return 0.0;
+    }
+
+    /**
+     * Current stored Wigner energy in this tile (Hu).
+     */
+    default double getStoredWignerEnergy() {
+        return 0.0;
+    }
+
+    /**
      * Returns the number of secondary thermal neutrons generated upon absorbing fast neutrons
-     * (e.g. graphite thermal emission hazard above 1500°C).
+     * (deprecated: graphite stores Wigner energy instead of emitting secondary thermal neutrons).
      */
     default double getThermalNeutronEmissionYield(int fastNeutronsAbsorbed) {
         return 0.0;

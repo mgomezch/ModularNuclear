@@ -5717,7 +5717,7 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
-    public void testGraphiteThermalEmissionHazard() {
+    public void testGraphiteWignerEnergyStorageAndThermalRelease() {
         com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData graphite = null;
         for (com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod :
             com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getComponentData().moderators) {
@@ -5728,29 +5728,51 @@ public class NuclearSimulationEngineTest {
         }
         assertNotNull(graphite);
 
-        assertEquals(1500.0, graphite.thermalEmissionOnsetTemp, 1e-4);
-        assertEquals(2500.0, graphite.thermalEmissionHalfTemp, 1e-4);
-        assertEquals(4.0, graphite.thermalEmissionMaxPerFast, 1e-4);
+        assertEquals(1500.0, graphite.wignerReleaseOnsetTemp, 1e-4);
+        assertEquals(2500.0, graphite.wignerReleaseHalfTemp, 1e-4);
+        assertEquals(2000.0, graphite.wignerMaxReleaseRate, 1e-4);
+        assertEquals(1.0, graphite.wignerEnergyPerFast, 1e-4);
+        assertEquals(10000.0, graphite.wignerMaxEnergy, 1e-4);
+        assertEquals(0.0, graphite.thermalEmissionMaxPerFast, 1e-4);
 
-        // Below or at 1500 °C: strictly 0 emission
-        assertEquals(0.0, graphite.calculateThermalEmission(1000.0, 10), 1e-4);
-        assertEquals(0.0, graphite.calculateThermalEmission(1500.0, 10), 1e-4);
+        // Below or at 1500 °C: strictly 0 release
+        assertEquals(0.0, graphite.calculateWignerHeatRelease(1000.0, 5000.0), 1e-4);
+        assertEquals(0.0, graphite.calculateWignerHeatRelease(1500.0, 5000.0), 1e-4);
 
-        // Exactly at 2500 °C: deltaT = 1000, deltaTHalf = 1000 -> factor = 1000^2 / (1000^2 + 1000^2) = 0.5 (50% saturation!)
-        double emissionAtHalf = graphite.calculateThermalEmission(2500.0, 10);
-        assertEquals(10 * 4.0 * 0.5, emissionAtHalf, 1e-4); // 20.0 thermal neutrons
+        // Exactly at 2500 °C: deltaT = 1000, deltaTHalf = 1000 -> factor = 1000^2 / (1000^2 + 1000^2) = 0.5 (50% max release rate = 1000.0 HU/t)
+        double releaseAtHalf = graphite.calculateWignerHeatRelease(2500.0, 5000.0);
+        assertEquals(1000.0, releaseAtHalf, 1e-4);
 
-        // At high temperature (e.g. 5000 °C): saturates towards 4.0 * count = 40.0
-        double emissionHigh = graphite.calculateThermalEmission(5000.0, 10);
-        assertTrue(emissionHigh > 35.0 && emissionHigh <= 40.0);
+        // Limited by available stored energy
+        double releaseLimited = graphite.calculateWignerHeatRelease(2500.0, 400.0);
+        assertEquals(400.0, releaseLimited, 1e-4);
 
-        // SimTile parity
+        // At high temperature (e.g. 5000 °C): factor approaches 1.0, releases up to max rate 2000.0 HU/t
+        double releaseHigh = graphite.calculateWignerHeatRelease(5000.0, 5000.0);
+        assertTrue(releaseHigh > 1800.0 && releaseHigh <= 2000.0);
+
+        // SimTile parity & saturation cap at 10000.0
         SimTile tile = new SimTile(SimTile.TileType.MODERATOR_GRAPHITE);
         tile.setTemperature(1200.0);
-        assertEquals(0.0, tile.getThermalNeutronEmissionYield(10), 1e-4);
+        tile.addWignerEnergy(6000.0);
+        assertEquals(6000.0, tile.getStoredWignerEnergy(), 1e-4);
+        tile.addWignerEnergy(6000.0); // exceeds cap -> must saturate at 10000.0
+        assertEquals(10000.0, tile.getStoredWignerEnergy(), 1e-4);
+
+        assertEquals(0.0, tile.releaseWignerEnergy(), 1e-4);
+        assertEquals(10000.0, tile.getStoredWignerEnergy(), 1e-4); // unchanged below onset
 
         tile.setTemperature(2500.0);
-        assertEquals(20.0, tile.getThermalNeutronEmissionYield(10), 1e-4);
+        double releasedSim = tile.releaseWignerEnergy();
+        assertEquals(1000.0, releasedSim, 1e-4);
+        assertEquals(9000.0, tile.getStoredWignerEnergy(), 1e-4); // depleted by 1000
+
+        // MTEHatchNuclearBus parity & saturation cap
+        MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus.wigner", 4, new String[0], null);
+        bus.addWignerEnergy(7000.0);
+        assertEquals(7000.0, bus.getStoredWignerEnergy(), 1e-4);
+        bus.addWignerEnergy(5000.0);
+        assertEquals(10000.0, bus.getStoredWignerEnergy(), 1e-4);
     }
 
     @Test
@@ -5818,6 +5840,69 @@ public class NuclearSimulationEngineTest {
         sourceTile.nuclearTick(1.0);
         assertEquals(10000, sourceTile.getDurability());
         assertEquals(0.0, sourceTile.getLastDurabilityLoss(), 1e-4);
+    }
+
+    @Test
+    public void testNonWaterModerationAndHullOnlyComponentRejection() {
+        // 1. Component Registry moderation constants
+        for (com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData vent :
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getComponentData().heatVents) {
+            assertEquals(0.05, vent.moderation, 1e-4, "Vent " + vent.id + " moderation must be 0.05");
+        }
+        for (com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData hex :
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getComponentData().heatExchangers) {
+            assertEquals(0.05, hex.moderation, 1e-4, "Exchanger " + hex.id + " moderation must be 0.05");
+        }
+        for (com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantItemData ci :
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getComponentData().coolantItems) {
+            assertEquals(0.05, ci.moderation, 1e-4, "Coolant item " + ci.id + " moderation must be 0.05");
+        }
+        for (com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cf :
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getComponentData().coolantFluids) {
+            if ("coolant_ic2".equals(cf.id)) {
+                assertEquals(0.05, cf.moderation, 1e-4, "IC2 coolant fluid moderation must be 0.05");
+            }
+        }
+
+        // 2. SimTile moderation values
+        SimTile ic2Tile = new SimTile(SimTile.TileType.HATCH_IC2_COOLANT);
+        ic2Tile.setInputFluidAmount(1000);
+        assertEquals(0.05, ic2Tile.getModerationProbability(), 1e-4);
+        ic2Tile.setInputFluidAmount(0);
+        assertEquals(0.05, ic2Tile.getModerationProbability(), 1e-4);
+
+        SimTile passageTile = new SimTile(SimTile.TileType.PASSAGE_CORE);
+        assertEquals(0.05, passageTile.getModerationProbability(), 1e-4);
+
+        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp.mod", 4, new String[0], null);
+        ICoolantLoopPump mockPump = org.mockito.Mockito.mock(ICoolantLoopPump.class);
+        hp.setConnectedPump(mockPump);
+        org.mockito.Mockito.when(mockPump.getCoolantFluidProperty()).thenReturn(CoolantFluidProperty.IC2_COOLANT);
+        assertEquals(0.05, hp.getModerationProbability(), 1e-4);
+        org.mockito.Mockito.when(mockPump.getCoolantFluidProperty()).thenReturn(CoolantFluidProperty.SODIUM);
+        assertEquals(0.05, hp.getModerationProbability(), 1e-4);
+
+        // 3. Hull-only components rejection
+        net.minecraft.item.Item mockVentCore = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockVentCore.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("ic2.reactorVentCore");
+        ItemStack ventCoreStack = new ItemStack(mockVentCore, 1, 0);
+
+        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isHullOnlyComponent(ventCoreStack));
+        assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(ventCoreStack, null));
+
+        net.minecraft.item.Item mockSwitchCore = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockSwitchCore.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("ic2.reactorHeatSwitchCore");
+        ItemStack switchCoreStack = new ItemStack(mockSwitchCore, 1, 0);
+
+        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isHullOnlyComponent(switchCoreStack));
+        assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(switchCoreStack, null));
+
+        // 4. Random unknown item rejection
+        net.minecraft.item.Item mockRandom = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockRandom.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("random.dirt_block");
+        ItemStack randomStack = new ItemStack(mockRandom, 1, 0);
+
+        assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(randomStack, null));
     }
 
     private static void deleteRecursively(File file) {

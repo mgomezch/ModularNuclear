@@ -2076,7 +2076,7 @@ public class NuclearSimulationCLI {
                     + ANSI_RESET);
             if (cl.getFluidType() == CoolantLoopModel.CoolantFluidType.HEAVY_WATER) {
                 System.out.println("  Tritium Radiolytic:   " + cl.getTotalTritiumProduced() + " L bred");
-            } else {
+            } else if (cl.getFluidType() == CoolantLoopModel.CoolantFluidType.DISTILLED_WATER) {
                 System.out.println("  Deuterium Radiolytic: " + cl.getTotalDeuteriumProduced() + " L bred");
             }
             if (!cl.getAttachedPoints()

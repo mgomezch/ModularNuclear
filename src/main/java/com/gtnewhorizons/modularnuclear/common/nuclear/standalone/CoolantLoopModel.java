@@ -49,6 +49,7 @@ public class CoolantLoopModel {
 
     public enum LoopMaterial {
 
+        CAST_IRON("Cast Iron", 16.0, 1538.0, 1811, "ULV"),
         STEEL("Steel", 35.0, 2226.85, 2500, "LV"),
         STAINLESS_STEEL("Stainless Steel", 70.0, 2726.85, 3000, "MV"),
         TITANIUM("Titanium", 140.0, 4726.85, 5000, "EV"),
@@ -106,6 +107,7 @@ public class CoolantLoopModel {
                     return mat;
                 }
             }
+            if (containsSub(s, "CAST") || containsSub(s, "IRON")) return CAST_IRON;
             if (containsSub(s, "STAINLESS")) return STAINLESS_STEEL;
             if (containsSub(s, "TUNGSTEN")) return TUNGSTENSTEEL;
             if (containsSub(s, "OSMIUM")) return OSMIUM;
@@ -155,7 +157,10 @@ public class CoolantLoopModel {
 
         DISTILLED_WATER("Distilled Water", 1000.0, 4184.0, 0.001, 0.60, "Deuterium", 0.0),
         HEAVY_WATER("Heavy Water", 1105.0, 4220.0, 0.00125, 0.59, "Tritium", 3.8),
-        MOLTEN_CHEESE("Molten Cheese", 1120.0, 3000.0, 0.557, 0.481, "None", 46.85);
+        IC2_COOLANT("IC2 Coolant", 1080.0, 3800.0, 0.0025, 0.52, "None", -25.0),
+        SODIUM("Sodium", 927.0, 1260.0, 0.0007, 86.0, "None", 97.8),
+        MOLTEN_CHEESE("Molten Cheese", 1120.0, 3000.0, 0.557, 0.481, "None", 46.85),
+        LAVA("Lava", 3000.0, 1250.0, 0.001, 1.5, "None", 1000.0);
 
         public final String displayName;
         public final double density; // kg/m^3
@@ -177,10 +182,7 @@ public class CoolantLoopModel {
         }
 
         public boolean isMolten() {
-            return this.name()
-                .contains("MOLTEN")
-                || this.displayName.toLowerCase()
-                    .contains("molten");
+            return this == MOLTEN_CHEESE || this == LAVA;
         }
 
         public static CoolantFluidType fromString(String str) {
@@ -192,6 +194,9 @@ public class CoolantLoopModel {
                     return fluid;
                 }
             }
+            if (containsSub(s, "LAVA")) return LAVA;
+            if (containsSub(s, "SODIUM")) return SODIUM;
+            if (containsSub(s, "COOLANT")) return IC2_COOLANT;
             if (containsSub(s, "CHEESE")) return MOLTEN_CHEESE;
             if (containsSub(s, "HEAVY")) return HEAVY_WATER;
             return DISTILLED_WATER;
@@ -681,7 +686,7 @@ public class CoolantLoopModel {
         currentCoolantTempCelsius += tempRise;
 
         // 8. Secondary Steam Generation at Pressurized Heat Exchanger (PHE)
-        // 1 L water requires 2.26 MJ (2260 J/mL) latent heat to vaporize -> produces 160 L steam (1:160 expansion)
+        // 1 L water requires 2.26 MJ (2,260,000 J/L) latent heat to vaporize -> produces 160 L steam (1:160 expansion)
         double steamGeneratedL = 0.0;
         if (currentCoolantTempCelsius > 100.0) {
             double deltaTPhe = currentCoolantTempCelsius - 100.0;
@@ -692,9 +697,9 @@ public class CoolantLoopModel {
                 totalHeatExtractedJoulesTick + (deltaTPhe * loopFluidMassKg * fluidType.specificHeat * 0.5),
                 qPheWatts * 0.05);
 
-            // 1 Liter (mB) water requires 2260 J (2.26 MJ/L) latent heat to vaporize -> produces 160 L (mB) steam
+            // 1 Liter water requires 2.26 MJ (2,260,000 J/L) latent heat to vaporize -> produces 160 L steam
             // (1:160 expansion)
-            double waterBoiledL = qPheJoules / 2260.0;
+            double waterBoiledL = qPheJoules / 2260000.0;
             steamGeneratedL = waterBoiledL * 160.0; // 1:160 expansion
 
             lastSecondaryWaterBoiledLt = waterBoiledL;

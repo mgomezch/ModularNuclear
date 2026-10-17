@@ -221,19 +221,47 @@ public class ComponentData {
         public double thermalEmissionOnsetTemp = 1500.0;
         public double thermalEmissionHalfTemp = 2500.0;
         public double thermalEmissionMaxPerFast = 0.0;
+        public double wignerEnergyPerFast = 0.0;
+        public double wignerReleaseOnsetTemp = 1500.0;
+        public double wignerReleaseHalfTemp = 2500.0;
+        public double wignerMaxReleaseRate = 2000.0;
+        public double wignerMaxEnergy = 10000.0;
 
         public ModeratorData() {}
 
         public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
             double scattThermal, double moderation, double heatTransferCoeff, double maxTemp, String... matching) {
             this(id, name, absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff, maxTemp,
-                80000, "ore:dustAsh", 0.0003, 1.0, 1500.0, 2500.0, 0.0, matching);
+                80000, "ore:dustAsh", 0.0003, 1.0, 1500.0, 2500.0, 0.0, 0.0, 1500.0, 2500.0, 0.0, 10000.0, matching);
         }
 
         public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
             double scattThermal, double moderation, double heatTransferCoeff, double maxTemp,
             int durability, String spentProduct, double tempWearK, double tempWearA,
             double thermalEmissionOnsetTemp, double thermalEmissionHalfTemp, double thermalEmissionMaxPerFast,
+            String... matching) {
+            this(id, name, absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff, maxTemp,
+                durability, spentProduct, tempWearK, tempWearA, thermalEmissionOnsetTemp, thermalEmissionHalfTemp, thermalEmissionMaxPerFast,
+                0.0, 1500.0, 2500.0, 0.0, 10000.0, matching);
+        }
+
+        public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
+            double scattThermal, double moderation, double heatTransferCoeff, double maxTemp,
+            int durability, String spentProduct, double tempWearK, double tempWearA,
+            double thermalEmissionOnsetTemp, double thermalEmissionHalfTemp, double thermalEmissionMaxPerFast,
+            double wignerEnergyPerFast, double wignerReleaseOnsetTemp, double wignerReleaseHalfTemp, double wignerMaxReleaseRate,
+            String... matching) {
+            this(id, name, absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff, maxTemp,
+                durability, spentProduct, tempWearK, tempWearA, thermalEmissionOnsetTemp, thermalEmissionHalfTemp, thermalEmissionMaxPerFast,
+                wignerEnergyPerFast, wignerReleaseOnsetTemp, wignerReleaseHalfTemp, wignerMaxReleaseRate, 10000.0, matching);
+        }
+
+        public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
+            double scattThermal, double moderation, double heatTransferCoeff, double maxTemp,
+            int durability, String spentProduct, double tempWearK, double tempWearA,
+            double thermalEmissionOnsetTemp, double thermalEmissionHalfTemp, double thermalEmissionMaxPerFast,
+            double wignerEnergyPerFast, double wignerReleaseOnsetTemp, double wignerReleaseHalfTemp, double wignerMaxReleaseRate,
+            double wignerMaxEnergy,
             String... matching) {
             this.id = id;
             this.name = name;
@@ -251,6 +279,11 @@ public class ComponentData {
             this.thermalEmissionOnsetTemp = thermalEmissionOnsetTemp;
             this.thermalEmissionHalfTemp = thermalEmissionHalfTemp;
             this.thermalEmissionMaxPerFast = thermalEmissionMaxPerFast;
+            this.wignerEnergyPerFast = wignerEnergyPerFast;
+            this.wignerReleaseOnsetTemp = wignerReleaseOnsetTemp;
+            this.wignerReleaseHalfTemp = wignerReleaseHalfTemp;
+            this.wignerMaxReleaseRate = wignerMaxReleaseRate;
+            this.wignerMaxEnergy = wignerMaxEnergy;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
         }
 
@@ -268,6 +301,17 @@ public class ComponentData {
             if (deltaTHalf <= 0.0) return 0.0;
             double factor = (deltaT * deltaT) / (deltaT * deltaT + deltaTHalf * deltaTHalf);
             return fastNeutronsAbsorbed * thermalEmissionMaxPerFast * factor;
+        }
+
+        public double calculateWignerHeatRelease(double temp, double storedWignerEnergy) {
+            if (storedWignerEnergy <= 0.0 || temp <= wignerReleaseOnsetTemp) {
+                return 0.0;
+            }
+            double deltaT = temp - wignerReleaseOnsetTemp;
+            double deltaTHalf = wignerReleaseHalfTemp - wignerReleaseOnsetTemp;
+            if (deltaTHalf <= 0.0) return 0.0;
+            double factor = (deltaT * deltaT) / (deltaT * deltaT + deltaTHalf * deltaTHalf);
+            return Math.min(storedWignerEnergy, wignerMaxReleaseRate * factor);
         }
 
         public static ModeratorData fromMap(Map<String, Object> map) {
@@ -290,6 +334,11 @@ public class ComponentData {
             d.thermalEmissionOnsetTemp = PhysicsData.getDouble(map, "thermal_emission_onset_temp", d.thermalEmissionOnsetTemp);
             d.thermalEmissionHalfTemp = PhysicsData.getDouble(map, "thermal_emission_half_temp", d.thermalEmissionHalfTemp);
             d.thermalEmissionMaxPerFast = PhysicsData.getDouble(map, "thermal_emission_max_per_fast", d.thermalEmissionMaxPerFast);
+            d.wignerEnergyPerFast = PhysicsData.getDouble(map, "wigner_energy_per_fast", d.wignerEnergyPerFast);
+            d.wignerReleaseOnsetTemp = PhysicsData.getDouble(map, "wigner_release_onset_temp", d.wignerReleaseOnsetTemp);
+            d.wignerReleaseHalfTemp = PhysicsData.getDouble(map, "wigner_release_half_temp", d.wignerReleaseHalfTemp);
+            d.wignerMaxReleaseRate = PhysicsData.getDouble(map, "wigner_max_release_rate", d.wignerMaxReleaseRate);
+            d.wignerMaxEnergy = PhysicsData.getDouble(map, "wigner_max_energy", d.wignerMaxEnergy);
             return d;
         }
 
@@ -312,6 +361,11 @@ public class ComponentData {
             m.put("thermal_emission_onset_temp", thermalEmissionOnsetTemp);
             m.put("thermal_emission_half_temp", thermalEmissionHalfTemp);
             m.put("thermal_emission_max_per_fast", thermalEmissionMaxPerFast);
+            m.put("wigner_energy_per_fast", wignerEnergyPerFast);
+            m.put("wigner_release_onset_temp", wignerReleaseOnsetTemp);
+            m.put("wigner_release_half_temp", wignerReleaseHalfTemp);
+            m.put("wigner_max_release_rate", wignerMaxReleaseRate);
+            m.put("wigner_max_energy", wignerMaxEnergy);
             return m;
         }
     }
@@ -381,16 +435,23 @@ public class ComponentData {
         public double heatTransferCoeff = 0.40;
         public double selfCoolingRate = 6.0;
         public double maxTemperature = 1500.0;
+        public double moderation = 0.05;
 
         public HeatVentData() {}
 
         public HeatVentData(String id, String name, double heatTransferCoeff, double selfCoolingRate, double maxTemp,
             String... matching) {
+            this(id, name, heatTransferCoeff, selfCoolingRate, maxTemp, 0.05, matching);
+        }
+
+        public HeatVentData(String id, String name, double heatTransferCoeff, double selfCoolingRate, double maxTemp,
+            double moderation, String... matching) {
             this.id = id;
             this.name = name;
             this.heatTransferCoeff = heatTransferCoeff;
             this.selfCoolingRate = selfCoolingRate;
             this.maxTemperature = maxTemp;
+            this.moderation = moderation;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
         }
 
@@ -403,6 +464,7 @@ public class ComponentData {
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
             d.selfCoolingRate = PhysicsData.getDouble(map, "self_cooling_rate", d.selfCoolingRate);
             d.maxTemperature = PhysicsData.getDouble(map, "max_temperature", d.maxTemperature);
+            d.moderation = PhysicsData.getDouble(map, "moderation", d.moderation);
             return d;
         }
 
@@ -414,6 +476,7 @@ public class ComponentData {
             m.put("heat_transfer_coeff", heatTransferCoeff);
             m.put("self_cooling_rate", selfCoolingRate);
             m.put("max_temperature", maxTemperature);
+            m.put("moderation", moderation);
             return m;
         }
     }
@@ -428,16 +491,23 @@ public class ComponentData {
         public double heatTransferCoeff = 0.40;
         public double switchTransferRate = 12.0;
         public double maxTemperature = 1500.0;
+        public double moderation = 0.05;
 
         public HeatExchangerData() {}
 
         public HeatExchangerData(String id, String name, double heatTransferCoeff, double switchTransferRate,
             double maxTemp, String... matching) {
+            this(id, name, heatTransferCoeff, switchTransferRate, maxTemp, 0.05, matching);
+        }
+
+        public HeatExchangerData(String id, String name, double heatTransferCoeff, double switchTransferRate,
+            double maxTemp, double moderation, String... matching) {
             this.id = id;
             this.name = name;
             this.heatTransferCoeff = heatTransferCoeff;
             this.switchTransferRate = switchTransferRate;
             this.maxTemperature = maxTemp;
+            this.moderation = moderation;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
         }
 
@@ -450,6 +520,7 @@ public class ComponentData {
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
             d.switchTransferRate = PhysicsData.getDouble(map, "switch_transfer_rate", d.switchTransferRate);
             d.maxTemperature = PhysicsData.getDouble(map, "max_temperature", d.maxTemperature);
+            d.moderation = PhysicsData.getDouble(map, "moderation", d.moderation);
             return d;
         }
 
@@ -461,6 +532,7 @@ public class ComponentData {
             m.put("heat_transfer_coeff", heatTransferCoeff);
             m.put("switch_transfer_rate", switchTransferRate);
             m.put("max_temperature", maxTemperature);
+            m.put("moderation", moderation);
             return m;
         }
     }
@@ -711,7 +783,7 @@ public class ComponentData {
         public double absorptionThermal = 0.05;
         public double scatteringFast = 0.45;
         public double scatteringThermal = 0.45;
-        public double moderation = 0.40;
+        public double moderation = 0.05;
 
         public CoolantItemData() {}
 

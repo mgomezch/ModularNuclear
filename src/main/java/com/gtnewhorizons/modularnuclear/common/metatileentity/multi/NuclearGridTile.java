@@ -191,11 +191,30 @@ public class NuclearGridTile implements INuclearTile {
     }
 
     @Override
-    public double getThermalNeutronEmissionYield(int fastNeutronsAbsorbed) {
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod = getModeratorData();
-        if (mod != null) {
-            return mod.calculateThermalEmission(getTemperature(), fastNeutronsAbsorbed);
+    public void addWignerEnergy(double amountHu) {
+        if (isBus() && getBus() != null) {
+            getBus().addWignerEnergy(amountHu);
         }
+    }
+
+    @Override
+    public double releaseWignerEnergy() {
+        if (isBus() && getBus() != null) {
+            return getBus().releaseWignerEnergy();
+        }
+        return 0.0;
+    }
+
+    @Override
+    public double getStoredWignerEnergy() {
+        if (isBus() && getBus() != null) {
+            return getBus().mWignerEnergyStored;
+        }
+        return 0.0;
+    }
+
+    @Override
+    public double getThermalNeutronEmissionYield(int fastNeutronsAbsorbed) {
         return 0.0;
     }
 

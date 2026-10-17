@@ -703,7 +703,7 @@ public class SimTile implements INuclearTile {
             return 0.65;
         }
         if (type == TileType.PASSAGE_CORE) {
-            return 0.85;
+            return 0.05;
         }
         if (isLiquidFuelHatch()) {
             return 0.10;
@@ -713,11 +713,11 @@ public class SimTile implements INuclearTile {
             return switch (type) {
                 case HATCH_HEAVY_WATER -> 0.90;
                 case HATCH_DISTILLED_WATER -> 0.25;
-                case HATCH_IC2_COOLANT -> 0.40;
-                default -> 0.20;
+                case HATCH_IC2_COOLANT -> 0.05;
+                default -> 0.05;
             };
         }
-        return 0.10;
+        return 0.05;
     }
 
     @Override
@@ -1356,32 +1356,57 @@ public class SimTile implements INuclearTile {
         }
     }
 
+    public double storedWignerEnergy = 0.0;
+
+    @Override
+    public void addWignerEnergy(double amountHu) {
+        if (type == TileType.MODERATOR_GRAPHITE && amountHu > 0.0) {
+            storedWignerEnergy = Math.min(10000.0, storedWignerEnergy + amountHu);
+        }
+    }
+
+    @Override
+    public double releaseWignerEnergy() {
+        if (type == TileType.MODERATOR_GRAPHITE && storedWignerEnergy > 0.0 && temperature > 1500.0) {
+            double deltaT = temperature - 1500.0;
+            double deltaTHalf = 2500.0 - 1500.0;
+            double factor = (deltaT * deltaT) / (deltaT * deltaT + deltaTHalf * deltaTHalf);
+            double maxReleaseRate = 2000.0;
+            double released = Math.min(storedWignerEnergy, maxReleaseRate * factor);
+            storedWignerEnergy = Math.max(0.0, storedWignerEnergy - released);
+            return released;
+        }
+        return 0.0;
+    }
+
+    @Override
+    public double getStoredWignerEnergy() {
+        return storedWignerEnergy;
+    }
+
     @Override
     public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData getModeratorData() {
         if (type == TileType.MODERATOR_GRAPHITE) {
             return new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData(
                 "moderator_graphite", "Graphite Moderator", 0.002, 0.009, 0.93, 0.621, 0.50, 0.05, 2500.0,
-                80000, "ore:dustAsh", 0.0003, 1.0, 1500.0, 2500.0, 4.0);
+                80000, "ore:dustAsh", 0.0003, 1.0, 1500.0, 2500.0, 0.0,
+                1.0, 1500.0, 2500.0, 2000.0, 10000.0);
         } else if (type == TileType.MODERATOR_CARBON) {
             return new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData(
                 "moderator_carbon", "Carbon Moderator", 0.003, 0.012, 0.90, 0.60, 0.45, 0.05, 2200.0,
-                10000, "ore:dustAsh", 0.0005, 1.0, 1500.0, 2500.0, 0.0);
+                10000, "ore:dustAsh", 0.0005, 1.0, 1500.0, 2500.0, 0.0,
+                0.0, 1500.0, 2500.0, 0.0);
         } else if (type == TileType.MODERATOR_BERYLLIUM) {
             return new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData(
                 "moderator_beryllium", "Beryllium Moderator", 0.001, 0.004, 0.96, 0.85, 0.65, 0.15, 2600.0,
-                240000, "", 0.0002, 0.5, 1500.0, 2500.0, 0.0);
+                240000, "", 0.0002, 0.5, 1500.0, 2500.0, 0.0,
+                0.0, 1500.0, 2500.0, 0.0);
         }
         return null;
     }
 
     @Override
     public double getThermalNeutronEmissionYield(int fastNeutronsAbsorbed) {
-        if (type == TileType.MODERATOR_GRAPHITE && fastNeutronsAbsorbed > 0 && temperature > 1500.0) {
-            double deltaT = temperature - 1500.0;
-            double deltaTHalf = 2500.0 - 1500.0;
-            double factor = (deltaT * deltaT) / (deltaT * deltaT + deltaTHalf * deltaTHalf);
-            return fastNeutronsAbsorbed * 4.0 * factor;
-        }
         return 0.0;
     }
 }

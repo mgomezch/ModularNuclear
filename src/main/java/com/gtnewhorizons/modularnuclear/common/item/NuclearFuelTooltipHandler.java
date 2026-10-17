@@ -51,9 +51,10 @@ public class NuclearFuelTooltipHandler {
             event.toolTip.add(EnumChatFormatting.GRAY + "Durability: " + EnumChatFormatting.YELLOW
                 + String.format(Locale.US, "%,d / %,d", remaining, mod.durability));
 
-            if (mod.thermalEmissionMaxPerFast > 0.0) {
-                event.toolTip.add(EnumChatFormatting.RED + "Thermal Hazard: " + EnumChatFormatting.WHITE
-                    + String.format(Locale.US, "Emits up to %.1f th-n/fast > %.0f °C", mod.thermalEmissionMaxPerFast, mod.thermalEmissionOnsetTemp));
+            if (mod.wignerEnergyPerFast > 0.0) {
+                event.toolTip.add(EnumChatFormatting.GOLD + "Wigner Energy: " + EnumChatFormatting.WHITE
+                    + String.format(Locale.US, "Stores %.0f HU/fast (max %,.0f HU), releases > %.0f °C",
+                        mod.wignerEnergyPerFast, mod.wignerMaxEnergy, mod.wignerReleaseOnsetTemp));
             }
         }
     }

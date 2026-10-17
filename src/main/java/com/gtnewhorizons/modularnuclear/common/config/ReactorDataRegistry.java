@@ -19,6 +19,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import gregtech.api.enums.ItemList;
+import gregtech.api.util.GTUtility;
 import ic2.core.Ic2Items;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData;
@@ -566,6 +567,23 @@ public final class ReactorDataRegistry {
                 } catch (Throwable ignored) {}
             }
 
+            if (pattern.toUpperCase().startsWith("IC2:")) {
+                String ic2Name = pattern.substring(4);
+                try {
+                    java.lang.reflect.Field f = Ic2Items.class.getField(ic2Name);
+                    Object val = f.get(null);
+                    if (val instanceof ItemStack is && GTUtility.areStacksEqual(stack, is, true)) {
+                        return true;
+                    }
+                } catch (Throwable ignored) {}
+                try {
+                    ItemStack is = gregtech.api.util.GTModHandler.getModItem("IC2", ic2Name, 1);
+                    if (is != null && GTUtility.areStacksEqual(stack, is, true)) {
+                        return true;
+                    }
+                } catch (Throwable ignored) {}
+            }
+
             String oreTarget = pattern.startsWith("ore:") ? pattern.substring(4) : pattern;
             if (oreIDs != null && oreIDs.length > 0) {
                 for (int id : oreIDs) {
@@ -721,22 +739,28 @@ public final class ReactorDataRegistry {
         ComponentData cd = new ComponentData();
 
         // Reflectors
-        cd.reflectors.add(new ReflectorData("reflector_beryllium", "Beryllium Reflector", 0.01, 0.02, 0.95, 0.98, 0.20, 0.15, 0, "plateBeryllium", "blockBeryllium"));
-        cd.reflectors.add(new ReflectorData("reflector_ic2", "Neutron Reflector", 0.01, 0.02, 0.95, 0.98, 0.20, 0.15, 10000, "IC2:reactorReflector", "gregtech:gt.neutronReflector*"));
-        cd.reflectors.add(new ReflectorData("reflector_ic2_thick", "Thick Neutron Reflector", 0.005, 0.01, 0.98, 0.99, 0.25, 0.20, 40000, "IC2:reactorReflectorThick"));
+        cd.reflectors.add(new ReflectorData("reflector_beryllium", "Beryllium Reflector", 0.01, 0.02, 0.95, 0.98, 0.20, 0.15, 0,
+            "plateBeryllium", "blockBeryllium", "ore:plateBeryllium", "ore:blockBeryllium"));
+        cd.reflectors.add(new ReflectorData("reflector_ic2", "Neutron Reflector", 0.01, 0.02, 0.95, 0.98, 0.20, 0.15, 10000,
+            "IC2:reactorReflector", "ItemList.Neutron_Reflector", "gregtech:gt.neutronReflector"));
+        cd.reflectors.add(new ReflectorData("reflector_ic2_thick", "Thick Neutron Reflector", 0.005, 0.01, 0.98, 0.99, 0.25, 0.20, 40000,
+            "IC2:reactorReflectorThick", "ItemList.Neutron_Reflector_Thick"));
 
         // Moderators
         cd.moderators.add(new ModeratorData("moderator_graphite", "Graphite Moderator",
             0.002, 0.009, 0.93, 0.621, 0.50, 0.05, 2500.0,
-            80000, "ore:dustAsh", 0.0003, 1.0, 1500.0, 2500.0, 4.0,
+            80000, "ore:dustAsh", 0.0003, 1.0, 1500.0, 2500.0, 0.0,
+            1.0, 1500.0, 2500.0, 2000.0, 10000.0,
             "stickLongGraphite", "ore:stickLongGraphite", "blockGraphite", "ore:blockGraphite", "plateGraphite", "ore:plateGraphite", "ingotGraphite", "ore:ingotGraphite", "dustGraphite", "ore:dustGraphite"));
         cd.moderators.add(new ModeratorData("moderator_carbon", "Carbon Moderator",
             0.003, 0.012, 0.90, 0.60, 0.45, 0.05, 2200.0,
             10000, "ore:dustAsh", 0.0005, 1.0, 1500.0, 2500.0, 0.0,
+            0.0, 1500.0, 2500.0, 0.0,
             "stickLongCarbon", "ore:stickLongCarbon", "plateCarbon", "ore:plateCarbon", "plateAlloyCarbon", "ore:plateAlloyCarbon", "dustCarbon", "ore:dustCarbon", "blockCarbon", "ore:blockCarbon"));
         cd.moderators.add(new ModeratorData("moderator_beryllium", "Beryllium Moderator",
             0.001, 0.004, 0.96, 0.85, 0.65, 0.15, 2600.0,
             240000, "", 0.0002, 0.5, 1500.0, 2500.0, 0.0,
+            0.0, 1500.0, 2500.0, 0.0,
             "stickLongBeryllium", "ore:stickLongBeryllium", "rodBeryllium", "stickBeryllium"));
 
         // Control Rods
@@ -746,16 +770,16 @@ public final class ReactorDataRegistry {
         cd.controlRods.add(new ControlRodData("rod_indium", "Indium Control Rod", 0.95, 0.65, 0.05, 0.05, 0.14, "stickLongIndium", "*indium*"));
         cd.controlRods.add(new ControlRodData("rod_hafnium", "Hafnium Control Rod", 0.99, 0.80, 0.05, 0.05, 0.16, "stickLongHafnium", "*hafnium*"));
 
-        // Heat Vents
-        cd.heatVents.add(new HeatVentData("vent_standard", "Reactor Heat Vent", 0.40, 6.0, 1500.0, "IC2:reactorVent"));
-        cd.heatVents.add(new HeatVentData("vent_gold", "Advanced Heat Vent", 0.45, 12.0, 1600.0, "IC2:reactorVentGold"));
-        cd.heatVents.add(new HeatVentData("vent_spread", "Overclocked Heat Vent", 0.40, 8.0, 1500.0, "IC2:reactorVentSpread"));
-        cd.heatVents.add(new HeatVentData("vent_diamond", "Diamond Heat Vent", 0.50, 20.0, 2000.0, "IC2:reactorVentDiamond"));
+        // Heat Vents - explicitly configured, moderation = 0.05
+        cd.heatVents.add(new HeatVentData("vent_standard", "Reactor Heat Vent", 0.40, 6.0, 1500.0, 0.05, "IC2:reactorVent"));
+        cd.heatVents.add(new HeatVentData("vent_gold", "Advanced Heat Vent", 0.45, 12.0, 1600.0, 0.05, "IC2:reactorVentGold"));
+        cd.heatVents.add(new HeatVentData("vent_spread", "Overclocked Heat Vent", 0.40, 8.0, 1500.0, 0.05, "IC2:reactorVentSpread"));
+        cd.heatVents.add(new HeatVentData("vent_diamond", "Diamond Heat Vent", 0.50, 20.0, 2000.0, 0.05, "IC2:reactorVentDiamond"));
 
-        // Heat Exchangers
-        cd.heatExchangers.add(new HeatExchangerData("exchanger_standard", "Heat Exchanger", 0.40, 12.0, 1500.0, "IC2:reactorHeatSwitch"));
-        cd.heatExchangers.add(new HeatExchangerData("exchanger_spread", "Advanced Heat Exchanger", 0.45, 24.0, 1600.0, "IC2:reactorHeatSwitchSpread"));
-        cd.heatExchangers.add(new HeatExchangerData("exchanger_diamond", "Component Heat Exchanger", 0.50, 36.0, 2000.0, "IC2:reactorHeatSwitchDiamond"));
+        // Heat Exchangers - explicitly configured, moderation = 0.05
+        cd.heatExchangers.add(new HeatExchangerData("exchanger_standard", "Heat Exchanger", 0.40, 12.0, 1500.0, 0.05, "IC2:reactorHeatSwitch"));
+        cd.heatExchangers.add(new HeatExchangerData("exchanger_spread", "Advanced Heat Exchanger", 0.45, 24.0, 1600.0, 0.05, "IC2:reactorHeatSwitchSpread"));
+        cd.heatExchangers.add(new HeatExchangerData("exchanger_diamond", "Component Heat Exchanger", 0.50, 36.0, 2000.0, 0.05, "IC2:reactorHeatSwitchDiamond"));
 
         // Platings
         cd.platings.add(new PlatingData("plating_standard", "Reactor Plating", 1000.0, 0.05, 0.05, "IC2:reactorPlating"));
@@ -763,28 +787,39 @@ public final class ReactorDataRegistry {
         cd.platings.add(new PlatingData("plating_explosive", "Containment Reactor Plating", 500.0, 0.15, 0.05, "IC2:reactorPlatingExplosive"));
 
         // Insulators
-        cd.insulators.add(new InsulatorData("insulator_naquarite", "Naquarite Universal Insulator Foil", 1.0, 0.005, 1.0, 1.0, 0.0, 0.0, "Naquarite_Universal_Insulator_Foil*", "*naquarite*insulator*"));
-        cd.insulators.add(new InsulatorData("insulator_mica", "Mica Insulator Foil", 0.60, 0.01, 0.01, 0.01, 0.05, 0.05, "MicaInsulatorFoil*", "*mica*foil*"));
-        cd.insulators.add(new InsulatorData("insulator_cloth_t2", "Thermal Cloth T2", 0.40, 0.01, 0.01, 0.01, 0.05, 0.05, "ThermalClothT2*", "*thermalcloth*t2*"));
-        cd.insulators.add(new InsulatorData("insulator_cloth_t1", "Thermal Cloth", 0.20, 0.01, 0.01, 0.01, 0.05, 0.05, "ThermalCloth*", "*thermalcloth*", "itemBasicAsteroids:7"));
+        cd.insulators.add(new InsulatorData("insulator_naquarite", "Naquarite Universal Insulator Foil", 1.0, 0.005, 1.0, 1.0, 0.0, 0.0, "ItemList.Naquarite_Universal_Insulator_Foil", "Naquarite_Universal_Insulator_Foil*"));
+        cd.insulators.add(new InsulatorData("insulator_mica", "Mica Insulator Foil", 0.60, 0.01, 0.01, 0.01, 0.05, 0.05, "dreamcraft:MicaInsulatorFoil", "MicaInsulatorFoil*"));
+        cd.insulators.add(new InsulatorData("insulator_cloth_t2", "Thermal Cloth T2", 0.40, 0.01, 0.01, 0.01, 0.05, 0.05, "GalaxySpace:item.ThermalClothT2", "ThermalClothT2*"));
+        cd.insulators.add(new InsulatorData("insulator_cloth_t1", "Thermal Cloth", 0.20, 0.01, 0.01, 0.01, 0.05, 0.05, "GalacticraftMars:item.itemBasicAsteroids:7", "itemBasicAsteroids:7", "ThermalCloth*"));
 
         // Radiovoltaics
-        cd.radiovoltaics.add(new RadiovoltaicData("radiovoltaic_hv", "HV Radiovoltaic Plate", 0.25, 0.10, 1.0, 1.0, "modularnuclear:radiovoltaicPlateHV", "*radiovoltaic*hv*"));
-        cd.radiovoltaics.add(new RadiovoltaicData("radiovoltaic_ev", "EV Radiovoltaic Plate", 0.50, 0.10, 1.0, 1.0, "modularnuclear:radiovoltaicPlateEV", "*radiovoltaic*ev*"));
+        cd.radiovoltaics.add(new RadiovoltaicData("radiovoltaic_hv", "HV Radiovoltaic Plate", 0.25, 0.10, 1.0, 1.0, "modularnuclear:radiovoltaicPlateHV"));
+        cd.radiovoltaics.add(new RadiovoltaicData("radiovoltaic_ev", "EV Radiovoltaic Plate", 0.50, 0.10, 1.0, 1.0, "modularnuclear:radiovoltaicPlateEV"));
 
-        // Coolant Fluids
+        // Coolant Fluids - IC2 coolant moderation changed to 0.05
         cd.coolantFluids.add(new CoolantFluidData("coolant_water", "Water", 100.0, 0.25, 4.184, 0.05, 0.10, 0.70, 0.70, 0.25, "steam", 1.0, "water"));
         cd.coolantFluids.add(new CoolantFluidData("coolant_distilled_water", "Distilled Water", 100.0, 0.30, 4.184, 0.05, 0.10, 0.70, 0.70, 0.25, "ic2superheatedsteam", 1.2, "distilledwater", "ic2distilledwater"));
         cd.coolantFluids.add(new CoolantFluidData("coolant_heavy_water", "Heavy Water", 101.4, 0.30, 4.22, 0.005, 0.01, 0.85, 0.85, 0.90, "steam", 1.5, "heavywater"));
-        cd.coolantFluids.add(new CoolantFluidData("coolant_ic2", "IC2 Coolant", 300.0, 0.50, 8.0, 0.03, 0.12, 0.45, 0.45, 0.40, "ic2hotcoolant", 2.0, "coolant", "ic2coolant"));
+        cd.coolantFluids.add(new CoolantFluidData("coolant_ic2", "IC2 Coolant", 300.0, 0.50, 8.0, 0.03, 0.12, 0.45, 0.45, 0.05, "ic2hotcoolant", 2.0, "coolant", "ic2coolant"));
         cd.coolantFluids.add(new CoolantFluidData("coolant_sodium", "Molten Sodium", 883.0, 0.70, 1.28, 0.01, 0.05, 0.20, 0.20, 0.05, "molten.sodium", 3.0, "sodium", "molten.sodium"));
         cd.coolantFluids.add(new CoolantFluidData("coolant_lead", "Molten Lead", 1749.0, 0.75, 0.16, 0.005, 0.02, 0.15, 0.15, 0.02, "molten.lead", 3.5, "lead", "molten.lead"));
 
-        // Coolant Items
-        cd.coolantItems.add(new CoolantItemData("coolant_cell_he", "Helium Coolant Cell", 60000.0, 0.40, 0.02, 0.05, 0.45, 0.45, 0.40, "gregtech:gt.reactorCoolantHe*", "IC2:reactorCoolant*"));
-        cd.coolantItems.add(new CoolantItemData("coolant_cell_nak", "NaK Coolant Cell", 180000.0, 0.50, 0.02, 0.05, 0.35, 0.35, 0.25, "gregtech:gt.reactorCoolantNaK*"));
-        cd.coolantItems.add(new CoolantItemData("coolant_cell_sp", "Sp Coolant Cell", 360000.0, 0.60, 0.01, 0.03, 0.25, 0.25, 0.15, "gregtech:gt.reactorCoolantSp*"));
-        cd.coolantItems.add(new CoolantItemData("condensator", "Condensator", 100000.0, 0.45, 0.03, 0.08, 0.40, 0.40, 0.30, "IC2:reactorCondensator*"));
+        // Coolant Items - all moderation set to 0.05, explicitly configured items
+        cd.coolantItems.add(new CoolantItemData("coolant_cell_ic2", "IC2 Coolant Cell", 10000.0, 0.40, 0.02, 0.05, 0.45, 0.45, 0.05,
+            "IC2:reactorCoolantSimple", "IC2:reactorCoolantTriple", "IC2:reactorCoolantSix",
+            "ItemList.Reactor_Coolant_Simple", "ItemList.Reactor_Coolant_Triple", "ItemList.Reactor_Coolant_Six"));
+        cd.coolantItems.add(new CoolantItemData("coolant_cell_he", "Helium Coolant Cell", 60000.0, 0.40, 0.02, 0.05, 0.45, 0.45, 0.05,
+            "ItemList.Reactor_Coolant_He_1", "ItemList.Reactor_Coolant_He_3", "ItemList.Reactor_Coolant_He_6",
+            "gregtech:gt.reactorCoolantHe1", "gregtech:gt.reactorCoolantHe3", "gregtech:gt.reactorCoolantHe6"));
+        cd.coolantItems.add(new CoolantItemData("coolant_cell_nak", "NaK Coolant Cell", 180000.0, 0.50, 0.02, 0.05, 0.35, 0.35, 0.05,
+            "ItemList.Reactor_Coolant_NaK_1", "ItemList.Reactor_Coolant_NaK_3", "ItemList.Reactor_Coolant_NaK_6",
+            "gregtech:gt.reactorCoolantNaK1", "gregtech:gt.reactorCoolantNaK3", "gregtech:gt.reactorCoolantNaK6"));
+        cd.coolantItems.add(new CoolantItemData("coolant_cell_sp", "Sp Coolant Cell", 360000.0, 0.60, 0.01, 0.03, 0.25, 0.25, 0.05,
+            "ItemList.Reactor_Coolant_Sp_1", "ItemList.Reactor_Coolant_Sp_2", "ItemList.Reactor_Coolant_Sp_3", "ItemList.Reactor_Coolant_Sp_6",
+            "gregtech:gt.reactorCoolantSp1", "gregtech:gt.reactorCoolantSp2", "gregtech:gt.reactorCoolantSp3", "gregtech:gt.reactorCoolantSp6"));
+        cd.coolantItems.add(new CoolantItemData("condensator", "Condensator", 100000.0, 0.45, 0.03, 0.08, 0.40, 0.40, 0.05,
+            "IC2:reactorCondensator", "IC2:reactorCondensatorLap",
+            "ItemList.Reactor_Condensator", "ItemList.Reactor_Condensator_Lap"));
 
         return cd;
     }

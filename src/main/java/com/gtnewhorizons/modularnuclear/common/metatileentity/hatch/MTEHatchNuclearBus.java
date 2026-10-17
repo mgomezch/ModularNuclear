@@ -78,6 +78,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
     public double mLastHeatOutput = 0.0;
     public boolean mUsedForCooling = false;
     public long mLastCheeseTick = -1;
+    public double mWignerEnergyStored = 0.0;
 
     public MTEHatchNuclearBus(int aID, String aName, String aNameRegional, int aTier) {
         super(aID, aName, aNameRegional, aTier, 1, (String) null);
@@ -193,6 +194,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
         aNBT.setDouble("mHeatEU", mHeatHu);
         aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setBoolean("mUsedForCooling", mUsedForCooling);
+        aNBT.setDouble("mWignerEnergyStored", mWignerEnergyStored);
     }
 
     @Override
@@ -215,6 +217,49 @@ public class MTEHatchNuclearBus extends MTEHatch {
         if (aNBT.hasKey("mUsedForCooling")) {
             mUsedForCooling = aNBT.getBoolean("mUsedForCooling");
         }
+        if (aNBT.hasKey("mWignerEnergyStored")) {
+            mWignerEnergyStored = aNBT.getDouble("mWignerEnergyStored");
+        }
+    }
+
+    public void addWignerEnergy(double amountHu) {
+        if (amountHu > 0.0) {
+            double maxCap = 10000.0;
+            ItemStack stack = mInventory[SLOT_INPUT];
+            if (stack != null) {
+                com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod =
+                    com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack);
+                if (mod != null && mod.wignerMaxEnergy > 0.0) {
+                    maxCap = mod.wignerMaxEnergy;
+                }
+            }
+            mWignerEnergyStored = Math.min(maxCap, mWignerEnergyStored + amountHu);
+        }
+    }
+
+    public double releaseWignerEnergy() {
+        if (mWignerEnergyStored <= 0.0) return 0.0;
+        ItemStack stack = mInventory[SLOT_INPUT];
+        if (stack == null) {
+            mWignerEnergyStored = 0.0;
+            return 0.0;
+        }
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack);
+        if (mod == null || mod.wignerEnergyPerFast <= 0.0) {
+            mWignerEnergyStored = 0.0;
+            return 0.0;
+        }
+        double released = mod.calculateWignerHeatRelease(mTemperature, mWignerEnergyStored);
+        if (released > 0.0) {
+            mWignerEnergyStored = Math.max(0.0, mWignerEnergyStored - released);
+            markTileDirty();
+        }
+        return released;
+    }
+
+    public double getStoredWignerEnergy() {
+        return mWignerEnergyStored;
     }
 
     public void markTileDirty() {

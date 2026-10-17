@@ -253,29 +253,38 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
         // Limit heat transfer to prevent temperature overshooting
         double maxDeltaT = Math.abs(deltaT);
         double heatTransferredJoules = qDotWatts * dtSeconds;
-        double heatTransferredHu = heatTransferredJoules / 128.0;
-        double heatTransferredEU = heatTransferredHu; // Backwards-compatible alias
 
         double coreHeatCapacityHuPerC = NuclearSimulationEngine.HU_PER_DEGREE;
-        double coreTempChange = heatTransferredHu / coreHeatCapacityHuPerC;
+        double coreHeatCapacityJoulesPerC = coreHeatCapacityHuPerC * 128.0;
 
-        if (Math.abs(coreTempChange) > maxDeltaT) {
-            coreTempChange = Math.signum(coreTempChange) * maxDeltaT;
-            heatTransferredHu = coreTempChange * coreHeatCapacityHuPerC;
-            heatTransferredEU = heatTransferredHu;
-            heatTransferredJoules = heatTransferredHu * 128.0;
+        double segmentMassKg = segment.getVolume() * rho;
+        double segmentHeatCapacity = segmentMassKg * cp;
+
+        // Limit heat transfer to equilibrium so temperatures cannot cross over in a single tick
+        if (segmentHeatCapacity > 1e-4) {
+            double maxEquilibriumHeatJoules = (coreHeatCapacityJoulesPerC * segmentHeatCapacity)
+                / (coreHeatCapacityJoulesPerC + segmentHeatCapacity) * maxDeltaT;
+            if (Math.abs(heatTransferredJoules) > maxEquilibriumHeatJoules) {
+                heatTransferredJoules = Math.signum(heatTransferredJoules) * maxEquilibriumHeatJoules;
+            }
+        } else {
+            if (Math.abs(heatTransferredJoules) > coreHeatCapacityJoulesPerC * maxDeltaT) {
+                heatTransferredJoules = Math.signum(heatTransferredJoules) * coreHeatCapacityJoulesPerC * maxDeltaT;
+            }
         }
+
+        double heatTransferredHu = heatTransferredJoules / 128.0;
+        double heatTransferredEU = heatTransferredHu; // Backwards-compatible alias
+        double coreTempChange = heatTransferredHu / coreHeatCapacityHuPerC;
 
         mTemperature -= coreTempChange;
         if (coreTempChange > 0) {
             mHeatOutputAccumulator += heatTransferredHu;
         }
 
-        // Coolant temperature rise
-        double massFlowKgS = volumetricFlowRateM3s * rho;
-        double coolantHeatCapacityRate = massFlowKgS * cp;
-        if (coolantHeatCapacityRate > 1e-4) {
-            double coolantTempRise = (heatTransferredJoules / dtSeconds) / coolantHeatCapacityRate;
+        // Coolant temperature rise: strict finite-volume energy conservation Q = m_seg * cp * deltaT
+        if (segmentHeatCapacity > 1e-4) {
+            double coolantTempRise = heatTransferredJoules / segmentHeatCapacity;
             segment.setCurrentTemperatureCelsius(coolantTemp + coolantTempRise);
         }
 
@@ -332,10 +341,11 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
                 .toLowerCase();
             if (name.contains("heavy")) return 0.90;
             if (name.contains("distill") || name.contains("water")) return 0.25;
-            if (name.contains("coolant")) return 0.40;
+            if (name.contains("coolant")) return 0.05;
             if (name.contains("sodium")) return 0.05;
+            return 0.05;
         }
-        return 0.25; // Coolant passage acts as a moderator
+        return 0.05;
     }
 
     @Override

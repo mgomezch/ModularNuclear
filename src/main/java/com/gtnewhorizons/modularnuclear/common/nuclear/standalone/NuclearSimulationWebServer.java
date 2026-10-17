@@ -928,7 +928,10 @@ public class NuclearSimulationWebServer {
                       <select id="loop-fluid-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
                         <option value="DISTILLED_WATER" selected>Distilled Water</option>
                         <option value="HEAVY_WATER">Heavy Water</option>
+                        <option value="IC2_COOLANT">IC2 Coolant</option>
+                        <option value="SODIUM">Sodium</option>
                         <option value="MOLTEN_CHEESE">🧀 Molten Cheese</option>
+                        <option value="LAVA">🌋 Nether Lava</option>
                       </select>
                     </div>
                     <div>
