@@ -5371,7 +5371,7 @@ public class NuclearSimulationEngineTest {
 
         // Grid B: Fuel in center, surrounded by high-scattering beryllium reflectors
         INuclearTile[][] gridRefl = new INuclearTile[3][3];
-        MockNuclearTile fuelB = new MockNuclearTile(true, 1000);
+        MockNuclearTile fuelB = new MockNuclearTile(true, 5000);
         fuelB.moderationProb = 1.0;
         fuelB.absorbProb = 0.10;
         fuelB.scatterProb = 0.10;

@@ -659,79 +659,66 @@ public class CoolantLoopModel {
             }
         }
 
-        // If no passage tiles are attached, the loop circulates without core thermal exchange
-        if (passageTiles.isEmpty()) {
-            lastHeatExtractedWatts = 0.0;
-            lastHeatExtractedHut = 0.0;
-            lastHeatExtractedEUt = 0.0;
-            lastSecondarySteamProducedLt = 0.0;
-            lastSecondaryWaterBoiledLt = 0.0;
-            // Loop naturally relaxes toward ambient
-            if (currentCoolantTempCelsius > NuclearSimulationEngine.ambientTemp) {
-                currentCoolantTempCelsius = Math.max(NuclearSimulationEngine.ambientTemp, currentCoolantTempCelsius - 0.1);
-            } else if (currentCoolantTempCelsius < NuclearSimulationEngine.ambientTemp) {
-                currentCoolantTempCelsius = Math.min(NuclearSimulationEngine.ambientTemp, currentCoolantTempCelsius + 0.1);
-            }
-            return true;
-        }
-
         // 6. Convective Heat Transfer in Core Passages (Dittus-Boelter Correlation)
-        int numPassages = passageTiles.size();
-        double flowPerPassageM3s = (currentFlowRateLPerSec / 1000.0) / Math.max(1, numPassages);
-        double passageDiameter = pipeSize.diameterMeters;
-        double passageLength = 5.0; // Standard 5m core channel height
-        double passageArea = Math.PI * passageDiameter * passageLength; // ~1.57 m^2 per channel
-        double flowArea = Math.PI * Math.pow(passageDiameter / 2.0, 2);
-        double vel = flowArea > 0 ? (flowPerPassageM3s / flowArea) : 0.0;
-
-        double re = (fluidType.density * vel * passageDiameter) / Math.max(1e-6, fluidType.dynamicViscosity);
-        double pr = (fluidType.dynamicViscosity * fluidType.specificHeat)
-            / Math.max(1e-4, fluidType.thermalConductivity);
-
-        double nu;
-        if (re < 2300.0) {
-            nu = 4.36; // Laminar fully developed
-        } else {
-            nu = 0.023 * Math.pow(re, 0.8) * Math.pow(Math.max(0.6, pr), 0.4); // Turbulent Dittus-Boelter
-        }
-
-        double hConvective = (nu * fluidType.thermalConductivity) / passageDiameter; // W/(m^2*K)
         double totalHeatExtractedJoulesTick = 0.0;
 
-        for (SimTile pTile : passageTiles) {
-            double cellTemp = pTile.getTemperature();
-            double deltaT = cellTemp - currentCoolantTempCelsius;
-            if (deltaT > 0.001) {
-                double qDotWatts = hConvective * passageArea * deltaT;
-                double joulesTick = qDotWatts * 0.05; // 0.05s per tick
-                double euTick = joulesTick / 128.0;
+        if (!passageTiles.isEmpty() && currentFlowRateLPerSec > 0.0) {
+            int numPassages = passageTiles.size();
+            double flowPerPassageM3s = (currentFlowRateLPerSec / 1000.0) / Math.max(1, numPassages);
+            double passageDiameter = pipeSize.diameterMeters;
+            double passageLength = 5.0; // Standard 5m core channel height
+            double passageArea = Math.PI * passageDiameter * passageLength; // ~1.57 m^2 per channel
+            double flowArea = Math.PI * Math.pow(passageDiameter / 2.0, 2);
+            double vel = flowArea > 0 ? (flowPerPassageM3s / flowArea) : 0.0;
 
-                // Max heat without overcooling tile below coolant temperature
-                double maxEuDrop = (cellTemp - currentCoolantTempCelsius) * NuclearSimulationEngine.euPerDegree;
-                if (euTick > maxEuDrop) {
-                    euTick = maxEuDrop;
-                    joulesTick = euTick * 128.0;
-                }
+            double re = (fluidType.density * vel * passageDiameter) / Math.max(1e-6, fluidType.dynamicViscosity);
+            double pr = (fluidType.dynamicViscosity * fluidType.specificHeat)
+                / Math.max(1e-4, fluidType.thermalConductivity);
 
-                pTile.setTemperature(
-                    Math.max(currentCoolantTempCelsius, cellTemp - euTick / NuclearSimulationEngine.euPerDegree));
-                pTile.setLastHeatOutput(pTile.getLastHeatOutput() + euTick);
-                totalHeatExtractedJoulesTick += joulesTick;
+            double nu;
+            if (re < 2300.0) {
+                nu = 4.36; // Laminar fully developed
+            } else {
+                nu = 0.023 * Math.pow(re, 0.8) * Math.pow(Math.max(0.6, pr), 0.4); // Turbulent Dittus-Boelter
             }
 
-            // Radiolytic dissociation: every 4 absorbed fast neutrons dissociates 2L water -> 2L byproduct gas
-            int fastAbsorbed = pTile.getLastFastAbsorbed();
-            if (fastAbsorbed > 0) {
-                neutronTransmuteAccumulator += fastAbsorbed;
-                if (neutronTransmuteAccumulator >= 4) {
-                    int cycles = neutronTransmuteAccumulator / 4;
-                    neutronTransmuteAccumulator %= 4;
-                    if (fluidType == CoolantFluidType.HEAVY_WATER) {
-                        totalTritiumProduced += cycles * 2L;
-                    } else if (fluidType == CoolantFluidType.DISTILLED_WATER) {
-                        totalDeuteriumProduced += cycles * 2L;
+            double hConvective = (nu * fluidType.thermalConductivity) / passageDiameter; // W/(m^2*K)
+
+            for (SimTile pTile : passageTiles) {
+                double cellTemp = pTile.getTemperature();
+                double deltaT = cellTemp - currentCoolantTempCelsius;
+                if (deltaT > 0.001) {
+                    double qDotWatts = hConvective * passageArea * deltaT;
+                    double joulesTick = qDotWatts * 0.05; // 0.05s per tick
+                    double euTick = joulesTick / 128.0;
+
+                    // Max heat without overcooling tile below coolant temperature
+                    double maxEuDrop = (cellTemp - currentCoolantTempCelsius) * NuclearSimulationEngine.euPerDegree;
+                    if (euTick > maxEuDrop) {
+                        euTick = maxEuDrop;
+                        joulesTick = euTick * 128.0;
                     }
-                    // Radiolysis is strictly disallowed for any other fluid
+
+                    pTile.setTemperature(
+                        Math.max(currentCoolantTempCelsius, cellTemp - euTick / NuclearSimulationEngine.euPerDegree));
+                    pTile.setLastHeatOutput(pTile.getLastHeatOutput() + euTick);
+                    totalHeatExtractedJoulesTick += joulesTick;
+                }
+
+                // Radiolytic dissociation: every 4 absorbed fast neutrons dissociates 2L water -> 2L byproduct gas
+                int fastAbsorbed = pTile.getLastFastAbsorbed();
+                if (fastAbsorbed > 0) {
+                    neutronTransmuteAccumulator += fastAbsorbed;
+                    if (neutronTransmuteAccumulator >= 4) {
+                        int cycles = neutronTransmuteAccumulator / 4;
+                        neutronTransmuteAccumulator %= 4;
+                        if (fluidType == CoolantFluidType.HEAVY_WATER) {
+                            totalTritiumProduced += cycles * 2L;
+                        } else if (fluidType == CoolantFluidType.DISTILLED_WATER) {
+                            totalDeuteriumProduced += cycles * 2L;
+                        }
+                        // Radiolysis is strictly disallowed for any other fluid
+                    }
                 }
             }
         }
@@ -754,7 +741,7 @@ public class CoolantLoopModel {
         int secExpansion = (secondaryCoolant != null && secondaryCoolant.expansionRatio > 0) ? secondaryCoolant.expansionRatio : 160;
 
         double steamGeneratedL = 0.0;
-        if (currentCoolantTempCelsius > secBoilingTemp) {
+        if (currentCoolantTempCelsius > secBoilingTemp && currentFlowRateLPerSec > 0.0) {
             double deltaTPhe = currentCoolantTempCelsius - secBoilingTemp;
             double pheArea = 24.0; // 24 m^2 tube bundle area
             // h_phe ~ 2500 W/(m^2*K) for heat exchanger

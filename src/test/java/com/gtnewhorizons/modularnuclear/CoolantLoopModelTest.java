@@ -650,6 +650,40 @@ public class CoolantLoopModelTest {
             neighborTile.getTemperature() < NuclearSimulationEngine.AMBIENT_TEMP,
             "Neighboring cell must be cooled below ambient via inter-cell conduction, got: " + neighborTile.getTemperature());
     }
+
+    @Test
+    void testIdleLoopMaintainsTemperatureWithoutAmbientRelaxation() {
+        grid.clearGrid();
+        grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
+        loop.setMaterial(CoolantLoopModel.LoopMaterial.TITANIUM);
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.IC2_COOLANT);
+
+        // Case 1: Loop above ambient (80 C, below secondary water boiling point 100 C) with no attached passages
+        loop.setCurrentCoolantTempCelsius(80.0);
+        loop.setPumpPowerEUt(100.0);
+        for (int i = 0; i < 50; i++) {
+            grid.step();
+        }
+        assertEquals(80.0, loop.getCurrentCoolantTempCelsius(), 1e-6,
+            "Loop above ambient must NOT relax toward ambient when no heat sinks are active");
+
+        // Case 2: Loop below ambient with no attached passages
+        loop.setCurrentCoolantTempCelsius(-120.0);
+        for (int i = 0; i < 50; i++) {
+            grid.step();
+        }
+        assertEquals(-120.0, loop.getCurrentCoolantTempCelsius(), 1e-6,
+            "Loop below ambient must NOT relax toward ambient when no heat sources are present");
+
+        // Case 3: Loop with pump turned off (idle / unpowered)
+        loop.setPumpPowerEUt(0.0);
+        loop.setCurrentCoolantTempCelsius(180.0);
+        for (int i = 0; i < 50; i++) {
+            grid.step();
+        }
+        assertEquals(180.0, loop.getCurrentCoolantTempCelsius(), 1e-6,
+            "Unpowered idle loop must maintain its temperature without ambient leakage");
+    }
 }
 
 
