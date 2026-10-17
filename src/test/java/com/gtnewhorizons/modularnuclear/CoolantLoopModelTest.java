@@ -613,5 +613,43 @@ public class CoolantLoopModelTest {
         assertEquals(n2BoiledL * 160.0, gasProducedL, 1e-3, "Gas expansion must be exactly 1:160");
         assertTrue(loop.getCurrentCoolantTempCelsius() < 20.0, "Coolant must be chilled toward -196 C by boiling nitrogen");
     }
+
+    @Test
+    void testCryogenicSubAmbientReactorCoreCooling() {
+        grid.clearGrid();
+        grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
+        loop.setMaterial(CoolantLoopModel.LoopMaterial.TITANIUM);
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.IC2_COOLANT);
+        loop.setPumpPowerEUt(500.0);
+        loop.attachPoint(2, 2);
+
+        grid.setTile(2, 1, SimTile.TileType.MODERATOR_BERYLLIUM);
+        grid.getTile(2, 1).setTemperature(20.0);
+
+        // Coolant circulated at -150 C
+        loop.setCurrentCoolantTempCelsius(-150.0);
+
+        boolean ok = grid.step();
+        assertTrue(ok, "Grid step should succeed with sub-ambient core temperature");
+
+        SimTile passageTile = grid.getTile(2, 2);
+        assertTrue(
+            passageTile.getTemperature() < NuclearSimulationEngine.AMBIENT_TEMP,
+            "Passage tile must drop below ambient temperature, got: " + passageTile.getTemperature());
+        assertTrue(
+            passageTile.getTemperature() < 0.0,
+            "Passage tile should drop into negative Celsius, got: " + passageTile.getTemperature());
+
+        // Step 2: Next cycle runs inter-cell conduction with cold passage tile
+        loop.setCurrentCoolantTempCelsius(-150.0);
+        boolean ok2 = grid.step();
+        assertTrue(ok2, "Second step should succeed");
+
+        SimTile neighborTile = grid.getTile(2, 1);
+        assertTrue(
+            neighborTile.getTemperature() < NuclearSimulationEngine.AMBIENT_TEMP,
+            "Neighboring cell must be cooled below ambient via inter-cell conduction, got: " + neighborTile.getTemperature());
+    }
 }
+
 

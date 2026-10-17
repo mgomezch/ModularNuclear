@@ -415,7 +415,7 @@ public class SimTile implements INuclearTile {
 
     @Override
     public void setTemperature(double temp) {
-        this.temperature = Math.max(NuclearSimulationEngine.AMBIENT_TEMP, temp);
+        this.temperature = Math.max(-273.15, temp);
     }
 
     @Override
@@ -423,7 +423,7 @@ public class SimTile implements INuclearTile {
         this.heatHu += heat;
         this.heatEU = this.heatHu;
         this.temperature = Math
-            .max(NuclearSimulationEngine.AMBIENT_TEMP, this.temperature + heat / NuclearSimulationEngine.HU_PER_DEGREE);
+            .max(-273.15, this.temperature + heat / NuclearSimulationEngine.HU_PER_DEGREE);
     }
 
     public double getHeatHu() {

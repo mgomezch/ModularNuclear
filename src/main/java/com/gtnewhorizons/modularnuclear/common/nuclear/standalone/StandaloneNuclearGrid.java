@@ -763,21 +763,20 @@ public class StandaloneNuclearGrid {
                 "Convective coolant loop heat extraction and PHE secondary boiling completed");
         }
 
-        // 4. Strict Check for Negative Temperature Anomaly
+        // 4. Strict Check for Sub-Absolute Zero Anomaly
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 SimTile tile = grid[x][y];
-                if (tile != null && tile.getTemperature() < 0.0) {
+                if (tile != null && tile.getTemperature() < -273.15) {
                     this.negativeTempDetected = true;
                     this.negativeTempReason = String.format(
                         java.util.Locale.US,
-                        "Negative temperature anomaly: tile (%d, %d) [%s] reached %.2f°C at tick %d (min allowed: %.1f°C) | Last Cooling: %s",
+                        "Sub-absolute zero temperature anomaly: tile (%d, %d) [%s] reached %.2f°C at tick %d (min allowed: -273.15°C) | Last Cooling: %s",
                         x,
                         y,
                         tile.getType().code,
                         tile.getTemperature(),
                         currentTick,
-                        NuclearSimulationEngine.AMBIENT_TEMP,
                         tile.getLastCoolingDetails());
                     recordTraceSnapshot("NEGATIVE_TEMP_DETECTED", negativeTempReason);
                     triggerExplosion("Simulation Logic Failure: " + negativeTempReason);

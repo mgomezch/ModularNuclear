@@ -49,19 +49,17 @@ public class NuclearReactorPhysics {
     }
 
     public static void setTileTemperature(MTENuclearReactor reactor, NuclearGridTile tile, double temp) {
-        double ambient = reactor.getAmbientTemperature();
+        double minTemp = -273.15;
         if (tile.isBus()) {
-            tile.getBus().mTemperature = Math.max(ambient, temp);
+            tile.getBus().mTemperature = Math.max(minTemp, temp);
         } else if (tile.isHatch()) {
-            double minTemp = tile.getHatch()
-                .hasWaterCoolant() ? Math.max(0.0, ambient) : ambient;
             tile.getHatch().mTemperature = Math.max(minTemp, temp);
         } else if (tile.isHighPressureHatch()) {
             tile.getHighPressureHatch()
-                .setTemperature(Math.max(ambient, temp));
+                .setTemperature(Math.max(minTemp, temp));
         }
         if (tile.hasControlRod()) {
-            tile.getBottomControlRod().mTemperature = Math.max(ambient, temp);
+            tile.getBottomControlRod().mTemperature = Math.max(minTemp, temp);
         }
     }
 

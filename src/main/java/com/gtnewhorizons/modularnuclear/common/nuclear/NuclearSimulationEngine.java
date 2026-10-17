@@ -831,7 +831,7 @@ public class NuclearSimulationEngine {
                 for (int y = 0; y < sizeY; y++) {
                     INuclearTile tile = grid[x][y];
                     if (tile != null) {
-                        tile.setTemperature(Math.max(ambient, tile.getTemperature() + deltaTemp[x][y]));
+                        tile.setTemperature(Math.max(-273.15, tile.getTemperature() + deltaTemp[x][y]));
                     }
                 }
             }

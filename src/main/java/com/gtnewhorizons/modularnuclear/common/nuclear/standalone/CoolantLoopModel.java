@@ -666,8 +666,12 @@ public class CoolantLoopModel {
             lastHeatExtractedEUt = 0.0;
             lastSecondarySteamProducedLt = 0.0;
             lastSecondaryWaterBoiledLt = 0.0;
-            // Loop naturally cools toward ambient
-            currentCoolantTempCelsius = Math.max(NuclearSimulationEngine.ambientTemp, currentCoolantTempCelsius - 0.1);
+            // Loop naturally relaxes toward ambient
+            if (currentCoolantTempCelsius > NuclearSimulationEngine.ambientTemp) {
+                currentCoolantTempCelsius = Math.max(NuclearSimulationEngine.ambientTemp, currentCoolantTempCelsius - 0.1);
+            } else if (currentCoolantTempCelsius < NuclearSimulationEngine.ambientTemp) {
+                currentCoolantTempCelsius = Math.min(NuclearSimulationEngine.ambientTemp, currentCoolantTempCelsius + 0.1);
+            }
             return true;
         }
 
