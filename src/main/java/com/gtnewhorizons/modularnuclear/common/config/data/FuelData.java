@@ -31,7 +31,6 @@ public class FuelData {
     public double heatTransferCoeff = 0.05;
     public double heatPerReaction = 2.0;
     public int defaultDurability = 10000;
-    public double maxTemperature = 2000.0;
     public double peakReactivityTemp = 770.0;
     public double floorTemp = 2300.0;
 
@@ -53,7 +52,7 @@ public class FuelData {
         double thermalFissMult, double fastFissMult, double absFast, double absThermal,
         double scattFast, double scattThermal, double moderation, double heatTransferCoeff,
         double heatPerReaction, int defaultDurability, double peakReactivityTemp, double floorTemp,
-        double peakMult, double peakPoint, double endMult, String spentProduct, double maxTemperature,
+        double peakMult, double peakPoint, double endMult, String spentProduct,
         String... matchPatterns) {
         this.id = id;
         this.name = name;
@@ -77,7 +76,6 @@ public class FuelData {
         this.peakDamageFraction = peakPoint;
         this.endReactivityMult = endMult;
         this.spentProduct = spentProduct;
-        this.maxTemperature = maxTemperature;
         if (matchPatterns != null) {
             for (String p : matchPatterns) {
                 if (p != null && !p.trim().isEmpty()) {
@@ -91,23 +89,23 @@ public class FuelData {
         double thermalFissMult, double fastFissMult, double absFast, double absThermal,
         double scattFast, double scattThermal, double moderation, double heatTransferCoeff,
         double heatPerReaction, int defaultDurability, double peakReactivityTemp, double floorTemp,
-        double peakMult, double peakPoint, double endMult, String spentProduct, double maxTemperature,
+        double peakMult, double peakPoint, double endMult, String spentProduct,
         String... matchPatterns) {
         this(id, name, "standard", isLiquid, packetCount, baseNeutrons, thermalFissMult, fastFissMult,
             absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff, heatPerReaction,
             defaultDurability, peakReactivityTemp, floorTemp, peakMult, peakPoint, endMult, spentProduct,
-            maxTemperature, matchPatterns);
+            matchPatterns);
     }
 
     public FuelData(String id, String name, boolean isLiquid, int baseNeutrons, double thermalFissMult,
         double fastFissMult, double absFast, double absThermal, double scattFast, double scattThermal,
         double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability,
-        double peakMult, double peakPoint, double endMult, String spentProduct, double maxTemperature,
+        double peakMult, double peakPoint, double endMult, String spentProduct,
         String... matchPatterns) {
         this(id, name, isLiquid, isLiquid ? 4 : 1, baseNeutrons, thermalFissMult, fastFissMult,
             absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff,
             heatPerReaction, defaultDurability, 770.0, 2300.0, peakMult, peakPoint, endMult,
-            spentProduct, maxTemperature, matchPatterns);
+            spentProduct, matchPatterns);
     }
 
     private synchronized void ensureSolver() {
@@ -183,7 +181,6 @@ public class FuelData {
         fd.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", fd.heatTransferCoeff);
         fd.heatPerReaction = PhysicsData.getDouble(map, "heat_per_reaction", fd.heatPerReaction);
         fd.defaultDurability = PhysicsData.getInt(map, "default_durability", fd.defaultDurability);
-        fd.maxTemperature = PhysicsData.getDouble(map, "max_temperature", fd.maxTemperature);
         fd.peakReactivityTemp = PhysicsData.getDouble(map, "peak_reactivity_temp", fd.peakReactivityTemp);
         fd.floorTemp = PhysicsData.getDouble(map, "floor_temp", fd.floorTemp);
         fd.spentProduct = (String) map.get("spent_product");
@@ -235,7 +232,6 @@ public class FuelData {
         m.put("heat_transfer_coeff", heatTransferCoeff);
         m.put("heat_per_reaction", heatPerReaction);
         m.put("default_durability", defaultDurability);
-        m.put("max_temperature", maxTemperature);
         m.put("peak_reactivity_temp", peakReactivityTemp);
         m.put("floor_temp", floorTemp);
         if (spentProduct != null) m.put("spent_product", spentProduct);
