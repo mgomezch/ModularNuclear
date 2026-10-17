@@ -870,11 +870,10 @@ public class SimTile implements INuclearTile {
 
         // Radiovoltaic direct EU generation & excess heat
         if (isRadiovoltaic()) {
-            double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
             long maxEU = (type == TileType.RADIOVOLTAIC_EV) ? 4096 : 1024;
             double weightedFlux = fastAbsorbed * 4.0 + thermalAbsorbed * 1.0;
             double satFlux = 60.0;
-            long genEU = (long) Math.round(maxEU * Math.tanh(weightedFlux / satFlux) * effFactor);
+            long genEU = (long) Math.round(maxEU * Math.tanh(weightedFlux / satFlux));
             this.directEUProduced = genEU;
             double totalEnergy = weightedFlux * 20.0;
             double excessHeat = Math.max(0.0, totalEnergy - genEU);

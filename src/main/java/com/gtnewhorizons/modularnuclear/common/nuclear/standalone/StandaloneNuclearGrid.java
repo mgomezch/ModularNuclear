@@ -891,6 +891,7 @@ public class StandaloneNuclearGrid {
                 }
             }
         }
+        flowDirectEU = Math.round(flowDirectEU * getMaintenanceEfficiency());
 
         if (shouldStepCoolantLoop()) {
             double loopSteam = coolantLoop.getLastSecondarySteamProducedLt();

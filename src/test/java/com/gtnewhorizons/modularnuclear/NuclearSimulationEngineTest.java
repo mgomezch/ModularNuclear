@@ -708,6 +708,53 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
+    void testRadiovoltaicLinearMaintenanceEfficiencyScaling() {
+        // 1. SimTile nuclearTick efficiency does not scale individual plate directEUProduced
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellHV100 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
+        cellHV100.onNeutronAbsorbed(NeutronType.FAST, 20);
+        cellHV100.nuclearTick(1.0);
+        long directEU100 = cellHV100.getDirectEUProduced();
+
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellHV50 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
+        cellHV50.onNeutronAbsorbed(NeutronType.FAST, 20);
+        cellHV50.nuclearTick(0.5);
+        long directEU50 = cellHV50.getDirectEUProduced();
+
+        assertEquals(directEU100, directEU50, "Plate-level direct EU must be unscaled by maintenance efficiency");
+
+        // 2. StandaloneNuclearGrid scales aggregate flowDirectEU linearly with maintenance efficiency (eta)
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid100 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
+            3,
+            3,
+            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        grid100.setTile(1, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.NEUTRON_SOURCE);
+        grid100.getTile(1, 1).setNeutronSourceBeamEnergy(100.0f);
+        grid100.getTile(1, 1).setNeutronSourceBeamRate(10);
+        grid100.setTile(0, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
+        grid100.step();
+        double gridEU100 = grid100.getFlowDirectEU();
+        assertTrue(gridEU100 > 0, "Nominal grid must generate direct EU");
+
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid50 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
+            3,
+            3,
+            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        grid50.setTile(1, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.NEUTRON_SOURCE);
+        grid50.getTile(1, 1).setNeutronSourceBeamEnergy(100.0f);
+        grid50.getTile(1, 1).setNeutronSourceBeamRate(10);
+        grid50.setTile(0, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
+        grid50.setMaintenanceIssues(3); // 3 issues -> (6 - 3)/6 = 0.5 maintenance efficiency
+        grid50.step();
+        double gridEU50 = grid50.getFlowDirectEU();
+
+        assertEquals(Math.round(gridEU100 * 0.5), gridEU50, 1.0,
+            "Aggregate direct EU must scale linearly with maintenance efficiency (0.5x), not quadratically (0.25x)");
+        assertEquals(gridEU50, grid50.getLastPowerResult().directPowerEUt, 1.0);
+    }
+
+    @Test
     void testOverheatingHatchesVoidContentsWithoutExploding() {
         // High core temperature exceeding Electrum casing limit (1000°C)
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(

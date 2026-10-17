@@ -835,8 +835,7 @@ public class NuclearReactorPhysics {
             long maxEU = (tier >= 2) ? 4096 : 1024;
             double weightedFlux = bus.mFastAbsorbed * 4.0 + bus.mThermalAbsorbed * 1.0;
             double satFlux = 60.0;
-            double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
-            long genEU = (long) Math.round(maxEU * Math.tanh(weightedFlux / satFlux) * effFactor);
+            long genEU = (long) Math.round(maxEU * Math.tanh(weightedFlux / satFlux));
             bus.mDirectEUProduced = genEU;
             double totalEnergy = weightedFlux * 20.0;
             double excessHeat = Math.max(0.0, totalEnergy - genEU);
