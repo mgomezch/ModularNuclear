@@ -85,6 +85,9 @@ public class NuclearSimulationEngine {
     public static final double DEFAULT_WALL_ABSORB_HEAT_PER_NEUTRON = 0.0;
     public static double wallAbsorbHeatPerNeutron = DEFAULT_WALL_ABSORB_HEAT_PER_NEUTRON;
 
+    public static final double DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER = 0.001;
+    public static double beamEnergyToFastNeutronMultiplier = DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER;
+
     public static void setHuPerDegree(double v) {
         huPerDegree = Math.max(0.1, v);
         HU_PER_DEGREE = huPerDegree;
@@ -111,6 +114,10 @@ public class NuclearSimulationEngine {
 
     public static void setThermalAbsorptionDamageMultiplier(double mult) {
         thermalAbsorptionDamageMultiplier = Math.max(0.0, mult);
+    }
+
+    public static void setBeamEnergyToFastNeutronMultiplier(double mult) {
+        beamEnergyToFastNeutronMultiplier = Math.max(0.0, mult);
     }
 
     public static void setAmbientTemperature(double temp) {
@@ -182,6 +189,7 @@ public class NuclearSimulationEngine {
         wallAbsorbHeatPerNeutron = DEFAULT_WALL_ABSORB_HEAT_PER_NEUTRON;
         ic2CoolantHeatPerLiter = DEFAULT_IC2_COOLANT_HEAT_PER_LITER;
         baseHatchConductance = DEFAULT_BASE_HATCH_CONDUCTANCE;
+        setBeamEnergyToFastNeutronMultiplier(DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER);
         setAmbientTemperature(DEFAULT_AMBIENT_TEMP);
     }
 
@@ -506,6 +514,14 @@ public class NuclearSimulationEngine {
                             // Prompt fission heat queued for atomic deposit in Pass 3
                             pendingHeat[x][y] += produced * fissionHeatPerNeutron;
                         }
+                    } else if (tile.isNeutronSource()) {
+                        efficiency[x][y] = Math.max(0.0, Math.min(1.0, maintenanceEfficiency));
+                        int produced = tile.generateNeutrons(1.0);
+                        if (produced > 0) {
+                            emittedNeutrons[x][y] = produced;
+                            result.totalNeutronsGenerated += produced;
+                            // External neutron injection produces no prompt fission heat
+                        }
                     } else {
                         efficiency[x][y] = Math.max(0.0, Math.min(1.0, maintenanceEfficiency));
                     }
@@ -520,6 +536,7 @@ public class NuclearSimulationEngine {
         // --- PASS 2: HYBRID NEUTRON MODEL (MI FAST RAYS + ISOTROPIC THERMAL STENCIL) ---
         // Fast neutrons emit as discrete directional rays with random directions based on fuel type:
         // single rods emit 1 ray, dual rods emit 2 rays, quad rods & fluid fuels emit 4 rays.
+        // External neutron sources emit 4 discrete directional rays into the 4 cardinal directions.
         // Fast rays undergo Monte Carlo random-walk scattering and reflection, or get absorbed.
         // When fast neutrons moderate in coolant/moderators, they convert into a thermal flux pool.
         // Thermal neutrons then diffuse omnidirectionally using the 9-point isotropic stencil.
@@ -539,8 +556,9 @@ public class NuclearSimulationEngine {
                 int N = emittedNeutrons[i][j];
                 if (N <= 0) continue;
 
-                INuclearTile fuelTile = grid[i][j];
-                int rayCount = (fuelTile != null) ? Math.max(1, fuelTile.getNeutronEmissionCount()) : 1;
+                INuclearTile sourceTile = grid[i][j];
+                boolean isExternalSource = sourceTile != null && sourceTile.isNeutronSource();
+                int rayCount = isExternalSource ? 4 : ((sourceTile != null) ? Math.max(1, sourceTile.getNeutronEmissionCount()) : 1);
                 int nPerRay = N / rayCount;
                 int rem = N % rayCount;
 
@@ -548,7 +566,7 @@ public class NuclearSimulationEngine {
                     int rayNeutrons = nPerRay + (r < rem ? 1 : 0);
                     if (rayNeutrons <= 0) continue;
 
-                    int dir = RAND.nextInt(4);
+                    int dir = isExternalSource ? r : RAND.nextInt(4);
                     int posX = i;
                     int posY = j;
                     int steps = 0;

@@ -64,6 +64,7 @@ public class SimTile implements INuclearTile {
         EXCHANGER_ADVANCED("Advanced Heat Exchanger", "XA"),
         EXCHANGER_COMPONENT("Component Heat Exchanger", "XC"),
         PASSAGE_CORE("Coolant Passage", "CP"),
+        NEUTRON_SOURCE("Neutron Source", "NS"),
         NULL_WALL("Reflective Wall", "NL");
 
         public final String displayName;
@@ -191,6 +192,26 @@ public class SimTile implements INuclearTile {
     private int lastControlRodThermalAbsorbed = 0;
     private int controlRodFastAbsorbed = 0;
     private int controlRodThermalAbsorbed = 0;
+
+    // Neutron source state
+    private float neutronSourceBeamEnergy = 0.0f;
+    private int neutronSourceBeamRate = 0;
+
+    public float getNeutronSourceBeamEnergy() {
+        return neutronSourceBeamEnergy;
+    }
+
+    public void setNeutronSourceBeamEnergy(float energy) {
+        this.neutronSourceBeamEnergy = energy;
+    }
+
+    public int getNeutronSourceBeamRate() {
+        return neutronSourceBeamRate;
+    }
+
+    public void setNeutronSourceBeamRate(int rate) {
+        this.neutronSourceBeamRate = rate;
+    }
 
     public boolean hasControlRod() {
         return hasControlRod;
@@ -468,6 +489,11 @@ public class SimTile implements INuclearTile {
         return getFuelType() != null;
     }
 
+    @Override
+    public boolean isNeutronSource() {
+        return type == TileType.NEUTRON_SOURCE;
+    }
+
     public boolean isHatch() {
         return isCoolantHatch() || isLiquidFuelHatch() || isCoolantPassage();
     }
@@ -492,6 +518,13 @@ public class SimTile implements INuclearTile {
 
     @Override
     public int generateNeutrons(double efficiency) {
+        if (isNeutronSource()) {
+            int packetSize = Math.max(0, (int) Math.round(neutronSourceBeamEnergy * neutronSourceBeamRate * NuclearSimulationEngine.beamEnergyToFastNeutronMultiplier));
+            int totalNeutrons = packetSize * 4;
+            lastNeutronsGenerated = totalNeutrons;
+            return totalNeutrons;
+        }
+
         if (!isFuel() || depleted) {
             lastNeutronsGenerated = 0;
             return 0;
@@ -654,6 +687,9 @@ public class SimTile implements INuclearTile {
     public double getModerationProbability() {
         if (isRadiovoltaic()) {
             return 0.0;
+        }
+        if (isNeutronSource() || type == TileType.EMPTY) {
+            return 0.05;
         }
         if (isModerator()) {
             return switch (type) {

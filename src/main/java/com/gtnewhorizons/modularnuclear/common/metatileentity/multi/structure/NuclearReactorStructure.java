@@ -38,6 +38,7 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.interfaces.tileentity.ITurnable;
 import gregtech.common.blocks.ItemMachines;
+import gtnhlanth.common.hatch.MTEHatchInputBeamline;
 
 public class NuclearReactorStructure {
 
@@ -313,6 +314,11 @@ public class NuclearReactorStructure {
                         t.mBottomControlRodHatches.add(rod);
                     }
                     return true;
+                } else if (mte instanceof MTEHatchInputBeamline beamHatch) {
+                    if (t != null) {
+                        t.mBottomBeamInputHatches.add(beamHatch);
+                    }
+                    return true;
                 }
             }
             return false;
@@ -327,7 +333,8 @@ public class NuclearReactorStructure {
             }
             if (world.getTileEntity(x, y, z) instanceof IGregTechTileEntity te) {
                 return te.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure
-                    || te.getMetaTileEntity() instanceof MTEHatchNuclearControlRod;
+                    || te.getMetaTileEntity() instanceof MTEHatchNuclearControlRod
+                    || te.getMetaTileEntity() instanceof MTEHatchInputBeamline;
             }
             return block == GregTechAPI.sBlockMachines;
         }
@@ -335,7 +342,7 @@ public class NuclearReactorStructure {
         @Override
         public List<String> getDescription(MTENuclearReactor t) {
             return Collections.singletonList(
-                "Opposite core face: nuclear casing, nuclear core high-pressure hatch, or nuclear core control rod");
+                "Opposite core face: nuclear casing, nuclear core high-pressure hatch, nuclear core control rod, or beamline input hatch");
         }
 
         @Override
@@ -350,7 +357,8 @@ public class NuclearReactorStructure {
             TileEntity existingTe = world.getTileEntity(x, y, z);
             if (existingTe instanceof IGregTechTileEntity gte
                 && (gte.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure
-                    || gte.getMetaTileEntity() instanceof MTEHatchNuclearControlRod)) {
+                    || gte.getMetaTileEntity() instanceof MTEHatchNuclearControlRod
+                    || gte.getMetaTileEntity() instanceof MTEHatchInputBeamline)) {
                 gte.setFrontFacing(targetFacing);
                 return true;
             }

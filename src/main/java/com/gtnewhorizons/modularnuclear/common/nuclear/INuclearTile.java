@@ -28,6 +28,13 @@ public interface INuclearTile {
     boolean isFuel();
 
     /**
+     * Checks if this tile is an external neutron injection source.
+     */
+    default boolean isNeutronSource() {
+        return false;
+    }
+
+    /**
      * Generates fast neutrons for the current tick, scaled by reactivity efficiency.
      */
     int generateNeutrons(double efficiency);

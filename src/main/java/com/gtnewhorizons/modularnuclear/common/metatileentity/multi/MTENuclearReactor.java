@@ -84,6 +84,9 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.pollution.Pollution;
+import gtnhlanth.common.beamline.BeamInformation;
+import gtnhlanth.common.beamline.Particle;
+import gtnhlanth.common.hatch.MTEHatchInputBeamline;
 import mcp.mobius.waila.api.IWailaConfigHandler;
 import mcp.mobius.waila.api.IWailaDataAccessor;
 import shedar.mods.ic2.nuclearcontrol.panel.CardWrapperImpl;
@@ -108,6 +111,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public final List<MTEHatchNuclearHighPressure> mTopHighPressureHatches = new ArrayList<>();
     public final List<MTEHatchNuclearHighPressure> mBottomHighPressureHatches = new ArrayList<>();
     public final List<MTEHatchNuclearControlRod> mBottomControlRodHatches = new ArrayList<>();
+    public final List<MTEHatchInputBeamline> mBottomBeamInputHatches = new ArrayList<>();
 
     public int getReactorTier() {
         if (gridSize == 5) return 1;
@@ -281,6 +285,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         mTopHighPressureHatches.clear();
         mBottomHighPressureHatches.clear();
         mBottomControlRodHatches.clear();
+        mBottomBeamInputHatches.clear();
     }
 
     public double getMaintenanceEfficiency() {
@@ -462,6 +467,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
 
         for (MTEHatchNuclearControlRod bottom : mBottomControlRodHatches) {
+            IGregTechTileEntity bTe = bottom.getBaseMetaTileEntity();
+            if (bTe != null && !bTe.isDead()) {
+                world.setBlock(bTe.getXCoord(), bTe.getYCoord(), bTe.getZCoord(), Blocks.air);
+            }
+        }
+
+        for (MTEHatchInputBeamline bottom : mBottomBeamInputHatches) {
             IGregTechTileEntity bTe = bottom.getBaseMetaTileEntity();
             if (bTe != null && !bTe.isDead()) {
                 world.setBlock(bTe.getXCoord(), bTe.getYCoord(), bTe.getZCoord(), Blocks.air);
@@ -698,6 +710,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         checkNuclearControlHatchFacings(aBaseMetaTileEntity, errors);
         checkMaintenanceHatchFacing(aBaseMetaTileEntity, errors);
         validateHighPressureHatchPairing(aBaseMetaTileEntity, errors);
+        validateBeamInputHatchPairing(aBaseMetaTileEntity, errors);
 
         if (!errors.isEmpty()) {
             return;
@@ -753,6 +766,23 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                         if (mScram) {
                             rod.setScram(true);
                         }
+                    }
+                }
+            }
+        }
+
+        // Attach bottom-layer beam input hatches to corresponding grid cells
+        for (MTEHatchInputBeamline beamHatch : mBottomBeamInputHatches) {
+            IGregTechTileEntity bTe = beamHatch.getBaseMetaTileEntity();
+            if (bTe != null) {
+                int[] gCoords = calculateGridCoords(bTe, cX, cY, cZ, ef, isUpsideDown, hOffset);
+                if (gCoords != null && gCoords[0] >= 0
+                    && gCoords[0] < gridSize
+                    && gCoords[1] >= 0
+                    && gCoords[1] < gridSize) {
+                    INuclearTile tile = mGrid[gCoords[0]][gCoords[1]];
+                    if (tile instanceof NuclearGridTile gt) {
+                        gt.setBottomBeamInput(beamHatch);
                     }
                 }
             }
@@ -995,6 +1025,53 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
     }
 
+    public void validateBeamInputHatchPairing(IGregTechTileEntity aBaseMetaTileEntity, List<StructureError> errors) {
+        if (!mBottomBeamInputHatches.isEmpty() && gridSize > 0) {
+            int cX = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getXCoord() : 0;
+            int cY = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getYCoord() : 0;
+            int cZ = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getZCoord() : 0;
+            ExtendedFacing ef = getExtendedFacing();
+            boolean isUpsideDown = ef.getRotation() == Rotation.UPSIDE_DOWN;
+            int hOffset = gridSize / 2;
+
+            boolean[][] busGrid = new boolean[gridSize][gridSize];
+            for (IGregTechTileEntity te : mNuclearTiles) {
+                if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearBus) {
+                    int[] gCoords = calculateGridCoords(te, cX, cY, cZ, ef, isUpsideDown, hOffset);
+                    if (gCoords != null && gCoords[0] >= 0 && gCoords[0] < gridSize
+                        && gCoords[1] >= 0 && gCoords[1] < gridSize) {
+                        busGrid[gCoords[0]][gCoords[1]] = true;
+                    }
+                }
+            }
+
+            boolean anyUnpaired = false;
+            for (MTEHatchInputBeamline bottom : mBottomBeamInputHatches) {
+                IGregTechTileEntity bTe = bottom.getBaseMetaTileEntity();
+                if (bTe != null) {
+                    int[] gCoords = calculateGridCoords(bTe, cX, cY, cZ, ef, isUpsideDown, hOffset);
+                    if (gCoords != null && gCoords[0] >= 0 && gCoords[0] < gridSize
+                        && gCoords[1] >= 0 && gCoords[1] < gridSize) {
+                        if (!busGrid[gCoords[0]][gCoords[1]]) {
+                            anyUnpaired = true;
+                            break;
+                        }
+                    } else {
+                        anyUnpaired = true;
+                        break;
+                    }
+                } else {
+                    anyUnpaired = true;
+                    break;
+                }
+            }
+
+            if (anyUnpaired) {
+                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.beam_hatch_unpaired"));
+            }
+        }
+    }
+
     @Override
     public boolean showRecipeTextInGUI() {
         return false;
@@ -1144,6 +1221,18 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         super.onPostTick(aBaseMetaTileEntity, aTick);
 
         if (aBaseMetaTileEntity.isServerSide() && mMachine) {
+            if (!mBottomBeamInputHatches.isEmpty()) {
+                for (MTEHatchInputBeamline beamHatch : mBottomBeamInputHatches) {
+                    if (beamHatch != null && beamHatch.dataPacket != null && beamHatch.dataPacket.getContent() != null) {
+                        BeamInformation beamInfo = beamHatch.dataPacket.getContent();
+                        if (beamInfo.getParticle() != Particle.NEUTRON) {
+                            explodeReactor(false, "Incompatible non-neutron particle beam injected into core: " + beamInfo.getParticle().getName());
+                            return;
+                        }
+                    }
+                }
+            }
+
             boolean shouldBeActive = (mNeutronsProduced > 0);
             if (aBaseMetaTileEntity.isActive() != shouldBeActive) {
                 aBaseMetaTileEntity.setActive(shouldBeActive);

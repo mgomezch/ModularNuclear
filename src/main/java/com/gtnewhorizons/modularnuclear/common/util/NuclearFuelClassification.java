@@ -585,7 +585,29 @@ public final class NuclearFuelClassification {
         if (isItemReactorPlating(stack)) return true;
         if (getInsulationDampening(stack) > 0.0) return true;
         if (isItemRadiovoltaic(stack)) return true;
+        if (isItemNeutronSource(stack)) return true;
 
+        return false;
+    }
+
+    public static boolean isItemNeutronSource(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) return false;
+        try {
+            if (goodgenerator.loader.Loaders.neutronSource != null && stack.getItem() == goodgenerator.loader.Loaders.neutronSource) {
+                return true;
+            }
+        } catch (Throwable ignored) {}
+        try {
+            net.minecraft.item.Item item = stack.getItem();
+            cpw.mods.fml.common.registry.GameRegistry.UniqueIdentifier uid =
+                cpw.mods.fml.common.registry.GameRegistry.findUniqueIdentifierFor(item);
+            if (uid != null && "GoodGenerator".equalsIgnoreCase(uid.modId) && "neutronSource".equalsIgnoreCase(uid.name)) {
+                return true;
+            }
+            if ("item.neutronSource".equalsIgnoreCase(item.getUnlocalizedName())) {
+                return true;
+            }
+        } catch (Throwable ignored) {}
         return false;
     }
 

@@ -10,6 +10,7 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
+import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
@@ -129,6 +130,11 @@ public final class ModularNuclearConfig {
         "modularnuclear:radiovoltaicPlateEV"
     };
 
+    public static String[] allowedNeutronSources = new String[] {
+        "GoodGenerator:neutronSource",
+        "item.neutronSource"
+    };
+
     // ==========================================
     // Simulation Physics & Tuning Parameters
     // ==========================================
@@ -143,6 +149,7 @@ public final class ModularNuclearConfig {
     public static double dopplerDeficitExponent = 1.2;
     public static int wallMaintenanceNeutronThreshold = 10000;
     public static double defaultAmbientTemp = 293.15;
+    public static float beamEnergyToFastNeutronMultiplier = 0.001f;
 
     // ==========================================
     // Reactor Tiers & Material Limits
@@ -284,6 +291,12 @@ public final class ModularNuclearConfig {
                 allowedRadiovoltaics,
                 "Items recognized as radiovoltaic energy converters.");
 
+            allowedNeutronSources = config.getStringList(
+                "allowedNeutronSources",
+                CAT_ALLOWLISTS,
+                allowedNeutronSources,
+                "Items recognized as external beam neutron sources.");
+
             // Simulation Physics & Tuning Parameters
             final String CAT_PHYSICS = "simulation_physics";
             config.setCategoryComment(CAT_PHYSICS, "Simulation constants and physics tuning parameters.");
@@ -375,6 +388,14 @@ public final class ModularNuclearConfig {
                 0.0f,
                 1000.0f,
                 "Default ambient temperature in Kelvin (293.15 K = 20 C).");
+
+            beamEnergyToFastNeutronMultiplier = config.getFloat(
+                "beamEnergyToFastNeutronMultiplier",
+                CAT_PHYSICS,
+                (float) beamEnergyToFastNeutronMultiplier,
+                0.0f,
+                10.0f,
+                "Conversion factor from beam energy intensity (E * R) to fast neutron packet size.");
 
             // Reactor Tiers & Material Limits
             final String CAT_TIERS = "reactor_tiers";
@@ -560,6 +581,11 @@ public final class ModularNuclearConfig {
 
     public static boolean isItemRadiovoltaic(ItemStack stack) {
         return matchesItem(stack, allowedRadiovoltaics);
+    }
+
+    public static boolean isItemNeutronSource(ItemStack stack) {
+        if (stack == null) return false;
+        return matchesItem(stack, allowedNeutronSources) || NuclearFuelClassification.isItemNeutronSource(stack);
     }
 
     public static double getInsulatorDampening(ItemStack stack) {

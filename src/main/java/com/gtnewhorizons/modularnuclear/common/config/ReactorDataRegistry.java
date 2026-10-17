@@ -91,6 +91,7 @@ public final class ReactorDataRegistry {
         NuclearSimulationEngine.fissionHeatPerNeutron = physicsData.fissionHeatPerNeutron;
         NuclearSimulationEngine.wallReflectionChance = physicsData.wallReflectionChance;
         NuclearSimulationEngine.wallAbsorbHeatPerNeutron = physicsData.wallAbsorbHeatPerNeutron;
+        NuclearSimulationEngine.setBeamEnergyToFastNeutronMultiplier(physicsData.beamEnergyToFastNeutronMultiplier);
     }
 
     public static synchronized void loadFromDir(File dir) {

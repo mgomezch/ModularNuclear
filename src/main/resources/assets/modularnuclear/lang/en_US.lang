@@ -28,6 +28,7 @@ GT5U.gui.text.structure_error.wrong_control_hatch_facing=Nuclear control hatches
 GT5U.gui.text.structure_error.wrong_maintenance_hatch_facing=Maintenance hatch must face outward away from the structure and be upright
 GT5U.gui.text.structure_error.hp_hatch_tier=High-pressure cooling requires Osmium or higher item pipe casings
 GT5U.gui.text.structure_error.hp_hatch_unpaired=Mismatched high-pressure cooling inlet / outlet
+GT5U.gui.text.structure_error.beam_hatch_unpaired=Beam input hatches must be placed directly opposite a Nuclear Core Bus in the same column
 
 channels.modularnuclear.nuclear_hatch=Nuclear core hatches. 0: bus (items); 1-9: LV-UHV hatch (fluids); 10: high-pressure (coolant)
 channels.modularnuclear.master.nuclear_hatch=Nuclear hatch tier

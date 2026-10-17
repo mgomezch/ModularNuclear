@@ -5736,6 +5736,43 @@ public class NuclearSimulationEngineTest {
         assertTrue(foundBeryllium);
     }
 
+    @Test
+    public void testNeutronSourceSimulation() {
+        assertEquals(SimTile.TileType.NEUTRON_SOURCE, SimTile.TileType.fromCode("NS"));
+
+        SimTile sourceTile = new SimTile(SimTile.TileType.NEUTRON_SOURCE);
+        assertTrue(sourceTile.isNeutronSource());
+        assertFalse(sourceTile.isFuel());
+        assertEquals(4, sourceTile.getNeutronEmissionCount());
+        assertEquals(0.01, sourceTile.getAbsorptionProbability(NeutronType.FAST), 1e-4);
+        assertEquals(0.05, sourceTile.getModerationProbability(), 1e-4);
+
+        // Configure beam parameters
+        sourceTile.setNeutronSourceBeamEnergy(1000.0f);
+        sourceTile.setNeutronSourceBeamRate(100);
+        // S = round(1000 * 100 * 0.001) = 100 per direction, total 400
+        int produced = sourceTile.generateNeutrons(1.0);
+        assertEquals(400, produced);
+
+        // Run simulation with Neutron Source at center of 3x3 grid
+        SimTile[][] grid = new SimTile[3][3];
+        for (int x = 0; x < 3; x++) {
+            for (int y = 0; y < 3; y++) {
+                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+            }
+        }
+        grid[1][1] = sourceTile;
+
+        NuclearSimulationEngine.SimulationResult result =
+            NuclearSimulationEngine.simulate(grid, 3, 3, 1.0, 20.0);
+
+        assertEquals(400, result.totalNeutronsGenerated);
+        // Neutron source receives 0 prompt fission heat and does not degrade
+        sourceTile.nuclearTick(1.0);
+        assertEquals(10000, sourceTile.getDurability());
+        assertEquals(0.0, sourceTile.getLastDurabilityLoss(), 1e-4);
+    }
+
     private static void deleteRecursively(File file) {
         if (file.isDirectory()) {
             File[] children = file.listFiles();

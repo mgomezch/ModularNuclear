@@ -1,5 +1,7 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
+import net.minecraft.item.ItemStack;
+
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
@@ -7,6 +9,9 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
+import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
+
+import gtnhlanth.common.hatch.MTEHatchInputBeamline;
 
 public class NuclearGridTile implements INuclearTile {
 
@@ -15,6 +20,7 @@ public class NuclearGridTile implements INuclearTile {
     private final MTEHatchNuclearHatch hatch;
     private final MTEHatchNuclearHighPressure highPressureHatch;
     private MTEHatchNuclearControlRod bottomControlRod;
+    private MTEHatchInputBeamline bottomBeamInput;
     private final int gx;
     private final int gy;
 
@@ -69,6 +75,27 @@ public class NuclearGridTile implements INuclearTile {
 
     public void setBottomControlRod(MTEHatchNuclearControlRod bottomControlRod) {
         this.bottomControlRod = bottomControlRod;
+    }
+
+    public boolean hasBottomBeamInput() {
+        return bottomBeamInput != null;
+    }
+
+    public MTEHatchInputBeamline getBottomBeamInput() {
+        return bottomBeamInput;
+    }
+
+    public void setBottomBeamInput(MTEHatchInputBeamline bottomBeamInput) {
+        this.bottomBeamInput = bottomBeamInput;
+    }
+
+    @Override
+    public boolean isNeutronSource() {
+        if (isBus()) {
+            ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+            return NuclearFuelClassification.isItemNeutronSource(stack);
+        }
+        return false;
     }
 
     public boolean isBus() {

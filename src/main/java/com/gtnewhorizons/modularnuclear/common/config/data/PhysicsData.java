@@ -23,6 +23,7 @@ public class PhysicsData {
     public double wallAbsorbHeatPerNeutron = 1.0;
     public int wallMaintenanceNeutronThreshold = 10000;
     public double defaultAmbientTemp = 293.15;
+    public double beamEnergyToFastNeutronMultiplier = 0.001;
 
     // Fuel Archetype / Class Multipliers (Global Calibration Parameters)
     public double denseNbaseMultiplier = 0.50;      // -50% base neutrons (subcritical/mostly-inert)
@@ -75,6 +76,7 @@ public class PhysicsData {
         d.wallAbsorbHeatPerNeutron = getDouble(map, "wall_absorb_heat_per_neutron", d.wallAbsorbHeatPerNeutron);
         d.wallMaintenanceNeutronThreshold = getInt(map, "wall_maintenance_neutron_threshold", d.wallMaintenanceNeutronThreshold);
         d.defaultAmbientTemp = getDouble(map, "default_ambient_temp", d.defaultAmbientTemp);
+        d.beamEnergyToFastNeutronMultiplier = getDouble(map, "beam_energy_to_fast_neutron_multiplier", d.beamEnergyToFastNeutronMultiplier);
 
         d.denseNbaseMultiplier = getDouble(map, "dense_nbase_multiplier", d.denseNbaseMultiplier);
         d.denseFissionMultiplier = getDouble(map, "dense_fission_multiplier", d.denseFissionMultiplier);
@@ -107,6 +109,7 @@ public class PhysicsData {
         m.put("wall_absorb_heat_per_neutron", wallAbsorbHeatPerNeutron);
         m.put("wall_maintenance_neutron_threshold", wallMaintenanceNeutronThreshold);
         m.put("default_ambient_temp", defaultAmbientTemp);
+        m.put("beam_energy_to_fast_neutron_multiplier", beamEnergyToFastNeutronMultiplier);
 
         m.put("dense_nbase_multiplier", denseNbaseMultiplier);
         m.put("dense_fission_multiplier", denseFissionMultiplier);

@@ -30,6 +30,9 @@ import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import gregtech.api.items.ItemRadioactiveCell;
 import gregtech.api.items.ItemRadioactiveCellIC;
 import gregtech.api.util.GTRecipe;
+import gtnhlanth.common.beamline.BeamInformation;
+import gtnhlanth.common.beamline.Particle;
+import gtnhlanth.common.hatch.MTEHatchInputBeamline;
 import ic2.api.reactor.IReactorComponent;
 import ic2.core.item.reactor.ItemReactorMOX;
 import ic2.core.item.reactor.ItemReactorUranium;
@@ -85,7 +88,7 @@ public class NuclearReactorPhysics {
     public static double getTileHeatTransferCoeff(MTENuclearReactor reactor, NuclearGridTile tile) {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            if (stack == null) return 0.02;
+            if (stack == null || NuclearFuelClassification.isItemNeutronSource(stack)) return 0.02;
 
             FuelData fuel = ReactorDataRegistry.findFuel(stack);
             if (fuel != null) return fuel.heatTransferCoeff;
@@ -216,6 +219,26 @@ public class NuclearReactorPhysics {
         if (tile.isBus()) {
             MTEHatchNuclearBus bus = tile.getBus();
             ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+            if (tile.isNeutronSource()) {
+                if (tile.hasBottomBeamInput()) {
+                    MTEHatchInputBeamline beamHatch = tile.getBottomBeamInput();
+                    if (beamHatch != null && beamHatch.dataPacket != null && beamHatch.dataPacket.getContent() != null) {
+                        BeamInformation beamInfo = beamHatch.dataPacket.getContent();
+                        if (beamInfo.getParticle() != Particle.NEUTRON) {
+                            reactor.explodeReactor(false, "Reactor exploded: incompatible non-neutron beam injected via beamline: " + beamInfo.getParticle().getName());
+                            bus.mLastNeutronsGenerated = 0;
+                            return 0;
+                        }
+                        double multiplier = (physics != null) ? physics.beamEnergyToFastNeutronMultiplier : NuclearSimulationEngine.beamEnergyToFastNeutronMultiplier;
+                        int packetSize = Math.max(0, (int) Math.round(beamInfo.getEnergy() * beamInfo.getRate() * multiplier));
+                        int totalNeutrons = packetSize * 4;
+                        bus.mLastNeutronsGenerated = totalNeutrons;
+                        return totalNeutrons;
+                    }
+                }
+                bus.mLastNeutronsGenerated = 0;
+                return 0;
+            }
             if (!reactor.isItemFuel(stack)) {
                 bus.mLastNeutronsGenerated = 0;
                 return 0;
@@ -279,6 +302,9 @@ public class NuclearReactorPhysics {
     }
 
     public static int getTileNeutronEmissionCount(NuclearGridTile tile) {
+        if (tile.isNeutronSource()) {
+            return 4;
+        }
         if (tile.isHatch()) {
             FluidStack fluid = tile.getHatch().mInputFluid;
             if (fluid != null) {
@@ -315,7 +341,7 @@ public class NuclearReactorPhysics {
         NeutronType type) {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            if (stack == null) return 0.01;
+            if (stack == null || NuclearFuelClassification.isItemNeutronSource(stack)) return 0.01;
 
             InsulatorData ins = ReactorDataRegistry.findInsulator(stack);
             if (ins != null) return (type == NeutronType.FAST) ? ins.absorptionFast : ins.absorptionThermal;
@@ -382,7 +408,7 @@ public class NuclearReactorPhysics {
         NeutronType type) {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            if (stack == null) return 0.02;
+            if (stack == null || NuclearFuelClassification.isItemNeutronSource(stack)) return 0.02;
 
             InsulatorData ins = ReactorDataRegistry.findInsulator(stack);
             if (ins != null) return (type == NeutronType.FAST) ? ins.scatteringFast : ins.scatteringThermal;
@@ -445,7 +471,7 @@ public class NuclearReactorPhysics {
     public static double getTileModerationProbability(NuclearGridTile tile) {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            if (stack == null) return 0.05;
+            if (stack == null || NuclearFuelClassification.isItemNeutronSource(stack)) return 0.05;
 
             RadiovoltaicData rv = ReactorDataRegistry.findRadiovoltaic(stack);
             if (rv != null) return 0.0;
@@ -638,7 +664,7 @@ public class NuclearReactorPhysics {
         double efficiency) {
         bus.mLastHeatOutput = 0.0;
         ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-        if (stack == null) {
+        if (stack == null || NuclearFuelClassification.isItemNeutronSource(stack)) {
             bus.mCumulativeFluence += (bus.mFastFlux + bus.mThermalFlux);
             bus.mLastFastFlux = bus.mFastFlux;
             bus.mLastThermalFlux = bus.mThermalFlux;
