@@ -94,9 +94,10 @@ public class FuelDamageCurveSolver {
      * Solves the exponential parameters (k, A) given peak and floor temperatures.
      */
     public static FuelCurveStats solve(NuclearFuelType fuel, double tPeak, double tFloor, double ambientTemp) {
+        double safeAmbient = Math.min(ambientTemp, tPeak - 10.0);
         double t10 = tPeak + P_10_PERCENT * (tFloor - tPeak);
-        double dtPeak = tPeak - ambientTemp;
-        double dt10 = t10 - ambientTemp;
+        double dtPeak = tPeak - safeAmbient;
+        double dt10 = t10 - safeAmbient;
         double linearRatio = (dt10 > 0.0) ? (dtPeak / dt10) : 1.0;
 
         double k;
