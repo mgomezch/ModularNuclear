@@ -157,7 +157,7 @@ public class CoolantLoopModel {
 
         DISTILLED_WATER("Distilled Water", 1000.0, 4184.0, 0.001, 0.60, "Deuterium", 0.0),
         HEAVY_WATER("Heavy Water", 1105.0, 4220.0, 0.00125, 0.59, "Tritium", 3.8),
-        IC2_COOLANT("IC2 Coolant", 1080.0, 3800.0, 0.0025, 0.52, "None", -25.0),
+        IC2_COOLANT("IC2 Coolant", 1080.0, 3800.0, 0.0025, 0.52, "None", Double.NEGATIVE_INFINITY),
         SODIUM("Sodium", 927.0, 1260.0, 0.0007, 86.0, "None", 97.8),
         MOLTEN_CHEESE("Molten Cheese", 1120.0, 3000.0, 0.557, 0.481, "None", 46.85),
         LAVA("Lava", 3000.0, 1250.0, 0.001, 1.5, "None", 1000.0);
@@ -202,6 +202,48 @@ public class CoolantLoopModel {
             return DISTILLED_WATER;
         }
     }
+
+    public enum SecondaryCoolantType {
+
+        DISTILLED_WATER("Distilled Water", 100.0, 2260000.0, 160, "steam", true),
+        LIQUID_NITROGEN("Liquid Nitrogen", -196.0, 160000.0, 160, "nitrogen", false),
+        LIQUID_OXYGEN("Liquid Oxygen", -183.0, 243000.0, 160, "oxygen", false),
+        LIQUID_AIR("Liquid Air", -194.0, 174000.0, 160, "air", false),
+        LIQUID_HELIUM("Liquid Helium", -269.0, 20700.0, 160, "helium", false);
+
+        public final String displayName;
+        public final double boilingPointCelsius;
+        public final double latentHeatJoulesPerLiter;
+        public final int expansionRatio;
+        public final String outputGasName;
+        public final boolean isSteam;
+
+        SecondaryCoolantType(String displayName, double boilingPointCelsius, double latentHeatJoulesPerLiter,
+            int expansionRatio, String outputGasName, boolean isSteam) {
+            this.displayName = displayName;
+            this.boilingPointCelsius = boilingPointCelsius;
+            this.latentHeatJoulesPerLiter = latentHeatJoulesPerLiter;
+            this.expansionRatio = expansionRatio;
+            this.outputGasName = outputGasName;
+            this.isSteam = isSteam;
+        }
+
+        public static SecondaryCoolantType fromString(String str) {
+            if (str == null) return DISTILLED_WATER;
+            String s = str.trim();
+            for (SecondaryCoolantType type : values()) {
+                if (type.name().equalsIgnoreCase(s) || type.displayName.equalsIgnoreCase(s)) {
+                    return type;
+                }
+            }
+            if (containsSub(s, "NITROGEN")) return LIQUID_NITROGEN;
+            if (containsSub(s, "OXYGEN")) return LIQUID_OXYGEN;
+            if (containsSub(s, "AIR")) return LIQUID_AIR;
+            if (containsSub(s, "HELIUM")) return LIQUID_HELIUM;
+            return DISTILLED_WATER;
+        }
+    }
+
 
     public enum EnergyHatchTier {
 
@@ -270,6 +312,7 @@ public class CoolantLoopModel {
     private LoopMaterial material = LoopMaterial.TITANIUM;
     private LoopPipeSize pipeSize = LoopPipeSize.NORMAL;
     private CoolantFluidType fluidType = CoolantFluidType.DISTILLED_WATER;
+    private SecondaryCoolantType secondaryCoolant = SecondaryCoolantType.DISTILLED_WATER;
     private EnergyHatchTier hatchTier = EnergyHatchTier.EV;
     private double dutyCyclePercent = 100.0;
     private double maxFlowRateLPerSec = 0.0; // 0 = no user limit
@@ -427,26 +470,32 @@ public class CoolantLoopModel {
             return;
         }
 
-        // Solidification check: disallow acceleration if molten fluid is below declared melting point
-        if (fluidType.isMolten() && (NuclearSimulationEngine.ambientTemp < fluidType.meltingPointCelsius
-            || currentCoolantTempCelsius < fluidType.meltingPointCelsius)) {
+        // Solidification / Freezing check: disallow acceleration if fluid is below declared melting/freezing point
+        if (fluidType != null && Double.isFinite(fluidType.meltingPointCelsius)
+            && fluidType.meltingPointCelsius != Double.NEGATIVE_INFINITY
+            && ((fluidType.isMolten() && NuclearSimulationEngine.ambientTemp < fluidType.meltingPointCelsius)
+                || currentCoolantTempCelsius < fluidType.meltingPointCelsius)) {
             currentFlowRateLPerSec = 0.0;
             lastPumpPowerEUt = 0.0;
             effectiveDutyCyclePercent = 0.0;
             currentPressureBar = 1.0;
             flowLimited = true;
-            if (NuclearSimulationEngine.ambientTemp < fluidType.meltingPointCelsius) {
+            if (fluidType.isMolten() && NuclearSimulationEngine.ambientTemp < fluidType.meltingPointCelsius) {
                 limitReason = String.format(
                     "Pump blocked: Biome ambient temperature (%.1f °C) is below declared melting point (%.1f °C) for %s! Fluid would solidify in this biome.",
                     NuclearSimulationEngine.ambientTemp,
                     fluidType.meltingPointCelsius,
                     fluidType.displayName);
             } else {
+                String verb = fluidType.isMolten() ? "solidify" : "freeze";
+                String noun = fluidType.isMolten() ? "melting" : "freezing";
                 limitReason = String.format(
-                    "Pump blocked: Coolant temperature (%.1f °C) is below declared melting point (%.1f °C) for %s! Fluid would solidify.",
+                    "Pump blocked: Coolant temperature (%.1f °C) is below declared %s point (%.1f °C) for %s! Fluid would %s.",
                     currentCoolantTempCelsius,
+                    noun,
                     fluidType.meltingPointCelsius,
-                    fluidType.displayName);
+                    fluidType.displayName,
+                    verb);
             }
             return;
         }
@@ -537,15 +586,25 @@ public class CoolantLoopModel {
 
         int reactorTier = grid.getPipeTier();
 
-        // 0. Solidification check for molten fluids
-        if (fluidType.isMolten() && currentCoolantTempCelsius < fluidType.meltingPointCelsius) {
+        // 0. Solidification / Freezing check for loop coolant
+        if (fluidType != null && Double.isFinite(fluidType.meltingPointCelsius)
+            && fluidType.meltingPointCelsius != Double.NEGATIVE_INFINITY
+            && currentCoolantTempCelsius < fluidType.meltingPointCelsius) {
             if (currentFlowRateLPerSec > 0.0) {
                 this.ruptured = true;
-                this.ruptureReason = String.format(
-                    "Catastrophic Coolant Solidification! Coolant temperature %.1f °C dropped below declared GregTech melting point %.1f °C for molten fluid %s. Solidified plug ruptured loop!",
-                    currentCoolantTempCelsius,
-                    fluidType.meltingPointCelsius,
-                    fluidType.displayName);
+                if (fluidType.isMolten()) {
+                    this.ruptureReason = String.format(
+                        "Catastrophic Coolant Solidification! Coolant temperature %.1f °C dropped below declared GregTech melting point %.1f °C for molten fluid %s. Solidified plug ruptured loop!",
+                        currentCoolantTempCelsius,
+                        fluidType.meltingPointCelsius,
+                        fluidType.displayName);
+                } else {
+                    this.ruptureReason = String.format(
+                        "Catastrophic Coolant Freezing! Coolant temperature %.1f °C dropped below freezing point %.1f °C for fluid %s. Solidified ice/plug ruptured loop!",
+                        currentCoolantTempCelsius,
+                        fluidType.meltingPointCelsius,
+                        fluidType.displayName);
+                }
                 return false;
             } else {
                 updatePumpState();
@@ -685,30 +744,31 @@ public class CoolantLoopModel {
         double tempRise = totalHeatExtractedJoulesTick / (loopFluidMassKg * fluidType.specificHeat);
         currentCoolantTempCelsius += tempRise;
 
-        // 8. Secondary Steam Generation at Pressurized Heat Exchanger (PHE)
-        // 1 L water requires 2.26 MJ (2,260,000 J/L) latent heat to vaporize -> produces 160 L steam (1:160 expansion)
+        // 8. Secondary Boiling at Pressurized Heat Exchanger (PHE)
+        double secBoilingTemp = (secondaryCoolant != null) ? secondaryCoolant.boilingPointCelsius : 100.0;
+        double secLatentHeat = (secondaryCoolant != null) ? secondaryCoolant.latentHeatJoulesPerLiter : 2260000.0;
+        int secExpansion = (secondaryCoolant != null && secondaryCoolant.expansionRatio > 0) ? secondaryCoolant.expansionRatio : 160;
+
         double steamGeneratedL = 0.0;
-        if (currentCoolantTempCelsius > 100.0) {
-            double deltaTPhe = currentCoolantTempCelsius - 100.0;
+        if (currentCoolantTempCelsius > secBoilingTemp) {
+            double deltaTPhe = currentCoolantTempCelsius - secBoilingTemp;
             double pheArea = 24.0; // 24 m^2 tube bundle area
-            // h_phe ~ 2500 W/(m^2*K) for water-to-water heat exchanger
+            // h_phe ~ 2500 W/(m^2*K) for heat exchanger
             double qPheWatts = 2500.0 * pheArea * deltaTPhe;
             double qPheJoules = Math.min(
                 totalHeatExtractedJoulesTick + (deltaTPhe * loopFluidMassKg * fluidType.specificHeat * 0.5),
                 qPheWatts * 0.05);
 
-            // 1 Liter water requires 2.26 MJ (2,260,000 J/L) latent heat to vaporize -> produces 160 L steam
-            // (1:160 expansion)
-            double waterBoiledL = qPheJoules / 2260000.0;
-            steamGeneratedL = waterBoiledL * 160.0; // 1:160 expansion
+            double fluidBoiledL = qPheJoules / secLatentHeat;
+            steamGeneratedL = fluidBoiledL * secExpansion;
 
-            lastSecondaryWaterBoiledLt = waterBoiledL;
+            lastSecondaryWaterBoiledLt = fluidBoiledL;
             lastSecondarySteamProducedLt = steamGeneratedL;
             totalSecondarySteamProduced += steamGeneratedL;
 
-            // Cool coolant back down toward 100°C
+            // Cool coolant back down toward secondary boiling temperature
             double tempDrop = qPheJoules / (loopFluidMassKg * fluidType.specificHeat);
-            currentCoolantTempCelsius = Math.max(100.0, currentCoolantTempCelsius - tempDrop);
+            currentCoolantTempCelsius = Math.max(secBoilingTemp, currentCoolantTempCelsius - tempDrop);
         } else {
             lastSecondaryWaterBoiledLt = 0.0;
             lastSecondarySteamProducedLt = 0.0;
@@ -736,6 +796,7 @@ public class CoolantLoopModel {
         this.totalHeatExtractedJoules = 0.0;
         this.totalHeatExtractedHut = 0.0;
         this.neutronTransmuteAccumulator = 0;
+        this.secondaryCoolant = SecondaryCoolantType.DISTILLED_WATER;
     }
 
     // Attach / Detach coordinate helpers
@@ -790,6 +851,16 @@ public class CoolantLoopModel {
         if (fluidType != null) {
             this.fluidType = fluidType;
             updatePumpState();
+        }
+    }
+
+    public SecondaryCoolantType getSecondaryCoolant() {
+        return secondaryCoolant != null ? secondaryCoolant : SecondaryCoolantType.DISTILLED_WATER;
+    }
+
+    public void setSecondaryCoolant(SecondaryCoolantType secondaryCoolant) {
+        if (secondaryCoolant != null) {
+            this.secondaryCoolant = secondaryCoolant;
         }
     }
 

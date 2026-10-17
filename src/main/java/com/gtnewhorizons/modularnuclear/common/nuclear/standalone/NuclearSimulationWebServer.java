@@ -961,6 +961,16 @@ public class NuclearSimulationWebServer {
                       </label>
                     </div>
                   </div>
+                  <div style="margin-bottom:6px;">
+                    <label style="font-size:0.7rem; color:var(--text-muted);">PHE Secondary Coolant:</label>
+                    <select id="loop-secondary-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
+                      <option value="DISTILLED_WATER" selected>💧 Distilled Water (Boils at 100°C → Steam)</option>
+                      <option value="LIQUID_NITROGEN">❄️ Liquid Nitrogen (Boils at -196°C → Nitrogen Gas)</option>
+                      <option value="LIQUID_OXYGEN">❄️ Liquid Oxygen (Boils at -183°C → Oxygen Gas)</option>
+                      <option value="LIQUID_AIR">❄️ Liquid Air (Boils at -194°C → Air Gas)</option>
+                      <option value="LIQUID_HELIUM">🧊 Liquid Helium (Boils at -269°C → Helium Gas)</option>
+                    </select>
+                  </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Duty Cycle (%):</label>
@@ -1465,6 +1475,8 @@ public class NuclearSimulationWebServer {
               const mat = matSelect ? matSelect.value : "TITANIUM";
               const size = document.getElementById("loop-size-select").value;
               const fluid = document.getElementById("loop-fluid-select").value;
+              const secSelect = document.getElementById("loop-secondary-select");
+              const secondary = secSelect ? secSelect.value : "DISTILLED_WATER";
               const hatch = document.getElementById("loop-hatch-tier-select").value;
               const duty = parseFloat(document.getElementById("loop-duty-cycle-input").value) || 0;
               const maxFlowVal = document.getElementById("loop-max-flow-input").value;
@@ -1483,6 +1495,9 @@ public class NuclearSimulationWebServer {
                 wasmSim.setCoolantLoopMaterial(mat, false);
                 wasmSim.setCoolantLoopPipeSize(size, false);
                 wasmSim.setCoolantLoopFluid(fluid, false);
+                if (wasmSim.setCoolantLoopSecondaryCoolant) {
+                  wasmSim.setCoolantLoopSecondaryCoolant(secondary, false);
+                }
                 wasmSim.setCoolantLoopControl(hatch, duty, maxFlow, maxPress, false);
                 wasmSim.setCoolantLoopOverclocked(isOc, false);
                 wasmSim.setCoolantLoopImpeller(impeller, false);
@@ -2110,6 +2125,10 @@ public class NuclearSimulationWebServer {
                 if (sizeSel && activeEl !== sizeSel && sizeSel.value !== cl.pipeSize) sizeSel.value = cl.pipeSize;
                 const fluidSel = document.getElementById("loop-fluid-select");
                 if (fluidSel && activeEl !== fluidSel && fluidSel.value !== cl.fluid) fluidSel.value = cl.fluid;
+                const secSel = document.getElementById("loop-secondary-select");
+                if (secSel && activeEl !== secSel && cl.secondaryCoolant && secSel.value !== cl.secondaryCoolant) {
+                  secSel.value = cl.secondaryCoolant;
+                }
                 const hatchSel = document.getElementById("loop-hatch-tier-select");
                 if (hatchSel && activeEl !== hatchSel && cl.hatchTier && hatchSel.value !== cl.hatchTier) {
                   hatchSel.value = cl.hatchTier;

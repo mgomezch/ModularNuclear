@@ -547,4 +547,71 @@ public class CoolantLoopModelTest {
         assertTrue(waterBoiledL < 10.0, "Water boiled per tick should be realistic (< 10 L/t), not 1000x inflated");
         assertTrue(steamProducedL < 1600.0, "Steam produced per tick should be realistic (< 1600 L/t)");
     }
+
+    @Test
+    void testWaterFreezingFailureBelowZero() {
+        grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
+        loop.setMaterial(CoolantLoopModel.LoopMaterial.TITANIUM);
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
+        loop.setPumpPowerEUt(500.0);
+        loop.attachPoint(2, 2);
+
+        // Cool water below 0 C while circulating
+        loop.setCurrentCoolantTempCelsius(-5.0);
+        assertFalse(grid.step(), "Step should fail when water freezes");
+        assertTrue(loop.isRuptured(), "Water loop must rupture when dropping below 0 C");
+        assertTrue(
+            loop.getRuptureReason()
+                .contains("Freezing"),
+            "Rupture reason should mention freezing: " + loop.getRuptureReason());
+    }
+
+    @Test
+    void testIC2CoolantImmunityToFreezingAtSubzeroAndCryogenic() {
+        grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
+        loop.setMaterial(CoolantLoopModel.LoopMaterial.TITANIUM);
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.IC2_COOLANT);
+        loop.setPumpPowerEUt(500.0);
+        loop.attachPoint(2, 2);
+
+        // Circulate at -196 C (liquid nitrogen temperature)
+        loop.setCurrentCoolantTempCelsius(-196.0);
+        boolean ok1 = grid.step();
+        assertTrue(ok1, "Grid step should succeed at -196 C for IC2 Coolant");
+        assertFalse(loop.isRuptured(), "IC2 Coolant must not rupture at -196 C");
+
+        // Circulate at -269 C (liquid helium temperature)
+        loop.setCurrentCoolantTempCelsius(-269.0);
+        boolean ok2 = grid.step();
+        assertTrue(ok2, "Grid step should succeed at -269 C for IC2 Coolant");
+        assertFalse(loop.isRuptured(), "IC2 Coolant must not rupture at -269 C");
+    }
+
+    @Test
+    void testSecondaryCryogenicNitrogenBoilingAtPHE() {
+        grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
+        loop.setMaterial(CoolantLoopModel.LoopMaterial.TITANIUM);
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.IC2_COOLANT);
+        loop.setSecondaryCoolant(CoolantLoopModel.SecondaryCoolantType.LIQUID_NITROGEN);
+        loop.setPumpPowerEUt(500.0);
+        loop.attachPoint(2, 2);
+
+        assertEquals(CoolantLoopModel.SecondaryCoolantType.LIQUID_NITROGEN, loop.getSecondaryCoolant());
+        assertEquals(-196.0, loop.getSecondaryCoolant().boilingPointCelsius, 1e-4);
+        assertFalse(loop.getSecondaryCoolant().isSteam);
+
+        // Start at 20 C (deltaT = 20 - (-196) = 216 C above boiling point!)
+        loop.setCurrentCoolantTempCelsius(20.0);
+
+        boolean ok = grid.step();
+        assertTrue(ok, "Grid step should succeed with cryogenic secondary boiling");
+        assertFalse(loop.isRuptured());
+
+        double n2BoiledL = loop.getLastSecondaryWaterBoiledLt();
+        double gasProducedL = loop.getLastSecondarySteamProducedLt();
+        assertTrue(n2BoiledL > 0.0, "Liquid nitrogen must boil when primary coolant is warmer than -196 C");
+        assertEquals(n2BoiledL * 160.0, gasProducedL, 1e-3, "Gas expansion must be exactly 1:160");
+        assertTrue(loop.getCurrentCoolantTempCelsius() < 20.0, "Coolant must be chilled toward -196 C by boiling nitrogen");
+    }
 }
+

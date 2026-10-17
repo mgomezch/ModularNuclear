@@ -894,18 +894,20 @@ public class StandaloneNuclearGrid {
         flowDirectEU = Math.round(flowDirectEU * getMaintenanceEfficiency());
 
         if (shouldStepCoolantLoop()) {
-            double loopSteam = coolantLoop.getLastSecondarySteamProducedLt();
-            if (loopSteam > 0) {
-                double temp = coolantLoop.getCurrentCoolantTempCelsius();
-                if (temp >= 700.0) {
-                    flowSupercriticalSteam += loopSteam;
-                } else if (temp >= 300.0) {
-                    flowSuperheatedSteam += loopSteam;
-                } else {
-                    flowRegularSteam += loopSteam;
+            if (coolantLoop.getSecondaryCoolant().isSteam) {
+                double loopSteam = coolantLoop.getLastSecondarySteamProducedLt();
+                if (loopSteam > 0) {
+                    double temp = coolantLoop.getCurrentCoolantTempCelsius();
+                    if (temp >= 700.0) {
+                        flowSupercriticalSteam += loopSteam;
+                    } else if (temp >= 300.0) {
+                        flowSuperheatedSteam += loopSteam;
+                    } else {
+                        flowRegularSteam += loopSteam;
+                    }
                 }
+                cumSteam += (long) Math.round(coolantLoop.getTotalSecondarySteamProduced());
             }
-            cumSteam += (long) Math.round(coolantLoop.getTotalSecondarySteamProduced());
             dCount += (int) coolantLoop.getTotalDeuteriumProduced();
             tCount += (int) coolantLoop.getTotalTritiumProduced();
         }

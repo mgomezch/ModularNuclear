@@ -171,6 +171,15 @@ public class NuclearSimWasmBridge {
         }
     }
 
+    @Export(name = "setCoolantLoopSecondaryCoolant")
+    public static void setCoolantLoopSecondaryCoolant(String coolantStr) {
+        if (grid != null && coolantStr != null) {
+            grid.getCoolantLoop()
+                .setSecondaryCoolant(CoolantLoopModel.SecondaryCoolantType.fromString(coolantStr));
+            grid.updatePowerResultNet();
+        }
+    }
+
     @Export(name = "setCoolantLoopPumpPower")
     public static void setCoolantLoopPumpPower(double powerEUt) {
         if (grid != null) {
@@ -750,6 +759,15 @@ public class NuclearSimWasmBridge {
         sb.append("\"fluidName\":\"")
             .append(cl.getFluidType().displayName)
             .append("\",");
+        sb.append("\"secondaryCoolant\":\"")
+            .append(cl.getSecondaryCoolant().name())
+            .append("\",");
+        sb.append("\"secondaryCoolantName\":\"")
+            .append(cl.getSecondaryCoolant().displayName)
+            .append("\",");
+        sb.append("\"secondaryBoilingPointC\":")
+            .append(fmt1(cl.getSecondaryCoolant().boilingPointCelsius))
+            .append(",");
         sb.append("\"byproductGas\":\"")
             .append(cl.getFluidType().byproductGas)
             .append("\",");
