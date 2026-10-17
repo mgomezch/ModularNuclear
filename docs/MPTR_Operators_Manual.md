@@ -532,6 +532,30 @@ Things to read off the table:
 - **Fission multipliers rise with tier.** In a well-moderated core, higher-tier fuels gain proportionally more from chain reactions relative to their base output.
 - **Fuels with low $N_{base}$ and high $m_{fiss}$** depend almost entirely on moderation to produce power. Unmoderated, they barely run.
 
+#### Fuel Archetypes & Class Calibration Multipliers
+
+Fuels in the MPTR are grouped into four behavioral **archetypes** designed to support distinct core roles. Rather than hardcoding behavior, these archetypes are governed by global calibration multipliers in `physics.yaml` (under the `PhysicsData` configuration):
+
+| Archetype | Member Fuels | $N_{base}$ Multiplier | $m_{fiss}$ Multiplier | Operational Role |
+|---|---|:---:|:---:|---|
+| **`"dense"`** | High-Density Uranium, High-Density Plutonium, Naquadah, Naquadria, The Core | $\times 0.50$ | $\times 1.20$ | **Subcritical High-Power Sinks:** Low spontaneous neutron emission makes them mostly inert in isolation, but their enhanced thermal fission multiplier unlocks massive energy output when driven by external neutron flux. |
+| **`"excited"`** | Excited Uranium, Excited Plutonium, Excited liquid fuels | $\times 1.40$ | $\times 0.80$ | **Neutron Drivers & Igniters:** High natural emission drives neighboring subcritical cells into chain reactions, while a reduced fission multiplier reflects partial saturation. |
+| **`"breeder"`** | Lithium, Glowstone | $\times 1.00$ | $\times 1.00$ | **Transmutation Targets:** Low-temperature targets tailored to breed valuable secondary isotopes (Tritium, Sunnarium) before depleting. |
+| **`"standard"`** | Thorium, Uranium, MOX, Tiberium, Custom mixes | $\times 1.00$ | $\times 1.00$ | **Baselines:** General-purpose, balanced power producers. |
+
+Server administrators can fine-tune these archetype multipliers globally in `physics.yaml`:
+```yaml
+dense_nbase_multiplier: 0.50
+dense_fission_multiplier: 1.20
+excited_nbase_multiplier: 1.40
+excited_fission_multiplier: 0.80
+standard_nbase_multiplier: 1.00
+standard_fission_multiplier: 1.00
+breeder_nbase_multiplier: 1.00
+breeder_fission_multiplier: 1.00
+```
+NEI recipe handlers, the Core GUI, and OpenComputers dynamically display both the fuel's archetype label and its effective parameters ($N_{base,\text{eff}} = \text{round}(N_{base} \times M_{Nbase})$ and $m_{fiss,\text{eff}} = m_{fiss} \times M_{fiss}$).
+
 #### Breeder targets (Lithium and Glowstone)
 
 Glowstone and lithium cells are breeder targets in GregTech. In the reactor core, they behave as low-temperature fuels with peak reactivity at 200 °C (glowstone) and 390 °C (lithium).
@@ -585,6 +609,29 @@ Where no such exponential exists (the linear ratio already exceeds 0.25 — glow
 The neutron terms dominate in any productive core. Example: an isolated uranium quad rod at peak emits 16 neutrons and absorbs little. Its wear is about $0.25 \times 16 + D(770) \approx 5$ per cycle, giving a lifetime of about 4 000 cycles (~67 minutes). The same rod in a heavily moderated lattice that absorbs 40 thermal neutrons per cycle and emits 60 wears at about $15 + 40 + 1 = 56$ per cycle, a lifetime of about 6 minutes.
 
 **Every neutron absorbed in fuel shortens its life.** Strong chain reactions burn fuel much faster than base output does. Power and fuel economy trade off directly.
+
+#### Durability Scaling Reconciliation & Item Synchronization
+
+Minecraft items represent item wear through two layers:
+1. **Vanilla Item Damage**: A 16-bit integer ($0 \dots 100$ in GregTech's `ItemRadioactiveCell`) used to render inventory durability bars.
+2. **Intrinsic Nuclear Damage**: Stored as an NBT integer (`advDmg`) against the item's intrinsic nuclear durability budget $D_{\text{intrinsic}}$ ($40\,000$ for quad rods in `ItemRadioactiveCell`, or variable for custom compounded rods).
+
+Server administrators can configure arbitrary fuel lifetimes in `fuels.yaml` (or via custom fuel compounding) as $D_{\text{configured}}$. To reconcile the configured physical lifetime with the item's intrinsic durability without breaking inventory tooltips, GUI durability bars, or external logistics, the reactor engine scales physical wear each cycle:
+
+$$\text{Scale} = \frac{D_{\text{intrinsic}}}{D_{\text{configured}}}$$
+
+The physical wear $W$ calculated each cycle is scaled to the item's intrinsic damage domain:
+
+$$\Delta D_{\text{item}} = W \times \text{Scale}$$
+
+Integer wear $\lfloor \Delta D_{\text{item}} \rfloor$ is applied directly, and the fractional remainder is applied via stochastic rounding:
+
+$$P(\text{extra point}) = \Delta D_{\text{item}} - \lfloor \Delta D_{\text{item}} \rfloor$$
+
+When $\text{Damage}_{\text{item}} \ge D_{\text{intrinsic}}$, the rod has reached exactly $100\%$ depletion according to its configured life cycle. This ensures that:
+- Inventory GUI durability bars and tooltips reflect the true percentage life remaining at all times.
+- Fuel lifetime can be tuned arbitrarily in server configuration without desynchronizing item state.
+- Custom mixed fuel rods dynamically adapt their durability bars to their unique isotopic budgets.
 
 ### 7.4 Liquid fuels
 
@@ -653,7 +700,7 @@ $N_{base}$ is floored at 4 and durability at 1 000. Everything else about the ro
 The mix lets the operator **tune a fuel's peak temperature to the pipe tier**, and trade base output against durability. For example, a 50/50 Th-232/Pu-239 mix peaks at 840 °C with $m_{fiss} = 1.40$, $N_{base} = 24$ and durability 35 000.
 
 > [!NOTE]
-> **Implementation note.** The custom rod's item has a fixed maximum damage of 40 000, but it depletes when wear reaches the *mix* durability. The durability bar is therefore inaccurate for any mix whose durability is not 40 000. The fast multiplier and fissile fraction stored in NBT are informational; the fast-fission multiplier is not used, since fast absorption never causes fission (§5.1).
+> **Implementation note.** Custom fuel rods dynamically read their intrinsic nuclear durability budget from the compounded mix NBT (`MaxDurability`), rather than being locked to a fixed 40 000 max damage. Cycle wear in the reactor is dynamically scaled by $\frac{D_{\text{intrinsic}}}{D_{\text{configured}}}$ with stochastic rounding (§7.3), keeping inventory GUI durability bars, tooltips, and depletion timings 100% accurate across all custom isotopic blends. The fast multiplier and fissile fraction stored in NBT are informational; the fast-fission multiplier is not used, since fast absorption never causes fission (§5.1).
 
 ### 7.6 Depletion products
 
@@ -2141,7 +2188,7 @@ The following behaviours, described in the body of this manual, appear to differ
 | 7 | Fuel | *Resolved:* Fuel operational and neutronic parameters (packet count, base neutrons, peak/floor temps, durability, spent product) are explicitly defined in YAML (fuels.yaml) on a per-fuel basis; runtime substring parsing eliminated | §7.1 |
 | 8 | Fuel | *Resolved:* Breeder rods (Lithium, Glowstone) now deplete into DepletedRodLithium and DepletedRodGlowstone (centrifuged to Tritium and Sunnarium respectively) instead of being voided | §7.1, §7.6 |
 | 9 | Fuel | *Resolved:* Plutonium liquid fuels and Uranium Hexafluoride have dedicated explicit FuelData entries with correct peak temperatures and 12 base neutrons in fuels.yaml | §7.4 |
-| 10 | Fuel | Custom rod item max damage fixed at 40 000 while depletion uses the mix durability | §7.5 |
+| 10 | Fuel | *Resolved:* Reconciled fuel wear scaling between configured durability and intrinsic item durability; custom rods dynamically read mix durability from NBT | §7.3, §7.5 |
 | 11 | Fuel | Custom-fuel fast multiplier is stored but unused (fast absorption never fissions) | §7.5 |
 | 12 | Fuel | GT depleted rods yield one cycle of neutrons; items named `fuelrod` act as permanent non-depleting fuel | §7.7 |
 | 13 | Components | GT meta-item plates (graphite, beryllium, boron, cadmium) are not classified; NEI implies otherwise | §8 |

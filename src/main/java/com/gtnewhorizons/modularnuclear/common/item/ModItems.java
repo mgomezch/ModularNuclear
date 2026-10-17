@@ -17,7 +17,11 @@ public class ModItems {
     public static ItemCustomFuelRod rodCustomFuel4;
     public static ItemCustomDepletedFuelRod rodCustomDepletedFuel4;
 
-    public static void init() {
+    private static boolean initialized = false;
+
+    public static synchronized void init() {
+        if (initialized) return;
+        initialized = true;
         radiovoltaicPlateHV = new ItemRadiovoltaicPlate("modularnuclear.radiovoltaic.plate.hv", 1);
         GameRegistry.registerItem(radiovoltaicPlateHV, "radiovoltaic_plate_hv");
 

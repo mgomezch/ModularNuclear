@@ -16,6 +16,7 @@ public class FuelData {
     public boolean isLiquid = false;
 
     // Reactivity and Neutronic parameters
+    public String archetype = "standard"; // standard, dense, excited, breeder
     public int packetCount = 1;
     public int baseNeutrons = 4;
     public double thermalFissionMultiplier = 1.0;
@@ -48,7 +49,7 @@ public class FuelData {
 
     public FuelData() {}
 
-    public FuelData(String id, String name, boolean isLiquid, int packetCount, int baseNeutrons,
+    public FuelData(String id, String name, String archetype, boolean isLiquid, int packetCount, int baseNeutrons,
         double thermalFissMult, double fastFissMult, double absFast, double absThermal,
         double scattFast, double scattThermal, double moderation, double heatTransferCoeff,
         double heatPerReaction, int defaultDurability, double peakReactivityTemp, double floorTemp,
@@ -56,6 +57,7 @@ public class FuelData {
         String... matchPatterns) {
         this.id = id;
         this.name = name;
+        this.archetype = archetype != null ? archetype : "standard";
         this.isLiquid = isLiquid;
         this.packetCount = packetCount;
         this.baseNeutrons = baseNeutrons;
@@ -83,6 +85,18 @@ public class FuelData {
                 }
             }
         }
+    }
+
+    public FuelData(String id, String name, boolean isLiquid, int packetCount, int baseNeutrons,
+        double thermalFissMult, double fastFissMult, double absFast, double absThermal,
+        double scattFast, double scattThermal, double moderation, double heatTransferCoeff,
+        double heatPerReaction, int defaultDurability, double peakReactivityTemp, double floorTemp,
+        double peakMult, double peakPoint, double endMult, String spentProduct, double maxTemperature,
+        String... matchPatterns) {
+        this(id, name, "standard", isLiquid, packetCount, baseNeutrons, thermalFissMult, fastFissMult,
+            absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff, heatPerReaction,
+            defaultDurability, peakReactivityTemp, floorTemp, peakMult, peakPoint, endMult, spentProduct,
+            maxTemperature, matchPatterns);
     }
 
     public FuelData(String id, String name, boolean isLiquid, int baseNeutrons, double thermalFissMult,
@@ -156,6 +170,7 @@ public class FuelData {
             }
         }
 
+        fd.archetype = PhysicsData.getString(map, "archetype", fd.archetype);
         fd.packetCount = PhysicsData.getInt(map, "packet_count", fd.packetCount);
         fd.baseNeutrons = PhysicsData.getInt(map, "base_neutrons", fd.baseNeutrons);
         fd.thermalFissionMultiplier = PhysicsData.getDouble(map, "thermal_fission_multiplier", fd.thermalFissionMultiplier);
@@ -186,10 +201,21 @@ public class FuelData {
         return fd;
     }
 
+    public int getEffectiveBaseNeutrons(PhysicsData physics) {
+        double mult = (physics != null) ? physics.getArchetypeNbaseMultiplier(this.archetype) : 1.0;
+        return Math.max(1, (int) Math.round(this.baseNeutrons * mult));
+    }
+
+    public double getEffectiveFissionMultiplier(PhysicsData physics) {
+        double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetype) : 1.0;
+        return this.thermalFissionMultiplier * mult;
+    }
+
     public Map<String, Object> toMap() {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", id);
         m.put("name", name);
+        m.put("archetype", archetype);
         m.put("matching", new ArrayList<>(matching));
         m.put("is_liquid", isLiquid);
         m.put("packet_count", packetCount);

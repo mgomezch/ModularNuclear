@@ -16,6 +16,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.Plating
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
+import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
@@ -194,8 +195,9 @@ public class NuclearReactorPhysics {
         CustomFuelMix customMix = getTileCustomFuelMix(tile);
         FuelData tileFuelData = getTileFuelData(tile);
         NuclearFuelType fuel = getTileFuelType(tile);
+        PhysicsData physics = ReactorDataRegistry.getPhysics();
         double baseFissMult = (customMix != null) ? customMix.baseThermalFissionMultiplier
-            : (tileFuelData != null) ? tileFuelData.thermalFissionMultiplier
+            : (tileFuelData != null) ? tileFuelData.getEffectiveFissionMultiplier(physics)
             : (fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0;
 
         if (tile.isBus()) {
@@ -211,8 +213,8 @@ public class NuclearReactorPhysics {
                 baseNeutrons = customMix.baseNeutrons;
                 baseFissMult = customMix.baseThermalFissionMultiplier;
             } else if (fd != null) {
-                baseNeutrons = fd.baseNeutrons;
-                baseFissMult = fd.thermalFissionMultiplier;
+                baseNeutrons = fd.getEffectiveBaseNeutrons(physics);
+                baseFissMult = fd.getEffectiveFissionMultiplier(physics);
             } else if (stack.getItem() instanceof ItemRadioactiveCellIC icCell) {
                 baseNeutrons = 4 * icCell.numberOfCells;
                 if (icCell.sMox) baseNeutrons *= 2;
@@ -239,8 +241,8 @@ public class NuclearReactorPhysics {
             int baseNeutrons = 8;
             FuelData fd = (tileFuelData != null) ? tileFuelData : ReactorDataRegistry.findFuel(fluid);
             if (fd != null) {
-                baseNeutrons = fd.baseNeutrons;
-                baseFissMult = fd.thermalFissionMultiplier;
+                baseNeutrons = fd.getEffectiveBaseNeutrons(physics);
+                baseFissMult = fd.getEffectiveFissionMultiplier(physics);
             } else if (fuel != null) {
                 baseNeutrons = fuel.baseNeutrons;
                 baseFissMult = fuel.baseThermalFissionMultiplier;
@@ -642,17 +644,42 @@ public class NuclearReactorPhysics {
             double totalDmg = Math.max(0.0, bus.mLastNeutronsGenerated * 0.25)
                 + (bus.mFastAbsorbed + bus.mThermalAbsorbed) * 1.0
                 + tempDmg;
-            int damage = (int) totalDmg;
-            double remainder = totalDmg - damage;
+
+            int configuredDurability = (customMix != null) ? customMix.defaultDurability
+                : (fd != null && fd.defaultDurability > 0) ? fd.defaultDurability
+                : 0;
+
+            int intrinsicMax;
+            if (stack.getItem() instanceof ItemCustomFuelRod customRod) {
+                intrinsicMax = customRod.getMaxDamageEx(stack);
+            } else if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
+                intrinsicMax = radCell.getMaxDamageEx();
+            } else if (stack.getItem() instanceof ItemReactorUranium) {
+                intrinsicMax = stack.getMaxDamage();
+            } else {
+                intrinsicMax = stack.getMaxDamage();
+            }
+
+            if (configuredDurability <= 0) {
+                configuredDurability = intrinsicMax > 0 ? intrinsicMax : 10000;
+            }
+            if (intrinsicMax <= 0) {
+                intrinsicMax = configuredDurability;
+            }
+
+            // Scale physical reactor wear to the item's intrinsic damage domain
+            double scale = (double) intrinsicMax / (double) configuredDurability;
+            double scaledDmg = totalDmg * scale;
+
+            int damage = (int) scaledDmg;
+            double remainder = scaledDmg - damage;
             if (remainder > 0.0 && Math.random() < remainder) {
                 damage++;
             }
+
             if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
                 radCell.damageItemStack(stack, damage);
-                int maxDur = (customMix != null) ? customMix.defaultDurability
-                    : (fd != null && fd.defaultDurability > 0) ? fd.defaultDurability
-                    : radCell.getMaxDamageEx();
-                if (radCell.getDamageOfStack(stack) >= maxDur) {
+                if (radCell.getDamageOfStack(stack) >= intrinsicMax) {
                     reactor.mCycleZeroedFuelItems++;
                     ItemStack depleted = null;
                     if (fd != null && fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
@@ -671,9 +698,8 @@ public class NuclearReactorPhysics {
                 bus.markTileDirty();
             } else if (stack.getItem() instanceof ItemReactorUranium) {
                 int curDmg = stack.getItemDamage();
-                int maxDmg = (fd != null && fd.defaultDurability > 0) ? fd.defaultDurability : stack.getMaxDamage();
                 int newDmg = curDmg + damage;
-                if (newDmg >= maxDmg) {
+                if (newDmg >= intrinsicMax) {
                     reactor.mCycleZeroedFuelItems++;
                     ItemStack depleted = null;
                     if (fd != null && fd.spentProduct != null && !fd.spentProduct.isEmpty()) {

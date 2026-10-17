@@ -5480,6 +5480,73 @@ public class NuclearSimulationEngineTest {
             .isDepletedOrEmptyRod(depletedResultGlowstone));
     }
 
+    @Test
+    public void testFuelArchetypeMultipliers() {
+        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics();
+        assertNotNull(physics);
+        assertEquals(0.50, physics.denseNbaseMultiplier, 1e-4);
+        assertEquals(1.20, physics.denseFissionMultiplier, 1e-4);
+        assertEquals(1.40, physics.excitedNbaseMultiplier, 1e-4);
+        assertEquals(0.80, physics.excitedFissionMultiplier, 1e-4);
+
+        // Find HD Uranium and Excited Uranium
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData hdUran = null;
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData excUran = null;
+        for (com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd :
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllFuels()) {
+            if ("fuel_hd_uranium_1".equals(fd.id)) hdUran = fd;
+            if ("fuel_excited_uranium_1".equals(fd.id)) excUran = fd;
+        }
+
+        assertNotNull(hdUran, "fuel_hd_uranium_1 must exist");
+        assertEquals("dense", hdUran.archetype);
+        // HD Uranium base neutrons = 8. With dense mult 0.50 -> 4
+        assertEquals(4, hdUran.getEffectiveBaseNeutrons(physics));
+        // HD Uranium base fission mult = 1.80. With dense mult 1.20 -> 2.16
+        assertEquals(1.80 * 1.20, hdUran.getEffectiveFissionMultiplier(physics), 1e-4);
+
+        assertNotNull(excUran, "fuel_excited_uranium_1 must exist");
+        assertEquals("excited", excUran.archetype);
+        // Excited Uranium base neutrons = 16. With excited mult 1.40 -> 22
+        assertEquals(Math.round(16 * 1.40), excUran.getEffectiveBaseNeutrons(physics));
+        // Excited Uranium base fission mult = 2.50. With excited mult 0.80 -> 2.00
+        assertEquals(2.50 * 0.80, excUran.getEffectiveFissionMultiplier(physics), 1e-4);
+    }
+
+    @Test
+    public void testDurabilityScalingReconciliation() {
+        // Ensure ModItems are initialized
+        if (com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel4 == null) {
+            com.gtnewhorizons.modularnuclear.common.item.ModItems.init();
+        }
+        com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod customItem =
+            com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel4;
+
+        // Create item stack with mock mix
+        ItemStack stack = new ItemStack(customItem, 1, 0);
+        stack.stackTagCompound = new net.minecraft.nbt.NBTTagCompound();
+        stack.stackTagCompound.setInteger("MaxDurability", 25000);
+
+        // Intrinsic max damage for this custom mix stack should be 25000, not the class default 40000
+        assertEquals(25000, customItem.getMaxDamageEx(stack));
+
+        // Damage stack to 12500 (half life)
+        customItem.setDamageForStack(stack, 12500);
+        assertEquals(12500, customItem.getDamageOfStack(stack));
+        // Vanilla damage should be 50% of 100 = 50
+        assertEquals(50, stack.getItemDamage());
+
+        // Test scaling calculation
+        int configuredDurability = 50000; // Say server admin doubled it to 50000
+        int intrinsicMax = customItem.getMaxDamageEx(stack); // 25000
+        double scale = (double) intrinsicMax / (double) configuredDurability; // 0.50
+
+        double totalDmg = 10.0;
+        double scaledDmg = totalDmg * scale;
+        assertEquals(5.0, scaledDmg, 1e-4);
+    }
+
     private static void deleteRecursively(File file) {
         if (file.isDirectory()) {
             File[] children = file.listFiles();

@@ -21,6 +21,36 @@ public class PhysicsData {
     public int wallMaintenanceNeutronThreshold = 10000;
     public double defaultAmbientTemp = 293.15;
 
+    // Fuel Archetype / Class Multipliers (Global Calibration Parameters)
+    public double denseNbaseMultiplier = 0.50;      // -50% base neutrons (subcritical/mostly-inert)
+    public double denseFissionMultiplier = 1.20;    // +20% thermal fission multiplication (high reaction potential)
+    public double excitedNbaseMultiplier = 1.40;    // +40% base neutrons (driver / primary neutron source)
+    public double excitedFissionMultiplier = 0.80;  // -20% thermal fission multiplication (already excited)
+    public double standardNbaseMultiplier = 1.00;
+    public double standardFissionMultiplier = 1.00;
+    public double breederNbaseMultiplier = 1.00;
+    public double breederFissionMultiplier = 1.00;
+
+    public double getArchetypeNbaseMultiplier(String archetype) {
+        if (archetype == null) return standardNbaseMultiplier;
+        return switch (archetype.toLowerCase(java.util.Locale.ROOT)) {
+            case "dense", "subcritical", "naquadah" -> denseNbaseMultiplier;
+            case "excited", "driver" -> excitedNbaseMultiplier;
+            case "breeder" -> breederNbaseMultiplier;
+            default -> standardNbaseMultiplier;
+        };
+    }
+
+    public double getArchetypeFissionMultiplier(String archetype) {
+        if (archetype == null) return standardFissionMultiplier;
+        return switch (archetype.toLowerCase(java.util.Locale.ROOT)) {
+            case "dense", "subcritical", "naquadah" -> denseFissionMultiplier;
+            case "excited", "driver" -> excitedFissionMultiplier;
+            case "breeder" -> breederFissionMultiplier;
+            default -> standardFissionMultiplier;
+        };
+    }
+
     public static PhysicsData fromMap(Map<String, Object> map) {
         PhysicsData d = new PhysicsData();
         if (map == null) return d;
@@ -39,6 +69,15 @@ public class PhysicsData {
         d.wallAbsorbHeatPerNeutron = getDouble(map, "wall_absorb_heat_per_neutron", d.wallAbsorbHeatPerNeutron);
         d.wallMaintenanceNeutronThreshold = getInt(map, "wall_maintenance_neutron_threshold", d.wallMaintenanceNeutronThreshold);
         d.defaultAmbientTemp = getDouble(map, "default_ambient_temp", d.defaultAmbientTemp);
+
+        d.denseNbaseMultiplier = getDouble(map, "dense_nbase_multiplier", d.denseNbaseMultiplier);
+        d.denseFissionMultiplier = getDouble(map, "dense_fission_multiplier", d.denseFissionMultiplier);
+        d.excitedNbaseMultiplier = getDouble(map, "excited_nbase_multiplier", d.excitedNbaseMultiplier);
+        d.excitedFissionMultiplier = getDouble(map, "excited_fission_multiplier", d.excitedFissionMultiplier);
+        d.standardNbaseMultiplier = getDouble(map, "standard_nbase_multiplier", d.standardNbaseMultiplier);
+        d.standardFissionMultiplier = getDouble(map, "standard_fission_multiplier", d.standardFissionMultiplier);
+        d.breederNbaseMultiplier = getDouble(map, "breeder_nbase_multiplier", d.breederNbaseMultiplier);
+        d.breederFissionMultiplier = getDouble(map, "breeder_fission_multiplier", d.breederFissionMultiplier);
         return d;
     }
 
@@ -59,10 +98,19 @@ public class PhysicsData {
         m.put("wall_absorb_heat_per_neutron", wallAbsorbHeatPerNeutron);
         m.put("wall_maintenance_neutron_threshold", wallMaintenanceNeutronThreshold);
         m.put("default_ambient_temp", defaultAmbientTemp);
+
+        m.put("dense_nbase_multiplier", denseNbaseMultiplier);
+        m.put("dense_fission_multiplier", denseFissionMultiplier);
+        m.put("excited_nbase_multiplier", excitedNbaseMultiplier);
+        m.put("excited_fission_multiplier", excitedFissionMultiplier);
+        m.put("standard_nbase_multiplier", standardNbaseMultiplier);
+        m.put("standard_fission_multiplier", standardFissionMultiplier);
+        m.put("breeder_nbase_multiplier", breederNbaseMultiplier);
+        m.put("breeder_fission_multiplier", breederFissionMultiplier);
         return m;
     }
 
-    static double getDouble(Map<String, Object> map, String key, double def) {
+    public static double getDouble(Map<String, Object> map, String key, double def) {
         Object val = map.get(key);
         if (val instanceof Number n) return n.doubleValue();
         if (val instanceof String s) {
@@ -71,12 +119,19 @@ public class PhysicsData {
         return def;
     }
 
-    static int getInt(Map<String, Object> map, String key, int def) {
+    public static int getInt(Map<String, Object> map, String key, int def) {
         Object val = map.get(key);
         if (val instanceof Number n) return n.intValue();
         if (val instanceof String s) {
             try { return Integer.parseInt(s); } catch (Exception ignored) {}
         }
+        return def;
+    }
+
+    public static String getString(Map<String, Object> map, String key, String def) {
+        Object val = map.get(key);
+        if (val instanceof String s) return s;
+        if (val != null) return String.valueOf(val);
         return def;
     }
 }

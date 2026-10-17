@@ -391,14 +391,21 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         drawScaledString(l2, 12, 33, STATS_SCALE, 0x333333);
 
         // Line 3: Fission Multiplier & Base Neutron Output
+        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics();
+        double effFiss = fuel.getEffectiveFissionMultiplier(physics);
+        int effNeutrons = fuel.getEffectiveBaseNeutrons(physics);
+
+        String archetypeLabel = fuel.archetype.substring(0, 1).toUpperCase(Locale.ROOT) + fuel.archetype.substring(1);
         String l3 = String.format(
             Locale.US,
-            "Fission Mult: %s%.2fx%s | Neutrons: %s%d/s",
+            "Fiss Mult: %s%.2fx%s | Neutrons: %s%d/s%s [%s]",
             EnumChatFormatting.DARK_PURPLE,
-            fuel.baseThermalFissionMultiplier,
+            effFiss,
             EnumChatFormatting.DARK_GRAY,
             EnumChatFormatting.DARK_RED,
-            fuel.baseNeutrons);
+            effNeutrons,
+            EnumChatFormatting.DARK_GRAY,
+            archetypeLabel);
         drawScaledString(l3, 12, 44, STATS_SCALE, 0x333333);
 
         // Line 4: Durability & Growth Parameter k
