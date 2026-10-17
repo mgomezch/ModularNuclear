@@ -172,6 +172,13 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    setCoolantLoopSecondaryCoolant(secondary, notify = true) {
+        if (this.inst.exports.setCoolantLoopSecondaryCoolant) {
+            this.inst.exports.setCoolantLoopSecondaryCoolant(this.createJavaString(secondary));
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     setCoolantLoopPumpPower(powerEUt, notify = true) {
         if (this.inst.exports.setCoolantLoopPumpPower) {
             this.inst.exports.setCoolantLoopPumpPower(powerEUt);
