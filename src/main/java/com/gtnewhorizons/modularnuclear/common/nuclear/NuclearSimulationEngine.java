@@ -598,6 +598,10 @@ public class NuclearSimulationEngine {
                                 if (hitTile.getInsulationDampening() < 1.0) {
                                     pendingHeat[posX][posY] += rayNeutrons * HU_FOR_FAST_NEUTRON;
                                 }
+                                double thermalEmission = hitTile.getThermalNeutronEmissionYield(rayNeutrons);
+                                if (thermalEmission > 0.0) {
+                                    thermalPool[posX][posY] += thermalEmission;
+                                }
                                 terminated = true;
                                 break;
                             } else {

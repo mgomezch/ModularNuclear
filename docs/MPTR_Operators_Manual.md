@@ -779,7 +779,9 @@ Component recognition, neutronic cross-sections, and thermodynamic properties ar
 | Empty bus | 0.01 | 0.01 | 0.02 | 0.05 | 0.02 | 0 |
 | Empty hatch | 0.01 | 0.01 | 0.02 | 0.05 | 0.05 | 0 |
 | Fuel rod | 0.25 | 0.80 | 0.15 | 0.10 | 0.05 / 0.03 | 0 |
-| Moderator (graphite / carbon / "moderator") | 0.002 | 0.009 | 0.93 | 0.50 | 0.03 | 0 |
+| Moderator: Carbon | 0.003 | 0.012 | 0.90 | 0.45 | 0.05 | 0 |
+| Moderator: Graphite | 0.002 | 0.009 | 0.93 | 0.50 | 0.05 | 0 |
+| Moderator: Beryllium | 0.001 | 0.004 | 0.96 | 0.65 | 0.15 | 0 |
 | Reflector | 0.01 | 0.02 | 0.95 | 0.20 | 0.15 | 0 |
 | Absorber (boron / cadmium / "control") | 0.85 | 0.95 | 0.10 | 0.05 | — | 0 |
 | Radiovoltaic plate | 1.0 | 1.0 | 0 | 0 | 0.10 | 0 |
@@ -807,18 +809,52 @@ An empty bus or hatch is almost transparent. About 3% of fast packets interact i
 
 ### 8.3 Moderators
 
-Matching items: names containing *graphite*, *carbon* or *moderator*.
+Moderator components are completely data-driven via `config/modularnuclear/components.yaml` under `moderators`. Component recognition is **never based on fuzzy substring matching**; instead, each moderator material is explicitly configured with individual cross-sections, durability budgets, temperature wear constants, and spent products. Long rods made of Carbon, Graphite, and Beryllium (`stickLongCarbon`, `stickLongGraphite`, `stickLongBeryllium`) as well as plates, blocks, and dusts are supported directly in the Nuclear Core Bus.
 
-A moderator interacts with 93% of fast packets entering it. Because $p_{s,f} \ge 0.90$ and $p_{a,f} \le 0.05$, every scatter **reverses** the packet. Half of the scatters thermalise it. The net effect of a moderator cell:
+#### Supported Moderator Types
 
-- **≈ 47%** of incident fast packets are thermalised in it;
-- **≈ 46%** are sent back the way they came;
-- **≈ 7%** pass through;
-- a negligible fraction is absorbed.
+| Material | Durability | Moderation ($p_m$) | Scattering ($p_s$) | Absorption ($p_a$) | Spent Product | Thermal Emission Hazard |
+|---|---|---|---|---|---|---|
+| **Carbon** | 10 000 | 0.45 | 0.90 / 0.60 | 0.003 / 0.012 | `ore:dustAsh` | None |
+| **Graphite** | 80 000 | 0.50 | 0.93 / 0.621 | 0.002 / 0.009 | `ore:dustAsh` | > 1500 °C (up to 4.0 th-n / fast) |
+| **Beryllium** | 240 000 | 0.65 | 0.96 / 0.85 | 0.001 / 0.004 | None (consumed) | None |
 
-The resulting thermal neutrons start in the moderator, which absorbs less than 1% of them, and diffuse into the surrounding cells. A moderator between two fuel cells returns about half of each cell's incident fast neutrons as a thermal cloud shared by both.
+- **Carbon:** Burns out quickly with the lowest durability (10 000 points). Useful as a cheap early-game solid moderator rod.
+- **Graphite:** Lasts **8× longer** than carbon (80 000 durability). It scatters 93% of fast neutrons with 50% moderation efficiency.
+- **Beryllium:** Works significantly better and lasts **24× longer** than carbon (240 000 durability). With $p_m = 0.65$, $p_{s,f} = 0.96$, and high thermal conductivity ($c = 0.15$), it represents the pinnacle of solid moderator technology.
 
-Moderators heat at 8 Hu per neutron thermalised. With $c = 0.03$ they conduct poorly, so a heavily loaded moderator can run noticeably hotter than its surroundings. Moderators do not wear.
+#### Moderator Durability and Wear
+
+When freshly crafted or inserted into the reactor bus, GT rods and blocks carry no initial durability metadata. As soon as the cell receives neutron flux, the reactor tracks cumulative damage in an NBT integer tag (`advDmg`).
+
+Each cycle, moderator wear is calculated from incident flux, absorbed neutrons, and temperature:
+
+$$\Delta W = (A_f \cdot w_f + A_t \cdot w_t) + (F_f + F_t) \cdot 0.05 + D(T)$$
+
+where $w_f = 8.0$ and $w_t = 1.0$ (configurable in `physics.yaml`), and temperature wear follows an exponential acceleration curve:
+
+$$D(T) = A \left(e^{k(T - T_{\text{amb}})} - 1\right) \quad (T > T_{\text{amb}})$$
+
+Damage is applied using stochastic rounding. When $\text{advDmg} \ge \text{durability}$, the moderator rod is depleted and converted into its configured `spentProduct` (e.g. `ore:dustAsh` for Carbon and Graphite, delivered to the reactor's output bus).
+
+#### Graphite High-Temperature Hazard (Positive Reactivity Feedback)
+
+Graphite moderators feature a unique high-temperature physical hazard: when heated above **1500 °C**, graphite begins to emit thermal neutrons upon fast neutron absorption. The thermal emission rate follows a smooth Hill saturation curve:
+
+$$\text{Yield}(T) = N_{\text{fast,abs}} \cdot Y_{\max} \cdot \frac{(T - 1500)^2}{(T - 1500)^2 + (2500 - 1500)^2} \quad (T > 1500^\circ\text{C})$$
+
+- At $T \le 1500^\circ\text{C}$: $\text{Yield} = 0$.
+- At $T = 2500^\circ\text{C}$: The curve reaches exactly **50% saturation** ($2.0$ thermal neutrons per fast neutron absorbed).
+- At extreme temperatures: Saturates at $Y_{\max} = 4.0$ thermal neutrons per fast neutron absorbed (the exact equivalent of a single normal Uranium fuel rod's emission).
+
+> [!WARNING]
+> **Positive Reactivity Hazard**: If a reactor moderated by graphite rods runs very hot ($T > 1500^\circ\text{C}$), every fast neutron absorbed by graphite produces a cloud of secondary thermal neutrons. These thermal neutrons diffuse into adjacent fuel rods, triggering additional fissions, generating more heat and more fast neutrons. This creates an aggressive **positive reactivity temperature coefficient**, which can rapidly escalate towards core meltdown unless controlled or quenched by liquid coolant. This hazard strongly incentivises operators to transition to liquid moderators (heavy water) or beryllium for high-temperature regimes.
+
+All curve parameters ($T_{\text{onset}}$, $T_{\text{half}}$, $Y_{\max}$) and durability budgets are fully configurable per moderator entry in `components.yaml`.
+
+#### NEI Integration
+
+Pressing recipe or usage on any moderator item (or clicking the MPTR Reactor Catalyst) opens the dedicated **NEI Moderator Stats Handler** (`MPTR Moderators`). This interface displays full neutronic ratings, durability lifetime, heat transfer coefficients, and an interactive plot of either the Graphite Thermal Hazard Curve or the Temperature Wear Acceleration Curve with real-time hover tooltips.
 
 ### 8.4 Reflectors
 

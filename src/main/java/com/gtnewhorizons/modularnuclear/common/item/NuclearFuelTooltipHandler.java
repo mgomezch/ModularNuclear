@@ -35,5 +35,26 @@ public class NuclearFuelTooltipHandler {
                         + String.format(Locale.US, "%,.0f °C", fuel.peakReactivityTemp));
             }
         }
+
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(event.itemStack);
+        if (mod != null) {
+            event.toolTip.add(EnumChatFormatting.AQUA + "MPTR Moderator: " + EnumChatFormatting.WHITE + mod.name);
+            event.toolTip.add(EnumChatFormatting.GRAY + "Moderation: " + EnumChatFormatting.GREEN
+                + String.format(Locale.US, "%.0f%%", mod.moderation * 100));
+
+            int curDmg = 0;
+            if (event.itemStack.stackTagCompound != null && event.itemStack.stackTagCompound.hasKey("advDmg")) {
+                curDmg = event.itemStack.stackTagCompound.getInteger("advDmg");
+            }
+            int remaining = Math.max(0, mod.durability - curDmg);
+            event.toolTip.add(EnumChatFormatting.GRAY + "Durability: " + EnumChatFormatting.YELLOW
+                + String.format(Locale.US, "%,d / %,d", remaining, mod.durability));
+
+            if (mod.thermalEmissionMaxPerFast > 0.0) {
+                event.toolTip.add(EnumChatFormatting.RED + "Thermal Hazard: " + EnumChatFormatting.WHITE
+                    + String.format(Locale.US, "Emits up to %.1f th-n/fast > %.0f °C", mod.thermalEmissionMaxPerFast, mod.thermalEmissionOnsetTemp));
+            }
+        }
     }
 }

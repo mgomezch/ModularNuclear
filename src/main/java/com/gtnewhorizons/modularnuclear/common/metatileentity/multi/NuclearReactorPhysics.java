@@ -191,6 +191,16 @@ public class NuclearReactorPhysics {
         return null;
     }
 
+    public static ModeratorData getTileModeratorData(NuclearGridTile tile) {
+        if (tile != null && tile.isBus()) {
+            ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+            if (stack != null) {
+                return ReactorDataRegistry.findModerator(stack);
+            }
+        }
+        return null;
+    }
+
     public static int generateTileNeutrons(MTENuclearReactor reactor, NuclearGridTile tile, double efficiency) {
         CustomFuelMix customMix = getTileCustomFuelMix(tile);
         FuelData tileFuelData = getTileFuelData(tile);
@@ -738,7 +748,62 @@ public class NuclearReactorPhysics {
                 reactor.damageItemComponent(bus, damage);
             }
         }
-        // 2. RADIOVOLTAIC DIRECT EU GENERATION
+        // 2. MODERATOR WEAR & DEPLETION
+        else if (NuclearFuelClassification.isItemModerator(stack)) {
+            bus.mDirectEUProduced = 0;
+            ModeratorData mod = ReactorDataRegistry.findModerator(stack);
+            if (mod != null) {
+                double ambient = bus.getAmbientTemperature();
+                double tempDmg = mod.calculateTemperatureDamage(bus.mTemperature, ambient);
+
+                PhysicsData physics = ReactorDataRegistry.getPhysics();
+                double fastWearMult = (physics != null) ? physics.fastAbsorptionDamageMultiplier : NuclearSimulationEngine.fastAbsorptionDamageMultiplier;
+                double thermalWearMult = (physics != null) ? physics.thermalAbsorptionDamageMultiplier : NuclearSimulationEngine.thermalAbsorptionDamageMultiplier;
+
+                double totalDmg = (bus.mFastAbsorbed * fastWearMult + bus.mThermalAbsorbed * thermalWearMult)
+                    + (bus.mFastFlux + bus.mThermalFlux) * 0.05
+                    + tempDmg;
+
+                int damage = (int) totalDmg;
+                double remainder = totalDmg - damage;
+                if (remainder > 0.0 && Math.random() < remainder) {
+                    damage++;
+                }
+
+                if (damage > 0) {
+                    int curDmg = 0;
+                    if (stack.stackTagCompound != null && stack.stackTagCompound.hasKey("advDmg")) {
+                        curDmg = stack.stackTagCompound.getInteger("advDmg");
+                    }
+                    int newDmg = curDmg + damage;
+                    if (newDmg >= mod.durability) {
+                        reactor.mCycleZeroedFuelItems++;
+                        ItemStack depleted = null;
+                        if (mod.spentProduct != null && !mod.spentProduct.isEmpty()) {
+                            depleted = ReactorDataRegistry.resolveItemStack(mod.spentProduct);
+                        }
+                        if (stack.stackSize > 1) {
+                            stack.stackSize--;
+                            if (stack.stackTagCompound != null) {
+                                stack.stackTagCompound.removeTag("advDmg");
+                            }
+                        } else {
+                            bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                        }
+                        if (depleted != null) {
+                            reactor.addOutputPartial(depleted);
+                        }
+                    } else {
+                        if (stack.stackTagCompound == null) {
+                            stack.stackTagCompound = new net.minecraft.nbt.NBTTagCompound();
+                        }
+                        stack.stackTagCompound.setInteger("advDmg", newDmg);
+                    }
+                    bus.markTileDirty();
+                }
+            }
+        }
+        // 3. RADIOVOLTAIC DIRECT EU GENERATION
         else if (reactor.isItemRadiovoltaic(stack)) {
             int tier = reactor.getRadiovoltaicTier(stack);
             long maxEU = (tier >= 2) ? 4096 : 1024;

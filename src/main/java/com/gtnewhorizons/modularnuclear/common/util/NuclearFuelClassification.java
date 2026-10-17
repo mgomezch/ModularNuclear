@@ -218,6 +218,15 @@ public final class NuclearFuelClassification {
             }
         }
 
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack);
+        if (mod != null) {
+            if (stack.stackTagCompound != null && stack.stackTagCompound.hasKey("advDmg")) {
+                if (stack.stackTagCompound.getInteger("advDmg") >= mod.durability) {
+                    return true;
+                }
+            }
+        }
+
         String name = stack.getUnlocalizedName();
         if (name != null) {
             String lower = name.toLowerCase();
@@ -461,33 +470,6 @@ public final class NuclearFuelClassification {
         if (stack == null) return false;
         if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack) != null) return true;
         if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemModerator(stack)) return true;
-        if (stack.getItem() == null) return false;
-        if (isOreDictMatch(stack, "blockGraphite") || isOreDictMatch(stack, "plateGraphite")
-            || isOreDictMatch(stack, "ingotGraphite") || isOreDictMatch(stack, "dustGraphite"))
-            return true;
-        if (isOreDictMatch(stack, "plateCarbon") || isOreDictMatch(stack, "plateAlloyCarbon")
-            || isOreDictMatch(stack, "dustCarbon"))
-            return true;
-        try {
-            if (Materials.Graphite != null) {
-                if (GTUtility.areStacksEqual(stack, Materials.Graphite.getBlocks(1), true)) return true;
-                if (GTUtility.areStacksEqual(stack, Materials.Graphite.getPlates(1), true)) return true;
-                if (GTUtility.areStacksEqual(stack, Materials.Graphite.getIngots(1), true)) return true;
-                if (GTUtility.areStacksEqual(stack, Materials.Graphite.getDust(1), true)) return true;
-            }
-            if (Materials.Carbon != null) {
-                if (GTUtility.areStacksEqual(stack, Materials.Carbon.getPlates(1), true)) return true;
-                if (GTUtility.areStacksEqual(stack, Materials.Carbon.getDust(1), true)) return true;
-            }
-        } catch (Throwable ignored) {}
-
-        String name = stack.getUnlocalizedName();
-        if (name != null) {
-            String lower = name.toLowerCase();
-            if (lower.contains("moderator") || (lower.contains("graphite") && (lower.contains("block") || lower.contains("plate") || lower.contains("ingot") || lower.contains("dust"))))
-                return true;
-        }
-
         return false;
     }
 

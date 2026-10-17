@@ -214,11 +214,27 @@ public class ComponentData {
         public double moderation = 0.50;
         public double heatTransferCoeff = 0.05;
         public double maxTemperature = 2500.0;
+        public int durability = 80000;
+        public String spentProduct = "ore:dustAsh";
+        public double tempWearK = 0.0003;
+        public double tempWearA = 1.0;
+        public double thermalEmissionOnsetTemp = 1500.0;
+        public double thermalEmissionHalfTemp = 2500.0;
+        public double thermalEmissionMaxPerFast = 0.0;
 
         public ModeratorData() {}
 
         public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
             double scattThermal, double moderation, double heatTransferCoeff, double maxTemp, String... matching) {
+            this(id, name, absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff, maxTemp,
+                80000, "ore:dustAsh", 0.0003, 1.0, 1500.0, 2500.0, 0.0, matching);
+        }
+
+        public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
+            double scattThermal, double moderation, double heatTransferCoeff, double maxTemp,
+            int durability, String spentProduct, double tempWearK, double tempWearA,
+            double thermalEmissionOnsetTemp, double thermalEmissionHalfTemp, double thermalEmissionMaxPerFast,
+            String... matching) {
             this.id = id;
             this.name = name;
             this.absorptionFast = absFast;
@@ -228,7 +244,30 @@ public class ComponentData {
             this.moderation = moderation;
             this.heatTransferCoeff = heatTransferCoeff;
             this.maxTemperature = maxTemp;
+            this.durability = durability;
+            this.spentProduct = spentProduct;
+            this.tempWearK = tempWearK;
+            this.tempWearA = tempWearA;
+            this.thermalEmissionOnsetTemp = thermalEmissionOnsetTemp;
+            this.thermalEmissionHalfTemp = thermalEmissionHalfTemp;
+            this.thermalEmissionMaxPerFast = thermalEmissionMaxPerFast;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
+        }
+
+        public double calculateTemperatureDamage(double temp, double ambient) {
+            if (temp <= ambient || tempWearK <= 0.0 || tempWearA <= 0.0) return 0.0;
+            return tempWearA * (Math.exp(tempWearK * (temp - ambient)) - 1.0);
+        }
+
+        public double calculateThermalEmission(double temp, int fastNeutronsAbsorbed) {
+            if (thermalEmissionMaxPerFast <= 0.0 || fastNeutronsAbsorbed <= 0 || temp <= thermalEmissionOnsetTemp) {
+                return 0.0;
+            }
+            double deltaT = temp - thermalEmissionOnsetTemp;
+            double deltaTHalf = thermalEmissionHalfTemp - thermalEmissionOnsetTemp;
+            if (deltaTHalf <= 0.0) return 0.0;
+            double factor = (deltaT * deltaT) / (deltaT * deltaT + deltaTHalf * deltaTHalf);
+            return fastNeutronsAbsorbed * thermalEmissionMaxPerFast * factor;
         }
 
         public static ModeratorData fromMap(Map<String, Object> map) {
@@ -244,6 +283,13 @@ public class ComponentData {
             d.moderation = PhysicsData.getDouble(map, "moderation", d.moderation);
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
             d.maxTemperature = PhysicsData.getDouble(map, "max_temperature", d.maxTemperature);
+            d.durability = PhysicsData.getInt(map, "durability", d.durability);
+            d.spentProduct = (String) map.getOrDefault("spent_product", d.spentProduct);
+            d.tempWearK = PhysicsData.getDouble(map, "temp_wear_k", d.tempWearK);
+            d.tempWearA = PhysicsData.getDouble(map, "temp_wear_a", d.tempWearA);
+            d.thermalEmissionOnsetTemp = PhysicsData.getDouble(map, "thermal_emission_onset_temp", d.thermalEmissionOnsetTemp);
+            d.thermalEmissionHalfTemp = PhysicsData.getDouble(map, "thermal_emission_half_temp", d.thermalEmissionHalfTemp);
+            d.thermalEmissionMaxPerFast = PhysicsData.getDouble(map, "thermal_emission_max_per_fast", d.thermalEmissionMaxPerFast);
             return d;
         }
 
@@ -259,6 +305,13 @@ public class ComponentData {
             m.put("moderation", moderation);
             m.put("heat_transfer_coeff", heatTransferCoeff);
             m.put("max_temperature", maxTemperature);
+            m.put("durability", durability);
+            m.put("spent_product", spentProduct != null ? spentProduct : "");
+            m.put("temp_wear_k", tempWearK);
+            m.put("temp_wear_a", tempWearA);
+            m.put("thermal_emission_onset_temp", thermalEmissionOnsetTemp);
+            m.put("thermal_emission_half_temp", thermalEmissionHalfTemp);
+            m.put("thermal_emission_max_per_fast", thermalEmissionMaxPerFast);
             return m;
         }
     }

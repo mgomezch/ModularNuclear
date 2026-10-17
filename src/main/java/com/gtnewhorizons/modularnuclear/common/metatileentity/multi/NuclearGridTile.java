@@ -159,6 +159,20 @@ public class NuclearGridTile implements INuclearTile {
     }
 
     @Override
+    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData getModeratorData() {
+        return reactor.getTileModeratorData(this);
+    }
+
+    @Override
+    public double getThermalNeutronEmissionYield(int fastNeutronsAbsorbed) {
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod = getModeratorData();
+        if (mod != null) {
+            return mod.calculateThermalEmission(getTemperature(), fastNeutronsAbsorbed);
+        }
+        return 0.0;
+    }
+
+    @Override
     public int generateNeutrons(double efficiency) {
         return reactor.generateTileNeutrons(this, efficiency);
     }

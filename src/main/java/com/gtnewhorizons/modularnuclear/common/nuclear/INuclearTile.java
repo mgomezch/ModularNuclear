@@ -103,4 +103,19 @@ public interface INuclearTile {
     default com.gtnewhorizons.modularnuclear.common.config.data.FuelData getFuelData() {
         return null;
     }
+
+    /**
+     * Data-driven YAML moderator configuration if this tile contains a moderator component, or null otherwise.
+     */
+    default com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData getModeratorData() {
+        return null;
+    }
+
+    /**
+     * Returns the number of secondary thermal neutrons generated upon absorbing fast neutrons
+     * (e.g. graphite thermal emission hazard above 1500°C).
+     */
+    default double getThermalNeutronEmissionYield(int fastNeutronsAbsorbed) {
+        return 0.0;
+    }
 }

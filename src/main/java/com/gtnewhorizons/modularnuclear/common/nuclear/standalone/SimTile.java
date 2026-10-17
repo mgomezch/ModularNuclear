@@ -43,6 +43,9 @@ public class SimTile implements INuclearTile {
         HATCH_IC2_COOLANT("IC2 Coolant Hatch", "HC"),
         REFLECTOR_BERYLLIUM("Beryllium Reflector", "RB"),
         REFLECTOR_CARBON("Carbon Reflector", "RC"),
+        MODERATOR_GRAPHITE("Graphite Moderator", "MG"),
+        MODERATOR_CARBON("Carbon Moderator", "MC"),
+        MODERATOR_BERYLLIUM("Beryllium Moderator", "MB"),
         CONTROL_ROD("Boron Control Rod", "CR"),
         COOLANT_CELL_10K("10k Coolant Cell", "C1"),
         COOLANT_CELL_60K("60k Coolant Cell", "C6"),
@@ -319,6 +322,18 @@ public class SimTile implements INuclearTile {
                     this.maxCellHeat = 360000;
                     this.currentCellHeat = 0;
                 }
+                case MODERATOR_GRAPHITE -> {
+                    this.maxDurability = 80000;
+                    this.durability = 80000;
+                }
+                case MODERATOR_CARBON -> {
+                    this.maxDurability = 10000;
+                    this.durability = 10000;
+                }
+                case MODERATOR_BERYLLIUM -> {
+                    this.maxDurability = 240000;
+                    this.durability = 240000;
+                }
                 case VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED -> {
                     this.maxCellHeat = 1000;
                     this.currentCellHeat = 0;
@@ -408,6 +423,8 @@ public class SimTile implements INuclearTile {
             case VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED, VENT_COMPONENT -> 0.35;
             case EXCHANGER_STANDARD, EXCHANGER_ADVANCED, EXCHANGER_COMPONENT -> 0.40;
             case REFLECTOR_BERYLLIUM, REFLECTOR_CARBON -> 0.15;
+            case MODERATOR_GRAPHITE, MODERATOR_CARBON -> 0.05;
+            case MODERATOR_BERYLLIUM -> 0.15;
             case RADIOVOLTAIC_HV, RADIOVOLTAIC_EV -> 0.10;
             case INSULATOR_BASIC_THERMAL_CLOTH, INSULATOR_T2_THERMAL_CLOTH, INSULATOR_MICA_FOIL, INSULATOR_NAQUARITE_FOIL -> 0.01;
             case HATCH_LIQUID_FUEL_URANIUM, HATCH_LIQUID_FUEL_THORIUM, HATCH_LIQUID_FUEL_PLUTONIUM -> 0.25;
@@ -439,6 +456,10 @@ public class SimTile implements INuclearTile {
 
     public boolean isRadiovoltaic() {
         return type == TileType.RADIOVOLTAIC_HV || type == TileType.RADIOVOLTAIC_EV;
+    }
+
+    public boolean isModerator() {
+        return type == TileType.MODERATOR_GRAPHITE || type == TileType.MODERATOR_CARBON || type == TileType.MODERATOR_BERYLLIUM;
     }
 
     @Override
@@ -530,6 +551,14 @@ public class SimTile implements INuclearTile {
         if (isRadiovoltaic()) {
             return 1.0;
         }
+        if (isModerator()) {
+            return switch (type) {
+                case MODERATOR_GRAPHITE -> (nType == NeutronType.FAST) ? 0.002 : 0.009;
+                case MODERATOR_CARBON -> (nType == NeutronType.FAST) ? 0.003 : 0.012;
+                case MODERATOR_BERYLLIUM -> (nType == NeutronType.FAST) ? 0.001 : 0.004;
+                default -> 0.01;
+            };
+        }
         if (type == TileType.CONTROL_ROD) {
             return (nType == NeutronType.THERMAL) ? 0.95 : 0.85;
         }
@@ -579,6 +608,14 @@ public class SimTile implements INuclearTile {
         if (isRadiovoltaic()) {
             return 0.0;
         }
+        if (isModerator()) {
+            return switch (type) {
+                case MODERATOR_GRAPHITE -> (nType == NeutronType.FAST) ? 0.93 : 0.621;
+                case MODERATOR_CARBON -> (nType == NeutronType.FAST) ? 0.90 : 0.60;
+                case MODERATOR_BERYLLIUM -> (nType == NeutronType.FAST) ? 0.96 : 0.85;
+                default -> 0.10;
+            };
+        }
         if (type == TileType.REFLECTOR_BERYLLIUM || type == TileType.REFLECTOR_CARBON) {
             return (nType == NeutronType.THERMAL) ? 0.98 : 0.95;
         }
@@ -617,6 +654,14 @@ public class SimTile implements INuclearTile {
     public double getModerationProbability() {
         if (isRadiovoltaic()) {
             return 0.0;
+        }
+        if (isModerator()) {
+            return switch (type) {
+                case MODERATOR_GRAPHITE -> 0.50;
+                case MODERATOR_CARBON -> 0.45;
+                case MODERATOR_BERYLLIUM -> 0.65;
+                default -> 0.50;
+            };
         }
         if (type == TileType.REFLECTOR_BERYLLIUM || type == TileType.REFLECTOR_CARBON) {
             return 0.65;
@@ -757,6 +802,32 @@ public class SimTile implements INuclearTile {
                 durabilityLossAccumulator -= intDamage;
                 if (durability == 0) {
                     depleted = true;
+                }
+            }
+        } else if (isModerator() && !depleted) {
+            double ambient = NuclearSimulationEngine.AMBIENT_TEMP;
+            double k = switch (type) {
+                case MODERATOR_CARBON -> 0.0005;
+                case MODERATOR_GRAPHITE -> 0.0003;
+                case MODERATOR_BERYLLIUM -> 0.0002;
+                default -> 0.0003;
+            };
+            double a = (type == TileType.MODERATOR_BERYLLIUM) ? 0.5 : 1.0;
+            double tempDmg = (temperature > ambient) ? a * (Math.exp(k * (temperature - ambient)) - 1.0) : 0.0;
+            double fastWearMult = NuclearSimulationEngine.fastAbsorptionDamageMultiplier;
+            double thermalWearMult = NuclearSimulationEngine.thermalAbsorptionDamageMultiplier;
+            double rawDamage = (fastAbsorbed * fastWearMult + thermalAbsorbed * thermalWearMult)
+                + (fastFlux + thermalFlux) * 0.05
+                + tempDmg;
+            lastDurabilityLoss = rawDamage;
+            durabilityLossAccumulator += rawDamage;
+            int intDamage = (int) durabilityLossAccumulator;
+            if (intDamage > 0) {
+                durability = Math.max(0, durability - intDamage);
+                durabilityLossAccumulator -= intDamage;
+                if (durability == 0) {
+                    depleted = true;
+                    type = TileType.EMPTY;
                 }
             }
         }
@@ -1248,5 +1319,34 @@ public class SimTile implements INuclearTile {
                 }
             }
         }
+    }
+
+    @Override
+    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData getModeratorData() {
+        if (type == TileType.MODERATOR_GRAPHITE) {
+            return new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData(
+                "moderator_graphite", "Graphite Moderator", 0.002, 0.009, 0.93, 0.621, 0.50, 0.05, 2500.0,
+                80000, "ore:dustAsh", 0.0003, 1.0, 1500.0, 2500.0, 4.0);
+        } else if (type == TileType.MODERATOR_CARBON) {
+            return new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData(
+                "moderator_carbon", "Carbon Moderator", 0.003, 0.012, 0.90, 0.60, 0.45, 0.05, 2200.0,
+                10000, "ore:dustAsh", 0.0005, 1.0, 1500.0, 2500.0, 0.0);
+        } else if (type == TileType.MODERATOR_BERYLLIUM) {
+            return new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData(
+                "moderator_beryllium", "Beryllium Moderator", 0.001, 0.004, 0.96, 0.85, 0.65, 0.15, 2600.0,
+                240000, "", 0.0002, 0.5, 1500.0, 2500.0, 0.0);
+        }
+        return null;
+    }
+
+    @Override
+    public double getThermalNeutronEmissionYield(int fastNeutronsAbsorbed) {
+        if (type == TileType.MODERATOR_GRAPHITE && fastNeutronsAbsorbed > 0 && temperature > 1500.0) {
+            double deltaT = temperature - 1500.0;
+            double deltaTHalf = 2500.0 - 1500.0;
+            double factor = (deltaT * deltaT) / (deltaT * deltaT + deltaTHalf * deltaTHalf);
+            return fastNeutronsAbsorbed * 4.0 * factor;
+        }
+        return 0.0;
     }
 }

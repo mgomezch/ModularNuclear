@@ -5619,6 +5619,123 @@ public class NuclearSimulationEngineTest {
         }
     }
 
+    @Test
+    public void testModeratorDurabilityAndProperties() {
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData carbon = null;
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData graphite = null;
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData beryllium = null;
+
+        for (com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod :
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getComponentData().moderators) {
+            if ("moderator_carbon".equals(mod.id)) carbon = mod;
+            if ("moderator_graphite".equals(mod.id)) graphite = mod;
+            if ("moderator_beryllium".equals(mod.id)) beryllium = mod;
+        }
+
+        assertNotNull(carbon);
+        assertNotNull(graphite);
+        assertNotNull(beryllium);
+
+        // Durability specifications
+        assertEquals(10000, carbon.durability);
+        assertEquals(80000, graphite.durability);
+        assertEquals(240000, beryllium.durability);
+
+        // Relative ratios: graphite = 8x carbon, beryllium = 24x carbon
+        assertEquals(8.0, (double) graphite.durability / (double) carbon.durability, 1e-4);
+        assertEquals(24.0, (double) beryllium.durability / (double) carbon.durability, 1e-4);
+
+        // Beryllium works better (higher moderation, higher scattering, better heat transfer)
+        assertTrue(beryllium.moderation > graphite.moderation);
+        assertTrue(beryllium.moderation > carbon.moderation);
+        assertEquals(0.65, beryllium.moderation, 1e-4);
+        assertEquals(0.15, beryllium.heatTransferCoeff, 1e-4);
+
+        // Spent products
+        assertEquals("ore:dustAsh", carbon.spentProduct);
+        assertEquals("ore:dustAsh", graphite.spentProduct);
+
+        // SimTile parity
+        SimTile simCarbon = new SimTile(SimTile.TileType.MODERATOR_CARBON);
+        assertEquals(10000, simCarbon.getDurability());
+        assertEquals(0.45, simCarbon.getModerationProbability(), 1e-4);
+
+        SimTile simGraphite = new SimTile(SimTile.TileType.MODERATOR_GRAPHITE);
+        assertEquals(80000, simGraphite.getDurability());
+        assertEquals(0.50, simGraphite.getModerationProbability(), 1e-4);
+
+        SimTile simBeryllium = new SimTile(SimTile.TileType.MODERATOR_BERYLLIUM);
+        assertEquals(240000, simBeryllium.getDurability());
+        assertEquals(0.65, simBeryllium.getModerationProbability(), 1e-4);
+    }
+
+    @Test
+    public void testGraphiteThermalEmissionHazard() {
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData graphite = null;
+        for (com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod :
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getComponentData().moderators) {
+            if ("moderator_graphite".equals(mod.id)) {
+                graphite = mod;
+                break;
+            }
+        }
+        assertNotNull(graphite);
+
+        assertEquals(1500.0, graphite.thermalEmissionOnsetTemp, 1e-4);
+        assertEquals(2500.0, graphite.thermalEmissionHalfTemp, 1e-4);
+        assertEquals(4.0, graphite.thermalEmissionMaxPerFast, 1e-4);
+
+        // Below or at 1500 °C: strictly 0 emission
+        assertEquals(0.0, graphite.calculateThermalEmission(1000.0, 10), 1e-4);
+        assertEquals(0.0, graphite.calculateThermalEmission(1500.0, 10), 1e-4);
+
+        // Exactly at 2500 °C: deltaT = 1000, deltaTHalf = 1000 -> factor = 1000^2 / (1000^2 + 1000^2) = 0.5 (50% saturation!)
+        double emissionAtHalf = graphite.calculateThermalEmission(2500.0, 10);
+        assertEquals(10 * 4.0 * 0.5, emissionAtHalf, 1e-4); // 20.0 thermal neutrons
+
+        // At high temperature (e.g. 5000 °C): saturates towards 4.0 * count = 40.0
+        double emissionHigh = graphite.calculateThermalEmission(5000.0, 10);
+        assertTrue(emissionHigh > 35.0 && emissionHigh <= 40.0);
+
+        // SimTile parity
+        SimTile tile = new SimTile(SimTile.TileType.MODERATOR_GRAPHITE);
+        tile.setTemperature(1200.0);
+        assertEquals(0.0, tile.getThermalNeutronEmissionYield(10), 1e-4);
+
+        tile.setTemperature(2500.0);
+        assertEquals(20.0, tile.getThermalNeutronEmissionYield(10), 1e-4);
+    }
+
+    @Test
+    public void testNEIModeratorStatsHandlerRecipes() {
+        com.gtnewhorizons.modularnuclear.common.nei.NEIModeratorStatsHandler handler =
+            new com.gtnewhorizons.modularnuclear.common.nei.NEIModeratorStatsHandler();
+
+        assertEquals("modularnuclear.moderator_stats", handler.getOverlayIdentifier());
+        assertEquals("MPTR Moderators", handler.getRecipeName());
+
+        handler.loadCraftingRecipes(handler.getOverlayIdentifier());
+        assertTrue(handler.numRecipes() >= 3);
+
+        boolean foundGraphite = false;
+        boolean foundCarbon = false;
+        boolean foundBeryllium = false;
+
+        for (int i = 0; i < handler.numRecipes(); i++) {
+            codechicken.nei.recipe.TemplateRecipeHandler.CachedRecipe cr =
+                (codechicken.nei.recipe.TemplateRecipeHandler.CachedRecipe) handler.arecipes.get(i);
+            if (cr instanceof com.gtnewhorizons.modularnuclear.common.nei.NEIModeratorStatsHandler.CachedModeratorStatsRecipe recipe) {
+                if ("moderator_graphite".equals(recipe.moderator.id)) foundGraphite = true;
+                if ("moderator_carbon".equals(recipe.moderator.id)) foundCarbon = true;
+                if ("moderator_beryllium".equals(recipe.moderator.id)) foundBeryllium = true;
+            }
+        }
+
+        assertTrue(foundGraphite);
+        assertTrue(foundCarbon);
+        assertTrue(foundBeryllium);
+    }
+
     private static void deleteRecursively(File file) {
         if (file.isDirectory()) {
             File[] children = file.listFiles();

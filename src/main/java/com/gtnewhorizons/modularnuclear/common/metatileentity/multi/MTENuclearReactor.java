@@ -2098,6 +2098,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         return NuclearReactorPhysics.getTileFuelData(tile);
     }
 
+    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData getTileModeratorData(NuclearGridTile tile) {
+        return NuclearReactorPhysics.getTileModeratorData(tile);
+    }
+
     public CustomFuelMix getTileCustomFuelMix(NuclearGridTile tile) {
         return NuclearReactorPhysics.getTileCustomFuelMix(tile);
     }
