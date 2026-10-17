@@ -2713,9 +2713,8 @@ public class NuclearSimulationWebServer {
               let extraHtml = "";
               if (t.code === "NL") {
                 extraHtml = `
-                  <div class="stat-row"><span>Structure:</span><span class="stat-val" style="color:var(--text-muted);">Reflective Casing Wall</span></div>
-                  <div class="stat-row"><span>Wall Reflection:</span><span class="stat-val" style="color:#38bdf8;">50% Bounce</span></div>
-                  <div class="stat-row"><span>Wall Absorption:</span><span class="stat-val" style="color:#f59e0b;">12 Hu/n &rarr; Pool</span></div>
+                  <div class="stat-row"><span>Structure:</span><span class="stat-val" style="color:var(--text-muted);">Casing Wall</span></div>
+                  <div class="stat-row"><span>Wall Reflection:</span><span class="stat-val" style="color:#ef4444;">None (0% Escaped)</span></div>
                 `;
               } else if (t.type === "PASSAGE_CORE") {
                 extraHtml = `

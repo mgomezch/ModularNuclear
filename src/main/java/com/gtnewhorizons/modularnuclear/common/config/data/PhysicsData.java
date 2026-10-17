@@ -19,7 +19,7 @@ public class PhysicsData {
     public double boundaryHeatLoss = 0.02;
     public double radiationDecayFactor = 0.95;
     public double dopplerDeficitExponent = 1.2;
-    public double wallReflectionChance = 0.50;
+    public double wallReflectionChance = 0.0;
     public double wallAbsorbHeatPerNeutron = 1.0;
     public int wallMaintenanceNeutronThreshold = 10000;
     public double defaultAmbientTemp = 293.15;

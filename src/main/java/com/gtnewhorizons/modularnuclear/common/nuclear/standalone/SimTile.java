@@ -65,7 +65,7 @@ public class SimTile implements INuclearTile {
         EXCHANGER_COMPONENT("Component Heat Exchanger", "XC"),
         PASSAGE_CORE("Coolant Passage", "CP"),
         NEUTRON_SOURCE("Neutron Source", "NS"),
-        NULL_WALL("Reflective Wall", "NL");
+        NULL_WALL("Casing Wall", "NL");
 
         public final String displayName;
         public final String code;
