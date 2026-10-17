@@ -87,7 +87,7 @@ The vessel is described from top (slice 0) to bottom (slice 4).
 | 1 | GregTech **item pipe casings**, all of one material. Their material sets the **pipe tier** | Nuclear casing / ring hatches |
 | 2 | Hollow chamber (no restriction) | Nuclear casing / ring hatches |
 | 3 | Hollow chamber; the **controller** is front-centre of this slice | Nuclear casing / ring hatches |
-| 4 (bottom) | Per cell, facing **down**: Nuclear casing, a **Control Rod hatch**, or the **outlet** of a High-Pressure Passage hatch | Nuclear casing / ring hatches |
+| 4 (bottom) | Per cell, facing **down**: Nuclear casing, a **Control Rod hatch**, the **outlet** of a High-Pressure Passage hatch, or a **Beam Input Hatch** (`gtnhlanth.common.hatch.MTEHatchInputBeamline`, ID 10503) | Nuclear casing / ring hatches |
 
 The "ring" is the shell of the vessel around the core footprint. It must contain:
 
@@ -97,15 +97,16 @@ The "ring" is the shell of the vessel around the core footprint. It must contain
 - any number of **output buses / output hatches**. They receive depleted fuel, ejected components, steam and hot coolant;
 - any number of **Nuclear Control hatches** (telemetry).
 
-Input buses, input hatches and energy hatches are **not** accepted on the ring. Everything that enters the core goes through the per-cell access blocks of slice 0.
+Input buses, input hatches and energy hatches are **not** accepted on the ring. Everything that enters the core goes through the per-cell access blocks of slice 0, with the sole exception of external particle beams entering through bottom Beam Input Hatches on slice 4.
 
 ### 2.3 Core access blocks
 
 | Block | ID | Holds | Notes |
 |---|---|---|---|
-| Nuclear Core Bus | 32100 | 1 item (stack limit 1) | Automation can insert only into an empty bus, and can never extract. Spent fuel and ejected components leave through the ring output buses. |
+| Nuclear Core Bus | 32100 | 1 item (stack limit 1) | Automation can insert only into an empty bus, and can never extract. Spent fuel and ejected components leave through the ring output buses. Accepts fuel rods, components, and the Neutron Source. |
 | Nuclear Core Hatch (LV … UHV) | 32101–32109 | One fluid, capacity $8000 \cdot 2^{\text{tier}}$ L | LV 16 000 L, MV 32 000 L, … UHV 4 096 000 L. The hatch tier also sets its conductive cooling strength (§11.2). |
 | High-Pressure Passage | — | Nothing | Top block = inlet, bottom block = outlet. They must be in the same grid column (§11.4). |
+| Beam Input Hatch | 10503 | Particle beamline packets | Slice 4 only, facing **down**. Must be placed directly opposite a Nuclear Core Bus in the same grid column $(x, y)$ (§8.7). |
 
 ### 2.4 Pipe tier
 
@@ -145,6 +146,7 @@ The structure check fails, and the controller reports the reason, in these cases
 - the slice-1 pipe casings are not a recognised material, or are mixed;
 - a High-Pressure Passage hatch is present on a reactor with pipe casings below Osmium (LuV) ("High-pressure cooling requires Osmium or higher item pipe casings"). Note that while item pipe casings unlock reactor size tiers, players may freely install higher-tier casings on smaller reactors if desired (e.g. a 5×5 reactor with Osmium casings is fully valid and can use High-Pressure Passages);
 - a passage inlet has no outlet in the same grid column, or the reverse;
+- a **Beam Input Hatch** is placed beneath a cell that is not a Nuclear Core Bus in the same grid column ("Beam input hatches must be placed directly opposite a Nuclear Core Bus in the same column");
 - a slice-0 block does not face up, or a slice-4 block does not face down;
 - a **Nuclear Control Hatch** is not oriented strictly away from the reactor center or is not upright relative to the controller ("Nuclear control hatches must face outward away from the structure and be upright"):
   - on flat walls (front, back, left, right), it must face strictly perpendicular outward from that wall (Forward, Back, Left, or Right);
@@ -756,9 +758,10 @@ Reactor Core Buses (`MTEHatchNuclearBus`) enforce a strict, data-driven **item a
 - **Active fuel rods**: Only non-depleted, active fuel rods (IC2, GregTech, or custom fuel rods with positive durability) can be inserted into core buses.
 - **Depleted and empty rods are strictly blocked**: Depleted fuel rods and empty fuel rods are completely rejected by automation and player insertion. They cannot be inserted into core hatches and can never emit neutrons.
 - **Control rod segregation**: Control rods (Silver, Boron, Cadmium, Indium, and Hafnium long rods) are strictly restricted to **Nuclear Control Rod Hatches** (`MTEHatchNuclearControlRod`) and cannot be placed into core buses.
+- **Hull-only components disallowed**: Components designed solely to interact with an IC2 reactor hull heat reservoir (such as IC2 Reactor Vents `IC2:reactorVentCore` and IC2 Reactor Heat Switches `IC2:reactorHeatSwitchCore`) are strictly rejected, as the MPTR reactor has no hull heat concept.
 - **Non-reactor items rejected**: Ordinary items (dirt, ingots, ores, machinery) cannot be placed into reactor core hatches. The only non-nuclear item accepted is dynamic recipe inputs producing molten cheese (the extraction Easter egg).
 
-All allowlists and blocklists are fully configurable by server operators via the structured YAML configuration system (`config/modularnuclear/fuels.yaml`, `config/modularnuclear/components.yaml`, and `config/ModularNuclear.cfg`).
+All allowlists and blocklists are fully configurable by server operators via the structured YAML configuration system (`config/modularnuclear/fuels.yaml`, `config/modularnuclear/components.yaml`, and `config/ModularNuclear.cfg`). Generic name-matching fallbacks have been completely removed; every allowed component must be explicitly configured in YAML.
 
 ---
 
@@ -778,6 +781,7 @@ Component recognition, neutronic cross-sections, and thermodynamic properties ar
 |---|---|---|---|---|---|---|
 | Empty bus | 0.01 | 0.01 | 0.02 | 0.05 | 0.02 | 0 |
 | Empty hatch | 0.01 | 0.01 | 0.02 | 0.05 | 0.05 | 0 |
+| Neutron Source (idle) | 0.01 | 0.01 | 0.02 | 0.05 | 0.02 | 0 |
 | Fuel rod | 0.25 | 0.80 | 0.15 | 0.10 | 0.05 / 0.03 | 0 |
 | Moderator: Carbon | 0.003 | 0.012 | 0.90 | 0.45 | 0.05 | 0 |
 | Moderator: Graphite | 0.002 | 0.009 | 0.93 | 0.50 | 0.05 | 0 |
@@ -785,21 +789,21 @@ Component recognition, neutronic cross-sections, and thermodynamic properties ar
 | Reflector | 0.01 | 0.02 | 0.95 | 0.20 | 0.15 | 0 |
 | Absorber (boron / cadmium / "control") | 0.85 | 0.95 | 0.10 | 0.05 | — | 0 |
 | Radiovoltaic plate | 1.0 | 1.0 | 0 | 0 | 0.10 | 0 |
-| Item coolant / vent / switch / exchanger | 0.05 | 0.05 | 0.45 | 0.40 | 0.40 | 0 |
+| Item coolant / vent / switch / exchanger | 0.05 | 0.05 | 0.45 | 0.05 | 0.40 | 0 |
 | Naquarite foil | 1.0 | 1.0 | 0 | — | 0.01 | 1.0 |
 | Other insulators | 0.01 | 0.01 | 0.05 | 0.05 | 0.01 | 0.2–0.6 |
-| Unknown item | 0.02 | 0.02 | 0.05 | 0.05 | 0.03 | 0 |
+| Cheese-extractable item (Easter egg) | 0.02 | 0.02 | 0.05 | 0.05 | 0.03 | 0 |
 | Hatch: Heavy Water | 0.005 | 0.01 | 0.85 | 0.90 | 0.25 | 0 |
 | Hatch: Distilled Water | 0.05 | 0.10 | 0.70 | 0.25 | 0.25 | 0 |
-| Hatch: IC2 Coolant | 0.03 | 0.12 | 0.45 | 0.40 | 0.50 | 0 |
+| Hatch: IC2 Coolant | 0.03 | 0.12 | 0.45 | 0.05 | 0.50 | 0 |
 | Hatch: Liquid fuel | 0.25 | 0.85 | 0.10 | 0.20 | 0.15 | 0 |
 | High-Pressure Passage | 0.02 | 0.05 | 0.80 | by loop fluid | 0.90 | 0 |
 
-The passage moderation depends on the loop coolant:
+The passage moderation depends on the loop coolant (only waters moderate significantly):
 
-| Loop fluid | Heavy water | Distilled water | IC2 coolant | Sodium | Other |
+| Loop fluid | Heavy water | Distilled water | IC2 coolant | Sodium | Other non-water |
 |---|---|---|---|---|---|
-| Passage $p_m$ | 0.90 | 0.25 | 0.40 | 0.05 | 0.25 |
+| Passage $p_m$ | 0.90 | 0.25 | 0.05 | 0.05 | 0.05 |
 
 Where a single value is given for absorption, it applies to both fast and thermal neutrons.
 
@@ -813,10 +817,10 @@ Moderator components are completely data-driven via `config/modularnuclear/compo
 
 #### Supported Moderator Types
 
-| Material | Durability | Moderation ($p_m$) | Scattering ($p_s$) | Absorption ($p_a$) | Spent Product | Thermal Emission Hazard |
+| Material | Durability | Moderation ($p_m$) | Scattering ($p_s$) | Absorption ($p_a$) | Spent Product | Wigner Energy Behavior |
 |---|---|---|---|---|---|---|
 | **Carbon** | 10 000 | 0.45 | 0.90 / 0.60 | 0.003 / 0.012 | `ore:dustAsh` | None |
-| **Graphite** | 80 000 | 0.50 | 0.93 / 0.621 | 0.002 / 0.009 | `ore:dustAsh` | > 1500 °C (up to 4.0 th-n / fast) |
+| **Graphite** | 80 000 | 0.50 | 0.93 / 0.621 | 0.002 / 0.009 | `ore:dustAsh` | Stores 1 HU / fast (saturates at 10 000 HU); releases heat > 1500 °C (up to 2 000 HU/t) |
 | **Beryllium** | 240 000 | 0.65 | 0.96 / 0.85 | 0.001 / 0.004 | None (consumed) | None |
 
 - **Carbon:** Burns out quickly with the lowest durability (10 000 points). Useful as a cheap early-game solid moderator rod.
@@ -837,24 +841,46 @@ $$D(T) = A \left(e^{k(T - T_{\text{amb}})} - 1\right) \quad (T > T_{\text{amb}})
 
 Damage is applied using stochastic rounding. When $\text{advDmg} \ge \text{durability}$, the moderator rod is depleted and converted into its configured `spentProduct` (e.g. `ore:dustAsh` for Carbon and Graphite, delivered to the reactor's output bus).
 
-#### Graphite High-Temperature Hazard (Positive Reactivity Feedback)
+#### Graphite Wigner Energy Storage and Thermal Release Hazard
 
-Graphite moderators feature a unique high-temperature physical hazard: when heated above **1500 °C**, graphite begins to emit thermal neutrons upon fast neutron absorption. The thermal emission rate follows a smooth Hill saturation curve:
+Graphite moderators feature a realistic solid-state physical phenomenon: **Wigner energy accumulation and thermal annealing release**. When fast neutrons collide with graphite, lattice atoms are knocked out of their crystalline positions, trapping potential energy within the material.
 
-$$\text{Yield}(T) = N_{\text{fast,abs}} \cdot Y_{\max} \cdot \frac{(T - 1500)^2}{(T - 1500)^2 + (2500 - 1500)^2} \quad (T > 1500^\circ\text{C})$$
+1. **Energy Storage and Saturation ($T \le 1500^\circ\text{C}$):**
+   - Each fast neutron interaction (absorption or moderation event) stores **$1.0\,\text{HU}$** into the graphite cell's internal Wigner energy pool (`mWignerEnergyStored`, persisted in NBT tag `wignerEnergy`), building up slowly over thousands of interactions.
+   - **Saturation Ceiling:** The lattice defect capacity is finite; accumulation **saturates and stops completely once it reaches $10\,000\,\text{HU}$** ($E_{\max} = 10\,000\,\text{HU}$, configurable via `wigner_max_energy`). Any subsequent fast-neutron collisions after reaching 10 000 HU do not increase the stored energy pool further.
+   - At normal operating temperatures ($\le 1500^\circ\text{C}$), this energy remains trapped indefinitely without decay.
 
-- At $T \le 1500^\circ\text{C}$: $\text{Yield} = 0$.
-- At $T = 2500^\circ\text{C}$: The curve reaches exactly **50% saturation** ($2.0$ thermal neutrons per fast neutron absorbed).
-- At extreme temperatures: Saturates at $Y_{\max} = 4.0$ thermal neutrons per fast neutron absorbed (the exact equivalent of a single normal Uranium fuel rod's emission).
+2. **Thermal Release ($T > 1500^\circ\text{C}$):**
+   - Once the cell temperature exceeds the onset threshold of **$1500^\circ\text{C}$**, lattice defects begin to spontaneously recombine, releasing stored energy as **direct heat**.
+   - The maximum instantaneous heat release rate follows a smooth Hill saturation curve:
+
+   $$\Delta T = \max(0, T - 1500), \quad \Delta T_{1/2} = 1000$$
+
+   $$\text{Rate}_{\max}(T) = R_{\max} \cdot \frac{(\Delta T)^2}{(\Delta T)^2 + (\Delta T_{1/2})^2} \quad (T > 1500^\circ\text{C})$$
+
+   where $R_{\max} = 2\,000\,\text{HU/t}$.
+
+   - At $T \le 1500^\circ\text{C}$: Release rate is strictly **$0\,\text{HU/t}$**.
+   - At $T = 2500^\circ\text{C}$ ($\Delta T = 1000^\circ\text{C} = \Delta T_{1/2}$): Reaches exactly **50% saturation**, releasing up to **$1\,000\,\text{HU/t}$**.
+   - At extreme temperatures: Asymptotically approaches the ceiling of $R_{\max} = 2\,000\,\text{HU/t}$.
+
+3. **Pool Depletion and Cessation:**
+   - The actual heat deposited into the reactor core each tick is limited by the remaining stored Wigner energy:
+
+   $$Q_{\text{release}} = \min(E_{\text{stored}},\ \text{Rate}_{\max}(T))$$
+
+   - Each tick of active release depletes the stored pool: $E_{\text{stored}} \leftarrow E_{\text{stored}} - Q_{\text{release}}$.
+   - **Crucial rule:** Once the stored Wigner pool is depleted ($E_{\text{stored}} = 0$), heat emission **ceases immediately**. Graphite never generates extra heat indefinitely without prior fast-neutron irradiation.
+   - **No secondary thermal neutrons are emitted**: Unlike earlier experimental models, hot graphite does not emit thermal neutrons; all stored Wigner energy is released strictly as thermal heat (HU).
 
 > [!WARNING]
-> **Positive Reactivity Hazard**: If a reactor moderated by graphite rods runs very hot ($T > 1500^\circ\text{C}$), every fast neutron absorbed by graphite produces a cloud of secondary thermal neutrons. These thermal neutrons diffuse into adjacent fuel rods, triggering additional fissions, generating more heat and more fast neutrons. This creates an aggressive **positive reactivity temperature coefficient**, which can rapidly escalate towards core meltdown unless controlled or quenched by liquid coolant. This hazard strongly incentivises operators to transition to liquid moderators (heavy water) or beryllium for high-temperature regimes.
+> **Thermal Exotherm Hazard**: If a graphite-moderated reactor with heavily irradiated graphite rods experiences a temporary loss of coolant flow and heats above $1500^\circ\text{C}$, the sudden annealing of stored Wigner energy can inject up to $2\,000\,\text{HU/t}$ per graphite cell. This exothermic heat dump can trigger rapid coolant boiling, pressure spikes, and catastrophic core overheating before normal control rod SCRAM can cool the structure. Operators using graphite must maintain high coolant flow margins or upgrade to liquid moderators (heavy water) or beryllium.
 
-All curve parameters ($T_{\text{onset}}$, $T_{\text{half}}$, $Y_{\max}$) and durability budgets are fully configurable per moderator entry in `components.yaml`.
+All curve parameters ($T_{\text{onset}}$, $T_{\text{half}}$, $R_{\max}$, and $E_{\text{fast}}$) and durability budgets are fully configurable per moderator entry in `components.yaml`.
 
 #### NEI Integration
 
-Pressing recipe or usage on any moderator item (or clicking the MPTR Reactor Catalyst) opens the dedicated **NEI Moderator Stats Handler** (`MPTR Moderators`). This interface displays full neutronic ratings, durability lifetime, heat transfer coefficients, and an interactive plot of either the Graphite Thermal Hazard Curve or the Temperature Wear Acceleration Curve with real-time hover tooltips.
+Pressing recipe or usage on any moderator item (or clicking the MPTR Reactor Catalyst) opens the dedicated **NEI Moderator Stats Handler** (`MPTR Moderators`). This interface displays full neutronic ratings, durability lifetime, heat transfer coefficients, and an interactive plot of either the Graphite Wigner Heat Release Curve (in cyan/blue) or the Temperature Wear Acceleration Curve (in orange) with real-time hover tooltips displaying current rates and thresholds.
 
 ### 8.4 Reflectors
 
@@ -877,16 +903,16 @@ An absorber captures 85% of incident fast packets and 95% of thermal neutrons. E
 
 ### 8.6 Radiovoltaic plates
 
-The radiovoltaic plates (HV and EV) convert absorbed neutrons directly to electricity. A plate absorbs every neutron that reaches it, fast or thermal ($p_a = 1.0$). Its output each cycle is
+The radiovoltaic plates (HV and EV) convert absorbed neutrons directly to electricity. A plate absorbs every neutron that reaches it, fast or thermal ($p_a = 1.0$). Its raw nominal output each cycle is
 
-$$P = \operatorname{round}\left(P_{max} \cdot \tanh\frac{4A_f + A_t}{60} \cdot \eta\right)$$
+$$P_{plate} = \operatorname{round}\left(P_{max} \cdot \tanh\frac{4A_f + A_t}{60}\right)$$
 
 | Plate | $P_{max}$ |
 |---|---|
 | HV radiovoltaic plate | 1 024 EU/t |
 | EV radiovoltaic plate | 4 096 EU/t |
 
-Here $\eta$ is maintenance efficiency (§12). Fast neutrons count four times as much as thermal ones.
+Fast neutrons count four times as much as thermal ones.
 
 The response saturates. The weighted absorption $w = 4A_f + A_t$ gives:
 
@@ -894,16 +920,50 @@ The response saturates. The weighted absorption $w = 4A_f + A_t$ gives:
 |---|---|---|---|---|
 | Fraction of $P_{max}$ | 46% | 76% | 96% | 99.5% |
 
-A plate also heats: on top of the normal absorption heat, it receives $\max(0, 20w - P)$ Hu of excess heat per cycle. At high flux, most absorbed energy becomes heat rather than electricity, so radiovoltaics need cooling like any other cell.
+A plate also heats: on top of the normal absorption heat, it receives $\max(0, 20w - P_{plate})$ Hu of excess heat per cycle. At high flux, most absorbed energy becomes heat rather than electricity, so radiovoltaics need cooling like any other cell.
 
-The plant's direct output is the sum of all plates, multiplied by $\eta$ once more at the reactor level. It is emitted **every tick** through the ring dynamo hatch (§13.6).
+The plant's aggregate direct output is the sum of all plates, scaled once by the maintenance efficiency $\eta$ (§12):
 
-> [!NOTE]
-> **Implementation note.** Maintenance efficiency is applied twice to radiovoltaic output (per plate and again on the total), so output scales with $\eta^2$.
+$$P_{aggregate} = \operatorname{round}\left(\sum P_{plate} \cdot \eta\right)$$
 
-### 8.7 Item coolant cells
+It is emitted **every tick** through the ring dynamo hatch (§13.6). Direct EU therefore scales linearly with maintenance efficiency $\eta$.
 
-Matching items: any IC2-API reactor component that stores heat and is not a vent or exchanger. This covers the GT and IC2 10k / 30k / 60k / 180k / 360k coolant cells and their equivalents.
+### 8.7 Neutron Source (External Beam Injection)
+
+The **Neutron Source** (`goodgenerator:neutronSource`, `item.neutronSource`) is an existing GTNH component that can be placed inside a Nuclear Core Bus (slice 0). It acts as an open channel for externally-produced neutrons from a particle accelerator (e.g. Source Chamber) to be injected directly into the reactor core.
+
+#### Installation & Pairing Rules
+- A Neutron Source sits in a Nuclear Core Bus in slice 0.
+- Directly beneath it in the same column $(x, y)$ on slice 4, a **Beam Input Hatch** (`gtnhlanth.common.hatch.MTEHatchInputBeamline`, ID 10503) must be installed facing **down**.
+- A Neutron Source will **only** emit neutrons entering through the paired Beam Input Hatch on its own vertical column.
+- If a Beam Input Hatch is installed without a paired Nuclear Core Bus directly opposite it, the multiblock structure validation fails (§2.6).
+
+#### Durability and Idle Behavior
+- The Neutron Source **has no durability and never wears or depletes**.
+- When idle (no beam connected or beam energy = 0), it behaves like an empty nuclear bus: low absorption ($p_a = 0.01$), low scattering ($p_s = 0.02$), low moderation ($p_m = 0.05$), and low conduction ($c = 0.02$).
+- It produces **zero prompt fission heat**.
+
+#### Beamline Safety Requirement
+> [!CAUTION]
+> **Strict Particle Safety (Explosion Hazard)**:
+> The MPTR reactor core allows **strictly neutron beams** (`Particle.NEUTRON`, ID 12) through its Beam Input Hatches. If ANY other particle (Protons, Electrons, Alpha particles, etc.) enters ANY connected beam input hatch, the reactor core **immediately explodes** with catastrophic destruction (§13.7). Always verify the source beam before opening line valves.
+
+#### Fast Neutron Injection Mechanics
+Injected neutrons entering through the beamline are **100% fast neutrons** (never thermal). Every cycle (or tick), the Neutron Source emits four discrete directional fast neutron rays into the four cardinal horizontal directions (North, East, South, West):
+
+$$S = \max(0, \operatorname{round}(E \cdot R \cdot M))$$
+
+where:
+- $E$ is the beam energy (eV / intensity),
+- $R$ is the beam packet rate (particles / sec),
+- $M$ is `beam_energy_to_fast_neutron_multiplier` (default `0.001`, configured in `physics.yaml` and `ModularNuclear.cfg`),
+- $S$ is the packet size emitted along each of the 4 cardinal rays. Total neutrons generated per tick is $4 \times S$.
+
+Once injected, these fast neutron rays follow standard reactor neutron transport: they travel through adjacent cells, undergoing scattering, moderation by surrounding moderator blocks or liquid hatches, or absorption by fuel rods to drive subcritical or breed-and-burn chain reactions.
+
+### 8.8 Item coolant cells
+
+Matching items: Explicitly allowlisted coolant cells defined in `config/modularnuclear/components.yaml` under `coolant_items`. This includes IC2 and GT 10k, 30k, 60k, 180k, and 360k Coolant Cells (`IC2:reactorCoolantSimple`, `IC2:reactorCoolantTriple`, `IC2:reactorCoolantSix`), as well as Helium (`reactorCoolantHe*`), NaK (`reactorCoolantNaK*`), Space (`reactorCoolantSp*`), and Condensators (`IC2:reactorCondensator*`). All generic name-matching fallbacks have been eliminated.
 
 Each cycle a coolant cell pulls heat from its own cell:
 
@@ -919,13 +979,18 @@ The amount is limited to the cell's remaining capacity. One IC2 heat unit equals
 
 When full, the cell is **ejected intact** (full of heat) to the ring output bus for external re-cooling, and the bus is left empty. Coolant cells are consumables that buy time. They do not provide sustained cooling.
 
-They are also neutronically active, with moderate scattering and moderation (0.45 / 0.40). A coolant cell next to fuel acts as a weak moderator.
+**Moderation behavior:** Coolant cells do not moderate significantly; their moderation is strictly configured at **$p_m = 0.05$** (with scattering $p_s = 0.45$ and absorption $p_a = 0.05$). A coolant cell placed adjacent to a fuel rod will absorb minor heat and scatter neutrons, but will not provide effective thermalisation.
 
-A non-IC2 item whose name contains *coolant* is handled by a generic fallback. It absorbs up to 100 °C of excess temperature (3 200 Hu) per cycle and takes $\max(1, \lfloor \text{heatHu}/50 \rfloor)$ durability damage.
+All coolant cell configurations are strictly data-driven via YAML. Unregistered items are never recognized as coolant cells and cannot be inserted into the reactor core.
 
-### 8.8 Heat vents and heat exchangers
+### 8.9 Heat vents and heat exchangers
 
-Matching items: IC2-API vents and exchangers. Items whose name contains *core* are excluded.
+Matching items: Explicitly configured Heat Vents and Heat Exchangers in `config/modularnuclear/components.yaml` (`heat_vents` and `heat_exchangers`).
+
+> [!IMPORTANT]
+> **Hull-Interacting Components Disallowed**: Items whose sole purpose is transferring heat into or out of a reactor hull (`IC2:reactorVentCore`, `IC2:reactorHeatSwitchCore`) are strictly disallowed from entering the reactor core bus. MPTR cores have no hull heat reservoir; therefore, hull-only components are rejected at the bus intake.
+
+Both heat vents and heat exchangers have minimal moderation (**$p_m = 0.05$**, matching non-water coolants), with $p_a = 0.05$ and $p_{s,f} = 0.45$.
 
 A vent or exchanger pulls up to $\max(20, H_{max}/50)$ IC2-Hu from its own cell each cycle, limited by its remaining capacity. Then it runs its normal IC2 behaviour against a virtual reactor in which:
 
@@ -941,20 +1006,26 @@ The consequences:
 
 Vents give small but indefinite cooling and consume nothing. Their per-cell capacity is one to two orders of magnitude below that of a coolant hatch.
 
-### 8.9 Unknown items and the cheese mechanic
+### 8.10 Item Intake Validation and the Molten Cheese Easter Egg
 
-An unrecognised item is nearly inert (2% absorption, 5% scattering). If such an item sits in a cell above 65 °C and has a fluid-extractor recipe producing molten cheese, it is processed into molten cheese in place. This mechanic has no further operational significance.
+The MPTR Core Bus enforces strict allowlisting: unrecognised items (ores, ingots, blocks, tools, unrelated mod items) are **strictly forbidden** and cannot be inserted into the core bus by automation or player interaction.
 
-### 8.10 Hatch fluids as core cells
+**The Molten Cheese Easter Egg:**
+The sole exception to the core item filter is any item that possesses a Fluid Extraction recipe yielding Molten Cheese (`fluid.cheese` / `molten cheese`). When placed into a Nuclear Core Bus:
+- If the cell temperature exceeds **65 °C**, the item is processed in place and converted into molten cheese.
+- Cheese-extractable items have minimal neutronic interaction: absorption $p_a = 0.02$, scattering $p_s = 0.05$, and baseline moderation **$p_m = 0.05$**. They do not moderate above the empty-cell baseline.
+- Once extracted, the molten cheese must be drained or removed according to standard fluid handling.
+
+### 8.11 Hatch fluids as core cells
 
 A Nuclear Core Hatch is both a **cooling device** (§11.2) and a **neutronic cell** whose properties depend on the fluid it holds:
 
 - **Heavy water** is the best moderator in the game: 85% interaction, 90% of scatters thermalise, and it absorbs only 1% of thermal neutrons. Each fast absorption also has a small chance to **transmute** heavy water to tritium: $\min(1000, 10\,c)/1000$ per event, where $c$ is the neutron count; this consumes 1 L and produces 1 L. Heavy-water hatches are therefore also a slow tritium source.
 - **Distilled water** scatters well (0.70) but moderates poorly (0.25) and absorbs 10% of thermal neutrons. Fast absorptions transmute distilled water to deuterium with chance $\min(1000, 25\,c)/1000$ (1 L → 1 L).
-- **IC2 coolant** is a mediocre moderator with the highest thermal absorption of the three (0.12), but conducts heat best (0.50).
-- An **empty hatch** is nearly transparent. A hatch that runs dry during operation changes neutronically as well as thermally. The core can respond abruptly as moderation disappears.
+- **IC2 coolant** does **not** moderate significantly (**$p_m = 0.05$**), with thermal absorption of 0.12, but conducts heat best ($c = 0.50$). Only water coolants (distilled water and heavy water) provide significant moderation.
+- An **empty hatch** is nearly transparent ($p_m = 0.05$). A hatch that runs dry during operation changes neutronically as well as thermally. The core can respond abruptly as moderation disappears.
 
-### 8.11 High-Pressure Passages as core cells
+### 8.12 High-Pressure Passages as core cells
 
 A passage cell is a strong fast scatterer (0.80). Its moderation depends on the loop fluid (table in §8.1). It is the best conductor in the core ($c = 0.90$), so it pulls heat from its neighbours efficiently. Its cooling behaviour is described in §11.4.
 
@@ -1257,7 +1328,7 @@ Neutrons absorbed in a passage decompose the loop coolant. For every 4 neutrons 
 The products enter the loop as **dissolved gas** and increase impeller wear (§11.5.5). They must be removed with a Pressurized Degasser (§11.5.9), which also recovers them as products.
 
 > [!NOTE]
-> **Implementation note.** The loop-side temperature rise is computed as $\dot Q/(\dot m c_p)$ and applied to the passage segment each tick. Combined with the loop advection scheme, this credits the loop fluid with about $V_{seg}/(\dot V\,dt) = 0.785/\dot V$ (in m³/s) times the heat removed from the core: ≈ 7.9× at 100 L/s, parity near 785 L/s. Energy is not conserved between core and loop.
+> **Energy conservation.** Heat removal from the reactor core into the coolant loop is strictly energy-conserving: the thermal energy gained by the coolant passage segment ($\Delta E = M_{\text{seg}} c_p \Delta T$) exactly matches the heat energy removed from the reactor core tile ($Q$). The exchange is bounded by equilibrium to prevent temperature overshoot in a single tick.
 
 ### 11.5 The CoolantLoops system
 
@@ -1272,7 +1343,7 @@ A loop is discovered by a **graph crawl** that starts at the pump's discharge ha
   - Pressurized Heat Exchanger and Pressurized Degasser hatches. The controller is found within ±2 blocks horizontally at the same Y;
   - Loop Instruments;
   - the Creative Heat Reservoir.
-- The loop must be a **directed acyclic graph** from discharge to suction. Every branch must reach the suction, and no cycles are allowed. Crawling currently resolves synchronously in a single tick and stops at **1 000 steps** max. *(Implementation note: planned revisions will allow crawling to resolve asynchronously over multiple game ticks with a higher limit such as 10 000 steps to permit expansive factory-wide circuits.)*
+- The loop must be a **directed acyclic graph** from discharge to suction. Every branch must reach the suction, and no cycles are allowed. Loop crawling resolves **asynchronously over multiple server ticks**, processing up to **1 000 steps per tick** across up to **20 ticks** (allowing circuits up to **20 000 steps** total). The pump tracks its crawl start and completion timestamps in server memory. If a circuit exceeds the 20-tick / 20 000-step ceiling, the controller aborts and displays the error: `Loop structure check could not complete because the loop is too large`.
 
 Each element becomes a **segment** with length, diameter, minor-loss coefficient $K$, pressure rating, temperature rating and fill volume:
 
@@ -1288,7 +1359,15 @@ Each element becomes a **segment** with length, diameter, minor-loss coefficient
 The **loop fill volume** is the sum of all fill volumes. The pump must be able to supply this much fluid from its tank before circulation starts.
 
 > [!NOTE]
-> **Implementation note.** Parallel branches are simulated **in series**, in breadth-first order. Every branch sees the full loop flow and the full upstream temperature, rather than a share of the flow. Pressure drops of parallel branches add up.
+> **Parallel branch flow splitting and thermal blending.** Parallel branches connected via manifolds split total loop flow in direct proportion to the capacity weights of the branching pipes (§11.5.2):
+>
+> $$Q_i = Q_{total} \times \frac{w_i}{\sum w_k}$$
+>
+> For example, a splitter manifold feeding one Medium pipe ($w = 1.0$) and one Large pipe ($w = 2.0$) divides flow into $\frac{1}{3}$ and $\frac{2}{3}$. When parallel branches merge at a manifold, their streams blend temperatures via flow-weighted enthalpy:
+>
+> $$T_{blend} = \frac{\sum Q_i T_i}{\sum Q_i}$$
+>
+> Parallel branches do not add pressure drops in series; effective circuit friction is flow-weighted across parallel paths: $\Delta P_{parallel} = \sum \frac{Q_i}{Q_{total}} \Delta P_i(Q_i)$. In-line devices on branches experience their local branch flow $Q_i = Q_{total} \cdot \text{flowFraction}$.
 
 #### 11.5.2 Pipes
 
@@ -1316,11 +1395,10 @@ Pipe capacity sets the fill volume and a nominal flow ceiling at the pump hatche
 
 A manifold block splits or merges flow. Its faces are toggled with a wrench. Sneak + wrench sets the manifold plane. Each manifold block is one segment (1 000 L fill, $K = 0.3$). A typical arrangement:
 
-1. an inlet manifold row distributes flow to several passage inlets;
-2. the passage outlets are collected by an outlet manifold row;
-3. the outlet manifold returns to the pump suction.
-
-Under the serial-branch implementation, every passage behind a manifold sees the full loop flow.
+1. an inlet manifold row distributes flow proportionally across several parallel branch pipes or passage inlets based on pipe capacity weights (§11.5.2);
+2. in-line devices on each branch (passages, heat exchangers, degassers, instruments, coolant baths) experience their local branch flow $Q_i = Q_{total} \times \text{flowFraction}$;
+3. the branch outlets are collected by an outlet manifold row, where stream temperatures are blended by flow-weighting ($T_{blend} = \sum Q_i T_i / \sum Q_i$);
+4. the outlet manifold returns to the pump suction.
 
 #### 11.5.4 Loop fluids
 
@@ -1365,9 +1443,21 @@ where $\eta_{rotor}$ is the base efficiency of the installed GregTech turbine ro
 
 $$\dot V_{rated} = \max\left(0.005,\ 0.02\sqrt{P/5000}\right) \ \text{m}^3/\text{s}$$
 
-$$\Delta p_{pump} = \min\left(\frac{P}{\dot V + \dot V_{rated}},\ 25 \ \text{bar}\right)$$
+$$\Delta p_{pump} = \frac{P}{\dot V + \dot V_{rated}}$$
 
-The **shut-off (stall) head** is $0.0354\sqrt{P}$ bar, capped at 25 bar. An EV pump at $\eta = 1$ develops about 14.3 bar at shut-off. At IV and above the 25 bar cap is reached. The operating flow is where the pump curve meets the loop's resistance curve $\Delta p_{loop}(\dot V) \propto \dot V^2$ (§11.5.6). A more powerful pump or a lower-resistance loop (larger pipes, fewer passages and manifolds, shorter runs) gives more flow.
+The **shut-off (stall) head** is determined by motor mechanical power and rated slip:
+
+$$\Delta p_{stall} = \frac{P}{\dot V_{rated}} \approx 0.0354\sqrt{P} \ \text{bar}$$
+
+By default, pump stall head is **uncapped** (`maxPumpHeadPressurePa: .inf`), scaling naturally with electrical power input:
+- **EV (2 048 EU/t):** $\Delta p_{stall} \approx 14.3\text{ bar}$ (+1 bar base $\approx 15.3\text{ bar}$). Bursts **Cast Iron (15 bar)** at stall/startup; safe for **Steel (35 bar)**.
+- **IV (8 192 EU/t):** $\Delta p_{stall} \approx 28.6\text{ bar}$ (1A); with 4A ($P \times 4$), stall head doubles to $\sim 57.2\text{ bar}$, bursting **Steel (35 bar)**.
+- **LuV (32 768 EU/t):** $\Delta p_{stall} \approx 57.2\text{ bar}$ (114.5 bar at 4A). Bursts **Steel (35 bar)** and can burst **Stainless Steel (70 bar)** under multi-amp or dead-head conditions; requires **Titanium (140 bar)**.
+- **ZPM (131 072 EU/t):** $\Delta p_{stall} \approx 114.5\text{ bar}$ (229 bar at 4A). Bursts **Stainless Steel (70 bar)** and **Titanium (140 bar)**; requires **TungstenSteel (280 bar)**.
+- **UV (524 288 EU/t):** $\Delta p_{stall} \approx 229\text{ bar}$ (458 bar at 4A). Bursts **Titanium (140 bar)** and **TungstenSteel (280 bar)**; requires **Osmium (600 bar)**.
+- **UHV (2 097 152 EU/t):** $\Delta p_{stall} \approx 458\text{ bar}$ (916 bar at 4A). Bursts **TungstenSteel (280 bar)** and **Osmium (600 bar)**; requires **Neutronium (3 000 bar)**.
+
+The operating flow is where the pump curve meets the loop's resistance curve $\Delta p_{loop}(\dot V) \propto \dot V^2$ (§11.5.6). A more powerful pump or a lower-resistance loop (larger pipes, fewer passages and manifolds, shorter runs) gives more flow.
 
 **States.**
 
@@ -1381,9 +1471,7 @@ The **shut-off (stall) head** is $0.0354\sqrt{P}$ bar, capped at 25 bar. An EV p
 | STOPPED | Idle, filled |
 | FAILED | Impeller destroyed, liquid fuel ingested, or rupture |
 
-A **power failure** stops the pump (POWER_LOSS) and requires manual re-enabling. Re-crawling clears any previous loop disconnection failure.
-
-*(Implementation note: In the current code, `crawlLoopGraph()` invokes `fixAllIssues()`, which auto-repairs all 6 multiblock maintenance hatch issues whenever a loop re-crawl succeeds, rather than requiring manual maintenance tool usage.)*
+A **power failure** stops the pump (POWER_LOSS) and requires manual re-enabling. Re-crawling clears any previous loop disconnection failure. Maintenance issues on the pump multiblock are preserved across crawls and must be repaired through standard GregTech maintenance tools or automated maintenance hatches (loop re-crawling does not auto-fix maintenance).
 
 **Impeller wear.** Every 100 ticks the rotor takes wear of $(1 + f_{gas}) \cdot k(T_h)$, where:
 
@@ -1430,7 +1518,7 @@ where:
   - Major wall friction: $\Delta p_{major} = 0.0170 \times \left(\frac{5.0}{0.10}\right) \times 81\,028 \approx 68\,874$ Pa ($0.69$ bar).
   - Minor device loss: $\Delta p_{minor} = 2.50 \times 81\,028 \approx 202\,570$ Pa ($2.03$ bar).
   - Total passage drop: $\Delta p_{seg} \approx 271\,444$ Pa (**$2.71$ bar** per passage).
-  Parallel passages split this resistance if manifolds are used (or add sequentially under the serial BFS branch implementation, §11.5.1).
+  Parallel passages split this resistance proportionally when manifolds are used; the effective pressure drop across parallel branches is flow-weighted rather than additive (§11.5.1).
 
 The pressure in the circuit is highest **immediately downstream of the pump discharge**, where it equals 1 bar ambient plus the pump's developed head.
 
@@ -1445,7 +1533,12 @@ A rupture while **circulating** causes an **explosion** at the segment, of stren
 Practical limits:
 
 - **Cast Iron (15 bar)** can be burst at start-up by an EV pump, whose stall head is ~14.3 bar plus the 1 bar base.
-- **Steel (35 bar) and above** cannot be over-pressurised by any pump, because pump head is capped at 25 bar.
+- **Steel (35 bar)** can be burst by a 4A IV pump or LuV pump.
+- **Stainless Steel (70 bar)** can be burst by a 4A LuV pump or ZPM pump.
+- **Titanium (140 bar)** can be burst by a 4A ZPM pump or UV pump.
+- **TungstenSteel (280 bar)** can be burst by a 4A UV pump or UHV pump.
+- **Osmium (600 bar)** can be burst by a 4A UHV pump (~916 bar).
+- **Neutronium (3 000 bar)** is immune to burst pressure from any pump.
 - Temperature ratings of all metal pipes are above any practical loop temperature. Solidification of sodium, cheese or lava when the loop cools is the realistic temperature-related rupture.
 
 #### 11.5.7 Heat transport around the loop
@@ -1456,33 +1549,51 @@ Each tick, every segment exchanges a fraction $f = \min(1,\ \dot V\,dt / V_{seg}
 
 **Structure.** 3×3×5 of heat-proof casings, with heating and cooling ducts. It contains:
 
-- two Pressurized Fluid hatches (loop in / out);
-- one input hatch: nominally Distilled Water *(Implementation note: the code checks `fs.getFluid() == FluidRegistry.WATER || fs.getFluid().getName().toLowerCase().contains("water")`, so plain Minecraft water is currently accepted without error or penalty, unlike standard GregTech thermal boilers)*;
-- one output hatch (steam);
+- two Pressurized Fluid hatches (loop suction inlet and discharge outlet);
+- one input hatch: strictly **Distilled Water** (`ic2distilledwater`, `distilledwater`, `distilled_water`). Plain Minecraft water (`water`) is strictly rejected and will not be consumed;
+- one or more output hatches (steam);
 - energy ($V$ or $4V$).
 
-The loop-side roles of the two pressurized hatches are assigned by structure-iteration order, not by the operator.
+The loop-side roles of the two pressurized hatches are assigned by structure-iteration order: the first encountered becomes the suction inlet, the second becomes the discharge outlet.
 
-**Operation.** When the loop fluid at the PHE is above 100 °C:
+**Operation.** When the circulating loop fluid at the PHE is above 100 °C:
+The local coolant flow velocity $v = \dot V / A_{seg}$ through the internal tube bundle ($A = 24\text{ m}^2$) drives convective heat transfer into the secondary distilled water:
 
-$$\dot Q = 18\,171.3 \times (T - 100) \times \eta \ \text{W}$$
+$$\dot Q_{conv} = h(v) \times A \times (T - 100) \times \eta \quad [\text{W}]$$
 
-This corresponds to fixed $h = 757.14$ W/m²K at $A = 24$ m². Water consumption is
+where $h(v)$ is computed by the convective heat transfer model (with zero convective transfer when flow is zero).
 
-$$\dot m_{water} = \left\lfloor \frac{\dot Q \times 0.05}{2260} \right\rfloor \approx 0.402\,(T - 100) \ \text{L/tick}$$
+Secondary distilled water is vaporized using the standard GTNH latent heat of vaporization:
 
-and each litre becomes 160 L of steam:
+$$L_{vap} = 2\,260\,000\text{ J/L} = 2\,260\text{ J/mL}$$
 
-| Loop temperature | Steam product |
-|---|---|
-| 100–300 °C | Steam |
-| 300–700 °C | IC2 Superheated Steam |
-| ≥ 700 °C | Supercritical Steam |
+Entering secondary distilled water on the low-pressure side is assumed to enter at the pump's ambient temperature ($T_{amb}$); the sensible heat needed to raise it from $T_{amb}$ to boiling ($100\text{ }^\circ\text{C}$) is negligible compared to the large latent heat of vaporization ($2\,260\text{ kJ/kg}$).
 
-Example: a loop at 300 °C produces ~80 L/tick of water evaporation, i.e. ~12 900 L/tick of superheated steam.
+The amount of water vaporized in one tick ($\Delta t = 0.05\text{ s}$) is bounded by the convective heat transfer rate, available sensible heat in the coolant above $100\text{ }^\circ\text{C}$, and stored distilled water:
 
-> [!WARNING]
-> **Implementation note.** The PHE does **not remove heat from the loop**. Its computed heat flow is written to a field that nothing reads. The latent heat used is 2 260 J/kg instead of 2 260 kJ/kg, so steam output is 1 000× too generous for the heat nominally transferred. With no loop ambient loss either, the only device that can lower loop temperature is the Creative Heat Reservoir (§11.5.11). In survival, a loop heated by passages rises towards core temperature, and passage cooling falls as $\Delta T$ shrinks.
+$$V_{water} = \min\left(V_{input},\ \left\lfloor \frac{\min(\dot Q_{conv} \cdot \Delta t,\ C_{coolant} \cdot (T - 100))}{L_{vap}} \right\rfloor\right) \quad [\text{mL/tick}]$$
+
+where $C_{coolant} = M_{eff} \cdot C_{p,coolant}$ is the heat capacity of the coolant passing through the exchanger during that tick ($M_{eff} = \max(V_{seg},\ \dot V \cdot \Delta t) \times \rho$).
+
+Each litre of vaporized water expands into 160 L of steam according to the coolant temperature:
+
+| Loop temperature | Steam product | Expansion |
+|---|---|---|
+| 100–300 °C | Steam | 1:160 |
+| 300–700 °C | IC2 Superheated Steam | 1:160 |
+| ≥ 700 °C | Supercritical Steam | 1:160 |
+
+**Strict Energy-Conserving Heat Removal.** The actual thermal energy absorbed by secondary water vaporization:
+
+$$Q_{actual} = V_{water} \times L_{vap} \quad [\text{J}]$$
+$$\dot Q_{transferred} = \frac{Q_{actual}}{\Delta t} \quad [\text{W}]$$
+
+This exact energy is removed from the primary loop coolant at the PHE segment:
+
+$$\Delta T_{drop} = \frac{Q_{actual}}{C_{coolant}} \quad [^\circ\text{C}]$$
+$$T_{new} = \max(100.0,\ T - \Delta T_{drop})$$
+
+The cooled coolant is immediately written to the PHE segment and discharge outlet hatch. In the subsequent tick, the pump's hydrodynamic engine advects this cooled fluid downstream, returning cold coolant to the reactor pressure tubes. If secondary distilled water runs out, $V_{water} = 0$, so no heat is removed and the loop temperature does not drop.
 
 #### 11.5.9 Pressurized Degasser
 
@@ -1533,7 +1644,7 @@ $\eta$ scales:
 
 - the heat-transfer strength $U$ of conductive hatches (§11.2);
 - the heat intake of item coolant cells and vents (§8.7–§8.8);
-- radiovoltaic output, twice (§8.6);
+- aggregate radiovoltaic direct EU output linearly (§8.6);
 - the convective machinery of CoolantLoops, which applies its own maintenance hatches.
 
 $\eta$ does **not** scale neutron production or fission heat. A poorly maintained reactor makes as much heat as a healthy one but removes less of it. Neglected maintenance therefore leads to overheating, which leads to damage, which lowers $\eta$ further: a positive feedback loop.
@@ -1686,9 +1797,17 @@ A single EV radiovoltaic plate can exceed an EV 1A dynamo. Size the dynamo to th
 
 Direct power is not reset by SCRAM or by disabling the machine (§9.5). Removing or downgrading the dynamo of a SCRAMmed reactor that last produced direct power will therefore also trigger the explosion.
 
-The code also contains a separate reactor explosion routine (a high-pressure and a low-pressure variant) and a dry-coolant shutdown routine. Nothing calls either of them, so they cannot occur in the current build.
+### 13.7 Beam particle mismatch explosion
 
-### 13.7 Coolant loop failures
+**Trigger.** Any non-neutron particle beam (`Particle` $\ne$ `Particle.NEUTRON`) enters any connected Beam Input Hatch on slice 4.
+
+**Consequence:**
+- The reactor immediately triggers `explodeReactor(false, "Incompatible particle beam entered reactor core!")`.
+- Destroys the controller and surrounding hatches.
+- Releases 100 000 pollution.
+- All core materials in buses and hatches are voided.
+
+### 13.8 Coolant loop failures
 
 | Failure | Cause | Consequence |
 |---|---|---|
@@ -1702,11 +1821,11 @@ The code also contains a separate reactor explosion routine (a high-pressure and
 
 A loop failure turns every passage into an uncooled, highly conductive cell in the middle of the core. Its neighbours lose their main heat path. Treat pump power and impeller condition as safety-critical. Monitor flow and impeller wear with instruments or OpenComputers, and drive rod insertion from those signals.
 
-### 13.8 Output blockage
+### 13.9 Output blockage
 
 Depleted fuel, ejected coolant cells, steam and hot coolant are pushed to the ring output buses and hatches. If they are full, the products may be lost. More importantly, a conductive hatch whose product cannot be output still consumes coolant. Keep output paths clear and buffered.
 
-### 13.9 Anatomy of a typical runaway
+### 13.10 Anatomy of a typical runaway
 
 This sequence illustrates how the individual mechanisms combine:
 
@@ -1785,11 +1904,13 @@ wallReflectionRatio: 0.0          # Fraction of escaping neutrons reflected back
 wallAbsorptionRatio: 1.0          # Fraction of escaping neutrons absorbed by the reactor casing
 conductionCoeffMultiplier: 1.0    # Scaling multiplier applied to all inter-cell heat conduction
 defaultAmbientTemp: 20.0          # Default fallback ambient temperature (°C)
+beamEnergyToFastNeutronMultiplier: 0.001 # Multiplier converting beam (E * R) to fast neutron packet size
 ```
 
 - **`huPerDegree`** (alias **`euPerDegree`**): Adjusting this scales the thermal inertia of every cell in the reactor core ($C$, default 32 Hu/°C).
 - **`wallReflectionRatio`**: Setting this above 0.0 allows outer reactor casings to reflect a fraction of perimeter neutrons back into the active core grid.
 - **`conductionCoeffMultiplier`**: Allows server operators to tune the rate of heat redistribution across the core without editing individual component files.
+- **`beamEnergyToFastNeutronMultiplier`**: Controls the fast neutron yield per beam packet from external particle accelerators through Beam Input Hatches (default 0.001).
 
 ### 15.2 Structural and pipe tiering (`tiers.yaml`)
 
@@ -1939,8 +2060,8 @@ hMax: 5000.0
 # Minor loss drag coefficient for unpowered impeller coast-down (default 8.0)
 unpoweredImpellerK: 8.0
 
-# Maximum stall head pressure in Pascals (default 2500000.0 = 25 bar)
-maxPumpHeadPressurePa: 2500000.0
+# Maximum stall head pressure in Pascals (default: .inf / uncapped; physically governed by motor power)
+maxPumpHeadPressurePa: .inf
 
 # Mechanical power output (Watts) delivered per EU drawn by pump (default 80.0)
 pumpMechanicalPowerPerEU: 80.0
@@ -1963,7 +2084,7 @@ defaultPipeRoughness: 0.000045
 
 - **Convection curve parameters**: `vTurbulent`, `vSaturation`, `hLaminarSlope`, `hTurbulentFactor`, and `hMax` define the piecewise convective heat transfer coefficient $h(v)$ (§11.2). Operators can tune the heat transfer efficiency or widen/narrow the turbulent transition regime without recompiling.
 - **Impeller braking (`unpoweredImpellerK`)**: Sets the hydraulic drag $K$ of a de-energized pump rotor as loop inertia coasts down.
-- **Pump performance**: `maxPumpHeadPressurePa` sets the maximum stall head pressure delivered by the pump ($P_{\max}$), and `pumpMechanicalPowerPerEU` converts EU/t drawn into mechanical fluid power in Watts.
+- **Pump performance**: `maxPumpHeadPressurePa` sets an optional clamp on maximum stall head pressure delivered by the pump (defaults to `.inf` / uncapped so that pump stall head $\Delta p_{stall} = P / \dot V_{rated}$ scales naturally with motor power and rotor efficiency across tiers, creating tier-appropriate pipe overpressurization hazards), and `pumpMechanicalPowerPerEU` converts EU/t drawn into mechanical fluid power in Watts.
 
 ### 16.2 Thermodynamic Fluid Properties (`fluids.yaml`)
 
@@ -2078,32 +2199,20 @@ Controls mechanical burst ratings, maximum operating temperatures, diameter mapp
 
 ```yaml
 materialPressureRatingsBar:
-  wood: 2.0
-  potin: 6.0
-  copper: 8.0
-  bronze: 12.0
-  wroughtiron: 15.0
+  castiron: 16.0
   iron: 16.0
+  wroughtiron: 15.0
   steel: 35.0
   stainlesssteel: 70.0
   titanium: 140.0
   tungstensteel: 280.0
   osmium: 600.0
-  hsse: 450.0
-  hssg: 400.0
-  hsss: 550.0
-  naquadah: 850.0
-  naquadahalloy: 1200.0
   neutronium: 3000.0
 
 materialTemperatureLimitsCelsius:
-  wood: 100.0
-  lead: 327.0
-  tin: 232.0
-  copper: 1085.0
-  bronze: 1000.0
-  wroughtiron: 1500.0
+  castiron: 1538.0
   iron: 1538.0
+  wroughtiron: 1500.0
   steel: 1500.0
   stainlesssteel: 1700.0
   titanium: 1668.0
@@ -2264,13 +2373,13 @@ The following behaviours, described in the body of this manual, appear to differ
 | 11 | Fuel | *Resolved:* Fast neutron absorption induces chain reactions with material-specific fast fission multipliers ($m_{fiss,f}$); fast absorption wear applies configurable 8× penalty | §5.1, §7.1, §7.3, §7.5 |
 | 12 | Fuel | GT depleted rods yield one cycle of neutrons; items named `fuelrod` act as permanent non-depleting fuel | §7.7 |
 | 13 | Components | GT meta-item plates (graphite, beryllium, boron, cadmium) are not classified; NEI implies otherwise | §8 |
-| 14 | Components | Radiovoltaic output scaled by $\eta^2$ | §8.6 |
+| 14 | Components | *Resolved:* Radiovoltaic output scales linearly with maintenance efficiency $\eta$ applied once to aggregate EU output | §8.6 |
 | 15 | Control | *Resolved:* SCRAM forces all control rods to 100% insertion while simulation and cooling continue uninterrupted | §3.1, §9.5 |
 | 16 | Control | Direct EU is not reset on SCRAM/disable | §9.5, §13.6 |
 | 17 | Cooling | Conductive heat-to-steam conversion is ≈4.5× GT steam valuation | §11.2 |
 | 18 | Loops | Passage-to-loop heat transfer is not energy-conserving (≈ 0.785/$\dot V$) | §11.4 |
 | 19 | Loops | Parallel branches simulated in series with full flow each | §11.5.1 |
-| 20 | Loops | PHE does not remove heat from the loop; latent heat 1 000× too small | §11.5.8 |
+| 20 | Loops | *Resolved:* PHE removes heat from loop coolant with strict energy conservation ($\Delta T = Q_{actual}/C_p$); standard GTNH latent heat $2\,260\text{ kJ/kg}$ | §11.5.8 |
 | 21 | Loops | No ambient loss and no boiling in loops; no survival heat sink | §11.5.4, §11.5.8 |
 | 22 | Loops | PHE pressurized hatch roles depend on structure iteration order | §11.5.8 |
 | 23 | Loops | Instrument pressure metric is a local segment drop | §11.5.10 |
@@ -2279,9 +2388,9 @@ The following behaviours, described in the body of this manual, appear to differ
 | 26 | Hazards | Overheat check skips HP passage cells | §12.3 |
 | 27 | Docs | Control-rod hatch javadoc says "top layer"; rods are in the bottom layer | §9.1 |
 | 28 | Web sim | Different constants and 20× timebase difference vs in-game | §14 |
-| 29 | Loops | Loop crawler stops synchronously at 1 000 steps in a single tick (multi-tick 10k crawl planned) | §11.5.1 |
-| 30 | Loops | `crawlLoopGraph()` calls `fixAllIssues()`, auto-repairing all 6 pump multiblock maintenance issues upon successful crawl | §11.5.5 |
-| 31 | Loops | PHE input hatch accepts plain Minecraft water without penalty (matches `WATER` or `contains("water")`) rather than strictly Distilled Water | §11.5.8 |
+| 29 | Loops | Multi-tick loop crawling (1 000 steps/tick, up to 20 ticks / 20 000 steps total) with loop-too-large controller error | §11.5.1 |
+| 30 | Loops | Manifold area-weighted parallel flow splitting, thermal blending, and non-additive parallel pressure drops; maintenance preservation across crawls | §11.5.1, §11.5.3, §11.5.5 |
+| 31 | Loops | *Resolved:* PHE input hatch strictly accepts Distilled Water variants (`ic2distilledwater`, `distilledwater`, `distilled_water`); plain Minecraft water is rejected | §11.5.8 |
 
 ---
 
