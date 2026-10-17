@@ -199,6 +199,9 @@ public class NuclearReactorPhysics {
         double baseFissMult = (customMix != null) ? customMix.baseThermalFissionMultiplier
             : (tileFuelData != null) ? tileFuelData.getEffectiveFissionMultiplier(physics)
             : (fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0;
+        double baseFastFissMult = (customMix != null) ? customMix.baseFastFissionMultiplier
+            : (tileFuelData != null) ? tileFuelData.getEffectiveFastFissionMultiplier(physics)
+            : (fuel != null) ? fuel.getEffectiveFastFissionMultiplier(physics) : 0.10;
 
         if (tile.isBus()) {
             MTEHatchNuclearBus bus = tile.getBus();
@@ -213,9 +216,11 @@ public class NuclearReactorPhysics {
                 int rodSize = (stack.getItem() instanceof ItemCustomFuelRod customRod) ? customRod.rodSize : 4;
                 baseNeutrons = customMix.getBaseNeutrons(rodSize);
                 baseFissMult = customMix.baseThermalFissionMultiplier;
+                baseFastFissMult = customMix.baseFastFissionMultiplier;
             } else if (fd != null) {
                 baseNeutrons = fd.getEffectiveBaseNeutrons(physics);
                 baseFissMult = fd.getEffectiveFissionMultiplier(physics);
+                baseFastFissMult = fd.getEffectiveFastFissionMultiplier(physics);
             } else if (stack.getItem() instanceof ItemRadioactiveCellIC icCell) {
                 baseNeutrons = 4 * icCell.numberOfCells;
                 if (icCell.sMox) baseNeutrons *= 2;
@@ -225,10 +230,12 @@ public class NuclearReactorPhysics {
             } else if (fuel != null) {
                 baseNeutrons = fuel.baseNeutrons;
                 baseFissMult = fuel.baseThermalFissionMultiplier;
+                baseFastFissMult = fuel.getEffectiveFastFissionMultiplier(physics);
             }
 
             double effectiveFissMult = baseFissMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
-            int chainNeutrons = (int) Math.round(bus.mLastThermalAbsorbed * effectiveFissMult);
+            double effectiveFastFissMult = baseFastFissMult * NuclearSimulationEngine.globalFastFissionMultiplier;
+            int chainNeutrons = (int) Math.round(bus.mLastThermalAbsorbed * effectiveFissMult + bus.mLastFastAbsorbed * effectiveFastFissMult);
             int produced = (int) Math.round((baseNeutrons + chainNeutrons) * efficiency);
             bus.mLastNeutronsGenerated = produced;
             return produced;
@@ -244,13 +251,16 @@ public class NuclearReactorPhysics {
             if (fd != null) {
                 baseNeutrons = fd.getEffectiveBaseNeutrons(physics);
                 baseFissMult = fd.getEffectiveFissionMultiplier(physics);
+                baseFastFissMult = fd.getEffectiveFastFissionMultiplier(physics);
             } else if (fuel != null) {
                 baseNeutrons = fuel.baseNeutrons;
                 baseFissMult = fuel.baseThermalFissionMultiplier;
+                baseFastFissMult = fuel.getEffectiveFastFissionMultiplier(physics);
             }
 
             double effectiveFissMult = baseFissMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
-            int chainNeutrons = (int) Math.round(hatch.mLastThermalAbsorbed * effectiveFissMult);
+            double effectiveFastFissMult = baseFastFissMult * NuclearSimulationEngine.globalFastFissionMultiplier;
+            int chainNeutrons = (int) Math.round(hatch.mLastThermalAbsorbed * effectiveFissMult + hatch.mLastFastAbsorbed * effectiveFastFissMult);
             int produced = (int) Math.round((baseNeutrons + chainNeutrons) * efficiency);
             hatch.mLastNeutronsGenerated = produced;
             return produced;
@@ -645,8 +655,12 @@ public class NuclearReactorPhysics {
                 : (fuelType != null) ? fuelType.calculateTemperatureDamage(bus.mTemperature, ambient)
                     : (bus.mTemperature > ambient ? (bus.mTemperature - ambient) / 100.0 : 0.0);
 
+            PhysicsData physics = ReactorDataRegistry.getPhysics();
+            double fastWearMult = (physics != null) ? physics.fastAbsorptionDamageMultiplier : NuclearSimulationEngine.fastAbsorptionDamageMultiplier;
+            double thermalWearMult = (physics != null) ? physics.thermalAbsorptionDamageMultiplier : NuclearSimulationEngine.thermalAbsorptionDamageMultiplier;
+
             double totalDmg = Math.max(0.0, bus.mLastNeutronsGenerated * 0.25)
-                + (bus.mFastAbsorbed + bus.mThermalAbsorbed) * 1.0
+                + (bus.mFastAbsorbed * fastWearMult + bus.mThermalAbsorbed * thermalWearMult)
                 + tempDmg;
 
             int configuredDurability = (customMix != null) ? customMix.defaultDurability
@@ -933,8 +947,12 @@ public class NuclearReactorPhysics {
             double tempDmg = (fuelType != null) ? fuelType.calculateTemperatureDamage(hatch.mTemperature, ambient)
                 : (hatch.mTemperature > ambient ? (hatch.mTemperature - ambient) / 100.0 : 0.0);
 
+            PhysicsData physics = ReactorDataRegistry.getPhysics();
+            double fastWearMult = (physics != null) ? physics.fastAbsorptionDamageMultiplier : NuclearSimulationEngine.fastAbsorptionDamageMultiplier;
+            double thermalWearMult = (physics != null) ? physics.thermalAbsorptionDamageMultiplier : NuclearSimulationEngine.thermalAbsorptionDamageMultiplier;
+
             double totalBurn = Math.max(0.0, hatch.mLastNeutronsGenerated * 0.25)
-                + (hatch.mFastAbsorbed + hatch.mThermalAbsorbed) * 1.0
+                + (hatch.mLastFastAbsorbed * fastWearMult + hatch.mLastThermalAbsorbed * thermalWearMult)
                 + tempDmg;
             int burn = (int) totalBurn;
             double rem = totalBurn - burn;

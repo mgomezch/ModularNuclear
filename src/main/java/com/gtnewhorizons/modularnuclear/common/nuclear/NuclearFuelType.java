@@ -19,25 +19,26 @@ package com.gtnewhorizons.modularnuclear.common.nuclear;
  */
 public enum NuclearFuelType {
 
-    GLOWSTONE("Glowstone", "breeder", 200.0, 2000.0, 0.60, 10000, 1),
-    LITHIUM("Lithium", "breeder", 390.0, 2100.0, 0.80, 10000, 1),
-    THORIUM("Thorium", "standard", 580.0, 2200.0, 1.00, 50000, 2),
-    URANIUM("Uranium", "standard", 770.0, 2300.0, 1.25, 20000, 4),
-    MOX("MOX", "standard", 960.0, 2400.0, 1.50, 10000, 8),
-    HD_URANIUM("High-Density Uranium", "dense", 1150.0, 2500.0, 1.80, 70000, 8),
-    HD_PLUTONIUM("High-Density Plutonium", "dense", 1350.0, 2600.0, 2.10, 70000, 12),
-    EXCITED_URANIUM("Excited Uranium", "excited", 1540.0, 2700.0, 2.50, 6000, 16),
-    EXCITED_PLUTONIUM("Excited Plutonium", "excited", 1730.0, 2800.0, 2.90, 10000, 24),
-    NAQUADAH("Naquadah", "dense", 1920.0, 2900.0, 3.40, 100000, 16),
-    NAQUADRIA("Naquadria", "dense", 2110.0, 3000.0, 4.00, 100000, 20),
-    TIBERIUM("Tiberium", "standard", 2300.0, 3100.0, 4.70, 50000, 24),
-    THE_CORE("The Core", "dense", 2500.0, 3200.0, 5.50, 320000, 512);
+    GLOWSTONE("Glowstone", "breeder", 200.0, 2000.0, 0.60, 0.05, 10000, 1),
+    LITHIUM("Lithium", "breeder", 390.0, 2100.0, 0.80, 0.05, 10000, 1),
+    THORIUM("Thorium", "standard", 580.0, 2200.0, 1.00, 0.08, 50000, 2),
+    URANIUM("Uranium", "standard", 770.0, 2300.0, 1.25, 0.10, 20000, 4),
+    MOX("MOX", "standard", 960.0, 2400.0, 1.50, 0.15, 10000, 8),
+    HD_URANIUM("High-Density Uranium", "dense", 1150.0, 2500.0, 1.80, 0.12, 70000, 8),
+    HD_PLUTONIUM("High-Density Plutonium", "dense", 1350.0, 2600.0, 2.10, 0.20, 70000, 12),
+    EXCITED_URANIUM("Excited Uranium", "excited", 1540.0, 2700.0, 2.50, 0.15, 6000, 16),
+    EXCITED_PLUTONIUM("Excited Plutonium", "excited", 1730.0, 2800.0, 2.90, 0.25, 10000, 24),
+    NAQUADAH("Naquadah", "dense", 1920.0, 2900.0, 3.40, 0.25, 100000, 16),
+    NAQUADRIA("Naquadria", "dense", 2110.0, 3000.0, 4.00, 0.30, 100000, 20),
+    TIBERIUM("Tiberium", "standard", 2300.0, 3100.0, 4.70, 0.20, 50000, 24),
+    THE_CORE("The Core", "dense", 2500.0, 3200.0, 5.50, 0.50, 320000, 512);
 
     public final String displayName;
     public final String archetype;
     public final double peakReactivityTemp;
     public final double floorTemp;
     public final double baseThermalFissionMultiplier;
+    public final double baseFastFissionMultiplier;
     public final int defaultDurability;
     public final int baseNeutrons;
     public final double damageK;
@@ -46,12 +47,13 @@ public enum NuclearFuelType {
     public final double damageRatio;
 
     NuclearFuelType(String displayName, String archetype, double peakReactivityTemp, double floorTemp,
-        double baseThermalFissionMultiplier, int defaultDurability, int baseNeutrons) {
+        double baseThermalFissionMultiplier, double baseFastFissionMultiplier, int defaultDurability, int baseNeutrons) {
         this.displayName = displayName;
         this.archetype = archetype != null ? archetype : "standard";
         this.peakReactivityTemp = peakReactivityTemp;
         this.floorTemp = floorTemp;
         this.baseThermalFissionMultiplier = baseThermalFissionMultiplier;
+        this.baseFastFissionMultiplier = baseFastFissionMultiplier;
         this.defaultDurability = defaultDurability;
         this.baseNeutrons = baseNeutrons;
 
@@ -71,6 +73,11 @@ public enum NuclearFuelType {
     public double getEffectiveFissionMultiplier(com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics) {
         double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetype) : 1.0;
         return this.baseThermalFissionMultiplier * mult;
+    }
+
+    public double getEffectiveFastFissionMultiplier(com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics) {
+        double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetype) : 1.0;
+        return this.baseFastFissionMultiplier * mult;
     }
 
     /**

@@ -151,6 +151,27 @@ public class NuclearSimulationCLI {
                         } catch (NumberFormatException ignored) {}
                     }
                 }
+                case "--global-fast-fission-mult" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            NuclearSimulationEngine.globalFastFissionMultiplier = Double.parseDouble(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                case "--fast-damage-mult" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            NuclearSimulationEngine.fastAbsorptionDamageMultiplier = Double.parseDouble(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                case "--thermal-damage-mult" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            NuclearSimulationEngine.thermalAbsorptionDamageMultiplier = Double.parseDouble(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
                 case "--eu-per-degree" -> {
                     if (i + 1 < args.length) {
                         try {
@@ -513,6 +534,21 @@ public class NuclearSimulationCLI {
                         case "global_fission_mult", "globalfissionmult" -> {
                             try {
                                 NuclearSimulationEngine.globalThermalFissionMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "global_fast_fission_mult", "globalfastfissionmult" -> {
+                            try {
+                                NuclearSimulationEngine.globalFastFissionMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "fast_damage_mult", "fast_absorption_damage_mult" -> {
+                            try {
+                                NuclearSimulationEngine.fastAbsorptionDamageMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "thermal_damage_mult", "thermal_absorption_damage_mult" -> {
+                            try {
+                                NuclearSimulationEngine.thermalAbsorptionDamageMultiplier = Double.parseDouble(v);
                             } catch (Exception ignored) {}
                         }
                         case "eu_per_degree", "euperdegree" -> {

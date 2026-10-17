@@ -117,8 +117,8 @@ public class ActinideCompounderTest {
         // Thermal mult = 0.5 * 1.60 + 0.5 * 1.80 = 1.70
         assertEquals(1.70, mix.baseThermalFissionMultiplier, 1e-2);
 
-        // Fast mult = 0.5 * 1.20 + 0.5 * 1.60 = 1.40
-        assertEquals(1.40, mix.baseFastFissionMultiplier, 1e-2);
+        // Fast mult = 0.5 * 0.12 + 0.5 * 0.16 = 0.14
+        assertEquals(0.14, mix.baseFastFissionMultiplier, 1e-2);
 
         // Base neutrons = 0.5 * 24 + 0.5 * 32 = 28
         assertEquals(28, mix.baseNeutrons);

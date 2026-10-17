@@ -393,13 +393,17 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         // Line 3: Fission Multiplier & Base Neutron Output
         com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics();
         double effFiss = fuel.getEffectiveFissionMultiplier(physics);
+        double effFastFiss = fuel.getEffectiveFastFissionMultiplier(physics);
         int effNeutrons = fuel.getEffectiveBaseNeutrons(physics);
 
         String l3 = String.format(
             Locale.US,
-            "Fiss Mult: %s%.2fx%s | Neutrons: %s%d/s",
+            "Th: %s%.2fx%s | Fast: %s%.2fx%s | %s%d n/t",
             EnumChatFormatting.DARK_PURPLE,
             effFiss,
+            EnumChatFormatting.DARK_GRAY,
+            EnumChatFormatting.BLUE,
+            effFastFiss,
             EnumChatFormatting.DARK_GRAY,
             EnumChatFormatting.DARK_RED,
             effNeutrons);

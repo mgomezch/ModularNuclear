@@ -35,6 +35,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
@@ -77,6 +78,19 @@ public final class ReactorDataRegistry {
         fuels.addAll(buildDefaultFuels());
 
         componentData = buildDefaultComponents();
+        syncPhysicsToEngine();
+    }
+
+    public static synchronized void syncPhysicsToEngine() {
+        if (physicsData == null) return;
+        NuclearSimulationEngine.setHuPerDegree(physicsData.huPerDegree);
+        NuclearSimulationEngine.setGlobalThermalFissionMultiplier(physicsData.globalThermalFissionMultiplier);
+        NuclearSimulationEngine.setGlobalFastFissionMultiplier(physicsData.globalFastFissionMultiplier);
+        NuclearSimulationEngine.setFastAbsorptionDamageMultiplier(physicsData.fastAbsorptionDamageMultiplier);
+        NuclearSimulationEngine.setThermalAbsorptionDamageMultiplier(physicsData.thermalAbsorptionDamageMultiplier);
+        NuclearSimulationEngine.fissionHeatPerNeutron = physicsData.fissionHeatPerNeutron;
+        NuclearSimulationEngine.wallReflectionChance = physicsData.wallReflectionChance;
+        NuclearSimulationEngine.wallAbsorbHeatPerNeutron = physicsData.wallAbsorbHeatPerNeutron;
     }
 
     public static synchronized void loadFromDir(File dir) {
@@ -104,6 +118,7 @@ public final class ReactorDataRegistry {
         } else {
             savePhysicsFile(physicsFile, yaml);
         }
+        syncPhysicsToEngine();
 
         // 2. Tiers
         File tiersFile = new File(dir, "tiers.yaml");

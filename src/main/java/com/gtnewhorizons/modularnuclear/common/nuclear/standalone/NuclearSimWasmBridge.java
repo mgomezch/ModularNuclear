@@ -467,6 +467,12 @@ public class NuclearSimWasmBridge {
             NuclearSimulationEngine.thermalFissionMultiplier = d;
         } else if ("globalThermalFissionMultiplier".equals(key)) {
             NuclearSimulationEngine.globalThermalFissionMultiplier = d;
+        } else if ("globalFastFissionMultiplier".equals(key) || "fastFissionMult".equals(key)) {
+            NuclearSimulationEngine.globalFastFissionMultiplier = d;
+        } else if ("fastAbsorptionDamageMultiplier".equals(key) || "fastDamageMult".equals(key)) {
+            NuclearSimulationEngine.fastAbsorptionDamageMultiplier = d;
+        } else if ("thermalAbsorptionDamageMultiplier".equals(key) || "thermalDamageMult".equals(key)) {
+            NuclearSimulationEngine.thermalAbsorptionDamageMultiplier = d;
         } else if ("fissionHeatPerNeutron".equals(key) || "fissionHeat".equals(key)) {
             NuclearSimulationEngine.fissionHeatPerNeutron = d;
         } else if ("hpWaterBoilingPoint".equals(key) || "hpBoil".equals(key)) {
@@ -1181,6 +1187,15 @@ public class NuclearSimWasmBridge {
             .append(",");
         sb.append("\"globalThermalFissionMultiplier\":")
             .append(fmt2(NuclearSimulationEngine.globalThermalFissionMultiplier))
+            .append(",");
+        sb.append("\"globalFastFissionMultiplier\":")
+            .append(fmt2(NuclearSimulationEngine.globalFastFissionMultiplier))
+            .append(",");
+        sb.append("\"fastAbsorptionDamageMultiplier\":")
+            .append(fmt2(NuclearSimulationEngine.fastAbsorptionDamageMultiplier))
+            .append(",");
+        sb.append("\"thermalAbsorptionDamageMultiplier\":")
+            .append(fmt2(NuclearSimulationEngine.thermalAbsorptionDamageMultiplier))
             .append(",");
         sb.append("\"fissionHeatPerNeutron\":")
             .append(fmt1(NuclearSimulationEngine.fissionHeatPerNeutron))

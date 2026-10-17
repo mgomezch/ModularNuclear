@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
+import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
@@ -5545,6 +5548,75 @@ public class NuclearSimulationEngineTest {
         double totalDmg = 10.0;
         double scaledDmg = totalDmg * scale;
         assertEquals(5.0, scaledDmg, 1e-4);
+    }
+
+    @Test
+    public void testFastNeutronFission() {
+        NuclearSimulationEngine.resetDefaultParameters();
+        assertEquals(1.0, NuclearSimulationEngine.globalFastFissionMultiplier, 1e-4);
+
+        // Uranium fuel tile (baseFastFissionMultiplier = 0.10, baseNeutrons = 4)
+        SimTile tile = new SimTile(SimTile.TileType.FUEL_URANIUM_SINGLE);
+        assertEquals(4, tile.generateNeutrons(1.0)); // 0 absorbed neutrons -> baseline 4
+
+        // Absorb 100 fast neutrons
+        tile.onNeutronAbsorbed(NeutronType.FAST, 100);
+        tile.nuclearTick(1.0);
+        assertEquals(100, tile.getLastFastAbsorbed());
+
+        // Fast fission chain neutrons = round(100 * 0.10) = 10
+        // Total produced = base (4) + chain (10) = 14
+        assertEquals(14, tile.generateNeutrons(1.0));
+
+        // Test U-238 fast fission cross section in CustomFuelMix is ultra-low (0.03)
+        assertEquals(0.03, CustomFuelMix.ActinideIsotope.URANIUM_238.baseFastFissionMultiplier, 1e-4);
+        assertEquals(0.12, CustomFuelMix.ActinideIsotope.URANIUM_235.baseFastFissionMultiplier, 1e-4);
+        assertEquals(0.16, CustomFuelMix.ActinideIsotope.PLUTONIUM_239.baseFastFissionMultiplier, 1e-4);
+    }
+
+    @Test
+    public void testDifferentialFastVsThermalFuelWear() {
+        NuclearSimulationEngine.resetDefaultParameters();
+        assertEquals(8.0, NuclearSimulationEngine.fastAbsorptionDamageMultiplier, 1e-4);
+        assertEquals(1.0, NuclearSimulationEngine.thermalAbsorptionDamageMultiplier, 1e-4);
+
+        double origBurnup = NuclearSimulationEngine.fuelBurnupMultiplier;
+        NuclearSimulationEngine.fuelBurnupMultiplier = 1.0;
+        try {
+            // Fast neutron absorption wear
+            SimTile tileFast = new SimTile(SimTile.TileType.FUEL_URANIUM_SINGLE);
+            tileFast.onNeutronAbsorbed(NeutronType.FAST, 10);
+            tileFast.nuclearTick(1.0);
+            double fastWear = tileFast.getLastDurabilityLoss();
+            assertEquals(80.0, fastWear, 1e-4); // 10 * 8.0 = 80.0
+
+            // Thermal neutron absorption wear
+            SimTile tileThermal = new SimTile(SimTile.TileType.FUEL_URANIUM_SINGLE);
+            tileThermal.onNeutronAbsorbed(NeutronType.THERMAL, 10);
+            tileThermal.nuclearTick(1.0);
+            double thermalWear = tileThermal.getLastDurabilityLoss();
+            assertEquals(10.0, thermalWear, 1e-4); // 10 * 1.0 = 10.0
+
+            // Exactly 8x ratio!
+            assertEquals(8.0, fastWear / thermalWear, 1e-4);
+
+            // Test configurable multipliers via PhysicsData
+            com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics = new com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData();
+            physics.fastAbsorptionDamageMultiplier = 12.0;
+            physics.thermalAbsorptionDamageMultiplier = 2.0;
+
+            Map<String, Object> map = physics.toMap();
+            assertEquals(12.0, (Double) map.get("fast_absorption_damage_multiplier"), 1e-4);
+            assertEquals(2.0, (Double) map.get("thermal_absorption_damage_multiplier"), 1e-4);
+
+            com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData roundtrip =
+                com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData.fromMap(map);
+            assertEquals(12.0, roundtrip.fastAbsorptionDamageMultiplier, 1e-4);
+            assertEquals(2.0, roundtrip.thermalAbsorptionDamageMultiplier, 1e-4);
+        } finally {
+            NuclearSimulationEngine.fuelBurnupMultiplier = origBurnup;
+            NuclearSimulationEngine.resetDefaultParameters();
+        }
     }
 
     private static void deleteRecursively(File file) {

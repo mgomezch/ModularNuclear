@@ -211,6 +211,11 @@ public class FuelData {
         return this.thermalFissionMultiplier * mult;
     }
 
+    public double getEffectiveFastFissionMultiplier(PhysicsData physics) {
+        double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetype) : 1.0;
+        return this.fastFissionMultiplier * mult;
+    }
+
     public Map<String, Object> toMap() {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", id);

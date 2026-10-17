@@ -25,6 +25,9 @@ public class NuclearSimulationEngine {
     public static final double DEFAULT_REACTIVITY_POWER = 1.2;
     public static final double DEFAULT_GLOBAL_THERMAL_FISSION_MULT = 1.0;
     public static final double DEFAULT_THERMAL_FISSION_MULT = DEFAULT_GLOBAL_THERMAL_FISSION_MULT;
+    public static final double DEFAULT_GLOBAL_FAST_FISSION_MULT = 1.0;
+    public static final double DEFAULT_FAST_ABSORPTION_DAMAGE_MULT = 8.0;
+    public static final double DEFAULT_THERMAL_ABSORPTION_DAMAGE_MULT = 1.0;
     public static final double DEFAULT_FISSION_HEAT_PER_NEUTRON = 38.0;
     public static final double DEFAULT_HP_WATER_BOILING_POINT = 180.0;
 
@@ -60,6 +63,9 @@ public class NuclearSimulationEngine {
     public static double reactivityPower = DEFAULT_REACTIVITY_POWER;
     public static double globalThermalFissionMultiplier = DEFAULT_GLOBAL_THERMAL_FISSION_MULT;
     public static double thermalFissionMultiplier = DEFAULT_GLOBAL_THERMAL_FISSION_MULT;
+    public static double globalFastFissionMultiplier = DEFAULT_GLOBAL_FAST_FISSION_MULT;
+    public static double fastAbsorptionDamageMultiplier = DEFAULT_FAST_ABSORPTION_DAMAGE_MULT;
+    public static double thermalAbsorptionDamageMultiplier = DEFAULT_THERMAL_ABSORPTION_DAMAGE_MULT;
     public static double fissionHeatPerNeutron = DEFAULT_FISSION_HEAT_PER_NEUTRON;
     public static double hpWaterBoilingPoint = DEFAULT_HP_WATER_BOILING_POINT;
 
@@ -93,6 +99,18 @@ public class NuclearSimulationEngine {
     public static void setGlobalThermalFissionMultiplier(double mult) {
         globalThermalFissionMultiplier = Math.max(0.0, mult);
         thermalFissionMultiplier = globalThermalFissionMultiplier;
+    }
+
+    public static void setGlobalFastFissionMultiplier(double mult) {
+        globalFastFissionMultiplier = Math.max(0.0, mult);
+    }
+
+    public static void setFastAbsorptionDamageMultiplier(double mult) {
+        fastAbsorptionDamageMultiplier = Math.max(0.0, mult);
+    }
+
+    public static void setThermalAbsorptionDamageMultiplier(double mult) {
+        thermalAbsorptionDamageMultiplier = Math.max(0.0, mult);
     }
 
     public static void setAmbientTemperature(double temp) {
@@ -145,6 +163,9 @@ public class NuclearSimulationEngine {
     public static void resetDefaultParameters() {
         setHuPerDegree(DEFAULT_HU_PER_DEGREE);
         setGlobalThermalFissionMultiplier(DEFAULT_GLOBAL_THERMAL_FISSION_MULT);
+        setGlobalFastFissionMultiplier(DEFAULT_GLOBAL_FAST_FISSION_MULT);
+        setFastAbsorptionDamageMultiplier(DEFAULT_FAST_ABSORPTION_DAMAGE_MULT);
+        setThermalAbsorptionDamageMultiplier(DEFAULT_THERMAL_ABSORPTION_DAMAGE_MULT);
         tempThresholdLow = DEFAULT_TEMP_THRESHOLD_LOW;
         tempThresholdHigh = DEFAULT_TEMP_THRESHOLD_HIGH;
         reactivityPower = DEFAULT_REACTIVITY_POWER;

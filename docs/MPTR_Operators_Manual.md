@@ -287,7 +287,7 @@ The net effect is that each cell acts on fast neutrons as one of three things:
 - **Absorbing:** high $p_{a,f}$. Radiovoltaics, absorbers, rods, Naquarite foil.
 - **Scattering:** high $p_{s,f}$. Reflectors, moderators, water. A scattering cell turns packets back and, if $p_m$ is significant, thermalises them in place.
 
-Fast absorption by **fuel** cells **does not cause fission** (§5.1). It only heats and wears the fuel. Fast neutrons are useful only once they are moderated.
+Fast absorption by **fuel** cells can induce fast fission, but with a cross section 10× to 35× lower than thermal absorption ($m_{fiss,f} \ll m_{fiss,t}$; §5.1), and induces severe physical wear on the fuel rod cladding ($8\times$ damage compared to thermal absorption; §7.3). Dedicated moderators are strongly required to thermalise fast flux into safe, productive thermal fission.
 
 ### 4.4 Thermal diffusion and scattering gating
 
@@ -347,7 +347,7 @@ The Inspect-Core window can overlay per-cell fast and thermal flux and absorptio
 
 Each fuel cell computes its neutron output once per cycle, at the start of the cycle, from its own state:
 
-$$N_{chain} = \operatorname{round}\left(A_{t}^{prev} \cdot m_{fiss} \cdot g\right)$$
+$$N_{chain} = \operatorname{round}\left(A_{t}^{prev} \cdot m_{fiss,t} \cdot g_t + A_{f}^{prev} \cdot m_{fiss,f} \cdot g_f\right)$$
 
 $$N = \operatorname{round}\left((N_{base} + N_{chain}) \cdot R(T_{cell})\right)$$
 
@@ -355,16 +355,18 @@ where
 
 - $N_{base}$ is the fuel's intrinsic (spontaneous) neutron output per cycle (§7.1);
 - $A_t^{prev}$ is the number of **thermal** neutrons the cell absorbed in the **previous** cycle. Only the share credited to the fuel counts; the share taken by a control rod does not (§9.3);
-- $m_{fiss}$ is the fuel's **thermal fission multiplier** (§7.1);
-- $g$ is a global multiplier, 1.0 in-game;
+- $A_f^{prev}$ is the number of **fast** neutrons the cell absorbed in the **previous** cycle;
+- $m_{fiss,t}$ is the fuel's **thermal fission multiplier** (§7.1);
+- $m_{fiss,f}$ is the fuel's **fast fission multiplier** (§7.1). Fast neutrons induce fission with a significantly lower cross section than thermal neutrons ($m_{fiss,f} \ll m_{fiss,t}$). For fertile isotopes like U-238, $m_{fiss,f} \approx 0.03$, while for fissile isotopes like U-235 and Pu-239, $m_{fiss,f}$ ranges from $0.12 \dots 0.16$;
+- $g_t, g_f$ are global thermal and fast fission multipliers (default 1.0 in `physics.yaml`);
 - $R(T)$ is the fuel's **reactivity** at the cell's current temperature (§5.2).
 
 All emitted neutrons are fast. Each emitted neutron immediately deposits **38 Hu** of prompt fission heat in the fuel cell.
 
 Consequences:
 
-- Fission is driven **only by thermal absorption**. A fuel cell that absorbs no thermal neutrons produces only $N_{base} \cdot R$.
-- The chain reaction has a **one-cycle lag**. Thermal neutrons absorbed this second become fast neutrons next second.
+- Fission is predominantly driven by **thermal absorption**, with a secondary, material-dependent **fast fission** contribution.
+- The chain reaction has a **one-cycle lag**. Neutrons absorbed this second become fast neutrons next second.
 - Maintenance state does **not** affect fission. A badly maintained reactor still makes neutrons and heat. It only loses cooling capacity (§12).
 
 ### 5.2 The reactivity curve
@@ -501,28 +503,33 @@ Rather than relying on runtime substring matching, each fuel entry explicitly co
 - `base_neutrons`: Base unscaled neutron yield emitted per cycle ($N_{base}$).
 - `peak_reactivity_temp` ($T_{pk}$): Temperature (°C) of maximum reactivity.
 - `floor_temp` ($T_{fl}$): Temperature (°C) where reactivity drops to zero and thermal damage accelerates.
-- `fission_mult` ($m_{fiss}$): Thermal fission multiplication factor.
+- `packet_count`: Number of discrete neutron rays / packets emitted per 20-tick cycle (e.g. 1 for single rods, 2 for dual rods, 4 for quad rods and liquid fuels, 16 for The Core).
+- `base_neutrons`: Base unscaled neutron yield emitted per cycle ($N_{base}$).
+- `peak_reactivity_temp` ($T_{pk}$): Temperature (°C) of maximum reactivity.
+- `floor_temp` ($T_{fl}$): Temperature (°C) where reactivity drops to zero and thermal damage accelerates.
+- `fission_mult` ($m_{fiss,t}$): Thermal fission multiplication factor.
+- `fast_fission_mult` ($m_{fiss,f}$): Fast fission multiplication factor (§5.1).
 - `spent_product`: Depleted item or fluid produced upon reaching 0 durability (e.g. `ItemList.DepletedRodLithium`, `ItemList.DepletedRodGlowstone`, `ItemList.DepletedRodUranium4`, `thoriumbasedliquidfueldepleted`).
 - `durability`: Total wear budget of the fuel rod (§7.3).
 - `matching`: Item/ore/fluid identifiers mapped to this entry (e.g. `ItemList.RodUranium4`, `ore:...`, `IC2:...`, `modid:name:meta`).
 
 The default fuel registry populates explicit entries for every fuel rod tier (Quad, Dual, and Single variants) in strict order of density to ensure unambiguous matching:
 
-| Fuel | $T_{pk}$ (°C) | $T_{fl}$ (°C) | $m_{fiss}$ | Packets (S / D / Q) | $N_{base}$ single / dual / quad | Durability | Depleted product |
-|---|---|---|---|---|---|---|---|
-| Glowstone (breeder) | 200 | 2000 | 0.60 | 1 / — / — | 1 | 10 000 | `DepletedRodGlowstone` |
-| Lithium (breeder) | 390 | 2100 | 0.80 | 1 / — / — | 1 | 10 000 | `DepletedRodLithium` |
-| Thorium | 580 | 2200 | 1.00 | 1 / 2 / 4 | 2 / 4 / 8 | 50 000 | `DepletedRodThorium[2,4]` |
-| Uranium | 770 | 2300 | 1.25 | 1 / 2 / 4 | 4 / 8 / 16 | 20 000 | `DepletedRodUranium[2,4]` |
-| MOX | 960 | 2400 | 1.50 | 1 / 2 / 4 | 8 / 16 / 32 | 10 000 | `DepletedRodMOX[2,4]` |
-| High-Density Uranium | 1150 | 2500 | 2.16 | 1 / 2 / 4 | 4 / 8 / 16 | 70 000 | `DepletedRodHighDensityUranium[2,4]` |
-| High-Density Plutonium | 1350 | 2600 | 2.52 | 1 / 2 / 4 | 6 / 12 / 24 | 70 000 | `DepletedRodHighDensityPlutonium[2,4]` |
-| Excited Uranium | 1540 | 2700 | 2.00 | 1 / 2 / 4 | 22 / 45 / 90 | 6 000 | `DepletedRodExcitedUranium[2,4]` |
-| Excited Plutonium | 1730 | 2800 | 2.32 | 1 / 2 / 4 | 34 / 67 / 134 | 10 000 | `DepletedRodExcitedPlutonium[2,4]` |
-| Naquadah | 1920 | 2900 | 4.08 | 1 / 2 / 4 | 8 / 16 / 32 | 100 000 | `DepletedRodNaquadah[2,4]` |
-| The Core (Naquadah-32) | 2500 | 3200 | 6.60 | 16 | 256 | 320 000 | `DepletedRodNaquadah32` |
-| Naquadria | 2110 | 3000 | 4.80 | 1 / 2 / 4 | 10 / 20 / 40 | 100 000 | `DepletedRodNaquadria[2,4]` |
-| Tiberium | 2300 | 3100 | 4.70 | 1 / 2 / 4 | 24 / 48 / 96 | 50 000 | `DepletedRodTiberium[2,4]` |
+| Fuel | $T_{pk}$ (°C) | $T_{fl}$ (°C) | $m_{fiss,t}$ | $m_{fiss,f}$ | Packets (S / D / Q) | $N_{base}$ single / dual / quad | Durability | Depleted product |
+|---|---|---|---|---|---|---|---|---|
+| Glowstone (breeder) | 200 | 2000 | 0.60 | 0.05 | 1 / — / — | 1 | 10 000 | `DepletedRodGlowstone` |
+| Lithium (breeder) | 390 | 2100 | 0.80 | 0.05 | 1 / — / — | 1 | 10 000 | `DepletedRodLithium` |
+| Thorium | 580 | 2200 | 1.00 | 0.08 | 1 / 2 / 4 | 2 / 4 / 8 | 50 000 | `DepletedRodThorium[2,4]` |
+| Uranium | 770 | 2300 | 1.25 | 0.10 | 1 / 2 / 4 | 4 / 8 / 16 | 20 000 | `DepletedRodUranium[2,4]` |
+| MOX | 960 | 2400 | 1.50 | 0.15 | 1 / 2 / 4 | 8 / 16 / 32 | 10 000 | `DepletedRodMOX[2,4]` |
+| High-Density Uranium | 1150 | 2500 | 2.16 | 0.14 | 1 / 2 / 4 | 4 / 8 / 16 | 70 000 | `DepletedRodHighDensityUranium[2,4]` |
+| High-Density Plutonium | 1350 | 2600 | 2.52 | 0.24 | 1 / 2 / 4 | 6 / 12 / 24 | 70 000 | `DepletedRodHighDensityPlutonium[2,4]` |
+| Excited Uranium | 1540 | 2700 | 2.00 | 0.12 | 1 / 2 / 4 | 22 / 45 / 90 | 6 000 | `DepletedRodExcitedUranium[2,4]` |
+| Excited Plutonium | 1730 | 2800 | 2.32 | 0.20 | 1 / 2 / 4 | 34 / 67 / 134 | 10 000 | `DepletedRodExcitedPlutonium[2,4]` |
+| Naquadah | 1920 | 2900 | 4.08 | 0.30 | 1 / 2 / 4 | 8 / 16 / 32 | 100 000 | `DepletedRodNaquadah[2,4]` |
+| The Core (Naquadah-32) | 2500 | 3200 | 6.60 | 0.60 | 16 | 256 | 320 000 | `DepletedRodNaquadah32` |
+| Naquadria | 2110 | 3000 | 4.80 | 0.36 | 1 / 2 / 4 | 10 / 20 / 40 | 100 000 | `DepletedRodNaquadria[2,4]` |
+| Tiberium | 2300 | 3100 | 4.70 | 0.20 | 1 / 2 / 4 | 24 / 48 / 96 | 50 000 | `DepletedRodTiberium[2,4]` |
 
 "Durability" is the item's maximum damage, the total wear budget of the rod (§7.3).
 
@@ -584,11 +591,18 @@ Fuel is a strong thermal absorber, which is what drives fission. It is also a mo
 
 Each cycle a fuel rod takes wear:
 
-$$W = 0.25\,N + 1.0\,(A_f + A_t) + D(T)$$
+$$W = 0.25\,N + (w_f\,A_f + w_t\,A_t) + D(T)$$
 
-where $N$ is its neutron output, $A_f + A_t$ its fast and thermal absorptions (fuel share only), and $D(T)$ a temperature term:
+where $N$ is its neutron output, $A_f$ and $A_t$ are its fast and thermal neutron absorptions (fuel share only), $w_f$ and $w_t$ are the configurable absorption damage multipliers (`fast_absorption_damage_mult`, default **8.0**, and `thermal_absorption_damage_mult`, default **1.0**), and $D(T)$ a temperature term:
 
 $$D(T) = A \left(e^{k (T - T_{amb})} - 1\right)$$
+
+#### Differential Fast vs. Thermal Wear (Moderator Incentive)
+
+Fast neutron absorption causes **8× more wear** than thermal absorption by default ($w_f = 8.0$ vs $w_t = 1.0$ in `physics.yaml`):
+
+- **Physical Rationale:** Fast neutrons carry immense kinetic energy (several MeV), severely degrading the fuel cladding and crystalline matrix through atomic displacement and radiation damage without contributing high fission yield ($m_{fiss,f} \ll m_{fiss,t}$).
+- **Gameplay Design:** This creates a powerful, aggressive incentive to dedicate core cells to **moderators** (Graphite, Carbon, Heavy Water). Surrounding fuel rods with moderating materials thermalises the fast flux before it re-enters fuel cells. This simultaneous conversion drastically enhances chain-reaction heat generation while cutting neutron-induced rod degradation eight-fold.
 
 Fractional wear is applied by stochastic rounding: a wear of 4.3 is 4 with 70% probability and 5 with 30%. When the accumulated damage reaches the rod's durability, the rod is replaced by its depleted form (§7.6).
 
@@ -607,9 +621,13 @@ Where no such exponential exists (the linear ratio already exceeds 0.25 — glow
 | Naquadah | 0.001617 | 0.0486 | ~5.0 |
 | The Core | 0.002319 | 0.00319 | ~5.1 |
 
-The neutron terms dominate in any productive core. Example: an isolated uranium quad rod at peak emits 16 neutrons and absorbs little. Its wear is about $0.25 \times 16 + D(770) \approx 5$ per cycle, giving a lifetime of about 4 000 cycles (~67 minutes). The same rod in a heavily moderated lattice that absorbs 40 thermal neutrons per cycle and emits 60 wears at about $15 + 40 + 1 = 56$ per cycle, a lifetime of about 6 minutes.
+The neutron terms dominate in any productive core:
 
-**Every neutron absorbed in fuel shortens its life.** Strong chain reactions burn fuel much faster than base output does. Power and fuel economy trade off directly.
+- **Isolated Rod:** An isolated uranium quad rod at peak emits 16 neutrons and absorbs little. Its wear is $0.25 \times 16 + D(770) \approx 5$ per cycle, giving a lifetime of about 4 000 cycles (~67 minutes).
+- **Unmoderated Fast Lattice (Severe Penalty):** If that rod is placed in an unmoderated dense cluster where it absorbs 40 fast neutrons per cycle and emits 20, its wear is $0.25 \times 20 + 8.0 \times 40 + 1 = 5 + 320 + 1 = 326$ per cycle, destroying the rod in under 2 minutes (just 61 cycles).
+- **Well-Moderated Thermal Lattice (High Efficiency):** If the rod is embedded among moderators, absorbing 40 thermal neutrons and only 2 fast neutrons per cycle while producing 60 emitted neutrons, its wear is $0.25 \times 60 + 8.0 \times 2 + 1.0 \times 40 + 1 = 15 + 16 + 40 + 1 = 72$ per cycle—burning 4.5× slower than the unmoderated cluster while outputting massive fission heat.
+
+**Every neutron absorbed in fuel shortens its life, but fast neutrons destroy it 8× faster.** Power, moderation, and fuel economy trade off directly.
 
 #### Durability Scaling Reconciliation & Item Synchronization
 
@@ -644,15 +662,15 @@ Liquid fuels go in Nuclear Core Hatches (subject to the tier gate in §2.5). A h
 
 Liquid fuels are explicitly defined in `fuels.yaml` with dedicated operational and physics parameters:
 
-| Liquid fuel | $N_{base}$ | $T_{pk}$ (°C) | $T_{fl}$ (°C) | $m_{fiss}$ | Spent fluid product |
-|---|---|---|---|---|---|
-| Thorium-Based Liquid Fuel | 4 | 580 | 2200 | 1.00 | `thoriumbasedliquidfueldepleted` |
-| Excited Thorium-Based Liquid Fuel | 8 | 580 | 2200 | 1.50 | `thoriumbasedliquidfueldepleted` |
-| Uranium-Based Liquid Fuel | 8 | 770 | 2300 | 1.25 | `uraniumbasedliquidfueldepleted` |
-| Excited Uranium-Based Liquid Fuel | 16 | 1540 | 2700 | 2.50 | `uraniumbasedliquidfueldepleted` |
-| Plutonium-Based Liquid Fuel | 16 | 1350 | 2600 | 1.80 | `plutoniumbasedliquidfueldepleted` |
-| Excited Plutonium-Based Liquid Fuel | 32 | 1730 | 2800 | 2.90 | `plutoniumbasedliquidfueldepleted` |
-| Uranium Hexafluoride | 12 | 770 | 2300 | 1.25 | `uraniumtetrafluoride` |
+| Liquid fuel | $N_{base}$ | $T_{pk}$ (°C) | $T_{fl}$ (°C) | $m_{fiss,t}$ | $m_{fiss,f}$ | Spent fluid product |
+|---|---|---|---|---|---|---|
+| Thorium-Based Liquid Fuel | 4 | 580 | 2200 | 1.00 | 0.08 | `thoriumbasedliquidfueldepleted` |
+| Excited Thorium-Based Liquid Fuel | 8 | 580 | 2200 | 1.50 | 0.12 | `thoriumbasedliquidfueldepleted` |
+| Uranium-Based Liquid Fuel | 8 | 770 | 2300 | 1.25 | 0.10 | `uraniumbasedliquidfueldepleted` |
+| Excited Uranium-Based Liquid Fuel | 16 | 1540 | 2700 | 2.50 | 0.15 | `uraniumbasedliquidfueldepleted` |
+| Plutonium-Based Liquid Fuel | 16 | 1350 | 2600 | 1.80 | 0.20 | `plutoniumbasedliquidfueldepleted` |
+| Excited Plutonium-Based Liquid Fuel | 32 | 1730 | 2800 | 2.90 | 0.25 | `plutoniumbasedliquidfueldepleted` |
+| Uranium Hexafluoride | 12 | 770 | 2300 | 1.25 | 0.12 | `uraniumtetrafluoride` |
 
 Instead of losing durability, a liquid-fuel hatch consumes $\max(1, W)$ litres per cycle, with $W$ the wear formula of §7.3. It outputs the same volume of the corresponding spent fluid to the ring output hatches. A liquid-fuel hatch **does not cool**. It is subject to thermal shock like any non-coolant hatch (§13.1), with a threshold of 100 °C.
 
@@ -682,17 +700,17 @@ Dust units are counted in slot order: a regular dust is 36 units, a small dust 9
 
 #### Isotope parameters
 
-| Isotope | $T_{pk}$ | $T_{fl}$ | $m_{fiss}$ (thermal) | Fast mult. (display) | $N_{base}$ | Durability |
+| Isotope | $T_{pk}$ | $T_{fl}$ | $m_{fiss,t}$ (thermal) | $m_{fiss,f}$ (fast) | $N_{base}$ | Durability |
 |---|---|---|---|---|---|---|
-| Th-232 | 580 | 2200 | 1.00 | 0.80 | 16 | 50 000 |
-| U-238 | 770 | 2300 | 1.10 | 1.20 | 16 | 40 000 |
-| U-235 | 770 | 2300 | 1.60 | 1.20 | 24 | 20 000 |
-| Pu-239 | 1100 | 2500 | 1.80 | 1.60 | 32 | 20 000 |
-| Pu-241 | 1350 | 2600 | 2.20 | 2.00 | 40 | 15 000 |
-| U-233 | 650 | 2250 | 1.50 | 1.00 | 24 | 35 000 |
-| Am-241 | 1200 | 2550 | 1.70 | 1.50 | 28 | 25 000 |
-| Cf-252 | 1600 | 2700 | 2.50 | 2.20 | 36 | 18 000 |
-| Naquadah | 1920 | 2900 | 3.40 | 2.80 | 48 | 80 000 |
+| Th-232 | 580 | 2200 | 1.00 | 0.06 | 16 | 50 000 |
+| U-238 | 770 | 2300 | 1.10 | 0.03 | 16 | 40 000 |
+| U-235 | 770 | 2300 | 1.60 | 0.12 | 24 | 20 000 |
+| Pu-239 | 1100 | 2500 | 1.80 | 0.16 | 32 | 20 000 |
+| Pu-241 | 1350 | 2600 | 2.20 | 0.20 | 40 | 15 000 |
+| U-233 | 650 | 2250 | 1.50 | 0.10 | 24 | 35 000 |
+| Am-241 | 1200 | 2550 | 1.70 | 0.14 | 28 | 25 000 |
+| Cf-252 | 1600 | 2700 | 2.50 | 0.22 | 36 | 18 000 |
+| Naquadah | 1920 | 2900 | 3.40 | 0.28 | 48 | 80 000 |
 
 The compounded mix parameters are the **unit-weighted linear averages** of its constituents' parameters:
 
@@ -712,10 +730,10 @@ Single, dual, and quad custom fuel rods follow exact proportionality with non-cu
 
 Everything else about custom rods follows the standard fuel rules: reactivity curves built from the averaged $T_{pk}$/$T_{fl}$, a wear curve solved for those temperatures, and the fuel neutron properties of §7.2.
 
-The mix lets the operator **tune a fuel's peak temperature to the pipe tier**, and trade base output against durability. For example, a 50/50 Th-232/Pu-239 mix peaks at 840 °C with $m_{fiss} = 1.40$, quad $N_{base} = 24$ (dual $N_{base} = 12$, single $N_{base} = 6$) and durability 35 000.
+The mix lets the operator **tune a fuel's peak temperature to the pipe tier**, and trade base output against durability. For example, a 50/50 Th-232/Pu-239 mix peaks at 840 °C with $m_{fiss,t} = 1.40$, $m_{fiss,f} = 0.11$, quad $N_{base} = 24$ (dual $N_{base} = 12$, single $N_{base} = 6$) and durability 35 000.
 
 > [!NOTE]
-> **Implementation note.** Custom fuel rods dynamically read their intrinsic nuclear durability budget from the compounded mix NBT (`MaxDurability`), rather than being locked to a fixed damage value. Cycle wear in the reactor is dynamically scaled by $\frac{D_{\text{intrinsic}}}{D_{\text{configured}}}$ with stochastic rounding (§7.3), keeping inventory GUI durability bars, tooltips, and depletion timings 100% accurate across all custom isotopic blends and rod sizes. The fast multiplier and fissile fraction stored in NBT are informational; the fast-fission multiplier is not used, since fast absorption never causes fission (§5.1).
+> **Implementation note.** Custom fuel rods dynamically read their intrinsic nuclear durability budget from the compounded mix NBT (`MaxDurability`), rather than being locked to a fixed damage value. Cycle wear in the reactor is dynamically scaled by $\frac{D_{\text{intrinsic}}}{D_{\text{configured}}}$ with stochastic rounding (§7.3), keeping inventory GUI durability bars, tooltips, and depletion timings 100% accurate across all custom isotopic blends and rod sizes. The fast fission multiplier ($m_{fiss,f}$) is fully active in core physics (§5.1), allowing fast neutrons absorbed in fuel to induce chain reactions with isotope-specific cross-sections (e.g. 0.03 for fertile U-238 vs 0.12 for U-235 and 0.16 for Pu-239). The fast multiplier and fissile fraction stored in mix NBT directly parameterize the rod's fast fission performance.
 
 ### 7.6 Depletion products
 
@@ -2145,9 +2163,10 @@ reservoir:
 | Conduction substeps | 5 |
 | Minimum conduction coefficient | 0.01 |
 | Wall reflection | 0 |
-| Global fission multiplier | 1.0 |
+| Global thermal fission multiplier | 1.0 |
+| Global fast fission multiplier | 1.0 |
 | Reactivity at $T \le 0$ / floor | 0.5 / 0.05 |
-| Fuel wear: per emitted / per absorbed neutron | 0.25 / 1.0 |
+| Fuel wear: per emitted / per thermal absorbed / per fast absorbed neutron | 0.25 / 1.0 / 8.0 |
 | Default ambient | 20 °C |
 | Structure-break voiding threshold | 100 °C |
 | Repair threshold | 10% of $T_{max}$ (average temperature) |
@@ -2206,7 +2225,7 @@ The following behaviours, described in the body of this manual, appear to differ
 | 8 | Fuel | *Resolved:* Breeder rods (Lithium, Glowstone) now deplete into DepletedRodLithium and DepletedRodGlowstone (centrifuged to Tritium and Sunnarium respectively) instead of being voided | §7.1, §7.6 |
 | 9 | Fuel | *Resolved:* Plutonium liquid fuels and Uranium Hexafluoride have dedicated explicit FuelData entries with correct peak temperatures and 12 base neutrons in fuels.yaml | §7.4 |
 | 10 | Fuel | *Resolved:* Reconciled fuel wear scaling between configured durability and intrinsic item durability; custom rods dynamically read mix durability from NBT | §7.3, §7.5 |
-| 11 | Fuel | Custom-fuel fast multiplier is stored but unused (fast absorption never fissions) | §7.5 |
+| 11 | Fuel | *Resolved:* Fast neutron absorption induces chain reactions with material-specific fast fission multipliers ($m_{fiss,f}$); fast absorption wear applies configurable 8× penalty | §5.1, §7.1, §7.3, §7.5 |
 | 12 | Fuel | GT depleted rods yield one cycle of neutrons; items named `fuelrod` act as permanent non-depleting fuel | §7.7 |
 | 13 | Components | GT meta-item plates (graphite, beryllium, boron, cadmium) are not classified; NEI implies otherwise | §8 |
 | 14 | Components | Radiovoltaic output scaled by $\eta^2$ | §8.6 |

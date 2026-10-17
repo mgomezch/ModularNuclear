@@ -504,8 +504,10 @@ public class SimTile implements INuclearTile {
         NuclearFuelType fuel = getFuelType();
         double baseFissionMult = (fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0;
         double effectiveFissionMult = baseFissionMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
+        double baseFastFissionMult = (fuel != null) ? fuel.baseFastFissionMultiplier : 0.10;
+        double effectiveFastFissionMult = baseFastFissionMult * NuclearSimulationEngine.globalFastFissionMultiplier;
 
-        int chainNeutrons = (int) Math.round(lastThermalAbsorbed * effectiveFissionMult);
+        int chainNeutrons = (int) Math.round(lastThermalAbsorbed * effectiveFissionMult + lastFastAbsorbed * effectiveFastFissionMult);
         int produced = (int) Math.round((baseNeutrons + chainNeutrons) * efficiency);
         lastNeutronsGenerated = produced;
         return produced;
@@ -722,7 +724,9 @@ public class SimTile implements INuclearTile {
                     tempDmg = (temperature - NuclearSimulationEngine.AMBIENT_TEMP) / 100.0;
                 }
                 int burn = (int) Math.round(
-                    Math.max(0.0, lastNeutronsGenerated * 0.25) + (fastAbsorbed + thermalAbsorbed) * 1.0 + tempDmg);
+                    Math.max(0.0, lastNeutronsGenerated * 0.25)
+                        + (fastAbsorbed * NuclearSimulationEngine.fastAbsorptionDamageMultiplier + thermalAbsorbed * NuclearSimulationEngine.thermalAbsorptionDamageMultiplier)
+                        + tempDmg);
                 int toConsume = Math.max(1, Math.min(inputFluidAmount, burn));
                 inputFluidAmount -= toConsume;
                 outputFluidAmount += toConsume;
@@ -742,7 +746,8 @@ public class SimTile implements INuclearTile {
             } else if (temperature > NuclearSimulationEngine.AMBIENT_TEMP) {
                 tempDmg = (temperature - NuclearSimulationEngine.AMBIENT_TEMP) / 100.0;
             }
-            double rawDamage = (Math.max(0.0, lastNeutronsGenerated * 0.25) + (fastAbsorbed + thermalAbsorbed) * 1.0
+            double rawDamage = (Math.max(0.0, lastNeutronsGenerated * 0.25)
+                + (fastAbsorbed * NuclearSimulationEngine.fastAbsorptionDamageMultiplier + thermalAbsorbed * NuclearSimulationEngine.thermalAbsorptionDamageMultiplier)
                 + tempDmg) * NuclearSimulationEngine.fuelBurnupMultiplier;
             lastDurabilityLoss = rawDamage;
             durabilityLossAccumulator += rawDamage;

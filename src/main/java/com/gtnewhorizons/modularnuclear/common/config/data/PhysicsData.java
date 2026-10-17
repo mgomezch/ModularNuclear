@@ -8,7 +8,10 @@ public class PhysicsData {
     public double huPerDegree = 32.0;
     public double euPerDegree = 32.0; // Backwards-compatible alias
     public double globalThermalFissionMultiplier = 1.0;
-    public double fastFissionMultiplier = 0.10;
+    public double globalFastFissionMultiplier = 1.0;
+    public double fastFissionMultiplier = 1.0; // Backwards-compatible alias for globalFastFissionMultiplier
+    public double fastAbsorptionDamageMultiplier = 8.0;
+    public double thermalAbsorptionDamageMultiplier = 1.0;
     public double fissionHeatPerNeutron = 2.0;
     public double heatPerFastNeutronAbsorption = 10.0;
     public double heatPerThermalNeutronAbsorption = 25.0;
@@ -57,7 +60,10 @@ public class PhysicsData {
         d.huPerDegree = getDouble(map, "hu_per_degree", getDouble(map, "eu_per_degree", d.huPerDegree));
         d.euPerDegree = d.huPerDegree;
         d.globalThermalFissionMultiplier = getDouble(map, "global_thermal_fission_multiplier", d.globalThermalFissionMultiplier);
-        d.fastFissionMultiplier = getDouble(map, "fast_fission_multiplier", d.fastFissionMultiplier);
+        d.globalFastFissionMultiplier = getDouble(map, "global_fast_fission_multiplier", getDouble(map, "fast_fission_multiplier", d.globalFastFissionMultiplier));
+        d.fastFissionMultiplier = d.globalFastFissionMultiplier;
+        d.fastAbsorptionDamageMultiplier = getDouble(map, "fast_absorption_damage_multiplier", d.fastAbsorptionDamageMultiplier);
+        d.thermalAbsorptionDamageMultiplier = getDouble(map, "thermal_absorption_damage_multiplier", d.thermalAbsorptionDamageMultiplier);
         d.fissionHeatPerNeutron = getDouble(map, "fission_heat_per_neutron", d.fissionHeatPerNeutron);
         d.heatPerFastNeutronAbsorption = getDouble(map, "heat_per_fast_neutron_absorption", d.heatPerFastNeutronAbsorption);
         d.heatPerThermalNeutronAbsorption = getDouble(map, "heat_per_thermal_neutron_absorption", d.heatPerThermalNeutronAbsorption);
@@ -86,7 +92,10 @@ public class PhysicsData {
         m.put("hu_per_degree", huPerDegree);
         m.put("eu_per_degree", huPerDegree);
         m.put("global_thermal_fission_multiplier", globalThermalFissionMultiplier);
-        m.put("fast_fission_multiplier", fastFissionMultiplier);
+        m.put("global_fast_fission_multiplier", globalFastFissionMultiplier);
+        m.put("fast_fission_multiplier", globalFastFissionMultiplier);
+        m.put("fast_absorption_damage_multiplier", fastAbsorptionDamageMultiplier);
+        m.put("thermal_absorption_damage_multiplier", thermalAbsorptionDamageMultiplier);
         m.put("fission_heat_per_neutron", fissionHeatPerNeutron);
         m.put("heat_per_fast_neutron_absorption", heatPerFastNeutronAbsorption);
         m.put("heat_per_thermal_neutron_absorption", heatPerThermalNeutronAbsorption);
