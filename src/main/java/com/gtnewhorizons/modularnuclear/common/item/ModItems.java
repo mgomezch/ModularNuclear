@@ -14,6 +14,12 @@ public class ModItems {
 
     public static ItemNuclearFluidCell cellHeavyWater;
 
+    public static ItemCustomFuelRod rodCustomFuel1;
+    public static ItemCustomDepletedFuelRod rodCustomDepletedFuel1;
+
+    public static ItemCustomFuelRod rodCustomFuel2;
+    public static ItemCustomDepletedFuelRod rodCustomDepletedFuel2;
+
     public static ItemCustomFuelRod rodCustomFuel4;
     public static ItemCustomDepletedFuelRod rodCustomDepletedFuel4;
 
@@ -32,10 +38,22 @@ public class ModItems {
         GameRegistry.registerItem(cellHeavyWater, "cellHeavyWater");
         OreDictionary.registerOre("cellHeavyWater", new ItemStack(cellHeavyWater));
 
-        rodCustomFuel4 = new ItemCustomFuelRod();
+        rodCustomFuel1 = new ItemCustomFuelRod(1);
+        OreDictionary.registerOre("fuelRodCustom1", new ItemStack(rodCustomFuel1));
+
+        rodCustomDepletedFuel1 = new ItemCustomDepletedFuelRod(1);
+        OreDictionary.registerOre("depletedFuelRodCustom1", new ItemStack(rodCustomDepletedFuel1));
+
+        rodCustomFuel2 = new ItemCustomFuelRod(2);
+        OreDictionary.registerOre("fuelRodCustom2", new ItemStack(rodCustomFuel2));
+
+        rodCustomDepletedFuel2 = new ItemCustomDepletedFuelRod(2);
+        OreDictionary.registerOre("depletedFuelRodCustom2", new ItemStack(rodCustomDepletedFuel2));
+
+        rodCustomFuel4 = new ItemCustomFuelRod(4);
         OreDictionary.registerOre("fuelRodCustom4", new ItemStack(rodCustomFuel4));
 
-        rodCustomDepletedFuel4 = new ItemCustomDepletedFuelRod();
+        rodCustomDepletedFuel4 = new ItemCustomDepletedFuelRod(4);
         OreDictionary.registerOre("depletedFuelRodCustom4", new ItemStack(rodCustomDepletedFuel4));
     }
 }

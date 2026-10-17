@@ -13,19 +13,32 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import gregtech.api.items.ItemRadioactiveCell;
 
 /**
- * Quad Nuclear Fuel Rod holding a custom compounded actinide mix.
+ * Nuclear Fuel Rod holding a custom compounded actinide mix (Single, Dual, or Quad).
  */
 public class ItemCustomFuelRod extends ItemRadioactiveCell {
 
-    public ItemCustomFuelRod() {
-        super("modularnuclear.fuelrod.custom4", "Quad Fuel Rod (Custom Mix)", 4);
-        this.maxDmg = 40000;
+    public final int rodSize;
+
+    public ItemCustomFuelRod(int rodSize) {
+        super(
+            "modularnuclear.fuelrod.custom" + rodSize,
+            rodSize == 1 ? "Fuel Rod (Custom Mix)" :
+            rodSize == 2 ? "Dual Fuel Rod (Custom Mix)" :
+                           "Quad Fuel Rod (Custom Mix)",
+            rodSize
+        );
+        this.rodSize = rodSize;
+        this.maxDmg = 10000 * rodSize;
         setMaxStackSize(64);
+    }
+
+    public ItemCustomFuelRod() {
+        this(4);
     }
 
     @Override
     public int getMaxDamageEx() {
-        return 40000;
+        return this.maxDmg;
     }
 
     public int getMaxDamageEx(ItemStack stack) {
@@ -117,7 +130,7 @@ public class ItemCustomFuelRod extends ItemRadioactiveCell {
                     "%sBase Neutrons: %s%d n/t",
                     EnumChatFormatting.DARK_PURPLE,
                     EnumChatFormatting.WHITE,
-                    mix.baseNeutrons));
+                    mix.getBaseNeutrons(this.rodSize)));
         } else {
             aList.add(EnumChatFormatting.GRAY + "Empty / uncalibrated custom fuel rod");
         }

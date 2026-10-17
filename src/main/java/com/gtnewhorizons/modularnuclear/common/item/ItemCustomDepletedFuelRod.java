@@ -13,13 +13,26 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import gregtech.api.items.GTGenericItem;
 
 /**
- * Depleted Quad Nuclear Fuel Rod holding residual actinide composition for reprocessing.
+ * Depleted Nuclear Fuel Rod holding residual actinide composition for reprocessing (Single, Dual, or Quad).
  */
 public class ItemCustomDepletedFuelRod extends GTGenericItem {
 
-    public ItemCustomDepletedFuelRod() {
-        super("modularnuclear.fuelrod.depleted.custom4", "Depleted Quad Fuel Rod (Custom Mix)", null);
+    public final int rodSize;
+
+    public ItemCustomDepletedFuelRod(int rodSize) {
+        super(
+            "modularnuclear.fuelrod.depleted.custom" + rodSize,
+            rodSize == 1 ? "Depleted Fuel Rod (Custom Mix)" :
+            rodSize == 2 ? "Depleted Dual Fuel Rod (Custom Mix)" :
+                           "Depleted Quad Fuel Rod (Custom Mix)",
+            null
+        );
+        this.rodSize = rodSize;
         setMaxStackSize(64);
+    }
+
+    public ItemCustomDepletedFuelRod() {
+        this(4);
     }
 
     @Override

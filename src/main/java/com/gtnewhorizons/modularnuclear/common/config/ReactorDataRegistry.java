@@ -276,10 +276,15 @@ public final class ReactorDataRegistry {
         if (CustomFuelMix.hasCustomMix(stack)) {
             CustomFuelMix mix = CustomFuelMix.fromStack(stack);
             if (mix != null) {
+                int rodSize = 4;
+                if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod customRod) {
+                    rodSize = customRod.rodSize;
+                }
                 FuelData fd = new FuelData();
-                fd.id = "custom_fuel_mix";
-                fd.name = "Custom Fuel Mix";
-                fd.baseNeutrons = mix.baseNeutrons;
+                fd.id = "custom_fuel_mix_" + rodSize;
+                fd.name = (rodSize == 1 ? "Custom Fuel Rod" : rodSize == 2 ? "Dual Custom Fuel Rod" : "Quad Custom Fuel Rod");
+                fd.packetCount = rodSize;
+                fd.baseNeutrons = mix.getBaseNeutrons(rodSize);
                 fd.thermalFissionMultiplier = mix.baseThermalFissionMultiplier;
                 fd.fastFissionMultiplier = mix.baseFastFissionMultiplier;
                 fd.absorptionThermal = 0.80;
@@ -290,6 +295,7 @@ public final class ReactorDataRegistry {
                 fd.heatTransferCoeff = 0.05;
                 fd.defaultDurability = mix.defaultDurability;
                 fd.maxTemperature = 2500.0;
+                fd.spentProduct = "modularnuclear:rodCustomDepletedFuel" + rodSize;
                 return fd;
             }
         }
@@ -678,8 +684,10 @@ public final class ReactorDataRegistry {
         // Tiberium (Standard archetype)
         addRodTrio(list, "fuel_tiberium", "Tiberium", "standard", 24, 4.70, 0.20, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 3.5, 50000, 2300.0, 3100.0, 3100.0, 1.0, 0.0, 0.10, "RodTiberium", "RodTiberium2", "RodTiberium4", "DepletedRodTiberium", "DepletedRodTiberium2", "DepletedRodTiberium4", null, null, null, "tiberium");
 
-        // Custom Fuel Rod (Standard archetype)
-        list.add(new FuelData("fuel_custom_rod", "Custom Fuel Rod", "standard", false, 4, 4, 1.0, 0.10, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 20000, 770.0, 2300.0, 1.0, 0.0, 0.10, "modularnuclear:rodCustomDepletedFuel4", 2500.0, "modularnuclear:rodCustomFuel4", "*rodcustomfuel*"));
+        // Custom Fuel Rods (Standard archetype)
+        list.add(new FuelData("fuel_custom_rod_1", "Custom Fuel Rod", "standard", false, 1, 1, 1.0, 0.10, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 20000, 770.0, 2300.0, 1.0, 0.0, 0.10, "modularnuclear:rodCustomDepletedFuel1", 2500.0, "modularnuclear:rodCustomFuel1", "fuelRodCustom1"));
+        list.add(new FuelData("fuel_custom_rod_2", "Dual Custom Fuel Rod", "standard", false, 2, 2, 1.0, 0.10, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 20000, 770.0, 2300.0, 1.0, 0.0, 0.10, "modularnuclear:rodCustomDepletedFuel2", 2500.0, "modularnuclear:rodCustomFuel2", "fuelRodCustom2"));
+        list.add(new FuelData("fuel_custom_rod_4", "Quad Custom Fuel Rod", "standard", false, 4, 4, 1.0, 0.10, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 20000, 770.0, 2300.0, 1.0, 0.0, 0.10, "modularnuclear:rodCustomDepletedFuel4", 2500.0, "modularnuclear:rodCustomFuel4", "fuelRodCustom4", "*rodcustomfuel*"));
 
         // Liquid fuels
         list.add(new FuelData("fluid_fuel_thorium", "Thorium-Based Liquid Fuel", "standard", true, 4, 4, 1.00, 0.08, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 2.0, 50000, 580.0, 2200.0, 1.0, 0.0, 0.10, "thoriumbasedliquidfueldepleted", 2500.0, "thoriumbasedliquidfuel"));

@@ -667,16 +667,18 @@ The Actinide Fuel Compounder is a separate 3×3×3 multiblock:
 - nuclear casings, at least 14;
 - one input bus, one output bus, one input hatch, one energy hatch, exactly one maintenance hatch.
 
-It produces a **Custom Fuel Rod (quad)** from three inputs:
+It compounds custom nuclear fuel mixes into **Single**, **Dual**, or **Quad Custom Fuel Rods** selected by an installed **Programmed Circuit** (`circuitIntegrated`) in the input bus. If no circuit is installed (or configured to 0 or 4), the machine defaults to the standard Quad rod for backward compatibility. The circuit is inspected but **never consumed**.
 
-1. **Actinide dusts totalling exactly 10 dusts.** Dust units are counted in slot order: a dust is 36 units, a small dust 9 (¼), a tiny dust 4 (⅑). The selected stacks must total exactly 360 units. Only recognised actinide materials count.
-2. **100 L of tritium**, in a single fluid stack in the input hatch.
-3. **4 empty fuel rods.**
+| Circuit Configuration | Target Rod Type | Empty Rods Required | Tritium Required | Actinide Dust Units Required | Process Time @ 512 EU/t |
+|---|---|---|---|---|---|
+| **Circuit 1** | Single Custom Fuel Rod (`rodCustomFuel1`) | 1 | 25 L | 90 units (2.5 dusts) | 150 ticks (7.5 s) |
+| **Circuit 2** | Dual Custom Fuel Rod (`rodCustomFuel2`) | 2 | 50 L | 180 units (5.0 dusts) | 300 ticks (15 s) |
+| **Circuit 4** (or none) | Quad Custom Fuel Rod (`rodCustomFuel4`) | 4 | 100 L | 360 units (10.0 dusts) | 600 ticks (30 s) |
 
-The process takes 600 ticks at 512 EU/t. The output carries an NBT record of the mix (`CustomFuelMix` → `Units`, one entry per isotope in dust units).
+Dust units are counted in slot order: a regular dust is 36 units, a small dust 9 (¼), a tiny dust 4 (⅑). Only recognised actinide materials count. The output carries an NBT record of the mix (`CustomFuelMix` → `Units`, one entry per isotope in dust units).
 
 > [!TIP]
-> Keep only the intended mix in the input bus. Units are taken greedily in slot order, so extra material in early slots can make the machine pick a combination that misses 360, even when a valid subset exists.
+> Keep only the intended mix in the input bus. Units are taken greedily in slot order, so extra material in early slots can make the machine pick a combination that misses the required unit target (90, 180, or 360), even when a valid subset exists.
 
 #### Isotope parameters
 
@@ -692,16 +694,28 @@ The process takes 600 ticks at 512 EU/t. The output carries an NBT record of the
 | Cf-252 | 1600 | 2700 | 2.50 | 2.20 | 36 | 18 000 |
 | Naquadah | 1920 | 2900 | 3.40 | 2.80 | 48 | 80 000 |
 
-The rod's parameters are the **unit-weighted linear averages** of its constituents' parameters:
+The compounded mix parameters are the **unit-weighted linear averages** of its constituents' parameters:
 
-$$X_{mix} = \sum_i \frac{u_i}{360} X_i$$
+$$X_{mix} = \sum_i \frac{u_i}{U_{total}} X_i$$
 
-$N_{base}$ is floored at 4 and durability at 1 000. Everything else about the rod follows the standard fuel rules: 4 packets, the reactivity curve built from the averaged $T_{pk}$/$T_{fl}$, a wear curve solved for those temperatures, and the fuel neutron properties of §7.2.
+where $U_{total} = \sum_i u_i$ (90 for Single, 180 for Dual, 360 for Quad).
 
-The mix lets the operator **tune a fuel's peak temperature to the pipe tier**, and trade base output against durability. For example, a 50/50 Th-232/Pu-239 mix peaks at 840 °C with $m_{fiss} = 1.40$, $N_{base} = 24$ and durability 35 000.
+#### Rod sizing and physical scaling
+
+Single, dual, and quad custom fuel rods follow exact proportionality with non-custom rod trios:
+
+| Rod Type | Emission Packets | Base Neutrons $N_{base}$ | Max Durability $D_{intrinsic}$ | Depleted Product |
+|---|---|---|---|---|
+| **Single Custom Fuel Rod** | 1 | $\max(1, \text{round}(N_{base,mix} \times 0.25))$ | Mix $D_{mix}$ (Minecraft max damage: 10 000) | `rodCustomDepletedFuel1` |
+| **Dual Custom Fuel Rod** | 2 | $\max(1, \text{round}(N_{base,mix} \times 0.50))$ | Mix $D_{mix}$ (Minecraft max damage: 20 000) | `rodCustomDepletedFuel2` |
+| **Quad Custom Fuel Rod** | 4 | $N_{base,mix}$ | Mix $D_{mix}$ (Minecraft max damage: 40 000) | `rodCustomDepletedFuel4` |
+
+Everything else about custom rods follows the standard fuel rules: reactivity curves built from the averaged $T_{pk}$/$T_{fl}$, a wear curve solved for those temperatures, and the fuel neutron properties of §7.2.
+
+The mix lets the operator **tune a fuel's peak temperature to the pipe tier**, and trade base output against durability. For example, a 50/50 Th-232/Pu-239 mix peaks at 840 °C with $m_{fiss} = 1.40$, quad $N_{base} = 24$ (dual $N_{base} = 12$, single $N_{base} = 6$) and durability 35 000.
 
 > [!NOTE]
-> **Implementation note.** Custom fuel rods dynamically read their intrinsic nuclear durability budget from the compounded mix NBT (`MaxDurability`), rather than being locked to a fixed 40 000 max damage. Cycle wear in the reactor is dynamically scaled by $\frac{D_{\text{intrinsic}}}{D_{\text{configured}}}$ with stochastic rounding (§7.3), keeping inventory GUI durability bars, tooltips, and depletion timings 100% accurate across all custom isotopic blends. The fast multiplier and fissile fraction stored in NBT are informational; the fast-fission multiplier is not used, since fast absorption never causes fission (§5.1).
+> **Implementation note.** Custom fuel rods dynamically read their intrinsic nuclear durability budget from the compounded mix NBT (`MaxDurability`), rather than being locked to a fixed damage value. Cycle wear in the reactor is dynamically scaled by $\frac{D_{\text{intrinsic}}}{D_{\text{configured}}}$ with stochastic rounding (§7.3), keeping inventory GUI durability bars, tooltips, and depletion timings 100% accurate across all custom isotopic blends and rod sizes. The fast multiplier and fissile fraction stored in NBT are informational; the fast-fission multiplier is not used, since fast absorption never causes fission (§5.1).
 
 ### 7.6 Depletion products
 
@@ -710,7 +724,9 @@ The mix lets the operator **tune a fuel's peak temperature to the pipe tier**, a
 | GT/IC2 fuel rods | Their depleted form, to the ring output bus |
 | Breeder rods (Lithium) | Depleted Lithium Fuel Rod (`ItemList.DepletedRodLithium`), to ring output bus (centrifuged to Tritium) |
 | Breeder rods (Glowstone) | Depleted Glowstone Fuel Rod (`ItemList.DepletedRodGlowstone`), to ring output bus (centrifuged to Sunnarium) |
-| Custom fuel rod | Depleted Custom Fuel Rod (quad), with the original mix NBT copied |
+| Single custom fuel rod | Depleted Fuel Rod (Custom Mix) (`rodCustomDepletedFuel1`), with the original mix NBT copied |
+| Dual custom fuel rod | Depleted Dual Fuel Rod (Custom Mix) (`rodCustomDepletedFuel2`), with the original mix NBT copied |
+| Quad custom fuel rod | Depleted Quad Fuel Rod (Custom Mix) (`rodCustomDepletedFuel4`), with the original mix NBT copied |
 | Liquid fuels | Spent fluid, 1 L per litre burned, to the output hatch |
 
 Breeder rods undergo standard nuclear depletion into their centrifugable depleted forms; there is no secondary transmutation inside standard fuel rods.

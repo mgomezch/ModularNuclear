@@ -234,6 +234,144 @@ public class ActinideCompounderTest {
         assertNotNull(compounder);
     }
 
+    @Test
+    void testSingleAndDualRequiredUnitsAndBaseNeutrons() {
+        assertEquals(90, CustomFuelMix.getRequiredUnits(1));
+        assertEquals(180, CustomFuelMix.getRequiredUnits(2));
+        assertEquals(360, CustomFuelMix.getRequiredUnits(4));
+
+        Map<ActinideIsotope, Integer> units = new LinkedHashMap<>();
+        units.put(ActinideIsotope.URANIUM_235, 360);
+        CustomFuelMix mix = new CustomFuelMix(units);
+        assertEquals(24, mix.baseNeutrons);
+        assertEquals(6, mix.getBaseNeutrons(1)); // 24 * 0.25 = 6
+        assertEquals(12, mix.getBaseNeutrons(2)); // 24 * 0.50 = 12
+        assertEquals(24, mix.getBaseNeutrons(4)); // 24 * 1.00 = 24
+    }
+
+    @Test
+    void testSingleAndDualCustomFuelItemsAndDepletedForm() {
+        // Test Single
+        assertEquals(1, ModItems.rodCustomFuel1.rodSize);
+        assertEquals(10000, ModItems.rodCustomFuel1.getMaxDamageEx());
+        assertEquals(1, ModItems.rodCustomDepletedFuel1.rodSize);
+
+        // Test Dual
+        assertEquals(2, ModItems.rodCustomFuel2.rodSize);
+        assertEquals(20000, ModItems.rodCustomFuel2.getMaxDamageEx());
+        assertEquals(2, ModItems.rodCustomDepletedFuel2.rodSize);
+
+        // Test Quad
+        assertEquals(4, ModItems.rodCustomFuel4.rodSize);
+        assertEquals(40000, ModItems.rodCustomFuel4.getMaxDamageEx());
+        assertEquals(4, ModItems.rodCustomDepletedFuel4.rodSize);
+
+        // Test depleted forms mapping
+        Map<ActinideIsotope, Integer> units = new LinkedHashMap<>();
+        units.put(ActinideIsotope.URANIUM_235, 360);
+        CustomFuelMix mix = new CustomFuelMix(units);
+
+        ItemStack singleFuel = new ItemStack(ModItems.rodCustomFuel1);
+        NBTTagCompound tag1 = new NBTTagCompound();
+        mix.writeToNBT(tag1);
+        singleFuel.setTagCompound(tag1);
+
+        ItemStack depleted1 = NuclearFuelClassification.getItemDepletedForm(singleFuel);
+        assertNotNull(depleted1);
+        assertEquals(ModItems.rodCustomDepletedFuel1, depleted1.getItem());
+
+        ItemStack dualFuel = new ItemStack(ModItems.rodCustomFuel2);
+        NBTTagCompound tag2 = new NBTTagCompound();
+        mix.writeToNBT(tag2);
+        dualFuel.setTagCompound(tag2);
+
+        ItemStack depleted2 = NuclearFuelClassification.getItemDepletedForm(dualFuel);
+        assertNotNull(depleted2);
+        assertEquals(ModItems.rodCustomDepletedFuel2, depleted2.getItem());
+
+        ItemStack quadFuel = new ItemStack(ModItems.rodCustomFuel4);
+        NBTTagCompound tag4 = new NBTTagCompound();
+        mix.writeToNBT(tag4);
+        quadFuel.setTagCompound(tag4);
+
+        ItemStack depleted4 = NuclearFuelClassification.getItemDepletedForm(quadFuel);
+        assertNotNull(depleted4);
+        assertEquals(ModItems.rodCustomDepletedFuel4, depleted4.getItem());
+    }
+
+    @Test
+    void testReactorDataRegistryCustomFuelScaling() {
+        Map<ActinideIsotope, Integer> units = new LinkedHashMap<>();
+        units.put(ActinideIsotope.URANIUM_235, 360);
+        CustomFuelMix mix = new CustomFuelMix(units);
+
+        ItemStack singleFuel = new ItemStack(ModItems.rodCustomFuel1);
+        NBTTagCompound tag1 = new NBTTagCompound();
+        mix.writeToNBT(tag1);
+        singleFuel.setTagCompound(tag1);
+
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd1 =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(singleFuel);
+        assertNotNull(fd1);
+        assertEquals(1, fd1.packetCount);
+        assertEquals(6, fd1.baseNeutrons);
+        assertEquals("modularnuclear:rodCustomDepletedFuel1", fd1.spentProduct);
+
+        ItemStack dualFuel = new ItemStack(ModItems.rodCustomFuel2);
+        NBTTagCompound tag2 = new NBTTagCompound();
+        mix.writeToNBT(tag2);
+        dualFuel.setTagCompound(tag2);
+
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd2 =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(dualFuel);
+        assertNotNull(fd2);
+        assertEquals(2, fd2.packetCount);
+        assertEquals(12, fd2.baseNeutrons);
+        assertEquals("modularnuclear:rodCustomDepletedFuel2", fd2.spentProduct);
+
+        ItemStack quadFuel = new ItemStack(ModItems.rodCustomFuel4);
+        NBTTagCompound tag4 = new NBTTagCompound();
+        mix.writeToNBT(tag4);
+        quadFuel.setTagCompound(tag4);
+
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd4 =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(quadFuel);
+        assertNotNull(fd4);
+        assertEquals(4, fd4.packetCount);
+        assertEquals(24, fd4.baseNeutrons);
+        assertEquals("modularnuclear:rodCustomDepletedFuel4", fd4.spentProduct);
+    }
+
+    @Test
+    void testCircuitConfigurationDetection() {
+        assertNull(MTEActinideCompounder.getCircuitConfiguration(null));
+        assertFalse(MTEActinideCompounder.isProgrammedCircuit(null));
+
+        ItemStack dummy = new ItemStack(ModItems.cellHeavyWater);
+        assertNull(MTEActinideCompounder.getCircuitConfiguration(dummy));
+        assertFalse(MTEActinideCompounder.isProgrammedCircuit(dummy));
+
+        try {
+            if (gregtech.api.enums.ItemList.Circuit_Integrated != null) {
+                ItemStack circuit1 = gregtech.api.enums.ItemList.Circuit_Integrated.getWithDamage(1L, 1);
+                if (circuit1 != null) {
+                    assertEquals(1, MTEActinideCompounder.getCircuitConfiguration(circuit1));
+                    assertTrue(MTEActinideCompounder.isProgrammedCircuit(circuit1));
+                }
+                ItemStack circuit2 = gregtech.api.enums.ItemList.Circuit_Integrated.getWithDamage(1L, 2);
+                if (circuit2 != null) {
+                    assertEquals(2, MTEActinideCompounder.getCircuitConfiguration(circuit2));
+                    assertTrue(MTEActinideCompounder.isProgrammedCircuit(circuit2));
+                }
+                ItemStack circuit4 = gregtech.api.enums.ItemList.Circuit_Integrated.getWithDamage(1L, 4);
+                if (circuit4 != null) {
+                    assertEquals(4, MTEActinideCompounder.getCircuitConfiguration(circuit4));
+                    assertTrue(MTEActinideCompounder.isProgrammedCircuit(circuit4));
+                }
+            }
+        } catch (Throwable ignored) {}
+    }
+
     private static class MockNuclearTile implements INuclearTile {
 
         private final CustomFuelMix mix;

@@ -32,6 +32,8 @@ public final class ModularNuclearConfig {
         "*depleted*",
         "*fuelrodempty*",
         "IC2:itemFuelRod",
+        "modularnuclear:rodCustomDepletedFuel1",
+        "modularnuclear:rodCustomDepletedFuel2",
         "modularnuclear:rodCustomDepletedFuel4"
     };
 
@@ -43,6 +45,8 @@ public final class ModularNuclearConfig {
         "gregtech:gt.reactorMOX*",
         "gregtech:gt.reactorThorium*",
         "gregtech:gt.reactorNaquadah*",
+        "modularnuclear:rodCustomFuel1",
+        "modularnuclear:rodCustomFuel2",
         "modularnuclear:rodCustomFuel4"
     };
 

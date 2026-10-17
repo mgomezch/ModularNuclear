@@ -210,7 +210,8 @@ public class NuclearReactorPhysics {
             int baseNeutrons = 4;
             FuelData fd = (tileFuelData != null) ? tileFuelData : ReactorDataRegistry.findFuel(stack);
             if (customMix != null) {
-                baseNeutrons = customMix.baseNeutrons;
+                int rodSize = (stack.getItem() instanceof ItemCustomFuelRod customRod) ? customRod.rodSize : 4;
+                baseNeutrons = customMix.getBaseNeutrons(rodSize);
                 baseFissMult = customMix.baseThermalFissionMultiplier;
             } else if (fd != null) {
                 baseNeutrons = fd.getEffectiveBaseNeutrons(physics);
@@ -269,7 +270,10 @@ public class NuclearReactorPhysics {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
             if (stack == null) return 1;
-            if (stack.getItem() instanceof ItemCustomFuelRod || CustomFuelMix.hasCustomMix(stack)) {
+            if (stack.getItem() instanceof ItemCustomFuelRod customRod) {
+                return customRod.rodSize;
+            }
+            if (CustomFuelMix.hasCustomMix(stack)) {
                 return 4;
             }
             FuelData fd = ReactorDataRegistry.findFuel(stack);

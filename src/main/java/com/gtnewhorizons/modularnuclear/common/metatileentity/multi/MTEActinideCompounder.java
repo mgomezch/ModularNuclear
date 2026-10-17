@@ -76,10 +76,10 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType("Actinide Fuel Compounder")
             .addInfo("Compounds custom nuclear fuel mixes from actinide dusts")
-            .addInfo("Requires exactly 10 dusts of total actinide material")
-            .addInfo("  (Regular dust = 1, Small dust = 1/4, Tiny dust = 1/9)")
-            .addInfo("Requires 100 L of Tritium and 4 empty fuel rods")
-            .addInfo("Produces 1 Quad Custom Fuel Rod with unique NBT physics properties")
+            .addInfo("Circuit 1: 1 Single Fuel Rod (1 empty rod, 25 L Tritium, 2.5 dusts / 90 units, 7.5s)")
+            .addInfo("Circuit 2: 1 Dual Fuel Rod (2 empty rods, 50 L Tritium, 5.0 dusts / 180 units, 15s)")
+            .addInfo("Circuit 4 (or none): 1 Quad Fuel Rod (4 empty rods, 100 L Tritium, 10.0 dusts / 360 units, 30s)")
+            .addInfo("  (Regular dust = 36 units [1.0], Small dust = 9 units [0.25], Tiny dust = 4 units [0.11])")
             .addSeparator()
             .beginStructureBlock(3, 3, 3, true)
             .addController("Front center")
@@ -268,14 +268,60 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         return name.contains("tritium");
     }
 
+    public static Integer getCircuitConfiguration(ItemStack stack) {
+        if (stack == null) return null;
+        if (stack.getItem() instanceof gregtech.common.items.ItemIntegratedCircuit) {
+            return stack.getItemDamage();
+        }
+        try {
+            if (ItemList.Circuit_Integrated != null && ItemList.Circuit_Integrated.isStackEqual(stack, false, true)) {
+                return stack.getItemDamage();
+            }
+        } catch (Throwable ignored) {}
+        for (int id : OreDictionary.getOreIDs(stack)) {
+            String ore = OreDictionary.getOreName(id);
+            if ("circuitIntegrated".equals(ore)) {
+                return stack.getItemDamage();
+            }
+        }
+        return null;
+    }
+
+    public static boolean isProgrammedCircuit(ItemStack stack) {
+        return getCircuitConfiguration(stack) != null;
+    }
+
     @Override
     public boolean checkRecipe(ItemStack aStack) {
         checkMaintenance();
 
-        // 1. Check for 100 L of Tritium in stored input fluids
+        // 0. Determine target rod size from Programmed Circuit (default to 4 if absent or 0)
+        int targetRodSize = 4;
+        for (ItemStack stack : getStoredInputs()) {
+            Integer cfg = getCircuitConfiguration(stack);
+            if (cfg != null) {
+                if (cfg == 1) {
+                    targetRodSize = 1;
+                } else if (cfg == 2) {
+                    targetRodSize = 2;
+                } else if (cfg == 4 || cfg == 0) {
+                    targetRodSize = 4;
+                } else {
+                    return false; // Unsupported circuit configuration
+                }
+                break;
+            }
+        }
+
+        int requiredEmptyRods = targetRodSize;
+        int requiredTritium = 25 * targetRodSize;
+        int requiredUnits = CustomFuelMix.getRequiredUnits(targetRodSize);
+        int recipeTime = 150 * targetRodSize;
+
+        // 1. Check for required Tritium in stored input fluids
         FluidStack foundTritium = null;
         for (FluidStack fluid : getStoredFluids()) {
-            if (fluid != null && isTritium(fluid) && fluid.amount >= 100) {
+            if (fluid != null && isTritium(fluid) && fluid.amount >= requiredTritium) {
                 foundTritium = fluid;
                 break;
             }
@@ -284,14 +330,14 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
             return false;
         }
 
-        // 2. Check for at least 4 empty fuel rods
+        // 2. Check for at least required empty fuel rods
         int emptyRodCount = 0;
         for (ItemStack stack : getStoredInputs()) {
             if (isEmptyFuelRod(stack)) {
                 emptyRodCount += stack.stackSize;
             }
         }
-        if (emptyRodCount < 4) {
+        if (emptyRodCount < requiredEmptyRods) {
             return false;
         }
 
@@ -301,18 +347,18 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         int totalUnits = 0;
 
         for (ItemStack stack : getStoredInputs()) {
-            if (isEmptyFuelRod(stack)) continue;
+            if (isEmptyFuelRod(stack) || isProgrammedCircuit(stack)) continue;
             DustInfo info = identifyActinideDust(stack);
             if (info != null && info.unitsPerItem > 0) {
                 int stackUnits = info.unitsPerItem * stack.stackSize;
-                int remainingNeeded = CustomFuelMix.REQUIRED_TOTAL_UNITS - totalUnits;
+                int remainingNeeded = requiredUnits - totalUnits;
                 if (remainingNeeded <= 0) break;
 
                 int countToTake = Math
                     .min(stack.stackSize, (int) Math.ceil((double) remainingNeeded / info.unitsPerItem));
                 // Clamp to exact units if possible
                 int takenUnits = countToTake * info.unitsPerItem;
-                if (totalUnits + takenUnits > CustomFuelMix.REQUIRED_TOTAL_UNITS) {
+                if (totalUnits + takenUnits > requiredUnits) {
                     countToTake = remainingNeeded / info.unitsPerItem;
                     takenUnits = countToTake * info.unitsPerItem;
                 }
@@ -327,13 +373,13 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
             }
         }
 
-        if (totalUnits != CustomFuelMix.REQUIRED_TOTAL_UNITS) {
+        if (totalUnits != requiredUnits) {
             return false;
         }
 
         // 4. Deplete Inputs
-        // A. Deplete 100 L Tritium
-        FluidStack depleteFluid = new FluidStack(foundTritium.getFluid(), 100);
+        // A. Deplete Tritium
+        FluidStack depleteFluid = new FluidStack(foundTritium.getFluid(), requiredTritium);
         for (MTEHatchInput hatch : mInputHatches) {
             if (hatch != null && hatch.getFluid() != null
                 && hatch.getFluid()
@@ -346,8 +392,8 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
             }
         }
 
-        // B. Deplete 4 Empty Fuel Rods
-        int emptyNeeded = 4;
+        // B. Deplete Empty Fuel Rods
+        int emptyNeeded = requiredEmptyRods;
         for (MTEHatchInputBus bus : mInputBusses) {
             if (bus == null) continue;
             for (int slot = 0; slot < bus.getSizeInventory(); slot++) {
@@ -389,13 +435,18 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
 
         // 5. Build Custom Fuel Mix Output
         CustomFuelMix mix = new CustomFuelMix(unitsFound);
-        ItemStack output = new ItemStack(ModItems.rodCustomFuel4, 1, 0);
+        com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod outputItem = switch (targetRodSize) {
+            case 1 -> ModItems.rodCustomFuel1;
+            case 2 -> ModItems.rodCustomFuel2;
+            default -> ModItems.rodCustomFuel4;
+        };
+        ItemStack output = new ItemStack(outputItem, 1, 0);
         NBTTagCompound nbt = new NBTTagCompound();
         mix.writeToNBT(nbt);
         output.setTagCompound(nbt);
 
         this.mOutputItems = new ItemStack[] { output };
-        this.mMaxProgresstime = 600; // 30 seconds
+        this.mMaxProgresstime = recipeTime;
         this.mEUt = -512; // EV tier
         this.mEfficiency = 10000;
         this.mEfficiencyIncrease = 10000;

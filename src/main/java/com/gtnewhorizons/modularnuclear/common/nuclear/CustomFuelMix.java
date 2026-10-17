@@ -28,6 +28,14 @@ public class CustomFuelMix {
     public static final String NBT_TAG_ROOT = "CustomFuelMix";
     public static final int REQUIRED_TOTAL_UNITS = 360;
 
+    public static int getRequiredUnits(int rodSize) {
+        return switch (rodSize) {
+            case 1 -> 90;   // 2.5 dusts
+            case 2 -> 180;  // 5.0 dusts
+            default -> 360; // 10.0 dusts (Quad)
+        };
+    }
+
     public enum ActinideIsotope {
 
         THORIUM("Thorium", "Th-232", 580.0, 2200.0, 1.00, 0.80, 16, 50000, false),
@@ -173,6 +181,15 @@ public class CustomFuelMix {
 
     public Map<ActinideIsotope, Double> getIsotopeFractions() {
         return Collections.unmodifiableMap(isotopeFractions);
+    }
+
+    public int getBaseNeutrons(int rodSize) {
+        if (rodSize <= 1) {
+            return Math.max(1, (int) Math.round(this.baseNeutrons * 0.25));
+        } else if (rodSize == 2) {
+            return Math.max(1, (int) Math.round(this.baseNeutrons * 0.50));
+        }
+        return this.baseNeutrons;
     }
 
     public double calculateReactivity(double temp) {

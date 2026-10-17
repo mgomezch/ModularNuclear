@@ -190,6 +190,8 @@ public final class NuclearFuelClassification {
         }
 
         if (stack.getItem() instanceof ItemCustomDepletedFuelRod) return true;
+        if (ModItems.rodCustomDepletedFuel1 != null && stack.getItem() == ModItems.rodCustomDepletedFuel1) return true;
+        if (ModItems.rodCustomDepletedFuel2 != null && stack.getItem() == ModItems.rodCustomDepletedFuel2) return true;
         if (ModItems.rodCustomDepletedFuel4 != null && stack.getItem() == ModItems.rodCustomDepletedFuel4) return true;
 
         if (Ic2Items.fuelRod != null && GTUtility.areStacksEqual(stack, Ic2Items.fuelRod, true)) return true;
@@ -240,6 +242,8 @@ public final class NuclearFuelClassification {
 
         // Custom fuel rods
         if (stack.getItem() instanceof ItemCustomFuelRod
+            || (ModItems.rodCustomFuel1 != null && stack.getItem() == ModItems.rodCustomFuel1)
+            || (ModItems.rodCustomFuel2 != null && stack.getItem() == ModItems.rodCustomFuel2)
             || (ModItems.rodCustomFuel4 != null && stack.getItem() == ModItems.rodCustomFuel4)) {
             if (!CustomFuelMix.hasCustomMix(stack)) return false;
             CustomFuelMix mix = CustomFuelMix.fromStack(stack);
@@ -609,7 +613,15 @@ public final class NuclearFuelClassification {
 
         // 0. Check custom fuel rods
         if (fuel.getItem() instanceof ItemCustomFuelRod || CustomFuelMix.hasCustomMix(fuel)) {
-            ItemStack depleted = new ItemStack(ModItems.rodCustomDepletedFuel4);
+            net.minecraft.item.Item depletedItem = ModItems.rodCustomDepletedFuel4;
+            if (fuel.getItem() instanceof ItemCustomFuelRod customRod) {
+                if (customRod.rodSize == 1) {
+                    depletedItem = ModItems.rodCustomDepletedFuel1;
+                } else if (customRod.rodSize == 2) {
+                    depletedItem = ModItems.rodCustomDepletedFuel2;
+                }
+            }
+            ItemStack depleted = new ItemStack(depletedItem != null ? depletedItem : ModItems.rodCustomDepletedFuel4);
             if (fuel.getTagCompound() != null) {
                 depleted.setTagCompound(
                     (NBTTagCompound) fuel.getTagCompound()
