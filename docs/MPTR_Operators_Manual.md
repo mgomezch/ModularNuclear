@@ -685,13 +685,13 @@ The Actinide Fuel Compounder is a separate 3×3×3 multiblock:
 - nuclear casings, at least 14;
 - one input bus, one output bus, one input hatch, one energy hatch, exactly one maintenance hatch.
 
-It compounds custom nuclear fuel mixes into **Single**, **Dual**, or **Quad Custom Fuel Rods** selected by an installed **Programmed Circuit** (`circuitIntegrated`) in the input bus. If no circuit is installed (or configured to 0 or 4), the machine defaults to the standard Quad rod for backward compatibility. The circuit is inspected but **never consumed**.
+It compounds custom nuclear fuel mixes into **Single**, **Dual**, or **Quad Custom Fuel Rods** selected by an installed **Programmed Circuit** (`circuitIntegrated`) in the input bus. An explicit programmed circuit configuration (1, 2, or 4) is **strictly required**; the machine will not run without one. The circuit is inspected but **never consumed**.
 
 | Circuit Configuration | Target Rod Type | Empty Rods Required | Tritium Required | Actinide Dust Units Required | Process Time @ 512 EU/t |
 |---|---|---|---|---|---|
 | **Circuit 1** | Single Custom Fuel Rod (`rodCustomFuel1`) | 1 | 25 L | 90 units (2.5 dusts) | 150 ticks (7.5 s) |
 | **Circuit 2** | Dual Custom Fuel Rod (`rodCustomFuel2`) | 2 | 50 L | 180 units (5.0 dusts) | 300 ticks (15 s) |
-| **Circuit 4** (or none) | Quad Custom Fuel Rod (`rodCustomFuel4`) | 4 | 100 L | 360 units (10.0 dusts) | 600 ticks (30 s) |
+| **Circuit 4** | Quad Custom Fuel Rod (`rodCustomFuel4`) | 4 | 100 L | 360 units (10.0 dusts) | 600 ticks (30 s) |
 
 Dust units are counted in slot order: a regular dust is 36 units, a small dust 9 (¼), a tiny dust 4 (⅑). Only recognised actinide materials count. The output carries an NBT record of the mix (`CustomFuelMix` → `Units`, one entry per isotope in dust units).
 

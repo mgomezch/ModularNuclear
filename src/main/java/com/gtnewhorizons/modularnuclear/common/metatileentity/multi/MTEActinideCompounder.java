@@ -76,9 +76,10 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         final MultiblockTooltipBuilder tt = new MultiblockTooltipBuilder();
         tt.addMachineType("Actinide Fuel Compounder")
             .addInfo("Compounds custom nuclear fuel mixes from actinide dusts")
-            .addInfo("Circuit 1: 1 Single Fuel Rod (1 empty rod, 25 L Tritium, 2.5 dusts / 90 units, 7.5s)")
-            .addInfo("Circuit 2: 1 Dual Fuel Rod (2 empty rods, 50 L Tritium, 5.0 dusts / 180 units, 15s)")
-            .addInfo("Circuit 4 (or none): 1 Quad Fuel Rod (4 empty rods, 100 L Tritium, 10.0 dusts / 360 units, 30s)")
+            .addInfo("Requires an explicit Programmed Circuit in the input bus (not consumed):")
+            .addInfo("  Circuit 1: 1 Single Fuel Rod (1 empty rod, 25 L Tritium, 2.5 dusts / 90 units, 7.5s)")
+            .addInfo("  Circuit 2: 1 Dual Fuel Rod (2 empty rods, 50 L Tritium, 5.0 dusts / 180 units, 15s)")
+            .addInfo("  Circuit 4: 1 Quad Fuel Rod (4 empty rods, 100 L Tritium, 10.0 dusts / 360 units, 30s)")
             .addInfo("  (Regular dust = 36 units [1.0], Small dust = 9 units [0.25], Tiny dust = 4 units [0.11])")
             .addSeparator()
             .beginStructureBlock(3, 3, 3, true)
@@ -291,26 +292,35 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         return getCircuitConfiguration(stack) != null;
     }
 
+    /**
+     * Resolves the target fuel rod size (1, 2, or 4) based on an installed Programmed Circuit.
+     *
+     * @param inputs List of input item stacks
+     * @return 1 for Single, 2 for Dual, 4 for Quad; -1 if an unsupported circuit configuration was found;
+     *         0 if no circuit was found.
+     */
+    public static int resolveTargetRodSize(List<ItemStack> inputs) {
+        if (inputs == null) return 0;
+        for (ItemStack stack : inputs) {
+            Integer cfg = getCircuitConfiguration(stack);
+            if (cfg != null) {
+                if (cfg == 1) return 1;
+                if (cfg == 2) return 2;
+                if (cfg == 4) return 4;
+                return -1; // Unsupported circuit configuration (e.g. 0, 3, 5)
+            }
+        }
+        return 0; // No circuit found
+    }
+
     @Override
     public boolean checkRecipe(ItemStack aStack) {
         checkMaintenance();
 
-        // 0. Determine target rod size from Programmed Circuit (default to 4 if absent or 0)
-        int targetRodSize = 4;
-        for (ItemStack stack : getStoredInputs()) {
-            Integer cfg = getCircuitConfiguration(stack);
-            if (cfg != null) {
-                if (cfg == 1) {
-                    targetRodSize = 1;
-                } else if (cfg == 2) {
-                    targetRodSize = 2;
-                } else if (cfg == 4 || cfg == 0) {
-                    targetRodSize = 4;
-                } else {
-                    return false; // Unsupported circuit configuration
-                }
-                break;
-            }
+        // 0. Determine target rod size from Programmed Circuit (strictly required: 1, 2, or 4)
+        int targetRodSize = resolveTargetRodSize(getStoredInputs());
+        if (targetRodSize <= 0) {
+            return false; // Explicit programmed circuit (1, 2, or 4) is strictly required
         }
 
         int requiredEmptyRods = targetRodSize;

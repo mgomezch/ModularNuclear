@@ -372,6 +372,62 @@ public class ActinideCompounderTest {
         } catch (Throwable ignored) {}
     }
 
+    @Test
+    void testResolveTargetRodSizeRequiresCircuit() {
+        // Null or empty inputs must return 0 (no circuit, no default to quad)
+        assertEquals(0, MTEActinideCompounder.resolveTargetRodSize(null));
+        assertEquals(0, MTEActinideCompounder.resolveTargetRodSize(new ArrayList<>()));
+
+        // Inputs without any programmed circuit must return 0
+        List<ItemStack> noCircuitInputs = new ArrayList<>();
+        noCircuitInputs.add(new ItemStack(ModItems.cellHeavyWater));
+        assertEquals(0, MTEActinideCompounder.resolveTargetRodSize(noCircuitInputs));
+
+        try {
+            if (gregtech.api.enums.ItemList.Circuit_Integrated != null) {
+                // Circuit 1 -> Single (1)
+                ItemStack c1 = gregtech.api.enums.ItemList.Circuit_Integrated.getWithDamage(1L, 1);
+                if (c1 != null) {
+                    List<ItemStack> in1 = new ArrayList<>(noCircuitInputs);
+                    in1.add(c1);
+                    assertEquals(1, MTEActinideCompounder.resolveTargetRodSize(in1));
+                }
+
+                // Circuit 2 -> Dual (2)
+                ItemStack c2 = gregtech.api.enums.ItemList.Circuit_Integrated.getWithDamage(1L, 2);
+                if (c2 != null) {
+                    List<ItemStack> in2 = new ArrayList<>(noCircuitInputs);
+                    in2.add(c2);
+                    assertEquals(2, MTEActinideCompounder.resolveTargetRodSize(in2));
+                }
+
+                // Circuit 4 -> Quad (4)
+                ItemStack c4 = gregtech.api.enums.ItemList.Circuit_Integrated.getWithDamage(1L, 4);
+                if (c4 != null) {
+                    List<ItemStack> in4 = new ArrayList<>(noCircuitInputs);
+                    in4.add(c4);
+                    assertEquals(4, MTEActinideCompounder.resolveTargetRodSize(in4));
+                }
+
+                // Circuit 0 -> -1 (rejected)
+                ItemStack c0 = gregtech.api.enums.ItemList.Circuit_Integrated.getWithDamage(1L, 0);
+                if (c0 != null) {
+                    List<ItemStack> in0 = new ArrayList<>(noCircuitInputs);
+                    in0.add(c0);
+                    assertEquals(-1, MTEActinideCompounder.resolveTargetRodSize(in0));
+                }
+
+                // Circuit 3 -> -1 (rejected)
+                ItemStack c3 = gregtech.api.enums.ItemList.Circuit_Integrated.getWithDamage(1L, 3);
+                if (c3 != null) {
+                    List<ItemStack> in3 = new ArrayList<>(noCircuitInputs);
+                    in3.add(c3);
+                    assertEquals(-1, MTEActinideCompounder.resolveTargetRodSize(in3));
+                }
+            }
+        } catch (Throwable ignored) {}
+    }
+
     private static class MockNuclearTile implements INuclearTile {
 
         private final CustomFuelMix mix;
