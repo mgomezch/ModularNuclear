@@ -515,13 +515,13 @@ The default fuel registry populates explicit entries for every fuel rod tier (Qu
 | Thorium | 580 | 2200 | 1.00 | 1 / 2 / 4 | 2 / 4 / 8 | 50 000 | `DepletedRodThorium[2,4]` |
 | Uranium | 770 | 2300 | 1.25 | 1 / 2 / 4 | 4 / 8 / 16 | 20 000 | `DepletedRodUranium[2,4]` |
 | MOX | 960 | 2400 | 1.50 | 1 / 2 / 4 | 8 / 16 / 32 | 10 000 | `DepletedRodMOX[2,4]` |
-| High-Density Uranium | 1150 | 2500 | 1.80 | 1 / 2 / 4 | 8 / 16 / 32 | 70 000 | `DepletedRodHighDensityUranium[2,4]` |
-| High-Density Plutonium | 1350 | 2600 | 2.10 | 1 / 2 / 4 | 12 / 24 / 48 | 70 000 | `DepletedRodHighDensityPlutonium[2,4]` |
-| Excited Uranium | 1540 | 2700 | 2.50 | 1 / 2 / 4 | 16 / 32 / 64 | 6 000 | `DepletedRodExcitedUranium[2,4]` |
-| Excited Plutonium | 1730 | 2800 | 2.90 | 1 / 2 / 4 | 24 / 48 / 96 | 10 000 | `DepletedRodExcitedPlutonium[2,4]` |
-| Naquadah | 1920 | 2900 | 3.40 | 1 / 2 / 4 | 16 / 32 / 64 | 100 000 | `DepletedRodNaquadah[2,4]` |
-| The Core (Naquadah-32) | 2500 | 3200 | 5.50 | 16 | 512 | 320 000 | `DepletedRodNaquadah32` |
-| Naquadria | 2110 | 3000 | 4.00 | 1 / 2 / 4 | 20 / 40 / 80 | 100 000 | `DepletedRodNaquadria[2,4]` |
+| High-Density Uranium | 1150 | 2500 | 2.16 | 1 / 2 / 4 | 4 / 8 / 16 | 70 000 | `DepletedRodHighDensityUranium[2,4]` |
+| High-Density Plutonium | 1350 | 2600 | 2.52 | 1 / 2 / 4 | 6 / 12 / 24 | 70 000 | `DepletedRodHighDensityPlutonium[2,4]` |
+| Excited Uranium | 1540 | 2700 | 2.00 | 1 / 2 / 4 | 22 / 45 / 90 | 6 000 | `DepletedRodExcitedUranium[2,4]` |
+| Excited Plutonium | 1730 | 2800 | 2.32 | 1 / 2 / 4 | 34 / 67 / 134 | 10 000 | `DepletedRodExcitedPlutonium[2,4]` |
+| Naquadah | 1920 | 2900 | 4.08 | 1 / 2 / 4 | 8 / 16 / 32 | 100 000 | `DepletedRodNaquadah[2,4]` |
+| The Core (Naquadah-32) | 2500 | 3200 | 6.60 | 16 | 256 | 320 000 | `DepletedRodNaquadah32` |
+| Naquadria | 2110 | 3000 | 4.80 | 1 / 2 / 4 | 10 / 20 / 40 | 100 000 | `DepletedRodNaquadria[2,4]` |
 | Tiberium | 2300 | 3100 | 4.70 | 1 / 2 / 4 | 24 / 48 / 96 | 50 000 | `DepletedRodTiberium[2,4]` |
 
 "Durability" is the item's maximum damage, the total wear budget of the rod (§7.3).
@@ -530,20 +530,22 @@ Things to read off the table:
 
 - **Peak temperatures rise with fuel tier.** Higher-tier fuels must run hotter to reach full reactivity. They therefore need higher pipe tiers to be operated near their peak without overheating the core.
 - **Fission multipliers rise with tier.** In a well-moderated core, higher-tier fuels gain proportionally more from chain reactions relative to their base output.
-- **Fuels with low $N_{base}$ and high $m_{fiss}$** depend almost entirely on moderation to produce power. Unmoderated, they barely run.
+- **Dense fuels with low $N_{base}$ and high $m_{fiss}$** (e.g. Naquadah, High-Density variants) depend on external neutron flux to achieve high power. Unmoderated or isolated, their spontaneous emission is small, but their fission multiplication potential is immense.
+- **Excited fuels with high $N_{base}$** (Excited Uranium, Excited Plutonium) serve as natural neutron sources and igniters, driving adjacent subcritical cells into productive chain reactions.
 
-#### Fuel Archetypes & Class Calibration Multipliers
+#### Fuel Archetypes & Balance Calibration Multipliers
 
-Fuels in the MPTR are grouped into four behavioral **archetypes** designed to support distinct core roles. Rather than hardcoding behavior, these archetypes are governed by global calibration multipliers in `physics.yaml` (under the `PhysicsData` configuration):
+Under the hood, fuels are grouped into four behavioral **calibration archetypes** designed to support distinct operational roles in reactor design. Rather than hardcoding these behaviors into item classes, these archetypes are governed by global calibration multipliers in `physics.yaml` (under `PhysicsData`):
 
-| Archetype | Member Fuels | $N_{base}$ Multiplier | $m_{fiss}$ Multiplier | Operational Role |
-|---|---|:---:|:---:|---|
-| **`"dense"`** | High-Density Uranium, High-Density Plutonium, Naquadah, Naquadria, The Core | $\times 0.50$ | $\times 1.20$ | **Subcritical High-Power Sinks:** Low spontaneous neutron emission makes them mostly inert in isolation, but their enhanced thermal fission multiplier unlocks massive energy output when driven by external neutron flux. |
-| **`"excited"`** | Excited Uranium, Excited Plutonium, Excited liquid fuels | $\times 1.40$ | $\times 0.80$ | **Neutron Drivers & Igniters:** High natural emission drives neighboring subcritical cells into chain reactions, while a reduced fission multiplier reflects partial saturation. |
-| **`"breeder"`** | Lithium, Glowstone | $\times 1.00$ | $\times 1.00$ | **Transmutation Targets:** Low-temperature targets tailored to breed valuable secondary isotopes (Tritium, Sunnarium) before depleting. |
-| **`"standard"`** | Thorium, Uranium, MOX, Tiberium, Custom mixes | $\times 1.00$ | $\times 1.00$ | **Baselines:** General-purpose, balanced power producers. |
+| Archetype | Member Fuels | Calibration Purpose |
+|---|---|---|
+| **Dense** | High-Density Uranium, High-Density Plutonium, Naquadah, Naquadria, The Core | **Subcritical High-Power Sinks:** Low spontaneous neutron emission makes them mostly inert in isolation, but their enhanced thermal fission multiplier unlocks massive energy output when driven by external neutron flux. |
+| **Excited** | Excited Uranium, Excited Plutonium, Excited liquid fuels | **Neutron Drivers & Igniters:** High natural emission drives neighboring subcritical cells into chain reactions, while a reduced fission multiplier reflects partial saturation. |
+| **Breeder** | Lithium, Glowstone | **Transmutation Targets:** Low-temperature targets tailored to breed valuable secondary isotopes (Tritium, Sunnarium) before depleting. |
+| **Standard** | Thorium, Uranium, MOX, Tiberium, Custom mixes | **Baselines:** General-purpose, balanced power producers. |
 
-Server administrators can fine-tune these archetype multipliers globally in `physics.yaml`:
+From the player's perspective, fuels simply possess the effective operational parameters shown in the table above and in NEI. The archetype classification is an internal balance and calibration mechanism, allowing server administrators and simulation tuning tools to adjust whole classes of fuels globally in `physics.yaml` without cluttering the player's interface with meta-tags:
+
 ```yaml
 dense_nbase_multiplier: 0.50
 dense_fission_multiplier: 1.20
@@ -554,7 +556,6 @@ standard_fission_multiplier: 1.00
 breeder_nbase_multiplier: 1.00
 breeder_fission_multiplier: 1.00
 ```
-NEI recipe handlers, the Core GUI, and OpenComputers dynamically display both the fuel's archetype label and its effective parameters ($N_{base,\text{eff}} = \text{round}(N_{base} \times M_{Nbase})$ and $m_{fiss,\text{eff}} = m_{fiss} \times M_{fiss}$).
 
 #### Breeder targets (Lithium and Glowstone)
 

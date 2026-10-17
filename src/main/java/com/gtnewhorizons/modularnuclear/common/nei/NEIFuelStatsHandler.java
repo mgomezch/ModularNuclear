@@ -395,17 +395,14 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         double effFiss = fuel.getEffectiveFissionMultiplier(physics);
         int effNeutrons = fuel.getEffectiveBaseNeutrons(physics);
 
-        String archetypeLabel = fuel.archetype.substring(0, 1).toUpperCase(Locale.ROOT) + fuel.archetype.substring(1);
         String l3 = String.format(
             Locale.US,
-            "Fiss Mult: %s%.2fx%s | Neutrons: %s%d/s%s [%s]",
+            "Fiss Mult: %s%.2fx%s | Neutrons: %s%d/s",
             EnumChatFormatting.DARK_PURPLE,
             effFiss,
             EnumChatFormatting.DARK_GRAY,
             EnumChatFormatting.DARK_RED,
-            effNeutrons,
-            EnumChatFormatting.DARK_GRAY,
-            archetypeLabel);
+            effNeutrons);
         drawScaledString(l3, 12, 44, STATS_SCALE, 0x333333);
 
         // Line 4: Durability & Growth Parameter k
