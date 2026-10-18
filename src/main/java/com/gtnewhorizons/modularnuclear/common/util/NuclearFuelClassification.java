@@ -189,6 +189,13 @@ public final class NuclearFuelClassification {
             return true;
         }
 
+        if (stack.getItem() instanceof ItemCustomFuelRod
+            || (ModItems.rodCustomFuel1 != null && stack.getItem() == ModItems.rodCustomFuel1)
+            || (ModItems.rodCustomFuel2 != null && stack.getItem() == ModItems.rodCustomFuel2)
+            || (ModItems.rodCustomFuel4 != null && stack.getItem() == ModItems.rodCustomFuel4)) {
+            if (!CustomFuelMix.hasCustomMix(stack)) return true;
+        }
+
         if (stack.getItem() instanceof ItemCustomDepletedFuelRod) return true;
         if (ModItems.rodCustomDepletedFuel1 != null && stack.getItem() == ModItems.rodCustomDepletedFuel1) return true;
         if (ModItems.rodCustomDepletedFuel2 != null && stack.getItem() == ModItems.rodCustomDepletedFuel2) return true;
@@ -295,6 +302,7 @@ public final class NuclearFuelClassification {
         String name = fluid.getFluid()
             .getName()
             .toLowerCase();
+        if (name.contains("depleted")) return false; // Depleted fluids are not active fuels
         if (name.contains("naquadah")) return false; // Avoid overlap with Large Naquadah Reactor
         if (name.contains("thoriumbasedliquidfuel") || (name.contains("thorium") && name.contains("liquidfuel")))
             return true;

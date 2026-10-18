@@ -5905,6 +5905,86 @@ public class NuclearSimulationEngineTest {
         assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(randomStack, null));
     }
 
+    @Test
+    void testExplicitFuelAndComponentMatchingWithoutWildcardCollisions() {
+        // Ensure defaults are loaded
+        com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadDefaults();
+
+        // 1. High Density Uranium quad rod must match fuel_hd_uranium_4, NOT generic fuel_uranium_1 or fuel_uranium_4
+        net.minecraft.item.Item hdUraniumItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(hdUraniumItem.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("gt.rodHighDensityUranium4");
+        ItemStack hdUraniumStack = new ItemStack(hdUraniumItem, 1, 0);
+
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData hdUraniumData =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(hdUraniumStack);
+        assertNotNull(hdUraniumData, "High Density Uranium must be recognized as fuel");
+        assertEquals("fuel_hd_uranium_4", hdUraniumData.id, "Must resolve to fuel_hd_uranium_4, not hijacked by fuel_uranium");
+        assertEquals(32, hdUraniumData.baseNeutrons);
+        assertEquals(1.80, hdUraniumData.thermalFissionMultiplier, 1e-4);
+
+        // 2. Excited Uranium single rod must match fuel_excited_uranium_1, NOT fuel_uranium_1
+        net.minecraft.item.Item excitedUraniumItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(excitedUraniumItem.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("gt.rodExcitedUranium");
+        ItemStack excitedUraniumStack = new ItemStack(excitedUraniumItem, 1, 0);
+
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData excitedUraniumData =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(excitedUraniumStack);
+        assertNotNull(excitedUraniumData, "Excited Uranium must be recognized as fuel");
+        assertEquals("fuel_excited_uranium_1", excitedUraniumData.id, "Must resolve to fuel_excited_uranium_1, not hijacked by fuel_uranium_1");
+        assertEquals(16, excitedUraniumData.baseNeutrons);
+        assertEquals(2.50, excitedUraniumData.thermalFissionMultiplier, 1e-4);
+
+        // 3. The Core (Naquadah-32) must match fuel_naquadah_32, NOT fuel_naquadah_1
+        net.minecraft.item.Item naq32Item = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(naq32Item.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("gt.rodNaquadah32");
+        ItemStack naq32Stack = new ItemStack(naq32Item, 1, 0);
+
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData naq32Data =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(naq32Stack);
+        assertNotNull(naq32Data, "The Core must be recognized as fuel");
+        assertEquals("fuel_naquadah_32", naq32Data.id, "Must resolve to fuel_naquadah_32, not hijacked by fuel_naquadah");
+        assertEquals(512, naq32Data.baseNeutrons);
+        assertEquals(5.50, naq32Data.thermalFissionMultiplier, 1e-4);
+
+        // 4. Plain Uranium rod must match fuel_uranium_1
+        net.minecraft.item.Item plainUraniumItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(plainUraniumItem.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("gt.rodUranium");
+        ItemStack plainUraniumStack = new ItemStack(plainUraniumItem, 1, 0);
+
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData plainUraniumData =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(plainUraniumStack);
+        assertNotNull(plainUraniumData, "Plain Uranium must be recognized as fuel");
+        assertEquals("fuel_uranium_1", plainUraniumData.id);
+        assertEquals(4, plainUraniumData.baseNeutrons);
+
+        // 5. Uncalibrated custom fuel rod without NBT mix must be rejected as fuel
+        if (com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel1 != null) {
+            ItemStack uncalibratedRod = new ItemStack(com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel1);
+            assertNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(uncalibratedRod),
+                "Uncalibrated custom fuel rod without NBT must not return fuel data");
+            assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemFuel(uncalibratedRod),
+                "Uncalibrated custom fuel rod without NBT must not be classified as active fuel");
+            assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isDepletedOrEmptyRod(uncalibratedRod),
+                "Uncalibrated custom fuel rod without NBT must be treated as empty rod");
+        }
+
+        // 6. Depleted liquid fuel must not be classified as active fluid fuel
+        net.minecraftforge.fluids.FluidStack depletedFluidStack = org.mockito.Mockito.mock(net.minecraftforge.fluids.FluidStack.class);
+        net.minecraftforge.fluids.Fluid mockFluid = org.mockito.Mockito.mock(net.minecraftforge.fluids.Fluid.class);
+        org.mockito.Mockito.when(mockFluid.getName()).thenReturn("thoriumbasedliquidfueldepleted");
+        org.mockito.Mockito.when(mockFluid.getUnlocalizedName()).thenReturn("fluid.thoriumbasedliquidfueldepleted");
+        org.mockito.Mockito.when(depletedFluidStack.getFluid()).thenReturn(mockFluid);
+        assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isFluidFuel(depletedFluidStack),
+            "Depleted liquid fuel must never be classified as active fluid fuel");
+
+        // 7. Non-rod silver items (e.g. silver ingot or plate) must not be matched as control rods
+        net.minecraft.item.Item mockSilverIngot = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockSilverIngot.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.ingotSilver");
+        ItemStack silverIngotStack = new ItemStack(mockSilverIngot, 1, 0);
+        assertNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(silverIngotStack),
+            "Silver ingot must not be classified as a control rod (wildcards eliminated)");
+    }
+
     private static void deleteRecursively(File file) {
         if (file.isDirectory()) {
             File[] children = file.listFiles();
