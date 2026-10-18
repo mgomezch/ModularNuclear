@@ -317,164 +317,34 @@ public class MTEHatchNuclearBus extends MTEHatch {
     }
 
     public static boolean isMoltenCheese(FluidStack fluid) {
-        if (fluid == null || fluid.getFluid() == null) return false;
-        if (Materials.Cheese != null && (fluid.getFluid() == Materials.Cheese.mStandardMoltenFluid
-            || Materials.FLUID_MAP.get(fluid.getFluid()) == Materials.Cheese)) {
-            return true;
-        }
-        String name = fluid.getFluid()
-            .getName();
-        return "molten.cheese".equalsIgnoreCase(name) || "cheese".equalsIgnoreCase(name)
-            || "fluid.cheese".equalsIgnoreCase(name);
+        return com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.isMoltenCheese(fluid);
     }
 
-    /**
-     * Cached list of fluid extraction recipes that output molten cheese, queried by output (like NEI).
-     */
-    private static final List<GTRecipe> CHEESE_EXTRACTION_RECIPES = new CopyOnWriteArrayList<>();
-    private static volatile boolean sCheeseRecipesLoaded = false;
-
-    /**
-     * Cache mapping individual item inputs to their matched cheese extraction recipe (or empty).
-     */
-    private static final Map<RecipeCacheKey, Optional<GTRecipe>> CHEESE_RECIPE_CACHE = new ConcurrentHashMap<>();
-
-    /**
-     * Queries and caches all fluid extraction recipes by output to isolate molten cheese recipes.
-     */
     public static void loadCheeseRecipes() {
-        if (sCheeseRecipesLoaded) return;
-        synchronized (CHEESE_EXTRACTION_RECIPES) {
-            if (sCheeseRecipesLoaded) return;
-            try {
-                if (RecipeMaps.fluidExtractionRecipes != null) {
-                    for (GTRecipe recipe : RecipeMaps.fluidExtractionRecipes.getAllRecipes()) {
-                        if (recipe.mFluidOutputs != null) {
-                            for (FluidStack out : recipe.mFluidOutputs) {
-                                if (out != null && isMoltenCheese(out)) {
-                                    CHEESE_EXTRACTION_RECIPES.add(recipe);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (Throwable ignored) {}
-            sCheeseRecipesLoaded = true;
-        }
+        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().loadRecipes();
     }
 
-    /**
-     * Clears all cached cheese recipes and input lookup results, primarily for unit testing.
-     */
     public static void clearCheeseRecipeCache() {
-        synchronized (CHEESE_EXTRACTION_RECIPES) {
-            CHEESE_EXTRACTION_RECIPES.clear();
-            CHEESE_RECIPE_CACHE.clear();
-            sCheeseRecipesLoaded = false;
-        }
+        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().clear();
     }
 
-    /**
-     * Adds a cheese extraction recipe to the cached cheese recipes list, for registration or testing.
-     */
     public static void registerCheeseRecipe(GTRecipe recipe) {
-        if (recipe == null) return;
-        loadCheeseRecipes();
-        CHEESE_EXTRACTION_RECIPES.add(recipe);
-        CHEESE_RECIPE_CACHE.clear();
+        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().registerRecipe(recipe);
     }
 
-    /**
-     * Immutable cache key for input items matching fluid extraction recipes.
-     */
-    public static final class RecipeCacheKey {
-
-        private final Item item;
-        private final int damage;
-        private final NBTTagCompound nbt;
+    public static class RecipeCacheKey extends com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.RecipeCacheKey {
 
         public RecipeCacheKey(ItemStack stack) {
-            Item it = null;
-            try {
-                it = stack.getItem();
-            } catch (Exception ignored) {}
-            this.item = it;
-
-            int dmg = 0;
-            if (Items.feather != null) {
-                dmg = Items.feather.getDamage(stack);
-            } else {
-                try {
-                    dmg = stack.getItemDamage();
-                } catch (Exception ignored) {}
-            }
-            this.damage = dmg;
-            this.nbt = stack.getTagCompound();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            RecipeCacheKey that = (RecipeCacheKey) o;
-            if (damage != that.damage || item != that.item) return false;
-            return (nbt == null && that.nbt == null) || (nbt != null && nbt.equals(that.nbt));
-        }
-
-        @Override
-        public int hashCode() {
-            int result = item != null ? item.hashCode() : 0;
-            result = 31 * result + damage;
-            result = 31 * result + (nbt != null ? nbt.hashCode() : 0);
-            return result;
+            super(stack);
         }
     }
 
     public GTRecipe findCheeseExtractionRecipe(ItemStack stack) {
-        if (stack == null) return null;
-        if (!sCheeseRecipesLoaded) {
-            loadCheeseRecipes();
-        }
-
-        RecipeCacheKey key = new RecipeCacheKey(stack);
-        Optional<GTRecipe> cached = CHEESE_RECIPE_CACHE.get(key);
-        if (cached != null) {
-            return cached.orElse(null);
-        }
-
-        for (GTRecipe recipe : CHEESE_EXTRACTION_RECIPES) {
-            if (recipe.isRecipeInputEqual(false, true, null, stack)) {
-                CHEESE_RECIPE_CACHE.put(key, Optional.of(recipe));
-                return recipe;
-            }
-        }
-
-        CHEESE_RECIPE_CACHE.put(key, Optional.empty());
-        return null;
+        return com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().findRecipe(stack);
     }
 
     public static boolean isCheeseRecipeInput(ItemStack stack) {
-        if (stack == null) return false;
-        if (!sCheeseRecipesLoaded) {
-            loadCheeseRecipes();
-        }
-
-        RecipeCacheKey key = new RecipeCacheKey(stack);
-        Optional<GTRecipe> cached = CHEESE_RECIPE_CACHE.get(key);
-        if (cached != null) {
-            return cached.isPresent();
-        }
-
-        for (GTRecipe recipe : CHEESE_EXTRACTION_RECIPES) {
-            if (recipe.isRecipeInputEqual(false, true, null, stack)) {
-                CHEESE_RECIPE_CACHE.put(key, Optional.of(recipe));
-                return true;
-            }
-        }
-
-        CHEESE_RECIPE_CACHE.put(key, Optional.empty());
-        return false;
+        return com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().isCheeseInput(stack);
     }
 
     @Override

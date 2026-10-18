@@ -438,10 +438,11 @@ public final class NuclearFuelClassification {
         if (stack == null) return false;
 
         // 1. Dynamic cheese extraction Easter egg inputs:
-        if (bus != null) {
-            if (bus.findCheeseExtractionRecipe(stack) != null) return true;
-        } else {
-            if (MTEHatchNuclearBus.isCheeseRecipeInput(stack)) return true;
+        if (com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().isCheeseInput(stack)) {
+            return true;
+        }
+        if (bus != null && bus.getClass() != MTEHatchNuclearBus.class && bus.findCheeseExtractionRecipe(stack) != null) {
+            return true;
         }
 
         // 2. Control rods can ONLY go into control rod hatches!

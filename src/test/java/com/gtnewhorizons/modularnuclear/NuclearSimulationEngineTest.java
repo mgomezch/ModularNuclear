@@ -2395,10 +2395,15 @@ public class NuclearSimulationEngineTest {
         assertSame(mockCheeseRecipe, bus.findCheeseExtractionRecipe(stackA));
         // Repeated call hits memoized cache
         assertSame(mockCheeseRecipe, bus.findCheeseExtractionRecipe(stackA));
+        assertTrue(MTEHatchNuclearBus.isCheeseRecipeInput(stackA));
+        assertTrue(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().isCheeseInput(stackA));
+        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(stackA));
 
         // stackB does not match and is negatively cached
         assertNull(bus.findCheeseExtractionRecipe(stackB));
         assertNull(bus.findCheeseExtractionRecipe(stackB));
+        assertFalse(MTEHatchNuclearBus.isCheeseRecipeInput(stackB));
+        assertFalse(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().isCheeseInput(stackB));
 
         // Key equality and hashCode check
         MTEHatchNuclearBus.RecipeCacheKey key1 = new MTEHatchNuclearBus.RecipeCacheKey(stackA);
@@ -2408,6 +2413,19 @@ public class NuclearSimulationEngineTest {
         assertEquals(key1, key2, "Cache keys with same item and damage must be equal regardless of stack size");
         assertEquals(key1.hashCode(), key2.hashCode(), "Cache keys hash codes must match for equal keys");
         assertNotEquals(key1, key3, "Cache keys with different damage must not be equal");
+
+        // Test singleton behavior with concrete inputs and fast O(1) item set filtering
+        MTEHatchNuclearBus.clearCheeseRecipeCache();
+        assertFalse(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().hasDynamicOrUnknownInputs());
+        gregtech.api.util.GTRecipe recipeWithInputs = org.mockito.Mockito.mock(gregtech.api.util.GTRecipe.class);
+        recipeWithInputs.mInputs = new ItemStack[] { stackA };
+        MTEHatchNuclearBus.registerCheeseRecipe(recipeWithInputs);
+        assertFalse(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().hasDynamicOrUnknownInputs());
+        assertTrue(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().getCheeseInputItems().contains(dummyItem));
+        assertTrue(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().isCheeseInput(stackA));
+        net.minecraft.item.Item otherItem = new net.minecraft.item.Item().setUnlocalizedName("other.dummy");
+        ItemStack otherStack = new ItemStack(otherItem, 1, 0);
+        assertFalse(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().isCheeseInput(otherStack));
 
         MTEHatchNuclearBus.clearCheeseRecipeCache();
     }

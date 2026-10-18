@@ -845,7 +845,8 @@ public class NuclearReactorPhysics {
             }
         }
         // 5. EASTER EGG: MOLTEN CHEESE EXTRACTION ABOVE 65°C
-        else if (bus.mTemperature > 65.0) {
+        else if (bus.mTemperature > 65.0 && (com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().isCheeseInput(stack)
+            || (bus.getClass() != MTEHatchNuclearBus.class && bus.findCheeseExtractionRecipe(stack) != null))) {
             bus.mDirectEUProduced = 0;
             if (reactor.getBaseMetaTileEntity() != null) {
                 long aTick = reactor.getBaseMetaTileEntity()

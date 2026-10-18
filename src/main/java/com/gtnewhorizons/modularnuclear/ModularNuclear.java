@@ -89,5 +89,6 @@ public class ModularNuclear {
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
         ModRecipes.init();
+        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().loadRecipes();
     }
 }
