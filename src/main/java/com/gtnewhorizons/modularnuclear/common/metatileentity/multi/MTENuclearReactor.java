@@ -16,7 +16,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.EnumChatFormatting;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
@@ -55,13 +54,6 @@ import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemKitModularNucl
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
-import com.gtnewhorizons.modularui.api.drawable.UITexture;
-import com.gtnewhorizons.modularui.api.screen.ModularWindow;
-import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
-import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
-import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
-import com.gtnewhorizons.modularui.common.widget.DynamicPositionedColumn;
-import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 
 import cpw.mods.fml.common.Loader;
 import gregtech.GTMod;
@@ -85,6 +77,7 @@ import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
+import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.pollution.Pollution;
 import gtnhlanth.common.beamline.BeamInformation;
 import gtnhlanth.common.beamline.Particle;
@@ -145,10 +138,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public static final int GUI_MODE_NEUTRON_FLUX = 3;
     public static final int GUI_MODE_NEUTRON_ABSORPTION = 4;
     public static final int GUI_MODE_CONTROL_RODS = 5;
-    private static final UITexture TAB_NEI_SELECTED = UITexture
-        .partly(new ResourceLocation("nei", "textures/nei_tabbed_sprites.png"), 256, 256, 0, 16, 24, 40);
-    private static final UITexture TAB_NEI_UNSELECTED = UITexture
-        .partly(new ResourceLocation("nei", "textures/nei_tabbed_sprites.png"), 256, 256, 24, 16, 48, 40);
     public int mCurrentGuiMode = GUI_MODE_COMPONENTS;
     public ReactorGridSyncData mClientGridData = null;
 
@@ -1040,8 +1029,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             for (IGregTechTileEntity te : mNuclearTiles) {
                 if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearBus) {
                     int[] gCoords = calculateGridCoords(te, cX, cY, cZ, ef, isUpsideDown, hOffset);
-                    if (gCoords != null && gCoords[0] >= 0 && gCoords[0] < gridSize
-                        && gCoords[1] >= 0 && gCoords[1] < gridSize) {
+                    if (gCoords != null && gCoords[0] >= 0
+                        && gCoords[0] < gridSize
+                        && gCoords[1] >= 0
+                        && gCoords[1] < gridSize) {
                         busGrid[gCoords[0]][gCoords[1]] = true;
                     }
                 }
@@ -1052,8 +1043,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 IGregTechTileEntity bTe = bottom.getBaseMetaTileEntity();
                 if (bTe != null) {
                     int[] gCoords = calculateGridCoords(bTe, cX, cY, cZ, ef, isUpsideDown, hOffset);
-                    if (gCoords != null && gCoords[0] >= 0 && gCoords[0] < gridSize
-                        && gCoords[1] >= 0 && gCoords[1] < gridSize) {
+                    if (gCoords != null && gCoords[0] >= 0
+                        && gCoords[0] < gridSize
+                        && gCoords[1] >= 0
+                        && gCoords[1] < gridSize) {
                         if (!busGrid[gCoords[0]][gCoords[1]]) {
                             anyUnpaired = true;
                             break;
@@ -1225,10 +1218,14 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (aBaseMetaTileEntity.isServerSide() && mMachine) {
             if (!mBottomBeamInputHatches.isEmpty()) {
                 for (MTEHatchInputBeamline beamHatch : mBottomBeamInputHatches) {
-                    if (beamHatch != null && beamHatch.dataPacket != null && beamHatch.dataPacket.getContent() != null) {
+                    if (beamHatch != null && beamHatch.dataPacket != null
+                        && beamHatch.dataPacket.getContent() != null) {
                         BeamInformation beamInfo = beamHatch.dataPacket.getContent();
                         if (beamInfo.getParticle() != Particle.NEUTRON) {
-                            explodeReactor(false, "Incompatible non-neutron particle beam injected into core: " + beamInfo.getParticle().getName());
+                            explodeReactor(
+                                false,
+                                "Incompatible non-neutron particle beam injected into core: " + beamInfo.getParticle()
+                                    .getName());
                             return;
                         }
                     }
@@ -1332,9 +1329,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
                 // Dynamic Cherenkov radiation intensity metric: S(N) = N^2 / (N^2 + 1000^2)
                 double nEsc = res.neutronsEscaped;
-                float cherenkovMetric = (float) ((nEsc > 0)
-                    ? (nEsc * nEsc) / (nEsc * nEsc + 1000.0 * 1000.0)
-                    : 0.0);
+                float cherenkovMetric = (float) ((nEsc > 0) ? (nEsc * nEsc) / (nEsc * nEsc + 1000.0 * 1000.0) : 0.0);
                 byte metricByte = (byte) Math.round(cherenkovMetric * 100.0f);
                 if (metricByte != mLastSentCherenkovMetricByte) {
                     mLastSentCherenkovMetricByte = metricByte;
@@ -1655,8 +1650,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             this.mThermalAbsorbed = data.thermalAbsorbed;
             this.mEscapedNeutrons = data.escapedNeutrons;
             double nEsc = this.mEscapedNeutrons;
-            this.mClientRadiationIntensity = (float) ((nEsc > 0)
-                ? (nEsc * nEsc) / (nEsc * nEsc + 1000.0 * 1000.0)
+            this.mClientRadiationIntensity = (float) ((nEsc > 0) ? (nEsc * nEsc) / (nEsc * nEsc + 1000.0 * 1000.0)
                 : 0.0);
             this.mOutputCoolantRate = data.outputCoolantRate;
             this.mOutputCoolantName = data.outputCoolantName;
@@ -1782,7 +1776,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     @Override
     protected boolean useMui2() {
-        return false;
+        return true;
+    }
+
+    @Override
+    protected boolean forceUseMui2() {
+        return true;
     }
 
     @Override
@@ -1835,28 +1834,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
     }
 
-    public static final int REACTOR_GRID_WINDOW_ID = NuclearReactorGui.REACTOR_GRID_WINDOW_ID;
-
-    public ButtonWidget createScramButton(IWidgetBuilder<?> builder) {
-        return NuclearReactorGui.createScramButton(this, builder);
-    }
-
-    public ButtonWidget createReactorGridButton(IWidgetBuilder<?> builder) {
-        return NuclearReactorGui.createReactorGridButton(this);
-    }
-
     @Override
-    public void addUIWidgets(ModularWindow.Builder builder, UIBuildContext buildContext) {
-        NuclearReactorGui.buildMainUI(this, builder, buildContext);
-    }
-
-    @Override
-    protected void drawTexts(DynamicPositionedColumn screenElements, SlotWidget inventorySlot) {
-        NuclearReactorGui.drawTexts(this, screenElements, inventorySlot);
-    }
-
-    public ModularWindow createReactorGridWindow(final EntityPlayer player) {
-        return NuclearReactorGui.createReactorGridWindow(this, player);
+    protected MTEMultiBlockBaseGui<?> getGui() {
+        return new NuclearReactorGui(this);
     }
 
     private final ReactorDummy mReactorDummy = new ReactorDummy(this);
@@ -2127,8 +2107,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (stack == null) return 0;
         if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate plate)
             return plate.getTier();
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData rvd =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findRadiovoltaic(stack);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData rvd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findRadiovoltaic(stack);
         if (rvd != null) {
             return rvd.tier > 0 ? rvd.tier : 1;
         }
@@ -2176,14 +2156,16 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (mEnergyHatches != null) {
             for (MTEHatchEnergy hatch : mEnergyHatches) {
                 if (hatch != null && hatch.isValid() && hatch.getBaseMetaTileEntity() != null) {
-                    total += hatch.getBaseMetaTileEntity().getStoredEU();
+                    total += hatch.getBaseMetaTileEntity()
+                        .getStoredEU();
                 }
             }
         }
         if (mExoticEnergyHatches != null) {
             for (MTEHatch hatch : mExoticEnergyHatches) {
                 if (hatch != null && hatch.isValid() && hatch.getBaseMetaTileEntity() != null) {
-                    total += hatch.getBaseMetaTileEntity().getStoredEU();
+                    total += hatch.getBaseMetaTileEntity()
+                        .getStoredEU();
                 }
             }
         }
@@ -2197,10 +2179,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (mEnergyHatches != null) {
             for (MTEHatchEnergy hatch : mEnergyHatches) {
                 if (hatch != null && hatch.isValid() && hatch.getBaseMetaTileEntity() != null) {
-                    long stored = hatch.getBaseMetaTileEntity().getStoredEU();
+                    long stored = hatch.getBaseMetaTileEntity()
+                        .getStoredEU();
                     if (stored > 0) {
                         long toDrain = Math.min(remaining, stored);
-                        hatch.getBaseMetaTileEntity().decreaseStoredEnergyUnits(toDrain, false);
+                        hatch.getBaseMetaTileEntity()
+                            .decreaseStoredEnergyUnits(toDrain, false);
                         remaining -= toDrain;
                         if (remaining <= 0) return true;
                     }
@@ -2210,10 +2194,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (mExoticEnergyHatches != null) {
             for (MTEHatch hatch : mExoticEnergyHatches) {
                 if (hatch != null && hatch.isValid() && hatch.getBaseMetaTileEntity() != null) {
-                    long stored = hatch.getBaseMetaTileEntity().getStoredEU();
+                    long stored = hatch.getBaseMetaTileEntity()
+                        .getStoredEU();
                     if (stored > 0) {
                         long toDrain = Math.min(remaining, stored);
-                        hatch.getBaseMetaTileEntity().decreaseStoredEnergyUnits(toDrain, false);
+                        hatch.getBaseMetaTileEntity()
+                            .decreaseStoredEnergyUnits(toDrain, false);
                         remaining -= toDrain;
                         if (remaining <= 0) return true;
                     }
@@ -2251,7 +2237,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         return NuclearReactorPhysics.getTileFuelData(tile);
     }
 
-    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData getTileModeratorData(NuclearGridTile tile) {
+    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData getTileModeratorData(
+        NuclearGridTile tile) {
         return NuclearReactorPhysics.getTileModeratorData(tile);
     }
 

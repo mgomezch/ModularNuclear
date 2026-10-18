@@ -1,21 +1,16 @@
 package com.gtnewhorizons.modularnuclear.common.gui;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.Locale;
 import java.util.Set;
-import java.util.TreeSet;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.renderer.entity.RenderItem;
-import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
@@ -23,6 +18,16 @@ import net.minecraftforge.fluids.IFluidContainerItem;
 
 import org.lwjgl.opengl.GL11;
 
+import com.cleanroommc.modularui.api.UpOrDown;
+import com.cleanroommc.modularui.api.widget.Interactable;
+import com.cleanroommc.modularui.drawable.GuiDraw;
+import com.cleanroommc.modularui.screen.RichTooltip;
+import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
+import com.cleanroommc.modularui.theme.WidgetThemeEntry;
+import com.cleanroommc.modularui.utils.GlStateManager;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widget.sizer.Area;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
@@ -32,61 +37,45 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
-import com.gtnewhorizons.modularui.api.GlStateManager;
-import com.gtnewhorizons.modularui.api.drawable.FluidDrawable;
-import com.gtnewhorizons.modularui.api.drawable.GuiHelper;
-import com.gtnewhorizons.modularui.api.drawable.ItemDrawable;
-import com.gtnewhorizons.modularui.api.math.Pos2d;
-import com.gtnewhorizons.modularui.api.screen.Cursor;
-import com.gtnewhorizons.modularui.api.screen.ModularUIContext;
-import com.gtnewhorizons.modularui.api.widget.Interactable;
-import com.gtnewhorizons.modularui.common.internal.wrapper.ModularGui;
-import com.gtnewhorizons.modularui.common.widget.Scrollable;
-import com.gtnewhorizons.modularui.common.widget.SyncedWidget;
 
-import codechicken.lib.gui.GuiDraw;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.util.GTUtility;
 
-public class NuclearReactorGridWidget extends SyncedWidget implements Interactable {
-
-    public static final int PACKET_SLOT_CLICK = 10;
-    public static final int PACKET_BATCH_SHIFT_INSERT = 11;
-    public static final int PACKET_DRAG_STEP = 12;
-    public static final int PACKET_SYNC_GRID = 13;
+/**
+ * ModularUI 2 Interactive Canvas Widget for the MPTR Reactor Core Hatches grid.
+ * Supports smooth pan, zoom, cell placement, drag-placement, batch shift-insert, and hover telemetry tooltips.
+ */
+public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> implements Interactable {
 
     private final MTENuclearReactor reactor;
-    private Scrollable parentScrollable;
-    private int mZoomIndex = 0;
+    private final PanelSyncManager syncManager;
 
+    private float panX = 0.0f;
+    private float panY = 0.0f;
+    private float zoom = 1.0f;
+    private boolean hasInitialFit = false;
+
+    // Pan dragging state
+    private boolean isPanning = false;
+    private int dragStartMouseX = 0;
+    private int dragStartMouseY = 0;
+    private float dragStartPanX = 0.0f;
+    private float dragStartPanY = 0.0f;
+
+    // Cell placement dragging state
     private boolean mIsDraggingGrid = false;
     private int mDragButton = 0;
     private final Set<Integer> mDragVisitedCells = new LinkedHashSet<>();
 
     public NuclearReactorGridWidget(MTENuclearReactor reactor) {
+        this(reactor, null);
+    }
+
+    public NuclearReactorGridWidget(MTENuclearReactor reactor, PanelSyncManager syncManager) {
         this.reactor = reactor;
-        setSize(126, 126);
-        setTooltipShowUpDelay(0);
-        setUpdateTooltipEveryTick(true);
-        dynamicTooltip(this::getHoveredTooltip);
-        resetZoom();
-    }
-
-    public void setParentScrollable(Scrollable parentScrollable) {
-        this.parentScrollable = parentScrollable;
-        updateWidgetSize();
-    }
-
-    public int getViewportWidth() {
-        return (parentScrollable != null && parentScrollable.getSize().width > 0) ? parentScrollable.getSize().width
-            : 126;
-    }
-
-    public int getViewportHeight() {
-        return (parentScrollable != null && parentScrollable.getSize().height > 0) ? parentScrollable.getSize().height
-            : 126;
+        this.syncManager = syncManager;
+        tooltipDynamic(this::buildTooltip);
+        tooltipAutoUpdate(true);
+        tooltipShowUpTimer(0);
     }
 
     public int getGridSize() {
@@ -94,158 +83,76 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
         return (sync != null && sync.gridSize > 0) ? sync.gridSize : 0;
     }
 
-    public int[] getZoomCellSizes(int N) {
-        if (N <= 0) return new int[] { 18 };
-        int vp = Math.min(getViewportWidth(), getViewportHeight());
-        int fit = Math.max(4, vp / N);
-        TreeSet<Integer> sizes = new TreeSet<>();
-        sizes.add(18);
-        sizes.add(fit);
-        if (fit < 14) sizes.add(14);
-        if (fit < 18) sizes.add(18);
-        sizes.add(24);
-        sizes.add(32);
-        sizes.add(40);
-        return sizes.stream()
-            .mapToInt(Integer::intValue)
-            .toArray();
-    }
-
-    public int getCurrentCellSize() {
-        int N = getGridSize();
-        int[] sizes = getZoomCellSizes(N);
-        int idx = Math.max(0, Math.min(mZoomIndex, sizes.length - 1));
-        return sizes[idx];
+    public float getZoom() {
+        return zoom;
     }
 
     public int getZoomPercent() {
-        int current = getCurrentCellSize();
-        return Math.round(((float) current / 18.0f) * 100.0f);
+        return Math.round(zoom * 100.0f);
     }
 
     public void zoomIn() {
-        int[] sizes = getZoomCellSizes(getGridSize());
-        if (mZoomIndex < sizes.length - 1) {
-            mZoomIndex++;
-            updateWidgetSize();
-        }
+        float cx = getArea() != null ? getArea().w() / 2.0f : 0.0f;
+        float cy = getArea() != null ? getArea().h() / 2.0f : 0.0f;
+        zoomAt(Math.min(3.0f, zoom * 1.25f), cx, cy);
     }
 
     public void zoomOut() {
-        if (mZoomIndex > 0) {
-            mZoomIndex--;
-            updateWidgetSize();
-        }
+        float cx = getArea() != null ? getArea().w() / 2.0f : 0.0f;
+        float cy = getArea() != null ? getArea().h() / 2.0f : 0.0f;
+        zoomAt(Math.max(0.25f, zoom / 1.25f), cx, cy);
     }
 
     public void resetZoom() {
-        int[] sizes = getZoomCellSizes(getGridSize());
-        mZoomIndex = 0;
-        for (int i = 0; i < sizes.length; i++) {
-            if (sizes[i] == 18) {
-                mZoomIndex = i;
-                break;
-            }
-        }
-        updateWidgetSize();
-        if (parentScrollable != null) {
-            parentScrollable.setHorizontalScrollOffset(0);
-            parentScrollable.setVerticalScrollOffset(0);
-        }
+        this.zoom = 1.0f;
+        centerGrid();
     }
 
-    public int getZoomIndex() {
-        int[] sizes = getZoomCellSizes(getGridSize());
-        return Math.max(0, Math.min(mZoomIndex, sizes.length - 1));
-    }
-
-    public void setZoomIndex(int index) {
-        int[] sizes = getZoomCellSizes(getGridSize());
-        int clamped = Math.max(0, Math.min(index, sizes.length - 1));
-        if (mZoomIndex != clamped) {
-            mZoomIndex = clamped;
-            updateWidgetSize();
-        }
-    }
-
-    public float getZoomProgress() {
-        int[] sizes = getZoomCellSizes(getGridSize());
-        if (sizes.length <= 1) return 1.0f;
-        int idx = getZoomIndex();
-        return (float) idx / (float) (sizes.length - 1);
-    }
-
-    public void setZoomProgress(float progress) {
-        int[] sizes = getZoomCellSizes(getGridSize());
-        if (sizes.length <= 1) return;
-        float p = Math.max(0.0f, Math.min(1.0f, progress));
-        int targetIdx = Math.round(p * (sizes.length - 1));
-        setZoomIndex(targetIdx);
-    }
-
-    public void updateWidgetSize() {
+    public void fitToView() {
         int N = getGridSize();
-        int cellSize = getCurrentCellSize();
-        int gridPx = N * cellSize;
-        int targetW = Math.max(getViewportWidth(), gridPx);
-        int targetH = Math.max(getViewportHeight(), gridPx);
-        setSize(targetW, targetH);
-        if (parentScrollable != null) {
-            parentScrollable.onRebuild();
-        }
+        if (N <= 0 || getArea() == null) return;
+        int vw = getArea().w();
+        int vh = getArea().h();
+        if (vw <= 0 || vh <= 0) return;
+
+        float gridPx = N * 18.0f;
+        float scaleX = (vw - 24.0f) / gridPx;
+        float scaleY = (vh - 24.0f) / gridPx;
+        this.zoom = Math.max(0.25f, Math.min(2.5f, Math.min(scaleX, scaleY)));
+        this.panX = (vw - gridPx * zoom) / 2.0f;
+        this.panY = (vh - gridPx * zoom) / 2.0f;
     }
 
-    @Override
-    public void onScreenUpdate() {
-        super.onScreenUpdate();
+    private void centerGrid() {
         int N = getGridSize();
-        int cellSize = getCurrentCellSize();
-        int gridPx = N * cellSize;
-        int targetW = Math.max(getViewportWidth(), gridPx);
-        int targetH = Math.max(getViewportHeight(), gridPx);
-        if (getSize().width != targetW || getSize().height != targetH) {
-            setSize(targetW, targetH);
-            if (parentScrollable != null) {
-                parentScrollable.onRebuild();
-            }
-        }
+        if (N <= 0 || getArea() == null) return;
+        int vw = getArea().w();
+        int vh = getArea().h();
+        float gridPx = N * 18.0f;
+        this.panX = (vw - gridPx * zoom) / 2.0f;
+        this.panY = (vh - gridPx * zoom) / 2.0f;
     }
 
-    public int[] getCellUnderCursor() {
+    private void zoomAt(float newZoom, float mouseX, float mouseY) {
+        newZoom = Math.max(0.25f, Math.min(3.0f, newZoom));
+        if (Math.abs(newZoom - zoom) < 0.001f) return;
+        float graphX = (mouseX - panX) / zoom;
+        float graphY = (mouseY - panY) / zoom;
+        this.zoom = newZoom;
+        this.panX = mouseX - graphX * zoom;
+        this.panY = mouseY - graphY * zoom;
+    }
+
+    public int[] getCellAt(int mx, int my) {
         ReactorGridSyncData sync = reactor.getClientGridData();
         if (sync == null || sync.gridSize <= 0) return null;
-        if (getContext() == null) return null;
-        Cursor cursor = getContext().getCursor();
-        if (cursor == null) return null;
-
-        Pos2d spos = parentScrollable != null ? parentScrollable.getAbsolutePos() : getAbsolutePos();
-        int cx = cursor.getX();
-        int cy = cursor.getY();
-        int spx = spos.x;
-        int spy = spos.y;
-        int spw = parentScrollable != null ? parentScrollable.getSize().width : getSize().width;
-        int sph = parentScrollable != null ? parentScrollable.getSize().height : getSize().height;
-
-        if (cx < spx || cx >= spx + spw || cy < spy || cy >= spy + sph) {
-            return null;
-        }
-
         int N = sync.gridSize;
-        int cellSize = getCurrentCellSize();
-        int gridPx = N * cellSize;
-        int vpW = getViewportWidth();
-        int vpH = getViewportHeight();
-        int offsetX = (gridPx < vpW) ? (vpW - gridPx) / 2 : 0;
-        int offsetY = (gridPx < vpH) ? (vpH - gridPx) / 2 : 0;
 
-        int scrollX = parentScrollable != null ? parentScrollable.getHorizontalScrollOffset() : 0;
-        int scrollY = parentScrollable != null ? parentScrollable.getVerticalScrollOffset() : 0;
+        double gmx = (mx - panX) / zoom;
+        double gmy = (my - panY) / zoom;
 
-        int mx = cx - spx + scrollX;
-        int my = cy - spy + scrollY;
-
-        int hx = (mx - offsetX) / cellSize;
-        int renderHy = (my - offsetY) / cellSize;
+        int hx = (int) Math.floor(gmx / 18.0);
+        int renderHy = (int) Math.floor(gmy / 18.0);
         int hy = (N - 1) - renderHy;
 
         if (hx < 0 || hx >= N || hy < 0 || hy >= N) return null;
@@ -260,19 +167,32 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
     }
 
     @Override
-    public ClickResult onClick(int button, boolean isShiftDown) {
-        int[] cell = getCellUnderCursor();
-        if (cell != null) {
-            ItemStack cursorStack = null;
-            if (getContext() != null && getContext().getPlayer() != null) {
-                cursorStack = getContext().getPlayer().inventory.getItemStack();
-            }
+    public Interactable.Result onMousePressed(int button) {
+        ModularGuiContext ctx = getContext();
+        if (ctx == null) return Interactable.Result.IGNORE;
+        Area area = getArea();
+        if (area == null || !area.isInside(ctx.getAbsMouseX(), ctx.getAbsMouseY())) {
+            return Interactable.Result.IGNORE;
+        }
+
+        int mx = ctx.getMouseX();
+        int my = ctx.getMouseY();
+        int[] cell = getCellAt(mx, my);
+
+        if (cell != null && (button == 0 || button == 1)) {
+            boolean isShiftDown = GuiScreen.isShiftKeyDown();
+            EntityPlayer player = Minecraft.getMinecraft().thePlayer;
+            ItemStack cursorStack = (player != null && player.inventory != null) ? player.inventory.getItemStack()
+                : null;
 
             if (isShiftDown && cursorStack != null && cursorStack.stackSize > 0) {
-                // Batch shift-insert from top-left into empty buses
-                syncToServer(PACKET_BATCH_SHIFT_INSERT, buf -> buf.writeInt(button));
+                // Batch shift-insert
+                if (syncManager != null) {
+                    final int btn = button;
+                    syncManager.callSyncedAction("batchShiftInsert", buf -> buf.writeInt(btn));
+                }
                 Interactable.playButtonClickSound();
-                return ClickResult.ACCEPT;
+                return Interactable.Result.SUCCESS;
             }
 
             if (cursorStack != null && cursorStack.stackSize > 0) {
@@ -287,114 +207,484 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
 
             final int hx = cell[0];
             final int hy = cell[1];
-            syncToServer(PACKET_SLOT_CLICK, buf -> {
-                buf.writeInt(hx);
-                buf.writeInt(hy);
-                buf.writeInt(button);
-                buf.writeBoolean(isShiftDown);
-            });
+            final int btn = button;
+            if (syncManager != null) {
+                syncManager.callSyncedAction("slotClick", buf -> {
+                    buf.writeInt(hx);
+                    buf.writeInt(hy);
+                    buf.writeInt(btn);
+                    buf.writeBoolean(isShiftDown);
+                });
+            }
             Interactable.playButtonClickSound();
-            return ClickResult.ACCEPT;
+            return Interactable.Result.SUCCESS;
         }
 
-        if (parentScrollable != null) {
-            return parentScrollable.onClick(button, isShiftDown);
+        // Click on canvas background or middle-click -> start pan
+        if (button == 2 || cell == null) {
+            isPanning = true;
+            dragStartMouseX = ctx.getAbsMouseX();
+            dragStartMouseY = ctx.getAbsMouseY();
+            dragStartPanX = panX;
+            dragStartPanY = panY;
+            return Interactable.Result.SUCCESS;
         }
-        return ClickResult.IGNORE;
+
+        return Interactable.Result.IGNORE;
     }
 
     @Override
-    public void onMouseDragged(int button, long timeSinceLastClick) {
+    public boolean onMouseRelease(int button) {
+        if (isPanning) {
+            isPanning = false;
+            return true;
+        }
         if (mIsDraggingGrid && button == mDragButton) {
-            int[] cell = getCellUnderCursor();
+            mIsDraggingGrid = false;
+            mDragVisitedCells.clear();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void onMouseDrag(int button, long time) {
+        ModularGuiContext ctx = getContext();
+        if (ctx == null) return;
+
+        if (isPanning) {
+            int amx = ctx.getAbsMouseX();
+            int amy = ctx.getAbsMouseY();
+            panX = dragStartPanX + (amx - dragStartMouseX);
+            panY = dragStartPanY + (amy - dragStartMouseY);
+            return;
+        }
+
+        if (mIsDraggingGrid && button == mDragButton) {
+            int[] cell = getCellAt(ctx.getMouseX(), ctx.getMouseY());
             if (cell != null) {
                 int code = cell[0] * 1000 + cell[1];
                 if (!mDragVisitedCells.contains(code)) {
                     mDragVisitedCells.add(code);
                     final int hx = cell[0];
                     final int hy = cell[1];
-                    syncToServer(PACKET_DRAG_STEP, buf -> {
-                        buf.writeInt(hx);
-                        buf.writeInt(hy);
-                        buf.writeInt(button);
-                    });
+                    final int btn = button;
+                    if (syncManager != null) {
+                        syncManager.callSyncedAction("dragStep", buf -> {
+                            buf.writeInt(hx);
+                            buf.writeInt(hy);
+                            buf.writeInt(btn);
+                        });
+                    }
                     Interactable.playButtonClickSound();
                 }
             }
+        }
+    }
+
+    @Override
+    public boolean onMouseScroll(UpOrDown scroll, int delta) {
+        ModularGuiContext ctx = getContext();
+        float mx = (ctx != null) ? ctx.getMouseX() : (getArea() != null ? getArea().w() / 2.0f : 0.0f);
+        float my = (ctx != null) ? ctx.getMouseY() : (getArea() != null ? getArea().h() / 2.0f : 0.0f);
+        if (scroll == UpOrDown.UP) {
+            zoomAt(Math.min(3.0f, zoom * 1.15f), mx, my);
+            return true;
+        } else if (scroll == UpOrDown.DOWN) {
+            zoomAt(Math.max(0.25f, zoom / 1.15f), mx, my);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void draw(ModularGuiContext context, WidgetThemeEntry<?> theme) {
+        int rw = getArea().w();
+        int rh = getArea().h();
+        if (rw <= 0 || rh <= 0) return;
+
+        ReactorGridSyncData sync = reactor.getClientGridData();
+
+        // Auto-fit on first layout once data is formed
+        if (!hasInitialFit && sync != null && sync.gridSize > 0) {
+            fitToView();
+            hasInitialFit = true;
+        }
+
+        // Draw background container panel and border in local coords
+        GuiDraw.drawRect(0, 0, rw, rh, 0xEE12161E);
+        GuiDraw.drawRect(0, 0, rw, 1, 0xFF2A3645);
+        GuiDraw.drawRect(0, rh - 1, rw, 1, 0xFF2A3645);
+        GuiDraw.drawRect(0, 0, 1, rh, 0xFF2A3645);
+        GuiDraw.drawRect(rw - 1, 0, 1, rh, 0xFF2A3645);
+
+        if (sync == null || sync.gridSize <= 0) {
+            String msg = "Reactor Core Offline / Unformed";
+            FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
+            int sw = fr.getStringWidth(msg);
+            fr.drawStringWithShadow(msg, (rw - sw) / 2, (rh - 8) / 2, 0x888888);
             return;
         }
 
-        if (parentScrollable != null) {
-            parentScrollable.onMouseDragged(button, timeSinceLastClick);
-        }
-    }
+        int N = sync.gridSize;
 
-    @Override
-    public boolean onClickReleased(int button) {
-        if (mIsDraggingGrid) {
-            mIsDraggingGrid = false;
-            mDragVisitedCells.clear();
-            return true;
-        }
-        if (parentScrollable != null) {
-            return parentScrollable.onClickReleased(button);
-        }
-        return false;
-    }
+        // Scissor clipping to widget viewport
+        Minecraft mc = Minecraft.getMinecraft();
+        ScaledResolution sr = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
+        int scale = sr.getScaleFactor();
 
-    @Override
-    public boolean onMouseScroll(int direction) {
-        if (GuiScreen.isCtrlKeyDown()) {
-            if (direction > 0) {
-                zoomIn();
-            } else {
-                zoomOut();
+        int absX = getArea().x;
+        int absY = getArea().y;
+        int sx = absX * scale;
+        int sy = mc.displayHeight - (absY + rh) * scale;
+        int sw = rw * scale;
+        int sh = rh * scale;
+
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        GL11.glScissor(sx, sy, sw, sh);
+
+        GL11.glPushMatrix();
+        GL11.glTranslatef(panX, panY, 0.0f);
+        GL11.glScalef(zoom, zoom, 1.0f);
+
+        double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(sync.pipeTier);
+
+        // Render grid cells
+        for (int gx = 0; gx < N; gx++) {
+            for (int gy = 0; gy < N; gy++) {
+                int renderGy = (N - 1) - gy;
+                int px = gx * 18;
+                int py = renderGy * 18;
+
+                if (NuclearSimulationEngine.isCornerNullCell(gx, gy, N, N)) {
+                    continue;
+                }
+
+                int idx = gx * N + gy;
+                ReactorGridSyncData.ReactorGridCellData cell = (idx < sync.cells.size()) ? sync.cells.get(idx) : null;
+
+                // Slot background
+                GuiDraw.drawRect(px, py, 18, 18, 0xFF373737);
+                GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0xFF1E1E1E);
+
+                if (cell != null && cell.exists) {
+                    // Contents (item, fluid, or empty hatch tint)
+                    if (cell.itemStack != null) {
+                        GuiDraw.drawItem(cell.itemStack, px + 1, py + 1, 16, 16, 0);
+
+                        // Stack size readout
+                        if (cell.itemStack.stackSize > 1) {
+                            String countStr = String.valueOf(cell.itemStack.stackSize);
+                            FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
+                            fr.drawStringWithShadow(countStr, px + 17 - fr.getStringWidth(countStr), py + 9, 0xFFFFFF);
+                        }
+
+                        // Durability bar
+                        if (cell.itemStack.isItemDamaged()) {
+                            int maxD = cell.itemStack.getMaxDamage();
+                            int curD = cell.itemStack.getItemDamage();
+                            double health = (double) (maxD - curD) / (double) maxD;
+                            int barW = (int) Math.round(13.0 * health);
+                            int barColor = (int) Math.round(255.0 * health);
+                            int color = ((255 - barColor) << 16) | (barColor << 8);
+                            GuiDraw.drawRect(px + 2, py + 14, 13, 2, 0xFF000000);
+                            GuiDraw.drawRect(px + 2, py + 14, barW, 1, 0xFF000000 | color);
+                        }
+                    } else if (cell.fluidStack != null) {
+                        GuiDraw.drawFluidTexture(cell.fluidStack, px + 1, py + 1, 16, 16, 0);
+                    } else if (cell.isHighPressure) {
+                        GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x40FFA500);
+                    } else if (cell.isFluid) {
+                        GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x300055AA);
+                    }
+
+                    // Mode Overlays
+                    if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_TEMPERATURE) {
+                        int color = NuclearColorMaps.getTemperatureColor(cell.temperature, maxTemp);
+                        GuiDraw.drawRect(px + 1, py + 1, 16, 16, color);
+                    } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_HEAT_OUTPUT) {
+                        if (cell.heatOutput > 0) {
+                            int color = NuclearColorMaps.getHeatOutputColor(cell.heatOutput);
+                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, color);
+                        }
+                    } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_FLUX) {
+                        int color = NuclearColorMaps.getNeutronColor(cell.fastFlux + cell.thermalFlux);
+                        GuiDraw.drawRect(px + 1, py + 1, 16, 16, color);
+                    } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_ABSORPTION) {
+                        int color = NuclearColorMaps.getNeutronColor(5.0 * (cell.fastAbsorbed + cell.thermalAbsorbed));
+                        GuiDraw.drawRect(px + 1, py + 1, 16, 16, color);
+                    } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
+                        if (cell.hasControlRod) {
+                            // Dark backdrop tint
+                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x881E293B);
+
+                            // Control rod fill bar
+                            int rodColor = switch (cell.controlRodType) {
+                                case 1 -> 0xFFC0C0C0; // Silver
+                                case 2 -> 0xFF5A5A6E; // Boron
+                                case 3 -> 0xFF5588AA; // Cadmium
+                                case 4 -> 0xFF3366BB; // Indium
+                                case 5 -> 0xFFAA3333; // Hafnium
+                                default -> 0x88666666; // None
+                            };
+
+                            int barH = Math.max(1, Math.round(12.0f * (cell.controlRodInsertion / 100.0f)));
+                            GuiDraw.drawRect(px + 3, py + 15 - barH, 12, barH, rodColor);
+
+                            // Control rod hatch border
+                            GuiDraw.drawRect(px + 1, py + 1, 16, 1, 0xFF00AAFF);
+                            GuiDraw.drawRect(px + 1, py + 16, 16, 1, 0xFF00AAFF);
+                            GuiDraw.drawRect(px + 1, py + 1, 1, 16, 0xFF00AAFF);
+                            GuiDraw.drawRect(px + 16, py + 1, 1, 16, 0xFF00AAFF);
+                        } else {
+                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x77000000);
+                        }
+                    }
+
+                    // Flashing thermal hazard warning rect (>85% max operating temp)
+                    if (cell.temperature > maxTemp * 0.85) {
+                        if ((System.currentTimeMillis() / 400) % 2 == 0) {
+                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x60FF0000);
+                        }
+                    }
+                }
             }
-            return true;
         }
-        if (parentScrollable != null) {
-            return parentScrollable.onMouseScroll(direction);
+
+        // Draw drag-placement preview cells
+        if (mIsDraggingGrid && !mDragVisitedCells.isEmpty()) {
+            for (int code : mDragVisitedCells) {
+                int dx = code / 1000;
+                int dy = code % 1000;
+                int renderDy = (N - 1) - dy;
+                int dpx = dx * 18;
+                int dpy = renderDy * 18;
+                GuiDraw.drawRect(dpx + 1, dpy + 1, 16, 16, 0x6000FF00);
+            }
         }
-        return false;
+
+        // Hover highlight
+        int[] hCell = getCellAt(context.getMouseX(), context.getMouseY());
+        if (hCell != null) {
+            int hx = hCell[0];
+            int hy = hCell[1];
+            int renderHy = (N - 1) - hy;
+            int hpx = hx * 18;
+            int hpy = renderHy * 18;
+            GuiDraw.drawRect(hpx + 1, hpy + 1, 16, 16, 0x80FFFFFF);
+        }
+
+        GL11.glPopMatrix();
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+
+        // Reset state
+        GlStateManager.disableLighting();
+        GlStateManager.enableBlend();
+        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
-    @Override
-    public void readOnClient(int id, PacketBuffer buf) throws IOException {
-        if (id == PACKET_SYNC_GRID) {
-            ReactorGridSyncData data = ReactorGridSyncData.readFromBuffer(buf);
-            reactor.applyGridSyncData(data);
-        }
-    }
-
-    @Override
-    public void readOnServer(int id, PacketBuffer buf) throws IOException {
-        if (id == PACKET_SLOT_CLICK) {
-            int gx = buf.readInt();
-            int gy = buf.readInt();
-            int button = buf.readInt();
-            boolean isShift = buf.readBoolean();
-            handleSlotClickServer(gx, gy, button, isShift);
-        } else if (id == PACKET_BATCH_SHIFT_INSERT) {
-            int button = buf.readInt();
-            handleBatchShiftInsertServer(button);
-        } else if (id == PACKET_DRAG_STEP) {
-            int gx = buf.readInt();
-            int gy = buf.readInt();
-            int button = buf.readInt();
-            handleDragStepServer(gx, gy, button);
-        }
-    }
-
-    private void handleSlotClickServer(int gx, int gy, int button, boolean isShift) {
-        ModularUIContext ctx = getContext();
+    private void buildTooltip(RichTooltip tooltip) {
+        ModularGuiContext ctx = getContext();
         if (ctx == null) return;
-        EntityPlayer player = ctx.getPlayer();
-        if (!(player instanceof EntityPlayerMP playerMP)) return;
+        int[] hCell = getCellAt(ctx.getMouseX(), ctx.getMouseY());
+        if (hCell == null) return;
+
+        ReactorGridSyncData sync = reactor.getClientGridData();
+        if (sync == null || sync.gridSize <= 0) return;
+
+        int hx = hCell[0];
+        int hy = hCell[1];
+        int N = sync.gridSize;
+        int idx = hx * N + hy;
+        if (idx < 0 || idx >= sync.cells.size()) return;
+        ReactorGridSyncData.ReactorGridCellData cell = sync.cells.get(idx);
+        if (cell == null || !cell.exists) {
+            tooltip.addLine(EnumChatFormatting.GRAY + "Empty core position (" + hx + ", " + hy + ")");
+            return;
+        }
+
+        double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(sync.pipeTier);
+
+        // 1. Component Identity
+        if (cell.itemStack != null) {
+            tooltip.addLine(EnumChatFormatting.WHITE + cell.itemStack.getDisplayName());
+            if (cell.itemStack.stackSize > 1) {
+                tooltip.addLine(EnumChatFormatting.GRAY + "Amount: " + cell.itemStack.stackSize);
+            }
+        } else if (cell.fluidStack != null) {
+            tooltip.addLine(EnumChatFormatting.AQUA + cell.fluidStack.getLocalizedName());
+            if (MTENuclearReactor.isFluidFuel(cell.fluidStack)) {
+                tooltip.addLine(EnumChatFormatting.GOLD + "Nuclear liquid fuel");
+            }
+            tooltip
+                .addLine(EnumChatFormatting.GRAY + String.format(Locale.US, "Amount: %,d L", cell.fluidStack.amount));
+        } else if (cell.isHighPressure) {
+            tooltip.addLine(EnumChatFormatting.GOLD + "Nuclear core high-pressure hatch");
+            tooltip.addLine(EnumChatFormatting.GRAY + "Hermetic fluid passage for coolant loop");
+        } else if (cell.isFluid) {
+            tooltip.addLine(EnumChatFormatting.GRAY + "Empty nuclear fluid hatch");
+        } else {
+            tooltip.addLine(EnumChatFormatting.GRAY + "Empty nuclear component bus");
+        }
+
+        // 2. Position
+        tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Position: (" + hx + ", " + hy + ")");
+
+        // 3. Thermal Telemetry
+        String tempColor;
+        if (cell.temperature > maxTemp) {
+            tempColor = EnumChatFormatting.DARK_RED.toString();
+        } else if (cell.temperature > maxTemp * 0.85) {
+            tempColor = EnumChatFormatting.RED.toString();
+        } else if (cell.temperature > maxTemp * 0.5) {
+            tempColor = EnumChatFormatting.YELLOW.toString();
+        } else {
+            tempColor = EnumChatFormatting.GREEN.toString();
+        }
+
+        tooltip.addLine(
+            EnumChatFormatting.GRAY + "Temperature: "
+                + tempColor
+                + String.format(Locale.US, "%.1f °C", cell.temperature)
+                + EnumChatFormatting.DARK_GRAY
+                + String.format(Locale.US, " (safe limit: %.0f °C)", maxTemp));
+
+        if (cell.temperature > maxTemp) {
+            tooltip.addLine(EnumChatFormatting.RED + "" + EnumChatFormatting.BOLD + "Status: melting point exceeded!");
+        } else if (cell.temperature > maxTemp * 0.85) {
+            tooltip.addLine(EnumChatFormatting.RED + "Status: thermal warning - high temperature");
+        } else if (cell.temperature > maxTemp * 0.5) {
+            tooltip.addLine(EnumChatFormatting.YELLOW + "Status: operating - elevated temperature");
+        } else {
+            tooltip.addLine(EnumChatFormatting.GREEN + "Status: nominal operation");
+        }
+
+        // 4. Neutron Telemetry
+        int totalFlux = cell.fastFlux + cell.thermalFlux;
+        if (totalFlux > 0) {
+            tooltip.addLine(
+                EnumChatFormatting.GRAY + "Neutron flux: "
+                    + EnumChatFormatting.AQUA
+                    + NuclearSimulationEngine.formatNeutronFlux(totalFlux)
+                    + EnumChatFormatting.DARK_GRAY
+                    + String.format(Locale.US, " (%d fast, %d thermal)", cell.fastFlux, cell.thermalFlux));
+        }
+
+        if (cell.cumulativeFluence > 0) {
+            tooltip.addLine(
+                EnumChatFormatting.GRAY + "Neutron fluence: "
+                    + EnumChatFormatting.LIGHT_PURPLE
+                    + NuclearSimulationEngine.formatNeutronFluence(cell.cumulativeFluence));
+        }
+
+        int totalAbs = cell.fastAbsorbed + cell.thermalAbsorbed;
+        if (totalAbs > 0) {
+            tooltip.addLine(
+                EnumChatFormatting.GRAY + "Neutrons absorbed: "
+                    + EnumChatFormatting.LIGHT_PURPLE
+                    + String.format(Locale.US, "%,d /s", totalAbs)
+                    + EnumChatFormatting.DARK_GRAY
+                    + String.format(Locale.US, " (%d fast, %d thermal)", cell.fastAbsorbed, cell.thermalAbsorbed));
+        }
+
+        // 5. Radiovoltaic Power
+        if (cell.directEU > 0) {
+            tooltip.addLine(
+                EnumChatFormatting.AQUA + "Radiovoltaic power: "
+                    + EnumChatFormatting.GREEN
+                    + "+"
+                    + String.format(Locale.US, "%,d", cell.directEU)
+                    + " EU/t");
+        }
+
+        // 5.5 Heat Output
+        if (cell.heatOutput > 0) {
+            tooltip.addLine(
+                EnumChatFormatting.GRAY + "Heat output: "
+                    + EnumChatFormatting.GOLD
+                    + String.format(Locale.US, "%,.1f Hu/s", cell.heatOutput));
+        }
+
+        // 6. Control Rod Info
+        if (cell.hasControlRod) {
+            MTEHatchNuclearControlRod.ControlRodType rodType = (cell.controlRodType >= 0
+                && cell.controlRodType < MTEHatchNuclearControlRod.ControlRodType.values().length)
+                    ? MTEHatchNuclearControlRod.ControlRodType.values()[cell.controlRodType]
+                    : MTEHatchNuclearControlRod.ControlRodType.NONE;
+            tooltip.addLine(
+                EnumChatFormatting.GOLD + "Control rod: "
+                    + EnumChatFormatting.WHITE
+                    + rodType.displayName
+                    + EnumChatFormatting.YELLOW
+                    + " ("
+                    + cell.controlRodInsertion
+                    + "%)");
+            tooltip.addLine(
+                EnumChatFormatting.DARK_GRAY + String.format(
+                    Locale.US,
+                    "Max absorption: %.0f%% therm, %.0f%% fast",
+                    rodType.maxThermalAbsorption * 100.0,
+                    rodType.maxFastAbsorption * 100.0));
+            if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
+                if (sync.scram) {
+                    tooltip.addLine(EnumChatFormatting.RED + "State: SCRAMMED (100% insertion)");
+                } else {
+                    tooltip.addLine(EnumChatFormatting.GRAY + "Controlled via hatch redstone signal");
+                }
+                tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Click with rod item to insert/extract");
+            }
+        } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
+            tooltip.addLine(EnumChatFormatting.DARK_GRAY + "No control rod hatch installed");
+        }
+
+        // 7. Mode Context Telemetry
+        if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_TEMPERATURE) {
+            float delta = cell.temperature - sync.avgTemp;
+            String deltaSign = delta >= 0 ? "+" : "";
+            tooltip.addLine(
+                EnumChatFormatting.DARK_GRAY
+                    + String.format(Locale.US, "Core temp delta: %s%.1f °C", deltaSign, delta));
+        } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_HEAT_OUTPUT) {
+            double totalHeat = 0;
+            if (sync.cells != null) {
+                for (ReactorGridSyncData.ReactorGridCellData c : sync.cells) {
+                    if (c != null && c.exists) {
+                        totalHeat += c.heatOutput;
+                    }
+                }
+            }
+            if (totalHeat > 0 && cell.heatOutput > 0) {
+                double share = (cell.heatOutput / totalHeat) * 100.0;
+                tooltip.addLine(
+                    EnumChatFormatting.DARK_GRAY + String.format(Locale.US, "Core heat output share: %.1f%%", share));
+            }
+        } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_FLUX) {
+            if (sync.neutronsProduced > 0 && totalFlux > 0) {
+                double share = ((double) totalFlux / sync.neutronsProduced) * 100.0;
+                tooltip
+                    .addLine(EnumChatFormatting.DARK_GRAY + String.format(Locale.US, "Core flux share: %.1f%%", share));
+            }
+        } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_ABSORPTION) {
+            int totalCoreAbs = sync.fastAbsorbed + sync.thermalAbsorbed;
+            if (totalCoreAbs > 0 && totalAbs > 0) {
+                double share = ((double) totalAbs / totalCoreAbs) * 100.0;
+                tooltip.addLine(
+                    EnumChatFormatting.DARK_GRAY + String.format(Locale.US, "Core absorption share: %.1f%%", share));
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    // Server-Side Handlers
+    // ---------------------------------------------------------------------------------------------------------
+
+    public static void handleSlotClickServer(MTENuclearReactor reactor, EntityPlayerMP playerMP, int gx, int gy,
+        int button, boolean isShift) {
         if (reactor.mGrid == null || gx < 0 || gx >= reactor.gridSize || gy < 0 || gy >= reactor.gridSize) return;
         INuclearTile nTile = reactor.mGrid[gx][gy];
         if (!(nTile instanceof NuclearGridTile gridTile)) return;
 
-        ItemStack cursorStack = player.inventory.getItemStack();
+        ItemStack cursorStack = playerMP.inventory.getItemStack();
 
         if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS && gridTile.hasControlRod()) {
             MTEHatchNuclearControlRod rod = gridTile.getBottomControlRod();
@@ -402,21 +692,21 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
 
             if (isShift) {
                 if (cursorStack == null && slotStack != null) {
-                    if (player.inventory.addItemStackToInventory(slotStack)) {
+                    if (playerMP.inventory.addItemStackToInventory(slotStack)) {
                         rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
                     } else if (slotStack.stackSize <= 0) {
                         rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
                     }
                     rod.markTileDirty();
-                    syncPlayerAndReactor(playerMP);
+                    syncPlayerAndReactor(reactor, playerMP);
                 }
             } else if (button == 0) {
                 if (cursorStack == null) {
                     if (slotStack != null) {
-                        player.inventory.setItemStack(slotStack);
+                        playerMP.inventory.setItemStack(slotStack);
                         rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
                         rod.markTileDirty();
-                        syncPlayerAndReactor(playerMP);
+                        syncPlayerAndReactor(reactor, playerMP);
                     }
                 } else if (MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
                     if (slotStack == null) {
@@ -426,23 +716,23 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                         rod.markTileDirty();
                         cursorStack.stackSize--;
                         if (cursorStack.stackSize <= 0) {
-                            player.inventory.setItemStack(null);
+                            playerMP.inventory.setItemStack(null);
                         }
-                        syncPlayerAndReactor(playerMP);
+                        syncPlayerAndReactor(reactor, playerMP);
                     } else if (cursorStack.stackSize == 1) {
                         rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = cursorStack;
-                        player.inventory.setItemStack(slotStack);
+                        playerMP.inventory.setItemStack(slotStack);
                         rod.markTileDirty();
-                        syncPlayerAndReactor(playerMP);
+                        syncPlayerAndReactor(reactor, playerMP);
                     }
                 }
             } else if (button == 1) {
                 if (cursorStack == null) {
                     if (slotStack != null) {
-                        player.inventory.setItemStack(slotStack);
+                        playerMP.inventory.setItemStack(slotStack);
                         rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
                         rod.markTileDirty();
-                        syncPlayerAndReactor(playerMP);
+                        syncPlayerAndReactor(reactor, playerMP);
                     }
                 } else if (slotStack == null && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
                     ItemStack placed = cursorStack.copy();
@@ -451,9 +741,9 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                     rod.markTileDirty();
                     cursorStack.stackSize--;
                     if (cursorStack.stackSize <= 0) {
-                        player.inventory.setItemStack(null);
+                        playerMP.inventory.setItemStack(null);
                     }
-                    syncPlayerAndReactor(playerMP);
+                    syncPlayerAndReactor(reactor, playerMP);
                 }
             }
             return;
@@ -465,21 +755,21 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
 
             if (isShift) {
                 if (cursorStack == null && slotStack != null) {
-                    if (player.inventory.addItemStackToInventory(slotStack)) {
+                    if (playerMP.inventory.addItemStackToInventory(slotStack)) {
                         bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
                     } else if (slotStack.stackSize <= 0) {
                         bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
                     }
                     bus.markTileDirty();
-                    syncPlayerAndReactor(playerMP);
+                    syncPlayerAndReactor(reactor, playerMP);
                 }
             } else if (button == 0) {
                 if (cursorStack == null) {
                     if (slotStack != null) {
-                        player.inventory.setItemStack(slotStack);
+                        playerMP.inventory.setItemStack(slotStack);
                         bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
                         bus.markTileDirty();
-                        syncPlayerAndReactor(playerMP);
+                        syncPlayerAndReactor(reactor, playerMP);
                     }
                 } else {
                     if (slotStack == null) {
@@ -489,23 +779,23 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                         bus.markTileDirty();
                         cursorStack.stackSize--;
                         if (cursorStack.stackSize <= 0) {
-                            player.inventory.setItemStack(null);
+                            playerMP.inventory.setItemStack(null);
                         }
-                        syncPlayerAndReactor(playerMP);
+                        syncPlayerAndReactor(reactor, playerMP);
                     } else if (cursorStack.stackSize == 1) {
                         bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = cursorStack;
-                        player.inventory.setItemStack(slotStack);
+                        playerMP.inventory.setItemStack(slotStack);
                         bus.markTileDirty();
-                        syncPlayerAndReactor(playerMP);
+                        syncPlayerAndReactor(reactor, playerMP);
                     }
                 }
             } else if (button == 1) {
                 if (cursorStack == null) {
                     if (slotStack != null) {
-                        player.inventory.setItemStack(slotStack);
+                        playerMP.inventory.setItemStack(slotStack);
                         bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
                         bus.markTileDirty();
-                        syncPlayerAndReactor(playerMP);
+                        syncPlayerAndReactor(reactor, playerMP);
                     }
                 } else if (slotStack == null) {
                     ItemStack placed = cursorStack.copy();
@@ -514,9 +804,9 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                     bus.markTileDirty();
                     cursorStack.stackSize--;
                     if (cursorStack.stackSize <= 0) {
-                        player.inventory.setItemStack(null);
+                        playerMP.inventory.setItemStack(null);
                     }
-                    syncPlayerAndReactor(playerMP);
+                    syncPlayerAndReactor(reactor, playerMP);
                 }
             }
         } else if (gridTile.isHatch()) {
@@ -526,16 +816,12 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
             } else if (cursorStack != null) {
                 handleFluidHatchClickWithContainer(hatch, playerMP, button);
             }
-            syncPlayerAndReactor(playerMP);
+            syncPlayerAndReactor(reactor, playerMP);
         }
     }
 
-    private void handleBatchShiftInsertServer(int button) {
-        ModularUIContext ctx = getContext();
-        if (ctx == null) return;
-        EntityPlayer player = ctx.getPlayer();
-        if (!(player instanceof EntityPlayerMP playerMP)) return;
-        ItemStack cursorStack = player.inventory.getItemStack();
+    public static void handleBatchShiftInsertServer(MTENuclearReactor reactor, EntityPlayerMP playerMP, int button) {
+        ItemStack cursorStack = playerMP.inventory.getItemStack();
         if (cursorStack == null || cursorStack.stackSize <= 0) return;
         if (reactor.mGrid == null || reactor.gridSize <= 0) return;
 
@@ -575,20 +861,17 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
         }
 
         if (cursorStack.stackSize <= 0) {
-            player.inventory.setItemStack(null);
+            playerMP.inventory.setItemStack(null);
         }
 
         if (insertedAny) {
-            syncPlayerAndReactor(playerMP);
+            syncPlayerAndReactor(reactor, playerMP);
         }
     }
 
-    private void handleDragStepServer(int gx, int gy, int button) {
-        ModularUIContext ctx = getContext();
-        if (ctx == null) return;
-        EntityPlayer player = ctx.getPlayer();
-        if (!(player instanceof EntityPlayerMP playerMP)) return;
-        ItemStack cursorStack = player.inventory.getItemStack();
+    public static void handleDragStepServer(MTENuclearReactor reactor, EntityPlayerMP playerMP, int gx, int gy,
+        int button) {
+        ItemStack cursorStack = playerMP.inventory.getItemStack();
         if (cursorStack == null || cursorStack.stackSize <= 0) return;
         if (reactor.mGrid == null || gx < 0 || gx >= reactor.gridSize || gy < 0 || gy >= reactor.gridSize) return;
         INuclearTile nTile = reactor.mGrid[gx][gy];
@@ -603,9 +886,9 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                 bus.markTileDirty();
                 cursorStack.stackSize--;
                 if (cursorStack.stackSize <= 0) {
-                    player.inventory.setItemStack(null);
+                    playerMP.inventory.setItemStack(null);
                 }
-                syncPlayerAndReactor(playerMP);
+                syncPlayerAndReactor(reactor, playerMP);
             }
         } else if (gridTile.hasControlRod() && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
             MTEHatchNuclearControlRod rod = gridTile.getBottomControlRod();
@@ -616,18 +899,19 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
                 rod.markTileDirty();
                 cursorStack.stackSize--;
                 if (cursorStack.stackSize <= 0) {
-                    player.inventory.setItemStack(null);
+                    playerMP.inventory.setItemStack(null);
                 }
-                syncPlayerAndReactor(playerMP);
+                syncPlayerAndReactor(reactor, playerMP);
             }
         } else if (gridTile.isHatch()) {
             MTEHatchNuclearHatch hatch = gridTile.getHatch();
             handleFluidHatchClickWithContainer(hatch, playerMP, button);
-            syncPlayerAndReactor(playerMP);
+            syncPlayerAndReactor(reactor, playerMP);
         }
     }
 
-    private void handleFluidHatchClickWithContainer(MTEHatchNuclearHatch hatch, EntityPlayerMP player, int button) {
+    private static void handleFluidHatchClickWithContainer(MTEHatchNuclearHatch hatch, EntityPlayerMP player,
+        int button) {
         ItemStack cursorStack = player.inventory.getItemStack();
         if (cursorStack == null || cursorStack.stackSize <= 0) return;
 
@@ -697,7 +981,7 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
         }
     }
 
-    private void handleFluidHatchShiftClick(MTEHatchNuclearHatch hatch, EntityPlayerMP player) {
+    private static void handleFluidHatchShiftClick(MTEHatchNuclearHatch hatch, EntityPlayerMP player) {
         int space = hatch.mCapacity - (hatch.mInputFluid != null ? hatch.mInputFluid.amount : 0);
         boolean changed = false;
 
@@ -784,7 +1068,7 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
         }
     }
 
-    private void syncPlayerAndReactor(EntityPlayerMP playerMP) {
+    private static void syncPlayerAndReactor(MTENuclearReactor reactor, EntityPlayerMP playerMP) {
         if (playerMP.openContainer != null) {
             playerMP.openContainer.detectAndSendChanges();
             playerMP.sendContainerToPlayer(playerMP.openContainer);
@@ -793,416 +1077,5 @@ public class NuclearReactorGridWidget extends SyncedWidget implements Interactab
             reactor.getBaseMetaTileEntity()
                 .markDirty();
         }
-        ReactorGridSyncData sync = reactor.collectGridSyncData();
-        syncToClient(PACKET_SYNC_GRID, buf -> ReactorGridSyncData.writeToBuffer(buf, sync));
-    }
-
-    private void prepareGuiState() {
-        GlStateManager.disableLighting();
-        GlStateManager.disableDepth();
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
-        GlStateManager.enableTexture2D();
-        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
-    }
-
-    @SideOnly(Side.CLIENT)
-    private void renderItemOverlay(ItemStack stack, int x, int y, int size) {
-        if (stack == null) return;
-        RenderItem itemRenderer = ModularGui.getItemRenderer();
-        if (itemRenderer == null) return;
-        FontRenderer fontRenderer = GuiHelper.getFontRenderer(stack);
-        if (fontRenderer == null) {
-            fontRenderer = Minecraft.getMinecraft().fontRenderer;
-        }
-        TextureManager textureManager = Minecraft.getMinecraft()
-            .getTextureManager();
-
-        GlStateManager.pushMatrix();
-        GlStateManager.translate(x, y, 0);
-        float scale = (float) size / 16.0f;
-        GlStateManager.scale(scale, scale, 1.0f);
-
-        float prevZ = itemRenderer.zLevel;
-        itemRenderer.zLevel = 200.0f;
-
-        GlStateManager.disableLighting();
-        GlStateManager.disableDepth();
-        GlStateManager.enableBlend();
-
-        itemRenderer.renderItemOverlayIntoGUI(fontRenderer, textureManager, stack, 0, 0, null);
-
-        itemRenderer.zLevel = prevZ;
-        GlStateManager.popMatrix();
-    }
-
-    @Override
-    public void draw(float partialTicks) {
-        ReactorGridSyncData sync = reactor.getClientGridData();
-        if (sync == null || sync.gridSize <= 0) {
-            String msg = "Offline / unformed";
-            int w = GuiDraw.getStringWidth(msg);
-            GuiDraw.drawString(
-                msg,
-                (getViewportWidth() - w) / 2,
-                Math.max(10, (getViewportHeight() - 10) / 2),
-                0x888888,
-                false);
-            return;
-        }
-
-        int N = sync.gridSize;
-        int cellSize = getCurrentCellSize();
-        int gridPx = N * cellSize;
-        int vpW = getViewportWidth();
-        int vpH = getViewportHeight();
-        int offsetX = (gridPx < vpW) ? (vpW - gridPx) / 2 : 0;
-        int offsetY = (gridPx < vpH) ? (vpH - gridPx) / 2 : 0;
-
-        GlStateManager.pushMatrix();
-        prepareGuiState();
-
-        for (int gx = 0; gx < N; gx++) {
-            for (int gy = 0; gy < N; gy++) {
-                int renderGy = (N - 1) - gy;
-                int px = offsetX + gx * cellSize;
-                int py = offsetY + renderGy * cellSize;
-
-                if (NuclearSimulationEngine.isCornerNullCell(gx, gy, N, N)) {
-                    continue;
-                }
-
-                int idx = gx * N + gy;
-                ReactorGridSyncData.ReactorGridCellData cell = (idx < sync.cells.size()) ? sync.cells.get(idx) : null;
-
-                prepareGuiState();
-
-                if (cellSize == 18) {
-                    GTUITextures.SLOT_DARK_GRAY.draw(px, py, 18, 18, partialTicks);
-                } else {
-                    GuiDraw.drawRect(px, py, cellSize, cellSize, 0xFF373737);
-                    GuiDraw.drawRect(px + 1, py + 1, cellSize - 2, cellSize - 2, 0xFF1E1E1E);
-                }
-
-                prepareGuiState();
-
-                if (cell != null && cell.exists) {
-                    int innerSize = Math.max(1, cellSize - 2);
-                    if (cell.itemStack != null) {
-                        GlStateManager.pushMatrix();
-                        GlStateManager.translate(px + 1, py + 1, 0);
-                        new ItemDrawable(cell.itemStack).draw(0, 0, innerSize, innerSize, partialTicks);
-                        GlStateManager.popMatrix();
-                        prepareGuiState();
-                    } else if (cell.fluidStack != null) {
-                        new FluidDrawable().setFluid(cell.fluidStack)
-                            .draw(px + 1, py + 1, innerSize, innerSize, partialTicks);
-                        prepareGuiState();
-                    } else if (cell.isHighPressure) {
-                        GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, 0x40FFA500);
-                        prepareGuiState();
-                    } else if (cell.isFluid) {
-                        GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, 0x300055AA);
-                        prepareGuiState();
-                    }
-
-                    if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_TEMPERATURE) {
-                        double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(sync.pipeTier);
-                        int color = NuclearColorMaps.getTemperatureColor(cell.temperature, maxTemp);
-                        GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, color);
-                        prepareGuiState();
-                    } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_HEAT_OUTPUT) {
-                        if (cell.heatOutput > 0) {
-                            int color = NuclearColorMaps.getHeatOutputColor(cell.heatOutput);
-                            GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, color);
-                            prepareGuiState();
-                        }
-                    } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_FLUX) {
-                        int color = NuclearColorMaps.getNeutronColor(cell.fastFlux + cell.thermalFlux);
-                        GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, color);
-                        prepareGuiState();
-                    } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_ABSORPTION) {
-                        int color = NuclearColorMaps.getNeutronColor(5.0 * (cell.fastAbsorbed + cell.thermalAbsorbed));
-                        GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, color);
-                        prepareGuiState();
-                    } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
-                        if (cell.hasControlRod) {
-                            // Dark backdrop tint
-                            GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, 0x881E293B);
-
-                            // Control rod fill bar
-                            int rodColor = switch (cell.controlRodType) {
-                                case 1 -> 0xFFC0C0C0; // Silver
-                                case 2 -> 0xFF5A5A6E; // Boron
-                                case 3 -> 0xFF5588AA; // Cadmium
-                                case 4 -> 0xFF3366BB; // Indium
-                                case 5 -> 0xFFAA3333; // Hafnium
-                                default -> 0x88666666; // None
-                            };
-
-                            int barH = Math.max(1, Math.round((innerSize - 4) * (cell.controlRodInsertion / 100.0f)));
-                            GuiDraw.drawRect(px + 3, py + innerSize - 1 - barH, innerSize - 4, barH, rodColor);
-
-                            // Control rod hatch border
-                            GuiDraw.drawRect(px + 1, py + 1, innerSize, 1, 0xFF00AAFF);
-                            GuiDraw.drawRect(px + 1, py + innerSize, innerSize, 1, 0xFF00AAFF);
-                            GuiDraw.drawRect(px + 1, py + 1, 1, innerSize, 0xFF00AAFF);
-                            GuiDraw.drawRect(px + innerSize, py + 1, 1, innerSize, 0xFF00AAFF);
-                        } else {
-                            GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, 0x77000000);
-                        }
-                        prepareGuiState();
-                    }
-
-                    double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(sync.pipeTier);
-                    if (cell.temperature > maxTemp * 0.85) {
-                        if ((System.currentTimeMillis() / 400) % 2 == 0) {
-                            GuiDraw.drawRect(px + 1, py + 1, innerSize, innerSize, 0x60FF0000);
-                            prepareGuiState();
-                        }
-                    }
-
-                    if (cell.itemStack != null) {
-                        renderItemOverlay(cell.itemStack, px + 1, py + 1, innerSize);
-                        prepareGuiState();
-                    }
-                }
-            }
-        }
-
-        // Draw dragged cells highlight preview if active
-        if (mIsDraggingGrid && !mDragVisitedCells.isEmpty()) {
-            for (int code : mDragVisitedCells) {
-                int dx = code / 1000;
-                int dy = code % 1000;
-                int renderDy = (N - 1) - dy;
-                int dpx = offsetX + dx * cellSize;
-                int dpy = offsetY + renderDy * cellSize;
-                prepareGuiState();
-                GuiDraw.drawRect(dpx + 1, dpy + 1, Math.max(1, cellSize - 2), Math.max(1, cellSize - 2), 0x6000FF00);
-                prepareGuiState();
-            }
-        }
-
-        // Slot Hover Highlight (only active when window is stationary and not dragging)
-        boolean isWindowMoving = getWindow() != null && !getWindow().isEnabled();
-        boolean isDragging = (getContext() != null && getContext().getCursor() != null
-            && getContext().getCursor()
-                .hasDraggable())
-            || mIsDraggingGrid;
-        if (!isWindowMoving && !isDragging
-            && (isHovering() || (parentScrollable != null && parentScrollable.isHovering()))
-            && getContext() != null) {
-            int[] hCell = getCellUnderCursor();
-            if (hCell != null) {
-                int hx = hCell[0];
-                int hy = hCell[1];
-                int renderHy = (N - 1) - hy;
-                int hpx = offsetX + hx * cellSize;
-                int hpy = offsetY + renderHy * cellSize;
-                prepareGuiState();
-                GuiDraw.drawRect(hpx + 1, hpy + 1, Math.max(1, cellSize - 2), Math.max(1, cellSize - 2), 0x80FFFFFF);
-                prepareGuiState();
-            }
-        }
-
-        prepareGuiState();
-        GlStateManager.popMatrix();
-    }
-
-    public List<String> getHoveredTooltip() {
-        List<String> list = new ArrayList<>();
-        boolean isWindowMoving = getWindow() != null && !getWindow().isEnabled();
-        boolean isDragging = (getContext() != null && getContext().getCursor() != null
-            && getContext().getCursor()
-                .hasDraggable())
-            || mIsDraggingGrid;
-        if (isWindowMoving || isDragging
-            || (!isHovering() && (parentScrollable == null || !parentScrollable.isHovering()))
-            || getContext() == null) {
-            return list;
-        }
-        ReactorGridSyncData sync = reactor.getClientGridData();
-        if (sync == null || sync.gridSize <= 0) return list;
-
-        int[] hCell = getCellUnderCursor();
-        if (hCell == null) return list;
-        int hx = hCell[0];
-        int hy = hCell[1];
-
-        int N = sync.gridSize;
-        int idx = hx * N + hy;
-        if (idx < 0 || idx >= sync.cells.size()) return list;
-        ReactorGridSyncData.ReactorGridCellData cell = sync.cells.get(idx);
-        if (cell == null || !cell.exists) {
-            list.add(EnumChatFormatting.GRAY + "Empty core position (" + hx + ", " + hy + ")");
-            return list;
-        }
-
-        double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(sync.pipeTier);
-
-        // 1. Component Identity
-        if (cell.itemStack != null) {
-            list.add(EnumChatFormatting.WHITE + cell.itemStack.getDisplayName());
-            if (cell.itemStack.stackSize > 1) {
-                list.add(EnumChatFormatting.GRAY + "Amount: " + cell.itemStack.stackSize);
-            }
-        } else if (cell.fluidStack != null) {
-            list.add(EnumChatFormatting.AQUA + cell.fluidStack.getLocalizedName());
-            if (MTENuclearReactor.isFluidFuel(cell.fluidStack)) {
-                list.add(EnumChatFormatting.GOLD + "Nuclear liquid fuel");
-            }
-            list.add(EnumChatFormatting.GRAY + String.format("Amount: %,d L", cell.fluidStack.amount));
-        } else if (cell.isHighPressure) {
-            list.add(EnumChatFormatting.GOLD + "Nuclear core high-pressure hatch");
-            list.add(EnumChatFormatting.GRAY + "Hermetic fluid passage for coolant loop");
-        } else if (cell.isFluid) {
-            list.add(EnumChatFormatting.GRAY + "Empty nuclear fluid hatch");
-        } else {
-            list.add(EnumChatFormatting.GRAY + "Empty nuclear component bus");
-        }
-
-        // 2. Position
-        list.add(EnumChatFormatting.DARK_GRAY + "Position: (" + hx + ", " + hy + ")");
-
-        // 3. Thermal Telemetry
-        String tempColor;
-        if (cell.temperature > maxTemp) {
-            tempColor = EnumChatFormatting.DARK_RED.toString();
-        } else if (cell.temperature > maxTemp * 0.85) {
-            tempColor = EnumChatFormatting.RED.toString();
-        } else if (cell.temperature > maxTemp * 0.5) {
-            tempColor = EnumChatFormatting.YELLOW.toString();
-        } else {
-            tempColor = EnumChatFormatting.GREEN.toString();
-        }
-
-        list.add(
-            EnumChatFormatting.GRAY + "Temperature: "
-                + tempColor
-                + String.format("%.1f °C", cell.temperature)
-                + EnumChatFormatting.DARK_GRAY
-                + String.format(" (safe limit: %.0f °C)", maxTemp));
-
-        if (cell.temperature > maxTemp) {
-            list.add(EnumChatFormatting.RED + "" + EnumChatFormatting.BOLD + "Status: melting point exceeded!");
-        } else if (cell.temperature > maxTemp * 0.85) {
-            list.add(EnumChatFormatting.RED + "Status: thermal warning - high temperature");
-        } else if (cell.temperature > maxTemp * 0.5) {
-            list.add(EnumChatFormatting.YELLOW + "Status: operating - elevated temperature");
-        } else {
-            list.add(EnumChatFormatting.GREEN + "Status: nominal operation");
-        }
-
-        // 4. Neutron Telemetry
-        int totalFlux = cell.fastFlux + cell.thermalFlux;
-        if (totalFlux > 0) {
-            list.add(
-                EnumChatFormatting.GRAY + "Neutron flux: "
-                    + EnumChatFormatting.AQUA
-                    + NuclearSimulationEngine.formatNeutronFlux(totalFlux)
-                    + EnumChatFormatting.DARK_GRAY
-                    + String.format(" (%d fast, %d thermal)", cell.fastFlux, cell.thermalFlux));
-        }
-
-        if (cell.cumulativeFluence > 0) {
-            list.add(
-                EnumChatFormatting.GRAY + "Neutron fluence: "
-                    + EnumChatFormatting.LIGHT_PURPLE
-                    + NuclearSimulationEngine.formatNeutronFluence(cell.cumulativeFluence));
-        }
-
-        int totalAbs = cell.fastAbsorbed + cell.thermalAbsorbed;
-        if (totalAbs > 0) {
-            list.add(
-                EnumChatFormatting.GRAY + "Neutrons absorbed: "
-                    + EnumChatFormatting.LIGHT_PURPLE
-                    + String.format("%,d /s", totalAbs)
-                    + EnumChatFormatting.DARK_GRAY
-                    + String.format(" (%d fast, %d thermal)", cell.fastAbsorbed, cell.thermalAbsorbed));
-        }
-
-        // 5. Radiovoltaic Power
-        if (cell.directEU > 0) {
-            list.add(
-                EnumChatFormatting.AQUA + "Radiovoltaic power: "
-                    + EnumChatFormatting.GREEN
-                    + "+"
-                    + String.format("%,d", cell.directEU)
-                    + " EU/t");
-        }
-
-        // 5.5 Heat Output
-        if (cell.heatOutput > 0) {
-            list.add(
-                EnumChatFormatting.GRAY + "Heat output: "
-                    + EnumChatFormatting.GOLD
-                    + String.format("%,.1f Hu/s", cell.heatOutput));
-        }
-
-        // 6. Control Rod Info
-        if (cell.hasControlRod) {
-            MTEHatchNuclearControlRod.ControlRodType rodType = (cell.controlRodType >= 0
-                && cell.controlRodType < MTEHatchNuclearControlRod.ControlRodType.values().length)
-                    ? MTEHatchNuclearControlRod.ControlRodType.values()[cell.controlRodType]
-                    : MTEHatchNuclearControlRod.ControlRodType.NONE;
-            list.add(
-                EnumChatFormatting.GOLD + "Control rod: "
-                    + EnumChatFormatting.WHITE
-                    + rodType.displayName
-                    + EnumChatFormatting.YELLOW
-                    + " ("
-                    + cell.controlRodInsertion
-                    + "%)");
-            list.add(
-                EnumChatFormatting.DARK_GRAY + String.format(
-                    java.util.Locale.US,
-                    "Max absorption: %.0f%% therm, %.0f%% fast",
-                    rodType.maxThermalAbsorption * 100.0,
-                    rodType.maxFastAbsorption * 100.0));
-            if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
-                if (sync.scram) {
-                    list.add(EnumChatFormatting.RED + "State: SCRAMMED (100% insertion)");
-                } else {
-                    list.add(EnumChatFormatting.GRAY + "Controlled via hatch redstone signal");
-                }
-                list.add(EnumChatFormatting.DARK_GRAY + "Click with rod item to insert/extract");
-            }
-        } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
-            list.add(EnumChatFormatting.DARK_GRAY + "No control rod hatch installed");
-        }
-
-        // 7. Mode Context Telemetry
-        if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_TEMPERATURE) {
-            float delta = cell.temperature - sync.avgTemp;
-            String deltaSign = delta >= 0 ? "+" : "";
-            list.add(EnumChatFormatting.DARK_GRAY + String.format("Core temp delta: %s%.1f °C", deltaSign, delta));
-        } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_HEAT_OUTPUT) {
-            double totalHeat = 0;
-            if (sync.cells != null) {
-                for (ReactorGridSyncData.ReactorGridCellData c : sync.cells) {
-                    if (c != null && c.exists) {
-                        totalHeat += c.heatOutput;
-                    }
-                }
-            }
-            if (totalHeat > 0 && cell.heatOutput > 0) {
-                double share = (cell.heatOutput / totalHeat) * 100.0;
-                list.add(EnumChatFormatting.DARK_GRAY + String.format("Core heat output share: %.1f%%", share));
-            }
-        } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_FLUX) {
-            if (sync.neutronsProduced > 0 && totalFlux > 0) {
-                double share = ((double) totalFlux / sync.neutronsProduced) * 100.0;
-                list.add(EnumChatFormatting.DARK_GRAY + String.format("Core flux share: %.1f%%", share));
-            }
-        } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_ABSORPTION) {
-            int totalCoreAbs = sync.fastAbsorbed + sync.thermalAbsorbed;
-            if (totalCoreAbs > 0 && totalAbs > 0) {
-                double share = ((double) totalAbs / totalCoreAbs) * 100.0;
-                list.add(EnumChatFormatting.DARK_GRAY + String.format("Core absorption share: %.1f%%", share));
-            }
-        }
-
-        return list;
     }
 }

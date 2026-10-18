@@ -3,13 +3,11 @@ package com.gtnewhorizons.modularnuclear;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -29,12 +27,9 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.opencomputers.NuclearControlEnvironment;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
-import com.gtnewhorizons.modularui.api.screen.ModularUIContext;
-import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 
 import gregtech.api.enums.Textures;
 import gregtech.api.render.TextureFactory;
-import io.netty.buffer.Unpooled;
 import li.cil.oc.api.machine.Callback;
 
 public class NuclearReactorGridWidgetTest {
@@ -76,8 +71,6 @@ public class NuclearReactorGridWidgetTest {
     private MTENuclearReactor reactor;
     private NuclearReactorGridWidget widget;
     private EntityPlayerMP player;
-    private ModularUIContext context;
-    private ModularWindow window;
 
     @BeforeEach
     void setUp() {
@@ -100,31 +93,20 @@ public class NuclearReactorGridWidgetTest {
                 return true;
             }
         };
-
-        context = mock(ModularUIContext.class);
-        when(context.getPlayer()).thenReturn(player);
-
-        window = mock(ModularWindow.class);
-        when(window.getContext()).thenReturn(context);
-
-        com.gtnewhorizons.modularui.api.widget.IWidgetParent parent = mock(
-            com.gtnewhorizons.modularui.api.widget.IWidgetParent.class);
-        widget.initialize(window, parent, 0);
     }
 
     @Test
-    void testZoomCellSizes() {
-        int[] sizes = widget.getZoomCellSizes(5);
-        assertTrue(sizes.length >= 3);
-        assertEquals(18, sizes[0]);
-
-        int[] sizesLarge = widget.getZoomCellSizes(15);
-        assertTrue(sizesLarge[0] <= 18);
-        assertTrue(sizesLarge[sizesLarge.length - 1] >= 40);
+    void testZoomControls() {
+        widget.resetZoom();
+        assertEquals(100, widget.getZoomPercent());
+        widget.zoomIn();
+        assertTrue(widget.getZoomPercent() > 100);
+        widget.zoomOut();
+        assertEquals(100, widget.getZoomPercent());
     }
 
     @Test
-    void testBusLeftClickInsertAndPickup() throws IOException {
+    void testBusLeftClickInsertAndPickup() {
         MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 1, new String[0], null);
         reactor.mGrid[1][1] = new NuclearGridTile(reactor, bus, 1, 1);
 
@@ -133,13 +115,7 @@ public class NuclearReactorGridWidgetTest {
         player.inventory.setItemStack(held);
 
         // Send left click on (1, 1)
-        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
-        buf.writeInt(1); // gx
-        buf.writeInt(1); // gy
-        buf.writeInt(0); // button = left
-        buf.writeBoolean(false); // isShift = false
-
-        widget.readOnServer(NuclearReactorGridWidget.PACKET_SLOT_CLICK, buf);
+        NuclearReactorGridWidget.handleSlotClickServer(reactor, player, 1, 1, 0, false);
 
         // Bus should receive 1 apple, cursor should have 4
         assertNotNull(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT]);
@@ -150,13 +126,7 @@ public class NuclearReactorGridWidgetTest {
 
         // Now clear cursor and click again to pick up
         player.inventory.setItemStack(null);
-        PacketBuffer buf2 = new PacketBuffer(Unpooled.buffer());
-        buf2.writeInt(1);
-        buf2.writeInt(1);
-        buf2.writeInt(0);
-        buf2.writeBoolean(false);
-
-        widget.readOnServer(NuclearReactorGridWidget.PACKET_SLOT_CLICK, buf2);
+        NuclearReactorGridWidget.handleSlotClickServer(reactor, player, 1, 1, 0, false);
 
         // Bus is empty, player cursor holds the 1 apple
         assertNull(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT]);
@@ -169,7 +139,7 @@ public class NuclearReactorGridWidgetTest {
     }
 
     @Test
-    void testBusShiftClickQuickMoveToInventory() throws IOException {
+    void testBusShiftClickQuickMoveToInventory() {
         MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 1, new String[0], null);
         reactor.mGrid[0][0] = new NuclearGridTile(reactor, bus, 0, 0);
 
@@ -177,13 +147,7 @@ public class NuclearReactorGridWidgetTest {
         player.inventory.setItemStack(null);
 
         // Shift click with empty cursor
-        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
-        buf.writeInt(0);
-        buf.writeInt(0);
-        buf.writeInt(0);
-        buf.writeBoolean(true); // isShift = true
-
-        widget.readOnServer(NuclearReactorGridWidget.PACKET_SLOT_CLICK, buf);
+        NuclearReactorGridWidget.handleSlotClickServer(reactor, player, 0, 0, 0, true);
 
         // Bus should be empty
         assertNull(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT]);
@@ -199,7 +163,7 @@ public class NuclearReactorGridWidgetTest {
     }
 
     @Test
-    void testBatchShiftInsert() throws IOException {
+    void testBatchShiftInsert() {
         MTEHatchNuclearBus bus0 = new MTEHatchNuclearBus("test.bus0", 1, new String[0], null);
         MTEHatchNuclearBus bus1 = new MTEHatchNuclearBus("test.bus1", 1, new String[0], null);
         MTEHatchNuclearBus bus2 = new MTEHatchNuclearBus("test.bus2", 1, new String[0], null);
@@ -214,10 +178,7 @@ public class NuclearReactorGridWidgetTest {
         // Cursor holds 2 items
         player.inventory.setItemStack(new ItemStack(Items.iron_ingot, 2));
 
-        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
-        buf.writeInt(0); // button
-
-        widget.readOnServer(NuclearReactorGridWidget.PACKET_BATCH_SHIFT_INSERT, buf);
+        NuclearReactorGridWidget.handleBatchShiftInsertServer(reactor, player, 0);
 
         // Visual top-left to bottom-right order:
         // First is (gx=1, gy=2), second is (gx=0, gy=1)
@@ -234,18 +195,13 @@ public class NuclearReactorGridWidgetTest {
     }
 
     @Test
-    void testDragStep() throws IOException {
+    void testDragStep() {
         MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 1, new String[0], null);
         reactor.mGrid[1][1] = new NuclearGridTile(reactor, bus, 1, 1);
 
         player.inventory.setItemStack(new ItemStack(Items.gold_ingot, 4));
 
-        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
-        buf.writeInt(1);
-        buf.writeInt(1);
-        buf.writeInt(0);
-
-        widget.readOnServer(NuclearReactorGridWidget.PACKET_DRAG_STEP, buf);
+        NuclearReactorGridWidget.handleDragStepServer(reactor, player, 1, 1, 0);
 
         assertNotNull(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT]);
         assertEquals(1, bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT].stackSize);
@@ -254,7 +210,7 @@ public class NuclearReactorGridWidgetTest {
     }
 
     @Test
-    void testFluidHatchContainerClick() throws IOException {
+    void testFluidHatchContainerClick() {
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 1, 16000, new String[0], null);
         reactor.mGrid[1][1] = new NuclearGridTile(reactor, hatch, 1, 1);
 
@@ -272,18 +228,12 @@ public class NuclearReactorGridWidgetTest {
         hatch.mInputFluid = new FluidStack(coolant, 5000);
         assertEquals(5000, hatch.mInputFluid.amount);
 
-        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
-        buf.writeInt(1);
-        buf.writeInt(1);
-        buf.writeInt(0);
-        buf.writeBoolean(true); // shift-click
-
-        widget.readOnServer(NuclearReactorGridWidget.PACKET_SLOT_CLICK, buf);
+        NuclearReactorGridWidget.handleSlotClickServer(reactor, player, 1, 1, 0, true);
         assertEquals(5000, hatch.mInputFluid.amount);
     }
 
     @Test
-    void testControlRodModeClickOnlyHandlesRodItemAndCannotAlterInsertion() throws IOException {
+    void testControlRodModeClickOnlyHandlesRodItemAndCannotAlterInsertion() {
         MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test.rod", 1, new String[0], null);
         NuclearGridTile tile = new NuclearGridTile(reactor, rod, 1, 1);
         reactor.mGrid[1][1] = tile;
@@ -299,13 +249,7 @@ public class NuclearReactorGridWidgetTest {
         player.inventory.setItemStack(boronRod);
 
         // Click on the control rod cell
-        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
-        buf.writeInt(1); // gx
-        buf.writeInt(1); // gy
-        buf.writeInt(0); // button left click
-        buf.writeBoolean(false); // isShift
-
-        widget.readOnServer(NuclearReactorGridWidget.PACKET_SLOT_CLICK, buf);
+        NuclearReactorGridWidget.handleSlotClickServer(reactor, player, 1, 1, 0, false);
 
         // Rod item was placed into the hatch
         assertNotNull(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD]);
@@ -313,13 +257,7 @@ public class NuclearReactorGridWidgetTest {
         assertEquals(0, rod.getInsertionPercent());
 
         // Now click again to take it out
-        buf = new PacketBuffer(Unpooled.buffer());
-        buf.writeInt(1);
-        buf.writeInt(1);
-        buf.writeInt(0);
-        buf.writeBoolean(false);
-
-        widget.readOnServer(NuclearReactorGridWidget.PACKET_SLOT_CLICK, buf);
+        NuclearReactorGridWidget.handleSlotClickServer(reactor, player, 1, 1, 0, false);
 
         assertNull(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD]);
         assertEquals(0, rod.getInsertionPercent());
