@@ -108,23 +108,23 @@ public class ActinideCompounderTest {
             1e-4);
         assertEquals(1.0, mix.fissileFraction, 1e-4);
 
-        // Peak temp = 0.5 * 770 + 0.5 * 1100 = 935.0 °C
-        assertEquals(935.0, mix.peakReactivityTemp, 1e-1);
+        // Peak temp = 0.5 * 1540.0 + 0.5 * 1350.0 = 1445.0 °C
+        assertEquals(1445.0, mix.peakReactivityTemp, 1e-1);
 
-        // Floor temp = 0.5 * 2300 + 0.5 * 2500 = 2400.0 °C
-        assertEquals(2400.0, mix.floorTemp, 1e-1);
+        // Floor temp = 0.5 * 2700.0 + 0.5 * 2600.0 = 2650.0 °C
+        assertEquals(2650.0, mix.floorTemp, 1e-1);
 
-        // Thermal mult = 0.5 * 1.60 + 0.5 * 1.80 = 1.70
-        assertEquals(1.70, mix.baseThermalFissionMultiplier, 1e-2);
+        // Thermal mult = 0.5 * 2.50 + 0.5 * 2.10 = 2.30
+        assertEquals(2.30, mix.baseThermalFissionMultiplier, 1e-2);
 
-        // Fast mult = 0.5 * 0.12 + 0.5 * 0.16 = 0.14
-        assertEquals(0.14, mix.baseFastFissionMultiplier, 1e-2);
+        // Fast mult = 0.5 * 0.15 + 0.5 * 0.20 = 0.18
+        assertEquals(0.18, mix.baseFastFissionMultiplier, 1e-2);
 
-        // Base neutrons = 0.5 * 24 + 0.5 * 32 = 28
-        assertEquals(28, mix.baseNeutrons);
+        // Base neutrons = 0.5 * 64 + 0.5 * 48 = 56
+        assertEquals(56, mix.baseNeutrons);
 
-        // Base durability = 0.5 * 160000 + 0.5 * 160000 = 160000
-        assertEquals(160000, mix.defaultDurability);
+        // Base durability = 0.5 * 48000 + 0.5 * 200000 = 124000
+        assertEquals(124000, mix.defaultDurability);
 
         // Reactivity curve checks
         assertEquals(0.50, mix.calculateReactivity(0.0), 1e-3);
@@ -243,10 +243,10 @@ public class ActinideCompounderTest {
         Map<ActinideIsotope, Integer> units = new LinkedHashMap<>();
         units.put(ActinideIsotope.URANIUM_235, 360);
         CustomFuelMix mix = new CustomFuelMix(units);
-        assertEquals(24, mix.baseNeutrons);
-        assertEquals(6, mix.getBaseNeutrons(1)); // 24 * 0.25 = 6
-        assertEquals(12, mix.getBaseNeutrons(2)); // 24 * 0.50 = 12
-        assertEquals(24, mix.getBaseNeutrons(4)); // 24 * 1.00 = 24
+        assertEquals(64, mix.baseNeutrons);
+        assertEquals(16, mix.getBaseNeutrons(1)); // 64 * 0.25 = 16
+        assertEquals(32, mix.getBaseNeutrons(2)); // 64 * 0.50 = 32
+        assertEquals(64, mix.getBaseNeutrons(4)); // 64 * 1.00 = 64
     }
 
     @Test
@@ -321,7 +321,7 @@ public class ActinideCompounderTest {
             com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(singleFuel);
         assertNotNull(fd1);
         assertEquals(1, fd1.packetCount);
-        assertEquals(6, fd1.baseNeutrons);
+        assertEquals(16, fd1.baseNeutrons);
         assertEquals("modularnuclear:rodCustomDepletedFuel1", fd1.spentProduct);
 
         ItemStack dualFuel = new ItemStack(ModItems.rodCustomFuel2);
@@ -333,7 +333,7 @@ public class ActinideCompounderTest {
             com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(dualFuel);
         assertNotNull(fd2);
         assertEquals(2, fd2.packetCount);
-        assertEquals(12, fd2.baseNeutrons);
+        assertEquals(32, fd2.baseNeutrons);
         assertEquals("modularnuclear:rodCustomDepletedFuel2", fd2.spentProduct);
 
         ItemStack quadFuel = new ItemStack(ModItems.rodCustomFuel4);
@@ -345,7 +345,7 @@ public class ActinideCompounderTest {
             com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(quadFuel);
         assertNotNull(fd4);
         assertEquals(4, fd4.packetCount);
-        assertEquals(24, fd4.baseNeutrons);
+        assertEquals(64, fd4.baseNeutrons);
         assertEquals("modularnuclear:rodCustomDepletedFuel4", fd4.spentProduct);
     }
 
@@ -433,6 +433,133 @@ public class ActinideCompounderTest {
                 }
             }
         } catch (Throwable ignored) {}
+    }
+
+    @Test
+    void testPureThoriumMatchesNonCustomBenchmark() {
+        Map<ActinideIsotope, Integer> units = new LinkedHashMap<>();
+        units.put(ActinideIsotope.THORIUM, 360);
+        CustomFuelMix mix = new CustomFuelMix(units);
+
+        // Quad rod emissions and kinetics
+        assertEquals(8, mix.baseNeutrons);
+        assertEquals(2, mix.getBaseNeutrons(1)); // Single rod = 2 rays
+        assertEquals(4, mix.getBaseNeutrons(2)); // Dual rod = 4 rays
+        assertEquals(8, mix.getBaseNeutrons(4)); // Quad rod = 8 rays
+
+        assertEquals(580.0, mix.peakReactivityTemp, 1e-4);
+        assertEquals(2200.0, mix.floorTemp, 1e-4);
+        assertEquals(1.00, mix.baseThermalFissionMultiplier, 1e-4);
+        assertEquals(0.08, mix.baseFastFissionMultiplier, 1e-4);
+        assertEquals(400000, mix.defaultDurability);
+        assertEquals(0.0, mix.fissileFraction, 1e-4); // Fertile matrix
+    }
+
+    @Test
+    void testPureNaquadahMatchesNonCustomBenchmark() {
+        Map<ActinideIsotope, Integer> units = new LinkedHashMap<>();
+        units.put(ActinideIsotope.NAQUADAH, 360);
+        CustomFuelMix mix = new CustomFuelMix(units);
+
+        // Quad rod emissions and kinetics
+        assertEquals(64, mix.baseNeutrons);
+        assertEquals(16, mix.getBaseNeutrons(1)); // Single rod = 16 rays
+        assertEquals(32, mix.getBaseNeutrons(2)); // Dual rod = 32 rays
+        assertEquals(64, mix.getBaseNeutrons(4)); // Quad rod = 64 rays
+
+        assertEquals(1920.0, mix.peakReactivityTemp, 1e-4);
+        assertEquals(2900.0, mix.floorTemp, 1e-4);
+        assertEquals(3.40, mix.baseThermalFissionMultiplier, 1e-4);
+        assertEquals(0.25, mix.baseFastFissionMultiplier, 1e-4);
+        assertEquals(800000, mix.defaultDurability);
+        assertEquals(1.0, mix.fissileFraction, 1e-4);
+    }
+
+    @Test
+    void testUraniumCraftingBlendMatchesNonCustomBenchmark() {
+        // In GTNH, 1 Enriched Uranium Fuel = 6 U-238 dust + 3 small U-235 dust (0.75 dust)
+        // Ratio: 1 part U-235 (40 units) to 8 parts U-238 (320 units) = 360 units total
+        Map<ActinideIsotope, Integer> units = new LinkedHashMap<>();
+        units.put(ActinideIsotope.URANIUM_235, 40);
+        units.put(ActinideIsotope.URANIUM_238, 320);
+        CustomFuelMix mix = new CustomFuelMix(units);
+
+        // Standard Uranium Fuel Rod benchmarks:
+        // Single N1 = 4, Quad N4 = 16
+        assertEquals(16, mix.baseNeutrons);
+        assertEquals(4, mix.getBaseNeutrons(1));
+        assertEquals(8, mix.getBaseNeutrons(2));
+        assertEquals(16, mix.getBaseNeutrons(4));
+
+        assertEquals(770.0, mix.peakReactivityTemp, 1e-1);
+        assertEquals(2300.0, mix.floorTemp, 1e-1);
+        assertEquals(1.25, mix.baseThermalFissionMultiplier, 1e-2);
+        assertEquals(0.10, mix.baseFastFissionMultiplier, 1e-2);
+        assertEquals(160000, mix.defaultDurability);
+    }
+
+    @Test
+    void testPureExcitedUraniumMatchesBenchmark() {
+        Map<ActinideIsotope, Integer> units = new LinkedHashMap<>();
+        units.put(ActinideIsotope.URANIUM_235, 360);
+        CustomFuelMix mix = new CustomFuelMix(units);
+
+        assertEquals(64, mix.baseNeutrons);
+        assertEquals(16, mix.getBaseNeutrons(1));
+        assertEquals(1540.0, mix.peakReactivityTemp, 1e-4);
+        assertEquals(2700.0, mix.floorTemp, 1e-4);
+        assertEquals(2.50, mix.baseThermalFissionMultiplier, 1e-4);
+        assertEquals(0.15, mix.baseFastFissionMultiplier, 1e-4);
+        assertEquals(48000, mix.defaultDurability);
+        assertEquals(1.0, mix.fissileFraction, 1e-4);
+    }
+
+    @Test
+    void testPureHighDensityUraniumMatchesBenchmark() {
+        Map<ActinideIsotope, Integer> units = new LinkedHashMap<>();
+        units.put(ActinideIsotope.URANIUM_233, 360);
+        CustomFuelMix mix = new CustomFuelMix(units);
+
+        assertEquals(32, mix.baseNeutrons);
+        assertEquals(8, mix.getBaseNeutrons(1));
+        assertEquals(1150.0, mix.peakReactivityTemp, 1e-4);
+        assertEquals(2500.0, mix.floorTemp, 1e-4);
+        assertEquals(1.80, mix.baseThermalFissionMultiplier, 1e-4);
+        assertEquals(0.12, mix.baseFastFissionMultiplier, 1e-4);
+        assertEquals(320000, mix.defaultDurability);
+        assertEquals(1.0, mix.fissileFraction, 1e-4);
+    }
+
+    @Test
+    void testPureExcitedPlutoniumMatchesBenchmark() {
+        Map<ActinideIsotope, Integer> units = new LinkedHashMap<>();
+        units.put(ActinideIsotope.PLUTONIUM_241, 360);
+        CustomFuelMix mix = new CustomFuelMix(units);
+
+        assertEquals(96, mix.baseNeutrons);
+        assertEquals(24, mix.getBaseNeutrons(1));
+        assertEquals(1730.0, mix.peakReactivityTemp, 1e-4);
+        assertEquals(2800.0, mix.floorTemp, 1e-4);
+        assertEquals(2.90, mix.baseThermalFissionMultiplier, 1e-4);
+        assertEquals(0.25, mix.baseFastFissionMultiplier, 1e-4);
+        assertEquals(80000, mix.defaultDurability);
+        assertEquals(1.0, mix.fissileFraction, 1e-4);
+    }
+
+    @Test
+    void testPureHighDensityPlutoniumMatchesBenchmark() {
+        Map<ActinideIsotope, Integer> units = new LinkedHashMap<>();
+        units.put(ActinideIsotope.PLUTONIUM_239, 360);
+        CustomFuelMix mix = new CustomFuelMix(units);
+
+        assertEquals(48, mix.baseNeutrons);
+        assertEquals(12, mix.getBaseNeutrons(1));
+        assertEquals(1350.0, mix.peakReactivityTemp, 1e-4);
+        assertEquals(2600.0, mix.floorTemp, 1e-4);
+        assertEquals(2.10, mix.baseThermalFissionMultiplier, 1e-4);
+        assertEquals(0.20, mix.baseFastFissionMultiplier, 1e-4);
+        assertEquals(200000, mix.defaultDurability);
+        assertEquals(1.0, mix.fissileFraction, 1e-4);
     }
 
     private static class MockNuclearTile implements INuclearTile {

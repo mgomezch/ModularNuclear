@@ -40,15 +40,15 @@ public class CustomFuelMix {
 
     public enum ActinideIsotope {
 
-        THORIUM("Thorium", "Th-232", 580.0, 2200.0, 1.00, 0.06, 16, 400000, false),
-        URANIUM_238("Uranium-238", "U-238", 770.0, 2300.0, 1.10, 0.03, 16, 320000, false),
-        URANIUM_235("Uranium-235", "U-235", 770.0, 2300.0, 1.60, 0.12, 24, 160000, true),
-        PLUTONIUM_239("Plutonium-239", "Pu-239", 1100.0, 2500.0, 1.80, 0.16, 32, 160000, true),
-        PLUTONIUM_241("Plutonium-241", "Pu-241", 1350.0, 2600.0, 2.20, 0.20, 40, 120000, true),
-        URANIUM_233("Uranium-233", "U-233", 650.0, 2250.0, 1.50, 0.10, 24, 280000, true),
-        AMERICIUM("Americium", "Am-241", 1200.0, 2550.0, 1.70, 0.14, 28, 200000, true),
-        CALIFORNIUM("Californium", "Cf-252", 1600.0, 2700.0, 2.50, 0.22, 36, 144000, true),
-        NAQUADAH("Naquadah", "Nq", 1920.0, 2900.0, 3.40, 0.28, 48, 640000, true);
+        THORIUM("Thorium", "Th-232", 580.0, 2200.0, 1.00, 0.08, 8, 400000, false),
+        URANIUM_238("Uranium-238", "U-238", 673.8, 2250.0, 1.09, 0.09, 10, 174000, false),
+        URANIUM_235("Uranium-235", "U-235", 1540.0, 2700.0, 2.50, 0.15, 64, 48000, true),
+        PLUTONIUM_239("Plutonium-239", "Pu-239", 1350.0, 2600.0, 2.10, 0.20, 48, 200000, true),
+        PLUTONIUM_241("Plutonium-241", "Pu-241", 1730.0, 2800.0, 2.90, 0.25, 96, 80000, true),
+        URANIUM_233("Uranium-233", "U-233", 1150.0, 2500.0, 1.80, 0.12, 32, 320000, true),
+        AMERICIUM("Americium", "Am-241", 1250.0, 2600.0, 1.90, 0.18, 40, 240000, true),
+        CALIFORNIUM("Californium", "Cf-252", 1600.0, 2750.0, 2.60, 0.22, 80, 144000, true),
+        NAQUADAH("Naquadah", "Nq", 1920.0, 2900.0, 3.40, 0.25, 64, 800000, true);
 
         public final String displayName;
         public final String symbol;
@@ -169,10 +169,11 @@ public class CustomFuelMix {
 
     public CustomFuelMix(Map<ActinideIsotope, Integer> units) {
         int total = 0;
-        for (Map.Entry<ActinideIsotope, Integer> entry : units.entrySet()) {
-            if (entry.getValue() != null && entry.getValue() > 0) {
-                total += entry.getValue();
-                isotopeUnits.put(entry.getKey(), entry.getValue());
+        for (ActinideIsotope iso : ActinideIsotope.values()) {
+            Integer count = units.get(iso);
+            if (count != null && count > 0) {
+                total += count;
+                isotopeUnits.put(iso, count);
             }
         }
         if (total <= 0) {

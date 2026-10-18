@@ -5615,10 +5615,10 @@ public class NuclearSimulationEngineTest {
         // Total produced = base (4) + chain (10) = 14
         assertEquals(14, tile.generateNeutrons(1.0));
 
-        // Test U-238 fast fission cross section in CustomFuelMix is ultra-low (0.03)
-        assertEquals(0.03, CustomFuelMix.ActinideIsotope.URANIUM_238.baseFastFissionMultiplier, 1e-4);
-        assertEquals(0.12, CustomFuelMix.ActinideIsotope.URANIUM_235.baseFastFissionMultiplier, 1e-4);
-        assertEquals(0.16, CustomFuelMix.ActinideIsotope.PLUTONIUM_239.baseFastFissionMultiplier, 1e-4);
+        // Test actinide fast fission cross sections in CustomFuelMix
+        assertEquals(0.09, CustomFuelMix.ActinideIsotope.URANIUM_238.baseFastFissionMultiplier, 1e-4);
+        assertEquals(0.15, CustomFuelMix.ActinideIsotope.URANIUM_235.baseFastFissionMultiplier, 1e-4);
+        assertEquals(0.20, CustomFuelMix.ActinideIsotope.PLUTONIUM_239.baseFastFissionMultiplier, 1e-4);
     }
 
     @Test
