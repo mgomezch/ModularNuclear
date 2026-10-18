@@ -858,15 +858,15 @@ public final class ReactorDataRegistry {
             "stickLongHafnium", "ore:stickLongHafnium", "stickHafnium", "ore:stickHafnium", "rodHafnium", "ore:rodHafnium"));
 
         // Heat Vents - explicitly configured, moderation = 0.05
-        cd.heatVents.add(new HeatVentData("vent_standard", "Reactor Heat Vent", 0.40, 6.0, 1500.0, 0.05, "IC2:reactorVent"));
-        cd.heatVents.add(new HeatVentData("vent_gold", "Advanced Heat Vent", 0.45, 12.0, 1600.0, 0.05, "IC2:reactorVentGold"));
-        cd.heatVents.add(new HeatVentData("vent_spread", "Overclocked Heat Vent", 0.40, 8.0, 1500.0, 0.05, "IC2:reactorVentSpread"));
-        cd.heatVents.add(new HeatVentData("vent_diamond", "Diamond Heat Vent", 0.50, 20.0, 2000.0, 0.05, "IC2:reactorVentDiamond"));
+        cd.heatVents.add(new HeatVentData("vent_standard", "Reactor Heat Vent", 0.40, 6.0, 1500.0, 0.05, 128, 512.0, "IC2:reactorVent"));
+        cd.heatVents.add(new HeatVentData("vent_gold", "Advanced Heat Vent", 0.45, 12.0, 1600.0, 0.05, 512, 2048.0, "IC2:reactorVentGold"));
+        cd.heatVents.add(new HeatVentData("vent_spread", "Overclocked Heat Vent", 0.40, 8.0, 1500.0, 0.05, 1024, 4096.0, "IC2:reactorVentSpread"));
+        cd.heatVents.add(new HeatVentData("vent_diamond", "Component Heat Vent", 0.50, 20.0, 2000.0, 0.05, 2048, 8192.0, "IC2:reactorVentDiamond"));
 
         // Heat Exchangers - explicitly configured, moderation = 0.05
-        cd.heatExchangers.add(new HeatExchangerData("exchanger_standard", "Heat Exchanger", 0.40, 12.0, 1500.0, 0.05, "IC2:reactorHeatSwitch"));
-        cd.heatExchangers.add(new HeatExchangerData("exchanger_spread", "Advanced Heat Exchanger", 0.45, 24.0, 1600.0, 0.05, "IC2:reactorHeatSwitchSpread"));
-        cd.heatExchangers.add(new HeatExchangerData("exchanger_diamond", "Component Heat Exchanger", 0.50, 36.0, 2000.0, 0.05, "IC2:reactorHeatSwitchDiamond"));
+        cd.heatExchangers.add(new HeatExchangerData("exchanger_standard", "Heat Exchanger", 0.40, 12.0, 1500.0, 0.05, 256, 1024.0, "IC2:reactorHeatSwitch"));
+        cd.heatExchangers.add(new HeatExchangerData("exchanger_spread", "Advanced Heat Exchanger", 0.45, 24.0, 1600.0, 0.05, 512, 2048.0, "IC2:reactorHeatSwitchSpread"));
+        cd.heatExchangers.add(new HeatExchangerData("exchanger_diamond", "Component Heat Exchanger", 0.50, 36.0, 2000.0, 0.05, 1024, 4096.0, "IC2:reactorHeatSwitchDiamond"));
 
         // Platings
         cd.platings.add(new PlatingData("plating_standard", "Reactor Plating", 1000.0, 0.05, 0.05, "IC2:reactorPlating"));

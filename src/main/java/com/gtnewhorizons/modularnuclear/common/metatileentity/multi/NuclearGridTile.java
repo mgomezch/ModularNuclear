@@ -2,6 +2,9 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
 import net.minecraft.item.ItemStack;
 
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
@@ -266,5 +269,46 @@ public class NuclearGridTile implements INuclearTile {
     @Override
     public double getInsulationDampening() {
         return reactor.getTileInsulationDampening(this);
+    }
+
+    @Override
+    public boolean isHeatVent() {
+        if (isBus() && getBus() != null) {
+            ItemStack stack = getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+            return NuclearFuelClassification.isItemHeatVent(stack);
+        }
+        return false;
+    }
+
+    @Override
+    public HeatVentData getHeatVentData() {
+        if (isBus() && getBus() != null) {
+            ItemStack stack = getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+            return ReactorDataRegistry.findHeatVent(stack);
+        }
+        return null;
+    }
+
+    @Override
+    public boolean isHeatExchanger() {
+        if (isBus() && getBus() != null) {
+            ItemStack stack = getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+            return NuclearFuelClassification.isItemHeatExchanger(stack);
+        }
+        return false;
+    }
+
+    @Override
+    public HeatExchangerData getHeatExchangerData() {
+        if (isBus() && getBus() != null) {
+            ItemStack stack = getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+            return ReactorDataRegistry.findHeatExchanger(stack);
+        }
+        return null;
+    }
+
+    @Override
+    public boolean drainEnergy(long eu) {
+        return reactor != null && reactor.drainEnergyUnits(eu);
     }
 }

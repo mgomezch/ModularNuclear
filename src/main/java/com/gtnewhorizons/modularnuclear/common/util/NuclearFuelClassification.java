@@ -213,32 +213,77 @@ public final class NuclearFuelClassification {
             }
         }
 
-        if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
-            if (radCell.getDamageOfStack(stack) >= radCell.getMaxDamageEx()) {
-                return true;
-            }
-        }
-
-        if (stack.getItem() instanceof ItemReactorUranium) {
-            if (stack.getItemDamage() >= stack.getMaxDamage()) {
-                return true;
-            }
-        }
-
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack);
-        if (mod != null) {
-            if (stack.stackTagCompound != null && stack.stackTagCompound.hasKey("advDmg")) {
-                if (stack.stackTagCompound.getInteger("advDmg") >= mod.durability) {
-                    return true;
-                }
-            }
-        }
-
         if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.isSpentProduct(stack)) {
             return true;
         }
 
         return false;
+    }
+
+    public static boolean isFuelAtMaxDamage(ItemStack stack) {
+        if (stack == null || stack.getItem() == null || isDepletedOrEmptyRod(stack)) return false;
+
+        if (stack.getItem() instanceof ItemCustomFuelRod customRod) {
+            if (!CustomFuelMix.hasCustomMix(stack)) return false;
+            int maxDur = customRod.getMaxDamageEx(stack);
+            return customRod.getDamageOfStack(stack) >= maxDur;
+        }
+        if ((ModItems.rodCustomFuel1 != null && stack.getItem() == ModItems.rodCustomFuel1)
+            || (ModItems.rodCustomFuel2 != null && stack.getItem() == ModItems.rodCustomFuel2)
+            || (ModItems.rodCustomFuel4 != null && stack.getItem() == ModItems.rodCustomFuel4)) {
+            if (!CustomFuelMix.hasCustomMix(stack)) return false;
+            CustomFuelMix mix = CustomFuelMix.fromStack(stack);
+            int maxDur = (mix != null) ? mix.defaultDurability : 160000;
+            int curDmg = (stack.stackTagCompound != null && stack.stackTagCompound.hasKey("advDmg"))
+                ? stack.stackTagCompound.getInteger("advDmg")
+                : stack.getItemDamage();
+            return curDmg >= maxDur;
+        }
+
+        if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
+            return radCell.getDamageOfStack(stack) >= radCell.getMaxDamageEx();
+        }
+
+        if (stack.getItem() instanceof ItemReactorUranium) {
+            return stack.getItemDamage() >= stack.getMaxDamage();
+        }
+
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(stack);
+        if (fd != null) {
+            int maxDur = fd.defaultDurability > 0 ? fd.defaultDurability : stack.getMaxDamage();
+            return stack.isItemStackDamageable() && stack.getItemDamage() >= maxDur;
+        }
+
+        if (stack.isItemStackDamageable() && stack.getItemDamage() >= stack.getMaxDamage()) {
+            for (ItemList item : ACTIVE_FUEL_RODS) {
+                if (item != null && item.hasBeenSet() && item.isStackEqual(stack, false, true)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean isModeratorAtMaxDamage(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) return false;
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack);
+        if (mod != null && stack.stackTagCompound != null && stack.stackTagCompound.hasKey("advDmg")) {
+            return stack.stackTagCompound.getInteger("advDmg") >= mod.durability;
+        }
+        return false;
+    }
+
+    public static ItemStack getModeratorSpentProduct(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) return null;
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack);
+        if (mod != null && mod.spentProduct != null && !mod.spentProduct.isEmpty()) {
+            return com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.resolveItemStack(mod.spentProduct);
+        }
+        return null;
     }
 
     public static boolean isItemFuel(ItemStack stack) {
@@ -385,6 +430,10 @@ public final class NuclearFuelClassification {
         return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.getInsulatorDampening(stack);
     }
 
+    public static boolean isItemAllowedInBus(ItemStack stack) {
+        return isItemAllowedInBus(stack, null);
+    }
+
     public static boolean isItemAllowedInBus(ItemStack stack, MTEHatchNuclearBus bus) {
         if (stack == null) return false;
 
@@ -406,11 +455,13 @@ public final class NuclearFuelClassification {
 
         // 5. Explicitly allowlisted reactor core items:
         if (isItemFuel(stack)) return true;
+        if (isFuelAtMaxDamage(stack)) return true;
         if (isItemCoolant(stack)) return true;
         if (isItemHeatVent(stack)) return true;
         if (isItemHeatExchanger(stack)) return true;
         if (isItemReflector(stack)) return true;
         if (isItemModerator(stack)) return true;
+        if (isModeratorAtMaxDamage(stack)) return true;
         if (isItemReactorPlating(stack)) return true;
         if (getInsulationDampening(stack) > 0.0) return true;
         if (isItemRadiovoltaic(stack)) return true;

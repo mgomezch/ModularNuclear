@@ -116,7 +116,9 @@ public class NuclearReactorStructure {
                                 || t.addOutputToMachineList(te, index)
                                 || t.addDynamoToMachineList(te, index)
                                 || t.addExoticDynamoToMachineList(te, index)
-                                || t.addNuclearControlHatchToMachineList(te, index))
+                                || t.addNuclearControlHatchToMachineList(te, index)
+                                || t.addEnergyInputToMachineList(te, index)
+                                || t.addMultiAmpEnergyInputToMachineList(te, index))
                         .casingIndex(MTENuclearReactor.CASING_INDEX)
                         .hint(1)
                         .buildAndChain(

@@ -367,11 +367,15 @@ public class CoolantLoopModelTest {
                 .getTotalSteamProduced(),
             "Total steam should include both conductive hatch and convective loop steam");
 
-        // 4. IC2 vent tile actively dissipates heat
+        // 4. Heat vent tile actively cools adjacent fuel rod via conduction and active venting
         assertTrue(
-            grid.getTile(5, 4)
-                .getTemperature() > NuclearSimulationEngine.AMBIENT_TEMP,
-            "Heat vent should absorb and dissipate heat");
+            grid.getTile(5, 5).getTemperature() < grid.getTile(5, 1).getTemperature(),
+            "Heat vent should keep adjacent fuel rod cooler than completely isolated uncooled rod");
+        assertEquals(
+            NuclearSimulationEngine.AMBIENT_TEMP,
+            grid.getTile(5, 4).getTemperature(),
+            1e-3,
+            "Heat vent equalizes towards ambient temperature");
 
         // 5. Uncooled fuel rod heats up freely via fission
         assertTrue(

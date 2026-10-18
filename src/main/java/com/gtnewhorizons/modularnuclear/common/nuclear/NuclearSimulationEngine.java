@@ -1,5 +1,8 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
@@ -801,15 +804,8 @@ public class NuclearSimulationEngine {
             }
         }
 
-        // --- PASS 4.5: IC2 COMPONENT EXCHANGER & COMPONENT VENT PASS (STANDALONE SIM) ---
-        for (int x = 0; x < sizeX; x++) {
-            for (int y = 0; y < sizeY; y++) {
-                INuclearTile tile = grid[x][y];
-                if (tile instanceof SimTile simTile) {
-                    simTile.processNeighborComponents(grid, x, y, sizeX, sizeY);
-                }
-            }
-        }
+        // --- PASS 4.5: ACTIVE HEAT VENT & HEAT EXCHANGER PASS ---
+        processActiveVentsAndExchangers(grid, sizeX, sizeY, ambient);
 
         // --- PASS 5: TILE NUCLEAR UPDATE (BOILING, COOLING, DURABILITY, TRANSMUTATION) ---
         for (int x = 0; x < sizeX; x++) {
@@ -914,5 +910,146 @@ public class NuclearSimulationEngine {
      */
     public static double calculateEfficiency(double avgTemp) {
         return calculateEfficiency(NuclearFuelType.URANIUM, avgTemp);
+    }
+
+    /**
+     * Executes active heat vent cooling and active heat exchanger equalization over the 2D grid.
+     * Heat vents run first, followed by heat exchangers in randomized order to prevent directional bias.
+     */
+    public static void processActiveVentsAndExchangers(INuclearTile[][] grid, int sizeX, int sizeY, double ambient) {
+        if (grid == null || sizeX <= 0 || sizeY <= 0) return;
+
+        // 1. Process Heat Vents FIRST
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                INuclearTile tile = grid[x][y];
+                if (tile != null && tile.isHeatVent()) {
+                    processHeatVent(tile, ambient);
+                }
+            }
+        }
+
+        // 2. Process Heat Exchangers in RANDOMIZED order each tick to prevent directional bias
+        List<int[]> exchangers = new ArrayList<>();
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                INuclearTile tile = grid[x][y];
+                if (tile != null && tile.isHeatExchanger()) {
+                    exchangers.add(new int[] { x, y });
+                }
+            }
+        }
+        if (!exchangers.isEmpty()) {
+            Collections.shuffle(exchangers);
+            for (int[] pos : exchangers) {
+                processHeatExchanger(grid, pos[0], pos[1], sizeX, sizeY);
+            }
+        }
+    }
+
+    /**
+     * Processes an active heat vent on its own cell, equalizing cell temperature towards ambient.
+     * Consumes 1 EU per 4 HU removed or transported.
+     */
+    public static void processHeatVent(INuclearTile tile, double ambient) {
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData vent = tile.getHeatVentData();
+        if (vent == null) return;
+        double maxHU = vent.maxHUt > 0.0 ? vent.maxHUt : 512.0;
+        long maxEU = vent.maxEUt > 0 ? vent.maxEUt : (long) Math.ceil(maxHU / 4.0);
+
+        double curTemp = tile.getTemperature();
+        double tempDiff = curTemp - ambient;
+        if (Math.abs(tempDiff) < 1e-4) return;
+
+        double huNeeded = Math.abs(tempDiff) * HU_PER_DEGREE;
+        double huToMove = Math.min(huNeeded, maxHU);
+        if (huToMove <= 0.0) return;
+
+        long euNeeded = (long) Math.ceil(huToMove / 4.0);
+        if (euNeeded > maxEU) {
+            euNeeded = maxEU;
+            huToMove = euNeeded * 4.0;
+        }
+
+        // Draws from energy hatch buffers. If insufficient EU, component stops work for that tick.
+        if (!tile.drainEnergy(euNeeded)) {
+            return;
+        }
+
+        double deltaTemp = huToMove / HU_PER_DEGREE;
+        if (tempDiff > 0) {
+            tile.setTemperature(Math.max(ambient, curTemp - deltaTemp));
+        } else {
+            tile.setTemperature(Math.min(ambient, curTemp + deltaTemp));
+        }
+    }
+
+    /**
+     * Processes an active heat exchanger, equalizing temperature between own cell and all cardinally adjacent cells.
+     * Consumes 1 EU per 4 HU transported.
+     */
+    public static void processHeatExchanger(INuclearTile[][] grid, int x, int y, int sizeX, int sizeY) {
+        INuclearTile center = grid[x][y];
+        if (center == null) return;
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData hex = center.getHeatExchangerData();
+        if (hex == null) return;
+        double maxHU = hex.maxHUt > 0.0 ? hex.maxHUt : 1024.0;
+        long maxEU = hex.maxEUt > 0 ? hex.maxEUt : (long) Math.ceil(maxHU / 4.0);
+
+        // Gather center and up to 4 cardinally adjacent neighbor cells
+        int[] dX = { 0, 0, -1, 1 };
+        int[] dY = { -1, 1, 0, 0 };
+        List<INuclearTile> cluster = new ArrayList<>(5);
+        cluster.add(center);
+
+        for (int i = 0; i < 4; i++) {
+            int nx = x + dX[i];
+            int ny = y + dY[i];
+            if (nx >= 0 && nx < sizeX && ny >= 0 && ny < sizeY && grid[nx][ny] != null) {
+                cluster.add(grid[nx][ny]);
+            }
+        }
+
+        if (cluster.size() <= 1) return;
+
+        // Equalize temperature between own cell and all cardinally adjacent cells
+        double sumTemp = 0.0;
+        for (INuclearTile t : cluster) {
+            sumTemp += t.getTemperature();
+        }
+        double targetTemp = sumTemp / cluster.size();
+
+        double totalHuTransported = 0.0;
+        for (INuclearTile t : cluster) {
+            double diff = t.getTemperature() - targetTemp;
+            if (diff > 0) {
+                totalHuTransported += diff * HU_PER_DEGREE;
+            }
+        }
+
+        if (totalHuTransported < 1e-4) return;
+
+        double scale = 1.0;
+        if (totalHuTransported > maxHU) {
+            scale = maxHU / totalHuTransported;
+        }
+
+        double huActuallyTransported = totalHuTransported * scale;
+        long euNeeded = (long) Math.ceil(huActuallyTransported / 4.0);
+        if (euNeeded > maxEU) {
+            euNeeded = maxEU;
+            huActuallyTransported = euNeeded * 4.0;
+            scale = huActuallyTransported / totalHuTransported;
+        }
+
+        // Draws from energy hatch buffers. If insufficient EU, component stops work for that tick.
+        if (!center.drainEnergy(euNeeded)) {
+            return;
+        }
+
+        for (INuclearTile t : cluster) {
+            double diff = targetTemp - t.getTemperature();
+            t.setTemperature(t.getTemperature() + diff * scale);
+        }
     }
 }

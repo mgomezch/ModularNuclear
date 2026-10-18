@@ -73,6 +73,8 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.ICasingTextureProvider;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
+import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
@@ -1251,7 +1253,17 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 mCachedAmbientTemp = getAmbientTemperature();
             }
 
+            if (mGrid != null && (aTick % 20 != 0)) {
+                NuclearSimulationEngine.processActiveVentsAndExchangers(mGrid, gridSize, gridSize, mCachedAmbientTemp);
+            }
+
             if (mGrid != null && (aTick % 20 == 0)) {
+                for (IGregTechTileEntity te : mNuclearTiles) {
+                    if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearBus bus) {
+                        bus.processMaxDamageFailsafe();
+                    }
+                }
+
                 updateNuclearTilesPipeTier();
 
                 double ambient = getAmbientTemperature();
@@ -2157,6 +2169,58 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     @Override
     public void addOutputPartial(FluidStack aStack) {
         super.addOutputPartial(aStack);
+    }
+
+    public long getStoredEnergyUnits() {
+        long total = 0;
+        if (mEnergyHatches != null) {
+            for (MTEHatchEnergy hatch : mEnergyHatches) {
+                if (hatch != null && hatch.isValid() && hatch.getBaseMetaTileEntity() != null) {
+                    total += hatch.getBaseMetaTileEntity().getStoredEU();
+                }
+            }
+        }
+        if (mExoticEnergyHatches != null) {
+            for (MTEHatch hatch : mExoticEnergyHatches) {
+                if (hatch != null && hatch.isValid() && hatch.getBaseMetaTileEntity() != null) {
+                    total += hatch.getBaseMetaTileEntity().getStoredEU();
+                }
+            }
+        }
+        return total;
+    }
+
+    public boolean drainEnergyUnits(long aEU) {
+        if (aEU <= 0) return true;
+        if (getStoredEnergyUnits() < aEU) return false;
+        long remaining = aEU;
+        if (mEnergyHatches != null) {
+            for (MTEHatchEnergy hatch : mEnergyHatches) {
+                if (hatch != null && hatch.isValid() && hatch.getBaseMetaTileEntity() != null) {
+                    long stored = hatch.getBaseMetaTileEntity().getStoredEU();
+                    if (stored > 0) {
+                        long toDrain = Math.min(remaining, stored);
+                        hatch.getBaseMetaTileEntity().decreaseStoredEnergyUnits(toDrain, false);
+                        remaining -= toDrain;
+                        if (remaining <= 0) return true;
+                    }
+                }
+            }
+        }
+        if (mExoticEnergyHatches != null) {
+            for (MTEHatch hatch : mExoticEnergyHatches) {
+                if (hatch != null && hatch.isValid() && hatch.getBaseMetaTileEntity() != null) {
+                    long stored = hatch.getBaseMetaTileEntity().getStoredEU();
+                    if (stored > 0) {
+                        long toDrain = Math.min(remaining, stored);
+                        hatch.getBaseMetaTileEntity().decreaseStoredEnergyUnits(toDrain, false);
+                        remaining -= toDrain;
+                        if (remaining <= 0) return true;
+                    }
+                }
+            }
+        }
+        return remaining <= 0;
     }
 
     public double getTileTemperature(NuclearGridTile tile) {

@@ -2722,30 +2722,48 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testHeatVentSelfCooling() {
-        // 1. Standard Vent: vents up to 6 Hu/t
+        double ambient = 20.0;
+
+        // 1. Standard Vent: up to 128 EU/t (up to 512 HU/t). Equalizes cell temperature towards ambient.
+        // Heat capacity is 32 HU/°C. At 100°C: tempDiff = 80°C = 2560 HU.
+        // Standard vent removes 512 HU (16°C), consuming 128 EU.
         SimTile ventStd = new SimTile(SimTile.TileType.VENT_STANDARD);
-        ventStd.setCurrentCellHeat(100);
-        ventStd.nuclearTick(1.0);
-        assertEquals(94, ventStd.getCurrentCellHeat(), "Standard vent must cool 6 Hu/t");
+        ventStd.setTemperature(100.0);
+        NuclearSimulationEngine.processHeatVent(ventStd, ambient);
+        assertEquals(84.0, ventStd.getTemperature(), 1e-4, "Standard vent must cool 16°C (512 HU)");
+        assertEquals(128, ventStd.drainedEnergy, "Standard vent must consume 128 EU");
 
-        // 2. Advanced Vent: vents up to 12 Hu/t
+        // 2. Advanced Vent: up to 512 EU/t (up to 2048 HU/t).
+        // At 100°C: tempDiff = 80°C = 2560 HU. Removes 2048 HU (64°C), consuming 512 EU.
         SimTile ventAdv = new SimTile(SimTile.TileType.VENT_ADVANCED);
-        ventAdv.setCurrentCellHeat(100);
-        ventAdv.nuclearTick(1.0);
-        assertEquals(88, ventAdv.getCurrentCellHeat(), "Advanced vent must cool 12 Hu/t");
+        ventAdv.setTemperature(100.0);
+        NuclearSimulationEngine.processHeatVent(ventAdv, ambient);
+        assertEquals(36.0, ventAdv.getTemperature(), 1e-4, "Advanced vent must cool 64°C (2048 HU)");
+        assertEquals(512, ventAdv.drainedEnergy, "Advanced vent must consume 512 EU");
 
-        // 3. Overclocked Vent: vents up to 20 Hu/t
+        // 3. Overclocked Vent: up to 1024 EU/t (up to 4096 HU/t).
+        // At 100°C: tempDiff = 80°C = 2560 HU <= 4096 HU.
+        // Equalizes all the way to ambient (20°C). EU needed = 2560 / 4 = 640 EU.
         SimTile ventOver = new SimTile(SimTile.TileType.VENT_OVERCLOCKED);
-        ventOver.setCurrentCellHeat(100);
-        ventOver.nuclearTick(1.0);
-        assertEquals(80, ventOver.getCurrentCellHeat(), "Overclocked vent must cool 20 Hu/t");
+        ventOver.setTemperature(100.0);
+        NuclearSimulationEngine.processHeatVent(ventOver, ambient);
+        assertEquals(20.0, ventOver.getTemperature(), 1e-4, "Overclocked vent must cool all the way to ambient");
+        assertEquals(640, ventOver.drainedEnergy, "Overclocked vent must consume 640 EU for 2560 HU");
 
-        // 4. Absorbs heat from tile when tile is hot
-        ventAdv.setTemperature(300.0);
-        ventAdv.setCurrentCellHeat(0);
-        ventAdv.nuclearTick(1.0);
-        assertTrue(ventAdv.getTemperature() < 300.0, "Vent must cool hot tile");
-        assertTrue(ventAdv.getCurrentCellHeat() > 0, "Vent must absorb heat from hot tile");
+        // 4. Component Vent: up to 2048 EU/t (up to 8192 HU/t).
+        SimTile ventComp = new SimTile(SimTile.TileType.VENT_COMPONENT);
+        ventComp.setTemperature(100.0);
+        NuclearSimulationEngine.processHeatVent(ventComp, ambient);
+        assertEquals(20.0, ventComp.getTemperature(), 1e-4, "Component vent must cool all the way to ambient");
+        assertEquals(640, ventComp.drainedEnergy, "Component vent must consume 640 EU for 2560 HU");
+
+        // 5. Insufficient EU: component stops work for that tick
+        SimTile ventNoPower = new SimTile(SimTile.TileType.VENT_STANDARD);
+        ventNoPower.setTemperature(100.0);
+        ventNoPower.energyDrainingAllowed = false;
+        NuclearSimulationEngine.processHeatVent(ventNoPower, ambient);
+        assertEquals(100.0, ventNoPower.getTemperature(), 1e-4, "Vent without power must not cool");
+        assertEquals(0, ventNoPower.drainedEnergy, "Vent without power must consume 0 EU");
     }
 
     @Test
@@ -2757,34 +2775,29 @@ public class NuclearSimulationEngineTest {
             }
         }
 
-        // Center: Component Heat Vent (VC)
+        // Center: Component Heat Vent (up to 2048 EU/t, up to 8192 HU/t).
+        // Requirement: Operates strictly on its own cell (does NOT interact across cell boundaries).
         SimTile compVent = new SimTile(SimTile.TileType.VENT_COMPONENT);
+        compVent.setTemperature(300.0);
         grid[1][1] = compVent;
 
-        // 4 orthogonal neighbors: Heat Vents with 50 Hu each
-        SimTile top = new SimTile(SimTile.TileType.VENT_STANDARD);
-        top.setCurrentCellHeat(50);
-        grid[1][0] = top;
+        // 4 orthogonal neighbors at 100°C
+        grid[1][0].setTemperature(100.0);
+        grid[1][2].setTemperature(100.0);
+        grid[0][1].setTemperature(100.0);
+        grid[2][1].setTemperature(100.0);
 
-        SimTile bottom = new SimTile(SimTile.TileType.VENT_STANDARD);
-        bottom.setCurrentCellHeat(50);
-        grid[1][2] = bottom;
+        NuclearSimulationEngine.processActiveVentsAndExchangers(grid, 3, 3, 20.0);
 
-        SimTile left = new SimTile(SimTile.TileType.VENT_STANDARD);
-        left.setCurrentCellHeat(50);
-        grid[0][1] = left;
+        // Center cools its own cell towards ambient (300 - 256 = 44°C)
+        assertTrue(compVent.getTemperature() < 300.0, "Component vent must cool its own cell");
+        assertEquals(44.0, compVent.getTemperature(), 1e-4, "Component vent cools 8192 HU (256°C) from 300°C to 44°C");
 
-        SimTile right = new SimTile(SimTile.TileType.VENT_STANDARD);
-        right.setCurrentCellHeat(50);
-        grid[2][1] = right;
-
-        // Process component interaction
-        compVent.processNeighborComponents(grid, 1, 1, 3, 3);
-
-        assertEquals(46, top.getCurrentCellHeat(), "Top neighbor must lose 4 Hu");
-        assertEquals(46, bottom.getCurrentCellHeat(), "Bottom neighbor must lose 4 Hu");
-        assertEquals(46, left.getCurrentCellHeat(), "Left neighbor must lose 4 Hu");
-        assertEquals(46, right.getCurrentCellHeat(), "Right neighbor must lose 4 Hu");
+        // Neighbors MUST remain strictly unchanged at 100°C because Component Vent does NOT cross cell boundaries!
+        assertEquals(100.0, grid[1][0].getTemperature(), 1e-4, "Top neighbor must not be directly altered");
+        assertEquals(100.0, grid[1][2].getTemperature(), 1e-4, "Bottom neighbor must not be directly altered");
+        assertEquals(100.0, grid[0][1].getTemperature(), 1e-4, "Left neighbor must not be directly altered");
+        assertEquals(100.0, grid[2][1].getTemperature(), 1e-4, "Right neighbor must not be directly altered");
     }
 
     @Test
@@ -2793,31 +2806,48 @@ public class NuclearSimulationEngineTest {
         for (int x = 0; x < 3; x++) {
             for (int y = 0; y < 3; y++) {
                 grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                grid[x][y].setTemperature(20.0);
             }
         }
 
-        // Center: Component Heat Exchanger (XC, switchSide = 36)
-        SimTile exchanger = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
+        // Center: Standard Heat Exchanger (up to 256 EU/t, up to 1024 HU/t)
+        // Equalizes temperature between own cell and all 4 cardinally adjacent cells.
+        SimTile exchanger = new SimTile(SimTile.TileType.EXCHANGER_STANDARD);
+        exchanger.setTemperature(20.0);
         grid[1][1] = exchanger;
 
-        // Left: hot advanced vent (500 / 1000 = 50%)
-        SimTile hotVent = new SimTile(SimTile.TileType.VENT_ADVANCED);
-        hotVent.setCurrentCellHeat(500);
-        grid[0][1] = hotVent;
+        // Top neighbor hot (100°C), other 3 neighbors at 20°C
+        grid[1][0].setTemperature(100.0);
+        grid[1][2].setTemperature(20.0);
+        grid[0][1].setTemperature(20.0);
+        grid[2][1].setTemperature(20.0);
 
-        // Right: cold advanced vent (0 / 1000 = 0%)
-        SimTile coldVent = new SimTile(SimTile.TileType.VENT_ADVANCED);
-        coldVent.setCurrentCellHeat(0);
-        grid[2][1] = coldVent;
+        // Cluster size = 5 (center + 4 cardinal).
+        // Sum temp = 100 + 4 * 20 = 180°C. Target temp = 180 / 5 = 36.0°C.
+        // Hot tile has 100 - 36 = 64°C deviation = 64 * 32 = 2048 HU.
+        // Standard exchanger maxHU = 1024 HU. Scale = 1024 / 2048 = 0.5.
+        // Delta temp on hot: (36 - 100) * 0.5 = -32°C -> 68.0°C.
+        // Delta temp on cold: (36 - 20) * 0.5 = +8°C -> 28.0°C.
+        // Consumes 1024 / 4 = 256 EU.
+        NuclearSimulationEngine.processActiveVentsAndExchangers(grid, 3, 3, 20.0);
 
-        // Run exchanger balancing
-        exchanger.processNeighborComponents(grid, 1, 1, 3, 3);
+        assertEquals(68.0, grid[1][0].getTemperature(), 1e-4, "Hot neighbor scaled by maxHU");
+        assertEquals(28.0, grid[1][2].getTemperature(), 1e-4, "Bottom neighbor warmed by 8°C");
+        assertEquals(28.0, grid[0][1].getTemperature(), 1e-4, "Left neighbor warmed by 8°C");
+        assertEquals(28.0, grid[2][1].getTemperature(), 1e-4, "Right neighbor warmed by 8°C");
+        assertEquals(28.0, exchanger.getTemperature(), 1e-4, "Exchanger own cell warmed by 8°C");
+        assertEquals(256, exchanger.drainedEnergy, "Exchanger consumes 256 EU");
 
-        // Heat should flow from hotVent into exchanger, and from exchanger into coldVent
-        assertTrue(hotVent.getCurrentCellHeat() < 500, "Hot vent should have transferred heat away");
-        assertTrue(
-            exchanger.getCurrentCellHeat() > 0 || coldVent.getCurrentCellHeat() > 0,
-            "Heat should have moved to exchanger or cold vent");
+        // Energy conservation check: sum of temperatures in cluster must equal 180.0°C exactly
+        double sumAfter = grid[1][0].getTemperature() + grid[1][2].getTemperature() + grid[0][1].getTemperature() + grid[2][1].getTemperature() + exchanger.getTemperature();
+        assertEquals(180.0, sumAfter, 1e-4, "Total thermal energy in cluster must be strictly conserved");
+
+        // Insufficient EU test
+        exchanger.energyDrainingAllowed = false;
+        grid[1][0].setTemperature(100.0);
+        exchanger.setTemperature(20.0);
+        NuclearSimulationEngine.processActiveVentsAndExchangers(grid, 3, 3, 20.0);
+        assertEquals(100.0, grid[1][0].getTemperature(), 1e-4, "Exchanger without power must not exchange heat");
     }
 
     @Test
@@ -6529,6 +6559,79 @@ public class NuclearSimulationEngineTest {
         }
         double avg = (double) totalRays / trials;
         assertEquals(0.50, avg, 0.06, "Partially filled hatch at 4000 L must average 0.5 rays per cycle");
+    }
+
+    @Test
+    void testMaxDamageFuelFailsafe() {
+        if (com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel4 == null) {
+            com.gtnewhorizons.modularnuclear.common.item.ModItems.init();
+        }
+        com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod customItem =
+            com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel4;
+
+        ItemStack fuelStack = new ItemStack(customItem, 1, 0);
+        fuelStack.stackTagCompound = new net.minecraft.nbt.NBTTagCompound();
+
+        java.util.Map<com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix.ActinideIsotope, Integer> units =
+            new java.util.LinkedHashMap<>();
+        units.put(com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix.ActinideIsotope.URANIUM_235, 360);
+        com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix mix =
+            new com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix(units);
+        mix.writeToNBT(fuelStack.stackTagCompound);
+
+        int maxDur = customItem.getMaxDamageEx(fuelStack);
+        assertTrue(maxDur > 0, "Max durability must be greater than 0");
+
+        customItem.setDamageForStack(fuelStack, 0);
+        assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isFuelAtMaxDamage(fuelStack));
+
+        customItem.setDamageForStack(fuelStack, maxDur);
+        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isFuelAtMaxDamage(fuelStack));
+        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(fuelStack),
+            "Max-damaged fuel rod must be allowed in bus for automation");
+    }
+
+    @Test
+    void testMaxDamageModeratorFailsafe() {
+        net.minecraftforge.oredict.OreDictionary.registerOre("stickLongGraphite", new ItemStack(net.minecraft.init.Items.stick));
+        ItemStack modStack = new ItemStack(net.minecraft.init.Items.stick, 1, 0);
+        modStack.stackTagCompound = new net.minecraft.nbt.NBTTagCompound();
+
+        // Graphite durability is 80000
+        modStack.stackTagCompound.setInteger("advDmg", 79999);
+        assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isModeratorAtMaxDamage(modStack));
+
+        modStack.stackTagCompound.setInteger("advDmg", 80000);
+        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isModeratorAtMaxDamage(modStack));
+        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(modStack),
+            "Fully damaged moderator must be allowed in bus for automation");
+    }
+
+    @Test
+    void testNuclearReactorEnergyHatchesAndPowerDrain() {
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.energy");
+        assertEquals(0, reactor.getStoredEnergyUnits(), "Stored energy should start at 0 with no hatches");
+        assertFalse(reactor.drainEnergyUnits(100), "Draining from empty reactor should fail");
+        assertTrue(reactor.drainEnergyUnits(0), "Draining 0 EU should always succeed");
+
+        // Mock energy hatch
+        gregtech.api.metatileentity.implementations.MTEHatchEnergy mockHatch =
+            org.mockito.Mockito.mock(gregtech.api.metatileentity.implementations.MTEHatchEnergy.class);
+        gregtech.api.interfaces.tileentity.IGregTechTileEntity mockBase =
+            org.mockito.Mockito.mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+        org.mockito.Mockito.when(mockHatch.isValid()).thenReturn(true);
+        org.mockito.Mockito.when(mockHatch.getBaseMetaTileEntity()).thenReturn(mockBase);
+        org.mockito.Mockito.when(mockBase.getStoredEU()).thenReturn(5000L);
+
+        reactor.mEnergyHatches = new java.util.ArrayList<>();
+        reactor.mEnergyHatches.add(mockHatch);
+
+        assertEquals(5000L, reactor.getStoredEnergyUnits(), "Stored energy should reflect hatch buffer");
+        assertFalse(reactor.drainEnergyUnits(6000L), "Draining more than stored should fail without draining");
+
+        boolean drained = reactor.drainEnergyUnits(1000L);
+        assertTrue(drained, "Draining within available energy should succeed");
+        org.mockito.Mockito.verify(mockBase).decreaseStoredEnergyUnits(1000L, false);
     }
 
     private static void deleteRecursively(File file) {

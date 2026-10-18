@@ -436,22 +436,31 @@ public class ComponentData {
         public double selfCoolingRate = 6.0;
         public double maxTemperature = 1500.0;
         public double moderation = 0.05;
+        public long maxEUt = 128;
+        public double maxHUt = 512.0;
 
         public HeatVentData() {}
 
         public HeatVentData(String id, String name, double heatTransferCoeff, double selfCoolingRate, double maxTemp,
             String... matching) {
-            this(id, name, heatTransferCoeff, selfCoolingRate, maxTemp, 0.05, matching);
+            this(id, name, heatTransferCoeff, selfCoolingRate, maxTemp, 0.05, 128, 512.0, matching);
         }
 
         public HeatVentData(String id, String name, double heatTransferCoeff, double selfCoolingRate, double maxTemp,
             double moderation, String... matching) {
+            this(id, name, heatTransferCoeff, selfCoolingRate, maxTemp, moderation, 128, 512.0, matching);
+        }
+
+        public HeatVentData(String id, String name, double heatTransferCoeff, double selfCoolingRate, double maxTemp,
+            double moderation, long maxEUt, double maxHUt, String... matching) {
             this.id = id;
             this.name = name;
             this.heatTransferCoeff = heatTransferCoeff;
             this.selfCoolingRate = selfCoolingRate;
             this.maxTemperature = maxTemp;
             this.moderation = moderation;
+            this.maxEUt = maxEUt;
+            this.maxHUt = maxHUt;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
         }
 
@@ -465,6 +474,8 @@ public class ComponentData {
             d.selfCoolingRate = PhysicsData.getDouble(map, "self_cooling_rate", d.selfCoolingRate);
             d.maxTemperature = PhysicsData.getDouble(map, "max_temperature", d.maxTemperature);
             d.moderation = PhysicsData.getDouble(map, "moderation", d.moderation);
+            d.maxEUt = (long) PhysicsData.getDouble(map, "max_eu_t", d.maxEUt);
+            d.maxHUt = PhysicsData.getDouble(map, "max_hu_t", d.maxHUt);
             return d;
         }
 
@@ -477,6 +488,8 @@ public class ComponentData {
             m.put("self_cooling_rate", selfCoolingRate);
             m.put("max_temperature", maxTemperature);
             m.put("moderation", moderation);
+            m.put("max_eu_t", maxEUt);
+            m.put("max_hu_t", maxHUt);
             return m;
         }
     }
@@ -492,22 +505,31 @@ public class ComponentData {
         public double switchTransferRate = 12.0;
         public double maxTemperature = 1500.0;
         public double moderation = 0.05;
+        public long maxEUt = 256;
+        public double maxHUt = 1024.0;
 
         public HeatExchangerData() {}
 
         public HeatExchangerData(String id, String name, double heatTransferCoeff, double switchTransferRate,
             double maxTemp, String... matching) {
-            this(id, name, heatTransferCoeff, switchTransferRate, maxTemp, 0.05, matching);
+            this(id, name, heatTransferCoeff, switchTransferRate, maxTemp, 0.05, 256, 1024.0, matching);
         }
 
         public HeatExchangerData(String id, String name, double heatTransferCoeff, double switchTransferRate,
             double maxTemp, double moderation, String... matching) {
+            this(id, name, heatTransferCoeff, switchTransferRate, maxTemp, moderation, 256, 1024.0, matching);
+        }
+
+        public HeatExchangerData(String id, String name, double heatTransferCoeff, double switchTransferRate,
+            double maxTemp, double moderation, long maxEUt, double maxHUt, String... matching) {
             this.id = id;
             this.name = name;
             this.heatTransferCoeff = heatTransferCoeff;
             this.switchTransferRate = switchTransferRate;
             this.maxTemperature = maxTemp;
             this.moderation = moderation;
+            this.maxEUt = maxEUt;
+            this.maxHUt = maxHUt;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
         }
 
@@ -521,6 +543,8 @@ public class ComponentData {
             d.switchTransferRate = PhysicsData.getDouble(map, "switch_transfer_rate", d.switchTransferRate);
             d.maxTemperature = PhysicsData.getDouble(map, "max_temperature", d.maxTemperature);
             d.moderation = PhysicsData.getDouble(map, "moderation", d.moderation);
+            d.maxEUt = (long) PhysicsData.getDouble(map, "max_eu_t", d.maxEUt);
+            d.maxHUt = PhysicsData.getDouble(map, "max_hu_t", d.maxHUt);
             return d;
         }
 
@@ -533,6 +557,8 @@ public class ComponentData {
             m.put("switch_transfer_rate", switchTransferRate);
             m.put("max_temperature", maxTemperature);
             m.put("moderation", moderation);
+            m.put("max_eu_t", maxEUt);
+            m.put("max_hu_t", maxHUt);
             return m;
         }
     }

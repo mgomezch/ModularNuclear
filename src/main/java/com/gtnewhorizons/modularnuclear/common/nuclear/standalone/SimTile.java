@@ -912,35 +912,7 @@ public class SimTile implements INuclearTile {
         thermalAbsorbed = 0;
 
         // 2. Heat Vent & Coolant cell absorption & venting
-        if (isHeatVent()) {
-            int selfVent = switch (type) {
-                case VENT_STANDARD -> 6;
-                case VENT_ADVANCED -> 12;
-                case VENT_OVERCLOCKED -> 20;
-                default -> 0;
-            };
-
-            double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
-            double tempDiff = temperature - NuclearSimulationEngine.AMBIENT_TEMP;
-            if (selfVent > 0 && tempDiff > 0 && currentCellHeat < maxCellHeat) {
-                int maxHu = (int) Math.min(
-                    (double) (selfVent * 2),
-                    (tempDiff * NuclearSimulationEngine.HU_PER_DEGREE) / 25.0 * effFactor);
-                int toTake = Math.min(maxHu, maxCellHeat - currentCellHeat);
-                if (toTake > 0) {
-                    currentCellHeat += toTake;
-                    temperature = Math.max(
-                        NuclearSimulationEngine.AMBIENT_TEMP,
-                        temperature - (toTake * 25.0) / NuclearSimulationEngine.HU_PER_DEGREE);
-                }
-            }
-
-            if (selfVent > 0) {
-                int vented = Math.min(currentCellHeat, selfVent);
-                currentCellHeat -= vented;
-                lastCoolingDetails = String.format(java.util.Locale.US, "Vented %d Hu", vented * 25);
-            }
-        } else if (isCoolantCell()) {
+        if (isCoolantCell()) {
             if (maxCellHeat > 0 && currentCellHeat < maxCellHeat) {
                 double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
                 double tempDiff = temperature - NuclearSimulationEngine.AMBIENT_TEMP;
@@ -1264,6 +1236,7 @@ public class SimTile implements INuclearTile {
         };
     }
 
+    @Override
     public boolean isHeatVent() {
         return switch (type) {
             case VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED, VENT_COMPONENT -> true;
@@ -1271,11 +1244,43 @@ public class SimTile implements INuclearTile {
         };
     }
 
+    @Override
+    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData getHeatVentData() {
+        return switch (type) {
+            case VENT_STANDARD -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData("vent_standard", "Reactor Heat Vent", 0.40, 6.0, 1500.0, 0.05, 128, 512.0);
+            case VENT_ADVANCED -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData("vent_gold", "Advanced Heat Vent", 0.45, 12.0, 1600.0, 0.05, 512, 2048.0);
+            case VENT_OVERCLOCKED -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData("vent_spread", "Overclocked Heat Vent", 0.40, 8.0, 1500.0, 0.05, 1024, 4096.0);
+            case VENT_COMPONENT -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData("vent_diamond", "Component Heat Vent", 0.50, 20.0, 2000.0, 0.05, 2048, 8192.0);
+            default -> null;
+        };
+    }
+
+    @Override
     public boolean isHeatExchanger() {
         return switch (type) {
             case EXCHANGER_STANDARD, EXCHANGER_ADVANCED, EXCHANGER_COMPONENT -> true;
             default -> false;
         };
+    }
+
+    @Override
+    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData getHeatExchangerData() {
+        return switch (type) {
+            case EXCHANGER_STANDARD -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData("exchanger_standard", "Heat Exchanger", 0.40, 12.0, 1500.0, 0.05, 256, 1024.0);
+            case EXCHANGER_ADVANCED -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData("exchanger_spread", "Advanced Heat Exchanger", 0.45, 24.0, 1600.0, 0.05, 512, 2048.0);
+            case EXCHANGER_COMPONENT -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData("exchanger_diamond", "Component Heat Exchanger", 0.50, 36.0, 2000.0, 0.05, 1024, 4096.0);
+            default -> null;
+        };
+    }
+
+    public long drainedEnergy = 0;
+    public boolean energyDrainingAllowed = true;
+
+    @Override
+    public boolean drainEnergy(long eu) {
+        if (!energyDrainingAllowed) return false;
+        drainedEnergy += eu;
+        return true;
     }
 
     public boolean canStoreHeat() {
@@ -1303,79 +1308,7 @@ public class SimTile implements INuclearTile {
     }
 
     public void processNeighborComponents(INuclearTile[][] grid, int x, int y, int sizeX, int sizeY) {
-        if (type == TileType.VENT_COMPONENT) {
-            final int sideVent = 4;
-            int[] dx = { 0, 0, -1, 1 };
-            int[] dy = { -1, 1, 0, 0 };
-            for (int k = 0; k < 4; k++) {
-                int nx = x + dx[k];
-                int ny = y + dy[k];
-                if (nx >= 0 && nx < sizeX && ny >= 0 && ny < sizeY && grid[nx][ny] instanceof SimTile neighbor) {
-                    if (neighbor.canStoreHeat()) {
-                        neighbor.alterCellHeat(-sideVent);
-                    }
-                }
-            }
-        } else if (isHeatExchanger()) {
-            int switchSide = switch (type) {
-                case EXCHANGER_STANDARD -> 12;
-                case EXCHANGER_ADVANCED -> 24;
-                case EXCHANGER_COMPONENT -> 36;
-                default -> 0;
-            };
-
-            // 1. Absorb heat from own tile if hotter than ambient
-            double tempDiff = temperature - NuclearSimulationEngine.ambientTemp;
-            if (tempDiff > 0 && currentCellHeat < maxCellHeat) {
-                int maxHu = (int) Math
-                    .min((double) switchSide, (tempDiff * NuclearSimulationEngine.huPerDegree) / 25.0);
-                int toTake = Math.min(maxHu, maxCellHeat - currentCellHeat);
-                if (toTake > 0) {
-                    currentCellHeat += toTake;
-                    temperature = Math.max(
-                        NuclearSimulationEngine.ambientTemp,
-                        temperature - (toTake * 25.0) / NuclearSimulationEngine.huPerDegree);
-                }
-            }
-
-            // 2. Balance heat % with up to 4 adjacent components
-            int[] dx = { 0, 0, -1, 1 };
-            int[] dy = { -1, 1, 0, 0 };
-            for (int k = 0; k < 4; k++) {
-                int nx = x + dx[k];
-                int ny = y + dy[k];
-                if (nx >= 0 && nx < sizeX && ny >= 0 && ny < sizeY && grid[nx][ny] instanceof SimTile neighbor) {
-                    if (neighbor.canStoreHeat() && neighbor.getMaxCellHeat() > 0) {
-                        double myPct = (currentCellHeat * 100.0) / maxCellHeat;
-                        double nPct = (neighbor.getCurrentCellHeat() * 100.0) / neighbor.getMaxCellHeat();
-                        double diff = nPct - myPct;
-                        if (Math.abs(diff) > 0.01) {
-                            int transfer = (int) Math.round((diff / 2.0) * (maxCellHeat / 100.0));
-                            transfer = Math.max(-switchSide, Math.min(switchSide, transfer));
-                            if (transfer > 0) {
-                                int actual = Math.min(
-                                    transfer,
-                                    Math.min(neighbor.getCurrentCellHeat(), maxCellHeat - currentCellHeat));
-                                if (actual > 0) {
-                                    currentCellHeat += actual;
-                                    neighbor.alterCellHeat(-actual);
-                                }
-                            } else if (transfer < 0) {
-                                int push = Math.min(
-                                    -transfer,
-                                    Math.min(
-                                        currentCellHeat,
-                                        neighbor.getMaxCellHeat() - neighbor.getCurrentCellHeat()));
-                                if (push > 0) {
-                                    currentCellHeat -= push;
-                                    neighbor.alterCellHeat(push);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        NuclearSimulationEngine.processActiveVentsAndExchangers(grid, sizeX, sizeY, NuclearSimulationEngine.ambientTemp);
     }
 
     public double storedWignerEnergy = 0.0;

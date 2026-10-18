@@ -275,6 +275,47 @@ public class MTEHatchNuclearBus extends MTEHatch {
         }
     }
 
+    public void processMaxDamageFailsafe() {
+        if (mReactor == null) return;
+        ItemStack stack = mInventory[SLOT_INPUT];
+        if (stack == null) return;
+
+        if (com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isFuelAtMaxDamage(stack)) {
+            mReactor.mCycleZeroedFuelItems++;
+            ItemStack depleted = com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.getItemDepletedForm(stack);
+            mInventory[SLOT_INPUT] = null;
+            if (depleted != null) {
+                mReactor.addOutputPartial(depleted);
+            }
+            markTileDirty();
+        } else if (com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isModeratorAtMaxDamage(stack)) {
+            mReactor.mCycleZeroedFuelItems++;
+            ItemStack byproduct = com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.getModeratorSpentProduct(stack);
+            if (stack.stackSize > 1) {
+                stack.stackSize--;
+                if (stack.stackTagCompound != null) {
+                    stack.stackTagCompound.removeTag("advDmg");
+                }
+            } else {
+                mInventory[SLOT_INPUT] = null;
+            }
+            if (byproduct != null) {
+                mReactor.addOutputPartial(byproduct);
+            }
+            markTileDirty();
+        }
+    }
+
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (aBaseMetaTileEntity.isServerSide()) {
+            if (mReactor != null && mInventory[SLOT_INPUT] != null) {
+                processMaxDamageFailsafe();
+            }
+        }
+    }
+
     public static boolean isMoltenCheese(FluidStack fluid) {
         if (fluid == null || fluid.getFluid() == null) return false;
         if (Materials.Cheese != null && (fluid.getFluid() == Materials.Cheese.mStandardMoltenFluid

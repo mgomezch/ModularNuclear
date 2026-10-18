@@ -801,41 +801,9 @@ public class NuclearReactorPhysics {
                 addTileHeat(tile, excessHeat);
             }
         }
-        // 3. IC2 HEAT VENTS & HEAT EXCHANGERS (Passive cooling and adjacent balancing)
+        // 3. ACTIVE HEAT VENTS & HEAT EXCHANGERS (Processed actively each tick via processActiveVentsAndExchangers)
         else if (MTENuclearReactor.isItemHeatVent(stack) || MTENuclearReactor.isItemHeatExchanger(stack)) {
             bus.mDirectEUProduced = 0;
-            if (stack.getItem() instanceof IReactorComponent comp) {
-                reactor.getReactorDummy()
-                    .setCurrentTile(tile);
-                int gx = tile.getGx();
-                int gy = tile.getGy();
-
-                if (comp.canStoreHeat(reactor.getReactorDummy(), stack, gx, gy)) {
-                    int maxHeat = comp.getMaxHeat(reactor.getReactorDummy(), stack, gx, gy);
-                    int curHeat = comp.getCurrentHeat(reactor.getReactorDummy(), stack, gx, gy);
-                    double ambient = reactor.getAmbientTemperature();
-                    if (maxHeat > 0 && bus.mTemperature > ambient) {
-                        int maxTransferPerTick = Math.max(20, maxHeat / 50);
-                        double heatAvailable = (bus.mTemperature - ambient) * NuclearSimulationEngine.HU_PER_DEGREE;
-                        double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
-                        int heatToTake = (int) Math
-                            .round(Math.min(heatAvailable / 25.0, (double) maxTransferPerTick) * effFactor);
-                        int room = maxHeat - curHeat;
-                        heatToTake = Math.min(heatToTake, room);
-
-                        if (heatToTake > 0) {
-                            comp.alterHeat(reactor.getReactorDummy(), stack, gx, gy, heatToTake);
-                            double heatConsumed = heatToTake * 25.0;
-                            bus.mTemperature -= (heatConsumed / NuclearSimulationEngine.HU_PER_DEGREE);
-                            bus.markTileDirty();
-                        }
-                    }
-                }
-
-                // Process IC2 native component chamber tick (cooling self or balancing with adjacent components)
-                comp.processChamber(reactor.getReactorDummy(), stack, gx, gy, true);
-                bus.markTileDirty();
-            }
         }
         // 4. COOLANT CELL HEAT ABSORPTION (Capacity-based scaling via IReactorComponent)
         else if (stack.getItem() instanceof IReactorComponent comp) {

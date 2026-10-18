@@ -145,4 +145,39 @@ public interface INuclearTile {
     default double getThermalNeutronEmissionYield(int fastNeutronsAbsorbed) {
         return 0.0;
     }
+
+    /**
+     * Checks if this tile contains an active heat vent.
+     */
+    default boolean isHeatVent() {
+        return false;
+    }
+
+    /**
+     * Returns data-driven configuration for active heat vent component if present.
+     */
+    default com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData getHeatVentData() {
+        return null;
+    }
+
+    /**
+     * Checks if this tile contains an active heat exchanger.
+     */
+    default boolean isHeatExchanger() {
+        return false;
+    }
+
+    /**
+     * Returns data-driven configuration for active heat exchanger component if present.
+     */
+    default com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData getHeatExchangerData() {
+        return null;
+    }
+
+    /**
+     * Drains energy from reactor buffer (EU). Returns true if sufficient energy was drained.
+     */
+    default boolean drainEnergy(long eu) {
+        return true;
+    }
 }
