@@ -1809,6 +1809,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         return false;
     }
 
+    @Override
+    public boolean canBeMuffled() {
+        return true;
+    }
+
     public void setScram(boolean scram) {
         this.mScram = scram;
         for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {

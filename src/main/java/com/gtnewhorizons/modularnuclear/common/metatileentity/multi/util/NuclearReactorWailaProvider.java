@@ -90,7 +90,7 @@ public class NuclearReactorWailaProvider {
             topColor = 0xFF00E676;
             bottomColor = 0xFF007A33;
         }
-        String tempText = String.format("Core Temp: %,.1f / %,.0f °C", temp, maxTemp);
+        String tempText = String.format("Core temp: %,.1f / %,.0f °C", temp, maxTemp);
         list.add(TTRenderBar.create(tempText, topColor, bottomColor, ratio));
 
         long euOutput = tag.getLong("euOutput");
@@ -212,7 +212,7 @@ public class NuclearReactorWailaProvider {
         list.add(
             String.format(
                 Locale.US,
-                "%sCore Temp: %s%,.1f / %,.0f °C (%s)",
+                "%sCore temp: %s%,.1f / %,.0f °C (%s)",
                 EnumChatFormatting.YELLOW,
                 EnumChatFormatting.RESET,
                 reactor.mCoreTemp,
@@ -221,7 +221,7 @@ public class NuclearReactorWailaProvider {
         list.add(
             String.format(
                 Locale.US,
-                "%sTile Temps: %sMin %,.1f °C | Avg %,.1f °C | Max %,.1f °C",
+                "%sTile temps: %sMin %,.1f °C | Avg %,.1f °C | Max %,.1f °C",
                 EnumChatFormatting.YELLOW,
                 EnumChatFormatting.RESET,
                 reactor.mMinTileTemp,
@@ -234,7 +234,7 @@ public class NuclearReactorWailaProvider {
             list.add(
                 String.format(
                     Locale.US,
-                    "%sHull Damage: %s%.1f%%%s (Repair threshold: %,.0f °C)",
+                    "%sHull damage: %s%.1f%%%s (Repair threshold: %,.0f °C)",
                     EnumChatFormatting.YELLOW,
                     EnumChatFormatting.RED,
                     reactor.mReactorDamage,
@@ -242,7 +242,7 @@ public class NuclearReactorWailaProvider {
                     repairThreshold));
         } else {
             list.add(
-                EnumChatFormatting.YELLOW + "Hull Damage: "
+                EnumChatFormatting.YELLOW + "Hull damage: "
                     + EnumChatFormatting.GREEN
                     + "0.0% (Nominal)"
                     + EnumChatFormatting.RESET);
@@ -284,7 +284,7 @@ public class NuclearReactorWailaProvider {
             list.add(
                 String.format(
                     Locale.US,
-                    "%sEU Output: %s+%,d EU/t%s",
+                    "%sEU output: %s+%,d EU/t%s",
                     EnumChatFormatting.YELLOW,
                     EnumChatFormatting.GREEN,
                     reactor.mDirectPowerEUt,
@@ -295,7 +295,7 @@ public class NuclearReactorWailaProvider {
             list.add(
                 String.format(
                     Locale.US,
-                    "%sCoolant Output: %s%,d L/s %s%s",
+                    "%sCoolant output: %s%,d L/s %s%s",
                     EnumChatFormatting.YELLOW,
                     EnumChatFormatting.AQUA,
                     reactor.mOutputCoolantRate,

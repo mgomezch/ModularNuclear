@@ -461,11 +461,11 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
             .widget(
                 new TextWidget()
                     .setStringSupplier(
-                        () -> String.format("Role: %s", mIsInlet ? "Core Inlet (Slice 0)" : "Core Outlet (Slice 4)"))
+                        () -> String.format("Role: %s", mIsInlet ? "Core inlet (slice 0)" : "Core outlet (slice 4)"))
                     .setDefaultColor(Color.rgb(200, 200, 200))
                     .setPos(10, 32))
             .widget(
-                new TextWidget().setStringSupplier(() -> String.format("Core Temp: %.1f °C", mTemperature))
+                new TextWidget().setStringSupplier(() -> String.format("Core temp: %.1f °C", mTemperature))
                     .setDefaultColor(Color.rgb(255, 200, 0))
                     .setPos(10, 44))
             .widget(

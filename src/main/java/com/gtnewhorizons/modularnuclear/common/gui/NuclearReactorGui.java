@@ -101,20 +101,12 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         DoubleSyncValue damageSyncer = syncManager.findSyncHandler("damage", DoubleSyncValue.class);
         BooleanSyncValue scramSyncer = syncManager.findSyncHandler("scram", BooleanSyncValue.class);
 
-        // Machine Title Header
-        list.child(
-            IKey.dynamic(() -> EnumChatFormatting.BOLD + multiblock.getLocalName())
-                .color(Color.WHITE.main)
-                .asWidget()
-                .textAlign(Alignment.CenterLeft)
-                .marginBottom(2));
-
-        // Core Temp
+        // Core temp
         list.child(
             IKey.dynamic(
                 () -> String.format(
                     Locale.US,
-                    "Core Temp: %.1f / %.0f °C",
+                    "Core temp: %.1f / %.0f °C",
                     coreTempSyncer != null ? coreTempSyncer.getDoubleValue() : multiblock.mCoreTemp,
                     NuclearSimulationEngine.getMaxOperatingTemperature(
                         pipeTierSyncer != null ? pipeTierSyncer.getIntValue() : multiblock.mPipeTier)))
@@ -122,12 +114,12 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
                 .asWidget()
                 .textAlign(Alignment.CenterLeft));
 
-        // Avg Reactivity
+        // Avg reactivity
         list.child(
             IKey.dynamic(
                 () -> String.format(
                     Locale.US,
-                    "Avg Reactivity: %.1f%%",
+                    "Avg reactivity: %.1f%%",
                     (reactivitySyncer != null ? reactivitySyncer.getDoubleValue() : multiblock.mReactivity) * 100.0))
                 .color(Color.rgb(100, 200, 255))
                 .asWidget()
@@ -151,14 +143,34 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
                 .asWidget()
                 .textAlign(Alignment.CenterLeft));
 
-        // Neutrons
+        // Fast neutrons
         list.child(
             IKey.dynamic(
                 () -> String.format(
                     Locale.US,
-                    "Neutrons: %d fast, %d therm, %d esc",
-                    fastAbsSyncer != null ? fastAbsSyncer.getLongValue() : multiblock.mFastAbsorbed,
-                    thermAbsSyncer != null ? thermAbsSyncer.getLongValue() : multiblock.mThermalAbsorbed,
+                    "Fast neutrons: %d",
+                    fastAbsSyncer != null ? fastAbsSyncer.getLongValue() : multiblock.mFastAbsorbed))
+                .color(Color.rgb(200, 200, 200))
+                .asWidget()
+                .textAlign(Alignment.CenterLeft));
+
+        // Thermal neutrons
+        list.child(
+            IKey.dynamic(
+                () -> String.format(
+                    Locale.US,
+                    "Thermal neutrons: %d",
+                    thermAbsSyncer != null ? thermAbsSyncer.getLongValue() : multiblock.mThermalAbsorbed))
+                .color(Color.rgb(200, 200, 200))
+                .asWidget()
+                .textAlign(Alignment.CenterLeft));
+
+        // Escaped neutrons
+        list.child(
+            IKey.dynamic(
+                () -> String.format(
+                    Locale.US,
+                    "Escaped neutrons: %d",
                     escSyncer != null ? escSyncer.getLongValue() : multiblock.mEscapedNeutrons))
                 .color(Color.rgb(200, 200, 200))
                 .asWidget()
@@ -188,8 +200,40 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
     }
 
     @Override
+    protected boolean shouldDisplayVoidExcess() {
+        return false;
+    }
+
+    @Override
+    protected boolean shouldDisplayInputSeparation() {
+        return false;
+    }
+
+    @Override
+    protected boolean shouldDisplayBatchMode() {
+        return false;
+    }
+
+    @Override
+    protected boolean shouldDisplayRecipeLock() {
+        return false;
+    }
+
+    @Override
+    protected Flow createLeftPanelGapRow(ModularPanel parent, PanelSyncManager syncManager) {
+        return Flow.row();
+    }
+
+    @Override
     protected Flow createRightPanelGapRow(ModularPanel parent, PanelSyncManager syncManager) {
-        Flow row = super.createRightPanelGapRow(parent, syncManager);
+        Flow row = Flow.row()
+            .mainAxisAlignment(Alignment.MainAxis.END)
+            .crossAxisAlignment(Alignment.CrossAxis.CENTER)
+            .reverseLayout(true)
+            .verticalCenter()
+            .rightRel(0.0f)
+            .coverChildrenWidth()
+            .fullHeight();
 
         // Core Hatches grid floating window button
         row.child(createReactorGridButton(syncManager, parent));
@@ -198,6 +242,16 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         row.child(createScramButton(syncManager));
 
         return row;
+    }
+
+    @Override
+    protected Flow createButtonColumn(ModularPanel parent, PanelSyncManager syncManager) {
+        return Flow.column()
+            .width(18)
+            .leftRel(1.0f, -2, 1.0f)
+            .mainAxisAlignment(Alignment.MainAxis.END)
+            .reverseLayout(true)
+            .child(createStructureUpdateButton(syncManager));
     }
 
     protected ButtonWidget<?> createReactorGridButton(PanelSyncManager syncManager, ModularPanel parent) {
