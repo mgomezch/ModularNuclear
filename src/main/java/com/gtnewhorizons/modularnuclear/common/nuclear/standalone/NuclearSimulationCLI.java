@@ -172,10 +172,10 @@ public class NuclearSimulationCLI {
                         } catch (NumberFormatException ignored) {}
                     }
                 }
-                case "--eu-per-degree" -> {
+                case "--hu-per-degree" -> {
                     if (i + 1 < args.length) {
                         try {
-                            NuclearSimulationEngine.setEuPerDegree(Double.parseDouble(args[++i]));
+                            NuclearSimulationEngine.setHuPerDegree(Double.parseDouble(args[++i]));
                         } catch (NumberFormatException ignored) {}
                     }
                 }
@@ -551,9 +551,9 @@ public class NuclearSimulationCLI {
                                 NuclearSimulationEngine.thermalAbsorptionDamageMultiplier = Double.parseDouble(v);
                             } catch (Exception ignored) {}
                         }
-                        case "eu_per_degree", "euperdegree" -> {
+                        case "hu_per_degree", "huperdegree" -> {
                             try {
-                                NuclearSimulationEngine.setEuPerDegree(Double.parseDouble(v));
+                                NuclearSimulationEngine.setHuPerDegree(Double.parseDouble(v));
                             } catch (Exception ignored) {}
                         }
                         case "fission_heat", "fissionheat" -> {
@@ -1113,12 +1113,6 @@ public class NuclearSimulationCLI {
         sb.append("\"coolantMachineMode\":\"")
             .append(p != null ? p.coolantMachineMode : "Inactive")
             .append("\",");
-        sb.append("\"eheMode\":\"")
-            .append(p != null ? p.eheMode : "Inactive")
-            .append("\",");
-        sb.append("\"eheSteamProduced\":")
-            .append(String.format(java.util.Locale.US, "%.1f", p != null ? p.eheSteamProduced : 0.0))
-            .append(",");
         sb.append("\"voltageTier\":\"")
             .append(getVoltageTier(power))
             .append("\",");
@@ -1351,8 +1345,8 @@ public class NuclearSimulationCLI {
                 cl.getRuptureReason()
                     .replace("\"", "\\\""))
             .append("\",");
-        sb.append("\"convectiveHeatRemovedEUt\":")
-            .append(String.format(java.util.Locale.US, "%.2f", cl.getLastHeatExtractedEUt()))
+        sb.append("\"convectiveHeatRemovedHut\":")
+            .append(String.format(java.util.Locale.US, "%.2f", cl.getLastHeatExtractedHut()))
             .append(",");
         sb.append("\"secondarySteamProduced\":")
             .append(String.format(java.util.Locale.US, "%.2f", cl.getLastSecondarySteamProducedLt()))
@@ -2056,8 +2050,8 @@ public class NuclearSimulationCLI {
             System.out.println(
                 "  Heat Extracted:       " + String.format(
                     java.util.Locale.US,
-                    "%.1f EU/t (%.2f MWth)",
-                    cl.getLastHeatExtractedEUt(),
+                    "%.1f HU/t (%.2f MWth)",
+                    cl.getLastHeatExtractedHut(),
                     cl.getLastHeatExtractedWatts() / 1e6));
             System.out.println(
                 "  Secondary PHE Steam:  " + String.format(

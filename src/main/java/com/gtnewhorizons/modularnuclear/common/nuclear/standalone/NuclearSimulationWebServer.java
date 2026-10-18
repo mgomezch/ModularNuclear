@@ -815,7 +815,7 @@ public class NuclearSimulationWebServer {
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Hu per Degree (°C):</label>
-                      <input id="p-eu-per-degree" type="number" step="1.0" value="32.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      <input id="p-hu-per-degree" type="number" step="1.0" value="32.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Base Conductance:</label>
@@ -2241,7 +2241,7 @@ public class NuclearSimulationWebServer {
                 const heatEl = document.getElementById("loop-heat-val");
                 if (heatEl) {
                   const mw = (cl.lastHeatExtractedWatts || 0) / 1000000;
-                  const hut = cl.lastHeatExtractedHut != null ? cl.lastHeatExtractedHut : cl.lastHeatExtractedEUt;
+                  const hut = cl.lastHeatExtractedHut || 0;
                   heatEl.innerText = `${Math.round(hut).toLocaleString()} Hu/s (${mw.toFixed(2)} MWth)`;
                 }
 
@@ -2902,7 +2902,7 @@ public class NuclearSimulationWebServer {
                 const el = document.getElementById(id);
                 if (el && active !== el && el.value != val) el.value = val;
               };
-              setVal("p-eu-per-degree", p.euPerDegree != null ? p.euPerDegree : 32.0);
+              setVal("p-hu-per-degree", p.huPerDegree != null ? p.huPerDegree : 32.0);
               setVal("p-base-conductance", p.baseHatchConductance != null ? p.baseHatchConductance : 2.0);
               setVal("p-fission-heat", p.fissionHeatPerNeutron != null ? p.fissionHeatPerNeutron : 76.0);
               setVal("p-fiss-mult", p.globalThermalFissionMultiplier != null ? p.globalThermalFissionMultiplier : (p.thermalFissionMultiplier != null ? p.thermalFissionMultiplier : 0.350));
@@ -2918,7 +2918,7 @@ public class NuclearSimulationWebServer {
             }
 
             async function submitSimParams() {
-              const euDeg = document.getElementById("p-eu-per-degree") ? document.getElementById("p-eu-per-degree").value : 32.0;
+              const huDeg = document.getElementById("p-hu-per-degree") ? document.getElementById("p-hu-per-degree").value : 32.0;
               const baseCond = document.getElementById("p-base-conductance") ? document.getElementById("p-base-conductance").value : 2.0;
               const fHeat = document.getElementById("p-fission-heat") ? document.getElementById("p-fission-heat").value : 76.0;
               const fMult = document.getElementById("p-fiss-mult") ? document.getElementById("p-fiss-mult").value : 0.350;
@@ -2933,7 +2933,7 @@ public class NuclearSimulationWebServer {
               const hpBoil = document.getElementById("p-hp-boil").value;
 
               if (isWasmMode && wasmSim) {
-                wasmSim.setParam("euPerDegree", euDeg);
+                wasmSim.setParam("huPerDegree", huDeg);
                 wasmSim.setParam("baseHatchConductance", baseCond);
                 wasmSim.setParam("fissionHeat", fHeat);
                 wasmSim.setParam("fissionMult", fMult);
@@ -2951,7 +2951,7 @@ public class NuclearSimulationWebServer {
                 return;
               }
 
-              const url = `/api/set-params?euPerDegree=${euDeg}&baseHatchConductance=${baseCond}&fissionHeat=${fHeat}&fissionMult=${fMult}&ambientTemp=${amb}&hatchCapacity=${cap}&turnoverCurve=${curve}&turnoverDeltaTMax=${dt}&turnoverExponent=${exp}&coolantFeedRate=${feed}&coolingHeat=${ch}&ic2CoolantHeat=${ic2Ch}&hpBoil=${hpBoil}`;
+              const url = `/api/set-params?huPerDegree=${huDeg}&baseHatchConductance=${baseCond}&fissionHeat=${fHeat}&fissionMult=${fMult}&ambientTemp=${amb}&hatchCapacity=${cap}&turnoverCurve=${curve}&turnoverDeltaTMax=${dt}&turnoverExponent=${exp}&coolantFeedRate=${feed}&coolingHeat=${ch}&ic2CoolantHeat=${ic2Ch}&hpBoil=${hpBoil}`;
               await fetch(url);
               await fetchState();
               schedulePoll();

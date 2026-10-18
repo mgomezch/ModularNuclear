@@ -6,10 +6,8 @@ import java.util.Map;
 public class PhysicsData {
 
     public double huPerDegree = 32.0;
-    public double euPerDegree = 32.0; // Backwards-compatible alias
     public double globalThermalFissionMultiplier = 1.0;
     public double globalFastFissionMultiplier = 1.0;
-    public double fastFissionMultiplier = 1.0; // Backwards-compatible alias for globalFastFissionMultiplier
     public double fastAbsorptionDamageMultiplier = 8.0;
     public double thermalAbsorptionDamageMultiplier = 1.0;
     public double fissionHeatPerNeutron = 2.0;
@@ -59,11 +57,9 @@ public class PhysicsData {
     public static PhysicsData fromMap(Map<String, Object> map) {
         PhysicsData d = new PhysicsData();
         if (map == null) return d;
-        d.huPerDegree = getDouble(map, "hu_per_degree", getDouble(map, "eu_per_degree", d.huPerDegree));
-        d.euPerDegree = d.huPerDegree;
+        d.huPerDegree = getDouble(map, "hu_per_degree", d.huPerDegree);
         d.globalThermalFissionMultiplier = getDouble(map, "global_thermal_fission_multiplier", d.globalThermalFissionMultiplier);
-        d.globalFastFissionMultiplier = getDouble(map, "global_fast_fission_multiplier", getDouble(map, "fast_fission_multiplier", d.globalFastFissionMultiplier));
-        d.fastFissionMultiplier = d.globalFastFissionMultiplier;
+        d.globalFastFissionMultiplier = getDouble(map, "global_fast_fission_multiplier", d.globalFastFissionMultiplier);
         d.fastAbsorptionDamageMultiplier = getDouble(map, "fast_absorption_damage_multiplier", d.fastAbsorptionDamageMultiplier);
         d.thermalAbsorptionDamageMultiplier = getDouble(map, "thermal_absorption_damage_multiplier", d.thermalAbsorptionDamageMultiplier);
         d.fissionHeatPerNeutron = getDouble(map, "fission_heat_per_neutron", d.fissionHeatPerNeutron);
@@ -78,7 +74,7 @@ public class PhysicsData {
         d.wallMaintenanceNeutronThreshold = getInt(map, "wall_maintenance_neutron_threshold", d.wallMaintenanceNeutronThreshold);
         d.defaultAmbientTemp = getDouble(map, "default_ambient_temp", d.defaultAmbientTemp);
         d.beamEnergyToFastNeutronMultiplier = getDouble(map, "beam_energy_to_fast_neutron_multiplier", d.beamEnergyToFastNeutronMultiplier);
-        d.t10WearFactor = getDouble(map, "t10_wear_factor", getDouble(map, "wear_factor_at_t10", d.t10WearFactor));
+        d.t10WearFactor = getDouble(map, "t10_wear_factor", d.t10WearFactor);
 
         d.denseNbaseMultiplier = getDouble(map, "dense_nbase_multiplier", d.denseNbaseMultiplier);
         d.denseFissionMultiplier = getDouble(map, "dense_fission_multiplier", d.denseFissionMultiplier);
@@ -94,10 +90,8 @@ public class PhysicsData {
     public Map<String, Object> toMap() {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("hu_per_degree", huPerDegree);
-        m.put("eu_per_degree", huPerDegree);
         m.put("global_thermal_fission_multiplier", globalThermalFissionMultiplier);
         m.put("global_fast_fission_multiplier", globalFastFissionMultiplier);
-        m.put("fast_fission_multiplier", globalFastFissionMultiplier);
         m.put("fast_absorption_damage_multiplier", fastAbsorptionDamageMultiplier);
         m.put("thermal_absorption_damage_multiplier", thermalAbsorptionDamageMultiplier);
         m.put("fission_heat_per_neutron", fissionHeatPerNeutron);

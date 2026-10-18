@@ -51,7 +51,6 @@ public class MTEHatchNuclearBus extends MTEHatch {
     public MTENuclearReactor mReactor;
     public double mTemperature = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     public double mHeatHu = 0.0;
-    public double mHeatEU = 0.0; // Backwards-compatible alias
     public long mCumulativeFluence = 0L;
 
     public double getAmbientTemperature() {
@@ -190,7 +189,6 @@ public class MTEHatchNuclearBus extends MTEHatch {
         super.saveNBTData(aNBT);
         aNBT.setDouble("mTemperature", mTemperature);
         aNBT.setDouble("mHeatHu", mHeatHu);
-        aNBT.setDouble("mHeatEU", mHeatHu);
         aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setBoolean("mUsedForCooling", mUsedForCooling);
     }
@@ -205,28 +203,12 @@ public class MTEHatchNuclearBus extends MTEHatch {
         }
         if (aNBT.hasKey("mHeatHu")) {
             mHeatHu = aNBT.getDouble("mHeatHu");
-        } else if (aNBT.hasKey("mHeatEU")) {
-            mHeatHu = aNBT.getDouble("mHeatEU");
         }
-        mHeatEU = mHeatHu;
         if (aNBT.hasKey("mCumulativeFluence")) {
             mCumulativeFluence = aNBT.getLong("mCumulativeFluence");
         }
         if (aNBT.hasKey("mUsedForCooling")) {
             mUsedForCooling = aNBT.getBoolean("mUsedForCooling");
-        }
-        // Legacy migration: if older world save has mWignerEnergyStored on the bus, migrate it to the inserted rod
-        if (aNBT.hasKey("mWignerEnergyStored")) {
-            double legacyWigner = aNBT.getDouble("mWignerEnergyStored");
-            if (legacyWigner > 0.0 && mInventory[SLOT_INPUT] != null) {
-                ItemStack stack = mInventory[SLOT_INPUT];
-                if (stack.stackTagCompound == null) {
-                    stack.stackTagCompound = new NBTTagCompound();
-                }
-                if (!stack.stackTagCompound.hasKey("wignerEnergy")) {
-                    stack.stackTagCompound.setDouble("wignerEnergy", legacyWigner);
-                }
-            }
         }
     }
 

@@ -126,7 +126,7 @@ public class NuclearSimulationEngineTest {
     private static class MockNuclearTile implements INuclearTile {
 
         double temperature = 20.0;
-        double heatEU = 0.0;
+        double heatHU = 0.0;
         boolean isFuel = false;
         int neutronBaseGen = 0;
         double absorbProb = 0.1;
@@ -164,8 +164,8 @@ public class NuclearSimulationEngineTest {
 
         @Override
         public void addHeat(double heat) {
-            this.heatEU += heat;
-            this.temperature += heat / NuclearSimulationEngine.EU_PER_DEGREE;
+            this.heatHU += heat;
+            this.temperature += heat / NuclearSimulationEngine.HU_PER_DEGREE;
         }
 
         @Override
@@ -283,7 +283,7 @@ public class NuclearSimulationEngineTest {
         assertTrue(res.totalNeutronsGenerated > 0, "Fuel rod should generate neutrons");
         assertEquals((int) (100 * NuclearSimulationEngine.calculateEfficiency(20.0)), res.totalNeutronsGenerated);
         assertTrue(fuel.getTemperature() > 20.0, "Fuel rod should heat up due to fission");
-        assertTrue(fuel.heatEU > 0, "Direct fission heat should be recorded");
+        assertTrue(fuel.heatHU > 0, "Direct fission heat should be recorded");
         assertTrue(res.fastNeutronsAbsorbed + res.thermalNeutronsAbsorbed + res.neutronsEscaped > 0);
     }
 
@@ -347,12 +347,12 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testCoolantBoilingThermodynamics() {
-        // Distilled Water: boiling at 200°C, 320 EU/mB, 160:1 steam ratio
+        // Distilled Water: boiling at 200°C, 320 HU/mB, 160:1 steam ratio
         double boilingPoint = 200.0;
         double heatPerMB = 320.0;
         double currentTemp = 250.0;
-        double heatAvailable = (currentTemp - boilingPoint) * NuclearSimulationEngine.EU_PER_DEGREE;
-        assertEquals(50.0 * NuclearSimulationEngine.EU_PER_DEGREE, heatAvailable, 1e-6);
+        double heatAvailable = (currentTemp - boilingPoint) * NuclearSimulationEngine.HU_PER_DEGREE;
+        assertEquals(50.0 * NuclearSimulationEngine.HU_PER_DEGREE, heatAvailable, 1e-6);
 
         int fluidToBoil = (int) (heatAvailable / heatPerMB);
         assertEquals(5, fluidToBoil);
@@ -361,7 +361,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(800, steamProduced);
 
         double heatConsumed = fluidToBoil * heatPerMB;
-        double tempDrop = heatConsumed / NuclearSimulationEngine.EU_PER_DEGREE;
+        double tempDrop = heatConsumed / NuclearSimulationEngine.HU_PER_DEGREE;
         double finalTemp = currentTemp - tempDrop;
         assertTrue(finalTemp < currentTemp && finalTemp >= boilingPoint);
     }
@@ -1135,7 +1135,7 @@ public class NuclearSimulationEngineTest {
         }
 
         assertEquals(0, behind.fluxReceived, "Behind tile should receive no flux because Naquarite blocks 100%");
-        assertEquals(0.0, naquarite.heatEU, 1e-6, "Naquarite absorbs radiation without generating heat");
+        assertEquals(0.0, naquarite.heatHU, 1e-6, "Naquarite absorbs radiation without generating heat");
         assertTrue(naquarite.fastAbsorbed > 0 || naquarite.thermalAbsorbed > 0, "Naquarite absorbed neutrons");
     }
 
@@ -1187,7 +1187,7 @@ public class NuclearSimulationEngineTest {
             "Base: 16 Fast Neutrons/t | Standard fission fuel");
 
         assertTrue(uraniumQuad.hasCapture);
-        assertEquals(8, uraniumQuad.fastNeutronEnergyEU);
+        assertEquals(8, uraniumQuad.fastNeutronEnergyHu);
         assertEquals(0.88, uraniumQuad.directHeatC, 1e-4);
         assertEquals(16.0, uraniumQuad.maxNeutronsEmitted, 1e-4);
         assertTrue(uraniumQuad.hasAbsorption);
@@ -1551,7 +1551,6 @@ public class NuclearSimulationEngineTest {
         controlHatch.saveNBTData(nbt);
         assertEquals(1, nbt.getInteger("mMetric"));
         assertEquals(1, nbt.getInteger("mStatistic"));
-        assertEquals(4, nbt.getInteger("mMode"));
 
         // Loading from separate fields
         MTEHatchNuclearControl loaded = new MTEHatchNuclearControl("test.loaded.sep", 4, new String[0], null);
@@ -1559,15 +1558,6 @@ public class NuclearSimulationEngineTest {
         assertEquals(1, loaded.getMetric());
         assertEquals(1, loaded.getStatistic());
         assertEquals(4, loaded.getMode());
-
-        // Loading from legacy NBT with only mMode
-        NBTTagCompound legacyNbt = new NBTTagCompound();
-        legacyNbt.setInteger("mMode", 11); // Coolant hatch fill avg -> Metric 3, Stat 2
-        MTEHatchNuclearControl legacyLoaded = new MTEHatchNuclearControl("test.loaded.legacy", 4, new String[0], null);
-        legacyLoaded.loadNBTData(legacyNbt);
-        assertEquals(MTEHatchNuclearControl.METRIC_COOLANT_HATCH_FILL, legacyLoaded.getMetric());
-        assertEquals(MTEHatchNuclearControl.STAT_AVG, legacyLoaded.getStatistic());
-        assertEquals(11, legacyLoaded.getMode());
     }
 
     @Test
@@ -4155,7 +4145,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testHatchCoolingNeverOvershootsSinkTempInSingleTick() {
-        // In a physical lumped-capacitance model with Ch = EU_PER_DEGREE = 32.0,
+        // In a physical lumped-capacitance model with Ch = HU_PER_DEGREE = 32.0,
         // the temperature drop in 1 tick (Q / Ch) must be strictly less than DeltaT for all tiers.
         double temp = 250.0;
         double sinkTemp = 100.0;
@@ -4163,7 +4153,7 @@ public class NuclearSimulationEngineTest {
 
         for (int tier = 1; tier <= 8; tier++) {
             double qMax = NuclearSimulationEngine.calculateConductiveHeatTransfer(temp, sinkTemp, tier, 1.0);
-            double tempDrop = qMax / NuclearSimulationEngine.EU_PER_DEGREE;
+            double tempDrop = qMax / NuclearSimulationEngine.HU_PER_DEGREE;
             assertTrue(
                 tempDrop < deltaT,
                 "Tier " + tier + " temp drop (" + tempDrop + ") must be strictly less than DeltaT (" + deltaT + ")");

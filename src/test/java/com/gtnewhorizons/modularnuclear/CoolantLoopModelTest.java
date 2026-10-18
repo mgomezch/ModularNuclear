@@ -181,7 +181,7 @@ public class CoolantLoopModelTest {
         }
 
         assertEquals(CoolantLoopModel.LoopMaterial.NEUTRONIUM, loop.getMaterial());
-        assertTrue(loop.getLastHeatExtractedEUt() > 0, "Neutronium loop should extract heat");
+        assertTrue(loop.getLastHeatExtractedHut() > 0, "Neutronium loop should extract heat");
         assertTrue(loop.getMaterial().maxPressureBar >= 3000.0, "Neutronium should have 3000 bar rating");
     }
 
@@ -232,7 +232,7 @@ public class CoolantLoopModelTest {
             assertFalse(loop.isRuptured(), "Loop should not rupture");
         }
 
-        assertTrue(loop.getLastHeatExtractedEUt() > 0, "Loop should extract heat from attached cells");
+        assertTrue(loop.getLastHeatExtractedHut() > 0, "Loop should extract heat from attached cells");
         assertTrue(loop.getCurrentCoolantTempCelsius() > 20.0, "Coolant should warm up");
         assertTrue(grid.getGrossPowerEUt() > 0, "Gross power should be positive");
         assertTrue(grid.getPumpPowerEUt() > 0, "Pump power should be subtracted");
@@ -296,7 +296,7 @@ public class CoolantLoopModelTest {
 
         grid.step();
         assertTrue(
-            loop.getLastHeatExtractedEUt() > 0,
+            loop.getLastHeatExtractedHut() > 0,
             "PASSAGE_CORE tile should automatically be cooled by convective loop");
     }
 

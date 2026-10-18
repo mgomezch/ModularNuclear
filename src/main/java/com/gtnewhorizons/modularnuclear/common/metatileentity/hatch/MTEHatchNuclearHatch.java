@@ -45,7 +45,6 @@ public class MTEHatchNuclearHatch extends MTEHatch {
 
     public double mTemperature = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     public double mHeatHu = 0.0;
-    public double mHeatEU = 0.0; // Backwards-compatible alias
     public long mCumulativeFluence = 0L;
     public int mFastFlux = 0;
     public int mThermalFlux = 0;
@@ -232,7 +231,6 @@ public class MTEHatchNuclearHatch extends MTEHatch {
         super.saveNBTData(aNBT);
         aNBT.setDouble("mTemperature", mTemperature);
         aNBT.setDouble("mHeatHu", mHeatHu);
-        aNBT.setDouble("mHeatEU", mHeatHu);
         aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setInteger("mReactorPipeTier", mReactorPipeTier);
         aNBT.setBoolean("mWasDry", mWasDry);
@@ -274,10 +272,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
         }
         if (aNBT.hasKey("mHeatHu")) {
             mHeatHu = aNBT.getDouble("mHeatHu");
-        } else if (aNBT.hasKey("mHeatEU")) {
-            mHeatHu = aNBT.getDouble("mHeatEU");
         }
-        mHeatEU = mHeatHu;
         if (aNBT.hasKey("mCumulativeFluence")) {
             mCumulativeFluence = aNBT.getLong("mCumulativeFluence");
         }

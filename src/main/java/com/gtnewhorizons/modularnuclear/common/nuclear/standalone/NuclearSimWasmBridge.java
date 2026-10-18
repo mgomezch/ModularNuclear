@@ -437,8 +437,8 @@ public class NuclearSimWasmBridge {
         } catch (Exception ignored) {
             return;
         }
-        if ("euPerDegree".equals(key)) {
-            NuclearSimulationEngine.setEuPerDegree(d);
+        if ("huPerDegree".equals(key)) {
+            NuclearSimulationEngine.setHuPerDegree(d);
         } else if ("baseHatchConductance".equals(key) || "baseConductance".equals(key) || "conductance".equals(key)) {
             NuclearSimulationEngine.setBaseHatchConductance(d);
         } else if ("reactorDamage".equals(key) || "damage".equals(key)) {
@@ -838,9 +838,6 @@ public class NuclearSimWasmBridge {
         sb.append("\"lastHeatExtractedHut\":")
             .append(fmt1(cl.getLastHeatExtractedHut()))
             .append(",");
-        sb.append("\"lastHeatExtractedEUt\":")
-            .append(fmt1(cl.getLastHeatExtractedEUt()))
-            .append(",");
         sb.append("\"lastSecondarySteamProducedLt\":")
             .append(fmt1(cl.getLastSecondarySteamProducedLt()))
             .append(",");
@@ -1018,15 +1015,6 @@ public class NuclearSimWasmBridge {
         sb.append("\"coolantMachineCount\":")
             .append(fmt0(p.coolantMachineCount))
             .append(",");
-        sb.append("\"eheMode\":\"")
-            .append(p.eheMode)
-            .append("\",");
-        sb.append("\"eheSteamProduced\":")
-            .append(fmt1(p.eheSteamProduced))
-            .append(",");
-        sb.append("\"eheDistilledWaterConsumed\":")
-            .append(fmt1(p.eheDistilledWaterConsumed))
-            .append(",");
         sb.append("\"lstTurbinesNeeded\":")
             .append(fmt2(p.lstTurbinesNeeded))
             .append(",");
@@ -1164,8 +1152,8 @@ public class NuclearSimWasmBridge {
         sb.append("},");
 
         sb.append("\"params\":{");
-        sb.append("\"euPerDegree\":")
-            .append(fmt1(NuclearSimulationEngine.euPerDegree))
+        sb.append("\"huPerDegree\":")
+            .append(fmt1(NuclearSimulationEngine.huPerDegree))
             .append(",");
         sb.append("\"hatchCapacity\":")
             .append(NuclearSimulationEngine.hatchCoolantCapacity)

@@ -610,7 +610,6 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter,
         aNBT.setByte("mRotation", (byte) rotation.getIndex());
         aNBT.setInteger("mMetric", mMetric);
         aNBT.setInteger("mStatistic", mStatistic);
-        aNBT.setInteger("mMode", getMode());
         aNBT.setByte("mOutputStrength", mOutputStrength);
         aNBT.setInteger("mFineOutputStrength", mFineOutputStrength);
         aNBT.setInteger("mBundledChannelMode", mBundledChannelMode);
@@ -626,8 +625,6 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter,
         if (aNBT.hasKey("mMetric")) {
             mMetric = aNBT.getInteger("mMetric");
             mStatistic = aNBT.getInteger("mStatistic");
-        } else if (aNBT.hasKey("mMode")) {
-            setMode(aNBT.getInteger("mMode"));
         }
         mOutputStrength = aNBT.getByte("mOutputStrength");
         if (aNBT.hasKey("mFineOutputStrength")) {

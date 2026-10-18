@@ -68,11 +68,9 @@ public class NuclearReactorPhysics {
     public static void addTileHeat(NuclearGridTile tile, double heatHu) {
         if (tile.isBus()) {
             tile.getBus().mHeatHu += heatHu;
-            tile.getBus().mHeatEU = tile.getBus().mHeatHu;
             tile.getBus().mTemperature += heatHu / NuclearSimulationEngine.HU_PER_DEGREE;
         } else if (tile.isHatch()) {
             tile.getHatch().mHeatHu += heatHu;
-            tile.getHatch().mHeatEU = tile.getHatch().mHeatHu;
             tile.getHatch().mTemperature += heatHu / NuclearSimulationEngine.HU_PER_DEGREE;
         } else if (tile.isHighPressureHatch()) {
             tile.getHighPressureHatch()
@@ -80,7 +78,6 @@ public class NuclearReactorPhysics {
         }
         if (tile.hasControlRod()) {
             tile.getBottomControlRod().mHeatHu += heatHu;
-            tile.getBottomControlRod().mHeatEU = tile.getBottomControlRod().mHeatHu;
             tile.getBottomControlRod().mTemperature += heatHu / NuclearSimulationEngine.HU_PER_DEGREE;
         }
     }

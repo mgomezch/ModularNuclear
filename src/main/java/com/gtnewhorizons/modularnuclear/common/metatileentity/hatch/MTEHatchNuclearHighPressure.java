@@ -41,7 +41,6 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
     public MTENuclearReactor mReactor = null;
     public double mTemperature = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     public double mHeatHu = 0.0;
-    public double mHeatEU = 0.0; // Backwards-compatible alias
     public double mLastHeatOutput = 0.0;
     public double mHeatOutputAccumulator = 0.0;
     public long mCumulativeFluence = 0L;
@@ -274,7 +273,6 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
         }
 
         double heatTransferredHu = heatTransferredJoules / 128.0;
-        double heatTransferredEU = heatTransferredHu; // Backwards-compatible alias
         double coreTempChange = heatTransferredHu / coreHeatCapacityHuPerC;
 
         mTemperature -= coreTempChange;
@@ -417,7 +415,6 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
         super.saveNBTData(aNBT);
         aNBT.setDouble("mTemperature", mTemperature);
         aNBT.setDouble("mHeatHu", mHeatHu);
-        aNBT.setDouble("mHeatEU", mHeatHu);
         aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setBoolean("mIsInlet", mIsInlet);
     }
@@ -430,10 +427,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
         }
         if (aNBT.hasKey("mHeatHu")) {
             mHeatHu = aNBT.getDouble("mHeatHu");
-        } else if (aNBT.hasKey("mHeatEU")) {
-            mHeatHu = aNBT.getDouble("mHeatEU");
         }
-        mHeatEU = mHeatHu;
         if (aNBT.hasKey("mCumulativeFluence")) {
             mCumulativeFluence = aNBT.getLong("mCumulativeFluence");
         }

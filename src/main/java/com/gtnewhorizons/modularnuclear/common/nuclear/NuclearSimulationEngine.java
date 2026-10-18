@@ -10,12 +10,6 @@ public class NuclearSimulationEngine {
     public static final double DEFAULT_HU_PER_DEGREE = 32.0;
     public static double huPerDegree = DEFAULT_HU_PER_DEGREE;
     public static double HU_PER_DEGREE = DEFAULT_HU_PER_DEGREE;
-
-    // Backwards-compatible aliases for legacy EU-based naming
-    public static final double EU_FOR_FAST_NEUTRON = HU_FOR_FAST_NEUTRON;
-    public static final double DEFAULT_EU_PER_DEGREE = DEFAULT_HU_PER_DEGREE;
-    public static double euPerDegree = huPerDegree;
-    public static double EU_PER_DEGREE = HU_PER_DEGREE;
     public static final double BASE_HEAT_CONDUCTION = 0.01;
     public static final double DEFAULT_AMBIENT_TEMP = 20.0;
     public static double ambientTemp = DEFAULT_AMBIENT_TEMP;
@@ -91,12 +85,6 @@ public class NuclearSimulationEngine {
     public static void setHuPerDegree(double v) {
         huPerDegree = Math.max(0.1, v);
         HU_PER_DEGREE = huPerDegree;
-        euPerDegree = huPerDegree;
-        EU_PER_DEGREE = huPerDegree;
-    }
-
-    public static void setEuPerDegree(double v) {
-        setHuPerDegree(v);
     }
 
     public static void setGlobalThermalFissionMultiplier(double mult) {
@@ -390,7 +378,6 @@ public class NuclearSimulationEngine {
         public double averageTemperature = AMBIENT_TEMP;
         public double averageReactivity = 0.0;
         public double totalHeatHU = 0;
-        public double totalHeatEU = 0; // Backwards-compatible alias for totalHeatHU
     }
 
     /**
@@ -752,7 +739,6 @@ public class NuclearSimulationEngine {
                     if (pendingHeat[x][y] > 0.0) {
                         tile.addHeat(pendingHeat[x][y]);
                         result.totalHeatHU += pendingHeat[x][y];
-                        result.totalHeatEU = result.totalHeatHU;
                     }
                 }
             }
@@ -837,7 +823,6 @@ public class NuclearSimulationEngine {
 
         // --- PASS 6: WALL HEAT DISTRIBUTION ---
         result.totalHeatHU += result.wallHeatPool;
-        result.totalHeatEU = result.totalHeatHU;
         if (activeTileCount > 0 && result.wallHeatPool > 0) {
             double heatPerCell = result.wallHeatPool / activeTileCount;
             for (int x = 0; x < sizeX; x++) {

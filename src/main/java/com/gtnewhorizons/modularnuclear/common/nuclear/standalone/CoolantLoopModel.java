@@ -330,7 +330,6 @@ public class CoolantLoopModel {
     private double currentCoolantTempCelsius = 20.0;
     private double lastHeatExtractedWatts = 0.0;
     private double lastHeatExtractedHut = 0.0;
-    private double lastHeatExtractedEUt = 0.0;
     private double lastSecondarySteamProducedLt = 0.0;
     private double lastSecondaryWaterBoiledLt = 0.0;
     private double lastPumpPowerEUt = 0.0;
@@ -690,18 +689,18 @@ public class CoolantLoopModel {
                 if (deltaT > 0.001) {
                     double qDotWatts = hConvective * passageArea * deltaT;
                     double joulesTick = qDotWatts * 0.05; // 0.05s per tick
-                    double euTick = joulesTick / 128.0;
+                    double huTick = joulesTick / 128.0;
 
                     // Max heat without overcooling tile below coolant temperature
-                    double maxEuDrop = (cellTemp - currentCoolantTempCelsius) * NuclearSimulationEngine.euPerDegree;
-                    if (euTick > maxEuDrop) {
-                        euTick = maxEuDrop;
-                        joulesTick = euTick * 128.0;
+                    double maxHuDrop = (cellTemp - currentCoolantTempCelsius) * NuclearSimulationEngine.huPerDegree;
+                    if (huTick > maxHuDrop) {
+                        huTick = maxHuDrop;
+                        joulesTick = huTick * 128.0;
                     }
 
                     pTile.setTemperature(
-                        Math.max(currentCoolantTempCelsius, cellTemp - euTick / NuclearSimulationEngine.euPerDegree));
-                    pTile.setLastHeatOutput(pTile.getLastHeatOutput() + euTick);
+                        Math.max(currentCoolantTempCelsius, cellTemp - huTick / NuclearSimulationEngine.huPerDegree));
+                    pTile.setLastHeatOutput(pTile.getLastHeatOutput() + huTick);
                     totalHeatExtractedJoulesTick += joulesTick;
                 }
 
@@ -725,7 +724,6 @@ public class CoolantLoopModel {
 
         lastHeatExtractedWatts = totalHeatExtractedJoulesTick / 0.05;
         lastHeatExtractedHut = totalHeatExtractedJoulesTick / 128.0;
-        lastHeatExtractedEUt = lastHeatExtractedHut;
         totalHeatExtractedJoules += totalHeatExtractedJoulesTick;
         totalHeatExtractedHut += lastHeatExtractedHut;
 
@@ -776,7 +774,6 @@ public class CoolantLoopModel {
         this.currentCoolantTempCelsius = NuclearSimulationEngine.ambientTemp;
         this.lastHeatExtractedWatts = 0.0;
         this.lastHeatExtractedHut = 0.0;
-        this.lastHeatExtractedEUt = 0.0;
         this.lastSecondarySteamProducedLt = 0.0;
         this.lastSecondaryWaterBoiledLt = 0.0;
         this.lastPumpPowerEUt = 0.0;
@@ -979,22 +976,6 @@ public class CoolantLoopModel {
 
     public double getTotalHeatExtractedHut() {
         return totalHeatExtractedHut;
-    }
-
-    /**
-     * @deprecated Use {@link #getTotalHeatExtractedHut()} instead.
-     */
-    @Deprecated
-    public double getTotalHeatExtractedEUt() {
-        return totalHeatExtractedHut;
-    }
-
-    /**
-     * @deprecated Use {@link #getLastHeatExtractedHut()} instead.
-     */
-    @Deprecated
-    public double getLastHeatExtractedEUt() {
-        return lastHeatExtractedHut;
     }
 
     public double getLastSecondarySteamProducedLt() {

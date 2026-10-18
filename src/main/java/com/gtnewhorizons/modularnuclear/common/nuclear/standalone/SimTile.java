@@ -138,7 +138,6 @@ public class SimTile implements INuclearTile {
     private TileType type = TileType.EMPTY;
     private double temperature = NuclearSimulationEngine.AMBIENT_TEMP;
     private double heatHu = 0;
-    private double heatEU = 0; // Backwards-compatible alias
 
     // Fuel state
     private int maxDurability = 10000;
@@ -424,17 +423,12 @@ public class SimTile implements INuclearTile {
     @Override
     public void addHeat(double heat) {
         this.heatHu += heat;
-        this.heatEU = this.heatHu;
         this.temperature = Math
             .max(-273.15, this.temperature + heat / NuclearSimulationEngine.HU_PER_DEGREE);
     }
 
     public double getHeatHu() {
         return heatHu;
-    }
-
-    public double getHeatEU() {
-        return heatEU;
     }
 
     @Override
@@ -1334,13 +1328,13 @@ public class SimTile implements INuclearTile {
             double tempDiff = temperature - NuclearSimulationEngine.ambientTemp;
             if (tempDiff > 0 && currentCellHeat < maxCellHeat) {
                 int maxHu = (int) Math
-                    .min((double) switchSide, (tempDiff * NuclearSimulationEngine.euPerDegree) / 25.0);
+                    .min((double) switchSide, (tempDiff * NuclearSimulationEngine.huPerDegree) / 25.0);
                 int toTake = Math.min(maxHu, maxCellHeat - currentCellHeat);
                 if (toTake > 0) {
                     currentCellHeat += toTake;
                     temperature = Math.max(
                         NuclearSimulationEngine.ambientTemp,
-                        temperature - (toTake * 25.0) / NuclearSimulationEngine.euPerDegree);
+                        temperature - (toTake * 25.0) / NuclearSimulationEngine.huPerDegree);
                 }
             }
 

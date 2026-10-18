@@ -136,11 +136,6 @@ public class TurbineCalculator {
         public double coolantWaterConsumed = 0;
         public double coolantMachineCount = 0;
 
-        // Legacy / compatibility aliases
-        public String eheMode = "Inactive";
-        public double eheSteamProduced = 0;
-        public double eheDistilledWaterConsumed = 0;
-
         // Turbines needed
         public double lstTurbinesNeeded = 0;
         public double xlstTurbinesNeeded = 0;
@@ -229,10 +224,6 @@ public class TurbineCalculator {
                     res.coolantWaterConsumed = res.coolantSteamProduced / 160.0;
                     res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 128000.0));
                 }
-            // Populate legacy EHE fields for backwards compatibility
-            res.eheMode = res.coolantMachineMode;
-            res.eheSteamProduced = res.coolantSteamProduced;
-            res.eheDistilledWaterConsumed = res.coolantWaterConsumed;
         }
 
         // 2. Turbine Processing Stage:

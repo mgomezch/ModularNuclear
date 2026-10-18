@@ -60,7 +60,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         // Page 2: Capture (Fission / Reaction)
         public final boolean hasCapture;
         public final int fastNeutronEnergyHu;
-        public final int fastNeutronEnergyEU; // Backwards-compatible alias
         public final double directHeatC;
         public final double maxNeutronsEmitted;
 
@@ -73,7 +72,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         public NeutronComponentData(ItemStack stack, String name, String category, double fastScattering,
             double fastAbsorption, double slowingProbability, double thermalScattering, double thermalAbsorption,
-            boolean hasCapture, int fastNeutronEnergyEU, double directHeatC, double maxNeutronsEmitted,
+            boolean hasCapture, int fastNeutronEnergyHu, double directHeatC, double maxNeutronsEmitted,
             boolean hasAbsorption, ItemStack absorptionOutput, long neutronsRequired, String extraInfo) {
             this.stack = stack;
             this.name = name;
@@ -84,8 +83,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             this.thermalScattering = thermalScattering;
             this.thermalAbsorption = thermalAbsorption;
             this.hasCapture = hasCapture;
-            this.fastNeutronEnergyHu = fastNeutronEnergyEU;
-            this.fastNeutronEnergyEU = fastNeutronEnergyEU;
+            this.fastNeutronEnergyHu = fastNeutronEnergyHu;
             this.directHeatC = directHeatC;
             this.maxNeutronsEmitted = maxNeutronsEmitted;
             this.hasAbsorption = hasAbsorption;

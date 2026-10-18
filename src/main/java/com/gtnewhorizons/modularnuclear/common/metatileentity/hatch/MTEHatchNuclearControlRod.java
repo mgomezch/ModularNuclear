@@ -75,7 +75,6 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
 
     public double mTemperature = 20.0;
     public double mHeatHu = 0.0;
-    public double mHeatEU = 0.0; // Backwards-compatible alias
     public long mCumulativeFluence = 0L;
     public int mFastFlux = 0;
     public int mThermalFlux = 0;
@@ -343,7 +342,6 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         super.saveNBTData(aNBT);
         aNBT.setDouble("mTemperature", mTemperature);
         aNBT.setDouble("mHeatHu", mHeatHu);
-        aNBT.setDouble("mHeatEU", mHeatHu);
         aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setBoolean("mScram", mScram);
         aNBT.setInteger("mInputChannel", mInputChannel);
@@ -359,10 +357,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         }
         if (aNBT.hasKey("mHeatHu")) {
             mHeatHu = aNBT.getDouble("mHeatHu");
-        } else if (aNBT.hasKey("mHeatEU")) {
-            mHeatHu = aNBT.getDouble("mHeatEU");
         }
-        mHeatEU = mHeatHu;
         if (aNBT.hasKey("mCumulativeFluence")) {
             mCumulativeFluence = aNBT.getLong("mCumulativeFluence");
         }
