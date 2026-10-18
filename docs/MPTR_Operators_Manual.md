@@ -849,7 +849,7 @@ Damage is applied using stochastic rounding. When $\text{advDmg} \ge \text{durab
 Graphite moderators feature a realistic solid-state physical phenomenon: **Wigner energy accumulation and thermal annealing release**. When fast neutrons collide with graphite, lattice atoms are knocked out of their crystalline positions, trapping potential energy within the material.
 
 1. **Energy Storage and Saturation ($T \le 1500^\circ\text{C}$):**
-   - Each fast neutron interaction (absorption or moderation event) stores **$1.0\,\text{HU}$** into the graphite cell's internal Wigner energy pool (`mWignerEnergyStored`, persisted in NBT tag `wignerEnergy`), building up slowly over thousands of interactions.
+   - Each fast neutron interaction (absorption or moderation event) stores **$1.0\,\text{HU}$** directly into the graphite rod's NBT tag (`wignerEnergy`), building up slowly over thousands of interactions. The core bus itself does not hold Wigner energy; extracting or transferring the rod preserves its stored defect pool.
    - **Saturation Ceiling:** The lattice defect capacity is finite; accumulation **saturates and stops completely once it reaches $10\,000\,\text{HU}$** ($E_{\max} = 10\,000\,\text{HU}$, configurable via `wigner_max_energy`). Any subsequent fast-neutron collisions after reaching 10 000 HU do not increase the stored energy pool further.
    - At normal operating temperatures ($\le 1500^\circ\text{C}$), this energy remains trapped indefinitely without decay.
 
@@ -873,7 +873,7 @@ Graphite moderators feature a realistic solid-state physical phenomenon: **Wigne
    $$Q_{\text{release}} = \min(E_{\text{stored}},\ \text{Rate}_{\max}(T))$$
 
    - Each tick of active release depletes the stored pool: $E_{\text{stored}} \leftarrow E_{\text{stored}} - Q_{\text{release}}$.
-   - **Crucial rule:** Once the stored Wigner pool is depleted ($E_{\text{stored}} = 0$), heat emission **ceases immediately**. Graphite never generates extra heat indefinitely without prior fast-neutron irradiation.
+   - **Crucial rule:** Once the stored Wigner pool is depleted ($E_{\text{stored}} = 0$), heat emission **ceases immediately**. Graphite never generates extra heat indefinitely without prior fast-neutron irradiation. Stored Wigner energy persists on the rod across removal and re-insertion into buses, and is destroyed only upon annealing release or when the rod wears out completely into ash.
    - **No secondary thermal neutrons are emitted**: Unlike earlier experimental models, hot graphite does not emit thermal neutrons; all stored Wigner energy is released strictly as thermal heat (HU).
 
 > [!WARNING]

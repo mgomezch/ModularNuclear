@@ -78,7 +78,6 @@ public class MTEHatchNuclearBus extends MTEHatch {
     public double mLastHeatOutput = 0.0;
     public boolean mUsedForCooling = false;
     public long mLastCheeseTick = -1;
-    public double mWignerEnergyStored = 0.0;
 
     public MTEHatchNuclearBus(int aID, String aName, String aNameRegional, int aTier) {
         super(aID, aName, aNameRegional, aTier, 1, (String) null);
@@ -194,7 +193,6 @@ public class MTEHatchNuclearBus extends MTEHatch {
         aNBT.setDouble("mHeatEU", mHeatHu);
         aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setBoolean("mUsedForCooling", mUsedForCooling);
-        aNBT.setDouble("mWignerEnergyStored", mWignerEnergyStored);
     }
 
     @Override
@@ -217,49 +215,76 @@ public class MTEHatchNuclearBus extends MTEHatch {
         if (aNBT.hasKey("mUsedForCooling")) {
             mUsedForCooling = aNBT.getBoolean("mUsedForCooling");
         }
+        // Legacy migration: if older world save has mWignerEnergyStored on the bus, migrate it to the inserted rod
         if (aNBT.hasKey("mWignerEnergyStored")) {
-            mWignerEnergyStored = aNBT.getDouble("mWignerEnergyStored");
+            double legacyWigner = aNBT.getDouble("mWignerEnergyStored");
+            if (legacyWigner > 0.0 && mInventory[SLOT_INPUT] != null) {
+                ItemStack stack = mInventory[SLOT_INPUT];
+                if (stack.stackTagCompound == null) {
+                    stack.stackTagCompound = new NBTTagCompound();
+                }
+                if (!stack.stackTagCompound.hasKey("wignerEnergy")) {
+                    stack.stackTagCompound.setDouble("wignerEnergy", legacyWigner);
+                }
+            }
         }
     }
 
     public void addWignerEnergy(double amountHu) {
-        if (amountHu > 0.0) {
-            double maxCap = 10000.0;
-            ItemStack stack = mInventory[SLOT_INPUT];
-            if (stack != null) {
-                com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod =
-                    com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack);
-                if (mod != null && mod.wignerMaxEnergy > 0.0) {
-                    maxCap = mod.wignerMaxEnergy;
-                }
+        if (amountHu <= 0.0) return;
+        ItemStack stack = mInventory[SLOT_INPUT];
+        if (stack == null) return;
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findModerator(stack);
+        if (mod != null && mod.wignerEnergyPerFast > 0.0) {
+            double maxCap = mod.wignerMaxEnergy > 0.0 ? mod.wignerMaxEnergy : 10000.0;
+            double current = 0.0;
+            if (stack.stackTagCompound != null && stack.stackTagCompound.hasKey("wignerEnergy")) {
+                current = stack.stackTagCompound.getDouble("wignerEnergy");
             }
-            mWignerEnergyStored = Math.min(maxCap, mWignerEnergyStored + amountHu);
+            double next = Math.min(maxCap, current + amountHu);
+            if (stack.stackTagCompound == null) {
+                stack.stackTagCompound = new NBTTagCompound();
+            }
+            stack.stackTagCompound.setDouble("wignerEnergy", next);
+            markTileDirty();
         }
     }
 
     public double releaseWignerEnergy() {
-        if (mWignerEnergyStored <= 0.0) return 0.0;
         ItemStack stack = mInventory[SLOT_INPUT];
-        if (stack == null) {
-            mWignerEnergyStored = 0.0;
+        if (stack == null) return 0.0;
+        if (stack.stackTagCompound == null || !stack.stackTagCompound.hasKey("wignerEnergy")) {
             return 0.0;
         }
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack);
+        double current = stack.stackTagCompound.getDouble("wignerEnergy");
+        if (current <= 0.0) return 0.0;
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findModerator(stack);
         if (mod == null || mod.wignerEnergyPerFast <= 0.0) {
-            mWignerEnergyStored = 0.0;
+            stack.stackTagCompound.removeTag("wignerEnergy");
+            markTileDirty();
             return 0.0;
         }
-        double released = mod.calculateWignerHeatRelease(mTemperature, mWignerEnergyStored);
+        double released = mod.calculateWignerHeatRelease(mTemperature, current);
         if (released > 0.0) {
-            mWignerEnergyStored = Math.max(0.0, mWignerEnergyStored - released);
+            double remaining = Math.max(0.0, current - released);
+            if (remaining <= 0.0) {
+                stack.stackTagCompound.removeTag("wignerEnergy");
+            } else {
+                stack.stackTagCompound.setDouble("wignerEnergy", remaining);
+            }
             markTileDirty();
         }
         return released;
     }
 
     public double getStoredWignerEnergy() {
-        return mWignerEnergyStored;
+        ItemStack stack = mInventory[SLOT_INPUT];
+        if (stack != null && stack.stackTagCompound != null && stack.stackTagCompound.hasKey("wignerEnergy")) {
+            return stack.stackTagCompound.getDouble("wignerEnergy");
+        }
+        return 0.0;
     }
 
     public void markTileDirty() {
@@ -274,8 +299,10 @@ public class MTEHatchNuclearBus extends MTEHatch {
             || Materials.FLUID_MAP.get(fluid.getFluid()) == Materials.Cheese)) {
             return true;
         }
-        String name = fluid.getFluid().getName();
-        return "molten.cheese".equalsIgnoreCase(name) || "cheese".equalsIgnoreCase(name) || "fluid.cheese".equalsIgnoreCase(name);
+        String name = fluid.getFluid()
+            .getName();
+        return "molten.cheese".equalsIgnoreCase(name) || "cheese".equalsIgnoreCase(name)
+            || "fluid.cheese".equalsIgnoreCase(name);
     }
 
     /**
@@ -477,8 +504,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
                 new TextWidget("In").setDefaultColor(0xFFFFFFFF)
                     .setPos(134, 16))
             .widget(
-                new SlotWidget(inventoryHandler, SLOT_INPUT)
-                    .setFilter(this::isItemAllowed)
+                new SlotWidget(inventoryHandler, SLOT_INPUT).setFilter(this::isItemAllowed)
                     .setBackground(getGUITextureSet().getItemSlot(), GTUITextures.OVERLAY_SLOT_IN)
                     .setPos(131, 28));
     }

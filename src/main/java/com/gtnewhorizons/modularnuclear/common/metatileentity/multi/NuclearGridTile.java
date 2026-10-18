@@ -208,7 +208,7 @@ public class NuclearGridTile implements INuclearTile {
     @Override
     public double getStoredWignerEnergy() {
         if (isBus() && getBus() != null) {
-            return getBus().mWignerEnergyStored;
+            return getBus().getStoredWignerEnergy();
         }
         return 0.0;
     }
