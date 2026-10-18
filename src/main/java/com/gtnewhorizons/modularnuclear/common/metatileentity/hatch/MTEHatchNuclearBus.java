@@ -126,6 +126,50 @@ public class MTEHatchNuclearBus extends MTEHatch {
         return 1;
     }
 
+    @Override
+    public int getSlotLimit(int aIndex) {
+        return 1;
+    }
+
+    @Override
+    public int getStackSizeLimit(int aIndex, ItemStack aStack) {
+        if (aIndex == SLOT_INPUT) {
+            if (aStack == null || !isItemAllowed(aStack)) {
+                return 0;
+            }
+            return 1;
+        }
+        return super.getStackSizeLimit(aIndex, aStack);
+    }
+
+    @Override
+    public void setInventorySlotContents(int aIndex, ItemStack aStack) {
+        if (aIndex == SLOT_INPUT) {
+            if (aStack != null) {
+                if (!isItemAllowed(aStack)) {
+                    return;
+                }
+                if (aStack.stackSize > 1) {
+                    aStack = aStack.copy();
+                    aStack.stackSize = 1;
+                }
+            }
+        }
+        super.setInventorySlotContents(aIndex, aStack);
+    }
+
+    @Override
+    public void onContentsChanged(int aIndex) {
+        if (aIndex == SLOT_INPUT && mInventory[SLOT_INPUT] != null) {
+            if (!isItemAllowed(mInventory[SLOT_INPUT])) {
+                mInventory[SLOT_INPUT] = null;
+            } else if (mInventory[SLOT_INPUT].stackSize > 1) {
+                mInventory[SLOT_INPUT].stackSize = 1;
+            }
+        }
+        super.onContentsChanged(aIndex);
+    }
+
     public boolean isItemAllowed(ItemStack aStack) {
         return com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(aStack, this);
     }
@@ -137,7 +181,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
 
     @Override
     public boolean isItemValidForSlot(int aIndex, ItemStack aStack) {
-        return aIndex == SLOT_INPUT && isItemAllowed(aStack);
+        return aIndex == SLOT_INPUT && aStack != null && isItemAllowed(aStack);
     }
 
     @Override

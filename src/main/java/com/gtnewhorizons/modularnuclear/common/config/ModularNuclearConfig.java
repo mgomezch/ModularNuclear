@@ -511,8 +511,10 @@ public final class ModularNuclearConfig {
             }
 
             // 3. Unlocalized name wildcard check
-            if (unloc != null && matchesPattern(unloc, pattern)) {
-                return true;
+            if (unloc != null) {
+                if (matchesPattern(unloc, pattern)) return true;
+                if (unloc.startsWith("item.") && matchesPattern(unloc.substring(5), pattern)) return true;
+                if (unloc.startsWith("tile.") && matchesPattern(unloc.substring(5), pattern)) return true;
             }
         }
 

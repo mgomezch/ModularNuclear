@@ -13,7 +13,9 @@ import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
+import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.utils.Alignment;
@@ -41,6 +43,12 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
 
     public NuclearReactorGui(MTENuclearReactor multiblock) {
         super(multiblock);
+    }
+
+    @Override
+    public ModularPanel build(PosGuiData guiData, PanelSyncManager syncManager, UISettings settings) {
+        settings.customContainer(() -> new NuclearReactorContainer(multiblock));
+        return super.build(guiData, syncManager, settings);
     }
 
     @Override
@@ -202,11 +210,7 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
             .marginLeft(4)
             .overlay(new ItemDrawable(ItemList.RodUranium.get(1L)))
             .onMousePressed(d -> {
-                if (!gridPanel.isPanelOpen()) {
-                    gridPanel.openPanel();
-                } else {
-                    gridPanel.closePanel();
-                }
+                gridPanel.openPanel();
                 return true;
             })
             .tooltipBuilder(t -> {

@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.gui;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
@@ -104,7 +105,23 @@ public class MTEHatchNuclearBusGui extends MTEHatchBaseGui<MTEHatchNuclearBus> {
         inputCol.child(
             new ItemSlot()
                 .slot(
-                    new ModularSlot(machine.inventoryHandler, MTEHatchNuclearBus.SLOT_INPUT)
+                    new ModularSlot(machine.inventoryHandler, MTEHatchNuclearBus.SLOT_INPUT) {
+
+                        @Override
+                        public int getSlotStackLimit() {
+                            return 1;
+                        }
+
+                        @Override
+                        public int getItemStackLimit(ItemStack stack) {
+                            return (stack != null && machine.isItemAllowed(stack)) ? 1 : 0;
+                        }
+
+                        @Override
+                        public boolean isItemValid(ItemStack stack) {
+                            return stack != null && machine.isItemAllowed(stack);
+                        }
+                    }
                         .filter(machine::isItemAllowed)
                         .singletonSlotGroup())
                 .backgroundOverlay(GTGuiTextures.OVERLAY_SLOT_IN_STANDARD));

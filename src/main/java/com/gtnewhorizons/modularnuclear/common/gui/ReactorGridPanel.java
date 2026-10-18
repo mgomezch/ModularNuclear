@@ -18,7 +18,6 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.DragHandle;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
-import com.cleanroommc.modularui.widgets.ItemDisplayWidget;
 import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
@@ -90,31 +89,12 @@ public class ReactorGridPanel {
         syncManager
             .registerSyncedAction("setGuiMode", false, true, buf -> { reactor.mCurrentGuiMode = buf.readInt(); });
 
-        // Top Header Row with drag handle, mode selection tabs, and zoom controls
+        // Top Header Row with mode selection tabs, drag handle, zoom controls, and close button
         Flow headerRow = Flow.row()
             .fullWidth()
             .height(18)
             .crossAxisAlignment(Alignment.CrossAxis.CENTER)
-            .marginRight(18) // Leave margin so close button does not overlap
             .marginBottom(3);
-
-        // Reactor Icon
-        headerRow.child(
-            new ItemDisplayWidget().item(ModMetaTileEntities.reactor.copy())
-                .size(16, 16)
-                .displayAmount(false)
-                .marginRight(3));
-
-        // Title
-        headerRow.child(
-            new TextWidget<>(IKey.str(EnumChatFormatting.BOLD + "Reactor Core Hatches")).color(Color.WHITE.main)
-                .height(14)
-                .marginRight(4));
-
-        // Draggable Handle
-        headerRow.child(
-            new DragHandle().expanded()
-                .height(14));
 
         // 6 Mode Selection Tabs
         final int[] MODES = { MTENuclearReactor.GUI_MODE_COMPONENTS, MTENuclearReactor.GUI_MODE_TEMPERATURE,
@@ -176,6 +156,11 @@ public class ReactorGridPanel {
             headerRow.child(tabBtn);
         }
 
+        // Draggable Handle
+        headerRow.child(
+            new DragHandle().expanded()
+                .height(14));
+
         // Zoom Controls
         // Zoom Out
         headerRow.child(
@@ -229,7 +214,7 @@ public class ReactorGridPanel {
         // Fit to View
         headerRow.child(
             new ButtonWidget<>().size(22, 14)
-                .marginRight(2)
+                .marginRight(6)
                 .child(
                     IKey.str("Fit")
                         .asWidget()
@@ -240,6 +225,11 @@ public class ReactorGridPanel {
                     return true;
                 }));
 
+        // Close button on the same level
+        headerRow.child(
+            CommonButtons.panelCloseButton()
+                .size(14, 14));
+
         // Layout header row and main grid widget vertically
         panel.child(
             Flow.column()
@@ -249,13 +239,6 @@ public class ReactorGridPanel {
                 .child(
                     gridWidget.fullWidth()
                         .expanded()));
-
-        // Close button at top-right
-        panel.child(
-            CommonButtons.panelCloseButton()
-                .size(14, 14)
-                .top(4)
-                .right(4));
 
         return panel;
     }

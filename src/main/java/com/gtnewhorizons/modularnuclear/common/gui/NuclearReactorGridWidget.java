@@ -11,6 +11,7 @@ import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.play.server.S2FPacketSetSlot;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
@@ -115,12 +116,13 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         int vh = getArea().h();
         if (vw <= 0 || vh <= 0) return;
 
-        float gridPx = N * 18.0f;
-        float scaleX = (vw - 24.0f) / gridPx;
-        float scaleY = (vh - 24.0f) / gridPx;
+        float contentW = N * 18.0f;
+        float contentH = N * 18.0f + 26.0f; // Grid + controller icon spacing
+        float scaleX = (vw - 24.0f) / contentW;
+        float scaleY = (vh - 24.0f) / contentH;
         this.zoom = Math.max(0.25f, Math.min(2.5f, Math.min(scaleX, scaleY)));
-        this.panX = (vw - gridPx * zoom) / 2.0f;
-        this.panY = (vh - gridPx * zoom) / 2.0f;
+        this.panX = (vw - contentW * zoom) / 2.0f;
+        this.panY = (vh - contentH * zoom) / 2.0f;
     }
 
     private void centerGrid() {
@@ -128,9 +130,10 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         if (N <= 0 || getArea() == null) return;
         int vw = getArea().w();
         int vh = getArea().h();
-        float gridPx = N * 18.0f;
-        this.panX = (vw - gridPx * zoom) / 2.0f;
-        this.panY = (vh - gridPx * zoom) / 2.0f;
+        float contentW = N * 18.0f;
+        float contentH = N * 18.0f + 26.0f;
+        this.panX = (vw - contentW * zoom) / 2.0f;
+        this.panY = (vh - contentH * zoom) / 2.0f;
     }
 
     private void zoomAt(float newZoom, float mouseX, float mouseY) {
@@ -141,6 +144,28 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         this.zoom = newZoom;
         this.panX = mouseX - graphX * zoom;
         this.panY = mouseY - graphY * zoom;
+    }
+
+    public int[] getCellAtAbs(int absX, int absY) {
+        Area area = getArea();
+        if (area == null) return null;
+        return getCellAt(absX - area.x, absY - area.y);
+    }
+
+    public boolean isOverControllerAbs(int absX, int absY) {
+        Area area = getArea();
+        if (area == null) return false;
+        return isOverController(absX - area.x, absY - area.y);
+    }
+
+    public boolean isOverController(int mx, int my) {
+        int N = getGridSize();
+        if (N <= 0) return false;
+        double gmx = (mx - panX) / zoom;
+        double gmy = (my - panY) / zoom;
+        int cx = (N * 18 - 18) / 2;
+        int cy = N * 18 + 4;
+        return gmx >= cx && gmx < cx + 18 && gmy >= cy && gmy < cy + 18;
     }
 
     public int[] getCellAt(int mx, int my) {
@@ -175,9 +200,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
             return Interactable.Result.IGNORE;
         }
 
-        int mx = ctx.getMouseX();
-        int my = ctx.getMouseY();
-        int[] cell = getCellAt(mx, my);
+        int[] cell = getCellAtAbs(ctx.getAbsMouseX(), ctx.getAbsMouseY());
 
         if (cell != null && (button == 0 || button == 1)) {
             boolean isShiftDown = GuiScreen.isShiftKeyDown();
@@ -261,7 +284,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         }
 
         if (mIsDraggingGrid && button == mDragButton) {
-            int[] cell = getCellAt(ctx.getMouseX(), ctx.getMouseY());
+            int[] cell = getCellAtAbs(ctx.getAbsMouseX(), ctx.getAbsMouseY());
             if (cell != null) {
                 int code = cell[0] * 1000 + cell[1];
                 if (!mDragVisitedCells.contains(code)) {
@@ -463,15 +486,42 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
             }
         }
 
-        // Hover highlight
-        int[] hCell = getCellAt(context.getMouseX(), context.getMouseY());
+        // Controller Icon slot at center bottom (representing physical multiblock front face)
+        int cx = (N * 18 - 18) / 2;
+        int cy = N * 18 + 4;
+        GuiDraw.drawRect(cx, cy, 18, 18, 0xFF4A5568);
+        GuiDraw.drawRect(cx + 1, cy + 1, 16, 16, 0xFF1A202C);
+        if (com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities.reactor != null) {
+            GuiDraw.drawItem(
+                com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities.reactor.copy(),
+                cx + 1,
+                cy + 1,
+                16,
+                16,
+                0);
+        }
+
+        if (isOverControllerAbs(context.getAbsMouseX(), context.getAbsMouseY())) {
+            GuiDraw.drawRect(cx, cy, 18, 1, 0xFFFFFFFF);
+            GuiDraw.drawRect(cx, cy + 17, 18, 1, 0xFFFFFFFF);
+            GuiDraw.drawRect(cx, cy + 1, 1, 16, 0xFFFFFFFF);
+            GuiDraw.drawRect(cx + 17, cy + 1, 1, 16, 0xFFFFFFFF);
+            GuiDraw.drawRect(cx + 1, cy + 1, 16, 16, 0x30FFFFFF);
+        }
+
+        // Hover highlight with crisp 1px border and subtle tint
+        int[] hCell = getCellAtAbs(context.getAbsMouseX(), context.getAbsMouseY());
         if (hCell != null) {
             int hx = hCell[0];
             int hy = hCell[1];
             int renderHy = (N - 1) - hy;
             int hpx = hx * 18;
             int hpy = renderHy * 18;
-            GuiDraw.drawRect(hpx + 1, hpy + 1, 16, 16, 0x80FFFFFF);
+            GuiDraw.drawRect(hpx, hpy, 18, 1, 0xFFFFFFFF);
+            GuiDraw.drawRect(hpx, hpy + 17, 18, 1, 0xFFFFFFFF);
+            GuiDraw.drawRect(hpx, hpy + 1, 1, 16, 0xFFFFFFFF);
+            GuiDraw.drawRect(hpx + 17, hpy + 1, 1, 16, 0xFFFFFFFF);
+            GuiDraw.drawRect(hpx + 1, hpy + 1, 16, 16, 0x30FFFFFF);
         }
 
         GL11.glPopMatrix();
@@ -486,7 +536,19 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
     private void buildTooltip(RichTooltip tooltip) {
         ModularGuiContext ctx = getContext();
         if (ctx == null) return;
-        int[] hCell = getCellAt(ctx.getMouseX(), ctx.getMouseY());
+        int absX = ctx.getAbsMouseX();
+        int absY = ctx.getAbsMouseY();
+        Area area = getArea();
+        if (area == null || !area.isInside(absX, absY)) return;
+
+        if (isOverControllerAbs(absX, absY)) {
+            tooltip.addLine(EnumChatFormatting.GOLD + "" + EnumChatFormatting.BOLD + "Reactor Controller");
+            tooltip.addLine(EnumChatFormatting.GRAY + "Front center reference position");
+            tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Multiblock structure front face");
+            return;
+        }
+
+        int[] hCell = getCellAtAbs(absX, absY);
         if (hCell == null) return;
 
         ReactorGridSyncData sync = reactor.getClientGridData();
@@ -751,14 +813,14 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
 
         if (gridTile.isBus()) {
             MTEHatchNuclearBus bus = gridTile.getBus();
-            ItemStack slotStack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+            ItemStack slotStack = bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT);
 
             if (isShift) {
                 if (cursorStack == null && slotStack != null) {
                     if (playerMP.inventory.addItemStackToInventory(slotStack)) {
-                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, null);
                     } else if (slotStack.stackSize <= 0) {
-                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, null);
                     }
                     bus.markTileDirty();
                     syncPlayerAndReactor(reactor, playerMP);
@@ -767,15 +829,15 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 if (cursorStack == null) {
                     if (slotStack != null) {
                         playerMP.inventory.setItemStack(slotStack);
-                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, null);
                         bus.markTileDirty();
                         syncPlayerAndReactor(reactor, playerMP);
                     }
-                } else {
+                } else if (bus.isItemAllowed(cursorStack)) {
                     if (slotStack == null) {
                         ItemStack placed = cursorStack.copy();
                         placed.stackSize = 1;
-                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = placed;
+                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, placed);
                         bus.markTileDirty();
                         cursorStack.stackSize--;
                         if (cursorStack.stackSize <= 0) {
@@ -783,7 +845,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                         }
                         syncPlayerAndReactor(reactor, playerMP);
                     } else if (cursorStack.stackSize == 1) {
-                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = cursorStack;
+                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, cursorStack);
                         playerMP.inventory.setItemStack(slotStack);
                         bus.markTileDirty();
                         syncPlayerAndReactor(reactor, playerMP);
@@ -793,14 +855,14 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 if (cursorStack == null) {
                     if (slotStack != null) {
                         playerMP.inventory.setItemStack(slotStack);
-                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, null);
                         bus.markTileDirty();
                         syncPlayerAndReactor(reactor, playerMP);
                     }
-                } else if (slotStack == null) {
+                } else if (slotStack == null && bus.isItemAllowed(cursorStack)) {
                     ItemStack placed = cursorStack.copy();
                     placed.stackSize = 1;
-                    bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = placed;
+                    bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, placed);
                     bus.markTileDirty();
                     cursorStack.stackSize--;
                     if (cursorStack.stackSize <= 0) {
@@ -838,10 +900,10 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
 
                 if (gridTile.isBus()) {
                     MTEHatchNuclearBus bus = gridTile.getBus();
-                    if (bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] == null) {
+                    if (bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT) == null && bus.isItemAllowed(cursorStack)) {
                         ItemStack placed = cursorStack.copy();
                         placed.stackSize = 1;
-                        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = placed;
+                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, placed);
                         bus.markTileDirty();
                         cursorStack.stackSize--;
                         insertedAny = true;
@@ -879,10 +941,10 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
 
         if (gridTile.isBus()) {
             MTEHatchNuclearBus bus = gridTile.getBus();
-            if (bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] == null) {
+            if (bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT) == null && bus.isItemAllowed(cursorStack)) {
                 ItemStack placed = cursorStack.copy();
                 placed.stackSize = 1;
-                bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = placed;
+                bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, placed);
                 bus.markTileDirty();
                 cursorStack.stackSize--;
                 if (cursorStack.stackSize <= 0) {
@@ -903,10 +965,6 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 }
                 syncPlayerAndReactor(reactor, playerMP);
             }
-        } else if (gridTile.isHatch()) {
-            MTEHatchNuclearHatch hatch = gridTile.getHatch();
-            handleFluidHatchClickWithContainer(hatch, playerMP, button);
-            syncPlayerAndReactor(reactor, playerMP);
         }
     }
 
@@ -961,11 +1019,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                     hatch.mInputFluid.amount -= needed;
                     if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
                     if (cursorStack.stackSize == 1) {
-                        if (cursorStack.getItem() instanceof IFluidContainerItem containerItem) {
-                            containerItem.fill(cursorStack, filledFluid, true);
-                        } else {
-                            player.inventory.setItemStack(filled);
-                        }
+                        player.inventory.setItemStack(filled);
                     } else {
                         cursorStack.stackSize--;
                         if (cursorStack.stackSize <= 0) {
@@ -1044,11 +1098,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                         hatch.mInputFluid.amount -= needed;
                         if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
                         if (invStack.stackSize == 1) {
-                            if (invStack.getItem() instanceof IFluidContainerItem containerItem) {
-                                containerItem.fill(invStack, filledFluid, true);
-                            } else {
-                                player.inventory.mainInventory[i] = filled;
-                            }
+                            player.inventory.mainInventory[i] = filled;
                         } else {
                             invStack.stackSize--;
                             if (invStack.stackSize <= 0) player.inventory.mainInventory[i] = null;
@@ -1072,6 +1122,9 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         if (playerMP.openContainer != null) {
             playerMP.openContainer.detectAndSendChanges();
             playerMP.sendContainerToPlayer(playerMP.openContainer);
+        }
+        if (playerMP.playerNetServerHandler != null) {
+            playerMP.playerNetServerHandler.sendPacket(new S2FPacketSetSlot(-1, -1, playerMP.inventory.getItemStack()));
         }
         if (reactor.getBaseMetaTileEntity() != null) {
             reactor.getBaseMetaTileEntity()
