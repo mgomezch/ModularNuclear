@@ -1086,6 +1086,9 @@ public class NuclearSimulationCLI {
         sb.append("\"totalTritium\":")
             .append(grid.getTotalTritiumProduced())
             .append(",");
+        sb.append("\"totalOxygen\":")
+            .append(grid.getTotalOxygenProduced())
+            .append(",");
         sb.append("\"powerEUt\":")
             .append(String.format(java.util.Locale.US, "%.1f", power))
             .append(",");
@@ -1355,7 +1358,10 @@ public class NuclearSimulationCLI {
             .append(cl.getTotalDeuteriumProduced())
             .append(",");
         sb.append("\"totalTritiumProduced\":")
-            .append(cl.getTotalTritiumProduced());
+            .append(cl.getTotalTritiumProduced())
+            .append(",");
+        sb.append("\"totalOxygenProduced\":")
+            .append(cl.getTotalOxygenProduced());
         sb.append("},");
 
         // Byproducts (depleted fuel items, depleted liquid fuels, and isotopes)

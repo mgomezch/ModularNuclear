@@ -424,20 +424,25 @@ public class CoolantLoopModelTest {
         assertEquals(0, loop.getTotalDeuteriumProduced(), "Molten cheese loop must not produce deuterium");
         assertEquals(0, loop.getTotalTritiumProduced(), "Molten cheese loop must not produce tritium");
 
-        // Distilled water produces deuterium
+        // Distilled water produces deuterium and oxygen
         NuclearSimulationEngine.resetDefaultParameters();
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
         for (int t = 1; t <= 30; t++) {
             grid.step();
         }
         assertTrue(loop.getTotalDeuteriumProduced() > 0, "Distilled water loop must produce radiolytic deuterium");
+        assertTrue(loop.getTotalOxygenProduced() > 0, "Distilled water loop must produce radiolytic oxygen");
+        assertEquals(loop.getTotalDeuteriumProduced() / 2, loop.getTotalOxygenProduced(), "Stoichiometry must be 2 D2 to 1 O2");
 
-        // Heavy water produces tritium
+        // Heavy water produces tritium and oxygen
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
+        long prevOxygen = loop.getTotalOxygenProduced();
         for (int t = 1; t <= 30; t++) {
             grid.step();
         }
         assertTrue(loop.getTotalTritiumProduced() > 0, "Heavy water loop must produce radiolytic tritium");
+        assertTrue(loop.getTotalOxygenProduced() > prevOxygen, "Heavy water loop must produce additional radiolytic oxygen");
+        assertEquals(loop.getTotalTritiumProduced() / 2, loop.getTotalOxygenProduced() - prevOxygen, "Stoichiometry must be 2 T2 to 1 O2");
     }
 
     @Test

@@ -161,6 +161,7 @@ public class SimTile implements INuclearTile {
     private int totalSteamProduced = 0;
     private int totalDeuteriumProduced = 0;
     private int totalTritiumProduced = 0;
+    private int totalOxygenProduced = 0;
     private int lastTickProduced = 0;
 
     // Coolant cell state
@@ -282,6 +283,7 @@ public class SimTile implements INuclearTile {
         this.totalSteamProduced = 0;
         this.totalDeuteriumProduced = 0;
         this.totalTritiumProduced = 0;
+        this.totalOxygenProduced = 0;
         this.lastFastFlux = 0;
         this.lastThermalFlux = 0;
         this.lastTotalFlux = 0;
@@ -773,18 +775,20 @@ public class SimTile implements INuclearTile {
         else thermalAbsorbed += count;
 
         // Fast neutron capture transmutation
-        if (nType == NeutronType.FAST && isCoolantHatch() && inputFluidAmount > 0) {
+        if (nType == NeutronType.FAST && isCoolantHatch() && inputFluidAmount >= 2) {
             if (type == TileType.HATCH_DISTILLED_WATER) {
                 int chance = Math.min(1000, count * 25);
                 if (RAND.nextInt(1000) < chance) {
-                    inputFluidAmount -= 1;
-                    totalDeuteriumProduced += 1;
+                    inputFluidAmount -= 2;
+                    totalDeuteriumProduced += 2;
+                    totalOxygenProduced += 1;
                 }
             } else if (type == TileType.HATCH_HEAVY_WATER) {
                 int chance = Math.min(1000, count * 10);
                 if (RAND.nextInt(1000) < chance) {
-                    inputFluidAmount -= 1;
-                    totalTritiumProduced += 1;
+                    inputFluidAmount -= 2;
+                    totalTritiumProduced += 2;
+                    totalOxygenProduced += 1;
                 }
             }
         }
@@ -1159,6 +1163,10 @@ public class SimTile implements INuclearTile {
 
     public int getTotalTritiumProduced() {
         return totalTritiumProduced;
+    }
+
+    public int getTotalOxygenProduced() {
+        return totalOxygenProduced;
     }
 
     public boolean isWasDry() {

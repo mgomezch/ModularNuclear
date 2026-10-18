@@ -5216,7 +5216,7 @@ public class NuclearSimulationEngineTest {
             1e-4,
             "Heavy water high pressure passage moderation must be 0.90");
 
-        // 3. SimTile fast-neutron transmutation rate verification
+        // 3. SimTile fast-neutron transmutation rate and stoichiometry verification
         int dwSuccess = 0;
         int hwSuccess = 0;
         int trials = 10_000;
@@ -5224,12 +5224,22 @@ public class NuclearSimulationEngineTest {
             SimTile testDw = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
             testDw.setInputFluidAmount(1000);
             testDw.onNeutronAbsorbed(NeutronType.FAST, 1);
-            if (testDw.getTotalDeuteriumProduced() > 0) dwSuccess++;
+            if (testDw.getTotalDeuteriumProduced() > 0) {
+                dwSuccess++;
+                assertEquals(2, testDw.getTotalDeuteriumProduced(), "Transmutation must produce 2 L Deuterium");
+                assertEquals(1, testDw.getTotalOxygenProduced(), "Transmutation must produce 1 L Oxygen");
+                assertEquals(998, testDw.getInputFluidAmount(), "Transmutation must consume 2 L water");
+            }
 
             SimTile testHw = new SimTile(SimTile.TileType.HATCH_HEAVY_WATER);
             testHw.setInputFluidAmount(1000);
             testHw.onNeutronAbsorbed(NeutronType.FAST, 1);
-            if (testHw.getTotalTritiumProduced() > 0) hwSuccess++;
+            if (testHw.getTotalTritiumProduced() > 0) {
+                hwSuccess++;
+                assertEquals(2, testHw.getTotalTritiumProduced(), "Transmutation must produce 2 L Tritium");
+                assertEquals(1, testHw.getTotalOxygenProduced(), "Transmutation must produce 1 L Oxygen");
+                assertEquals(998, testHw.getInputFluidAmount(), "Transmutation must consume 2 L heavy water");
+            }
         }
         double dwRate = (double) dwSuccess / trials;
         double hwRate = (double) hwSuccess / trials;

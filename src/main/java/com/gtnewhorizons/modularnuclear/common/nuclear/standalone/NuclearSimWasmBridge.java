@@ -723,6 +723,9 @@ public class NuclearSimWasmBridge {
         sb.append("\"totalTritium\":")
             .append(targetGrid.getTotalTritiumProduced())
             .append(",");
+        sb.append("\"totalOxygen\":")
+            .append(targetGrid.getTotalOxygenProduced())
+            .append(",");
 
         CoolantLoopModel cl = targetGrid.getCoolantLoop();
         sb.append("\"coolantLoop\":{");
@@ -852,6 +855,9 @@ public class NuclearSimWasmBridge {
             .append(",");
         sb.append("\"totalTritiumProduced\":")
             .append(cl.getTotalTritiumProduced())
+            .append(",");
+        sb.append("\"totalOxygenProduced\":")
+            .append(cl.getTotalOxygenProduced())
             .append(",");
         sb.append("\"totalMethaneProduced\":")
             .append(cl.getTotalMethaneProduced())

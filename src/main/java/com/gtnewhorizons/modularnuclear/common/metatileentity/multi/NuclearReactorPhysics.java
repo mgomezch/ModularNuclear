@@ -27,6 +27,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
+import gregtech.api.enums.Materials;
 import gregtech.api.items.ItemRadioactiveCell;
 import gregtech.api.items.ItemRadioactiveCellIC;
 import gregtech.api.util.GTRecipe;
@@ -527,21 +528,37 @@ public class NuclearReactorPhysics {
             if (type == NeutronType.FAST) hatch.mFastAbsorbed += count;
             else hatch.mThermalAbsorbed += count;
 
-            if (type == NeutronType.FAST && hatch.mInputFluid != null && hatch.mInputFluid.amount > 0) {
+            if (type == NeutronType.FAST && hatch.mInputFluid != null && hatch.mInputFluid.amount >= 2) {
                 CoolantFluidData cfd = ReactorDataRegistry.findCoolantFluid(hatch.mInputFluid);
                 if (cfd != null && cfd.transmutationProduct != null && cfd.transmutationChancePerNeutron > 0.0) {
                     double chance = Math.min(1.0, count * cfd.transmutationChancePerNeutron);
                     if (reactor.getRandomNumber(10000) < (int) Math.round(chance * 10000)) {
-                        hatch.mInputFluid.amount -= 1;
+                        hatch.mInputFluid.amount -= 2;
                         if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
-                        reactor.mCycleTransmutationLoss += 1;
+                        reactor.mCycleTransmutationLoss += 2;
                         Fluid prod = FluidRegistry.getFluid(cfd.transmutationProduct);
                         if (prod == null && !cfd.transmutationProduct.startsWith("fluid.")) {
                             prod = FluidRegistry.getFluid("fluid." + cfd.transmutationProduct);
                         }
+                        if (prod == null) {
+                            if ("deuterium".equalsIgnoreCase(cfd.transmutationProduct) && Materials.Deuterium != null) {
+                                prod = Materials.Deuterium.mGas != null ? Materials.Deuterium.mGas : Materials.Deuterium.mFluid;
+                            } else if ("tritium".equalsIgnoreCase(cfd.transmutationProduct) && Materials.Tritium != null) {
+                                prod = Materials.Tritium.mGas != null ? Materials.Tritium.mGas : Materials.Tritium.mFluid;
+                            }
+                        }
                         if (prod != null) {
-                            reactor.addOutputPartial(new FluidStack(prod, 1));
-                            reactor.mCycleTransmutationByproducts += 1;
+                            reactor.addOutputPartial(new FluidStack(prod, 2));
+                            reactor.mCycleTransmutationByproducts += 2;
+                        }
+                        if ("deuterium".equalsIgnoreCase(cfd.transmutationProduct) || "tritium".equalsIgnoreCase(cfd.transmutationProduct)) {
+                            Fluid ox = (Materials.Oxygen != null) ? (Materials.Oxygen.mGas != null ? Materials.Oxygen.mGas : Materials.Oxygen.mFluid) : null;
+                            if (ox == null) ox = FluidRegistry.getFluid("oxygen");
+                            if (ox == null) ox = FluidRegistry.getFluid("fluid.oxygen");
+                            if (ox != null) {
+                                reactor.addOutputPartial(new FluidStack(ox, 1));
+                                reactor.mCycleTransmutationByproducts += 1;
+                            }
                         }
                         hatch.markTileDirty();
                     }

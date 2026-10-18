@@ -54,6 +54,7 @@ public class StandaloneNuclearGrid {
     private double totalEnergyEU = 0;
     private int totalDeuteriumProduced = 0;
     private int totalTritiumProduced = 0;
+    private int totalOxygenProduced = 0;
 
     // Turbine configuration
     private TurbineCalculator.TurbineMaterial turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_E;
@@ -506,6 +507,7 @@ public class StandaloneNuclearGrid {
         this.totalEnergyEU = 0;
         this.totalDeuteriumProduced = 0;
         this.totalTritiumProduced = 0;
+        this.totalOxygenProduced = 0;
         this.negativeTempDetected = false;
         this.negativeTempReason = "";
         this.powerFailed = false;
@@ -862,6 +864,7 @@ public class StandaloneNuclearGrid {
         long cumSteam = 0;
         int dCount = 0;
         int tCount = 0;
+        int oCount = 0;
 
         flowRegularSteam = 0;
         flowSuperheatedSteam = 0;
@@ -877,6 +880,7 @@ public class StandaloneNuclearGrid {
                 cumSteam += tile.getTotalSteamProduced();
                 dCount += tile.getTotalDeuteriumProduced();
                 tCount += tile.getTotalTritiumProduced();
+                oCount += tile.getTotalOxygenProduced();
                 flowDirectEU += tile.getDirectEUProduced();
 
                 int tickProduced = tile.getLastTickProduced();
@@ -909,11 +913,13 @@ public class StandaloneNuclearGrid {
             }
             dCount += (int) coolantLoop.getTotalDeuteriumProduced();
             tCount += (int) coolantLoop.getTotalTritiumProduced();
+            oCount += (int) coolantLoop.getTotalOxygenProduced();
         }
 
         totalSteamProduced = cumSteam;
         totalDeuteriumProduced = dCount;
         totalTritiumProduced = tCount;
+        totalOxygenProduced = oCount;
 
         // Calculate power estimation with tier-specific turbines (LST for EV, XLST for IV+) and heat exchangers
         lastPowerResult = TurbineCalculator.calculatePower(
@@ -1617,6 +1623,10 @@ public class StandaloneNuclearGrid {
         return totalTritiumProduced;
     }
 
+    public int getTotalOxygenProduced() {
+        return totalOxygenProduced;
+    }
+
     public List<TickTelemetry> getHistory() {
         return history;
     }
@@ -1867,8 +1877,11 @@ public class StandaloneNuclearGrid {
         double dPerHour = dPerMin * 60.0;
         double tPerMin = (currentTick > 0) ? ((double) totalTritiumProduced / (double) currentTick) * 1200.0 : 0.0;
         double tPerHour = tPerMin * 60.0;
+        double oPerMin = (currentTick > 0) ? ((double) totalOxygenProduced / (double) currentTick) * 1200.0 : 0.0;
+        double oPerHour = oPerMin * 60.0;
         list.add(new IsotopeByproduct("Deuterium", "D", dPerMin, dPerHour, totalDeuteriumProduced));
         list.add(new IsotopeByproduct("Tritium", "T", tPerMin, tPerHour, totalTritiumProduced));
+        list.add(new IsotopeByproduct("Oxygen", "O", oPerMin, oPerHour, totalOxygenProduced));
         return list;
     }
 
@@ -1905,6 +1918,7 @@ public class StandaloneNuclearGrid {
         map.put("He", new MatAcc("Helium", "He", "L"));
         map.put("D", new MatAcc("Deuterium", "D", "L"));
         map.put("T", new MatAcc("Tritium", "T", "L"));
+        map.put("O", new MatAcc("Oxygen", "O", "L"));
 
         // 1. Solid Fuel Rods (Exact GTNH Recipes from FissionFuelLoader.java & RecipeLoader.java)
         List<SolidFuelByproduct> solid = getSolidFuelByproducts();
@@ -2066,6 +2080,8 @@ public class StandaloneNuclearGrid {
                 map.get("D").producedPerMin += iso.litersPerMinute;
             } else if ("Tritium".equals(iso.name) || "T".equals(iso.code)) {
                 map.get("T").producedPerMin += iso.litersPerMinute;
+            } else if ("Oxygen".equals(iso.name) || "O".equals(iso.code)) {
+                map.get("O").producedPerMin += iso.litersPerMinute;
             }
         }
 

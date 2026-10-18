@@ -1161,6 +1161,7 @@ public class NuclearSimulationWebServer {
                 <div class="stat-row"><span>Steam Produced:</span><span class="stat-val" id="stat-steam">0 L</span></div>
                 <div class="stat-row"><span>Deuterium Bred:</span><span class="stat-val" id="stat-deuterium" style="color:var(--accent);">0 L</span></div>
                 <div class="stat-row"><span>Tritium Bred:</span><span class="stat-val" id="stat-tritium" style="color:#d946ef;">0 L</span></div>
+                <div class="stat-row"><span>Oxygen Generated:</span><span class="stat-val" id="stat-oxygen" style="color:#38bdf8;">0 L</span></div>
                 <div class="stat-row"><span>Power Generation:</span><span class="stat-val safe" id="stat-power">0 EU/t</span></div>
 
                 <!-- Fuel & Coolant Byproducts Subsystem -->
@@ -2068,6 +2069,8 @@ public class NuclearSimulationWebServer {
               document.getElementById("stat-steam").innerText = currentState.totalSteam.toLocaleString() + " L";
               document.getElementById("stat-deuterium").innerText = currentState.totalDeuterium.toLocaleString() + " L";
               document.getElementById("stat-tritium").innerText = currentState.totalTritium.toLocaleString() + " L";
+              const oxEl = document.getElementById("stat-oxygen");
+              if (oxEl) oxEl.innerText = (currentState.totalOxygen ? currentState.totalOxygen.toLocaleString() : "0") + " L";
 
               // Turbine config sync
               const activeEl = document.activeElement;
@@ -2268,6 +2271,9 @@ public class NuclearSimulationWebServer {
                     bypEl.innerText = "None (No Radiolysis)";
                   } else {
                     let bypStr = `${cl.totalDeuteriumProduced.toLocaleString()} L D₂ | ${cl.totalTritiumProduced.toLocaleString()} L T₂`;
+                    if (cl.totalOxygenProduced && cl.totalOxygenProduced > 0) {
+                      bypStr += ` | ${cl.totalOxygenProduced.toLocaleString()} L O₂`;
+                    }
                     if (cl.totalMethaneProduced && cl.totalMethaneProduced > 0) {
                       bypStr += ` | ${cl.totalMethaneProduced.toLocaleString()} L CH₄`;
                     }
@@ -3779,7 +3785,7 @@ public class NuclearSimulationWebServer {
                     const rate = isHour ? iso.litersPerHour : iso.litersPerMin;
                     totalIsoRate += rate;
                     const rateStr = `${rate.toFixed(isHour ? 1 : 2)} ${fluidUnitLabel}`;
-                    const color = (iso.code === "T") ? "#d946ef" : "#38bdf8";
+                    const color = (iso.code === "T") ? "#d946ef" : ((iso.code === "O") ? "#60a5fa" : "#38bdf8");
                     html += `
                       <div style="display:flex; justify-content:space-between; align-items:center; background:#0f172a; border-radius:4px; padding:4px 6px; font-size:0.72rem;">
                         <div style="display:flex; align-items:center; gap:6px;">

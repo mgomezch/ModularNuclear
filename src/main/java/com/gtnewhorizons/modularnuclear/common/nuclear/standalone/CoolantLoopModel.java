@@ -343,6 +343,7 @@ public class CoolantLoopModel {
     // Cumulative stats
     private long totalDeuteriumProduced = 0;
     private long totalTritiumProduced = 0;
+    private long totalOxygenProduced = 0;
     private long totalMethaneProduced = 0;
     private double totalSecondarySteamProduced = 0.0;
     private double totalHeatExtractedJoules = 0.0;
@@ -713,8 +714,10 @@ public class CoolantLoopModel {
                         neutronTransmuteAccumulator %= 4;
                         if (fluidType == CoolantFluidType.HEAVY_WATER) {
                             totalTritiumProduced += cycles * 2L;
+                            totalOxygenProduced += cycles * 1L;
                         } else if (fluidType == CoolantFluidType.DISTILLED_WATER) {
                             totalDeuteriumProduced += cycles * 2L;
+                            totalOxygenProduced += cycles * 1L;
                         }
                         // Radiolysis is strictly disallowed for any other fluid
                     }
@@ -779,6 +782,7 @@ public class CoolantLoopModel {
         this.lastPumpPowerEUt = 0.0;
         this.totalDeuteriumProduced = 0;
         this.totalTritiumProduced = 0;
+        this.totalOxygenProduced = 0;
         this.totalMethaneProduced = 0;
         this.totalSecondarySteamProduced = 0.0;
         this.totalHeatExtractedJoules = 0.0;
@@ -1004,6 +1008,10 @@ public class CoolantLoopModel {
 
     public long getTotalTritiumProduced() {
         return totalTritiumProduced;
+    }
+
+    public long getTotalOxygenProduced() {
+        return totalOxygenProduced;
     }
 
     public long getTotalMethaneProduced() {
