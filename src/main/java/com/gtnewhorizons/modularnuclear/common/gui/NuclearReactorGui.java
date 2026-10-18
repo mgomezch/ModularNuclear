@@ -28,6 +28,7 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.gtnewhorizons.modularnuclear.common.gui.metrics.ReactorMetricsDashboardPanel;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
@@ -65,11 +66,6 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
             "flux",
             new LongSyncValue(() -> (long) multiblock.mNeutronsProduced, v -> multiblock.mNeutronsProduced = (int) v));
         syncManager.syncValue(
-            "fluence",
-            new DoubleSyncValue(
-                () -> (double) multiblock.mCumulativeNeutrons,
-                v -> multiblock.mCumulativeNeutrons = (long) v));
-        syncManager.syncValue(
             "fastAbsorbed",
             new LongSyncValue(() -> (long) multiblock.mFastAbsorbed, v -> multiblock.mFastAbsorbed = (int) v));
         syncManager.syncValue(
@@ -94,7 +90,6 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         IntSyncValue pipeTierSyncer = syncManager.findSyncHandler("pipeTier", IntSyncValue.class);
         DoubleSyncValue reactivitySyncer = syncManager.findSyncHandler("reactivity", DoubleSyncValue.class);
         LongSyncValue fluxSyncer = syncManager.findSyncHandler("flux", LongSyncValue.class);
-        DoubleSyncValue fluenceSyncer = syncManager.findSyncHandler("fluence", DoubleSyncValue.class);
         LongSyncValue fastAbsSyncer = syncManager.findSyncHandler("fastAbsorbed", LongSyncValue.class);
         LongSyncValue thermAbsSyncer = syncManager.findSyncHandler("thermalAbsorbed", LongSyncValue.class);
         LongSyncValue escSyncer = syncManager.findSyncHandler("escapedNeutrons", LongSyncValue.class);
@@ -131,15 +126,6 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
                 () -> "Flux: " + NuclearSimulationEngine.formatNeutronFlux(
                     fluxSyncer != null ? (int) fluxSyncer.getLongValue() : multiblock.mNeutronsProduced))
                 .color(Color.rgb(100, 220, 255))
-                .asWidget()
-                .textAlign(Alignment.CenterLeft));
-
-        // Fluence
-        list.child(
-            IKey.dynamic(
-                () -> "Fluence: " + NuclearSimulationEngine.formatNeutronFluence(
-                    fluenceSyncer != null ? (long) fluenceSyncer.getDoubleValue() : multiblock.mCumulativeNeutrons))
-                .color(Color.rgb(180, 200, 255))
                 .asWidget()
                 .textAlign(Alignment.CenterLeft));
 
@@ -238,6 +224,11 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         // Core Hatches grid floating window button
         row.child(createReactorGridButton(syncManager, parent));
 
+        // Computer Screen metrics dashboard button (if cover present)
+        BooleanSyncValue monitorCoverSyncer = new BooleanSyncValue(multiblock::hasComputerMonitorCover);
+        syncManager.syncValue("monitorCover", monitorCoverSyncer);
+        row.childIf(multiblock.hasComputerMonitorCover(), () -> createMetricsDashboardButton(syncManager, parent));
+
         // SCRAM toggle button
         row.child(createScramButton(syncManager));
 
@@ -270,6 +261,32 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
             .tooltipBuilder(t -> {
                 t.addLine(StatCollector.translateToLocal("GT5U.gui.button.reactor_hatches"));
                 t.addLine(EnumChatFormatting.GRAY + "Open reactor core hatches view");
+            })
+            .tooltipShowUpTimer(TOOLTIP_DELAY);
+    }
+
+    protected ButtonWidget<?> createMetricsDashboardButton(PanelSyncManager syncManager, ModularPanel parent) {
+        IPanelHandler dashboardPanel = syncManager.syncedPanel(
+            ReactorMetricsDashboardPanel.PANEL_NAME,
+            true,
+            (psm, _) -> ReactorMetricsDashboardPanel.createPanel(psm, parent, multiblock));
+
+        return new ButtonWidget<>().size(16, 16)
+            .marginLeft(4)
+            .overlay(new ItemDrawable(ItemList.Cover_Screen.get(1L)))
+            .onMousePressed(d -> {
+                if (!dashboardPanel.isPanelOpen()) {
+                    dashboardPanel.openPanel();
+                } else {
+                    dashboardPanel.closePanel();
+                }
+                return true;
+            })
+            .tooltipBuilder(t -> {
+                t.addLine(StatCollector.translateToLocal("modularnuclear.gui.button.metrics_dashboard"));
+                t.addLine(
+                    EnumChatFormatting.GRAY
+                        + StatCollector.translateToLocal("modularnuclear.gui.button.metrics_dashboard.tooltip"));
             })
             .tooltipShowUpTimer(TOOLTIP_DELAY);
     }

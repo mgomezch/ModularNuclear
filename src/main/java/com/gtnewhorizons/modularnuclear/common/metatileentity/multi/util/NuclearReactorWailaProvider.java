@@ -41,7 +41,6 @@ public class NuclearReactorWailaProvider {
         tag.setInteger("thermalAbsorbed", reactor.mThermalAbsorbed);
         tag.setInteger("escapedNeutrons", reactor.mEscapedNeutrons);
         tag.setDouble("damage", reactor.mReactorDamage);
-        tag.setLong("cumulativeNeutrons", reactor.mCumulativeNeutrons);
 
         int fuelCount = 0;
         int coolantHatchCount = 0;
@@ -130,14 +129,6 @@ public class NuclearReactorWailaProvider {
                 + "Flux: "
                 + EnumChatFormatting.WHITE
                 + NuclearSimulationEngine.formatNeutronFlux(flux));
-
-        long fluence = tag.getLong("cumulativeNeutrons");
-        if (fluence > 0) {
-            list.add(
-                EnumChatFormatting.YELLOW + "Fluence: "
-                    + EnumChatFormatting.WHITE
-                    + NuclearSimulationEngine.formatNeutronFluence(fluence));
-        }
 
         int fast = tag.getInteger("fastAbsorbed");
         int therm = tag.getInteger("thermalAbsorbed");
@@ -260,15 +251,6 @@ public class NuclearReactorWailaProvider {
                 EnumChatFormatting.YELLOW,
                 EnumChatFormatting.RESET,
                 NuclearSimulationEngine.formatNeutronFlux(reactor.mNeutronsProduced)));
-        if (reactor.mCumulativeNeutrons > 0) {
-            list.add(
-                String.format(
-                    Locale.US,
-                    "%sFluence: %s%s",
-                    EnumChatFormatting.YELLOW,
-                    EnumChatFormatting.RESET,
-                    NuclearSimulationEngine.formatNeutronFluence(reactor.mCumulativeNeutrons)));
-        }
         list.add(
             String.format(
                 Locale.US,

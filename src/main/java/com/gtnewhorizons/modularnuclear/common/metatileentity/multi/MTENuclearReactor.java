@@ -34,6 +34,8 @@ import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 import com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGui;
+import com.gtnewhorizons.modularnuclear.common.gui.metrics.ReactorCycleSnapshot;
+import com.gtnewhorizons.modularnuclear.common.gui.metrics.ReactorMetricsHistory;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControl;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
@@ -140,6 +142,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public static final int GUI_MODE_CONTROL_RODS = 5;
     public int mCurrentGuiMode = GUI_MODE_COMPONENTS;
     public ReactorGridSyncData mClientGridData = null;
+
+    // Metrics dashboard state (in-memory, not persisted to NBT)
+    public boolean mSimulateComputerMonitorCover = false;
+    private final ReactorMetricsHistory mMetricsHistory = new ReactorMetricsHistory();
+    public ReactorMetricsHistory mClientMetricsHistory = null;
+    public long mTotalCycles = 0L;
 
     // Client-side Cherenkov radiation state
     public int mClientTier = 1;
@@ -1321,7 +1329,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 mCoreTemp = res.maxTemperature;
                 mAvgTemp = res.averageTemperature;
                 mNeutronsProduced = res.totalNeutronsGenerated;
-                mCumulativeNeutrons += mNeutronsProduced;
                 mFastAbsorbed = res.fastNeutronsAbsorbed;
                 mThermalAbsorbed = res.thermalNeutronsAbsorbed;
                 mEscapedNeutrons = res.neutronsEscaped;
@@ -1443,6 +1450,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 calculateTelemetry();
                 updateControlHatches();
 
+                mTotalCycles++;
+                if (hasComputerMonitorCover()) {
+                    recordMetricsCycleSnapshot(res, maintEff);
+                } else if (!mMetricsHistory.isEmpty()) {
+                    mMetricsHistory.clear();
+                }
+
                 // 6. Meltdown check: triggers strictly when reactor damage reaches 100%
                 if (mReactorDamage >= 100.0) {
                     triggerMeltdown();
@@ -1489,7 +1503,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         aNBT.setInteger("mWallMaintenanceTimer", mWallMaintenanceTimer);
         aNBT.setInteger("mOutputCoolantRate", mOutputCoolantRate);
         aNBT.setString("mOutputCoolantName", mOutputCoolantName != null ? mOutputCoolantName : "");
-        aNBT.setLong("mCumulativeNeutrons", mCumulativeNeutrons);
 
         aNBT.setDouble("mMinTileTemp", mMinTileTemp);
         aNBT.setDouble("mMaxTileTemp", mMaxTileTemp);
@@ -1580,9 +1593,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         mWallMaintenanceTimer = aNBT.getInteger("mWallMaintenanceTimer");
         mOutputCoolantRate = aNBT.getInteger("mOutputCoolantRate");
         mOutputCoolantName = aNBT.getString("mOutputCoolantName");
-        if (aNBT.hasKey("mCumulativeNeutrons")) {
-            mCumulativeNeutrons = aNBT.getLong("mCumulativeNeutrons");
-        }
 
         mMinTileTemp = aNBT.getDouble("mMinTileTemp");
         mMaxTileTemp = aNBT.getDouble("mMaxTileTemp");
@@ -1736,6 +1746,80 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             }
         }
         return data;
+    }
+
+    public boolean hasComputerMonitorCover() {
+        if (mSimulateComputerMonitorCover) return true;
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null) return false;
+        if (!ItemList.Cover_Screen.hasBeenSet()) return false;
+        ItemStack screenStack = ItemList.Cover_Screen.get(1L);
+        if (screenStack == null) return false;
+        for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
+            ItemStack cover = base.getCoverItemAtSide(side);
+            if (cover != null && GTUtility.areStacksEqual(cover, screenStack, true)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean allowCoverOnSide(ForgeDirection side, ItemStack coverItem) {
+        if (ItemList.Cover_Screen.hasBeenSet()
+            && GTUtility.areStacksEqual(coverItem, ItemList.Cover_Screen.get(1L), true)) {
+            return true;
+        }
+        return super.allowCoverOnSide(side, coverItem);
+    }
+
+    public void recordMetricsCycleSnapshot(NuclearSimulationEngine.SimulationResult res, double maintEff) {
+        if (res == null) return;
+        List<Double> temps = new ArrayList<>();
+        List<Double> reactivities = new ArrayList<>();
+
+        if (mGrid != null) {
+            for (int x = 0; x < gridSize; x++) {
+                for (int y = 0; y < gridSize; y++) {
+                    INuclearTile tile = mGrid[x][y];
+                    if (tile != null) {
+                        double t = tile.getTemperature();
+                        temps.add(t);
+                        if (tile.isFuel()) {
+                            double r = NuclearSimulationEngine.calculateEfficiency(tile, t) * 100.0;
+                            reactivities.add(r);
+                        }
+                    }
+                }
+            }
+        }
+
+        ReactorCycleSnapshot snapshot = ReactorCycleSnapshot.create(
+            mTotalCycles,
+            temps,
+            reactivities,
+            res.neutronsEscaped,
+            res.totalNeutronsGenerated,
+            res.thermalNeutronsAbsorbed,
+            mDirectPowerEUt,
+            mProducedHotCoolantLastCycle);
+        mMetricsHistory.addSnapshot(snapshot);
+    }
+
+    public ReactorMetricsHistory getMetricsHistory() {
+        return mMetricsHistory;
+    }
+
+    public ReactorMetricsHistory getClientMetricsHistory() {
+        return mClientMetricsHistory;
+    }
+
+    public ReactorMetricsHistory collectMetricsHistory() {
+        return mMetricsHistory.copy();
+    }
+
+    public void applyMetricsHistory(ReactorMetricsHistory data) {
+        this.mClientMetricsHistory = data;
     }
 
     public List<String> getModeButtonTooltip() {

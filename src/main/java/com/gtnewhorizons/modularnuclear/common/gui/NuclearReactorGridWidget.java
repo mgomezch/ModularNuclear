@@ -632,13 +632,6 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                     + String.format(Locale.US, " (%d fast, %d thermal)", cell.fastFlux, cell.thermalFlux));
         }
 
-        if (cell.cumulativeFluence > 0) {
-            tooltip.addLine(
-                EnumChatFormatting.GRAY + "Neutron fluence: "
-                    + EnumChatFormatting.LIGHT_PURPLE
-                    + NuclearSimulationEngine.formatNeutronFluence(cell.cumulativeFluence));
-        }
-
         int totalAbs = cell.fastAbsorbed + cell.thermalAbsorbed;
         if (totalAbs > 0) {
             tooltip.addLine(

@@ -624,7 +624,6 @@ public class NuclearReactorPhysics {
 
     public static void processControlRodNuclearTick(MTEHatchNuclearControlRod rod, NuclearGridTile tile,
         double efficiency) {
-        rod.mCumulativeFluence += (rod.mFastFlux + rod.mThermalFlux);
         rod.mLastFastFlux = rod.mFastFlux;
         rod.mLastThermalFlux = rod.mThermalFlux;
         rod.mLastFastAbsorbed = rod.mFastAbsorbed;
@@ -640,7 +639,6 @@ public class NuclearReactorPhysics {
         bus.mLastHeatOutput = 0.0;
         ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
         if (stack == null || NuclearFuelClassification.isItemNeutronSource(stack)) {
-            bus.mCumulativeFluence += (bus.mFastFlux + bus.mThermalFlux);
             bus.mLastFastFlux = bus.mFastFlux;
             bus.mLastThermalFlux = bus.mThermalFlux;
             bus.mLastFastAbsorbed = bus.mFastAbsorbed;
@@ -880,7 +878,6 @@ public class NuclearReactorPhysics {
         }
 
         // Reset transient flux counters for next tick's display
-        bus.mCumulativeFluence += (bus.mFastFlux + bus.mThermalFlux);
         bus.mLastFastFlux = bus.mFastFlux;
         bus.mLastThermalFlux = bus.mThermalFlux;
         bus.mLastFastAbsorbed = bus.mFastAbsorbed;
@@ -941,7 +938,6 @@ public class NuclearReactorPhysics {
 
     public static void processHatchNuclearTick(MTENuclearReactor reactor, MTEHatchNuclearHatch hatch,
         NuclearGridTile tile, double efficiency) {
-        hatch.mCumulativeFluence += (hatch.mFastFlux + hatch.mThermalFlux);
         hatch.mLastFastFlux = hatch.mFastFlux;
         hatch.mLastThermalFlux = hatch.mThermalFlux;
         hatch.mLastFastAbsorbed = hatch.mFastAbsorbed;
