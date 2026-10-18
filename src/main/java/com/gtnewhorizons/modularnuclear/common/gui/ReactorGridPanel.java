@@ -106,17 +106,10 @@ public class ReactorGridPanel {
             StatCollector.translateToLocal("gt.gui.modularnuclear.tab.neutron_flux"),
             StatCollector.translateToLocal("gt.gui.modularnuclear.tab.neutron_absorption"),
             StatCollector.translateToLocal("gt.gui.modularnuclear.tab.control_rods") };
-        final String[] TAB_DESCS = { StatCollector.translateToLocal("gt.gui.modularnuclear.tab.components.desc"),
-            StatCollector.translateToLocal("gt.gui.modularnuclear.tab.temperature.desc"),
-            StatCollector.translateToLocal("gt.gui.modularnuclear.tab.heat_output.desc"),
-            StatCollector.translateToLocal("gt.gui.modularnuclear.tab.neutron_flux.desc"),
-            StatCollector.translateToLocal("gt.gui.modularnuclear.tab.neutron_absorption.desc"),
-            StatCollector.translateToLocal("gt.gui.modularnuclear.tab.control_rods.desc") };
 
         for (int i = 0; i < MODES.length; i++) {
             final int mode = MODES[i];
             final String tabName = TAB_NAMES[i];
-            final String tabDesc = TAB_DESCS[i];
             ItemStack icon = switch (mode) {
                 case MTENuclearReactor.GUI_MODE_COMPONENTS -> ItemList.RodUranium.get(1L);
                 case MTENuclearReactor.GUI_MODE_TEMPERATURE -> new ItemStack(Items.fire_charge);
@@ -142,7 +135,6 @@ public class ReactorGridPanel {
                     t.addLine(
                         (active ? (EnumChatFormatting.GREEN + "" + EnumChatFormatting.BOLD) : EnumChatFormatting.WHITE)
                             + tabName);
-                    t.addLine(EnumChatFormatting.GRAY + tabDesc);
                     if (active) {
                         t.addLine(
                             EnumChatFormatting.AQUA

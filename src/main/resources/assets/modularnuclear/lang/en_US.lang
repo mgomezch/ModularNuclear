@@ -94,17 +94,11 @@ item.modularnuclear.sensorkit.desc=Right-click on MPTR reactor to link and creat
 
 # GUI Tabs
 gt.gui.modularnuclear.tab.components=Components
-gt.gui.modularnuclear.tab.components.desc=View fuel rods, coolant, insulators, etc.
 gt.gui.modularnuclear.tab.temperature=Temperature
-gt.gui.modularnuclear.tab.temperature.desc=Heatmap for hatch temperatures
 gt.gui.modularnuclear.tab.heat_output=Heat output
-gt.gui.modularnuclear.tab.heat_output.desc=Heatmap for usable heat removed by coolant items/fluids
 gt.gui.modularnuclear.tab.neutron_flux=Neutron flux
-gt.gui.modularnuclear.tab.neutron_flux.desc=Heatmap for fast+thermal neutron flux intensity
 gt.gui.modularnuclear.tab.neutron_absorption=Neutron absorption
-gt.gui.modularnuclear.tab.neutron_absorption.desc=Heatmap for neutron absorption+transmutation
 gt.gui.modularnuclear.tab.control_rods=Control rods
-gt.gui.modularnuclear.tab.control_rods.desc=Inspect control rod insertion levels
 gt.gui.modularnuclear.tab.active=● Currently active tab
 gt.gui.modularnuclear.tab.switch=Click to switch to this tab
 
