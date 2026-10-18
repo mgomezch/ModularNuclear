@@ -90,15 +90,14 @@ public class ItemCustomFuelRod extends ItemRadioactiveCell {
             for (Map.Entry<CustomFuelMix.ActinideIsotope, Double> entry : mix.getIsotopeFractions()
                 .entrySet()) {
                 double pct = entry.getValue() * 100.0;
-                EnumChatFormatting color = entry.getKey().fissile ? EnumChatFormatting.AQUA : EnumChatFormatting.GREEN;
                 aList.add(
                     String.format(
                         Locale.US,
-                        "  %s%s: %.1f%% (%s)",
-                        color,
+                        "  %s%s: %s%.1f%%",
+                        EnumChatFormatting.AQUA,
                         entry.getKey().symbol,
-                        pct,
-                        entry.getKey().fissile ? "Fissile" : "Fertile"));
+                        EnumChatFormatting.WHITE,
+                        pct));
             }
             aList.add(
                 String.format(

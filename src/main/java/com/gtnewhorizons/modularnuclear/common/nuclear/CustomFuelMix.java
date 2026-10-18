@@ -40,15 +40,15 @@ public class CustomFuelMix {
 
     public enum ActinideIsotope {
 
-        THORIUM("Thorium", "Th-232", 580.0, 2200.0, 1.00, 0.08, 8, 400000, false),
-        URANIUM_238("Uranium-238", "U-238", 673.8, 2250.0, 1.09, 0.09, 10, 174000, false),
-        URANIUM_235("Uranium-235", "U-235", 1540.0, 2700.0, 2.50, 0.15, 64, 48000, true),
-        PLUTONIUM_239("Plutonium-239", "Pu-239", 1350.0, 2600.0, 2.10, 0.20, 48, 200000, true),
-        PLUTONIUM_241("Plutonium-241", "Pu-241", 1730.0, 2800.0, 2.90, 0.25, 96, 80000, true),
-        URANIUM_233("Uranium-233", "U-233", 1150.0, 2500.0, 1.80, 0.12, 32, 320000, true),
-        AMERICIUM("Americium", "Am-241", 1250.0, 2600.0, 1.90, 0.18, 40, 240000, true),
-        CALIFORNIUM("Californium", "Cf-252", 1600.0, 2750.0, 2.60, 0.22, 80, 144000, true),
-        NAQUADAH("Naquadah", "Nq", 1920.0, 2900.0, 3.40, 0.25, 64, 800000, true);
+        THORIUM("Thorium", "Th-232", 580.0, 2200.0, 1.00, 0.08, 8, 400000),
+        URANIUM_238("Uranium-238", "U-238", 673.8, 2250.0, 1.09, 0.09, 10, 174000),
+        URANIUM_235("Uranium-235", "U-235", 1540.0, 2700.0, 2.50, 0.15, 64, 48000),
+        PLUTONIUM_239("Plutonium-239", "Pu-239", 1350.0, 2600.0, 2.10, 0.20, 48, 200000),
+        PLUTONIUM_241("Plutonium-241", "Pu-241", 1730.0, 2800.0, 2.90, 0.25, 96, 80000),
+        URANIUM_233("Uranium-233", "U-233", 1150.0, 2500.0, 1.80, 0.12, 32, 320000),
+        AMERICIUM("Americium", "Am-241", 1250.0, 2600.0, 1.90, 0.18, 40, 240000),
+        CALIFORNIUM("Californium", "Cf-252", 1600.0, 2750.0, 2.60, 0.22, 80, 144000),
+        NAQUADAH("Naquadah", "Nq", 1920.0, 2900.0, 3.40, 0.25, 64, 800000);
 
         public final String displayName;
         public final String symbol;
@@ -58,11 +58,9 @@ public class CustomFuelMix {
         public final double baseFastFissionMultiplier;
         public final int baseNeutrons;
         public final int baseDurability;
-        public final boolean fissile;
 
         ActinideIsotope(String displayName, String symbol, double peakReactivityTemp, double floorTemp,
-            double baseThermalFissionMultiplier, double baseFastFissionMultiplier, int baseNeutrons, int baseDurability,
-            boolean fissile) {
+            double baseThermalFissionMultiplier, double baseFastFissionMultiplier, int baseNeutrons, int baseDurability) {
             this.displayName = displayName;
             this.symbol = symbol;
             this.peakReactivityTemp = peakReactivityTemp;
@@ -71,7 +69,6 @@ public class CustomFuelMix {
             this.baseFastFissionMultiplier = baseFastFissionMultiplier;
             this.baseNeutrons = baseNeutrons;
             this.baseDurability = baseDurability;
-            this.fissile = fissile;
         }
 
         public static ActinideIsotope fromMaterial(Materials mat) {
@@ -165,7 +162,6 @@ public class CustomFuelMix {
     public final double damageA;
     public final double temp10Percent;
     public final double damageRatio;
-    public final double fissileFraction;
 
     public CustomFuelMix(Map<ActinideIsotope, Integer> units) {
         int total = 0;
@@ -186,7 +182,6 @@ public class CustomFuelMix {
         double sumFastMult = 0.0;
         double sumNeutrons = 0.0;
         double sumDurability = 0.0;
-        double sumFissile = 0.0;
 
         for (Map.Entry<ActinideIsotope, Integer> entry : isotopeUnits.entrySet()) {
             ActinideIsotope iso = entry.getKey();
@@ -199,9 +194,6 @@ public class CustomFuelMix {
             sumFastMult += frac * iso.baseFastFissionMultiplier;
             sumNeutrons += frac * iso.baseNeutrons;
             sumDurability += frac * iso.baseDurability;
-            if (iso.fissile) {
-                sumFissile += frac;
-            }
         }
 
         this.peakReactivityTemp = Math.round(sumPeak * 10.0) / 10.0;
@@ -210,7 +202,6 @@ public class CustomFuelMix {
         this.baseFastFissionMultiplier = Math.round(sumFastMult * 100.0) / 100.0;
         this.baseNeutrons = Math.max(4, (int) Math.round(sumNeutrons));
         this.defaultDurability = Math.max(8000, (int) Math.round(sumDurability));
-        this.fissileFraction = sumFissile;
 
         FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver
             .solve(null, this.peakReactivityTemp, this.floorTemp, 20.0, FuelDamageCurveSolver.DEFAULT_T10_WEAR_FACTOR);

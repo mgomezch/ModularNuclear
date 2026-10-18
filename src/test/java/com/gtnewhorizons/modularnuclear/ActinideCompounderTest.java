@@ -106,7 +106,6 @@ public class ActinideCompounderTest {
             mix.getIsotopeFractions()
                 .get(ActinideIsotope.PLUTONIUM_239),
             1e-4);
-        assertEquals(1.0, mix.fissileFraction, 1e-4);
 
         // Peak temp = 0.5 * 1540.0 + 0.5 * 1350.0 = 1445.0 °C
         assertEquals(1445.0, mix.peakReactivityTemp, 1e-1);
@@ -452,7 +451,6 @@ public class ActinideCompounderTest {
         assertEquals(1.00, mix.baseThermalFissionMultiplier, 1e-4);
         assertEquals(0.08, mix.baseFastFissionMultiplier, 1e-4);
         assertEquals(400000, mix.defaultDurability);
-        assertEquals(0.0, mix.fissileFraction, 1e-4); // Fertile matrix
     }
 
     @Test
@@ -472,7 +470,6 @@ public class ActinideCompounderTest {
         assertEquals(3.40, mix.baseThermalFissionMultiplier, 1e-4);
         assertEquals(0.25, mix.baseFastFissionMultiplier, 1e-4);
         assertEquals(800000, mix.defaultDurability);
-        assertEquals(1.0, mix.fissileFraction, 1e-4);
     }
 
     @Test
@@ -511,7 +508,6 @@ public class ActinideCompounderTest {
         assertEquals(2.50, mix.baseThermalFissionMultiplier, 1e-4);
         assertEquals(0.15, mix.baseFastFissionMultiplier, 1e-4);
         assertEquals(48000, mix.defaultDurability);
-        assertEquals(1.0, mix.fissileFraction, 1e-4);
     }
 
     @Test
@@ -527,7 +523,6 @@ public class ActinideCompounderTest {
         assertEquals(1.80, mix.baseThermalFissionMultiplier, 1e-4);
         assertEquals(0.12, mix.baseFastFissionMultiplier, 1e-4);
         assertEquals(320000, mix.defaultDurability);
-        assertEquals(1.0, mix.fissileFraction, 1e-4);
     }
 
     @Test
@@ -543,7 +538,6 @@ public class ActinideCompounderTest {
         assertEquals(2.90, mix.baseThermalFissionMultiplier, 1e-4);
         assertEquals(0.25, mix.baseFastFissionMultiplier, 1e-4);
         assertEquals(80000, mix.defaultDurability);
-        assertEquals(1.0, mix.fissileFraction, 1e-4);
     }
 
     @Test
@@ -559,7 +553,6 @@ public class ActinideCompounderTest {
         assertEquals(2.10, mix.baseThermalFissionMultiplier, 1e-4);
         assertEquals(0.20, mix.baseFastFissionMultiplier, 1e-4);
         assertEquals(200000, mix.defaultDurability);
-        assertEquals(1.0, mix.fissileFraction, 1e-4);
     }
 
     private static class MockNuclearTile implements INuclearTile {
