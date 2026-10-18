@@ -77,9 +77,9 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         tt.addMachineType("Actinide Fuel Compounder")
             .addInfo("Compounds custom nuclear fuel mixes from actinide dusts")
             .addInfo("Requires an explicit Programmed Circuit in the input bus (not consumed):")
-            .addInfo("  Circuit 1: 1 Single Fuel Rod (1 empty rod, 25 L Tritium, 2.5 dusts / 90 units, 7.5s)")
-            .addInfo("  Circuit 2: 1 Dual Fuel Rod (2 empty rods, 50 L Tritium, 5.0 dusts / 180 units, 15s)")
-            .addInfo("  Circuit 4: 1 Quad Fuel Rod (4 empty rods, 100 L Tritium, 10.0 dusts / 360 units, 30s)")
+            .addInfo("  Circuit 1: 1 Single Fuel Rod (1 empty rod, 25 L Tritium, 2.5 dusts / 90 units, 7.5s, 1,920 EU/t [EV])")
+            .addInfo("  Circuit 2: 1 Dual Fuel Rod (2 empty rods, 50 L Tritium, 5.0 dusts / 180 units, 15s, 7,680 EU/t [IV])")
+            .addInfo("  Circuit 4: 1 Quad Fuel Rod (4 empty rods, 100 L Tritium, 10.0 dusts / 360 units, 30s, 30,720 EU/t [LuV])")
             .addInfo("  (Regular dust = 36 units [1.0], Small dust = 9 units [0.25], Tiny dust = 4 units [0.11])")
             .addSeparator()
             .beginStructureBlock(3, 3, 3, true)
@@ -88,7 +88,7 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
             .addInputBus("Any casing", 1)
             .addOutputBus("Any casing", 1)
             .addInputHatch("Any casing", 1)
-            .addEnergyHatch("Any casing", 1)
+            .addEnergyHatch("Any casing (minimum EV for single, IV for dual, LuV for quad)", 1)
             .addMaintenanceHatch("Any casing", 1)
             .toolTipFinisher("Modular Nuclear");
         return tt;
@@ -309,6 +309,14 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         return 0; // No circuit found
     }
 
+    public static int getPowerRequirement(int rodSize) {
+        return switch (rodSize) {
+            case 1 -> 1920;   // 15/16 of EV (2048)
+            case 2 -> 7680;   // 15/16 of IV (8192)
+            default -> 30720; // 15/16 of LuV (32768)
+        };
+    }
+
     @Override
     public boolean checkRecipe(ItemStack aStack) {
         checkMaintenance();
@@ -453,7 +461,7 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
 
         this.mOutputItems = new ItemStack[] { output };
         this.mMaxProgresstime = recipeTime;
-        this.mEUt = -512; // EV tier
+        this.mEUt = -getPowerRequirement(targetRodSize);
         this.mEfficiency = 10000;
         this.mEfficiencyIncrease = 10000;
 

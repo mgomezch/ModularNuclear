@@ -250,6 +250,13 @@ public class ActinideCompounderTest {
     }
 
     @Test
+    void testActinideCompounderPowerRequirements() {
+        assertEquals(1920, MTEActinideCompounder.getPowerRequirement(1), "Single rod requires 1920 EU/t (15/16 EV)");
+        assertEquals(7680, MTEActinideCompounder.getPowerRequirement(2), "Dual rod requires 7680 EU/t (15/16 IV)");
+        assertEquals(30720, MTEActinideCompounder.getPowerRequirement(4), "Quad rod requires 30720 EU/t (15/16 LuV)");
+    }
+
+    @Test
     void testSingleAndDualCustomFuelItemsAndDepletedForm() {
         // Test Single
         assertEquals(1, ModItems.rodCustomFuel1.rodSize);
