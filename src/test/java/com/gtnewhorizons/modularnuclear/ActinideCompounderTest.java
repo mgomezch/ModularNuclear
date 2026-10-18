@@ -123,8 +123,8 @@ public class ActinideCompounderTest {
         // Base neutrons = 0.5 * 24 + 0.5 * 32 = 28
         assertEquals(28, mix.baseNeutrons);
 
-        // Base durability = 0.5 * 20000 + 0.5 * 20000 = 20000
-        assertEquals(20000, mix.defaultDurability);
+        // Base durability = 0.5 * 160000 + 0.5 * 160000 = 160000
+        assertEquals(160000, mix.defaultDurability);
 
         // Reactivity curve checks
         assertEquals(0.50, mix.calculateReactivity(0.0), 1e-3);

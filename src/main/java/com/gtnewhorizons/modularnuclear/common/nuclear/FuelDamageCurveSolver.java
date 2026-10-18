@@ -29,6 +29,7 @@ import javax.imageio.ImageIO;
 public class FuelDamageCurveSolver {
 
     public static final double DEFAULT_AMBIENT_TEMP = 20.0;
+    public static final double DEFAULT_T10_WEAR_FACTOR = 8.0;
     public static final double P_10_PERCENT = Math.acos(-17.0 / 19.0) / Math.PI; // ~0.8525547
 
     public static class FuelCurveStats {
@@ -87,13 +88,27 @@ public class FuelDamageCurveSolver {
      * Solves the exponential parameters (k, A) for a given fuel type and ambient temperature.
      */
     public static FuelCurveStats solve(NuclearFuelType fuel, double ambientTemp) {
-        return solve(fuel, fuel.peakReactivityTemp, fuel.floorTemp, ambientTemp);
+        double wear = (fuel != null && fuel.wearFactor > 1.0) ? fuel.wearFactor : DEFAULT_T10_WEAR_FACTOR;
+        return solve(fuel, fuel.peakReactivityTemp, fuel.floorTemp, ambientTemp, wear);
     }
 
     /**
-     * Solves the exponential parameters (k, A) given peak and floor temperatures.
+     * Solves the exponential parameters (k, A) given peak and floor temperatures using the default wear factor.
      */
     public static FuelCurveStats solve(NuclearFuelType fuel, double tPeak, double tFloor, double ambientTemp) {
+        return solve(fuel, tPeak, tFloor, ambientTemp, DEFAULT_T10_WEAR_FACTOR);
+    }
+
+    /**
+     * Solves the exponential parameters (k, A) given peak, floor temperatures, and wear factor at T_10%.
+     *
+     * @param wearFactor ratio of damage rate at T_10% to damage rate at T_peak (default 8.0).
+     */
+    public static FuelCurveStats solve(NuclearFuelType fuel, double tPeak, double tFloor, double ambientTemp, double wearFactor) {
+        if (wearFactor <= 1.0) {
+            wearFactor = DEFAULT_T10_WEAR_FACTOR;
+        }
+        double targetRatio = 1.0 / wearFactor;
         double safeAmbient = Math.min(ambientTemp, tPeak - 10.0);
         double t10 = tPeak + P_10_PERCENT * (tFloor - tPeak);
         double dtPeak = tPeak - safeAmbient;
@@ -101,17 +116,17 @@ public class FuelDamageCurveSolver {
         double linearRatio = (dt10 > 0.0) ? (dtPeak / dt10) : 1.0;
 
         double k;
-        if (linearRatio <= 0.25) {
-            // Linear limit is already <= 25%, pick small k for smooth, gentle exponential
+        if (linearRatio <= targetRatio) {
+            // Linear limit is already <= targetRatio, pick small k for smooth, gentle exponential
             k = 0.0001;
         } else {
-            // Solve (exp(k*dtPeak) - 1) / (exp(k*dt10) - 1) = 0.25 via bisection
+            // Solve (exp(k*dtPeak) - 1) / (exp(k*dt10) - 1) = targetRatio via bisection
             double low = 1e-7;
             double high = 0.1;
             for (int iter = 0; iter < 80; iter++) {
                 double mid = (low + high) * 0.5;
                 double val = (Math.exp(mid * dtPeak) - 1.0) / (Math.exp(mid * dt10) - 1.0);
-                if (val > 0.25) {
+                if (val > targetRatio) {
                     low = mid;
                 } else {
                     high = mid;

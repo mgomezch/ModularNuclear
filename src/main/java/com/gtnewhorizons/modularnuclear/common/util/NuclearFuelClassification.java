@@ -263,7 +263,7 @@ public final class NuclearFuelClassification {
             || (ModItems.rodCustomFuel4 != null && stack.getItem() == ModItems.rodCustomFuel4)) {
             if (!CustomFuelMix.hasCustomMix(stack)) return false;
             CustomFuelMix mix = CustomFuelMix.fromStack(stack);
-            int maxDur = (mix != null) ? mix.defaultDurability : 20000;
+            int maxDur = (mix != null) ? mix.defaultDurability : 160000;
             return stack.getItemDamage() < maxDur;
         }
 

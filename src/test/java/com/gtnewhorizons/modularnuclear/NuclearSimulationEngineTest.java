@@ -2537,7 +2537,7 @@ public class NuclearSimulationEngineTest {
         assertTrue(core.isFuel());
         assertFalse(core.isHatch());
         assertEquals(512, core.generateNeutrons(1.0));
-        assertEquals(320000, core.getMaxDurability());
+        assertEquals(2560000, core.getMaxDurability());
 
         // Test Liquid Uranium Fuel Hatch
         SimTile liquidU = new SimTile(SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM);
@@ -5983,6 +5983,72 @@ public class NuclearSimulationEngineTest {
         ItemStack silverIngotStack = new ItemStack(mockSilverIngot, 1, 0);
         assertNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(silverIngotStack),
             "Silver ingot must not be classified as a control rod (wildcards eliminated)");
+    }
+
+    @Test
+    void testFuelDurability8xT10WearFactorAndLiquidHatchRayScaling() {
+        // 1. Verify 8x durability across all rods
+        assertEquals(160000, NuclearFuelType.URANIUM.defaultDurability);
+        assertEquals(80000, NuclearFuelType.MOX.defaultDurability);
+        assertEquals(400000, NuclearFuelType.THORIUM.defaultDurability);
+        assertEquals(80000, NuclearFuelType.GLOWSTONE.defaultDurability);
+        assertEquals(80000, NuclearFuelType.LITHIUM.defaultDurability);
+        assertEquals(560000, NuclearFuelType.HD_URANIUM.defaultDurability);
+        assertEquals(560000, NuclearFuelType.HD_PLUTONIUM.defaultDurability);
+        assertEquals(48000, NuclearFuelType.EXCITED_URANIUM.defaultDurability);
+        assertEquals(80000, NuclearFuelType.EXCITED_PLUTONIUM.defaultDurability);
+        assertEquals(800000, NuclearFuelType.NAQUADAH.defaultDurability);
+        assertEquals(800000, NuclearFuelType.NAQUADRIA.defaultDurability);
+        assertEquals(400000, NuclearFuelType.TIBERIUM.defaultDurability);
+        assertEquals(2560000, NuclearFuelType.THE_CORE.defaultDurability);
+
+        // 2. Verify T10 wear factor: D(T10) = 8.0 by default
+        com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver.FuelCurveStats uStats =
+            com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver.solve(NuclearFuelType.URANIUM, 20.0);
+        assertEquals(1.0, uStats.damageAtPeak, 1e-4);
+        assertEquals(8.0, uStats.damageAt10Percent, 1e-4);
+        assertEquals(12.5, uStats.damageRatioPercent, 1e-2); // 1.0 / 8.0 = 12.5%
+
+        // Custom wear factor override test (e.g. 4.0)
+        com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver.FuelCurveStats customStats =
+            com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver.solve(NuclearFuelType.URANIUM,
+                NuclearFuelType.URANIUM.peakReactivityTemp, NuclearFuelType.URANIUM.floorTemp, 20.0, 4.0);
+        assertEquals(1.0, customStats.damageAtPeak, 1e-4);
+        assertEquals(4.0, customStats.damageAt10Percent, 1e-4);
+        assertEquals(25.0, customStats.damageRatioPercent, 1e-2); // 1.0 / 4.0 = 25%
+
+        // 3. Liquid fuel hatch ray count scaling with fluid amount
+        SimTile hatch = new SimTile(SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM);
+
+        // Empty hatch -> 0 rays
+        hatch.setInputFluidAmount(0);
+        assertEquals(0, hatch.getNeutronEmissionCount());
+
+        // Full LV hatch (8000 L) -> exactly 1 ray
+        hatch.setInputFluidAmount(8000);
+        assertEquals(1, hatch.getNeutronEmissionCount());
+
+        // Full MV hatch (16000 L) -> exactly 2 rays
+        hatch.setInputFluidCapacity(16000);
+        hatch.setInputFluidAmount(16000);
+        assertEquals(2, hatch.getNeutronEmissionCount());
+
+        // Full HV hatch (32000 L) -> exactly 4 rays
+        hatch.setInputFluidCapacity(32000);
+        hatch.setInputFluidAmount(32000);
+        assertEquals(4, hatch.getNeutronEmissionCount());
+
+        // Partially filled hatch (4000 L = 0.5 LV equivalent) -> probabilistic 0 or 1, averaging ~0.5
+        hatch.setInputFluidAmount(4000);
+        int totalRays = 0;
+        int trials = 2000;
+        for (int i = 0; i < trials; i++) {
+            int count = hatch.getNeutronEmissionCount();
+            assertTrue(count == 0 || count == 1, "4000 L must emit 0 or 1 ray");
+            totalRays += count;
+        }
+        double avg = (double) totalRays / trials;
+        assertEquals(0.50, avg, 0.06, "Partially filled hatch at 4000 L must average 0.5 rays per cycle");
     }
 
     private static void deleteRecursively(File file) {

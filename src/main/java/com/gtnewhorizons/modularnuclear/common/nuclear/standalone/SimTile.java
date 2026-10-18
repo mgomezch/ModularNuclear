@@ -569,6 +569,13 @@ public class SimTile implements INuclearTile {
 
     @Override
     public int getNeutronEmissionCount() {
+        if (isLiquidFuelHatch()) {
+            if (inputFluidAmount <= 0) return 0;
+            double expected = (double) inputFluidAmount / 8000.0;
+            int base = (int) Math.floor(expected);
+            double frac = expected - base;
+            return base + (RAND.nextDouble() < frac ? 1 : 0);
+        }
         return switch (type) {
             case FUEL_URANIUM_SINGLE, FUEL_MOX_SINGLE, FUEL_THORIUM_SINGLE, FUEL_GLOWSTONE, FUEL_LITHIUM -> 1;
             case FUEL_URANIUM_DUAL, FUEL_MOX_DUAL, FUEL_THORIUM_DUAL -> 2;

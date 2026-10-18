@@ -30,9 +30,10 @@ public class FuelData {
     // Thermodynamic parameters
     public double heatTransferCoeff = 0.05;
     public double heatPerReaction = 2.0;
-    public int defaultDurability = 10000;
+    public int defaultDurability = 160000;
     public double peakReactivityTemp = 770.0;
     public double floorTemp = 2300.0;
+    public Double t10WearFactor = null; // per-fuel override, null falls back to global PhysicsData.t10WearFactor
 
     // Depletion / Damage Curve profile
     public double peakReactivityMult = 1.0;
@@ -110,12 +111,20 @@ public class FuelData {
 
     private synchronized void ensureSolver() {
         if (!solverInitialized) {
+            double wear = (t10WearFactor != null && t10WearFactor > 1.0) ? t10WearFactor
+                : (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics() != null
+                    ? com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics().t10WearFactor
+                    : FuelDamageCurveSolver.DEFAULT_T10_WEAR_FACTOR);
             FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver
-                .solve(null, peakReactivityTemp, floorTemp, 20.0);
+                .solve(null, peakReactivityTemp, floorTemp, 20.0, wear);
             this.damageK = stats.k;
             this.damageA = stats.A;
             this.solverInitialized = true;
         }
+    }
+
+    public synchronized void resetSolver() {
+        this.solverInitialized = false;
     }
 
     /**
@@ -183,6 +192,11 @@ public class FuelData {
         fd.defaultDurability = PhysicsData.getInt(map, "default_durability", fd.defaultDurability);
         fd.peakReactivityTemp = PhysicsData.getDouble(map, "peak_reactivity_temp", fd.peakReactivityTemp);
         fd.floorTemp = PhysicsData.getDouble(map, "floor_temp", fd.floorTemp);
+        if (map.containsKey("t10_wear_factor")) {
+            fd.t10WearFactor = PhysicsData.getDouble(map, "t10_wear_factor", 8.0);
+        } else if (map.containsKey("wear_factor_at_t10")) {
+            fd.t10WearFactor = PhysicsData.getDouble(map, "wear_factor_at_t10", 8.0);
+        }
         fd.spentProduct = (String) map.get("spent_product");
 
         Object curveObj = map.get("damage_curve");
@@ -234,6 +248,7 @@ public class FuelData {
         m.put("default_durability", defaultDurability);
         m.put("peak_reactivity_temp", peakReactivityTemp);
         m.put("floor_temp", floorTemp);
+        if (t10WearFactor != null) m.put("t10_wear_factor", t10WearFactor);
         if (spentProduct != null) m.put("spent_product", spentProduct);
 
         Map<String, Object> curve = new LinkedHashMap<>();

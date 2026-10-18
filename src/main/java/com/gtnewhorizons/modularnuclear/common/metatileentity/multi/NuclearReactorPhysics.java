@@ -39,6 +39,8 @@ import ic2.core.item.reactor.ItemReactorUranium;
 
 public class NuclearReactorPhysics {
 
+    private static final java.util.Random RAND = new java.util.Random();
+
     public static double getTileTemperature(MTENuclearReactor reactor, NuclearGridTile tile) {
         if (tile.isBus()) return tile.getBus().mTemperature;
         if (tile.isHatch()) return tile.getHatch().mTemperature;
@@ -305,11 +307,13 @@ public class NuclearReactorPhysics {
         }
         if (tile.isHatch()) {
             FluidStack fluid = tile.getHatch().mInputFluid;
-            if (fluid != null) {
-                FuelData fd = ReactorDataRegistry.findFuel(fluid);
-                if (fd != null) return fd.packetCount;
+            if (fluid != null && fluid.amount > 0 && MTENuclearReactor.isFluidFuel(fluid)) {
+                double expected = (double) fluid.amount / 8000.0;
+                int base = (int) Math.floor(expected);
+                double frac = expected - base;
+                return base + (RAND.nextDouble() < frac ? 1 : 0);
             }
-            return 4;
+            return 0;
         }
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];

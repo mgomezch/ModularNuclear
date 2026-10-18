@@ -558,7 +558,8 @@ public class NuclearSimulationEngine {
 
                 INuclearTile sourceTile = grid[i][j];
                 boolean isExternalSource = sourceTile != null && sourceTile.isNeutronSource();
-                int rayCount = isExternalSource ? 4 : ((sourceTile != null) ? Math.max(1, sourceTile.getNeutronEmissionCount()) : 1);
+                int rayCount = isExternalSource ? 4 : ((sourceTile != null) ? sourceTile.getNeutronEmissionCount() : 1);
+                if (rayCount <= 0) continue;
                 int nPerRay = N / rayCount;
                 int rem = N % rayCount;
 
