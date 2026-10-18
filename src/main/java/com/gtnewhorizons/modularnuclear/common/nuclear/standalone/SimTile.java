@@ -43,6 +43,9 @@ public class SimTile implements INuclearTile {
         HATCH_IC2_COOLANT("IC2 Coolant Hatch", "HC"),
         REFLECTOR_BERYLLIUM("Beryllium Reflector", "RB"),
         REFLECTOR_CARBON("Carbon Reflector", "RC"),
+        REFLECTOR_GOLD("Gold Plate Reflector", "RG"),
+        REFLECTOR_STAINLESS("Stainless Steel Plate Reflector", "RS"),
+        REFLECTOR_TUNGSTEN_CARBIDE("Tungsten Carbide Plate Reflector", "RT"),
         MODERATOR_GRAPHITE("Graphite Moderator", "MG"),
         MODERATOR_CARBON("Carbon Moderator", "MC"),
         MODERATOR_BERYLLIUM("Beryllium Moderator", "MB"),
@@ -443,6 +446,9 @@ public class SimTile implements INuclearTile {
             case COOLANT_CELL_10K, COOLANT_CELL_60K, COOLANT_CELL_360K -> 0.40;
             case VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED, VENT_COMPONENT -> 0.35;
             case EXCHANGER_STANDARD, EXCHANGER_ADVANCED, EXCHANGER_COMPONENT -> 0.40;
+            case REFLECTOR_GOLD -> 0.30;
+            case REFLECTOR_STAINLESS -> 0.20;
+            case REFLECTOR_TUNGSTEN_CARBIDE -> 0.10;
             case REFLECTOR_BERYLLIUM, REFLECTOR_CARBON -> 0.15;
             case MODERATOR_GRAPHITE, MODERATOR_CARBON -> 0.05;
             case MODERATOR_BERYLLIUM -> 0.15;
@@ -622,6 +628,9 @@ public class SimTile implements INuclearTile {
             };
         }
         return switch (type) {
+            case REFLECTOR_GOLD -> (nType == NeutronType.FAST) ? 0.15 : 0.10;
+            case REFLECTOR_STAINLESS -> (nType == NeutronType.FAST) ? 0.10 : 0.05;
+            case REFLECTOR_TUNGSTEN_CARBIDE -> (nType == NeutronType.FAST) ? 0.07 : 0.02;
             case REFLECTOR_BERYLLIUM, REFLECTOR_CARBON -> 0.02;
             case COOLANT_CELL_10K, COOLANT_CELL_60K, COOLANT_CELL_360K, VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED, VENT_COMPONENT, EXCHANGER_STANDARD, EXCHANGER_ADVANCED, EXCHANGER_COMPONENT -> 0.03;
             default -> 0.01;
@@ -655,6 +664,15 @@ public class SimTile implements INuclearTile {
                 case MODERATOR_BERYLLIUM -> (nType == NeutronType.FAST) ? 0.96 : 0.85;
                 default -> 0.10;
             };
+        }
+        if (type == TileType.REFLECTOR_GOLD) {
+            return (nType == NeutronType.THERMAL) ? 0.90 : 0.85;
+        }
+        if (type == TileType.REFLECTOR_STAINLESS) {
+            return (nType == NeutronType.THERMAL) ? 0.95 : 0.90;
+        }
+        if (type == TileType.REFLECTOR_TUNGSTEN_CARBIDE) {
+            return (nType == NeutronType.THERMAL) ? 0.98 : 0.93;
         }
         if (type == TileType.REFLECTOR_BERYLLIUM || type == TileType.REFLECTOR_CARBON) {
             return (nType == NeutronType.THERMAL) ? 0.98 : 0.95;
@@ -705,6 +723,9 @@ public class SimTile implements INuclearTile {
                 case MODERATOR_BERYLLIUM -> 0.65;
                 default -> 0.50;
             };
+        }
+        if (type == TileType.REFLECTOR_GOLD || type == TileType.REFLECTOR_STAINLESS || type == TileType.REFLECTOR_TUNGSTEN_CARBIDE) {
+            return 0.0;
         }
         if (type == TileType.REFLECTOR_BERYLLIUM || type == TileType.REFLECTOR_CARBON) {
             return 0.65;

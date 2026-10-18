@@ -187,20 +187,21 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (initialized) return;
         initialized = true;
 
-        // 1. MODERATORS (Graphite, Carbon) - High scattering & moderation, no fission/depletion
-        addModerator(Materials.Graphite.getBlocks(1), "Graphite Block", 0.93, 0.002, 0.50, 0.621, 0.009);
-        addModerator(Materials.Graphite.getIngots(1), "Graphite Ingot", 0.93, 0.002, 0.50, 0.621, 0.009);
-        addModerator(Materials.Graphite.getDust(1), "Graphite Dust", 0.93, 0.002, 0.50, 0.621, 0.009);
-        addModerator(Materials.Graphite.getPlates(1), "Graphite Plate", 0.93, 0.002, 0.50, 0.621, 0.009);
-        addModerator(Materials.Carbon.getPlates(1), "Carbon Plate", 0.93, 0.002, 0.50, 0.621, 0.009);
-        addModerator(Materials.Carbon.getDust(1), "Carbon Dust", 0.93, 0.002, 0.50, 0.621, 0.009);
+        // 1. MODERATORS - High scattering & moderation, no fission/depletion (long rods only)
+        ItemStack stickGraphite = GTOreDictUnificator.get(OrePrefixes.stickLong, Materials.Graphite, 1L);
+        if (stickGraphite != null) addModerator(stickGraphite, "Graphite Long Rod", 0.93, 0.002, 0.50, 0.621, 0.009);
+        ItemStack stickCarbon = GTOreDictUnificator.get(OrePrefixes.stickLong, Materials.Carbon, 1L);
+        if (stickCarbon != null) addModerator(stickCarbon, "Carbon Long Rod", 0.90, 0.003, 0.45, 0.60, 0.012);
+        ItemStack stickBeryllium = GTOreDictUnificator.get(OrePrefixes.stickLong, Materials.Beryllium, 1L);
+        if (stickBeryllium != null) addModerator(stickBeryllium, "Beryllium Long Rod", 0.96, 0.001, 0.65, 0.85, 0.004);
 
         // 2. REFLECTORS - Extreme scattering, low absorption, indestructible or long life
         addIC2Reflector("reactorReflector", "Neutron Reflector", 0.95, 0.01, 0.20, 0.98, 0.02, 10_000);
-        addIC2Reflector("reactorReflectorThick", "Thick Neutron Reflector", 0.95, 0.01, 0.20, 0.98, 0.02, 40_000);
+        addIC2Reflector("reactorReflectorThick", "Thick Neutron Reflector", 0.98, 0.005, 0.25, 0.99, 0.01, 40_000);
         addGTReflector(ItemList.Neutron_Reflector, "Iridium Neutron Reflector", 0.95, 0.01, 0.20, 0.98, 0.02);
-        addReflector(Materials.Beryllium.getPlates(1), "Beryllium Plate", 0.95, 0.01, 0.20, 0.98, 0.02);
-        addReflector(Materials.Beryllium.getBlocks(1), "Beryllium Block", 0.95, 0.01, 0.20, 0.98, 0.02);
+        addReflector(Materials.Gold.getPlates(1), "Gold Plate Reflector", 0.85, 0.15, 0.0, 0.90, 0.10);
+        addReflector(Materials.StainlessSteel.getPlates(1), "Stainless Steel Plate Reflector", 0.90, 0.10, 0.0, 0.95, 0.05);
+        addReflector(Materials.TungstenCarbide.getPlates(1), "Tungsten Carbide Plate Reflector", 0.93, 0.07, 0.0, 0.98, 0.02);
 
         // 3. CONTROL RODS - Extreme absorption, low scattering, burnout capacity
         addControlRod(

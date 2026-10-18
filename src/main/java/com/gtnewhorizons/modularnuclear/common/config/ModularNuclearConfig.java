@@ -89,10 +89,12 @@ public final class ModularNuclearConfig {
     };
 
     public static String[] allowedReflectors = new String[] {
-        "IC2:reactorReflector*",
-        "plateBeryllium",
-        "blockBeryllium",
-        "gregtech:gt.neutronReflector*"
+        "plateGold",
+        "plateStainlessSteel",
+        "plateTungstenCarbide",
+        "IC2:reactorReflector",
+        "IC2:reactorReflectorThick",
+        "gregtech:gt.neutronReflector"
     };
 
     public static String[] allowedModerators = new String[] {

@@ -773,7 +773,7 @@ Every non-fuel cell is one of the following:
 - an allowlisted coolant fluid in a Nuclear Core Hatch;
 - a High-Pressure Passage.
 
-Component recognition, neutronic cross-sections, and thermodynamic properties are completely data-driven via `config/modularnuclear/components.yaml` and `config/modularnuclear/fuels.yaml` (§15). In addition to native IC2 reactor components, GregTech plates and blocks (such as Beryllium plates/blocks for reflectors, and Graphite/Carbon blocks, plates, and dust for moderators) are explicitly defined in YAML. Operators may expand, modify cross-sections, or tune any material without recompiling the mod.
+Component recognition, neutronic cross-sections, and thermodynamic properties are completely data-driven via `config/modularnuclear/components.yaml` and `config/modularnuclear/fuels.yaml` (§15). In addition to native IC2 reactor components, GregTech plates (such as Gold, Stainless Steel, and Tungsten Carbide plates for reflectors, and Graphite/Carbon/Beryllium long rods for moderators) are explicitly defined in YAML. Operators may expand, modify cross-sections, or tune any material without recompiling the mod.
 
 ### 8.1 Neutron and thermal property summary
 
@@ -786,7 +786,10 @@ Component recognition, neutronic cross-sections, and thermodynamic properties ar
 | Moderator: Carbon | 0.003 | 0.012 | 0.90 | 0.45 | 0.05 | 0 |
 | Moderator: Graphite | 0.002 | 0.009 | 0.93 | 0.50 | 0.05 | 0 |
 | Moderator: Beryllium | 0.001 | 0.004 | 0.96 | 0.65 | 0.15 | 0 |
-| Reflector | 0.01 | 0.02 | 0.95 | 0.20 | 0.15 | 0 |
+| Reflector: Gold plate | 0.15 | 0.10 | 0.85 | 0.00 | 0.30 | 0 |
+| Reflector: Stainless Steel plate | 0.10 | 0.05 | 0.90 | 0.00 | 0.20 | 0 |
+| Reflector: Tungsten Carbide plate | 0.07 | 0.02 | 0.93 | 0.00 | 0.10 | 0 |
+| Reflector: IC2 / GT | 0.01 | 0.02 | 0.95 | 0.20 | 0.15 | 0 |
 | Absorber (boron / cadmium / "control") | 0.85 | 0.95 | 0.10 | 0.05 | — | 0 |
 | Radiovoltaic plate | 1.0 | 1.0 | 0 | 0 | 0.10 | 0 |
 | Item coolant / vent / switch / exchanger | 0.05 | 0.05 | 0.45 | 0.05 | 0.40 | 0 |

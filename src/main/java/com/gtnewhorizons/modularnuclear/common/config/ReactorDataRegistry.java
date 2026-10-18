@@ -816,9 +816,13 @@ public final class ReactorDataRegistry {
     public static ComponentData buildDefaultComponents() {
         ComponentData cd = new ComponentData();
 
-        // Reflectors
-        cd.reflectors.add(new ReflectorData("reflector_beryllium", "Beryllium Reflector", 0.01, 0.02, 0.95, 0.98, 0.20, 0.15, 0,
-            "plateBeryllium", "blockBeryllium", "ore:plateBeryllium", "ore:blockBeryllium"));
+        // Reflectors - plates only, no blocks or rods
+        cd.reflectors.add(new ReflectorData("reflector_gold", "Gold Plate Reflector", 0.15, 0.10, 0.85, 0.90, 0.0, 0.30, 0,
+            "plateGold", "ore:plateGold"));
+        cd.reflectors.add(new ReflectorData("reflector_stainless_steel", "Stainless Steel Plate Reflector", 0.10, 0.05, 0.90, 0.95, 0.0, 0.20, 0,
+            "plateStainlessSteel", "ore:plateStainlessSteel"));
+        cd.reflectors.add(new ReflectorData("reflector_tungsten_carbide", "Tungsten Carbide Plate Reflector", 0.07, 0.02, 0.93, 0.98, 0.0, 0.10, 0,
+            "plateTungstenCarbide", "ore:plateTungstenCarbide"));
         cd.reflectors.add(new ReflectorData("reflector_ic2", "Neutron Reflector", 0.01, 0.02, 0.95, 0.98, 0.20, 0.15, 10000,
             "IC2:reactorReflector", "ItemList.Neutron_Reflector", "gregtech:gt.neutronReflector"));
         cd.reflectors.add(new ReflectorData("reflector_ic2_thick", "Thick Neutron Reflector", 0.005, 0.01, 0.98, 0.99, 0.25, 0.20, 40000,

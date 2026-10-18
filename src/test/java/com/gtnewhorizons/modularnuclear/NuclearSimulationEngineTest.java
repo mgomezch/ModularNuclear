@@ -6020,6 +6020,77 @@ public class NuclearSimulationEngineTest {
         ItemStack berylliumLongRodStack = new ItemStack(mockBerylliumLongRod, 1, 0);
         assertNotNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(berylliumLongRodStack),
             "Beryllium long rod must be accepted as a moderator");
+
+        // 9. Reflectors: Gold, Stainless Steel, and Tungsten Carbide plates accepted; Beryllium and all blocks/rods rejected
+        net.minecraft.item.Item mockGoldPlate = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockGoldPlate.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.plateGold");
+        ItemStack goldPlateStack = new ItemStack(mockGoldPlate, 1, 0);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData goldRefl =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(goldPlateStack);
+        assertNotNull(goldRefl, "Gold plate must be accepted as a reflector");
+        assertEquals("reflector_gold", goldRefl.id);
+        assertEquals(0.90, goldRefl.scatteringThermal, 1e-4);
+        assertEquals(0.10, goldRefl.absorptionThermal, 1e-4);
+        assertEquals(0.85, goldRefl.scatteringFast, 1e-4);
+        assertEquals(0.15, goldRefl.absorptionFast, 1e-4);
+        assertEquals(0.0, goldRefl.moderation, 1e-4);
+        assertEquals(0.30, goldRefl.heatTransferCoeff, 1e-4);
+        assertEquals(0, goldRefl.durability);
+
+        net.minecraft.item.Item mockStainlessPlate = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockStainlessPlate.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.plateStainlessSteel");
+        ItemStack stainlessPlateStack = new ItemStack(mockStainlessPlate, 1, 0);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData stainlessRefl =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(stainlessPlateStack);
+        assertNotNull(stainlessRefl, "Stainless Steel plate must be accepted as a reflector");
+        assertEquals("reflector_stainless_steel", stainlessRefl.id);
+        assertEquals(0.95, stainlessRefl.scatteringThermal, 1e-4);
+        assertEquals(0.05, stainlessRefl.absorptionThermal, 1e-4);
+        assertEquals(0.90, stainlessRefl.scatteringFast, 1e-4);
+        assertEquals(0.10, stainlessRefl.absorptionFast, 1e-4);
+        assertEquals(0.0, stainlessRefl.moderation, 1e-4);
+        assertEquals(0.20, stainlessRefl.heatTransferCoeff, 1e-4);
+        assertEquals(0, stainlessRefl.durability);
+
+        net.minecraft.item.Item mockTcPlate = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockTcPlate.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.plateTungstenCarbide");
+        ItemStack tcPlateStack = new ItemStack(mockTcPlate, 1, 0);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData tcRefl =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(tcPlateStack);
+        assertNotNull(tcRefl, "Tungsten Carbide plate must be accepted as a reflector");
+        assertEquals("reflector_tungsten_carbide", tcRefl.id);
+        assertEquals(0.98, tcRefl.scatteringThermal, 1e-4);
+        assertEquals(0.02, tcRefl.absorptionThermal, 1e-4);
+        assertEquals(0.93, tcRefl.scatteringFast, 1e-4);
+        assertEquals(0.07, tcRefl.absorptionFast, 1e-4);
+        assertEquals(0.0, tcRefl.moderation, 1e-4);
+        assertEquals(0.10, tcRefl.heatTransferCoeff, 1e-4);
+        assertEquals(0, tcRefl.durability);
+
+        // Beryllium, blocks, and rods rejected
+        net.minecraft.item.Item mockBerylliumPlate = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockBerylliumPlate.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.plateBeryllium");
+        ItemStack berylliumPlateStack = new ItemStack(mockBerylliumPlate, 1, 0);
+        assertNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(berylliumPlateStack),
+            "Beryllium plate must be rejected as a reflector");
+
+        net.minecraft.item.Item mockBerylliumBlockRefl = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockBerylliumBlockRefl.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("tile.blockBeryllium");
+        ItemStack berylliumBlockStack = new ItemStack(mockBerylliumBlockRefl, 1, 0);
+        assertNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(berylliumBlockStack),
+            "Beryllium block must be rejected as a reflector");
+
+        net.minecraft.item.Item mockGoldBlock = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockGoldBlock.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("tile.blockGold");
+        ItemStack goldBlockStack = new ItemStack(mockGoldBlock, 1, 0);
+        assertNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(goldBlockStack),
+            "Gold block must be rejected as a reflector");
+
+        net.minecraft.item.Item mockGoldRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockGoldRod.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.rodGold");
+        ItemStack goldRodStack = new ItemStack(mockGoldRod, 1, 0);
+        assertNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(goldRodStack),
+            "Gold rod must be rejected as a reflector");
     }
 
     @Test
