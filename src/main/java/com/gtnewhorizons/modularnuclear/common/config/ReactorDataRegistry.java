@@ -443,6 +443,26 @@ public final class ReactorDataRegistry {
         return null;
     }
 
+    public static boolean isSpentProduct(ItemStack stack) {
+        if (stack == null) return false;
+        for (FuelData fd : fuels) {
+            if (fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
+                if (matchesItem(stack, Collections.singletonList(fd.spentProduct))) return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean isSpentProduct(String name) {
+        if (name == null || name.isEmpty()) return false;
+        for (FuelData fd : fuels) {
+            if (fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
+                if (fd.spentProduct.equalsIgnoreCase(name) || ("fluid." + fd.spentProduct).equalsIgnoreCase(name)) return true;
+            }
+        }
+        return false;
+    }
+
     public static ItemStack resolveItemStack(String identifier) {
         if (identifier == null || identifier.trim().isEmpty()) return null;
         String id = identifier.trim();
@@ -663,9 +683,12 @@ public final class ReactorDataRegistry {
 
     public static boolean matchesFluid(String fluidName, List<String> patterns) {
         if (fluidName == null || patterns == null || patterns.isEmpty()) return false;
+        String cleanFluid = fluidName.startsWith("fluid.") ? fluidName.substring(6) : fluidName;
         for (String pattern : patterns) {
             if (pattern == null || pattern.isEmpty()) continue;
             if (fluidName.equalsIgnoreCase(pattern)) return true;
+            String cleanPattern = pattern.startsWith("fluid.") ? pattern.substring(6) : pattern;
+            if (cleanFluid.equalsIgnoreCase(cleanPattern)) return true;
             if (pattern.contains("*") && matchesPattern(fluidName, pattern)) return true;
         }
         return false;
@@ -779,13 +802,13 @@ public final class ReactorDataRegistry {
         list.add(new FuelData("fuel_custom_rod_4", "Quad Custom Fuel Rod", "standard", false, 4, 4, 1.0, 0.10, 0.25, 0.80, 0.15, 0.10, 0.10, 0.05, 2.0, 160000, 770.0, 2300.0, 1.0, 0.0, 0.10, "modularnuclear:rodCustomDepletedFuel4", "modularnuclear:rodCustomFuel4", "fuelRodCustom4"));
 
         // Liquid fuels (Excited first)
-        list.add(new FuelData("fluid_fuel_thorium_excited", "Excited Thorium-Based Liquid Fuel", "excited", true, 4, 8, 1.50, 0.12, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 3.0, 35000, 580.0, 2200.0, 1.0, 0.0, 0.10, "thoriumbasedliquidfueldepleted", "thoriumbasedliquidfuelexcited", "fluid.thoriumbasedliquidfuelexcited"));
-        list.add(new FuelData("fluid_fuel_thorium", "Thorium-Based Liquid Fuel", "standard", true, 4, 4, 1.00, 0.08, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 2.0, 50000, 580.0, 2200.0, 1.0, 0.0, 0.10, "thoriumbasedliquidfueldepleted", "thoriumbasedliquidfuel", "fluid.thoriumbasedliquidfuel"));
-        list.add(new FuelData("fluid_fuel_uranium_excited", "Excited Uranium-Based Liquid Fuel", "excited", true, 4, 16, 2.50, 0.15, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 3.0, 15000, 1540.0, 2700.0, 1.0, 0.0, 0.10, "uraniumbasedliquidfueldepleted", "uraniumbasedliquidfuelexcited", "fluid.uraniumbasedliquidfuelexcited"));
-        list.add(new FuelData("fluid_fuel_uranium", "Uranium-Based Liquid Fuel", "standard", true, 4, 8, 1.25, 0.10, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 2.0, 20000, 770.0, 2300.0, 1.0, 0.0, 0.10, "uraniumbasedliquidfueldepleted", "uraniumbasedliquidfuel", "fluid.uraniumbasedliquidfuel"));
-        list.add(new FuelData("fluid_fuel_plutonium_excited", "Excited Plutonium-Based Liquid Fuel", "excited", true, 4, 32, 2.90, 0.25, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 4.0, 15000, 1730.0, 2800.0, 1.0, 0.0, 0.10, "plutoniumbasedliquidfueldepleted", "plutoniumbasedliquidfuelexcited", "fluid.plutoniumbasedliquidfuelexcited"));
-        list.add(new FuelData("fluid_fuel_plutonium", "Plutonium-Based Liquid Fuel", "standard", true, 4, 16, 1.80, 0.20, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 3.5, 20000, 1350.0, 2600.0, 1.0, 0.0, 0.10, "plutoniumbasedliquidfueldepleted", "plutoniumbasedliquidfuel", "fluid.plutoniumbasedliquidfuel"));
-        list.add(new FuelData("fluid_fuel_u_hexafluoride", "Uranium Hexafluoride", "standard", true, 4, 12, 1.25, 0.12, 0.25, 0.85, 0.15, 0.10, 0.10, 0.12, 2.5, 25000, 770.0, 2300.0, 1.0, 0.0, 0.10, "uraniumtetrafluoride", "uraniumhexafluoride", "fluid.uraniumhexafluoride"));
+        list.add(new FuelData("fluid_fuel_thorium_excited", "Excited Thorium-Based Liquid Fuel", "excited", true, 4, 8, 1.50, 0.12, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 3.0, 35000, 580.0, 2200.0, 1.0, 0.0, 0.10, "thoriumbasedliquidfueldepleted", 4, "thoriumbasedliquidfuelexcited", "fluid.thoriumbasedliquidfuelexcited"));
+        list.add(new FuelData("fluid_fuel_thorium", "Thorium-Based Liquid Fuel", "standard", true, 4, 4, 1.00, 0.08, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 2.0, 50000, 580.0, 2200.0, 1.0, 0.0, 0.10, "thoriumbasedliquidfueldepleted", 0, "thoriumbasedliquidfuel", "fluid.thoriumbasedliquidfuel"));
+        list.add(new FuelData("fluid_fuel_uranium_excited", "Excited Uranium-Based Liquid Fuel", "excited", true, 4, 16, 2.50, 0.15, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 3.0, 15000, 1540.0, 2700.0, 1.0, 0.0, 0.10, "uraniumbasedliquidfueldepleted", 3, "uraniumbasedliquidfuelexcited", "fluid.uraniumbasedliquidfuelexcited"));
+        list.add(new FuelData("fluid_fuel_uranium", "Uranium-Based Liquid Fuel", "standard", true, 4, 8, 1.25, 0.10, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 2.0, 20000, 770.0, 2300.0, 1.0, 0.0, 0.10, "uraniumbasedliquidfueldepleted", 1, "uraniumbasedliquidfuel", "fluid.uraniumbasedliquidfuel"));
+        list.add(new FuelData("fluid_fuel_plutonium_excited", "Excited Plutonium-Based Liquid Fuel", "excited", true, 4, 32, 2.90, 0.25, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 4.0, 15000, 1730.0, 2800.0, 1.0, 0.0, 0.10, "plutoniumbasedliquidfueldepleted", 4, "plutoniumbasedliquidfuelexcited", "fluid.plutoniumbasedliquidfuelexcited"));
+        list.add(new FuelData("fluid_fuel_plutonium", "Plutonium-Based Liquid Fuel", "standard", true, 4, 16, 1.80, 0.20, 0.25, 0.85, 0.15, 0.10, 0.10, 0.15, 3.5, 20000, 1350.0, 2600.0, 1.0, 0.0, 0.10, "plutoniumbasedliquidfueldepleted", 2, "plutoniumbasedliquidfuel", "fluid.plutoniumbasedliquidfuel"));
+        list.add(new FuelData("fluid_fuel_u_hexafluoride", "Uranium Hexafluoride", "standard", true, 4, 12, 1.25, 0.12, 0.25, 0.85, 0.15, 0.10, 0.10, 0.12, 2.5, 25000, 770.0, 2300.0, 1.0, 0.0, 0.10, "uraniumtetrafluoride", 2, "uraniumhexafluoride", "fluid.uraniumhexafluoride"));
 
         return list;
     }
@@ -857,16 +880,16 @@ public final class ReactorDataRegistry {
             "GalacticraftMars:item.itemBasicAsteroids:7", "itemBasicAsteroids:7", "item.ThermalCloth", "itemThermalCloth"));
 
         // Radiovoltaics
-        cd.radiovoltaics.add(new RadiovoltaicData("radiovoltaic_hv", "HV Radiovoltaic Plate", 0.25, 0.10, 1.0, 1.0, "modularnuclear:radiovoltaicPlateHV"));
-        cd.radiovoltaics.add(new RadiovoltaicData("radiovoltaic_ev", "EV Radiovoltaic Plate", 0.50, 0.10, 1.0, 1.0, "modularnuclear:radiovoltaicPlateEV"));
+        cd.radiovoltaics.add(new RadiovoltaicData("radiovoltaic_hv", "HV Radiovoltaic Plate", 1, 0.25, 0.10, 1.0, 1.0, "modularnuclear:radiovoltaicPlateHV"));
+        cd.radiovoltaics.add(new RadiovoltaicData("radiovoltaic_ev", "EV Radiovoltaic Plate", 2, 0.50, 0.10, 1.0, 1.0, "modularnuclear:radiovoltaicPlateEV"));
 
-        // Coolant Fluids - IC2 coolant moderation changed to 0.05
-        cd.coolantFluids.add(new CoolantFluidData("coolant_water", "Water", 100.0, 0.25, 4.184, 0.05, 0.10, 0.70, 0.70, 0.25, "steam", 1.0, "water"));
-        cd.coolantFluids.add(new CoolantFluidData("coolant_distilled_water", "Distilled Water", 100.0, 0.30, 4.184, 0.05, 0.10, 0.70, 0.70, 0.25, "ic2superheatedsteam", 1.2, "distilledwater", "ic2distilledwater"));
-        cd.coolantFluids.add(new CoolantFluidData("coolant_heavy_water", "Heavy Water", 101.4, 0.30, 4.22, 0.005, 0.01, 0.85, 0.85, 0.90, "steam", 1.5, "heavywater"));
-        cd.coolantFluids.add(new CoolantFluidData("coolant_ic2", "IC2 Coolant", 300.0, 0.50, 8.0, 0.03, 0.12, 0.45, 0.45, 0.05, "ic2hotcoolant", 2.0, "coolant", "ic2coolant"));
-        cd.coolantFluids.add(new CoolantFluidData("coolant_sodium", "Molten Sodium", 883.0, 0.70, 1.28, 0.01, 0.05, 0.20, 0.20, 0.05, "molten.sodium", 3.0, "sodium", "molten.sodium"));
-        cd.coolantFluids.add(new CoolantFluidData("coolant_lead", "Molten Lead", 1749.0, 0.75, 0.16, 0.005, 0.02, 0.15, 0.15, 0.02, "molten.lead", 3.5, "lead", "molten.lead"));
+        // Coolant Fluids - explicitly configured, no hardcoded name fallbacks
+        cd.coolantFluids.add(new CoolantFluidData("coolant_water", "Water", -1, 100.0, 0.25, 4.184, 0.05, 0.10, 0.70, 0.70, 0.25, "steam", 1.0, 160, 160.0, 0.0, 100.0, "deuterium", 0.025, "water", "fluid.water"));
+        cd.coolantFluids.add(new CoolantFluidData("coolant_distilled_water", "Distilled Water", 1, 100.0, 0.30, 4.184, 0.05, 0.10, 0.70, 0.70, 0.25, "ic2superheatedsteam", 1.2, 160, 160.0, 0.0, 100.0, "deuterium", 0.025, "distilledwater", "fluid.distilledwater", "ic2distilledwater", "fluid.ic2distilledwater"));
+        cd.coolantFluids.add(new CoolantFluidData("coolant_heavy_water", "Heavy Water", 3, 101.4, 0.30, 4.22, 0.005, 0.01, 0.85, 0.85, 0.90, "steam", 1.5, 160, 160.0, 3.8, 101.4, "tritium", 0.010, "heavywater", "fluid.heavywater"));
+        cd.coolantFluids.add(new CoolantFluidData("coolant_ic2", "IC2 Coolant", 0, 300.0, 0.50, 8.0, 0.03, 0.12, 0.45, 0.45, 0.05, "ic2hotcoolant", 2.0, 1, 320.0, -273.15, Double.POSITIVE_INFINITY, null, 0.0, "coolant", "fluid.coolant", "ic2coolant", "fluid.ic2coolant"));
+        cd.coolantFluids.add(new CoolantFluidData("coolant_sodium", "Molten Sodium", 2, 883.0, 0.70, 1.28, 0.01, 0.05, 0.20, 0.20, 0.05, "molten.sodium", 3.0, 1, 480.0, 97.8, 883.0, null, 0.0, "sodium", "fluid.sodium", "molten.sodium", "fluid.molten.sodium"));
+        cd.coolantFluids.add(new CoolantFluidData("coolant_lead", "Molten Lead", 3, 1749.0, 0.75, 0.16, 0.005, 0.02, 0.15, 0.15, 0.02, "molten.lead", 3.5, 1, 560.0, 327.5, 1749.0, null, 0.0, "lead", "fluid.lead", "molten.lead", "fluid.molten.lead"));
 
         // Coolant Items - all moderation set to 0.05, explicitly configured items
         cd.coolantItems.add(new CoolantItemData("coolant_cell_ic2", "IC2 Coolant Cell", 10000.0, 0.40, 0.02, 0.05, 0.45, 0.45, 0.05,

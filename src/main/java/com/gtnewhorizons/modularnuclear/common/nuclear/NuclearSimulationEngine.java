@@ -221,15 +221,13 @@ public class NuclearSimulationEngine {
      */
     public static double getCoolantSinkTemperature(String fluidName, double ambientTemp) {
         if (fluidName == null) return ambientTemp;
-        String name = fluidName.toLowerCase();
-        if (name.contains("coolant")) {
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(fluidName);
+        if (cfd != null) {
+            if (cfd.expansionRatio > 1) {
+                return Math.max(ambientTemp, cfd.boilingTemperature);
+            }
             return ambientTemp;
-        }
-        if (name.contains("heavywater")) {
-            return Math.max(ambientTemp, 101.4);
-        }
-        if (name.contains("distilledwater")) {
-            return Math.max(ambientTemp, 100.0);
         }
         return ambientTemp;
     }
@@ -326,48 +324,27 @@ public class NuclearSimulationEngine {
     }
 
     public static double getCoolantBoilingThreshold(String fluidName) {
-        if (fluidName == null || fluidName.contains("coolant")) {
-            return Double.POSITIVE_INFINITY; // IC2 coolant never explodes
-        }
-        if (fluidName.contains("heavywater")) {
-            if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.coolantBoilingThresholdHeavyWater != 101.4) {
-                return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.coolantBoilingThresholdHeavyWater;
-            }
-        }
-        if (fluidName.contains("distilledwater")) {
-            if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.coolantBoilingThresholdDistilledWater != 100.0) {
-                return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.coolantBoilingThresholdDistilledWater;
-            }
-        }
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(fluidName);
+        if (fluidName == null) return Double.POSITIVE_INFINITY;
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(fluidName);
         if (cfd != null) {
-            return cfd.boilingTemperature;
+            return cfd.explosionTemperature;
         }
-        if (fluidName.contains("heavywater")) {
-            return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.coolantBoilingThresholdHeavyWater;
-        }
-        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.coolantBoilingThresholdDistilledWater;
+        return Double.POSITIVE_INFINITY;
     }
 
     public static int getRequiredFluidTier(String fluidName) {
         if (fluidName == null) return -1;
-        String name = fluidName.toLowerCase();
-        if (name.contains("coolant") && !name.contains("hot")) return PIPE_TIER_ELECTRUM;
-        if (name.contains("distilledwater")) return PIPE_TIER_PLATINUM;
-        if (name.contains("heavywater")) return PIPE_TIER_QUANTIUM;
-
-        // Nuclear liquid fuels
-        if (name.contains("thoriumbasedliquidfuel") || (name.contains("thorium") && name.contains("liquidfuel"))) {
-            return name.contains("excited") ? PIPE_TIER_FLUXED_ELECTRUM : PIPE_TIER_ELECTRUM;
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(fluidName);
+        if (cfd != null) {
+            return cfd.requiredTier;
         }
-        if (name.contains("uraniumbasedliquidfuel") || (name.contains("uranium") && name.contains("liquidfuel"))) {
-            return name.contains("excited") ? PIPE_TIER_QUANTIUM : PIPE_TIER_PLATINUM;
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(fluidName);
+        if (fd != null && fd.isLiquid) {
+            return fd.requiredTier;
         }
-        if (name.contains("plutoniumbasedliquidfuel") || (name.contains("plutonium") && name.contains("liquidfuel"))) {
-            return name.contains("excited") ? PIPE_TIER_FLUXED_ELECTRUM : PIPE_TIER_OSMIUM;
-        }
-        if (name.contains("uraniumhexafluoride")) return PIPE_TIER_OSMIUM;
-
         return -1;
     }
 

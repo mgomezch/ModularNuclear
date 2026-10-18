@@ -2210,12 +2210,12 @@ public class NuclearSimulationCLI {
         if (t == null) return NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
         String s = t.toLowerCase()
             .trim();
-        if (s.contains("elec") || s.equals("ev")) return NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
-        if (s.contains("plat") || s.equals("iv")) return NuclearSimulationEngine.PIPE_TIER_PLATINUM;
-        if (s.contains("osmi") || s.equals("luv")) return NuclearSimulationEngine.PIPE_TIER_OSMIUM;
-        if (s.contains("quan") || s.equals("zpm")) return NuclearSimulationEngine.PIPE_TIER_QUANTIUM;
-        if (s.contains("flux") || s.equals("uv")) return NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM;
-        if (s.contains("plut") || s.equals("uhv")) return NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM;
+        if (s.equals("electrum") || s.equals("ev") || s.equals("0")) return NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
+        if (s.equals("platinum") || s.equals("iv") || s.equals("1")) return NuclearSimulationEngine.PIPE_TIER_PLATINUM;
+        if (s.equals("osmium") || s.equals("luv") || s.equals("2")) return NuclearSimulationEngine.PIPE_TIER_OSMIUM;
+        if (s.equals("quantium") || s.equals("zpm") || s.equals("3")) return NuclearSimulationEngine.PIPE_TIER_QUANTIUM;
+        if (s.equals("fluxed") || s.equals("fluxed_electrum") || s.equals("uv") || s.equals("4")) return NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM;
+        if (s.equals("black_plutonium") || s.equals("plutonium") || s.equals("uhv") || s.equals("5")) return NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM;
         try {
             return Integer.parseInt(s);
         } catch (NumberFormatException ignored) {}

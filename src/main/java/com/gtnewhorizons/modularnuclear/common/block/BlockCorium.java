@@ -75,13 +75,15 @@ public class BlockCorium extends BlockFluidClassic {
             if (uid != null) {
                 String modId = uid.modId.toLowerCase(Locale.ENGLISH);
                 String name = uid.name.toLowerCase(Locale.ENGLISH);
-                if (name.contains("warded")) {
-                    return true;
-                }
-                if (modId.equals("thaumcraft") && name.equals("blockcosmeticopaque")) {
-                    int meta = world != null ? world.getBlockMetadata(x, y, z) : 0;
-                    if (meta == 2) {
+                if (modId.equals("thaumcraft")) {
+                    if (name.equals("blockwarded") || name.equals("blockwardedglass") || name.equals("blockwardedstone")) {
                         return true;
+                    }
+                    if (name.equals("blockcosmeticopaque")) {
+                        int meta = world != null ? world.getBlockMetadata(x, y, z) : 0;
+                        if (meta == 2) {
+                            return true;
+                        }
                     }
                 }
             }
@@ -90,10 +92,10 @@ public class BlockCorium extends BlockFluidClassic {
         String unloc = block.getUnlocalizedName();
         if (unloc != null) {
             String lower = unloc.toLowerCase(Locale.ENGLISH);
-            if (lower.contains("warded")) {
+            if (lower.equals("tile.blockwarded") || lower.equals("tile.blockwardedglass") || lower.equals("tile.wardedglass") || lower.equals("tile.thaumcraft:blockwarded")) {
                 return true;
             }
-            if (lower.contains("blockcosmeticopaque")) {
+            if (lower.equals("tile.blockcosmeticopaque")) {
                 int meta = world != null ? world.getBlockMetadata(x, y, z) : 0;
                 if (meta == 2) {
                     return true;

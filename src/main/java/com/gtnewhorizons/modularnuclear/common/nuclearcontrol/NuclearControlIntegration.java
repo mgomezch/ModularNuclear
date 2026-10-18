@@ -35,6 +35,12 @@ public class NuclearControlIntegration {
         }
         String unloc = stack.getItem()
             .getUnlocalizedName();
-        return unloc != null && (unloc.contains("cardReactor") || unloc.contains("kitReactor"));
+        if (unloc != null) {
+            String lower = unloc.toLowerCase();
+            return lower.equals("item.itemcardreactor") || lower.equals("itemcardreactor")
+                || lower.equals("item.itemtoolreactorkit") || lower.equals("itemtoolreactorkit")
+                || lower.equals("item.kitreactor") || lower.equals("kitreactor");
+        }
+        return false;
     }
 }

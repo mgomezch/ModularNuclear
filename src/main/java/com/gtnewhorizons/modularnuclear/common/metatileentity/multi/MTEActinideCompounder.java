@@ -242,16 +242,14 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
                 return true;
             }
         } catch (Throwable ignored) {}
+        for (int id : OreDictionary.getOreIDs(stack)) {
+            String ore = OreDictionary.getOreName(id);
+            if ("fuelRodEmpty".equals(ore) || "rodEmpty".equals(ore) || "itemFuelRodEmpty".equals(ore)) return true;
+        }
         String name = stack.getUnlocalizedName();
         if (name != null) {
             String lower = name.toLowerCase();
-            if (lower.contains("fuelrod") && lower.contains("empty")) return true;
-            if (lower.contains("fuel_rod") && lower.contains("empty")) return true;
-            if (lower.contains("itemfuelrodempty")) return true;
-        }
-        for (int id : OreDictionary.getOreIDs(stack)) {
-            String ore = OreDictionary.getOreName(id);
-            if ("fuelRodEmpty".equals(ore) || "rodEmpty".equals(ore)) return true;
+            if (lower.equals("item.itemfuelrodempty") || lower.equals("itemfuelrodempty") || lower.equals("ic2.itemfuelrodempty")) return true;
         }
         return false;
     }
@@ -263,10 +261,8 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
                 || Materials.FLUID_MAP.get(fluid.getFluid()) == Materials.Tritium)) {
             return true;
         }
-        String name = fluid.getFluid()
-            .getName()
-            .toLowerCase();
-        return name.contains("tritium");
+        String name = fluid.getFluid().getName();
+        return "tritium".equalsIgnoreCase(name) || "fluid.tritium".equalsIgnoreCase(name);
     }
 
     public static Integer getCircuitConfiguration(ItemStack stack) {

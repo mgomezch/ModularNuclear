@@ -124,13 +124,6 @@ public class NuclearReactorPhysics {
             if (cFluid != null) return cFluid.heatTransferCoeff;
             FuelData fFluid = ReactorDataRegistry.findFuel(fluid);
             if (fFluid != null) return fFluid.heatTransferCoeff;
-
-            String name = fluid.getFluid()
-                .getName()
-                .toLowerCase();
-            if (name.contains("water")) return 0.25;
-            if (name.contains("coolant")) return 0.50;
-            if (name.contains("sodium") || name.contains("lead")) return 0.70;
             return 0.15;
         } else if (tile.isControlRod()) {
             return tile.getControlRod()
@@ -155,14 +148,16 @@ public class NuclearReactorPhysics {
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
             if (stack != null) {
+                FuelData fd = ReactorDataRegistry.findFuel(stack);
+                if (fd != null) return NuclearFuelType.fromFuelData(fd);
                 return NuclearFuelType.fromName(stack.getUnlocalizedName());
             }
         } else if (tile.isHatch()) {
             FluidStack fluid = tile.getHatch().mInputFluid;
             if (fluid != null && fluid.getFluid() != null) {
-                return NuclearFuelType.fromName(
-                    fluid.getFluid()
-                        .getName());
+                FuelData fd = ReactorDataRegistry.findFuel(fluid);
+                if (fd != null) return NuclearFuelType.fromFuelData(fd);
+                return NuclearFuelType.fromName(fluid.getFluid().getName());
             }
         }
         return null;
@@ -378,15 +373,6 @@ public class NuclearReactorPhysics {
             if (cFluid != null) return (type == NeutronType.FAST) ? cFluid.absorptionFast : cFluid.absorptionThermal;
             FuelData fFluid = ReactorDataRegistry.findFuel(fluid);
             if (fFluid != null) return (type == NeutronType.FAST) ? fFluid.absorptionFast : fFluid.absorptionThermal;
-
-            String name = fluid.getFluid()
-                .getName()
-                .toLowerCase();
-            if (name.contains("heavywater")) return (type == NeutronType.THERMAL) ? 0.01 : 0.005;
-            if (name.contains("distilledwater")) return (type == NeutronType.THERMAL) ? 0.10 : 0.05;
-            if (name.contains("coolant")) return (type == NeutronType.THERMAL) ? 0.12 : 0.03;
-            if (name.contains("boron")) return 0.95;
-            if (MTENuclearReactor.isFluidFuel(fluid)) return (type == NeutronType.THERMAL) ? 0.85 : 0.25;
             return 0.05;
         } else if (tile.isHighPressureHatch()) {
             return tile.getHighPressureHatch()
@@ -443,14 +429,6 @@ public class NuclearReactorPhysics {
             if (cFluid != null) return (type == NeutronType.FAST) ? cFluid.scatteringFast : cFluid.scatteringThermal;
             FuelData fFluid = ReactorDataRegistry.findFuel(fluid);
             if (fFluid != null) return (type == NeutronType.FAST) ? fFluid.scatteringFast : fFluid.scatteringThermal;
-
-            String name = fluid.getFluid()
-                .getName()
-                .toLowerCase();
-            if (name.contains("heavywater")) return 0.85;
-            if (name.contains("distilledwater")) return 0.70;
-            if (name.contains("coolant")) return 0.45;
-            if (name.contains("sodium")) return 0.20;
             return 0.10;
         } else if (tile.isHighPressureHatch()) {
             return tile.getHighPressureHatch()
@@ -508,14 +486,6 @@ public class NuclearReactorPhysics {
             if (cFluid != null) return cFluid.moderation;
             FuelData fFluid = ReactorDataRegistry.findFuel(fluid);
             if (fFluid != null) return fFluid.moderation;
-
-            String name = fluid.getFluid()
-                .getName()
-                .toLowerCase();
-            if (name.contains("heavywater")) return 0.90;
-            if (name.contains("distilledwater") || name.contains("water")) return 0.25;
-            if (name.contains("coolant")) return 0.05;
-            if (name.contains("sodium")) return 0.05;
             return 0.05;
         } else if (tile.isHighPressureHatch()) {
             return tile.getHighPressureHatch()
@@ -561,37 +531,20 @@ public class NuclearReactorPhysics {
             else hatch.mThermalAbsorbed += count;
 
             if (type == NeutronType.FAST && hatch.mInputFluid != null && hatch.mInputFluid.amount > 0) {
-                String name = hatch.mInputFluid.getFluid()
-                    .getName()
-                    .toLowerCase();
-                boolean isHP = name.contains("highpressure");
-                int yield = isHP ? 2 : 1;
-
-                if (name.contains("distilledwater")) {
-                    int chance = isHP ? Math.min(1000, count * 50) : Math.min(1000, count * 25);
-                    if (reactor.getRandomNumber(1000) < chance) {
+                CoolantFluidData cfd = ReactorDataRegistry.findCoolantFluid(hatch.mInputFluid);
+                if (cfd != null && cfd.transmutationProduct != null && cfd.transmutationChancePerNeutron > 0.0) {
+                    double chance = Math.min(1.0, count * cfd.transmutationChancePerNeutron);
+                    if (reactor.getRandomNumber(10000) < (int) Math.round(chance * 10000)) {
                         hatch.mInputFluid.amount -= 1;
                         if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
                         reactor.mCycleTransmutationLoss += 1;
-                        Fluid deut = FluidRegistry.getFluid("deuterium");
-                        if (deut == null) deut = FluidRegistry.getFluid("fluid.deuterium");
-                        if (deut != null) {
-                            reactor.addOutputPartial(new FluidStack(deut, yield));
-                            reactor.mCycleTransmutationByproducts += yield;
+                        Fluid prod = FluidRegistry.getFluid(cfd.transmutationProduct);
+                        if (prod == null && !cfd.transmutationProduct.startsWith("fluid.")) {
+                            prod = FluidRegistry.getFluid("fluid." + cfd.transmutationProduct);
                         }
-                        hatch.markTileDirty();
-                    }
-                } else if (name.contains("heavywater")) {
-                    int chance = isHP ? Math.min(1000, count * 20) : Math.min(1000, count * 10);
-                    if (reactor.getRandomNumber(1000) < chance) {
-                        hatch.mInputFluid.amount -= 1;
-                        if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
-                        reactor.mCycleTransmutationLoss += 1;
-                        Fluid trit = FluidRegistry.getFluid("tritium");
-                        if (trit == null) trit = FluidRegistry.getFluid("fluid.tritium");
-                        if (trit != null) {
-                            reactor.addOutputPartial(new FluidStack(trit, yield));
-                            reactor.mCycleTransmutationByproducts += yield;
+                        if (prod != null) {
+                            reactor.addOutputPartial(new FluidStack(prod, 1));
+                            reactor.mCycleTransmutationByproducts += 1;
                         }
                         hatch.markTileDirty();
                     }
@@ -1023,11 +976,8 @@ public class NuclearReactorPhysics {
             FluidStack fluid = hatch.mInputFluid;
             Fluid spentFluid = MTENuclearReactor.getSpentFluid(fluid);
             double ambient = hatch.getAmbientTemperature();
-            NuclearFuelType fuelType = (fluid != null && fluid.getFluid() != null) ? NuclearFuelType.fromName(
-                fluid.getFluid()
-                    .getName())
-                : null;
-            double tempDmg = (fuelType != null) ? fuelType.calculateTemperatureDamage(hatch.mTemperature, ambient)
+            FuelData fuelData = ReactorDataRegistry.findFuel(fluid);
+            double tempDmg = (fuelData != null) ? fuelData.calculateTemperatureDamage(hatch.mTemperature, ambient)
                 : (hatch.mTemperature > ambient ? (hatch.mTemperature - ambient) / 100.0 : 0.0);
 
             PhysicsData physics = ReactorDataRegistry.getPhysics();
@@ -1057,37 +1007,21 @@ public class NuclearReactorPhysics {
             return;
         }
 
-        String name = hatch.mInputFluid.getFluid()
-            .getName()
-            .toLowerCase();
-
-        int reqTier = MTEHatchNuclearHatch.getRequiredFluidTier(name);
-        if (reqTier < 0 || (reactor.mPipeTier >= 0 && reactor.mPipeTier < reqTier)) {
+        CoolantFluidData cfd = ReactorDataRegistry.findCoolantFluid(hatch.mInputFluid);
+        if (cfd == null) {
             return;
         }
 
-        double minOperatingTemp = NuclearSimulationEngine
-            .getCoolantSinkTemperature(name, reactor.getAmbientTemperature());
-        double heatPerMB = NuclearSimulationEngine.coolingHeatPerLiter;
-        int steamRatio = 1;
-        String outputFluidName = "steam";
+        int reqTier = cfd.requiredTier;
+        if (reactor.mPipeTier >= 0 && reactor.mPipeTier < reqTier) {
+            return;
+        }
 
-        if (name.contains("coolant") && !name.contains("hot")) {
-            minOperatingTemp = NuclearSimulationEngine.getCoolantSinkTemperature(name, reactor.getAmbientTemperature());
-            heatPerMB = NuclearSimulationEngine.ic2CoolantHeatPerLiter;
-            steamRatio = 1;
-            outputFluidName = "ic2hotcoolant";
-        } else if (name.contains("heavywater") && !name.contains("steam")) {
-            minOperatingTemp = NuclearSimulationEngine.getCoolantSinkTemperature(name, reactor.getAmbientTemperature());
-            heatPerMB = NuclearSimulationEngine.coolingHeatPerLiter;
-            steamRatio = 160;
-            outputFluidName = "heavywatersteam";
-        } else if (name.contains("distilledwater")) {
-            minOperatingTemp = NuclearSimulationEngine.getCoolantSinkTemperature(name, reactor.getAmbientTemperature());
-            heatPerMB = NuclearSimulationEngine.coolingHeatPerLiter;
-            steamRatio = 160;
-            outputFluidName = "steam";
-        } else {
+        double minOperatingTemp = (cfd.expansionRatio > 1) ? Math.max(reactor.getAmbientTemperature(), cfd.boilingTemperature) : reactor.getAmbientTemperature();
+        double heatPerMB = cfd.heatPerLiter;
+        int steamRatio = cfd.expansionRatio;
+        String outputFluidName = cfd.hotFluidName;
+        if (outputFluidName == null) {
             return;
         }
 

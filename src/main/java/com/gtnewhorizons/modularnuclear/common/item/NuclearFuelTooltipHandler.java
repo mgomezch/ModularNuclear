@@ -22,18 +22,13 @@ public class NuclearFuelTooltipHandler {
         if (unlocalizedName == null) return;
 
         // Skip non-fuel items quickly
-        NuclearFuelType fuel = NuclearFuelType.fromName(unlocalizedName);
-        if (fuel != null) {
-            String lower = unlocalizedName.toLowerCase();
-            // Verify it looks like a fuel rod item or cell, rather than generic ore/dust
-            if (lower.contains("rod") || lower.contains("cell")
-                || lower.contains("fuel")
-                || lower.contains("thecore")) {
-                event.toolTip.add(
-                    EnumChatFormatting.AQUA + "Peak Reactivity: "
-                        + EnumChatFormatting.GOLD
-                        + String.format(Locale.US, "%,.0f °C", fuel.peakReactivityTemp));
-            }
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(event.itemStack);
+        if (fd != null && !fd.isLiquid) {
+            event.toolTip.add(
+                EnumChatFormatting.AQUA + "Peak Reactivity: "
+                    + EnumChatFormatting.GOLD
+                    + String.format(Locale.US, "%,.0f °C", fd.peakReactivityTemp));
         }
 
         com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod =

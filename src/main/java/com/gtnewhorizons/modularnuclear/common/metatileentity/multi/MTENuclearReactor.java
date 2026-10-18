@@ -2108,19 +2108,19 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public boolean isItemRadiovoltaic(ItemStack stack) {
         if (stack == null) return false;
         if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate) return true;
-        String name = stack.getUnlocalizedName()
-            .toLowerCase();
-        return name.contains("radiovoltaic") || name.contains("radiocell") || name.contains("neutronovoltaic");
+        return com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findRadiovoltaic(stack) != null;
     }
 
     public int getRadiovoltaicTier(ItemStack stack) {
         if (stack == null) return 0;
         if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate plate)
             return plate.getTier();
-        String name = stack.getUnlocalizedName()
-            .toLowerCase();
-        if (name.contains("ev") || name.contains("extreme") || name.contains("tier2") || name.contains("t2")) return 2;
-        return 1;
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData rvd =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findRadiovoltaic(stack);
+        if (rvd != null) {
+            return rvd.tier > 0 ? rvd.tier : 1;
+        }
+        return 0;
     }
 
     public ItemStack getItemDepletedForm(ItemStack fuel) {

@@ -336,13 +336,12 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
     @Override
     public double getModerationProbability() {
         if (mConnectedPump != null && mConnectedPump.getCoolantFluidProperty() != null) {
-            String name = mConnectedPump.getCoolantFluidProperty()
-                .getFluidName()
-                .toLowerCase();
-            if (name.contains("heavy")) return 0.90;
-            if (name.contains("distill") || name.contains("water")) return 0.25;
-            if (name.contains("coolant")) return 0.05;
-            if (name.contains("sodium")) return 0.05;
+            String name = mConnectedPump.getCoolantFluidProperty().getFluidName();
+            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd =
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(name);
+            if (cfd != null) {
+                return cfd.moderation;
+            }
             return 0.05;
         }
         return 0.05;
@@ -363,20 +362,23 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
                 int cycles = mNeutronAccumulator / 4;
                 mNeutronAccumulator %= 4;
                 CoolantFluidProperty prop = mConnectedPump.getCoolantFluidProperty();
-                String name = prop != null ? prop.getFluidName()
-                    .toLowerCase() : "ic2distilledwater";
-                if (name.contains("heavy")) {
-                    // 2 D2O -> 2 T2 + 1 O2
-                    mConnectedPump.consumeCoolant(cycles * 2L);
-                    mConnectedPump.addDissolvedGas("Tritium", cycles * 2L);
-                    mConnectedPump.addDissolvedGas("Oxygen", cycles * 1L);
-                } else if (name.contains("distill")) {
-                    // 2 H2O -> 2 D2 + 1 O2
-                    mConnectedPump.consumeCoolant(cycles * 2L);
-                    mConnectedPump.addDissolvedGas("Deuterium", cycles * 2L);
-                    mConnectedPump.addDissolvedGas("Oxygen", cycles * 1L);
+                String name = prop != null ? prop.getFluidName() : "ic2distilledwater";
+                com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd =
+                    com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(name);
+                if (cfd != null && cfd.transmutationProduct != null) {
+                    if ("tritium".equalsIgnoreCase(cfd.transmutationProduct)) {
+                        // 2 D2O -> 2 T2 + 1 O2
+                        mConnectedPump.consumeCoolant(cycles * 2L);
+                        mConnectedPump.addDissolvedGas("Tritium", cycles * 2L);
+                        mConnectedPump.addDissolvedGas("Oxygen", cycles * 1L);
+                    } else if ("deuterium".equalsIgnoreCase(cfd.transmutationProduct)) {
+                        // 2 H2O -> 2 D2 + 1 O2
+                        mConnectedPump.consumeCoolant(cycles * 2L);
+                        mConnectedPump.addDissolvedGas("Deuterium", cycles * 2L);
+                        mConnectedPump.addDissolvedGas("Oxygen", cycles * 1L);
+                    }
                 }
-                // Radiolysis is strictly disallowed for any fluid other than distilled water and heavy water
+                // Radiolysis is strictly disallowed for any fluid other than fluids configured with deuterium/tritium transmutationProduct
             }
         }
     }

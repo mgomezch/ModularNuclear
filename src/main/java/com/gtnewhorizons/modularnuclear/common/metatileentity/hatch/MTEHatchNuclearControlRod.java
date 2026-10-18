@@ -130,6 +130,18 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         if (stack == null) return ControlRodType.NONE;
 
         try {
+            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crd =
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(stack);
+            if (crd != null && crd.id != null) {
+                if ("rod_silver".equals(crd.id)) return ControlRodType.SILVER;
+                if ("rod_boron".equals(crd.id)) return ControlRodType.BORON;
+                if ("rod_cadmium".equals(crd.id)) return ControlRodType.CADMIUM;
+                if ("rod_indium".equals(crd.id)) return ControlRodType.INDIUM;
+                if ("rod_hafnium".equals(crd.id)) return ControlRodType.HAFNIUM;
+            }
+        } catch (Throwable ignored) {}
+
+        try {
             String cfgType = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.getControlRodType(stack);
             if (cfgType != null) {
                 return ControlRodType.valueOf(cfgType.toUpperCase());
@@ -165,14 +177,12 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         try {
             String unloc = stack.getUnlocalizedName();
             if (unloc != null) {
-                unloc = unloc.toLowerCase();
-                if (unloc.contains("sticklong") || unloc.contains("rodlong") || unloc.contains("longrod")) {
-                    if (unloc.contains("hafnium")) return ControlRodType.HAFNIUM;
-                    if (unloc.contains("indium")) return ControlRodType.INDIUM;
-                    if (unloc.contains("cadmium")) return ControlRodType.CADMIUM;
-                    if (unloc.contains("boron")) return ControlRodType.BORON;
-                    if (unloc.contains("silver")) return ControlRodType.SILVER;
-                }
+                String clean = unloc.startsWith("item.") ? unloc.substring(5) : unloc;
+                if ("stickLongSilver".equalsIgnoreCase(clean)) return ControlRodType.SILVER;
+                if ("stickLongBoron".equalsIgnoreCase(clean)) return ControlRodType.BORON;
+                if ("stickLongCadmium".equalsIgnoreCase(clean)) return ControlRodType.CADMIUM;
+                if ("stickLongIndium".equalsIgnoreCase(clean)) return ControlRodType.INDIUM;
+                if ("stickLongHafnium".equalsIgnoreCase(clean)) return ControlRodType.HAFNIUM;
             }
         } catch (Throwable ignored) {}
 

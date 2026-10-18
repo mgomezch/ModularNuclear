@@ -650,6 +650,7 @@ public class ComponentData {
         public String id;
         public String name;
         public List<String> matching = new ArrayList<>();
+        public int tier = 1;
         public double euConversionEfficiency = 0.25;
         public double heatTransferCoeff = 0.10;
         public double absorptionFast = 1.0;
@@ -657,15 +658,21 @@ public class ComponentData {
 
         public RadiovoltaicData() {}
 
-        public RadiovoltaicData(String id, String name, double euConversionEfficiency, double heatTransferCoeff,
+        public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency, double heatTransferCoeff,
             double absFast, double absThermal, String... matching) {
             this.id = id;
             this.name = name;
+            this.tier = tier;
             this.euConversionEfficiency = euConversionEfficiency;
             this.heatTransferCoeff = heatTransferCoeff;
             this.absorptionFast = absFast;
             this.absorptionThermal = absThermal;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
+        }
+
+        public RadiovoltaicData(String id, String name, double euConversionEfficiency, double heatTransferCoeff,
+            double absFast, double absThermal, String... matching) {
+            this(id, name, 1, euConversionEfficiency, heatTransferCoeff, absFast, absThermal, matching);
         }
 
         public static RadiovoltaicData fromMap(Map<String, Object> map) {
@@ -674,6 +681,7 @@ public class ComponentData {
             d.id = (String) map.getOrDefault("id", "radiovoltaic");
             d.name = (String) map.getOrDefault("name", d.id);
             readMatching(map, d.matching);
+            d.tier = PhysicsData.getInt(map, "tier", d.tier);
             d.euConversionEfficiency = PhysicsData.getDouble(map, "eu_conversion_efficiency", d.euConversionEfficiency);
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
             d.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", d.absorptionFast);
@@ -686,6 +694,7 @@ public class ComponentData {
             m.put("id", id);
             m.put("name", name);
             m.put("matching", new ArrayList<>(matching));
+            m.put("tier", tier);
             m.put("eu_conversion_efficiency", euConversionEfficiency);
             m.put("heat_transfer_coeff", heatTransferCoeff);
             m.put("absorption_fast", absorptionFast);
@@ -711,14 +720,24 @@ public class ComponentData {
         public double moderation = 0.25;
         public String hotFluidName;
         public double coolingMultiplier = 1.0;
+        public int requiredTier = 0;
+        public int expansionRatio = 160;
+        public double heatPerLiter = 160.0;
+        public double freezingTemperature = -273.15;
+        public double explosionTemperature = Double.POSITIVE_INFINITY;
+        public String transmutationProduct;
+        public double transmutationChancePerNeutron = 0.0;
 
         public CoolantFluidData() {}
 
-        public CoolantFluidData(String id, String name, double boilingTemp, double heatTransferCoeff,
+        public CoolantFluidData(String id, String name, int requiredTier, double boilingTemp, double heatTransferCoeff,
             double heatCapacity, double absFast, double absThermal, double scattFast, double scattThermal,
-            double moderation, String hotFluidName, double coolingMult, String... matching) {
+            double moderation, String hotFluidName, double coolingMult, int expansionRatio, double heatPerLiter,
+            double freezingTemperature, double explosionTemperature, String transmutationProduct,
+            double transmutationChancePerNeutron, String... matching) {
             this.id = id;
             this.name = name;
+            this.requiredTier = requiredTier;
             this.boilingTemperature = boilingTemp;
             this.heatTransferCoeff = heatTransferCoeff;
             this.heatCapacity = heatCapacity;
@@ -729,7 +748,21 @@ public class ComponentData {
             this.moderation = moderation;
             this.hotFluidName = hotFluidName;
             this.coolingMultiplier = coolingMult;
+            this.expansionRatio = expansionRatio;
+            this.heatPerLiter = heatPerLiter;
+            this.freezingTemperature = freezingTemperature;
+            this.explosionTemperature = explosionTemperature;
+            this.transmutationProduct = transmutationProduct;
+            this.transmutationChancePerNeutron = transmutationChancePerNeutron;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
+        }
+
+        public CoolantFluidData(String id, String name, double boilingTemp, double heatTransferCoeff,
+            double heatCapacity, double absFast, double absThermal, double scattFast, double scattThermal,
+            double moderation, String hotFluidName, double coolingMult, String... matching) {
+            this(id, name, 0, boilingTemp, heatTransferCoeff, heatCapacity, absFast, absThermal, scattFast,
+                scattThermal, moderation, hotFluidName, coolingMult, 160, 160.0, -273.15,
+                Double.POSITIVE_INFINITY, null, 0.0, matching);
         }
 
         public static CoolantFluidData fromMap(Map<String, Object> map) {
@@ -748,6 +781,13 @@ public class ComponentData {
             d.moderation = PhysicsData.getDouble(map, "moderation", d.moderation);
             d.hotFluidName = (String) map.get("hot_fluid_name");
             d.coolingMultiplier = PhysicsData.getDouble(map, "cooling_multiplier", d.coolingMultiplier);
+            d.requiredTier = PhysicsData.getInt(map, "required_tier", d.requiredTier);
+            d.expansionRatio = PhysicsData.getInt(map, "expansion_ratio", d.expansionRatio);
+            d.heatPerLiter = PhysicsData.getDouble(map, "heat_per_liter", d.heatPerLiter);
+            d.freezingTemperature = PhysicsData.getDouble(map, "freezing_temperature", d.freezingTemperature);
+            d.explosionTemperature = PhysicsData.getDouble(map, "explosion_temperature", d.explosionTemperature);
+            d.transmutationProduct = (String) map.get("transmutation_product");
+            d.transmutationChancePerNeutron = PhysicsData.getDouble(map, "transmutation_chance_per_neutron", d.transmutationChancePerNeutron);
             return d;
         }
 
@@ -766,6 +806,13 @@ public class ComponentData {
             m.put("moderation", moderation);
             if (hotFluidName != null) m.put("hot_fluid_name", hotFluidName);
             m.put("cooling_multiplier", coolingMultiplier);
+            m.put("required_tier", requiredTier);
+            m.put("expansion_ratio", expansionRatio);
+            m.put("heat_per_liter", heatPerLiter);
+            m.put("freezing_temperature", freezingTemperature);
+            m.put("explosion_temperature", explosionTemperature);
+            if (transmutationProduct != null) m.put("transmutation_product", transmutationProduct);
+            if (transmutationChancePerNeutron > 0.0) m.put("transmutation_chance_per_neutron", transmutationChancePerNeutron);
             return m;
         }
     }

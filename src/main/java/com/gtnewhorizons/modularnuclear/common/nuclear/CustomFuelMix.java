@@ -1,7 +1,9 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import net.minecraft.item.ItemStack;
@@ -87,24 +89,66 @@ public class CustomFuelMix {
             return null;
         }
 
+        private static final Map<String, ActinideIsotope> NAME_LOOKUP = new HashMap<>();
+
+        static {
+            for (ActinideIsotope iso : values()) {
+                NAME_LOOKUP.put(iso.name().toLowerCase(Locale.ENGLISH), iso);
+                NAME_LOOKUP.put(iso.displayName.toLowerCase(Locale.ENGLISH), iso);
+                NAME_LOOKUP.put(iso.symbol.toLowerCase(Locale.ENGLISH), iso);
+            }
+            NAME_LOOKUP.put("uranium235", URANIUM_235);
+            NAME_LOOKUP.put("u235", URANIUM_235);
+            NAME_LOOKUP.put("u-235", URANIUM_235);
+            NAME_LOOKUP.put("uranium-235", URANIUM_235);
+
+            NAME_LOOKUP.put("uranium233", URANIUM_233);
+            NAME_LOOKUP.put("u233", URANIUM_233);
+            NAME_LOOKUP.put("u-233", URANIUM_233);
+            NAME_LOOKUP.put("uranium-233", URANIUM_233);
+
+            NAME_LOOKUP.put("uranium238", URANIUM_238);
+            NAME_LOOKUP.put("u238", URANIUM_238);
+            NAME_LOOKUP.put("u-238", URANIUM_238);
+            NAME_LOOKUP.put("uranium-238", URANIUM_238);
+            NAME_LOOKUP.put("uranium", URANIUM_238);
+
+            NAME_LOOKUP.put("plutonium241", PLUTONIUM_241);
+            NAME_LOOKUP.put("pu241", PLUTONIUM_241);
+            NAME_LOOKUP.put("pu-241", PLUTONIUM_241);
+            NAME_LOOKUP.put("plutonium-241", PLUTONIUM_241);
+
+            NAME_LOOKUP.put("plutonium239", PLUTONIUM_239);
+            NAME_LOOKUP.put("pu239", PLUTONIUM_239);
+            NAME_LOOKUP.put("pu-239", PLUTONIUM_239);
+            NAME_LOOKUP.put("plutonium-239", PLUTONIUM_239);
+            NAME_LOOKUP.put("plutonium", PLUTONIUM_239);
+
+            NAME_LOOKUP.put("thorium", THORIUM);
+            NAME_LOOKUP.put("th232", THORIUM);
+            NAME_LOOKUP.put("th-232", THORIUM);
+            NAME_LOOKUP.put("thorium232", THORIUM);
+            NAME_LOOKUP.put("thorium-232", THORIUM);
+
+            NAME_LOOKUP.put("americium", AMERICIUM);
+            NAME_LOOKUP.put("am241", AMERICIUM);
+            NAME_LOOKUP.put("americium241", AMERICIUM);
+            NAME_LOOKUP.put("americium-241", AMERICIUM);
+
+            NAME_LOOKUP.put("californium", CALIFORNIUM);
+            NAME_LOOKUP.put("cf252", CALIFORNIUM);
+            NAME_LOOKUP.put("californium252", CALIFORNIUM);
+            NAME_LOOKUP.put("californium-252", CALIFORNIUM);
+
+            NAME_LOOKUP.put("naquadah", NAQUADAH);
+            NAME_LOOKUP.put("naquadahenriched", NAQUADAH);
+            NAME_LOOKUP.put("naquadah_enriched", NAQUADAH);
+            NAME_LOOKUP.put("enrichednaquadah", NAQUADAH);
+        }
+
         public static ActinideIsotope fromName(String name) {
             if (name == null) return null;
-            String lower = name.toLowerCase();
-            if (lower.contains("uranium235") || lower.contains("u235") || lower.contains("u-235")) return URANIUM_235;
-            if (lower.contains("uranium233") || lower.contains("u233") || lower.contains("u-233")) return URANIUM_233;
-            if (lower.contains("uranium238") || lower.contains("u238")
-                || lower.contains("u-238")
-                || lower.equals("uranium")) return URANIUM_238;
-            if (lower.contains("plutonium241") || lower.contains("pu241") || lower.contains("pu-241"))
-                return PLUTONIUM_241;
-            if (lower.contains("plutonium239") || lower.contains("pu239")
-                || lower.contains("pu-239")
-                || lower.equals("plutonium")) return PLUTONIUM_239;
-            if (lower.contains("thorium") || lower.contains("th232")) return THORIUM;
-            if (lower.contains("americium")) return AMERICIUM;
-            if (lower.contains("californium")) return CALIFORNIUM;
-            if (lower.contains("naquadah")) return NAQUADAH;
-            return null;
+            return NAME_LOOKUP.get(name.trim().toLowerCase(Locale.ENGLISH));
         }
     }
 

@@ -274,10 +274,8 @@ public class MTEHatchNuclearBus extends MTEHatch {
             || Materials.FLUID_MAP.get(fluid.getFluid()) == Materials.Cheese)) {
             return true;
         }
-        String name = fluid.getFluid()
-            .getName()
-            .toLowerCase();
-        return name.contains("cheese");
+        String name = fluid.getFluid().getName();
+        return "molten.cheese".equalsIgnoreCase(name) || "cheese".equalsIgnoreCase(name) || "fluid.cheese".equalsIgnoreCase(name);
     }
 
     /**

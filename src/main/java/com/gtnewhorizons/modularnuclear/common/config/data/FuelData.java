@@ -34,6 +34,7 @@ public class FuelData {
     public double peakReactivityTemp = 770.0;
     public double floorTemp = 2300.0;
     public Double t10WearFactor = null; // per-fuel override, null falls back to global PhysicsData.t10WearFactor
+    public int requiredTier = 0; // Minimum reactor pipe tier required for this fuel
 
     // Depletion / Damage Curve profile
     public double peakReactivityMult = 1.0;
@@ -84,6 +85,19 @@ public class FuelData {
                 }
             }
         }
+    }
+
+    public FuelData(String id, String name, String archetype, boolean isLiquid, int packetCount, int baseNeutrons,
+        double thermalFissMult, double fastFissMult, double absFast, double absThermal,
+        double scattFast, double scattThermal, double moderation, double heatTransferCoeff,
+        double heatPerReaction, int defaultDurability, double peakReactivityTemp, double floorTemp,
+        double peakMult, double peakPoint, double endMult, String spentProduct, int requiredTier,
+        String... matchPatterns) {
+        this(id, name, archetype, isLiquid, packetCount, baseNeutrons, thermalFissMult, fastFissMult,
+            absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff,
+            heatPerReaction, defaultDurability, peakReactivityTemp, floorTemp, peakMult, peakPoint, endMult,
+            spentProduct, matchPatterns);
+        this.requiredTier = requiredTier;
     }
 
     public FuelData(String id, String name, boolean isLiquid, int packetCount, int baseNeutrons,
@@ -197,6 +211,7 @@ public class FuelData {
         } else if (map.containsKey("wear_factor_at_t10")) {
             fd.t10WearFactor = PhysicsData.getDouble(map, "wear_factor_at_t10", 8.0);
         }
+        fd.requiredTier = PhysicsData.getInt(map, "required_tier", fd.requiredTier);
         fd.spentProduct = (String) map.get("spent_product");
 
         Object curveObj = map.get("damage_curve");
@@ -234,6 +249,7 @@ public class FuelData {
         m.put("archetype", archetype);
         m.put("matching", new ArrayList<>(matching));
         m.put("is_liquid", isLiquid);
+        m.put("required_tier", requiredTier);
         m.put("packet_count", packetCount);
         m.put("base_neutrons", baseNeutrons);
         m.put("thermal_fission_multiplier", thermalFissionMultiplier);

@@ -242,10 +242,9 @@ public class MTEHatchNuclearHatch extends MTEHatch {
 
     public boolean hasWaterCoolant() {
         if (mInputFluid != null && mInputFluid.getFluid() != null) {
-            String name = mInputFluid.getFluid()
-                .getName()
-                .toLowerCase();
-            return name.contains("water") && !name.contains("steam");
+            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd =
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(mInputFluid);
+            return cfd != null && cfd.freezingTemperature >= 0.0;
         }
         return false;
     }

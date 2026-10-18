@@ -123,34 +123,42 @@ public enum NuclearFuelType {
         return 0.05 + 0.95 * (0.5 * (1.0 + Math.cos(Math.PI * progress)));
     }
 
+    public static NuclearFuelType fromFuelData(com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd) {
+        if (fd == null || fd.id == null) return null;
+        return switch (fd.id) {
+            case "fuel_glowstone" -> GLOWSTONE;
+            case "fuel_lithium" -> LITHIUM;
+            case "fuel_thorium_1", "fuel_thorium_2", "fuel_thorium_4", "fluid_fuel_thorium" -> THORIUM;
+            case "fuel_uranium_1", "fuel_uranium_2", "fuel_uranium_4", "fluid_fuel_uranium" -> URANIUM;
+            case "fuel_mox_1", "fuel_mox_2", "fuel_mox_4" -> MOX;
+            case "fuel_hd_uranium_1", "fuel_hd_uranium_2", "fuel_hd_uranium_4" -> HD_URANIUM;
+            case "fuel_hd_plutonium_1", "fuel_hd_plutonium_2", "fuel_hd_plutonium_4", "fluid_fuel_plutonium" -> HD_PLUTONIUM;
+            case "fuel_excited_uranium_1", "fuel_excited_uranium_2", "fuel_excited_uranium_4", "fluid_fuel_uranium_excited" -> EXCITED_URANIUM;
+            case "fuel_excited_plutonium_1", "fuel_excited_plutonium_2", "fuel_excited_plutonium_4", "fluid_fuel_plutonium_excited" -> EXCITED_PLUTONIUM;
+            case "fuel_naquadah_1", "fuel_naquadah_2", "fuel_naquadah_4" -> NAQUADAH;
+            case "fuel_naquadria_1", "fuel_naquadria_2", "fuel_naquadria_4" -> NAQUADRIA;
+            case "fuel_tiberium_1", "fuel_tiberium_2", "fuel_tiberium_4" -> TIBERIUM;
+            case "fuel_naquadah_32" -> THE_CORE;
+            default -> null;
+        };
+    }
+
     /**
-     * Resolves NuclearFuelType from item or fluid unlocalized names.
+     * Resolves NuclearFuelType from fuel identifier, display name, enum name, or registry lookup.
      */
     public static NuclearFuelType fromName(String name) {
         if (name == null || name.isEmpty()) return null;
-        String lower = name.toLowerCase();
-        if (lower.contains("thecore") || lower.contains("naquadah32")
-            || (lower.contains("naquadah") && lower.contains("32"))) {
-            return THE_CORE;
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(name);
+        if (fd != null) {
+            NuclearFuelType nft = fromFuelData(fd);
+            if (nft != null) return nft;
         }
-        if (lower.contains("glowstone")) return GLOWSTONE;
-        if (lower.contains("lithium")) return LITHIUM;
-        if (lower.contains("excited") && lower.contains("uranium")) return EXCITED_URANIUM;
-        if (lower.contains("excited") && lower.contains("plutonium")) return EXCITED_PLUTONIUM;
-        if ((lower.contains("highdensity") || lower.contains("high-density") || lower.contains("hd"))
-            && lower.contains("uranium")) {
-            return HD_URANIUM;
+        for (NuclearFuelType type : values()) {
+            if (type.name().equalsIgnoreCase(name) || type.displayName.equalsIgnoreCase(name)) {
+                return type;
+            }
         }
-        if ((lower.contains("highdensity") || lower.contains("high-density") || lower.contains("hd"))
-            && lower.contains("plutonium")) {
-            return HD_PLUTONIUM;
-        }
-        if (lower.contains("naquadria")) return NAQUADRIA;
-        if (lower.contains("naquadah")) return NAQUADAH;
-        if (lower.contains("tiberium")) return TIBERIUM;
-        if (lower.contains("mox")) return MOX;
-        if (lower.contains("thorium")) return THORIUM;
-        if (lower.contains("uranium")) return URANIUM;
         return null;
     }
 }

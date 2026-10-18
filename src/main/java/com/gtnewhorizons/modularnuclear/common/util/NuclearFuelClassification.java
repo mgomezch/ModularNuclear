@@ -234,12 +234,8 @@ public final class NuclearFuelClassification {
             }
         }
 
-        String name = stack.getUnlocalizedName();
-        if (name != null) {
-            String lower = name.toLowerCase();
-            if (lower.contains("depleted")) return true;
-            if (lower.contains("fuelrod") && (lower.contains("empty") || lower.contains("depleted"))) return true;
-            if (lower.contains("itemfuelrodempty")) return true;
+        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.isSpentProduct(stack)) {
+            return true;
         }
 
         return false;
@@ -297,69 +293,23 @@ public final class NuclearFuelClassification {
     public static boolean isFluidFuel(FluidStack fluid) {
         if (fluid == null || fluid.getFluid() == null) return false;
         if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isFluidBlocked(fluid)) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(fluid) != null) return true;
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(fluid);
+        if (fd != null && fd.isLiquid) return true;
         if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isFluidFuel(fluid)) return true;
-        String name = fluid.getFluid()
-            .getName()
-            .toLowerCase();
-        if (name.contains("depleted")) return false; // Depleted fluids are not active fuels
-        if (name.contains("naquadah")) return false; // Avoid overlap with Large Naquadah Reactor
-        if (name.contains("thoriumbasedliquidfuel") || (name.contains("thorium") && name.contains("liquidfuel")))
-            return true;
-        if (name.contains("uraniumbasedliquidfuel") || (name.contains("uranium") && name.contains("liquidfuel")))
-            return true;
-        if (name.contains("plutoniumbasedliquidfuel") || (name.contains("plutonium") && name.contains("liquidfuel")))
-            return true;
-        if (name.contains("uraniumhexafluoride")) return true;
-        try {
-            if (fluid.isFluidEqual(GGMaterial.uraniumBasedLiquidFuel.getFluidOrGas(1))
-                || fluid.isFluidEqual(GGMaterial.uraniumBasedLiquidFuelExcited.getFluidOrGas(1))
-                || fluid.isFluidEqual(GGMaterial.thoriumBasedLiquidFuel.getFluidOrGas(1))
-                || fluid.isFluidEqual(GGMaterial.thoriumBasedLiquidFuelExcited.getFluidOrGas(1))
-                || fluid.isFluidEqual(GGMaterial.plutoniumBasedLiquidFuel.getFluidOrGas(1))
-                || fluid.isFluidEqual(GGMaterial.plutoniumBasedLiquidFuelExcited.getFluidOrGas(1))) {
-                return true;
-            }
-        } catch (Throwable ignored) {}
         return false;
     }
 
     public static Fluid getSpentFluid(FluidStack fuel) {
         if (fuel == null || fuel.getFluid() == null) return null;
-        String name = fuel.getFluid()
-            .getName()
-            .toLowerCase();
-        if (name.contains("thorium")) {
-            try {
-                return GGMaterial.thoriumBasedLiquidFuelDepleted.getFluidOrGas(1)
-                    .getFluid();
-            } catch (Throwable ignored) {}
-            Fluid f = FluidRegistry.getFluid("thoriumbasedliquidfueldepleted");
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(fuel);
+        if (fd != null && fd.spentProduct != null) {
+            Fluid f = FluidRegistry.getFluid(fd.spentProduct);
+            if (f == null && !fd.spentProduct.startsWith("fluid.")) {
+                f = FluidRegistry.getFluid("fluid." + fd.spentProduct);
+            }
             if (f != null) return f;
-            return FluidRegistry.getFluid("fluid.thoriumbasedliquidfueldepleted");
-        }
-        if (name.contains("uraniumbased") || (name.contains("uranium") && name.contains("liquidfuel"))) {
-            try {
-                return GGMaterial.uraniumBasedLiquidFuelDepleted.getFluidOrGas(1)
-                    .getFluid();
-            } catch (Throwable ignored) {}
-            Fluid f = FluidRegistry.getFluid("uraniumbasedliquidfueldepleted");
-            if (f != null) return f;
-            return FluidRegistry.getFluid("fluid.uraniumbasedliquidfueldepleted");
-        }
-        if (name.contains("plutonium")) {
-            try {
-                return GGMaterial.plutoniumBasedLiquidFuelDepleted.getFluidOrGas(1)
-                    .getFluid();
-            } catch (Throwable ignored) {}
-            Fluid f = FluidRegistry.getFluid("plutoniumbasedliquidfueldepleted");
-            if (f != null) return f;
-            return FluidRegistry.getFluid("fluid.plutoniumbasedliquidfueldepleted");
-        }
-        if (name.contains("uraniumhexafluoride")) {
-            Fluid tetra = FluidRegistry.getFluid("uraniumtetrafluoride");
-            if (tetra != null) return tetra;
-            return FluidRegistry.getFluid("fluid.uraniumtetrafluoride");
         }
         return null;
     }
@@ -368,10 +318,7 @@ public final class NuclearFuelClassification {
         if (fluid == null || fluid.getFluid() == null) return false;
         if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(fluid) != null) return true;
         if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isCoolantFluid(fluid)) return true;
-        String name = fluid.getFluid()
-            .getName()
-            .toLowerCase();
-        return name.contains("water") || name.contains("coolant") || name.contains("sodium") || name.contains("lead");
+        return false;
     }
 
     public static boolean isHullOnlyComponent(ItemStack stack) {
@@ -380,11 +327,10 @@ public final class NuclearFuelClassification {
         if (Ic2Items.reactorHeatSwitchCore != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorHeatSwitchCore, true)) return true;
         String name = stack.getUnlocalizedName();
         if (name != null) {
-            String lower = name.toLowerCase();
-            if (lower.contains("ventcore") || lower.contains("reactorventcore")
-                || lower.contains("heatswitchcore") || lower.contains("reactorswitchcore")) {
-                return true;
-            }
+            return "ic2.reactorVentCore".equalsIgnoreCase(name)
+                || "ic2.reactorHeatSwitchCore".equalsIgnoreCase(name)
+                || "reactorVentCore".equalsIgnoreCase(name)
+                || "reactorHeatSwitchCore".equalsIgnoreCase(name);
         }
         return false;
     }
@@ -566,80 +512,6 @@ public final class NuclearFuelClassification {
             }
         }
 
-        String name = fuel.getUnlocalizedName();
-        if (name == null) return null;
-        String lower = name.toLowerCase();
-
-        // 5. Breeder target fallback (Lithium & Glowstone)
-        if (lower.contains("lithium")) {
-            return ItemList.DepletedRodLithium != null && ItemList.DepletedRodLithium.hasBeenSet()
-                ? ItemList.DepletedRodLithium.get(1L) : null;
-        }
-        if (lower.contains("glowstone")) {
-            return ItemList.DepletedRodGlowstone != null && ItemList.DepletedRodGlowstone.hasBeenSet()
-                ? ItemList.DepletedRodGlowstone.get(1L) : null;
-        }
-
-        // 6. The Core (RodNaquadah32)
-        if (lower.contains("naquadah32") || lower.contains("thecore")
-            || (lower.contains("naquadah") && lower.contains("32"))) {
-            return ItemList.DepletedRodNaquadah32.get(1L);
-        }
-
-        // 7. Excited variants
-        if (lower.contains("exciteduranium") || (lower.contains("excited") && lower.contains("uranium"))) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodExcitedUranium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodExcitedUranium2.get(1L);
-            return ItemList.DepletedRodExcitedUranium.get(1L);
-        }
-        if (lower.contains("excitedplutonium") || (lower.contains("excited") && lower.contains("plutonium"))) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodExcitedPlutonium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodExcitedPlutonium2.get(1L);
-            return ItemList.DepletedRodExcitedPlutonium.get(1L);
-        }
-
-        // 5. High density variants
-        if (lower.contains("highdensityuranium") || (lower.contains("highdensity") && lower.contains("uranium"))) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodHighDensityUranium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodHighDensityUranium2.get(1L);
-            return ItemList.DepletedRodHighDensityUranium.get(1L);
-        }
-        if (lower.contains("highdensityplutonium") || (lower.contains("highdensity") && lower.contains("plutonium"))) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodHighDensityPlutonium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodHighDensityPlutonium2.get(1L);
-            return ItemList.DepletedRodHighDensityPlutonium.get(1L);
-        }
-
-        // 6. Naquadria & Tiberium
-        if (lower.contains("naquadria")) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodNaquadria4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodNaquadria2.get(1L);
-            return ItemList.DepletedRodNaquadria.get(1L);
-        }
-        if (lower.contains("tiberium")) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodTiberium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodTiberium2.get(1L);
-            return ItemList.DepletedRodTiberium.get(1L);
-        }
-
-        // 7. Standard fuels: Naquadah, Thorium, MOX, Uranium
-        if (lower.contains("naquadah")) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodNaquadah4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodNaquadah2.get(1L);
-            return ItemList.DepletedRodNaquadah.get(1L);
-        } else if (lower.contains("mox")) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodMOX4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodMOX2.get(1L);
-            return ItemList.DepletedRodMOX.get(1L);
-        } else if (lower.contains("thorium")) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodThorium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodThorium2.get(1L);
-            return ItemList.DepletedRodThorium.get(1L);
-        } else if (lower.contains("uranium")) {
-            if (lower.contains("quad") || lower.contains("4")) return ItemList.DepletedRodUranium4.get(1L);
-            if (lower.contains("dual") || lower.contains("2")) return ItemList.DepletedRodUranium2.get(1L);
-            return ItemList.DepletedRodUranium.get(1L);
-        }
         return null;
     }
 }
