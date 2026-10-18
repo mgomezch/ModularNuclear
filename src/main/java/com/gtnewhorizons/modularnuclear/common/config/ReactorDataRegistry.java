@@ -824,22 +824,22 @@ public final class ReactorDataRegistry {
         cd.reflectors.add(new ReflectorData("reflector_ic2_thick", "Thick Neutron Reflector", 0.005, 0.01, 0.98, 0.99, 0.25, 0.20, 40000,
             "IC2:reactorReflectorThick", "ItemList.Neutron_Reflector_Thick"));
 
-        // Moderators
+        // Moderators - restricted strictly to long-rod form
         cd.moderators.add(new ModeratorData("moderator_graphite", "Graphite Moderator",
             0.002, 0.009, 0.93, 0.621, 0.50, 0.05, 2500.0,
             80000, "ore:dustAsh", 0.0003, 1.0, 1500.0, 2500.0, 0.0,
             1.0, 1500.0, 2500.0, 2000.0, 10000.0,
-            "stickLongGraphite", "ore:stickLongGraphite", "blockGraphite", "ore:blockGraphite", "plateGraphite", "ore:plateGraphite", "ingotGraphite", "ore:ingotGraphite", "dustGraphite", "ore:dustGraphite"));
+            "stickLongGraphite", "ore:stickLongGraphite"));
         cd.moderators.add(new ModeratorData("moderator_carbon", "Carbon Moderator",
             0.003, 0.012, 0.90, 0.60, 0.45, 0.05, 2200.0,
             10000, "ore:dustAsh", 0.0005, 1.0, 1500.0, 2500.0, 0.0,
             0.0, 1500.0, 2500.0, 0.0,
-            "stickLongCarbon", "ore:stickLongCarbon", "plateCarbon", "ore:plateCarbon", "plateAlloyCarbon", "ore:plateAlloyCarbon", "dustCarbon", "ore:dustCarbon", "blockCarbon", "ore:blockCarbon"));
+            "stickLongCarbon", "ore:stickLongCarbon"));
         cd.moderators.add(new ModeratorData("moderator_beryllium", "Beryllium Moderator",
             0.001, 0.004, 0.96, 0.85, 0.65, 0.15, 2600.0,
             240000, "", 0.0002, 0.5, 1500.0, 2500.0, 0.0,
             0.0, 1500.0, 2500.0, 0.0,
-            "stickLongBeryllium", "ore:stickLongBeryllium", "rodBeryllium", "stickBeryllium"));
+            "stickLongBeryllium", "ore:stickLongBeryllium"));
 
         // Control Rods - explicitly configured, no wildcards
         cd.controlRods.add(new ControlRodData("rod_silver", "Silver Control Rod", 0.50, 0.20, 0.05, 0.05, 0.20,

@@ -5983,6 +5983,43 @@ public class NuclearSimulationEngineTest {
         ItemStack silverIngotStack = new ItemStack(mockSilverIngot, 1, 0);
         assertNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(silverIngotStack),
             "Silver ingot must not be classified as a control rod (wildcards eliminated)");
+
+        // 8. Moderators must strictly require long rods only (blocks, plates, dusts, and short rods rejected)
+        net.minecraft.item.Item mockGraphiteBlock = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockGraphiteBlock.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("tile.blockGraphite");
+        ItemStack graphiteBlockStack = new ItemStack(mockGraphiteBlock, 1, 0);
+        assertNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(graphiteBlockStack),
+            "Graphite block must be rejected as a moderator (only long rods accepted)");
+
+        net.minecraft.item.Item mockCarbonPlate = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockCarbonPlate.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.plateCarbon");
+        ItemStack carbonPlateStack = new ItemStack(mockCarbonPlate, 1, 0);
+        assertNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(carbonPlateStack),
+            "Carbon plate must be rejected as a moderator (only long rods accepted)");
+
+        net.minecraft.item.Item mockBerylliumShortRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockBerylliumShortRod.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.rodBeryllium");
+        ItemStack berylliumShortRodStack = new ItemStack(mockBerylliumShortRod, 1, 0);
+        assertNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(berylliumShortRodStack),
+            "Beryllium short rod must be rejected as a moderator (only long rods accepted)");
+
+        net.minecraft.item.Item mockGraphiteLongRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockGraphiteLongRod.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.stickLongGraphite");
+        ItemStack graphiteLongRodStack = new ItemStack(mockGraphiteLongRod, 1, 0);
+        assertNotNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(graphiteLongRodStack),
+            "Graphite long rod must be accepted as a moderator");
+
+        net.minecraft.item.Item mockCarbonLongRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockCarbonLongRod.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.stickLongCarbon");
+        ItemStack carbonLongRodStack = new ItemStack(mockCarbonLongRod, 1, 0);
+        assertNotNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(carbonLongRodStack),
+            "Carbon long rod must be accepted as a moderator");
+
+        net.minecraft.item.Item mockBerylliumLongRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(mockBerylliumLongRod.getUnlocalizedName(org.mockito.Mockito.any())).thenReturn("item.stickLongBeryllium");
+        ItemStack berylliumLongRodStack = new ItemStack(mockBerylliumLongRod, 1, 0);
+        assertNotNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(berylliumLongRodStack),
+            "Beryllium long rod must be accepted as a moderator");
     }
 
     @Test

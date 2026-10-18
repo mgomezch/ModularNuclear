@@ -96,13 +96,9 @@ public final class ModularNuclearConfig {
     };
 
     public static String[] allowedModerators = new String[] {
-        "blockGraphite",
-        "plateGraphite",
-        "ingotGraphite",
-        "dustGraphite",
-        "plateCarbon",
-        "plateAlloyCarbon",
-        "dustCarbon"
+        "stickLongGraphite",
+        "stickLongCarbon",
+        "stickLongBeryllium"
     };
 
     public static String[] allowedHeatVents = new String[] {
