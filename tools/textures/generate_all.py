@@ -5,11 +5,11 @@ Runs all component texture generators to deterministically regenerate all
 procedural/algorithmic art assets for the mod.
 
 Complies strictly with GTNH policy against AI-generated art assets:
-every texture produced here is derived from explicit mathematical equations,
-color-space algorithms, trigonometric noise functions, or open-source baseline textures.
+Every texture produced here is derived from explicit mathematical equations,
+harmonic wave physics, trigonometric noise functions, and geometric coordinate math.
+Zero third-party files or baseline templates are used.
 """
 
-import os
 import subprocess
 import sys
 import time
@@ -29,17 +29,12 @@ def main():
     tools_dir = Path(__file__).resolve().parent
     mod_root = tools_dir.parent.parent
     res_dir = mod_root / "src/main/resources/assets/modularnuclear/textures"
-    baseline_dir = tools_dir / "baseline"
 
     print("================================================================================")
     print("           ModularNuclear — Procedural Texture Generation Suite                 ")
     print("================================================================================")
     print(f"Mod Root:     {mod_root}")
-    print(f"Baseline:     {baseline_dir}")
     print(f"Target Path:  {res_dir}")
-
-    # 0. Upstream Open-Source Baseline Extraction & Verification
-    run_generator(tools_dir / "extract_external_assets.py")
 
     # 1. NEI Atlas & Long Arrow
     run_generator(tools_dir / "generate_nei_atlas.py")
@@ -50,18 +45,16 @@ def main():
     # 3. Molten Corium Fluids (Still & Flowing animations)
     run_generator(tools_dir / "generate_corium.py")
 
-    # 4. Water Fluids (Heavy Water, HP Distilled Water, HP Heavy Water) via single-file Java
-    java_script = tools_dir / "generate_water_fluids.java"
-    print(f"\n▶ Executing: {java_script.name}")
-    subprocess.check_call(["java", str(java_script), str(baseline_dir), str(res_dir / "blocks/fluids")])
+    # 4. Water Fluids (Heavy Water, HP Distilled Water, HP Heavy Water) via harmonic wave math
+    run_generator(tools_dir / "generate_water_fluids.py")
 
-    # 5. Fluid Cells
+    # 5. Fluid Cells (Pure procedural canisters & liquid columns)
     run_generator(tools_dir / "generate_cells.py")
 
-    # 6. Nuclear Machine Casing
+    # 6. Nuclear Machine Casing (Pure procedural lead-shielded casing)
     run_generator(tools_dir / "generate_casing.py")
 
-    # 7. Radiovoltaic Plates
+    # 7. Radiovoltaic Plates (Pure procedural Si-Ge and SiC-Graphene wafers)
     run_generator(tools_dir / "generate_radiovoltaic_plates.py")
 
     dt = time.time() - t0

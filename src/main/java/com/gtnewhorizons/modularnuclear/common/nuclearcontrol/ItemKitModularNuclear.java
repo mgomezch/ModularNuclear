@@ -33,7 +33,7 @@ public class ItemKitModularNuclear extends ItemSensorKitBase {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister iconRegister) {
-        this.itemIcon = iconRegister.registerIcon("modularnuclear:kit_modular_nuclear");
+        this.itemIcon = iconRegister.registerIcon("nuclearcontrol:kitReactor");
     }
 
     @Override

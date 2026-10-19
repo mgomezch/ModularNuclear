@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-Procedural generator for Radiovoltaic Plate item textures:
-  - assets/modularnuclear/textures/items/gt.radiovoltaic.plate.hv.png (HV - Nickel/Gold tint)
-  - assets/modularnuclear/textures/items/gt.radiovoltaic.plate.ev.png (EV - Graphite/Cyan tint)
+100% Pure Procedural Generator for Radiovoltaic Plate item textures:
+  - assets/modularnuclear/textures/items/gt.radiovoltaic.plate.hv.png (HV - Gold/Nickel busbars on Si-Ge wafer)
+  - assets/modularnuclear/textures/items/gt.radiovoltaic.plate.ev.png (EV - Cyan superconductor on SiC-Graphene wafer)
 
-Transforms the base GregTech neutron reflector plate palette via deterministic
-channel multipliers on the indexed PNG palette (PLTE).
+Complies strictly with GTNH policy against AI-generated art assets:
+Synthesizes the complete semiconductor plate geometry, micro-grid lines,
+and collector busbars from scratch using pure coordinate math.
+Zero third-party files or baseline textures are used.
 """
 
 import struct
@@ -13,63 +15,125 @@ import zlib
 from pathlib import Path
 
 
-def tint_indexed_png(src, dst, r_mul, g_mul, b_mul):
-    with open(src, "rb") as f:
-        data = f.read()
+def write_png_rgba(width, height, rgba_pixels, out_path):
+    raw = bytearray()
+    for y in range(height):
+        raw.append(0)  # Filter None
+        for x in range(width):
+            r, g, b, a = rgba_pixels[y * width + x]
+            raw.extend((max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)), max(0, min(255, a))))
 
-    pos = 8
-    chunks = []
-    while pos < len(data):
-        length = struct.unpack(">I", data[pos : pos + 4])[0]
-        ctype = data[pos + 4 : pos + 8]
-        cdata = data[pos + 8 : pos + 8 + length]
-        pos += 12 + length
-        if ctype == b"PLTE":
-            plte = bytearray(cdata)
-            for i in range(0, len(plte), 3):
-                plte[i] = min(255, int(plte[i] * r_mul))
-                plte[i + 1] = min(255, int(plte[i + 1] * g_mul))
-                plte[i + 2] = min(255, int(plte[i + 2] * b_mul))
-            cdata = bytes(plte)
-        chunks.append((ctype, cdata))
+    compressed = zlib.compress(bytes(raw), 9)
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)  # Type 6: RGBA
+    ihdr_crc = zlib.crc32(b"IHDR" + ihdr) & 0xFFFFFFFF
+    idat_crc = zlib.crc32(b"IDAT" + compressed) & 0xFFFFFFFF
+    iend_crc = zlib.crc32(b"IEND") & 0xFFFFFFFF
 
-    out = b"\x89PNG\r\n\x1a\n"
-    for ctype, cdata in chunks:
-        crc = zlib.crc32(ctype + cdata) & 0xFFFFFFFF
-        out += struct.pack(">I", len(cdata)) + ctype + cdata + struct.pack(">I", crc)
+    data = (
+        b"\x89PNG\r\n\x1a\n"
+        + struct.pack(">I", len(ihdr)) + b"IHDR" + ihdr + struct.pack(">I", ihdr_crc)
+        + struct.pack(">I", len(compressed)) + b"IDAT" + compressed + struct.pack(">I", idat_crc)
+        + struct.pack(">I", 0) + b"IEND" + struct.pack(">I", iend_crc)
+    )
 
-    with open(dst, "wb") as f:
-        f.write(out)
+    with open(out_path, "wb") as f:
+        f.write(data)
 
 
-def main(baseline_dir=None, output_dir=None):
+def generate_plate(out_path, wafer_base, busbar_color, pad_color, highlight_color):
+    width, height = 16, 16
+    pixels = []
+
+    wb_r, wb_g, wb_b = wafer_base
+    bb_r, bb_g, bb_b = busbar_color
+    pd_r, pd_g, pd_b = pad_color
+    hl_r, hl_g, hl_b = highlight_color
+
+    # Corner cutoffs for classic GregTech item plate profile (16x16)
+    transparent_corners = {
+        (0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (0, 2),
+        (13, 0), (14, 0), (15, 0), (14, 1), (15, 1), (15, 2),
+        (0, 13), (0, 14), (0, 15), (1, 14), (1, 15), (2, 15),
+        (15, 13), (14, 14), (15, 14), (13, 15), (14, 15), (15, 15)
+    }
+
+    for y in range(height):
+        for x in range(width):
+            if (x, y) in transparent_corners:
+                pixels.append((0, 0, 0, 0))
+                continue
+
+            # Base wafer tone with subtle micro-texture
+            noise = ((x * 13 + y * 7) % 7) - 3
+            r = wb_r + noise
+            g = wb_g + noise
+            b = wb_b + noise
+
+            # Micro-grid lines (every 2 pixels on wafer)
+            if (x % 2 == 0) and (y % 2 == 0) and x >= 3 and x <= 12 and y >= 3 and y <= 12:
+                r -= 8; g -= 8; b -= 8
+
+            # Outer bevel perimeter
+            is_top_left = (x == 1 and y >= 2 and y <= 13) or (y == 1 and x >= 2 and x <= 13) or (x == 2 and y == 1) or (x == 1 and y == 2)
+            is_bot_right = (x == 14 and y >= 2 and y <= 13) or (y == 14 and x >= 2 and x <= 13) or (x == 13 and y == 14) or (x == 14 and y == 13)
+
+            if is_top_left:
+                r += 40; g += 40; b += 40
+            elif is_bot_right:
+                r -= 35; g -= 35; b -= 35
+
+            # Longitudinal collector busbars at x=6 and x=9
+            if (x == 6 or x == 9) and y >= 3 and y <= 12:
+                r, g, b = bb_r, bb_g, bb_b
+                if x == 6:
+                    r = min(255, r + 15); g = min(255, g + 15); b = min(255, b + 15)
+
+            # Central horizontal interconnect at y=7 and y=8 between busbars
+            if (y == 7 or y == 8) and x >= 6 and x <= 9:
+                r, g, b = bb_r, bb_g, bb_b
+
+            # Contact pads at top and bottom of busbars
+            if (x in (5, 6, 7) or x in (8, 9, 10)) and (y == 3 or y == 12):
+                r, g, b = pd_r, pd_g, pd_b
+            if (x == 6 or x == 9) and (y == 3 or y == 12):
+                r, g, b = hl_r, hl_g, hl_b  # Contact glint
+
+            pixels.append((r, g, b, 255))
+
+    write_png_rgba(width, height, pixels, out_path)
+
+
+def main(output_dir=None):
     script_dir = Path(__file__).resolve().parent
-    if baseline_dir is None:
-        baseline_dir = script_dir / "baseline"
-    else:
-        baseline_dir = Path(baseline_dir)
-
     if output_dir is None:
         output_dir = script_dir.parent.parent / "src/main/resources/assets/modularnuclear/textures/items"
     else:
         output_dir = Path(output_dir)
 
-    reflector_src = baseline_dir / "gt.neutronreflector.png"
-    if not reflector_src.exists():
-        raise FileNotFoundError(f"Baseline gt.neutronreflector.png not found in {baseline_dir}")
-
     output_dir.mkdir(parents=True, exist_ok=True)
     print("Generating Radiovoltaic Plate Textures:")
 
-    # HV: Nickel / warm golden-amber tint (1.4, 1.2, 0.5)
+    # HV: Warm Si-Ge semiconductor wafer with Gold/Nickel collector grid
     hv_dest = output_dir / "gt.radiovoltaic.plate.hv.png"
-    tint_indexed_png(reflector_src, hv_dest, 1.4, 1.2, 0.5)
-    print(f"  [✓] Wrote {hv_dest.name} (HV Nickel tint)")
+    generate_plate(
+        hv_dest,
+        wafer_base=(48, 56, 64),
+        busbar_color=(235, 175, 25),
+        pad_color=(255, 210, 60),
+        highlight_color=(255, 245, 160)
+    )
+    print(f"  [✓] Wrote {hv_dest.name} (pure procedural HV Gold/Nickel)")
 
-    # EV: Graphite / deep cyan tint (0.4, 0.9, 1.4)
+    # EV: Ultra-dense SiC-Graphene semiconductor wafer with Cyan superconductor grid
     ev_dest = output_dir / "gt.radiovoltaic.plate.ev.png"
-    tint_indexed_png(reflector_src, ev_dest, 0.4, 0.9, 1.4)
-    print(f"  [✓] Wrote {ev_dest.name} (EV Graphite tint)")
+    generate_plate(
+        ev_dest,
+        wafer_base=(30, 36, 42),
+        busbar_color=(0, 200, 230),
+        pad_color=(60, 230, 255),
+        highlight_color=(200, 250, 255)
+    )
+    print(f"  [✓] Wrote {ev_dest.name} (pure procedural EV Cyan superconductor)")
 
 
 if __name__ == "__main__":

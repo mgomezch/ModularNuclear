@@ -70,7 +70,7 @@ public class ItemCardModularNuclear extends ItemCardBase implements IRemoteSenso
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister iconRegister) {
-        this.itemIcon = iconRegister.registerIcon("modularnuclear:card_modular_nuclear");
+        this.itemIcon = iconRegister.registerIcon("nuclearcontrol:cardReactor");
     }
 
     @Override
