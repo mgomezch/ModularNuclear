@@ -15,6 +15,7 @@ import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.gtnewhorizons.modularnuclear.client.particle.EntityCherenkovBeamFX;
 import com.gtnewhorizons.modularnuclear.client.particle.EntityCherenkovFX;
 import com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
@@ -29,6 +30,7 @@ import gregtech.api.metatileentity.BaseMetaTileEntity;
 public class CherenkovClientHandler {
 
     private static final Map<MTENuclearReactor, Set<BlockPos>> LIT_HATCHES = new HashMap<>();
+    private static final Map<MTENuclearReactor, EntityCherenkovBeamFX> ACTIVE_BEAMS = new HashMap<>();
 
     private static class BlockPos {
 
@@ -59,10 +61,15 @@ public class CherenkovClientHandler {
         if (world == null) return;
 
         if (!ModularNuclearConfig.enableCherenkovRadiation || !base.isActive()) {
-            if (reactor.mClientWaterBlocks > 0 || LIT_HATCHES.containsKey(reactor)) {
+            if (reactor.mClientWaterBlocks > 0 || LIT_HATCHES.containsKey(reactor)
+                || ACTIVE_BEAMS.containsKey(reactor)) {
                 clearHatchLights(reactor, world);
                 reactor.mClientWaterBlocks = 0;
                 reactor.mClientCherenkovIntensity = 0f;
+                EntityCherenkovBeamFX beam = ACTIVE_BEAMS.remove(reactor);
+                if (beam != null) {
+                    beam.setDead();
+                }
                 CherenkovWorldRenderer.unregister(reactor);
             }
             return;
@@ -79,12 +86,28 @@ public class CherenkovClientHandler {
             float radIntensity = Math.max(reactor.mClientRadiationIntensity, base.isActive() ? 0.40f : 0f);
             reactor.mClientCherenkovIntensity = waterFactor * radIntensity;
             if (reactor.mClientCherenkovIntensity > 0f) {
+                EntityCherenkovBeamFX beam = ACTIVE_BEAMS.get(reactor);
+                if (beam == null || beam.isDead || beam.worldObj != world) {
+                    beam = new EntityCherenkovBeamFX(world, reactor);
+                    Minecraft.getMinecraft().effectRenderer.addEffect(beam);
+                    ACTIVE_BEAMS.put(reactor, beam);
+                }
                 spawnParticles(reactor, base, world);
-            } else if (LIT_HATCHES.containsKey(reactor)) {
-                clearHatchLights(reactor, world);
+            } else {
+                EntityCherenkovBeamFX beam = ACTIVE_BEAMS.remove(reactor);
+                if (beam != null) {
+                    beam.setDead();
+                }
+                if (LIT_HATCHES.containsKey(reactor)) {
+                    clearHatchLights(reactor, world);
+                }
             }
         } else {
             reactor.mClientCherenkovIntensity = 0f;
+            EntityCherenkovBeamFX beam = ACTIVE_BEAMS.remove(reactor);
+            if (beam != null) {
+                beam.setDead();
+            }
         }
     }
 
@@ -141,6 +164,13 @@ public class CherenkovClientHandler {
             reactor.mClientCherenkovIntensity = waterFactor * radIntensity;
             CherenkovWorldRenderer.register(reactor);
 
+            EntityCherenkovBeamFX beam = ACTIVE_BEAMS.get(reactor);
+            if (beam == null || beam.isDead || beam.worldObj != world) {
+                beam = new EntityCherenkovBeamFX(world, reactor);
+                Minecraft.getMinecraft().effectRenderer.addEffect(beam);
+                ACTIVE_BEAMS.put(reactor, beam);
+            }
+
             updateHatchesLight(
                 reactor,
                 world,
@@ -153,6 +183,10 @@ public class CherenkovClientHandler {
             reactor.mClientWaterBlocks = 0;
             reactor.mClientCherenkovIntensity = 0f;
             CherenkovWorldRenderer.unregister(reactor);
+            EntityCherenkovBeamFX beam = ACTIVE_BEAMS.remove(reactor);
+            if (beam != null) {
+                beam.setDead();
+            }
             clearHatchLights(reactor, world);
         }
     }
@@ -244,6 +278,20 @@ public class CherenkovClientHandler {
         clearHatchLights(reactor, world);
         reactor.mClientWaterBlocks = 0;
         reactor.mClientCherenkovIntensity = 0f;
+        EntityCherenkovBeamFX beam = ACTIVE_BEAMS.remove(reactor);
+        if (beam != null) {
+            beam.setDead();
+        }
         CherenkovWorldRenderer.unregister(reactor);
+    }
+
+    public static void onWorldUnload() {
+        for (EntityCherenkovBeamFX beam : ACTIVE_BEAMS.values()) {
+            if (beam != null) {
+                beam.setDead();
+            }
+        }
+        ACTIVE_BEAMS.clear();
+        LIT_HATCHES.clear();
     }
 }
