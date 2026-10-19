@@ -1330,7 +1330,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             mWasMachineFormed = true;
             mLastFormedNuclearTiles.clear();
             mLastFormedNuclearTiles.addAll(mNuclearTiles);
-            int tier = (gridSize >= 145) ? 3 : (gridSize >= 69) ? 2 : 1;
+            int tier = getReactorTier();
             aBaseMetaTileEntity.sendBlockEvent((byte) 100, (byte) tier);
         } else if (mWasMachineFormed) {
             mWasMachineFormed = false;
@@ -1576,9 +1576,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 mEscapedNeutrons = res.neutronsEscaped;
                 mReactivity = res.averageReactivity;
 
-                // Dynamic Cherenkov radiation intensity metric: S(N) = N^2 / (N^2 + 1000^2)
-                double nEsc = res.neutronsEscaped;
-                float cherenkovMetric = (float) ((nEsc > 0) ? (nEsc * nEsc) / (nEsc * nEsc + 1000.0 * 1000.0) : 0.0);
+                // Dynamic Cherenkov radiation intensity metric: active baseline + scaling with flux
+                double flux = Math.max(res.neutronsEscaped, res.totalNeutronsGenerated * 0.15);
+                float cherenkovMetric = (flux > 0)
+                    ? (float) Math.min(1.0, 0.40 + 0.60 * (flux / (flux + 400.0)))
+                    : 0.0f;
                 byte metricByte = (byte) Math.round(cherenkovMetric * 100.0f);
                 if (metricByte != mLastSentCherenkovMetricByte) {
                     mLastSentCherenkovMetricByte = metricByte;
@@ -1903,13 +1905,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (data.gridSize > 0) this.mMachine = true;
             this.gridSize = data.gridSize;
             this.coreDimension = data.coreDimension;
-            if (data.gridSize >= 145) {
-                this.mClientTier = 3;
-            } else if (data.gridSize >= 69) {
-                this.mClientTier = 2;
-            } else if (data.gridSize > 0) {
-                this.mClientTier = 1;
-            }
+            this.mClientTier = getReactorTier();
             this.mClientRadius = (mClientTier == 3) ? 6.5 : (mClientTier == 2) ? 4.5 : 2.5;
             this.mClientWaterBlocks = -1;
             this.mCoreTemp = data.coreTemp;
@@ -1922,9 +1918,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             this.mFastAbsorbed = data.fastAbsorbed;
             this.mThermalAbsorbed = data.thermalAbsorbed;
             this.mEscapedNeutrons = data.escapedNeutrons;
-            double nEsc = this.mEscapedNeutrons;
-            this.mClientRadiationIntensity = (float) ((nEsc > 0) ? (nEsc * nEsc) / (nEsc * nEsc + 1000.0 * 1000.0)
-                : 0.0);
+            double flux = Math.max(this.mEscapedNeutrons, this.mNeutronsProduced * 0.15);
+            this.mClientRadiationIntensity = (flux > 0)
+                ? (float) Math.min(1.0, 0.40 + 0.60 * (flux / (flux + 400.0)))
+                : 0.0f;
             this.mOutputCoolantRate = data.outputCoolantRate;
             this.mOutputCoolantName = data.outputCoolantName;
             this.mScram = data.scram;

@@ -88,8 +88,7 @@ public class CherenkovWorldRenderer {
             GL11.glDisable(GL11.GL_CULL_FACE);
             GL11.glShadeModel(GL11.GL_SMOOTH);
 
-            GL11.glEnable(GL11.GL_DEPTH_TEST);
-            GL11.glDepthFunc(GL11.GL_LEQUAL);
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glDepthMask(false);
             OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
 
@@ -158,14 +157,14 @@ public class CherenkovWorldRenderer {
         double outerBaseRadius = R * 0.90;
         double outerTopRadius = R * 1.30;
 
-        float shimmer = (float) Math.sin((worldTime + partialTicks) * 0.08) * 0.02f;
+        float shimmer = (float) Math.sin((worldTime + partialTicks) * 0.08) * 0.03f;
 
         // Scale intensity dynamically, clamped at 1.0f for valid OpenGL alpha
-        float innerBotAlpha = Math.min(1.0f, Math.max(0f, (0.16f + shimmer) * intensity));
-        float innerTopAlpha = 0.0f; // Smooth fade with height over ~3 blocks
+        float innerBotAlpha = Math.min(1.0f, Math.max(0.10f, (0.65f + shimmer) * intensity));
+        float innerTopAlpha = 0.04f * intensity; // Smooth fade with height over ~3 blocks
 
-        float outerBotAlpha = Math.min(1.0f, Math.max(0f, (0.10f + shimmer) * intensity));
-        float outerTopAlpha = 0.0f;
+        float outerBotAlpha = Math.min(1.0f, Math.max(0.05f, (0.38f + shimmer) * intensity));
+        float outerTopAlpha = 0.02f * intensity;
 
         // 1. Inner core cylinder: electric cyan-blue
         if (innerBotAlpha > 0.005f) {
@@ -220,7 +219,7 @@ public class CherenkovWorldRenderer {
         }
 
         // 3. Bottom cap disc at hatch top
-        float capAlpha = (innerBotAlpha + outerBotAlpha) * 0.40f;
+        float capAlpha = Math.min(1.0f, Math.max(0.15f, (0.70f + shimmer) * intensity));
         for (int i = 0; i < sides; i++) {
             double a1 = i * angleStep;
             double a2 = (i + 1) * angleStep;
@@ -240,8 +239,8 @@ public class CherenkovWorldRenderer {
 
         int tier = Math.max(1, reactor.mClientTier);
         double poolRadius = (tier == 3) ? 6.2 : (tier == 2) ? 4.2 : 2.2;
-        float pulse = (float) Math.sin((worldTime + partialTicks) * 0.05) * 0.012f;
-        float baseAlpha = Math.min(1.0f, Math.max(0f, (0.09f + pulse) * intensity));
+        float pulse = (float) Math.sin((worldTime + partialTicks) * 0.05) * 0.02f;
+        float baseAlpha = Math.min(1.0f, Math.max(0.10f, (0.45f + pulse) * intensity));
 
         tess.startDrawingQuads();
         tess.setBrightness(15728880);
