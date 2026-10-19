@@ -24,7 +24,7 @@ public final class ModularNuclearConfig {
     public static boolean enableCherenkovRadiation = true;
     public static boolean enableCherenkovLightEmission = true;
     public static int cherenkovLightLevel = 10;
-    public static float cherenkovIntensityMultiplier = 2.5f;
+    public static float cherenkovIntensityMultiplier = 6.0f;
     public static boolean enableFalloutVisualEffect = true;
     public static float falloutEffectMaxDistance = 80.0f;
 
@@ -200,7 +200,7 @@ public final class ModularNuclearConfig {
                 cherenkovIntensityMultiplier,
                 0.1f,
                 10.0f,
-                "Multiplier for Cherenkov visual beam intensity (default 2.5).");
+                "Multiplier for Cherenkov visual beam intensity (default 6.0).");
 
             enableFalloutVisualEffect = config.getBoolean(
                 "enableFalloutVisualEffect",
