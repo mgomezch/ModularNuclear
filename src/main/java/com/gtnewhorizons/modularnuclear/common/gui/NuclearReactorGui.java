@@ -24,15 +24,21 @@ import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.LongSyncValue;
+import com.cleanroommc.modularui.value.sync.DynamicSyncHandler;
+import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
+import com.cleanroommc.modularui.widgets.DynamicSyncedWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
+import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.gui.metrics.ReactorMetricsDashboardPanel;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import gregtech.api.enums.ItemList;
+import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 /**
@@ -82,6 +88,49 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
             .syncValue("moltenDown", new BooleanSyncValue(() -> multiblock.mMoltenDown, v -> multiblock.mMoltenDown = v));
 
         syncManager.registerSyncedAction("toggleScram", false, true, buf -> multiblock.setScram(!multiblock.mScram));
+    }
+
+    @Override
+    protected IWidget createStructureErrorWidget(PanelSyncManager syncManager) {
+        GenericListSyncHandler<StructureError> errors = syncManager
+            .findSyncHandler("structureErrors", GenericListSyncHandler.class);
+
+        DynamicSyncHandler errorSyncer = new DynamicSyncHandler().widgetProvider((syncManager1, packet) -> {
+            Flow columns = Flow.column()
+                .coverChildrenHeight(0)
+                .crossAxisAlignment(Alignment.CrossAxis.START)
+                .childPadding(2);
+
+            int terminalWidth = getTerminalWidgetWidth();
+            int textMaxWidth = Math.max(10, (int) ((terminalWidth - 4) * 0.85f) - 16);
+
+            for (StructureError error : errors.getValue()) {
+                if (error == StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR) continue;
+                IWidget widget = error.createWidget(this);
+                applyTextMaxWidth(widget, textMaxWidth);
+                columns.child(widget);
+            }
+            return columns.setEnabledIf(
+                widget -> multiblock.shouldDisplayShutDownReason() && !baseMetaTileEntity.isActive()
+                    && !baseMetaTileEntity.isAllowedToWork());
+        })
+            .allowC2S();
+
+        errors.setChangeListener(() -> errorSyncer.notifyUpdate(packet -> {}));
+
+        return new DynamicSyncedWidget<>().widthRel(0.85f)
+            .coverChildrenHeight(0)
+            .marginBottom(2)
+            .syncHandler(errorSyncer);
+    }
+
+    private static void applyTextMaxWidth(IWidget widget, int maxWidth) {
+        if (widget instanceof TextWidget<?> tw) {
+            tw.maxWidth(maxWidth);
+        }
+        for (IWidget child : widget.getChildren()) {
+            applyTextMaxWidth(child, maxWidth);
+        }
     }
 
     @Override

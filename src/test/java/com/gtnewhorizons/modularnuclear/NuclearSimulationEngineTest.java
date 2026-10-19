@@ -5753,6 +5753,20 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
+    void testNuclearCasingLocalizationKeys() throws Exception {
+        java.io.File langFile = new java.io.File("src/main/resources/assets/modularnuclear/lang/en_US.lang");
+        assertTrue(langFile.exists(), "en_US.lang must exist");
+        java.util.Properties props = new java.util.Properties();
+        try (java.io.InputStream in = new java.io.FileInputStream(langFile)) {
+            props.load(in);
+        }
+        assertEquals("Nuclear casing", props.getProperty("modularnuclear.casing.name"));
+        assertEquals("Nuclear casing", props.getProperty("modularnuclear.casing.0.name"));
+        assertEquals("Nuclear casing", props.getProperty("tile.modularnuclear.casing.name"));
+        assertEquals("Nuclear casing", props.getProperty("tile.modularnuclear.casing.0.name"));
+    }
+
+    @Test
     void testThermalScatteringProbabilityScaling() {
         // Grid A: Fuel in center moderated by heavy water, surrounded by zero-scattering absorbers
         INuclearTile[][] gridZero = new INuclearTile[3][3];

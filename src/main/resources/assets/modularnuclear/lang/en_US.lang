@@ -1,5 +1,7 @@
 tile.modularnuclear.casing.name=Nuclear casing
 tile.modularnuclear.casing.0.name=Nuclear casing
+modularnuclear.casing.name=Nuclear casing
+modularnuclear.casing.0.name=Nuclear casing
 item.modularnuclear.radiovoltaic.plate.hv.name=Radiovoltaic plate (HV)
 item.modularnuclear.radiovoltaic.plate.ev.name=Radiovoltaic plate (EV)
 
