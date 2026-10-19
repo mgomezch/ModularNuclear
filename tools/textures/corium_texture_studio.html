@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Corium Texture Studio</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* Custom compact slider styles */
+    input[type=range] {
+      accent-color: #f59e0b;
+    }
+    .pixelated {
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+  </style>
+</head>
+<body class="bg-transparent text-[var(--foreground)] antialiased p-3 md:p-5 select-none font-sans">
+  <div class="max-w-6xl mx-auto bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-xl overflow-hidden">
+    <!-- Header -->
+    <header class="p-4 md:px-6 bg-[var(--background)] border-b border-[var(--border)] flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
+          <h1 class="text-lg font-bold tracking-tight text-[var(--foreground)]">MPTR Corium Texture Studio</h1>
+          <span class="text-xs px-2 py-0.5 rounded-full font-mono bg-amber-500/10 text-amber-500 border border-amber-500/20">Live Interactive</span>
+        </div>
+        <p class="text-xs text-[var(--muted-foreground)] mt-0.5">Procedural, 100% seamless toroidal texture generation for Minecraft 1.7.10</p>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center gap-2">
+        <button id="btn-randomize" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--card)] hover:bg-[var(--accent)] text-[var(--foreground)] border border-[var(--border)] transition shadow-sm flex items-center gap-1.5">
+          <span>🎲</span> Randomize
+        </button>
+        <button id="btn-export-native" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-black shadow-sm transition flex items-center gap-1.5">
+          <span>💾</span> Export PNG
+        </button>
+        <button id="btn-export-sheet" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--card)] hover:bg-[var(--accent)] text-[var(--foreground)] border border-[var(--border)] transition shadow-sm flex items-center gap-1.5" title="Export 32-frame vertical Minecraft animation sheet">
+          <span>🎞️</span> MC Strip
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Grid: Controls on Left, Previews on Right -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-0">
+      
+      <!-- Controls Column (7 cols) -->
+      <div class="md:col-span-7 p-4 md:p-5 border-b md:border-b-0 md:border-r border-[var(--border)] space-y-4 max-h-[580px] overflow-y-auto">
+        
+        <!-- Presets Row -->
+        <div>
+          <label class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider block mb-2">Presets</label>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5" id="preset-buttons">
+            <button data-preset="honey" class="preset-btn px-2.5 py-1.5 text-xs rounded-md bg-[var(--background)] hover:border-amber-500 border border-[var(--border)] text-left transition font-medium">01. Honey</button>
+            <button data-preset="softAmber" class="preset-btn px-2.5 py-1.5 text-xs rounded-md bg-[var(--background)] hover:border-amber-500 border border-[var(--border)] text-left transition font-medium">02. Amber</button>
+            <button data-preset="shimmer" class="preset-btn px-2.5 py-1.5 text-xs rounded-md bg-[var(--background)] hover:border-amber-500 border border-[var(--border)] text-left transition font-medium">03. Shimmer</button>
+            <button data-preset="clusters" class="preset-btn px-2.5 py-1.5 text-xs rounded-md bg-[var(--background)] hover:border-amber-500 border border-[var(--border)] text-left transition font-medium">04. Clusters</button>
+            <button data-preset="drift" class="preset-btn px-2.5 py-1.5 text-xs rounded-md bg-[var(--background)] hover:border-amber-500 border border-[var(--border)] text-left transition font-medium">05. Drift</button>
+            <button data-preset="quantized" class="preset-btn px-2.5 py-1.5 text-xs rounded-md bg-[var(--background)] hover:border-amber-500 border border-[var(--border)] text-left transition font-medium">06. 4-Step</button>
+            <button data-preset="saffron" class="preset-btn px-2.5 py-1.5 text-xs rounded-md bg-[var(--background)] hover:border-amber-500 border border-[var(--border)] text-left transition font-medium">07. Saffron</button>
+            <button data-preset="sulfur" class="preset-btn px-2.5 py-1.5 text-xs rounded-md bg-[var(--background)] hover:border-amber-500 border border-[var(--border)] text-left transition font-medium">08. Sulfur</button>
+            <button data-preset="fine32" class="preset-btn px-2.5 py-1.5 text-xs rounded-md bg-[var(--background)] hover:border-amber-500 border border-[var(--border)] text-left transition font-medium">09. Fine 32x</button>
+            <button data-preset="highContrast" class="preset-btn px-2.5 py-1.5 text-xs rounded-md bg-[var(--background)] hover:border-amber-500 border border-[var(--border)] text-left transition font-medium text-amber-500/80">10. High Contrast</button>
+          </div>
+        </div>
+
+        <!-- Resolution & Engine -->
+        <div class="bg-[var(--background)] p-3.5 rounded-xl border border-[var(--border)] flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <span class="text-xs font-semibold text-[var(--foreground)] block">Grid Resolution</span>
+            <span class="text-[11px] text-[var(--muted-foreground)]">Native Minecraft block texture size</span>
+          </div>
+          <div class="flex items-center gap-1.5 bg-[var(--card)] p-1 rounded-lg border border-[var(--border)]">
+            <button id="res-16" class="px-3 py-1 text-xs font-semibold rounded-md bg-amber-500 text-black transition">16×16</button>
+            <button id="res-32" class="px-3 py-1 text-xs font-medium rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition">32×32</button>
+          </div>
+        </div>
+
+        <!-- Palette Colors Section -->
+        <div class="bg-[var(--background)] p-3.5 rounded-xl border border-[var(--border)] space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">Palette Colors</label>
+            <span class="text-[11px] text-amber-500/90 font-mono">Live Hex Sync</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <!-- Base Molten Yellow -->
+            <div class="space-y-1">
+              <label class="text-xs font-medium text-[var(--foreground)] flex items-center justify-between">
+                <span>Base Yellow</span>
+                <span id="label-color-base" class="font-mono text-[11px] text-[var(--muted-foreground)]">#FFC000</span>
+              </label>
+              <div class="flex items-center gap-2">
+                <input type="color" id="picker-base" value="#ffc000" class="w-8 h-8 rounded border border-[var(--border)] cursor-pointer bg-transparent">
+                <input type="text" id="hex-base" value="#FFC000" class="w-full text-xs font-mono px-2 py-1.5 rounded bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] uppercase">
+              </div>
+            </div>
+
+            <!-- Dark Accent / Amber -->
+            <div class="space-y-1">
+              <label class="text-xs font-medium text-[var(--foreground)] flex items-center justify-between">
+                <span>Dark Specks</span>
+                <span id="label-color-dark" class="font-mono text-[11px] text-[var(--muted-foreground)]">#F09418</span>
+              </label>
+              <div class="flex items-center gap-2">
+                <input type="color" id="picker-dark" value="#f09418" class="w-8 h-8 rounded border border-[var(--border)] cursor-pointer bg-transparent">
+                <input type="text" id="hex-dark" value="#F09418" class="w-full text-xs font-mono px-2 py-1.5 rounded bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] uppercase">
+              </div>
+            </div>
+
+            <!-- Pale Highlight -->
+            <div class="space-y-1">
+              <label class="text-xs font-medium text-[var(--foreground)] flex items-center justify-between">
+                <span>Pale Highlight</span>
+                <span id="label-color-light" class="font-mono text-[11px] text-[var(--muted-foreground)]">#FFE068</span>
+              </label>
+              <div class="flex items-center gap-2">
+                <input type="color" id="picker-light" value="#ffe068" class="w-8 h-8 rounded border border-[var(--border)] cursor-pointer bg-transparent">
+                <input type="text" id="hex-light" value="#FFE068" class="w-full text-xs font-mono px-2 py-1.5 rounded bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] uppercase">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sliders: Densities, Contrast & Noise Style -->
+        <div class="bg-[var(--background)] p-3.5 rounded-xl border border-[var(--border)] space-y-4">
+          <label class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider block">Generation Parameters</label>
+          
+          <!-- Contrast Spread -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-medium text-[var(--foreground)]">Contrast Spread</span>
+              <span id="val-contrast" class="font-mono text-[var(--muted-foreground)]">45%</span>
+            </div>
+            <input type="range" id="slider-contrast" min="5" max="100" value="45" class="w-full h-1.5 bg-[var(--card)] rounded-lg cursor-pointer">
+            <div class="flex justify-between text-[10px] text-[var(--muted-foreground)]">
+              <span>Very subtle / Shimmer</span>
+              <span>Balanced</span>
+              <span>Punchy / Stark</span>
+            </div>
+          </div>
+
+          <!-- Dark Speck Density -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-medium text-[var(--foreground)]">Dark Speck Density</span>
+              <span id="val-dark-density" class="font-mono text-[var(--muted-foreground)]">22%</span>
+            </div>
+            <input type="range" id="slider-dark-density" min="0" max="60" value="22" class="w-full h-1.5 bg-[var(--card)] rounded-lg cursor-pointer">
+          </div>
+
+          <!-- Pale Highlight Density -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-medium text-[var(--foreground)]">Pale Highlight Density</span>
+              <span id="val-light-density" class="font-mono text-[var(--muted-foreground)]">22%</span>
+            </div>
+            <input type="range" id="slider-light-density" min="0" max="60" value="22" class="w-full h-1.5 bg-[var(--card)] rounded-lg cursor-pointer">
+          </div>
+
+          <!-- Micro-Clustering -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-medium text-[var(--foreground)]">Grain Clustering</span>
+              <span id="val-clustering" class="font-mono text-[var(--muted-foreground)]">0 (Pure Dither)</span>
+            </div>
+            <input type="range" id="slider-clustering" min="0" max="100" value="0" class="w-full h-1.5 bg-[var(--card)] rounded-lg cursor-pointer">
+            <div class="flex justify-between text-[10px] text-[var(--muted-foreground)]">
+              <span>Isolated Pixels (Grit)</span>
+              <span>Connected Grains</span>
+              <span>Macro Patches</span>
+            </div>
+          </div>
+
+          <!-- Thermal Drift Wave -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-medium text-[var(--foreground)]">Thermal Heat Wave (Macro Drift)</span>
+              <span id="val-drift" class="font-mono text-[var(--muted-foreground)]">0% (Uniform)</span>
+            </div>
+            <input type="range" id="slider-drift" min="0" max="100" value="0" class="w-full h-1.5 bg-[var(--card)] rounded-lg cursor-pointer">
+          </div>
+        </div>
+
+        <!-- Seed Control -->
+        <div class="flex items-center justify-between text-xs pt-1">
+          <div class="flex items-center gap-2">
+            <span class="text-[var(--muted-foreground)]">Seed:</span>
+            <input type="number" id="input-seed" value="2001" class="w-24 px-2 py-1 rounded bg-[var(--background)] border border-[var(--border)] font-mono text-[var(--foreground)] text-xs">
+          </div>
+          <button id="btn-next-seed" class="text-amber-500 hover:text-amber-400 font-medium text-xs">Next Seed →</button>
+        </div>
+
+      </div>
+
+      <!-- Live Previews Column (5 cols) -->
+      <div class="md:col-span-5 p-4 md:p-5 bg-[var(--background)] flex flex-col items-center justify-between gap-4">
+        
+        <!-- Preview 1: Single Tile (Scaled) -->
+        <div class="w-full flex flex-col items-center">
+          <div class="w-full flex items-center justify-between mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-semibold uppercase tracking-wider text-[var(--foreground)]">Single Tile</span>
+              <span id="badge-res" class="text-[10px] px-1.5 py-0.5 rounded font-mono bg-[var(--card)] border border-[var(--border)] text-[var(--muted-foreground)]">16×16 (160× scale)</span>
+            </div>
+            <label class="text-[11px] text-[var(--muted-foreground)] flex items-center gap-1 cursor-pointer">
+              <input type="checkbox" id="check-grid" class="rounded"> Grid Lines
+            </label>
+          </div>
+
+          <div class="relative p-2 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-inner">
+            <canvas id="canvas-single" width="160" height="160" class="pixelated rounded cursor-crosshair block"></canvas>
+            <div id="grid-overlay" class="absolute inset-2 pointer-events-none hidden"></div>
+          </div>
+        </div>
+
+        <!-- Preview 2: 3x3 In-World Block Pool -->
+        <div class="w-full flex flex-col items-center">
+          <div class="w-full flex items-center justify-between mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-semibold uppercase tracking-wider text-[var(--foreground)]">3×3 Block Pool</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded font-mono bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">Seamless Proof</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btn-flow" class="text-xs px-2 py-0.5 rounded bg-[var(--card)] hover:bg-[var(--accent)] border border-[var(--border)] text-[var(--foreground)] flex items-center gap-1 transition">
+                <span id="flow-icon">▶</span> <span id="flow-text">Simulate Flow</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="p-2 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-inner">
+            <canvas id="canvas-tiled" width="240" height="240" class="pixelated rounded block"></canvas>
+          </div>
+          <span class="text-[11px] text-[var(--muted-foreground)] mt-2">Zero seam discontinuities across all block edges</span>
+        </div>
+
+        <!-- Status footer -->
+        <div class="w-full p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[11px] text-[var(--muted-foreground)] flex items-center justify-between">
+          <span id="status-text">Ready • 100% Client-Side Canvas</span>
+          <button id="btn-copy-config" class="text-amber-500 hover:text-amber-400 font-medium">Copy Config JSON</button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Hidden canvas for sprite generation & export -->
+  <canvas id="canvas-export" class="hidden"></canvas>
+
+  <script>
+    // -------------------------------------------------------------------------
+    // Math & Noise Primitives
+    // -------------------------------------------------------------------------
+    function mulberry32(a) {
+      return function() {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      };
+    }
+
+    function hexToRgb(hex) {
+      hex = hex.replace('#', '');
+      if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+      const num = parseInt(hex, 16);
+      return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+    }
+
+    function rgbToHex(r, g, b) {
+      return '#' + [r, g, b].map(x => {
+        const h = Math.max(0, Math.min(255, Math.round(x))).toString(16);
+        return h.length === 1 ? '0' + h : h;
+      }).join('').toUpperCase();
+    }
+
+    function lerpRgb(c1, c2, t) {
+      t = Math.max(0, Math.min(1, t));
+      return [
+        Math.round(c1[0] + (c2[0] - c1[0]) * t),
+        Math.round(c1[1] + (c2[1] - c1[1]) * t),
+        Math.round(c1[2] + (c2[2] - c1[2]) * t)
+      ];
+    }
+
+    function periodicNoise2D(x, y, size, gridSize, perm) {
+      const fx = (x / size) * gridSize;
+      const fy = (y / size) * gridSize;
+      const gx0 = Math.floor(fx);
+      const gy0 = Math.floor(fy);
+      const gx1 = gx0 + 1;
+      const gy1 = gy0 + 1;
+      const tx = fx - gx0;
+      const ty = fy - gy0;
+      const sx = tx * tx * (3 - 2 * tx);
+      const sy = ty * ty * (3 - 2 * ty);
+
+      const ix0 = ((gx0 % gridSize) + gridSize) % gridSize;
+      const iy0 = ((gy0 % gridSize) + gridSize) % gridSize;
+      const ix1 = ((gx1 % gridSize) + gridSize) % gridSize;
+      const iy1 = ((gy1 % gridSize) + gridSize) % gridSize;
+
+      const v00 = perm[(ix0 + perm[iy0 % perm.length]) % perm.length] / 255;
+      const v10 = perm[(ix1 + perm[iy0 % perm.length]) % perm.length] / 255;
+      const v01 = perm[(ix0 + perm[iy1 % perm.length]) % perm.length] / 255;
+      const v11 = perm[(ix1 + perm[iy1 % perm.length]) % perm.length] / 255;
+
+      const top = v00 + sx * (v10 - v00);
+      const bot = v01 + sx * (v11 - v01);
+      return top + sy * (bot - top);
+    }
+
+    // -------------------------------------------------------------------------
+    // Studio State
+    // -------------------------------------------------------------------------
+    const state = {
+      size: 16,
+      seed: 2001,
+      colorBase: '#FFC000',
+      colorDark: '#F09418',
+      colorLight: '#FFE068',
+      contrast: 45, // 0 - 100
+      darkDensity: 22, // %
+      lightDensity: 22, // %
+      clustering: 0, // %
+      drift: 0, // %
+      flowOffset: 0,
+      flowing: false,
+      pixels: [] // Current [y][x] = [r, g, b]
+    };
+
+    // -------------------------------------------------------------------------
+    // Presets Library
+    // -------------------------------------------------------------------------
+    const PRESETS = {
+      honey: {
+        size: 16, colorBase: '#FFC000', colorDark: '#F09418', colorLight: '#FFE068',
+        contrast: 45, darkDensity: 22, lightDensity: 22, clustering: 0, drift: 0
+      },
+      softAmber: {
+        size: 16, colorBase: '#FFB400', colorDark: '#E58010', colorLight: '#FFD850',
+        contrast: 55, darkDensity: 26, lightDensity: 22, clustering: 0, drift: 0
+      },
+      shimmer: {
+        size: 16, colorBase: '#FFBD10', colorDark: '#F4A812', colorLight: '#FFD040',
+        contrast: 20, darkDensity: 28, lightDensity: 28, clustering: 0, drift: 0
+      },
+      clusters: {
+        size: 16, colorBase: '#FFBC05', colorDark: '#EA8C12', colorLight: '#FFE270',
+        contrast: 48, darkDensity: 20, lightDensity: 20, clustering: 65, drift: 0
+      },
+      drift: {
+        size: 16, colorBase: '#FFB80A', colorDark: '#E88514', colorLight: '#FFDE6C',
+        contrast: 48, darkDensity: 24, lightDensity: 24, clustering: 15, drift: 70
+      },
+      quantized: {
+        size: 16, colorBase: '#FFC71E', colorDark: '#DF8208', colorLight: '#FFE478',
+        contrast: 50, darkDensity: 32, lightDensity: 28, clustering: 0, drift: 0
+      },
+      saffron: {
+        size: 16, colorBase: '#FFA500', colorDark: '#F07800', colorLight: '#FFDF60',
+        contrast: 52, darkDensity: 25, lightDensity: 22, clustering: 0, drift: 20
+      },
+      sulfur: {
+        size: 16, colorBase: '#F5D000', colorDark: '#DE9408', colorLight: '#FFF288',
+        contrast: 50, darkDensity: 24, lightDensity: 24, clustering: 0, drift: 10
+      },
+      fine32: {
+        size: 32, colorBase: '#FFBD12', colorDark: '#EB8E14', colorLight: '#FFE272',
+        contrast: 42, darkDensity: 24, lightDensity: 24, clustering: 0, drift: 25
+      },
+      highContrast: {
+        size: 16, colorBase: '#FFC400', colorDark: '#AF2D00', colorLight: '#FFFC8D',
+        contrast: 100, darkDensity: 26, lightDensity: 24, clustering: 10, drift: 0
+      }
+    };
+
+    // -------------------------------------------------------------------------
+    // Core Procedural Texture Generator
+    // -------------------------------------------------------------------------
+    function generateTexture() {
+      const W = state.size;
+      const H = state.size;
+      const rng = mulberry32(state.seed);
+
+      // Create permutation table for toroidal drift
+      const perm = [];
+      for (let i = 0; i < 256; i++) perm.push(i);
+      for (let i = 255; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [perm[i], perm[j]] = [perm[j], perm[i]];
+      }
+
+      const cBase = hexToRgb(state.colorBase);
+      let cDark = hexToRgb(state.colorDark);
+      let cLight = hexToRgb(state.colorLight);
+
+      // Apply contrast spread scaler (blends dark and light towards base if contrast is low)
+      const contrastFactor = state.contrast / 100;
+      cDark = lerpRgb(cBase, cDark, contrastFactor);
+      cLight = lerpRgb(cBase, cLight, contrastFactor);
+
+      // Initialize base grid
+      const grid = [];
+      for (let y = 0; y < H; y++) {
+        const row = [];
+        for (let x = 0; x < W; x++) {
+          row.push([...cBase]);
+        }
+        grid.push(row);
+      }
+
+      // 1. Cluster Placements (if clustering > 0)
+      if (state.clustering > 0) {
+        const numClusters = Math.round((W * H / 32) * (state.clustering / 50));
+        for (let c = 0; c < numClusters; c++) {
+          const isDark = rng() < 0.5;
+          const col = isDark ? cDark : cLight;
+          const cx = Math.floor(rng() * W);
+          const cy = Math.floor(rng() * H);
+          grid[cy][cx] = [...col];
+
+          // Extend to 1-2 toroidal neighbors
+          const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+          const extCount = Math.floor(rng() * 2) + 1;
+          for (let e = 0; e < extCount; e++) {
+            const [dx, dy] = neighbors[Math.floor(rng() * neighbors.length)];
+            const nx = (cx + dx + W) % W;
+            const ny = (cy + dy + H) % H;
+            grid[ny][nx] = [...col];
+          }
+        }
+      }
+
+      // 2. Pixel Grit & Thermal Drift Layer
+      const pDark = state.darkDensity / 100;
+      const pLight = state.lightDensity / 100;
+      const driftStrength = state.drift / 100;
+
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          // Calculate toroidal drift offset
+          let localDarkP = pDark;
+          let localLightP = pLight;
+
+          if (driftStrength > 0) {
+            // Include flowOffset for live animation
+            const driftVal = periodicNoise2D(x + state.flowOffset, y + state.flowOffset * 0.5, W, 2, perm);
+            localDarkP = pDark * (1.0 + (0.5 - driftVal) * driftStrength);
+            localLightP = pLight * (1.0 + (driftVal - 0.5) * driftStrength);
+          }
+
+          const r = rng();
+          if (r < localDarkP) {
+            grid[y][x] = [...cDark];
+          } else if (r < localDarkP + localLightP) {
+            grid[y][x] = [...cLight];
+          } else {
+            // Subtle internal base modulation
+            if (rng() < 0.25) {
+              const tint = rng() < 0.5 ? cDark : cLight;
+              grid[y][x] = lerpRgb(cBase, tint, 0.15 * contrastFactor);
+            }
+          }
+        }
+      }
+
+      state.pixels = grid;
+      renderCanvases();
+    }
+
+    // -------------------------------------------------------------------------
+    // Canvas Renderers
+    // -------------------------------------------------------------------------
+    const canvasSingle = document.getElementById('canvas-single');
+    const ctxSingle = canvasSingle.getContext('2d');
+    const canvasTiled = document.getElementById('canvas-tiled');
+    const ctxTiled = canvasTiled.getContext('2d');
+
+    function renderCanvases() {
+      const W = state.size;
+      const H = state.size;
+      if (!state.pixels || state.pixels.length === 0) return;
+
+      // 1. Render Native 1x into an offscreen ImageData
+      const offscreen = document.createElement('canvas');
+      offscreen.width = W;
+      offscreen.height = H;
+      const offCtx = offscreen.getContext('2d');
+      const imgData = offCtx.createImageData(W, H);
+
+      let idx = 0;
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const [r, g, b] = state.pixels[y][x];
+          imgData.data[idx++] = r;
+          imgData.data[idx++] = g;
+          imgData.data[idx++] = b;
+          imgData.data[idx++] = 255;
+        }
+      }
+      offCtx.putImageData(imgData, 0, 0);
+
+      // 2. Draw Scaled Single Tile (Nearest Neighbor)
+      ctxSingle.imageSmoothingEnabled = false;
+      ctxSingle.clearRect(0, 0, canvasSingle.width, canvasSingle.height);
+      ctxSingle.drawImage(offscreen, 0, 0, canvasSingle.width, canvasSingle.height);
+
+      // Optional Pixel Grid Overlay
+      if (document.getElementById('check-grid').checked) {
+        ctxSingle.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+        ctxSingle.lineWidth = 1;
+        const stepX = canvasSingle.width / W;
+        const stepY = canvasSingle.height / H;
+        for (let x = 0; x <= canvasSingle.width; x += stepX) {
+          ctxSingle.beginPath();
+          ctxSingle.moveTo(x, 0);
+          ctxSingle.lineTo(x, canvasSingle.height);
+          ctxSingle.stroke();
+        }
+        for (let y = 0; y <= canvasSingle.height; y += stepY) {
+          ctxSingle.beginPath();
+          ctxSingle.moveTo(0, y);
+          ctxSingle.lineTo(canvasSingle.width, y);
+          ctxSingle.stroke();
+        }
+      }
+
+      // 3. Draw 3x3 Tiled In-World Preview
+      ctxTiled.imageSmoothingEnabled = false;
+      ctxTiled.clearRect(0, 0, canvasTiled.width, canvasTiled.height);
+      const tileW = canvasTiled.width / 3;
+      const tileH = canvasTiled.height / 3;
+      for (let ty = 0; ty < 3; ty++) {
+        for (let tx = 0; tx < 3; tx++) {
+          ctxTiled.drawImage(offscreen, tx * tileW, ty * tileH, tileW, tileH);
+        }
+      }
+
+      // Subtle boundary line between blocks to show seams are perfect
+      ctxTiled.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctxTiled.lineWidth = 1;
+      ctxTiled.strokeRect(tileW, 0, tileW, canvasTiled.height);
+      ctxTiled.strokeRect(0, tileH, canvasTiled.width, tileH);
+    }
+
+    // -------------------------------------------------------------------------
+    // UI Event Listeners & Synchronizers
+    // -------------------------------------------------------------------------
+    function syncUiFromState() {
+      document.getElementById('picker-base').value = state.colorBase.toLowerCase();
+      document.getElementById('hex-base').value = state.colorBase.toUpperCase();
+      document.getElementById('label-color-base').textContent = state.colorBase.toUpperCase();
+
+      document.getElementById('picker-dark').value = state.colorDark.toLowerCase();
+      document.getElementById('hex-dark').value = state.colorDark.toUpperCase();
+      document.getElementById('label-color-dark').textContent = state.colorDark.toUpperCase();
+
+      document.getElementById('picker-light').value = state.colorLight.toLowerCase();
+      document.getElementById('hex-light').value = state.colorLight.toUpperCase();
+      document.getElementById('label-color-light').textContent = state.colorLight.toUpperCase();
+
+      document.getElementById('slider-contrast').value = state.contrast;
+      document.getElementById('val-contrast').textContent = state.contrast + '%';
+
+      document.getElementById('slider-dark-density').value = state.darkDensity;
+      document.getElementById('val-dark-density').textContent = state.darkDensity + '%';
+
+      document.getElementById('slider-light-density').value = state.lightDensity;
+      document.getElementById('val-light-density').textContent = state.lightDensity + '%';
+
+      document.getElementById('slider-clustering').value = state.clustering;
+      document.getElementById('val-clustering').textContent = state.clustering === 0 ? '0 (Pure Dither)' : state.clustering + '%';
+
+      document.getElementById('slider-drift').value = state.drift;
+      document.getElementById('val-drift').textContent = state.drift === 0 ? '0% (Uniform)' : state.drift + '%';
+
+      document.getElementById('input-seed').value = state.seed;
+
+      const res16 = document.getElementById('res-16');
+      const res32 = document.getElementById('res-32');
+      if (state.size === 16) {
+        res16.className = "px-3 py-1 text-xs font-semibold rounded-md bg-amber-500 text-black transition";
+        res32.className = "px-3 py-1 text-xs font-medium rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition";
+        document.getElementById('badge-res').textContent = "16×16 (160× scale)";
+      } else {
+        res32.className = "px-3 py-1 text-xs font-semibold rounded-md bg-amber-500 text-black transition";
+        res16.className = "px-3 py-1 text-xs font-medium rounded-md text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition";
+        document.getElementById('badge-res').textContent = "32×32 (80× scale)";
+      }
+    }
+
+    // Resolution Toggles
+    document.getElementById('res-16').addEventListener('click', () => {
+      state.size = 16;
+      syncUiFromState();
+      generateTexture();
+    });
+    document.getElementById('res-32').addEventListener('click', () => {
+      state.size = 32;
+      syncUiFromState();
+      generateTexture();
+    });
+
+    // Color Pickers & Hex Inputs
+    function bindColorControl(pickerId, hexId, labelId, stateProp) {
+      const picker = document.getElementById(pickerId);
+      const hex = document.getElementById(hexId);
+      const label = document.getElementById(labelId);
+
+      picker.addEventListener('input', (e) => {
+        state[stateProp] = e.target.value.toUpperCase();
+        hex.value = state[stateProp];
+        label.textContent = state[stateProp];
+        generateTexture();
+      });
+
+      hex.addEventListener('change', (e) => {
+        let val = e.target.value.trim();
+        if (!val.startsWith('#')) val = '#' + val;
+        if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+          state[stateProp] = val.toUpperCase();
+          picker.value = val;
+          label.textContent = val.toUpperCase();
+          generateTexture();
+        }
+      });
+    }
+
+    bindColorControl('picker-base', 'hex-base', 'label-color-base', 'colorBase');
+    bindColorControl('picker-dark', 'hex-dark', 'label-color-dark', 'colorDark');
+    bindColorControl('picker-light', 'hex-light', 'label-color-light', 'colorLight');
+
+    // Sliders
+    document.getElementById('slider-contrast').addEventListener('input', (e) => {
+      state.contrast = parseInt(e.target.value);
+      document.getElementById('val-contrast').textContent = state.contrast + '%';
+      generateTexture();
+    });
+
+    document.getElementById('slider-dark-density').addEventListener('input', (e) => {
+      state.darkDensity = parseInt(e.target.value);
+      document.getElementById('val-dark-density').textContent = state.darkDensity + '%';
+      generateTexture();
+    });
+
+    document.getElementById('slider-light-density').addEventListener('input', (e) => {
+      state.lightDensity = parseInt(e.target.value);
+      document.getElementById('val-light-density').textContent = state.lightDensity + '%';
+      generateTexture();
+    });
+
+    document.getElementById('slider-clustering').addEventListener('input', (e) => {
+      state.clustering = parseInt(e.target.value);
+      document.getElementById('val-clustering').textContent = state.clustering === 0 ? '0 (Pure Dither)' : state.clustering + '%';
+      generateTexture();
+    });
+
+    document.getElementById('slider-drift').addEventListener('input', (e) => {
+      state.drift = parseInt(e.target.value);
+      document.getElementById('val-drift').textContent = state.drift === 0 ? '0% (Uniform)' : state.drift + '%';
+      generateTexture();
+    });
+
+    document.getElementById('check-grid').addEventListener('change', renderCanvases);
+
+    // Seed & Randomize
+    document.getElementById('btn-randomize').addEventListener('click', () => {
+      state.seed = Math.floor(Math.random() * 90000) + 1000;
+      document.getElementById('input-seed').value = state.seed;
+      generateTexture();
+    });
+
+    document.getElementById('btn-next-seed').addEventListener('click', () => {
+      state.seed += 1;
+      document.getElementById('input-seed').value = state.seed;
+      generateTexture();
+    });
+
+    document.getElementById('input-seed').addEventListener('change', (e) => {
+      state.seed = parseInt(e.target.value) || 1;
+      generateTexture();
+    });
+
+    // Presets Click Handler
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pKey = btn.getAttribute('data-preset');
+        if (PRESETS[pKey]) {
+          Object.assign(state, PRESETS[pKey]);
+          syncUiFromState();
+          generateTexture();
+          document.getElementById('status-text').textContent = `Loaded preset: ${btn.textContent}`;
+        }
+      });
+    });
+
+    // Flow Animation Simulation
+    let flowAnimId = null;
+    document.getElementById('btn-flow').addEventListener('click', () => {
+      state.flowing = !state.flowing;
+      const icon = document.getElementById('flow-icon');
+      const text = document.getElementById('flow-text');
+      if (state.flowing) {
+        icon.textContent = '⏸';
+        text.textContent = 'Pause Flow';
+        function loop() {
+          state.flowOffset += 0.08;
+          // Slowly modulate random jitter for boiling effect
+          if (Math.random() < 0.2) state.seed = (state.seed + 1) % 999999;
+          generateTexture();
+          if (state.flowing) flowAnimId = requestAnimationFrame(loop);
+        }
+        loop();
+      } else {
+        icon.textContent = '▶';
+        text.textContent = 'Simulate Flow';
+        if (flowAnimId) cancelAnimationFrame(flowAnimId);
+      }
+    });
+
+    // -------------------------------------------------------------------------
+    // PNG Exporter
+    // -------------------------------------------------------------------------
+    // 1. Native PNG Export
+    document.getElementById('btn-export-native').addEventListener('click', () => {
+      const W = state.size;
+      const H = state.size;
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = W;
+      exportCanvas.height = H;
+      const expCtx = exportCanvas.getContext('2d');
+      const imgData = expCtx.createImageData(W, H);
+
+      let idx = 0;
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const [r, g, b] = state.pixels[y][x];
+          imgData.data[idx++] = r;
+          imgData.data[idx++] = g;
+          imgData.data[idx++] = b;
+          imgData.data[idx++] = 255;
+        }
+      }
+      expCtx.putImageData(imgData, 0, 0);
+
+      const link = document.createElement('a');
+      link.download = `corium_${W}x${H}_seed${state.seed}.png`;
+      link.href = exportCanvas.toDataURL('image/png');
+      link.click();
+      document.getElementById('status-text').textContent = `Exported native ${W}×${H} PNG!`;
+    });
+
+    // 2. Minecraft 32-Frame Vertical Animation Strip Export
+    document.getElementById('btn-export-sheet').addEventListener('click', () => {
+      const W = state.size;
+      const H = state.size;
+      const FRAMES = 32;
+      const stripCanvas = document.createElement('canvas');
+      stripCanvas.width = W;
+      stripCanvas.height = H * FRAMES;
+      const sCtx = stripCanvas.getContext('2d');
+      const originalSeed = state.seed;
+
+      for (let f = 0; f < FRAMES; f++) {
+        // Step seed slightly and add flow wave offset
+        state.seed = originalSeed + f * 17;
+        state.flowOffset = (f / FRAMES) * W;
+        generateTexture();
+
+        const frameImg = sCtx.createImageData(W, H);
+        let idx = 0;
+        for (let y = 0; y < H; y++) {
+          for (let x = 0; x < W; x++) {
+            const [r, g, b] = state.pixels[y][x];
+            frameImg.data[idx++] = r;
+            frameImg.data[idx++] = g;
+            frameImg.data[idx++] = b;
+            frameImg.data[idx++] = 255;
+          }
+        }
+        sCtx.putImageData(frameImg, 0, f * H);
+      }
+
+      state.seed = originalSeed;
+      state.flowOffset = 0;
+      generateTexture();
+
+      const link = document.createElement('a');
+      link.download = `corium_still_${W}x${H * FRAMES}.png`;
+      link.href = stripCanvas.toDataURL('image/png');
+      link.click();
+      document.getElementById('status-text').textContent = `Exported Minecraft 32-frame strip (${W}×${H * FRAMES})!`;
+    });
+
+    // Copy Config JSON
+    document.getElementById('btn-copy-config').addEventListener('click', () => {
+      const config = {
+        size: state.size,
+        seed: state.seed,
+        colorBase: state.colorBase,
+        colorDark: state.colorDark,
+        colorLight: state.colorLight,
+        contrast: state.contrast,
+        darkDensity: state.darkDensity,
+        lightDensity: state.lightDensity,
+        clustering: state.clustering,
+        drift: state.drift
+      };
+      navigator.clipboard.writeText(JSON.stringify(config, null, 2)).then(() => {
+        document.getElementById('status-text').textContent = "Config copied to clipboard!";
+      });
+    });
+
+    // Initialize
+    syncUiFromState();
+    generateTexture();
+  </script>
+</body>
+</html>

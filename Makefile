@@ -5,9 +5,12 @@
 SHELL := /usr/bin/env bash
 ROOT_DIR := $(shell cd ../.. && pwd)
 
-.PHONY: all build wasm export test deploy push
+.PHONY: all build textures wasm export test deploy push
 
 all: build test
+
+textures:
+	./gradlew generateAllTextures
 
 wasm:
 	./gradlew compileJava generateWasm
@@ -15,7 +18,7 @@ wasm:
 export:
 	./gradlew exportStaticDist
 
-build: wasm export
+build: textures wasm export
 
 test:
 	./gradlew test

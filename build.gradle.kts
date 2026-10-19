@@ -217,6 +217,16 @@ val generateProceduralTextures by tasks.registering(Exec::class) {
     group = "build"
     description = "Procedurally generates all nuclear textures (atlas, arrows, overlays, fluids, cells, casings, plates) from pure code"
     commandLine("python3", file("tools/textures/generate_all.py").absolutePath)
+    inputs.dir(file("tools/textures"))
+    outputs.dir(file("src/main/resources/assets/modularnuclear/textures"))
+}
+
+tasks.processResources {
+    dependsOn(generateProceduralTextures)
+}
+
+tasks.named("sourcesJar") {
+    dependsOn(generateProceduralTextures)
 }
 
 val generateAllTextures by tasks.registering {
