@@ -5767,6 +5767,20 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
+    void testApplyTextMaxWidthRecursion() {
+        com.cleanroommc.modularui.widgets.layout.Flow container = com.cleanroommc.modularui.widgets.layout.Flow.row();
+        com.cleanroommc.modularui.widgets.layout.Flow innerFlow = com.cleanroommc.modularui.widgets.layout.Flow.column();
+        com.cleanroommc.modularui.widgets.TextWidget<?> textWidget = com.cleanroommc.modularui.api.drawable.IKey.str("test").asWidget();
+        assertEquals(-1, textWidget.getMaxWidth());
+
+        innerFlow.child(textWidget);
+        container.child(innerFlow);
+
+        com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGui.applyTextMaxWidth(container, 142);
+        assertEquals(142, textWidget.getMaxWidth());
+    }
+
+    @Test
     void testThermalScatteringProbabilityScaling() {
         // Grid A: Fuel in center moderated by heavy water, surrounded by zero-scattering absorbers
         INuclearTile[][] gridZero = new INuclearTile[3][3];

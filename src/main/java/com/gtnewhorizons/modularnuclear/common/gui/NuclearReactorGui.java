@@ -124,7 +124,7 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
             .syncHandler(errorSyncer);
     }
 
-    private static void applyTextMaxWidth(IWidget widget, int maxWidth) {
+    public static void applyTextMaxWidth(IWidget widget, int maxWidth) {
         if (widget instanceof TextWidget<?> tw) {
             tw.maxWidth(maxWidth);
         }
