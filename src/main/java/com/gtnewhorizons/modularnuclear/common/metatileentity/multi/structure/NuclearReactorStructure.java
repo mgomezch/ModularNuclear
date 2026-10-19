@@ -24,6 +24,7 @@ import com.gtnewhorizon.structurelib.structure.IStructureElementNoPlacement;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.gtnewhorizon.structurelib.util.ItemStackPredicate;
+import com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.NuclearStructureChannels;
@@ -146,15 +147,23 @@ public class NuclearReactorStructure {
         if (tier >= 1 && tier <= 9 && ModMetaTileEntities.nuclearHatches[tier - 1] != null) {
             return ModMetaTileEntities.nuclearHatches[tier - 1].copy();
         }
-        if (tier == 10 && ModMetaTileEntities.nuclearHighPressureHatch != null) {
-            return ModMetaTileEntities.nuclearHighPressureHatch.copy();
+        if (tier == 10) {
+            if (com.gtnewhorizons.coolantloops.common.metatileentity.ModMetaTileEntities.pressurizedInputHatch
+                != null) {
+                return com.gtnewhorizons.coolantloops.common.metatileentity.ModMetaTileEntities.pressurizedInputHatch
+                    .getStackForm(1L);
+            }
+            if (ModMetaTileEntities.nuclearHighPressureHatch != null) {
+                return ModMetaTileEntities.nuclearHighPressureHatch.copy();
+            }
         }
         return null;
     }
 
     public static boolean isNuclearCoreHatch(IMetaTileEntity mte) {
         return mte instanceof MTEHatchNuclearHatch || mte instanceof MTEHatchNuclearBus
-            || mte instanceof MTEHatchNuclearHighPressure;
+            || mte instanceof MTEHatchNuclearHighPressure
+            || (mte instanceof MTEHatchPressurizedFluid pf && pf.isInput());
     }
 
     public static class NuclearHatchElement implements IStructureElement<MTENuclearReactor> {
@@ -187,6 +196,13 @@ public class NuclearReactorStructure {
                     t.mNuclearTiles.add(te);
                     t.mTopHighPressureHatches.add(hp);
                     return true;
+                } else if (mte instanceof MTEHatchPressurizedFluid pf) {
+                    if (!pf.isInput()) {
+                        return false;
+                    }
+                    t.mNuclearTiles.add(te);
+                    t.mTopHighPressureHatches.add(pf);
+                    return true;
                 }
             }
             return false;
@@ -197,7 +213,8 @@ public class NuclearReactorStructure {
             if (world.getTileEntity(x, y, z) instanceof IGregTechTileEntity te) {
                 IMetaTileEntity mte = te.getMetaTileEntity();
                 return mte instanceof MTEHatchNuclearHatch || mte instanceof MTEHatchNuclearBus
-                    || mte instanceof MTEHatchNuclearHighPressure;
+                    || mte instanceof MTEHatchNuclearHighPressure
+                    || (mte instanceof MTEHatchPressurizedFluid pf && pf.isInput());
             }
             return world.getBlock(x, y, z) == GregTechAPI.sBlockMachines;
         }
@@ -310,6 +327,14 @@ public class NuclearReactorStructure {
                         t.mBottomHighPressureHatches.add(hpHatch);
                     }
                     return true;
+                } else if (mte instanceof MTEHatchPressurizedFluid pf) {
+                    if (!pf.isOutput()) {
+                        return false;
+                    }
+                    if (t != null) {
+                        t.mBottomHighPressureHatches.add(pf);
+                    }
+                    return true;
                 } else if (mte instanceof MTEHatchNuclearControlRod rod) {
                     if (t != null) {
                         rod.mReactor = t;
@@ -335,6 +360,7 @@ public class NuclearReactorStructure {
             }
             if (world.getTileEntity(x, y, z) instanceof IGregTechTileEntity te) {
                 return te.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure
+                    || (te.getMetaTileEntity() instanceof MTEHatchPressurizedFluid pf && pf.isOutput())
                     || te.getMetaTileEntity() instanceof MTEHatchNuclearControlRod
                     || te.getMetaTileEntity() instanceof MTEHatchInputBeamline;
             }
@@ -344,7 +370,7 @@ public class NuclearReactorStructure {
         @Override
         public List<String> getDescription(MTENuclearReactor t) {
             return Collections.singletonList(
-                "Opposite core face: nuclear casing, nuclear core high-pressure hatch, nuclear core control rod, or beamline input hatch");
+                "Opposite core face: nuclear casing, pressurized output hatch, nuclear core control rod, or beamline input hatch");
         }
 
         @Override
@@ -359,6 +385,7 @@ public class NuclearReactorStructure {
             TileEntity existingTe = world.getTileEntity(x, y, z);
             if (existingTe instanceof IGregTechTileEntity gte
                 && (gte.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure
+                    || gte.getMetaTileEntity() instanceof MTEHatchPressurizedFluid
                     || gte.getMetaTileEntity() instanceof MTEHatchNuclearControlRod
                     || gte.getMetaTileEntity() instanceof MTEHatchInputBeamline)) {
                 gte.setFrontFacing(targetFacing);

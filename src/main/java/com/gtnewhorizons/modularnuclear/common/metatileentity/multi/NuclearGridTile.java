@@ -2,6 +2,7 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
 import net.minecraft.item.ItemStack;
 
+import com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData;
@@ -60,6 +61,27 @@ public class NuclearGridTile implements INuclearTile {
         this.bus = null;
         this.hatch = null;
         this.highPressureHatch = highPressureHatch;
+        this.gx = gx;
+        this.gy = gy;
+    }
+
+    public NuclearGridTile(MTENuclearReactor reactor, MTEHatchPressurizedFluid pressurizedHatch, int gx, int gy) {
+        this.reactor = reactor;
+        this.bus = null;
+        this.hatch = null;
+        this.highPressureHatch = new MTEHatchNuclearHighPressure("core_passage_adapter", 5, new String[0], null);
+        if (pressurizedHatch != null) {
+            this.highPressureHatch.setBaseMetaTileEntity(pressurizedHatch.getBaseMetaTileEntity());
+            this.highPressureHatch.mReactor = reactor;
+            this.highPressureHatch.setOppositeHatch(pressurizedHatch.getOppositeHatchTile());
+            this.highPressureHatch.setConnectedPump(pressurizedHatch.getConnectedPump());
+            this.highPressureHatch.setTemperature(pressurizedHatch.getDeviceTemperatureCelsius());
+            pressurizedHatch.setThermalExchangeListener((flowRate, dt, fluid, seg) -> {
+                this.highPressureHatch.setConnectedPump(pressurizedHatch.getConnectedPump());
+                this.highPressureHatch.processThermalExchange(flowRate, dt, fluid, seg);
+                pressurizedHatch.setCurrentTemperatureCelsius(this.highPressureHatch.getTemperature());
+            });
+        }
         this.gx = gx;
         this.gy = gy;
     }

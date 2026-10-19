@@ -6,6 +6,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
 import com.gtnewhorizons.coolantloops.engine.ICoolantLoopPump;
 import com.gtnewhorizons.coolantloops.engine.ICoolantPassageHatch;
@@ -84,13 +85,15 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
     @Override
     public ITexture[] getTexturesActive(ITexture aBaseTexture) {
         ITexture casing = Textures.BlockIcons.casingTexturePages[0][16];
-        return new ITexture[] { casing, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT) };
+        return new ITexture[] { casing, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT),
+            TextureFactory.of(MTEHatchPressurizedFluid.OVERLAY_PRESSURIZED_OUT) };
     }
 
     @Override
     public ITexture[] getTexturesInactive(ITexture aBaseTexture) {
         ITexture casing = Textures.BlockIcons.casingTexturePages[0][16];
-        return new ITexture[] { casing, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_IN) };
+        return new ITexture[] { casing, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_IN),
+            TextureFactory.of(MTEHatchPressurizedFluid.OVERLAY_PRESSURIZED_IN) };
     }
 
     @Override
@@ -98,8 +101,12 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
         int colorIndex, boolean aActive, boolean redstoneLevel) {
         ITexture casing = Textures.BlockIcons.casingTexturePages[0][16];
         if (side == aFacing) {
-            return new ITexture[] { casing, TextureFactory
-                .of(mIsInlet ? Textures.BlockIcons.OVERLAY_PIPE_IN : Textures.BlockIcons.OVERLAY_PIPE_OUT) };
+            return new ITexture[] { casing,
+                TextureFactory
+                    .of(mIsInlet ? Textures.BlockIcons.OVERLAY_PIPE_IN : Textures.BlockIcons.OVERLAY_PIPE_OUT),
+                TextureFactory.of(
+                    mIsInlet ? MTEHatchPressurizedFluid.OVERLAY_PRESSURIZED_IN
+                        : MTEHatchPressurizedFluid.OVERLAY_PRESSURIZED_OUT) };
         }
         return new ITexture[] { casing };
     }
@@ -267,7 +274,8 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
         // Limit heat transfer to equilibrium so temperatures cannot cross over in a single tick
         if (segmentHeatCapacity > 1e-4) {
             double maxEquilibriumHeatJoules = (coreHeatCapacityJoulesPerC * segmentHeatCapacity)
-                / (coreHeatCapacityJoulesPerC + segmentHeatCapacity) * maxDeltaT;
+                / (coreHeatCapacityJoulesPerC + segmentHeatCapacity)
+                * maxDeltaT;
             if (Math.abs(heatTransferredJoules) > maxEquilibriumHeatJoules) {
                 heatTransferredJoules = Math.signum(heatTransferredJoules) * maxEquilibriumHeatJoules;
             }
@@ -301,7 +309,8 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
 
     @Override
     public double getTemperature() {
-        if (!mIsInlet && mOppositeHatch != null && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
+        if (!mIsInlet && mOppositeHatch != null
+            && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
             return other.mTemperature;
         }
         return mTemperature;
@@ -351,9 +360,10 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
     @Override
     public double getModerationProbability() {
         if (mConnectedPump != null && mConnectedPump.getCoolantFluidProperty() != null) {
-            String name = mConnectedPump.getCoolantFluidProperty().getFluidName();
-            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd =
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(name);
+            String name = mConnectedPump.getCoolantFluidProperty()
+                .getFluidName();
+            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+                .findCoolantFluid(name);
             if (cfd != null) {
                 return cfd.moderation;
             }
@@ -378,8 +388,8 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
                 mNeutronAccumulator %= 4;
                 CoolantFluidProperty prop = mConnectedPump.getCoolantFluidProperty();
                 String name = prop != null ? prop.getFluidName() : "ic2distilledwater";
-                com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd =
-                    com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(name);
+                com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+                    .findCoolantFluid(name);
                 if (cfd != null && cfd.transmutationProduct != null) {
                     if ("tritium".equalsIgnoreCase(cfd.transmutationProduct)) {
                         // 2 D2O -> 2 T2 + 1 O2
@@ -393,7 +403,8 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
                         mConnectedPump.addDissolvedGas("Oxygen", cycles * 1L);
                     }
                 }
-                // Radiolysis is strictly disallowed for any fluid other than fluids configured with deuterium/tritium transmutationProduct
+                // Radiolysis is strictly disallowed for any fluid other than fluids configured with deuterium/tritium
+                // transmutationProduct
             }
         }
     }

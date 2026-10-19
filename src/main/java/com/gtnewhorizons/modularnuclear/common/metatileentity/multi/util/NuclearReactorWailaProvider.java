@@ -13,6 +13,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
+import com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
@@ -53,7 +54,7 @@ public class NuclearReactorWailaProvider {
                     fuelCount++;
                 } else if (mte instanceof MTEHatchNuclearHatch) {
                     coolantHatchCount++;
-                } else if (mte instanceof MTEHatchNuclearHighPressure) {
+                } else if (mte instanceof MTEHatchNuclearHighPressure || mte instanceof MTEHatchPressurizedFluid) {
                     hpPassageCount++;
                 }
             }

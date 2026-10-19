@@ -10,7 +10,6 @@ import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -28,6 +27,8 @@ import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
+import com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedFluid;
+import com.gtnewhorizons.coolantloops.engine.ICoolantPassageHatch;
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
@@ -66,6 +67,7 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.ICasingTextureProvider;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchDynamo;
@@ -110,8 +112,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public int coreDimension = 0;
     public INuclearTile[][] mGrid = null;
     public final List<IGregTechTileEntity> mNuclearTiles = new ArrayList<>();
-    public final List<MTEHatchNuclearHighPressure> mTopHighPressureHatches = new ArrayList<>();
-    public final List<MTEHatchNuclearHighPressure> mBottomHighPressureHatches = new ArrayList<>();
+    public final List<ICoolantPassageHatch> mTopHighPressureHatches = new ArrayList<>();
+    public final List<ICoolantPassageHatch> mBottomHighPressureHatches = new ArrayList<>();
     public final List<MTEHatchNuclearControlRod> mBottomControlRodHatches = new ArrayList<>();
     public final List<MTEHatchInputBeamline> mBottomBeamInputHatches = new ArrayList<>();
 
@@ -279,11 +281,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public void clearHatches() {
         super.clearHatches();
         mControlHatches.clear();
-        for (MTEHatchNuclearHighPressure hp : mTopHighPressureHatches) {
+        for (ICoolantPassageHatch hp : mTopHighPressureHatches) {
             hp.setOppositeHatch(null);
             hp.setConnectedPump(null);
         }
-        for (MTEHatchNuclearHighPressure hp : mBottomHighPressureHatches) {
+        for (ICoolantPassageHatch hp : mBottomHighPressureHatches) {
             hp.setOppositeHatch(null);
             hp.setConnectedPump(null);
         }
@@ -488,14 +490,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         Pollution.addPollution(base, GTMod.proxy.mPollutionOnExplosion * 2);
 
-        GTUtility.sendSoundToPlayers(
-            world,
-            SoundResource.IC2_MACHINES_MACHINE_OVERLOAD,
-            1.0F,
-            -1,
-            eX,
-            eY,
-            eZ);
+        GTUtility.sendSoundToPlayers(world, SoundResource.IC2_MACHINES_MACHINE_OVERLOAD, 1.0F, -1, eX, eY, eZ);
 
         mMachine = false;
         stopMachine();
@@ -549,7 +544,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     }
                 }
                 if (rod.getBaseMetaTileEntity() != null) {
-                    rod.getBaseMetaTileEntity().markDirty();
+                    rod.getBaseMetaTileEntity()
+                        .markDirty();
                 }
             }
         }
@@ -557,19 +553,22 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (ctrl != null) {
                 ctrl.setOutputRedstone((byte) 0);
                 if (ctrl.getBaseMetaTileEntity() != null) {
-                    ctrl.getBaseMetaTileEntity().markDirty();
+                    ctrl.getBaseMetaTileEntity()
+                        .markDirty();
                 }
             }
         }
 
-        for (MTEHatchNuclearHighPressure hp : mTopHighPressureHatches) {
-            if (hp != null && hp.getBaseMetaTileEntity() != null) {
-                hp.getBaseMetaTileEntity().markDirty();
+        for (ICoolantPassageHatch hp : mTopHighPressureHatches) {
+            if (hp instanceof MetaTileEntity mte && mte.getBaseMetaTileEntity() != null) {
+                mte.getBaseMetaTileEntity()
+                    .markDirty();
             }
         }
-        for (MTEHatchNuclearHighPressure hp : mBottomHighPressureHatches) {
-            if (hp != null && hp.getBaseMetaTileEntity() != null) {
-                hp.getBaseMetaTileEntity().markDirty();
+        for (ICoolantPassageHatch hp : mBottomHighPressureHatches) {
+            if (hp instanceof MetaTileEntity mte && mte.getBaseMetaTileEntity() != null) {
+                mte.getBaseMetaTileEntity()
+                    .markDirty();
             }
         }
 
@@ -577,7 +576,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (beam != null) {
                 beam.dataPacket = null;
                 if (beam.getBaseMetaTileEntity() != null) {
-                    beam.getBaseMetaTileEntity().markDirty();
+                    beam.getBaseMetaTileEntity()
+                        .markDirty();
                 }
             }
         }
@@ -585,37 +585,43 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         for (MTEHatchInput inHatch : mInputHatches) {
             if (inHatch != null) {
                 inHatch.mFluid = null;
-                if (inHatch.getBaseMetaTileEntity() != null) inHatch.getBaseMetaTileEntity().markDirty();
+                if (inHatch.getBaseMetaTileEntity() != null) inHatch.getBaseMetaTileEntity()
+                    .markDirty();
             }
         }
         for (MTEHatchOutput outHatch : mOutputHatches) {
             if (outHatch != null) {
                 outHatch.mFluid = null;
-                if (outHatch.getBaseMetaTileEntity() != null) outHatch.getBaseMetaTileEntity().markDirty();
+                if (outHatch.getBaseMetaTileEntity() != null) outHatch.getBaseMetaTileEntity()
+                    .markDirty();
             }
         }
         for (MTEHatchInputBus inBus : mInputBusses) {
             if (inBus != null && inBus.mInventory != null) {
                 for (int i = 0; i < inBus.mInventory.length; i++) inBus.mInventory[i] = null;
-                if (inBus.getBaseMetaTileEntity() != null) inBus.getBaseMetaTileEntity().markDirty();
+                if (inBus.getBaseMetaTileEntity() != null) inBus.getBaseMetaTileEntity()
+                    .markDirty();
             }
         }
         for (MTEHatchOutputBus outBus : mOutputBusses) {
             if (outBus != null && outBus.mInventory != null) {
                 for (int i = 0; i < outBus.mInventory.length; i++) outBus.mInventory[i] = null;
-                if (outBus.getBaseMetaTileEntity() != null) outBus.getBaseMetaTileEntity().markDirty();
+                if (outBus.getBaseMetaTileEntity() != null) outBus.getBaseMetaTileEntity()
+                    .markDirty();
             }
         }
         for (MTEHatchEnergy energy : mEnergyHatches) {
             if (energy != null) {
                 energy.setEUVar(0);
-                if (energy.getBaseMetaTileEntity() != null) energy.getBaseMetaTileEntity().markDirty();
+                if (energy.getBaseMetaTileEntity() != null) energy.getBaseMetaTileEntity()
+                    .markDirty();
             }
         }
         for (MTEHatchDynamo dynamo : mDynamoHatches) {
             if (dynamo != null) {
                 dynamo.setEUVar(0);
-                if (dynamo.getBaseMetaTileEntity() != null) dynamo.getBaseMetaTileEntity().markDirty();
+                if (dynamo.getBaseMetaTileEntity() != null) dynamo.getBaseMetaTileEntity()
+                    .markDirty();
             }
         }
 
@@ -648,7 +654,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             } catch (Throwable ignored) {}
         }
     }
-
 
     public void triggerThermalShock(MTEHatchNuclearHatch hatch, String reason) {
         IGregTechTileEntity base = getBaseMetaTileEntity();
@@ -923,6 +928,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     mGrid[gx][gy] = new NuclearGridTile(this, hatch, gx, gy);
                 } else if (mte instanceof MTEHatchNuclearHighPressure hp) {
                     mGrid[gx][gy] = new NuclearGridTile(this, hp, gx, gy);
+                } else if (mte instanceof MTEHatchPressurizedFluid pf) {
+                    mGrid[gx][gy] = new NuclearGridTile(this, pf, gx, gy);
                 }
             }
         }
@@ -1002,7 +1009,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public static boolean isNuclearCoreHatch(IMetaTileEntity mte) {
         return mte instanceof MTEHatchNuclearHatch || mte instanceof MTEHatchNuclearBus
             || mte instanceof MTEHatchNuclearControlRod
-            || mte instanceof MTEHatchNuclearHighPressure;
+            || mte instanceof MTEHatchNuclearHighPressure
+            || mte instanceof MTEHatchPressurizedFluid;
     }
 
     public static boolean isNuclearHatchTile(TileEntity te) {
@@ -1154,9 +1162,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 boolean isUpsideDown = ef.getRotation() == Rotation.UPSIDE_DOWN;
                 int hOffset = gridSize / 2;
 
-                MTEHatchNuclearHighPressure[][] bottomGrid = new MTEHatchNuclearHighPressure[gridSize][gridSize];
-                for (MTEHatchNuclearHighPressure bottom : mBottomHighPressureHatches) {
-                    IGregTechTileEntity bTe = bottom.getBaseMetaTileEntity();
+                ICoolantPassageHatch[][] bottomGrid = new ICoolantPassageHatch[gridSize][gridSize];
+                for (ICoolantPassageHatch bottom : mBottomHighPressureHatches) {
+                    IGregTechTileEntity bTe = bottom instanceof IMetaTileEntity mte ? mte.getBaseMetaTileEntity()
+                        : null;
                     if (bTe != null) {
                         int[] gCoords = calculateGridCoords(bTe, cX, cY, cZ, ef, isUpsideDown, hOffset);
                         if (gCoords != null && gCoords[0] >= 0
@@ -1169,20 +1178,27 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 }
 
                 boolean anyUnpaired = false;
-                for (MTEHatchNuclearHighPressure top : mTopHighPressureHatches) {
-                    IGregTechTileEntity tTe = top.getBaseMetaTileEntity();
+                for (ICoolantPassageHatch top : mTopHighPressureHatches) {
+                    IGregTechTileEntity tTe = top instanceof IMetaTileEntity mte ? mte.getBaseMetaTileEntity() : null;
                     if (tTe != null) {
                         int[] gCoords = calculateGridCoords(tTe, cX, cY, cZ, ef, isUpsideDown, hOffset);
                         if (gCoords != null && gCoords[0] >= 0
                             && gCoords[0] < gridSize
                             && gCoords[1] >= 0
                             && gCoords[1] < gridSize) {
-                            MTEHatchNuclearHighPressure bottom = bottomGrid[gCoords[0]][gCoords[1]];
+                            ICoolantPassageHatch bottom = bottomGrid[gCoords[0]][gCoords[1]];
                             if (bottom != null) {
-                                top.setOppositeHatch(bottom.getBaseMetaTileEntity());
-                                top.setIsInlet(true);
-                                bottom.setOppositeHatch(top.getBaseMetaTileEntity());
-                                bottom.setIsInlet(false);
+                                IGregTechTileEntity bTe = bottom instanceof IMetaTileEntity mte
+                                    ? mte.getBaseMetaTileEntity()
+                                    : null;
+                                top.setOppositeHatch(bTe);
+                                if (top instanceof MTEHatchNuclearHighPressure nhp) {
+                                    nhp.setIsInlet(true);
+                                }
+                                bottom.setOppositeHatch(tTe);
+                                if (bottom instanceof MTEHatchNuclearHighPressure nhp) {
+                                    nhp.setIsInlet(false);
+                                }
                                 bottomGrid[gCoords[0]][gCoords[1]] = null;
                             } else {
                                 anyUnpaired = true;
@@ -1368,14 +1384,17 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     if (rod.mTemperature > 100.0) return true;
                 } else if (mte instanceof MTEHatchNuclearHighPressure hp) {
                     if (hp.getTemperature() > 100.0) return true;
+                } else if (mte instanceof MTEHatchPressurizedFluid pf) {
+                    if (pf.getDeviceTemperatureCelsius() > 100.0) return true;
                 }
             }
         }
         for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
             if (rod != null && rod.mTemperature > 100.0) return true;
         }
-        for (MTEHatchNuclearHighPressure hp : mBottomHighPressureHatches) {
-            if (hp != null && hp.getTemperature() > 100.0) return true;
+        for (ICoolantPassageHatch hp : mBottomHighPressureHatches) {
+            if (hp instanceof MTEHatchNuclearHighPressure nhp && nhp.getTemperature() > 100.0) return true;
+            if (hp instanceof MTEHatchPressurizedFluid pf && pf.getDeviceTemperatureCelsius() > 100.0) return true;
         }
         return false;
     }
@@ -1483,7 +1502,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     for (int gy = 0; gy < gridSize; gy++) {
                         if (mGrid[gx][gy] instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile ngt
                             && ngt.getBottomControlRod() != null) {
-                            ngt.getBottomControlRod().updateMiningPipeHousing();
+                            ngt.getBottomControlRod()
+                                .updateMiningPipeHousing();
                         }
                     }
                 }
@@ -1649,6 +1669,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             if (hp.getTemperature() > maxTemp || hp.mIncomingCoolantTemp > maxTemp) {
                                 overheatingHatchesCount++;
                             }
+                        } else if (te.getMetaTileEntity() instanceof MTEHatchPressurizedFluid pf) {
+                            if (pf.getDeviceTemperatureCelsius() > maxTemp) {
+                                overheatingHatchesCount++;
+                            }
                         }
                     }
                 }
@@ -1780,11 +1804,15 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public void addAdditionalTooltipInformation(ItemStack aItemStack, List<String> aList) {
         super.addAdditionalTooltipInformation(aItemStack, aList);
         if (aItemStack != null && aItemStack.hasTagCompound()) {
-            if (aItemStack.getTagCompound().getBoolean("mMoltenDown")) {
-                aList.add(EnumChatFormatting.DARK_RED + "" + EnumChatFormatting.BOLD + "Molten down (permanently ruined)");
+            if (aItemStack.getTagCompound()
+                .getBoolean("mMoltenDown")) {
+                aList.add(
+                    EnumChatFormatting.DARK_RED + "" + EnumChatFormatting.BOLD + "Molten down (permanently ruined)");
             }
-            if (aItemStack.getTagCompound().hasKey("mReactorDamage")) {
-                double dmg = aItemStack.getTagCompound().getDouble("mReactorDamage");
+            if (aItemStack.getTagCompound()
+                .hasKey("mReactorDamage")) {
+                double dmg = aItemStack.getTagCompound()
+                    .getDouble("mReactorDamage");
                 if (dmg > 0.0) {
                     aList.add(EnumChatFormatting.RED + String.format(Locale.US, "Reactor damage: %.1f%%", dmg));
                 }
