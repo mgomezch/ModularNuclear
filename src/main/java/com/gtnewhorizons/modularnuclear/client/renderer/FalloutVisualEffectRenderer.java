@@ -97,6 +97,57 @@ public class FalloutVisualEffectRenderer {
         return false;
     }
 
+    public static int getHazmatPieceCount(EntityPlayer player) {
+        if (player == null) return 0;
+        int count = 0;
+        for (int i = 1; i <= 4; i++) {
+            ItemStack stack = player.getEquipmentInSlot(i);
+            if (stack == null) continue;
+            boolean protects = false;
+            try {
+                if (HazardProtection.protectsAgainstHazard(player, stack, Hazard.RADIOLOGICAL)
+                    || HazardProtection.protectsAgainstHazardFully(player, stack, Hazard.RADIOLOGICAL)) {
+                    protects = true;
+                }
+            } catch (Throwable ignored) {}
+            if (!protects && stack.getUnlocalizedName() != null) {
+                String lower = stack.getUnlocalizedName().toLowerCase();
+                if (lower.contains("hazmat")) {
+                    protects = true;
+                }
+            }
+            if (protects) count++;
+        }
+        return count;
+    }
+
+    public static float computeIntensity(double distance, double maxDist, int hazmatPieces) {
+        if (distance >= maxDist) return 0.0f;
+        if (hazmatPieces > 0) {
+            // Hazmat protection shifts effective distance outward by 40m (or half maxDist)
+            // ensuring maximum effect intensity at d=0 never exceeds no-hazmat intensity at 40m
+            double hazmatDistOffset = Math.min(40.0, maxDist * 0.5);
+            double effectiveDist = distance + hazmatDistOffset;
+            if (effectiveDist >= maxDist) return 0.0f;
+
+            float norm = (float) (effectiveDist / maxDist);
+            float t = Math.max(0.0f, Math.min(1.0f, 1.0f - norm));
+            float baseIntensity = t * t * (3.0f - 2.0f * t);
+
+            // Additional hazmat pieces (up to full 4-piece suit) further scale down residual static
+            // 1 piece (e.g. helmet): 1.0x -> max 0.50 at d=0
+            // 2 pieces: 0.75x -> max 0.375 at d=0
+            // 3 pieces: 0.50x -> max 0.25 at d=0
+            // 4 pieces (full suit): 0.25x -> max 0.125 at d=0
+            float pieceScale = 1.0f - 0.25f * (hazmatPieces - 1);
+            return Math.max(0.0f, baseIntensity * pieceScale);
+        } else {
+            float norm = (float) (distance / maxDist);
+            float t = Math.max(0.0f, Math.min(1.0f, 1.0f - norm));
+            return t * t * (3.0f - 2.0f * t);
+        }
+    }
+
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
@@ -142,16 +193,8 @@ public class FalloutVisualEffectRenderer {
 
             if (minDistanceSq <= maxDistSq) {
                 double dist = Math.sqrt(minDistanceSq);
-                float norm = (float) (dist / maxDist);
-                float t = Math.max(0.0f, Math.min(1.0f, 1.0f - norm));
-                // Smoothstep interpolation for natural distance scaling
-                float intensity = t * t * (3.0f - 2.0f * t);
-
-                // Halve intensity if wearing a hazmat-rated helmet
-                if (isWearingHazmatHelmet(mc.thePlayer)) {
-                    intensity *= 0.5f;
-                }
-                targetIntensity = intensity;
+                int hazmatPieces = getHazmatPieceCount(mc.thePlayer);
+                targetIntensity = computeIntensity(dist, maxDist, hazmatPieces);
             } else {
                 targetIntensity = 0.0f;
             }
