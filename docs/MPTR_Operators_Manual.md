@@ -1531,7 +1531,7 @@ A segment **ruptures** if:
 - its temperature exceeds its $T_{max}$; or
 - a molten coolant solidifies in it.
 
-A rupture while **circulating** causes an **explosion** at the segment, of strength $\min(25,\ 4 + p_{peak}/10)$ with $p_{peak}$ in bar, and drains 80% of the pump tank.
+A rupture occurs regardless of whether the pump is powered, unpowered, stopped or coasting. A rupture causes an explosion at the pump (if GregTech machine explosions are enabled), of strength $\min(25,\ 4 + p_{peak}/10)$ with $p_{peak}$ in bar, drains 80% of the pump tank, and if the coolant can be placed with a bucket and `spillOnRupture: true` is configured in `fluids.yaml`, places 1 to 2 fluid source blocks in adjacent empty/air spaces around the ruptured component and pump controller, triggering immediate neighbor updates to begin flow. If no empty space is available, fluid spilling is gracefully skipped.
 
 Practical limits:
 
@@ -1743,7 +1743,7 @@ Damage accrues **per overheated block per cycle**. Twenty overheated cells add 2
 | Overheat (> $T_{max}$) | kept | voided | voided | voided | not checked |
 | Structure break while hot (§13.4) | **voided** | **voided** | kept | kept | kept |
 | Meltdown (§13.5) | destroyed with the reactor | | | | |
-| Loop rupture while circulating | — | — | — | — | 80% of tank drained, explosion |
+| Loop rupture | — | — | — | — | 80% of tank drained, explosion, fluid spill |
 | Liquid fuel in loop | — | — | — | — | impeller destroyed |
 
 ### 13.4 Structure break while hot
