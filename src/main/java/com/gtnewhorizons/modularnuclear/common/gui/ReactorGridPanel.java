@@ -41,6 +41,11 @@ public class ReactorGridPanel {
             public boolean isDraggable() {
                 return false;
             }
+
+            @Override
+            public boolean keepPosOnDragResize() {
+                return false;
+            }
         }.relativeToScreen()
             .center()
             .size(380, 230)
@@ -172,9 +177,11 @@ public class ReactorGridPanel {
                     return true;
                 }));
 
-        // Zoom Readout
+        // Zoom Readout (also acts as drag handle)
         headerRow.child(
-            new TextWidget<>(IKey.dynamic(() -> gridWidget.getZoomPercent() + "%")).color(Color.WHITE.main)
+            new PanelDragHandle(panel)
+                .title(IKey.dynamic(() -> gridWidget.getZoomPercent() + "%"))
+                .color(Color.WHITE.main)
                 .textAlign(Alignment.Center)
                 .size(32, 14)
                 .marginRight(2));

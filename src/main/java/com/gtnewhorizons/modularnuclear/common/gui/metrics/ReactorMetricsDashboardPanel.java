@@ -37,6 +37,11 @@ public class ReactorMetricsDashboardPanel {
             public boolean isDraggable() {
                 return false;
             }
+
+            @Override
+            public boolean keepPosOnDragResize() {
+                return false;
+            }
         }.relativeToScreen()
             .center()
             .size(400, 240)
