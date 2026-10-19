@@ -16,7 +16,6 @@ import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widget.DragHandle;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
@@ -37,7 +36,12 @@ public class ReactorGridPanel {
 
     public static ModularPanel createPanel(PanelSyncManager syncManager, ModularPanel parent,
         MTENuclearReactor reactor) {
-        ModularPanel panel = new ModularPanel(PANEL_NAME).relativeToScreen()
+        ModularPanel panel = new ModularPanel(PANEL_NAME) {
+            @Override
+            public boolean isDraggable() {
+                return false;
+            }
+        }.relativeToScreen()
             .center()
             .size(380, 230)
             .widgetTheme(gregtech.api.modularui2.GTWidgetThemes.BACKGROUND_POPUP)
@@ -150,7 +154,7 @@ public class ReactorGridPanel {
 
         // Draggable Handle
         headerRow.child(
-            new DragHandle().expanded()
+            new PanelDragHandle(panel).expanded()
                 .height(14));
 
         // Zoom Controls

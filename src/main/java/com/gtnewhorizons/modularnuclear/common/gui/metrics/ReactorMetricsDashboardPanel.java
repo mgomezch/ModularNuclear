@@ -11,12 +11,11 @@ import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widget.DragHandle;
 import com.cleanroommc.modularui.widget.ScrollWidget;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.ItemDisplayWidget;
-import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.gtnewhorizons.modularnuclear.common.gui.PanelDragHandle;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 
 import gregtech.api.enums.ItemList;
@@ -35,7 +34,12 @@ public class ReactorMetricsDashboardPanel {
         ModularPanel parent,
         MTENuclearReactor reactor
     ) {
-        ModularPanel panel = new ModularPanel(PANEL_NAME).relativeToScreen()
+        ModularPanel panel = new ModularPanel(PANEL_NAME) {
+            @Override
+            public boolean isDraggable() {
+                return false;
+            }
+        }.relativeToScreen()
             .center()
             .size(400, 240)
             .widgetTheme(gregtech.api.modularui2.GTWidgetThemes.BACKGROUND_POPUP)
@@ -61,14 +65,14 @@ public class ReactorMetricsDashboardPanel {
                     .displayAmount(false)
                     .marginRight(4))
             .child(
-                new TextWidget<>(
-                    IKey.str(
-                        EnumChatFormatting.BOLD
-                            + StatCollector.translateToLocal("modularnuclear.gui.title.metrics_dashboard")))
-                                .color(Color.WHITE.main)
-                                .height(14)
-                                .marginRight(6))
-            .child(new DragHandle().expanded().height(14))
+                new PanelDragHandle(panel)
+                    .title(
+                        IKey.str(
+                            EnumChatFormatting.BOLD
+                                + StatCollector.translateToLocal("modularnuclear.gui.title.metrics_dashboard")))
+                    .color(Color.WHITE.main)
+                    .expanded()
+                    .height(14))
             .child(CommonButtons.panelCloseButton().size(14, 14));
 
         // Scrollable content area
