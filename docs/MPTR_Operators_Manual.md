@@ -2389,7 +2389,7 @@ The following behaviours, described in the body of this manual, appear to differ
 | 22 | Loops | PHE pressurized hatch roles depend on structure iteration order | §11.5.8 |
 | 23 | Loops | Instrument pressure metric is a local segment drop | §11.5.10 |
 | 24 | Loops | Passage outlet hatch temperature display is stale (outlet not simulated) | §11.4 |
-| 25 | Hazards | `explodeReactor()` and dry-coolant shutdown paths exist but are never called | §13 |
+| 25 | Hazards | *Resolved:* Dead high-pressure explosion variant (strength 18) eliminated; `explodeReactor()` active for non-neutron beam injection with strength 20 at beam hatch (or voids contents if machine explosions disabled) | §13.7 |
 | 26 | Hazards | Overheat check skips HP passage cells | §12.3 |
 | 27 | Docs | Control-rod hatch javadoc says "top layer"; rods are in the bottom layer | §9.1 |
 | 28 | Web sim | *Resolved:* Aligned with in-game physics: fuel classes/archetypes, 1:1 burnup, 1% control rod floor, and audited component parameters | §14 |

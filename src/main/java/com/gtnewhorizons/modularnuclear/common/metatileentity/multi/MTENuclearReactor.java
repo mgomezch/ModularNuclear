@@ -448,15 +448,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
     }
 
+    public void explodeReactor(String reason) {
+        explodeReactor(null, reason);
+    }
+
     public void explodeReactor(MTEHatchInputBeamline beamHatch, String reason) {
-        explodeReactor(beamHatch, false, reason);
-    }
-
-    public void explodeReactor(boolean highPressure, String reason) {
-        explodeReactor(null, highPressure, reason);
-    }
-
-    public void explodeReactor(MTEHatchInputBeamline beamHatch, boolean highPressure, String reason) {
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null || !base.isServerSide()) return;
 
@@ -487,10 +483,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             eX = base.getXCoord() + 0.5;
             eY = base.getYCoord() + 0.5;
             eZ = base.getZCoord() + 0.5;
-            strength = highPressure ? 18.0F : 9.0F;
+            strength = 9.0F;
         }
 
-        Pollution.addPollution(base, GTMod.proxy.mPollutionOnExplosion * (highPressure ? 4 : 2));
+        Pollution.addPollution(base, GTMod.proxy.mPollutionOnExplosion * 2);
 
         GTUtility.sendSoundToPlayers(
             world,
