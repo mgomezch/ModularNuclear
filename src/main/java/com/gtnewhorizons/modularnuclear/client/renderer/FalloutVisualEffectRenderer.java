@@ -99,6 +99,12 @@ public class FalloutVisualEffectRenderer {
 
     public static int getHazmatPieceCount(EntityPlayer player) {
         if (player == null) return 0;
+        try {
+            if (HazardProtection.isWearingFullRadioHazmat(player)) {
+                return 4;
+            }
+        } catch (Throwable ignored) {}
+
         int count = 0;
         for (int i = 1; i <= 4; i++) {
             ItemStack stack = player.getEquipmentInSlot(i);
@@ -106,14 +112,24 @@ public class FalloutVisualEffectRenderer {
             boolean protects = false;
             try {
                 if (HazardProtection.protectsAgainstHazard(player, stack, Hazard.RADIOLOGICAL)
-                    || HazardProtection.protectsAgainstHazardFully(player, stack, Hazard.RADIOLOGICAL)) {
+                    || HazardProtection.protectsAgainstHazardFully(player, stack, Hazard.RADIOLOGICAL)
+                    || HazardProtection.protectsAgainstHazard(stack, Hazard.RADIOLOGICAL)) {
                     protects = true;
                 }
             } catch (Throwable ignored) {}
             if (!protects && stack.getUnlocalizedName() != null) {
                 String lower = stack.getUnlocalizedName().toLowerCase();
-                if (lower.contains("hazmat")) {
+                if (lower.contains("hazmat") || lower.contains("rubboot") || lower.contains("rubber") || lower.contains("radiation")) {
                     protects = true;
+                }
+            }
+            if (!protects && stack.getItem() != null) {
+                String id = (String) net.minecraft.item.Item.itemRegistry.getNameForObject(stack.getItem());
+                if (id != null) {
+                    String lowerId = id.toLowerCase();
+                    if (lowerId.contains("hazmat") || lowerId.contains("rubboot") || lowerId.contains("rubber") || lowerId.contains("radiation")) {
+                        protects = true;
+                    }
                 }
             }
             if (protects) count++;
@@ -206,9 +222,14 @@ public class FalloutVisualEffectRenderer {
             currentIntensity = targetIntensity;
         }
 
-        // Suppress vanilla nausea camera roll and portal warp while within fallout visual effect range
-        if (currentIntensity > 0.001f && mc.thePlayer != null && mc.thePlayer.isPotionActive(Potion.confusion)) {
-            mc.thePlayer.removePotionEffectClient(Potion.confusion.id);
+        // Suppress vanilla nausea camera roll and blindness fog while within fallout visual effect range
+        if (currentIntensity > 0.001f && mc.thePlayer != null) {
+            if (mc.thePlayer.isPotionActive(Potion.confusion)) {
+                mc.thePlayer.removePotionEffectClient(Potion.confusion.id);
+            }
+            if (mc.thePlayer.isPotionActive(Potion.blindness)) {
+                mc.thePlayer.removePotionEffectClient(Potion.blindness.id);
+            }
         }
     }
 

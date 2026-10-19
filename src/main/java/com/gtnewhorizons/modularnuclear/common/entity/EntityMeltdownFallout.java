@@ -205,15 +205,20 @@ public class EntityMeltdownFallout extends Entity {
                     if (!HazardProtection.isWearingFullRadioHazmat(player)) {
                         // Apply severe GT radioactivity
                         GTUtility.applyRadioactivity(player, 5, 20);
-                        // Strip vanilla nausea so it does not distort the camera or clash with the fallout static shader
+                        // Strip vanilla nausea and blindness so they do not distort the camera or clash with the fallout shader
                         player.removePotionEffect(Potion.confusion.id);
+                        player.removePotionEffect(Potion.blindness.id);
                         // Inflict maximum IC2 radiation potion effect
                         if (Loader.isModLoaded("IC2") && IC2Potion.radiation != null) {
                             player.addPotionEffect(new PotionEffect(IC2Potion.radiation.id, 240, 3));
                         }
                     } else {
-                        // Clear any lingering nausea if player is fully protected
+                        // Clear lingering effects if player is fully protected
                         player.removePotionEffect(Potion.confusion.id);
+                        player.removePotionEffect(Potion.blindness.id);
+                        if (Loader.isModLoaded("IC2") && IC2Potion.radiation != null) {
+                            player.removePotionEffect(IC2Potion.radiation.id);
+                        }
                     }
                 }
             }
