@@ -46,6 +46,8 @@ public class SimTile implements INuclearTile {
         REFLECTOR_GOLD("Gold Plate Reflector", "RG"),
         REFLECTOR_STAINLESS("Stainless Steel Plate Reflector", "RS"),
         REFLECTOR_TUNGSTEN_CARBIDE("Tungsten Carbide Plate Reflector", "RT"),
+        REFLECTOR_IC2("Neutron Reflector", "RN"),
+        REFLECTOR_IC2_THICK("Thick Neutron Reflector", "RTN"),
         MODERATOR_GRAPHITE("Graphite Moderator", "MG"),
         MODERATOR_CARBON("Carbon Moderator", "MC"),
         MODERATOR_BERYLLIUM("Beryllium Moderator", "MB"),
@@ -84,6 +86,8 @@ public class SimTile implements INuclearTile {
                 .toUpperCase();
             if (trimmed.equals("BH")) return RADIOVOLTAIC_HV;
             if (trimmed.equals("BV")) return RADIOVOLTAIC_EV;
+            if (trimmed.equals("RN")) return REFLECTOR_IC2;
+            if (trimmed.equals("RTN")) return REFLECTOR_IC2_THICK;
             if (trimmed.equals("HP") || trimmed.equals("HH")
                 || trimmed.equals("HATCH_HP_DISTILLED_WATER")
                 || trimmed.equals("HATCH_HP_HEAVY_WATER")) {
@@ -379,6 +383,14 @@ public class SimTile implements INuclearTile {
                     this.maxCellHeat = 5000;
                     this.currentCellHeat = 0;
                 }
+                case REFLECTOR_IC2 -> {
+                    this.maxDurability = 10000;
+                    this.durability = 10000;
+                }
+                case REFLECTOR_IC2_THICK -> {
+                    this.maxDurability = 40000;
+                    this.durability = 40000;
+                }
                 default -> {
                     this.inputFluidAmount = 0;
                     this.maxCellHeat = 0;
@@ -412,6 +424,14 @@ public class SimTile implements INuclearTile {
         };
     }
 
+    public String getArchetype() {
+        if (type == TileType.HATCH_LIQUID_FUEL_PLUTONIUM) {
+            return "standard";
+        }
+        NuclearFuelType fuel = getFuelType();
+        return (fuel != null && fuel.archetype != null) ? fuel.archetype : "standard";
+    }
+
     @Override
     public double getTemperature() {
         return temperature;
@@ -438,18 +458,24 @@ public class SimTile implements INuclearTile {
         if (isFuel() && !isLiquidFuelHatch()) return 0.05;
         return switch (type) {
             case HATCH_IC2_COOLANT -> 0.50;
-            case HATCH_DISTILLED_WATER, HATCH_HEAVY_WATER -> 0.25;
+            case HATCH_DISTILLED_WATER, HATCH_HEAVY_WATER -> 0.30;
             case COOLANT_CELL_10K, COOLANT_CELL_60K, COOLANT_CELL_360K -> 0.40;
-            case VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED, VENT_COMPONENT -> 0.35;
-            case EXCHANGER_STANDARD, EXCHANGER_ADVANCED, EXCHANGER_COMPONENT -> 0.40;
+            case VENT_STANDARD, VENT_OVERCLOCKED -> 0.40;
+            case VENT_ADVANCED -> 0.45;
+            case VENT_COMPONENT -> 0.50;
+            case EXCHANGER_STANDARD -> 0.40;
+            case EXCHANGER_ADVANCED -> 0.45;
+            case EXCHANGER_COMPONENT -> 0.50;
             case REFLECTOR_GOLD -> 0.30;
             case REFLECTOR_STAINLESS -> 0.20;
             case REFLECTOR_TUNGSTEN_CARBIDE -> 0.10;
-            case REFLECTOR_BERYLLIUM, REFLECTOR_CARBON -> 0.15;
+            case REFLECTOR_BERYLLIUM, REFLECTOR_CARBON, REFLECTOR_IC2 -> 0.15;
+            case REFLECTOR_IC2_THICK -> 0.20;
             case MODERATOR_GRAPHITE, MODERATOR_CARBON -> 0.05;
             case MODERATOR_BERYLLIUM -> 0.15;
             case RADIOVOLTAIC_HV, RADIOVOLTAIC_EV -> 0.10;
-            case INSULATOR_BASIC_THERMAL_CLOTH, INSULATOR_T2_THERMAL_CLOTH, INSULATOR_MICA_FOIL, INSULATOR_NAQUARITE_FOIL -> 0.01;
+            case INSULATOR_BASIC_THERMAL_CLOTH, INSULATOR_T2_THERMAL_CLOTH, INSULATOR_MICA_FOIL -> 0.01;
+            case INSULATOR_NAQUARITE_FOIL -> 0.005;
             case HATCH_LIQUID_FUEL_URANIUM, HATCH_LIQUID_FUEL_THORIUM, HATCH_LIQUID_FUEL_PLUTONIUM -> 0.25;
             case PASSAGE_CORE -> 0.90;
             default -> 0.02;
@@ -532,7 +558,7 @@ public class SimTile implements INuclearTile {
             return 0;
         }
 
-        int baseNeutrons = switch (type) {
+        int rawBaseNeutrons = switch (type) {
             case FUEL_GLOWSTONE, FUEL_LITHIUM -> 1;
             case FUEL_THORIUM_SINGLE -> 2;
             case FUEL_THORIUM_DUAL -> 4;
@@ -558,9 +584,16 @@ public class SimTile implements INuclearTile {
         };
 
         NuclearFuelType fuel = getFuelType();
-        double baseFissionMult = (fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0;
+        String archetype = getArchetype();
+        double archNbaseMult = NuclearSimulationEngine.getArchetypeNbaseMultiplier(archetype);
+        double archFissMult = NuclearSimulationEngine.getArchetypeFissionMultiplier(archetype);
+
+        int baseNeutrons = Math.max(1, (int) Math.round(rawBaseNeutrons * archNbaseMult));
+
+        double baseThermalMult = (type == TileType.HATCH_LIQUID_FUEL_PLUTONIUM) ? 1.80 : ((fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0);
+        double baseFissionMult = baseThermalMult * archFissMult;
         double effectiveFissionMult = baseFissionMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
-        double baseFastFissionMult = (fuel != null) ? fuel.baseFastFissionMultiplier : 0.10;
+        double baseFastFissionMult = ((fuel != null) ? fuel.baseFastFissionMultiplier : 0.10) * archFissMult;
         double effectiveFastFissionMult = baseFastFissionMult * NuclearSimulationEngine.globalFastFissionMultiplier;
 
         int chainNeutrons = (int) Math.round(lastThermalAbsorbed * effectiveFissionMult + lastFastAbsorbed * effectiveFastFissionMult);
@@ -627,6 +660,8 @@ public class SimTile implements INuclearTile {
             case REFLECTOR_GOLD -> (nType == NeutronType.FAST) ? 0.15 : 0.10;
             case REFLECTOR_STAINLESS -> (nType == NeutronType.FAST) ? 0.10 : 0.05;
             case REFLECTOR_TUNGSTEN_CARBIDE -> (nType == NeutronType.FAST) ? 0.07 : 0.02;
+            case REFLECTOR_IC2 -> (nType == NeutronType.FAST) ? 0.01 : 0.02;
+            case REFLECTOR_IC2_THICK -> (nType == NeutronType.FAST) ? 0.005 : 0.01;
             case REFLECTOR_BERYLLIUM, REFLECTOR_CARBON -> 0.02;
             case COOLANT_CELL_10K, COOLANT_CELL_60K, COOLANT_CELL_360K, VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED, VENT_COMPONENT, EXCHANGER_STANDARD, EXCHANGER_ADVANCED, EXCHANGER_COMPONENT -> 0.03;
             default -> 0.01;
@@ -636,11 +671,16 @@ public class SimTile implements INuclearTile {
     @Override
     public double getAbsorptionProbability(NeutronType nType) {
         double pBase = getBaseAbsorptionProbability(nType);
-        if (hasControlRod && controlRodType != ControlRodType.NONE && controlRodInsertion > 0) {
-            double ratio = controlRodInsertion / 100.0;
-            double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption
-                : controlRodType.maxFastAbsorption;
-            double pRod = Math.max(0.0, ratio * max);
+        if (hasControlRod) {
+            double pRod;
+            if (controlRodType == ControlRodType.NONE || controlRodType == null) {
+                pRod = 0.01;
+            } else {
+                double ratio = controlRodInsertion / 100.0;
+                double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption
+                    : controlRodType.maxFastAbsorption;
+                pRod = Math.max(0.01, ratio * max);
+            }
             return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
         }
         return pBase;
@@ -670,6 +710,12 @@ public class SimTile implements INuclearTile {
         if (type == TileType.REFLECTOR_TUNGSTEN_CARBIDE) {
             return (nType == NeutronType.THERMAL) ? 0.98 : 0.93;
         }
+        if (type == TileType.REFLECTOR_IC2) {
+            return (nType == NeutronType.THERMAL) ? 0.98 : 0.95;
+        }
+        if (type == TileType.REFLECTOR_IC2_THICK) {
+            return (nType == NeutronType.THERMAL) ? 0.99 : 0.98;
+        }
         if (type == TileType.REFLECTOR_BERYLLIUM || type == TileType.REFLECTOR_CARBON) {
             return (nType == NeutronType.THERMAL) ? 0.98 : 0.95;
         }
@@ -683,9 +729,9 @@ public class SimTile implements INuclearTile {
         if (isCoolantHatch()) {
             if (inputFluidAmount <= 0) return 0.02;
             return switch (type) {
-                case HATCH_HEAVY_WATER -> (nType == NeutronType.THERMAL) ? 0.85 : 0.80;
-                case HATCH_DISTILLED_WATER -> (nType == NeutronType.THERMAL) ? 0.70 : 0.60;
-                case HATCH_IC2_COOLANT -> (nType == NeutronType.THERMAL) ? 0.45 : 0.40;
+                case HATCH_HEAVY_WATER -> (nType == NeutronType.THERMAL) ? 0.85 : 0.85;
+                case HATCH_DISTILLED_WATER -> (nType == NeutronType.THERMAL) ? 0.70 : 0.70;
+                case HATCH_IC2_COOLANT -> (nType == NeutronType.THERMAL) ? 0.45 : 0.45;
                 default -> 0.10;
             };
         }
@@ -696,9 +742,14 @@ public class SimTile implements INuclearTile {
     @Override
     public double getScatteringProbability(NeutronType nType) {
         double pBase = getBaseScatteringProbability(nType);
-        if (hasControlRod && controlRodType != ControlRodType.NONE) {
-            double ratio = controlRodInsertion / 100.0;
-            double pRod = Math.max(0.01, 0.05 * (1.0 - ratio));
+        if (hasControlRod) {
+            double pRod;
+            if (controlRodType == ControlRodType.NONE || controlRodType == null) {
+                pRod = 0.02;
+            } else {
+                double ratio = controlRodInsertion / 100.0;
+                pRod = Math.max(0.01, 0.05 * (1.0 - ratio));
+            }
             return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
         }
         return pBase;
@@ -723,8 +774,11 @@ public class SimTile implements INuclearTile {
         if (type == TileType.REFLECTOR_GOLD || type == TileType.REFLECTOR_STAINLESS || type == TileType.REFLECTOR_TUNGSTEN_CARBIDE) {
             return 0.0;
         }
-        if (type == TileType.REFLECTOR_BERYLLIUM || type == TileType.REFLECTOR_CARBON) {
-            return 0.65;
+        if (type == TileType.REFLECTOR_IC2 || type == TileType.REFLECTOR_BERYLLIUM || type == TileType.REFLECTOR_CARBON) {
+            return 0.20;
+        }
+        if (type == TileType.REFLECTOR_IC2_THICK) {
+            return 0.25;
         }
         if (type == TileType.PASSAGE_CORE) {
             return 0.05;
@@ -747,11 +801,16 @@ public class SimTile implements INuclearTile {
     @Override
     public void onNeutronAbsorbed(NeutronType nType, int count) {
         if (count <= 0) return;
-        if (hasControlRod && controlRodType != ControlRodType.NONE && controlRodInsertion > 0) {
-            double ratio = controlRodInsertion / 100.0;
-            double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption
-                : controlRodType.maxFastAbsorption;
-            double pRod = Math.max(0.0, ratio * max);
+        if (hasControlRod) {
+            double pRod;
+            if (controlRodType == ControlRodType.NONE || controlRodType == null) {
+                pRod = 0.01;
+            } else {
+                double ratio = controlRodInsertion / 100.0;
+                double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption
+                    : controlRodType.maxFastAbsorption;
+                pRod = Math.max(0.01, ratio * max);
+            }
             double pBase = getBaseAbsorptionProbability(nType);
             double sum = pBase + pRod;
             int nRod = (sum > 0) ? (int) Math.round(count * (pRod / sum)) : count / 2;
@@ -795,7 +854,21 @@ public class SimTile implements INuclearTile {
     }
 
     @Override
-    public void onNeutronScattered(NeutronType nType, int count) {}
+    public void onNeutronScattered(NeutronType nType, int count) {
+        if ((type == TileType.REFLECTOR_IC2 || type == TileType.REFLECTOR_IC2_THICK) && !depleted && maxDurability > 0) {
+            for (int i = 0; i < count; i++) {
+                if (RAND.nextInt(20) == 0) {
+                    durability--;
+                    if (durability <= 0) {
+                        durability = 0;
+                        depleted = true;
+                        type = TileType.EMPTY;
+                        break;
+                    }
+                }
+            }
+        }
+    }
 
     @Override
     public void addNeutronFlux(NeutronType nType, int count) {

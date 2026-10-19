@@ -93,6 +93,14 @@ public final class ReactorDataRegistry {
         NuclearSimulationEngine.wallReflectionChance = physicsData.wallReflectionChance;
         NuclearSimulationEngine.wallAbsorbHeatPerNeutron = physicsData.wallAbsorbHeatPerNeutron;
         NuclearSimulationEngine.setBeamEnergyToFastNeutronMultiplier(physicsData.beamEnergyToFastNeutronMultiplier);
+        NuclearSimulationEngine.denseNbaseMultiplier = physicsData.denseNbaseMultiplier;
+        NuclearSimulationEngine.denseFissionMultiplier = physicsData.denseFissionMultiplier;
+        NuclearSimulationEngine.excitedNbaseMultiplier = physicsData.excitedNbaseMultiplier;
+        NuclearSimulationEngine.excitedFissionMultiplier = physicsData.excitedFissionMultiplier;
+        NuclearSimulationEngine.standardNbaseMultiplier = physicsData.standardNbaseMultiplier;
+        NuclearSimulationEngine.standardFissionMultiplier = physicsData.standardFissionMultiplier;
+        NuclearSimulationEngine.breederNbaseMultiplier = physicsData.breederNbaseMultiplier;
+        NuclearSimulationEngine.breederFissionMultiplier = physicsData.breederFissionMultiplier;
     }
 
     public static synchronized void loadFromDir(File dir) {

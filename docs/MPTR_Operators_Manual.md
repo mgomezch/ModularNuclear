@@ -1857,13 +1857,13 @@ The web simulator compiles a standalone port of the core engine (`StandaloneNucl
 | Aspect | In-game | Web simulator |
 |---|---|---|
 | Cycle period | 20 ticks | one `simulate()` per simulated "tick"; rates displayed per tick |
-| Fuel wear | as §7.3 | multiplied by 0.005 (rods last ~200× longer) |
-| Fission multiplier / heat per neutron | 1.0 / 38 Hu | initialised to 0.35 / 76 Hu (exported pages 0.351 / 80.1); loading a preset resets to 1.0 / 38 |
-| Reflector moderation | 0.20 | 0.65 |
-| Passage moderation | by loop fluid | fixed 0.85 |
-| Empty-cell properties | as §8.1 | differ |
-| The Core packets | 32 | 16 |
-| Base neutrons of HDU / HDP / ExU / ExP / Tiberium | 16 / 32 / 16 / 32 / 32 (quad) | 16 / 24 / 32 / 48 / 48 |
+| Fuel wear / burnup | as §7.3 | 1.0 (exact parity with in-game physics; configurable) |
+| Fuel archetypes & multipliers | standard / dense / excited / breeder ($N_{\text{base}}$ & fission mults) | standard / dense / excited / breeder (exact parity; configurable) |
+| Control rods | 1% floor ($p_a \ge 0.01$) | 1% floor ($p_a \ge 0.01$); per-cell hatch editing & serialization |
+| Reflector moderation | 0.00 metal / 0.20 IC2 / 0.25 thick | 0.00 metal / 0.20 IC2 / 0.25 thick (exact parity) |
+| Passage moderation | by loop fluid | 0.85 heavy water / 0.70 distilled water / 0.45 IC2 coolant |
+| Empty-cell properties | as §8.1 | exact parity |
+| Fission multiplier / heat per neutron | 1.0 / 38 Hu | initialised to calibrated defaults (preserves peak presets); loading resets to physics defaults |
 | Overheated fuel | kept | removed |
 | IC2 component exchange | via virtual IC2 reactor | dedicated neighbour pass |
 | Coolant loop | CoolantLoops engine (§11.5) | separate simplified model |
@@ -2392,7 +2392,7 @@ The following behaviours, described in the body of this manual, appear to differ
 | 25 | Hazards | `explodeReactor()` and dry-coolant shutdown paths exist but are never called | §13 |
 | 26 | Hazards | Overheat check skips HP passage cells | §12.3 |
 | 27 | Docs | Control-rod hatch javadoc says "top layer"; rods are in the bottom layer | §9.1 |
-| 28 | Web sim | Different constants and 20× timebase difference vs in-game | §14 |
+| 28 | Web sim | *Resolved:* Aligned with in-game physics: fuel classes/archetypes, 1:1 burnup, 1% control rod floor, and audited component parameters | §14 |
 | 29 | Loops | Multi-tick loop crawling (1 000 steps/tick, up to 20 ticks / 20 000 steps total) with loop-too-large controller error | §11.5.1 |
 | 30 | Loops | Manifold area-weighted parallel flow splitting, thermal blending, and non-additive parallel pressure drops; maintenance preservation across crawls | §11.5.1, §11.5.3, §11.5.5 |
 | 31 | Loops | *Resolved:* PHE input hatch strictly accepts Distilled Water variants (`ic2distilledwater`, `distilledwater`, `distilled_water`); plain Minecraft water is rejected | §11.5.8 |

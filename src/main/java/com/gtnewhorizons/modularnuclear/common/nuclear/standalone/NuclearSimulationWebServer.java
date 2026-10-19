@@ -889,6 +889,55 @@ public class NuclearSimulationWebServer {
                       <input id="p-ic2-cooling-heat" type="number" step="1.0" value="20.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                   </div>
+                  <div style="border-top:1px dashed var(--border-color); padding-top:8px; margin-top:8px;">
+                    <div style="font-size:0.75rem; font-weight:700; color:#38bdf8; margin-bottom:6px;">☢️ Fuel Archetypes &amp; Burnup</div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
+                      <div>
+                        <label style="font-size:0.7rem; color:var(--text-muted);">Fuel Burnup Mult:</label>
+                        <input id="p-burnup-mult" type="number" step="0.05" value="1.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      </div>
+                      <div>
+                        <label style="font-size:0.7rem; color:var(--text-muted);">Dense Nbase Mult:</label>
+                        <input id="p-dense-nbase-mult" type="number" step="0.05" value="0.50" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
+                      <div>
+                        <label style="font-size:0.7rem; color:var(--text-muted);">Dense Fission Mult:</label>
+                        <input id="p-dense-fiss-mult" type="number" step="0.05" value="1.20" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      </div>
+                      <div>
+                        <label style="font-size:0.7rem; color:var(--text-muted);">Excited Nbase Mult:</label>
+                        <input id="p-excited-nbase-mult" type="number" step="0.05" value="1.40" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
+                      <div>
+                        <label style="font-size:0.7rem; color:var(--text-muted);">Excited Fission Mult:</label>
+                        <input id="p-excited-fiss-mult" type="number" step="0.05" value="0.80" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      </div>
+                      <div>
+                        <label style="font-size:0.7rem; color:var(--text-muted);">Standard Nbase Mult:</label>
+                        <input id="p-std-nbase-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
+                      <div>
+                        <label style="font-size:0.7rem; color:var(--text-muted);">Standard Fission Mult:</label>
+                        <input id="p-std-fiss-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      </div>
+                      <div>
+                        <label style="font-size:0.7rem; color:var(--text-muted);">Breeder Nbase Mult:</label>
+                        <input id="p-brd-nbase-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+                      <div>
+                        <label style="font-size:0.7rem; color:var(--text-muted);">Breeder Fission Mult:</label>
+                        <input id="p-brd-fiss-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1272,6 +1321,9 @@ public class NuclearSimulationWebServer {
                       if (t.type && t.type !== "EMPTY" && t.code !== "NL") {
                         wasmSim.setTile(t.x, t.y, t.type, false);
                       }
+                      if (t.hasControlRod) {
+                        wasmSim.setControlRod(t.x, t.y, true, t.controlRodType || "BORON", t.controlRodInsertion || 0, false);
+                      }
                     });
                     if (window.__INITIAL_STATE__.turbineMaterial) {
                       wasmSim.setTurbine(window.__INITIAL_STATE__.turbineMaterial, window.__INITIAL_STATE__.turbineSize, window.__INITIAL_STATE__.turbineFitting, false);
@@ -1336,6 +1388,9 @@ public class NuclearSimulationWebServer {
               { type: "REFLECTOR_GOLD", name: "Gold Plate Reflector", code: "RG", color: "#fbbf24" },
               { type: "REFLECTOR_STAINLESS", name: "Stainless Steel Plate Reflector", code: "RS", color: "#94a3b8" },
               { type: "REFLECTOR_TUNGSTEN_CARBIDE", name: "Tungsten Carbide Plate Reflector", code: "RT", color: "#475569" },
+              { type: "REFLECTOR_IC2", name: "Neutron Reflector", code: "RN", color: "#60a5fa" },
+              { type: "REFLECTOR_IC2_THICK", name: "Thick Neutron Reflector", code: "RTN", color: "#3b82f6" },
+              { type: "INSULATOR_NAQUARITE_FOIL", name: "Naquarite Insulator Foil", code: "INQ", color: "#c084fc" },
               { type: "MODERATOR_GRAPHITE", name: "Graphite Moderator", code: "MG", color: "#64748b" },
               { type: "MODERATOR_CARBON", name: "Carbon Moderator", code: "MC", color: "#334155" },
               { type: "MODERATOR_BERYLLIUM", name: "Beryllium Moderator", code: "MB", color: "#cbd5e1" },
@@ -1348,7 +1403,14 @@ public class NuclearSimulationWebServer {
               { type: "VENT_COMPONENT", name: "Component Heat Vent", code: "VC", color: "#06b6d4" },
               { type: "EXCHANGER_STANDARD", name: "Heat Exchanger", code: "X1", color: "#a855f7" },
               { type: "EXCHANGER_ADVANCED", name: "Advanced Heat Exchanger", code: "XA", color: "#9333ea" },
-              { type: "EXCHANGER_COMPONENT", name: "Component Heat Exchanger", code: "XC", color: "#c084fc" }
+              { type: "EXCHANGER_COMPONENT", name: "Component Heat Exchanger", code: "XC", color: "#c084fc" },
+              { type: "CR_BORON", name: "Control Rod: Boron", code: "CR:B", color: "#00e5ff", isControlRod: true, material: "BORON" },
+              { type: "CR_HAFNIUM", name: "Control Rod: Hafnium", code: "CR:HF", color: "#f97316", isControlRod: true, material: "HAFNIUM" },
+              { type: "CR_CADMIUM", name: "Control Rod: Cadmium", code: "CR:CD", color: "#06b6d4", isControlRod: true, material: "CADMIUM" },
+              { type: "CR_SILVER", name: "Control Rod: Silver", code: "CR:AG", color: "#94a3b8", isControlRod: true, material: "SILVER" },
+              { type: "CR_INDIUM", name: "Control Rod: Indium", code: "CR:IN", color: "#a855f7", isControlRod: true, material: "INDIUM" },
+              { type: "CR_EMPTY", name: "Control Rod: Empty Hatch", code: "CR:0", color: "#64748b", isControlRod: true, material: "NONE" },
+              { type: "CR_REMOVE", name: "Remove Control Rod", code: "-CR", color: "#ef4444", isControlRod: true, remove: true }
             ];
 
             const VOLTAGE_TIERS = {
@@ -1619,9 +1681,11 @@ public class NuclearSimulationWebServer {
                 btn.className = "palette-btn" + (interactionMode === "PAINT" && p.type === activePaletteType ? " active" : "");
                 btn.dataset.type = p.type;
                 btn.style.borderLeft = "4px solid " + p.color;
-                const iconHtml = p.type !== "EMPTY"
-                  ? `<img class="palette-icon" src="${getIconUrl(p.type)}" onerror="this.src='/api/icon/' + p.type" alt="${p.code}" />`
-                  : `<div class="palette-icon palette-empty-icon"></div>`;
+                const iconHtml = p.isControlRod
+                  ? `<div class="palette-icon" style="display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:bold; color:${p.color};">${p.remove ? '❌' : '🕹️'}</div>`
+                  : (p.type !== "EMPTY"
+                      ? `<img class="palette-icon" src="${getIconUrl(p.type)}" onerror="this.src='/api/icon/' + p.type" alt="${p.code}" />`
+                      : `<div class="palette-icon palette-empty-icon"></div>`);
                 btn.innerHTML = `${iconHtml} <span>${p.name}</span>`;
                 btn.onclick = (e) => {
                   if (e) e.preventDefault();
@@ -2691,7 +2755,16 @@ public class NuclearSimulationWebServer {
               if (interactionMode === "INSPECT" || (e && e.shiftKey)) {
                 selectCell(x, y);
               } else {
-                await setTile(x, y, activePaletteType);
+                const palItem = PALETTE.find(p => p.type === activePaletteType);
+                if (palItem && palItem.isControlRod) {
+                  if (palItem.remove) {
+                    await toggleTileControlRod(x, y, false);
+                  } else {
+                    await changeTileControlRodMaterial(x, y, palItem.material);
+                  }
+                } else {
+                  await setTile(x, y, activePaletteType);
+                }
                 selectCell(x, y);
               }
             }
@@ -2886,9 +2959,14 @@ public class NuclearSimulationWebServer {
               el.innerHTML = `
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
                   ${iconHtml}
-                  <div>
+                  <div style="flex:1;">
                     <div style="font-weight:bold; font-size:1rem; color:#fff;">${t.name}</div>
-                    <div style="font-size:0.75rem; color:var(--text-muted);">Position: (${t.x}, ${t.y})</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">Position: (${t.x}, ${t.y})</div>
+                    ${t.code !== "NL" ? `
+                      <select onchange="setTile(${t.x}, ${t.y}, this.value)" style="width:100%; font-size:0.75rem; padding:3px 6px; height:auto; min-height:26px;">
+                        ${PALETTE.filter(p => !p.isControlRod).map(p => `<option value="${p.type}" ${p.type === t.type ? 'selected' : ''}>${p.name}</option>`).join('')}
+                      </select>
+                    ` : ''}
                   </div>
                 </div>
                 <div class="stat-row"><span>Temperature:</span><span class="stat-val">${t.temp} °C</span></div>
@@ -2921,6 +2999,15 @@ public class NuclearSimulationWebServer {
               setVal("p-cooling-heat", p.coolingHeatPerLiter);
               setVal("p-ic2-cooling-heat", p.ic2CoolantHeatPerLiter);
               setVal("p-hp-boil", p.hpWaterBoilingPoint);
+              setVal("p-burnup-mult", p.fuelBurnupMultiplier != null ? p.fuelBurnupMultiplier : 1.0);
+              setVal("p-dense-nbase-mult", p.denseNbaseMultiplier != null ? p.denseNbaseMultiplier : 0.50);
+              setVal("p-dense-fiss-mult", p.denseFissionMultiplier != null ? p.denseFissionMultiplier : 1.20);
+              setVal("p-excited-nbase-mult", p.excitedNbaseMultiplier != null ? p.excitedNbaseMultiplier : 1.40);
+              setVal("p-excited-fiss-mult", p.excitedFissionMultiplier != null ? p.excitedFissionMultiplier : 0.80);
+              setVal("p-std-nbase-mult", p.standardNbaseMultiplier != null ? p.standardNbaseMultiplier : 1.00);
+              setVal("p-std-fiss-mult", p.standardFissionMultiplier != null ? p.standardFissionMultiplier : 1.00);
+              setVal("p-brd-nbase-mult", p.breederNbaseMultiplier != null ? p.breederNbaseMultiplier : 1.00);
+              setVal("p-brd-fiss-mult", p.breederFissionMultiplier != null ? p.breederFissionMultiplier : 1.00);
             }
 
             async function submitSimParams() {
@@ -2937,6 +3024,15 @@ public class NuclearSimulationWebServer {
               const ch = document.getElementById("p-cooling-heat").value;
               const ic2Ch = document.getElementById("p-ic2-cooling-heat").value;
               const hpBoil = document.getElementById("p-hp-boil").value;
+              const burnup = document.getElementById("p-burnup-mult") ? document.getElementById("p-burnup-mult").value : 1.0;
+              const denseNb = document.getElementById("p-dense-nbase-mult") ? document.getElementById("p-dense-nbase-mult").value : 0.50;
+              const denseFiss = document.getElementById("p-dense-fiss-mult") ? document.getElementById("p-dense-fiss-mult").value : 1.20;
+              const excNb = document.getElementById("p-excited-nbase-mult") ? document.getElementById("p-excited-nbase-mult").value : 1.40;
+              const excFiss = document.getElementById("p-excited-fiss-mult") ? document.getElementById("p-excited-fiss-mult").value : 0.80;
+              const stdNb = document.getElementById("p-std-nbase-mult") ? document.getElementById("p-std-nbase-mult").value : 1.00;
+              const stdFiss = document.getElementById("p-std-fiss-mult") ? document.getElementById("p-std-fiss-mult").value : 1.00;
+              const brdNb = document.getElementById("p-brd-nbase-mult") ? document.getElementById("p-brd-nbase-mult").value : 1.00;
+              const brdFiss = document.getElementById("p-brd-fiss-mult") ? document.getElementById("p-brd-fiss-mult").value : 1.00;
 
               if (isWasmMode && wasmSim) {
                 wasmSim.setParam("huPerDegree", huDeg);
@@ -2952,6 +3048,15 @@ public class NuclearSimulationWebServer {
                 wasmSim.setParam("coolingHeat", ch);
                 wasmSim.setParam("ic2CoolantHeat", ic2Ch);
                 wasmSim.setParam("hpBoil", hpBoil);
+                wasmSim.setParam("fuelBurnupMultiplier", burnup);
+                wasmSim.setParam("denseNbaseMultiplier", denseNb);
+                wasmSim.setParam("denseFissionMultiplier", denseFiss);
+                wasmSim.setParam("excitedNbaseMultiplier", excNb);
+                wasmSim.setParam("excitedFissionMultiplier", excFiss);
+                wasmSim.setParam("standardNbaseMultiplier", stdNb);
+                wasmSim.setParam("standardFissionMultiplier", stdFiss);
+                wasmSim.setParam("breederNbaseMultiplier", brdNb);
+                wasmSim.setParam("breederFissionMultiplier", brdFiss);
                 currentState = wasmSim.getState();
                 renderUI();
                 return;
@@ -2991,6 +3096,15 @@ public class NuclearSimulationWebServer {
                   document.getElementById("p-fiss-mult").value = 0.348;
                   if (document.getElementById("p-fission-heat")) document.getElementById("p-fission-heat").value = 77.2;
                   document.getElementById("p-hp-boil").value = 180;
+                  if (document.getElementById("p-burnup-mult")) document.getElementById("p-burnup-mult").value = 1.0;
+                  if (document.getElementById("p-dense-nbase-mult")) document.getElementById("p-dense-nbase-mult").value = 0.50;
+                  if (document.getElementById("p-dense-fiss-mult")) document.getElementById("p-dense-fiss-mult").value = 1.20;
+                  if (document.getElementById("p-excited-nbase-mult")) document.getElementById("p-excited-nbase-mult").value = 1.40;
+                  if (document.getElementById("p-excited-fiss-mult")) document.getElementById("p-excited-fiss-mult").value = 0.80;
+                  if (document.getElementById("p-std-nbase-mult")) document.getElementById("p-std-nbase-mult").value = 1.00;
+                  if (document.getElementById("p-std-fiss-mult")) document.getElementById("p-std-fiss-mult").value = 1.00;
+                  if (document.getElementById("p-brd-nbase-mult")) document.getElementById("p-brd-nbase-mult").value = 1.00;
+                  if (document.getElementById("p-brd-fiss-mult")) document.getElementById("p-brd-fiss-mult").value = 1.00;
                   break;
                 case "DANGER":
                   if (document.getElementById("p-base-conductance")) document.getElementById("p-base-conductance").value = 1.5;

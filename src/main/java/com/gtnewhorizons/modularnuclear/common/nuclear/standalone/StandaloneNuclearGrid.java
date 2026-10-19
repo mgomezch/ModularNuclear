@@ -1304,7 +1304,7 @@ public class StandaloneNuclearGrid {
                     String[] cols = rows[y].trim()
                         .split("[,\\s]+");
                     for (int x = 0; x < Math.min(w, cols.length); x++) {
-                        setTile(x, y, SimTile.TileType.fromCode(cols[x]));
+                        parseTileAndControlRod(x, y, cols[x]);
                     }
                 }
                 return;
@@ -1324,9 +1324,67 @@ public class StandaloneNuclearGrid {
             for (int x = 0; x < width; x++) {
                 int idx = y * width + x;
                 if (idx < tokens.length) {
-                    setTile(x, y, SimTile.TileType.fromCode(tokens[idx]));
+                    parseTileAndControlRod(x, y, tokens[idx]);
                 }
             }
+        }
+    }
+
+    public void parseTileAndControlRod(int x, int y, String rawToken) {
+        if (rawToken == null || rawToken.trim().isEmpty()) return;
+        String token = rawToken.trim();
+        String tilePart = token;
+        String crPart = null;
+
+        if (token.contains("+")) {
+            String[] parts = token.split("\\+", 2);
+            tilePart = parts[0].trim();
+            crPart = parts[1].trim();
+        } else if (token.toUpperCase().startsWith("CR:") || token.equalsIgnoreCase("CR")) {
+            tilePart = "EMPTY";
+            crPart = token;
+        }
+
+        SimTile.TileType type = SimTile.TileType.fromCode(tilePart);
+        setTile(x, y, type);
+
+        if (crPart != null) {
+            boolean hasRod = true;
+            SimTile.ControlRodType rodType = SimTile.ControlRodType.NONE;
+            int insertion = 0;
+
+            String crClean = crPart.toUpperCase();
+            if (crClean.startsWith("CR:") || crClean.startsWith("CR_")) {
+                crClean = crClean.substring(3);
+            } else if (crClean.equals("CR")) {
+                crClean = "";
+            }
+
+            if (!crClean.isEmpty()) {
+                String[] crTokens = crClean.split("[:_-]+");
+                for (String ct : crTokens) {
+                    try {
+                        insertion = Integer.parseInt(ct);
+                    } catch (NumberFormatException e) {
+                        SimTile.ControlRodType parsedRod = SimTile.ControlRodType.fromName(ct);
+                        if (parsedRod != SimTile.ControlRodType.NONE) {
+                            rodType = parsedRod;
+                        } else {
+                            rodType = switch (ct) {
+                                case "BORON", "B" -> SimTile.ControlRodType.BORON;
+                                case "CADMIUM", "CD" -> SimTile.ControlRodType.CADMIUM;
+                                case "INDIUM", "IN" -> SimTile.ControlRodType.INDIUM;
+                                case "HAFNIUM", "HF" -> SimTile.ControlRodType.HAFNIUM;
+                                case "SILVER", "AG" -> SimTile.ControlRodType.SILVER;
+                                default -> rodType;
+                            };
+                        }
+                    }
+                }
+            }
+            setControlRod(x, y, hasRod, rodType, insertion);
+        } else {
+            setControlRod(x, y, false, SimTile.ControlRodType.NONE, 0);
         }
     }
 
@@ -1339,7 +1397,22 @@ public class StandaloneNuclearGrid {
             if (y > 0) sb.append(";");
             for (int x = 0; x < width; x++) {
                 if (x > 0) sb.append(",");
-                sb.append(grid[x][y].getType().code);
+                SimTile tile = grid[x][y];
+                String code = tile.getType().code;
+                if (tile.hasControlRod()) {
+                    if (tile.getType() == SimTile.TileType.EMPTY) {
+                        code = "CR";
+                    } else {
+                        code = code + "+CR";
+                    }
+                    if (tile.getControlRodType() != SimTile.ControlRodType.NONE) {
+                        code = code + ":" + tile.getControlRodType().name();
+                    }
+                    if (tile.getControlRodInsertion() > 0) {
+                        code = code + ":" + tile.getControlRodInsertion();
+                    }
+                }
+                sb.append(code);
             }
         }
         return sb.toString();

@@ -2614,7 +2614,8 @@ public class NuclearSimulationEngineTest {
         SimTile core = new SimTile(SimTile.TileType.FUEL_CORE);
         assertTrue(core.isFuel());
         assertFalse(core.isHatch());
-        assertEquals(512, core.generateNeutrons(1.0));
+        // Dense archetype multiplier (0.50) applies to base neutrons (512 * 0.50 = 256)
+        assertEquals(256, core.generateNeutrons(1.0));
         assertEquals(2560000, core.getMaxDurability());
 
         // Test Liquid Uranium Fuel Hatch

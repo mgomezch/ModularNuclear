@@ -486,7 +486,30 @@ public class NuclearSimWasmBridge {
             NuclearSimulationEngine.fissionHeatPerNeutron = d;
         } else if ("hpWaterBoilingPoint".equals(key) || "hpBoil".equals(key)) {
             NuclearSimulationEngine.hpWaterBoilingPoint = d;
+        } else if ("fuelBurnupMultiplier".equals(key) || "burnupMult".equals(key)) {
+            NuclearSimulationEngine.setFuelBurnupMultiplier(d);
+        } else if ("denseNbaseMultiplier".equals(key)) {
+            NuclearSimulationEngine.denseNbaseMultiplier = d;
+        } else if ("denseFissionMultiplier".equals(key)) {
+            NuclearSimulationEngine.denseFissionMultiplier = d;
+        } else if ("excitedNbaseMultiplier".equals(key)) {
+            NuclearSimulationEngine.excitedNbaseMultiplier = d;
+        } else if ("excitedFissionMultiplier".equals(key)) {
+            NuclearSimulationEngine.excitedFissionMultiplier = d;
+        } else if ("standardNbaseMultiplier".equals(key)) {
+            NuclearSimulationEngine.standardNbaseMultiplier = d;
+        } else if ("standardFissionMultiplier".equals(key)) {
+            NuclearSimulationEngine.standardFissionMultiplier = d;
+        } else if ("breederNbaseMultiplier".equals(key)) {
+            NuclearSimulationEngine.breederNbaseMultiplier = d;
+        } else if ("breederFissionMultiplier".equals(key)) {
+            NuclearSimulationEngine.breederFissionMultiplier = d;
         }
+    }
+
+    @Export(name = "getLayoutString")
+    public static String getLayoutString() {
+        return grid != null ? grid.toLayoutString() : "";
     }
 
     @Export(name = "getStateJson")
@@ -570,6 +593,9 @@ public class NuclearSimWasmBridge {
         if (targetGrid == null) return "{}";
         StringBuilder sb = new StringBuilder();
         sb.append("{");
+        sb.append("\"layout\":\"")
+            .append(escapeJson(targetGrid.toLayoutString()))
+            .append("\",");
         sb.append("\"width\":")
             .append(targetGrid.getWidth())
             .append(",");
@@ -1216,7 +1242,34 @@ public class NuclearSimWasmBridge {
             .append(fmt1(NuclearSimulationEngine.hpWaterBoilingPoint))
             .append(",");
         sb.append("\"baseHatchConductance\":")
-            .append(fmt1(NuclearSimulationEngine.baseHatchConductance));
+            .append(fmt1(NuclearSimulationEngine.baseHatchConductance))
+            .append(",");
+        sb.append("\"fuelBurnupMultiplier\":")
+            .append(fmt3(NuclearSimulationEngine.fuelBurnupMultiplier))
+            .append(",");
+        sb.append("\"denseNbaseMultiplier\":")
+            .append(fmt2(NuclearSimulationEngine.denseNbaseMultiplier))
+            .append(",");
+        sb.append("\"denseFissionMultiplier\":")
+            .append(fmt2(NuclearSimulationEngine.denseFissionMultiplier))
+            .append(",");
+        sb.append("\"excitedNbaseMultiplier\":")
+            .append(fmt2(NuclearSimulationEngine.excitedNbaseMultiplier))
+            .append(",");
+        sb.append("\"excitedFissionMultiplier\":")
+            .append(fmt2(NuclearSimulationEngine.excitedFissionMultiplier))
+            .append(",");
+        sb.append("\"standardNbaseMultiplier\":")
+            .append(fmt2(NuclearSimulationEngine.standardNbaseMultiplier))
+            .append(",");
+        sb.append("\"standardFissionMultiplier\":")
+            .append(fmt2(NuclearSimulationEngine.standardFissionMultiplier))
+            .append(",");
+        sb.append("\"breederNbaseMultiplier\":")
+            .append(fmt2(NuclearSimulationEngine.breederNbaseMultiplier))
+            .append(",");
+        sb.append("\"breederFissionMultiplier\":")
+            .append(fmt2(NuclearSimulationEngine.breederFissionMultiplier));
         sb.append("},");
 
         // Tiles

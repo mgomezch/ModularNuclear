@@ -74,8 +74,51 @@ public class NuclearSimulationEngine {
     public static double coolingHeatPerLiter = DEFAULT_COOLING_HEAT_PER_LITER;
     public static double ic2CoolantHeatPerLiter = DEFAULT_IC2_COOLANT_HEAT_PER_LITER;
 
-    public static final double DEFAULT_FUEL_BURNUP_MULTIPLIER = 0.005;
+    public static final double DEFAULT_FUEL_BURNUP_MULTIPLIER = 1.0;
     public static double fuelBurnupMultiplier = DEFAULT_FUEL_BURNUP_MULTIPLIER;
+
+    // Fuel Archetype / Class Multipliers (Global Calibration Parameters)
+    public static final double DEFAULT_DENSE_NBASE_MULT = 0.50;
+    public static final double DEFAULT_DENSE_FISSION_MULT = 1.20;
+    public static final double DEFAULT_EXCITED_NBASE_MULT = 1.40;
+    public static final double DEFAULT_EXCITED_FISSION_MULT = 0.80;
+    public static final double DEFAULT_STANDARD_NBASE_MULT = 1.00;
+    public static final double DEFAULT_STANDARD_FISSION_MULT = 1.00;
+    public static final double DEFAULT_BREEDER_NBASE_MULT = 1.00;
+    public static final double DEFAULT_BREEDER_FISSION_MULT = 1.00;
+
+    public static double denseNbaseMultiplier = DEFAULT_DENSE_NBASE_MULT;
+    public static double denseFissionMultiplier = DEFAULT_DENSE_FISSION_MULT;
+    public static double excitedNbaseMultiplier = DEFAULT_EXCITED_NBASE_MULT;
+    public static double excitedFissionMultiplier = DEFAULT_EXCITED_FISSION_MULT;
+    public static double standardNbaseMultiplier = DEFAULT_STANDARD_NBASE_MULT;
+    public static double standardFissionMultiplier = DEFAULT_STANDARD_FISSION_MULT;
+    public static double breederNbaseMultiplier = DEFAULT_BREEDER_NBASE_MULT;
+    public static double breederFissionMultiplier = DEFAULT_BREEDER_FISSION_MULT;
+
+    public static double getArchetypeNbaseMultiplier(String archetype) {
+        if (archetype == null) return standardNbaseMultiplier;
+        return switch (archetype.toLowerCase(java.util.Locale.ROOT)) {
+            case "dense", "subcritical", "naquadah" -> denseNbaseMultiplier;
+            case "excited", "driver" -> excitedNbaseMultiplier;
+            case "breeder" -> breederNbaseMultiplier;
+            default -> standardNbaseMultiplier;
+        };
+    }
+
+    public static double getArchetypeFissionMultiplier(String archetype) {
+        if (archetype == null) return standardFissionMultiplier;
+        return switch (archetype.toLowerCase(java.util.Locale.ROOT)) {
+            case "dense", "subcritical", "naquadah" -> denseFissionMultiplier;
+            case "excited", "driver" -> excitedFissionMultiplier;
+            case "breeder" -> breederFissionMultiplier;
+            default -> standardFissionMultiplier;
+        };
+    }
+
+    public static void setFuelBurnupMultiplier(double mult) {
+        fuelBurnupMultiplier = Math.max(0.0, mult);
+    }
 
     public static final double DEFAULT_WALL_REFLECTION_CHANCE = 0.0;
     public static double wallReflectionChance = DEFAULT_WALL_REFLECTION_CHANCE;
@@ -176,6 +219,14 @@ public class NuclearSimulationEngine {
         coolantFeedRate = DEFAULT_COOLANT_FEED_RATE;
         coolingHeatPerLiter = DEFAULT_COOLING_HEAT_PER_LITER;
         fuelBurnupMultiplier = DEFAULT_FUEL_BURNUP_MULTIPLIER;
+        denseNbaseMultiplier = DEFAULT_DENSE_NBASE_MULT;
+        denseFissionMultiplier = DEFAULT_DENSE_FISSION_MULT;
+        excitedNbaseMultiplier = DEFAULT_EXCITED_NBASE_MULT;
+        excitedFissionMultiplier = DEFAULT_EXCITED_FISSION_MULT;
+        standardNbaseMultiplier = DEFAULT_STANDARD_NBASE_MULT;
+        standardFissionMultiplier = DEFAULT_STANDARD_FISSION_MULT;
+        breederNbaseMultiplier = DEFAULT_BREEDER_NBASE_MULT;
+        breederFissionMultiplier = DEFAULT_BREEDER_FISSION_MULT;
         wallReflectionChance = DEFAULT_WALL_REFLECTION_CHANCE;
         wallAbsorbHeatPerNeutron = DEFAULT_WALL_ABSORB_HEAT_PER_NEUTRON;
         ic2CoolantHeatPerLiter = DEFAULT_IC2_COOLANT_HEAT_PER_LITER;
