@@ -3,12 +3,15 @@ package com.gtnewhorizons.modularnuclear.common.block;
 import java.util.Locale;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.material.MapColor;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.item.EntityFallingBlock;
 import net.minecraft.init.Blocks;
+import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.IIcon;
@@ -27,11 +30,34 @@ import ic2.core.IC2Potion;
 
 public class BlockCorium extends BlockFluidClassic {
 
+    public static final Material materialCorium = new Material(MapColor.tntColor) {
+
+        {
+            setNoPushMobility();
+            setBurning();
+        }
+
+        @Override
+        public boolean isLiquid() {
+            return true;
+        }
+
+        @Override
+        public boolean blocksMovement() {
+            return false;
+        }
+
+        @Override
+        public boolean isSolid() {
+            return false;
+        }
+    };
+
     public BlockCorium(Fluid fluid) {
-        super(fluid, Material.lava);
+        super(fluid, materialCorium);
         setBlockName("modularnuclear.corium");
         setLightLevel(1.0F); // Maximum luminosity (15)
-        setTickRate(90); // 3 times slower than lava (lava is 30 ticks)
+        setTickRate(180); // 6 times slower than lava (lava is 30 ticks)
         setHardness(100.0F);
         setResistance(500.0F);
         setCreativeTab(CreativeTabs.tabBlock);
@@ -157,16 +183,38 @@ public class BlockCorium extends BlockFluidClassic {
     }
 
     @Override
+    public boolean isReplaceable(IBlockAccess world, int x, int y, int z) {
+        return false;
+    }
+
+    @Override
     public void onEntityCollidedWithBlock(World world, int x, int y, int z, Entity entity) {
         super.onEntityCollidedWithBlock(world, x, y, z, entity);
-        entity.setFire(30);
-        entity.attackEntityFrom(DamageSource.lava, 10.0F);
+        if (entity != null) {
+            if (entity instanceof EntityFallingBlock) {
+                entity.setDead();
+                return;
+            }
 
-        if (entity instanceof EntityLivingBase living) {
-            if (!HazardProtection.isWearingFullRadioHazmat(living)) {
-                GTUtility.applyRadioactivity(living, 5, 20);
-                if (Loader.isModLoaded("IC2") && IC2Potion.radiation != null) {
-                    living.addPotionEffect(new PotionEffect(IC2Potion.radiation.id, 240, 3));
+            entity.setInWeb();
+            entity.motionX *= 0.5D;
+            entity.motionZ *= 0.5D;
+            if (entity.motionY > 0) {
+                entity.motionY *= 0.25D;
+            }
+
+            entity.setFire(30);
+            entity.attackEntityFrom(DamageSource.lava, 10.0F);
+
+            if (entity instanceof EntityLivingBase living) {
+                if (Potion.moveSlowdown != null) {
+                    living.addPotionEffect(new PotionEffect(Potion.moveSlowdown.id, 40, 2, true));
+                }
+                if (!HazardProtection.isWearingFullRadioHazmat(living)) {
+                    GTUtility.applyRadioactivity(living, 5, 20);
+                    if (Loader.isModLoaded("IC2") && IC2Potion.radiation != null) {
+                        living.addPotionEffect(new PotionEffect(IC2Potion.radiation.id, 240, 3));
+                    }
                 }
             }
         }

@@ -54,6 +54,8 @@ public class ModularNuclear {
         com.gtnewhorizons.modularnuclear.common.quest.ModularNuclearQuestIntegration.init();
         net.minecraftforge.common.MinecraftForge.EVENT_BUS
             .register(new com.gtnewhorizons.modularnuclear.common.item.NuclearFuelTooltipHandler());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS
+            .register(new com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler());
         net.minecraftforge.common.ForgeChunkManager.setForcedChunkLoadingCallback(
             this,
             new com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout.MeltdownChunkLoadingCallback());

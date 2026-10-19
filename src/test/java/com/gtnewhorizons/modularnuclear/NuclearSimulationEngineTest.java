@@ -4149,13 +4149,110 @@ public class NuclearSimulationEngineTest {
         assertNotNull(ModFluids.fluidCorium, "Fluid Corium must be initialized");
         assertEquals("corium", ModFluids.fluidCorium.getName());
         assertEquals(8000, ModFluids.fluidCorium.getDensity());
-        assertEquals(18000, ModFluids.fluidCorium.getViscosity());
+        assertEquals(36000, ModFluids.fluidCorium.getViscosity());
         assertEquals(3000, ModFluids.fluidCorium.getTemperature());
         assertEquals(15, ModFluids.fluidCorium.getLuminosity());
 
         BlockCorium block = new BlockCorium(ModFluids.fluidCorium);
-        // Tick rate is 90 (3x slower than lava's 30 ticks)
-        assertEquals(90, block.tickRate(null), "Corium tick rate must be 90 (3x slower than lava)");
+        // Tick rate is 180 (6x slower than lava's 30 ticks, 2x slower than previous 90)
+        assertEquals(180, block.tickRate(null), "Corium tick rate must be 180 (6x slower than lava)");
+        assertFalse(block.isReplaceable(null, 0, 0, 0), "Corium must NOT be replaceable by blocks");
+    }
+
+    @Test
+    void testCoriumEntityCollisionSlowing() {
+        ModFluids.init();
+        BlockCorium block = new BlockCorium(ModFluids.fluidCorium);
+
+        net.minecraft.entity.Entity mockEntity = org.mockito.Mockito.mock(net.minecraft.entity.Entity.class);
+        mockEntity.motionX = 1.0;
+        mockEntity.motionY = 0.5;
+        mockEntity.motionZ = 1.0;
+
+        World mockWorld = org.mockito.Mockito.mock(World.class);
+        block.onEntityCollidedWithBlock(mockWorld, 0, 0, 0, mockEntity);
+
+        org.mockito.Mockito.verify(mockEntity).setInWeb();
+        assertEquals(0.5, mockEntity.motionX, 1e-4, "motionX must be dampened by 0.5");
+        assertEquals(0.125, mockEntity.motionY, 1e-4, "upward motionY must be dampened by 0.25");
+        assertEquals(0.5, mockEntity.motionZ, 1e-4, "motionZ must be dampened by 0.5");
+    }
+
+    @Test
+    void testCoriumPlacementHandlerCancelsReplacingCorium() {
+        ModFluids.init();
+        BlockCorium block = new BlockCorium(ModFluids.fluidCorium);
+        com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler handler =
+            new com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler();
+
+        net.minecraft.entity.player.EntityPlayer mockPlayer =
+            org.mockito.Mockito.mock(net.minecraft.entity.player.EntityPlayer.class);
+        World mockWorld = org.mockito.Mockito.mock(World.class);
+        org.mockito.Mockito.when(mockWorld.getBlock(0, 0, 0)).thenReturn(block);
+
+        net.minecraftforge.common.util.BlockSnapshot coriumSnapshot =
+            org.mockito.Mockito.mock(net.minecraftforge.common.util.BlockSnapshot.class);
+        coriumSnapshot.world = mockWorld;
+        org.mockito.Mockito.when(coriumSnapshot.getReplacedBlock()).thenReturn(block);
+        org.mockito.Mockito.when(coriumSnapshot.getCurrentBlock()).thenReturn(block);
+
+        net.minecraftforge.event.world.BlockEvent.PlaceEvent rawCoriumEvent =
+            new net.minecraftforge.event.world.BlockEvent.PlaceEvent(
+                coriumSnapshot,
+                Blocks.stone,
+                mockPlayer
+            );
+        net.minecraftforge.event.world.BlockEvent.PlaceEvent coriumEvent =
+            org.mockito.Mockito.spy(rawCoriumEvent);
+        org.mockito.Mockito.doReturn(true).when(coriumEvent).isCancelable();
+
+        handler.onBlockPlace(coriumEvent);
+        assertTrue(coriumEvent.isCanceled(), "PlaceEvent replacing Corium must be canceled");
+
+        // Non-corium snapshot should NOT be canceled
+        net.minecraftforge.common.util.BlockSnapshot stoneSnapshot =
+            org.mockito.Mockito.mock(net.minecraftforge.common.util.BlockSnapshot.class);
+        stoneSnapshot.world = mockWorld;
+        org.mockito.Mockito.when(stoneSnapshot.getReplacedBlock()).thenReturn(Blocks.stone);
+        org.mockito.Mockito.when(stoneSnapshot.getCurrentBlock()).thenReturn(Blocks.stone);
+
+        net.minecraftforge.event.world.BlockEvent.PlaceEvent rawStoneEvent =
+            new net.minecraftforge.event.world.BlockEvent.PlaceEvent(
+                stoneSnapshot,
+                Blocks.stone,
+                mockPlayer
+            );
+        net.minecraftforge.event.world.BlockEvent.PlaceEvent stoneEvent =
+            org.mockito.Mockito.spy(rawStoneEvent);
+        org.mockito.Mockito.doReturn(true).when(stoneEvent).isCancelable();
+
+        handler.onBlockPlace(stoneEvent);
+        assertFalse(stoneEvent.isCanceled(), "PlaceEvent replacing normal stone must NOT be canceled");
+    }
+
+    @Test
+    void testCoriumPlacementHandlerCancelsBucketFill() {
+        ModFluids.init();
+        BlockCorium block = new BlockCorium(ModFluids.fluidCorium);
+        com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler handler =
+            new com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler();
+
+        net.minecraft.entity.player.EntityPlayer mockPlayer =
+            org.mockito.Mockito.mock(net.minecraft.entity.player.EntityPlayer.class);
+        World mockWorld = org.mockito.Mockito.mock(World.class);
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 20, 30)).thenReturn(block);
+
+        net.minecraft.util.MovingObjectPosition mop =
+            new net.minecraft.util.MovingObjectPosition(10, 20, 30, 1, net.minecraft.util.Vec3.createVectorHelper(10.5, 20.5, 30.5));
+
+        net.minecraftforge.event.entity.player.FillBucketEvent rawBucketEvent =
+            new net.minecraftforge.event.entity.player.FillBucketEvent(mockPlayer, null, mockWorld, mop);
+        net.minecraftforge.event.entity.player.FillBucketEvent bucketEvent =
+            org.mockito.Mockito.spy(rawBucketEvent);
+        org.mockito.Mockito.doReturn(true).when(bucketEvent).isCancelable();
+
+        handler.onBucketFill(bucketEvent);
+        assertTrue(bucketEvent.isCanceled(), "FillBucketEvent targeting Corium must be canceled");
     }
 
     @Test

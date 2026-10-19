@@ -33,10 +33,10 @@ public class ModFluids {
         fluidHeavyWaterSteam = registerOrGet("heavywatersteam", -100, 100, 375);
         fluidHeavyWaterSteam.setGaseous(true);
 
-        fluidCorium = registerOrGet("corium", 8000, 18000, 3000);
+        fluidCorium = registerOrGet("corium", 8000, 36000, 3000);
         fluidCorium.setLuminosity(15);
         fluidCorium.setDensity(8000);
-        fluidCorium.setViscosity(18000);
+        fluidCorium.setViscosity(36000);
         fluidCorium.setTemperature(3000);
 
         registerWithGregTech();
