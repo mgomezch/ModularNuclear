@@ -1,5 +1,7 @@
 package com.gtnewhorizons.modularnuclear.client.particle;
 
+import java.io.File;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.EntityFX;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -99,8 +101,16 @@ public class EntityCherenkovBeamFX extends EntityFX {
         double distSq = cx * cx + cz * cz;
         if (distSq > 128.0 * 128.0) return;
 
-        float intensity = Math.min(1.0f, reactor.mClientCherenkovIntensity)
-            * ModularNuclearConfig.cherenkovIntensityMultiplier;
+        float intensityMult = ModularNuclearConfig.cherenkovIntensityMultiplier;
+        try {
+            File overrideFile = new File(Minecraft.getMinecraft().mcDataDir, "cherenkov_intensity.txt");
+            if (overrideFile.exists()) {
+                String line = new String(java.nio.file.Files.readAllBytes(overrideFile.toPath())).trim();
+                intensityMult = Float.parseFloat(line);
+            }
+        } catch (Throwable ignored) {}
+
+        float intensity = Math.min(1.0f, reactor.mClientCherenkovIntensity) * intensityMult;
         if (intensity <= 0.001f) return;
 
         long worldTime = view.worldObj != null ? view.worldObj.getTotalWorldTime() : 0;
