@@ -82,6 +82,11 @@ public class NuclearGridTile implements INuclearTile {
         return (sum > 0.0) ? (pRod / sum) : 0.0;
     }
 
+    @Override
+    public int getControlRodMiningPipes() {
+        return (bottomControlRod != null) ? bottomControlRod.getMiningPipeCount() : 5;
+    }
+
     public MTEHatchNuclearControlRod getBottomControlRod() {
         return bottomControlRod;
     }

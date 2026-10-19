@@ -1052,13 +1052,31 @@ The hatch holds one **long rod** (`stickLong`) of an absorber material. The mate
 | Indium | 0.95 | 0.65 |
 | Hafnium | 0.99 | 0.80 |
 
-### 9.2 Insertion
+### 9.2 Travel housing and insertion limits
 
-Insertion $i \in [0, 1]$ is re-evaluated every cycle from the hatch's inputs, in this priority:
+Because reactor core cells represent 5-block vertical columns, control rods displace outside the reactor core into external travel housing as they extract. To be able to extract from the core at lower redstone levels, a Control Rod hatch requires **Mining Pipe** blocks stacked consecutively in a straight line extending outward in the hatch's facing direction:
 
-1. **SCRAM active** → $i = 1$.
-2. **ProjectRed bundled input present** → $i = s/255$, where $s$ is the analogue level on the selected channel (or the strongest channel in *Auto*). A connected bundled cable takes priority even if every channel is 0.
-3. **Vanilla redstone** → $i = p/15$, where $p$ is the strongest incoming signal.
+- **Structural requirement**: This is an external physical constraint evaluated on every 20-tick cycle when rod insertion is determined. It is **not** part of the multiblock structure check (the reactor structure forms normally without pipes).
+- **Extraction scaling**: Each valid, contiguous mining pipe block allows the control rod to extract by up to **20%** (up to a maximum of 5 blocks for 100% extraction / 0% minimum insertion floor).
+- **Contiguity constraint**: Mining pipes must be placed consecutively in a straight line extending along the hatch's facing axis (typically pointing straight down below the bottom layer). Any break, obstruction, or gap immediately stops the count at that distance.
+- **Clamping**: If a hatch lacks sufficient travel housing pipes, the rod cannot extract beyond that limit. If the incoming redstone or bundled signal commands an insertion below the minimum insertion floor, the hatch clamps the insertion to that floor:
+  - 5 pipes: 100% max extraction $\implies$ insertion range 0%..100% (min 0%).
+  - 4 pipes: 80% max extraction $\implies$ insertion range 20%..100% (min 20%).
+  - 3 pipes: 60% max extraction $\implies$ insertion range 40%..100% (min 40%).
+  - 2 pipes: 40% max extraction $\implies$ insertion range 60%..100% (min 60%).
+  - 1 pipe: 20% max extraction $\implies$ insertion range 80%..100% (min 80%).
+  - 0 pipes: 0% max extraction $\implies$ locked at 100% insertion.
+- **Telemetry & OpenComputers**: The ModularUI2 screen displays `Housing: X/5 pipes (Min Y%)` or `Housing: 5/5 (Full)`. OpenComputers `getGridData()` exposes `miningPipes`, `minInsertion`, `maxExtraction`, and `targetInsertion` on each rodded cell.
+
+**Insertion calculation.** Effective insertion $i \in [i_{min}, 1]$ is re-evaluated every cycle from the hatch's inputs and housing limits, in this priority:
+
+1. **SCRAM active** → $i = 1$ (100% insertion, regardless of housing or redstone).
+2. **ProjectRed bundled input present** → target $i_{target} = s/255$, where $s$ is the analogue level on the selected channel (or the strongest channel in *Auto*). A connected bundled cable takes priority even if every channel is 0.
+3. **Vanilla redstone** → target $i_{target} = p/15$, where $p$ is the strongest incoming signal.
+
+The effective insertion is then clamped by the minimum insertion floor established by the travel housing:
+
+$$i = \max(i_{min},\ i_{target}) = \max(1.0 - 0.20 \cdot N_{pipes},\ i_{target})$$
 
 Rods have **no travel time**. A new insertion takes effect in the next cycle. A screwdriver cycles the bundled channel through *Auto*, 0, 1, …, 15.
 

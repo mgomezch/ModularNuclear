@@ -195,6 +195,7 @@ public class SimTile implements INuclearTile {
     private boolean hasControlRod = false;
     private ControlRodType controlRodType = ControlRodType.NONE;
     private int controlRodInsertion = 0; // 0 to 100%
+    private int controlRodMiningPipes = 5; // 0 to 5 pipes (default 5 for 100% extraction)
     private int lastControlRodFastAbsorbed = 0;
     private int lastControlRodThermalAbsorbed = 0;
     private int controlRodFastAbsorbed = 0;
@@ -243,6 +244,27 @@ public class SimTile implements INuclearTile {
 
     public void setControlRodInsertion(int controlRodInsertion) {
         this.controlRodInsertion = Math.max(0, Math.min(100, controlRodInsertion));
+    }
+
+    @Override
+    public int getControlRodMiningPipes() {
+        return controlRodMiningPipes;
+    }
+
+    public void setControlRodMiningPipes(int count) {
+        this.controlRodMiningPipes = Math.max(0, Math.min(5, count));
+    }
+
+    public int getMinControlRodInsertion() {
+        return Math.max(0, 100 - controlRodMiningPipes * 20);
+    }
+
+    public int getMaxControlRodExtraction() {
+        return Math.min(100, controlRodMiningPipes * 20);
+    }
+
+    public int getEffectiveControlRodInsertion() {
+        return Math.max(getMinControlRodInsertion(), controlRodInsertion);
     }
 
     public int getLastControlRodFastAbsorbed() {
@@ -674,7 +696,7 @@ public class SimTile implements INuclearTile {
         if (controlRodType == ControlRodType.NONE || controlRodType == null) {
             return 0.01;
         }
-        double ratio = controlRodInsertion / 100.0;
+        double ratio = getEffectiveControlRodInsertion() / 100.0;
         double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption
             : controlRodType.maxFastAbsorption;
         return Math.max(0.01, ratio * max);
@@ -760,7 +782,7 @@ public class SimTile implements INuclearTile {
             if (controlRodType == ControlRodType.NONE || controlRodType == null) {
                 pRod = 0.02;
             } else {
-                double ratio = controlRodInsertion / 100.0;
+                double ratio = getEffectiveControlRodInsertion() / 100.0;
                 pRod = Math.max(0.01, 0.05 * (1.0 - ratio));
             }
             return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));

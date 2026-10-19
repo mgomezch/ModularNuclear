@@ -7086,6 +7086,176 @@ public class NuclearSimulationEngineTest {
         }
     }
 
+    @Test
+    void testControlRodMiningPipeTravelHousing() {
+        // 1. Basic Hatch properties and clamping
+        MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test.rod.housing", 4, new String[0], null);
+        assertEquals(5, rod.getMiningPipeCount());
+        assertEquals(100, rod.getMaxExtractionPercent());
+        assertEquals(1.0, rod.getMaxExtractionRatio(), 1e-6);
+        assertEquals(0, rod.getMinInsertionPercent());
+        assertEquals(0.0, rod.getMinInsertionRatio(), 1e-6);
+
+        // Clamp checks on setter
+        rod.setMiningPipeCount(6);
+        assertEquals(5, rod.getMiningPipeCount());
+        rod.setMiningPipeCount(-2);
+        assertEquals(0, rod.getMiningPipeCount());
+
+        // 2. Extraction and insertion limits per pipe count
+        int[][] pipeScenarios = {
+            // pipes, expectedMaxExtraction, expectedMinInsertion
+            { 5, 100, 0 },
+            { 4, 80, 20 },
+            { 3, 60, 40 },
+            { 2, 40, 60 },
+            { 1, 20, 80 },
+            { 0, 0, 100 }
+        };
+        for (int[] s : pipeScenarios) {
+            rod.setMiningPipeCount(s[0]);
+            assertEquals(s[1], rod.getMaxExtractionPercent(), "Max extraction mismatch for " + s[0] + " pipes");
+            assertEquals(s[2], rod.getMinInsertionPercent(), "Min insertion mismatch for " + s[0] + " pipes");
+            assertEquals(s[1] / 100.0, rod.getMaxExtractionRatio(), 1e-6);
+            assertEquals(s[2] / 100.0, rod.getMinInsertionRatio(), 1e-6);
+        }
+
+        // 3. Signal clamping with subclass overriding signals
+        class TestHousingRod extends MTEHatchNuclearControlRod {
+
+            int fine = -1;
+            byte rs = 0;
+
+            TestHousingRod() {
+                super("test.housing.mock", 4, new String[0], null);
+            }
+
+            @Override
+            public int getFineRedstoneSignal() {
+                return fine;
+            }
+
+            @Override
+            public byte getRedstoneSignal() {
+                return rs;
+            }
+        }
+
+        TestHousingRod testRod = new TestHousingRod();
+
+        // 3 pipes: max extraction 60%, min insertion 40%
+        testRod.setMiningPipeCount(3);
+        assertEquals(40, testRod.getMinInsertionPercent());
+
+        // Target insertion 0% (full extraction requested): clamped to 40%
+        testRod.fine = 0;
+        assertEquals(0, testRod.getTargetInsertionPercent());
+        assertEquals(40, testRod.getInsertionPercent());
+        assertEquals(0.40, testRod.getInsertionRatio(), 1e-6);
+
+        // Target insertion 20% (below min 40%): clamped to 40%
+        testRod.fine = 51; // 51 / 255 = 0.20
+        assertEquals(20, testRod.getTargetInsertionPercent());
+        assertEquals(40, testRod.getInsertionPercent());
+        assertEquals(0.40, testRod.getInsertionRatio(), 1e-6);
+
+        // Target insertion 60% (above min 40%): remains 60%
+        testRod.fine = 153; // 153 / 255 = 0.60
+        assertEquals(60, testRod.getTargetInsertionPercent());
+        assertEquals(60, testRod.getInsertionPercent());
+        assertEquals(0.60, testRod.getInsertionRatio(), 1e-6);
+
+        // 0 pipes: locked at 100% insertion regardless of redstone
+        testRod.setMiningPipeCount(0);
+        testRod.fine = 0;
+        assertEquals(100, testRod.getInsertionPercent());
+        assertEquals(1.0, testRod.getInsertionRatio(), 1e-6);
+
+        // SCRAM forces 100% insertion even with 5 pipes
+        testRod.setMiningPipeCount(5);
+        testRod.fine = 0;
+        testRod.setScram(true);
+        assertEquals(100, testRod.getInsertionPercent());
+        assertEquals(1.0, testRod.getInsertionRatio(), 1e-6);
+        testRod.setScram(false);
+
+        // 4. World contiguous scanning & gap handling
+        World mockWorld = org.mockito.Mockito.mock(World.class);
+        IGregTechTileEntity mockGt = org.mockito.Mockito.mock(IGregTechTileEntity.class);
+        org.mockito.Mockito.when(mockGt.getWorld()).thenReturn(mockWorld);
+        org.mockito.Mockito.when(mockGt.getXCoord()).thenReturn(10);
+        org.mockito.Mockito.when(mockGt.getYCoord()).thenReturn((short) 50);
+        org.mockito.Mockito.when(mockGt.getZCoord()).thenReturn(10);
+        org.mockito.Mockito.when(mockGt.getFrontFacing()).thenReturn(ForgeDirection.DOWN);
+
+        net.minecraft.block.Block mockMiningPipe = org.mockito.Mockito.mock(net.minecraft.block.Block.class);
+        org.mockito.Mockito.when(mockMiningPipe.getUnlocalizedName()).thenReturn("tile.blockMiningPipe");
+
+        net.minecraft.block.Block mockOther = org.mockito.Mockito.mock(net.minecraft.block.Block.class);
+        org.mockito.Mockito.when(mockOther.getUnlocalizedName()).thenReturn("tile.stone");
+
+        // Test isMiningPipeBlock
+        assertTrue(MTEHatchNuclearControlRod.isMiningPipeBlock(mockMiningPipe, 0));
+        assertFalse(MTEHatchNuclearControlRod.isMiningPipeBlock(mockOther, 0));
+        assertFalse(MTEHatchNuclearControlRod.isMiningPipeBlock(null, 0));
+
+        MTEHatchNuclearControlRod worldRod = new MTEHatchNuclearControlRod("test.world.rod", 4, new String[0], null);
+        worldRod.setBaseMetaTileEntity(mockGt);
+
+        // Case A: 5 consecutive mining pipes below hatch (y=49..45)
+        for (int y = 49; y >= 45; y--) {
+            org.mockito.Mockito.when(mockWorld.getBlock(10, y, 10)).thenReturn(mockMiningPipe);
+        }
+        worldRod.updateMiningPipeHousing();
+        assertEquals(5, worldRod.getMiningPipeCount());
+        assertEquals(0, worldRod.getMinInsertionPercent());
+
+        // Case B: 2 mining pipes, then gap (stone), then 2 mining pipes
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 49, 10)).thenReturn(mockMiningPipe);
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 48, 10)).thenReturn(mockMiningPipe);
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 47, 10)).thenReturn(mockOther); // GAP!
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 46, 10)).thenReturn(mockMiningPipe);
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 45, 10)).thenReturn(mockMiningPipe);
+
+        worldRod.updateMiningPipeHousing();
+        assertEquals(2, worldRod.getMiningPipeCount(), "Gap should stop pipe counting at 2");
+        assertEquals(60, worldRod.getMinInsertionPercent());
+        assertEquals(40, worldRod.getMaxExtractionPercent());
+
+        // Case C: Immediate blockage / no pipes (y=49 is stone)
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 49, 10)).thenReturn(mockOther);
+        worldRod.updateMiningPipeHousing();
+        assertEquals(0, worldRod.getMiningPipeCount());
+        assertEquals(100, worldRod.getMinInsertionPercent());
+
+        // 5. SimTile mining pipe logic
+        SimTile simTile = new SimTile(SimTile.TileType.EMPTY);
+        simTile.setHasControlRod(true);
+        simTile.setControlRodType(SimTile.ControlRodType.CADMIUM);
+        assertEquals(5, simTile.getControlRodMiningPipes());
+        assertEquals(0, simTile.getMinControlRodInsertion());
+        assertEquals(100, simTile.getMaxControlRodExtraction());
+
+        simTile.setControlRodMiningPipes(2); // 2 pipes -> min insertion 60%
+        assertEquals(60, simTile.getMinControlRodInsertion());
+        assertEquals(40, simTile.getMaxControlRodExtraction());
+
+        simTile.setControlRodInsertion(10); // Target 10%, should be clamped to 60%
+        assertEquals(60, simTile.getEffectiveControlRodInsertion());
+
+        // Check absorption probability uses effective insertion (60% instead of 10%)
+        double expectedAbs = 0.60 * SimTile.ControlRodType.CADMIUM.maxThermalAbsorption;
+        assertEquals(expectedAbs, simTile.getControlRodAbsorptionProbability(NeutronType.THERMAL), 1e-4);
+
+        // 6. NuclearGridTile delegation
+        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile gridTile =
+            new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile(null, (MTEHatchNuclearBus) null, 0, 0);
+        assertEquals(5, gridTile.getControlRodMiningPipes(), "Default without hatch is 5");
+
+        gridTile.setBottomControlRod(worldRod);
+        assertEquals(worldRod.getMiningPipeCount(), gridTile.getControlRodMiningPipes());
+    }
+
     private static void deleteRecursively(File file) {
         if (file.isDirectory()) {
             File[] children = file.listFiles();

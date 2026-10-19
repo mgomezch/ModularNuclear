@@ -51,6 +51,9 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
         syncManager.syncValue(
             "inputChannel",
             new IntSyncValue(() -> machine.mInputChannel, val -> machine.mInputChannel = val));
+        syncManager.syncValue(
+            "miningPipes",
+            new IntSyncValue(() -> machine.mMiningPipeCount, val -> machine.mMiningPipeCount = val));
     }
 
     @Override
@@ -62,7 +65,7 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
         // Status and Telemetry Screen (width 118, height 64)
         ParentWidget<?> statsScreen = CommonWidgets.createFluidScreen(118, 64);
         Flow textColumn = Flow.column()
-            .childPadding(1)
+            .childPadding(0)
             .crossAxisAlignment(Alignment.CrossAxis.START);
 
         textColumn.child(
@@ -86,6 +89,16 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
             }
             return EnumChatFormatting.GREEN
                 + String.format("Insert: %d%% (RS: %d/15)", machine.getInsertionPercent(), machine.getRedstoneSignal());
+        })
+            .asWidget()
+            .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
+
+        textColumn.child(IKey.dynamic(() -> {
+            int pipes = machine.getMiningPipeCount();
+            if (pipes < MTEHatchNuclearControlRod.MAX_MINING_PIPES) {
+                return EnumChatFormatting.YELLOW + String.format("Housing: %d/5 (Min %d%%)", pipes, machine.getMinInsertionPercent());
+            }
+            return EnumChatFormatting.GRAY + "Housing: 5/5 (Full)";
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));

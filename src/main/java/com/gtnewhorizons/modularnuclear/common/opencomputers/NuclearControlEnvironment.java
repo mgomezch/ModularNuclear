@@ -299,6 +299,10 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
                     Map<String, Object> rodMap = new LinkedHashMap<>();
                     rodMap.put("hasRod", true);
                     rodMap.put("insertion", rod.getInsertionPercent());
+                    rodMap.put("miningPipes", rod.getMiningPipeCount());
+                    rodMap.put("minInsertion", rod.getMinInsertionPercent());
+                    rodMap.put("maxExtraction", rod.getMaxExtractionPercent());
+                    rodMap.put("targetInsertion", rod.getTargetInsertionPercent());
                     ItemStack rodStack = rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD];
                     if (rodStack != null) {
                         Map<String, Object> itemMap = serializeItemStack(rodStack);

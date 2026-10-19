@@ -1474,6 +1474,20 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
                 updateNuclearTilesPipeTier();
 
+                for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
+                    if (rod != null) {
+                        rod.updateMiningPipeHousing();
+                    }
+                }
+                for (int gx = 0; gx < gridSize; gx++) {
+                    for (int gy = 0; gy < gridSize; gy++) {
+                        if (mGrid[gx][gy] instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile ngt
+                            && ngt.getBottomControlRod() != null) {
+                            ngt.getBottomControlRod().updateMiningPipeHousing();
+                        }
+                    }
+                }
+
                 double ambient = getAmbientTemperature();
 
                 // Check coolant boiling against ambient or dry hatch injection (thermal shock)

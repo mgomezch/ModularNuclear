@@ -3,10 +3,14 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity.hatch;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_COLORS;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_IN;
 
+import net.minecraft.block.Block;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.oredict.OreDictionary;
+import cpw.mods.fml.common.registry.GameRegistry;
 
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
@@ -229,7 +233,34 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         return getFineRedstoneSignal() >= 0;
     }
 
-    public double getInsertionRatio() {
+    public static final int MAX_MINING_PIPES = 5;
+    public int mMiningPipeCount = MAX_MINING_PIPES;
+
+    public int getMiningPipeCount() {
+        return mMiningPipeCount;
+    }
+
+    public void setMiningPipeCount(int count) {
+        this.mMiningPipeCount = Math.max(0, Math.min(MAX_MINING_PIPES, count));
+    }
+
+    public int getMaxExtractionPercent() {
+        return mMiningPipeCount * 20;
+    }
+
+    public double getMaxExtractionRatio() {
+        return (double) mMiningPipeCount * 0.20;
+    }
+
+    public int getMinInsertionPercent() {
+        return Math.max(0, 100 - mMiningPipeCount * 20);
+    }
+
+    public double getMinInsertionRatio() {
+        return Math.max(0.0, 1.0 - (double) mMiningPipeCount * 0.20);
+    }
+
+    public double getTargetInsertionRatio() {
         if (mScram) return 1.0;
         int fine = getFineRedstoneSignal();
         if (fine >= 0) {
@@ -239,8 +270,114 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         return Math.max(0.0, Math.min(1.0, (double) rs / 15.0));
     }
 
+    public int getTargetInsertionPercent() {
+        return (int) Math.round(getTargetInsertionRatio() * 100.0);
+    }
+
+    public double getInsertionRatio() {
+        double target = getTargetInsertionRatio();
+        double minInsertion = getMinInsertionRatio();
+        return Math.max(minInsertion, target);
+    }
+
     public int getInsertionPercent() {
         return (int) Math.round(getInsertionRatio() * 100.0);
+    }
+
+    public static boolean isMiningPipeBlock(Block block, int meta) {
+        if (block == null) return false;
+
+        // 1. Direct IC2 block / item lookup
+        try {
+            Block ic2Pipe = GameRegistry.findBlock("IC2", "blockMiningPipe");
+            if (ic2Pipe != null && block == ic2Pipe) return true;
+        } catch (Throwable ignored) {}
+
+        try {
+            Block ic2Tip = GameRegistry.findBlock("IC2", "blockMiningTip");
+            if (ic2Tip != null && block == ic2Tip) return true;
+        } catch (Throwable ignored) {}
+
+        try {
+            ItemStack ic2Stack = ic2.api.item.IC2Items.getItem("miningPipe");
+            if (ic2Stack != null && Block.getBlockFromItem(ic2Stack.getItem()) == block) return true;
+        } catch (Throwable ignored) {}
+
+        // 2. Registry Unique Identifier
+        try {
+            GameRegistry.UniqueIdentifier uid = GameRegistry.findUniqueIdentifierFor(block);
+            if (uid != null && ("blockMiningPipe".equalsIgnoreCase(uid.name) || "blockMiningTip".equalsIgnoreCase(uid.name))) {
+                return true;
+            }
+        } catch (Throwable ignored) {}
+
+        // 3. Unlocalized name check
+        try {
+            String unloc = block.getUnlocalizedName();
+            if (unloc != null) {
+                String clean = unloc.startsWith("tile.") ? unloc.substring(5) : unloc;
+                if ("blockMiningPipe".equalsIgnoreCase(clean)
+                    || "miningPipe".equalsIgnoreCase(clean)
+                    || "mining_pipe".equalsIgnoreCase(clean)
+                    || "blockMiningTip".equalsIgnoreCase(clean)) {
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        // 4. OreDictionary check
+        try {
+            Item item = Item.getItemFromBlock(block);
+            if (item != null) {
+                ItemStack stack = new ItemStack(item, 1, meta);
+                int[] ids = OreDictionary.getOreIDs(stack);
+                for (int id : ids) {
+                    String oreName = OreDictionary.getOreName(id);
+                    if ("miningPipe".equalsIgnoreCase(oreName)
+                        || "pipeMining".equalsIgnoreCase(oreName)
+                        || "blockMiningPipe".equalsIgnoreCase(oreName)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        return false;
+    }
+
+    public int countMiningPipes() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null || base.getWorld() == null) {
+            return mMiningPipeCount;
+        }
+        World world = base.getWorld();
+        ForgeDirection facing = base.getFrontFacing();
+        if (facing == null || facing == ForgeDirection.UNKNOWN) {
+            return 0;
+        }
+
+        int count = 0;
+        int x = base.getXCoord();
+        int y = base.getYCoord();
+        int z = base.getZCoord();
+
+        for (int i = 1; i <= MAX_MINING_PIPES; i++) {
+            int bx = x + facing.offsetX * i;
+            int by = y + facing.offsetY * i;
+            int bz = z + facing.offsetZ * i;
+            Block block = world.getBlock(bx, by, bz);
+            int meta = world.getBlockMetadata(bx, by, bz);
+            if (isMiningPipeBlock(block, meta)) {
+                count++;
+            } else {
+                break;
+            }
+        }
+        return count;
+    }
+
+    public void updateMiningPipeHousing() {
+        this.mMiningPipeCount = countMiningPipes();
     }
 
     public double getAbsorptionProbability(NeutronType type) {
@@ -338,6 +475,14 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     @Override
+    public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
+        super.onFirstTick(aBaseMetaTileEntity);
+        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide()) {
+            updateMiningPipeHousing();
+        }
+    }
+
+    @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setDouble("mTemperature", mTemperature);
@@ -345,6 +490,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setBoolean("mScram", mScram);
         aNBT.setInteger("mInputChannel", mInputChannel);
+        aNBT.setInteger("mMiningPipeCount", mMiningPipeCount);
     }
 
     @Override
@@ -364,6 +510,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         mScram = aNBT.getBoolean("mScram");
         if (aNBT.hasKey("mInputChannel")) {
             mInputChannel = aNBT.getInteger("mInputChannel");
+        }
+        if (aNBT.hasKey("mMiningPipeCount")) {
+            mMiningPipeCount = aNBT.getInteger("mMiningPipeCount");
         }
     }
 
@@ -411,6 +560,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 return true;
             }
         }
+        updateMiningPipeHousing();
         openGui(aPlayer);
         return true;
     }
@@ -431,7 +581,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         builder.widget(
             new DrawableWidget().setDrawable(GTUITextures.PICTURE_SCREEN_BLACK)
                 .setPos(7, 16)
-                .setSize(96, 56))
+                .setSize(96, 60))
             .widget(
                 new TextWidget("Control rod hatch").setDefaultColor(Color.rgb(180, 100, 255))
                     .setPos(10, 20))
@@ -442,7 +592,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
             .widget(new TextWidget().setStringSupplier(() -> {
                 int fine = getFineRedstoneSignal();
                 if (fine >= 0) {
-                    return String.format("Insert: %d%% (PR: %d/255)", getInsertionPercent(), fine);
+                    return String.format("Insert: %d%% (PR: %d)", getInsertionPercent(), fine);
                 }
                 return String.format("Insert: %d%% (RS: %d)", getInsertionPercent(), getRedstoneSignal());
             })
@@ -452,6 +602,15 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 new TextWidget().setStringSupplier(() -> "Rod: " + getRodType(mInventory[SLOT_ROD]).displayName)
                     .setDefaultColor(Color.rgb(200, 200, 255))
                     .setPos(10, 53))
+            .widget(
+                new TextWidget().setStringSupplier(() -> {
+                    if (mMiningPipeCount < MAX_MINING_PIPES) {
+                        return String.format("Pipes: %d/5 (Min %d%%)", mMiningPipeCount, getMinInsertionPercent());
+                    }
+                    return "Pipes: 5/5 (Full)";
+                })
+                    .setDefaultColor(Color.rgb(200, 200, 100))
+                    .setPos(10, 64))
             .widget(
                 new TextWidget("Rod").setDefaultColor(0xFFFFFFFF)
                     .setPos(125, 16))
