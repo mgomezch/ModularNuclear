@@ -1741,7 +1741,7 @@ Damage accrues **per overheated block per cycle**. Twenty overheated cells add 2
 | Reflector wear | — | — | destroyed at 0 durability | — | — |
 | Thermal shock | — | voided (that hatch) | — | — | — |
 | Overheat (> $T_{max}$) | kept | voided | voided | voided | not checked |
-| Structure break while hot (§13.4) | **voided** | **voided** | **voided** | kept | kept |
+| Structure break while hot (§13.4) | **voided** | **voided** | kept | kept | kept |
 | Meltdown (§13.5) | destroyed with the reactor | | | | |
 | Loop rupture while circulating | — | — | — | — | 80% of tank drained, explosion |
 | Liquid fuel in loop | — | — | — | — | impeller destroyed |
@@ -1750,10 +1750,12 @@ Damage accrues **per overheated block per cycle**. Twenty overheated cells add 2
 
 If the structure becomes invalid, or the controller is removed, while **any** core cell is above **100 °C**:
 
-- all items in all Nuclear Core Buses are deleted, fuel included;
-- all fluids in all Nuclear Core Hatches are deleted.
+- all fuel items and coolant items in Nuclear Core Buses are deleted;
+- all coolant fluids (and liquid fuels) in Nuclear Core Hatches are deleted.
 
-Control rods and passages are not affected. Breaking a casing or hatch of a running or recently running reactor can therefore cost the entire core loading. Before any structural work, let the core cool below 100 °C everywhere, with the simulation *running* and rods inserted, not SCRAMmed.
+Non-fuel, non-coolant items in Nuclear Core Buses (such as reflectors, moderators, heat vents, heat exchangers, reactor plating, thermal insulators, and radiovoltaic plates) as well as control-rod items in control rod hatches and passages are strictly preserved. Conceptually, the penalty for failing the structure check applies only to materials that must be actively and continuously supplied (fuel and coolants). Configuration items that define the spatial layout of the core—even those like moderators and reflectors that experience durability wear—are preserved to spare the operator unnecessary rebuilding tedium.
+
+Before any maintenance that breaks the structure, the core should still ideally be cooled below 100 °C to prevent loss of active fuel rods and coolants.
 
 ### 13.5 Meltdown
 

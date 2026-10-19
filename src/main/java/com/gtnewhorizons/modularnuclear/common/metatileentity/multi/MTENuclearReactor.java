@@ -1198,20 +1198,29 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 if (te != null && !te.isDead()) {
                     IMetaTileEntity mte = te.getMetaTileEntity();
                     if (mte instanceof MTEHatchNuclearBus bus) {
+                        boolean modified = false;
                         for (int i = 0; i < bus.mInventory.length; i++) {
-                            bus.mInventory[i] = null;
+                            ItemStack stack = bus.mInventory[i];
+                            if (stack != null && NuclearFuelClassification.isVoidedOnStructureBreak(stack)) {
+                                bus.mInventory[i] = null;
+                                modified = true;
+                            }
                         }
-                        bus.markDirty();
-                        if (bus.getBaseMetaTileEntity() != null) {
-                            bus.getBaseMetaTileEntity()
-                                .markDirty();
+                        if (modified) {
+                            bus.markDirty();
+                            if (bus.getBaseMetaTileEntity() != null) {
+                                bus.getBaseMetaTileEntity()
+                                    .markDirty();
+                            }
                         }
                     } else if (mte instanceof MTEHatchNuclearHatch hatch) {
-                        hatch.mInputFluid = null;
-                        hatch.markDirty();
-                        if (hatch.getBaseMetaTileEntity() != null) {
-                            hatch.getBaseMetaTileEntity()
-                                .markDirty();
+                        if (hatch.mInputFluid != null) {
+                            hatch.mInputFluid = null;
+                            hatch.markDirty();
+                            if (hatch.getBaseMetaTileEntity() != null) {
+                                hatch.getBaseMetaTileEntity()
+                                    .markDirty();
+                            }
                         }
                     }
                 }
@@ -2009,6 +2018,14 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public static boolean isDepletedOrEmptyRod(ItemStack stack) {
         return NuclearFuelClassification.isDepletedOrEmptyRod(stack);
+    }
+
+    public static boolean isConfigurationItem(ItemStack stack) {
+        return NuclearFuelClassification.isConfigurationItem(stack);
+    }
+
+    public static boolean isVoidedOnStructureBreak(ItemStack stack) {
+        return NuclearFuelClassification.isVoidedOnStructureBreak(stack);
     }
 
     public static double getInsulationDampening(ItemStack stack) {

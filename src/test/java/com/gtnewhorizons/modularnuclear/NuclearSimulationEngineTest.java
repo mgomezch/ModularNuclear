@@ -2020,34 +2020,81 @@ public class NuclearSimulationEngineTest {
     void testNuclearReactorStructureBreakVoidsFuelAndCoolantWhenOver100() {
         MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.test");
 
-        // Mock bus with fuel item
-        MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 4, new String[0], null);
-        net.minecraft.item.ItemStack dummyFuel = org.mockito.Mockito.mock(net.minecraft.item.ItemStack.class);
-        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyFuel;
-        bus.mTemperature = 150.0;
+        // 1. Bus with fuel item (must be voided)
+        MTEHatchNuclearBus busFuel = new MTEHatchNuclearBus("test.bus.fuel", 4, new String[0], null);
+        net.minecraft.item.Item fuelItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(fuelItem.getUnlocalizedName(org.mockito.Mockito.any()))
+            .thenReturn("gt.rodUranium");
+        net.minecraft.item.ItemStack dummyFuel = new net.minecraft.item.ItemStack(fuelItem, 1, 0);
+        busFuel.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyFuel;
+        busFuel.mTemperature = 150.0;
 
-        // Mock hatch with fluid
+        // 2. Bus with coolant item (must be voided)
+        MTEHatchNuclearBus busCoolant = new MTEHatchNuclearBus("test.bus.coolant", 4, new String[0], null);
+        net.minecraft.item.Item coolantItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(coolantItem.getUnlocalizedName(org.mockito.Mockito.any()))
+            .thenReturn("IC2:reactorCoolantSimple");
+        net.minecraft.item.ItemStack dummyCoolant = new net.minecraft.item.ItemStack(coolantItem, 1, 0);
+        busCoolant.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyCoolant;
+        busCoolant.mTemperature = 150.0;
+
+        // 3. Hatch with fluid (must be voided)
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 4, 16000, new String[0], null);
         net.minecraftforge.fluids.FluidStack coolantIn = org.mockito.Mockito
             .mock(net.minecraftforge.fluids.FluidStack.class);
         hatch.mInputFluid = coolantIn;
         hatch.mTemperature = 120.0;
 
-        gregtech.api.interfaces.tileentity.IGregTechTileEntity teBus = org.mockito.Mockito
-            .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-        org.mockito.Mockito.when(teBus.getMetaTileEntity())
-            .thenReturn(bus);
-        org.mockito.Mockito.when(teBus.isDead())
-            .thenReturn(false);
+        // 4. Bus with reflector item (must be preserved)
+        MTEHatchNuclearBus busReflector = new MTEHatchNuclearBus("test.bus.reflector", 4, new String[0], null);
+        net.minecraft.item.Item reflectorItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(reflectorItem.getUnlocalizedName(org.mockito.Mockito.any()))
+            .thenReturn("IC2:reactorReflector");
+        net.minecraft.item.ItemStack dummyReflector = new net.minecraft.item.ItemStack(reflectorItem, 1, 0);
+        busReflector.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyReflector;
+        busReflector.mTemperature = 150.0;
+
+        // 5. Bus with moderator item (must be preserved)
+        MTEHatchNuclearBus busModerator = new MTEHatchNuclearBus("test.bus.moderator", 4, new String[0], null);
+        net.minecraft.item.Item moderatorItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(moderatorItem.getUnlocalizedName(org.mockito.Mockito.any()))
+            .thenReturn("stickLongGraphite");
+        net.minecraft.item.ItemStack dummyModerator = new net.minecraft.item.ItemStack(moderatorItem, 1, 0);
+        busModerator.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyModerator;
+        busModerator.mTemperature = 150.0;
+
+        // 6. Bus with heat vent item (must be preserved)
+        MTEHatchNuclearBus busVent = new MTEHatchNuclearBus("test.bus.vent", 4, new String[0], null);
+        net.minecraft.item.Item ventItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(ventItem.getUnlocalizedName(org.mockito.Mockito.any()))
+            .thenReturn("IC2:reactorVent");
+        net.minecraft.item.ItemStack dummyVent = new net.minecraft.item.ItemStack(ventItem, 1, 0);
+        busVent.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyVent;
+        busVent.mTemperature = 150.0;
+
+        // 7. Bus with heat exchanger item (must be preserved)
+        MTEHatchNuclearBus busExchanger = new MTEHatchNuclearBus("test.bus.exchanger", 4, new String[0], null);
+        net.minecraft.item.Item exchangerItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(exchangerItem.getUnlocalizedName(org.mockito.Mockito.any()))
+            .thenReturn("IC2:reactorHeatSwitch");
+        net.minecraft.item.ItemStack dummyExchanger = new net.minecraft.item.ItemStack(exchangerItem, 1, 0);
+        busExchanger.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyExchanger;
+        busExchanger.mTemperature = 150.0;
+
+        // Set up mock tile entities
+        MTEHatchNuclearBus[] buses = { busFuel, busCoolant, busReflector, busModerator, busVent, busExchanger };
+        for (MTEHatchNuclearBus b : buses) {
+            gregtech.api.interfaces.tileentity.IGregTechTileEntity te = org.mockito.Mockito
+                .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+            org.mockito.Mockito.when(te.getMetaTileEntity()).thenReturn(b);
+            org.mockito.Mockito.when(te.isDead()).thenReturn(false);
+            reactor.mLastFormedNuclearTiles.add(te);
+        }
 
         gregtech.api.interfaces.tileentity.IGregTechTileEntity teHatch = org.mockito.Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-        org.mockito.Mockito.when(teHatch.getMetaTileEntity())
-            .thenReturn(hatch);
-        org.mockito.Mockito.when(teHatch.isDead())
-            .thenReturn(false);
-
-        reactor.mLastFormedNuclearTiles.add(teBus);
+        org.mockito.Mockito.when(teHatch.getMetaTileEntity()).thenReturn(hatch);
+        org.mockito.Mockito.when(teHatch.isDead()).thenReturn(false);
         reactor.mLastFormedNuclearTiles.add(teHatch);
 
         assertTrue(reactor.isAnyTemperatureAbove100(), "Reactor should detect temperature > 100°C");
@@ -2055,8 +2102,16 @@ public class NuclearSimulationEngineTest {
         // Trigger structure break
         reactor.handleStructureBreak();
 
-        assertNull(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Fuel in bus must be voided on break above 100°C");
+        // Fuel and coolant items/fluids must be voided:
+        assertNull(busFuel.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Fuel in bus must be voided on break above 100°C");
+        assertNull(busCoolant.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Coolant item in bus must be voided on break above 100°C");
         assertNull(hatch.mInputFluid, "Coolant in hatch must be voided on break above 100°C");
+
+        // Spatial configuration items must be preserved:
+        assertNotNull(busReflector.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Reflector in bus must be preserved on break above 100°C");
+        assertNotNull(busModerator.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Moderator in bus must be preserved on break above 100°C");
+        assertNotNull(busVent.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Heat vent in bus must be preserved on break above 100°C");
+        assertNotNull(busExchanger.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Heat exchanger in bus must be preserved on break above 100°C");
     }
 
     @Test

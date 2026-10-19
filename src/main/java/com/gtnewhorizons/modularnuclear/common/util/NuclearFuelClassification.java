@@ -9,30 +9,21 @@ import net.minecraftforge.oredict.OreDictionary;
 
 import com.gtnewhorizons.modularnuclear.common.item.ItemCustomDepletedFuelRod;
 import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
-import com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 
-import goodgenerator.items.GGMaterial;
 import gregtech.api.enums.ItemList;
-import gregtech.api.enums.Materials;
 import gregtech.api.items.ItemCoolantCell;
 import gregtech.api.items.ItemRadioactiveCell;
 import gregtech.api.items.ItemRadioactiveCellIC;
 import gregtech.api.util.GTUtility;
 import ic2.core.Ic2Items;
-import ic2.core.item.reactor.ItemReactorCondensator;
 import ic2.core.item.reactor.ItemReactorHeatStorage;
-import ic2.core.item.reactor.ItemReactorHeatSwitch;
 import ic2.core.item.reactor.ItemReactorMOX;
-import ic2.core.item.reactor.ItemReactorPlating;
-import ic2.core.item.reactor.ItemReactorReflector;
 import ic2.core.item.reactor.ItemReactorUranium;
-import ic2.core.item.reactor.ItemReactorVent;
-import ic2.core.item.reactor.ItemReactorVentSpread;
 
 /**
  * Utility class for identifying, classifying, and mapping nuclear reactor fuels, coolants,
@@ -42,90 +33,34 @@ public final class NuclearFuelClassification {
 
     private NuclearFuelClassification() {}
 
-    public static final ItemList[] ACTIVE_FUEL_RODS = new ItemList[] {
-        ItemList.RodLithium,
-        ItemList.RodGlowstone,
-        ItemList.RodThorium,
-        ItemList.RodThorium2,
-        ItemList.RodThorium4,
-        ItemList.RodUranium,
-        ItemList.RodUranium2,
-        ItemList.RodUranium4,
-        ItemList.RodMOX,
-        ItemList.RodMOX2,
-        ItemList.RodMOX4,
-        ItemList.RodHighDensityUranium,
-        ItemList.RodHighDensityUranium2,
-        ItemList.RodHighDensityUranium4,
-        ItemList.RodHighDensityPlutonium,
-        ItemList.RodHighDensityPlutonium2,
-        ItemList.RodHighDensityPlutonium4,
-        ItemList.RodExcitedUranium,
-        ItemList.RodExcitedUranium2,
-        ItemList.RodExcitedUranium4,
-        ItemList.RodExcitedPlutonium,
-        ItemList.RodExcitedPlutonium2,
-        ItemList.RodExcitedPlutonium4,
-        ItemList.RodNaquadah,
-        ItemList.RodNaquadah2,
-        ItemList.RodNaquadah4,
-        ItemList.RodNaquadah32,
-        ItemList.RodNaquadria,
-        ItemList.RodNaquadria2,
-        ItemList.RodNaquadria4,
-        ItemList.RodTiberium,
-        ItemList.RodTiberium2,
-        ItemList.RodTiberium4
-    };
+    public static final ItemList[] ACTIVE_FUEL_RODS = new ItemList[] { ItemList.RodLithium, ItemList.RodGlowstone,
+        ItemList.RodThorium, ItemList.RodThorium2, ItemList.RodThorium4, ItemList.RodUranium, ItemList.RodUranium2,
+        ItemList.RodUranium4, ItemList.RodMOX, ItemList.RodMOX2, ItemList.RodMOX4, ItemList.RodHighDensityUranium,
+        ItemList.RodHighDensityUranium2, ItemList.RodHighDensityUranium4, ItemList.RodHighDensityPlutonium,
+        ItemList.RodHighDensityPlutonium2, ItemList.RodHighDensityPlutonium4, ItemList.RodExcitedUranium,
+        ItemList.RodExcitedUranium2, ItemList.RodExcitedUranium4, ItemList.RodExcitedPlutonium,
+        ItemList.RodExcitedPlutonium2, ItemList.RodExcitedPlutonium4, ItemList.RodNaquadah, ItemList.RodNaquadah2,
+        ItemList.RodNaquadah4, ItemList.RodNaquadah32, ItemList.RodNaquadria, ItemList.RodNaquadria2,
+        ItemList.RodNaquadria4, ItemList.RodTiberium, ItemList.RodTiberium2, ItemList.RodTiberium4 };
 
-    public static final ItemList[] DEPLETED_FUEL_RODS = new ItemList[] {
-        ItemList.DepletedRodLithium,
-        ItemList.DepletedRodGlowstone,
-        ItemList.DepletedRodThorium,
-        ItemList.DepletedRodThorium2,
-        ItemList.DepletedRodThorium4,
-        ItemList.DepletedRodUranium,
-        ItemList.DepletedRodUranium2,
-        ItemList.DepletedRodUranium4,
-        ItemList.DepletedRodMOX,
-        ItemList.DepletedRodMOX2,
-        ItemList.DepletedRodMOX4,
-        ItemList.DepletedRodHighDensityUranium,
-        ItemList.DepletedRodHighDensityUranium2,
-        ItemList.DepletedRodHighDensityUranium4,
-        ItemList.DepletedRodHighDensityPlutonium,
-        ItemList.DepletedRodHighDensityPlutonium2,
-        ItemList.DepletedRodHighDensityPlutonium4,
-        ItemList.DepletedRodExcitedUranium,
-        ItemList.DepletedRodExcitedUranium2,
-        ItemList.DepletedRodExcitedUranium4,
-        ItemList.DepletedRodExcitedPlutonium,
-        ItemList.DepletedRodExcitedPlutonium2,
-        ItemList.DepletedRodExcitedPlutonium4,
-        ItemList.DepletedRodNaquadah,
-        ItemList.DepletedRodNaquadah2,
-        ItemList.DepletedRodNaquadah4,
-        ItemList.DepletedRodNaquadah32,
-        ItemList.DepletedRodNaquadria,
-        ItemList.DepletedRodNaquadria2,
-        ItemList.DepletedRodNaquadria4,
-        ItemList.DepletedRodTiberium,
-        ItemList.DepletedRodTiberium2,
-        ItemList.DepletedRodTiberium4
-    };
+    public static final ItemList[] DEPLETED_FUEL_RODS = new ItemList[] { ItemList.DepletedRodLithium,
+        ItemList.DepletedRodGlowstone, ItemList.DepletedRodThorium, ItemList.DepletedRodThorium2,
+        ItemList.DepletedRodThorium4, ItemList.DepletedRodUranium, ItemList.DepletedRodUranium2,
+        ItemList.DepletedRodUranium4, ItemList.DepletedRodMOX, ItemList.DepletedRodMOX2, ItemList.DepletedRodMOX4,
+        ItemList.DepletedRodHighDensityUranium, ItemList.DepletedRodHighDensityUranium2,
+        ItemList.DepletedRodHighDensityUranium4, ItemList.DepletedRodHighDensityPlutonium,
+        ItemList.DepletedRodHighDensityPlutonium2, ItemList.DepletedRodHighDensityPlutonium4,
+        ItemList.DepletedRodExcitedUranium, ItemList.DepletedRodExcitedUranium2, ItemList.DepletedRodExcitedUranium4,
+        ItemList.DepletedRodExcitedPlutonium, ItemList.DepletedRodExcitedPlutonium2,
+        ItemList.DepletedRodExcitedPlutonium4, ItemList.DepletedRodNaquadah, ItemList.DepletedRodNaquadah2,
+        ItemList.DepletedRodNaquadah4, ItemList.DepletedRodNaquadah32, ItemList.DepletedRodNaquadria,
+        ItemList.DepletedRodNaquadria2, ItemList.DepletedRodNaquadria4, ItemList.DepletedRodTiberium,
+        ItemList.DepletedRodTiberium2, ItemList.DepletedRodTiberium4 };
 
-    public static final ItemList[] GT_COOLANT_CELLS = new ItemList[] {
-        ItemList.Reactor_Coolant_He_1,
-        ItemList.Reactor_Coolant_He_3,
-        ItemList.Reactor_Coolant_He_6,
-        ItemList.Reactor_Coolant_NaK_1,
-        ItemList.Reactor_Coolant_NaK_3,
-        ItemList.Reactor_Coolant_NaK_6,
-        ItemList.Reactor_Coolant_Sp_1,
-        ItemList.Reactor_Coolant_Sp_2,
-        ItemList.Reactor_Coolant_Sp_3,
-        ItemList.Reactor_Coolant_Sp_6
-    };
+    public static final ItemList[] GT_COOLANT_CELLS = new ItemList[] { ItemList.Reactor_Coolant_He_1,
+        ItemList.Reactor_Coolant_He_3, ItemList.Reactor_Coolant_He_6, ItemList.Reactor_Coolant_NaK_1,
+        ItemList.Reactor_Coolant_NaK_3, ItemList.Reactor_Coolant_NaK_6, ItemList.Reactor_Coolant_Sp_1,
+        ItemList.Reactor_Coolant_Sp_2, ItemList.Reactor_Coolant_Sp_3, ItemList.Reactor_Coolant_Sp_6 };
 
     public static boolean isOreDictMatch(ItemStack stack, String oreName) {
         if (stack == null || oreName == null) return false;
@@ -142,8 +77,8 @@ public final class NuclearFuelClassification {
 
     public static boolean isIC2ActiveFuelCell(ItemStack stack) {
         if (stack == null) return false;
-        if (Ic2Items.reactorUraniumSimple != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorUraniumSimple, true))
-            return true;
+        if (Ic2Items.reactorUraniumSimple != null
+            && GTUtility.areStacksEqual(stack, Ic2Items.reactorUraniumSimple, true)) return true;
         if (Ic2Items.reactorUraniumDual != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorUraniumDual, true))
             return true;
         if (Ic2Items.reactorUraniumQuad != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorUraniumQuad, true))
@@ -162,23 +97,17 @@ public final class NuclearFuelClassification {
     public static boolean isIC2DepletedFuelCell(ItemStack stack) {
         if (stack == null) return false;
         if (Ic2Items.reactorDepletedUraniumSimple != null
-            && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedUraniumSimple, true))
-            return true;
+            && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedUraniumSimple, true)) return true;
         if (Ic2Items.reactorDepletedUraniumDual != null
-            && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedUraniumDual, true))
-            return true;
+            && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedUraniumDual, true)) return true;
         if (Ic2Items.reactorDepletedUraniumQuad != null
-            && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedUraniumQuad, true))
-            return true;
+            && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedUraniumQuad, true)) return true;
         if (Ic2Items.reactorDepletedMOXSimple != null
-            && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedMOXSimple, true))
-            return true;
+            && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedMOXSimple, true)) return true;
         if (Ic2Items.reactorDepletedMOXDual != null
-            && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedMOXDual, true))
-            return true;
+            && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedMOXDual, true)) return true;
         if (Ic2Items.reactorDepletedMOXQuad != null
-            && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedMOXQuad, true))
-            return true;
+            && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedMOXQuad, true)) return true;
         return false;
     }
 
@@ -248,8 +177,8 @@ public final class NuclearFuelClassification {
             return stack.getItemDamage() >= stack.getMaxDamage();
         }
 
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(stack);
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findFuel(stack);
         if (fd != null) {
             int maxDur = fd.defaultDurability > 0 ? fd.defaultDurability : stack.getMaxDamage();
             return stack.isItemStackDamageable() && stack.getItemDamage() >= maxDur;
@@ -268,8 +197,8 @@ public final class NuclearFuelClassification {
 
     public static boolean isModeratorAtMaxDamage(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return false;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findModerator(stack);
         if (mod != null && stack.stackTagCompound != null && stack.stackTagCompound.hasKey("advDmg")) {
             return stack.stackTagCompound.getInteger("advDmg") >= mod.durability;
         }
@@ -278,10 +207,11 @@ public final class NuclearFuelClassification {
 
     public static ItemStack getModeratorSpentProduct(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return null;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findModerator(stack);
         if (mod != null && mod.spentProduct != null && !mod.spentProduct.isEmpty()) {
-            return com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.resolveItemStack(mod.spentProduct);
+            return com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+                .resolveItemStack(mod.spentProduct);
         }
         return null;
     }
@@ -338,8 +268,8 @@ public final class NuclearFuelClassification {
     public static boolean isFluidFuel(FluidStack fluid) {
         if (fluid == null || fluid.getFluid() == null) return false;
         if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isFluidBlocked(fluid)) return false;
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(fluid);
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findFuel(fluid);
         if (fd != null && fd.isLiquid) return true;
         if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isFluidFuel(fluid)) return true;
         return false;
@@ -347,8 +277,8 @@ public final class NuclearFuelClassification {
 
     public static Fluid getSpentFluid(FluidStack fuel) {
         if (fuel == null || fuel.getFluid() == null) return null;
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(fuel);
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findFuel(fuel);
         if (fd != null && fd.spentProduct != null) {
             Fluid f = FluidRegistry.getFluid(fd.spentProduct);
             if (f == null && !fd.spentProduct.startsWith("fluid.")) {
@@ -361,19 +291,21 @@ public final class NuclearFuelClassification {
 
     public static boolean isCoolantFluid(FluidStack fluid) {
         if (fluid == null || fluid.getFluid() == null) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(fluid) != null) return true;
+        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(fluid) != null)
+            return true;
         if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isCoolantFluid(fluid)) return true;
         return false;
     }
 
     public static boolean isHullOnlyComponent(ItemStack stack) {
         if (stack == null) return false;
-        if (Ic2Items.reactorVentCore != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorVentCore, true)) return true;
-        if (Ic2Items.reactorHeatSwitchCore != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorHeatSwitchCore, true)) return true;
+        if (Ic2Items.reactorVentCore != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorVentCore, true))
+            return true;
+        if (Ic2Items.reactorHeatSwitchCore != null
+            && GTUtility.areStacksEqual(stack, Ic2Items.reactorHeatSwitchCore, true)) return true;
         String name = stack.getUnlocalizedName();
         if (name != null) {
-            return "ic2.reactorVentCore".equalsIgnoreCase(name)
-                || "ic2.reactorHeatSwitchCore".equalsIgnoreCase(name)
+            return "ic2.reactorVentCore".equalsIgnoreCase(name) || "ic2.reactorHeatSwitchCore".equalsIgnoreCase(name)
                 || "reactorVentCore".equalsIgnoreCase(name)
                 || "reactorHeatSwitchCore".equalsIgnoreCase(name);
         }
@@ -382,8 +314,37 @@ public final class NuclearFuelClassification {
 
     public static boolean isItemCoolant(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantItem(stack) != null) return true;
-        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemCoolant(stack);
+        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantItem(stack) != null)
+            return true;
+        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemCoolant(stack)) return true;
+        if (stack.getItem() instanceof ItemCoolantCell) return true;
+        if (stack.getItem() instanceof ItemReactorHeatStorage) return true;
+        for (ItemList item : GT_COOLANT_CELLS) {
+            if (item != null && item.hasBeenSet() && item.isStackEqual(stack, false, true)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean isConfigurationItem(ItemStack stack) {
+        if (stack == null) return false;
+        return isItemReflector(stack) || isItemModerator(stack)
+            || isModeratorAtMaxDamage(stack)
+            || isItemHeatVent(stack)
+            || isItemHeatExchanger(stack)
+            || isItemReactorPlating(stack)
+            || getInsulationDampening(stack) > 0.0
+            || isItemRadiovoltaic(stack)
+            || isItemNeutronSource(stack);
+    }
+
+    public static boolean isVoidedOnStructureBreak(ItemStack stack) {
+        if (stack == null) return false;
+        if (isConfigurationItem(stack)) {
+            return false;
+        }
+        return isItemFuel(stack) || isFuelAtMaxDamage(stack) || isDepletedOrEmptyRod(stack) || isItemCoolant(stack);
     }
 
     public static boolean isItemHeatVent(ItemStack stack) {
@@ -394,19 +355,22 @@ public final class NuclearFuelClassification {
 
     public static boolean isItemHeatExchanger(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findHeatExchanger(stack) != null) return true;
+        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findHeatExchanger(stack) != null)
+            return true;
         return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemHeatExchanger(stack);
     }
 
     public static boolean isItemReflector(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(stack) != null) return true;
+        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(stack) != null)
+            return true;
         return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemReflector(stack);
     }
 
     public static boolean isItemModerator(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack) != null) return true;
+        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack) != null)
+            return true;
         return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemModerator(stack);
     }
 
@@ -418,14 +382,15 @@ public final class NuclearFuelClassification {
 
     public static boolean isItemRadiovoltaic(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findRadiovoltaic(stack) != null) return true;
+        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findRadiovoltaic(stack) != null)
+            return true;
         return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemRadiovoltaic(stack);
     }
 
     public static double getInsulationDampening(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return 0.0;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.InsulatorData ins =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findInsulator(stack);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.InsulatorData ins = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findInsulator(stack);
         if (ins != null) return ins.dampening;
         return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.getInsulatorDampening(stack);
     }
@@ -438,10 +403,12 @@ public final class NuclearFuelClassification {
         if (stack == null) return false;
 
         // 1. Dynamic cheese extraction Easter egg inputs:
-        if (com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().isCheeseInput(stack)) {
+        if (com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+            .isCheeseInput(stack)) {
             return true;
         }
-        if (bus != null && bus.getClass() != MTEHatchNuclearBus.class && bus.findCheeseExtractionRecipe(stack) != null) {
+        if (bus != null && bus.getClass() != MTEHatchNuclearBus.class
+            && bus.findCheeseExtractionRecipe(stack) != null) {
             return true;
         }
 
@@ -474,15 +441,17 @@ public final class NuclearFuelClassification {
     public static boolean isItemNeutronSource(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return false;
         try {
-            if (goodgenerator.loader.Loaders.neutronSource != null && stack.getItem() == goodgenerator.loader.Loaders.neutronSource) {
+            if (goodgenerator.loader.Loaders.neutronSource != null
+                && stack.getItem() == goodgenerator.loader.Loaders.neutronSource) {
                 return true;
             }
         } catch (Throwable ignored) {}
         try {
             net.minecraft.item.Item item = stack.getItem();
-            cpw.mods.fml.common.registry.GameRegistry.UniqueIdentifier uid =
-                cpw.mods.fml.common.registry.GameRegistry.findUniqueIdentifierFor(item);
-            if (uid != null && "GoodGenerator".equalsIgnoreCase(uid.modId) && "neutronSource".equalsIgnoreCase(uid.name)) {
+            cpw.mods.fml.common.registry.GameRegistry.UniqueIdentifier uid = cpw.mods.fml.common.registry.GameRegistry
+                .findUniqueIdentifierFor(item);
+            if (uid != null && "GoodGenerator".equalsIgnoreCase(uid.modId)
+                && "neutronSource".equalsIgnoreCase(uid.name)) {
                 return true;
             }
             if ("item.neutronSource".equalsIgnoreCase(item.getUnlocalizedName())) {
@@ -491,7 +460,6 @@ public final class NuclearFuelClassification {
         } catch (Throwable ignored) {}
         return false;
     }
-
 
     public static ItemStack getItemDepletedForm(ItemStack fuel) {
         if (fuel == null || isDepletedOrEmptyRod(fuel)) return null;
@@ -516,10 +484,11 @@ public final class NuclearFuelClassification {
         }
 
         // 1. Check YAML FuelData spentProduct
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(fuel);
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findFuel(fuel);
         if (fd != null && fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
-            ItemStack spent = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.resolveItemStack(fd.spentProduct);
+            ItemStack spent = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+                .resolveItemStack(fd.spentProduct);
             if (spent != null) {
                 return spent;
             }
