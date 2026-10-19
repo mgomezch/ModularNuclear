@@ -1962,7 +1962,6 @@ tiers:
     maxSafePressureBar: 15.0
     allowedCoolants:
       - "ic2coolant"
-      - "water"
       - "fluid.thorium"
       - "fluid.uranium"
 ```
@@ -2119,19 +2118,6 @@ Defines all primary coolants, secondary fluids, and custom additions. All units 
 
 ```yaml
 fluids:
-  water:
-    fluidName: "water"
-    density: 1000.0                   # kg/m^3
-    dynamicViscosity: 0.001           # Pa*s
-    specificHeat: 4184.0              # J/(kg*K)
-    thermalConductivity: 0.606        # W/(m*K)
-    boilingPointCelsius: 100.0        # deg C at 1 atm
-    freezingPointCelsius: 0.0         # deg C at 1 atm
-    isMolten: false
-    radiolysisMultiplier: 1.0
-    aliases:
-      - "minecraft:water"
-
   ic2distilledwater:
     fluidName: "ic2distilledwater"
     density: 998.0

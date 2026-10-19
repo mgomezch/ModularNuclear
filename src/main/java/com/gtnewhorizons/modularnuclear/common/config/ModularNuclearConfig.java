@@ -70,7 +70,6 @@ public final class ModularNuclearConfig {
     };
 
     public static String[] allowedCoolantFluids = new String[] {
-        "water",
         "ic2coolant",
         "heavywater",
         "distilledwater",

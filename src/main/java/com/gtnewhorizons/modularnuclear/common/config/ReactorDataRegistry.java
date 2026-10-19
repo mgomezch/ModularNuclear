@@ -896,7 +896,6 @@ public final class ReactorDataRegistry {
         cd.radiovoltaics.add(new RadiovoltaicData("radiovoltaic_ev", "EV Radiovoltaic Plate", 2, 0.50, 0.10, 1.0, 1.0, "modularnuclear:radiovoltaicPlateEV"));
 
         // Coolant Fluids - explicitly configured, no hardcoded name fallbacks
-        cd.coolantFluids.add(new CoolantFluidData("coolant_water", "Water", -1, 100.0, 0.25, 4.184, 0.05, 0.10, 0.70, 0.70, 0.25, "steam", 1.0, 160, 160.0, 0.0, 100.0, "deuterium", 0.025, "water", "fluid.water"));
         cd.coolantFluids.add(new CoolantFluidData("coolant_distilled_water", "Distilled Water", 1, 100.0, 0.30, 4.184, 0.05, 0.10, 0.70, 0.70, 0.25, "ic2superheatedsteam", 1.2, 160, 160.0, 0.0, 100.0, "deuterium", 0.025, "distilledwater", "fluid.distilledwater", "ic2distilledwater", "fluid.ic2distilledwater"));
         cd.coolantFluids.add(new CoolantFluidData("coolant_heavy_water", "Heavy Water", 3, 101.4, 0.30, 4.22, 0.005, 0.01, 0.85, 0.85, 0.90, "steam", 1.5, 160, 160.0, 3.8, 101.4, "tritium", 0.010, "heavywater", "fluid.heavywater"));
         cd.coolantFluids.add(new CoolantFluidData("coolant_ic2", "IC2 Coolant", 0, 300.0, 0.50, 8.0, 0.03, 0.12, 0.45, 0.45, 0.05, "ic2hotcoolant", 2.0, 1, 320.0, -273.15, Double.POSITIVE_INFINITY, null, 0.0, "coolant", "fluid.coolant", "ic2coolant", "fluid.ic2coolant"));

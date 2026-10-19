@@ -5273,7 +5273,7 @@ public class NuclearSimulationEngineTest {
         hp.setConnectedPump(mockPump);
 
         org.mockito.Mockito.when(mockPump.getCoolantFluidProperty())
-            .thenReturn(CoolantFluidProperty.WATER);
+            .thenReturn(CoolantFluidProperty.DISTILLED_WATER);
         assertEquals(
             0.25,
             hp.getModerationProbability(),
