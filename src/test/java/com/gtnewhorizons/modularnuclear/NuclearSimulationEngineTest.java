@@ -5739,6 +5739,20 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
+    void testCherenkovWorldRendererLifecycle() {
+        MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.test");
+        com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.register(reactor);
+        assertTrue(com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.ACTIVE_REACTORS.contains(reactor));
+
+        com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.unregister(reactor);
+        assertFalse(com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.ACTIVE_REACTORS.contains(reactor));
+
+        com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.register(reactor);
+        new com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer().onWorldUnload(null);
+        assertTrue(com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.ACTIVE_REACTORS.isEmpty());
+    }
+
+    @Test
     void testThermalScatteringProbabilityScaling() {
         // Grid A: Fuel in center moderated by heavy water, surrounded by zero-scattering absorbers
         INuclearTile[][] gridZero = new INuclearTile[3][3];
