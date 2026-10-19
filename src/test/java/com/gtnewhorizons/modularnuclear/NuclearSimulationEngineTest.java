@@ -752,6 +752,7 @@ public class NuclearSimulationEngineTest {
             .setNeutronSourceBeamRate(10);
         grid100
             .setTile(0, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
+        NuclearSimulationEngine.setRandomSeed(42);
         grid100.step();
         double gridEU100 = grid100.getFlowDirectEU();
         assertTrue(gridEU100 > 0, "Nominal grid must generate direct EU");
@@ -769,6 +770,7 @@ public class NuclearSimulationEngineTest {
         grid50
             .setTile(0, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
         grid50.setMaintenanceIssues(3); // 3 issues -> (6 - 3)/6 = 0.5 maintenance efficiency
+        NuclearSimulationEngine.setRandomSeed(42);
         grid50.step();
         double gridEU50 = grid50.getFlowDirectEU();
 

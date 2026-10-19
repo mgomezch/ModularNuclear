@@ -147,15 +147,17 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
     }
 
     public int[] getCellAtAbs(int absX, int absY) {
-        Area area = getArea();
-        if (area == null) return null;
-        return getCellAt(absX - area.x, absY - area.y);
+        ModularGuiContext ctx = getContext();
+        int originX = (ctx != null) ? ctx.transformX(0, 0) : (getArea() != null ? getArea().x : 0);
+        int originY = (ctx != null) ? ctx.transformY(0, 0) : (getArea() != null ? getArea().y : 0);
+        return getCellAt(absX - originX, absY - originY);
     }
 
     public boolean isOverControllerAbs(int absX, int absY) {
-        Area area = getArea();
-        if (area == null) return false;
-        return isOverController(absX - area.x, absY - area.y);
+        ModularGuiContext ctx = getContext();
+        int originX = (ctx != null) ? ctx.transformX(0, 0) : (getArea() != null ? getArea().x : 0);
+        int originY = (ctx != null) ? ctx.transformY(0, 0) : (getArea() != null ? getArea().y : 0);
+        return isOverController(absX - originX, absY - originY);
     }
 
     public boolean isOverController(int mx, int my) {
@@ -356,12 +358,14 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         ScaledResolution sr = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
         int scale = sr.getScaleFactor();
 
-        int absX = getArea().x;
-        int absY = getArea().y;
+        int absX = (context != null) ? context.transformX(0, 0) : getArea().x;
+        int absY = (context != null) ? context.transformY(0, 0) : getArea().y;
+        int absEndX = (context != null) ? context.transformX(rw, rh) : (absX + rw);
+        int absEndY = (context != null) ? context.transformY(rw, rh) : (absY + rh);
         int sx = absX * scale;
-        int sy = mc.displayHeight - (absY + rh) * scale;
-        int sw = rw * scale;
-        int sh = rh * scale;
+        int sy = mc.displayHeight - absEndY * scale;
+        int sw = Math.max(0, (absEndX - absX) * scale);
+        int sh = Math.max(0, (absEndY - absY) * scale);
 
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
         GL11.glScissor(sx, sy, sw, sh);
@@ -501,7 +505,11 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 0);
         }
 
-        if (isOverControllerAbs(context.getAbsMouseX(), context.getAbsMouseY())) {
+        int mx = (context != null) ? context.getMouseX() : 0;
+        int my = (context != null) ? context.getMouseY() : 0;
+        boolean mouseInside = (mx >= 0 && mx < rw && my >= 0 && my < rh);
+
+        if (mouseInside && isOverController(mx, my)) {
             GuiDraw.drawRect(cx, cy, 18, 1, 0xFFFFFFFF);
             GuiDraw.drawRect(cx, cy + 17, 18, 1, 0xFFFFFFFF);
             GuiDraw.drawRect(cx, cy + 1, 1, 16, 0xFFFFFFFF);
@@ -510,7 +518,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         }
 
         // Hover highlight with crisp 1px border and subtle tint
-        int[] hCell = getCellAtAbs(context.getAbsMouseX(), context.getAbsMouseY());
+        int[] hCell = mouseInside ? getCellAt(mx, my) : null;
         if (hCell != null) {
             int hx = hCell[0];
             int hy = hCell[1];
@@ -535,20 +543,21 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
 
     private void buildTooltip(RichTooltip tooltip) {
         ModularGuiContext ctx = getContext();
-        if (ctx == null) return;
-        int absX = ctx.getAbsMouseX();
-        int absY = ctx.getAbsMouseY();
-        Area area = getArea();
-        if (area == null || !area.isInside(absX, absY)) return;
+        if (ctx == null || getArea() == null) return;
+        int rw = getArea().w();
+        int rh = getArea().h();
+        int mx = ctx.getMouseX();
+        int my = ctx.getMouseY();
+        if (mx < 0 || mx >= rw || my < 0 || my >= rh) return;
 
-        if (isOverControllerAbs(absX, absY)) {
+        if (isOverController(mx, my)) {
             tooltip.addLine(EnumChatFormatting.GOLD + "" + EnumChatFormatting.BOLD + "Reactor Controller");
             tooltip.addLine(EnumChatFormatting.GRAY + "Front center reference position");
             tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Multiblock structure front face");
             return;
         }
 
-        int[] hCell = getCellAtAbs(absX, absY);
+        int[] hCell = getCellAt(mx, my);
         if (hCell == null) return;
 
         ReactorGridSyncData sync = reactor.getClientGridData();

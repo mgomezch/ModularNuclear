@@ -419,6 +419,10 @@ public class NuclearSimulationEngine {
     };
     private static final Random RAND = new Random();
 
+    public static void setRandomSeed(long seed) {
+        RAND.setSeed(seed);
+    }
+
     public static class SimulationResult {
 
         public int totalNeutronsGenerated = 0;
