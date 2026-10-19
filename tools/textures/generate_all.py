@@ -45,7 +45,7 @@ def main():
     # 3. Molten Corium Fluids (Still & Flowing animations)
     run_generator(tools_dir / "generate_corium.py")
 
-    # 4. Water Fluids (Heavy Water, HP Distilled Water, HP Heavy Water) via harmonic wave math
+    # 4. Water Fluids (Heavy Water) via harmonic wave math
     run_generator(tools_dir / "generate_water_fluids.py")
 
     # 5. Fluid Cells (Pure procedural canisters & liquid columns)

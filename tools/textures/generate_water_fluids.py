@@ -2,8 +2,6 @@
 """
 100% Pure Procedural Generator for Nuclear Water Fluid Textures:
   - heavywater_still.png / flow.png
-  - highpressuredistilledwater_still.png / flow.png
-  - highpressureheavywater_still.png / flow.png
 
 Complies strictly with GTNH policy against AI-generated art assets:
 Synthesizes all fluid animation strips from scratch using harmonic 2D wave equations,
@@ -134,10 +132,6 @@ def main(output_dir=None):
     fluids = [
         # Heavy Water: Deep royal cobalt/indigo with bright surface ripples
         ("heavywater", (20, 48, 96), (65, 125, 205), 215),
-        # High-Pressure Distilled Water: Supercritical vibrant cerulean with cyan caustics
-        ("highpressuredistilledwater", (35, 95, 168), (105, 185, 255), 230),
-        # High-Pressure Heavy Water: Supercritical dense violet with luminous lavender caustics
-        ("highpressureheavywater", (38, 20, 72), (115, 75, 175), 235),
     ]
 
     for name, deep_rgb, crest_rgb, alpha in fluids:

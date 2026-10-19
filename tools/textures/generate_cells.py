@@ -2,8 +2,6 @@
 """
 100% Pure Procedural Generator for fluid cell item textures:
   - assets/modularnuclear/textures/items/cellHeavyWater.png (tint #2d5e82)
-  - assets/modularnuclear/textures/items/cellHighPressureDistilledWater.png (tint #3a69a8)
-  - assets/modularnuclear/textures/items/cellHighPressureHeavyWater.png (tint #4b3c7a)
 
 Complies strictly with GTNH policy against AI-generated art assets:
 Synthesizes the complete fluid cell canister geometry, metallic pressure seals,
@@ -138,8 +136,6 @@ def main(output_dir=None):
 
     cells = [
         ("cellHeavyWater.png", (45, 94, 130), (120, 180, 230), "Heavy Water"),
-        ("cellHighPressureDistilledWater.png", (58, 105, 168), (140, 200, 255), "HP Distilled Water"),
-        ("cellHighPressureHeavyWater.png", (75, 60, 122), (160, 140, 230), "HP Heavy Water"),
     ]
 
     for filename, base_rgb, highlight_rgb, desc in cells:

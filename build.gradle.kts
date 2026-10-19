@@ -201,18 +201,6 @@ val publishPages by tasks.registering {
     description = "Deploys latest simulator build to staging on ModularNuclear GitHub Pages"
 }
 
-val generateFuelStatsCharts by tasks.registering(JavaExec::class) {
-    dependsOn(tasks.compileJava)
-    group = "build"
-    description = "Generates nuclear fuel stats charts (reactivity and temperature durability damage curves)"
-
-    mainClass.set("com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver")
-    classpath = files(tasks.compileJava.get().destinationDirectory)
-
-    val outputDir = file("src/main/resources/assets/modularnuclear/textures/gui/nei/fuelstats")
-    args = listOf(outputDir.absolutePath)
-}
-
 val generateProceduralTextures by tasks.registering(Exec::class) {
     group = "build"
     description = "Procedurally generates all nuclear textures (atlas, arrows, overlays, fluids, cells, casings, plates) from pure code"
@@ -230,9 +218,9 @@ tasks.named("sourcesJar") {
 }
 
 val generateAllTextures by tasks.registering {
-    dependsOn(generateFuelStatsCharts, generateProceduralTextures)
+    dependsOn(generateProceduralTextures)
     group = "build"
-    description = "Regenerates all procedural textures (fuel stats charts and procedural art assets)"
+    description = "Regenerates all procedural textures"
 }
 
 
