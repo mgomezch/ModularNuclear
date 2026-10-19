@@ -38,6 +38,7 @@ channels.modularnuclear.nuclear_hatch=Nuclear core hatches. 0: bus (items); 1-9:
 channels.modularnuclear.master.nuclear_hatch=Nuclear hatch tier
 
 fluid.heavywater=Heavy water
+fluid.heavywatersteam=Heavy-water steam
 
 item.cellHeavyWater.name=Heavy water cell
 

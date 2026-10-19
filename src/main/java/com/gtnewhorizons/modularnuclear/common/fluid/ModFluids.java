@@ -19,20 +19,27 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.enums.ItemList;
+import gregtech.api.util.GTModHandler;
 import ic2.core.item.ItemFluidCell;
 
 public class ModFluids {
 
     public static Fluid fluidHeavyWater;
+    public static Fluid fluidHeavyWaterSteam;
     public static Fluid fluidCorium;
 
     public static void init() {
         fluidHeavyWater = registerOrGet("heavywater", 1100, 1100, 300);
+        fluidHeavyWaterSteam = registerOrGet("heavywatersteam", -100, 100, 375);
+        fluidHeavyWaterSteam.setGaseous(true);
+
         fluidCorium = registerOrGet("corium", 8000, 18000, 3000);
         fluidCorium.setLuminosity(15);
         fluidCorium.setDensity(8000);
         fluidCorium.setViscosity(18000);
         fluidCorium.setTemperature(3000);
+
+        registerWithGregTech();
 
         try {
             if (FMLCommonHandler.instance() != null && FMLCommonHandler.instance()
@@ -45,8 +52,26 @@ public class ModFluids {
         } catch (Throwable ignored) {}
     }
 
+    public static void registerWithGregTech() {
+        if (fluidHeavyWaterSteam != null && GTModHandler.sAnySteamFluidIDs != null) {
+            int id = fluidHeavyWaterSteam.getID();
+            if (!GTModHandler.sAnySteamFluidIDs.contains(id)) {
+                try {
+                    GTModHandler.sAnySteamFluidIDs.add(id);
+                } catch (UnsupportedOperationException e) {
+                    java.util.List<Integer> copy = new java.util.ArrayList<>(GTModHandler.sAnySteamFluidIDs);
+                    copy.add(id);
+                    GTModHandler.sAnySteamFluidIDs = copy;
+                }
+            }
+        }
+    }
+
     public static void registerContainers() {
         registerFluidContainers(fluidHeavyWater, ModItems.cellHeavyWater);
+        if (Loader.isModLoaded("IC2")) {
+            registerUniversalFluidCell(fluidHeavyWaterSteam);
+        }
     }
 
     private static void registerFluidContainers(Fluid fluid, Item cellItem) {
@@ -107,6 +132,11 @@ public class ModFluids {
                     fluidHeavyWater,
                     "modularnuclear:fluids/heavywater_still",
                     "modularnuclear:fluids/heavywater_flow");
+                registerIcons(
+                    event.map,
+                    fluidHeavyWaterSteam,
+                    "gregtech:fluids/fluid.steam",
+                    "gregtech:fluids/fluid.steam");
                 registerIcons(
                     event.map,
                     fluidCorium,

@@ -2,6 +2,7 @@ package com.gtnewhorizons.modularnuclear.common.recipe;
 
 import static gregtech.api.recipe.RecipeMaps.cannerRecipes;
 import static gregtech.api.recipe.RecipeMaps.centrifugeRecipes;
+import static gregtech.api.recipe.RecipeMaps.fluidHeaterRecipes;
 import static gregtech.api.util.GTRecipeBuilder.SECONDS;
 import static gregtech.api.util.GTRecipeBuilder.TICKS;
 
@@ -16,14 +17,29 @@ import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import cpw.mods.fml.common.Loader;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
+import gregtech.api.enums.TierEU;
 import gregtech.api.util.GTModHandler;
 import ic2.core.item.ItemFluidCell;
 
 public class ModRecipes {
 
     public static void init() {
+        ModFluids.registerWithGregTech();
         registerCentrifugeRecipes();
         registerCannerRecipes();
+        registerFluidHeaterRecipes();
+    }
+
+    private static void registerFluidHeaterRecipes() {
+        if (ModFluids.fluidHeavyWater != null && ModFluids.fluidHeavyWaterSteam != null) {
+            GTValues.RA.stdBuilder()
+                .circuit(1)
+                .fluidInputs(new FluidStack(ModFluids.fluidHeavyWater, 6))
+                .fluidOutputs(new FluidStack(ModFluids.fluidHeavyWaterSteam, 960))
+                .duration(30 * TICKS)
+                .eut(TierEU.RECIPE_LV)
+                .addTo(fluidHeaterRecipes);
+        }
     }
 
     private static void registerCentrifugeRecipes() {
@@ -41,6 +57,9 @@ public class ModRecipes {
 
     private static void registerCannerRecipes() {
         registerFluidCanning(ModFluids.fluidHeavyWater, ModItems.cellHeavyWater);
+        if (Loader.isModLoaded("IC2") && ModFluids.fluidHeavyWaterSteam != null) {
+            registerUniversalCellCanning(ModFluids.fluidHeavyWaterSteam);
+        }
     }
 
     private static void registerFluidCanning(Fluid fluid, Item cellItem) {

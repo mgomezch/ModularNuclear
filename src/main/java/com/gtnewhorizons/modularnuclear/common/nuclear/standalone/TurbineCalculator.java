@@ -171,7 +171,7 @@ public class TurbineCalculator {
         // ZPM+ (tier >= 3): Extreme Heat Exchanger (EHE) -> produces Supercritical Steam (1L -> 200L SC Steam if >=
         // 8,000 L/s, else SH Steam)
 
-        double effectiveRegular = regularSteamFlow;
+        double effectiveRegular = regularSteamFlow + heavyWaterSteamFlow;
         double effectiveSuperheated = superheatedSteamFlow;
         double effectiveSupercritical = supercriticalSteamFlow;
 
@@ -257,13 +257,12 @@ public class TurbineCalculator {
                     res.xlstScPowerEUt = scFlowTotal * 1.0 * res.efficiency;
                     res.xlstScTurbinesNeeded = (xlstOptFlow > 0) ? (scFlowTotal / xlstOptFlow) : 0;
                     // Cascades 1:1 into Superheated Steam
-                    effectiveSuperheated += effectiveSupercritical;
-                    heavyWaterSteamFlow += hpHeavyWaterSteamFlow;
+                    effectiveSuperheated += scFlowTotal;
                 }
             }
 
             // 2b. XLST-HP (Superheated Steam): Requires IV or higher (tier >= 1)
-            double hpFlowTotal = effectiveSuperheated + heavyWaterSteamFlow;
+            double hpFlowTotal = effectiveSuperheated;
             if (hpFlowTotal > 0) {
                 res.xlstHpPowerEUt = hpFlowTotal * 1.0 * res.efficiency;
                 res.xlstHpTurbinesNeeded = (xlstOptFlow > 0) ? (hpFlowTotal / xlstOptFlow) : 0;

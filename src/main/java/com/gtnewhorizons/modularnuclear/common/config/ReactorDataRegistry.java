@@ -897,7 +897,7 @@ public final class ReactorDataRegistry {
 
         // Coolant Fluids - explicitly configured, no hardcoded name fallbacks
         cd.coolantFluids.add(new CoolantFluidData("coolant_distilled_water", "Distilled Water", 1, 100.0, 0.30, 4.184, 0.05, 0.10, 0.70, 0.70, 0.25, "ic2superheatedsteam", 1.2, 160, 160.0, 0.0, 100.0, "deuterium", 0.025, "distilledwater", "fluid.distilledwater", "ic2distilledwater", "fluid.ic2distilledwater"));
-        cd.coolantFluids.add(new CoolantFluidData("coolant_heavy_water", "Heavy Water", 3, 101.4, 0.30, 4.22, 0.005, 0.01, 0.85, 0.85, 0.90, "steam", 1.5, 160, 160.0, 3.8, 101.4, "tritium", 0.010, "heavywater", "fluid.heavywater"));
+        cd.coolantFluids.add(new CoolantFluidData("coolant_heavy_water", "Heavy Water", 3, 101.4, 0.30, 4.22, 0.005, 0.01, 0.85, 0.85, 0.90, "heavywatersteam", 1.5, 160, 160.0, 3.8, 101.4, "tritium", 0.010, "heavywater", "fluid.heavywater"));
         cd.coolantFluids.add(new CoolantFluidData("coolant_ic2", "IC2 Coolant", 0, 300.0, 0.50, 8.0, 0.03, 0.12, 0.45, 0.45, 0.05, "ic2hotcoolant", 2.0, 1, 320.0, -273.15, Double.POSITIVE_INFINITY, null, 0.0, "coolant", "fluid.coolant", "ic2coolant", "fluid.ic2coolant"));
         cd.coolantFluids.add(new CoolantFluidData("coolant_sodium", "Molten Sodium", 2, 883.0, 0.70, 1.28, 0.01, 0.05, 0.20, 0.20, 0.05, "molten.sodium", 3.0, 1, 480.0, 97.8, 883.0, null, 0.0, "sodium", "fluid.sodium", "molten.sodium", "fluid.molten.sodium"));
         cd.coolantFluids.add(new CoolantFluidData("coolant_lead", "Molten Lead", 3, 1749.0, 0.75, 0.16, 0.005, 0.02, 0.15, 0.15, 0.02, "molten.lead", 3.5, 1, 560.0, 327.5, 1749.0, null, 0.0, "lead", "fluid.lead", "molten.lead", "fluid.molten.lead"));
