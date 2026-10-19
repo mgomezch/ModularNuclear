@@ -7,8 +7,8 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
@@ -23,6 +23,7 @@ import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 
 import cpw.mods.fml.common.Loader;
+import gregtech.api.hazards.Hazard;
 import gregtech.api.hazards.HazardProtection;
 import gregtech.api.util.GTUtility;
 import gregtech.common.pollution.Pollution;
@@ -194,6 +195,45 @@ public class EntityMeltdownFallout extends Entity {
         }
     }
 
+    public static boolean isWearingFullHazmat(EntityPlayer player) {
+        if (player == null) return false;
+        try {
+            if (HazardProtection.isWearingFullRadioHazmat(player)) {
+                return true;
+            }
+        } catch (Throwable ignored) {}
+        int count = 0;
+        for (int i = 1; i <= 4; i++) {
+            ItemStack stack = player.getEquipmentInSlot(i);
+            if (stack == null) continue;
+            boolean protects = false;
+            try {
+                if (HazardProtection.protectsAgainstHazard(player, stack, Hazard.RADIOLOGICAL)
+                    || HazardProtection.protectsAgainstHazardFully(player, stack, Hazard.RADIOLOGICAL)
+                    || HazardProtection.protectsAgainstHazard(stack, Hazard.RADIOLOGICAL)) {
+                    protects = true;
+                }
+            } catch (Throwable ignored) {}
+            if (!protects && stack.getUnlocalizedName() != null) {
+                String lower = stack.getUnlocalizedName().toLowerCase();
+                if (lower.contains("hazmat") || lower.contains("rubboot") || lower.contains("rubber") || lower.contains("radiation")) {
+                    protects = true;
+                }
+            }
+            if (!protects && stack.getItem() != null) {
+                String id = (String) net.minecraft.item.Item.itemRegistry.getNameForObject(stack.getItem());
+                if (id != null) {
+                    String lowerId = id.toLowerCase();
+                    if (lowerId.contains("hazmat") || lowerId.contains("rubboot") || lowerId.contains("rubber") || lowerId.contains("radiation")) {
+                        protects = true;
+                    }
+                }
+            }
+            if (protects) count++;
+        }
+        return count >= 4;
+    }
+
     private void applyRadiationFallout() {
         double radiusSq = 160.0 * 160.0; // 10 chunks = 160m
 
@@ -202,22 +242,12 @@ public class EntityMeltdownFallout extends Entity {
                 double dx = player.posX - posX;
                 double dz = player.posZ - posZ;
                 if (dx * dx + dz * dz <= radiusSq) {
-                    if (!HazardProtection.isWearingFullRadioHazmat(player)) {
+                    if (!isWearingFullHazmat(player)) {
                         // Apply severe GT radioactivity
                         GTUtility.applyRadioactivity(player, 5, 20);
-                        // Strip vanilla nausea and blindness so they do not distort the camera or clash with the fallout shader
-                        player.removePotionEffect(Potion.confusion.id);
-                        player.removePotionEffect(Potion.blindness.id);
                         // Inflict maximum IC2 radiation potion effect
                         if (Loader.isModLoaded("IC2") && IC2Potion.radiation != null) {
                             player.addPotionEffect(new PotionEffect(IC2Potion.radiation.id, 240, 3));
-                        }
-                    } else {
-                        // Clear lingering effects if player is fully protected
-                        player.removePotionEffect(Potion.confusion.id);
-                        player.removePotionEffect(Potion.blindness.id);
-                        if (Loader.isModLoaded("IC2") && IC2Potion.radiation != null) {
-                            player.removePotionEffect(IC2Potion.radiation.id);
                         }
                     }
                 }

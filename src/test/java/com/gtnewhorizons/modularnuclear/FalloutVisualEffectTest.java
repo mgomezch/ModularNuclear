@@ -50,26 +50,30 @@ public class FalloutVisualEffectTest {
         float noHazmatAt40m = FalloutVisualEffectRenderer.computeIntensity(40.0, maxDist, 0);
         assertEquals(0.5f, noHazmatAt40m, 0.001f);
 
-        // With 1 hazmat piece (e.g. helmet), maximum intensity at d=0m MUST NOT exceed no-hazmat at 40m
-        float hazmat1At0m = FalloutVisualEffectRenderer.computeIntensity(0.0, maxDist, 1);
-        assertTrue(hazmat1At0m <= noHazmatAt40m);
-        assertEquals(0.5f, hazmat1At0m, 0.001f);
+        // Partial hazmat (1, 2, or 3 pieces) MUST have ZERO reduction compared to 0 pieces
+        float noHazmatAt5m = FalloutVisualEffectRenderer.computeIntensity(5.0, maxDist, 0);
+        assertEquals(noHazmatAt5m, FalloutVisualEffectRenderer.computeIntensity(5.0, maxDist, 1), 0.0001f);
+        assertEquals(noHazmatAt5m, FalloutVisualEffectRenderer.computeIntensity(5.0, maxDist, 2), 0.0001f);
+        assertEquals(noHazmatAt5m, FalloutVisualEffectRenderer.computeIntensity(5.0, maxDist, 3), 0.0001f);
 
-        // At d=5m with 1 hazmat piece: effective distance 45m -> ~0.406
-        float hazmat1At5m = FalloutVisualEffectRenderer.computeIntensity(5.0, maxDist, 1);
-        assertTrue(hazmat1At5m < hazmat1At0m);
-        assertEquals(0.406f, hazmat1At5m, 0.01f);
-
-        // At d >= 40m with hazmat: effective distance >= 80m -> intensity is completely eliminated (0.0)
-        float hazmat1At40m = FalloutVisualEffectRenderer.computeIntensity(40.0, maxDist, 1);
-        assertEquals(0.0f, hazmat1At40m, 0.001f);
-
-        // Full 4-piece hazmat suit further scales down residual intensity
+        // Full 4-piece hazmat suit:
+        // Maximum intensity at d=0m MUST NOT exceed no-hazmat at 40m
         float fullHazmatAt0m = FalloutVisualEffectRenderer.computeIntensity(0.0, maxDist, 4);
-        assertEquals(0.125f, fullHazmatAt0m, 0.001f); // 0.50 * 0.25 = 0.125
+        assertTrue(fullHazmatAt0m <= noHazmatAt40m);
+        assertEquals(0.5f, fullHazmatAt0m, 0.001f);
 
-        float fullHazmatAt20m = FalloutVisualEffectRenderer.computeIntensity(20.0, maxDist, 4);
-        assertTrue(fullHazmatAt20m <= 0.05f);
+        // At d=5m with full hazmat: effective distance 45m -> ~0.406
+        float fullHazmatAt5m = FalloutVisualEffectRenderer.computeIntensity(5.0, maxDist, 4);
+        assertTrue(fullHazmatAt5m < fullHazmatAt0m);
+        assertEquals(0.406f, fullHazmatAt5m, 0.01f);
+
+        // At d >= 40m with full hazmat: effective distance >= 80m -> intensity is completely eliminated (0.0)
+        float fullHazmatAt40m = FalloutVisualEffectRenderer.computeIntensity(40.0, maxDist, 4);
+        assertEquals(0.0f, fullHazmatAt40m, 0.001f);
+
+        // Boolean overload behaves identically
+        assertEquals(fullHazmatAt5m, FalloutVisualEffectRenderer.computeIntensity(5.0, maxDist, true), 0.0001f);
+        assertEquals(noHazmatAt5m, FalloutVisualEffectRenderer.computeIntensity(5.0, maxDist, false), 0.0001f);
     }
 
     @Test
