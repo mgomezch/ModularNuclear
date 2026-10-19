@@ -130,11 +130,14 @@ public class NuclearSimulationEngineTest {
         boolean isFuel = false;
         int neutronBaseGen = 0;
         double absorbProb = 0.1;
+        double absorbProbThermal = -1.0;
         double scatterProb = 0.5;
         double moderationProb = 0.8;
         double heatCoeff = 0.05;
         double insulationDampening = 0.0;
         int emissionCount = 1;
+        boolean hasControlRod = false;
+        double rodAbsorptionFraction = 0.0;
         com.gtnewhorizons.modularnuclear.common.config.data.FuelData fuelData = null;
 
         int fluxReceived = 0;
@@ -190,6 +193,9 @@ public class NuclearSimulationEngineTest {
 
         @Override
         public double getAbsorptionProbability(NeutronType type) {
+            if (type == NeutronType.THERMAL && absorbProbThermal >= 0.0) {
+                return absorbProbThermal;
+            }
             return absorbProb;
         }
 
@@ -230,6 +236,16 @@ public class NuclearSimulationEngineTest {
         @Override
         public com.gtnewhorizons.modularnuclear.common.config.data.FuelData getFuelData() {
             return fuelData;
+        }
+
+        @Override
+        public boolean hasControlRod() {
+            return hasControlRod;
+        }
+
+        @Override
+        public double getControlRodAbsorptionFraction(NeutronType type) {
+            return rodAbsorptionFraction;
         }
     }
 
@@ -6979,6 +6995,95 @@ public class NuclearSimulationEngineTest {
         assertNotNull(hatch.mInputFluid, "Direct triggerThermalShock must be a no-op for liquid fuel");
         assertEquals(0.0, reactor.mReactorDamage, 1e-6);
         assertEquals(6, reactor.getRepairStatus());
+    }
+
+    @Test
+    void testControlRodAbsorptionHeatRateOnFuelCell() {
+        // 1. Verify SimTile control rod absorption fraction logic
+        SimTile simTileFuel = new SimTile(SimTile.TileType.FUEL_URANIUM_SINGLE);
+        assertFalse(simTileFuel.hasControlRod());
+        assertEquals(0.0, simTileFuel.getControlRodAbsorptionFraction(NeutronType.THERMAL), 1e-6);
+
+        simTileFuel.setHasControlRod(true);
+        simTileFuel.setControlRodType(SimTile.ControlRodType.CADMIUM);
+        simTileFuel.setControlRodInsertion(100);
+        assertTrue(simTileFuel.hasControlRod());
+        double pBaseThermal = simTileFuel.getBaseAbsorptionProbability(NeutronType.THERMAL);
+        double pRodThermal = simTileFuel.getControlRodAbsorptionProbability(NeutronType.THERMAL);
+        assertEquals(0.85, pRodThermal, 1e-6);
+        double expectedFrac = pRodThermal / (pBaseThermal + pRodThermal);
+        assertEquals(expectedFrac, simTileFuel.getControlRodAbsorptionFraction(NeutronType.THERMAL), 1e-6);
+
+        // 2. Verify NuclearGridTile control rod absorption fraction with MTEHatchNuclearControlRod
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.rod.heat");
+        reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
+        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile gridTile =
+            new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile(reactor, (MTEHatchNuclearBus) null, 1, 1);
+        assertFalse(gridTile.hasControlRod());
+        assertEquals(0.0, gridTile.getControlRodAbsorptionFraction(NeutronType.THERMAL), 1e-6);
+
+        MTEHatchNuclearControlRod rodHatch = new MTEHatchNuclearControlRod("test.rod.hatch", 4, new String[0], null);
+        gridTile.setBottomControlRod(rodHatch);
+        assertTrue(gridTile.hasControlRod());
+        double pGridBase = reactor.getBaseAbsorptionProbability(gridTile, NeutronType.THERMAL);
+        double pGridRod = rodHatch.getAbsorptionProbability(NeutronType.THERMAL);
+        double expectedGridFrac = pGridRod / (pGridBase + pGridRod);
+        assertEquals(expectedGridFrac, gridTile.getControlRodAbsorptionFraction(NeutronType.THERMAL), 1e-6);
+
+        // 3. Verify NuclearSimulationEngine heat generation:
+        // When control rods absorb thermal neutrons on a fuel cell, they deposit heat at
+        // HU_FOR_FAST_NEUTRON * 0.5 (4.0 Hu/neutron), NOT the fuel fission rate (fissionHeatPerNeutron * 1.25 = 5.0 Hu/neutron).
+        // A non-fuel cell also deposits thermal neutron absorption heat at HU_FOR_FAST_NEUTRON * 0.5 (4.0 Hu/neutron).
+
+        double origHeatPerNeutron = NuclearSimulationEngine.fissionHeatPerNeutron;
+        NuclearSimulationEngine.fissionHeatPerNeutron = 4.0; // 4.0 * 1.25 = 5.0 Hu/neutron for fuel
+
+        try {
+            java.util.function.BiFunction<Boolean, Double, Double> runSim = (isFuel, rodFraction) -> {
+                INuclearTile[][] grid = new INuclearTile[3][3];
+                SimTile source = new SimTile(SimTile.TileType.NEUTRON_SOURCE);
+                source.setNeutronSourceBeamEnergy(1000.0f);
+                source.setNeutronSourceBeamRate(100);
+                grid[0][1] = source;
+
+                MockNuclearTile target = new MockNuclearTile(isFuel, 0);
+                target.heatCoeff = 0.0; // Isolate conductive heat transfer
+                target.temperature = 20.0;
+                target.absorbProb = 0.0; // Fast absorption = 0 (100% scattered & moderated)
+                target.scatterProb = 1.0;
+                target.moderationProb = 1.0;
+                target.absorbProbThermal = 1.0; // 100% thermal absorption
+                target.hasControlRod = (rodFraction > 0.0);
+                target.rodAbsorptionFraction = rodFraction;
+                grid[1][1] = target;
+
+                NuclearSimulationEngine.simulate(grid, 3, 3);
+                return target.heatHU;
+            };
+
+            // Non-fuel cell: 800.0 (fast mod) + 100 * 4.0 (non-fuel thermal) = 1200.0 Hu
+            double heatNonFuel = runSim.apply(false, 0.0);
+            assertEquals(1200.0, heatNonFuel, 1e-4, "Non-fuel cell must absorb thermal neutrons at 4.0 Hu/neutron");
+
+            // Fuel cell without control rod: 800.0 (fast mod) + 100 * 5.0 (fuel thermal) = 1300.0 Hu
+            double heatFuelNoRod = runSim.apply(true, 0.0);
+            assertEquals(1300.0, heatFuelNoRod, 1e-4, "Fuel cell without control rod must absorb thermal neutrons at 5.0 Hu/neutron");
+
+            // Fuel cell with 100% control rod absorption: 800.0 (fast mod) + 100 * 4.0 (rod thermal) = 1200.0 Hu
+            double heatFuelFullRod = runSim.apply(true, 1.0);
+            assertEquals(1200.0, heatFuelFullRod, 1e-4, "Fuel cell with 100% control rod must absorb thermal neutrons at non-fuel rate (4.0 Hu/neutron)");
+            assertEquals(heatNonFuel, heatFuelFullRod, 1e-4, "Rod-absorbed heat on fuel cell must exactly equal non-fuel cell heat");
+
+            // Fuel cell with 50% control rod absorption: 800.0 + 50 * 5.0 + 50 * 4.0 = 1250.0 Hu
+            double heatFuelHalfRod = runSim.apply(true, 0.5);
+            assertEquals(1250.0, heatFuelHalfRod, 1e-4, "Fuel cell with 50% control rod must split absorption: 50 * 5.0 + 50 * 4.0 = 450 Hu");
+
+            // Fuel cell with 25% control rod absorption: 800.0 + 75 * 5.0 + 25 * 4.0 = 1275.0 Hu
+            double heatFuelQuarterRod = runSim.apply(true, 0.25);
+            assertEquals(1275.0, heatFuelQuarterRod, 1e-4, "Fuel cell with 25% control rod must split absorption: 75 * 5.0 + 25 * 4.0 = 475 Hu");
+        } finally {
+            NuclearSimulationEngine.fissionHeatPerNeutron = origHeatPerNeutron;
+        }
     }
 
     private static void deleteRecursively(File file) {

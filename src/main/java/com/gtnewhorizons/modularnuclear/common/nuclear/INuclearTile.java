@@ -180,4 +180,20 @@ public interface INuclearTile {
     default boolean drainEnergy(long eu) {
         return true;
     }
+
+    /**
+     * Checks if this tile has an active control rod hatch beneath it.
+     */
+    default boolean hasControlRod() {
+        return false;
+    }
+
+    /**
+     * Fraction of absorbed neutrons of the given type captured by the control rod [0.0, 1.0].
+     * 0.0 means all absorbed neutrons are captured by the base tile (e.g. no control rod).
+     * 1.0 means all absorbed neutrons are captured by the control rod.
+     */
+    default double getControlRodAbsorptionFraction(NeutronType type) {
+        return 0.0;
+    }
 }

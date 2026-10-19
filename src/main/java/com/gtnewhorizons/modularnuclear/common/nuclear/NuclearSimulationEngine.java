@@ -705,7 +705,11 @@ public class NuclearSimulationEngine {
                     if (hitTile.getInsulationDampening() < 1.0) {
                         if (absT > 0) {
                             if (hitTile.isFuel()) {
-                                pendingHeat[x][y] += absT * fissionHeatPerNeutron * 1.25;
+                                double rodFraction = hitTile.getControlRodAbsorptionFraction(NeutronType.THERMAL);
+                                double absRod = Math.min(absT, Math.max(0.0, absT * rodFraction));
+                                double absFuel = Math.max(0.0, absT - absRod);
+                                pendingHeat[x][y] += absFuel * fissionHeatPerNeutron * 1.25
+                                    + absRod * (HU_FOR_FAST_NEUTRON * 0.5);
                             } else {
                                 pendingHeat[x][y] += absT * (HU_FOR_FAST_NEUTRON * 0.5);
                             }

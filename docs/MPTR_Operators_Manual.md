@@ -430,6 +430,8 @@ All core heat comes from the neutron simulation. It is accumulated during the cy
 | Thermal absorption in fuel | 47.5 (= 38 × 1.25) | absorbing fuel cell |
 | Thermal absorption elsewhere | 4 | absorbing cell |
 
+When a control rod is present beneath a fuel cell, thermal neutrons absorbed by that cell are partitioned between the fuel and the control rod according to their relative absorption cross-sections ($f_{rod} = p_{rod} / (p_{base} + p_{rod})$). The fuel-absorbed share deposits heat at the fuel fission rate ($1.25 \times \text{fissionHeatPerNeutron}$), while the rod-absorbed share deposits heat at the standard non-fuel rate ($4\text{ Hu/neutron}$, matching $0.5 \times \text{HU\_FOR\_FAST\_NEUTRON}$). Neutrons captured by control rods never produce fuel fission heat.
+
 Absorption and moderation heat is **not deposited** in a cell whose insulation dampening is 1.0 (Naquarite foil). That cell absorbs neutrons without heating. Prompt fission heat is always deposited.
 
 Two derived figures are useful. A fuel cell that emits $N$ neutrons and absorbs $A_t$ thermal neutrons heats itself by
@@ -1076,7 +1078,7 @@ When the combined cell absorbs neutrons, the absorbed count is split between rod
 
 $$\frac{p_{a,base}}{p_{a,base} + p_{rod}}.$$
 
-**Only the cell's share counts towards fission** (§5.1) and fuel wear. The rod's share is simply removed. All absorption heat is deposited in the cell.
+**Only the cell's share counts towards fission** (§5.1) and fuel wear. The rod's share is removed. Thermal absorption heat deposited in the cell is split accordingly: the fuel's share deposits heat at the fuel fission rate ($1.25 \times \text{fissionHeatPerNeutron}$), while the control rod's absorbed share deposits heat at the standard non-fuel component rate ($4\text{ Hu/neutron}$, matching $0.5 \times \text{HU\_FOR\_FAST\_NEUTRON}$). Neutrons absorbed by control rods never produce fuel fission heat, even on rodded fuel cells.
 
 Two worked cases with a fully inserted Hafnium rod:
 
@@ -2398,6 +2400,7 @@ The following behaviours, described in the body of this manual, appear to differ
 | 29 | Loops | Multi-tick loop crawling (1 000 steps/tick, up to 20 ticks / 20 000 steps total) with loop-too-large controller error | §11.5.1 |
 | 30 | Loops | Manifold area-weighted parallel flow splitting, thermal blending, and non-additive parallel pressure drops; maintenance preservation across crawls | §11.5.1, §11.5.3, §11.5.5 |
 | 31 | Loops | *Resolved:* PHE input hatch strictly accepts Distilled Water variants (`ic2distilledwater`, `distilledwater`, `distilled_water`); plain Minecraft water is rejected | §11.5.8 |
+| 32 | Neutronics | *Resolved:* Control-rod-absorbed thermal neutrons on fuel cells deposit heat at the standard non-fuel absorption rate ($4.0\text{ Hu/neutron}$) rather than the fuel fission rate ($5.0\text{ Hu/neutron}$) | §6.1, §9.3 |
 
 ---
 

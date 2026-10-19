@@ -68,8 +68,18 @@ public class NuclearGridTile implements INuclearTile {
         return reactor;
     }
 
+    @Override
     public boolean hasControlRod() {
         return bottomControlRod != null;
+    }
+
+    @Override
+    public double getControlRodAbsorptionFraction(NeutronType type) {
+        if (bottomControlRod == null) return 0.0;
+        double pRod = bottomControlRod.getAbsorptionProbability(type);
+        double pBase = (reactor != null) ? reactor.getBaseAbsorptionProbability(this, type) : 0.01;
+        double sum = pBase + pRod;
+        return (sum > 0.0) ? (pRod / sum) : 0.0;
     }
 
     public MTEHatchNuclearControlRod getBottomControlRod() {

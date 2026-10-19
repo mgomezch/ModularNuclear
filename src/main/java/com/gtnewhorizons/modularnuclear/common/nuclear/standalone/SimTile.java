@@ -220,6 +220,7 @@ public class SimTile implements INuclearTile {
         this.neutronSourceBeamRate = rate;
     }
 
+    @Override
     public boolean hasControlRod() {
         return hasControlRod;
     }
@@ -668,19 +669,31 @@ public class SimTile implements INuclearTile {
         };
     }
 
+    public double getControlRodAbsorptionProbability(NeutronType nType) {
+        if (!hasControlRod) return 0.0;
+        if (controlRodType == ControlRodType.NONE || controlRodType == null) {
+            return 0.01;
+        }
+        double ratio = controlRodInsertion / 100.0;
+        double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption
+            : controlRodType.maxFastAbsorption;
+        return Math.max(0.01, ratio * max);
+    }
+
+    @Override
+    public double getControlRodAbsorptionFraction(NeutronType nType) {
+        if (!hasControlRod) return 0.0;
+        double pRod = getControlRodAbsorptionProbability(nType);
+        double pBase = getBaseAbsorptionProbability(nType);
+        double sum = pBase + pRod;
+        return (sum > 0.0) ? (pRod / sum) : 0.0;
+    }
+
     @Override
     public double getAbsorptionProbability(NeutronType nType) {
         double pBase = getBaseAbsorptionProbability(nType);
         if (hasControlRod) {
-            double pRod;
-            if (controlRodType == ControlRodType.NONE || controlRodType == null) {
-                pRod = 0.01;
-            } else {
-                double ratio = controlRodInsertion / 100.0;
-                double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption
-                    : controlRodType.maxFastAbsorption;
-                pRod = Math.max(0.01, ratio * max);
-            }
+            double pRod = getControlRodAbsorptionProbability(nType);
             return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
         }
         return pBase;
@@ -802,15 +815,7 @@ public class SimTile implements INuclearTile {
     public void onNeutronAbsorbed(NeutronType nType, int count) {
         if (count <= 0) return;
         if (hasControlRod) {
-            double pRod;
-            if (controlRodType == ControlRodType.NONE || controlRodType == null) {
-                pRod = 0.01;
-            } else {
-                double ratio = controlRodInsertion / 100.0;
-                double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption
-                    : controlRodType.maxFastAbsorption;
-                pRod = Math.max(0.01, ratio * max);
-            }
+            double pRod = getControlRodAbsorptionProbability(nType);
             double pBase = getBaseAbsorptionProbability(nType);
             double sum = pBase + pRod;
             int nRod = (sum > 0) ? (int) Math.round(count * (pRod / sum)) : count / 2;
