@@ -78,6 +78,8 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
             "damage",
             new DoubleSyncValue(() -> multiblock.mReactorDamage, v -> multiblock.mReactorDamage = v));
         syncManager.syncValue("scram", new BooleanSyncValue(() -> multiblock.mScram, multiblock::setScram));
+        syncManager
+            .syncValue("moltenDown", new BooleanSyncValue(() -> multiblock.mMoltenDown, v -> multiblock.mMoltenDown = v));
 
         syncManager.registerSyncedAction("toggleScram", false, true, buf -> multiblock.setScram(!multiblock.mScram));
     }
@@ -95,6 +97,7 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         LongSyncValue escSyncer = syncManager.findSyncHandler("escapedNeutrons", LongSyncValue.class);
         DoubleSyncValue damageSyncer = syncManager.findSyncHandler("damage", DoubleSyncValue.class);
         BooleanSyncValue scramSyncer = syncManager.findSyncHandler("scram", BooleanSyncValue.class);
+        BooleanSyncValue moltenSyncer = syncManager.findSyncHandler("moltenDown", BooleanSyncValue.class);
 
         // Core temp
         list.child(
@@ -177,10 +180,17 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
 
         // SCRAM Alert (if active)
         list.child(
-            IKey.str(EnumChatFormatting.RED + "" + EnumChatFormatting.BOLD + "EMERGENCY SCRAM ACTIVE")
+            IKey.str(EnumChatFormatting.RED + "" + EnumChatFormatting.BOLD + "Emergency scram active")
                 .asWidget()
                 .textAlign(Alignment.CenterLeft)
                 .setEnabledIf(w -> scramSyncer != null ? scramSyncer.getBoolValue() : multiblock.mScram));
+
+        // Molten down alert (if active)
+        list.child(
+            IKey.str(EnumChatFormatting.DARK_RED + "" + EnumChatFormatting.BOLD + "Molten down (permanently ruined)")
+                .asWidget()
+                .textAlign(Alignment.CenterLeft)
+                .setEnabledIf(w -> moltenSyncer != null ? moltenSyncer.getBoolValue() : multiblock.mMoltenDown));
 
         return list;
     }

@@ -1761,11 +1761,14 @@ Before any maintenance that breaks the structure, the core should still ideally 
 
 **Trigger.** Reactor damage reaches 100% at the end of a cycle.
 
-**Sequence:**
+If GregTech machine explosions are disabled (`!GregTechAPI.sMachineExplosions`), no explosion or meltdown occurs: instead, the reactor immediately voids all items and fluids across all hatches, buses and control rods, resets damage, and shuts down safely. The controller is preserved without ruin.
 
-1. **Explosion** of power 4.5 at the centre of the reactor chamber.
-2. **Corium** placement. A sphere of radius 2 inside the chamber layers is filled with corium, plus 4 additional corium blocks at random positions.
-3. An invisible **fallout entity** is spawned at the site.
+If machine explosions are enabled, the sequence:
+
+1. **Molten down controller.** Prior to the explosion, the controller is marked as molten down (`mMoltenDown`). A molten controller permanently fails the multiblock structure check and cannot be re-used to form a reactor. Its tooltip displays *Molten down (permanently ruined)* in dark red bold, its GUI terminal shows the ruin warning, and its front texture displays a red X. The player must craft a new controller.
+2. **Explosion** of power 20 at the centre of the reactor chamber.
+3. **Corium** placement. A sphere of radius 2 inside the chamber layers is filled with corium, plus 4 additional corium blocks at random positions.
+4. An invisible **fallout entity** is spawned at the site. The fallout entity force-loads its own chunk and all chunks in a 3×3 chunk area around it for its entire 10-minute lifetime, guaranteeing that all corium always solidifies into bedrock even if the player departs the area.
 
 **Corium** is a flowing fluid block (lava material) with these properties:
 
@@ -1783,13 +1786,11 @@ Before any maintenance that breaks the structure, the core should still ideally 
 | Time after meltdown | Effect |
 |---|---|
 | 0 | +2 000 000 pollution in the chunk |
-| every second | radiation applied to players within 160 m horizontally |
+| every second | force-loads a 3×3 chunk area; radiation applied to players within 160 m horizontally |
 | 2 400 ticks (2 min) | all corium within ±48 blocks solidifies into **bedrock** |
-| 12 000 ticks (10 min) | entity despawns |
+| 12 000 ticks (10 min) | entity despawns and releases chunk tickets |
 
 The bedrock is permanent. A meltdown leaves a bedrock plug where the core was, along with whatever terrain the corium flowed through in the first two minutes.
-
-Reactor damage remains at 100%. If the controller survives (or is retrieved with its damage intact) and the structure is re-formed, **it melts down again** at the first cycle unless damage is first repaired (§12.2).
 
 ### 13.6 Dynamo overload explosion
 
@@ -1807,10 +1808,9 @@ Direct power is not reset by SCRAM or by disabling the machine (§9.5). Removing
 **Trigger.** Any non-neutron particle beam (`Particle` $\ne$ `Particle.NEUTRON`) enters any connected Beam Input Hatch on slice 4.
 
 **Consequence:**
-- The reactor immediately triggers `explodeReactor(false, "Incompatible particle beam entered reactor core!")`.
-- Destroys the controller and surrounding hatches.
+- If GregTech machine explosions are enabled, the reactor triggers `explodeReactor(beamHatch, ...)`, creating an explosion of strength 20 at the beam input hatch, letting standard block damage destroy surrounding structure blocks.
 - Releases 100 000 pollution.
-- All core materials in buses and hatches are voided.
+- If GregTech machine explosions are disabled, the reactor does not explode: instead, it immediately voids all items and fluids across all hatches, buses and control rods, and shuts down safely.
 
 ### 13.8 Coolant loop failures
 
@@ -2329,7 +2329,7 @@ reservoir:
 
 | Constant | Value |
 |---|---|
-| Explosion power | 4.5 |
+| Explosion power | 20 |
 | Corium sphere radius | 2 (+4 random blocks) |
 | Corium contact | fire 30 s, 10 damage, GT radioactivity 5, IC2 radiation 240 t × amplifier 3 |
 | Fallout pollution | 2 000 000 |

@@ -68,8 +68,13 @@ import gregtech.api.interfaces.tileentity.ICasingTextureProvider;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEHatchDynamo;
 import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
+import gregtech.api.metatileentity.implementations.MTEHatchInput;
+import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
+import gregtech.api.metatileentity.implementations.MTEHatchOutput;
+import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
@@ -148,6 +153,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     private final ReactorMetricsHistory mMetricsHistory = new ReactorMetricsHistory();
     public ReactorMetricsHistory mClientMetricsHistory = null;
     public long mTotalCycles = 0L;
+    public boolean mMoltenDown = false;
 
     // Client-side Cherenkov radiation state
     public int mClientTier = 1;
@@ -380,9 +386,14 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         ITexture casingTex = getCasingTexture();
         if (side == aFacing) {
             ModularNuclearTextures.init();
-            gregtech.api.interfaces.IIconContainer overlay = aActive
-                ? ModularNuclearTextures.OVERLAY_FRONT_FISSION_REACTOR_ACTIVE
-                : ModularNuclearTextures.OVERLAY_FRONT_FISSION_REACTOR;
+            gregtech.api.interfaces.IIconContainer overlay;
+            if (mMoltenDown) {
+                overlay = ModularNuclearTextures.OVERLAY_FRONT_FISSION_REACTOR_MOLTEN;
+            } else if (aActive) {
+                overlay = ModularNuclearTextures.OVERLAY_FRONT_FISSION_REACTOR_ACTIVE;
+            } else {
+                overlay = ModularNuclearTextures.OVERLAY_FRONT_FISSION_REACTOR;
+            }
             if (overlay != null) {
                 return new ITexture[] { casingTex, TextureFactory.builder()
                     .addIcon(overlay)
@@ -437,63 +448,211 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
     }
 
+    public void explodeReactor(MTEHatchInputBeamline beamHatch, String reason) {
+        explodeReactor(beamHatch, false, reason);
+    }
+
     public void explodeReactor(boolean highPressure, String reason) {
+        explodeReactor(null, highPressure, reason);
+    }
+
+    public void explodeReactor(MTEHatchInputBeamline beamHatch, boolean highPressure, String reason) {
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null || !base.isServerSide()) return;
 
-        GTLog.writeExplosionLog(this, reason);
-        World world = base.getWorld();
-        int cX = base.getXCoord();
-        int cY = base.getYCoord();
-        int cZ = base.getZCoord();
+        try {
+            GTLog.writeExplosionLog(this, reason);
+        } catch (Throwable ignored) {}
 
-        // High pressure causes twice the explosion radius (18.0F vs 9.0F from large boilers)
-        float strength = highPressure ? 18.0F : 9.0F;
+        if (!GregTechAPI.sMachineExplosions) {
+            ModularNuclear.LOG.warn(
+                "Reactor explosion condition reached ({}), but machine explosions are disabled! Voiding all contents and shutting down safely.",
+                reason);
+            voidAllContents();
+            return;
+        }
+
+        World world = base.getWorld();
+        if (world == null) return;
+
+        double eX, eY, eZ;
+        float strength;
+        if (beamHatch != null && beamHatch.getBaseMetaTileEntity() != null) {
+            IGregTechTileEntity bTe = beamHatch.getBaseMetaTileEntity();
+            eX = bTe.getXCoord() + 0.5;
+            eY = bTe.getYCoord() + 0.5;
+            eZ = bTe.getZCoord() + 0.5;
+            strength = 20.0F;
+        } else {
+            eX = base.getXCoord() + 0.5;
+            eY = base.getYCoord() + 0.5;
+            eZ = base.getZCoord() + 0.5;
+            strength = highPressure ? 18.0F : 9.0F;
+        }
 
         Pollution.addPollution(base, GTMod.proxy.mPollutionOnExplosion * (highPressure ? 4 : 2));
-
-        for (IGregTechTileEntity te : mNuclearTiles) {
-            if (te != null && !te.isDead()) {
-                world.setBlock(te.getXCoord(), te.getYCoord(), te.getZCoord(), Blocks.air);
-            }
-        }
-
-        for (MTEHatchNuclearHighPressure bottom : mBottomHighPressureHatches) {
-            IGregTechTileEntity bTe = bottom.getBaseMetaTileEntity();
-            if (bTe != null && !bTe.isDead()) {
-                world.setBlock(bTe.getXCoord(), bTe.getYCoord(), bTe.getZCoord(), Blocks.air);
-            }
-        }
-
-        for (MTEHatchNuclearControlRod bottom : mBottomControlRodHatches) {
-            IGregTechTileEntity bTe = bottom.getBaseMetaTileEntity();
-            if (bTe != null && !bTe.isDead()) {
-                world.setBlock(bTe.getXCoord(), bTe.getYCoord(), bTe.getZCoord(), Blocks.air);
-            }
-        }
-
-        for (MTEHatchInputBeamline bottom : mBottomBeamInputHatches) {
-            IGregTechTileEntity bTe = bottom.getBaseMetaTileEntity();
-            if (bTe != null && !bTe.isDead()) {
-                world.setBlock(bTe.getXCoord(), bTe.getYCoord(), bTe.getZCoord(), Blocks.air);
-            }
-        }
-
-        world.setBlock(cX, cY, cZ, Blocks.air);
 
         GTUtility.sendSoundToPlayers(
             world,
             SoundResource.IC2_MACHINES_MACHINE_OVERLOAD,
             1.0F,
             -1,
-            cX + 0.5,
-            cY + 0.5,
-            cZ + 0.5);
+            eX,
+            eY,
+            eZ);
 
-        if (GregTechAPI.sMachineExplosions) {
-            world.createExplosion(null, cX + 0.5, cY + 0.5, cZ + 0.5, strength, true);
+        mMachine = false;
+        stopMachine();
+        base.setActive(false);
+
+        world.createExplosion(null, eX, eY, eZ, strength, true);
+    }
+
+    public void voidAllContents() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+
+        Set<IGregTechTileEntity> allNuclearTiles = new HashSet<>(mNuclearTiles);
+        allNuclearTiles.addAll(mLastFormedNuclearTiles);
+        for (IGregTechTileEntity te : allNuclearTiles) {
+            if (te != null && !te.isDead()) {
+                IMetaTileEntity mte = te.getMetaTileEntity();
+                if (mte instanceof MTEHatchNuclearHatch hatch) {
+                    hatch.mInputFluid = null;
+                    hatch.mWasDry = true;
+                    if (te.isServerSide()) {
+                        te.markDirty();
+                    }
+                } else if (mte instanceof MTEHatchNuclearBus bus) {
+                    if (bus.mInventory != null) {
+                        for (int i = 0; i < bus.mInventory.length; i++) {
+                            bus.mInventory[i] = null;
+                        }
+                    }
+                    bus.mLastNeutronsGenerated = 0;
+                    if (te.isServerSide()) {
+                        te.markDirty();
+                    }
+                } else if (mte instanceof MTEHatchNuclearControlRod rod) {
+                    if (rod.mInventory != null) {
+                        for (int i = 0; i < rod.mInventory.length; i++) {
+                            rod.mInventory[i] = null;
+                        }
+                    }
+                    if (te.isServerSide()) {
+                        te.markDirty();
+                    }
+                }
+            }
+        }
+
+        for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
+            if (rod != null) {
+                if (rod.mInventory != null) {
+                    for (int i = 0; i < rod.mInventory.length; i++) {
+                        rod.mInventory[i] = null;
+                    }
+                }
+                if (rod.getBaseMetaTileEntity() != null) {
+                    rod.getBaseMetaTileEntity().markDirty();
+                }
+            }
+        }
+        for (MTEHatchNuclearControl ctrl : mControlHatches) {
+            if (ctrl != null) {
+                ctrl.setOutputRedstone((byte) 0);
+                if (ctrl.getBaseMetaTileEntity() != null) {
+                    ctrl.getBaseMetaTileEntity().markDirty();
+                }
+            }
+        }
+
+        for (MTEHatchNuclearHighPressure hp : mTopHighPressureHatches) {
+            if (hp != null && hp.getBaseMetaTileEntity() != null) {
+                hp.getBaseMetaTileEntity().markDirty();
+            }
+        }
+        for (MTEHatchNuclearHighPressure hp : mBottomHighPressureHatches) {
+            if (hp != null && hp.getBaseMetaTileEntity() != null) {
+                hp.getBaseMetaTileEntity().markDirty();
+            }
+        }
+
+        for (MTEHatchInputBeamline beam : mBottomBeamInputHatches) {
+            if (beam != null) {
+                beam.dataPacket = null;
+                if (beam.getBaseMetaTileEntity() != null) {
+                    beam.getBaseMetaTileEntity().markDirty();
+                }
+            }
+        }
+
+        for (MTEHatchInput inHatch : mInputHatches) {
+            if (inHatch != null) {
+                inHatch.mFluid = null;
+                if (inHatch.getBaseMetaTileEntity() != null) inHatch.getBaseMetaTileEntity().markDirty();
+            }
+        }
+        for (MTEHatchOutput outHatch : mOutputHatches) {
+            if (outHatch != null) {
+                outHatch.mFluid = null;
+                if (outHatch.getBaseMetaTileEntity() != null) outHatch.getBaseMetaTileEntity().markDirty();
+            }
+        }
+        for (MTEHatchInputBus inBus : mInputBusses) {
+            if (inBus != null && inBus.mInventory != null) {
+                for (int i = 0; i < inBus.mInventory.length; i++) inBus.mInventory[i] = null;
+                if (inBus.getBaseMetaTileEntity() != null) inBus.getBaseMetaTileEntity().markDirty();
+            }
+        }
+        for (MTEHatchOutputBus outBus : mOutputBusses) {
+            if (outBus != null && outBus.mInventory != null) {
+                for (int i = 0; i < outBus.mInventory.length; i++) outBus.mInventory[i] = null;
+                if (outBus.getBaseMetaTileEntity() != null) outBus.getBaseMetaTileEntity().markDirty();
+            }
+        }
+        for (MTEHatchEnergy energy : mEnergyHatches) {
+            if (energy != null) {
+                energy.setEUVar(0);
+                if (energy.getBaseMetaTileEntity() != null) energy.getBaseMetaTileEntity().markDirty();
+            }
+        }
+        for (MTEHatchDynamo dynamo : mDynamoHatches) {
+            if (dynamo != null) {
+                dynamo.setEUVar(0);
+                if (dynamo.getBaseMetaTileEntity() != null) dynamo.getBaseMetaTileEntity().markDirty();
+            }
+        }
+
+        mDirectPowerEUt = 0;
+        mNeutronsProduced = 0;
+        mFastAbsorbed = 0;
+        mThermalAbsorbed = 0;
+        mEscapedNeutrons = 0;
+        mReactorDamage = 0.0;
+        mScram = true;
+        mMachine = false;
+        stopMachine();
+        if (base != null) {
+            base.setActive(false);
+            base.setLightValue((byte) 0);
+            base.markDirty();
+            try {
+                World world = base.getWorld();
+                int cX = base.getXCoord();
+                int cY = base.getYCoord();
+                int cZ = base.getZCoord();
+                GTUtility.sendSoundToPlayers(
+                    world,
+                    SoundResource.IC2_MACHINES_MACHINE_OVERLOAD,
+                    1.0F,
+                    0.5F,
+                    cX + 0.5,
+                    cY + 0.5,
+                    cZ + 0.5);
+            } catch (Throwable ignored) {}
         }
     }
+
 
     public void triggerThermalShock(MTEHatchNuclearHatch hatch, String reason) {
         IGregTechTileEntity base = getBaseMetaTileEntity();
@@ -554,8 +713,22 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public void triggerMeltdown() {
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null || !base.isServerSide()) return;
+
+        if (!GregTechAPI.sMachineExplosions) {
+            ModularNuclear.LOG.warn(
+                "Meltdown condition reached, but machine explosions are disabled! Voiding all contents and shutting down safely.");
+            voidAllContents();
+            return;
+        }
+
         World world = base.getWorld();
         if (world == null) return;
+
+        // Mark controller as permanently ruined from meltdown prior to explosion
+        this.mMoltenDown = true;
+        base.markDirty();
+        base.sendBlockEvent((byte) 102, (byte) 1);
+        base.issueTextureUpdate();
 
         List<ChunkCoordinates> hollowCoords = new ArrayList<>();
         double sumX = 0;
@@ -582,7 +755,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         double centerZ = (count > 0) ? (sumZ / count) : base.getZCoord();
 
         // 1. Center explosion damaging internal casings/hatches
-        world.createExplosion(null, centerX, centerY, centerZ, 4.5F, true);
+        world.createExplosion(null, centerX, centerY, centerZ, 20.0F, true);
 
         // 2. Corium fluid generation in inner hollow space
         if (!hollowCoords.isEmpty()) {
@@ -651,6 +824,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        if (mMoltenDown) {
+            errors.add(StructureErrors.of("GT5U.gui.text.structure_error.molten_down"));
+            return;
+        }
         clearHatches();
         mNuclearTiles.clear();
         mGrid = null;
@@ -1167,6 +1344,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             this.mClientWaterBlocks = -1;
         } else if (aEventID == 101) {
             this.mClientRadiationIntensity = Math.max(0.0f, Math.min(1.0f, (aValue & 0xFF) / 100.0f));
+        } else if (aEventID == 102) {
+            this.mMoltenDown = (aValue != 0);
+            if (getBaseMetaTileEntity() != null) {
+                getBaseMetaTileEntity().issueTextureUpdate();
+            }
         }
     }
 
@@ -1232,6 +1414,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
 
+        if (aBaseMetaTileEntity.isServerSide()) {
+            if (mMoltenDown && aTick % 20 == 0) {
+                aBaseMetaTileEntity.sendBlockEvent((byte) 102, (byte) 1);
+            }
+        }
+
         if (aBaseMetaTileEntity.isServerSide() && mMachine) {
             if (!mBottomBeamInputHatches.isEmpty()) {
                 for (MTEHatchInputBeamline beamHatch : mBottomBeamInputHatches) {
@@ -1240,7 +1428,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                         BeamInformation beamInfo = beamHatch.dataPacket.getContent();
                         if (beamInfo.getParticle() != Particle.NEUTRON) {
                             explodeReactor(
-                                false,
+                                beamHatch,
                                 "Incompatible non-neutron particle beam injected into core: " + beamInfo.getParticle()
                                     .getName());
                             return;
@@ -1501,6 +1689,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         super.saveNBTData(aNBT);
         aNBT.setBoolean("mWorldSaved", true);
         aNBT.setBoolean("mScram", mScram);
+        aNBT.setBoolean("mMoltenDown", mMoltenDown);
         aNBT.setDouble("mCoreTemp", mCoreTemp);
         aNBT.setDouble("mAvgTemp", mAvgTemp);
         aNBT.setDouble("mReactorDamage", mReactorDamage);
@@ -1553,18 +1742,23 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (mReactorDamage > 0.0) {
             aNBT.setDouble("mReactorDamage", mReactorDamage);
         }
+        if (mMoltenDown) {
+            aNBT.setBoolean("mMoltenDown", true);
+        }
     }
 
     @Override
     public void addAdditionalTooltipInformation(ItemStack aItemStack, List<String> aList) {
         super.addAdditionalTooltipInformation(aItemStack, aList);
-        if (aItemStack != null && aItemStack.hasTagCompound()
-            && aItemStack.getTagCompound()
-                .hasKey("mReactorDamage")) {
-            double dmg = aItemStack.getTagCompound()
-                .getDouble("mReactorDamage");
-            if (dmg > 0.0) {
-                aList.add(EnumChatFormatting.RED + String.format(Locale.US, "Reactor Damage: %.1f%%", dmg));
+        if (aItemStack != null && aItemStack.hasTagCompound()) {
+            if (aItemStack.getTagCompound().getBoolean("mMoltenDown")) {
+                aList.add(EnumChatFormatting.DARK_RED + "" + EnumChatFormatting.BOLD + "Molten down (permanently ruined)");
+            }
+            if (aItemStack.getTagCompound().hasKey("mReactorDamage")) {
+                double dmg = aItemStack.getTagCompound().getDouble("mReactorDamage");
+                if (dmg > 0.0) {
+                    aList.add(EnumChatFormatting.RED + String.format(Locale.US, "Reactor damage: %.1f%%", dmg));
+                }
             }
         }
     }
@@ -1582,6 +1776,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             mCrowbar = false;
         }
         mScram = aNBT.getBoolean("mScram");
+        if (aNBT.hasKey("mMoltenDown")) {
+            mMoltenDown = aNBT.getBoolean("mMoltenDown");
+        }
         if (aNBT.hasKey("mCoreTemp")) {
             mCoreTemp = aNBT.getDouble("mCoreTemp");
             mAvgTemp = aNBT.getDouble("mAvgTemp");

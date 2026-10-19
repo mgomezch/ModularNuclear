@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.entity;
 
+import java.util.List;
 import java.util.Random;
 
 import net.minecraft.block.Block;
@@ -10,11 +11,14 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
+import net.minecraftforge.common.ForgeChunkManager;
 
+import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 
 import cpw.mods.fml.common.Loader;
@@ -30,6 +34,72 @@ public class EntityMeltdownFallout extends Entity {
 
     private int mAge = 0;
     private boolean mSolidified = false;
+    private ForgeChunkManager.Ticket mChunkTicket;
+
+    public void initChunkLoading(ForgeChunkManager.Ticket ticket) {
+        this.mChunkTicket = ticket;
+        forceChunks();
+    }
+
+    public void setupChunkLoading() {
+        if (worldObj == null || worldObj.isRemote || mChunkTicket != null) return;
+        try {
+            mChunkTicket = ForgeChunkManager.requestTicket(ModularNuclear.instance, worldObj, ForgeChunkManager.Type.ENTITY);
+            if (mChunkTicket != null) {
+                mChunkTicket.bindEntity(this);
+                forceChunks();
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    private void forceChunks() {
+        if (mChunkTicket == null) return;
+        int centerChunkX = MathHelper.floor_double(posX) >> 4;
+        int centerChunkZ = MathHelper.floor_double(posZ) >> 4;
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                try {
+                    ForgeChunkManager.forceChunk(mChunkTicket, new ChunkCoordIntPair(centerChunkX + dx, centerChunkZ + dz));
+                } catch (Throwable ignored) {}
+            }
+        }
+    }
+
+    public void releaseChunkLoading() {
+        if (mChunkTicket != null) {
+            try {
+                ForgeChunkManager.releaseTicket(mChunkTicket);
+            } catch (Throwable ignored) {}
+            mChunkTicket = null;
+        }
+    }
+
+    public ForgeChunkManager.Ticket getChunkTicket() {
+        return mChunkTicket;
+    }
+
+    @Override
+    public void setDead() {
+        releaseChunkLoading();
+        super.setDead();
+    }
+
+    public static class MeltdownChunkLoadingCallback implements ForgeChunkManager.OrderedLoadingCallback {
+
+        @Override
+        public void ticketsLoaded(List<ForgeChunkManager.Ticket> tickets, World world) {
+            for (ForgeChunkManager.Ticket ticket : tickets) {
+                if (ticket != null && ticket.getEntity() instanceof EntityMeltdownFallout fallout) {
+                    fallout.initChunkLoading(ticket);
+                }
+            }
+        }
+
+        @Override
+        public List<ForgeChunkManager.Ticket> ticketsLoaded(List<ForgeChunkManager.Ticket> tickets, World world, int maxTicketCount) {
+            return tickets;
+        }
+    }
 
     public EntityMeltdownFallout(World world) {
         super(world);
@@ -82,6 +152,10 @@ public class EntityMeltdownFallout extends Entity {
     @Override
     public void onUpdate() {
         super.onUpdate();
+
+        if (!worldObj.isRemote && mChunkTicket == null) {
+            setupChunkLoading();
+        }
 
         // 1. Immediate pollution spike on creation
         if (mAge == 0 && !worldObj.isRemote) {

@@ -218,7 +218,7 @@ public class NuclearReactorPhysics {
                     if (beamHatch != null && beamHatch.dataPacket != null && beamHatch.dataPacket.getContent() != null) {
                         BeamInformation beamInfo = beamHatch.dataPacket.getContent();
                         if (beamInfo.getParticle() != Particle.NEUTRON) {
-                            reactor.explodeReactor(false, "Reactor exploded: incompatible non-neutron beam injected via beamline: " + beamInfo.getParticle().getName());
+                            reactor.explodeReactor(beamHatch, "Reactor exploded: incompatible non-neutron beam injected via beamline: " + beamInfo.getParticle().getName());
                             bus.mLastNeutronsGenerated = 0;
                             return 0;
                         }

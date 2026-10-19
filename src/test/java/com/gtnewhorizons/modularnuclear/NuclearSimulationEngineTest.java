@@ -4180,7 +4180,7 @@ public class NuclearSimulationEngineTest {
         List<String> tooltip = new ArrayList<>();
         reactor.addAdditionalTooltipInformation(controllerStack, tooltip);
         boolean foundDamageTooltip = tooltip.stream()
-            .anyMatch(s -> s.contains("Reactor Damage: 42.5%"));
+            .anyMatch(s -> s.contains("Reactor damage: 42.5%"));
         assertTrue(foundDamageTooltip, "Controller item tooltip must display reactor damage percentage");
 
         // 3. When new controller is placed and loadNBTData is called, damage is restored
@@ -6715,6 +6715,117 @@ public class NuclearSimulationEngineTest {
         boolean drained = reactor.drainEnergyUnits(1000L);
         assertTrue(drained, "Draining within available energy should succeed");
         org.mockito.Mockito.verify(mockBase).decreaseStoredEnergyUnits(1000L, false);
+    }
+
+    @Test
+    void testMoltenDownControllerFailsStructureCheckAndDisplaysInTooltip() {
+        MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.molten_test");
+        reactor.mMoltenDown = true;
+
+        // 1. setItemNBT writes mMoltenDown tag
+        NBTTagCompound itemNbt = new NBTTagCompound();
+        reactor.setItemNBT(itemNbt);
+        assertTrue(itemNbt.hasKey("mMoltenDown"), "Item NBT must contain mMoltenDown tag");
+        assertTrue(itemNbt.getBoolean("mMoltenDown"), "mMoltenDown tag must be true");
+
+        // 2. Controller item tooltip renders molten down status in dark red bold
+        ItemStack controllerStack = new ItemStack(Blocks.iron_block);
+        controllerStack.setTagCompound(itemNbt);
+        List<String> tooltip = new ArrayList<>();
+        reactor.addAdditionalTooltipInformation(controllerStack, tooltip);
+        boolean foundMoltenTooltip = tooltip.stream()
+            .anyMatch(s -> s.contains("Molten down (permanently ruined)"));
+        assertTrue(foundMoltenTooltip, "Controller item tooltip must display 'Molten down (permanently ruined)'");
+
+        // 3. Placing controller restores mMoltenDown via loadNBTData
+        MTENuclearReactor placedReactor = new MTENuclearReactor("nuclear.reactor.molten_test");
+        gregtech.api.interfaces.tileentity.IGregTechTileEntity tePlaced = org.mockito.Mockito
+            .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+        org.mockito.Mockito.when(tePlaced.getFrontFacing())
+            .thenReturn(ForgeDirection.NORTH);
+        placedReactor.setBaseMetaTileEntity(tePlaced);
+        placedReactor.loadNBTData(itemNbt);
+        assertTrue(placedReactor.mMoltenDown, "Placed reactor must restore mMoltenDown state");
+
+        // 4. Structure check immediately fails on a molten-down controller
+        List<gregtech.api.structure.error.StructureError> errors = new ArrayList<>();
+        placedReactor.checkMachine(null, controllerStack, errors);
+        assertFalse(errors.isEmpty(), "Structure check must report an error for molten controller");
+        boolean foundStructureError = errors.stream()
+            .anyMatch(e -> e.getDisplayString() != null && (e.getDisplayString().contains("molten_down") || e.getDisplayString().contains("meltdown")));
+        assertTrue(foundStructureError, "Structure error list must include molten_down error message");
+    }
+
+    @Test
+    void testExplosionsDisabledPreventsExplosionAndMeltdownAndVoidsAllContents() {
+        boolean prevSetting = gregtech.api.GregTechAPI.sMachineExplosions;
+        try {
+            gregtech.api.GregTechAPI.sMachineExplosions = false;
+
+            MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.no_expl_test");
+            reactor.mReactorDamage = 100.0;
+            reactor.mMachine = true;
+
+            gregtech.api.interfaces.tileentity.IGregTechTileEntity teMock = org.mockito.Mockito
+                .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+            org.mockito.Mockito.when(teMock.isServerSide()).thenReturn(true);
+            reactor.setBaseMetaTileEntity(teMock);
+
+            // Add a mock nuclear tile bus with an item
+            MTEHatchNuclearBus bus = new MTEHatchNuclearBus("bus.test", 4, new String[0], null);
+            bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = new ItemStack(Blocks.dirt);
+            gregtech.api.interfaces.tileentity.IGregTechTileEntity busTe = org.mockito.Mockito
+                .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+            org.mockito.Mockito.when(busTe.getMetaTileEntity()).thenReturn(bus);
+            org.mockito.Mockito.when(busTe.isServerSide()).thenReturn(true);
+            reactor.mNuclearTiles.add(busTe);
+
+            // Add a mock nuclear tile hatch with fluid
+            MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("hatch.test", 1, 16000, new String[0], null);
+            hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(net.minecraftforge.fluids.FluidRegistry.WATER, 1000);
+            gregtech.api.interfaces.tileentity.IGregTechTileEntity hatchTe = org.mockito.Mockito
+                .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+            org.mockito.Mockito.when(hatchTe.getMetaTileEntity()).thenReturn(hatch);
+            org.mockito.Mockito.when(hatchTe.isServerSide()).thenReturn(true);
+            reactor.mNuclearTiles.add(hatchTe);
+
+            // Trigger meltdown with explosions disabled
+            reactor.triggerMeltdown();
+
+            // Meltdown should NOT mark controller as moltenDown when explosions are disabled
+            assertFalse(reactor.mMoltenDown, "Controller should not be ruined when explosions are disabled");
+            assertEquals(0.0, reactor.mReactorDamage, 1e-6, "Reactor damage should be reset to 0 after safe shutdown");
+            assertFalse(reactor.mMachine, "Reactor should be shut down");
+            assertTrue(reactor.mScram, "Reactor should be SCRAMmed");
+
+            // All contents must be voided
+            assertNull(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Bus inventory must be completely voided");
+            assertNull(hatch.mInputFluid, "Hatch fluid must be completely voided");
+
+            // Similarly, explodeReactor should void all contents without exploding
+            bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = new ItemStack(Blocks.dirt);
+            hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(net.minecraftforge.fluids.FluidRegistry.WATER, 1000);
+            reactor.explodeReactor(null, "Test explosion when disabled");
+            assertNull(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Bus inventory must be voided by explodeReactor");
+            assertNull(hatch.mInputFluid, "Hatch fluid must be voided by explodeReactor");
+        } finally {
+            gregtech.api.GregTechAPI.sMachineExplosions = prevSetting;
+        }
+    }
+
+    @Test
+    void testFalloutEntityChunkLoading() {
+        EntityMeltdownFallout fallout = org.mockito.Mockito
+            .mock(EntityMeltdownFallout.class, org.mockito.Mockito.CALLS_REAL_METHODS);
+        assertNull(fallout.getChunkTicket(), "Initial ticket should be null");
+
+        net.minecraftforge.common.ForgeChunkManager.Ticket mockTicket =
+            org.mockito.Mockito.mock(net.minecraftforge.common.ForgeChunkManager.Ticket.class);
+        fallout.initChunkLoading(mockTicket);
+        assertEquals(mockTicket, fallout.getChunkTicket(), "Ticket should be set after initChunkLoading");
+
+        fallout.releaseChunkLoading();
+        assertNull(fallout.getChunkTicket(), "Ticket should be cleared after releaseChunkLoading");
     }
 
     private static void deleteRecursively(File file) {
