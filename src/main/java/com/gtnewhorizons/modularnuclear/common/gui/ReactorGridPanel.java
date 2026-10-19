@@ -24,7 +24,6 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearRe
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
 
 import gregtech.api.enums.ItemList;
-import gregtech.api.modularui2.common.CommonButtons;
 import ic2.core.Ic2Items;
 
 /**
@@ -37,6 +36,7 @@ public class ReactorGridPanel {
     public static ModularPanel createPanel(PanelSyncManager syncManager, ModularPanel parent,
         MTENuclearReactor reactor) {
         ModularPanel panel = new ModularPanel(PANEL_NAME) {
+
             @Override
             public boolean isDraggable() {
                 return false;
@@ -223,8 +223,16 @@ public class ReactorGridPanel {
 
         // Close button on the same level
         headerRow.child(
-            CommonButtons.panelCloseButton()
-                .size(14, 14));
+            new ButtonWidget<>().size(14, 14)
+                .child(
+                    IKey.str("x")
+                        .asWidget()
+                        .center())
+                .tooltipBuilder(t -> t.addLine("Close window"))
+                .onMousePressed(d -> {
+                    panel.closeIfOpen();
+                    return true;
+                }));
 
         // Layout header row and main grid widget vertically
         panel.child(

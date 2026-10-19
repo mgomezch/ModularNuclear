@@ -13,13 +13,13 @@ import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.ScrollWidget;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ItemDisplayWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.gui.PanelDragHandle;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 
 import gregtech.api.enums.ItemList;
-import gregtech.api.modularui2.common.CommonButtons;
 
 /**
  * Floating, resizable ModularUI 2 window displaying live reactor metrics over the last 100 cycles.
@@ -29,12 +29,10 @@ public class ReactorMetricsDashboardPanel {
 
     public static final String PANEL_NAME = "reactorMetricsDashboardPanel";
 
-    public static ModularPanel createPanel(
-        PanelSyncManager syncManager,
-        ModularPanel parent,
-        MTENuclearReactor reactor
-    ) {
+    public static ModularPanel createPanel(PanelSyncManager syncManager, ModularPanel parent,
+        MTENuclearReactor reactor) {
         ModularPanel panel = new ModularPanel(PANEL_NAME) {
+
             @Override
             public boolean isDraggable() {
                 return false;
@@ -73,7 +71,17 @@ public class ReactorMetricsDashboardPanel {
                     .color(Color.WHITE.main)
                     .expanded()
                     .height(14))
-            .child(CommonButtons.panelCloseButton().size(14, 14));
+            .child(
+                new ButtonWidget<>().size(14, 14)
+                    .child(
+                        IKey.str("x")
+                            .asWidget()
+                            .center())
+                    .tooltipBuilder(t -> t.addLine("Close window"))
+                    .onMousePressed(d -> {
+                        panel.closeIfOpen();
+                        return true;
+                    }));
 
         // Scrollable content area
         ScrollWidget<?> scrollWidget = new ScrollWidget<>(new VerticalScrollData());
