@@ -3,6 +3,8 @@ package com.gtnewhorizons.modularnuclear.common.config.data;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+
 public class PhysicsData {
 
     public double huPerDegree = 32.0;
@@ -10,7 +12,7 @@ public class PhysicsData {
     public double globalFastFissionMultiplier = 1.0;
     public double fastAbsorptionDamageMultiplier = 8.0;
     public double thermalAbsorptionDamageMultiplier = 1.0;
-    public double fissionHeatPerNeutron = 2.0;
+    public double fissionHeatPerNeutron = NuclearSimulationEngine.DEFAULT_FISSION_HEAT_PER_NEUTRON;
     public double heatPerFastNeutronAbsorption = 10.0;
     public double heatPerThermalNeutronAbsorption = 25.0;
     public double gridHeatConduction = 0.15;

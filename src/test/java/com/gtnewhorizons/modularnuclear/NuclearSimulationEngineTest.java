@@ -5741,6 +5741,7 @@ public class NuclearSimulationEngineTest {
         // Grid A: Fuel in center moderated by heavy water, surrounded by zero-scattering absorbers
         INuclearTile[][] gridZero = new INuclearTile[3][3];
         MockNuclearTile fuelA = new MockNuclearTile(true, 1000);
+        fuelA.emissionCount = 4;
         fuelA.moderationProb = 1.0; // Instantly moderate to thermal pool
         fuelA.absorbProb = 0.10;
         fuelA.scatterProb = 0.10;
@@ -5761,6 +5762,7 @@ public class NuclearSimulationEngineTest {
         // Grid B: Fuel in center, surrounded by high-scattering beryllium reflectors
         INuclearTile[][] gridRefl = new INuclearTile[3][3];
         MockNuclearTile fuelB = new MockNuclearTile(true, 5000);
+        fuelB.emissionCount = 4;
         fuelB.moderationProb = 1.0;
         fuelB.absorbProb = 0.10;
         fuelB.scatterProb = 0.10;
@@ -5956,6 +5958,19 @@ public class NuclearSimulationEngineTest {
         assertEquals(Math.round(16 * 1.40), excUran.getEffectiveBaseNeutrons(physics));
         // Excited Uranium base fission mult = 2.50. With excited mult 0.80 -> 2.00
         assertEquals(2.50 * 0.80, excUran.getEffectiveFissionMultiplier(physics), 1e-4);
+    }
+
+    @Test
+    public void testDefaultPhysicsFissionHeat() {
+        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData defaultPhysics =
+            new com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData();
+        assertEquals(38.0, defaultPhysics.fissionHeatPerNeutron, 1e-4, "PhysicsData default fission heat must be 38.0 Hu/neutron");
+
+        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData activePhysics =
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics();
+        assertNotNull(activePhysics);
+        assertEquals(38.0, activePhysics.fissionHeatPerNeutron, 1e-4, "Active registry physics must have 38.0 Hu/neutron");
+        assertEquals(38.0, NuclearSimulationEngine.fissionHeatPerNeutron, 1e-4, "NuclearSimulationEngine must use 38.0 Hu/neutron by default");
     }
 
     @Test
