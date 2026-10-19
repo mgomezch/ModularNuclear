@@ -8,6 +8,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
@@ -204,10 +205,15 @@ public class EntityMeltdownFallout extends Entity {
                     if (!HazardProtection.isWearingFullRadioHazmat(player)) {
                         // Apply severe GT radioactivity
                         GTUtility.applyRadioactivity(player, 5, 20);
+                        // Strip vanilla nausea so it does not distort the camera or clash with the fallout static shader
+                        player.removePotionEffect(Potion.confusion.id);
                         // Inflict maximum IC2 radiation potion effect
                         if (Loader.isModLoaded("IC2") && IC2Potion.radiation != null) {
                             player.addPotionEffect(new PotionEffect(IC2Potion.radiation.id, 240, 3));
                         }
+                    } else {
+                        // Clear any lingering nausea if player is fully protected
+                        player.removePotionEffect(Potion.confusion.id);
                     }
                 }
             }

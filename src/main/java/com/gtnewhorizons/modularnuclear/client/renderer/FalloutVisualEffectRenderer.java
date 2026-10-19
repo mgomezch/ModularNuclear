@@ -14,6 +14,7 @@ import net.minecraft.client.shader.ShaderGroup;
 import net.minecraft.client.shader.ShaderUniform;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.potion.Potion;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -160,6 +161,11 @@ public class FalloutVisualEffectRenderer {
         currentIntensity += (targetIntensity - currentIntensity) * 0.15f;
         if (Math.abs(currentIntensity - targetIntensity) < 0.001f) {
             currentIntensity = targetIntensity;
+        }
+
+        // Suppress vanilla nausea camera roll and portal warp while within fallout visual effect range
+        if (currentIntensity > 0.001f && mc.thePlayer != null && mc.thePlayer.isPotionActive(Potion.confusion)) {
+            mc.thePlayer.removePotionEffectClient(Potion.confusion.id);
         }
     }
 
