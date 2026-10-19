@@ -61,6 +61,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
     public int mLastNeutronsGenerated = 0;
     public long mDirectEUProduced = 0;
     public boolean mUsedForCooling = false;
+    public double mIncomingCoolantTemp = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
 
     public MTEHatchNuclearHighPressure(int aID, String aName, String aNameRegional, int aTier) {
         super(aID, aName, aNameRegional, aTier, 0, (String) null);
@@ -208,7 +209,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
 
     @Override
     public double getDeviceTemperatureCelsius() {
-        return mTemperature;
+        return getTemperature();
     }
 
     @Override
@@ -218,6 +219,10 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
             return;
         }
         double coolantTemp = segment.getCurrentTemperatureCelsius();
+        this.mIncomingCoolantTemp = coolantTemp;
+        if (mOppositeHatch != null && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
+            other.mIncomingCoolantTemp = coolantTemp;
+        }
         double deltaT = mTemperature - coolantTemp;
         if (Math.abs(deltaT) < 1e-4) {
             return;
@@ -276,6 +281,9 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
         double coreTempChange = heatTransferredHu / coreHeatCapacityHuPerC;
 
         mTemperature -= coreTempChange;
+        if (mOppositeHatch != null && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
+            other.mTemperature = this.mTemperature;
+        }
         if (coreTempChange > 0) {
             mHeatOutputAccumulator += heatTransferredHu;
         }
@@ -293,17 +301,26 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
 
     @Override
     public double getTemperature() {
+        if (!mIsInlet && mOppositeHatch != null && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
+            return other.mTemperature;
+        }
         return mTemperature;
     }
 
     @Override
     public void setTemperature(double temperature) {
         this.mTemperature = temperature;
+        if (mOppositeHatch != null && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
+            other.mTemperature = temperature;
+        }
     }
 
     @Override
     public void addHeat(double heatHu) {
         this.mTemperature += heatHu / NuclearSimulationEngine.HU_PER_DEGREE;
+        if (mOppositeHatch != null && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
+            other.mTemperature = this.mTemperature;
+        }
     }
 
     @Override
@@ -406,6 +423,16 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
         mThermalFlux = 0;
         mFastAbsorbed = 0;
         mThermalAbsorbed = 0;
+        if (mOppositeHatch != null && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
+            other.mTemperature = this.mTemperature;
+            other.mLastFastFlux = this.mLastFastFlux;
+            other.mLastThermalFlux = this.mLastThermalFlux;
+            other.mLastFastAbsorbed = this.mLastFastAbsorbed;
+            other.mLastThermalAbsorbed = this.mLastThermalAbsorbed;
+            other.mLastHeatOutput = this.mLastHeatOutput;
+            other.mCumulativeFluence = this.mCumulativeFluence;
+            other.mIncomingCoolantTemp = this.mIncomingCoolantTemp;
+        }
     }
 
     // --- NBT Persistence ---
@@ -417,6 +444,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
         aNBT.setDouble("mHeatHu", mHeatHu);
         aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setBoolean("mIsInlet", mIsInlet);
+        aNBT.setDouble("mIncomingCoolantTemp", mIncomingCoolantTemp);
     }
 
     @Override
@@ -433,6 +461,9 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
         }
         if (aNBT.hasKey("mIsInlet")) {
             mIsInlet = aNBT.getBoolean("mIsInlet");
+        }
+        if (aNBT.hasKey("mIncomingCoolantTemp")) {
+            mIncomingCoolantTemp = aNBT.getDouble("mIncomingCoolantTemp");
         }
     }
 
@@ -465,7 +496,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
                     .setDefaultColor(Color.rgb(200, 200, 200))
                     .setPos(10, 32))
             .widget(
-                new TextWidget().setStringSupplier(() -> String.format("Core temp: %.1f °C", mTemperature))
+                new TextWidget().setStringSupplier(() -> String.format("Core temp: %.1f °C", getTemperature()))
                     .setDefaultColor(Color.rgb(255, 200, 0))
                     .setPos(10, 44))
             .widget(

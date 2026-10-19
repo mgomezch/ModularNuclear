@@ -6829,6 +6829,158 @@ public class NuclearSimulationEngineTest {
         assertNull(fallout.getChunkTicket(), "Ticket should be cleared after releaseChunkLoading");
     }
 
+    @Test
+    void testHighPressurePassageOvertemperatureAndOutletDisplay() {
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.hp.overtemp");
+        reactor.mMachine = true;
+        reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM; // Max operating temp = 1200 °C
+        reactor.gridSize = 3;
+        reactor.mGrid = new INuclearTile[3][3];
+        reactor.fixAllIssues();
+
+        gregtech.api.metatileentity.BaseMetaTileEntity baseTe = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(baseTe.isServerSide()).thenReturn(true);
+        org.mockito.Mockito.when(baseTe.isAllowedToWork()).thenReturn(true);
+        org.mockito.Mockito.when(baseTe.getWorld()).thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
+        reactor.setBaseMetaTileEntity(baseTe);
+
+        MTEHatchNuclearHighPressure topHp = new MTEHatchNuclearHighPressure("test.top_hp", 4, new String[0], null);
+        MTEHatchNuclearHighPressure botHp = new MTEHatchNuclearHighPressure("test.bot_hp", 4, new String[0], null);
+        topHp.setIsInlet(true);
+        botHp.setIsInlet(false);
+
+        gregtech.api.interfaces.tileentity.IGregTechTileEntity mockTopTe = org.mockito.Mockito
+            .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+        org.mockito.Mockito.when(mockTopTe.getMetaTileEntity()).thenReturn(topHp);
+        topHp.setBaseMetaTileEntity(mockTopTe);
+
+        gregtech.api.interfaces.tileentity.IGregTechTileEntity mockBotTe = org.mockito.Mockito
+            .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+        org.mockito.Mockito.when(mockBotTe.getMetaTileEntity()).thenReturn(botHp);
+        botHp.setBaseMetaTileEntity(mockBotTe);
+
+        topHp.setOppositeHatch(mockBotTe);
+        botHp.setOppositeHatch(mockTopTe);
+
+        // 1. Outlet display & telemetry synchronization
+        topHp.setTemperature(350.0);
+        assertEquals(350.0, topHp.getTemperature(), 1e-6);
+        assertEquals(350.0, botHp.getTemperature(), 1e-6, "Outlet hatch must dynamically display core temperature");
+        assertEquals(350.0, botHp.getDeviceTemperatureCelsius(), 1e-6);
+
+        topHp.mFastFlux = 1500;
+        topHp.mThermalFlux = 800;
+        topHp.mFastAbsorbed = 1200;
+        topHp.mThermalAbsorbed = 600;
+        topHp.mHeatOutputAccumulator = 4500.0;
+        topHp.mCumulativeFluence = 99999L;
+        topHp.mIncomingCoolantTemp = 280.0;
+        topHp.nuclearTick(1.0);
+
+        assertEquals(1500, botHp.mLastFastFlux, "Outlet hatch must synchronize fast flux telemetry");
+        assertEquals(800, botHp.mLastThermalFlux, "Outlet hatch must synchronize thermal flux telemetry");
+        assertEquals(1200, botHp.mLastFastAbsorbed, "Outlet hatch must synchronize fast absorbed telemetry");
+        assertEquals(600, botHp.mLastThermalAbsorbed, "Outlet hatch must synchronize thermal absorbed telemetry");
+        assertEquals(4500.0, botHp.mLastHeatOutput, 1e-6, "Outlet hatch must synchronize heat output telemetry");
+        assertEquals(102299L, botHp.mCumulativeFluence, "Outlet hatch must synchronize cumulative fluence");
+        assertEquals(280.0, botHp.mIncomingCoolantTemp, 1e-6, "Outlet hatch must synchronize incoming coolant temp");
+
+        // 2. High pressure passage over-temperature damage
+        reactor.mNuclearTiles.add(mockTopTe);
+
+        double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(reactor.mPipeTier);
+        assertEquals(1200.0, maxTemp, 1e-6);
+
+        // Safe temperature: no damage
+        topHp.setTemperature(1000.0);
+        topHp.mIncomingCoolantTemp = 1000.0;
+        reactor.mReactorDamage = 0.0;
+        reactor.onPostTick(baseTe, 20);
+        assertEquals(0.0, reactor.mReactorDamage, 1e-6, "No damage within temperature limits");
+
+        // Core passage over-temperature (> maxTemp): increases damage by 1% per cycle
+        topHp.setTemperature(1300.0);
+        topHp.mIncomingCoolantTemp = 1000.0;
+        reactor.onPostTick(baseTe, 40);
+        assertEquals(1.0, reactor.mReactorDamage, 1e-6, "Passage cell above max operating temp must increase damage by 1%");
+
+        // Incoming coolant over-temperature (> maxTemp): increases damage
+        topHp.setTemperature(1000.0);
+        topHp.mIncomingCoolantTemp = 1300.0;
+        reactor.onPostTick(baseTe, 60);
+        assertEquals(2.0, reactor.mReactorDamage, 1e-6, "Incoming coolant above max operating temp must increase damage by 1%");
+
+        // 3. Structure break temperature check (> 100 °C)
+        reactor.mLastFormedNuclearTiles.clear();
+        reactor.mBottomHighPressureHatches.clear();
+        topHp.setTemperature(50.0);
+        reactor.mLastFormedNuclearTiles.add(mockTopTe);
+        assertFalse(reactor.isAnyTemperatureAbove100(), "Below 100°C must not trigger structure break warning");
+
+        topHp.setTemperature(150.0);
+        assertTrue(reactor.isAnyTemperatureAbove100(), "Top HP hatch > 100°C must trigger structure break warning");
+
+        reactor.mLastFormedNuclearTiles.clear();
+        reactor.mBottomHighPressureHatches.add(botHp);
+        assertTrue(reactor.isAnyTemperatureAbove100(), "Bottom HP hatch > 100°C must trigger structure break warning");
+    }
+
+    @Test
+    void testLiquidFuelThermalShockExemption() {
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.liquidfuel.shock");
+        reactor.mMachine = true;
+        reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
+        reactor.gridSize = 3;
+        reactor.mGrid = new INuclearTile[3][3];
+        reactor.fixAllIssues();
+        assertEquals(6, reactor.getRepairStatus());
+
+        gregtech.api.metatileentity.BaseMetaTileEntity baseTe = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(baseTe.isServerSide()).thenReturn(true);
+        org.mockito.Mockito.when(baseTe.isAllowedToWork()).thenReturn(true);
+        org.mockito.Mockito.when(baseTe.getWorld()).thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
+        reactor.setBaseMetaTileEntity(baseTe);
+
+        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("thoriumbasedliquidfuel")) {
+            net.minecraftforge.fluids.FluidRegistry
+                .registerFluid(new net.minecraftforge.fluids.Fluid("thoriumbasedliquidfuel"));
+        }
+        net.minecraftforge.fluids.Fluid liquidFuel = net.minecraftforge.fluids.FluidRegistry
+            .getFluid("thoriumbasedliquidfuel");
+        net.minecraftforge.fluids.FluidStack liquidFuelStack = new net.minecraftforge.fluids.FluidStack(liquidFuel, 1000);
+        assertTrue(MTENuclearReactor.isFluidFuel(liquidFuelStack), "Thorium based liquid fuel must be classified as fluid fuel");
+
+        // Superheated hatch (>100°C) with liquid fuel injected into dry hatch
+        MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch.fuel", 3, 32000, new String[0], null);
+        hatch.mTemperature = 250.0;
+        hatch.mWasDry = true;
+        hatch.mInputFluid = liquidFuelStack;
+
+        gregtech.api.interfaces.tileentity.IGregTechTileEntity hatchTe = org.mockito.Mockito
+            .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+        org.mockito.Mockito.when(hatchTe.getMetaTileEntity()).thenReturn(hatch);
+        hatch.setBaseMetaTileEntity(hatchTe);
+        reactor.mNuclearTiles.add(hatchTe);
+
+        // Run cycle at tick 20
+        reactor.onPostTick(baseTe, 20);
+
+        // Liquid fuel must NOT trigger thermal shock and must NOT be voided
+        assertNotNull(hatch.mInputFluid, "Liquid fuel must NOT be voided on refill into hot dry hatch");
+        assertEquals(1000, hatch.mInputFluid.amount, "Liquid fuel amount must be intact");
+        assertFalse(hatch.mWasDry, "Liquid fuel hatch mWasDry must be cleared without triggering thermal shock");
+        assertEquals(0.0, reactor.mReactorDamage, 1e-6, "Reactor damage must remain 0 (no thermal shock for liquid fuel)");
+        assertEquals(6, reactor.getRepairStatus(), "Maintenance issues must remain intact (no thermal shock)");
+
+        // Directly invoking triggerThermalShock on a liquid fuel hatch must be a no-op
+        reactor.triggerThermalShock(hatch, "Manual trigger attempt");
+        assertNotNull(hatch.mInputFluid, "Direct triggerThermalShock must be a no-op for liquid fuel");
+        assertEquals(0.0, reactor.mReactorDamage, 1e-6);
+        assertEquals(6, reactor.getRepairStatus());
+    }
+
     private static void deleteRecursively(File file) {
         if (file.isDirectory()) {
             File[] children = file.listFiles();

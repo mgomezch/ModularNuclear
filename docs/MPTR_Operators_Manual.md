@@ -674,7 +674,7 @@ Liquid fuels are explicitly defined in `fuels.yaml` with dedicated operational a
 | Excited Plutonium-Based Liquid Fuel | 32 | 1730 | 2800 | 2.90 | 0.25 | `plutoniumbasedliquidfueldepleted` |
 | Uranium Hexafluoride | 12 | 770 | 2300 | 1.25 | 0.12 | `uraniumtetrafluoride` |
 
-Instead of losing durability, a liquid-fuel hatch consumes $\max(1, W)$ litres per cycle, with $W$ the wear formula of §7.3. It outputs the same volume of the corresponding spent fluid to the ring output hatches. A liquid-fuel hatch **does not cool**. It is subject to thermal shock like any non-coolant hatch (§13.1), with a threshold of 100 °C.
+Instead of losing durability, a liquid-fuel hatch consumes $\max(1, W)$ litres per cycle, with $W$ the wear formula of §7.3. It outputs the same volume of the corresponding spent fluid to the ring output hatches. A liquid-fuel hatch **does not cool**. It has no evaporation or boiling mechanic, and is **completely exempt from thermal shock** (§13.1).
 
 Compared with rods, liquid fuel has a higher thermal absorption (0.85), twice the moderation and three times the conductivity. It also runs continuously as long as the hatch is topped up.
 
@@ -1286,7 +1286,7 @@ A High-Pressure Passage is a pair of hatches in the same grid column:
 - the **inlet** in slice 0, facing up, which is the grid cell;
 - the **outlet** in slice 4, facing down.
 
-Both are part of a CoolantLoops loop. The pump discharge leads to the inlet, and the outlet leads on towards the pump suction. Passages are accessible to any reactor using **Osmium (LuV) or higher item pipe casings**, irrespective of the size of the reactor (available on 5×5, 9×9, or 13×13). They have no Forge fluid interface; they are reachable only through the loop. Only the inlet takes part in the core simulation. The outlet is a loop connection point, and the temperature its GUI shows is not updated.
+Both are part of a CoolantLoops loop. The pump discharge leads to the inlet, and the outlet leads on towards the pump suction. Passages are accessible to any reactor using **Osmium (LuV) or higher item pipe casings**, irrespective of the size of the reactor (available on 5×5, 9×9, or 13×13). They have no Forge fluid interface; they are reachable only through the loop. The inlet takes part in the core simulation, and the outlet hatch dynamically displays the synchronized core passage temperature, incoming coolant temperature, and all flux/fluence telemetry.
 
 #### Heat transfer
 
@@ -1667,8 +1667,9 @@ $\eta$ does **not** scale neutron production or fission heat. A poorly maintaine
 | Thermal shock | +2% per shock, plus one new maintenance issue |
 | Overheating cell | +1% per overheated core-access block per cycle |
 | Overheating control rod | +1% per overheated rod hatch per cycle |
+| Overheating passage cell | +1% per overheated passage cell (core temp or incoming coolant > $T_{max}$) per cycle |
 
-Every core-access block and rod hatch whose temperature exceeds $T_{max}$ at the end of a cycle counts, **whether or not it still contains anything**. A rod hatch's temperature is that of the cell above it, so a rodded cell counts twice. High-Pressure Passage cells are not checked.
+Every core-access block, rod hatch, and high-pressure passage cell whose temperature (or incoming coolant temperature) exceeds $T_{max}$ at the end of a cycle counts, **whether or not it still contains anything**. A rod hatch's temperature is that of the cell above it, so a rodded cell counts twice. Passage cells accrue damage if either the core passage cell temperature or incoming coolant temperature exceeds $T_{max}$.
 
 The reactor models vessel wall and structural fatigue driven by escaping neutron flux. Once per minute (every 60 cycles), the controller computes the average rate of escaped neutrons $\bar{N}_{\text{esc}}$ (in n/s) over the preceding minute and evaluates a saturating sigmoid wear response:
 
@@ -1697,7 +1698,7 @@ This section lists every mechanism by which the reactor or its loop destroys mat
 1. the ambient temperature is at or above the hatch fluid's boiling threshold (§11.2). With the vanilla biome range (≤ 93.3 °C) this cannot happen for water (100 / 101.4 °C). It is relevant only for modded biomes or dimensions; or
 2. the hatch was flagged **dry** (it ran out of fluid while operating) and has since been **refilled while its temperature is above the threshold**.
 
-IC2 coolant has no threshold and never shocks. Liquid fuels and any other fluid use a threshold of 100 °C.
+IC2 coolant and liquid fuels have no boiling threshold and never suffer thermal shock (liquid fuel has no evaporation mechanic). Non-coolant non-fuel fluids use a threshold of 100 °C.
 
 **Effects:**
 
@@ -1721,7 +1722,8 @@ At the end of each cycle, every cell is compared against the pipe tier's $T_{max
 | Non-fuel fluid in a hatch (coolant) | **Voided** |
 | Control rod beneath the cell | **Voided** |
 | Fuel rod or liquid fuel | Kept |
-| Every overheated bus/hatch and rod hatch | +1% reactor damage per cycle |
+| High-pressure passage cell (cell temperature or incoming coolant temperature > $T_{max}$) | Kept (conduit intact) |
+| Every overheated bus/hatch, rod hatch, and passage cell | +1% reactor damage per cycle |
 
 Fuel is kept, so an overheated region keeps producing heat. Its reactivity falls along the curve, but never below 5%. Meanwhile the overheated region loses its moderators, absorbers, rods and coolant, i.e. exactly the components that controlled and cooled it. The core's behaviour changes abruptly:
 
@@ -1740,7 +1742,7 @@ Damage accrues **per overheated block per cycle**. Twenty overheated cells add 2
 | Coolant cell full | — | — | ejected intact | — | — |
 | Reflector wear | — | — | destroyed at 0 durability | — | — |
 | Thermal shock | — | voided (that hatch) | — | — | — |
-| Overheat (> $T_{max}$) | kept | voided | voided | voided | not checked |
+| Overheat (> $T_{max}$) | kept | voided | voided | voided | +1% damage if passage or coolant > $T_{max}$ (conduit intact) |
 | Structure break while hot (§13.4) | **voided** | **voided** | kept | kept | kept |
 | Meltdown (§13.5) | destroyed with the reactor | | | | |
 | Loop rupture | — | — | — | — | 80% of tank drained, explosion, fluid spill |
@@ -2388,9 +2390,9 @@ The following behaviours, described in the body of this manual, appear to differ
 | 21 | Loops | No ambient loss and no boiling in loops; no survival heat sink | §11.5.4, §11.5.8 |
 | 22 | Loops | PHE pressurized hatch roles depend on structure iteration order | §11.5.8 |
 | 23 | Loops | Instrument pressure metric is a local segment drop | §11.5.10 |
-| 24 | Loops | Passage outlet hatch temperature display is stale (outlet not simulated) | §11.4 |
+| 24 | Loops | *Resolved:* Passage outlet hatch dynamically synchronizes core temperature display, incoming coolant temperature, and all flux/fluence telemetry with the inlet hatch | §11.4 |
 | 25 | Hazards | *Resolved:* Dead high-pressure explosion variant (strength 18) eliminated; `explodeReactor()` active for non-neutron beam injection with strength 20 at beam hatch (or voids contents if machine explosions disabled) | §13.7 |
-| 26 | Hazards | Overheat check skips HP passage cells | §12.3 |
+| 26 | Hazards | *Resolved:* Overheat check includes HP passage cells, accruing +1% hull damage per cycle if passage temperature or incoming coolant temperature exceeds $T_{max}$ | §12.3, §13.2 |
 | 27 | Docs | Control-rod hatch javadoc says "top layer"; rods are in the bottom layer | §9.1 |
 | 28 | Web sim | *Resolved:* Aligned with in-game physics: fuel classes/archetypes, 1:1 burnup, 1% control rod floor, and audited component parameters | §14 |
 | 29 | Loops | Multi-tick loop crawling (1 000 steps/tick, up to 20 ticks / 20 000 steps total) with loop-too-large controller error | §11.5.1 |

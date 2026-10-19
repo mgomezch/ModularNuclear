@@ -654,6 +654,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null || !base.isServerSide()) return;
 
+        // Liquid fuel does not boil/evaporate and is exempt from thermal shock
+        if (hatch != null && isFluidFuel(hatch.mInputFluid)) {
+            return;
+        }
+
         try {
             GTLog.writeExplosionLog(this, "THERMAL SHOCK: " + reason);
         } catch (Throwable ignored) {}
@@ -1361,11 +1366,16 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     if (hatch.mTemperature > 100.0) return true;
                 } else if (mte instanceof MTEHatchNuclearControlRod rod) {
                     if (rod.mTemperature > 100.0) return true;
+                } else if (mte instanceof MTEHatchNuclearHighPressure hp) {
+                    if (hp.getTemperature() > 100.0) return true;
                 }
             }
         }
         for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
             if (rod != null && rod.mTemperature > 100.0) return true;
+        }
+        for (MTEHatchNuclearHighPressure hp : mBottomHighPressureHatches) {
+            if (hp != null && hp.getTemperature() > 100.0) return true;
         }
         return false;
     }
@@ -1469,6 +1479,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 // Check coolant boiling against ambient or dry hatch injection (thermal shock)
                 for (IGregTechTileEntity te : mNuclearTiles) {
                     if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
+                        // Liquid fuel does not boil/evaporate and is exempt from thermal shock
+                        if (isFluidFuel(hatch.mInputFluid)) {
+                            hatch.mWasDry = false;
+                            continue;
+                        }
                         if (hatch.mInputFluid != null && hatch.mInputFluid.amount > 0) {
                             String name = hatch.mInputFluid.getFluid()
                                 .getName()
@@ -1615,6 +1630,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                                     bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
                                     bus.markTileDirty();
                                 }
+                            }
+                        } else if (te.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure hp) {
+                            if (hp.getTemperature() > maxTemp || hp.mIncomingCoolantTemp > maxTemp) {
+                                overheatingHatchesCount++;
                             }
                         }
                     }
