@@ -38,6 +38,9 @@ def main():
     print(f"Baseline:     {baseline_dir}")
     print(f"Target Path:  {res_dir}")
 
+    # 0. Upstream Open-Source Baseline Extraction & Verification
+    run_generator(tools_dir / "extract_external_assets.py")
+
     # 1. NEI Atlas & Long Arrow
     run_generator(tools_dir / "generate_nei_atlas.py")
 
