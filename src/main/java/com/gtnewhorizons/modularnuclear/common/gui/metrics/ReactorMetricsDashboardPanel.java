@@ -37,7 +37,8 @@ public class ReactorMetricsDashboardPanel {
     ) {
         ModularPanel panel = new ModularPanel(PANEL_NAME).relativeToScreen()
             .center()
-            .size(440, 310)
+            .size(400, 240)
+            .widgetTheme(gregtech.api.modularui2.GTWidgetThemes.BACKGROUND_POPUP)
             .resizeableOnDrag(true);
 
         // Network synchronization of 100-cycle telemetry history
@@ -48,7 +49,7 @@ public class ReactorMetricsDashboardPanel {
             ReactorMetricsHistory::writeToBuffer);
         syncManager.syncValue("metricsHistory", metricsSyncer);
 
-        // Header bar with Computer Screen icon, drag handle, and title
+        // Header bar with Computer Screen icon, title, drag handle, and close button
         Flow headerRow = Flow.row()
             .fullWidth()
             .height(18)
@@ -67,12 +68,8 @@ public class ReactorMetricsDashboardPanel {
                                 .color(Color.WHITE.main)
                                 .height(14)
                                 .marginRight(6))
-            .child(new DragHandle().expanded().height(14));
-
-        // Window close button (top right)
-        panel.child(
-            CommonButtons.panelCloseButton()
-                .size(14, 14));
+            .child(new DragHandle().expanded().height(14))
+            .child(CommonButtons.panelCloseButton().size(14, 14));
 
         // Scrollable content area
         ScrollWidget<?> scrollWidget = new ScrollWidget<>(new VerticalScrollData());
@@ -105,7 +102,7 @@ public class ReactorMetricsDashboardPanel {
             Flow.column()
                 .full()
                 .padding(4)
-                .child(headerRow.marginRight(18))
+                .child(headerRow)
                 .child(scrollWidget));
 
         return panel;
