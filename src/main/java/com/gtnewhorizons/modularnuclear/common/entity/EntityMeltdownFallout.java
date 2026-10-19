@@ -82,6 +82,9 @@ public class EntityMeltdownFallout extends Entity {
     public void setDead() {
         releaseChunkLoading();
         super.setDead();
+        if (worldObj != null && worldObj.isRemote) {
+            ModularNuclear.proxy.unregisterFallout(this);
+        }
     }
 
     public static class MeltdownChunkLoadingCallback implements ForgeChunkManager.OrderedLoadingCallback {
@@ -166,8 +169,10 @@ public class EntityMeltdownFallout extends Entity {
 
         mAge++;
 
-        // 2. Green particles ("happyVillager") randomly in a 3-chunk radius (48m)
-        spawnFalloutParticles();
+        // 2. Client-side visual effect tracking
+        if (worldObj.isRemote) {
+            ModularNuclear.proxy.registerFallout(this);
+        }
 
         // 3. Radiation in 10-chunk radius (160m)
         if (!worldObj.isRemote && (mAge % 20 == 0)) {
@@ -185,34 +190,6 @@ public class EntityMeltdownFallout extends Entity {
         // 5. Cleanup after 10 minutes (12000 ticks)
         if (mAge >= TOTAL_LIFETIME) {
             setDead();
-        }
-    }
-
-    private void spawnFalloutParticles() {
-        Random rand = worldObj.rand;
-        // 3-chunk radius = 48 meters
-        double radius = 48.0;
-
-        if (worldObj.isRemote) {
-            // Client side particle rendering (6 per tick)
-            for (int i = 0; i < 6; i++) {
-                double angle = rand.nextDouble() * 2 * Math.PI;
-                double dist = Math.sqrt(rand.nextDouble()) * radius;
-                double px = posX + dist * Math.cos(angle);
-                double pz = posZ + dist * Math.sin(angle);
-                double py = posY + (rand.nextDouble() * 20.0 - 5.0);
-                worldObj.spawnParticle("happyVillager", px, py, pz, 0.0, 0.05 * rand.nextDouble(), 0.0);
-            }
-        } else if (worldObj instanceof WorldServer server && (mAge % 4 == 0)) {
-            // Server side sync packet (4 per 4 ticks)
-            for (int i = 0; i < 4; i++) {
-                double angle = rand.nextDouble() * 2 * Math.PI;
-                double dist = Math.sqrt(rand.nextDouble()) * radius;
-                double px = posX + dist * Math.cos(angle);
-                double pz = posZ + dist * Math.sin(angle);
-                double py = posY + (rand.nextDouble() * 20.0 - 5.0);
-                server.func_147487_a("happyVillager", px, py, pz, 1, 0.1, 0.1, 0.1, 0.0);
-            }
         }
     }
 

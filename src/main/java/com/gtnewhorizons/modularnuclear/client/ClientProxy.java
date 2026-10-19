@@ -34,4 +34,14 @@ public class ClientProxy extends CommonProxy {
     public void removeReactor(MTENuclearReactor reactor) {
         CherenkovClientHandler.onRemoval(reactor);
     }
+
+    @Override
+    public void registerFallout(com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout fallout) {
+        com.gtnewhorizons.modularnuclear.client.renderer.FalloutVisualEffectRenderer.registerFallout(fallout);
+    }
+
+    @Override
+    public void unregisterFallout(com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout fallout) {
+        com.gtnewhorizons.modularnuclear.client.renderer.FalloutVisualEffectRenderer.unregisterFallout(fallout);
+    }
 }

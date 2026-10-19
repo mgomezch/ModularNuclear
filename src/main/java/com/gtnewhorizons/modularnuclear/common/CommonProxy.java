@@ -11,4 +11,8 @@ public class CommonProxy {
     public void removeReactor(MTENuclearReactor reactor) {}
 
     public void registerNEIHandlerInfo() {}
+
+    public void registerFallout(com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout fallout) {}
+
+    public void unregisterFallout(com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout fallout) {}
 }

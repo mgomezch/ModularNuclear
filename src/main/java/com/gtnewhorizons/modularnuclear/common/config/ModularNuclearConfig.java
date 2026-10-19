@@ -25,6 +25,8 @@ public final class ModularNuclearConfig {
     public static boolean enableCherenkovLightEmission = true;
     public static int cherenkovLightLevel = 10;
     public static float cherenkovIntensityMultiplier = 2.5f;
+    public static boolean enableFalloutVisualEffect = true;
+    public static float falloutEffectMaxDistance = 80.0f;
 
     // ==========================================
     // Allowlists & Blocklists (Core Components)
@@ -199,6 +201,20 @@ public final class ModularNuclearConfig {
                 0.1f,
                 10.0f,
                 "Multiplier for Cherenkov visual beam intensity (default 2.5).");
+
+            enableFalloutVisualEffect = config.getBoolean(
+                "enableFalloutVisualEffect",
+                "client_visuals",
+                enableFalloutVisualEffect,
+                "Enable the post-processing shader visual effect (static, desaturation, darkening) during meltdown fallout.");
+
+            falloutEffectMaxDistance = config.getFloat(
+                "falloutEffectMaxDistance",
+                "client_visuals",
+                falloutEffectMaxDistance,
+                16.0f,
+                160.0f,
+                "Maximum distance in meters where the meltdown fallout visual effect is visible (default 80).");
 
             // Allowlists & Blocklists
             final String CAT_ALLOWLISTS = "allowlists";
