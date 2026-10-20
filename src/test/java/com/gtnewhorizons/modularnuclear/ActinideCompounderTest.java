@@ -23,6 +23,8 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
+import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+
 public class ActinideCompounderTest {
 
     @BeforeAll
@@ -65,6 +67,18 @@ public class ActinideCompounderTest {
 
         // Ensure ModItems are initialized
         ModItems.init();
+        if (com.gtnewhorizons.modularnuclear.common.block.ModBlocks.nuclearCasing == null) {
+            com.gtnewhorizons.modularnuclear.common.block.ModBlocks.nuclearCasing = org.mockito.Mockito
+                .mock(com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing.class);
+        }
+
+        try {
+            java.lang.reflect.Field f = com.gtnewhorizon.structurelib.StructureLib.class.getDeclaredField("blockHint");
+            f.setAccessible(true);
+            if (f.get(null) == null) {
+                f.set(null, org.mockito.Mockito.mock(net.minecraft.block.Block.class));
+            }
+        } catch (Throwable ignored) {}
     }
 
     @Test
@@ -626,5 +640,22 @@ public class ActinideCompounderTest {
         public CustomFuelMix getCustomFuelMix() {
             return mix;
         }
+    }
+
+    @Test
+    void testStructureErrorsReported() {
+        MTEActinideCompounder compounder = new MTEActinideCompounder("test_compounder");
+        List<gregtech.api.structure.error.StructureError> errors = new ArrayList<>();
+        IGregTechTileEntity mockBase = org.mockito.Mockito.mock(IGregTechTileEntity.class);
+        net.minecraft.world.World mockWorld = org.mockito.Mockito.mock(net.minecraft.world.World.class);
+        org.mockito.Mockito.when(mockBase.getWorld())
+            .thenReturn(mockWorld);
+        org.mockito.Mockito.when(
+            mockWorld
+                .blockExists(org.mockito.Mockito.anyInt(), org.mockito.Mockito.anyInt(), org.mockito.Mockito.anyInt()))
+            .thenReturn(true);
+        compounder.setBaseMetaTileEntity(mockBase);
+        compounder.checkMachine(mockBase, null, errors);
+        assertFalse(errors.isEmpty(), "Structure errors should be reported for invalid/empty structure");
     }
 }

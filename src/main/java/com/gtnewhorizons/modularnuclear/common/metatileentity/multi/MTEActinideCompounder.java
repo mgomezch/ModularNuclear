@@ -39,6 +39,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.objects.ItemData;
 import gregtech.api.render.TextureFactory;
+import gregtech.api.structure.error.StructureError;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTStructureUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
@@ -57,6 +58,7 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
 
     private static final String STRUCTURE_PIECE_MAIN = "compounder_3x3x3";
     private static IStructureDefinition<MTEActinideCompounder> STRUCTURE_DEFINITION = null;
+    protected int mCasing = 0;
 
     public MTEActinideCompounder(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -150,38 +152,47 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
                     StructureUtility.ofChain(
                         GTStructureUtility
                             .ofHatchAdder(MTEActinideCompounder::addHatch, BlockNuclearCasing.CASING_TEXTURE_INDEX, 1),
-                        StructureUtility.ofBlock(ModBlocks.nuclearCasing, 0)))
+                        StructureUtility
+                            .onElementPass(t -> t.mCasing++, StructureUtility.ofBlock(ModBlocks.nuclearCasing, 0))))
                 .build();
         }
         return STRUCTURE_DEFINITION;
     }
 
     @Override
-    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> aErrors) {
         mEnergyHatches.clear();
         mInputBusses.clear();
         mOutputBusses.clear();
         mInputHatches.clear();
         mOutputHatches.clear();
         mMaintenanceHatches.clear();
+        mCasing = 0;
 
-        if (!checkPiece(STRUCTURE_PIECE_MAIN, 1, 1, 0)) {
-            return false;
+        if (!checkPiece(STRUCTURE_PIECE_MAIN, 1, 1, 0, aErrors)) {
+            return;
         }
 
-        if (mEnergyHatches.isEmpty() || mInputBusses.isEmpty()
-            || mOutputBusses.isEmpty()
-            || mInputHatches.isEmpty()
-            || mMaintenanceHatches.size() != 1) {
-            return false;
+        checkCasingMin(aErrors, mCasing, 14);
+        checkHasEnergyHatch(aErrors);
+        checkHasInputBus(aErrors);
+        checkHasOutputBus(aErrors);
+        checkHasInputHatch(aErrors);
+        checkOneMaintenanceHatch(aErrors);
+
+        if (!aErrors.isEmpty()) {
+            return;
         }
 
         checkMaintenance();
         if (aBaseMetaTileEntity != null && !aBaseMetaTileEntity.isAllowedToWork()) {
             aBaseMetaTileEntity.enableWorking();
         }
+    }
 
-        return true;
+    @Override
+    public boolean checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack) {
+        return checkMachine_TT(aBaseMetaTileEntity);
     }
 
     public static class DustInfo {
