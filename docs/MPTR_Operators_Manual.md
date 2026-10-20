@@ -1624,9 +1624,12 @@ The cooled coolant is immediately written to the PHE segment and discharge outle
 
 **Operation.** Only while the pump is circulating. For each dissolved gas:
 
-$$\text{extracted per tick} = \min\left(\frac{EU}{8}\,dt,\ 0.25\,\frac{V_{gas}}{V_{fill}}\,\dot V\,dt\right) \times \eta$$
+$$V_{\text{crossing}} = \frac{V_{\text{gas}}}{V_{\text{fill}}} \cdot Q \cdot \Delta t$$
+$$V_{\text{target}} = 0.25 \cdot V_{\text{crossing}} \cdot \eta$$
+$$V_{\text{extracted}} = \min\left(\lfloor V_{\text{target}} + V_{\text{rem}}\rfloor,\ \left\lfloor\frac{EU_{\text{stored}}}{8}\right\rfloor,\ V_{\text{hatch\_space}}\right)$$
+$$EU_{\text{drained}} = \lceil V_{\text{extracted}} \cdot 8.0 \rceil$$
 
-Extraction is proportional to the gas concentration and to the flow through the unit. A degasser holds the dissolved-gas fraction down, reducing impeller wear. It also recovers deuterium, tritium and oxygen from radiolysis. In a heavy-water loop it is a tritium source.
+Extraction is proportional to the gas concentration and to the flow through the unit. Energy is drawn directly from energy buffers at 8.0 EU per liter of gas produced. If energy buffers are empty or output hatches are full, whole liters remain dissolved in the circulating coolant (passing downstream) and the machine produces no gas without triggering a power failure. A degasser holds the dissolved-gas fraction down, reducing impeller wear. It also recovers deuterium, tritium and oxygen from radiolysis. In a heavy-water loop it is a tritium source.
 
 #### 11.5.10 Loop Instruments and OpenComputers
 
@@ -2405,6 +2408,7 @@ The following behaviours, described in the body of this manual, appear to differ
 | 30 | Loops | Manifold area-weighted parallel flow splitting, thermal blending, and non-additive parallel pressure drops; maintenance preservation across crawls | §11.5.1, §11.5.3, §11.5.5 |
 | 31 | Loops | *Resolved:* PHE input hatch strictly accepts Distilled Water variants (`ic2distilledwater`, `distilledwater`, `distilled_water`); plain Minecraft water is rejected | §11.5.8 |
 | 32 | Neutronics | *Resolved:* Control-rod-absorbed thermal neutrons on fuel cells deposit heat at the standard non-fuel absorption rate ($4.0\text{ Hu/neutron}$) rather than the fuel fission rate ($5.0\text{ Hu/neutron}$) | §6.1, §9.3 |
+| 33 | Loops | *Resolved:* Degasser drains energy per liter produced (8.0 EU/L default) directly from energy buffers without powerfailing on empty buffers, and ceases gas production when energy is exhausted | §11.5.9 |
 
 ---
 
