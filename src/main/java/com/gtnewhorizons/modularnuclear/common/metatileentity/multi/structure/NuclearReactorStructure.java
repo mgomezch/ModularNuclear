@@ -370,7 +370,7 @@ public class NuclearReactorStructure {
         @Override
         public List<String> getDescription(MTENuclearReactor t) {
             return Collections.singletonList(
-                "Opposite core face: nuclear casing, pressurized output hatch, nuclear core control rod, or beamline input hatch");
+                "Opposite core face: nuclear casing, high-pressure output hatch, nuclear core control rod, or beamline input hatch");
         }
 
         @Override

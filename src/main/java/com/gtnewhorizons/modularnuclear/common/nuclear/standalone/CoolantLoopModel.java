@@ -752,7 +752,7 @@ public class CoolantLoopModel {
             double tempRise = totalHeatExtractedJoulesTick / (loopFluidMassKg * fluidType.specificHeat);
             currentCoolantTempCelsius += tempRise;
 
-            // 8. Secondary Boiling at Pressurized Heat Exchanger (PHE)
+            // 8. Secondary Boiling at High-Pressure Heat Exchanger (PHE)
             double secBoilingTemp = (secondaryCoolant != null) ? secondaryCoolant.boilingPointCelsius : 100.0;
             double secLatentHeat = (secondaryCoolant != null) ? secondaryCoolant.latentHeatJoulesPerLiter : 2260.0;
             int secExpansion = (secondaryCoolant != null && secondaryCoolant.expansionRatio > 0)

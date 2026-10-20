@@ -93,7 +93,7 @@ gt.multiblock.nuclearreactor.structure.optional_outer=Any outer casing (optional
 # Hatch Tooltips
 gt.blockmachines.hatch.nuclearbus.desc=Nuclear core bus for items\nHolds fuel rods, coolant cells, moderators, reflectors, insulators, radiovoltaics\nInput-only core component bus\nOutputs (depleted fuel) eject to output buses/hatches
 gt.blockmachines.hatch.nuclearhatch.desc=Tiered nuclear fluid hatch (%s)\nHolds input coolant or liquid nuclear fuel\nInput-only core fluid hatch\nOutputs (steam, hot coolant, byproducts, depleted fuel) eject to output hatches\nCapacity: %s L\nCoolant boiling and transmutation under neutron flux\nConductance: %s Hu/(s·°C)\nItem pipe casing determines allowed coolants\nInserting coolant to dry hot hatches will damage hull!
-gt.blockmachines.hatch.nuclearhighpressure.desc=Core pass-through endpoint for pressurized coolant loops\nCoolant flows from top inlet to bottom outlet\nDoes not support standard-pressure fluid logistics!
+gt.blockmachines.hatch.nuclearhighpressure.desc=Core pass-through endpoint for high-pressure coolant loops\nCoolant flows from top inlet to bottom outlet\nDoes not support standard-pressure fluid logistics!
 gt.blockmachines.hatch.nuclearcontrol.desc=Emits redstone signals based on nuclear reactor conditions\nRight-click with screwdriver to cycle metric (sneak+right-click for bundled mode)\nRight-click with soldering iron to cycle statistic\nOutputs 0-15 vanilla redstone or 0-255 ProjectRed bundled signals from front side\nSupports 16-channel ProjectRed bundled cables and OpenComputers interface
 gt.blockmachines.hatch.nuclearcontrolrod.desc=Nuclear core control rod\nHolds long rods of silver, boron, cadmium, indium, or hafnium\nControlled by external redstone (0..15) or ProjectRed bundled cable (0..255)\nRight-click with screwdriver to cycle bundled input channel\nController SCRAM state overrides insertion to 100%!
 
@@ -147,5 +147,5 @@ gt.nei.neutron_interaction.depleted_desc=Produced after absorbing full neutron c
 # BetterQuesting
 modularnuclear=Modern nuclear engineering
 betterquesting.questline.MplGC3IbNjeXKp+jOByJ9Q.name=Modern nuclear engineering
-betterquesting.questline.MplGC3IbNjeXKp+jOByJ9Q.desc=Let's build large industrial-style nuclear reactor facilities!  The Modular Pressure Tube Reactor (MPTR) is a GTNH-style take on nuclear reactors inspired by modern nuclear reactor mods, e.g. Modern Industrialization.  We'll also build pressurized loops of coolant fluids to keep our reactor nice and fresh and have some fun with simple industrial thermodynamics.
+betterquesting.questline.MplGC3IbNjeXKp+jOByJ9Q.desc=Let's build large industrial-style nuclear reactor facilities!  The Modular Pressure Tube Reactor (MPTR) is a GTNH-style take on nuclear reactors inspired by modern nuclear reactor mods, e.g. Modern Industrialization.  We'll also build high-pressure loops of coolant fluids to keep our reactor nice and fresh and have some fun with simple industrial thermodynamics.
 

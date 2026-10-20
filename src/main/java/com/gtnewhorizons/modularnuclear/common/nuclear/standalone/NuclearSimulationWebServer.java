@@ -2804,7 +2804,7 @@ public class NuclearSimulationWebServer {
                 `;
               } else if (t.type === "PASSAGE_CORE") {
                 extraHtml = `
-                  <div class="stat-row"><span>Component:</span><span class="stat-val" style="color:#00d2ff;">Pressurized Core Passage</span></div>
+                  <div class="stat-row"><span>Component:</span><span class="stat-val" style="color:#00d2ff;">High-pressure core passage</span></div>
                   <div class="stat-row"><span>Heat Transfer (k):</span><span class="stat-val" style="color:#38bdf8;">0.90 (High Convection)</span></div>
                   <div class="stat-row"><span>Moderation / Scatter:</span><span class="stat-val" style="color:#a3e635;">85% / 80%</span></div>
                   <div class="stat-row"><span>Coupling:</span><span class="stat-val" style="color:var(--success);">Direct Convective Loop</span></div>
