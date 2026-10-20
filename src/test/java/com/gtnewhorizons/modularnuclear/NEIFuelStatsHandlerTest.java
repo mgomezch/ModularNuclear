@@ -72,6 +72,26 @@ public class NEIFuelStatsHandlerTest {
     }
 
     @Test
+    public void testCachedFuelStatsRecipeWithFuelData() {
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .getAllFuels()
+            .stream()
+            .filter(f -> "fuel_uranium_1".equalsIgnoreCase(f.id))
+            .findFirst()
+            .orElse(null);
+        assertNotNull(fd, "Uranium FuelData should exist in ReactorDataRegistry");
+        assertEquals(160000, fd.defaultDurability);
+        assertEquals(770.0, fd.peakReactivityTemp);
+        assertEquals(2300.0, fd.floorTemp);
+
+        NEIFuelStatsHandler.CachedFuelStatsRecipe recipe = new NEIFuelStatsHandler().new CachedFuelStatsRecipe(fd,
+            NEIFuelStatsHandler.getFuelStacks(fd));
+        assertNotNull(recipe.fuelData);
+        assertEquals(fd, recipe.fuelData);
+        assertEquals(160000, recipe.fuelData.defaultDurability);
+    }
+
+    @Test
     public void testAmbientTemperatureDefaultAndAdjustment() {
         NEIFuelStatsHandler.resetAmbientTemp();
         assertEquals(24.0, NEIFuelStatsHandler.sAmbientTemp, 1e-6, "Default ambient temperature must be 24.0 °C");

@@ -97,9 +97,9 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
             int pipes = machine.getMiningPipeCount();
             if (pipes < MTEHatchNuclearControlRod.MAX_MINING_PIPES) {
                 return EnumChatFormatting.YELLOW
-                    + String.format("Housing: %d/5 (Min %d%%)", pipes, machine.getMinInsertionPercent());
+                    + String.format("Housing: %d/5 (min %d%%)", pipes, machine.getMinInsertionPercent());
             }
-            return EnumChatFormatting.GRAY + "Housing: 5/5 (Full)";
+            return EnumChatFormatting.GRAY + "Housing: 5/5 (full)";
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));

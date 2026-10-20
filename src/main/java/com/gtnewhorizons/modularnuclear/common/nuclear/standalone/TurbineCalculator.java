@@ -99,8 +99,8 @@ public class TurbineCalculator {
 
     public enum FittingMode {
 
-        TIGHT("Tight Fitting (Max Efficiency)"),
-        LOOSE("Loose Fitting (High Throughput)");
+        TIGHT("Tight fitting (max efficiency)"),
+        LOOSE("Loose fitting (high throughput)");
 
         public final String displayName;
 

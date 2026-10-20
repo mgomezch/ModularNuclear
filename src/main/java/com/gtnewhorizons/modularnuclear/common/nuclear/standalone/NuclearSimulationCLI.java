@@ -1886,18 +1886,18 @@ public class NuclearSimulationCLI {
                 : ANSI_GREEN + "Disabled (Permissive)" + ANSI_RESET));
         System.out.println(
             "Stop On Incidents: "
-                + (grid.isStopOnIncidents() ? ANSI_YELLOW + "Enabled (Pause on Damage/Thermal Shock)" + ANSI_RESET
+                + (grid.isStopOnIncidents() ? ANSI_YELLOW + "Enabled (pause on damage/thermal shock)" + ANSI_RESET
                     : ANSI_GREEN + "Disabled" + ANSI_RESET));
         System.out.println(
             "Auto-Supply Fuel:  "
-                + (grid.isAutoSupplyFuel() ? ANSI_GREEN + "Enabled (Continuous Rod/Fluid Cycle)" + ANSI_RESET
-                    : ANSI_YELLOW + "Disabled (Single Batch)" + ANSI_RESET));
+                + (grid.isAutoSupplyFuel() ? ANSI_GREEN + "Enabled (continuous rod/fluid cycle)" + ANSI_RESET
+                    : ANSI_YELLOW + "Disabled (single batch)" + ANSI_RESET));
         if (grid.getReactorDamage() > 0.0 || grid.getMaintenanceIssues() > 0) {
             System.out.println(
                 "Health/Maint:  " + ANSI_YELLOW
                     + String.format(
                         java.util.Locale.US,
-                        "Damage: %.1f%%, %d issues (Efficiency: %.1f%%)",
+                        "Damage: %.1f%%, %d issues (efficiency: %.1f%%)",
                         grid.getReactorDamage(),
                         grid.getMaintenanceIssues(),
                         grid.getMaintenanceEfficiency() * 100.0)

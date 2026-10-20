@@ -314,10 +314,10 @@ public class NuclearSimulationEngine {
         return switch (tier) {
             case PIPE_TIER_ELECTRUM -> "Electrum (IC2 Coolant)";
             case PIPE_TIER_PLATINUM -> "Platinum (Distilled Water)";
-            case PIPE_TIER_OSMIUM -> "Osmium (HP Core Hatches)";
+            case PIPE_TIER_OSMIUM -> "Osmium (HP core hatches)";
             case PIPE_TIER_QUANTIUM -> "Quantium (Heavy Water)";
-            case PIPE_TIER_FLUXED_ELECTRUM -> "Fluxed Electrum (Excited Fuel)";
-            case PIPE_TIER_BLACK_PLUTONIUM -> "Black Plutonium (Max Tier / All Coolants)";
+            case PIPE_TIER_FLUXED_ELECTRUM -> "Fluxed Electrum (excited fuel)";
+            case PIPE_TIER_BLACK_PLUTONIUM -> "Black Plutonium (max tier / all coolants)";
             default -> "None";
         };
     }

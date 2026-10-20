@@ -20,6 +20,9 @@ import net.minecraftforge.oredict.OreDictionary;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
+import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
@@ -191,11 +194,23 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
     public class CachedFuelStatsRecipe extends CachedRecipe {
 
+        public final FuelData fuelData;
         public final NuclearFuelType fuel;
         public final PositionedStack fuelStack;
 
+        public CachedFuelStatsRecipe(FuelData fuelData, List<ItemStack> items) {
+            this.fuelData = fuelData;
+            this.fuel = (fuelData != null) ? findFuelType(fuelData) : null;
+            ItemStack fallback = (ItemList.RodThorium.hasBeenSet()) ? ItemList.RodThorium.get(1L)
+                : new ItemStack(net.minecraft.init.Items.coal);
+            List<ItemStack> displayItems = (items != null && !items.isEmpty()) ? items
+                : Collections.singletonList(fallback);
+            this.fuelStack = new PositionedStack(displayItems, 12, 10);
+        }
+
         public CachedFuelStatsRecipe(NuclearFuelType fuel, List<ItemStack> items) {
             this.fuel = fuel;
+            this.fuelData = (fuel != null) ? findFuelData(fuel) : null;
             ItemStack fallback = (ItemList.RodThorium.hasBeenSet()) ? ItemList.RodThorium.get(1L)
                 : new ItemStack(net.minecraft.init.Items.coal);
             List<ItemStack> displayItems = (items != null && !items.isEmpty()) ? items
@@ -212,6 +227,27 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         public PositionedStack getResult() {
             return fuelStack;
         }
+    }
+
+    public static NuclearFuelType findFuelType(FuelData fd) {
+        if (fd == null) return null;
+        for (NuclearFuelType nft : NuclearFuelType.values()) {
+            if (nft.name()
+                .equalsIgnoreCase(fd.id) || nft.displayName.equalsIgnoreCase(fd.name)) {
+                return nft;
+            }
+        }
+        return null;
+    }
+
+    public static FuelData findFuelData(NuclearFuelType fuel) {
+        if (fuel == null) return null;
+        for (FuelData fd : ReactorDataRegistry.getAllFuels()) {
+            if (fd.id.equalsIgnoreCase(fuel.name()) || fd.name.equalsIgnoreCase(fuel.displayName)) {
+                return fd;
+            }
+        }
+        return null;
     }
 
     private static void addIfSet(List<ItemStack> list, ItemList item) {
@@ -330,9 +366,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
     @Override
     public void loadCraftingRecipes(String outputId, Object... results) {
         if (outputId != null && outputId.equals(getOverlayIdentifier())) {
-            for (NuclearFuelType fuel : NuclearFuelType.values()) {
-                this.arecipes.add(new CachedFuelStatsRecipe(fuel, getFuelStacks(fuel)));
-            }
+            loadAllFuels();
         } else {
             super.loadCraftingRecipes(outputId, results);
         }
@@ -342,14 +376,26 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
     public void loadCraftingRecipes(ItemStack result) {
         if (result == null) return;
         if (isController(result)) {
-            for (NuclearFuelType fuel : NuclearFuelType.values()) {
-                this.arecipes.add(new CachedFuelStatsRecipe(fuel, getFuelStacks(fuel)));
-            }
+            loadAllFuels();
             return;
         }
-        for (NuclearFuelType fuel : NuclearFuelType.values()) {
-            if (matches(result, fuel)) {
-                this.arecipes.add(new CachedFuelStatsRecipe(fuel, getFuelStacks(fuel)));
+        FuelData fd = ReactorDataRegistry.findFuel(result);
+        if (fd != null && !fd.isLiquid) {
+            List<ItemStack> stacks = getFuelStacks(fd);
+            if (stacks.isEmpty()) stacks = Collections.singletonList(result.copy());
+            this.arecipes.add(new CachedFuelStatsRecipe(fd, stacks));
+            return;
+        }
+        for (FuelData f : ReactorDataRegistry.getAllFuels()) {
+            if (!f.isLiquid && matches(result, f)) {
+                this.arecipes.add(new CachedFuelStatsRecipe(f, getFuelStacks(f)));
+            }
+        }
+        if (this.arecipes.isEmpty()) {
+            for (NuclearFuelType fuel : NuclearFuelType.values()) {
+                if (matches(result, fuel)) {
+                    this.arecipes.add(new CachedFuelStatsRecipe(fuel, getFuelStacks(fuel)));
+                }
             }
         }
     }
@@ -360,14 +406,40 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
         // Clicking on the nuclear reactor catalyst shows all fuels
         if (isController(ingredient)) {
-            for (NuclearFuelType fuel : NuclearFuelType.values()) {
-                this.arecipes.add(new CachedFuelStatsRecipe(fuel, getFuelStacks(fuel)));
-            }
+            loadAllFuels();
             return;
         }
 
-        for (NuclearFuelType fuel : NuclearFuelType.values()) {
-            if (matches(ingredient, fuel)) {
+        FuelData fd = ReactorDataRegistry.findFuel(ingredient);
+        if (fd != null && !fd.isLiquid) {
+            List<ItemStack> stacks = getFuelStacks(fd);
+            if (stacks.isEmpty()) stacks = Collections.singletonList(ingredient.copy());
+            this.arecipes.add(new CachedFuelStatsRecipe(fd, stacks));
+            return;
+        }
+        for (FuelData f : ReactorDataRegistry.getAllFuels()) {
+            if (!f.isLiquid && matches(ingredient, f)) {
+                this.arecipes.add(new CachedFuelStatsRecipe(f, getFuelStacks(f)));
+            }
+        }
+        if (this.arecipes.isEmpty()) {
+            for (NuclearFuelType fuel : NuclearFuelType.values()) {
+                if (matches(ingredient, fuel)) {
+                    this.arecipes.add(new CachedFuelStatsRecipe(fuel, getFuelStacks(fuel)));
+                }
+            }
+        }
+    }
+
+    private void loadAllFuels() {
+        List<FuelData> all = ReactorDataRegistry.getAllFuels();
+        if (all != null && !all.isEmpty()) {
+            for (FuelData fd : all) {
+                if (fd.isLiquid) continue;
+                this.arecipes.add(new CachedFuelStatsRecipe(fd, getFuelStacks(fd)));
+            }
+        } else {
+            for (NuclearFuelType fuel : NuclearFuelType.values()) {
                 this.arecipes.add(new CachedFuelStatsRecipe(fuel, getFuelStacks(fuel)));
             }
         }
@@ -377,6 +449,50 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         if (stack == null) return false;
         ItemStack ctrl = getControllerStack();
         return ctrl != null && ctrl.isItemEqual(stack);
+    }
+
+    public static List<ItemStack> getFuelStacks(FuelData fd) {
+        List<ItemStack> list = new ArrayList<>();
+        if (fd == null) return list;
+        if (fd.matching != null) {
+            for (String pattern : fd.matching) {
+                ItemStack stack = ReactorDataRegistry.resolveItemStack(pattern);
+                if (stack != null) {
+                    boolean found = false;
+                    for (ItemStack existing : list) {
+                        if (existing.isItemEqual(stack)) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        list.add(stack);
+                    }
+                }
+            }
+        }
+        if (list.isEmpty()) {
+            NuclearFuelType nft = findFuelType(fd);
+            if (nft != null) {
+                list.addAll(getFuelStacks(nft));
+            }
+        }
+        return list;
+    }
+
+    private boolean matches(ItemStack target, FuelData fd) {
+        if (target == null || fd == null) return false;
+        if (ReactorDataRegistry.matchesItem(target, fd.matching)) return true;
+        List<ItemStack> items = getFuelStacks(fd);
+        for (ItemStack item : items) {
+            if (GTUtility.areStacksEqual(target, item, true)) return true;
+            if (target.getItem() == item.getItem()) {
+                return target.getItemDamage() == OreDictionary.WILDCARD_VALUE
+                    || item.getItemDamage() == OreDictionary.WILDCARD_VALUE
+                    || target.getItemDamage() == item.getItemDamage();
+            }
+        }
+        return false;
     }
 
     private boolean matches(ItemStack target, NuclearFuelType fuel) {
@@ -420,8 +536,9 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         GuiDraw.drawRect(PLOT_X - 1, PLOT_Y, 1, PLOT_H, 0xFF2D333F);
         GuiDraw.drawRect(PLOT_X + PLOT_W, PLOT_Y, 1, PLOT_H, 0xFF2D333F);
 
-        NuclearFuelType fuel = recipe.fuel;
-        double maxTemp = Math.ceil((fuel.floorTemp + 200.0) / 500.0) * 500.0;
+        FuelData fd = recipe.fuelData;
+        double floorTemp = (fd != null) ? fd.floorTemp : (recipe.fuel != null ? recipe.fuel.floorTemp : 2300.0);
+        double maxTemp = Math.ceil((floorTemp + 200.0) / 500.0) * 500.0;
 
         // Horizontal grid lines (25%, 50%, 75%, 100%)
         for (int p = 25; p <= 100; p += 25) {
@@ -443,13 +560,27 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         CachedRecipe cached = this.arecipes.get(recipeIndex);
         if (!(cached instanceof CachedFuelStatsRecipe recipe)) return;
 
-        NuclearFuelType fuel = recipe.fuel;
-        FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver.solve(fuel, sAmbientTemp);
+        FuelData fd = recipe.fuelData;
+        double peakTemp = (fd != null) ? fd.peakReactivityTemp
+            : (recipe.fuel != null ? recipe.fuel.peakReactivityTemp : 770.0);
+        double floorTemp = (fd != null) ? fd.floorTemp : (recipe.fuel != null ? recipe.fuel.floorTemp : 2300.0);
+        double t10 = peakTemp + FuelDamageCurveSolver.P_10_PERCENT * (floorTemp - peakTemp);
+        double maxTemp = Math.ceil((floorTemp + 200.0) / 500.0) * 500.0;
+
+        PhysicsData physics = ReactorDataRegistry.getPhysics();
+        double wear = (fd != null && fd.t10WearFactor != null && fd.t10WearFactor > 1.0) ? fd.t10WearFactor
+            : (recipe.fuel != null && recipe.fuel.wearFactor > 1.0 ? recipe.fuel.wearFactor
+                : (physics != null ? physics.t10WearFactor : FuelDamageCurveSolver.DEFAULT_T10_WEAR_FACTOR));
+
+        FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver
+            .solve(recipe.fuel, peakTemp, floorTemp, sAmbientTemp, wear);
 
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
 
         // Fuel display title (auto-scaled if longer than header width)
-        String title = EnumChatFormatting.BOLD + fuel.displayName + " Fuel";
+        String displayName = (fd != null) ? fd.name
+            : (recipe.fuel != null ? recipe.fuel.displayName + " Fuel" : "Fuel");
+        String title = EnumChatFormatting.BOLD + displayName;
         int titleWidth = font.getStringWidth(title);
         float titleScale = (titleWidth > 115) ? (115.0f / titleWidth) : 1.0f;
         drawScaledString(title, 36, 10, titleScale, 0x111111);
@@ -462,10 +593,10 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             Locale.US,
             "Peak: %s%.0f °C%s | Floor: %s%.0f °C",
             EnumChatFormatting.DARK_AQUA,
-            fuel.peakReactivityTemp,
+            peakTemp,
             EnumChatFormatting.DARK_GRAY,
             EnumChatFormatting.RED,
-            fuel.floorTemp);
+            floorTemp);
         drawScaledString(l1, 36, 22, STATS_SCALE, 0x333333);
 
         // Line 2: 10% Reactivity Point & Damage Ratio (calculated dynamically for sAmbientTemp)
@@ -473,7 +604,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             Locale.US,
             "10%% Point: %s%.0f °C%s (Ratio: %s%.1f%%%s)",
             EnumChatFormatting.BLUE,
-            fuel.temp10Percent,
+            t10,
             EnumChatFormatting.DARK_GRAY,
             EnumChatFormatting.DARK_GREEN,
             stats.damageRatioPercent,
@@ -481,11 +612,12 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         drawScaledString(l2, 12, 33, STATS_SCALE, 0x333333);
 
         // Line 3: Fission Multiplier & Base Neutron Output
-        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getPhysics();
-        double effFiss = fuel.getEffectiveFissionMultiplier(physics);
-        double effFastFiss = fuel.getEffectiveFastFissionMultiplier(physics);
-        int effNeutrons = fuel.getEffectiveBaseNeutrons(physics);
+        double effFiss = (fd != null) ? fd.getEffectiveFissionMultiplier(physics)
+            : (recipe.fuel != null ? recipe.fuel.getEffectiveFissionMultiplier(physics) : 1.0);
+        double effFastFiss = (fd != null) ? fd.getEffectiveFastFissionMultiplier(physics)
+            : (recipe.fuel != null ? recipe.fuel.getEffectiveFastFissionMultiplier(physics) : 0.1);
+        int effNeutrons = (fd != null) ? fd.getEffectiveBaseNeutrons(physics)
+            : (recipe.fuel != null ? recipe.fuel.getEffectiveBaseNeutrons(physics) : 4);
 
         String l3 = String.format(
             Locale.US,
@@ -501,19 +633,20 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         drawScaledString(l3, 12, 44, STATS_SCALE, 0x333333);
 
         // Line 4: Durability & Growth Parameter k (calculated dynamically for sAmbientTemp)
+        int durability = (fd != null) ? fd.defaultDurability
+            : (recipe.fuel != null ? recipe.fuel.defaultDurability : 160000);
         String l4 = String.format(
             Locale.US,
             "Durability: %s%,d%s | k: %s%.6f",
             EnumChatFormatting.DARK_GREEN,
-            fuel.defaultDurability,
+            durability,
             EnumChatFormatting.DARK_GRAY,
             EnumChatFormatting.BLACK,
             stats.k);
         drawScaledString(l4, 12, 55, STATS_SCALE, 0x333333);
 
         // --- DYNAMIC VECTOR PLOT RENDERING ---
-        double maxTemp = Math.ceil((fuel.floorTemp + 200.0) / 500.0) * 500.0;
-        double damageAtFloor = stats.calculateDamage(fuel.floorTemp);
+        double damageAtFloor = stats.calculateDamage(floorTemp);
         double maxDamage = Math.max(6.0, Math.ceil(damageAtFloor * 1.1));
 
         // Sub-pixel 0.5x labels for axes and legend
@@ -572,7 +705,8 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         GL11.glBegin(GL11.GL_LINE_STRIP);
         for (int i = 0; i <= PLOT_W; i++) {
             double temp = (i / (double) PLOT_W) * maxTemp;
-            double r = fuel.calculateReactivity(temp);
+            double r = (fd != null) ? fd.calculateReactivity(temp)
+                : (recipe.fuel != null ? recipe.fuel.calculateReactivity(temp) : 0.0);
             float y = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, r)) * PLOT_H);
             GL11.glVertex2f(PLOT_X + i, y);
         }
@@ -598,7 +732,8 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         if (mouseInRecipe != null && isMouseOverPlot(mouseInRecipe.x, mouseInRecipe.y)) {
             int mx = mouseInRecipe.x;
             double tempAtMouse = ((mx - PLOT_X) / (double) PLOT_W) * maxTemp;
-            double rAtMouse = fuel.calculateReactivity(tempAtMouse);
+            double rAtMouse = (fd != null) ? fd.calculateReactivity(tempAtMouse)
+                : (recipe.fuel != null ? recipe.fuel.calculateReactivity(tempAtMouse) : 0.0);
             double dAtMouse = stats.calculateDamage(tempAtMouse);
             float yr = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, rAtMouse)) * PLOT_H);
             float yd = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, dAtMouse / maxDamage)) * PLOT_H);
@@ -644,7 +779,8 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             if (offset != null) {
                 int mx = mouseInRecipe.x;
                 double tempAtMouse = ((mx - PLOT_X) / (double) PLOT_W) * maxTemp;
-                double rAtMouse = fuel.calculateReactivity(tempAtMouse);
+                double rAtMouse = (fd != null) ? fd.calculateReactivity(tempAtMouse)
+                    : (recipe.fuel != null ? recipe.fuel.calculateReactivity(tempAtMouse) : 0.0);
                 double dAtMouse = stats.calculateDamage(tempAtMouse);
 
                 List<String> tip = new ArrayList<>();
@@ -653,7 +789,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                         + EnumChatFormatting.BOLD
                         + String.format(Locale.US, "%.0f °C", tempAtMouse));
 
-                String peakNote = (Math.abs(tempAtMouse - fuel.peakReactivityTemp) <= (maxTemp / PLOT_W * 0.75))
+                String peakNote = (Math.abs(tempAtMouse - peakTemp) <= (maxTemp / PLOT_W * 0.75))
                     ? EnumChatFormatting.GOLD + " (Peak)"
                     : "";
                 tip.add(
@@ -824,13 +960,23 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
         Point mouseInRecipe = getMouseInRecipe(gui, recipeIndex);
         if (mouseInRecipe != null) {
-            NuclearFuelType fuel = recipe.fuel;
-            FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver.solve(fuel, sAmbientTemp);
+            FuelData fd = recipe.fuelData;
+            double peakTemp = (fd != null) ? fd.peakReactivityTemp
+                : (recipe.fuel != null ? recipe.fuel.peakReactivityTemp : 770.0);
+            double floorTemp = (fd != null) ? fd.floorTemp : (recipe.fuel != null ? recipe.fuel.floorTemp : 2300.0);
+            PhysicsData physics = ReactorDataRegistry.getPhysics();
+            double wear = (fd != null && fd.t10WearFactor != null && fd.t10WearFactor > 1.0) ? fd.t10WearFactor
+                : (recipe.fuel != null && recipe.fuel.wearFactor > 1.0 ? recipe.fuel.wearFactor
+                    : (physics != null ? physics.t10WearFactor : FuelDamageCurveSolver.DEFAULT_T10_WEAR_FACTOR));
+
+            FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver
+                .solve(recipe.fuel, peakTemp, floorTemp, sAmbientTemp, wear);
 
             if (isMouseOverPlot(mouseInRecipe.x, mouseInRecipe.y)) {
-                double maxTemp = Math.ceil((fuel.floorTemp + 200.0) / 500.0) * 500.0;
+                double maxTemp = Math.ceil((floorTemp + 200.0) / 500.0) * 500.0;
                 double temp = ((mouseInRecipe.x - PLOT_X) / (double) PLOT_W) * maxTemp;
-                double r = fuel.calculateReactivity(temp);
+                double r = (fd != null) ? fd.calculateReactivity(temp)
+                    : (recipe.fuel != null ? recipe.fuel.calculateReactivity(temp) : 0.0);
                 double d = stats.calculateDamage(temp);
 
                 currenttip.add(
@@ -838,7 +984,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                         + EnumChatFormatting.BOLD
                         + String.format(Locale.US, "%.0f °C", temp));
 
-                String peakNote = (Math.abs(temp - fuel.peakReactivityTemp) <= (maxTemp / PLOT_W * 0.75))
+                String peakNote = (Math.abs(temp - peakTemp) <= (maxTemp / PLOT_W * 0.75))
                     ? EnumChatFormatting.GOLD + " (Peak)"
                     : "";
                 currenttip.add(

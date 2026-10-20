@@ -420,10 +420,10 @@ public class NuclearSimulationEngineTest {
     void testPipeTierNames() {
         assertEquals("Electrum (IC2 Coolant)", NuclearSimulationEngine.getPipeTierName(0));
         assertEquals("Platinum (Distilled Water)", NuclearSimulationEngine.getPipeTierName(1));
-        assertEquals("Osmium (HP Core Hatches)", NuclearSimulationEngine.getPipeTierName(2));
+        assertEquals("Osmium (HP core hatches)", NuclearSimulationEngine.getPipeTierName(2));
         assertEquals("Quantium (Heavy Water)", NuclearSimulationEngine.getPipeTierName(3));
-        assertEquals("Fluxed Electrum (Excited Fuel)", NuclearSimulationEngine.getPipeTierName(4));
-        assertEquals("Black Plutonium (Max Tier / All Coolants)", NuclearSimulationEngine.getPipeTierName(5));
+        assertEquals("Fluxed Electrum (excited fuel)", NuclearSimulationEngine.getPipeTierName(4));
+        assertEquals("Black Plutonium (max tier / all coolants)", NuclearSimulationEngine.getPipeTierName(5));
     }
 
     @Test

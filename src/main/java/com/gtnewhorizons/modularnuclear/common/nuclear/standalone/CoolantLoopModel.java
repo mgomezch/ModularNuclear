@@ -19,9 +19,9 @@ public class CoolantLoopModel {
 
     public enum CoolingMode {
 
-        MODULAR("Modular (Per-Cell Cooling)"),
-        CONDUCTIVE("Conductive (Sub-boiling Hatches)"),
-        CONVECTIVE_LOOP("Convective (Closed Coolant Loop)");
+        MODULAR("Modular (per-cell cooling)"),
+        CONDUCTIVE("Conductive (sub-boiling hatches)"),
+        CONVECTIVE_LOOP("Convective (closed coolant loop)");
 
         public final String displayName;
 

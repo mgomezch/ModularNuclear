@@ -498,11 +498,11 @@ public class NEIModeratorStatsHandler extends TemplateRecipeHandler {
                     double releaseRate = mod.calculateWignerHeatRelease(tempAtMouse, mod.wignerMaxReleaseRate);
                     String statusNote = "";
                     if (tempAtMouse < mod.wignerReleaseOnsetTemp) {
-                        statusNote = EnumChatFormatting.GRAY + " (Sub-threshold)";
+                        statusNote = EnumChatFormatting.GRAY + " (sub-threshold)";
                     } else if (tempAtMouse >= mod.wignerReleaseHalfTemp) {
-                        statusNote = EnumChatFormatting.RED + " (Saturated > 50%)";
+                        statusNote = EnumChatFormatting.RED + " (saturated > 50%)";
                     } else {
-                        statusNote = EnumChatFormatting.GOLD + " (Active Release)";
+                        statusNote = EnumChatFormatting.GOLD + " (active release)";
                     }
                     tip.add(
                         EnumChatFormatting.AQUA + String.format(Locale.US, "Release Rate: %.0f HU/t", releaseRate)
