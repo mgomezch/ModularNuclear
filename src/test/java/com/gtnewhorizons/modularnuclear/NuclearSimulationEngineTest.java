@@ -7701,9 +7701,10 @@ public class NuclearSimulationEngineTest {
         assertEquals(20, NuclearSimulationEngine.getTicksPerCycle());
 
         // 1. Grid with default 20 ticks per cycle
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid20 =
-            new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-                5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid20 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
+            5,
+            5,
+            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         grid20.loadPreset("BASIC_ELECTRUM_5X5");
         assertEquals(20, grid20.getTicksPerCycle());
 
@@ -7715,9 +7716,10 @@ public class NuclearSimulationEngineTest {
         assertEquals(power20 * 20.0, energy20, 1e-4, "Accumulated energy should equal powerEUt * ticksPerCycle");
 
         // 2. Grid with 10 ticks per cycle (reactor cycle runs twice as fast)
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid10 =
-            new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-                5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid10 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
+            5,
+            5,
+            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         grid10.setTicksPerCycle(10);
         grid10.loadPreset("BASIC_ELECTRUM_5X5");
         grid10.setTicksPerCycle(10);
@@ -7731,8 +7733,16 @@ public class NuclearSimulationEngineTest {
         assertEquals(power10 * 10.0, energy10, 1e-4, "Accumulated energy should equal powerEUt * ticksPerCycle");
 
         // With cycles running twice as fast, per-tick fluid flow and power should be approximately 2x
-        assertEquals(flow20 * 2.0, flow10, flow20 * 0.05, "Flow rate in L/t should double when ticksPerCycle is halved");
-        assertEquals(power20 * 2.0, power10, power20 * 0.05, "Power in EU/t should double when ticksPerCycle is halved");
+        assertEquals(
+            flow20 * 2.0,
+            flow10,
+            flow20 * 0.05,
+            "Flow rate in L/t should double when ticksPerCycle is halved");
+        assertEquals(
+            power20 * 2.0,
+            power10,
+            power20 * 0.05,
+            "Power in EU/t should double when ticksPerCycle is halved");
 
         NuclearSimulationEngine.setTicksPerCycle(20);
     }

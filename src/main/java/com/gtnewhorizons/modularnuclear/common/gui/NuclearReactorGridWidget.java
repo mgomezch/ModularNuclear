@@ -29,6 +29,14 @@ import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.sizer.Area;
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantItemData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData;
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
@@ -74,6 +82,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
     public NuclearReactorGridWidget(MTENuclearReactor reactor, PanelSyncManager syncManager) {
         this.reactor = reactor;
         this.syncManager = syncManager;
+        tooltipPos(RichTooltip.Pos.NEXT_TO_MOUSE);
         tooltipDynamic(this::buildTooltip);
         tooltipAutoUpdate(true);
         tooltipShowUpTimer(0);
@@ -147,17 +156,15 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
     }
 
     public int[] getCellAtAbs(int absX, int absY) {
-        ModularGuiContext ctx = getContext();
-        int originX = (ctx != null) ? ctx.transformX(0, 0) : (getArea() != null ? getArea().x : 0);
-        int originY = (ctx != null) ? ctx.transformY(0, 0) : (getArea() != null ? getArea().y : 0);
-        return getCellAt(absX - originX, absY - originY);
+        Area area = getArea();
+        if (area == null) return null;
+        return getCellAt(absX - area.x, absY - area.y);
     }
 
     public boolean isOverControllerAbs(int absX, int absY) {
-        ModularGuiContext ctx = getContext();
-        int originX = (ctx != null) ? ctx.transformX(0, 0) : (getArea() != null ? getArea().x : 0);
-        int originY = (ctx != null) ? ctx.transformY(0, 0) : (getArea() != null ? getArea().y : 0);
-        return isOverController(absX - originX, absY - originY);
+        Area area = getArea();
+        if (area == null) return false;
+        return isOverController(absX - area.x, absY - area.y);
     }
 
     public boolean isOverController(int mx, int my) {
@@ -310,8 +317,11 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
     @Override
     public boolean onMouseScroll(UpOrDown scroll, int delta) {
         ModularGuiContext ctx = getContext();
-        float mx = (ctx != null) ? ctx.getMouseX() : (getArea() != null ? getArea().w() / 2.0f : 0.0f);
-        float my = (ctx != null) ? ctx.getMouseY() : (getArea() != null ? getArea().h() / 2.0f : 0.0f);
+        Area area = getArea();
+        float mx = (ctx != null && area != null) ? (ctx.getAbsMouseX() - area.x)
+            : (area != null ? area.w() / 2.0f : 0.0f);
+        float my = (ctx != null && area != null) ? (ctx.getAbsMouseY() - area.y)
+            : (area != null ? area.h() / 2.0f : 0.0f);
         if (scroll == UpOrDown.UP) {
             zoomAt(Math.min(3.0f, zoom * 1.15f), mx, my);
             return true;
@@ -543,12 +553,15 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
 
     private void buildTooltip(RichTooltip tooltip) {
         ModularGuiContext ctx = getContext();
-        if (ctx == null || getArea() == null) return;
-        int rw = getArea().w();
-        int rh = getArea().h();
-        int mx = ctx.getMouseX();
-        int my = ctx.getMouseY();
-        if (mx < 0 || mx >= rw || my < 0 || my >= rh) return;
+        if (ctx == null) return;
+        Area area = getArea();
+        if (area == null) return;
+        int absX = ctx.getAbsMouseX();
+        int absY = ctx.getAbsMouseY();
+        if (!area.isInside(absX, absY)) return;
+
+        int mx = absX - area.x;
+        int my = absY - area.y;
 
         if (isOverController(mx, my)) {
             tooltip.addLine(EnumChatFormatting.GOLD + "" + EnumChatFormatting.BOLD + "Reactor Controller");
@@ -574,34 +587,263 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
             return;
         }
 
-        double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(sync.pipeTier);
-
-        // 1. Component Identity
+        // 1. Content in Hatch (Item, Fluid, or Empty Hatch)
         if (cell.itemStack != null) {
-            tooltip.addLine(EnumChatFormatting.WHITE + cell.itemStack.getDisplayName());
+            try {
+                tooltip.addFromItem(cell.itemStack);
+            } catch (Exception e) {
+                tooltip.addLine(EnumChatFormatting.WHITE + cell.itemStack.getDisplayName());
+            }
             if (cell.itemStack.stackSize > 1) {
-                tooltip.addLine(EnumChatFormatting.GRAY + "Amount: " + cell.itemStack.stackSize);
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + "Stack size: " + EnumChatFormatting.WHITE + cell.itemStack.stackSize);
+            }
+
+            // Component Physics Registry Lookups
+            ModeratorData mod = ReactorDataRegistry.findModerator(cell.itemStack);
+            if (mod != null) {
+                tooltip.addLine(
+                    EnumChatFormatting.DARK_AQUA + "Moderator Component: " + EnumChatFormatting.WHITE + mod.name);
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Moderation efficiency: %s%.1f%%",
+                        EnumChatFormatting.GREEN,
+                        mod.moderation * 100.0));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Scattering: Fast %s%.1f%%%s | Thermal %s%.1f%%",
+                        EnumChatFormatting.BLUE,
+                        mod.scatteringFast * 100.0,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.DARK_AQUA,
+                        mod.scatteringThermal * 100.0));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Absorption: Fast %s%.2f%%%s | Thermal %s%.2f%%",
+                        EnumChatFormatting.RED,
+                        mod.absorptionFast * 100.0,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.DARK_RED,
+                        mod.absorptionThermal * 100.0));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Heat transfer: %s%.2f%s | Max safe temp: %s%.0f °C",
+                        EnumChatFormatting.AQUA,
+                        mod.heatTransferCoeff,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.GOLD,
+                        mod.maxTemperature));
+            }
+
+            ReflectorData ref = ReactorDataRegistry.findReflector(cell.itemStack);
+            if (ref != null) {
+                tooltip.addLine(
+                    EnumChatFormatting.DARK_AQUA + "Reflector Component: " + EnumChatFormatting.WHITE + ref.name);
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Reflection: Fast %s%.1f%%%s | Thermal %s%.1f%%",
+                        EnumChatFormatting.BLUE,
+                        ref.scatteringFast * 100.0,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.DARK_AQUA,
+                        ref.scatteringThermal * 100.0));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Moderation factor: %s%.1f%%",
+                        EnumChatFormatting.GREEN,
+                        ref.moderation * 100.0));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Absorption: Fast %s%.2f%%%s | Thermal %s%.2f%%",
+                        EnumChatFormatting.RED,
+                        ref.absorptionFast * 100.0,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.DARK_RED,
+                        ref.absorptionThermal * 100.0));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String
+                        .format(Locale.US, "  Heat transfer: %s%.2f", EnumChatFormatting.AQUA, ref.heatTransferCoeff));
+            }
+
+            FuelData fuel = ReactorDataRegistry.findFuel(cell.itemStack);
+            if (fuel != null) {
+                tooltip.addLine(EnumChatFormatting.GOLD + "Nuclear Fuel: " + EnumChatFormatting.WHITE + fuel.name);
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Archetype: %s%s%s | Base neutrons: %s%d",
+                        EnumChatFormatting.YELLOW,
+                        fuel.archetype,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.AQUA,
+                        fuel.baseNeutrons));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Fission: Thermal %s%.2fx%s | Fast %s%.2fx",
+                        EnumChatFormatting.GREEN,
+                        fuel.thermalFissionMultiplier,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.BLUE,
+                        fuel.fastFissionMultiplier));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Moderation factor: %s%.1f%%",
+                        EnumChatFormatting.GREEN,
+                        fuel.moderation * 100.0));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Optimal temp: %s%.0f °C%s (floor: %s%.0f °C%s)",
+                        EnumChatFormatting.GOLD,
+                        fuel.peakReactivityTemp,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.RED,
+                        fuel.floorTemp,
+                        EnumChatFormatting.GRAY));
+            }
+
+            ControlRodData rod = ReactorDataRegistry.findControlRod(cell.itemStack);
+            if (rod != null) {
+                tooltip
+                    .addLine(EnumChatFormatting.GOLD + "Control Rod Material: " + EnumChatFormatting.WHITE + rod.name);
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Absorption: Thermal %s%.0f%%%s | Fast %s%.0f%%",
+                        EnumChatFormatting.DARK_RED,
+                        rod.maxThermalAbsorption * 100.0,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.RED,
+                        rod.maxFastAbsorption * 100.0));
+            }
+
+            RadiovoltaicData rv = ReactorDataRegistry.findRadiovoltaic(cell.itemStack);
+            if (rv != null) {
+                tooltip
+                    .addLine(EnumChatFormatting.AQUA + "Radiovoltaic Element: " + EnumChatFormatting.WHITE + rv.name);
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Conversion efficiency: %s%.1f%%%s | Heat transfer: %s%.2f",
+                        EnumChatFormatting.GREEN,
+                        rv.euConversionEfficiency * 100.0,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.AQUA,
+                        rv.heatTransferCoeff));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Absorption: Fast %s%.0f%%%s | Thermal %s%.0f%%",
+                        EnumChatFormatting.BLUE,
+                        rv.absorptionFast * 100.0,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.DARK_AQUA,
+                        rv.absorptionThermal * 100.0));
+            }
+
+            CoolantItemData cl = ReactorDataRegistry.findCoolantItem(cell.itemStack);
+            if (cl != null) {
+                tooltip.addLine(EnumChatFormatting.BLUE + "Coolant Component: " + EnumChatFormatting.WHITE + cl.name);
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String
+                        .format(Locale.US, "  Heat capacity: %s%,d Hu", EnumChatFormatting.GOLD, cl.heatCapacity));
             }
         } else if (cell.fluidStack != null) {
-            tooltip.addLine(EnumChatFormatting.AQUA + cell.fluidStack.getLocalizedName());
-            if (MTENuclearReactor.isFluidFuel(cell.fluidStack)) {
-                tooltip.addLine(EnumChatFormatting.GOLD + "Nuclear liquid fuel");
+            try {
+                tooltip.addFromFluid(cell.fluidStack);
+                tooltip.addAdditionalInfoFromFluid(cell.fluidStack);
+            } catch (Exception e) {
+                tooltip.addLine(EnumChatFormatting.AQUA + cell.fluidStack.getLocalizedName());
             }
-            tooltip
-                .addLine(EnumChatFormatting.GRAY + String.format(Locale.US, "Amount: %,d L", cell.fluidStack.amount));
+            tooltip.addLine(
+                EnumChatFormatting.GRAY
+                    + String.format(Locale.US, "Amount: %s%,d L", EnumChatFormatting.WHITE, cell.fluidStack.amount));
+
+            FuelData fFuel = ReactorDataRegistry.findFuel(cell.fluidStack);
+            if (fFuel != null) {
+                tooltip
+                    .addLine(EnumChatFormatting.GOLD + "Nuclear Liquid Fuel: " + EnumChatFormatting.WHITE + fFuel.name);
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Archetype: %s%s%s | Base neutrons: %s%d",
+                        EnumChatFormatting.YELLOW,
+                        fFuel.archetype,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.AQUA,
+                        fFuel.baseNeutrons));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Fission: Thermal %s%.2fx%s | Fast %s%.2fx",
+                        EnumChatFormatting.GREEN,
+                        fFuel.thermalFissionMultiplier,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.BLUE,
+                        fFuel.fastFissionMultiplier));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Moderation factor: %s%.1f%%",
+                        EnumChatFormatting.GREEN,
+                        fFuel.moderation * 100.0));
+            }
+
+            CoolantFluidData cFluid = ReactorDataRegistry.findCoolantFluid(cell.fluidStack);
+            if (cFluid != null) {
+                tooltip.addLine(
+                    EnumChatFormatting.AQUA + "Reactor Coolant Fluid: " + EnumChatFormatting.WHITE + cFluid.name);
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Heat capacity: %s%.2f Hu/L/°C%s | Moderation: %s%.1f%%",
+                        EnumChatFormatting.GOLD,
+                        cFluid.heatCapacity,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.GREEN,
+                        cFluid.moderation * 100.0));
+                tooltip.addLine(
+                    EnumChatFormatting.DARK_GRAY
+                        + String.format(Locale.US, "  Boiling point: %.0f °C", cFluid.boilingTemperature));
+            }
         } else if (cell.isHighPressure) {
-            tooltip.addLine(EnumChatFormatting.GOLD + "Nuclear core high-pressure hatch");
+            tooltip.addLine(EnumChatFormatting.GOLD + "" + EnumChatFormatting.BOLD + "Nuclear High-Pressure Hatch");
             tooltip.addLine(EnumChatFormatting.GRAY + "Hermetic fluid passage for coolant loop");
+            tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Status: Empty (no fluid present)");
         } else if (cell.isFluid) {
-            tooltip.addLine(EnumChatFormatting.GRAY + "Empty nuclear fluid hatch");
+            tooltip.addLine(EnumChatFormatting.AQUA + "" + EnumChatFormatting.BOLD + "Nuclear Core Fluid Hatch");
+            tooltip.addLine(EnumChatFormatting.GRAY + "Fluid container for liquid fuels or coolants");
+            tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Status: Empty (no fluid present)");
         } else {
-            tooltip.addLine(EnumChatFormatting.GRAY + "Empty nuclear component bus");
+            tooltip.addLine(EnumChatFormatting.WHITE + "" + EnumChatFormatting.BOLD + "Nuclear Component Bus");
+            tooltip.addLine(EnumChatFormatting.GRAY + "Hatch for fuel rods, moderators, and reflectors");
+            tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Status: Empty (no component installed)");
         }
 
-        // 2. Position
-        tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Position: (" + hx + ", " + hy + ")");
+        // 2. Telemetry Section Header
+        tooltip.addLine(EnumChatFormatting.DARK_GRAY + "--------------------------------");
+        tooltip.addLine(
+            EnumChatFormatting.YELLOW + ""
+                + EnumChatFormatting.BOLD
+                + "Cell Telemetry "
+                + EnumChatFormatting.DARK_GRAY
+                + "("
+                + hx
+                + ", "
+                + hy
+                + ")");
 
         // 3. Thermal Telemetry
+        double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(sync.pipeTier);
         String tempColor;
         if (cell.temperature > maxTemp) {
             tempColor = EnumChatFormatting.DARK_RED.toString();
@@ -621,13 +863,14 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 + String.format(Locale.US, " (safe limit: %.0f °C)", maxTemp));
 
         if (cell.temperature > maxTemp) {
-            tooltip.addLine(EnumChatFormatting.RED + "" + EnumChatFormatting.BOLD + "Status: melting point exceeded!");
+            tooltip.addLine(
+                EnumChatFormatting.RED + "" + EnumChatFormatting.BOLD + "Thermal status: Melting point exceeded!");
         } else if (cell.temperature > maxTemp * 0.85) {
-            tooltip.addLine(EnumChatFormatting.RED + "Status: thermal warning - high temperature");
+            tooltip.addLine(EnumChatFormatting.RED + "Thermal status: Approaching thermal limit");
         } else if (cell.temperature > maxTemp * 0.5) {
-            tooltip.addLine(EnumChatFormatting.YELLOW + "Status: operating - elevated temperature");
+            tooltip.addLine(EnumChatFormatting.YELLOW + "Thermal status: Operating (elevated temp)");
         } else {
-            tooltip.addLine(EnumChatFormatting.GREEN + "Status: nominal operation");
+            tooltip.addLine(EnumChatFormatting.GREEN + "Thermal status: Nominal operation");
         }
 
         // 4. Neutron Telemetry
@@ -639,6 +882,8 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                     + NuclearSimulationEngine.formatNeutronFlux(totalFlux)
                     + EnumChatFormatting.DARK_GRAY
                     + String.format(Locale.US, " (%d fast, %d thermal)", cell.fastFlux, cell.thermalFlux));
+        } else {
+            tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Neutron flux: 0 n/s");
         }
 
         int totalAbs = cell.fastAbsorbed + cell.thermalAbsorbed;
@@ -649,6 +894,12 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                     + String.format(Locale.US, "%,d /s", totalAbs)
                     + EnumChatFormatting.DARK_GRAY
                     + String.format(Locale.US, " (%d fast, %d thermal)", cell.fastAbsorbed, cell.thermalAbsorbed));
+        }
+
+        if (cell.cumulativeFluence > 0) {
+            tooltip.addLine(
+                EnumChatFormatting.DARK_GRAY
+                    + String.format(Locale.US, "Cumulative fluence: %,d n", cell.cumulativeFluence));
         }
 
         // 5. Radiovoltaic Power

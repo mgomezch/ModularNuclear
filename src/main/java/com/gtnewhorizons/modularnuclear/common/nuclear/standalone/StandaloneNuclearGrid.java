@@ -39,6 +39,7 @@ public class StandaloneNuclearGrid {
     public void setTicksPerCycle(int ticks) {
         this.ticksPerCycle = Math.max(1, ticks);
     }
+
     private boolean exploded = false;
     private String explosionReason = "";
     private boolean powerFailed = false;
@@ -483,7 +484,8 @@ public class StandaloneNuclearGrid {
         this.height = height;
         this.pipeTier = pipeTier;
         applyDefaultTurbinesForTier();
-        this.lastScenariosResult = TurbineCalculator.calculateBothScenarios(pipeTier, 0, 0, 0, 0, 0, 0, 0, null, null, this.machineLimits);
+        this.lastScenariosResult = TurbineCalculator
+            .calculateBothScenarios(pipeTier, 0, 0, 0, 0, 0, 0, 0, null, null, this.machineLimits);
         this.grid = new SimTile[width][height];
         clearGrid();
     }

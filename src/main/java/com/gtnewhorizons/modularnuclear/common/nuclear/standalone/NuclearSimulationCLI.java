@@ -2123,7 +2123,11 @@ public class NuclearSimulationCLI {
             if (p.machineLimitExceeded) {
                 System.out.println(
                     ANSI_YELLOW + "  [!] Machine limits exceeded! Voided: "
-                        + String.format(java.util.Locale.US, "%.1f L/t coolant, %.1f L/t steam", p.voidedCoolantFlow, p.totalVoidedSteamFlow)
+                        + String.format(
+                            java.util.Locale.US,
+                            "%.1f L/t coolant, %.1f L/t steam",
+                            p.voidedCoolantFlow,
+                            p.totalVoidedSteamFlow)
                         + ANSI_RESET);
             }
             if (p.isLST && p.lstPowerEUt > 0) {

@@ -714,7 +714,9 @@ public class CoolantLoopModel {
                         }
 
                         pTile.setTemperature(
-                            Math.max(currentCoolantTempCelsius, cellTemp - huTick / NuclearSimulationEngine.huPerDegree));
+                            Math.max(
+                                currentCoolantTempCelsius,
+                                cellTemp - huTick / NuclearSimulationEngine.huPerDegree));
                         pTile.setLastHeatOutput(pTile.getLastHeatOutput() + huTick);
                         totalHeatExtractedJoulesTick += joulesTick;
                     }
@@ -745,7 +747,8 @@ public class CoolantLoopModel {
 
             // 7. Coolant Temperature Rise
             // Mass flow per tick (kg)
-            double loopFluidMassKg = Math.max(10.0, (currentFlowRateLPerSec * 0.05) * (fluidType.density / 1000.0) * 10.0);
+            double loopFluidMassKg = Math
+                .max(10.0, (currentFlowRateLPerSec * 0.05) * (fluidType.density / 1000.0) * 10.0);
             double tempRise = totalHeatExtractedJoulesTick / (loopFluidMassKg * fluidType.specificHeat);
             currentCoolantTempCelsius += tempRise;
 
