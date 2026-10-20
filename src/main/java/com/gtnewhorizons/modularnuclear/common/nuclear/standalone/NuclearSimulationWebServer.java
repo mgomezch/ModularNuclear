@@ -635,9 +635,9 @@ public class NuclearSimulationWebServer {
               <div style="display:flex; gap:10px; align-items:center;">
                 <span class="badge" id="engine-badge" style="background:#065f46; border-color:#059669; color:#34d399;" title="Simulation running client-side via WebAssembly">⚡ Client WASM (0ms)</span>
                 <a href="/monitor/" class="badge" style="text-decoration:none; background:#1e1b4b; border-color:#6366f1; color:#a5b4fc;" title="Open real-time simulator telemetry & calibration dashboard">📊 Live Monitor</a>
-                <span class="badge" id="casing-badge">Electrum Casing (1000°C Max)</span>
-                <span class="badge" id="damage-badge" style="display:none; color:var(--danger); border-color:var(--danger);" title="Cumulative Reactor Structural Damage">Damage: 0.0%</span>
-                <span class="badge" id="maint-badge" style="color:var(--success);" title="Maintenance Health (Efficiency Penalty)">Maint: 100%</span>
+                <span class="badge" id="casing-badge">Electrum Casing (1000°C max)</span>
+                <span class="badge" id="damage-badge" style="display:none; color:var(--danger); border-color:var(--danger);" title="Cumulative reactor structural damage">Damage: 0.0%</span>
+                <span class="badge" id="maint-badge" style="color:var(--success);" title="Maintenance health (efficiency penalty)">Maint: 100%</span>
                 <button id="btn-quick-repair" onclick="quickRepair()" style="display:none; padding:2px 8px; font-size:0.75rem; background:#1e293b; border-color:var(--warning); color:var(--warning);" title="Repair structural damage and clear maintenance issues">🔧 Repair</button>
                 <span class="badge" id="status-badge" style="color:var(--success);">STATUS: STANDBY</span>
               </div>
@@ -721,9 +721,9 @@ public class NuclearSimulationWebServer {
                       onchange="onDamageSliderChange(this.value)"
                       style="width:90px; cursor:pointer; accent-color:#ef4444;" title="Slide to adjust reactor structural damage (0% to 100%)">
                     <span id="lbl-reactor-damage-val" style="font-size:0.75rem; color:#f87171; font-weight:bold; min-width:40px;">0.0%</span>
-                    <button type="button" onclick="setDamagePercent(0)" style="font-size:0.7rem; padding:1px 5px; background:#065f46; color:#34d399; border:1px solid #059669; border-radius:3px; cursor:pointer;" title="Reset damage to 0% (Clean Repair)">0%</button>
+                    <button type="button" onclick="setDamagePercent(0)" style="font-size:0.7rem; padding:1px 5px; background:#065f46; color:#34d399; border:1px solid #059669; border-radius:3px; cursor:pointer;" title="Reset damage to 0% (clean repair)">0%</button>
                     <button type="button" onclick="setDamagePercent(50)" style="font-size:0.7rem; padding:1px 5px; background:#78350f; color:#fde047; border:1px solid #d97706; border-radius:3px; cursor:pointer;" title="Set damage to 50%">50%</button>
-                    <button type="button" onclick="setDamagePercent(95)" style="font-size:0.7rem; padding:1px 5px; background:#7f1d1d; color:#fca5a5; border:1px solid #dc2626; border-radius:3px; cursor:pointer;" title="Set damage to 95% (Near Meltdown)">95%</button>
+                    <button type="button" onclick="setDamagePercent(95)" style="font-size:0.7rem; padding:1px 5px; background:#7f1d1d; color:#fca5a5; border:1px solid #dc2626; border-radius:3px; cursor:pointer;" title="Set damage to 95% (near meltdown)">95%</button>
                   </div>
                 </div>
 
@@ -807,10 +807,10 @@ public class NuclearSimulationWebServer {
                   <div style="margin-bottom:8px;">
                     <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:2px;">Tuning Profile:</label>
                     <select id="sim-profile-select" onchange="applyProfilePreset(this.value)" style="width:100%;">
-                      <option value="BALANCED" selected>Balanced / Default</option>
-                      <option value="DANGER">Meltdown Hazard (High Danger)</option>
-                      <option value="FLASH_BOIL">Flash Boiling (Low Capacity / Fast Turnover)</option>
-                      <option value="SAFE">Conservative / Low Heat</option>
+                      <option value="BALANCED" selected>Balanced / default</option>
+                      <option value="DANGER">Meltdown hazard (high danger)</option>
+                      <option value="FLASH_BOIL">Flash boiling (low capacity / fast turnover)</option>
+                      <option value="SAFE">Conservative / low heat</option>
                     </select>
                   </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
@@ -1019,11 +1019,11 @@ public class NuclearSimulationWebServer {
                   <div style="margin-bottom:6px;">
                     <label style="font-size:0.7rem; color:var(--text-muted);">PHE Secondary Coolant:</label>
                     <select id="loop-secondary-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
-                      <option value="DISTILLED_WATER" selected>💧 Distilled Water (Boils at 100°C → Steam)</option>
-                      <option value="LIQUID_NITROGEN">❄️ Liquid Nitrogen (Boils at -196°C → Nitrogen Gas)</option>
-                      <option value="LIQUID_OXYGEN">❄️ Liquid Oxygen (Boils at -183°C → Oxygen Gas)</option>
-                      <option value="LIQUID_AIR">❄️ Liquid Air (Boils at -194°C → Air Gas)</option>
-                      <option value="LIQUID_HELIUM">🧊 Liquid Helium (Boils at -269°C → Helium Gas)</option>
+                      <option value="DISTILLED_WATER" selected>💧 Distilled Water (boils at 100°C → steam)</option>
+                      <option value="LIQUID_NITROGEN">❄️ Liquid Nitrogen (boils at -196°C → nitrogen gas)</option>
+                      <option value="LIQUID_OXYGEN">❄️ Liquid Oxygen (boils at -183°C → oxygen gas)</option>
+                      <option value="LIQUID_AIR">❄️ Liquid Air (boils at -194°C → air gas)</option>
+                      <option value="LIQUID_HELIUM">🧊 Liquid Helium (boils at -269°C → helium gas)</option>
                     </select>
                   </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
@@ -1108,15 +1108,15 @@ public class NuclearSimulationWebServer {
                   <div class="stat-row"><span>Rotor Efficiency:</span><span class="stat-val" id="turb-eff">100 %</span></div>
                   <div class="stat-row"><span>Opt Flow / Turbine:</span><span class="stat-val" id="turb-opt-flow">0 L/t</span></div>
                   <hr style="border:0; border-top:1px solid var(--border-color); margin:6px 0;">
-                  <div class="stat-row"><span>XLST-SC (Supercritical):</span><span class="stat-val" id="turb-sc-pwr">0 EU/t</span></div>
-                  <div class="stat-row"><span>XLST-HP (Superheated/HW):</span><span class="stat-val" id="turb-hp-pwr">0 EU/t</span></div>
-                  <div class="stat-row"><span>XLST (Regular Steam):</span><span class="stat-val" id="turb-reg-pwr">0 EU/t</span></div>
+                  <div class="stat-row"><span>XLST-SC (supercritical):</span><span class="stat-val" id="turb-sc-pwr">0 EU/t</span></div>
+                  <div class="stat-row"><span>XLST-HP (superheated/HW):</span><span class="stat-val" id="turb-hp-pwr">0 EU/t</span></div>
+                  <div class="stat-row"><span>XLST (regular steam):</span><span class="stat-val" id="turb-reg-pwr">0 EU/t</span></div>
                   <div class="stat-row" id="ehe-row" style="display:none;"><span>EHE Mode / DW:</span><span class="stat-val" id="turb-ehe-info" style="color:#38bdf8;">None</span></div>
                   <hr style="border:0; border-top:1px solid var(--border-color); margin:6px 0;">
                   <div class="stat-row" style="font-size:0.75rem;"><span>Live Flows (L/t):</span><span class="stat-val" id="turb-flows" style="font-size:0.75rem;">Reg: 0 | SH: 0 | SC: 0</span></div>
-                  <!-- Operational Scenarios (Tier Defaults) -->
+                  <!-- Operational scenarios (tier defaults) -->
                   <div style="background:#0f172a; border:1px solid #334155; border-radius:6px; padding:8px; margin-top:8px;">
-                    <div style="font-size:0.8rem; font-weight:bold; color:var(--accent); margin-bottom:6px;">⚖️ Operational Scenarios (Tier Defaults)</div>
+                    <div style="font-size:0.8rem; font-weight:bold; color:var(--accent); margin-bottom:6px;">⚖️ Operational scenarios (tier defaults)</div>
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
                       <div style="background:#1e293b; border:1px solid rgba(56,189,248,0.3); border-radius:4px; padding:6px;">
                         <div style="font-size:0.72rem; font-weight:bold; color:#38bdf8;">Scenario A [Tight]</div>
@@ -1181,7 +1181,7 @@ public class NuclearSimulationWebServer {
                   <!-- Stage 3: Superheated Steam (XLST-HP) -->
                   <div id="proc-stage-hp" style="margin-bottom:6px; padding:6px 8px; background:#0f172a; border-left:3px solid #ec4899; border-radius:4px;">
                     <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:#f472b6;">
-                      <span id="proc-hp-title">⚡ Stage 3: XLST-HP (Superheated)</span>
+                      <span id="proc-hp-title">⚡ Stage 3: XLST-HP (superheated)</span>
                       <span id="proc-hp-pwr">0 EU/t</span>
                     </div>
                     <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" id="proc-hp-detail">0 L/t SH steam · 0.00 turbines</div>
@@ -1191,7 +1191,7 @@ public class NuclearSimulationWebServer {
                   <!-- Stage 4: Regular Steam Turbine (LST or XLST) -->
                   <div id="proc-stage-reg" style="margin-bottom:6px; padding:6px 8px; background:#0f172a; border-left:3px solid #10b981; border-radius:4px;">
                     <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:#34d399;">
-                      <span id="proc-reg-title">⚡ Stage 4: XLST (Regular Steam)</span>
+                      <span id="proc-reg-title">⚡ Stage 4: XLST (regular steam)</span>
                       <span id="proc-reg-pwr">0 EU/t</span>
                     </div>
                     <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" id="proc-reg-detail">0 L/t steam · 0.00 turbines</div>
@@ -1234,7 +1234,7 @@ public class NuclearSimulationWebServer {
 
                   <div style="display:flex; justify-content:space-between; align-items:center; background:#0f172a; border:1px solid #1e293b; border-radius:4px; padding:6px 8px; margin-bottom:8px;">
                     <span style="font-size:0.75rem; color:var(--text-primary); display:flex; align-items:center; gap:4px;">
-                      <span>🔄 Auto-Supply Fuel (Continuous Cycling):</span>
+                      <span>🔄 Auto-supply fuel (continuous cycling):</span>
                     </span>
                     <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:0.75rem; color:var(--text-muted); user-select:none;">
                       <input type="checkbox" id="chk-auto-refuel" checked onchange="toggleAutoSupplyFuel(this.checked)" style="cursor:pointer;">
@@ -2358,7 +2358,7 @@ public class NuclearSimulationWebServer {
                 const bypEl = document.getElementById("loop-byproduct-val");
                 if (bypEl) {
                   if (cl.byproductGas === "None") {
-                    bypEl.innerText = "None (No Radiolysis)";
+                    bypEl.innerText = "None (no radiolysis)";
                   } else {
                     let bypStr = `${cl.totalDeuteriumProduced.toLocaleString()} L D₂ | ${cl.totalTritiumProduced.toLocaleString()} L T₂`;
                     if (cl.totalOxygenProduced && cl.totalOxygenProduced > 0) {
@@ -2699,7 +2699,7 @@ public class NuclearSimulationWebServer {
                   } else {
                     overlayBg = getTemperatureColor(t.temp, currentState.maxSafeTemp);
                     metricStr = Math.round(t.temp) + "°C";
-                    tipText = `Temperature: ${t.temp.toFixed(1)}°C (Max Safe: ${currentState.maxSafeTemp}°C)`;
+                    tipText = `Temperature: ${t.temp.toFixed(1)}°C (max safe: ${currentState.maxSafeTemp}°C)`;
                   }
 
                   if (gridDisplayMode !== "COMPONENTS" && gridDisplayMode !== "CONTROL_RODS" && t.temp > (currentState.maxSafeTemp || 3250) * 0.85) {
@@ -2820,12 +2820,12 @@ public class NuclearSimulationWebServer {
               if (t.code === "NL") {
                 extraHtml = `
                   <div class="stat-row"><span>Structure:</span><span class="stat-val" style="color:var(--text-muted);">Casing Wall</span></div>
-                  <div class="stat-row"><span>Wall Reflection:</span><span class="stat-val" style="color:#ef4444;">None (0% Escaped)</span></div>
+                  <div class="stat-row"><span>Wall Reflection:</span><span class="stat-val" style="color:#ef4444;">None (0% escaped)</span></div>
                 `;
               } else if (t.type === "PASSAGE_CORE") {
                 extraHtml = `
                   <div class="stat-row"><span>Component:</span><span class="stat-val" style="color:#00d2ff;">High-pressure core passage</span></div>
-                  <div class="stat-row"><span>Heat Transfer (k):</span><span class="stat-val" style="color:#38bdf8;">0.90 (High Convection)</span></div>
+                  <div class="stat-row"><span>Heat Transfer (k):</span><span class="stat-val" style="color:#38bdf8;">0.90 (high convection)</span></div>
                   <div class="stat-row"><span>Moderation / Scatter:</span><span class="stat-val" style="color:#a3e635;">85% / 80%</span></div>
                   <div class="stat-row"><span>Coupling:</span><span class="stat-val" style="color:var(--success);">Direct Convective Loop</span></div>
                 `;
@@ -2910,9 +2910,9 @@ public class NuclearSimulationWebServer {
               } else if (t.type && t.type.startsWith("COOLANT_CELL_")) {
                 coolingMethodHtml = `<div class="stat-row"><span>Cell Cooling:</span><span class="stat-val" style="color:#06b6d4; font-weight:600;">🧊 IC2 Coolant Cell Storage</span></div>`;
               } else if (t.isFuel) {
-                coolingMethodHtml = `<div class="stat-row"><span>Cell Cooling:</span><span class="stat-val" style="color:#f43f5e; font-weight:600;">⚠️ Uncooled Fuel (Passive Conduction)</span></div>`;
+                coolingMethodHtml = `<div class="stat-row"><span>Cell Cooling:</span><span class="stat-val" style="color:#f43f5e; font-weight:600;">⚠️ Uncooled fuel (passive conduction)</span></div>`;
               } else if (t.code !== "NL" && t.type !== "EMPTY") {
-                coolingMethodHtml = `<div class="stat-row"><span>Cell Cooling:</span><span class="stat-val" style="color:var(--text-muted);">None (Passive Conduction)</span></div>`;
+                coolingMethodHtml = `<div class="stat-row"><span>Cell Cooling:</span><span class="stat-val" style="color:var(--text-muted);">None (passive conduction)</span></div>`;
               }
 
               let controlRodHtml = "";
@@ -3638,7 +3638,7 @@ public class NuclearSimulationWebServer {
 
                 // Stage 3: XLST-HP
                 stageHp.style.opacity = "1.0";
-                document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (Superheated Steam)";
+                document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (superheated steam)";
                 document.getElementById("proc-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true);
                 const hpFlow = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + pe.coolantSteamProduced);
                 document.getElementById("proc-hp-detail").innerText = `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
@@ -3646,7 +3646,7 @@ public class NuclearSimulationWebServer {
 
                 // Stage 4: XLST Regular
                 stageReg.style.opacity = "1.0";
-                document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (Regular Steam)";
+                document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (regular steam)";
                 document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true);
                 const regFlow = Math.round((currentState.flowRegularSteam || 0) + hpFlow);
                 document.getElementById("proc-reg-detail").innerText = `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`;
@@ -3671,14 +3671,14 @@ public class NuclearSimulationWebServer {
 
                 // Stage 2: Locked
                 stageSc.style.opacity = "0.45";
-                document.getElementById("proc-sc-title").innerText = "🔒 Stage 2: XLST-SC (Supercritical)";
+                document.getElementById("proc-sc-title").innerText = "🔒 Stage 2: XLST-SC (supercritical)";
                 document.getElementById("proc-sc-pwr").innerText = "Locked (ZPM+)";
                 document.getElementById("proc-sc-detail").innerText = "Requires ZPM or higher for XLST-SC.";
                 document.getElementById("proc-sc-cascade").innerText = "";
 
                 // Stage 3: XLST-HP
                 stageHp.style.opacity = "1.0";
-                document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (Superheated Steam)";
+                document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (superheated steam)";
                 document.getElementById("proc-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true);
                 const hpFlow = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + pe.coolantSteamProduced);
                 document.getElementById("proc-hp-detail").innerText = `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
@@ -3686,7 +3686,7 @@ public class NuclearSimulationWebServer {
 
                 // Stage 4: XLST Regular
                 stageReg.style.opacity = "1.0";
-                document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (Regular Steam)";
+                document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (regular steam)";
                 document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true);
                 const regFlow = Math.round((currentState.flowRegularSteam || 0) + hpFlow);
                 document.getElementById("proc-reg-detail").innerText = `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`;
@@ -3713,7 +3713,7 @@ public class NuclearSimulationWebServer {
 
                 // Stage 2: XLST-SC
                 stageSc.style.opacity = "1.0";
-                document.getElementById("proc-sc-title").innerText = "⚡ Stage 2: XLST-SC (Supercritical Steam)";
+                document.getElementById("proc-sc-title").innerText = "⚡ Stage 2: XLST-SC (supercritical steam)";
                 document.getElementById("proc-sc-pwr").innerText = formatPowerAndAmps(pe.xlstScPowerEUt, true);
                 const scFlow = Math.round((currentState.flowSupercriticalSteam || 0) + (isSC ? pe.coolantSteamProduced : 0));
                 document.getElementById("proc-sc-detail").innerText = `${scFlow.toLocaleString()} L/t SC steam · ${pe.xlstScTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
@@ -3721,7 +3721,7 @@ public class NuclearSimulationWebServer {
 
                 // Stage 3: XLST-HP
                 stageHp.style.opacity = "1.0";
-                document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (Superheated Steam)";
+                document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (superheated steam)";
                 document.getElementById("proc-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true);
                 const hpDirect = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + (!isSC ? pe.coolantSteamProduced : 0));
                 const hpTotal = hpDirect + scFlow;
@@ -3730,7 +3730,7 @@ public class NuclearSimulationWebServer {
 
                 // Stage 4: XLST Regular
                 stageReg.style.opacity = "1.0";
-                document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (Regular Steam)";
+                document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (regular steam)";
                 document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true);
                 const regDirect = Math.round(currentState.flowRegularSteam || 0);
                 const regTotal = regDirect + hpTotal;

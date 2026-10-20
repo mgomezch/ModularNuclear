@@ -146,11 +146,11 @@ public class ProjectRedIntegrationTest {
     public void testControlHatchBundledModeCycling() {
         MTEHatchNuclearControl hatch = new MTEHatchNuclearControl("test_control_hatch", 1, new String[0], null);
         assertEquals(0, hatch.getBundledChannelMode());
-        assertEquals("Multi-Channel (All)", MTEHatchNuclearControl.getBundledModeName(0));
+        assertEquals("Multi-channel (all)", MTEHatchNuclearControl.getBundledModeName(0));
 
         hatch.cycleBundledMode(1);
         assertEquals(1, hatch.getBundledChannelMode());
-        assertEquals("Broadcast (All Colors)", MTEHatchNuclearControl.getBundledModeName(1));
+        assertEquals("Broadcast (all colors)", MTEHatchNuclearControl.getBundledModeName(1));
 
         hatch.cycleBundledMode(1);
         assertEquals(2, hatch.getBundledChannelMode());

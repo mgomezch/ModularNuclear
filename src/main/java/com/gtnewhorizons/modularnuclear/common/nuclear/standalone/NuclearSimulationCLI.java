@@ -1882,8 +1882,8 @@ public class NuclearSimulationCLI {
             "Conductance:   "
                 + String.format(java.util.Locale.US, "%.1f EU/(t·°C) [Base]", grid.getBaseHatchConductance()));
         System.out.println(
-            "Strict Mode:   " + (strictMode ? ANSI_YELLOW + "Enabled (Fail-Fast on Damage/Void)" + ANSI_RESET
-                : ANSI_GREEN + "Disabled (Permissive)" + ANSI_RESET));
+            "Strict Mode:   " + (strictMode ? ANSI_YELLOW + "Enabled (fail-fast on damage/void)" + ANSI_RESET
+                : ANSI_GREEN + "Disabled (permissive)" + ANSI_RESET));
         System.out.println(
             "Stop On Incidents: "
                 + (grid.isStopOnIncidents() ? ANSI_YELLOW + "Enabled (pause on damage/thermal shock)" + ANSI_RESET
@@ -1916,7 +1916,7 @@ public class NuclearSimulationCLI {
         System.out.println(
             "Cooling Mode:  " + (grid.getCoolingMode() == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP
                 ? ANSI_CYAN + "CONVECTIVE COOLANT LOOP"
-                : ANSI_YELLOW + "CONDUCTIVE (Sub-boiling Hatches)") + ANSI_RESET);
+                : ANSI_YELLOW + "CONDUCTIVE (sub-boiling hatches)") + ANSI_RESET);
         if (grid.getCoolingMode() == CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP) {
             CoolantLoopModel cl = grid.getCoolantLoop();
             System.out.println(
@@ -1940,7 +1940,7 @@ public class NuclearSimulationCLI {
                 System.out.println(
                     "  Target Flow: " + String.format(
                         java.util.Locale.US,
-                        "%.1f L/s (Hydrodynamic Power: %.1f EU/t)",
+                        "%.1f L/s (hydrodynamic power: %.1f EU/t)",
                         cl.getTargetFlowRateLPerSec(),
                         cl.getLastPumpPowerEUt()));
             } else {
@@ -2161,9 +2161,9 @@ public class NuclearSimulationCLI {
                         + " ["
                         + p.coolantMachineMode
                         + "]"
-                        + " (Produced: "
+                        + " (produced: "
                         + String.format("%.1f L/t", p.coolantSteamProduced)
-                        + " steam, Needed: "
+                        + " steam, needed: "
                         + String.format("%.0f", p.coolantMachineCount)
                         + " machines)");
             }
@@ -2181,7 +2181,7 @@ public class NuclearSimulationCLI {
         TurbineCalculator.ScenarioHypotheticalResult sc = grid.getLastScenariosResult();
         if (sc != null) {
             System.out.println(ANSI_CYAN + "=== HYPOTHETICAL OPERATIONAL SCENARIOS ===" + ANSI_RESET);
-            System.out.println(String.format("  Scenario A [Tight / Max Efficiency]: %s", sc.tightConfig.description));
+            System.out.println(String.format("  Scenario A [tight / max efficiency]: %s", sc.tightConfig.description));
             System.out.println(
                 String.format(
                     "    - Power Generation:    %.1f EU/t (%s)",
@@ -2189,7 +2189,7 @@ public class NuclearSimulationCLI {
                     getVoltageTier(sc.tightResult.totalPowerEUt)));
             System.out.println(
                 String.format(
-                    "    - Turbines Needed:     %.2f turbines (Opt Flow: %.0f L/t)",
+                    "    - Turbines Needed:     %.2f turbines (opt flow: %.0f L/t)",
                     sc.tightResult.totalTurbinesNeeded,
                     sc.tightResult.optFlowPerTurbine));
             if (!"None".equals(sc.tightResult.coolantMachine)) {
@@ -2199,7 +2199,7 @@ public class NuclearSimulationCLI {
                         sc.tightResult.coolantMachineCount,
                         sc.tightResult.coolantMachine));
             }
-            System.out.println(String.format("  Scenario B [Loose / High Throughput]: %s", sc.looseConfig.description));
+            System.out.println(String.format("  Scenario B [loose / high throughput]: %s", sc.looseConfig.description));
             System.out.println(
                 String.format(
                     "    - Power Generation:    %.1f EU/t (%s)",
@@ -2207,7 +2207,7 @@ public class NuclearSimulationCLI {
                     getVoltageTier(sc.looseResult.totalPowerEUt)));
             System.out.println(
                 String.format(
-                    "    - Turbines Needed:     %.2f turbines (Opt Flow: %.0f L/t)",
+                    "    - Turbines Needed:     %.2f turbines (opt flow: %.0f L/t)",
                     sc.looseResult.totalTurbinesNeeded,
                     sc.looseResult.optFlowPerTurbine));
             if (!"None".equals(sc.looseResult.coolantMachine)) {
@@ -2310,10 +2310,10 @@ public class NuclearSimulationCLI {
             || (grid.getTotalDeuteriumProduced() > 0 || grid.getTotalTritiumProduced() > 0)) {
             System.out.println(ANSI_GREEN + "=== FUEL BYPRODUCTS & LOGISTICS ===" + ANSI_RESET);
             System.out.println(
-                "  Auto-Refuel Mode:     " + (grid.isAutoReplaceFuel() ? ANSI_GREEN + "ENABLED (Continuous Cycling)"
-                    : ANSI_YELLOW + "DISABLED (Single Batch)") + ANSI_RESET);
+                "  Auto-Refuel Mode:     " + (grid.isAutoReplaceFuel() ? ANSI_GREEN + "ENABLED (continuous cycling)"
+                    : ANSI_YELLOW + "DISABLED (single batch)") + ANSI_RESET);
             if (!solidByproducts.isEmpty()) {
-                System.out.println(ANSI_WHITE_BOLD + "  Solid Fuel Rods (Depleted Item Output):" + ANSI_RESET);
+                System.out.println(ANSI_WHITE_BOLD + "  Solid fuel rods (depleted item output):" + ANSI_RESET);
                 for (StandaloneNuclearGrid.SolidFuelByproduct s : solidByproducts) {
                     String lifespanStr = Double.isInfinite(s.avgLifespanMinutes) ? "Infinite"
                         : String.format(java.util.Locale.US, "%.1f min", s.avgLifespanMinutes);
@@ -2331,7 +2331,7 @@ public class NuclearSimulationCLI {
                 }
             }
             if (!liquidByproducts.isEmpty()) {
-                System.out.println(ANSI_WHITE_BOLD + "  Liquid Fuel Hatches (Depleted Fluid Output):" + ANSI_RESET);
+                System.out.println(ANSI_WHITE_BOLD + "  Liquid fuel hatches (depleted fluid output):" + ANSI_RESET);
                 for (StandaloneNuclearGrid.LiquidFuelByproduct l : liquidByproducts) {
                     System.out.println(
                         String.format(
@@ -2346,7 +2346,7 @@ public class NuclearSimulationCLI {
             }
             if (!isotopeByproducts.isEmpty()
                 && (grid.getTotalDeuteriumProduced() > 0 || grid.getTotalTritiumProduced() > 0)) {
-                System.out.println(ANSI_WHITE_BOLD + "  Transmuted Isotopes (Breeding Output):" + ANSI_RESET);
+                System.out.println(ANSI_WHITE_BOLD + "  Transmuted isotopes (breeding output):" + ANSI_RESET);
                 for (StandaloneNuclearGrid.IsotopeByproduct iso : isotopeByproducts) {
                     System.out.println(
                         String.format(

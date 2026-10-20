@@ -421,10 +421,10 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testPipeTierNames() {
-        assertEquals("Electrum (IC2 Coolant)", NuclearSimulationEngine.getPipeTierName(0));
-        assertEquals("Platinum (Distilled Water)", NuclearSimulationEngine.getPipeTierName(1));
+        assertEquals("Electrum (IC2 coolant)", NuclearSimulationEngine.getPipeTierName(0));
+        assertEquals("Platinum (distilled water)", NuclearSimulationEngine.getPipeTierName(1));
         assertEquals("Osmium (HP core hatches)", NuclearSimulationEngine.getPipeTierName(2));
-        assertEquals("Quantium (Heavy Water)", NuclearSimulationEngine.getPipeTierName(3));
+        assertEquals("Quantium (heavy water)", NuclearSimulationEngine.getPipeTierName(3));
         assertEquals("Fluxed Electrum (excited fuel)", NuclearSimulationEngine.getPipeTierName(4));
         assertEquals("Black Plutonium (max tier / all coolants)", NuclearSimulationEngine.getPipeTierName(5));
     }
@@ -5324,11 +5324,11 @@ public class NuclearSimulationEngineTest {
         assertTrue(info.length >= 6);
 
         String combined = EnumChatFormatting.getTextWithoutFormattingCodes(String.join("\n", info));
-        assertTrue(combined.contains("Operational (Running)"), "State should show operational when neutrons produced");
+        assertTrue(combined.contains("Operational (running)"), "State should show operational when neutrons produced");
         assertTrue(combined.contains("425.5"), "Core temp should be reported");
         assertTrue(combined.contains("1,800 °C"), "Max temp for Osmium tier should be 1800 °C");
         assertTrue(combined.contains("Osmium"), "Tier name should be reported");
-        assertTrue(combined.contains("0.0% (Nominal)"), "Hull damage should be nominal");
+        assertTrue(combined.contains("0.0% (nominal)"), "Hull damage should be nominal");
         assertTrue(combined.contains("100.0%"), "Reactivity should be 100%");
         assertTrue(
             combined.contains("Flux: " + NuclearSimulationEngine.formatNeutronFlux(5000)),
@@ -5341,7 +5341,7 @@ public class NuclearSimulationEngineTest {
         reactor.mScram = true;
         String[] scramInfo = reactor.getInfoData();
         String scramCombined = String.join("\n", scramInfo);
-        assertTrue(scramCombined.contains("SCRAM (Emergency Shutdown Active)"));
+        assertTrue(scramCombined.contains("SCRAM (emergency shutdown active)"));
 
         // 4. Test Damaged state
         reactor.mScram = false;
@@ -5349,7 +5349,7 @@ public class NuclearSimulationEngineTest {
         String[] damagedInfo = reactor.getInfoData();
         String damagedCombined = String.join("\n", damagedInfo);
         assertTrue(damagedCombined.contains("25.0%"));
-        assertTrue(damagedCombined.contains("Repair threshold: 180 °C")); // 10% of 1800 °C
+        assertTrue(damagedCombined.contains("repair threshold: 180 °C")); // 10% of 1800 °C
 
         // 5. Test Meltdown Imminent state
         reactor.mReactorDamage = 95.0;

@@ -241,8 +241,8 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter,
     }
 
     public static String getBundledModeName(int mode) {
-        if (mode == BUNDLED_MODE_MULTI) return "Multi-Channel (All)";
-        if (mode == BUNDLED_MODE_BROADCAST) return "Broadcast (All Colors)";
+        if (mode == BUNDLED_MODE_MULTI) return "Multi-channel (all)";
+        if (mode == BUNDLED_MODE_BROADCAST) return "Broadcast (all colors)";
         int ch = mode - 2;
         if (ch >= 0 && ch < DYE_NAMES.length) {
             return "Ch " + ch + " (" + DYE_NAMES[ch] + ")";

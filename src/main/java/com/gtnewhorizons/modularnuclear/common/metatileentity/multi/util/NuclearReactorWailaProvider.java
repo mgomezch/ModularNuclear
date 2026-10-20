@@ -190,11 +190,11 @@ public class NuclearReactorWailaProvider {
                 + ")"
                 + EnumChatFormatting.RESET;
         } else if (reactor.mScram) {
-            stateStr = EnumChatFormatting.GOLD + "SCRAM (Emergency Shutdown Active)" + EnumChatFormatting.RESET;
+            stateStr = EnumChatFormatting.GOLD + "SCRAM (emergency shutdown active)" + EnumChatFormatting.RESET;
         } else if (reactor.mTotalFuelItems > 0 || reactor.mNeutronsProduced > 0) {
-            stateStr = EnumChatFormatting.GREEN + "Operational (Running)" + EnumChatFormatting.RESET;
+            stateStr = EnumChatFormatting.GREEN + "Operational (running)" + EnumChatFormatting.RESET;
         } else {
-            stateStr = EnumChatFormatting.GRAY + "Standby (Offline / No Active Fuel)" + EnumChatFormatting.RESET;
+            stateStr = EnumChatFormatting.GRAY + "Standby (offline / no active fuel)" + EnumChatFormatting.RESET;
         }
         list.add(EnumChatFormatting.YELLOW + "State: " + EnumChatFormatting.RESET + stateStr);
 
@@ -226,7 +226,7 @@ public class NuclearReactorWailaProvider {
             list.add(
                 String.format(
                     Locale.US,
-                    "%sHull damage: %s%.1f%%%s (Repair threshold: %,.0f °C)",
+                    "%sHull damage: %s%.1f%%%s (repair threshold: %,.0f °C)",
                     EnumChatFormatting.YELLOW,
                     EnumChatFormatting.RED,
                     reactor.mReactorDamage,
@@ -236,7 +236,7 @@ public class NuclearReactorWailaProvider {
             list.add(
                 EnumChatFormatting.YELLOW + "Hull damage: "
                     + EnumChatFormatting.GREEN
-                    + "0.0% (Nominal)"
+                    + "0.0% (nominal)"
                     + EnumChatFormatting.RESET);
         }
 
@@ -353,7 +353,7 @@ public class NuclearReactorWailaProvider {
             list.add(
                 EnumChatFormatting.YELLOW + "Maintenance: "
                     + EnumChatFormatting.RED
-                    + String.format(Locale.US, "Has Problems (%d)", problems)
+                    + String.format(Locale.US, "Has problems (%d)", problems)
                     + EnumChatFormatting.RESET);
         }
 
