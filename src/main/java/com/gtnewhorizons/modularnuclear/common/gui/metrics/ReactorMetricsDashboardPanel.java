@@ -29,7 +29,7 @@ public class ReactorMetricsDashboardPanel {
 
     public static ModularPanel createPanel(PanelSyncManager syncManager, ModularPanel parent,
         MTENuclearReactor reactor) {
-        ModularPanel panel = new ResizeableFloatingPanel(PANEL_NAME).relativeToScreen()
+        ModularPanel panel = new ResizeableFloatingPanel(PANEL_NAME, parent).relativeToScreen()
             .center()
             .size(400, 240)
             .widgetTheme(gregtech.api.modularui2.GTWidgetThemes.BACKGROUND_POPUP)
