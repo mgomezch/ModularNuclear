@@ -159,6 +159,15 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    setTicksPerCycle(ticks, notify = true) {
+        if (this.inst.exports.setTicksPerCycle) {
+            this.inst.exports.setTicksPerCycle(ticks);
+        } else {
+            this.setParam("ticksPerCycle", ticks, false);
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     setCoolingMode(mode, notify = true) {
         if (this.inst.exports.setCoolingMode) {
             this.inst.exports.setCoolingMode(this.createJavaString(mode));
