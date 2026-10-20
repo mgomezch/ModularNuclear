@@ -28,6 +28,11 @@ public final class ModularNuclearConfig {
     public static float falloutEffectMaxDistance = 80.0f;
 
     // ==========================================
+    // Meltdown Fallout Dynamics
+    // ==========================================
+    public static double falloutContaminationReductionPerPollution = 62.5 / 30000.0;
+
+    // ==========================================
     // Allowlists & Blocklists (Core Components)
     // ==========================================
     public static String[] blockedItems = new String[] { "*depleted*", "*fuelrodempty*", "IC2:itemFuelRod",
@@ -152,6 +157,17 @@ public final class ModularNuclearConfig {
                 16.0f,
                 160.0f,
                 "Maximum distance in meters where the meltdown fallout visual effect is visible (default 80).");
+
+            // Meltdown Fallout Dynamics
+            final String CAT_FALLOUT = "meltdown_fallout";
+            config.setCategoryComment(CAT_FALLOUT, "Meltdown fallout contamination and pollution mitigation tuning.");
+
+            falloutContaminationReductionPerPollution = config.get(
+                CAT_FALLOUT,
+                "falloutContaminationReductionPerPollution",
+                falloutContaminationReductionPerPollution,
+                "Contamination counter reduction per unit of pollution removed by scrubbers or mufflers (default: 1/480, reducing fallout radius by 1m per 30,000 pollution removed).")
+                .getDouble();
 
             // Allowlists & Blocklists
             final String CAT_ALLOWLISTS = "allowlists";

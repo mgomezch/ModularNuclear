@@ -26,6 +26,7 @@ import com.gtnewhorizons.modularnuclear.common.block.BlockCoriumSolid;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ItemNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
@@ -4284,9 +4285,14 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
-    void testEntityMeltdownFalloutTimers() {
-        assertEquals(2400, EntityMeltdownFallout.SOLIDIFY_TIME, "Solidify time must be 2400 ticks (2 minutes)");
+    void testEntityMeltdownFalloutConstants() {
+        assertEquals(10000, EntityMeltdownFallout.INITIAL_CONTAMINATION, "Initial contamination must be 10000");
         assertEquals(12000, EntityMeltdownFallout.TOTAL_LIFETIME, "Total lifetime must be 12000 ticks (10 minutes)");
+        assertEquals(
+            62.5 / 30000.0,
+            ModularNuclearConfig.falloutContaminationReductionPerPollution,
+            1e-7,
+            "Default fallout contamination reduction ratio must be 62.5/30000 (1/480)");
     }
 
     @Test
@@ -4306,6 +4312,32 @@ public class NuclearSimulationEngineTest {
         assertTrue(
             BlockCorium.isImmuneToCorium(solidBlock, null, 0, 0, 0),
             "Solid corium must be immune to molten corium");
+    }
+
+    @Test
+    void testCoriumSolidificationMechanics() {
+        ModFluids.init();
+        ModBlocks.init();
+
+        net.minecraft.world.World mockWorld = org.mockito.Mockito.mock(net.minecraft.world.World.class);
+        // Case 1: Flowing corium (meta 3) with flowing corium below (meta 2)
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 64, 10))
+            .thenReturn(ModBlocks.blockCorium);
+        org.mockito.Mockito.when(mockWorld.getBlockMetadata(10, 64, 10))
+            .thenReturn(3);
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 63, 10))
+            .thenReturn(ModBlocks.blockCorium);
+        org.mockito.Mockito.when(mockWorld.getBlockMetadata(10, 63, 10))
+            .thenReturn(2);
+
+        BlockCorium.solidifyCoriumBlock(mockWorld, 10, 64, 10);
+
+        // Verify below block promoted to source block (meta 0)
+        org.mockito.Mockito.verify(mockWorld)
+            .setBlock(10, 63, 10, ModBlocks.blockCorium, 0, 3);
+        // Verify current block solidified into BlockCoriumSolid
+        org.mockito.Mockito.verify(mockWorld)
+            .setBlock(10, 64, 10, ModBlocks.blockCoriumSolid, 0, 3);
     }
 
     @Test

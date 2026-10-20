@@ -1,8 +1,10 @@
 package com.gtnewhorizons.modularnuclear.common.entity;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
-import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -12,12 +14,10 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraftforge.common.ForgeChunkManager;
 
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
-import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 
 import cpw.mods.fml.common.Loader;
 import gregtech.api.hazards.Hazard;
@@ -28,11 +28,14 @@ import ic2.core.IC2Potion;
 
 public class EntityMeltdownFallout extends Entity {
 
-    public static final int SOLIDIFY_TIME = 2400; // 2 minutes (120s * 20 ticks)
-    public static final int TOTAL_LIFETIME = 12000; // 10 minutes (600s * 20 ticks)
+    public static final int INITIAL_CONTAMINATION = 10000;
+    public static final int TOTAL_LIFETIME = 12000; // 10 minutes (600s * 20 ticks) when pollution disabled
+
+    private static final Set<EntityMeltdownFallout> ACTIVE_SERVER_FALLOUTS = Collections
+        .newSetFromMap(new ConcurrentHashMap<>());
 
     private int mAge = 0;
-    private boolean mSolidified = false;
+    private double mContamination = INITIAL_CONTAMINATION;
     private ForgeChunkManager.Ticket mChunkTicket;
 
     public void initChunkLoading(ForgeChunkManager.Ticket ticket) {
@@ -81,6 +84,7 @@ public class EntityMeltdownFallout extends Entity {
 
     @Override
     public void setDead() {
+        ACTIVE_SERVER_FALLOUTS.remove(this);
         releaseChunkLoading();
         super.setDead();
         if (worldObj != null && worldObj.isRemote) {
@@ -120,18 +124,29 @@ public class EntityMeltdownFallout extends Entity {
     }
 
     @Override
-    protected void entityInit() {}
+    protected void entityInit() {
+        this.dataWatcher.addObject(12, (float) INITIAL_CONTAMINATION);
+    }
 
     @Override
     protected void readEntityFromNBT(NBTTagCompound nbt) {
         mAge = nbt.getInteger("mAge");
-        mSolidified = nbt.getBoolean("mSolidified");
+        if (nbt.hasKey("mContamination")) {
+            mContamination = nbt.getDouble("mContamination");
+        } else {
+            mContamination = INITIAL_CONTAMINATION;
+        }
+        if (this.dataWatcher != null) {
+            try {
+                this.dataWatcher.updateObject(12, (float) mContamination);
+            } catch (Throwable ignored) {}
+        }
     }
 
     @Override
     protected void writeEntityToNBT(NBTTagCompound nbt) {
         nbt.setInteger("mAge", mAge);
-        nbt.setBoolean("mSolidified", mSolidified);
+        nbt.setDouble("mContamination", mContamination);
     }
 
     @Override
@@ -154,44 +169,112 @@ public class EntityMeltdownFallout extends Entity {
         return null;
     }
 
+    public static boolean isPollutionEnabled() {
+        if (Loader.isModLoaded("gregtech")) {
+            try {
+                return gregtech.GTMod.proxy.mPollution;
+            } catch (Throwable ignored) {}
+        }
+        return false;
+    }
+
+    public double getContamination() {
+        if (worldObj != null && worldObj.isRemote) {
+            try {
+                return this.dataWatcher.getWatchableObjectFloat(12);
+            } catch (Throwable ignored) {}
+        }
+        return mContamination;
+    }
+
+    public void reduceContamination(double amount) {
+        if (worldObj != null && worldObj.isRemote) return;
+        if (isDead) return;
+        mContamination -= amount;
+        if (mContamination <= 0.0) {
+            mContamination = 0.0;
+            try {
+                this.dataWatcher.updateObject(12, 0.0f);
+            } catch (Throwable ignored) {}
+            setDead();
+        } else {
+            try {
+                this.dataWatcher.updateObject(12, (float) mContamination);
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    public static void onPollutionRemoved(World world, int chunkX, int chunkZ, int removedPollution) {
+        if (world == null || world.isRemote || removedPollution <= 0) return;
+        if (ACTIVE_SERVER_FALLOUTS.isEmpty()) return;
+
+        double reductionRatio = ModularNuclearConfig.falloutContaminationReductionPerPollution;
+        if (reductionRatio <= 0.0) return;
+
+        double contaminationReduction = removedPollution * reductionRatio;
+        double chunkCenterX = (chunkX << 4) + 8.0;
+        double chunkCenterZ = (chunkZ << 4) + 8.0;
+
+        for (EntityMeltdownFallout fallout : ACTIVE_SERVER_FALLOUTS) {
+            if (fallout.isDead || fallout.worldObj != world) continue;
+
+            int entityChunkX = MathHelper.floor_double(fallout.posX) >> 4;
+            int entityChunkZ = MathHelper.floor_double(fallout.posZ) >> 4;
+
+            boolean in3x3 = Math.abs(chunkX - entityChunkX) <= 1 && Math.abs(chunkZ - entityChunkZ) <= 1;
+
+            double currentRadius = 160.0 * (fallout.mContamination / (double) INITIAL_CONTAMINATION);
+            double dx = chunkCenterX - fallout.posX;
+            double dz = chunkCenterZ - fallout.posZ;
+            boolean inRadius = (dx * dx + dz * dz) <= (currentRadius * currentRadius);
+
+            if (in3x3 || inRadius) {
+                fallout.reduceContamination(contaminationReduction);
+            }
+        }
+    }
+
     @Override
     public void onUpdate() {
         super.onUpdate();
 
-        if (!worldObj.isRemote && mChunkTicket == null) {
-            setupChunkLoading();
+        if (!worldObj.isRemote) {
+            ACTIVE_SERVER_FALLOUTS.add(this);
+            if (mChunkTicket == null) {
+                setupChunkLoading();
+            }
+        } else {
+            ModularNuclear.proxy.registerFallout(this);
         }
 
         // 1. Immediate pollution spike on creation
         if (mAge == 0 && !worldObj.isRemote) {
             int chunkX = MathHelper.floor_double(posX) >> 4;
             int chunkZ = MathHelper.floor_double(posZ) >> 4;
-            Pollution.addPollution(worldObj, chunkX, chunkZ, 2_000_000);
+            if (isPollutionEnabled()) {
+                Pollution.addPollution(worldObj, chunkX, chunkZ, 2_000_000);
+            }
         }
 
         mAge++;
 
-        // 2. Client-side visual effect tracking
-        if (worldObj.isRemote) {
-            ModularNuclear.proxy.registerFallout(this);
-        }
-
-        // 3. Radiation in 10-chunk radius (160m)
-        if (!worldObj.isRemote && (mAge % 20 == 0)) {
-            applyRadiationFallout();
-        }
-
-        // 4. Solidify corium into bedrock after 2 minutes (2400 ticks)
-        if (!worldObj.isRemote && mAge >= SOLIDIFY_TIME) {
-            if (!mSolidified || (mAge % 40 == 0 && mAge <= SOLIDIFY_TIME + 400)) {
-                solidifyCorium();
-                mSolidified = true;
+        if (!worldObj.isRemote) {
+            if (!isPollutionEnabled()) {
+                // When pollution is disabled, fallout counter reduces automatically over TOTAL_LIFETIME (12000 ticks)
+                double decayPerTick = (double) INITIAL_CONTAMINATION / (double) TOTAL_LIFETIME;
+                reduceContamination(decayPerTick);
+            } else {
+                // When pollution is enabled, no fixed duration; entity vanishes only when counter reaches 0
+                if (mContamination <= 0.0) {
+                    setDead();
+                    return;
+                }
             }
-        }
 
-        // 5. Cleanup after 10 minutes (12000 ticks)
-        if (mAge >= TOTAL_LIFETIME) {
-            setDead();
+            // 3. Radiation in radius proportional to contamination
+            if (mAge % 20 == 0 && mContamination > 0.0) {
+                applyRadiationFallout();
+            }
         }
     }
 
@@ -240,7 +323,9 @@ public class EntityMeltdownFallout extends Entity {
     }
 
     private void applyRadiationFallout() {
-        double radiusSq = 160.0 * 160.0; // 10 chunks = 160m
+        double currentRadius = 160.0 * (mContamination / (double) INITIAL_CONTAMINATION);
+        if (currentRadius <= 0.0) return;
+        double radiusSq = currentRadius * currentRadius;
 
         for (Object obj : worldObj.playerEntities) {
             if (obj instanceof EntityPlayer player) {
@@ -260,62 +345,11 @@ public class EntityMeltdownFallout extends Entity {
         }
     }
 
-    public void solidifyCorium() {
-        if (worldObj.isRemote) return;
-
-        int cx = MathHelper.floor_double(posX);
-        int cy = MathHelper.floor_double(posY);
-        int cz = MathHelper.floor_double(posZ);
-
-        int minChunkX = (cx - 48) >> 4;
-        int maxChunkX = (cx + 48) >> 4;
-        int minChunkZ = (cz - 48) >> 4;
-        int maxChunkZ = (cz + 48) >> 4;
-
-        int maxY = Math.min(255, cy + 10);
-        int minY = 1;
-
-        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
-            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
-                if (!worldObj.getChunkProvider()
-                    .chunkExists(chunkX, chunkZ)) continue;
-                Chunk chunk = worldObj.getChunkFromChunkCoords(chunkX, chunkZ);
-                ExtendedBlockStorage[] storage = chunk.getBlockStorageArray();
-                if (storage == null) continue;
-
-                for (int subY = 0; subY < storage.length; subY++) {
-                    ExtendedBlockStorage ebs = storage[subY];
-                    if (ebs == null) continue;
-                    int baseY = subY << 4;
-                    if (baseY > maxY || baseY + 15 < minY) continue;
-
-                    for (int lx = 0; lx < 16; lx++) {
-                        for (int lz = 0; lz < 16; lz++) {
-                            for (int ly = 0; ly < 16; ly++) {
-                                int worldY = baseY + ly;
-                                if (worldY < minY || worldY > maxY) continue;
-                                Block b = ebs.getBlockByExtId(lx, ly, lz);
-                                if (b == ModBlocks.blockCorium) {
-                                    int worldX = (chunkX << 4) + lx;
-                                    int worldZ = (chunkZ << 4) + lz;
-                                    worldObj.setBlock(worldX, worldY, worldZ, ModBlocks.blockCoriumSolid, 0, 3);
-                                    worldObj.playSoundEffect(
-                                        worldX + 0.5,
-                                        worldY + 0.5,
-                                        worldZ + 0.5,
-                                        "random.fizz",
-                                        0.5F,
-                                        2.6F);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    public int getAge() {
+        return (int) Math.round(getContamination());
     }
 
-    public int getAge() {
+    public int getLifetimeAge() {
         return mAge;
     }
 
@@ -324,6 +358,6 @@ public class EntityMeltdownFallout extends Entity {
     }
 
     public boolean isSolidified() {
-        return mSolidified;
+        return false;
     }
 }

@@ -61,6 +61,45 @@ public class BlockCorium extends BlockFluidClassic {
         setHardness(100.0F);
         setResistance(500.0F);
         setCreativeTab(CreativeTabs.tabBlock);
+        setTickRandomly(true);
+    }
+
+    @Override
+    public void updateTick(World world, int x, int y, int z, java.util.Random rand) {
+        if (!world.isRemote && isRandomTick()) {
+            solidifyCoriumBlock(world, x, y, z);
+            return;
+        }
+
+        super.updateTick(world, x, y, z, rand);
+    }
+
+    public static void solidifyCoriumBlock(World world, int x, int y, int z) {
+        if (world == null || world.isRemote) return;
+        Block current = world.getBlock(x, y, z);
+        if (current != ModBlocks.blockCorium) return;
+        int meta = world.getBlockMetadata(x, y, z);
+        if (meta != 0) {
+            Block belowBlock = world.getBlock(x, y - 1, z);
+            int belowMeta = world.getBlockMetadata(x, y - 1, z);
+            if (belowBlock == ModBlocks.blockCorium && belowMeta != 0) {
+                world.setBlock(x, y - 1, z, ModBlocks.blockCorium, 0, 3);
+            }
+        }
+        world.setBlock(x, y, z, ModBlocks.blockCoriumSolid, 0, 3);
+        world.playSoundEffect(x + 0.5, y + 0.5, z + 0.5, "random.fizz", 0.5F, 2.6F);
+    }
+
+    private static boolean isRandomTick() {
+        StackTraceElement[] stack = Thread.currentThread()
+            .getStackTrace();
+        for (int i = 2; i < Math.min(stack.length, 6); i++) {
+            String m = stack[i].getMethodName();
+            if (m.equals("tickBlocksAndAmbiance") || m.equals("func_147456_g")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

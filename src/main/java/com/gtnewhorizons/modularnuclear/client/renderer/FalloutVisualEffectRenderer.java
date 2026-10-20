@@ -186,24 +186,25 @@ public class FalloutVisualEffectRenderer {
         if (CLIENT_FALLOUT_ENTITIES.isEmpty()) {
             targetIntensity = 0.0f;
         } else {
-            double maxDist = ModularNuclearConfig.falloutEffectMaxDistance;
-            double maxDistSq = maxDist * maxDist;
-            double minDistanceSq = Double.MAX_VALUE;
+            double baseMaxDist = ModularNuclearConfig.falloutEffectMaxDistance;
+            float maxTargetIntensity = 0.0f;
 
             for (EntityMeltdownFallout fallout : CLIENT_FALLOUT_ENTITIES) {
+                double ratio = fallout.getContamination() / (double) EntityMeltdownFallout.INITIAL_CONTAMINATION;
+                if (ratio <= 0.0) continue;
+                double entityMaxDist = baseMaxDist * ratio;
                 double distSq = mc.thePlayer.getDistanceSqToEntity(fallout);
-                if (distSq < minDistanceSq) {
-                    minDistanceSq = distSq;
+                if (distSq <= entityMaxDist * entityMaxDist) {
+                    double dist = Math.sqrt(distSq);
+                    boolean fullHazmat = isWearingFullHazmat(mc.thePlayer);
+                    float intensity = computeIntensity(dist, entityMaxDist, fullHazmat);
+                    if (intensity > maxTargetIntensity) {
+                        maxTargetIntensity = intensity;
+                    }
                 }
             }
 
-            if (minDistanceSq <= maxDistSq) {
-                double dist = Math.sqrt(minDistanceSq);
-                boolean fullHazmat = isWearingFullHazmat(mc.thePlayer);
-                targetIntensity = computeIntensity(dist, maxDist, fullHazmat);
-            } else {
-                targetIntensity = 0.0f;
-            }
+            targetIntensity = maxTargetIntensity;
         }
 
         // Smooth transition over ~6-7 ticks
