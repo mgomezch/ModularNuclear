@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -30,18 +31,22 @@ public class CoolantLoopModel {
 
         public static CoolingMode fromString(String str) {
             if (str == null) return MODULAR;
-            String s = str.trim();
+            String s = str.trim()
+                .toUpperCase(Locale.ROOT)
+                .replace(" ", "_");
+            switch (s) {
+                case "MODULAR", "PER_CELL", "CELL":
+                    return MODULAR;
+                case "CONDUCTIVE", "SUB_BOILING", "HATCH":
+                    return CONDUCTIVE;
+                case "CONVECTIVE_LOOP", "CONVECTIVE", "LOOP", "CLOSED_LOOP":
+                    return CONVECTIVE_LOOP;
+            }
             for (CoolingMode mode : values()) {
                 if (mode.name()
                     .equalsIgnoreCase(s) || mode.displayName.equalsIgnoreCase(s)) {
                     return mode;
                 }
-            }
-            if (containsSub(s, "CONVECTIVE") || containsSub(s, "LOOP")) {
-                return CONVECTIVE_LOOP;
-            }
-            if (containsSub(s, "CONDUCTIVE") || containsSub(s, "HATCH")) {
-                return CONDUCTIVE;
             }
             return MODULAR;
         }
@@ -49,23 +54,25 @@ public class CoolantLoopModel {
 
     public enum LoopMaterial {
 
-        CAST_IRON("Cast Iron", 16.0, 1538.0, 1811, "ULV"),
-        STEEL("Steel", 35.0, 2226.85, 2500, "LV"),
-        STAINLESS_STEEL("Stainless Steel", 70.0, 2726.85, 3000, "MV"),
-        TITANIUM("Titanium", 140.0, 4726.85, 5000, "EV"),
-        TUNGSTENSTEEL("Tungstensteel", 280.0, 7226.85, 7500, "IV"),
-        OSMIUM("Osmium", 600.0, 3032.85, 3306, "LuV"),
-        NEUTRONIUM("Neutronium", 3000.0, 99726.85, 100000, "ZPM");
+        CAST_IRON("Cast Iron", "CastIron", 16.0, 1538.0, 1811, "ULV"),
+        STEEL("Steel", "Steel", 35.0, 2226.85, 2500, "LV"),
+        STAINLESS_STEEL("Stainless Steel", "StainlessSteel", 70.0, 2726.85, 3000, "MV"),
+        TITANIUM("Titanium", "Titanium", 140.0, 4726.85, 5000, "EV"),
+        TUNGSTENSTEEL("Tungstensteel", "TungstenSteel", 280.0, 7226.85, 7500, "IV"),
+        OSMIUM("Osmium", "Osmium", 600.0, 3032.85, 3306, "LuV"),
+        NEUTRONIUM("Neutronium", "Neutronium", 3000.0, 99726.85, 100000, "ZPM");
 
         public final String displayName;
+        public final String materialName;
         public final double maxPressureBar;
         public final double maxTemperatureCelsius;
         public final int maxTemperatureKelvin;
         public final String tierUnlocked;
 
-        LoopMaterial(String displayName, double maxPressureBar, double maxTemperatureCelsius, int maxTemperatureKelvin,
-            String tierUnlocked) {
+        LoopMaterial(String displayName, String materialName, double maxPressureBar, double maxTemperatureCelsius,
+            int maxTemperatureKelvin, String tierUnlocked) {
             this.displayName = displayName;
+            this.materialName = materialName;
             this.maxPressureBar = maxPressureBar;
             this.maxTemperatureCelsius = maxTemperatureCelsius;
             this.maxTemperatureKelvin = maxTemperatureKelvin;
@@ -98,22 +105,43 @@ public class CoolantLoopModel {
             return true;
         }
 
+        public static LoopMaterial fromMaterialName(String name) {
+            if (name == null) return TITANIUM;
+            for (LoopMaterial mat : values()) {
+                if (mat.materialName.equalsIgnoreCase(name)) return mat;
+            }
+            return fromString(name);
+        }
+
         public static LoopMaterial fromString(String str) {
             if (str == null) return TITANIUM;
-            String s = str.trim();
+            String s = str.trim()
+                .toUpperCase(Locale.ROOT)
+                .replace(" ", "_")
+                .replace("-", "_");
+            switch (s) {
+                case "CAST_IRON", "CASTIRON", "CAST", "IRON":
+                    return CAST_IRON;
+                case "STEEL":
+                    return STEEL;
+                case "STAINLESS_STEEL", "STAINLESS", "STAINLESSSTEEL":
+                    return STAINLESS_STEEL;
+                case "TITANIUM", "TITAN":
+                    return TITANIUM;
+                case "TUNGSTENSTEEL", "TUNGSTEN_STEEL", "TUNGSTEN":
+                    return TUNGSTENSTEEL;
+                case "OSMIUM":
+                    return OSMIUM;
+                case "NEUTRONIUM", "NEUTRON":
+                    return NEUTRONIUM;
+            }
             for (LoopMaterial mat : values()) {
                 if (mat.name()
-                    .equalsIgnoreCase(s) || mat.displayName.equalsIgnoreCase(s)) {
+                    .equalsIgnoreCase(s) || mat.displayName.equalsIgnoreCase(s)
+                    || mat.materialName.equalsIgnoreCase(s)) {
                     return mat;
                 }
             }
-            if (containsSub(s, "CAST") || containsSub(s, "IRON")) return CAST_IRON;
-            if (containsSub(s, "STAINLESS")) return STAINLESS_STEEL;
-            if (containsSub(s, "TUNGSTEN")) return TUNGSTENSTEEL;
-            if (containsSub(s, "OSMIUM")) return OSMIUM;
-            if (containsSub(s, "TITAN")) return TITANIUM;
-            if (containsSub(s, "NEUTRON")) return NEUTRONIUM;
-            if (containsSub(s, "STEEL")) return STEEL;
             return TITANIUM;
         }
     }
@@ -138,31 +166,42 @@ public class CoolantLoopModel {
 
         public static LoopPipeSize fromString(String str) {
             if (str == null) return NORMAL;
-            String s = str.trim();
+            String s = str.trim()
+                .toUpperCase(Locale.ROOT)
+                .replace(" ", "_");
+            switch (s) {
+                case "TINY", "PIPE_TINY", "0.05":
+                    return TINY;
+                case "SMALL", "PIPE_SMALL", "0.075":
+                    return SMALL;
+                case "NORMAL", "MEDIUM", "REGULAR", "PIPE_NORMAL", "0.1", "0.10":
+                    return NORMAL;
+                case "LARGE", "PIPE_LARGE", "0.15":
+                    return LARGE;
+                case "HUGE", "PIPE_HUGE", "0.2", "0.20":
+                    return HUGE;
+            }
             for (LoopPipeSize size : values()) {
                 if (size.name()
                     .equalsIgnoreCase(s) || size.displayName.equalsIgnoreCase(s)) {
                     return size;
                 }
             }
-            if (containsSub(s, "TINY")) return TINY;
-            if (containsSub(s, "SMALL")) return SMALL;
-            if (containsSub(s, "HUGE")) return HUGE;
-            if (containsSub(s, "LARGE")) return LARGE;
             return NORMAL;
         }
     }
 
     public enum CoolantFluidType {
 
-        DISTILLED_WATER("Distilled Water", 1000.0, 4184.0, 0.001, 0.60, "Deuterium", 0.0),
-        HEAVY_WATER("Heavy Water", 1105.0, 4220.0, 0.00125, 0.59, "Tritium", 3.8),
-        IC2_COOLANT("IC2 Coolant", 1080.0, 3800.0, 0.0025, 0.52, "None", Double.NEGATIVE_INFINITY),
-        SODIUM("Sodium", 927.0, 1260.0, 0.0007, 86.0, "None", 97.8),
-        MOLTEN_CHEESE("Molten Cheese", 1120.0, 3000.0, 0.557, 0.481, "None", 46.85),
-        LAVA("Lava", 3000.0, 1250.0, 0.001, 1.5, "None", 1000.0);
+        DISTILLED_WATER("Distilled Water", "ic2distilledwater", 1000.0, 4184.0, 0.001, 0.60, "Deuterium", 0.0),
+        HEAVY_WATER("Heavy Water", "heavywater", 1105.0, 4220.0, 0.00125, 0.59, "Tritium", 3.8),
+        IC2_COOLANT("IC2 Coolant", "ic2coolant", 1080.0, 3800.0, 0.0025, 0.52, "None", Double.NEGATIVE_INFINITY),
+        SODIUM("Sodium", "sodium", 927.0, 1260.0, 0.0007, 86.0, "None", 97.8),
+        MOLTEN_CHEESE("Molten Cheese", "cheese", 1120.0, 3000.0, 0.557, 0.481, "None", 46.85),
+        LAVA("Lava", "lava", 3000.0, 1250.0, 0.001, 1.5, "None", 1000.0);
 
         public final String displayName;
+        public final String fluidName;
         public final double density; // kg/m^3
         public final double specificHeat; // J/(kg*K)
         public final double dynamicViscosity; // Pa*s
@@ -170,9 +209,10 @@ public class CoolantLoopModel {
         public final String byproductGas;
         public final double meltingPointCelsius;
 
-        CoolantFluidType(String displayName, double density, double specificHeat, double dynamicViscosity,
-            double thermalConductivity, String byproductGas, double meltingPointCelsius) {
+        CoolantFluidType(String displayName, String fluidName, double density, double specificHeat,
+            double dynamicViscosity, double thermalConductivity, String byproductGas, double meltingPointCelsius) {
             this.displayName = displayName;
+            this.fluidName = fluidName;
             this.density = density;
             this.specificHeat = specificHeat;
             this.dynamicViscosity = dynamicViscosity;
@@ -185,42 +225,66 @@ public class CoolantLoopModel {
             return this == MOLTEN_CHEESE || this == LAVA;
         }
 
+        public static CoolantFluidType fromFluidName(String fluidName) {
+            if (fluidName == null) return DISTILLED_WATER;
+            for (CoolantFluidType f : values()) {
+                if (f.fluidName.equalsIgnoreCase(fluidName)) return f;
+            }
+            return fromString(fluidName);
+        }
+
         public static CoolantFluidType fromString(String str) {
             if (str == null) return DISTILLED_WATER;
-            String s = str.trim();
+            String s = str.trim()
+                .toUpperCase(Locale.ROOT)
+                .replace(" ", "_")
+                .replace(".", "_");
+            switch (s) {
+                case "DISTILLED_WATER", "DISTILLEDWATER", "IC2DISTILLEDWATER", "WATER":
+                    return DISTILLED_WATER;
+                case "HEAVY_WATER", "HEAVYWATER":
+                    return HEAVY_WATER;
+                case "IC2_COOLANT", "IC2COOLANT", "COOLANT":
+                    return IC2_COOLANT;
+                case "SODIUM", "MOLTEN_SODIUM", "MOLTENSODIUM":
+                    return SODIUM;
+                case "LAVA":
+                    return LAVA;
+                case "MOLTEN_CHEESE", "MOLTENCHEESE", "CHEESE":
+                    return MOLTEN_CHEESE;
+            }
             for (CoolantFluidType fluid : values()) {
                 if (fluid.name()
-                    .equalsIgnoreCase(s) || fluid.displayName.equalsIgnoreCase(s)) {
+                    .equalsIgnoreCase(s) || fluid.displayName.equalsIgnoreCase(s)
+                    || fluid.fluidName.equalsIgnoreCase(s)) {
                     return fluid;
                 }
             }
-            if (containsSub(s, "LAVA")) return LAVA;
-            if (containsSub(s, "SODIUM")) return SODIUM;
-            if (containsSub(s, "COOLANT")) return IC2_COOLANT;
-            if (containsSub(s, "CHEESE")) return MOLTEN_CHEESE;
-            if (containsSub(s, "HEAVY")) return HEAVY_WATER;
             return DISTILLED_WATER;
         }
     }
 
     public enum SecondaryCoolantType {
 
-        DISTILLED_WATER("Distilled Water", 100.0, 2260.0, 160, "steam", true),
-        LIQUID_NITROGEN("Liquid Nitrogen", -196.0, 160.0, 160, "nitrogen", false),
-        LIQUID_OXYGEN("Liquid Oxygen", -183.0, 243.0, 160, "oxygen", false),
-        LIQUID_AIR("Liquid Air", -194.0, 174.0, 160, "air", false),
-        LIQUID_HELIUM("Liquid Helium", -269.0, 20.7, 160, "helium", false);
+        DISTILLED_WATER("Distilled Water", "ic2distilledwater", 100.0, 2260.0, 160, "steam", true),
+        WATER("Water", "water", 100.0, 2260.0, 160, "steam", true),
+        LIQUID_AIR("Liquid Air", "liquidair", -194.0, 174.0, 160, "air", false),
+        LIQUID_NITROGEN("Liquid Nitrogen", "liquidnitrogen", -196.0, 160.0, 160, "nitrogen", false),
+        LIQUID_OXYGEN("Liquid Oxygen", "liquidoxygen", -183.0, 243.0, 160, "oxygen", false),
+        LIQUID_HELIUM("Liquid Helium", "liquidhelium", -269.0, 20.7, 160, "helium", false);
 
         public final String displayName;
+        public final String fluidName;
         public final double boilingPointCelsius;
         public final double latentHeatJoulesPerLiter;
         public final int expansionRatio;
         public final String outputGasName;
         public final boolean isSteam;
 
-        SecondaryCoolantType(String displayName, double boilingPointCelsius, double latentHeatJoulesPerLiter,
-            int expansionRatio, String outputGasName, boolean isSteam) {
+        SecondaryCoolantType(String displayName, String fluidName, double boilingPointCelsius,
+            double latentHeatJoulesPerLiter, int expansionRatio, String outputGasName, boolean isSteam) {
             this.displayName = displayName;
+            this.fluidName = fluidName;
             this.boilingPointCelsius = boilingPointCelsius;
             this.latentHeatJoulesPerLiter = latentHeatJoulesPerLiter;
             this.expansionRatio = expansionRatio;
@@ -228,87 +292,152 @@ public class CoolantLoopModel {
             this.isSteam = isSteam;
         }
 
+        public static SecondaryCoolantType fromFluidName(String fluidName) {
+            if (fluidName == null) return DISTILLED_WATER;
+            for (SecondaryCoolantType c : values()) {
+                if (c.fluidName.equalsIgnoreCase(fluidName)) return c;
+            }
+            return fromString(fluidName);
+        }
+
         public static SecondaryCoolantType fromString(String str) {
             if (str == null) return DISTILLED_WATER;
-            String s = str.trim();
+            String s = str.trim()
+                .toUpperCase(Locale.ROOT)
+                .replace(" ", "_");
+            switch (s) {
+                case "DISTILLED_WATER", "DISTILLEDWATER", "IC2DISTILLEDWATER":
+                    return DISTILLED_WATER;
+                case "WATER":
+                    return WATER;
+                case "LIQUID_AIR", "LIQUIDAIR", "AIR":
+                    return LIQUID_AIR;
+                case "LIQUID_NITROGEN", "LIQUIDNITROGEN", "NITROGEN":
+                    return LIQUID_NITROGEN;
+                case "LIQUID_OXYGEN", "LIQUIDOXYGEN", "OXYGEN":
+                    return LIQUID_OXYGEN;
+                case "LIQUID_HELIUM", "LIQUIDHELIUM", "HELIUM":
+                    return LIQUID_HELIUM;
+            }
             for (SecondaryCoolantType type : values()) {
                 if (type.name()
-                    .equalsIgnoreCase(s) || type.displayName.equalsIgnoreCase(s)) {
+                    .equalsIgnoreCase(s) || type.displayName.equalsIgnoreCase(s)
+                    || type.fluidName.equalsIgnoreCase(s)) {
                     return type;
                 }
             }
-            if (containsSub(s, "NITROGEN")) return LIQUID_NITROGEN;
-            if (containsSub(s, "OXYGEN")) return LIQUID_OXYGEN;
-            if (containsSub(s, "AIR")) return LIQUID_AIR;
-            if (containsSub(s, "HELIUM")) return LIQUID_HELIUM;
             return DISTILLED_WATER;
         }
     }
 
     public enum EnergyHatchTier {
 
-        LV("LV", 32.0),
-        MV("MV", 128.0),
-        HV("HV", 512.0),
-        EV("EV", 2048.0),
-        IV("IV", 8192.0),
-        LUV("LuV", 32768.0),
-        ZPM("ZPM", 131072.0),
-        UV("UV", 524288.0),
-        UHV("UHV", 2097152.0);
+        LV(1, "LV", 32.0),
+        MV(2, "MV", 128.0),
+        HV(3, "HV", 512.0),
+        EV(4, "EV", 2048.0),
+        IV(5, "IV", 8192.0),
+        LUV(6, "LuV", 32768.0),
+        ZPM(7, "ZPM", 131072.0),
+        UV(8, "UV", 524288.0),
+        UHV(9, "UHV", 2097152.0);
 
+        public final int tier;
         public final String displayName;
         public final double voltageEU;
 
-        EnergyHatchTier(String displayName, double voltageEU) {
+        EnergyHatchTier(int tier, String displayName, double voltageEU) {
+            this.tier = tier;
             this.displayName = displayName;
             this.voltageEU = voltageEU;
         }
 
+        public static EnergyHatchTier fromTier(int tier) {
+            return switch (tier) {
+                case 1 -> LV;
+                case 2 -> MV;
+                case 3 -> HV;
+                case 4 -> EV;
+                case 5 -> IV;
+                case 6 -> LUV;
+                case 7 -> ZPM;
+                case 8 -> UV;
+                case 9 -> UHV;
+                default -> tier < 1 ? LV : UHV;
+            };
+        }
+
         public static EnergyHatchTier fromString(String str) {
             if (str == null) return EV;
-            String s = str.trim();
+            String s = str.trim()
+                .toUpperCase(Locale.ROOT)
+                .replace(" ", "_");
+            switch (s) {
+                case "1", "LV", "TIER_LV", "ENERGY_HATCH_LV":
+                    return LV;
+                case "2", "MV", "TIER_MV", "ENERGY_HATCH_MV":
+                    return MV;
+                case "3", "HV", "TIER_HV", "ENERGY_HATCH_HV":
+                    return HV;
+                case "4", "EV", "TIER_EV", "ENERGY_HATCH_EV":
+                    return EV;
+                case "5", "IV", "TIER_IV", "ENERGY_HATCH_IV":
+                    return IV;
+                case "6", "LUV", "TIER_LUV", "ENERGY_HATCH_LUV":
+                    return LUV;
+                case "7", "ZPM", "TIER_ZPM", "ENERGY_HATCH_ZPM":
+                    return ZPM;
+                case "8", "UV", "TIER_UV", "ENERGY_HATCH_UV":
+                    return UV;
+                case "9", "UHV", "TIER_UHV", "ENERGY_HATCH_UHV":
+                    return UHV;
+            }
             for (EnergyHatchTier tier : values()) {
                 if (tier.name()
                     .equalsIgnoreCase(s) || tier.displayName.equalsIgnoreCase(s)) {
                     return tier;
                 }
             }
-            if (containsSub(s, "UHV")) return UHV;
-            if (containsSub(s, "UV")) return UV;
-            if (containsSub(s, "ZPM")) return ZPM;
-            if (containsSub(s, "LUV")) return LUV;
-            if (containsSub(s, "IV")) return IV;
-            if (containsSub(s, "EV")) return EV;
-            if (containsSub(s, "HV")) return HV;
-            if (containsSub(s, "MV")) return MV;
-            if (containsSub(s, "LV")) return LV;
             return EV;
         }
     }
 
-    public static boolean containsSub(String s, String sub) {
-        if (s == null || sub == null) return false;
-        int sLen = s.length();
-        int subLen = sub.length();
-        if (subLen == 0) return true;
-        if (sLen < subLen) return false;
-        for (int i = 0; i <= sLen - subLen; i++) {
-            boolean match = true;
-            for (int j = 0; j < subLen; j++) {
-                char c1 = s.charAt(i + j);
-                char c2 = sub.charAt(j);
-                if (c1 != c2 && Character.toUpperCase(c1) != Character.toUpperCase(c2)) {
-                    match = false;
-                    break;
-                }
-            }
-            if (match) return true;
+    /**
+     * Immutable 2D reactor grid coordinate used for attached core points.
+     */
+    public static final class GridCoord {
+
+        public final int x;
+        public final int y;
+
+        public GridCoord(int x, int y) {
+            this.x = x;
+            this.y = y;
         }
-        return false;
+
+        public static GridCoord of(int x, int y) {
+            return new GridCoord(x, y);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            GridCoord that = (GridCoord) o;
+            return x == that.x && y == that.y;
+        }
+
+        @Override
+        public int hashCode() {
+            return (x * 31) ^ y;
+        }
+
+        @Override
+        public String toString() {
+            return x + "," + y;
+        }
     }
 
-    // Configurable parameters
     private LoopMaterial material = LoopMaterial.TITANIUM;
     private LoopPipeSize pipeSize = LoopPipeSize.NORMAL;
     private CoolantFluidType fluidType = CoolantFluidType.DISTILLED_WATER;
@@ -322,7 +451,7 @@ public class CoolantLoopModel {
     private boolean useTargetFlowMode = false; // If true, flow is set directly and pump EU is calculated
     private boolean pumpOverclocked = false; // If true, pump draws 4A instead of 1A
     private TurbineCalculator.TurbineMaterial impellerMaterial = TurbineCalculator.TurbineMaterial.ORINARUKON;
-    private final Set<String> attachedPoints = new HashSet<>(); // Set of "x,y" strings
+    private final Set<GridCoord> attachedPoints = new HashSet<>();
 
     // Dynamic state
     private double currentFlowRateLPerSec = 0.0;
@@ -604,12 +733,12 @@ public class CoolantLoopModel {
 
         // Gather all attached core passage cells (configured points + any placed PASSAGE_CORE tiles)
         List<SimTile> passageTiles = new ArrayList<>();
+        boolean hasAttached = !attachedPoints.isEmpty();
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 SimTile tile = tiles[x][y];
                 if (tile == null) continue;
-                String key = x + "," + y;
-                if (tile.getType() == SimTile.TileType.PASSAGE_CORE || attachedPoints.contains(key)) {
+                if (tile.getType() == SimTile.TileType.PASSAGE_CORE || (hasAttached && isPointAttached(x, y))) {
                     passageTiles.add(tile);
                 }
             }
@@ -817,22 +946,37 @@ public class CoolantLoopModel {
 
     // Attach / Detach coordinate helpers
     public void attachPoint(int x, int y) {
-        attachedPoints.add(x + "," + y);
+        attachedPoints.add(new GridCoord(x, y));
+    }
+
+    public void attachPoint(GridCoord coord) {
+        if (coord != null) attachedPoints.add(coord);
     }
 
     public void detachPoint(int x, int y) {
-        attachedPoints.remove(x + "," + y);
+        attachedPoints.remove(new GridCoord(x, y));
+    }
+
+    public void detachPoint(GridCoord coord) {
+        if (coord != null) attachedPoints.remove(coord);
     }
 
     public boolean isPointAttached(int x, int y) {
-        return attachedPoints.contains(x + "," + y);
+        for (GridCoord pt : attachedPoints) {
+            if (pt.x == x && pt.y == y) return true;
+        }
+        return false;
+    }
+
+    public boolean isPointAttached(GridCoord coord) {
+        return coord != null && attachedPoints.contains(coord);
     }
 
     public void clearAttachedPoints() {
         attachedPoints.clear();
     }
 
-    public Set<String> getAttachedPoints() {
+    public Set<GridCoord> getAttachedPoints() {
         return Collections.unmodifiableSet(attachedPoints);
     }
 

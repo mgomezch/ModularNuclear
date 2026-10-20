@@ -941,10 +941,12 @@ public class NuclearSimWasmBridge {
             .append("\",");
         sb.append("\"attachedPoints\":[");
         int ptIdx = 0;
-        for (String pt : cl.getAttachedPoints()) {
+        for (CoolantLoopModel.GridCoord pt : cl.getAttachedPoints()) {
             if (ptIdx++ > 0) sb.append(",");
             sb.append("\"")
-                .append(pt)
+                .append(pt.x)
+                .append(",")
+                .append(pt.y)
                 .append("\"");
         }
         sb.append("],");
