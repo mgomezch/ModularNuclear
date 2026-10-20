@@ -34,18 +34,7 @@ public class ReactorGridPanel {
 
     public static ModularPanel createPanel(PanelSyncManager syncManager, ModularPanel parent,
         MTENuclearReactor reactor) {
-        ModularPanel panel = new ModularPanel(PANEL_NAME) {
-
-            @Override
-            public boolean isDraggable() {
-                return false;
-            }
-
-            @Override
-            public boolean keepPosOnDragResize() {
-                return false;
-            }
-        }.relativeToScreen()
+        ModularPanel panel = new ResizeableFloatingPanel(PANEL_NAME).relativeToScreen()
             .center()
             .size(380, 230)
             .widgetTheme(gregtech.api.modularui2.GTWidgetThemes.BACKGROUND_POPUP)

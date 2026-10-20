@@ -17,6 +17,7 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ItemDisplayWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.gui.PanelDragHandle;
+import com.gtnewhorizons.modularnuclear.common.gui.ResizeableFloatingPanel;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 
 import gregtech.api.enums.ItemList;
@@ -31,18 +32,7 @@ public class ReactorMetricsDashboardPanel {
 
     public static ModularPanel createPanel(PanelSyncManager syncManager, ModularPanel parent,
         MTENuclearReactor reactor) {
-        ModularPanel panel = new ModularPanel(PANEL_NAME) {
-
-            @Override
-            public boolean isDraggable() {
-                return false;
-            }
-
-            @Override
-            public boolean keepPosOnDragResize() {
-                return false;
-            }
-        }.relativeToScreen()
+        ModularPanel panel = new ResizeableFloatingPanel(PANEL_NAME).relativeToScreen()
             .center()
             .size(400, 240)
             .widgetTheme(gregtech.api.modularui2.GTWidgetThemes.BACKGROUND_POPUP)
