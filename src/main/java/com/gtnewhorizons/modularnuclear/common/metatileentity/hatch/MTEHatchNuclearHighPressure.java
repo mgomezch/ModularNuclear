@@ -24,6 +24,7 @@ import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import gregtech.api.enums.Textures;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.modularui.IAddGregtechLogo;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
@@ -37,7 +38,8 @@ import gregtech.api.util.GTSplit;
  * Pairs strictly by column coordinates (Slice 0 Top Inlet <-> Slice 4 Bottom Outlet).
  * Holds zero Forge fluids directly; couples convective heat exchange and radiolytic gas generation.
  */
-public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPassageHatch, INuclearTile {
+public class MTEHatchNuclearHighPressure extends MTEHatch
+    implements ICoolantPassageHatch, INuclearTile, IAddGregtechLogo {
 
     public MTENuclearReactor mReactor = null;
     public double mTemperature = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
@@ -492,41 +494,51 @@ public class MTEHatchNuclearHighPressure extends MTEHatch implements ICoolantPas
     }
 
     @Override
+    public int getGUIHeight() {
+        return 192;
+    }
+
+    @Override
+    public void addGregTechLogo(ModularWindow.Builder builder) {
+        // No-op: the diagnostic terminal screen occupies the upper panel
+    }
+
+    @Override
     public void addUIWidgets(ModularWindow.Builder builder, UIBuildContext buildContext) {
         builder.widget(
             new DrawableWidget().setDrawable(GTUITextures.PICTURE_SCREEN_BLACK)
                 .setPos(7, 16)
-                .setSize(160, 80))
+                .setSize(160, 82))
             .widget(
                 new TextWidget("High-Pressure Passage").setDefaultColor(Color.rgb(255, 128, 0))
-                    .setPos(10, 20))
+                    .setPos(10, 21))
             .widget(
                 new TextWidget()
                     .setStringSupplier(
                         () -> String.format("Role: %s", mIsInlet ? "Core inlet (slice 0)" : "Core outlet (slice 4)"))
                     .setDefaultColor(Color.rgb(200, 200, 200))
-                    .setPos(10, 32))
+                    .setPos(10, 33))
             .widget(
                 new TextWidget().setStringSupplier(() -> String.format("Core temp: %.1f °C", getTemperature()))
                     .setDefaultColor(Color.rgb(255, 200, 0))
-                    .setPos(10, 44))
+                    .setPos(10, 45))
             .widget(
                 new TextWidget()
                     .setStringSupplier(
                         () -> String.format("Fast: %d n/t  Thrm: %d n/t", mLastFastFlux, mLastThermalFlux))
                     .setDefaultColor(Color.rgb(100, 200, 255))
-                    .setPos(10, 56))
+                    .setPos(10, 57))
             .widget(
                 new TextWidget()
                     .setStringSupplier(
                         () -> String.format("Paired: %s", mOppositeHatch != null ? "Linked" : "Unpaired"))
                     .setDefaultColor(Color.rgb(150, 255, 150))
-                    .setPos(10, 68))
+                    .setPos(10, 69))
             .widget(
                 new TextWidget()
                     .setStringSupplier(
                         () -> String.format("Pump: %s", mConnectedPump != null ? "Connected" : "Disconnected"))
                     .setDefaultColor(Color.rgb(150, 180, 255))
-                    .setPos(10, 80));
+                    .setPos(10, 81));
     }
 }
