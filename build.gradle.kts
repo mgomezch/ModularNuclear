@@ -21,8 +21,15 @@ dependencies {
     }
 }
 
+val compileTeavmStubs by tasks.registering(JavaCompile::class) {
+    source = fileTree("src/teavm/java")
+    destinationDirectory.set(layout.buildDirectory.dir("teavm-stubs"))
+    classpath = files()
+    options.release.set(8)
+}
+
 val generateWasm by tasks.registering(JavaExec::class) {
-    dependsOn("downgradeMainClasses")
+    dependsOn("downgradeMainClasses", compileTeavmStubs)
     group = "build"
     description = "Compiles core nuclear simulation engine to WebAssembly using TeaVM"
 
@@ -41,6 +48,7 @@ val generateWasm by tasks.registering(JavaExec::class) {
 
     val jvmDowngraderJar = jvmDowngraderConfig.singleFile
     val downgradedClassesDir = layout.buildDirectory.dir("tmp/downgradeMainClasses/main").get().asFile
+    val teavmStubsDir = layout.buildDirectory.dir("teavm-stubs").get().asFile
 
     args = listOf(
         "com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge",
@@ -51,6 +59,7 @@ val generateWasm by tasks.registering(JavaExec::class) {
         "--min-heap", "4",
         "--max-heap", "64",
         "-p", downgradedClassesDir.absolutePath,
+        "-p", teavmStubsDir.absolutePath,
         "-p", jvmDowngraderJar.absolutePath
     )
 
@@ -90,11 +99,12 @@ val exportStaticDist by tasks.registering(JavaExec::class) {
         languageVersion.set(JavaLanguageVersion.of(21))
     })
     val downgradedClassesDir = layout.buildDirectory.dir("tmp/downgradeMainClasses/main").get().asFile
+    val teavmStubsDir = layout.buildDirectory.dir("teavm-stubs").get().asFile
     val jvmDowngraderJar = jvmDowngraderConfig.singleFile
     val distDir = layout.buildDirectory.dir("nuclear-sim-dist").get().asFile
 
     mainClass.set("com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimulationWebServer")
-    classpath = files(downgradedClassesDir, jvmDowngraderJar)
+    classpath = files(downgradedClassesDir, teavmStubsDir, jvmDowngraderJar)
     val presetsFile = file("${project.rootDir}/../../tools/nuclear_ceiling_best.json")
     val altPresetsFile = file("/home/mgomezch/stuff/dev/nh-dev/tools/nuclear_ceiling_best.json")
     val resolvedPresets = if (presetsFile.exists()) presetsFile else altPresetsFile

@@ -288,6 +288,15 @@ public class CoolantLoopModel {
         }
     }
 
+    /**
+     * Zero-dependency WebAssembly bridge representation of GregTech energy hatch voltage tiers.
+     * <p>
+     * This enum mirrors GregTech's {@code GTValues.V} and {@code VoltageIndex} (LV through UHV)
+     * while remaining strictly isolated from the Forge and GregTech runtime classpath. This isolation
+     * ensures that TeaVM can compile the standalone simulation engine into WebAssembly for browser
+     * execution without pulling in Minecraft, Forge, or GregTech classes.
+     * </p>
+     */
     public enum EnergyHatchTier {
 
         LV(1, "LV", 32.0),

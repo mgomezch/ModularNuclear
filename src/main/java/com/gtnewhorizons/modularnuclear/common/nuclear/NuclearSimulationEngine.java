@@ -5,6 +5,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import gregtech.api.enums.GTValues;
+import gregtech.api.enums.VoltageIndex;
+
 public class NuclearSimulationEngine {
 
     public static final double HU_FOR_FAST_NEUTRON = 8.0;
@@ -324,25 +327,25 @@ public class NuclearSimulationEngine {
 
     public static long getPipeTierVoltage(int tier) {
         return switch (tier) {
-            case PIPE_TIER_ELECTRUM -> 2048L; // EV
-            case PIPE_TIER_PLATINUM -> 8192L; // IV
-            case PIPE_TIER_OSMIUM -> 32768L; // LuV
-            case PIPE_TIER_QUANTIUM -> 131072L; // ZPM
-            case PIPE_TIER_FLUXED_ELECTRUM -> 524288L; // UV
-            case PIPE_TIER_BLACK_PLUTONIUM -> 2097152L; // UHV
-            default -> 2048L;
+            case PIPE_TIER_ELECTRUM -> GTValues.V[VoltageIndex.EV];
+            case PIPE_TIER_PLATINUM -> GTValues.V[VoltageIndex.IV];
+            case PIPE_TIER_OSMIUM -> GTValues.V[VoltageIndex.LuV];
+            case PIPE_TIER_QUANTIUM -> GTValues.V[VoltageIndex.ZPM];
+            case PIPE_TIER_FLUXED_ELECTRUM -> GTValues.V[VoltageIndex.UV];
+            case PIPE_TIER_BLACK_PLUTONIUM -> GTValues.V[VoltageIndex.UHV];
+            default -> GTValues.V[VoltageIndex.EV];
         };
     }
 
     public static String getPipeTierVoltageName(int tier) {
         return switch (tier) {
-            case PIPE_TIER_ELECTRUM -> "EV";
-            case PIPE_TIER_PLATINUM -> "IV";
-            case PIPE_TIER_OSMIUM -> "LuV";
-            case PIPE_TIER_QUANTIUM -> "ZPM";
-            case PIPE_TIER_FLUXED_ELECTRUM -> "UV";
-            case PIPE_TIER_BLACK_PLUTONIUM -> "UHV";
-            default -> "EV";
+            case PIPE_TIER_ELECTRUM -> GTValues.VN[VoltageIndex.EV];
+            case PIPE_TIER_PLATINUM -> GTValues.VN[VoltageIndex.IV];
+            case PIPE_TIER_OSMIUM -> GTValues.VN[VoltageIndex.LuV];
+            case PIPE_TIER_QUANTIUM -> GTValues.VN[VoltageIndex.ZPM];
+            case PIPE_TIER_FLUXED_ELECTRUM -> GTValues.VN[VoltageIndex.UV];
+            case PIPE_TIER_BLACK_PLUTONIUM -> GTValues.VN[VoltageIndex.UHV];
+            default -> GTValues.VN[VoltageIndex.EV];
         };
     }
 
