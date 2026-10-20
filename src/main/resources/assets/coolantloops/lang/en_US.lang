@@ -1,0 +1,279 @@
+tile.coolantloops.instrument.name=High-pressure instrumentation computer
+tile.coolantloops.manifold.name=Coolant loop manifold
+tile.coolantloops.creative_heat_reservoir.name=Creative heat reservoir
+
+# Hatches and Pipes
+gt.hatch.pressurized_fluid.name=High-pressure fluid hatch
+gt.hatch.pressurized_fluid.desc1=Hermetic port for high-pressure coolant loops
+gt.hatch.pressurized_fluid.desc2=Discharge hatch accepts machine controller covers to remotely stop flow and return fluid to reservoir
+gt.hatch.pressurized_input.name=High-pressure input hatch
+gt.hatch.pressurized_input.desc1=Hermetic suction port returning coolant into multiblock machines
+gt.hatch.pressurized_input.desc2=Craft with a screwdriver to convert to an output hatch
+gt.hatch.pressurized_output.name=High-pressure output hatch
+gt.hatch.pressurized_output.desc1=Hermetic discharge port pumping coolant into closed loops
+gt.hatch.pressurized_output.desc2=Craft with a screwdriver to convert to an input hatch
+
+gt.pipe.coolant.desc=Thermally insulated coolant loop pipe
+gt.pipe.coolant.specs.diameter=Inner diameter: %.1f cm
+gt.pipe.coolant.specs.pressure=Max safe pressure: %.1f bar
+gt.pipe.coolant.specs.temperature=Max safe temperature: %.1f °C
+
+# Structure channels
+channels.coolantloops.width=Tank width (3, 5, 7, 9)
+channels.coolantloops.height=Tank height (4 to 8)
+channels.coolantloops.tank_material=Railcraft tank material
+
+# High-pressure heat exchanger
+gt.multiblock.pressurized_heat_exchanger.machine_type=High-pressure heat exchanger
+gt.multiblock.pressurized_heat_exchanger.desc1=Extracts thermal energy from closed coolant loops
+gt.multiblock.pressurized_heat_exchanger.desc2=Converts secondary distilled water -> steam / superheated / supercritical steam at 1:160 expansion
+gt.multiblock.pressurized_heat_exchanger.structure.controller=Center of middle front layer
+gt.multiblock.pressurized_heat_exchanger.structure.casings=Heat proof machine casings
+gt.multiblock.pressurized_heat_exchanger.structure.cooling_duct=Cooling duct
+gt.multiblock.pressurized_heat_exchanger.structure.cooling_duct_pos=9x (secondary cold side)
+gt.multiblock.pressurized_heat_exchanger.structure.heating_duct=Heating duct
+gt.multiblock.pressurized_heat_exchanger.structure.heating_duct_pos=9x (primary hot side)
+gt.multiblock.pressurized_heat_exchanger.structure.copper_sheetmetal=Copper sheetmetal
+gt.multiblock.pressurized_heat_exchanger.structure.copper_sheetmetal_pos=3x (middle center)
+gt.multiblock.pressurized_heat_exchanger.structure.hatch_inlet=High-pressure fluid hatch (inlet)
+gt.multiblock.pressurized_heat_exchanger.structure.hatch_inlet_pos=1x (middle layer)
+gt.multiblock.pressurized_heat_exchanger.structure.hatch_outlet=High-pressure fluid hatch (outlet)
+gt.multiblock.pressurized_heat_exchanger.structure.hatch_outlet_pos=1x (middle layer)
+gt.multiblock.pressurized_heat_exchanger.structure.input_hatch=Secondary fluid input (distilled water)
+gt.multiblock.pressurized_heat_exchanger.structure.output_hatch=Secondary fluid output (steam / superheated / supercritical)
+gt.multiblock.pressurized_heat_exchanger.structure.maintenance=Maintenance hatch
+gt.multiblock.pressurized_heat_exchanger.structure.energy=1-2x Energy hatch
+
+# High-pressure degasser
+gt.multiblock.pressurized_degasser.machine_type=High-pressure degasser
+gt.multiblock.pressurized_degasser.desc1=Extracts dissolved radiolytic and byproduct gases from closed coolant loops
+gt.multiblock.pressurized_degasser.desc2=Extraction rate scales with loop coolant flow rate (25% crossing gas/sec)
+gt.multiblock.pressurized_degasser.desc3=Consumes 8 EU/t per 1 L/s extraction capacity; supports single-amp overclocking
+gt.multiblock.pressurized_degasser.structure.controller=Center of bottom front layer
+gt.multiblock.pressurized_degasser.structure.casings=Reinforced machine casings
+gt.multiblock.pressurized_degasser.structure.hatch_inlet=High-pressure fluid hatch (inlet)
+gt.multiblock.pressurized_degasser.structure.hatch_inlet_pos=1x bottom layer
+gt.multiblock.pressurized_degasser.structure.hatch_outlet=High-pressure fluid hatch (outlet)
+gt.multiblock.pressurized_degasser.structure.hatch_outlet_pos=1x bottom layer
+gt.multiblock.pressurized_degasser.structure.energy=Single-amp energy hatch (bottom layer)
+gt.multiblock.pressurized_degasser.structure.maintenance=Maintenance hatch (bottom layer)
+gt.multiblock.pressurized_degasser.structure.output_hatch=Regular fluid output hatch (top layer, gas recovery)
+
+# Coolant Loop Pump
+gt.multiblock.coolant_pump.machine_type=Coolant loop pump
+gt.multiblock.coolant_pump.desc1=Closed-loop hydrodynamic and thermodynamic circulation pump
+gt.multiblock.coolant_pump.desc2=Sits directly underneath a Railcraft multiblock tank
+gt.multiblock.coolant_pump.desc3=Circulates coolant through empty GregTech fluid pipes
+gt.multiblock.coolant_pump.desc4=Requires a Turbine Rotor in the controller slot as an impeller
+gt.multiblock.coolant_pump.desc5=Impellers experience thermal softening and accelerated wear above 50% homologous temperature (0.5 * T_melt)
+gt.multiblock.coolant_pump.desc6=Wear accelerates up to 5x near melting point; reaching melting point destroys the impeller
+gt.multiblock.coolant_pump.structure.controller=Center of bottom front layer
+gt.multiblock.coolant_pump.structure.casings=Tungstensteel pipe casings
+gt.multiblock.coolant_pump.structure.casings_pos=(base layers, around hatches)
+gt.multiblock.coolant_pump.structure.frames=Corner frame boxes (4x at layer 0 and 1)
+gt.multiblock.coolant_pump.structure.frames_pos=Matches Railcraft tank material
+gt.multiblock.coolant_pump.structure.energy=1-2x Energy hatch (1 hatch: 1A of tier; 2 hatches: 4A total at higher tier)
+gt.multiblock.coolant_pump.structure.maintenance=Maintenance hatch
+gt.multiblock.coolant_pump.structure.hatch_discharge=High-pressure fluid hatch (discharge)
+gt.multiblock.coolant_pump.structure.hatch_discharge_pos=1x
+gt.multiblock.coolant_pump.structure.hatch_suction=High-pressure fluid hatch (suction)
+gt.multiblock.coolant_pump.structure.hatch_suction_pos=1x
+gt.multiblock.coolant_pump.structure.rc_tank=Railcraft multiblock tank
+gt.multiblock.coolant_pump.structure.rc_tank_pos=Directly above pump (height 4-8, width 3, 5, 7, 9)
+
+# Common
+gt.multiblock.coolantloops.finisher=Coolant Loops
+
+# Instrumentation Computer GUI & Chat
+coolantloops.gui.instrument.title=High-pressure instrumentation computer
+coolantloops.gui.instrument.btn.prev_metric=Previous metric
+coolantloops.gui.instrument.btn.next_metric=Next metric
+coolantloops.gui.instrument.metric=Metric: %s
+coolantloops.gui.instrument.measured=Measured: %s %s
+coolantloops.gui.instrument.output=Output: %d / 15 (fine: %d / 255)
+coolantloops.gui.instrument.btn.prev_bundled=Previous bundled mode
+coolantloops.gui.instrument.btn.next_bundled=Next bundled mode
+coolantloops.gui.instrument.pr=PR: %s
+
+coolantloops.metric.flow_rate=Flow rate
+coolantloops.metric.temperature=Temperature
+coolantloops.metric.pressure=Pressure
+coolantloops.metric.dissolved_gas=Dissolved gas
+coolantloops.metric.impeller_wear=Impeller wear
+coolantloops.metric.fill_level=Fill level
+coolantloops.metric.reservoir_level=Reservoir level
+
+coolantloops.bundled.broadcast=All channels
+coolantloops.bundled.channel=Channel %d (%s)
+
+coolantloops.chat.instrument.facing=Instrumentation computer facing: %s
+coolantloops.chat.instrument.tracked_metric=Instrumentation computer tracked metric: %s
+
+# Manifold & Creative Reservoir Chat
+coolantloops.chat.manifold.orient=Manifold: Plane oriented to %s (normal: %s)
+coolantloops.chat.manifold.connection=Manifold: %s connection %s
+coolantloops.chat.manifold.invalid_connection=Manifold: Cannot connect on %s side (no valid device)
+coolantloops.chat.manifold.info=Manifold: Plane = %s, normal = %s, inline group size = %d/8 blocks, flow = %.2f L/s, temp = %.1f °C
+
+coolantloops.manifold.plane.yz=YZ (east-west normal)
+coolantloops.manifold.plane.xz=XZ (vertical normal)
+coolantloops.manifold.plane.xy=XY (north-south normal)
+
+coolantloops.chat.creative_reservoir.temp_set=Creative heat reservoir: Temperature set to %.1f °C
+coolantloops.chat.creative_reservoir.info=Creative heat reservoir: Current temp = %.1f °C, area = %.1f m^2 (sneak-click to cycle temp)
+
+# Creative heat reservoir GUI
+coolantloops.gui.creative_reservoir.title=Creative heat reservoir
+coolantloops.gui.creative_reservoir.temperature=Target temperature:
+coolantloops.gui.creative_reservoir.area=Heat-transfer area:
+coolantloops.gui.creative_reservoir.btn.decrease_temp=Decrease target temperature\nLeft-click: -10 °C\nShift-click: -100 °C\nCtrl-click: -1000 °C\nRight-click: -1 °C
+coolantloops.gui.creative_reservoir.btn.increase_temp=Increase target temperature\nLeft-click: +10 °C\nShift-click: +100 °C\nCtrl-click: +1000 °C\nRight-click: +1 °C
+coolantloops.gui.creative_reservoir.btn.decrease_area=Decrease heat-transfer area\nLeft-click: -1.0 m²\nShift-click: -10.0 m²\nCtrl-click: -100.0 m²\nRight-click: -0.1 m²
+coolantloops.gui.creative_reservoir.btn.increase_area=Increase heat-transfer area\nLeft-click: +1.0 m²\nShift-click: +10.0 m²\nCtrl-click: +100.0 m²\nRight-click: +0.1 m²
+coolantloops.gui.creative_reservoir.input.temp_tooltip=Target temperature in °C (min: -273.15 °C)\nRight-click to clear
+coolantloops.gui.creative_reservoir.input.area_tooltip=Heat-transfer area in m² (min: 0.1 m²)\nRight-click to clear
+coolantloops.gui.creative_reservoir.status=Setting: %.1f °C | Area: %.2f m²
+
+# Scanner / Info Data for Coolant Loop Pump
+gt.scanner.coolant_pump.loop_active=Loop formed: %d segments, %d devices
+gt.scanner.coolant_pump.loop_incomplete=Loop incomplete: %s
+gt.scanner.coolant_pump.state=State: %s
+gt.scanner.coolant_pump.discharge_hatch=Discharge hatch: %s
+gt.scanner.coolant_pump.discharge_hatch.disabled=Disabled (stopping/draining)
+gt.scanner.coolant_pump.discharge_hatch.enabled=Enabled
+gt.scanner.coolant_pump.tank_material=Tank material: %s
+gt.scanner.coolant_pump.current_flow=Current flow: %.2f L/s
+gt.scanner.coolant_pump.max_pipe_flow=Max pipe flow: %s
+gt.scanner.coolant_pump.max_pipe_flow.unlimited=Unlimited
+gt.scanner.coolant_pump.peak_pressure=Peak pressure: %.2f bar
+gt.scanner.coolant_pump.peak_temp=Peak temp: %.1f C
+gt.scanner.coolant_pump.loop_fluid=Loop fluid: %d / %d L
+gt.scanner.coolant_pump.dissolved_gas=Dissolved gas: %.2f%%
+gt.scanner.coolant_pump.impeller=Impeller: %s (%.0f%% eff, melts at %.0f C)
+gt.scanner.coolant_pump.impeller.none=Impeller: None
+gt.scanner.coolant_pump.impeller_thermal_wear=Impeller thermal wear: %.2fx (Th = %.2f%s)
+gt.scanner.coolant_pump.impeller_thermal.softening=, thermal softening active
+
+# Pump Loop Status & Failure Messages
+coolantloops.pump.status.waiting=Waiting for loop formation...
+coolantloops.pump.status.formed=Pump structure formed successfully
+coolantloops.pump.status.unpowered=Pump unpowered (no EU in energy hatch)
+coolantloops.pump.status.missing_tank=Missing Railcraft tank above pump!
+coolantloops.pump.status.missing_or_mismatched_tank=Missing or mismatched Railcraft tank above pump!
+coolantloops.pump.status.unrecognized_tank=Unrecognized Railcraft tank material above pump!
+coolantloops.pump.status.tank_no_pipe=Railcraft tank material %s has no matching GregTech fluid pipe! Allowed materials: Iron, Steel, Stainless Steel, Titanium, Tungstensteel, Neutronium.
+coolantloops.pump.status.invalid_pattern=Railcraft tank has invalid pattern!
+coolantloops.pump.status.unsupported_width=Unsupported Railcraft tank width %d (must be 3, 5, 7, or 9)!
+coolantloops.pump.status.tank_square=Railcraft tank footprint must be square (%dx%d detected)!
+coolantloops.pump.status.missing_tank_block=Missing Railcraft tank block at (%d, %d, %d)
+coolantloops.pump.status.not_tank_block=Block at (%d, %d, %d) is %s, not a Railcraft tank block
+coolantloops.pump.status.mismatched_tank_block=Railcraft tank block at (%d, %d, %d) belongs to a different multiblock tank!
+coolantloops.pump.status.tank_not_valid=Railcraft tank above pump is not fully formed/structurally valid!
+coolantloops.pump.status.multiple_tanks=Mismatched Railcraft tank: multiple distinct tank multiblocks detected above pump!
+coolantloops.pump.status.tank_empty=Railcraft tank is empty! Coolant fluid required before pump can operate.
+
+coolantloops.pump.status.req_hatches=Requires 1 discharge and 1 suction high-pressure hatch
+coolantloops.pump.status.req_maintenance=Requires 1 Maintenance Hatch
+coolantloops.pump.status.req_energy=Requires 1 or 2 Energy Hatches
+coolantloops.pump.status.corner_frame=Corner block at (%d, %d, %d) must be a Frame Box!
+coolantloops.pump.status.corner_frame_mat=Corner block at (%d, %d, %d) is %s Frame Box, but must match tank material %s!
+coolantloops.pump.status.casing_req=Block at (%d, %d, %d) must be a Tungstensteel Pipe Casing or valid hatch!
+coolantloops.pump.status.invalid_hatch=Invalid hatch at (%d, %d, %d)! Only high-pressure fluid hatches, maintenance hatch, and energy hatches allowed.
+
+coolantloops.pump.status.missing_rotor=Missing turbine rotor impeller in controller slot!
+coolantloops.pump.status.loop_disconnect=Loop disconnect: %s
+coolantloops.gui.text.loop_incomplete=§4Shut down due to incomplete coolant loop.
+coolantloops.waila.loop_not_formed=Coolant loop incomplete: %s
+
+coolantloops.pump.status.refuse_water=Pump refused to start: Plain regular water cannot be used in a coolant loop! Use Distilled Water.
+coolantloops.pump.status.refuse_gas=Pump refused to start: Gaseous fluid (%s) cannot be used as a coolant!
+coolantloops.pump.status.refuse_lava=Pump refused to start: Lava is too viscous here!
+coolantloops.pump.status.refuse_solidify=Pump refused to start: Reservoir coolant temperature (%.1f °C) is below declared GregTech melting point (%.1f °C) for %s! Fluid would solidify.
+
+coolantloops.pump.status.filling_paused=Filling paused (pump disabled): %d / %d L
+coolantloops.pump.status.stopping_paused=Stopping paused (pump disabled): %d / %d L in loop
+coolantloops.pump.status.disabled_coasting=Pump disabled (coasting down): %.1f L/s
+
+coolantloops.pump.status.stopping_active=Stopping pump (draining loop to reservoir): %d / %d L in loop (%.1f L/s)
+coolantloops.pump.status.stopping_reservoir_full=Stopping paused (reservoir full): %d / %d L in loop. Drain reservoir to resume pump shutdown.
+coolantloops.pump.status.drained_complete=Flow stopped. Loop drained completely back to reservoir.
+coolantloops.pump.status.draining_paused=Flow stopped. Draining paused: Reservoir full (%d L remaining in loop)
+coolantloops.pump.status.draining_loop=Draining loop to reservoir: %d / %d L remaining
+coolantloops.pump.status.flow_stopped_empty=Flow stopped. Loop empty.
+
+coolantloops.pump.status.filling_loop=Filling loop: %d / %d L (%.1f%%)
+coolantloops.pump.status.filling_failed=Filling failed: Reservoir dry! (%d / %d L filled)
+coolantloops.pump.status.filled_circulating=Loop filled (%d L). Beginning circulation.
+coolantloops.pump.status.accelerating=Accelerating: %.1f L/s (consuming %d EU/t, target %.1f L/s)
+coolantloops.pump.status.circulating=Circulating: %.1f L/s (consuming %d EU/t, target %.1f L/s)
+coolantloops.pump.status.loop_active=Loop active: %d pipe segments, %d devices (filled %d L)
+coolantloops.pump.status.refuse_solidify_coolant=Pump refused to start: Coolant temperature (%.1f °C) is below declared GregTech melting point (%.1f °C) for %s! Fluid would solidify.
+
+coolantloops.pump.status.catastrophic_fuel=Catastrophic pump failure: %s is a liquid nuclear fuel, not a coolant! Impeller disintegrated!
+coolantloops.pump.status.catastrophic_solidification=Catastrophic coolant solidification: Coolant temperature (%.1f °C) dropped below declared GregTech melting point (%.1f °C) for %s! Solidified plug ruptured loop.
+coolantloops.pump.status.catastrophic_melt=Catastrophic pump failure: Coolant temperature (%.1f °C) exceeded impeller melting point (%.1f °C) for %s! Impeller melted!
+
+# Rotor Tooltip Impeller Thermal Limits
+coolantloops.tooltip.rotor.header=Coolant loop impeller limits:
+coolantloops.tooltip.rotor.softening=Thermal softening: %.0f °C (wear up to 5x)
+coolantloops.tooltip.rotor.melting=Melting point: %.0f °C (impeller failure)
+
+# Loop Graph Crawler Error Messages
+coolantloops.crawler.max_length=Loop exceeds maximum supported length (%d steps)
+coolantloops.crawler.no_tile=Loop broken: no tile entity at (%d, %d, %d)
+coolantloops.crawler.manifold_parallel=Invalid manifold connection: branch entered manifold at (%d, %d, %d) from side %s which is parallel to its plane (normal axis %s). Manifolds can only be entered and exited perpendicularly to their plane.
+coolantloops.crawler.manifold_disabled=Invalid manifold connection: manifold at (%d, %d, %d) has connection disabled on entry side %s!
+coolantloops.crawler.manifold_other_loop=Manifold at (%d, %d, %d) is already part of another active coolant loop (%s)!
+coolantloops.crawler.manifold_unauthorized_dir=Invalid manifold connection: manifold at (%d, %d, %d) has connection in unauthorized direction %s! All inputs must be from %s and all outputs to %s.
+coolantloops.crawler.manifold_group_no_output=Manifold group at (%d, %d, %d) has no output connections in direction %s!
+coolantloops.crawler.manifold_group_no_input=Manifold group at (%d, %d, %d) has no input connections in direction %s!
+coolantloops.crawler.manifold_group_wrong_side=Invalid manifold connection: branch entered manifold group at (%d, %d, %d) from side %s, but group input side is %s!
+coolantloops.crawler.not_coolant_pipe=Loop broken: pipe at (%d, %d, %d) is not an insulated coolant pipe! Coolant loops require specialized Coolant Pipes.
+coolantloops.crawler.pipe_merge_needs_manifold=Invalid pipe junction at (%d, %d, %d): flow merging requires a Manifold!
+coolantloops.crawler.pipe_mat_not_allowed=Pipe material %s at (%d, %d, %d) is not allowed for coolant loops: only materials with both GT fluid pipes and Railcraft tanks are permitted (Iron/Cast Iron, Steel, Stainless Steel, Titanium, TungstenSteel, Osmium, Neutronium).
+coolantloops.crawler.pipe_mat_tank_mismatch=Pipe material mismatch at (%d, %d, %d): Pipe is %s but Railcraft tank requires %s!
+coolantloops.crawler.pipe_mat_loop_mismatch=Pipe material mismatch at (%d, %d, %d): Pipe is %s but loop requires %s!
+coolantloops.crawler.pipe_size_mismatch=Pipe size mismatch at (%d, %d, %d): Expected pipe thickness %.3f (amount %d) but found %.3f (amount %d) in segment between devices. Pipe size transitions require a device or manifold!
+coolantloops.crawler.pipe_forge_fluid=Catastrophic loop disconnect: Pipe at (%d, %d, %d) contains Forge fluid (%s, %d L)! Coolant pipes must remain empty.
+coolantloops.crawler.pipe_not_connected_back=Pipe at (%d, %d, %d) is not connected backwards to incoming side %s
+coolantloops.crawler.pipe_dead_end=Dead-end or missing forward connection at pipe (%d, %d, %d) [incoming=%s]
+coolantloops.crawler.pipe_split_needs_manifold=Ambiguous pipe branching at (%d, %d, %d): flow splitting requires a Manifold!
+coolantloops.crawler.phe_unformed=PHE at (%d, %d, %d) is unformed or missing a valid outlet hatch
+coolantloops.crawler.degasser_unformed=High-pressure degasser at (%d, %d, %d) is unformed or missing a valid outlet hatch
+coolantloops.crawler.passage_outlet=Loop enters passage through outlet at (%d, %d, %d)
+coolantloops.crawler.passage_no_pair=Passage hatch at (%d, %d, %d) has no paired opposite hatch
+coolantloops.crawler.device_merge_needs_manifold=Invalid device junction at (%d, %d, %d): flow merging requires a Manifold!
+coolantloops.crawler.unknown_block=Loop broken: unknown non-coolant block at (%d, %d, %d): %s
+coolantloops.crawler.no_suction_path=Loop broken: no path reached the pump suction port!
+coolantloops.crawler.branch_not_reaching_suction=Invalid loop topology: branch at %s does not lead to pump suction port!
+coolantloops.crawler.cycle_detected=Invalid cyclic loop topology: path from manifold output loops back to its input without passing through the pump: %s
+coolantloops.crawler.cycle_generic=Invalid cyclic loop topology: cycle detected: %s
+coolantloops.crawler.bath_unformed=Coolant Bath at (%d, %d, %d) is unformed or missing a valid outlet hatch
+coolantloops.crawler.loop_too_large=Loop structure check could not complete because the loop is too large
+coolantloops.pump.status.crawling=Checking loop structure... (%d steps, tick %d/20)
+
+# Coolant Bath
+gt.multiblock.coolant_bath.machine_type=Coolant bath
+gt.multiblock.coolant_bath.desc1=Passive convective thermal treatment bath for ingots and coolant cells
+gt.multiblock.coolant_bath.desc2=Variable 3-block tall rectangular cuboid (5x7 EV, 7x9 IV, 9x11 LuV)
+gt.multiblock.coolant_bath.desc3=Operates purely by Newton's law of cooling with circulating loop coolant
+gt.multiblock.coolant_bath.desc4=Higher flow rate accelerates heat exchange; flow resistance scales with item load
+
+# Coolant loop flow graph GUI
+coolantloops.gui.title.loop_graph=Coolant loop flow graph
+coolantloops.gui.button.loop_graph=Coolant loop flow graph
+coolantloops.gui.button.loop_graph.tooltip=Inspect coolant loop flow graph and telemetry
+coolantloops.gui.button.loop_graph.requires_monitor=Requires computer monitor cover on controller
+
+# Multiblock structure error messages
+coolantloops.structure.error.missing_primary_inlet=Missing primary high-pressure fluid inlet hatch
+coolantloops.structure.error.missing_primary_outlet=Missing primary high-pressure fluid outlet hatch
+coolantloops.structure.error.single_amp_energy_required=Energy hatch must be single-amp (max 2A)
+coolantloops.structure.error.pump.missing_or_mismatched_tank=Missing, incomplete, or mismatched Railcraft tank directly above pump
+coolantloops.structure.error.pump.corner_frame=Requires %s frame box
+coolantloops.structure.error.pump.casing_req=Requires Tungstensteel Pipe Casing or valid hatch
+coolantloops.structure.error.pump.invalid_hatch=Invalid hatch (only high-pressure fluid, maintenance, and energy hatches allowed)
+coolantloops.structure.error.missing_suction_hatch=Missing high-pressure suction hatch (input mode)
+coolantloops.structure.error.missing_discharge_hatch=Missing high-pressure discharge hatch (output mode)
+coolantloops.structure.error.duplicate_pump_hatches=Requires exactly 1 suction and 1 discharge hatch
+
