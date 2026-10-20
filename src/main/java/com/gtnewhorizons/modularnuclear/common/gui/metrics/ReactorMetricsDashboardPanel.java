@@ -10,14 +10,11 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
-import com.cleanroommc.modularui.widgets.ItemDisplayWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.gui.PanelDragHandle;
 import com.gtnewhorizons.modularnuclear.common.gui.ResizeableFloatingPanel;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
-
-import gregtech.api.enums.ItemList;
 
 /**
  * Floating, resizable ModularUI 2 window displaying live reactor metrics over the last 100 cycles.
@@ -43,17 +40,12 @@ public class ReactorMetricsDashboardPanel {
             ReactorMetricsHistory::writeToBuffer);
         syncManager.syncValue("metricsHistory", metricsSyncer);
 
-        // Header bar with Computer Screen icon, drag handle (no title), and close button
+        // Header bar with drag handle (no title) and close button
         Flow headerRow = Flow.row()
             .fullWidth()
             .height(18)
             .crossAxisAlignment(Alignment.CrossAxis.CENTER)
             .marginBottom(4)
-            .child(
-                new ItemDisplayWidget().item(ItemList.Cover_Screen.get(1L))
-                    .size(16, 16)
-                    .displayAmount(false)
-                    .marginRight(4))
             .child(
                 new PanelDragHandle(panel).expanded()
                     .height(14))
