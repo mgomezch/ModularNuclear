@@ -69,6 +69,8 @@ public class NuclearSimulationEngineTest {
     @BeforeAll
     static void initEnvironment() {
         TestEnvironmentHelper.init();
+        com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.sTestMode = true;
+        com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.resetData();
 
         try {
             ModFluids.init();
@@ -1127,7 +1129,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testNeutronComponentInteractionData() {
-        com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.NeutronComponentData graphite = new com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.NeutronComponentData(
+        com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.ComponentStatsData graphite = new com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.ComponentStatsData(
             null,
             "Graphite Moderator Block",
             "Moderator",
@@ -1137,12 +1139,27 @@ public class NuclearSimulationEngineTest {
             0.621,
             0.009,
             false,
-            0,
-            0,
-            0,
+            0.0,
+            0.0,
+            0.15,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2400.0,
+            0.0,
+            0.0,
+            false,
+            0L,
+            null,
+            0.0,
+            0.0,
+            true,
+            100_000_000L,
+            "Wear Capacity",
             false,
             null,
-            0,
+            0L,
             "Slows fast neutrons into thermal neutrons");
 
         assertEquals(0.93, graphite.fastScattering, 1e-4);
@@ -1151,33 +1168,10 @@ public class NuclearSimulationEngineTest {
         assertEquals(0.621, graphite.thermalScattering, 1e-4);
         assertEquals(0.009, graphite.thermalAbsorption, 1e-4);
         assertEquals(0.50, 1.0 - graphite.slowingProbability, 1e-4);
-        assertFalse(graphite.hasCapture);
-        assertFalse(graphite.hasAbsorption);
-
-        com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.NeutronComponentData uraniumQuad = new com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.NeutronComponentData(
-            null,
-            "Quad Uranium Fuel Rod",
-            "Fuel Rod",
-            0.15,
-            0.25,
-            0.10,
-            0.10,
-            0.80,
-            true,
-            8,
-            0.88,
-            16.0,
-            true,
-            null,
-            163_840_000L,
-            "Base: 16 Fast Neutrons/t | Standard fission fuel");
-
-        assertTrue(uraniumQuad.hasCapture);
-        assertEquals(8, uraniumQuad.fastNeutronEnergyHu);
-        assertEquals(0.88, uraniumQuad.directHeatC, 1e-4);
-        assertEquals(16.0, uraniumQuad.maxNeutronsEmitted, 1e-4);
-        assertTrue(uraniumQuad.hasAbsorption);
-        assertEquals(163_840_000L, uraniumQuad.neutronsRequired);
+        assertEquals(0.15, graphite.heatTransferCoeff, 1e-4);
+        assertEquals(2400.0, graphite.maxTemperature, 1e-4);
+        assertTrue(graphite.hasDurability);
+        assertEquals(100_000_000L, graphite.durability);
     }
 
     @Test
@@ -6532,32 +6526,52 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
-    public void testNEIModeratorStatsHandlerRecipes() {
-        com.gtnewhorizons.modularnuclear.common.nei.NEIModeratorStatsHandler handler = new com.gtnewhorizons.modularnuclear.common.nei.NEIModeratorStatsHandler();
+    public void testNEINeutronInteractionHandlerRecipes() {
+        com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler handler = new com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler();
 
-        assertEquals("modularnuclear.moderator_stats", handler.getOverlayIdentifier());
-        assertEquals("MPTR Moderators", handler.getRecipeName());
-
+        assertEquals("gt.nei.neutron_interaction", handler.getOverlayIdentifier());
         handler.loadCraftingRecipes(handler.getOverlayIdentifier());
-        assertTrue(handler.numRecipes() >= 3);
+        assertTrue(handler.numRecipes() >= 10);
 
         boolean foundGraphite = false;
-        boolean foundCarbon = false;
-        boolean foundBeryllium = false;
+        boolean foundReflector = false;
+        boolean foundRadiovoltaic = false;
+        boolean foundControlRod = false;
+        boolean foundCoolantCell = false;
+        boolean foundFluidCoolant = false;
+        boolean foundHeatVent = false;
+        boolean foundHeatExchanger = false;
+        boolean foundInsulator = false;
+        boolean foundEmptyTile = false;
 
         for (int i = 0; i < handler.numRecipes(); i++) {
             codechicken.nei.recipe.TemplateRecipeHandler.CachedRecipe cr = (codechicken.nei.recipe.TemplateRecipeHandler.CachedRecipe) handler.arecipes
                 .get(i);
-            if (cr instanceof com.gtnewhorizons.modularnuclear.common.nei.NEIModeratorStatsHandler.CachedModeratorStatsRecipe recipe) {
-                if ("moderator_graphite".equals(recipe.moderator.id)) foundGraphite = true;
-                if ("moderator_carbon".equals(recipe.moderator.id)) foundCarbon = true;
-                if ("moderator_beryllium".equals(recipe.moderator.id)) foundBeryllium = true;
+            if (cr instanceof com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.CachedNeutronInteractionRecipe recipe) {
+                String cat = recipe.data.category;
+                if ("Moderator".equals(cat) && recipe.data.name.contains("Graphite")) foundGraphite = true;
+                if ("Reflector".equals(cat)) foundReflector = true;
+                if ("Radiovoltaic Plate".equals(cat)) foundRadiovoltaic = true;
+                if ("Control Rod".equals(cat)) foundControlRod = true;
+                if ("Coolant Cell".equals(cat)) foundCoolantCell = true;
+                if ("Fluid Coolant".equals(cat)) foundFluidCoolant = true;
+                if ("Heat Vent".equals(cat)) foundHeatVent = true;
+                if ("Heat Exchanger".equals(cat)) foundHeatExchanger = true;
+                if ("Thermal Insulator".equals(cat)) foundInsulator = true;
+                if ("Empty Core Tile".equals(cat)) foundEmptyTile = true;
             }
         }
 
-        assertTrue(foundGraphite);
-        assertTrue(foundCarbon);
-        assertTrue(foundBeryllium);
+        assertTrue(foundGraphite, "Graphite moderator must be loaded in NEI component recipes");
+        assertTrue(foundReflector, "Reflectors must be loaded in NEI component recipes");
+        assertTrue(foundRadiovoltaic, "Radiovoltaic plates must be loaded in NEI component recipes");
+        assertTrue(foundControlRod, "Control rods must be loaded in NEI component recipes");
+        assertTrue(foundCoolantCell, "Coolant cells must be loaded in NEI component recipes");
+        assertTrue(foundFluidCoolant, "Fluid coolants must be loaded in NEI component recipes");
+        assertTrue(foundHeatVent, "Heat vents must be loaded in NEI component recipes");
+        assertTrue(foundHeatExchanger, "Heat exchangers must be loaded in NEI component recipes");
+        assertTrue(foundInsulator, "Insulators must be loaded in NEI component recipes");
+        assertTrue(foundEmptyTile, "Empty core tile must be loaded in NEI component recipes");
     }
 
     @Test

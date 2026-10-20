@@ -32,6 +32,17 @@ import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTUtility;
 
+/**
+ * Unified NEI handler for non-fuel MPTR reactor components:
+ * Reflectors, Moderators, Radiovoltaic Plates, Thermal Insulators,
+ * Coolant Cells, Coolant Fluids, IC2 Heat Vents & Exchangers, Control Rods,
+ * and Empty Core Tiles.
+ * <p>
+ * Page 1: Fast & Thermal neutron interaction (scattering, absorption, moderation fraction, reflection).
+ * Page 2: Thermal & energy properties (conduction, active cooling/transfer, direct EU generation)
+ * and durability / radiolytic transmutation byproducts.
+ * </p>
+ */
 public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
     public static final ResourceLocation TEXTURE_ATLAS = new ResourceLocation(
@@ -44,36 +55,60 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
     public static final String OVERLAY_ID = "gt.nei.neutron_interaction";
 
-    public static class NeutronComponentData {
+    public static class ComponentStatsData {
 
         public final ItemStack stack;
+        public final List<ItemStack> alternateStacks = new ArrayList<>();
         public final String name;
         public final String category;
 
-        // Page 1: Interaction
+        // Page 1: Neutron Interaction
         public final double fastScattering;
         public final double fastAbsorption;
         public final double slowingProbability;
         public final double thermalScattering;
         public final double thermalAbsorption;
 
-        // Page 2: Capture (Fission / Reaction)
-        public final boolean hasCapture;
-        public final int fastNeutronEnergyHu;
-        public final double directHeatC;
-        public final double maxNeutronsEmitted;
+        // Reflection
+        public final boolean isReflector;
+        public final double reflectionFast;
+        public final double reflectionThermal;
 
-        // Page 2: Absorption (Depletion / Transmutation)
-        public final boolean hasAbsorption;
-        public final ItemStack absorptionOutput;
-        public final long neutronsRequired;
+        // Page 2: Thermal & Energy Properties
+        public final double heatTransferCoeff;
+        public final double thermalInsulationFactor;
+        public final double selfCoolingRate;
+        public final double componentCoolingRate;
+        public final double heatTransferRate;
+        public final double maxTemperature;
+        public final double boilingPoint;
+        public final double specificHeat;
+
+        // Direct EU Production
+        public final boolean producesDirectEU;
+        public final long maxDirectEU;
+        public final String directEUTier;
+        public final double directEUPenNeutronFast;
+        public final double directEUPenNeutronThermal;
+
+        // Durability / Capacity / Transmutation / Byproducts
+        public final boolean hasDurability;
+        public final long durability;
+        public final String durabilityLabel;
+        public final boolean hasTransmutation;
+        public final ItemStack transmutationOutput;
+        public final long transmutationNeutrons;
 
         public final String extraInfo;
 
-        public NeutronComponentData(ItemStack stack, String name, String category, double fastScattering,
+        public ComponentStatsData(ItemStack stack, String name, String category, double fastScattering,
             double fastAbsorption, double slowingProbability, double thermalScattering, double thermalAbsorption,
-            boolean hasCapture, int fastNeutronEnergyHu, double directHeatC, double maxNeutronsEmitted,
-            boolean hasAbsorption, ItemStack absorptionOutput, long neutronsRequired, String extraInfo) {
+            boolean isReflector, double reflectionFast, double reflectionThermal, double heatTransferCoeff,
+            double thermalInsulationFactor, double selfCoolingRate, double componentCoolingRate,
+            double heatTransferRate, double maxTemperature, double boilingPoint, double specificHeat,
+            boolean producesDirectEU, long maxDirectEU, String directEUTier, double directEUPenNeutronFast,
+            double directEUPenNeutronThermal, boolean hasDurability, long durability, String durabilityLabel,
+            boolean hasTransmutation, ItemStack transmutationOutput, long transmutationNeutrons, String extraInfo) {
             this.stack = stack;
             this.name = name;
             this.category = category;
@@ -82,35 +117,52 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             this.slowingProbability = slowingProbability;
             this.thermalScattering = thermalScattering;
             this.thermalAbsorption = thermalAbsorption;
-            this.hasCapture = hasCapture;
-            this.fastNeutronEnergyHu = fastNeutronEnergyHu;
-            this.directHeatC = directHeatC;
-            this.maxNeutronsEmitted = maxNeutronsEmitted;
-            this.hasAbsorption = hasAbsorption;
-            this.absorptionOutput = absorptionOutput;
-            this.neutronsRequired = neutronsRequired;
+            this.isReflector = isReflector;
+            this.reflectionFast = reflectionFast;
+            this.reflectionThermal = reflectionThermal;
+            this.heatTransferCoeff = heatTransferCoeff;
+            this.thermalInsulationFactor = thermalInsulationFactor;
+            this.selfCoolingRate = selfCoolingRate;
+            this.componentCoolingRate = componentCoolingRate;
+            this.heatTransferRate = heatTransferRate;
+            this.maxTemperature = maxTemperature;
+            this.boilingPoint = boilingPoint;
+            this.specificHeat = specificHeat;
+            this.producesDirectEU = producesDirectEU;
+            this.maxDirectEU = maxDirectEU;
+            this.directEUTier = directEUTier;
+            this.directEUPenNeutronFast = directEUPenNeutronFast;
+            this.directEUPenNeutronThermal = directEUPenNeutronThermal;
+            this.hasDurability = hasDurability;
+            this.durability = durability;
+            this.durabilityLabel = durabilityLabel;
+            this.hasTransmutation = hasTransmutation;
+            this.transmutationOutput = transmutationOutput;
+            this.transmutationNeutrons = transmutationNeutrons;
             this.extraInfo = extraInfo;
         }
     }
 
     /**
-     * Page 1: Fast & Thermal Neutron scattering and moderation.
+     * Page 1: Fast & Thermal neutron scattering, moderation, absorption, and reflection.
      */
     public class CachedNeutronInteractionRecipe extends CachedRecipe {
 
         public final PositionedStack input;
         public final PositionedStack inputThermal;
         public final PositionedStack catalyst;
-        public final NeutronComponentData data;
+        public final ComponentStatsData data;
 
-        public CachedNeutronInteractionRecipe(NeutronComponentData data) {
+        public CachedNeutronInteractionRecipe(ComponentStatsData data) {
             this.data = data;
-            this.input = new PositionedStack(data.stack, 67, 31);
-            this.inputThermal = new PositionedStack(data.stack, 67, 97);
-            this.catalyst = new PositionedStack(
-                ModMetaTileEntities.reactor != null ? ModMetaTileEntities.reactor.copy() : null,
-                6,
-                135);
+            List<ItemStack> allVariants = new ArrayList<>();
+            if (data.stack != null) allVariants.add(data.stack);
+            allVariants.addAll(data.alternateStacks);
+
+            this.input = new PositionedStack(allVariants, 67, 31);
+            this.inputThermal = new PositionedStack(allVariants, 67, 97);
+            ItemStack ctrl = getControllerStack();
+            this.catalyst = ctrl != null ? new PositionedStack(ctrl, 6, 135) : null;
         }
 
         @Override
@@ -127,257 +179,416 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         public List<PositionedStack> getOtherStacks() {
             List<PositionedStack> list = new ArrayList<>();
             list.add(inputThermal);
-            list.add(catalyst);
+            if (catalyst != null) list.add(catalyst);
             return list;
         }
     }
 
     /**
-     * Page 2: Single Neutron Capture (fission energy, heat, multiplication)
-     * and Neutron Absorption (depletion / transmutation product).
+     * Page 2: Thermal properties, direct EU generation, durability, and radiolytic transmutation.
      */
-    public class CachedNeutronCaptureRecipe extends CachedRecipe {
+    public class CachedComponentThermalRecipe extends CachedRecipe {
 
-        public final PositionedStack captureInput;
-        public final PositionedStack absorptionInput;
-        public final PositionedStack absorptionOutput;
+        public final PositionedStack thermalInput;
+        public final PositionedStack durabilityInput;
+        public final PositionedStack transmutationOutput;
         public final PositionedStack catalyst;
-        public final NeutronComponentData data;
+        public final ComponentStatsData data;
 
-        public CachedNeutronCaptureRecipe(NeutronComponentData data) {
+        public CachedComponentThermalRecipe(ComponentStatsData data) {
             this.data = data;
-            this.captureInput = new PositionedStack(data.stack, 58, 27);
-            this.absorptionInput = new PositionedStack(data.stack, 31, 97);
-            this.absorptionOutput = data.absorptionOutput != null ? new PositionedStack(data.absorptionOutput, 101, 97)
+            List<ItemStack> allVariants = new ArrayList<>();
+            if (data.stack != null) allVariants.add(data.stack);
+            allVariants.addAll(data.alternateStacks);
+
+            this.thermalInput = new PositionedStack(allVariants, 58, 27);
+            int durX = data.transmutationOutput != null ? 31 : 67;
+            this.durabilityInput = new PositionedStack(allVariants, durX, 97);
+            this.transmutationOutput = data.transmutationOutput != null
+                ? new PositionedStack(data.transmutationOutput, 101, 97)
                 : null;
-            this.catalyst = new PositionedStack(
-                ModMetaTileEntities.reactor != null ? ModMetaTileEntities.reactor.copy() : null,
-                6,
-                135);
+            ItemStack ctrl = getControllerStack();
+            this.catalyst = ctrl != null ? new PositionedStack(ctrl, 6, 135) : null;
         }
 
         @Override
         public PositionedStack getIngredient() {
-            return absorptionInput;
+            return durabilityInput;
         }
 
         @Override
         public PositionedStack getResult() {
-            return absorptionOutput != null ? absorptionOutput : captureInput;
+            return transmutationOutput != null ? transmutationOutput : thermalInput;
         }
 
         @Override
         public List<PositionedStack> getOtherStacks() {
             List<PositionedStack> list = new ArrayList<>();
-            list.add(captureInput);
-            list.add(catalyst);
-            if (absorptionOutput != null) {
-                list.add(absorptionOutput);
+            list.add(thermalInput);
+            if (catalyst != null) list.add(catalyst);
+            if (transmutationOutput != null) {
+                list.add(transmutationOutput);
             }
             return list;
         }
     }
 
-    private static final List<NeutronComponentData> ALL_COMPONENTS = new ArrayList<>();
+    private static final List<ComponentStatsData> ALL_COMPONENTS = new ArrayList<>();
     private static boolean initialized = false;
+
+    public static boolean sTestMode = false;
+
+    public static synchronized void resetData() {
+        initialized = false;
+        ALL_COMPONENTS.clear();
+    }
+
+    private static boolean isTestMode() {
+        if (sTestMode) return true;
+        try {
+            cpw.mods.fml.common.Loader ldr = cpw.mods.fml.common.Loader.instance();
+            if (ldr == null || ldr.getModList() == null
+                || ldr.getModList()
+                    .isEmpty()) {
+                return true;
+            }
+        } catch (Throwable t) {
+            return true;
+        }
+        return false;
+    }
+
+    private static ItemStack createTestPlaceholder(String name) {
+        ItemStack stack = new ItemStack(net.minecraft.init.Items.paper);
+        stack.setStackDisplayName(name);
+        return stack;
+    }
+
+    public static ItemStack getControllerStack() {
+        if (ModMetaTileEntities.reactor != null) {
+            return ModMetaTileEntities.reactor.copy();
+        }
+        if (gregtech.api.GregTechAPI.METATILEENTITIES != null && ModMetaTileEntities.ID_NUCLEAR_REACTOR >= 0
+            && ModMetaTileEntities.ID_NUCLEAR_REACTOR < gregtech.api.GregTechAPI.METATILEENTITIES.length
+            && gregtech.api.GregTechAPI.METATILEENTITIES[ModMetaTileEntities.ID_NUCLEAR_REACTOR] != null) {
+            return gregtech.api.GregTechAPI.METATILEENTITIES[ModMetaTileEntities.ID_NUCLEAR_REACTOR].getStackForm(1L);
+        }
+        return isTestMode() ? createTestPlaceholder("Nuclear Reactor") : null;
+    }
+
+    private static ItemStack getReflectorPlate(Materials mat, String materialName) {
+        ItemStack s = null;
+        if (mat != null) {
+            s = GTOreDictUnificator.get(OrePrefixes.plate, mat, 1L);
+        }
+        if (s == null && materialName != null) {
+            s = getFirstOre("plate" + materialName);
+        }
+        if (s == null && isTestMode()) {
+            s = createTestPlaceholder(materialName + " Plate");
+        }
+        return s;
+    }
+
+    private static ItemStack getModeratorRod(Materials mat, String materialName) {
+        ItemStack s = null;
+        if (mat != null) {
+            s = GTOreDictUnificator.get(OrePrefixes.stickLong, mat, 1L);
+        }
+        if (s == null && materialName != null) {
+            s = getFirstOre("stickLong" + materialName);
+        }
+        if (s == null && isTestMode()) {
+            s = createTestPlaceholder(materialName + " Long Rod");
+        }
+        return s;
+    }
 
     public static synchronized void initData() {
         if (initialized) return;
         initialized = true;
+        ALL_COMPONENTS.clear();
 
-        // 1. MODERATORS - High scattering & moderation, no fission/depletion (long rods only)
-        ItemStack stickGraphite = GTOreDictUnificator.get(OrePrefixes.stickLong, Materials.Graphite, 1L);
-        if (stickGraphite != null) addModerator(stickGraphite, "Graphite Long Rod", 0.93, 0.002, 0.50, 0.621, 0.009);
-        ItemStack stickCarbon = GTOreDictUnificator.get(OrePrefixes.stickLong, Materials.Carbon, 1L);
-        if (stickCarbon != null) addModerator(stickCarbon, "Carbon Long Rod", 0.90, 0.003, 0.45, 0.60, 0.012);
-        ItemStack stickBeryllium = GTOreDictUnificator.get(OrePrefixes.stickLong, Materials.Beryllium, 1L);
-        if (stickBeryllium != null) addModerator(stickBeryllium, "Beryllium Long Rod", 0.96, 0.001, 0.65, 0.85, 0.004);
-
-        // 2. REFLECTORS - Extreme scattering, low absorption, indestructible or long life
-        addIC2Reflector("reactorReflector", "Neutron Reflector", 0.95, 0.01, 0.20, 0.98, 0.02, 10_000);
-        addIC2Reflector("reactorReflectorThick", "Thick Neutron Reflector", 0.98, 0.005, 0.25, 0.99, 0.01, 40_000);
-        addGTReflector(ItemList.Neutron_Reflector, "Iridium Neutron Reflector", 0.95, 0.01, 0.20, 0.98, 0.02);
-        addReflector(Materials.Gold.getPlates(1), "Gold Plate Reflector", 0.85, 0.15, 0.0, 0.90, 0.10);
+        // 1. REFLECTORS - High scattering / reflection back into adjacent core cells
         addReflector(
-            Materials.StainlessSteel.getPlates(1),
-            "Stainless Steel Plate Reflector",
+            getReflectorPlate(Materials.Gold, "Gold"),
+            "Gold Plate Reflector",
+            0.15,
+            0.10,
+            0.85,
             0.90,
-            0.10,
             0.0,
-            0.95,
-            0.05);
+            0.30,
+            0,
+            "Indestructible plate reflector (k = 0.30)");
         addReflector(
-            Materials.TungstenCarbide.getPlates(1),
-            "Tungsten Carbide Plate Reflector",
-            0.93,
-            0.07,
+            getReflectorPlate(Materials.StainlessSteel, "StainlessSteel"),
+            "Stainless Steel Plate Reflector",
+            0.10,
+            0.05,
+            0.90,
+            0.95,
             0.0,
+            0.20,
+            0,
+            "Indestructible plate reflector (k = 0.20)");
+        addReflector(
+            getReflectorPlate(Materials.TungstenCarbide, "TungstenCarbide"),
+            "Tungsten Carbide Plate Reflector",
+            0.07,
+            0.02,
+            0.93,
             0.98,
-            0.02);
-
-        // 3. CONTROL RODS - Extreme absorption, low scattering, burnout capacity
-        addControlRod(
-            GTOreDictUnificator.get(OrePrefixes.stick, Materials.Cadmium, 1L),
-            "Cadmium Rod",
+            0.0,
             0.10,
+            0,
+            "Indestructible plate reflector (k = 0.10)");
+        addIC2Reflector(
+            "reactorReflector",
+            "Neutron Reflector",
+            0.01,
+            0.02,
+            0.95,
+            0.98,
+            0.20,
+            0.15,
+            10_000,
+            "Standard beryllium reflector (10,000 impacts)");
+        addIC2Reflector(
+            "reactorReflectorThick",
+            "Thick Neutron Reflector",
+            0.005,
+            0.01,
+            0.98,
+            0.99,
+            0.25,
+            0.20,
+            40_000,
+            "Reinforced reflector (40,000 impacts)");
+        addGTReflector(
+            ItemList.Neutron_Reflector,
+            "Iridium Neutron Reflector",
+            0.01,
+            0.02,
+            0.95,
+            0.98,
+            0.20,
+            0.15,
+            0,
+            "Permanent iridium reflector (indestructible)");
+        addGTReflector(
+            ItemList.Reactor_NeutronReflector,
+            "Thick Iridium Neutron Reflector",
+            0.005,
+            0.01,
+            0.98,
+            0.99,
+            0.25,
+            0.20,
+            0,
+            "Permanent dense iridium reflector (indestructible)");
+
+        // 2. MODERATORS - Restricted strictly to long-rod form; slows fast neutrons to thermal
+        ItemStack stickGraphite = getModeratorRod(Materials.Graphite, "Graphite");
+        ItemStack dustAsh = GTOreDictUnificator.get(OrePrefixes.dust, Materials.Ash, 1L);
+        if (dustAsh == null && isTestMode()) dustAsh = createTestPlaceholder("Ash Dust");
+        addModerator(
+            stickGraphite,
+            "Graphite Long Rod",
+            0.93,
+            0.002,
+            0.50,
+            0.621,
+            0.009,
+            0.05,
+            2500.0,
+            80_000,
+            dustAsh,
+            "Standard moderator | Burns into ash above 2500 °C");
+
+        ItemStack stickCarbon = getModeratorRod(Materials.Carbon, "Carbon");
+        addModerator(
+            stickCarbon,
+            "Carbon Long Rod",
+            0.90,
+            0.003,
+            0.45,
+            0.60,
+            0.012,
+            0.05,
+            2200.0,
+            10_000,
+            dustAsh,
+            "Budget carbon moderator | Burns into ash above 2200 °C");
+
+        ItemStack stickBeryllium = getModeratorRod(Materials.Beryllium, "Beryllium");
+        addModerator(
+            stickBeryllium,
+            "Beryllium Long Rod",
+            0.96,
+            0.001,
+            0.65,
+            0.85,
+            0.004,
+            0.15,
+            2600.0,
+            240_000,
+            null,
+            "High-performance moderator | High thermal conductivity (k = 0.15)");
+
+        // 3. CONTROL RODS - Throttle reactivity via neutron absorption (burnout capacity)
+        addControlRod(
+            Materials.Silver,
+            "Silver",
+            "Silver Control Rod",
+            0.20,
+            0.50,
+            0.05,
+            0.05,
+            0.20,
+            100_000_000L,
+            "Soft control absorber | Medium thermal capture");
+        addControlRod(
+            Materials.Boron,
+            "Boron",
+            "Boron Control Rod",
+            0.35,
+            0.70,
+            0.05,
+            0.05,
+            0.08,
+            100_000_000L,
+            "Intermediate absorber | 70% thermal absorption");
+        addControlRod(
+            Materials.Cadmium,
+            "Cadmium",
+            "Cadmium Control Rod",
+            0.50,
             0.85,
             0.05,
             0.05,
-            0.95,
-            100_000_000L);
-        addControlRod(Materials.Cadmium.getPlates(1), "Cadmium Plate", 0.10, 0.85, 0.05, 0.05, 0.95, 100_000_000L);
+            0.12,
+            100_000_000L,
+            "Standard reactor control rod | 85% thermal absorption");
         addControlRod(
-            GTOreDictUnificator.get(OrePrefixes.stick, Materials.Boron, 1L),
-            "Boron Rod",
-            0.10,
-            0.85,
-            0.05,
-            0.05,
+            Materials.Indium,
+            "Indium",
+            "Indium Control Rod",
+            0.65,
             0.95,
-            100_000_000L);
-        addControlRod(Materials.Boron.getPlates(1), "Boron Plate", 0.10, 0.85, 0.05, 0.05, 0.95, 100_000_000L);
+            0.05,
+            0.05,
+            0.14,
+            100_000_000L,
+            "High-efficiency absorber | 95% thermal absorption");
+        addControlRod(
+            null,
+            "Hafnium",
+            "Hafnium Control Rod",
+            0.80,
+            0.99,
+            0.05,
+            0.05,
+            0.16,
+            100_000_000L,
+            "Extreme absorber | 99% thermal capture, high fast capture");
 
-        // 4. RADIOVOLTAIC PLATES - 100% absorption, Direct EU generation
+        // 4. RADIOVOLTAIC PLATES - 100% absorption, generates direct EU from absorbed neutron flux
         addRadiovoltaic(
             ModItems.radiovoltaicPlateHV != null ? new ItemStack(ModItems.radiovoltaicPlateHV) : null,
-            "Radiovoltaic Plate (HV)",
+            "HV Radiovoltaic Plate",
             1,
-            1024);
+            1024L,
+            "HV (2A)",
+            "Converts absorbed neutrons to direct EU | Max 1024 EU/t");
         addRadiovoltaic(
             ModItems.radiovoltaicPlateEV != null ? new ItemStack(ModItems.radiovoltaicPlateEV) : null,
-            "Radiovoltaic Plate (EV)",
+            "EV Radiovoltaic Plate",
             2,
-            4096);
+            4096L,
+            "EV (2A)",
+            "Converts absorbed neutrons to direct EU | Max 4096 EU/t");
 
-        // 5. FUEL RODS - Fission, heat, neutron multiplication, and depleted fuel rods
-        // Uranium
-        addFuelRod(
-            ItemList.RodUranium,
-            "Uranium Fuel Rod",
-            0.22,
-            4.0,
-            ItemList.DepletedRodUranium.get(1L),
-            40_960_000L,
-            "Base: 4 Fast Neutrons/s | Standard fission fuel");
-        addFuelRod(
-            ItemList.RodUranium2,
-            "Dual Uranium Fuel Rod",
-            0.44,
-            8.0,
-            ItemList.DepletedRodUranium2.get(1L),
-            81_920_000L,
-            "Base: 8 Fast Neutrons/s | Standard fission fuel");
-        addFuelRod(
-            ItemList.RodUranium4,
-            "Quad Uranium Fuel Rod",
-            0.88,
-            16.0,
-            ItemList.DepletedRodUranium4.get(1L),
-            163_840_000L,
-            "Base: 16 Fast Neutrons/s | Standard fission fuel");
-
-        // MOX (Higher yield, 2x reaction)
-        addFuelRod(
-            ItemList.RodMOX,
-            "MOX Fuel Rod",
-            0.44,
-            8.0,
-            ItemList.DepletedRodMOX.get(1L),
-            40_960_000L,
-            "Base: 8 Fast Neutrons/s | High reaction rate");
-        addFuelRod(
-            ItemList.RodMOX2,
-            "Dual MOX Fuel Rod",
-            0.88,
-            16.0,
-            ItemList.DepletedRodMOX2.get(1L),
-            81_920_000L,
-            "Base: 16 Fast Neutrons/s | High reaction rate");
-        addFuelRod(
-            ItemList.RodMOX4,
-            "Quad MOX Fuel Rod",
-            1.75,
-            32.0,
-            ItemList.DepletedRodMOX4.get(1L),
-            163_840_000L,
-            "Base: 32 Fast Neutrons/s | High reaction rate");
-
-        // Thorium (Long-lived breeder fuel, 4x lifetime)
-        addFuelRod(
-            ItemList.RodThorium,
-            "Thorium Fuel Rod",
-            0.16,
-            4.0,
-            ItemList.DepletedRodThorium.get(1L),
-            163_840_000L,
-            "Base: 4 Fast Neutrons/s | Extended core life");
-        addFuelRod(
-            ItemList.RodThorium2,
-            "Dual Thorium Fuel Rod",
-            0.31,
-            8.0,
-            ItemList.DepletedRodThorium2.get(1L),
-            327_680_000L,
-            "Base: 8 Fast Neutrons/s | Extended core life");
-        addFuelRod(
-            ItemList.RodThorium4,
-            "Quad Thorium Fuel Rod",
-            0.63,
-            16.0,
-            ItemList.DepletedRodThorium4.get(1L),
-            655_360_000L,
-            "Base: 16 Fast Neutrons/s | Extended core life");
-
-        // Naquadah (Extremely energetic advanced fuel)
-        addFuelRod(
-            ItemList.RodNaquadah,
-            "Naquadah Fuel Rod",
-            1.00,
-            16.0,
-            ItemList.DepletedRodNaquadah.get(1L),
-            80_000_000L,
-            "Base: 16 Fast Neutrons/s | 4x Fission power");
-        addFuelRod(
-            ItemList.RodNaquadah2,
-            "Dual Naquadah Fuel Rod",
-            2.00,
-            32.0,
-            ItemList.DepletedRodNaquadah2.get(1L),
-            160_000_000L,
-            "Base: 32 Fast Neutrons/s | 4x Fission power");
-        addFuelRod(
-            ItemList.RodNaquadah4,
-            "Quad Naquadah Fuel Rod",
-            4.00,
-            64.0,
-            ItemList.DepletedRodNaquadah4.get(1L),
-            320_000_000L,
-            "Base: 64 Fast Neutrons/s | 4x Fission power");
-
-        // 6. COOLANT CELLS (IC2 Heat Sinks)
-        addIC2CoolantCell("reactorCoolantSimple", "10k Coolant Cell", 10_000);
-        addIC2CoolantCell("reactorCoolantTriple", "30k Coolant Cell", 30_000);
-        addIC2CoolantCell("reactorCoolantSix", "60k Coolant Cell", 60_000);
-        addIC2CoolantCell("reactorCoolantHelium1", "60k He-Coolant Cell", 60_000);
-        addIC2CoolantCell("reactorCoolantHelium2", "180k He-Coolant Cell", 180_000);
-        addIC2CoolantCell("reactorCoolantHelium3", "360k He-Coolant Cell", 360_000);
-        addIC2CoolantCell("reactorCoolantNaK1", "60k NaK-Coolant Cell", 60_000);
-        addIC2CoolantCell("reactorCoolantNaK2", "180k NaK-Coolant Cell", 180_000);
-        addIC2CoolantCell("reactorCoolantNaK3", "360k NaK-Coolant Cell", 360_000);
-
-        // 7. FLUID COOLANTS & TRANSMUTATION PRODUCTS
-        addFluidCoolant(
-            "ic2coolant",
-            "IC2 Coolant",
-            0.45,
-            0.03,
+        // 5. THERMAL INSULATORS - Restrict heat conduction across reactor core zones
+        addInsulator(
+            getItemListStack(ItemList.Naquarite_Universal_Insulator_Foil),
+            "Naquarite Universal Insulator Foil",
+            1.0,
+            0.005,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            "Total thermal barrier (100%) | 100% neutron absorption shield");
+        addInsulator(
+            resolveStack("dreamcraft:MicaInsulatorFoil"),
+            "Mica Insulator Foil",
+            0.60,
+            0.01,
+            0.01,
+            0.01,
+            0.05,
+            0.05,
+            "Thermal barrier (60%) | k = 0.01 conduction");
+        addInsulator(
+            resolveStack("GalaxySpace:item.ThermalClothT2"),
+            "Thermal Cloth T2",
             0.40,
-            0.45,
-            0.12,
-            false,
-            null,
-            0,
-            "Electrum Tier (EV) | Continuous cooling -> Hot Coolant");
+            0.01,
+            0.01,
+            0.01,
+            0.05,
+            0.05,
+            "Thermal barrier (40%) | k = 0.01 conduction");
+        addInsulator(
+            resolveStack("GalacticraftMars:item.itemBasicAsteroids:7"),
+            "Thermal Cloth",
+            0.20,
+            0.01,
+            0.01,
+            0.01,
+            0.05,
+            0.05,
+            "Thermal barrier (20%) | k = 0.01 conduction");
+
+        // 6. COOLANT CELLS - Heat storage sinks, auto-ejected when full for freezer re-cooling
+        addCoolantCell("reactorCoolantSimple", null, "10k Coolant Cell", 250_000L, 0.40);
+        addCoolantCell("reactorCoolantTriple", null, "30k Coolant Cell", 750_000L, 0.40);
+        addCoolantCell("reactorCoolantSix", null, "60k Coolant Cell", 1_500_000L, 0.40);
+        addCoolantCell("reactorCoolantHelium1", ItemList.Reactor_Coolant_He_1, "60k He-Coolant Cell", 1_500_000L, 0.40);
+        addCoolantCell(
+            "reactorCoolantHelium2",
+            ItemList.Reactor_Coolant_He_3,
+            "180k He-Coolant Cell",
+            4_500_000L,
+            0.40);
+        addCoolantCell(
+            "reactorCoolantHelium3",
+            ItemList.Reactor_Coolant_He_6,
+            "360k He-Coolant Cell",
+            9_000_000L,
+            0.40);
+        addCoolantCell("reactorCoolantNaK1", ItemList.Reactor_Coolant_NaK_1, "60k NaK-Coolant Cell", 4_500_000L, 0.50);
+        addCoolantCell(
+            "reactorCoolantNaK2",
+            ItemList.Reactor_Coolant_NaK_3,
+            "180k NaK-Coolant Cell",
+            13_500_000L,
+            0.50);
+        addCoolantCell(
+            "reactorCoolantNaK3",
+            ItemList.Reactor_Coolant_NaK_6,
+            "360k NaK-Coolant Cell",
+            27_000_000L,
+            0.50);
+        addCoolantCell(null, ItemList.Reactor_Coolant_Sp_1, "10k Sp-Coolant Cell", 9_000_000L, 0.60);
+        addCoolantCell(null, ItemList.Reactor_Coolant_Sp_2, "20k Sp-Coolant Cell", 18_000_000L, 0.60);
+        addCoolantCell(null, ItemList.Reactor_Coolant_Sp_3, "30k Sp-Coolant Cell", 27_000_000L, 0.60);
+        addCoolantCell(null, ItemList.Reactor_Coolant_Sp_6, "60k Sp-Coolant Cell", 54_000_000L, 0.60);
+        addCoolantCell("reactorCondensator", null, "Condensator", 2_500_000L, 0.45);
+        addCoolantCell("reactorCondensatorLap", null, "Lapotron Condensator", 10_000_000L, 0.45);
+
+        // 7. COOLANT FLUIDS (for conduction & radiolytic transmutation)
         addFluidCoolant(
             "ic2distilledwater",
             "Distilled Water",
@@ -386,10 +597,13 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.25,
             0.70,
             0.10,
+            0.30,
+            100.0,
+            4.184,
             true,
             getFluidDisplay("deuterium", 1000),
-            1_000L,
-            "Platinum Tier (IV) | Sub-boiling conductive cooling (Boils at 100°C) -> Transmutes to Deuterium");
+            40L,
+            "Sub-boiling coolant (boils at 100 °C) | Transmutes to Deuterium");
         addFluidCoolant(
             "heavywater",
             "Heavy Water",
@@ -398,231 +612,655 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.90,
             0.85,
             0.01,
+            0.30,
+            101.4,
+            4.220,
             true,
             getFluidDisplay("tritium", 1000),
-            1_000L,
-            "Quantium Tier (ZPM) | Sub-boiling conductive cooling (Boils at 101.4°C) -> Transmutes to Tritium");
-    }
+            100L,
+            "Exceptional moderator (90% slowing) | Transmutes to Tritium");
+        addFluidCoolant(
+            "ic2coolant",
+            "IC2 Coolant",
+            0.45,
+            0.03,
+            0.05,
+            0.45,
+            0.12,
+            0.50,
+            300.0,
+            8.000,
+            false,
+            null,
+            0L,
+            "Non-boiling high-capacity coolant | Cycles to Hot Coolant");
+        addFluidCoolant(
+            "molten.sodium",
+            "Molten Sodium",
+            0.20,
+            0.01,
+            0.05,
+            0.20,
+            0.05,
+            0.70,
+            883.0,
+            1.280,
+            false,
+            null,
+            0L,
+            "Liquid metal coolant (melts at 97.8 °C, boils at 883 °C) | k = 0.70");
+        addFluidCoolant(
+            "molten.lead",
+            "Molten Lead",
+            0.15,
+            0.005,
+            0.02,
+            0.15,
+            0.02,
+            0.75,
+            1749.0,
+            0.160,
+            false,
+            null,
+            0L,
+            "High-temperature heavy liquid metal | k = 0.75 conduction");
 
-    private static void addModerator(ItemStack stack, String name, double fScat, double fAbs, double slow, double tScat,
-        double tAbs) {
-        if (stack != null) {
+        // 8. IC2 HEAT VENTS & HEAT EXCHANGERS
+        addHeatVent("reactorVent", "Reactor Heat Vent", 6.0, 0.0, 0.40, 128L, 512L, "Self-cooling: 6 Hu/t | 128 EU/t");
+        addHeatVent(
+            "reactorVentGold",
+            "Advanced Heat Vent",
+            12.0,
+            0.0,
+            0.45,
+            512L,
+            2048L,
+            "Self-cooling: 12 Hu/t | 512 EU/t");
+        addHeatVent(
+            "reactorVentSpread",
+            "Overclocked Heat Vent",
+            8.0,
+            0.0,
+            0.40,
+            1024L,
+            4096L,
+            "Self-cooling: 8 Hu/t | 1024 EU/t");
+        addHeatVent(
+            "reactorVentDiamond",
+            "Component Heat Vent",
+            0.0,
+            20.0,
+            0.50,
+            2048L,
+            8192L,
+            "Adjacent cooling: 20 Hu/t | 2048 EU/t");
+
+        addHeatExchanger(
+            "reactorHeatSwitch",
+            "Heat Exchanger",
+            12.0,
+            0.40,
+            256L,
+            1024L,
+            "Heat transfer: 12 Hu/t | 256 EU/t");
+        addHeatExchanger(
+            "reactorHeatSwitchSpread",
+            "Advanced Heat Exchanger",
+            24.0,
+            0.45,
+            512L,
+            2048L,
+            "Heat transfer: 24 Hu/t | 512 EU/t");
+        addHeatExchanger(
+            "reactorHeatSwitchDiamond",
+            "Component Heat Exchanger",
+            36.0,
+            0.50,
+            1024L,
+            4096L,
+            "Adjacent component heat transfer: 36 Hu/t | 1024 EU/t");
+
+        // 9. EMPTY CORE TILE - Unimpeded neutron streaming
+        ItemStack emptyStack = ModItems.emptyCoreTile != null ? new ItemStack(ModItems.emptyCoreTile)
+            : (isTestMode() ? createTestPlaceholder("Empty Core Tile") : null);
+        if (emptyStack != null) {
             ALL_COMPONENTS.add(
-                new NeutronComponentData(
-                    stack,
-                    name,
-                    "Moderator",
-                    fScat,
-                    fAbs,
-                    slow,
-                    tScat,
-                    tAbs,
-                    false,
-                    0,
-                    0,
-                    0,
-                    false,
-                    null,
-                    0,
-                    "Slows fast neutrons into thermal neutrons"));
-        }
-    }
-
-    private static void addReflector(ItemStack stack, String name, double fScat, double fAbs, double slow, double tScat,
-        double tAbs) {
-        if (stack != null) {
-            ALL_COMPONENTS.add(
-                new NeutronComponentData(
-                    stack,
-                    name,
-                    "Reflector",
-                    fScat,
-                    fAbs,
-                    slow,
-                    tScat,
-                    tAbs,
-                    false,
-                    0,
-                    0,
-                    0,
-                    false,
-                    null,
-                    0,
-                    "Reflects scattered neutrons back into core"));
-        }
-    }
-
-    private static void addIC2Reflector(String ic2Name, String name, double fScat, double fAbs, double slow,
-        double tScat, double tAbs, long wearCount) {
-        ItemStack stack = GTModHandler.getIC2Item(ic2Name, 1L, 0);
-        if (stack == null) stack = GTModHandler.getIC2Item(ic2Name, 1L, 1);
-        if (stack != null) {
-            ALL_COMPONENTS.add(
-                new NeutronComponentData(
-                    stack,
-                    name,
-                    "Reflector",
-                    fScat,
-                    fAbs,
-                    slow,
-                    tScat,
-                    tAbs,
-                    false,
-                    0,
-                    0,
-                    0,
-                    true,
-                    null,
-                    wearCount,
-                    "Reflects scattered neutrons back into core"));
-        }
-    }
-
-    private static void addGTReflector(ItemList item, String name, double fScat, double fAbs, double slow, double tScat,
-        double tAbs) {
-        if (item != null && item.hasBeenSet()) {
-            addReflector(item.get(1L), name, fScat, fAbs, slow, tScat, tAbs);
-        }
-    }
-
-    private static void addControlRod(ItemStack stack, String name, double fScat, double fAbs, double slow,
-        double tScat, double tAbs, long capacity) {
-        if (stack != null) {
-            ALL_COMPONENTS.add(
-                new NeutronComponentData(
-                    stack,
-                    name,
-                    "Control Rod",
-                    fScat,
-                    fAbs,
-                    slow,
-                    tScat,
-                    tAbs,
-                    false,
-                    0,
-                    0,
-                    0,
-                    true,
-                    null,
-                    capacity,
-                    "Absorbs neutrons to prevent runaway heat"));
-        }
-    }
-
-    private static void addRadiovoltaic(ItemStack stack, String name, int tier, long maxEU) {
-        if (stack != null) {
-            ALL_COMPONENTS.add(
-                new NeutronComponentData(
-                    stack,
-                    name,
-                    "Radiovoltaic Cell",
-                    0.00,
-                    1.00,
-                    0.00,
-                    0.00,
-                    1.00,
-                    false,
-                    0,
+                new ComponentStatsData(
+                    emptyStack,
+                    "Empty Core Tile",
+                    "Empty Core Tile",
+                    0.0,
+                    0.0,
+                    0.0,
                     0.0,
                     0.0,
                     false,
+                    0.0,
+                    0.0,
+                    0.02,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    false,
+                    0L,
                     null,
-                    0,
-                    "Generates up to " + maxEU + " EU/t (2A " + (tier >= 2 ? "EV" : "HV") + ") directly"));
+                    0.0,
+                    0.0,
+                    false,
+                    0L,
+                    "N/A",
+                    false,
+                    null,
+                    0L,
+                    "Open core space | Neutrons stream through unimpeded"));
         }
     }
 
-    private static void addFuelRod(ItemList item, String name, double directHeatC, double maxNeutrons,
-        ItemStack depleted, long neutronsRequired, String extra) {
-        if (item != null && item.hasBeenSet()) {
-            ALL_COMPONENTS.add(
-                new NeutronComponentData(
-                    item.get(1L),
-                    name,
-                    "Fuel Rod",
-                    0.15,
-                    0.25,
-                    0.10,
-                    0.10,
-                    0.80,
-                    true,
-                    8,
-                    directHeatC,
-                    maxNeutrons,
-                    true,
-                    depleted,
-                    neutronsRequired,
-                    extra));
-        }
+    // =========================================================================
+    // Factory Helpers
+    // =========================================================================
+
+    private static void addReflector(ItemStack stack, String name, double fastAbs, double thermAbs, double fastRefl,
+        double thermRefl, double slowing, double conduction, long durability, String extra) {
+        if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
+        if (stack == null) return;
+        ALL_COMPONENTS.add(
+            new ComponentStatsData(
+                stack,
+                name,
+                "Reflector",
+                fastRefl,
+                fastAbs,
+                slowing,
+                thermRefl,
+                thermAbs,
+                true,
+                fastRefl,
+                thermRefl,
+                conduction,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                false,
+                0L,
+                null,
+                0.0,
+                0.0,
+                durability > 0,
+                durability,
+                durability > 0 ? "Impacts" : "Indestructible",
+                false,
+                null,
+                0L,
+                extra));
     }
 
-    private static void addIC2CoolantCell(String ic2Name, String name, int maxHeat) {
-        ItemStack stack = GTModHandler.getIC2Item(ic2Name, 1L, 0);
-        if (stack == null) stack = GTModHandler.getIC2Item(ic2Name, 1L, 1);
+    private static void addIC2Reflector(String ic2Name, String name, double fastAbs, double thermAbs, double fastRefl,
+        double thermRefl, double slowing, double conduction, long durability, String extra) {
+        ItemStack stack = resolveStack("IC2:" + ic2Name);
+        if (stack == null) stack = resolveStack("IC2:" + ic2Name + ":1");
+        if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
         if (stack != null) {
-            ALL_COMPONENTS.add(
-                new NeutronComponentData(
-                    stack,
-                    name,
-                    "Coolant Cell",
-                    0.45,
-                    0.03,
-                    0.40,
-                    0.45,
-                    0.12,
-                    false,
-                    0,
-                    0,
-                    0,
-                    false,
-                    null,
-                    0,
-                    "Stores " + NumberFormat.getNumberInstance(Locale.US)
-                        .format(maxHeat) + " Heat | Ejected when full"));
+            addReflector(stack, name, fastAbs, thermAbs, fastRefl, thermRefl, slowing, conduction, durability, extra);
         }
     }
 
-    private static void addFluidCoolant(String fluidName, String name, double fScat, double fAbs, double slow,
-        double tScat, double tAbs, boolean transmutes, ItemStack product, long reqNeutrons, String extra) {
-        Fluid fluid = FluidRegistry.getFluid(fluidName);
-        if (fluid == null && fluidName.startsWith("ic2")) {
-            fluid = FluidRegistry.getFluid(fluidName.substring(3));
+    private static void addGTReflector(ItemList item, String name, double fastAbs, double thermAbs, double fastRefl,
+        double thermRefl, double slowing, double conduction, long durability, String extra) {
+        ItemStack stack = null;
+        if (item != null && item.hasBeenSet()) {
+            stack = item.get(1L);
+        } else if (isTestMode()) {
+            stack = createTestPlaceholder(name);
         }
-        if (fluid != null) {
-            ItemStack displayStack = GTUtility.getFluidDisplayStack(new FluidStack(fluid, 1000), false);
-            if (displayStack != null) {
-                ALL_COMPONENTS.add(
-                    new NeutronComponentData(
-                        displayStack,
-                        name,
-                        "Fluid Coolant",
-                        fScat,
-                        fAbs,
-                        slow,
-                        tScat,
-                        tAbs,
-                        true,
-                        8,
-                        0,
-                        0,
-                        transmutes,
-                        product,
-                        reqNeutrons,
-                        extra));
-            }
+        if (stack != null) {
+            addReflector(stack, name, fastAbs, thermAbs, fastRefl, thermRefl, slowing, conduction, durability, extra);
         }
     }
 
-    private static ItemStack getFluidDisplay(String fluidName, int amount) {
-        Fluid fluid = FluidRegistry.getFluid(fluidName);
-        if (fluid == null && !fluidName.startsWith("fluid.")) {
-            fluid = FluidRegistry.getFluid("fluid." + fluidName);
-        }
-        if (fluid != null) {
-            return GTUtility.getFluidDisplayStack(new FluidStack(fluid, amount), false);
+    private static void addModerator(ItemStack stack, String name, double fastScat, double fastAbs, double slowing,
+        double thermScat, double thermAbs, double conduction, double maxTemp, long wearCapacity, ItemStack byproduct,
+        String extra) {
+        if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
+        if (stack == null) return;
+        ALL_COMPONENTS.add(
+            new ComponentStatsData(
+                stack,
+                name,
+                "Moderator",
+                fastScat,
+                fastAbs,
+                slowing,
+                thermScat,
+                thermAbs,
+                false,
+                0.0,
+                0.0,
+                conduction,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                maxTemp,
+                0.0,
+                0.0,
+                false,
+                0L,
+                null,
+                0.0,
+                0.0,
+                true,
+                wearCapacity,
+                "Wear Capacity",
+                byproduct != null,
+                byproduct,
+                wearCapacity,
+                extra));
+    }
+
+    private static ItemStack getFirstOre(String oreName) {
+        List<ItemStack> ores = OreDictionary.getOres(oreName);
+        if (ores != null && !ores.isEmpty()) {
+            return ores.get(0)
+                .copy();
         }
         return null;
     }
+
+    private static void addControlRod(Materials mat, String materialName, String name, double fastAbs, double thermAbs,
+        double fastScat, double thermScat, double conduction, long capacity, String extra) {
+        ItemStack mainStack = null;
+        if (mat != null) {
+            mainStack = GTOreDictUnificator.get(OrePrefixes.stickLong, mat, 1L);
+            if (mainStack == null) mainStack = GTOreDictUnificator.get(OrePrefixes.stick, mat, 1L);
+            if (mainStack == null) mainStack = GTOreDictUnificator.get(OrePrefixes.plate, mat, 1L);
+        }
+        if (mainStack == null && materialName != null) {
+            mainStack = getFirstOre("stickLong" + materialName);
+            if (mainStack == null) mainStack = getFirstOre("stick" + materialName);
+            if (mainStack == null) mainStack = getFirstOre("plate" + materialName);
+        }
+        if (mainStack == null && isTestMode()) {
+            mainStack = createTestPlaceholder(name);
+        }
+        if (mainStack == null) return;
+
+        ComponentStatsData data = new ComponentStatsData(
+            mainStack,
+            name,
+            "Control Rod",
+            fastScat,
+            fastAbs,
+            0.0,
+            thermScat,
+            thermAbs,
+            false,
+            0.0,
+            0.0,
+            conduction,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            false,
+            0L,
+            null,
+            0.0,
+            0.0,
+            true,
+            capacity,
+            "Neutrons",
+            false,
+            null,
+            0L,
+            extra);
+
+        if (mat != null) {
+            addAlternate(data, GTOreDictUnificator.get(OrePrefixes.stick, mat, 1L));
+            addAlternate(data, GTOreDictUnificator.get(OrePrefixes.plate, mat, 1L));
+        }
+        if (materialName != null) {
+            addAlternate(data, getFirstOre("stick" + materialName));
+            addAlternate(data, getFirstOre("plate" + materialName));
+        }
+        ALL_COMPONENTS.add(data);
+    }
+
+    private static void addRadiovoltaic(ItemStack stack, String name, int tier, long maxEU, String tierLabel,
+        String extra) {
+        if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
+        if (stack == null) return;
+        ALL_COMPONENTS.add(
+            new ComponentStatsData(
+                stack,
+                name,
+                "Radiovoltaic Plate",
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                false,
+                0.0,
+                0.0,
+                0.10,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                true,
+                maxEU,
+                tierLabel,
+                20.0,
+                5.0,
+                false,
+                0L,
+                "Indestructible",
+                false,
+                null,
+                0L,
+                extra));
+    }
+
+    private static void addInsulator(ItemStack stack, String name, double insulation, double conduction, double fastAbs,
+        double thermAbs, double fastScat, double thermScat, String extra) {
+        if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
+        if (stack == null) return;
+        ALL_COMPONENTS.add(
+            new ComponentStatsData(
+                stack,
+                name,
+                "Thermal Insulator",
+                fastScat,
+                fastAbs,
+                0.0,
+                thermScat,
+                thermAbs,
+                false,
+                0.0,
+                0.0,
+                conduction,
+                insulation,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                false,
+                0L,
+                null,
+                0.0,
+                0.0,
+                false,
+                0L,
+                "Indestructible",
+                false,
+                null,
+                0L,
+                extra));
+    }
+
+    private static void addCoolantCell(String ic2Name, ItemList gtItem, String name, long heatCapacity,
+        double conduction) {
+        ItemStack stack = null;
+        if (ic2Name != null) stack = resolveStack("IC2:" + ic2Name);
+        if (stack == null && gtItem != null && gtItem.hasBeenSet()) stack = gtItem.get(1L);
+        if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
+        if (stack == null) return;
+
+        ComponentStatsData data = new ComponentStatsData(
+            stack,
+            name,
+            "Coolant Cell",
+            0.45,
+            0.02,
+            0.05,
+            0.45,
+            0.05,
+            false,
+            0.0,
+            0.0,
+            conduction,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            false,
+            0L,
+            null,
+            0.0,
+            0.0,
+            true,
+            heatCapacity,
+            "HU Heat Capacity",
+            false,
+            null,
+            0L,
+            "Stores " + NumberFormat.getNumberInstance(Locale.US)
+                .format(heatCapacity) + " HU | Ejected when full");
+
+        if (gtItem != null && gtItem.hasBeenSet()
+            && !gtItem.get(1L)
+                .isItemEqual(stack)) {
+            addAlternate(data, gtItem.get(1L));
+        }
+        ALL_COMPONENTS.add(data);
+    }
+
+    private static void addFluidCoolant(String fluidName, String name, double fastScat, double fastAbs, double slowing,
+        double thermScat, double thermAbs, double conduction, double boilingPoint, double specificHeat,
+        boolean hasTransmutation, ItemStack product, long reqNeutrons, String extra) {
+        Fluid fluid = null;
+        try {
+            fluid = FluidRegistry.getFluid(fluidName);
+            if (fluid == null && fluidName.startsWith("ic2")) {
+                fluid = FluidRegistry.getFluid(fluidName.substring(3));
+            }
+            if (fluid == null && fluidName.startsWith("molten.")) {
+                fluid = FluidRegistry.getFluid(fluidName.substring(7));
+            }
+        } catch (Throwable ignored) {}
+
+        ItemStack display = null;
+        if (fluid != null) {
+            try {
+                if (ItemList.Display_Fluid.hasBeenSet()) {
+                    display = GTUtility.getFluidDisplayStack(new FluidStack(fluid, 1000), false);
+                }
+            } catch (Throwable ignored) {}
+        }
+        if (display == null && isTestMode()) {
+            display = createTestPlaceholder(name);
+        }
+        if (display == null) return;
+
+        ALL_COMPONENTS.add(
+            new ComponentStatsData(
+                display,
+                name,
+                "Fluid Coolant",
+                fastScat,
+                fastAbs,
+                slowing,
+                thermScat,
+                thermAbs,
+                false,
+                0.0,
+                0.0,
+                conduction,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                boilingPoint,
+                specificHeat,
+                false,
+                0L,
+                null,
+                0.0,
+                0.0,
+                false,
+                0L,
+                hasTransmutation ? "Transmutes" : "Continuous",
+                hasTransmutation,
+                product,
+                reqNeutrons,
+                extra));
+    }
+
+    private static void addHeatVent(String ic2Name, String name, double selfCooling, double compCooling,
+        double conduction, long directEU, long maxEU, String extra) {
+        ItemStack stack = resolveStack("IC2:" + ic2Name);
+        if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
+        if (stack == null) return;
+        ALL_COMPONENTS.add(
+            new ComponentStatsData(
+                stack,
+                name,
+                "Heat Vent",
+                0.40,
+                0.02,
+                0.05,
+                0.40,
+                0.05,
+                false,
+                0.0,
+                0.0,
+                conduction,
+                0.0,
+                selfCooling,
+                compCooling,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                true,
+                maxEU,
+                directEU + " EU/t",
+                0.0,
+                0.0,
+                false,
+                0L,
+                "Indestructible",
+                false,
+                null,
+                0L,
+                extra));
+    }
+
+    private static void addHeatExchanger(String ic2Name, String name, double transferRate, double conduction,
+        long directEU, long maxEU, String extra) {
+        ItemStack stack = resolveStack("IC2:" + ic2Name);
+        if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
+        if (stack == null) return;
+        ALL_COMPONENTS.add(
+            new ComponentStatsData(
+                stack,
+                name,
+                "Heat Exchanger",
+                0.45,
+                0.02,
+                0.05,
+                0.45,
+                0.05,
+                false,
+                0.0,
+                0.0,
+                conduction,
+                0.0,
+                0.0,
+                0.0,
+                transferRate,
+                0.0,
+                0.0,
+                0.0,
+                true,
+                maxEU,
+                directEU + " EU/t",
+                0.0,
+                0.0,
+                false,
+                0L,
+                "Indestructible",
+                false,
+                null,
+                0L,
+                extra));
+    }
+
+    private static void addAlternate(ComponentStatsData data, ItemStack alt) {
+        if (alt != null && !alt.isItemEqual(data.stack)) {
+            data.alternateStacks.add(alt);
+        }
+    }
+
+    private static ItemStack resolveStack(String id) {
+        if (id.startsWith("IC2:")) {
+            String name = id.substring(4);
+            int meta = 0;
+            if (name.contains(":")) {
+                String[] p = name.split(":");
+                name = p[0];
+                try {
+                    meta = Integer.parseInt(p[1]);
+                } catch (NumberFormatException ignored) {}
+            }
+            ItemStack is = GTModHandler.getIC2Item(name, 1L, meta);
+            if (is != null) return is;
+        }
+        if (id.contains(":")) {
+            String[] p = id.split(":");
+            if (p.length >= 2) {
+                int meta = p.length >= 3 ? Integer.parseInt(p[2]) : 0;
+                net.minecraft.item.Item it = cpw.mods.fml.common.registry.GameRegistry.findItem(p[0], p[1]);
+                if (it != null) return new ItemStack(it, 1, meta);
+            }
+        }
+        return null;
+    }
+
+    private static ItemStack getItemListStack(ItemList item) {
+        return (item != null && item.hasBeenSet()) ? item.get(1L) : null;
+    }
+
+    private static ItemStack getFluidDisplay(String fluidName, int amount) {
+        try {
+            Fluid fluid = FluidRegistry.getFluid(fluidName);
+            if (fluid == null && !fluidName.startsWith("fluid.")) {
+                fluid = FluidRegistry.getFluid("fluid." + fluidName);
+            }
+            if (fluid != null && ItemList.Display_Fluid.hasBeenSet()) {
+                return GTUtility.getFluidDisplayStack(new FluidStack(fluid, amount), false);
+            }
+        } catch (Throwable ignored) {}
+        if (isTestMode()) {
+            return createTestPlaceholder(fluidName);
+        }
+        return null;
+    }
+
+    // =========================================================================
+    // TemplateRecipeHandler Implementation
+    // =========================================================================
 
     public NEINeutronInteractionHandler() {
         initData();
@@ -657,11 +1295,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     public void loadCraftingRecipes(String outputId, Object... results) {
         initData();
         if (outputId != null && outputId.equals(getOverlayIdentifier())) {
-            for (NeutronComponentData data : ALL_COMPONENTS) {
+            for (ComponentStatsData data : ALL_COMPONENTS) {
                 this.arecipes.add(new CachedNeutronInteractionRecipe(data));
-                if (data.hasCapture || data.hasAbsorption) {
-                    this.arecipes.add(new CachedNeutronCaptureRecipe(data));
-                }
+                this.arecipes.add(new CachedComponentThermalRecipe(data));
             }
         } else {
             super.loadCraftingRecipes(outputId, results);
@@ -672,14 +1308,12 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     public void loadCraftingRecipes(ItemStack result) {
         initData();
         if (result == null) return;
-        for (NeutronComponentData data : ALL_COMPONENTS) {
-            if (matches(result, data.stack)) {
+        for (ComponentStatsData data : ALL_COMPONENTS) {
+            if (matches(result, data)) {
                 this.arecipes.add(new CachedNeutronInteractionRecipe(data));
-                if (data.hasCapture || data.hasAbsorption) {
-                    this.arecipes.add(new CachedNeutronCaptureRecipe(data));
-                }
-            } else if (data.absorptionOutput != null && matches(result, data.absorptionOutput)) {
-                this.arecipes.add(new CachedNeutronCaptureRecipe(data));
+                this.arecipes.add(new CachedComponentThermalRecipe(data));
+            } else if (data.transmutationOutput != null && matchesStack(result, data.transmutationOutput)) {
+                this.arecipes.add(new CachedComponentThermalRecipe(data));
             }
         }
     }
@@ -689,28 +1323,34 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         initData();
         if (ingredient == null) return;
 
-        // Clicking on the nuclear reactor catalyst shows all recipes
-        if ((ModMetaTileEntities.reactor != null && ModMetaTileEntities.reactor.isItemEqual(ingredient))) {
-            for (NeutronComponentData data : ALL_COMPONENTS) {
+        // Clicking on the nuclear reactor catalyst shows all components
+        ItemStack ctrl = getControllerStack();
+        if (ctrl != null && ctrl.isItemEqual(ingredient)) {
+            for (ComponentStatsData data : ALL_COMPONENTS) {
                 this.arecipes.add(new CachedNeutronInteractionRecipe(data));
-                if (data.hasCapture || data.hasAbsorption) {
-                    this.arecipes.add(new CachedNeutronCaptureRecipe(data));
-                }
+                this.arecipes.add(new CachedComponentThermalRecipe(data));
             }
             return;
         }
 
-        for (NeutronComponentData data : ALL_COMPONENTS) {
-            if (matches(ingredient, data.stack)) {
+        for (ComponentStatsData data : ALL_COMPONENTS) {
+            if (matches(ingredient, data)) {
                 this.arecipes.add(new CachedNeutronInteractionRecipe(data));
-                if (data.hasCapture || data.hasAbsorption) {
-                    this.arecipes.add(new CachedNeutronCaptureRecipe(data));
-                }
+                this.arecipes.add(new CachedComponentThermalRecipe(data));
             }
         }
     }
 
-    private boolean matches(ItemStack target, ItemStack component) {
+    private boolean matches(ItemStack target, ComponentStatsData data) {
+        if (target == null || data == null) return false;
+        if (matchesStack(target, data.stack)) return true;
+        for (ItemStack alt : data.alternateStacks) {
+            if (matchesStack(target, alt)) return true;
+        }
+        return false;
+    }
+
+    private boolean matchesStack(ItemStack target, ItemStack component) {
         if (target == null || component == null) return false;
         if (GTUtility.areStacksEqual(target, component, true)) return true;
         if (target.getItem() == component.getItem()) {
@@ -721,12 +1361,16 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         return false;
     }
 
+    // =========================================================================
+    // GUI Rendering
+    // =========================================================================
+
     @Override
     public void drawBackground(int recipeIndex) {
         if (recipeIndex < 0 || recipeIndex >= arecipes.size()) return;
         CachedRecipe cached = this.arecipes.get(recipeIndex);
 
-        // Standard panel containers (top & bottom)
+        // Standard outer panels (top & bottom)
         drawPanel(6, 2, 154, 64);
         drawPanel(6, 68, 154, 64);
         drawSlotBox(5, 134);
@@ -749,27 +1393,30 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             else if (slowing >= 1.0) index = 10;
             GuiDraw.drawTexturedModalRect(115, 28, index * 16, 240, 16, 16);
 
-        } else if (cached instanceof CachedNeutronCaptureRecipe recipe) {
-            // Page 2: Single Neutron Capture & Neutron Absorption
-            // Top slot for Single Neutron Capture
+        } else if (cached instanceof CachedComponentThermalRecipe recipe) {
+            // Page 2: Thermal & Energy Properties and Durability / Transmutation
             drawSlotBox(57, 26);
-            // Bottom slots for Neutron Absorption (input & output)
-            drawSlotBox(30, 96);
-            if (recipe.data.absorptionOutput != null) {
+
+            int durSlotX = recipe.data.transmutationOutput != null ? 30 : 66;
+            drawSlotBox(durSlotX, 96);
+
+            if (recipe.data.transmutationOutput != null) {
                 drawSlotBox(100, 96);
             }
 
-            // Draw Single Neutron Capture diagram: (0, 109, 92, 31) at (30, 20)
+            // Draw thermal / energy capture diagram: (0, 109, 92, 31) at (30, 20)
             GuiDraw.changeTexture(TEXTURE_ATLAS);
             GuiDraw.drawTexturedModalRect(30, 20, 0, 109, 92, 31);
 
-            // Draw animated progress arrow in bottom box: (40x40 texture at 58, 95)
-            GuiDraw.changeTexture(LONG_ARROW);
-            drawCustomTexturedModalRect(58, 95, 0, 0, 40, 20, 40, 40);
-            long cycle = System.currentTimeMillis() % 3000L;
-            int fillW = (int) (40.0 * (cycle / 3000.0));
-            if (fillW > 0) {
-                drawCustomTexturedModalRect(58, 95, 0, 20, fillW, 20, 40, 40);
+            // Draw animated progress arrow if transmutation product exists
+            if (recipe.data.transmutationOutput != null) {
+                GuiDraw.changeTexture(LONG_ARROW);
+                drawCustomTexturedModalRect(58, 95, 0, 0, 40, 20, 40, 40);
+                long cycle = System.currentTimeMillis() % 3000L;
+                int fillW = (int) (40.0 * (cycle / 3000.0));
+                if (fillW > 0) {
+                    drawCustomTexturedModalRect(58, 95, 0, 20, fillW, 20, 40, 40);
+                }
             }
         }
     }
@@ -780,19 +1427,28 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         CachedRecipe cached = this.arecipes.get(recipeIndex);
 
         if (cached instanceof CachedNeutronInteractionRecipe recipe) {
+            ComponentStatsData d = recipe.data;
+
             // --- Page 1: Fast Neutron Panel ---
             GuiDraw
                 .drawStringC(StatCollector.translateToLocal("gt.nei.neutron_interaction.fast"), 83, 5, 0x404040, false);
-            String fastScatStr = String.format(Locale.US, "%.1f %%", recipe.data.fastScattering * 100.0);
-            GuiDraw.drawStringC(fastScatStr, 47, 16, 0x404040, false);
 
-            String fastAbsStr = String.format(Locale.US, "%.1f %%", recipe.data.fastAbsorption * 100.0);
+            if (d.isReflector) {
+                String reflStr = String.format(Locale.US, "%.1f %%", d.reflectionFast * 100.0);
+                GuiDraw.drawStringC(reflStr, 47, 16, 0x9A6B00, false);
+                GuiDraw.drawStringC("REFLECT", 47, 25, 0x9A6B00, false);
+            } else {
+                String fastScatStr = String.format(Locale.US, "%.1f %%", d.fastScattering * 100.0);
+                GuiDraw.drawStringC(fastScatStr, 47, 16, 0x404040, false);
+            }
+
+            String fastAbsStr = String.format(Locale.US, "%.1f %%", d.fastAbsorption * 100.0);
             GuiDraw.drawStringC(fastAbsStr, 97, 54, 0x00A000, false);
 
-            String thermFracStr = String.format(Locale.US, "%.1f %%", recipe.data.slowingProbability * 100.0);
+            String thermFracStr = String.format(Locale.US, "%.1f %%", d.slowingProbability * 100.0);
             GuiDraw.drawStringC(thermFracStr, 123, 16, 0x0C27A7, false);
 
-            String fastFracStr = String.format(Locale.US, "%.1f %%", (1.0 - recipe.data.slowingProbability) * 100.0);
+            String fastFracStr = String.format(Locale.US, "%.1f %%", (1.0 - d.slowingProbability) * 100.0);
             GuiDraw.drawStringC(fastFracStr, 123, 46, 0xBC1A1A, false);
 
             // --- Page 1: Thermal Neutron Panel ---
@@ -802,56 +1458,184 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 71,
                 0x404040,
                 false);
-            String thermScatStr = String.format(Locale.US, "%.1f %%", recipe.data.thermalScattering * 100.0);
-            GuiDraw.drawStringC(thermScatStr, 47, 82, 0x404040, false);
 
-            String thermAbsStr = String.format(Locale.US, "%.1f %%", recipe.data.thermalAbsorption * 100.0);
+            if (d.isReflector) {
+                String reflStr = String.format(Locale.US, "%.1f %%", d.reflectionThermal * 100.0);
+                GuiDraw.drawStringC(reflStr, 47, 82, 0x9A6B00, false);
+                GuiDraw.drawStringC("REFLECT", 47, 91, 0x9A6B00, false);
+            } else {
+                String thermScatStr = String.format(Locale.US, "%.1f %%", d.thermalScattering * 100.0);
+                GuiDraw.drawStringC(thermScatStr, 47, 82, 0x404040, false);
+            }
+
+            String thermAbsStr = String.format(Locale.US, "%.1f %%", d.thermalAbsorption * 100.0);
             GuiDraw.drawStringC(thermAbsStr, 97, 120, 0x00A000, false);
 
             // Bottom summary
-            GuiDraw.drawString(EnumChatFormatting.DARK_GRAY + recipe.data.category, 28, 137, 0x202020, false);
-            if (recipe.data.extraInfo != null) {
-                GuiDraw.drawString(EnumChatFormatting.GRAY + recipe.data.extraInfo, 28, 147, 0x505050, false);
+            GuiDraw.drawString(EnumChatFormatting.DARK_BLUE + "[" + d.category + "]", 28, 137, 0x103080, false);
+            if (d.extraInfo != null) {
+                GuiDraw.drawString(EnumChatFormatting.GRAY + d.extraInfo, 28, 147, 0x505050, false);
             }
 
-        } else if (cached instanceof CachedNeutronCaptureRecipe recipe) {
-            // --- Page 2: Single Neutron Capture Panel ---
+        } else if (cached instanceof CachedComponentThermalRecipe recipe) {
+            ComponentStatsData d = recipe.data;
+
+            // --- Page 2: Thermal & Energy Panel ---
             GuiDraw.drawStringC(
                 StatCollector.translateToLocal("gt.nei.neutron_interaction.capture"),
                 83,
                 5,
                 0x404040,
                 false);
-            GuiDraw.drawString(recipe.data.fastNeutronEnergyHu + " Hu", 36, 52, 0x00A000, false);
-            GuiDraw.drawString(String.format(Locale.US, "%.2f °C", recipe.data.directHeatC), 113, 18, 0x404040, false);
 
-            if (recipe.data.maxNeutronsEmitted > 0) {
-                String emitted = String.format(Locale.US, "Max %.1f neutrons emitted", recipe.data.maxNeutronsEmitted);
-                GuiDraw.drawStringC(emitted, 83, 56, 0x00A000, false);
+            // Direct EU production (left of diagram)
+            if (d.producesDirectEU) {
+                if (d.directEUPenNeutronFast > 0) {
+                    GuiDraw.drawString(
+                        String.format(Locale.US, "%.0f EU/n", d.directEUPenNeutronFast),
+                        32,
+                        52,
+                        0x00A000,
+                        false);
+                } else if (d.selfCoolingRate > 0) {
+                    GuiDraw
+                        .drawString(String.format(Locale.US, "%.0f Hu/t", d.selfCoolingRate), 32, 52, 0x0055AA, false);
+                } else if (d.heatTransferRate > 0) {
+                    GuiDraw
+                        .drawString(String.format(Locale.US, "%.0f Hu/t", d.heatTransferRate), 32, 52, 0x0055AA, false);
+                } else {
+                    GuiDraw.drawString("Active", 34, 52, 0x00A000, false);
+                }
+            } else {
+                GuiDraw.drawString("0 EU", 36, 52, 0x606060, false);
             }
 
-            // --- Page 2: Neutron Absorption Panel ---
+            // Heat transfer & thermal metrics (right of diagram)
+            if (d.thermalInsulationFactor > 0.0) {
+                GuiDraw.drawString(
+                    String.format(Locale.US, "Barrier: %.0f%%", d.thermalInsulationFactor * 100.0),
+                    110,
+                    18,
+                    0x902020,
+                    false);
+                GuiDraw.drawString(String.format(Locale.US, "k = %.3f", d.heatTransferCoeff), 110, 34, 0x404040, false);
+            } else if (d.boilingPoint > 0.0) {
+                GuiDraw
+                    .drawString(String.format(Locale.US, "Boils: %.0f °C", d.boilingPoint), 110, 18, 0x205090, false);
+                GuiDraw.drawString(String.format(Locale.US, "Cp: %.2f", d.specificHeat), 110, 34, 0x404040, false);
+            } else if (d.selfCoolingRate > 0.0 || d.componentCoolingRate > 0.0) {
+                double cool = d.selfCoolingRate > 0 ? d.selfCoolingRate : d.componentCoolingRate;
+                GuiDraw.drawString(String.format(Locale.US, "Cool: %.0f Hu/t", cool), 110, 18, 0x0055AA, false);
+                GuiDraw.drawString(String.format(Locale.US, "k = %.2f", d.heatTransferCoeff), 110, 34, 0x404040, false);
+            } else if (d.heatTransferRate > 0.0) {
+                GuiDraw.drawString(
+                    String.format(Locale.US, "Xfer: %.0f Hu/t", d.heatTransferRate),
+                    110,
+                    18,
+                    0x0055AA,
+                    false);
+                GuiDraw.drawString(String.format(Locale.US, "k = %.2f", d.heatTransferCoeff), 110, 34, 0x404040, false);
+            } else if (d.maxTemperature > 0.0) {
+                GuiDraw.drawString(String.format(Locale.US, "k = %.2f", d.heatTransferCoeff), 110, 18, 0x404040, false);
+                GuiDraw
+                    .drawString(String.format(Locale.US, "Max: %.0f °C", d.maxTemperature), 110, 34, 0xAA5500, false);
+            } else {
+                GuiDraw.drawString(String.format(Locale.US, "k = %.2f", d.heatTransferCoeff), 110, 18, 0x404040, false);
+                GuiDraw.drawString("Passive", 110, 34, 0x606060, false);
+            }
+
+            // Summary line in top panel
+            if (d.maxDirectEU > 0) {
+                String euText = String.format(
+                    Locale.US,
+                    "Max: %d EU/t (%s)",
+                    d.maxDirectEU,
+                    d.directEUTier != null ? d.directEUTier : "");
+                GuiDraw.drawStringC(euText, 83, 54, 0x00A000, false);
+            } else if (d.selfCoolingRate > 0) {
+                GuiDraw.drawStringC(
+                    String.format(Locale.US, "Self-cooling rate: %.1f Hu/t", d.selfCoolingRate),
+                    83,
+                    54,
+                    0x0055AA,
+                    false);
+            } else if (d.componentCoolingRate > 0) {
+                GuiDraw.drawStringC(
+                    String.format(Locale.US, "Adjacent cooling: %.1f Hu/t", d.componentCoolingRate),
+                    83,
+                    54,
+                    0x0055AA,
+                    false);
+            } else if (d.heatTransferRate > 0) {
+                GuiDraw.drawStringC(
+                    String.format(Locale.US, "Adjacent component transfer: %.1f Hu/t", d.heatTransferRate),
+                    83,
+                    54,
+                    0x0055AA,
+                    false);
+            } else if (d.thermalInsulationFactor > 0) {
+                GuiDraw.drawStringC(
+                    String.format(Locale.US, "Blocks %.0f%% of heat conduction", d.thermalInsulationFactor * 100.0),
+                    83,
+                    54,
+                    0x902020,
+                    false);
+            } else {
+                GuiDraw.drawStringC(
+                    String.format(Locale.US, "Thermal conduction coefficient: k = %.2f", d.heatTransferCoeff),
+                    83,
+                    54,
+                    0x505050,
+                    false);
+            }
+
+            // --- Page 2: Durability & Byproducts Panel ---
             GuiDraw.drawStringC(
                 StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption"),
                 83,
                 71,
                 0x404040,
                 false);
-            if (recipe.data.neutronsRequired > 0) {
-                String reqStr = recipe.data.neutronsRequired >= 1_000_000 ? String.valueOf(recipe.data.neutronsRequired)
-                    : NumberFormat.getNumberInstance(Locale.US)
-                        .format(recipe.data.neutronsRequired);
-                String nText = (recipe.data.neutronsRequired > 1 ? reqStr + " Neutrons" : reqStr + " Neutron");
-                GuiDraw.drawStringC(nText, 83, 120, 0x404040, false);
+
+            if (d.transmutationOutput != null) {
+                String reqStr = formatNeutrons(d.transmutationNeutrons);
+                String transStr = reqStr + " Neutrons -> " + d.transmutationOutput.getDisplayName();
+                GuiDraw.drawStringC(transStr, 83, 120, 0x205090, false);
+            } else if (d.hasDurability) {
+                String durStr = d.durabilityLabel + ": " + formatNeutrons(d.durability);
+                GuiDraw.drawStringC(durStr, 83, 120, 0x404040, false);
+            } else {
+                GuiDraw.drawStringC(
+                    d.durabilityLabel != null ? d.durabilityLabel : "Indestructible",
+                    83,
+                    120,
+                    0x008000,
+                    false);
             }
 
             // Bottom summary
-            GuiDraw.drawString(EnumChatFormatting.DARK_GRAY + recipe.data.category, 28, 137, 0x202020, false);
-            if (recipe.data.extraInfo != null) {
-                GuiDraw.drawString(EnumChatFormatting.GRAY + recipe.data.extraInfo, 28, 147, 0x505050, false);
+            GuiDraw.drawString(EnumChatFormatting.DARK_BLUE + "[" + d.category + "]", 28, 137, 0x103080, false);
+            if (d.extraInfo != null) {
+                GuiDraw.drawString(EnumChatFormatting.GRAY + d.extraInfo, 28, 147, 0x505050, false);
             }
         }
     }
+
+    private static String formatNeutrons(long n) {
+        if (n >= 1_000_000_000L) {
+            return String.format(Locale.US, "%.1fB", n / 1_000_000_000.0);
+        } else if (n >= 1_000_000L) {
+            return String.format(Locale.US, "%.1fM", n / 1_000_000.0);
+        } else if (n >= 1_000L) {
+            return NumberFormat.getNumberInstance(Locale.US)
+                .format(n);
+        }
+        return String.valueOf(n);
+    }
+
+    // =========================================================================
+    // Tooltips
+    // =========================================================================
 
     @Override
     public List<String> handleTooltip(GuiRecipe<?> gui, List<String> currenttip, int recipeIndex) {
@@ -869,13 +1653,24 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         CachedRecipe rec = arecipes.get(recipeIndex);
         if (rec instanceof CachedNeutronInteractionRecipe r1) {
+            ComponentStatsData d = r1.data;
             // Page 1 Tooltips
-            if (relX >= 25 && relX <= 65 && relY >= 10 && relY <= 24) {
-                currenttip.add(
-                    EnumChatFormatting.WHITE + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
-                currenttip.add(
-                    EnumChatFormatting.GRAY
-                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering_fast.desc"));
+            if (relX >= 25 && relX <= 65 && relY >= 10 && relY <= 26) {
+                if (d.isReflector) {
+                    currenttip.add(
+                        EnumChatFormatting.GOLD
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection"));
+                    currenttip.add(
+                        EnumChatFormatting.GRAY
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection_fast.desc"));
+                } else {
+                    currenttip.add(
+                        EnumChatFormatting.WHITE
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
+                    currenttip.add(
+                        EnumChatFormatting.GRAY
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering_fast.desc"));
+                }
             } else if (relX >= 80 && relX <= 115 && relY >= 46 && relY <= 62) {
                 currenttip.add(
                     EnumChatFormatting.GREEN
@@ -891,7 +1686,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     currenttip.add(
                         EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
                             "gt.nei.neutron_interaction.thermal_fraction.desc",
-                            r1.data.slowingProbability * 100.0));
+                            d.slowingProbability * 100.0));
                 } else if (relX >= 105 && relX <= 145 && relY >= 40 && relY <= 54) {
                     currenttip.add(
                         EnumChatFormatting.RED
@@ -899,14 +1694,23 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     currenttip.add(
                         EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
                             "gt.nei.neutron_interaction.fast_fraction.desc",
-                            (1.0 - r1.data.slowingProbability) * 100.0));
-                } else if (relX >= 25 && relX <= 65 && relY >= 74 && relY <= 90) {
-                    currenttip.add(
-                        EnumChatFormatting.WHITE
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
-                    currenttip.add(
-                        EnumChatFormatting.GRAY
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering_thermal.desc"));
+                            (1.0 - d.slowingProbability) * 100.0));
+                } else if (relX >= 25 && relX <= 65 && relY >= 74 && relY <= 92) {
+                    if (d.isReflector) {
+                        currenttip.add(
+                            EnumChatFormatting.GOLD
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection"));
+                        currenttip.add(
+                            EnumChatFormatting.GRAY
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection_thermal.desc"));
+                    } else {
+                        currenttip.add(
+                            EnumChatFormatting.WHITE
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
+                        currenttip.add(
+                            EnumChatFormatting.GRAY
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering_thermal.desc"));
+                    }
                 } else if (relX >= 80 && relX <= 115 && relY >= 112 && relY <= 128) {
                     currenttip.add(
                         EnumChatFormatting.GREEN
@@ -915,29 +1719,34 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                         EnumChatFormatting.GRAY
                             + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_thermal.desc"));
                 }
-        } else if (rec instanceof CachedNeutronCaptureRecipe r2) {
+        } else if (rec instanceof CachedComponentThermalRecipe r2) {
+            ComponentStatsData d = r2.data;
             // Page 2 Tooltips
             if (relX >= 20 && relX <= 55 && relY >= 44 && relY <= 62) {
+                if (d.producesDirectEU) {
+                    currenttip.add(
+                        EnumChatFormatting.GREEN
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.direct_eu"));
+                    currenttip.add(
+                        EnumChatFormatting.GRAY + StatCollector
+                            .translateToLocalFormatted("gt.nei.neutron_interaction.direct_eu.desc", d.maxDirectEU));
+                } else {
+                    currenttip.add(EnumChatFormatting.GRAY + "No direct electricity produced");
+                }
+            } else if (relX >= 95 && relX <= 155 && relY >= 12 && relY <= 40) {
                 currenttip.add(
-                    EnumChatFormatting.GREEN
-                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.fast_energy"));
-                currenttip.add(
-                    EnumChatFormatting.GRAY
-                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.fast_energy.desc"));
-            } else if (relX >= 95 && relX <= 145 && relY >= 12 && relY <= 28) {
-                currenttip.add(
-                    EnumChatFormatting.GOLD + StatCollector.translateToLocal("gt.nei.neutron_interaction.direct_heat"));
+                    EnumChatFormatting.GOLD + StatCollector.translateToLocal("gt.nei.neutron_interaction.conduction"));
                 currenttip.add(
                     EnumChatFormatting.GRAY + StatCollector
-                        .translateToLocalFormatted("gt.nei.neutron_interaction.direct_heat.desc", r2.data.directHeatC));
-            } else if (relX >= 25 && relX <= 140 && relY >= 52 && relY <= 66) {
+                        .translateToLocalFormatted("gt.nei.neutron_interaction.conduction.desc", d.heatTransferCoeff));
+            } else if (relX >= 25 && relX <= 140 && relY >= 48 && relY <= 64) {
                 currenttip.add(
-                    EnumChatFormatting.GREEN
+                    EnumChatFormatting.AQUA
                         + StatCollector.translateToLocal("gt.nei.neutron_interaction.multiplication"));
                 currenttip.add(
                     EnumChatFormatting.GRAY
                         + StatCollector.translateToLocal("gt.nei.neutron_interaction.multiplication.desc"));
-            } else if (relX >= 45 && relX <= 120 && relY >= 90 && relY <= 130) {
+            } else if (relX >= 25 && relX <= 140 && relY >= 90 && relY <= 130) {
                 currenttip.add(
                     EnumChatFormatting.WHITE
                         + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_capacity"));
@@ -955,11 +1764,11 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (recipeIndex < 0 || recipeIndex >= arecipes.size() || stack == null) return currenttip;
 
         CachedRecipe rec = arecipes.get(recipeIndex);
-        NeutronComponentData data = (rec instanceof CachedNeutronInteractionRecipe r1) ? r1.data
-            : (rec instanceof CachedNeutronCaptureRecipe r2) ? r2.data : null;
+        ComponentStatsData data = (rec instanceof CachedNeutronInteractionRecipe r1) ? r1.data
+            : (rec instanceof CachedComponentThermalRecipe r2) ? r2.data : null;
         if (data == null) return currenttip;
 
-        if (matches(stack, data.stack)) {
+        if (matches(stack, data)) {
             currenttip.add(
                 EnumChatFormatting.GOLD
                     + StatCollector.translateToLocalFormatted("gt.nei.neutron_interaction.role", data.category));
@@ -974,10 +1783,18 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     "gt.nei.neutron_interaction.thermal_stats",
                     data.thermalScattering * 100.0,
                     data.thermalAbsorption * 100.0));
+            if (data.isReflector) {
+                currenttip.add(
+                    EnumChatFormatting.GREEN + String.format(
+                        Locale.US,
+                        "Reflection: Fast %.1f%%, Thermal %.1f%%",
+                        data.reflectionFast * 100.0,
+                        data.reflectionThermal * 100.0));
+            }
             if (data.extraInfo != null) {
                 currenttip.add(EnumChatFormatting.GRAY + data.extraInfo);
             }
-        } else if (data.absorptionOutput != null && matches(stack, data.absorptionOutput)) {
+        } else if (data.transmutationOutput != null && matchesStack(stack, data.transmutationOutput)) {
             currenttip.add(
                 EnumChatFormatting.DARK_RED
                     + StatCollector.translateToLocal("gt.nei.neutron_interaction.depleted_title"));

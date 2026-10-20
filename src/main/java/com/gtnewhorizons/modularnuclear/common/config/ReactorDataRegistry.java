@@ -340,6 +340,16 @@ public final class ReactorDataRegistry {
             return null;
         }
 
+        FluidStack fs = null;
+        try {
+            if (ItemList.Display_Fluid.hasBeenSet()) {
+                fs = GTUtility.getFluidFromDisplayStack(stack);
+            }
+        } catch (Throwable ignored) {}
+        if (fs != null) {
+            return findFuel(fs);
+        }
+
         for (FuelData fd : fuels) {
             if (!fd.isLiquid && matchesItem(stack, fd.matching)) {
                 return fd;
@@ -428,6 +438,20 @@ public final class ReactorDataRegistry {
         if (stack == null) return null;
         for (RadiovoltaicData d : componentData.radiovoltaics) {
             if (matchesItem(stack, d.matching)) return d;
+        }
+        return null;
+    }
+
+    public static CoolantFluidData findCoolantFluid(ItemStack stack) {
+        if (stack == null) return null;
+        FluidStack fs = null;
+        try {
+            if (ItemList.Display_Fluid.hasBeenSet()) {
+                fs = GTUtility.getFluidFromDisplayStack(stack);
+            }
+        } catch (Throwable ignored) {}
+        if (fs != null) {
+            return findCoolantFluid(fs);
         }
         return null;
     }
@@ -544,6 +568,16 @@ public final class ReactorDataRegistry {
                 } catch (Throwable ignored) {}
             }
         }
+
+        // 5. Try FluidRegistry (e.g. "fluid.distilledwater", "distilledwater")
+        try {
+            String fluidName = id.startsWith("fluid.") ? id.substring("fluid.".length()) : id;
+            net.minecraftforge.fluids.Fluid f = net.minecraftforge.fluids.FluidRegistry.getFluid(fluidName);
+            if (f != null && gregtech.api.enums.ItemList.Display_Fluid.hasBeenSet()) {
+                ItemStack is = GTUtility.getFluidDisplayStack(new net.minecraftforge.fluids.FluidStack(f, 1000), false);
+                if (is != null) return is;
+            }
+        } catch (Throwable ignored) {}
 
         return null;
     }

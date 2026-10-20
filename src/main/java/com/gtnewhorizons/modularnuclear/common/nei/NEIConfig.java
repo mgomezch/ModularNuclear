@@ -25,10 +25,6 @@ public class NEIConfig implements IConfigureNEI {
         API.registerRecipeHandler(fuelHandler);
         API.registerUsageHandler(fuelHandler);
 
-        NEIModeratorStatsHandler moderatorHandler = new NEIModeratorStatsHandler();
-        API.registerRecipeHandler(moderatorHandler);
-        API.registerUsageHandler(moderatorHandler);
-
         ItemStack controller = NEIFuelStatsHandler.getControllerStack();
         if (controller != null) {
             API.addRecipeCatalyst(controller, NEIFuelStatsHandler.OVERLAY_ID);
@@ -38,38 +34,38 @@ public class NEIConfig implements IConfigureNEI {
                 fuelHandler.getClass()
                     .getName());
 
-            HandlerInfo info = new HandlerInfo.Builder(
+            HandlerInfo fuelInfo = new HandlerInfo.Builder(
                 NEIFuelStatsHandler.OVERLAY_ID,
                 "Modular Nuclear",
                 ModularNuclear.MODID).setDisplayStack(controller)
                     .setMaxRecipesPerPage(1)
                     .build();
-            GuiRecipeTab.handlerMap.put(NEIFuelStatsHandler.OVERLAY_ID, info);
-            GuiRecipeTab.handlerMap.put(fuelHandler.getRecipeName(), info);
+            GuiRecipeTab.handlerMap.put(NEIFuelStatsHandler.OVERLAY_ID, fuelInfo);
+            GuiRecipeTab.handlerMap.put(fuelHandler.getRecipeName(), fuelInfo);
             GuiRecipeTab.handlerMap.put(
                 fuelHandler.getClass()
                     .getName(),
-                info);
+                fuelInfo);
 
-            API.addRecipeCatalyst(controller, NEIModeratorStatsHandler.OVERLAY_ID);
-            API.addRecipeCatalyst(controller, moderatorHandler.getRecipeName());
+            API.addRecipeCatalyst(controller, NEINeutronInteractionHandler.OVERLAY_ID);
+            API.addRecipeCatalyst(controller, neutronHandler.getRecipeName());
             API.addRecipeCatalyst(
                 controller,
-                moderatorHandler.getClass()
+                neutronHandler.getClass()
                     .getName());
 
-            HandlerInfo modInfo = new HandlerInfo.Builder(
-                NEIModeratorStatsHandler.OVERLAY_ID,
+            HandlerInfo compInfo = new HandlerInfo.Builder(
+                NEINeutronInteractionHandler.OVERLAY_ID,
                 "Modular Nuclear",
                 ModularNuclear.MODID).setDisplayStack(controller)
                     .setMaxRecipesPerPage(1)
                     .build();
-            GuiRecipeTab.handlerMap.put(NEIModeratorStatsHandler.OVERLAY_ID, modInfo);
-            GuiRecipeTab.handlerMap.put(moderatorHandler.getRecipeName(), modInfo);
+            GuiRecipeTab.handlerMap.put(NEINeutronInteractionHandler.OVERLAY_ID, compInfo);
+            GuiRecipeTab.handlerMap.put(neutronHandler.getRecipeName(), compInfo);
             GuiRecipeTab.handlerMap.put(
-                moderatorHandler.getClass()
+                neutronHandler.getClass()
                     .getName(),
-                modInfo);
+                compInfo);
         }
     }
 
@@ -96,20 +92,22 @@ public class NEIConfig implements IConfigureNEI {
                         .build());
 
             event.registerHandlerInfo(
-                new HandlerInfo.Builder(NEIModeratorStatsHandler.OVERLAY_ID, "Modular Nuclear", ModularNuclear.MODID)
-                    .setDisplayStack(controller)
-                    .setMaxRecipesPerPage(1)
-                    .build());
-            event.registerHandlerInfo(
                 new HandlerInfo.Builder(
-                    NEIModeratorStatsHandler.class.getName(),
+                    NEINeutronInteractionHandler.OVERLAY_ID,
                     "Modular Nuclear",
                     ModularNuclear.MODID).setDisplayStack(controller)
                         .setMaxRecipesPerPage(1)
                         .build());
             event.registerHandlerInfo(
                 new HandlerInfo.Builder(
-                    new NEIModeratorStatsHandler().getRecipeName(),
+                    NEINeutronInteractionHandler.class.getName(),
+                    "Modular Nuclear",
+                    ModularNuclear.MODID).setDisplayStack(controller)
+                        .setMaxRecipesPerPage(1)
+                        .build());
+            event.registerHandlerInfo(
+                new HandlerInfo.Builder(
+                    new NEINeutronInteractionHandler().getRecipeName(),
                     "Modular Nuclear",
                     ModularNuclear.MODID).setDisplayStack(controller)
                         .setMaxRecipesPerPage(1)

@@ -380,14 +380,14 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             return;
         }
         FuelData fd = ReactorDataRegistry.findFuel(result);
-        if (fd != null && !fd.isLiquid) {
+        if (fd != null) {
             List<ItemStack> stacks = getFuelStacks(fd);
             if (stacks.isEmpty()) stacks = Collections.singletonList(result.copy());
             this.arecipes.add(new CachedFuelStatsRecipe(fd, stacks));
             return;
         }
         for (FuelData f : ReactorDataRegistry.getAllFuels()) {
-            if (!f.isLiquid && matches(result, f)) {
+            if (matches(result, f)) {
                 this.arecipes.add(new CachedFuelStatsRecipe(f, getFuelStacks(f)));
             }
         }
@@ -411,14 +411,14 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         }
 
         FuelData fd = ReactorDataRegistry.findFuel(ingredient);
-        if (fd != null && !fd.isLiquid) {
+        if (fd != null) {
             List<ItemStack> stacks = getFuelStacks(fd);
             if (stacks.isEmpty()) stacks = Collections.singletonList(ingredient.copy());
             this.arecipes.add(new CachedFuelStatsRecipe(fd, stacks));
             return;
         }
         for (FuelData f : ReactorDataRegistry.getAllFuels()) {
-            if (!f.isLiquid && matches(ingredient, f)) {
+            if (matches(ingredient, f)) {
                 this.arecipes.add(new CachedFuelStatsRecipe(f, getFuelStacks(f)));
             }
         }
@@ -435,7 +435,6 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         List<FuelData> all = ReactorDataRegistry.getAllFuels();
         if (all != null && !all.isEmpty()) {
             for (FuelData fd : all) {
-                if (fd.isLiquid) continue;
                 this.arecipes.add(new CachedFuelStatsRecipe(fd, getFuelStacks(fd)));
             }
         } else {

@@ -26,11 +26,16 @@ public class ModItems {
     public static ItemCoriumDust itemCoriumDust;
     public static ItemCoriumRod itemCoriumRod;
 
+    public static ItemEmptyCoreTile emptyCoreTile;
+
     private static boolean initialized = false;
 
     public static synchronized void init() {
         if (initialized) return;
         initialized = true;
+        emptyCoreTile = new ItemEmptyCoreTile();
+        GameRegistry.registerItem(emptyCoreTile, "empty_core_tile");
+
         radiovoltaicPlateHV = new ItemRadiovoltaicPlate("modularnuclear.radiovoltaic.plate.hv", 1);
         GameRegistry.registerItem(radiovoltaicPlateHV, "radiovoltaic_plate_hv");
 
