@@ -27,13 +27,27 @@ public class SimTile implements INuclearTile {
         FUEL_THORIUM_QUAD("Thorium Quad", "T4"),
         FUEL_GLOWSTONE("Glowstone Rod", "G1"),
         FUEL_LITHIUM("Lithium Rod", "LI1"),
-        FUEL_HD_URANIUM("HD Uranium Quad", "HDU"),
-        FUEL_HD_PLUTONIUM("HD Plutonium Quad", "HDP"),
-        FUEL_EXCITED_URANIUM("Excited Uranium Quad", "EXU"),
-        FUEL_EXCITED_PLUTONIUM("Excited Plutonium Quad", "EXP"),
-        FUEL_NAQUADAH("Naquadah Rod", "NQ"),
-        FUEL_NAQUADRIA("Naquadria Quad", "NQR"),
-        FUEL_TIBERIUM("Tiberium Quad", "TIB"),
+        FUEL_HD_URANIUM_SINGLE("HD Uranium Single", "HDU1"),
+        FUEL_HD_URANIUM_DUAL("HD Uranium Dual", "HDU2"),
+        FUEL_HD_URANIUM_QUAD("HD Uranium Quad", "HDU4"),
+        FUEL_HD_PLUTONIUM_SINGLE("HD Plutonium Single", "HDP1"),
+        FUEL_HD_PLUTONIUM_DUAL("HD Plutonium Dual", "HDP2"),
+        FUEL_HD_PLUTONIUM_QUAD("HD Plutonium Quad", "HDP4"),
+        FUEL_EXCITED_URANIUM_SINGLE("Excited Uranium Single", "EXU1"),
+        FUEL_EXCITED_URANIUM_DUAL("Excited Uranium Dual", "EXU2"),
+        FUEL_EXCITED_URANIUM_QUAD("Excited Uranium Quad", "EXU4"),
+        FUEL_EXCITED_PLUTONIUM_SINGLE("Excited Plutonium Single", "EXP1"),
+        FUEL_EXCITED_PLUTONIUM_DUAL("Excited Plutonium Dual", "EXP2"),
+        FUEL_EXCITED_PLUTONIUM_QUAD("Excited Plutonium Quad", "EXP4"),
+        FUEL_NAQUADAH_SINGLE("Naquadah Single", "NQ1"),
+        FUEL_NAQUADAH_DUAL("Naquadah Dual", "NQ2"),
+        FUEL_NAQUADAH_QUAD("Naquadah Quad", "NQ4"),
+        FUEL_NAQUADRIA_SINGLE("Naquadria Single", "NQR1"),
+        FUEL_NAQUADRIA_DUAL("Naquadria Dual", "NQR2"),
+        FUEL_NAQUADRIA_QUAD("Naquadria Quad", "NQR4"),
+        FUEL_TIBERIUM_SINGLE("Tiberium Single", "TIB1"),
+        FUEL_TIBERIUM_DUAL("Tiberium Dual", "TIB2"),
+        FUEL_TIBERIUM_QUAD("Tiberium Quad", "TIB4"),
         FUEL_CORE("The Core", "NQ32"),
         HATCH_LIQUID_FUEL_URANIUM("Liquid Uranium Fuel Hatch", "LFU"),
         HATCH_LIQUID_FUEL_THORIUM("Liquid Thorium Fuel Hatch", "LFT"),
@@ -72,6 +86,15 @@ public class SimTile implements INuclearTile {
         NEUTRON_SOURCE("Neutron Source", "NS"),
         NULL_WALL("Casing Wall", "NL");
 
+        // Backward-compatibility aliases for legacy quad types
+        public static final TileType FUEL_HD_URANIUM = FUEL_HD_URANIUM_QUAD;
+        public static final TileType FUEL_HD_PLUTONIUM = FUEL_HD_PLUTONIUM_QUAD;
+        public static final TileType FUEL_EXCITED_URANIUM = FUEL_EXCITED_URANIUM_QUAD;
+        public static final TileType FUEL_EXCITED_PLUTONIUM = FUEL_EXCITED_PLUTONIUM_QUAD;
+        public static final TileType FUEL_NAQUADAH = FUEL_NAQUADAH_QUAD;
+        public static final TileType FUEL_NAQUADRIA = FUEL_NAQUADRIA_QUAD;
+        public static final TileType FUEL_TIBERIUM = FUEL_TIBERIUM_QUAD;
+
         public final String displayName;
         public final String code;
 
@@ -93,6 +116,13 @@ public class SimTile implements INuclearTile {
                 || trimmed.equals("HATCH_HP_HEAVY_WATER")) {
                 return PASSAGE_CORE;
             }
+            if (trimmed.equals("HDU") || trimmed.equals("FUEL_HD_URANIUM")) return FUEL_HD_URANIUM_QUAD;
+            if (trimmed.equals("HDP") || trimmed.equals("FUEL_HD_PLUTONIUM")) return FUEL_HD_PLUTONIUM_QUAD;
+            if (trimmed.equals("EXU") || trimmed.equals("FUEL_EXCITED_URANIUM")) return FUEL_EXCITED_URANIUM_QUAD;
+            if (trimmed.equals("EXP") || trimmed.equals("FUEL_EXCITED_PLUTONIUM")) return FUEL_EXCITED_PLUTONIUM_QUAD;
+            if (trimmed.equals("NQ") || trimmed.equals("FUEL_NAQUADAH")) return FUEL_NAQUADAH_QUAD;
+            if (trimmed.equals("NQR") || trimmed.equals("FUEL_NAQUADRIA")) return FUEL_NAQUADRIA_QUAD;
+            if (trimmed.equals("TIB") || trimmed.equals("FUEL_TIBERIUM")) return FUEL_TIBERIUM_QUAD;
             for (TileType type : values()) {
                 if (type.code.equalsIgnoreCase(trimmed) || type.name()
                     .equalsIgnoreCase(trimmed)) {
@@ -435,13 +465,13 @@ public class SimTile implements INuclearTile {
             case FUEL_THORIUM_SINGLE, FUEL_THORIUM_DUAL, FUEL_THORIUM_QUAD, HATCH_LIQUID_FUEL_THORIUM -> NuclearFuelType.THORIUM;
             case FUEL_URANIUM_SINGLE, FUEL_URANIUM_DUAL, FUEL_URANIUM_QUAD, HATCH_LIQUID_FUEL_URANIUM -> NuclearFuelType.URANIUM;
             case FUEL_MOX_SINGLE, FUEL_MOX_DUAL, FUEL_MOX_QUAD -> NuclearFuelType.MOX;
-            case FUEL_HD_URANIUM -> NuclearFuelType.HD_URANIUM;
-            case FUEL_HD_PLUTONIUM, HATCH_LIQUID_FUEL_PLUTONIUM -> NuclearFuelType.HD_PLUTONIUM;
-            case FUEL_EXCITED_URANIUM -> NuclearFuelType.EXCITED_URANIUM;
-            case FUEL_EXCITED_PLUTONIUM -> NuclearFuelType.EXCITED_PLUTONIUM;
-            case FUEL_NAQUADAH -> NuclearFuelType.NAQUADAH;
-            case FUEL_NAQUADRIA -> NuclearFuelType.NAQUADRIA;
-            case FUEL_TIBERIUM -> NuclearFuelType.TIBERIUM;
+            case FUEL_HD_URANIUM_SINGLE, FUEL_HD_URANIUM_DUAL, FUEL_HD_URANIUM_QUAD -> NuclearFuelType.HD_URANIUM;
+            case FUEL_HD_PLUTONIUM_SINGLE, FUEL_HD_PLUTONIUM_DUAL, FUEL_HD_PLUTONIUM_QUAD, HATCH_LIQUID_FUEL_PLUTONIUM -> NuclearFuelType.HD_PLUTONIUM;
+            case FUEL_EXCITED_URANIUM_SINGLE, FUEL_EXCITED_URANIUM_DUAL, FUEL_EXCITED_URANIUM_QUAD -> NuclearFuelType.EXCITED_URANIUM;
+            case FUEL_EXCITED_PLUTONIUM_SINGLE, FUEL_EXCITED_PLUTONIUM_DUAL, FUEL_EXCITED_PLUTONIUM_QUAD -> NuclearFuelType.EXCITED_PLUTONIUM;
+            case FUEL_NAQUADAH_SINGLE, FUEL_NAQUADAH_DUAL, FUEL_NAQUADAH_QUAD -> NuclearFuelType.NAQUADAH;
+            case FUEL_NAQUADRIA_SINGLE, FUEL_NAQUADRIA_DUAL, FUEL_NAQUADRIA_QUAD -> NuclearFuelType.NAQUADRIA;
+            case FUEL_TIBERIUM_SINGLE, FUEL_TIBERIUM_DUAL, FUEL_TIBERIUM_QUAD -> NuclearFuelType.TIBERIUM;
             case FUEL_CORE -> NuclearFuelType.THE_CORE;
             default -> null;
         };
@@ -596,13 +626,35 @@ public class SimTile implements INuclearTile {
             case FUEL_MOX_SINGLE -> 8;
             case FUEL_MOX_DUAL -> 16;
             case FUEL_MOX_QUAD -> 32;
-            case FUEL_HD_URANIUM -> 16;
-            case FUEL_HD_PLUTONIUM -> 24;
-            case FUEL_EXCITED_URANIUM -> 32;
-            case FUEL_EXCITED_PLUTONIUM -> 48;
-            case FUEL_NAQUADAH -> 16;
-            case FUEL_NAQUADRIA -> 32;
-            case FUEL_TIBERIUM -> 48;
+
+            case FUEL_HD_URANIUM_SINGLE -> 4;
+            case FUEL_HD_URANIUM_DUAL -> 8;
+            case FUEL_HD_URANIUM_QUAD -> 16;
+
+            case FUEL_HD_PLUTONIUM_SINGLE -> 6;
+            case FUEL_HD_PLUTONIUM_DUAL -> 12;
+            case FUEL_HD_PLUTONIUM_QUAD -> 24;
+
+            case FUEL_EXCITED_URANIUM_SINGLE -> 8;
+            case FUEL_EXCITED_URANIUM_DUAL -> 16;
+            case FUEL_EXCITED_URANIUM_QUAD -> 32;
+
+            case FUEL_EXCITED_PLUTONIUM_SINGLE -> 12;
+            case FUEL_EXCITED_PLUTONIUM_DUAL -> 24;
+            case FUEL_EXCITED_PLUTONIUM_QUAD -> 48;
+
+            case FUEL_NAQUADAH_SINGLE -> 4;
+            case FUEL_NAQUADAH_DUAL -> 8;
+            case FUEL_NAQUADAH_QUAD -> 16;
+
+            case FUEL_NAQUADRIA_SINGLE -> 8;
+            case FUEL_NAQUADRIA_DUAL -> 16;
+            case FUEL_NAQUADRIA_QUAD -> 32;
+
+            case FUEL_TIBERIUM_SINGLE -> 12;
+            case FUEL_TIBERIUM_DUAL -> 24;
+            case FUEL_TIBERIUM_QUAD -> 48;
+
             case FUEL_CORE -> 512;
             case HATCH_LIQUID_FUEL_THORIUM -> 4;
             case HATCH_LIQUID_FUEL_URANIUM -> 8;
@@ -641,8 +693,12 @@ public class SimTile implements INuclearTile {
             return base + (RAND.nextDouble() < frac ? 1 : 0);
         }
         return switch (type) {
-            case FUEL_URANIUM_SINGLE, FUEL_MOX_SINGLE, FUEL_THORIUM_SINGLE, FUEL_GLOWSTONE, FUEL_LITHIUM -> 1;
-            case FUEL_URANIUM_DUAL, FUEL_MOX_DUAL, FUEL_THORIUM_DUAL -> 2;
+            case FUEL_URANIUM_SINGLE, FUEL_MOX_SINGLE, FUEL_THORIUM_SINGLE, FUEL_GLOWSTONE, FUEL_LITHIUM,
+                 FUEL_HD_URANIUM_SINGLE, FUEL_HD_PLUTONIUM_SINGLE, FUEL_EXCITED_URANIUM_SINGLE, FUEL_EXCITED_PLUTONIUM_SINGLE,
+                 FUEL_NAQUADAH_SINGLE, FUEL_NAQUADRIA_SINGLE, FUEL_TIBERIUM_SINGLE -> 1;
+            case FUEL_URANIUM_DUAL, FUEL_MOX_DUAL, FUEL_THORIUM_DUAL,
+                 FUEL_HD_URANIUM_DUAL, FUEL_HD_PLUTONIUM_DUAL, FUEL_EXCITED_URANIUM_DUAL, FUEL_EXCITED_PLUTONIUM_DUAL,
+                 FUEL_NAQUADAH_DUAL, FUEL_NAQUADRIA_DUAL, FUEL_TIBERIUM_DUAL -> 2;
             case FUEL_CORE -> 16;
             default -> 4;
         };
@@ -1189,13 +1245,35 @@ public class SimTile implements INuclearTile {
             case FUEL_THORIUM_QUAD -> "Depleted Thorium Quad";
             case FUEL_GLOWSTONE -> "Depleted Glowstone Rod";
             case FUEL_LITHIUM -> "Depleted Lithium Rod";
-            case FUEL_HD_URANIUM -> "Depleted HD Uranium Quad";
-            case FUEL_HD_PLUTONIUM -> "Depleted HD Plutonium Quad";
-            case FUEL_EXCITED_URANIUM -> "Depleted Excited Uranium Quad";
-            case FUEL_EXCITED_PLUTONIUM -> "Depleted Excited Plutonium Quad";
-            case FUEL_NAQUADAH -> "Depleted Naquadah Rod";
-            case FUEL_NAQUADRIA -> "Depleted Naquadria Quad";
-            case FUEL_TIBERIUM -> "Depleted Tiberium Quad";
+
+            case FUEL_HD_URANIUM_SINGLE -> "Depleted HD Uranium Single";
+            case FUEL_HD_URANIUM_DUAL -> "Depleted HD Uranium Dual";
+            case FUEL_HD_URANIUM_QUAD -> "Depleted HD Uranium Quad";
+
+            case FUEL_HD_PLUTONIUM_SINGLE -> "Depleted HD Plutonium Single";
+            case FUEL_HD_PLUTONIUM_DUAL -> "Depleted HD Plutonium Dual";
+            case FUEL_HD_PLUTONIUM_QUAD -> "Depleted HD Plutonium Quad";
+
+            case FUEL_EXCITED_URANIUM_SINGLE -> "Depleted Excited Uranium Single";
+            case FUEL_EXCITED_URANIUM_DUAL -> "Depleted Excited Uranium Dual";
+            case FUEL_EXCITED_URANIUM_QUAD -> "Depleted Excited Uranium Quad";
+
+            case FUEL_EXCITED_PLUTONIUM_SINGLE -> "Depleted Excited Plutonium Single";
+            case FUEL_EXCITED_PLUTONIUM_DUAL -> "Depleted Excited Plutonium Dual";
+            case FUEL_EXCITED_PLUTONIUM_QUAD -> "Depleted Excited Plutonium Quad";
+
+            case FUEL_NAQUADAH_SINGLE -> "Depleted Naquadah Single";
+            case FUEL_NAQUADAH_DUAL -> "Depleted Naquadah Dual";
+            case FUEL_NAQUADAH_QUAD -> "Depleted Naquadah Quad";
+
+            case FUEL_NAQUADRIA_SINGLE -> "Depleted Naquadria Single";
+            case FUEL_NAQUADRIA_DUAL -> "Depleted Naquadria Dual";
+            case FUEL_NAQUADRIA_QUAD -> "Depleted Naquadria Quad";
+
+            case FUEL_TIBERIUM_SINGLE -> "Depleted Tiberium Single";
+            case FUEL_TIBERIUM_DUAL -> "Depleted Tiberium Dual";
+            case FUEL_TIBERIUM_QUAD -> "Depleted Tiberium Quad";
+
             case FUEL_CORE -> "Depleted The Core";
             case HATCH_LIQUID_FUEL_URANIUM -> "Depleted Uranium Liquid Fuel";
             case HATCH_LIQUID_FUEL_THORIUM -> "Depleted Thorium Liquid Fuel";
@@ -1217,13 +1295,35 @@ public class SimTile implements INuclearTile {
             case FUEL_THORIUM_QUAD -> "DT4";
             case FUEL_GLOWSTONE -> "DG1";
             case FUEL_LITHIUM -> "DLI1";
-            case FUEL_HD_URANIUM -> "DHDU";
-            case FUEL_HD_PLUTONIUM -> "DHDP";
-            case FUEL_EXCITED_URANIUM -> "DEXU";
-            case FUEL_EXCITED_PLUTONIUM -> "DEXP";
-            case FUEL_NAQUADAH -> "DNQ";
-            case FUEL_NAQUADRIA -> "DNQR";
-            case FUEL_TIBERIUM -> "DTIB";
+
+            case FUEL_HD_URANIUM_SINGLE -> "DHDU1";
+            case FUEL_HD_URANIUM_DUAL -> "DHDU2";
+            case FUEL_HD_URANIUM_QUAD -> "DHDU4";
+
+            case FUEL_HD_PLUTONIUM_SINGLE -> "DHDP1";
+            case FUEL_HD_PLUTONIUM_DUAL -> "DHDP2";
+            case FUEL_HD_PLUTONIUM_QUAD -> "DHDP4";
+
+            case FUEL_EXCITED_URANIUM_SINGLE -> "DEXU1";
+            case FUEL_EXCITED_URANIUM_DUAL -> "DEXU2";
+            case FUEL_EXCITED_URANIUM_QUAD -> "DEXU4";
+
+            case FUEL_EXCITED_PLUTONIUM_SINGLE -> "DEXP1";
+            case FUEL_EXCITED_PLUTONIUM_DUAL -> "DEXP2";
+            case FUEL_EXCITED_PLUTONIUM_QUAD -> "DEXP4";
+
+            case FUEL_NAQUADAH_SINGLE -> "DNQ1";
+            case FUEL_NAQUADAH_DUAL -> "DNQ2";
+            case FUEL_NAQUADAH_QUAD -> "DNQ4";
+
+            case FUEL_NAQUADRIA_SINGLE -> "DNQR1";
+            case FUEL_NAQUADRIA_DUAL -> "DNQR2";
+            case FUEL_NAQUADRIA_QUAD -> "DNQR4";
+
+            case FUEL_TIBERIUM_SINGLE -> "DTIB1";
+            case FUEL_TIBERIUM_DUAL -> "DTIB2";
+            case FUEL_TIBERIUM_QUAD -> "DTIB4";
+
             case FUEL_CORE -> "DNQ32";
             case HATCH_LIQUID_FUEL_URANIUM -> "DLFU";
             case HATCH_LIQUID_FUEL_THORIUM -> "DLFT";

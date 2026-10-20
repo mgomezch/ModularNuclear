@@ -2080,7 +2080,21 @@ public class StandaloneNuclearGrid {
                     map.get("Th-232").producedPerMin += 4.0 * rate;
                     map.get("Lu").producedPerMin += 2.0 * rate;
                 }
-                case FUEL_HD_URANIUM -> {
+                case FUEL_HD_URANIUM_SINGLE -> {
+                    map.get("U-238").consumedPerMin += 4.0 * rate;
+                    map.get("U-238").producedPerMin += 2.0 * rate;
+                    map.get("Pu-239").producedPerMin += 0.5 * rate;
+                    map.get("U-235").producedPerMin += 0.125 * rate;
+                    map.get("Pu-241").producedPerMin += 0.075 * rate;
+                }
+                case FUEL_HD_URANIUM_DUAL -> {
+                    map.get("U-238").consumedPerMin += 8.0 * rate;
+                    map.get("U-238").producedPerMin += 4.0 * rate;
+                    map.get("Pu-239").producedPerMin += 1.0 * rate;
+                    map.get("U-235").producedPerMin += 0.25 * rate;
+                    map.get("Pu-241").producedPerMin += 0.15 * rate;
+                }
+                case FUEL_HD_URANIUM_QUAD -> {
                     // 4 HD nuggets = 16 Uranium dust -> Depleted: 8 Uranium, 2 Plutonium, 0.5 U-235, 0.3 Pu-241
                     map.get("U-238").consumedPerMin += 16.0 * rate;
                     map.get("U-238").producedPerMin += 8.0 * rate;
@@ -2088,7 +2102,23 @@ public class StandaloneNuclearGrid {
                     map.get("U-235").producedPerMin += 0.5 * rate;
                     map.get("Pu-241").producedPerMin += 0.3 * rate;
                 }
-                case FUEL_HD_PLUTONIUM -> {
+                case FUEL_HD_PLUTONIUM_SINGLE -> {
+                    map.get("Pu-239").consumedPerMin += 5.0 * rate;
+                    map.get("U-238").consumedPerMin += 1.0 * rate;
+                    map.get("Pu-239").producedPerMin += 4.0 * rate;
+                    map.get("Pu-241").producedPerMin += 2.0 * rate;
+                    map.get("U-238").producedPerMin += 0.5 * rate;
+                    map.get("U-235").producedPerMin += 0.3 * rate;
+                }
+                case FUEL_HD_PLUTONIUM_DUAL -> {
+                    map.get("Pu-239").consumedPerMin += 10.0 * rate;
+                    map.get("U-238").consumedPerMin += 2.0 * rate;
+                    map.get("Pu-239").producedPerMin += 8.0 * rate;
+                    map.get("Pu-241").producedPerMin += 4.0 * rate;
+                    map.get("U-238").producedPerMin += 1.0 * rate;
+                    map.get("U-235").producedPerMin += 0.6 * rate;
+                }
+                case FUEL_HD_PLUTONIUM_QUAD -> {
                     // 4 HD nuggets = 20 Plutonium dust + 4 Uranium dust -> Depleted: 16 Plutonium, 8 Pu-241, 2 Uranium,
                     // 1.2 U-235
                     map.get("Pu-239").consumedPerMin += 20.0 * rate;
@@ -2098,11 +2128,25 @@ public class StandaloneNuclearGrid {
                     map.get("U-238").producedPerMin += 2.0 * rate;
                     map.get("U-235").producedPerMin += 1.2 * rate;
                 }
-                case FUEL_EXCITED_URANIUM -> {
+                case FUEL_EXCITED_URANIUM_SINGLE -> {
+                    map.get("U-238").consumedPerMin += 9.0 * rate;
+                }
+                case FUEL_EXCITED_URANIUM_DUAL -> {
+                    map.get("U-238").consumedPerMin += 18.0 * rate;
+                }
+                case FUEL_EXCITED_URANIUM_QUAD -> {
                     // 1000 L = 36 Uranium dust
                     map.get("U-238").consumedPerMin += 36.0 * rate;
                 }
-                case FUEL_EXCITED_PLUTONIUM -> {
+                case FUEL_EXCITED_PLUTONIUM_SINGLE -> {
+                    map.get("Pu-239").consumedPerMin += 11.25 * rate;
+                    map.get("U-238").consumedPerMin += 2.25 * rate;
+                }
+                case FUEL_EXCITED_PLUTONIUM_DUAL -> {
+                    map.get("Pu-239").consumedPerMin += 22.5 * rate;
+                    map.get("U-238").consumedPerMin += 4.5 * rate;
+                }
+                case FUEL_EXCITED_PLUTONIUM_QUAD -> {
                     // 1000 L = 45 Plutonium dust + 9 Uranium dust
                     map.get("Pu-239").consumedPerMin += 45.0 * rate;
                     map.get("U-238").consumedPerMin += 9.0 * rate;
@@ -2119,7 +2163,7 @@ public class StandaloneNuclearGrid {
                     map.get("Li").consumedPerMin += (1.0 / 9.0) * rate;
                     map.get("T").producedPerMin += 32.0 * rate;
                 }
-                case FUEL_NAQUADAH -> {
+                case FUEL_NAQUADAH_SINGLE -> {
                     // FissionFuelLoader: 3x Enriched Naquadah -> Depleted: 1.5 Naquadah, 0.111 Naquadria, 0.0555
                     // Enriched Naquadah
                     map.get("NQ+").consumedPerMin += 3.0 * rate;
@@ -2127,7 +2171,31 @@ public class StandaloneNuclearGrid {
                     map.get("NQR").producedPerMin += (1.0 / 9.0) * rate;
                     map.get("NQ+").producedPerMin += (0.5 / 9.0) * rate;
                 }
-                case FUEL_NAQUADRIA -> {
+                case FUEL_NAQUADAH_DUAL -> {
+                    map.get("NQ+").consumedPerMin += 6.0 * rate;
+                    map.get("NQ").producedPerMin += 3.0 * rate;
+                    map.get("NQR").producedPerMin += (2.0 / 9.0) * rate;
+                    map.get("NQ+").producedPerMin += (1.0 / 9.0) * rate;
+                }
+                case FUEL_NAQUADAH_QUAD -> {
+                    map.get("NQ+").consumedPerMin += 12.0 * rate;
+                    map.get("NQ").producedPerMin += 6.0 * rate;
+                    map.get("NQR").producedPerMin += (4.0 / 9.0) * rate;
+                    map.get("NQ+").producedPerMin += (2.0 / 9.0) * rate;
+                }
+                case FUEL_NAQUADRIA_SINGLE -> {
+                    map.get("NQR").consumedPerMin += 3.0 * rate;
+                    map.get("NQ").producedPerMin += 1.5 * rate;
+                    map.get("NQ+").producedPerMin += 0.5 * rate;
+                    map.get("NQR").producedPerMin += (0.5 / 9.0) * rate;
+                }
+                case FUEL_NAQUADRIA_DUAL -> {
+                    map.get("NQR").consumedPerMin += 6.0 * rate;
+                    map.get("NQ").producedPerMin += 3.0 * rate;
+                    map.get("NQ+").producedPerMin += 1.0 * rate;
+                    map.get("NQR").producedPerMin += (1.0 / 9.0) * rate;
+                }
+                case FUEL_NAQUADRIA_QUAD -> {
                     // FissionFuelLoader: 12x Naquadria (Quad) -> Depleted: 6x Naquadah, 2x Enriched Naquadah, 0.222
                     // Naquadria
                     map.get("NQR").consumedPerMin += 12.0 * rate;
@@ -2135,7 +2203,15 @@ public class StandaloneNuclearGrid {
                     map.get("NQ+").producedPerMin += 2.0 * rate;
                     map.get("NQR").producedPerMin += (2.0 / 9.0) * rate;
                 }
-                case FUEL_TIBERIUM -> {
+                case FUEL_TIBERIUM_SINGLE -> {
+                    map.get("TIB").consumedPerMin += 3.0 * rate;
+                    map.get("TIB").producedPerMin += 0.5 * rate;
+                }
+                case FUEL_TIBERIUM_DUAL -> {
+                    map.get("TIB").consumedPerMin += 6.0 * rate;
+                    map.get("TIB").producedPerMin += 1.0 * rate;
+                }
+                case FUEL_TIBERIUM_QUAD -> {
                     // FissionFuelLoader: 12x Tiberium (Quad) -> Depleted: 2x Tiberium
                     map.get("TIB").consumedPerMin += 12.0 * rate;
                     map.get("TIB").producedPerMin += 2.0 * rate;
