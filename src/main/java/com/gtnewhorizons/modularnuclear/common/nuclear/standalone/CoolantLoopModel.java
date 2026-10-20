@@ -232,7 +232,8 @@ public class CoolantLoopModel {
             if (str == null) return DISTILLED_WATER;
             String s = str.trim();
             for (SecondaryCoolantType type : values()) {
-                if (type.name().equalsIgnoreCase(s) || type.displayName.equalsIgnoreCase(s)) {
+                if (type.name()
+                    .equalsIgnoreCase(s) || type.displayName.equalsIgnoreCase(s)) {
                     return type;
                 }
             }
@@ -243,7 +244,6 @@ public class CoolantLoopModel {
             return DISTILLED_WATER;
         }
     }
-
 
     public enum EnergyHatchTier {
 
@@ -739,7 +739,9 @@ public class CoolantLoopModel {
         // 8. Secondary Boiling at Pressurized Heat Exchanger (PHE)
         double secBoilingTemp = (secondaryCoolant != null) ? secondaryCoolant.boilingPointCelsius : 100.0;
         double secLatentHeat = (secondaryCoolant != null) ? secondaryCoolant.latentHeatJoulesPerLiter : 2260000.0;
-        int secExpansion = (secondaryCoolant != null && secondaryCoolant.expansionRatio > 0) ? secondaryCoolant.expansionRatio : 160;
+        int secExpansion = (secondaryCoolant != null && secondaryCoolant.expansionRatio > 0)
+            ? secondaryCoolant.expansionRatio
+            : 160;
 
         double steamGeneratedL = 0.0;
         if (currentCoolantTempCelsius > secBoilingTemp && currentFlowRateLPerSec > 0.0) {

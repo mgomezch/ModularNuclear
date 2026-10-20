@@ -118,9 +118,10 @@ public class NEIFuelStatsHandlerTest {
     @Test
     public void testDynamicDurabilityCurveDamageCalculation() {
         NEIFuelStatsHandler.sAmbientTemp = 24.0;
-        for (com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType fuel : com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType.values()) {
-            com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver.FuelCurveStats stats =
-                com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver.solve(fuel, 24.0);
+        for (com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType fuel : com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType
+            .values()) {
+            com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver.FuelCurveStats stats = com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver
+                .solve(fuel, 24.0);
 
             // Damage at or below ambient must be strictly 0
             assertEquals(0.0, stats.calculateDamage(24.0), 1e-6, "Damage at ambient temp must be 0 for " + fuel);

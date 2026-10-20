@@ -77,9 +77,12 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         tt.addMachineType("Actinide Fuel Compounder")
             .addInfo("Compounds custom nuclear fuel mixes from actinide dusts")
             .addInfo("Requires an explicit Programmed Circuit in the input bus (not consumed):")
-            .addInfo("  Circuit 1: 1 Single Fuel Rod (1 empty rod, 25 L Tritium, 2.5 dusts / 90 units, 7.5s, 1,920 EU/t [EV])")
-            .addInfo("  Circuit 2: 1 Dual Fuel Rod (2 empty rods, 50 L Tritium, 5.0 dusts / 180 units, 15s, 7,680 EU/t [IV])")
-            .addInfo("  Circuit 4: 1 Quad Fuel Rod (4 empty rods, 100 L Tritium, 10.0 dusts / 360 units, 30s, 30,720 EU/t [LuV])")
+            .addInfo(
+                "  Circuit 1: 1 Single Fuel Rod (1 empty rod, 25 L Tritium, 2.5 dusts / 90 units, 7.5s, 1,920 EU/t [EV])")
+            .addInfo(
+                "  Circuit 2: 1 Dual Fuel Rod (2 empty rods, 50 L Tritium, 5.0 dusts / 180 units, 15s, 7,680 EU/t [IV])")
+            .addInfo(
+                "  Circuit 4: 1 Quad Fuel Rod (4 empty rods, 100 L Tritium, 10.0 dusts / 360 units, 30s, 30,720 EU/t [LuV])")
             .addInfo("  (Regular dust = 36 units [1.0], Small dust = 9 units [0.25], Tiny dust = 4 units [0.11])")
             .addSeparator()
             .beginStructureBlock(3, 3, 3, true)
@@ -249,7 +252,8 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         String name = stack.getUnlocalizedName();
         if (name != null) {
             String lower = name.toLowerCase();
-            if (lower.equals("item.itemfuelrodempty") || lower.equals("itemfuelrodempty") || lower.equals("ic2.itemfuelrodempty")) return true;
+            if (lower.equals("item.itemfuelrodempty") || lower.equals("itemfuelrodempty")
+                || lower.equals("ic2.itemfuelrodempty")) return true;
         }
         return false;
     }
@@ -261,7 +265,8 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
                 || Materials.FLUID_MAP.get(fluid.getFluid()) == Materials.Tritium)) {
             return true;
         }
-        String name = fluid.getFluid().getName();
+        String name = fluid.getFluid()
+            .getName();
         return "tritium".equalsIgnoreCase(name) || "fluid.tritium".equalsIgnoreCase(name);
     }
 
@@ -311,8 +316,8 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
 
     public static int getPowerRequirement(int rodSize) {
         return switch (rodSize) {
-            case 1 -> 1920;   // 15/16 of EV (2048)
-            case 2 -> 7680;   // 15/16 of IV (8192)
+            case 1 -> 1920; // 15/16 of EV (2048)
+            case 2 -> 7680; // 15/16 of IV (8192)
             default -> 30720; // 15/16 of LuV (32768)
         };
     }

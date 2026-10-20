@@ -1578,8 +1578,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
                 // Dynamic Cherenkov radiation intensity metric: active baseline + scaling with flux
                 double flux = Math.max(res.neutronsEscaped, res.totalNeutronsGenerated * 0.15);
-                float cherenkovMetric = (flux > 0)
-                    ? (float) Math.min(1.0, 0.40 + 0.60 * (flux / (flux + 400.0)))
+                float cherenkovMetric = (flux > 0) ? (float) Math.min(1.0, 0.40 + 0.60 * (flux / (flux + 400.0)))
                     : 0.0f;
                 byte metricByte = (byte) Math.round(cherenkovMetric * 100.0f);
                 if (metricByte != mLastSentCherenkovMetricByte) {
@@ -1919,8 +1918,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             this.mThermalAbsorbed = data.thermalAbsorbed;
             this.mEscapedNeutrons = data.escapedNeutrons;
             double flux = Math.max(this.mEscapedNeutrons, this.mNeutronsProduced * 0.15);
-            this.mClientRadiationIntensity = (flux > 0)
-                ? (float) Math.min(1.0, 0.40 + 0.60 * (flux / (flux + 400.0)))
+            this.mClientRadiationIntensity = (flux > 0) ? (float) Math.min(1.0, 0.40 + 0.60 * (flux / (flux + 400.0)))
                 : 0.0f;
             this.mOutputCoolantRate = data.outputCoolantRate;
             this.mOutputCoolantName = data.outputCoolantName;

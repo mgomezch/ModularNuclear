@@ -28,12 +28,19 @@ public class HeavyWaterSteamTest {
 
         if (FluidRegistry.getFluid("heavywater") == null) {
             Fluid hw = new Fluid("heavywater");
-            hw.setDensity(1100).setViscosity(1100).setTemperature(300).setUnlocalizedName("fluid.heavywater");
+            hw.setDensity(1100)
+                .setViscosity(1100)
+                .setTemperature(300)
+                .setUnlocalizedName("fluid.heavywater");
             FluidRegistry.registerFluid(hw);
         }
         if (FluidRegistry.getFluid("heavywatersteam") == null) {
             Fluid hws = new Fluid("heavywatersteam");
-            hws.setDensity(-100).setViscosity(100).setTemperature(375).setGaseous(true).setUnlocalizedName("fluid.heavywatersteam");
+            hws.setDensity(-100)
+                .setViscosity(100)
+                .setTemperature(375)
+                .setGaseous(true)
+                .setUnlocalizedName("fluid.heavywatersteam");
             FluidRegistry.registerFluid(hws);
         }
         if (FluidRegistry.getFluid("ic2distilledwater") == null) {
@@ -51,7 +58,8 @@ public class HeavyWaterSteamTest {
     @Test
     void testIsHeavyWaterSteam() {
         assertTrue(HeavyWaterSteamTurbineHelper.isHeavyWaterSteam(ModFluids.fluidHeavyWaterSteam));
-        assertTrue(HeavyWaterSteamTurbineHelper.isHeavyWaterSteam(new FluidStack(ModFluids.fluidHeavyWaterSteam, 1000)));
+        assertTrue(
+            HeavyWaterSteamTurbineHelper.isHeavyWaterSteam(new FluidStack(ModFluids.fluidHeavyWaterSteam, 1000)));
 
         Fluid regularSteam = FluidRegistry.getFluid("steam");
         assertFalse(HeavyWaterSteamTurbineHelper.isHeavyWaterSteam(regularSteam));
@@ -68,7 +76,11 @@ public class HeavyWaterSteamTest {
         outputs.clear();
         HeavyWaterSteamTurbineHelper.distributeCondensedWater(outputs::add, 1000, 160000, 0);
         assertEquals(1, outputs.size());
-        assertEquals("heavywater", outputs.get(0).getFluid().getName());
+        assertEquals(
+            "heavywater",
+            outputs.get(0)
+                .getFluid()
+                .getName());
         assertEquals(1000, outputs.get(0).amount);
 
         // 2. All regular steam consumed -> only distilled water output
@@ -84,7 +96,9 @@ public class HeavyWaterSteamTest {
         int hwAmount = 0;
         int dwAmount = 0;
         for (FluidStack stack : outputs) {
-            if ("heavywater".equals(stack.getFluid().getName())) {
+            if ("heavywater".equals(
+                stack.getFluid()
+                    .getName())) {
                 hwAmount += stack.amount;
             } else {
                 dwAmount += stack.amount;
@@ -105,7 +119,13 @@ public class HeavyWaterSteamTest {
         // 1000 L/t regular steam
         TurbineCalculator.PowerEstimationResult regEV = TurbineCalculator.calculatePower(
             NuclearSimulationEngine.PIPE_TIER_ELECTRUM,
-            1000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            1000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
             TurbineCalculator.TurbineMaterial.ORINARUKON,
             TurbineCalculator.TurbineSize.NORMAL,
             TurbineCalculator.FittingMode.TIGHT);
@@ -113,7 +133,13 @@ public class HeavyWaterSteamTest {
         // 1000 L/t heavy-water steam
         TurbineCalculator.PowerEstimationResult hwEV = TurbineCalculator.calculatePower(
             NuclearSimulationEngine.PIPE_TIER_ELECTRUM,
-            0.0, 0.0, 0.0, 1000.0, 0.0, 0.0, 0.0,
+            0.0,
+            0.0,
+            0.0,
+            1000.0,
+            0.0,
+            0.0,
+            0.0,
             TurbineCalculator.TurbineMaterial.ORINARUKON,
             TurbineCalculator.TurbineSize.NORMAL,
             TurbineCalculator.FittingMode.TIGHT);
@@ -125,14 +151,26 @@ public class HeavyWaterSteamTest {
         // In IV tier (XL Turbo Steam Turbine):
         TurbineCalculator.PowerEstimationResult regIV = TurbineCalculator.calculatePower(
             NuclearSimulationEngine.PIPE_TIER_PLATINUM,
-            1000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            1000.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
             TurbineCalculator.TurbineMaterial.ICHORIUM,
             TurbineCalculator.TurbineSize.LARGE,
             TurbineCalculator.FittingMode.TIGHT);
 
         TurbineCalculator.PowerEstimationResult hwIV = TurbineCalculator.calculatePower(
             NuclearSimulationEngine.PIPE_TIER_PLATINUM,
-            0.0, 0.0, 0.0, 1000.0, 0.0, 0.0, 0.0,
+            0.0,
+            0.0,
+            0.0,
+            1000.0,
+            0.0,
+            0.0,
+            0.0,
             TurbineCalculator.TurbineMaterial.ICHORIUM,
             TurbineCalculator.TurbineSize.LARGE,
             TurbineCalculator.FittingMode.TIGHT);
@@ -144,7 +182,8 @@ public class HeavyWaterSteamTest {
 
     @Test
     void testCoolantHeavyWaterHotFluidName() {
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData data = ReactorDataRegistry.findCoolantFluid("heavywater");
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData data = ReactorDataRegistry
+            .findCoolantFluid("heavywater");
         assertNotNull(data);
         assertEquals("heavywatersteam", data.hotFluidName);
     }

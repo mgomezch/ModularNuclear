@@ -2,15 +2,20 @@ package com.gtnewhorizons.modularnuclear.common.recipe;
 
 import static gregtech.api.recipe.RecipeMaps.cannerRecipes;
 import static gregtech.api.recipe.RecipeMaps.centrifugeRecipes;
+import static gregtech.api.recipe.RecipeMaps.extruderRecipes;
 import static gregtech.api.recipe.RecipeMaps.fluidHeaterRecipes;
+import static gregtech.api.recipe.RecipeMaps.maceratorRecipes;
+import static gregtech.api.recipe.RecipeMaps.rtgFuels;
 import static gregtech.api.util.GTRecipeBuilder.SECONDS;
 import static gregtech.api.util.GTRecipeBuilder.TICKS;
+import static gregtech.api.util.GTRecipeConstants.RTG_DURATION_IN_DAYS;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 
@@ -23,14 +28,52 @@ import ic2.core.item.ItemFluidCell;
 
 public class ModRecipes {
 
-    public static void init() {
+    private static boolean initialized = false;
+
+    public static synchronized void init() {
+        if (initialized) return;
+        initialized = true;
         ModFluids.registerWithGregTech();
         registerCentrifugeRecipes();
         registerCannerRecipes();
         registerFluidHeaterRecipes();
+        registerCoriumRecipes();
+    }
+
+    private static void registerCoriumRecipes() {
+        if (ModBlocks.blockCoriumSolid != null && ModItems.itemCoriumDust != null) {
+            // Macerator: Corium Block -> Corium Dust (120 seconds at 7680 EU/t)
+            GTValues.RA.stdBuilder()
+                .itemInputs(new ItemStack(ModBlocks.blockCoriumSolid, 1))
+                .itemOutputs(new ItemStack(ModItems.itemCoriumDust, 1))
+                .duration(120 * SECONDS)
+                .eut(7680)
+                .addTo(maceratorRecipes);
+        }
+
+        if (ModItems.itemCoriumDust != null && ModItems.itemCoriumRod != null) {
+            // Extruder: Corium Dust + Shape (Rod) -> Corium Rod
+            if (ItemList.Shape_Extruder_Rod.hasBeenSet()) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(new ItemStack(ModItems.itemCoriumDust, 1), ItemList.Shape_Extruder_Rod.get(0L))
+                    .itemOutputs(new ItemStack(ModItems.itemCoriumRod, 1))
+                    .duration(20 * SECONDS)
+                    .eut(TierEU.RECIPE_HV)
+                    .addTo(extruderRecipes);
+            }
+
+            // RTG Fuel: Corium Rod (432 days, twice as long as AM241 at 216 days)
+            GTValues.RA.stdBuilder()
+                .itemInputs(new ItemStack(ModItems.itemCoriumRod, 1))
+                .duration(0)
+                .eut(TierEU.RECIPE_LV)
+                .metadata(RTG_DURATION_IN_DAYS, 432)
+                .addTo(rtgFuels);
+        }
     }
 
     private static void registerFluidHeaterRecipes() {
+        if (!ItemList.Circuit_Integrated.hasBeenSet()) return;
         if (ModFluids.fluidHeavyWater != null && ModFluids.fluidHeavyWaterSteam != null) {
             GTValues.RA.stdBuilder()
                 .circuit(1)
@@ -57,13 +100,14 @@ public class ModRecipes {
 
     private static void registerCannerRecipes() {
         registerFluidCanning(ModFluids.fluidHeavyWater, ModItems.cellHeavyWater);
-        if (Loader.isModLoaded("IC2") && ModFluids.fluidHeavyWaterSteam != null) {
+        if (isModLoaded("IC2") && ModFluids.fluidHeavyWaterSteam != null) {
             registerUniversalCellCanning(ModFluids.fluidHeavyWaterSteam);
         }
     }
 
     private static void registerFluidCanning(Fluid fluid, Item cellItem) {
         if (fluid == null) return;
+        if (!ItemList.Cell_Empty.hasBeenSet()) return;
 
         ItemStack emptyCell = ItemList.Cell_Empty.get(1);
         if (emptyCell != null && cellItem != null) {
@@ -88,12 +132,21 @@ public class ModRecipes {
                 .addTo(cannerRecipes);
         }
 
-        if (Loader.isModLoaded("IC2")) {
+        if (isModLoaded("IC2")) {
             registerUniversalCellCanning(fluid);
         }
     }
 
+    private static boolean isModLoaded(String modname) {
+        try {
+            return Loader.isModLoaded(modname);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     private static void registerUniversalCellCanning(Fluid fluid) {
+        if (!ItemList.Cell_Universal_Fluid.hasBeenSet()) return;
         ItemStack emptyUniv = ItemList.Cell_Universal_Fluid.get(1);
         ItemStack filledUniv = ItemFluidCell.getUniversalFluidCell(new FluidStack(fluid, 1000));
         if (emptyUniv != null && filledUniv != null) {

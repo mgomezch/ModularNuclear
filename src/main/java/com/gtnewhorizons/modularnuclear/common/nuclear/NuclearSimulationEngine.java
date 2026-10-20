@@ -5,8 +5,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
-
 public class NuclearSimulationEngine {
 
     public static final double HU_FOR_FAST_NEUTRON = 8.0;
@@ -263,8 +261,8 @@ public class NuclearSimulationEngine {
      */
     public static double getCoolantSinkTemperature(String fluidName, double ambientTemp) {
         if (fluidName == null) return ambientTemp;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(fluidName);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findCoolantFluid(fluidName);
         if (cfd != null) {
             if (cfd.expansionRatio > 1) {
                 return Math.max(ambientTemp, cfd.boilingTemperature);
@@ -338,15 +336,19 @@ public class NuclearSimulationEngine {
     }
 
     public static double getMaxOperatingTemperature(int tier) {
-        if (tier >= 0 && tier < com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier.length) {
+        if (tier >= 0
+            && tier < com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier.length) {
             double cfg = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[tier];
-            if (cfg != com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.DEFAULT_MAX_OPERATING_TEMP_TIER[tier]) {
+            if (cfg
+                != com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.DEFAULT_MAX_OPERATING_TEMP_TIER[tier]) {
                 return cfg;
             }
         }
-        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getTier(tier);
+        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .getTier(tier);
         if (td != null) return td.maxOperatingTemp;
-        if (tier >= 0 && tier < com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier.length) {
+        if (tier >= 0
+            && tier < com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier.length) {
             return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[tier];
         }
         return 800.0;
@@ -358,17 +360,20 @@ public class NuclearSimulationEngine {
      */
     public static double getRepairTemperatureThreshold(int tier) {
         if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio != 0.10) {
-            return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio * getMaxOperatingTemperature(tier);
+            return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio
+                * getMaxOperatingTemperature(tier);
         }
-        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getTier(tier);
+        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .getTier(tier);
         if (td != null) return td.repairTempThreshold;
-        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio * getMaxOperatingTemperature(tier);
+        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio
+            * getMaxOperatingTemperature(tier);
     }
 
     public static double getCoolantBoilingThreshold(String fluidName) {
         if (fluidName == null) return Double.POSITIVE_INFINITY;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(fluidName);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findCoolantFluid(fluidName);
         if (cfd != null) {
             return cfd.explosionTemperature;
         }
@@ -377,13 +382,13 @@ public class NuclearSimulationEngine {
 
     public static int getRequiredFluidTier(String fluidName) {
         if (fluidName == null) return -1;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(fluidName);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findCoolantFluid(fluidName);
         if (cfd != null) {
             return cfd.requiredTier;
         }
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(fluidName);
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findFuel(fluidName);
         if (fd != null && fd.isLiquid) {
             return fd.requiredTier;
         }
@@ -394,9 +399,11 @@ public class NuclearSimulationEngine {
         if (fluidName == null) return false;
         int reqTier = getRequiredFluidTier(fluidName);
         if (reqTier < 0) return false;
-        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getTier(pipeTier);
+        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .getTier(pipeTier);
         if (td != null && !td.allowedCoolants.isEmpty()) {
-            if (td.allowedCoolants.contains("*") || com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.matchesFluid(fluidName, td.allowedCoolants)) {
+            if (td.allowedCoolants.contains("*") || com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+                .matchesFluid(fluidName, td.allowedCoolants)) {
                 return true;
             }
         }
@@ -639,8 +646,10 @@ public class NuclearSimulationEngine {
                                 if (hitTile.getInsulationDampening() < 1.0) {
                                     pendingHeat[posX][posY] += rayNeutrons * HU_FOR_FAST_NEUTRON;
                                 }
-                                if (hitTile.getModeratorData() != null && hitTile.getModeratorData().wignerEnergyPerFast > 0.0) {
-                                    hitTile.addWignerEnergy(rayNeutrons * hitTile.getModeratorData().wignerEnergyPerFast);
+                                if (hitTile.getModeratorData() != null
+                                    && hitTile.getModeratorData().wignerEnergyPerFast > 0.0) {
+                                    hitTile
+                                        .addWignerEnergy(rayNeutrons * hitTile.getModeratorData().wignerEnergyPerFast);
                                 }
                                 terminated = true;
                                 break;
@@ -657,8 +666,10 @@ public class NuclearSimulationEngine {
                                     if (hitTile.getInsulationDampening() < 1.0) {
                                         pendingHeat[posX][posY] += rayNeutrons * HU_FOR_FAST_NEUTRON;
                                     }
-                                    if (hitTile.getModeratorData() != null && hitTile.getModeratorData().wignerEnergyPerFast > 0.0) {
-                                        hitTile.addWignerEnergy(rayNeutrons * hitTile.getModeratorData().wignerEnergyPerFast);
+                                    if (hitTile.getModeratorData() != null
+                                        && hitTile.getModeratorData().wignerEnergyPerFast > 0.0) {
+                                        hitTile.addWignerEnergy(
+                                            rayNeutrons * hitTile.getModeratorData().wignerEnergyPerFast);
                                     }
                                     thermalPool[posX][posY] += rayNeutrons;
                                     terminated = true;
@@ -1050,7 +1061,8 @@ public class NuclearSimulationEngine {
     public static void processHeatExchanger(INuclearTile[][] grid, int x, int y, int sizeX, int sizeY) {
         INuclearTile center = grid[x][y];
         if (center == null) return;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData hex = center.getHeatExchangerData();
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData hex = center
+            .getHeatExchangerData();
         if (hex == null) return;
         double maxHU = hex.maxHUt > 0.0 ? hex.maxHUt : 1024.0;
         long maxEU = hex.maxEUt > 0 ? hex.maxEUt : (long) Math.ceil(maxHU / 4.0);

@@ -99,7 +99,8 @@ public class CheeseRecipeRegistry {
             || Materials.FLUID_MAP.get(fluid.getFluid()) == Materials.Cheese)) {
             return true;
         }
-        String name = fluid.getFluid().getName();
+        String name = fluid.getFluid()
+            .getName();
         return "molten.cheese".equalsIgnoreCase(name) || "cheese".equalsIgnoreCase(name)
             || "fluid.cheese".equalsIgnoreCase(name);
     }

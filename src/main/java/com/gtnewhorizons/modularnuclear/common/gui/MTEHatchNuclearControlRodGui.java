@@ -96,7 +96,8 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
         textColumn.child(IKey.dynamic(() -> {
             int pipes = machine.getMiningPipeCount();
             if (pipes < MTEHatchNuclearControlRod.MAX_MINING_PIPES) {
-                return EnumChatFormatting.YELLOW + String.format("Housing: %d/5 (Min %d%%)", pipes, machine.getMinInsertionPercent());
+                return EnumChatFormatting.YELLOW
+                    + String.format("Housing: %d/5 (Min %d%%)", pipes, machine.getMinInsertionPercent());
             }
             return EnumChatFormatting.GRAY + "Housing: 5/5 (Full)";
         })

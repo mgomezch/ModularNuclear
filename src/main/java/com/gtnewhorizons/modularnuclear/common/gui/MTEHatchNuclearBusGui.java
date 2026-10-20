@@ -102,29 +102,25 @@ public class MTEHatchNuclearBusGui extends MTEHatchBaseGui<MTEHatchNuclearBus> {
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
-        inputCol.child(
-            new ItemSlot()
-                .slot(
-                    new ModularSlot(machine.inventoryHandler, MTEHatchNuclearBus.SLOT_INPUT) {
+        inputCol.child(new ItemSlot().slot(new ModularSlot(machine.inventoryHandler, MTEHatchNuclearBus.SLOT_INPUT) {
 
-                        @Override
-                        public int getSlotStackLimit() {
-                            return 1;
-                        }
+            @Override
+            public int getSlotStackLimit() {
+                return 1;
+            }
 
-                        @Override
-                        public int getItemStackLimit(ItemStack stack) {
-                            return (stack != null && machine.isItemAllowed(stack)) ? 1 : 0;
-                        }
+            @Override
+            public int getItemStackLimit(ItemStack stack) {
+                return (stack != null && machine.isItemAllowed(stack)) ? 1 : 0;
+            }
 
-                        @Override
-                        public boolean isItemValid(ItemStack stack) {
-                            return stack != null && machine.isItemAllowed(stack);
-                        }
-                    }
-                        .filter(machine::isItemAllowed)
-                        .singletonSlotGroup())
-                .backgroundOverlay(GTGuiTextures.OVERLAY_SLOT_IN_STANDARD));
+            @Override
+            public boolean isItemValid(ItemStack stack) {
+                return stack != null && machine.isItemAllowed(stack);
+            }
+        }.filter(machine::isItemAllowed)
+            .singletonSlotGroup())
+            .backgroundOverlay(GTGuiTextures.OVERLAY_SLOT_IN_STANDARD));
 
         mainRow.child(inputCol);
 

@@ -54,7 +54,8 @@ public abstract class MixinMTELargeTurbineSteam {
         at = @At(
             value = "INVOKE",
             target = "Lgregtech/common/tileentities/machines/multi/turbines/MTELargeTurbineSteam;addOutputPartial(Lnet/minecraftforge/fluids/FluidStack;)V"))
-    private void modularnuclear$redirectCondensedOutput(MTELargeTurbineSteam instance, FluidStack defaultDistilledWater) {
+    private void modularnuclear$redirectCondensedOutput(MTELargeTurbineSteam instance,
+        FluidStack defaultDistilledWater) {
         int totalWater = defaultDistilledWater != null ? defaultDistilledWater.amount : 0;
         HeavyWaterSteamTurbineHelper.distributeCondensedWater(
             instance::addOutputPartial,

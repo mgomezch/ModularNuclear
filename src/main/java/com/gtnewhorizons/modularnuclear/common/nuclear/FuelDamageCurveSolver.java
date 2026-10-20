@@ -104,7 +104,8 @@ public class FuelDamageCurveSolver {
      *
      * @param wearFactor ratio of damage rate at T_10% to damage rate at T_peak (default 8.0).
      */
-    public static FuelCurveStats solve(NuclearFuelType fuel, double tPeak, double tFloor, double ambientTemp, double wearFactor) {
+    public static FuelCurveStats solve(NuclearFuelType fuel, double tPeak, double tFloor, double ambientTemp,
+        double wearFactor) {
         if (wearFactor <= 1.0) {
             wearFactor = DEFAULT_T10_WEAR_FACTOR;
         }

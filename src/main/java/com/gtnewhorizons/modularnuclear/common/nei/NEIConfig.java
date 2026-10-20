@@ -99,10 +99,12 @@ public class NEIConfig implements IConfigureNEI {
                     .setMaxRecipesPerPage(1)
                     .build());
             event.registerHandlerInfo(
-                new HandlerInfo.Builder(NEIModeratorStatsHandler.class.getName(), "Modular Nuclear", ModularNuclear.MODID)
-                    .setDisplayStack(controller)
-                    .setMaxRecipesPerPage(1)
-                    .build());
+                new HandlerInfo.Builder(
+                    NEIModeratorStatsHandler.class.getName(),
+                    "Modular Nuclear",
+                    ModularNuclear.MODID).setDisplayStack(controller)
+                        .setMaxRecipesPerPage(1)
+                        .build());
             event.registerHandlerInfo(
                 new HandlerInfo.Builder(
                     new NEIModeratorStatsHandler().getRecipeName(),

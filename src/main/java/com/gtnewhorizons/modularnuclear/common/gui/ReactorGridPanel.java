@@ -17,7 +17,6 @@ import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
-import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
@@ -179,8 +178,7 @@ public class ReactorGridPanel {
 
         // Zoom Readout (also acts as drag handle)
         headerRow.child(
-            new PanelDragHandle(panel)
-                .title(IKey.dynamic(() -> gridWidget.getZoomPercent() + "%"))
+            new PanelDragHandle(panel).title(IKey.dynamic(() -> gridWidget.getZoomPercent() + "%"))
                 .color(Color.WHITE.main)
                 .textAlign(Alignment.Center)
                 .size(32, 14)

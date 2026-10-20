@@ -316,8 +316,8 @@ public class ActinideCompounderTest {
         mix.writeToNBT(tag1);
         singleFuel.setTagCompound(tag1);
 
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd1 =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(singleFuel);
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd1 = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findFuel(singleFuel);
         assertNotNull(fd1);
         assertEquals(1, fd1.packetCount);
         assertEquals(16, fd1.baseNeutrons);
@@ -328,8 +328,8 @@ public class ActinideCompounderTest {
         mix.writeToNBT(tag2);
         dualFuel.setTagCompound(tag2);
 
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd2 =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(dualFuel);
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd2 = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findFuel(dualFuel);
         assertNotNull(fd2);
         assertEquals(2, fd2.packetCount);
         assertEquals(32, fd2.baseNeutrons);
@@ -340,8 +340,8 @@ public class ActinideCompounderTest {
         mix.writeToNBT(tag4);
         quadFuel.setTagCompound(tag4);
 
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd4 =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(quadFuel);
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd4 = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findFuel(quadFuel);
         assertNotNull(fd4);
         assertEquals(4, fd4.packetCount);
         assertEquals(64, fd4.baseNeutrons);

@@ -22,10 +22,13 @@ import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
 import com.gtnewhorizons.coolantloops.engine.ICoolantLoopPump;
 import com.gtnewhorizons.coolantloops.engine.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.block.BlockCorium;
+import com.gtnewhorizons.modularnuclear.common.block.BlockCoriumSolid;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ItemNuclearCasing;
+import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
+import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.NuclearStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
@@ -42,6 +45,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemCardModularNuclear;
+import com.gtnewhorizons.modularnuclear.common.recipe.ModRecipes;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 
 import gregtech.api.enums.Textures;
@@ -60,49 +64,10 @@ public class NuclearSimulationEngineTest {
 
     @BeforeAll
     static void initEnvironment() {
-        Thread.currentThread()
-            .setName("Server thread");
-        try {
-            cpw.mods.fml.common.Loader mockLoader = org.mockito.Mockito.mock(cpw.mods.fml.common.Loader.class);
-            org.mockito.Mockito.when(mockLoader.getCallableCrashInformation())
-                .thenReturn(org.mockito.Mockito.mock(cpw.mods.fml.common.ICrashCallable.class));
-            java.lang.reflect.Field f = cpw.mods.fml.common.Loader.class.getDeclaredField("instance");
-            f.setAccessible(true);
-            if (f.get(null) == null) {
-                f.set(null, mockLoader);
-            }
-        } catch (Throwable t) {
-            t.printStackTrace();
-        }
+        TestEnvironmentHelper.init();
 
         try {
-            net.minecraft.init.Bootstrap.func_151354_b();
-        } catch (Throwable t) {
-            t.printStackTrace();
-        }
-
-        try {
-            java.lang.reflect.Field mcHome = cpw.mods.fml.relauncher.FMLInjectionData.class
-                .getDeclaredField("minecraftHome");
-            mcHome.setAccessible(true);
-            mcHome.set(null, new java.io.File("."));
-        } catch (Throwable ignored) {}
-
-        try {
-            if (gregtech.GTMod.proxy == null) {
-                gregtech.GTMod.proxy = org.mockito.Mockito.mock(gregtech.common.GTProxy.class);
-            }
-        } catch (Throwable ignored) {}
-
-        try {
-            java.lang.reflect.Field sideField = cpw.mods.fml.relauncher.FMLRelaunchLog.class.getDeclaredField("side");
-            sideField.setAccessible(true);
-            sideField.set(null, cpw.mods.fml.relauncher.Side.SERVER);
-        } catch (Throwable t) {
-            t.printStackTrace();
-        }
-
-        try {
+            ModFluids.init();
             if (com.gtnewhorizons.modularnuclear.common.block.ModBlocks.nuclearCasing == null) {
                 com.gtnewhorizons.modularnuclear.common.block.ModBlocks.init();
             }
@@ -2104,15 +2069,19 @@ public class NuclearSimulationEngineTest {
         for (MTEHatchNuclearBus b : buses) {
             gregtech.api.interfaces.tileentity.IGregTechTileEntity te = org.mockito.Mockito
                 .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-            org.mockito.Mockito.when(te.getMetaTileEntity()).thenReturn(b);
-            org.mockito.Mockito.when(te.isDead()).thenReturn(false);
+            org.mockito.Mockito.when(te.getMetaTileEntity())
+                .thenReturn(b);
+            org.mockito.Mockito.when(te.isDead())
+                .thenReturn(false);
             reactor.mLastFormedNuclearTiles.add(te);
         }
 
         gregtech.api.interfaces.tileentity.IGregTechTileEntity teHatch = org.mockito.Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-        org.mockito.Mockito.when(teHatch.getMetaTileEntity()).thenReturn(hatch);
-        org.mockito.Mockito.when(teHatch.isDead()).thenReturn(false);
+        org.mockito.Mockito.when(teHatch.getMetaTileEntity())
+            .thenReturn(hatch);
+        org.mockito.Mockito.when(teHatch.isDead())
+            .thenReturn(false);
         reactor.mLastFormedNuclearTiles.add(teHatch);
 
         assertTrue(reactor.isAnyTemperatureAbove100(), "Reactor should detect temperature > 100°C");
@@ -2121,15 +2090,27 @@ public class NuclearSimulationEngineTest {
         reactor.handleStructureBreak();
 
         // Fuel and coolant items/fluids must be voided:
-        assertNull(busFuel.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Fuel in bus must be voided on break above 100°C");
-        assertNull(busCoolant.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Coolant item in bus must be voided on break above 100°C");
+        assertNull(
+            busFuel.mInventory[MTEHatchNuclearBus.SLOT_INPUT],
+            "Fuel in bus must be voided on break above 100°C");
+        assertNull(
+            busCoolant.mInventory[MTEHatchNuclearBus.SLOT_INPUT],
+            "Coolant item in bus must be voided on break above 100°C");
         assertNull(hatch.mInputFluid, "Coolant in hatch must be voided on break above 100°C");
 
         // Spatial configuration items must be preserved:
-        assertNotNull(busReflector.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Reflector in bus must be preserved on break above 100°C");
-        assertNotNull(busModerator.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Moderator in bus must be preserved on break above 100°C");
-        assertNotNull(busVent.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Heat vent in bus must be preserved on break above 100°C");
-        assertNotNull(busExchanger.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Heat exchanger in bus must be preserved on break above 100°C");
+        assertNotNull(
+            busReflector.mInventory[MTEHatchNuclearBus.SLOT_INPUT],
+            "Reflector in bus must be preserved on break above 100°C");
+        assertNotNull(
+            busModerator.mInventory[MTEHatchNuclearBus.SLOT_INPUT],
+            "Moderator in bus must be preserved on break above 100°C");
+        assertNotNull(
+            busVent.mInventory[MTEHatchNuclearBus.SLOT_INPUT],
+            "Heat vent in bus must be preserved on break above 100°C");
+        assertNotNull(
+            busExchanger.mInventory[MTEHatchNuclearBus.SLOT_INPUT],
+            "Heat exchanger in bus must be preserved on break above 100°C");
     }
 
     @Test
@@ -2469,14 +2450,18 @@ public class NuclearSimulationEngineTest {
         // Repeated call hits memoized cache
         assertSame(mockCheeseRecipe, bus.findCheeseExtractionRecipe(stackA));
         assertTrue(MTEHatchNuclearBus.isCheeseRecipeInput(stackA));
-        assertTrue(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().isCheeseInput(stackA));
+        assertTrue(
+            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+                .isCheeseInput(stackA));
         assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(stackA));
 
         // stackB does not match and is negatively cached
         assertNull(bus.findCheeseExtractionRecipe(stackB));
         assertNull(bus.findCheeseExtractionRecipe(stackB));
         assertFalse(MTEHatchNuclearBus.isCheeseRecipeInput(stackB));
-        assertFalse(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().isCheeseInput(stackB));
+        assertFalse(
+            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+                .isCheeseInput(stackB));
 
         // Key equality and hashCode check
         MTEHatchNuclearBus.RecipeCacheKey key1 = new MTEHatchNuclearBus.RecipeCacheKey(stackA);
@@ -2489,16 +2474,27 @@ public class NuclearSimulationEngineTest {
 
         // Test singleton behavior with concrete inputs and fast O(1) item set filtering
         MTEHatchNuclearBus.clearCheeseRecipeCache();
-        assertFalse(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().hasDynamicOrUnknownInputs());
+        assertFalse(
+            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+                .hasDynamicOrUnknownInputs());
         gregtech.api.util.GTRecipe recipeWithInputs = org.mockito.Mockito.mock(gregtech.api.util.GTRecipe.class);
         recipeWithInputs.mInputs = new ItemStack[] { stackA };
         MTEHatchNuclearBus.registerCheeseRecipe(recipeWithInputs);
-        assertFalse(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().hasDynamicOrUnknownInputs());
-        assertTrue(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().getCheeseInputItems().contains(dummyItem));
-        assertTrue(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().isCheeseInput(stackA));
+        assertFalse(
+            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+                .hasDynamicOrUnknownInputs());
+        assertTrue(
+            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+                .getCheeseInputItems()
+                .contains(dummyItem));
+        assertTrue(
+            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+                .isCheeseInput(stackA));
         net.minecraft.item.Item otherItem = new net.minecraft.item.Item().setUnlocalizedName("other.dummy");
         ItemStack otherStack = new ItemStack(otherItem, 1, 0);
-        assertFalse(com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().isCheeseInput(otherStack));
+        assertFalse(
+            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+                .isCheeseInput(otherStack));
 
         MTEHatchNuclearBus.clearCheeseRecipeCache();
     }
@@ -2931,7 +2927,10 @@ public class NuclearSimulationEngineTest {
         assertEquals(256, exchanger.drainedEnergy, "Exchanger consumes 256 EU");
 
         // Energy conservation check: sum of temperatures in cluster must equal 180.0°C exactly
-        double sumAfter = grid[1][0].getTemperature() + grid[1][2].getTemperature() + grid[0][1].getTemperature() + grid[2][1].getTemperature() + exchanger.getTemperature();
+        double sumAfter = grid[1][0].getTemperature() + grid[1][2].getTemperature()
+            + grid[0][1].getTemperature()
+            + grid[2][1].getTemperature()
+            + exchanger.getTemperature();
         assertEquals(180.0, sumAfter, 1e-4, "Total thermal energy in cluster must be strictly conserved");
 
         // Insufficient EU test
@@ -4172,7 +4171,8 @@ public class NuclearSimulationEngineTest {
         World mockWorld = org.mockito.Mockito.mock(World.class);
         block.onEntityCollidedWithBlock(mockWorld, 0, 0, 0, mockEntity);
 
-        org.mockito.Mockito.verify(mockEntity).setInWeb();
+        org.mockito.Mockito.verify(mockEntity)
+            .setInWeb();
         assertEquals(0.5, mockEntity.motionX, 1e-4, "motionX must be dampened by 0.5");
         assertEquals(0.125, mockEntity.motionY, 1e-4, "upward motionY must be dampened by 0.25");
         assertEquals(0.5, mockEntity.motionZ, 1e-4, "motionZ must be dampened by 0.5");
@@ -4182,49 +4182,51 @@ public class NuclearSimulationEngineTest {
     void testCoriumPlacementHandlerCancelsReplacingCorium() {
         ModFluids.init();
         BlockCorium block = new BlockCorium(ModFluids.fluidCorium);
-        com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler handler =
-            new com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler();
+        com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler handler = new com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler();
 
-        net.minecraft.entity.player.EntityPlayer mockPlayer =
-            org.mockito.Mockito.mock(net.minecraft.entity.player.EntityPlayer.class);
+        net.minecraft.entity.player.EntityPlayer mockPlayer = org.mockito.Mockito
+            .mock(net.minecraft.entity.player.EntityPlayer.class);
         World mockWorld = org.mockito.Mockito.mock(World.class);
-        org.mockito.Mockito.when(mockWorld.getBlock(0, 0, 0)).thenReturn(block);
+        org.mockito.Mockito.when(mockWorld.getBlock(0, 0, 0))
+            .thenReturn(block);
 
-        net.minecraftforge.common.util.BlockSnapshot coriumSnapshot =
-            org.mockito.Mockito.mock(net.minecraftforge.common.util.BlockSnapshot.class);
+        net.minecraftforge.common.util.BlockSnapshot coriumSnapshot = org.mockito.Mockito
+            .mock(net.minecraftforge.common.util.BlockSnapshot.class);
         coriumSnapshot.world = mockWorld;
-        org.mockito.Mockito.when(coriumSnapshot.getReplacedBlock()).thenReturn(block);
-        org.mockito.Mockito.when(coriumSnapshot.getCurrentBlock()).thenReturn(block);
+        org.mockito.Mockito.when(coriumSnapshot.getReplacedBlock())
+            .thenReturn(block);
+        org.mockito.Mockito.when(coriumSnapshot.getCurrentBlock())
+            .thenReturn(block);
 
-        net.minecraftforge.event.world.BlockEvent.PlaceEvent rawCoriumEvent =
-            new net.minecraftforge.event.world.BlockEvent.PlaceEvent(
-                coriumSnapshot,
-                Blocks.stone,
-                mockPlayer
-            );
-        net.minecraftforge.event.world.BlockEvent.PlaceEvent coriumEvent =
-            org.mockito.Mockito.spy(rawCoriumEvent);
-        org.mockito.Mockito.doReturn(true).when(coriumEvent).isCancelable();
+        net.minecraftforge.event.world.BlockEvent.PlaceEvent rawCoriumEvent = new net.minecraftforge.event.world.BlockEvent.PlaceEvent(
+            coriumSnapshot,
+            Blocks.stone,
+            mockPlayer);
+        net.minecraftforge.event.world.BlockEvent.PlaceEvent coriumEvent = org.mockito.Mockito.spy(rawCoriumEvent);
+        org.mockito.Mockito.doReturn(true)
+            .when(coriumEvent)
+            .isCancelable();
 
         handler.onBlockPlace(coriumEvent);
         assertTrue(coriumEvent.isCanceled(), "PlaceEvent replacing Corium must be canceled");
 
         // Non-corium snapshot should NOT be canceled
-        net.minecraftforge.common.util.BlockSnapshot stoneSnapshot =
-            org.mockito.Mockito.mock(net.minecraftforge.common.util.BlockSnapshot.class);
+        net.minecraftforge.common.util.BlockSnapshot stoneSnapshot = org.mockito.Mockito
+            .mock(net.minecraftforge.common.util.BlockSnapshot.class);
         stoneSnapshot.world = mockWorld;
-        org.mockito.Mockito.when(stoneSnapshot.getReplacedBlock()).thenReturn(Blocks.stone);
-        org.mockito.Mockito.when(stoneSnapshot.getCurrentBlock()).thenReturn(Blocks.stone);
+        org.mockito.Mockito.when(stoneSnapshot.getReplacedBlock())
+            .thenReturn(Blocks.stone);
+        org.mockito.Mockito.when(stoneSnapshot.getCurrentBlock())
+            .thenReturn(Blocks.stone);
 
-        net.minecraftforge.event.world.BlockEvent.PlaceEvent rawStoneEvent =
-            new net.minecraftforge.event.world.BlockEvent.PlaceEvent(
-                stoneSnapshot,
-                Blocks.stone,
-                mockPlayer
-            );
-        net.minecraftforge.event.world.BlockEvent.PlaceEvent stoneEvent =
-            org.mockito.Mockito.spy(rawStoneEvent);
-        org.mockito.Mockito.doReturn(true).when(stoneEvent).isCancelable();
+        net.minecraftforge.event.world.BlockEvent.PlaceEvent rawStoneEvent = new net.minecraftforge.event.world.BlockEvent.PlaceEvent(
+            stoneSnapshot,
+            Blocks.stone,
+            mockPlayer);
+        net.minecraftforge.event.world.BlockEvent.PlaceEvent stoneEvent = org.mockito.Mockito.spy(rawStoneEvent);
+        org.mockito.Mockito.doReturn(true)
+            .when(stoneEvent)
+            .isCancelable();
 
         handler.onBlockPlace(stoneEvent);
         assertFalse(stoneEvent.isCanceled(), "PlaceEvent replacing normal stone must NOT be canceled");
@@ -4234,22 +4236,30 @@ public class NuclearSimulationEngineTest {
     void testCoriumPlacementHandlerCancelsBucketFill() {
         ModFluids.init();
         BlockCorium block = new BlockCorium(ModFluids.fluidCorium);
-        com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler handler =
-            new com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler();
+        com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler handler = new com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler();
 
-        net.minecraft.entity.player.EntityPlayer mockPlayer =
-            org.mockito.Mockito.mock(net.minecraft.entity.player.EntityPlayer.class);
+        net.minecraft.entity.player.EntityPlayer mockPlayer = org.mockito.Mockito
+            .mock(net.minecraft.entity.player.EntityPlayer.class);
         World mockWorld = org.mockito.Mockito.mock(World.class);
-        org.mockito.Mockito.when(mockWorld.getBlock(10, 20, 30)).thenReturn(block);
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 20, 30))
+            .thenReturn(block);
 
-        net.minecraft.util.MovingObjectPosition mop =
-            new net.minecraft.util.MovingObjectPosition(10, 20, 30, 1, net.minecraft.util.Vec3.createVectorHelper(10.5, 20.5, 30.5));
+        net.minecraft.util.MovingObjectPosition mop = new net.minecraft.util.MovingObjectPosition(
+            10,
+            20,
+            30,
+            1,
+            net.minecraft.util.Vec3.createVectorHelper(10.5, 20.5, 30.5));
 
-        net.minecraftforge.event.entity.player.FillBucketEvent rawBucketEvent =
-            new net.minecraftforge.event.entity.player.FillBucketEvent(mockPlayer, null, mockWorld, mop);
-        net.minecraftforge.event.entity.player.FillBucketEvent bucketEvent =
-            org.mockito.Mockito.spy(rawBucketEvent);
-        org.mockito.Mockito.doReturn(true).when(bucketEvent).isCancelable();
+        net.minecraftforge.event.entity.player.FillBucketEvent rawBucketEvent = new net.minecraftforge.event.entity.player.FillBucketEvent(
+            mockPlayer,
+            null,
+            mockWorld,
+            mop);
+        net.minecraftforge.event.entity.player.FillBucketEvent bucketEvent = org.mockito.Mockito.spy(rawBucketEvent);
+        org.mockito.Mockito.doReturn(true)
+            .when(bucketEvent)
+            .isCancelable();
 
         handler.onBucketFill(bucketEvent);
         assertTrue(bucketEvent.isCanceled(), "FillBucketEvent targeting Corium must be canceled");
@@ -4277,6 +4287,88 @@ public class NuclearSimulationEngineTest {
     void testEntityMeltdownFalloutTimers() {
         assertEquals(2400, EntityMeltdownFallout.SOLIDIFY_TIME, "Solidify time must be 2400 ticks (2 minutes)");
         assertEquals(12000, EntityMeltdownFallout.TOTAL_LIFETIME, "Total lifetime must be 12000 ticks (10 minutes)");
+    }
+
+    @Test
+    void testSolidCoriumBlockProperties() {
+        ModFluids.init();
+        ModBlocks.init();
+        BlockCoriumSolid solidBlock = ModBlocks.blockCoriumSolid;
+        assertNotNull(solidBlock, "ModBlocks.blockCoriumSolid must be initialized");
+        assertEquals(2500.0F, BlockCoriumSolid.CORIUM_HARDNESS, 1e-4, "Hardness must be 2500.0F (50x obsidian)");
+        assertEquals(6000.0F, BlockCoriumSolid.CORIUM_RESISTANCE, 1e-4, "Resistance must be 6000.0F");
+        assertEquals(20, solidBlock.tickRate(null), "Solid corium tick rate must be 20 ticks (1s)");
+        assertEquals(1, solidBlock.quantityDropped(null), "Solid corium must drop 1 item when harvested");
+        assertEquals(
+            net.minecraft.item.Item.getItemFromBlock(solidBlock),
+            solidBlock.getItemDropped(0, null, 0),
+            "Solid corium must drop itself");
+        assertTrue(
+            BlockCorium.isImmuneToCorium(solidBlock, null, 0, 0, 0),
+            "Solid corium must be immune to molten corium");
+    }
+
+    @Test
+    void testCoriumItemsAndOreDict() {
+        ModFluids.init();
+        ModBlocks.init();
+        ModItems.init();
+        assertNotNull(ModItems.itemCoriumDust, "itemCoriumDust must be initialized");
+        assertNotNull(ModItems.itemCoriumRod, "itemCoriumRod must be initialized");
+        assertEquals(
+            "modularnuclear.corium_dust",
+            ModItems.itemCoriumDust.getUnlocalizedName()
+                .replace("item.", ""));
+        assertEquals(
+            "modularnuclear.corium_rod",
+            ModItems.itemCoriumRod.getUnlocalizedName()
+                .replace("item.", ""));
+    }
+
+    @Test
+    void testCoriumRecipesRegistration() {
+        ModFluids.init();
+        ModBlocks.init();
+        ModItems.init();
+        if (!gregtech.api.enums.ItemList.Shape_Extruder_Rod.hasBeenSet()) {
+            gregtech.api.enums.ItemList.Shape_Extruder_Rod.set(new ItemStack(net.minecraft.init.Items.stick));
+        }
+        if (gregtech.api.enums.GTValues.RA == null) {
+            gregtech.api.enums.GTValues.RA = new gregtech.common.RecipeAdder();
+        }
+        ModRecipes.init();
+
+        // 1. Macerator recipe: Corium Block -> Corium Dust
+        gregtech.api.util.GTRecipe maceratorRecipe = gregtech.api.recipe.RecipeMaps.maceratorRecipes.findRecipeQuery()
+            .items(new ItemStack(ModBlocks.blockCoriumSolid, 1))
+            .find();
+        assertNotNull(maceratorRecipe, "Macerator recipe for Corium Block must exist");
+        assertEquals(120 * 20, maceratorRecipe.mDuration, "Macerator duration must be 120 seconds (2400 ticks)");
+        assertEquals(7680, maceratorRecipe.mEUt, "Macerator EU/t must be 7680");
+        assertEquals(
+            new ItemStack(ModItems.itemCoriumDust).getItem(),
+            maceratorRecipe.mOutputs[0].getItem(),
+            "Macerator output must be Corium Dust");
+
+        // 2. Extruder recipe: Corium Dust + Rod Shape -> Corium Rod
+        gregtech.api.util.GTRecipe extruderRecipe = gregtech.api.recipe.RecipeMaps.extruderRecipes.findRecipeQuery()
+            .items(new ItemStack(ModItems.itemCoriumDust, 1), gregtech.api.enums.ItemList.Shape_Extruder_Rod.get(0L))
+            .find();
+        assertNotNull(extruderRecipe, "Extruder recipe for Corium Dust -> Corium Rod must exist");
+        assertEquals(
+            new ItemStack(ModItems.itemCoriumRod).getItem(),
+            extruderRecipe.mOutputs[0].getItem(),
+            "Extruder output must be Corium Rod");
+
+        // 3. RTG fuel recipe: Corium Rod
+        gregtech.api.util.GTRecipe rtgRecipe = gregtech.api.recipe.RecipeMaps.rtgFuels.findRecipeQuery()
+            .items(new ItemStack(ModItems.itemCoriumRod, 1))
+            .find();
+        assertNotNull(rtgRecipe, "RTG fuel recipe for Corium Rod must exist");
+        assertEquals(
+            432,
+            rtgRecipe.mSpecialValue,
+            "RTG fuel duration must be 432 days (2x longest existing at 216 days)");
     }
 
     @Test
@@ -5839,10 +5931,12 @@ public class NuclearSimulationEngineTest {
     void testCherenkovWorldRendererLifecycle() {
         MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.test");
         com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.register(reactor);
-        assertTrue(com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.ACTIVE_REACTORS.contains(reactor));
+        assertTrue(
+            com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.ACTIVE_REACTORS.contains(reactor));
 
         com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.unregister(reactor);
-        assertFalse(com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.ACTIVE_REACTORS.contains(reactor));
+        assertFalse(
+            com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.ACTIVE_REACTORS.contains(reactor));
 
         com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.register(reactor);
         new com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer().onWorldUnload(null);
@@ -5866,8 +5960,11 @@ public class NuclearSimulationEngineTest {
     @Test
     void testApplyTextMaxWidthRecursion() {
         com.cleanroommc.modularui.widgets.layout.Flow container = com.cleanroommc.modularui.widgets.layout.Flow.row();
-        com.cleanroommc.modularui.widgets.layout.Flow innerFlow = com.cleanroommc.modularui.widgets.layout.Flow.column();
-        com.cleanroommc.modularui.widgets.TextWidget<?> textWidget = com.cleanroommc.modularui.api.drawable.IKey.str("test").asWidget();
+        com.cleanroommc.modularui.widgets.layout.Flow innerFlow = com.cleanroommc.modularui.widgets.layout.Flow
+            .column();
+        com.cleanroommc.modularui.widgets.TextWidget<?> textWidget = com.cleanroommc.modularui.api.drawable.IKey
+            .str("test")
+            .asWidget();
         assertEquals(-1, textWidget.getMaxWidth());
 
         innerFlow.child(textWidget);
@@ -6103,15 +6200,26 @@ public class NuclearSimulationEngineTest {
 
     @Test
     public void testDefaultPhysicsFissionHeat() {
-        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData defaultPhysics =
-            new com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData();
-        assertEquals(38.0, defaultPhysics.fissionHeatPerNeutron, 1e-4, "PhysicsData default fission heat must be 38.0 Hu/neutron");
+        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData defaultPhysics = new com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData();
+        assertEquals(
+            38.0,
+            defaultPhysics.fissionHeatPerNeutron,
+            1e-4,
+            "PhysicsData default fission heat must be 38.0 Hu/neutron");
 
-        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData activePhysics =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics();
+        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData activePhysics = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .getPhysics();
         assertNotNull(activePhysics);
-        assertEquals(38.0, activePhysics.fissionHeatPerNeutron, 1e-4, "Active registry physics must have 38.0 Hu/neutron");
-        assertEquals(38.0, NuclearSimulationEngine.fissionHeatPerNeutron, 1e-4, "NuclearSimulationEngine must use 38.0 Hu/neutron by default");
+        assertEquals(
+            38.0,
+            activePhysics.fissionHeatPerNeutron,
+            1e-4,
+            "Active registry physics must have 38.0 Hu/neutron");
+        assertEquals(
+            38.0,
+            NuclearSimulationEngine.fissionHeatPerNeutron,
+            1e-4,
+            "NuclearSimulationEngine must use 38.0 Hu/neutron by default");
     }
 
     @Test
@@ -6822,44 +6930,48 @@ public class NuclearSimulationEngineTest {
         if (com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel4 == null) {
             com.gtnewhorizons.modularnuclear.common.item.ModItems.init();
         }
-        com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod customItem =
-            com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel4;
+        com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod customItem = com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel4;
 
         ItemStack fuelStack = new ItemStack(customItem, 1, 0);
         fuelStack.stackTagCompound = new net.minecraft.nbt.NBTTagCompound();
 
-        java.util.Map<com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix.ActinideIsotope, Integer> units =
-            new java.util.LinkedHashMap<>();
+        java.util.Map<com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix.ActinideIsotope, Integer> units = new java.util.LinkedHashMap<>();
         units.put(com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix.ActinideIsotope.URANIUM_235, 360);
-        com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix mix =
-            new com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix(units);
+        com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix mix = new com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix(
+            units);
         mix.writeToNBT(fuelStack.stackTagCompound);
 
         int maxDur = customItem.getMaxDamageEx(fuelStack);
         assertTrue(maxDur > 0, "Max durability must be greater than 0");
 
         customItem.setDamageForStack(fuelStack, 0);
-        assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isFuelAtMaxDamage(fuelStack));
+        assertFalse(
+            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isFuelAtMaxDamage(fuelStack));
 
         customItem.setDamageForStack(fuelStack, maxDur);
         assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isFuelAtMaxDamage(fuelStack));
-        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(fuelStack),
+        assertTrue(
+            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(fuelStack),
             "Max-damaged fuel rod must be allowed in bus for automation");
     }
 
     @Test
     void testMaxDamageModeratorFailsafe() {
-        net.minecraftforge.oredict.OreDictionary.registerOre("stickLongGraphite", new ItemStack(net.minecraft.init.Items.stick));
+        net.minecraftforge.oredict.OreDictionary
+            .registerOre("stickLongGraphite", new ItemStack(net.minecraft.init.Items.stick));
         ItemStack modStack = new ItemStack(net.minecraft.init.Items.stick, 1, 0);
         modStack.stackTagCompound = new net.minecraft.nbt.NBTTagCompound();
 
         // Graphite durability is 80000
         modStack.stackTagCompound.setInteger("advDmg", 79999);
-        assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isModeratorAtMaxDamage(modStack));
+        assertFalse(
+            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isModeratorAtMaxDamage(modStack));
 
         modStack.stackTagCompound.setInteger("advDmg", 80000);
-        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isModeratorAtMaxDamage(modStack));
-        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(modStack),
+        assertTrue(
+            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isModeratorAtMaxDamage(modStack));
+        assertTrue(
+            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(modStack),
             "Fully damaged moderator must be allowed in bus for automation");
     }
 
@@ -6871,13 +6983,16 @@ public class NuclearSimulationEngineTest {
         assertTrue(reactor.drainEnergyUnits(0), "Draining 0 EU should always succeed");
 
         // Mock energy hatch
-        gregtech.api.metatileentity.implementations.MTEHatchEnergy mockHatch =
-            org.mockito.Mockito.mock(gregtech.api.metatileentity.implementations.MTEHatchEnergy.class);
-        gregtech.api.interfaces.tileentity.IGregTechTileEntity mockBase =
-            org.mockito.Mockito.mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-        org.mockito.Mockito.when(mockHatch.isValid()).thenReturn(true);
-        org.mockito.Mockito.when(mockHatch.getBaseMetaTileEntity()).thenReturn(mockBase);
-        org.mockito.Mockito.when(mockBase.getStoredEU()).thenReturn(5000L);
+        gregtech.api.metatileentity.implementations.MTEHatchEnergy mockHatch = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.implementations.MTEHatchEnergy.class);
+        gregtech.api.interfaces.tileentity.IGregTechTileEntity mockBase = org.mockito.Mockito
+            .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+        org.mockito.Mockito.when(mockHatch.isValid())
+            .thenReturn(true);
+        org.mockito.Mockito.when(mockHatch.getBaseMetaTileEntity())
+            .thenReturn(mockBase);
+        org.mockito.Mockito.when(mockBase.getStoredEU())
+            .thenReturn(5000L);
 
         reactor.mEnergyHatches = new java.util.ArrayList<>();
         reactor.mEnergyHatches.add(mockHatch);
@@ -6887,7 +7002,8 @@ public class NuclearSimulationEngineTest {
 
         boolean drained = reactor.drainEnergyUnits(1000L);
         assertTrue(drained, "Draining within available energy should succeed");
-        org.mockito.Mockito.verify(mockBase).decreaseStoredEnergyUnits(1000L, false);
+        org.mockito.Mockito.verify(mockBase)
+            .decreaseStoredEnergyUnits(1000L, false);
     }
 
     @Test
@@ -6925,7 +7041,11 @@ public class NuclearSimulationEngineTest {
         placedReactor.checkMachine(null, controllerStack, errors);
         assertFalse(errors.isEmpty(), "Structure check must report an error for molten controller");
         boolean foundStructureError = errors.stream()
-            .anyMatch(e -> e.getDisplayString() != null && (e.getDisplayString().contains("molten_down") || e.getDisplayString().contains("meltdown")));
+            .anyMatch(
+                e -> e.getDisplayString() != null && (e.getDisplayString()
+                    .contains("molten_down")
+                    || e.getDisplayString()
+                        .contains("meltdown")));
         assertTrue(foundStructureError, "Structure error list must include molten_down error message");
     }
 
@@ -6941,7 +7061,8 @@ public class NuclearSimulationEngineTest {
 
             gregtech.api.interfaces.tileentity.IGregTechTileEntity teMock = org.mockito.Mockito
                 .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-            org.mockito.Mockito.when(teMock.isServerSide()).thenReturn(true);
+            org.mockito.Mockito.when(teMock.isServerSide())
+                .thenReturn(true);
             reactor.setBaseMetaTileEntity(teMock);
 
             // Add a mock nuclear tile bus with an item
@@ -6949,17 +7070,23 @@ public class NuclearSimulationEngineTest {
             bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = new ItemStack(Blocks.dirt);
             gregtech.api.interfaces.tileentity.IGregTechTileEntity busTe = org.mockito.Mockito
                 .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-            org.mockito.Mockito.when(busTe.getMetaTileEntity()).thenReturn(bus);
-            org.mockito.Mockito.when(busTe.isServerSide()).thenReturn(true);
+            org.mockito.Mockito.when(busTe.getMetaTileEntity())
+                .thenReturn(bus);
+            org.mockito.Mockito.when(busTe.isServerSide())
+                .thenReturn(true);
             reactor.mNuclearTiles.add(busTe);
 
             // Add a mock nuclear tile hatch with fluid
             MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("hatch.test", 1, 16000, new String[0], null);
-            hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(net.minecraftforge.fluids.FluidRegistry.WATER, 1000);
+            hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(
+                net.minecraftforge.fluids.FluidRegistry.WATER,
+                1000);
             gregtech.api.interfaces.tileentity.IGregTechTileEntity hatchTe = org.mockito.Mockito
                 .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-            org.mockito.Mockito.when(hatchTe.getMetaTileEntity()).thenReturn(hatch);
-            org.mockito.Mockito.when(hatchTe.isServerSide()).thenReturn(true);
+            org.mockito.Mockito.when(hatchTe.getMetaTileEntity())
+                .thenReturn(hatch);
+            org.mockito.Mockito.when(hatchTe.isServerSide())
+                .thenReturn(true);
             reactor.mNuclearTiles.add(hatchTe);
 
             // Trigger meltdown with explosions disabled
@@ -6977,7 +7104,9 @@ public class NuclearSimulationEngineTest {
 
             // Similarly, explodeReactor should void all contents without exploding
             bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = new ItemStack(Blocks.dirt);
-            hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(net.minecraftforge.fluids.FluidRegistry.WATER, 1000);
+            hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(
+                net.minecraftforge.fluids.FluidRegistry.WATER,
+                1000);
             reactor.explodeReactor(null, "Test explosion when disabled");
             assertNull(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Bus inventory must be voided by explodeReactor");
             assertNull(hatch.mInputFluid, "Hatch fluid must be voided by explodeReactor");
@@ -6992,8 +7121,8 @@ public class NuclearSimulationEngineTest {
             .mock(EntityMeltdownFallout.class, org.mockito.Mockito.CALLS_REAL_METHODS);
         assertNull(fallout.getChunkTicket(), "Initial ticket should be null");
 
-        net.minecraftforge.common.ForgeChunkManager.Ticket mockTicket =
-            org.mockito.Mockito.mock(net.minecraftforge.common.ForgeChunkManager.Ticket.class);
+        net.minecraftforge.common.ForgeChunkManager.Ticket mockTicket = org.mockito.Mockito
+            .mock(net.minecraftforge.common.ForgeChunkManager.Ticket.class);
         fallout.initChunkLoading(mockTicket);
         assertEquals(mockTicket, fallout.getChunkTicket(), "Ticket should be set after initChunkLoading");
 
@@ -7012,9 +7141,12 @@ public class NuclearSimulationEngineTest {
 
         gregtech.api.metatileentity.BaseMetaTileEntity baseTe = org.mockito.Mockito
             .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
-        org.mockito.Mockito.when(baseTe.isServerSide()).thenReturn(true);
-        org.mockito.Mockito.when(baseTe.isAllowedToWork()).thenReturn(true);
-        org.mockito.Mockito.when(baseTe.getWorld()).thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
+        org.mockito.Mockito.when(baseTe.isServerSide())
+            .thenReturn(true);
+        org.mockito.Mockito.when(baseTe.isAllowedToWork())
+            .thenReturn(true);
+        org.mockito.Mockito.when(baseTe.getWorld())
+            .thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
         reactor.setBaseMetaTileEntity(baseTe);
 
         MTEHatchNuclearHighPressure topHp = new MTEHatchNuclearHighPressure("test.top_hp", 4, new String[0], null);
@@ -7024,12 +7156,14 @@ public class NuclearSimulationEngineTest {
 
         gregtech.api.interfaces.tileentity.IGregTechTileEntity mockTopTe = org.mockito.Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-        org.mockito.Mockito.when(mockTopTe.getMetaTileEntity()).thenReturn(topHp);
+        org.mockito.Mockito.when(mockTopTe.getMetaTileEntity())
+            .thenReturn(topHp);
         topHp.setBaseMetaTileEntity(mockTopTe);
 
         gregtech.api.interfaces.tileentity.IGregTechTileEntity mockBotTe = org.mockito.Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-        org.mockito.Mockito.when(mockBotTe.getMetaTileEntity()).thenReturn(botHp);
+        org.mockito.Mockito.when(mockBotTe.getMetaTileEntity())
+            .thenReturn(botHp);
         botHp.setBaseMetaTileEntity(mockBotTe);
 
         topHp.setOppositeHatch(mockBotTe);
@@ -7075,13 +7209,21 @@ public class NuclearSimulationEngineTest {
         topHp.setTemperature(1300.0);
         topHp.mIncomingCoolantTemp = 1000.0;
         reactor.onPostTick(baseTe, 40);
-        assertEquals(1.0, reactor.mReactorDamage, 1e-6, "Passage cell above max operating temp must increase damage by 1%");
+        assertEquals(
+            1.0,
+            reactor.mReactorDamage,
+            1e-6,
+            "Passage cell above max operating temp must increase damage by 1%");
 
         // Incoming coolant over-temperature (> maxTemp): increases damage
         topHp.setTemperature(1000.0);
         topHp.mIncomingCoolantTemp = 1300.0;
         reactor.onPostTick(baseTe, 60);
-        assertEquals(2.0, reactor.mReactorDamage, 1e-6, "Incoming coolant above max operating temp must increase damage by 1%");
+        assertEquals(
+            2.0,
+            reactor.mReactorDamage,
+            1e-6,
+            "Incoming coolant above max operating temp must increase damage by 1%");
 
         // 3. Structure break temperature check (> 100 °C)
         reactor.mLastFormedNuclearTiles.clear();
@@ -7110,9 +7252,12 @@ public class NuclearSimulationEngineTest {
 
         gregtech.api.metatileentity.BaseMetaTileEntity baseTe = org.mockito.Mockito
             .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
-        org.mockito.Mockito.when(baseTe.isServerSide()).thenReturn(true);
-        org.mockito.Mockito.when(baseTe.isAllowedToWork()).thenReturn(true);
-        org.mockito.Mockito.when(baseTe.getWorld()).thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
+        org.mockito.Mockito.when(baseTe.isServerSide())
+            .thenReturn(true);
+        org.mockito.Mockito.when(baseTe.isAllowedToWork())
+            .thenReturn(true);
+        org.mockito.Mockito.when(baseTe.getWorld())
+            .thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
         reactor.setBaseMetaTileEntity(baseTe);
 
         if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("thoriumbasedliquidfuel")) {
@@ -7121,8 +7266,12 @@ public class NuclearSimulationEngineTest {
         }
         net.minecraftforge.fluids.Fluid liquidFuel = net.minecraftforge.fluids.FluidRegistry
             .getFluid("thoriumbasedliquidfuel");
-        net.minecraftforge.fluids.FluidStack liquidFuelStack = new net.minecraftforge.fluids.FluidStack(liquidFuel, 1000);
-        assertTrue(MTENuclearReactor.isFluidFuel(liquidFuelStack), "Thorium based liquid fuel must be classified as fluid fuel");
+        net.minecraftforge.fluids.FluidStack liquidFuelStack = new net.minecraftforge.fluids.FluidStack(
+            liquidFuel,
+            1000);
+        assertTrue(
+            MTENuclearReactor.isFluidFuel(liquidFuelStack),
+            "Thorium based liquid fuel must be classified as fluid fuel");
 
         // Superheated hatch (>100°C) with liquid fuel injected into dry hatch
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch.fuel", 3, 32000, new String[0], null);
@@ -7132,7 +7281,8 @@ public class NuclearSimulationEngineTest {
 
         gregtech.api.interfaces.tileentity.IGregTechTileEntity hatchTe = org.mockito.Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-        org.mockito.Mockito.when(hatchTe.getMetaTileEntity()).thenReturn(hatch);
+        org.mockito.Mockito.when(hatchTe.getMetaTileEntity())
+            .thenReturn(hatch);
         hatch.setBaseMetaTileEntity(hatchTe);
         reactor.mNuclearTiles.add(hatchTe);
 
@@ -7143,7 +7293,11 @@ public class NuclearSimulationEngineTest {
         assertNotNull(hatch.mInputFluid, "Liquid fuel must NOT be voided on refill into hot dry hatch");
         assertEquals(1000, hatch.mInputFluid.amount, "Liquid fuel amount must be intact");
         assertFalse(hatch.mWasDry, "Liquid fuel hatch mWasDry must be cleared without triggering thermal shock");
-        assertEquals(0.0, reactor.mReactorDamage, 1e-6, "Reactor damage must remain 0 (no thermal shock for liquid fuel)");
+        assertEquals(
+            0.0,
+            reactor.mReactorDamage,
+            1e-6,
+            "Reactor damage must remain 0 (no thermal shock for liquid fuel)");
         assertEquals(6, reactor.getRepairStatus(), "Maintenance issues must remain intact (no thermal shock)");
 
         // Directly invoking triggerThermalShock on a liquid fuel hatch must be a no-op
@@ -7173,8 +7327,11 @@ public class NuclearSimulationEngineTest {
         // 2. Verify NuclearGridTile control rod absorption fraction with MTEHatchNuclearControlRod
         MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.rod.heat");
         reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile gridTile =
-            new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile(reactor, (MTEHatchNuclearBus) null, 1, 1);
+        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile gridTile = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile(
+            reactor,
+            (MTEHatchNuclearBus) null,
+            1,
+            1);
         assertFalse(gridTile.hasControlRod());
         assertEquals(0.0, gridTile.getControlRodAbsorptionFraction(NeutronType.THERMAL), 1e-6);
 
@@ -7188,7 +7345,8 @@ public class NuclearSimulationEngineTest {
 
         // 3. Verify NuclearSimulationEngine heat generation:
         // When control rods absorb thermal neutrons on a fuel cell, they deposit heat at
-        // HU_FOR_FAST_NEUTRON * 0.5 (4.0 Hu/neutron), NOT the fuel fission rate (fissionHeatPerNeutron * 1.25 = 5.0 Hu/neutron).
+        // HU_FOR_FAST_NEUTRON * 0.5 (4.0 Hu/neutron), NOT the fuel fission rate (fissionHeatPerNeutron * 1.25 = 5.0
+        // Hu/neutron).
         // A non-fuel cell also deposits thermal neutron absorption heat at HU_FOR_FAST_NEUTRON * 0.5 (4.0 Hu/neutron).
 
         double origHeatPerNeutron = NuclearSimulationEngine.fissionHeatPerNeutron;
@@ -7223,20 +7381,40 @@ public class NuclearSimulationEngineTest {
 
             // Fuel cell without control rod: 800.0 (fast mod) + 100 * 5.0 (fuel thermal) = 1300.0 Hu
             double heatFuelNoRod = runSim.apply(true, 0.0);
-            assertEquals(1300.0, heatFuelNoRod, 1e-4, "Fuel cell without control rod must absorb thermal neutrons at 5.0 Hu/neutron");
+            assertEquals(
+                1300.0,
+                heatFuelNoRod,
+                1e-4,
+                "Fuel cell without control rod must absorb thermal neutrons at 5.0 Hu/neutron");
 
             // Fuel cell with 100% control rod absorption: 800.0 (fast mod) + 100 * 4.0 (rod thermal) = 1200.0 Hu
             double heatFuelFullRod = runSim.apply(true, 1.0);
-            assertEquals(1200.0, heatFuelFullRod, 1e-4, "Fuel cell with 100% control rod must absorb thermal neutrons at non-fuel rate (4.0 Hu/neutron)");
-            assertEquals(heatNonFuel, heatFuelFullRod, 1e-4, "Rod-absorbed heat on fuel cell must exactly equal non-fuel cell heat");
+            assertEquals(
+                1200.0,
+                heatFuelFullRod,
+                1e-4,
+                "Fuel cell with 100% control rod must absorb thermal neutrons at non-fuel rate (4.0 Hu/neutron)");
+            assertEquals(
+                heatNonFuel,
+                heatFuelFullRod,
+                1e-4,
+                "Rod-absorbed heat on fuel cell must exactly equal non-fuel cell heat");
 
             // Fuel cell with 50% control rod absorption: 800.0 + 50 * 5.0 + 50 * 4.0 = 1250.0 Hu
             double heatFuelHalfRod = runSim.apply(true, 0.5);
-            assertEquals(1250.0, heatFuelHalfRod, 1e-4, "Fuel cell with 50% control rod must split absorption: 50 * 5.0 + 50 * 4.0 = 450 Hu");
+            assertEquals(
+                1250.0,
+                heatFuelHalfRod,
+                1e-4,
+                "Fuel cell with 50% control rod must split absorption: 50 * 5.0 + 50 * 4.0 = 450 Hu");
 
             // Fuel cell with 25% control rod absorption: 800.0 + 75 * 5.0 + 25 * 4.0 = 1275.0 Hu
             double heatFuelQuarterRod = runSim.apply(true, 0.25);
-            assertEquals(1275.0, heatFuelQuarterRod, 1e-4, "Fuel cell with 25% control rod must split absorption: 75 * 5.0 + 25 * 4.0 = 475 Hu");
+            assertEquals(
+                1275.0,
+                heatFuelQuarterRod,
+                1e-4,
+                "Fuel cell with 25% control rod must split absorption: 75 * 5.0 + 25 * 4.0 = 475 Hu");
         } finally {
             NuclearSimulationEngine.fissionHeatPerNeutron = origHeatPerNeutron;
         }
@@ -7261,13 +7439,7 @@ public class NuclearSimulationEngineTest {
         // 2. Extraction and insertion limits per pipe count
         int[][] pipeScenarios = {
             // pipes, expectedMaxExtraction, expectedMinInsertion
-            { 5, 100, 0 },
-            { 4, 80, 20 },
-            { 3, 60, 40 },
-            { 2, 40, 60 },
-            { 1, 20, 80 },
-            { 0, 0, 100 }
-        };
+            { 5, 100, 0 }, { 4, 80, 20 }, { 3, 60, 40 }, { 2, 40, 60 }, { 1, 20, 80 }, { 0, 0, 100 } };
         for (int[] s : pipeScenarios) {
             rod.setMiningPipeCount(s[0]);
             assertEquals(s[1], rod.getMaxExtractionPercent(), "Max extraction mismatch for " + s[0] + " pipes");
@@ -7338,17 +7510,24 @@ public class NuclearSimulationEngineTest {
         // 4. World contiguous scanning & gap handling
         World mockWorld = org.mockito.Mockito.mock(World.class);
         IGregTechTileEntity mockGt = org.mockito.Mockito.mock(IGregTechTileEntity.class);
-        org.mockito.Mockito.when(mockGt.getWorld()).thenReturn(mockWorld);
-        org.mockito.Mockito.when(mockGt.getXCoord()).thenReturn(10);
-        org.mockito.Mockito.when(mockGt.getYCoord()).thenReturn((short) 50);
-        org.mockito.Mockito.when(mockGt.getZCoord()).thenReturn(10);
-        org.mockito.Mockito.when(mockGt.getFrontFacing()).thenReturn(ForgeDirection.DOWN);
+        org.mockito.Mockito.when(mockGt.getWorld())
+            .thenReturn(mockWorld);
+        org.mockito.Mockito.when(mockGt.getXCoord())
+            .thenReturn(10);
+        org.mockito.Mockito.when(mockGt.getYCoord())
+            .thenReturn((short) 50);
+        org.mockito.Mockito.when(mockGt.getZCoord())
+            .thenReturn(10);
+        org.mockito.Mockito.when(mockGt.getFrontFacing())
+            .thenReturn(ForgeDirection.DOWN);
 
         net.minecraft.block.Block mockMiningPipe = org.mockito.Mockito.mock(net.minecraft.block.Block.class);
-        org.mockito.Mockito.when(mockMiningPipe.getUnlocalizedName()).thenReturn("tile.blockMiningPipe");
+        org.mockito.Mockito.when(mockMiningPipe.getUnlocalizedName())
+            .thenReturn("tile.blockMiningPipe");
 
         net.minecraft.block.Block mockOther = org.mockito.Mockito.mock(net.minecraft.block.Block.class);
-        org.mockito.Mockito.when(mockOther.getUnlocalizedName()).thenReturn("tile.stone");
+        org.mockito.Mockito.when(mockOther.getUnlocalizedName())
+            .thenReturn("tile.stone");
 
         // Test isMiningPipeBlock
         assertTrue(MTEHatchNuclearControlRod.isMiningPipeBlock(mockMiningPipe, 0));
@@ -7360,18 +7539,24 @@ public class NuclearSimulationEngineTest {
 
         // Case A: 5 consecutive mining pipes below hatch (y=49..45)
         for (int y = 49; y >= 45; y--) {
-            org.mockito.Mockito.when(mockWorld.getBlock(10, y, 10)).thenReturn(mockMiningPipe);
+            org.mockito.Mockito.when(mockWorld.getBlock(10, y, 10))
+                .thenReturn(mockMiningPipe);
         }
         worldRod.updateMiningPipeHousing();
         assertEquals(5, worldRod.getMiningPipeCount());
         assertEquals(0, worldRod.getMinInsertionPercent());
 
         // Case B: 2 mining pipes, then gap (stone), then 2 mining pipes
-        org.mockito.Mockito.when(mockWorld.getBlock(10, 49, 10)).thenReturn(mockMiningPipe);
-        org.mockito.Mockito.when(mockWorld.getBlock(10, 48, 10)).thenReturn(mockMiningPipe);
-        org.mockito.Mockito.when(mockWorld.getBlock(10, 47, 10)).thenReturn(mockOther); // GAP!
-        org.mockito.Mockito.when(mockWorld.getBlock(10, 46, 10)).thenReturn(mockMiningPipe);
-        org.mockito.Mockito.when(mockWorld.getBlock(10, 45, 10)).thenReturn(mockMiningPipe);
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 49, 10))
+            .thenReturn(mockMiningPipe);
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 48, 10))
+            .thenReturn(mockMiningPipe);
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 47, 10))
+            .thenReturn(mockOther); // GAP!
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 46, 10))
+            .thenReturn(mockMiningPipe);
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 45, 10))
+            .thenReturn(mockMiningPipe);
 
         worldRod.updateMiningPipeHousing();
         assertEquals(2, worldRod.getMiningPipeCount(), "Gap should stop pipe counting at 2");
@@ -7379,7 +7564,8 @@ public class NuclearSimulationEngineTest {
         assertEquals(40, worldRod.getMaxExtractionPercent());
 
         // Case C: Immediate blockage / no pipes (y=49 is stone)
-        org.mockito.Mockito.when(mockWorld.getBlock(10, 49, 10)).thenReturn(mockOther);
+        org.mockito.Mockito.when(mockWorld.getBlock(10, 49, 10))
+            .thenReturn(mockOther);
         worldRod.updateMiningPipeHousing();
         assertEquals(0, worldRod.getMiningPipeCount());
         assertEquals(100, worldRod.getMinInsertionPercent());
@@ -7404,8 +7590,11 @@ public class NuclearSimulationEngineTest {
         assertEquals(expectedAbs, simTile.getControlRodAbsorptionProbability(NeutronType.THERMAL), 1e-4);
 
         // 6. NuclearGridTile delegation
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile gridTile =
-            new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile(null, (MTEHatchNuclearBus) null, 0, 0);
+        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile gridTile = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile(
+            null,
+            (MTEHatchNuclearBus) null,
+            0,
+            0);
         assertEquals(5, gridTile.getControlRodMiningPipes(), "Default without hatch is 5");
 
         gridTile.setBottomControlRod(worldRod);

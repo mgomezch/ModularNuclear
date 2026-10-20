@@ -38,8 +38,10 @@ public class NuclearControlIntegration {
         if (unloc != null) {
             String lower = unloc.toLowerCase();
             return lower.equals("item.itemcardreactor") || lower.equals("itemcardreactor")
-                || lower.equals("item.itemtoolreactorkit") || lower.equals("itemtoolreactorkit")
-                || lower.equals("item.kitreactor") || lower.equals("kitreactor");
+                || lower.equals("item.itemtoolreactorkit")
+                || lower.equals("itemtoolreactorkit")
+                || lower.equals("item.kitreactor")
+                || lower.equals("kitreactor");
         }
         return false;
     }

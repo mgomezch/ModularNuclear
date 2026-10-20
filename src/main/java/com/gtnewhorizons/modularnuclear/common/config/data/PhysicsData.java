@@ -27,10 +27,10 @@ public class PhysicsData {
     public double t10WearFactor = 8.0;
 
     // Fuel Archetype / Class Multipliers (Global Calibration Parameters)
-    public double denseNbaseMultiplier = 0.50;      // -50% base neutrons (subcritical/mostly-inert)
-    public double denseFissionMultiplier = 1.20;    // +20% thermal fission multiplication (high reaction potential)
-    public double excitedNbaseMultiplier = 1.40;    // +40% base neutrons (driver / primary neutron source)
-    public double excitedFissionMultiplier = 0.80;  // -20% thermal fission multiplication (already excited)
+    public double denseNbaseMultiplier = 0.50; // -50% base neutrons (subcritical/mostly-inert)
+    public double denseFissionMultiplier = 1.20; // +20% thermal fission multiplication (high reaction potential)
+    public double excitedNbaseMultiplier = 1.40; // +40% base neutrons (driver / primary neutron source)
+    public double excitedFissionMultiplier = 0.80; // -20% thermal fission multiplication (already excited)
     public double standardNbaseMultiplier = 1.00;
     public double standardFissionMultiplier = 1.00;
     public double breederNbaseMultiplier = 1.00;
@@ -60,22 +60,43 @@ public class PhysicsData {
         PhysicsData d = new PhysicsData();
         if (map == null) return d;
         d.huPerDegree = getDouble(map, "hu_per_degree", d.huPerDegree);
-        d.globalThermalFissionMultiplier = getDouble(map, "global_thermal_fission_multiplier", d.globalThermalFissionMultiplier);
+        d.globalThermalFissionMultiplier = getDouble(
+            map,
+            "global_thermal_fission_multiplier",
+            d.globalThermalFissionMultiplier);
         d.globalFastFissionMultiplier = getDouble(map, "global_fast_fission_multiplier", d.globalFastFissionMultiplier);
-        d.fastAbsorptionDamageMultiplier = getDouble(map, "fast_absorption_damage_multiplier", d.fastAbsorptionDamageMultiplier);
-        d.thermalAbsorptionDamageMultiplier = getDouble(map, "thermal_absorption_damage_multiplier", d.thermalAbsorptionDamageMultiplier);
+        d.fastAbsorptionDamageMultiplier = getDouble(
+            map,
+            "fast_absorption_damage_multiplier",
+            d.fastAbsorptionDamageMultiplier);
+        d.thermalAbsorptionDamageMultiplier = getDouble(
+            map,
+            "thermal_absorption_damage_multiplier",
+            d.thermalAbsorptionDamageMultiplier);
         d.fissionHeatPerNeutron = getDouble(map, "fission_heat_per_neutron", d.fissionHeatPerNeutron);
-        d.heatPerFastNeutronAbsorption = getDouble(map, "heat_per_fast_neutron_absorption", d.heatPerFastNeutronAbsorption);
-        d.heatPerThermalNeutronAbsorption = getDouble(map, "heat_per_thermal_neutron_absorption", d.heatPerThermalNeutronAbsorption);
+        d.heatPerFastNeutronAbsorption = getDouble(
+            map,
+            "heat_per_fast_neutron_absorption",
+            d.heatPerFastNeutronAbsorption);
+        d.heatPerThermalNeutronAbsorption = getDouble(
+            map,
+            "heat_per_thermal_neutron_absorption",
+            d.heatPerThermalNeutronAbsorption);
         d.gridHeatConduction = getDouble(map, "grid_heat_conduction", d.gridHeatConduction);
         d.boundaryHeatLoss = getDouble(map, "boundary_heat_loss", d.boundaryHeatLoss);
         d.radiationDecayFactor = getDouble(map, "radiation_decay_factor", d.radiationDecayFactor);
         d.dopplerDeficitExponent = getDouble(map, "doppler_deficit_exponent", d.dopplerDeficitExponent);
         d.wallReflectionChance = getDouble(map, "wall_reflection_chance", d.wallReflectionChance);
         d.wallAbsorbHeatPerNeutron = getDouble(map, "wall_absorb_heat_per_neutron", d.wallAbsorbHeatPerNeutron);
-        d.wallMaintenanceNeutronThreshold = getInt(map, "wall_maintenance_neutron_threshold", d.wallMaintenanceNeutronThreshold);
+        d.wallMaintenanceNeutronThreshold = getInt(
+            map,
+            "wall_maintenance_neutron_threshold",
+            d.wallMaintenanceNeutronThreshold);
         d.defaultAmbientTemp = getDouble(map, "default_ambient_temp", d.defaultAmbientTemp);
-        d.beamEnergyToFastNeutronMultiplier = getDouble(map, "beam_energy_to_fast_neutron_multiplier", d.beamEnergyToFastNeutronMultiplier);
+        d.beamEnergyToFastNeutronMultiplier = getDouble(
+            map,
+            "beam_energy_to_fast_neutron_multiplier",
+            d.beamEnergyToFastNeutronMultiplier);
         d.t10WearFactor = getDouble(map, "t10_wear_factor", d.t10WearFactor);
 
         d.denseNbaseMultiplier = getDouble(map, "dense_nbase_multiplier", d.denseNbaseMultiplier);
@@ -125,7 +146,9 @@ public class PhysicsData {
         Object val = map.get(key);
         if (val instanceof Number n) return n.doubleValue();
         if (val instanceof String s) {
-            try { return Double.parseDouble(s); } catch (Exception ignored) {}
+            try {
+                return Double.parseDouble(s);
+            } catch (Exception ignored) {}
         }
         return def;
     }
@@ -134,7 +157,9 @@ public class PhysicsData {
         Object val = map.get(key);
         if (val instanceof Number n) return n.intValue();
         if (val instanceof String s) {
-            try { return Integer.parseInt(s); } catch (Exception ignored) {}
+            try {
+                return Integer.parseInt(s);
+            } catch (Exception ignored) {}
         }
         return def;
     }

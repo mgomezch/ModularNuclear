@@ -198,8 +198,22 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addIC2Reflector("reactorReflectorThick", "Thick Neutron Reflector", 0.98, 0.005, 0.25, 0.99, 0.01, 40_000);
         addGTReflector(ItemList.Neutron_Reflector, "Iridium Neutron Reflector", 0.95, 0.01, 0.20, 0.98, 0.02);
         addReflector(Materials.Gold.getPlates(1), "Gold Plate Reflector", 0.85, 0.15, 0.0, 0.90, 0.10);
-        addReflector(Materials.StainlessSteel.getPlates(1), "Stainless Steel Plate Reflector", 0.90, 0.10, 0.0, 0.95, 0.05);
-        addReflector(Materials.TungstenCarbide.getPlates(1), "Tungsten Carbide Plate Reflector", 0.93, 0.07, 0.0, 0.98, 0.02);
+        addReflector(
+            Materials.StainlessSteel.getPlates(1),
+            "Stainless Steel Plate Reflector",
+            0.90,
+            0.10,
+            0.0,
+            0.95,
+            0.05);
+        addReflector(
+            Materials.TungstenCarbide.getPlates(1),
+            "Tungsten Carbide Plate Reflector",
+            0.93,
+            0.07,
+            0.0,
+            0.98,
+            0.02);
 
         // 3. CONTROL RODS - Extreme absorption, low scattering, burnout capacity
         addControlRod(

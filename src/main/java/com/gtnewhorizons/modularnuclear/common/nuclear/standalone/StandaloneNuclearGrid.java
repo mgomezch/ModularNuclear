@@ -1331,7 +1331,8 @@ public class StandaloneNuclearGrid {
     }
 
     public void parseTileAndControlRod(int x, int y, String rawToken) {
-        if (rawToken == null || rawToken.trim().isEmpty()) return;
+        if (rawToken == null || rawToken.trim()
+            .isEmpty()) return;
         String token = rawToken.trim();
         String tilePart = token;
         String crPart = null;
@@ -1340,10 +1341,11 @@ public class StandaloneNuclearGrid {
             String[] parts = token.split("\\+", 2);
             tilePart = parts[0].trim();
             crPart = parts[1].trim();
-        } else if (token.toUpperCase().startsWith("CR:") || token.equalsIgnoreCase("CR")) {
-            tilePart = "EMPTY";
-            crPart = token;
-        }
+        } else if (token.toUpperCase()
+            .startsWith("CR:") || token.equalsIgnoreCase("CR")) {
+                tilePart = "EMPTY";
+                crPart = token;
+            }
 
         SimTile.TileType type = SimTile.TileType.fromCode(tilePart);
         setTile(x, y, type);
@@ -1406,7 +1408,9 @@ public class StandaloneNuclearGrid {
                         code = code + "+CR";
                     }
                     if (tile.getControlRodType() != SimTile.ControlRodType.NONE) {
-                        code = code + ":" + tile.getControlRodType().name();
+                        code = code + ":"
+                            + tile.getControlRodType()
+                                .name();
                     }
                     if (tile.getControlRodInsertion() > 0) {
                         code = code + ":" + tile.getControlRodInsertion();

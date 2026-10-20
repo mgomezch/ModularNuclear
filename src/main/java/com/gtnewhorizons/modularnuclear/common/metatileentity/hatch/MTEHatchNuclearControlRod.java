@@ -10,7 +10,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.oredict.OreDictionary;
-import cpw.mods.fml.common.registry.GameRegistry;
 
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
@@ -28,6 +27,7 @@ import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 
+import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.Textures;
@@ -133,8 +133,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         if (stack == null) return ControlRodType.NONE;
 
         try {
-            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crd =
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(stack);
+            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+                .findControlRod(stack);
             if (crd != null && crd.id != null) {
                 if ("rod_silver".equals(crd.id)) return ControlRodType.SILVER;
                 if ("rod_boron".equals(crd.id)) return ControlRodType.BORON;
@@ -145,7 +145,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         } catch (Throwable ignored) {}
 
         try {
-            String cfgType = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.getControlRodType(stack);
+            String cfgType = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig
+                .getControlRodType(stack);
             if (cfgType != null) {
                 return ControlRodType.valueOf(cfgType.toUpperCase());
             }
@@ -194,7 +195,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
 
     public static boolean isControlRod(ItemStack stack) {
         if (stack == null) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(stack) != null) return true;
+        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(stack) != null)
+            return true;
         return getRodType(stack) != ControlRodType.NONE;
     }
 
@@ -306,7 +308,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         // 2. Registry Unique Identifier
         try {
             GameRegistry.UniqueIdentifier uid = GameRegistry.findUniqueIdentifierFor(block);
-            if (uid != null && ("blockMiningPipe".equalsIgnoreCase(uid.name) || "blockMiningTip".equalsIgnoreCase(uid.name))) {
+            if (uid != null
+                && ("blockMiningPipe".equalsIgnoreCase(uid.name) || "blockMiningTip".equalsIgnoreCase(uid.name))) {
                 return true;
             }
         } catch (Throwable ignored) {}
@@ -316,8 +319,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
             String unloc = block.getUnlocalizedName();
             if (unloc != null) {
                 String clean = unloc.startsWith("tile.") ? unloc.substring(5) : unloc;
-                if ("blockMiningPipe".equalsIgnoreCase(clean)
-                    || "miningPipe".equalsIgnoreCase(clean)
+                if ("blockMiningPipe".equalsIgnoreCase(clean) || "miningPipe".equalsIgnoreCase(clean)
                     || "mining_pipe".equalsIgnoreCase(clean)
                     || "blockMiningTip".equalsIgnoreCase(clean)) {
                     return true;
@@ -333,8 +335,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 int[] ids = OreDictionary.getOreIDs(stack);
                 for (int id : ids) {
                     String oreName = OreDictionary.getOreName(id);
-                    if ("miningPipe".equalsIgnoreCase(oreName)
-                        || "pipeMining".equalsIgnoreCase(oreName)
+                    if ("miningPipe".equalsIgnoreCase(oreName) || "pipeMining".equalsIgnoreCase(oreName)
                         || "blockMiningPipe".equalsIgnoreCase(oreName)) {
                         return true;
                     }
@@ -381,8 +382,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public double getAbsorptionProbability(NeutronType type) {
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(mInventory[SLOT_ROD]);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findControlRod(mInventory[SLOT_ROD]);
         if (crData != null) {
             double ratio = getInsertionRatio();
             double max = (type == NeutronType.THERMAL) ? crData.maxThermalAbsorption : crData.maxFastAbsorption;
@@ -396,8 +397,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public double getScatteringProbability(NeutronType type) {
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(mInventory[SLOT_ROD]);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findControlRod(mInventory[SLOT_ROD]);
         if (crData != null) {
             double ratio = getInsertionRatio();
             double scatt = (type == NeutronType.THERMAL) ? crData.scatteringThermal : crData.scatteringFast;
@@ -410,8 +411,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public double getHeatTransferCoeff() {
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(mInventory[SLOT_ROD]);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findControlRod(mInventory[SLOT_ROD]);
         if (crData != null) {
             return crData.heatTransferCoeff;
         }
@@ -602,21 +603,19 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 new TextWidget().setStringSupplier(() -> "Rod: " + getRodType(mInventory[SLOT_ROD]).displayName)
                     .setDefaultColor(Color.rgb(200, 200, 255))
                     .setPos(10, 53))
-            .widget(
-                new TextWidget().setStringSupplier(() -> {
-                    if (mMiningPipeCount < MAX_MINING_PIPES) {
-                        return String.format("Pipes: %d/5 (Min %d%%)", mMiningPipeCount, getMinInsertionPercent());
-                    }
-                    return "Pipes: 5/5 (Full)";
-                })
-                    .setDefaultColor(Color.rgb(200, 200, 100))
-                    .setPos(10, 64))
+            .widget(new TextWidget().setStringSupplier(() -> {
+                if (mMiningPipeCount < MAX_MINING_PIPES) {
+                    return String.format("Pipes: %d/5 (Min %d%%)", mMiningPipeCount, getMinInsertionPercent());
+                }
+                return "Pipes: 5/5 (Full)";
+            })
+                .setDefaultColor(Color.rgb(200, 200, 100))
+                .setPos(10, 64))
             .widget(
                 new TextWidget("Rod").setDefaultColor(0xFFFFFFFF)
                     .setPos(125, 16))
             .widget(
-                new SlotWidget(inventoryHandler, SLOT_ROD)
-                    .setFilter(MTEHatchNuclearControlRod::isControlRod)
+                new SlotWidget(inventoryHandler, SLOT_ROD).setFilter(MTEHatchNuclearControlRod::isControlRod)
                     .setBackground(getGUITextureSet().getItemSlot(), GTUITextures.OVERLAY_SLOT_IN)
                     .setPos(122, 28));
     }

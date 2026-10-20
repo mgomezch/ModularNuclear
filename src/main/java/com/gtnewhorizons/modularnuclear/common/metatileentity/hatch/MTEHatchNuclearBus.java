@@ -4,14 +4,6 @@ import static gregtech.api.enums.Textures.BlockIcons.ITEM_IN_SIGN;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_COLORS;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_IN;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import net.minecraft.init.Items;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -27,14 +19,12 @@ import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 
-import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
-import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTSplit;
@@ -326,28 +316,31 @@ public class MTEHatchNuclearBus extends MTEHatch {
 
         if (com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isFuelAtMaxDamage(stack)) {
             mReactor.mCycleZeroedFuelItems++;
-            ItemStack depleted = com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.getItemDepletedForm(stack);
+            ItemStack depleted = com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
+                .getItemDepletedForm(stack);
             mInventory[SLOT_INPUT] = null;
             if (depleted != null) {
                 mReactor.addOutputPartial(depleted);
             }
             markTileDirty();
-        } else if (com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isModeratorAtMaxDamage(stack)) {
-            mReactor.mCycleZeroedFuelItems++;
-            ItemStack byproduct = com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.getModeratorSpentProduct(stack);
-            if (stack.stackSize > 1) {
-                stack.stackSize--;
-                if (stack.stackTagCompound != null) {
-                    stack.stackTagCompound.removeTag("advDmg");
+        } else
+            if (com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isModeratorAtMaxDamage(stack)) {
+                mReactor.mCycleZeroedFuelItems++;
+                ItemStack byproduct = com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
+                    .getModeratorSpentProduct(stack);
+                if (stack.stackSize > 1) {
+                    stack.stackSize--;
+                    if (stack.stackTagCompound != null) {
+                        stack.stackTagCompound.removeTag("advDmg");
+                    }
+                } else {
+                    mInventory[SLOT_INPUT] = null;
                 }
-            } else {
-                mInventory[SLOT_INPUT] = null;
+                if (byproduct != null) {
+                    mReactor.addOutputPartial(byproduct);
+                }
+                markTileDirty();
             }
-            if (byproduct != null) {
-                mReactor.addOutputPartial(byproduct);
-            }
-            markTileDirty();
-        }
     }
 
     @Override
@@ -365,18 +358,22 @@ public class MTEHatchNuclearBus extends MTEHatch {
     }
 
     public static void loadCheeseRecipes() {
-        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().loadRecipes();
+        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+            .loadRecipes();
     }
 
     public static void clearCheeseRecipeCache() {
-        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().clear();
+        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+            .clear();
     }
 
     public static void registerCheeseRecipe(GTRecipe recipe) {
-        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().registerRecipe(recipe);
+        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+            .registerRecipe(recipe);
     }
 
-    public static class RecipeCacheKey extends com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.RecipeCacheKey {
+    public static class RecipeCacheKey
+        extends com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.RecipeCacheKey {
 
         public RecipeCacheKey(ItemStack stack) {
             super(stack);
@@ -384,11 +381,13 @@ public class MTEHatchNuclearBus extends MTEHatch {
     }
 
     public GTRecipe findCheeseExtractionRecipe(ItemStack stack) {
-        return com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().findRecipe(stack);
+        return com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+            .findRecipe(stack);
     }
 
     public static boolean isCheeseRecipeInput(ItemStack stack) {
-        return com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance().isCheeseInput(stack);
+        return com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+            .isCheeseInput(stack);
     }
 
     @Override

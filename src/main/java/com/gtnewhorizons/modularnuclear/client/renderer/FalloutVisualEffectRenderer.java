@@ -95,8 +95,11 @@ public class FalloutVisualEffectRenderer {
                 }
             } catch (Throwable ignored) {}
             if (!protects && stack.getUnlocalizedName() != null) {
-                String lower = stack.getUnlocalizedName().toLowerCase();
-                if (lower.contains("hazmat") || lower.contains("rubboot") || lower.contains("rubber") || lower.contains("radiation")) {
+                String lower = stack.getUnlocalizedName()
+                    .toLowerCase();
+                if (lower.contains("hazmat") || lower.contains("rubboot")
+                    || lower.contains("rubber")
+                    || lower.contains("radiation")) {
                     protects = true;
                 }
             }
@@ -104,7 +107,9 @@ public class FalloutVisualEffectRenderer {
                 String id = (String) net.minecraft.item.Item.itemRegistry.getNameForObject(stack.getItem());
                 if (id != null) {
                     String lowerId = id.toLowerCase();
-                    if (lowerId.contains("hazmat") || lowerId.contains("rubboot") || lowerId.contains("rubber") || lowerId.contains("radiation")) {
+                    if (lowerId.contains("hazmat") || lowerId.contains("rubboot")
+                        || lowerId.contains("rubber")
+                        || lowerId.contains("radiation")) {
                         protects = true;
                     }
                 }

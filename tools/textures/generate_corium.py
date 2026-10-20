@@ -176,14 +176,154 @@ def generate_flow_frames(still_frames, w=32, h=32, frames_count=32):
     return flow_frames
 
 
+def generate_solid_corium(textures_dir):
+    """
+    Generates 16x16 solid Corium block texture using the exact parameters from
+    the Corium Texture Studio:
+    {
+      "size": 16,
+      "seed": 2001,
+      "colorBase": "#000000",
+      "colorDark": "#BC00FD",
+      "colorLight": "#5E30EB",
+      "contrast": 56,
+      "darkDensity": 15,
+      "lightDensity": 46,
+      "clustering": 0,
+      "drift": 0
+    }
+    """
+    w = 16
+    h = 16
+    rng = mulberry32(2001)
+
+    # Permutation table (consumes 255 rng steps)
+    perm = list(range(256))
+    for i in range(255, 0, -1):
+        j = int(rng() * (i + 1))
+        perm[i], perm[j] = perm[j], perm[i]
+
+    c_base = hex_to_rgb("#000000")
+    c_dark_raw = hex_to_rgb("#BC00FD")
+    c_light_raw = hex_to_rgb("#5E30EB")
+
+    contrast_factor = 56 / 100.0
+    c_dark = lerp_rgb(c_base, c_dark_raw, contrast_factor)
+    c_light = lerp_rgb(c_base, c_light_raw, contrast_factor)
+
+    grid = [[c_base for _ in range(w)] for _ in range(h)]
+
+    p_dark = 15 / 100.0
+    p_light = 46 / 100.0
+
+    for y in range(h):
+        for x in range(w):
+            r = rng()
+            if r < p_dark:
+                grid[y][x] = c_dark
+            elif r < p_dark + p_light:
+                grid[y][x] = c_light
+            else:
+                if rng() < 0.25:
+                    tint = c_dark if rng() < 0.5 else c_light
+                    grid[y][x] = lerp_rgb(c_base, tint, 0.15 * contrast_factor)
+
+    pixels = []
+    for y in range(h):
+        row = []
+        for x in range(w):
+            r, g, b = grid[y][x]
+            row.append((r, g, b, 255))
+        pixels.append(row)
+
+    out_file = textures_dir / "blocks" / "corium_solid.png"
+    write_png(out_file, w, h, pixels)
+
+
+def generate_corium_dust_and_rod(textures_dir):
+    """
+    Generates Corium Dust and Corium Rod textures using the standard GregTech
+    nuclear material icon templates tinted with the Corium color palette (#BC00FD).
+    """
+    import shutil
+    import subprocess
+
+    gt_icons = (
+        textures_dir.parents[6]
+        / "GT5-Unofficial/src/main/resources/assets/gregtech/textures/items/materialicons"
+    )
+    if not gt_icons.exists():
+        return
+
+    magick_bin = shutil.which("magick") or shutil.which("convert")
+    if not magick_bin:
+        return
+
+    dust_out = textures_dir / "items" / "corium_dust.png"
+    rod_out = textures_dir / "items" / "corium_rod.png"
+    dust_out.parent.mkdir(parents=True, exist_ok=True)
+
+    # 1. Corium Dust: NUCLEAR/dust.png tinted with #BC00FD + dust_OVERLAY.png
+    cmd_dust = [
+        magick_bin,
+        str(gt_icons / "NUCLEAR/dust.png"),
+        "-colorspace",
+        "RGB",
+        "(",
+        "+clone",
+        "-fill",
+        "#BC00FD",
+        "-colorize",
+        "100%",
+        ")",
+        "-compose",
+        "Multiply",
+        "-composite",
+        str(gt_icons / "NUCLEAR/dust_OVERLAY.png"),
+        "-compose",
+        "Over",
+        "-composite",
+        str(dust_out),
+    ]
+    subprocess.run(cmd_dust, check=True)
+    print(f"  [✓] Wrote {dust_out} (16x16)")
+
+    # 2. Corium Rod: NUCLEAR/stick.png tinted with #BC00FD + stick_OVERLAY.png
+    cmd_rod = [
+        magick_bin,
+        str(gt_icons / "NUCLEAR/stick.png"),
+        "-colorspace",
+        "RGB",
+        "(",
+        "+clone",
+        "-fill",
+        "#BC00FD",
+        "-colorize",
+        "100%",
+        ")",
+        "-compose",
+        "Multiply",
+        "-composite",
+        str(gt_icons / "NUCLEAR/stick_OVERLAY.png"),
+        "-compose",
+        "Over",
+        "-composite",
+        str(rod_out),
+    ]
+    subprocess.run(cmd_rod, check=True)
+    print(f"  [✓] Wrote {rod_out} (16x16)")
+
+
 def main(output_dir=None):
     if output_dir is None:
-        output_dir = (
+        textures_dir = (
             Path(__file__).resolve().parent.parent.parent
-            / "src/main/resources/assets/modularnuclear/textures/blocks/fluids"
+            / "src/main/resources/assets/modularnuclear/textures"
         )
+        fluids_dir = textures_dir / "blocks/fluids"
     else:
-        output_dir = Path(output_dir)
+        fluids_dir = Path(output_dir)
+        textures_dir = fluids_dir.parent.parent
 
     print("Generating Molten Corium Procedural Textures (Low-Contrast Grit Palette):")
 
@@ -194,7 +334,7 @@ def main(output_dir=None):
         for y in range(16):
             grid_still.append(still_frames[f][y])
 
-    write_png(output_dir / "corium_still.png", 16, 16 * TOTAL_FRAMES, grid_still)
+    write_png(fluids_dir / "corium_still.png", 16, 16 * TOTAL_FRAMES, grid_still)
 
     # 2. Flow: 32x1024 (32 frames of 32x32 with downward flow shift)
     flow_frames = generate_flow_frames(still_frames, w=32, h=32, frames_count=TOTAL_FRAMES)
@@ -203,13 +343,19 @@ def main(output_dir=None):
         for y in range(32):
             grid_flow.append(flow_frames[f][y])
 
-    write_png(output_dir / "corium_flow.png", 32, 32 * TOTAL_FRAMES, grid_flow)
+    write_png(fluids_dir / "corium_flow.png", 32, 32 * TOTAL_FRAMES, grid_flow)
 
     # 3. .mcmeta files with frametime 2 (10 FPS / 100ms per frame)
     mcmeta_content = '{\n  "animation": {\n    "frametime": 2\n  }\n}\n'
-    (output_dir / "corium_still.png.mcmeta").write_text(mcmeta_content)
-    (output_dir / "corium_flow.png.mcmeta").write_text(mcmeta_content)
+    (fluids_dir / "corium_still.png.mcmeta").write_text(mcmeta_content)
+    (fluids_dir / "corium_flow.png.mcmeta").write_text(mcmeta_content)
     print("  [✓] Wrote mcmeta configs (frametime: 2)")
+
+    # 4. Solid Corium Block Texture
+    generate_solid_corium(textures_dir)
+
+    # 5. Corium Dust & Corium Rod Item Textures
+    generate_corium_dust_and_rod(textures_dir)
 
 
 if __name__ == "__main__":

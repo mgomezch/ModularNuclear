@@ -42,8 +42,8 @@ public class HeavyWaterSteamTurbineHelper {
         return GTModHandler.getDistilledWater(amount);
     }
 
-    public static void distributeCondensedWater(Consumer<FluidStack> outputConsumer, int totalWater, int hwSteamConsumed,
-        int regularSteamConsumed) {
+    public static void distributeCondensedWater(Consumer<FluidStack> outputConsumer, int totalWater,
+        int hwSteamConsumed, int regularSteamConsumed) {
         if (totalWater <= 0 || outputConsumer == null) {
             return;
         }

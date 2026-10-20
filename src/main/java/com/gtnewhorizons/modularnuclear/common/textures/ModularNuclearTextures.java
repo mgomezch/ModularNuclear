@@ -20,8 +20,7 @@ public class ModularNuclearTextures {
         OVERLAY_FRONT_FISSION_REACTOR_MOLTEN = Textures.BlockIcons
             .custom("modularnuclear", "OVERLAY_FRONT_FISSION_REACTOR_MOLTEN");
         MACHINE_CASING_NUCLEAR = Textures.BlockIcons.custom("modularnuclear", "MACHINE_CASING_NUCLEAR");
-        OVERLAY_HATCH_NUCLEAR_CONTROL = Textures.BlockIcons
-            .custom("modularnuclear", "OVERLAY_HATCH_NUCLEAR_CONTROL");
+        OVERLAY_HATCH_NUCLEAR_CONTROL = Textures.BlockIcons.custom("modularnuclear", "OVERLAY_HATCH_NUCLEAR_CONTROL");
         OVERLAY_HATCH_NUCLEAR_CONTROL_GLOW = Textures.BlockIcons
             .custom("modularnuclear", "OVERLAY_HATCH_NUCLEAR_CONTROL_GLOW");
     }

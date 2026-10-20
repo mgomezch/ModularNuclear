@@ -32,52 +32,53 @@ public class ComponentData {
 
         loadList(map, "reflectors", list -> {
             for (Object obj : list) {
-                if (obj instanceof Map<?, ?> m) cd.reflectors.add(ReflectorData.fromMap((Map<String, Object>) m));
+                if (obj instanceof Map<?, ?>m) cd.reflectors.add(ReflectorData.fromMap((Map<String, Object>) m));
             }
         });
         loadList(map, "moderators", list -> {
             for (Object obj : list) {
-                if (obj instanceof Map<?, ?> m) cd.moderators.add(ModeratorData.fromMap((Map<String, Object>) m));
+                if (obj instanceof Map<?, ?>m) cd.moderators.add(ModeratorData.fromMap((Map<String, Object>) m));
             }
         });
         loadList(map, "control_rods", list -> {
             for (Object obj : list) {
-                if (obj instanceof Map<?, ?> m) cd.controlRods.add(ControlRodData.fromMap((Map<String, Object>) m));
+                if (obj instanceof Map<?, ?>m) cd.controlRods.add(ControlRodData.fromMap((Map<String, Object>) m));
             }
         });
         loadList(map, "heat_vents", list -> {
             for (Object obj : list) {
-                if (obj instanceof Map<?, ?> m) cd.heatVents.add(HeatVentData.fromMap((Map<String, Object>) m));
+                if (obj instanceof Map<?, ?>m) cd.heatVents.add(HeatVentData.fromMap((Map<String, Object>) m));
             }
         });
         loadList(map, "heat_exchangers", list -> {
             for (Object obj : list) {
-                if (obj instanceof Map<?, ?> m) cd.heatExchangers.add(HeatExchangerData.fromMap((Map<String, Object>) m));
+                if (obj instanceof Map<?, ?>m)
+                    cd.heatExchangers.add(HeatExchangerData.fromMap((Map<String, Object>) m));
             }
         });
         loadList(map, "platings", list -> {
             for (Object obj : list) {
-                if (obj instanceof Map<?, ?> m) cd.platings.add(PlatingData.fromMap((Map<String, Object>) m));
+                if (obj instanceof Map<?, ?>m) cd.platings.add(PlatingData.fromMap((Map<String, Object>) m));
             }
         });
         loadList(map, "insulators", list -> {
             for (Object obj : list) {
-                if (obj instanceof Map<?, ?> m) cd.insulators.add(InsulatorData.fromMap((Map<String, Object>) m));
+                if (obj instanceof Map<?, ?>m) cd.insulators.add(InsulatorData.fromMap((Map<String, Object>) m));
             }
         });
         loadList(map, "radiovoltaics", list -> {
             for (Object obj : list) {
-                if (obj instanceof Map<?, ?> m) cd.radiovoltaics.add(RadiovoltaicData.fromMap((Map<String, Object>) m));
+                if (obj instanceof Map<?, ?>m) cd.radiovoltaics.add(RadiovoltaicData.fromMap((Map<String, Object>) m));
             }
         });
         loadList(map, "coolant_fluids", list -> {
             for (Object obj : list) {
-                if (obj instanceof Map<?, ?> m) cd.coolantFluids.add(CoolantFluidData.fromMap((Map<String, Object>) m));
+                if (obj instanceof Map<?, ?>m) cd.coolantFluids.add(CoolantFluidData.fromMap((Map<String, Object>) m));
             }
         });
         loadList(map, "coolant_items", list -> {
             for (Object obj : list) {
-                if (obj instanceof Map<?, ?> m) cd.coolantItems.add(CoolantItemData.fromMap((Map<String, Object>) m));
+                if (obj instanceof Map<?, ?>m) cd.coolantItems.add(CoolantItemData.fromMap((Map<String, Object>) m));
             }
         });
 
@@ -86,7 +87,7 @@ public class ComponentData {
 
     private static void loadList(Map<String, Object> map, String key, java.util.function.Consumer<List<?>> consumer) {
         Object val = map.get(key);
-        if (val instanceof List<?> l) {
+        if (val instanceof List<?>l) {
             consumer.accept(l);
         }
     }
@@ -141,6 +142,7 @@ public class ComponentData {
     // ReflectorData
     // =========================================================================
     public static class ReflectorData {
+
         public String id;
         public String name;
         public List<String> matching = new ArrayList<>();
@@ -204,6 +206,7 @@ public class ComponentData {
     // ModeratorData
     // =========================================================================
     public static class ModeratorData {
+
         public String id;
         public String name;
         public List<String> matching = new ArrayList<>();
@@ -231,38 +234,97 @@ public class ComponentData {
 
         public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
             double scattThermal, double moderation, double heatTransferCoeff, double maxTemp, String... matching) {
-            this(id, name, absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff, maxTemp,
-                80000, "ore:dustAsh", 0.0003, 1.0, 1500.0, 2500.0, 0.0, 0.0, 1500.0, 2500.0, 0.0, 10000.0, matching);
+            this(
+                id,
+                name,
+                absFast,
+                absThermal,
+                scattFast,
+                scattThermal,
+                moderation,
+                heatTransferCoeff,
+                maxTemp,
+                80000,
+                "ore:dustAsh",
+                0.0003,
+                1.0,
+                1500.0,
+                2500.0,
+                0.0,
+                0.0,
+                1500.0,
+                2500.0,
+                0.0,
+                10000.0,
+                matching);
         }
 
         public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
-            double scattThermal, double moderation, double heatTransferCoeff, double maxTemp,
-            int durability, String spentProduct, double tempWearK, double tempWearA,
-            double thermalEmissionOnsetTemp, double thermalEmissionHalfTemp, double thermalEmissionMaxPerFast,
-            String... matching) {
-            this(id, name, absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff, maxTemp,
-                durability, spentProduct, tempWearK, tempWearA, thermalEmissionOnsetTemp, thermalEmissionHalfTemp, thermalEmissionMaxPerFast,
-                0.0, 1500.0, 2500.0, 0.0, 10000.0, matching);
+            double scattThermal, double moderation, double heatTransferCoeff, double maxTemp, int durability,
+            String spentProduct, double tempWearK, double tempWearA, double thermalEmissionOnsetTemp,
+            double thermalEmissionHalfTemp, double thermalEmissionMaxPerFast, String... matching) {
+            this(
+                id,
+                name,
+                absFast,
+                absThermal,
+                scattFast,
+                scattThermal,
+                moderation,
+                heatTransferCoeff,
+                maxTemp,
+                durability,
+                spentProduct,
+                tempWearK,
+                tempWearA,
+                thermalEmissionOnsetTemp,
+                thermalEmissionHalfTemp,
+                thermalEmissionMaxPerFast,
+                0.0,
+                1500.0,
+                2500.0,
+                0.0,
+                10000.0,
+                matching);
         }
 
         public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
-            double scattThermal, double moderation, double heatTransferCoeff, double maxTemp,
-            int durability, String spentProduct, double tempWearK, double tempWearA,
-            double thermalEmissionOnsetTemp, double thermalEmissionHalfTemp, double thermalEmissionMaxPerFast,
-            double wignerEnergyPerFast, double wignerReleaseOnsetTemp, double wignerReleaseHalfTemp, double wignerMaxReleaseRate,
+            double scattThermal, double moderation, double heatTransferCoeff, double maxTemp, int durability,
+            String spentProduct, double tempWearK, double tempWearA, double thermalEmissionOnsetTemp,
+            double thermalEmissionHalfTemp, double thermalEmissionMaxPerFast, double wignerEnergyPerFast,
+            double wignerReleaseOnsetTemp, double wignerReleaseHalfTemp, double wignerMaxReleaseRate,
             String... matching) {
-            this(id, name, absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff, maxTemp,
-                durability, spentProduct, tempWearK, tempWearA, thermalEmissionOnsetTemp, thermalEmissionHalfTemp, thermalEmissionMaxPerFast,
-                wignerEnergyPerFast, wignerReleaseOnsetTemp, wignerReleaseHalfTemp, wignerMaxReleaseRate, 10000.0, matching);
+            this(
+                id,
+                name,
+                absFast,
+                absThermal,
+                scattFast,
+                scattThermal,
+                moderation,
+                heatTransferCoeff,
+                maxTemp,
+                durability,
+                spentProduct,
+                tempWearK,
+                tempWearA,
+                thermalEmissionOnsetTemp,
+                thermalEmissionHalfTemp,
+                thermalEmissionMaxPerFast,
+                wignerEnergyPerFast,
+                wignerReleaseOnsetTemp,
+                wignerReleaseHalfTemp,
+                wignerMaxReleaseRate,
+                10000.0,
+                matching);
         }
 
         public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
-            double scattThermal, double moderation, double heatTransferCoeff, double maxTemp,
-            int durability, String spentProduct, double tempWearK, double tempWearA,
-            double thermalEmissionOnsetTemp, double thermalEmissionHalfTemp, double thermalEmissionMaxPerFast,
-            double wignerEnergyPerFast, double wignerReleaseOnsetTemp, double wignerReleaseHalfTemp, double wignerMaxReleaseRate,
-            double wignerMaxEnergy,
-            String... matching) {
+            double scattThermal, double moderation, double heatTransferCoeff, double maxTemp, int durability,
+            String spentProduct, double tempWearK, double tempWearA, double thermalEmissionOnsetTemp,
+            double thermalEmissionHalfTemp, double thermalEmissionMaxPerFast, double wignerEnergyPerFast,
+            double wignerReleaseOnsetTemp, double wignerReleaseHalfTemp, double wignerMaxReleaseRate,
+            double wignerMaxEnergy, String... matching) {
             this.id = id;
             this.name = name;
             this.absorptionFast = absFast;
@@ -331,11 +393,15 @@ public class ComponentData {
             d.spentProduct = (String) map.getOrDefault("spent_product", d.spentProduct);
             d.tempWearK = PhysicsData.getDouble(map, "temp_wear_k", d.tempWearK);
             d.tempWearA = PhysicsData.getDouble(map, "temp_wear_a", d.tempWearA);
-            d.thermalEmissionOnsetTemp = PhysicsData.getDouble(map, "thermal_emission_onset_temp", d.thermalEmissionOnsetTemp);
-            d.thermalEmissionHalfTemp = PhysicsData.getDouble(map, "thermal_emission_half_temp", d.thermalEmissionHalfTemp);
-            d.thermalEmissionMaxPerFast = PhysicsData.getDouble(map, "thermal_emission_max_per_fast", d.thermalEmissionMaxPerFast);
+            d.thermalEmissionOnsetTemp = PhysicsData
+                .getDouble(map, "thermal_emission_onset_temp", d.thermalEmissionOnsetTemp);
+            d.thermalEmissionHalfTemp = PhysicsData
+                .getDouble(map, "thermal_emission_half_temp", d.thermalEmissionHalfTemp);
+            d.thermalEmissionMaxPerFast = PhysicsData
+                .getDouble(map, "thermal_emission_max_per_fast", d.thermalEmissionMaxPerFast);
             d.wignerEnergyPerFast = PhysicsData.getDouble(map, "wigner_energy_per_fast", d.wignerEnergyPerFast);
-            d.wignerReleaseOnsetTemp = PhysicsData.getDouble(map, "wigner_release_onset_temp", d.wignerReleaseOnsetTemp);
+            d.wignerReleaseOnsetTemp = PhysicsData
+                .getDouble(map, "wigner_release_onset_temp", d.wignerReleaseOnsetTemp);
             d.wignerReleaseHalfTemp = PhysicsData.getDouble(map, "wigner_release_half_temp", d.wignerReleaseHalfTemp);
             d.wignerMaxReleaseRate = PhysicsData.getDouble(map, "wigner_max_release_rate", d.wignerMaxReleaseRate);
             d.wignerMaxEnergy = PhysicsData.getDouble(map, "wigner_max_energy", d.wignerMaxEnergy);
@@ -374,6 +440,7 @@ public class ComponentData {
     // ControlRodData
     // =========================================================================
     public static class ControlRodData {
+
         public String id;
         public String name;
         public List<String> matching = new ArrayList<>();
@@ -429,6 +496,7 @@ public class ComponentData {
     // HeatVentData
     // =========================================================================
     public static class HeatVentData {
+
         public String id;
         public String name;
         public List<String> matching = new ArrayList<>();
@@ -498,6 +566,7 @@ public class ComponentData {
     // HeatExchangerData
     // =========================================================================
     public static class HeatExchangerData {
+
         public String id;
         public String name;
         public List<String> matching = new ArrayList<>();
@@ -567,6 +636,7 @@ public class ComponentData {
     // PlatingData
     // =========================================================================
     public static class PlatingData {
+
         public String id;
         public String name;
         public List<String> matching = new ArrayList<>();
@@ -593,7 +663,8 @@ public class ComponentData {
             d.name = (String) map.getOrDefault("name", d.id);
             readMatching(map, d.matching);
             d.heatCapacityBonus = PhysicsData.getDouble(map, "heat_capacity_bonus", d.heatCapacityBonus);
-            d.explosionContainmentBonus = PhysicsData.getDouble(map, "explosion_containment_bonus", d.explosionContainmentBonus);
+            d.explosionContainmentBonus = PhysicsData
+                .getDouble(map, "explosion_containment_bonus", d.explosionContainmentBonus);
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
             return d;
         }
@@ -614,6 +685,7 @@ public class ComponentData {
     // InsulatorData
     // =========================================================================
     public static class InsulatorData {
+
         public String id;
         public String name;
         public List<String> matching = new ArrayList<>();
@@ -673,6 +745,7 @@ public class ComponentData {
     // RadiovoltaicData
     // =========================================================================
     public static class RadiovoltaicData {
+
         public String id;
         public String name;
         public List<String> matching = new ArrayList<>();
@@ -684,8 +757,8 @@ public class ComponentData {
 
         public RadiovoltaicData() {}
 
-        public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency, double heatTransferCoeff,
-            double absFast, double absThermal, String... matching) {
+        public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency,
+            double heatTransferCoeff, double absFast, double absThermal, String... matching) {
             this.id = id;
             this.name = name;
             this.tier = tier;
@@ -733,6 +806,7 @@ public class ComponentData {
     // CoolantFluidData
     // =========================================================================
     public static class CoolantFluidData {
+
         public String id;
         public String name;
         public List<String> matching = new ArrayList<>();
@@ -786,9 +860,27 @@ public class ComponentData {
         public CoolantFluidData(String id, String name, double boilingTemp, double heatTransferCoeff,
             double heatCapacity, double absFast, double absThermal, double scattFast, double scattThermal,
             double moderation, String hotFluidName, double coolingMult, String... matching) {
-            this(id, name, 0, boilingTemp, heatTransferCoeff, heatCapacity, absFast, absThermal, scattFast,
-                scattThermal, moderation, hotFluidName, coolingMult, 160, 160.0, -273.15,
-                Double.POSITIVE_INFINITY, null, 0.0, matching);
+            this(
+                id,
+                name,
+                0,
+                boilingTemp,
+                heatTransferCoeff,
+                heatCapacity,
+                absFast,
+                absThermal,
+                scattFast,
+                scattThermal,
+                moderation,
+                hotFluidName,
+                coolingMult,
+                160,
+                160.0,
+                -273.15,
+                Double.POSITIVE_INFINITY,
+                null,
+                0.0,
+                matching);
         }
 
         public static CoolantFluidData fromMap(Map<String, Object> map) {
@@ -813,7 +905,8 @@ public class ComponentData {
             d.freezingTemperature = PhysicsData.getDouble(map, "freezing_temperature", d.freezingTemperature);
             d.explosionTemperature = PhysicsData.getDouble(map, "explosion_temperature", d.explosionTemperature);
             d.transmutationProduct = (String) map.get("transmutation_product");
-            d.transmutationChancePerNeutron = PhysicsData.getDouble(map, "transmutation_chance_per_neutron", d.transmutationChancePerNeutron);
+            d.transmutationChancePerNeutron = PhysicsData
+                .getDouble(map, "transmutation_chance_per_neutron", d.transmutationChancePerNeutron);
             return d;
         }
 
@@ -838,7 +931,8 @@ public class ComponentData {
             m.put("freezing_temperature", freezingTemperature);
             m.put("explosion_temperature", explosionTemperature);
             if (transmutationProduct != null) m.put("transmutation_product", transmutationProduct);
-            if (transmutationChancePerNeutron > 0.0) m.put("transmutation_chance_per_neutron", transmutationChancePerNeutron);
+            if (transmutationChancePerNeutron > 0.0)
+                m.put("transmutation_chance_per_neutron", transmutationChancePerNeutron);
             return m;
         }
     }
@@ -847,6 +941,7 @@ public class ComponentData {
     // CoolantItemData
     // =========================================================================
     public static class CoolantItemData {
+
         public String id;
         public String name;
         public List<String> matching = new ArrayList<>();
@@ -908,7 +1003,7 @@ public class ComponentData {
 
     private static void readMatching(Map<String, Object> map, List<String> target) {
         Object obj = map.get("matching");
-        if (obj instanceof List<?> list) {
+        if (obj instanceof List<?>list) {
             for (Object item : list) {
                 if (item != null) target.add(item.toString());
             }

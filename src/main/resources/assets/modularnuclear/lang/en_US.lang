@@ -41,6 +41,12 @@ channels.modularnuclear.master.nuclear_hatch=Nuclear hatch tier
 
 fluid.heavywater=Heavy water
 fluid.heavywatersteam=Heavy-water steam
+fluid.corium=Molten corium
+
+tile.modularnuclear.corium.name=Molten corium
+tile.modularnuclear.corium_solid.name=Corium
+item.modularnuclear.corium_dust.name=Corium dust
+item.modularnuclear.corium_rod.name=Corium rod
 
 item.cellHeavyWater.name=Heavy water cell
 

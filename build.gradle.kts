@@ -223,5 +223,6 @@ val generateAllTextures by tasks.registering {
     description = "Regenerates all procedural textures"
 }
 
-
-
+tasks.test {
+    systemProperty("gt.recipebuilder.debug", "false")
+}

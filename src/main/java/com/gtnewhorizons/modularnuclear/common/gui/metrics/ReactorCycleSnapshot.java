@@ -3,6 +3,7 @@ package com.gtnewhorizons.modularnuclear.common.gui.metrics;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import net.minecraft.network.PacketBuffer;
 
 /**
@@ -37,16 +38,8 @@ public class ReactorCycleSnapshot {
     public long directEU;
     public int coolantOutput;
 
-    public static ReactorCycleSnapshot create(
-        long cycleIndex,
-        List<Double> temperatures,
-        List<Double> reactivities,
-        int escapedNeutrons,
-        int fastNeutronsProduced,
-        int thermalNeutronsAbsorbed,
-        long directEU,
-        long coolantOutput
-    ) {
+    public static ReactorCycleSnapshot create(long cycleIndex, List<Double> temperatures, List<Double> reactivities,
+        int escapedNeutrons, int fastNeutronsProduced, int thermalNeutronsAbsorbed, long directEU, long coolantOutput) {
         ReactorCycleSnapshot s = new ReactorCycleSnapshot();
         s.cycleIndex = cycleIndex;
         s.escapedNeutrons = escapedNeutrons;
@@ -94,8 +87,10 @@ public class ReactorCycleSnapshot {
             sum += v;
         }
         float avg = (float) (sum / n);
-        float min = sorted.get(0).floatValue();
-        float max = sorted.get(n - 1).floatValue();
+        float min = sorted.get(0)
+            .floatValue();
+        float max = sorted.get(n - 1)
+            .floatValue();
 
         if (n == 1) {
             return new float[] { min, min, min, min, max, avg };

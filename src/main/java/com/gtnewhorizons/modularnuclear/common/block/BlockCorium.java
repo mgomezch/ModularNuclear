@@ -90,8 +90,9 @@ public class BlockCorium extends BlockFluidClassic {
         if (block == null || block == Blocks.air) {
             return false;
         }
-        // Bedrock and unbreakable blocks
-        if (block == Blocks.bedrock || block.getBlockHardness(null, 0, 0, 0) < 0) {
+        // Bedrock, solid corium, and unbreakable blocks
+        if (block == Blocks.bedrock || block == ModBlocks.blockCoriumSolid
+            || block.getBlockHardness(null, 0, 0, 0) < 0) {
             return true;
         }
 
@@ -102,7 +103,8 @@ public class BlockCorium extends BlockFluidClassic {
                 String modId = uid.modId.toLowerCase(Locale.ENGLISH);
                 String name = uid.name.toLowerCase(Locale.ENGLISH);
                 if (modId.equals("thaumcraft")) {
-                    if (name.equals("blockwarded") || name.equals("blockwardedglass") || name.equals("blockwardedstone")) {
+                    if (name.equals("blockwarded") || name.equals("blockwardedglass")
+                        || name.equals("blockwardedstone")) {
                         return true;
                     }
                     if (name.equals("blockcosmeticopaque")) {
@@ -118,7 +120,9 @@ public class BlockCorium extends BlockFluidClassic {
         String unloc = block.getUnlocalizedName();
         if (unloc != null) {
             String lower = unloc.toLowerCase(Locale.ENGLISH);
-            if (lower.equals("tile.blockwarded") || lower.equals("tile.blockwardedglass") || lower.equals("tile.wardedglass") || lower.equals("tile.thaumcraft:blockwarded")) {
+            if (lower.equals("tile.blockwarded") || lower.equals("tile.blockwardedglass")
+                || lower.equals("tile.wardedglass")
+                || lower.equals("tile.thaumcraft:blockwarded")) {
                 return true;
             }
             if (lower.equals("tile.blockcosmeticopaque")) {

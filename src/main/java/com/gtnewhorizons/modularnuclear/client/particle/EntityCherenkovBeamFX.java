@@ -49,8 +49,10 @@ public class EntityCherenkovBeamFX extends EntityFX {
     public void onUpdate() {
         if (!ModularNuclearConfig.enableCherenkovRadiation || reactor == null
             || reactor.getBaseMetaTileEntity() == null
-            || reactor.getBaseMetaTileEntity().isDead()
-            || !reactor.getBaseMetaTileEntity().isActive()
+            || reactor.getBaseMetaTileEntity()
+                .isDead()
+            || !reactor.getBaseMetaTileEntity()
+                .isActive()
             || reactor.mClientWaterBlocks <= 0
             || reactor.mClientCherenkovIntensity <= 0f) {
             this.setDead();
@@ -80,7 +82,8 @@ public class EntityCherenkovBeamFX extends EntityFX {
         float f5) {
         if (!ModularNuclearConfig.enableCherenkovRadiation || reactor == null
             || reactor.getBaseMetaTileEntity() == null
-            || reactor.getBaseMetaTileEntity().isDead()
+            || reactor.getBaseMetaTileEntity()
+                .isDead()
             || reactor.mClientWaterBlocks <= 0
             || reactor.mClientCherenkovIntensity <= 0f) {
             return;

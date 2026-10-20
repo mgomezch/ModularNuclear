@@ -27,81 +27,32 @@ import com.cleanroommc.modularui.widget.Widget;
 public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Interactable {
 
     public enum Metric {
-        CORE_TEMP(
-            "Core temp",
-            "°C",
-            true,
-            s -> (float) s.tempMedian,
-            s -> s.tempMin,
-            s -> s.tempQ1,
-            s -> s.tempMedian,
-            s -> s.tempQ3,
-            s -> s.tempMax,
-            s -> s.tempAvg,
-            0xFFFFB020, // Warm amber
+
+        CORE_TEMP("Core temp", "°C", true, s -> (float) s.tempMedian, s -> s.tempMin, s -> s.tempQ1, s -> s.tempMedian,
+            s -> s.tempQ3, s -> s.tempMax, s -> s.tempAvg, 0xFFFFB020, // Warm amber
             0x993B82F6, // Subtle cool blue for min
-            0xCCEF4444  // Subtle red for max
+            0xCCEF4444 // Subtle red for max
         ),
-        REACTIVITY(
-            "Reactivity",
-            "%",
-            true,
-            s -> (float) s.reactivityMedian,
-            s -> s.reactivityMin,
-            s -> s.reactivityQ1,
-            s -> s.reactivityMedian,
-            s -> s.reactivityQ3,
-            s -> s.reactivityMax,
-            s -> s.reactivityAvg,
-            0xFF00D4FF, // Cyan
+        REACTIVITY("Reactivity", "%", true, s -> (float) s.reactivityMedian, s -> s.reactivityMin, s -> s.reactivityQ1,
+            s -> s.reactivityMedian, s -> s.reactivityQ3, s -> s.reactivityMax, s -> s.reactivityAvg, 0xFF00D4FF, // Cyan
             0x996366F1, // Subtle indigo for min
-            0xCC38BDF8  // Subtle sky blue for max
+            0xCC38BDF8 // Subtle sky blue for max
         ),
-        FAST_NEUTRONS(
-            "Fast neutrons produced",
-            "n/c",
-            false,
-            s -> (float) s.fastNeutronsProduced,
-            null, null, null, null, null, null,
-            0xFFA855F7, // Purple
-            0, 0
-        ),
-        THERMAL_NEUTRONS(
-            "Thermal neutrons absorbed",
-            "n/c",
-            false,
-            s -> (float) s.thermalNeutronsAbsorbed,
-            null, null, null, null, null, null,
-            0xFF06B6D4, // Teal / Cyan
-            0, 0
-        ),
-        ESCAPED_NEUTRONS(
-            "Escaped neutrons",
-            "n/c",
-            false,
-            s -> (float) s.escapedNeutrons,
-            null, null, null, null, null, null,
-            0xFFF97316, // Orange
-            0, 0
-        ),
-        DIRECT_EU(
-            "Direct EU output",
-            "EU/t",
-            false,
-            s -> (float) s.directEU,
-            null, null, null, null, null, null,
+        FAST_NEUTRONS("Fast neutrons produced", "n/c", false, s -> (float) s.fastNeutronsProduced, null, null, null,
+            null, null, null, 0xFFA855F7, // Purple
+            0, 0),
+        THERMAL_NEUTRONS("Thermal neutrons absorbed", "n/c", false, s -> (float) s.thermalNeutronsAbsorbed, null, null,
+            null, null, null, null, 0xFF06B6D4, // Teal / Cyan
+            0, 0),
+        ESCAPED_NEUTRONS("Escaped neutrons", "n/c", false, s -> (float) s.escapedNeutrons, null, null, null, null, null,
+            null, 0xFFF97316, // Orange
+            0, 0),
+        DIRECT_EU("Direct EU output", "EU/t", false, s -> (float) s.directEU, null, null, null, null, null, null,
             0xFFEAB308, // Gold / Yellow
-            0, 0
-        ),
-        COOLANT_OUTPUT(
-            "Coolant output",
-            "L/c",
-            false,
-            s -> (float) s.coolantOutput,
-            null, null, null, null, null, null,
+            0, 0),
+        COOLANT_OUTPUT("Coolant output", "L/c", false, s -> (float) s.coolantOutput, null, null, null, null, null, null,
             0xFF3B82F6, // Blue
-            0, 0
-        );
+            0, 0);
 
         private final String title;
         private final String unit;
@@ -117,21 +68,11 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         private final int minColor;
         private final int maxColor;
 
-        Metric(
-            String title,
-            String unit,
-            boolean quartile,
-            Function<ReactorCycleSnapshot, Float> scalarVal,
-            Function<ReactorCycleSnapshot, Float> minVal,
-            Function<ReactorCycleSnapshot, Float> q1Val,
-            Function<ReactorCycleSnapshot, Float> medVal,
-            Function<ReactorCycleSnapshot, Float> q3Val,
-            Function<ReactorCycleSnapshot, Float> maxVal,
-            Function<ReactorCycleSnapshot, Float> avgVal,
-            int mainColor,
-            int minColor,
-            int maxColor
-        ) {
+        Metric(String title, String unit, boolean quartile, Function<ReactorCycleSnapshot, Float> scalarVal,
+            Function<ReactorCycleSnapshot, Float> minVal, Function<ReactorCycleSnapshot, Float> q1Val,
+            Function<ReactorCycleSnapshot, Float> medVal, Function<ReactorCycleSnapshot, Float> q3Val,
+            Function<ReactorCycleSnapshot, Float> maxVal, Function<ReactorCycleSnapshot, Float> avgVal, int mainColor,
+            int minColor, int maxColor) {
             this.title = title;
             this.unit = unit;
             this.quartile = quartile;
@@ -226,11 +167,8 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
                 metric.maxVal.apply(latest));
             font.drawString(latestStr, w - font.getStringWidth(latestStr) - 6, 4, 0xFF9CA3AF);
         } else {
-            String latestStr = String.format(
-                Locale.US,
-                "latest: %,d %s",
-                Math.round(metric.scalarVal.apply(latest)),
-                metric.getUnit());
+            String latestStr = String
+                .format(Locale.US, "latest: %,d %s", Math.round(metric.scalarVal.apply(latest)), metric.getUnit());
             font.drawString(latestStr, w - font.getStringWidth(latestStr) - 6, 4, 0xFF9CA3AF);
         }
 
@@ -362,13 +300,31 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
 
             // Indicator dots at hover point
             if (metric.isQuartile()) {
-                drawDot(guideX, getY(metric.minVal.apply(hoveredSnapshot), plotY, plotH, minVal, range), metric.minColor);
-                drawDot(guideX, getY(metric.q1Val.apply(hoveredSnapshot), plotY, plotH, minVal, range), metric.mainColor);
-                drawDot(guideX, getY(metric.medVal.apply(hoveredSnapshot), plotY, plotH, minVal, range), metric.mainColor);
-                drawDot(guideX, getY(metric.q3Val.apply(hoveredSnapshot), plotY, plotH, minVal, range), metric.mainColor);
-                drawDot(guideX, getY(metric.maxVal.apply(hoveredSnapshot), plotY, plotH, minVal, range), metric.maxColor);
+                drawDot(
+                    guideX,
+                    getY(metric.minVal.apply(hoveredSnapshot), plotY, plotH, minVal, range),
+                    metric.minColor);
+                drawDot(
+                    guideX,
+                    getY(metric.q1Val.apply(hoveredSnapshot), plotY, plotH, minVal, range),
+                    metric.mainColor);
+                drawDot(
+                    guideX,
+                    getY(metric.medVal.apply(hoveredSnapshot), plotY, plotH, minVal, range),
+                    metric.mainColor);
+                drawDot(
+                    guideX,
+                    getY(metric.q3Val.apply(hoveredSnapshot), plotY, plotH, minVal, range),
+                    metric.mainColor);
+                drawDot(
+                    guideX,
+                    getY(metric.maxVal.apply(hoveredSnapshot), plotY, plotH, minVal, range),
+                    metric.maxColor);
             } else {
-                drawDot(guideX, getY(metric.scalarVal.apply(hoveredSnapshot), plotY, plotH, minVal, range), metric.mainColor);
+                drawDot(
+                    guideX,
+                    getY(metric.scalarVal.apply(hoveredSnapshot), plotY, plotH, minVal, range),
+                    metric.mainColor);
             }
         } else {
             hoveredSnapshot = null;
@@ -384,16 +340,8 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         GL11.glPopMatrix();
     }
 
-    private void drawCurve(
-        List<ReactorCycleSnapshot> snapshots,
-        Function<ReactorCycleSnapshot, Float> valueGetter,
-        int plotX,
-        int plotY,
-        int plotW,
-        int plotH,
-        float minVal,
-        float range
-    ) {
+    private void drawCurve(List<ReactorCycleSnapshot> snapshots, Function<ReactorCycleSnapshot, Float> valueGetter,
+        int plotX, int plotY, int plotW, int plotH, float minVal, float range) {
         int n = snapshots.size();
         if (n <= 0) return;
 
@@ -486,7 +434,8 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         } else {
             float val = metric.scalarVal.apply(hoveredSnapshot);
             tooltip.addLine(
-                EnumChatFormatting.GRAY + metric.getTitle() + ": "
+                EnumChatFormatting.GRAY + metric.getTitle()
+                    + ": "
                     + EnumChatFormatting.WHITE
                     + String.format(Locale.US, "%,d %s", Math.round(val), metric.getUnit()));
         }

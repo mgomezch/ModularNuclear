@@ -22,11 +22,9 @@ public class ItemCustomFuelRod extends ItemRadioactiveCell {
     public ItemCustomFuelRod(int rodSize) {
         super(
             "modularnuclear.fuelrod.custom" + rodSize,
-            rodSize == 1 ? "Fuel Rod (Custom Mix)" :
-            rodSize == 2 ? "Dual Fuel Rod (Custom Mix)" :
-                           "Quad Fuel Rod (Custom Mix)",
-            rodSize
-        );
+            rodSize == 1 ? "Fuel Rod (Custom Mix)"
+                : rodSize == 2 ? "Dual Fuel Rod (Custom Mix)" : "Quad Fuel Rod (Custom Mix)",
+            rodSize);
         this.rodSize = rodSize;
         this.maxDmg = 10000 * rodSize;
         setMaxStackSize(64);
@@ -44,7 +42,8 @@ public class ItemCustomFuelRod extends ItemRadioactiveCell {
     public int getMaxDamageEx(ItemStack stack) {
         if (stack != null && stack.stackTagCompound != null) {
             if (stack.stackTagCompound.hasKey(CustomFuelMix.NBT_TAG_ROOT)) {
-                net.minecraft.nbt.NBTTagCompound root = stack.stackTagCompound.getCompoundTag(CustomFuelMix.NBT_TAG_ROOT);
+                net.minecraft.nbt.NBTTagCompound root = stack.stackTagCompound
+                    .getCompoundTag(CustomFuelMix.NBT_TAG_ROOT);
                 if (root.hasKey("MaxDurability")) {
                     int max = root.getInteger("MaxDurability");
                     if (max > 0) return max;
@@ -145,7 +144,10 @@ public class ItemCustomFuelRod extends ItemRadioactiveCell {
         aList.add(
             EnumChatFormatting.WHITE + net.minecraft.util.StatCollector.translateToLocalFormatted(
                 "gt.item.desc.durability",
-                color2 + com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil.formatNumber(Math.max(0, max - curDmg)) + EnumChatFormatting.WHITE,
+                color2
+                    + com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil
+                        .formatNumber(Math.max(0, max - curDmg))
+                    + EnumChatFormatting.WHITE,
                 com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil.formatNumber(max)));
     }
 }

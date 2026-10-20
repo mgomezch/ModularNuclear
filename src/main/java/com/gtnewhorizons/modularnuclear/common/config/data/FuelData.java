@@ -1,7 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.config.data;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,11 +50,10 @@ public class FuelData {
     public FuelData() {}
 
     public FuelData(String id, String name, String archetype, boolean isLiquid, int packetCount, int baseNeutrons,
-        double thermalFissMult, double fastFissMult, double absFast, double absThermal,
-        double scattFast, double scattThermal, double moderation, double heatTransferCoeff,
-        double heatPerReaction, int defaultDurability, double peakReactivityTemp, double floorTemp,
-        double peakMult, double peakPoint, double endMult, String spentProduct,
-        String... matchPatterns) {
+        double thermalFissMult, double fastFissMult, double absFast, double absThermal, double scattFast,
+        double scattThermal, double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability,
+        double peakReactivityTemp, double floorTemp, double peakMult, double peakPoint, double endMult,
+        String spentProduct, String... matchPatterns) {
         this.id = id;
         this.name = name;
         this.archetype = archetype != null ? archetype : "standard";
@@ -80,7 +78,8 @@ public class FuelData {
         this.spentProduct = spentProduct;
         if (matchPatterns != null) {
             for (String p : matchPatterns) {
-                if (p != null && !p.trim().isEmpty()) {
+                if (p != null && !p.trim()
+                    .isEmpty()) {
                     this.matching.add(p.trim());
                 }
             }
@@ -88,39 +87,95 @@ public class FuelData {
     }
 
     public FuelData(String id, String name, String archetype, boolean isLiquid, int packetCount, int baseNeutrons,
-        double thermalFissMult, double fastFissMult, double absFast, double absThermal,
-        double scattFast, double scattThermal, double moderation, double heatTransferCoeff,
-        double heatPerReaction, int defaultDurability, double peakReactivityTemp, double floorTemp,
-        double peakMult, double peakPoint, double endMult, String spentProduct, int requiredTier,
-        String... matchPatterns) {
-        this(id, name, archetype, isLiquid, packetCount, baseNeutrons, thermalFissMult, fastFissMult,
-            absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff,
-            heatPerReaction, defaultDurability, peakReactivityTemp, floorTemp, peakMult, peakPoint, endMult,
-            spentProduct, matchPatterns);
+        double thermalFissMult, double fastFissMult, double absFast, double absThermal, double scattFast,
+        double scattThermal, double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability,
+        double peakReactivityTemp, double floorTemp, double peakMult, double peakPoint, double endMult,
+        String spentProduct, int requiredTier, String... matchPatterns) {
+        this(
+            id,
+            name,
+            archetype,
+            isLiquid,
+            packetCount,
+            baseNeutrons,
+            thermalFissMult,
+            fastFissMult,
+            absFast,
+            absThermal,
+            scattFast,
+            scattThermal,
+            moderation,
+            heatTransferCoeff,
+            heatPerReaction,
+            defaultDurability,
+            peakReactivityTemp,
+            floorTemp,
+            peakMult,
+            peakPoint,
+            endMult,
+            spentProduct,
+            matchPatterns);
         this.requiredTier = requiredTier;
     }
 
-    public FuelData(String id, String name, boolean isLiquid, int packetCount, int baseNeutrons,
-        double thermalFissMult, double fastFissMult, double absFast, double absThermal,
-        double scattFast, double scattThermal, double moderation, double heatTransferCoeff,
-        double heatPerReaction, int defaultDurability, double peakReactivityTemp, double floorTemp,
-        double peakMult, double peakPoint, double endMult, String spentProduct,
-        String... matchPatterns) {
-        this(id, name, "standard", isLiquid, packetCount, baseNeutrons, thermalFissMult, fastFissMult,
-            absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff, heatPerReaction,
-            defaultDurability, peakReactivityTemp, floorTemp, peakMult, peakPoint, endMult, spentProduct,
+    public FuelData(String id, String name, boolean isLiquid, int packetCount, int baseNeutrons, double thermalFissMult,
+        double fastFissMult, double absFast, double absThermal, double scattFast, double scattThermal,
+        double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability,
+        double peakReactivityTemp, double floorTemp, double peakMult, double peakPoint, double endMult,
+        String spentProduct, String... matchPatterns) {
+        this(
+            id,
+            name,
+            "standard",
+            isLiquid,
+            packetCount,
+            baseNeutrons,
+            thermalFissMult,
+            fastFissMult,
+            absFast,
+            absThermal,
+            scattFast,
+            scattThermal,
+            moderation,
+            heatTransferCoeff,
+            heatPerReaction,
+            defaultDurability,
+            peakReactivityTemp,
+            floorTemp,
+            peakMult,
+            peakPoint,
+            endMult,
+            spentProduct,
             matchPatterns);
     }
 
     public FuelData(String id, String name, boolean isLiquid, int baseNeutrons, double thermalFissMult,
         double fastFissMult, double absFast, double absThermal, double scattFast, double scattThermal,
-        double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability,
-        double peakMult, double peakPoint, double endMult, String spentProduct,
-        String... matchPatterns) {
-        this(id, name, isLiquid, isLiquid ? 4 : 1, baseNeutrons, thermalFissMult, fastFissMult,
-            absFast, absThermal, scattFast, scattThermal, moderation, heatTransferCoeff,
-            heatPerReaction, defaultDurability, 770.0, 2300.0, peakMult, peakPoint, endMult,
-            spentProduct, matchPatterns);
+        double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability, double peakMult,
+        double peakPoint, double endMult, String spentProduct, String... matchPatterns) {
+        this(
+            id,
+            name,
+            isLiquid,
+            isLiquid ? 4 : 1,
+            baseNeutrons,
+            thermalFissMult,
+            fastFissMult,
+            absFast,
+            absThermal,
+            scattFast,
+            scattThermal,
+            moderation,
+            heatTransferCoeff,
+            heatPerReaction,
+            defaultDurability,
+            770.0,
+            2300.0,
+            peakMult,
+            peakPoint,
+            endMult,
+            spentProduct,
+            matchPatterns);
     }
 
     private synchronized void ensureSolver() {
@@ -185,7 +240,7 @@ public class FuelData {
         else if (isLiq instanceof String s) fd.isLiquid = Boolean.parseBoolean(s);
 
         Object matchingObj = map.get("matching");
-        if (matchingObj instanceof List<?> list) {
+        if (matchingObj instanceof List<?>list) {
             for (Object item : list) {
                 if (item != null) fd.matching.add(item.toString());
             }
@@ -194,7 +249,8 @@ public class FuelData {
         fd.archetype = PhysicsData.getString(map, "archetype", fd.archetype);
         fd.packetCount = PhysicsData.getInt(map, "packet_count", fd.packetCount);
         fd.baseNeutrons = PhysicsData.getInt(map, "base_neutrons", fd.baseNeutrons);
-        fd.thermalFissionMultiplier = PhysicsData.getDouble(map, "thermal_fission_multiplier", fd.thermalFissionMultiplier);
+        fd.thermalFissionMultiplier = PhysicsData
+            .getDouble(map, "thermal_fission_multiplier", fd.thermalFissionMultiplier);
         fd.fastFissionMultiplier = PhysicsData.getDouble(map, "fast_fission_multiplier", fd.fastFissionMultiplier);
         fd.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", fd.absorptionFast);
         fd.absorptionThermal = PhysicsData.getDouble(map, "absorption_thermal", fd.absorptionThermal);
@@ -215,7 +271,7 @@ public class FuelData {
         fd.spentProduct = (String) map.get("spent_product");
 
         Object curveObj = map.get("damage_curve");
-        if (curveObj instanceof Map<?, ?> cMap) {
+        if (curveObj instanceof Map<?, ?>cMap) {
             @SuppressWarnings("unchecked")
             Map<String, Object> cm = (Map<String, Object>) cMap;
             fd.peakReactivityMult = PhysicsData.getDouble(cm, "peak_reactivity_mult", fd.peakReactivityMult);

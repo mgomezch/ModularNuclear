@@ -8,11 +8,19 @@ public class ModBlocks {
 
     public static BlockNuclearCasing nuclearCasing;
     public static BlockCorium blockCorium;
+    public static BlockCoriumSolid blockCoriumSolid;
 
-    public static void init() {
+    private static boolean initialized = false;
+
+    public static synchronized void init() {
+        if (initialized) return;
+        initialized = true;
         nuclearCasing = new BlockNuclearCasing();
         blockCorium = new BlockCorium(ModFluids.fluidCorium);
         GameRegistry.registerBlock(blockCorium, "corium");
         ModFluids.fluidCorium.setBlock(blockCorium);
+
+        blockCoriumSolid = new BlockCoriumSolid();
+        GameRegistry.registerBlock(blockCoriumSolid, ItemBlockCoriumSolid.class, "corium_solid");
     }
 }

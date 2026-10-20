@@ -1,7 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.config;
 
 import java.io.File;
-import java.util.regex.Pattern;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -31,108 +30,48 @@ public final class ModularNuclearConfig {
     // ==========================================
     // Allowlists & Blocklists (Core Components)
     // ==========================================
-    public static String[] blockedItems = new String[] {
-        "*depleted*",
-        "*fuelrodempty*",
-        "IC2:itemFuelRod",
-        "modularnuclear:rodCustomDepletedFuel1",
-        "modularnuclear:rodCustomDepletedFuel2",
-        "modularnuclear:rodCustomDepletedFuel4"
-    };
+    public static String[] blockedItems = new String[] { "*depleted*", "*fuelrodempty*", "IC2:itemFuelRod",
+        "modularnuclear:rodCustomDepletedFuel1", "modularnuclear:rodCustomDepletedFuel2",
+        "modularnuclear:rodCustomDepletedFuel4" };
 
-    public static String[] allowedFuelItems = new String[] {
-        "IC2:reactorUraniumSimple",
-        "IC2:reactorMOXSimple",
-        "IC2:reactorLithiumCell",
-        "gregtech:gt.reactorUranium*",
-        "gregtech:gt.reactorMOX*",
-        "gregtech:gt.reactorThorium*",
-        "gregtech:gt.reactorNaquadah*",
-        "modularnuclear:rodCustomFuel1",
-        "modularnuclear:rodCustomFuel2",
-        "modularnuclear:rodCustomFuel4"
-    };
+    public static String[] allowedFuelItems = new String[] { "IC2:reactorUraniumSimple", "IC2:reactorMOXSimple",
+        "IC2:reactorLithiumCell", "gregtech:gt.reactorUranium*", "gregtech:gt.reactorMOX*",
+        "gregtech:gt.reactorThorium*", "gregtech:gt.reactorNaquadah*", "modularnuclear:rodCustomFuel1",
+        "modularnuclear:rodCustomFuel2", "modularnuclear:rodCustomFuel4" };
 
-    public static String[] allowedFuelFluids = new String[] {
-        "uraniumbasedliquidfuel",
-        "thoriumbasedliquidfuel",
-        "plutoniumbasedliquidfuel",
-        "uraniumhexafluoride"
-    };
+    public static String[] allowedFuelFluids = new String[] { "uraniumbasedliquidfuel", "thoriumbasedliquidfuel",
+        "plutoniumbasedliquidfuel", "uraniumhexafluoride" };
 
-    public static String[] blockedFuelFluids = new String[] {
-        "naquadah"
-    };
+    public static String[] blockedFuelFluids = new String[] { "naquadah" };
 
-    public static String[] allowedCoolantItems = new String[] {
-        "IC2:reactorCoolantSimple",
-        "IC2:reactorCoolantTriple",
-        "IC2:reactorCoolantSix",
-        "gregtech:gt.reactorCoolant*"
-    };
+    public static String[] allowedCoolantItems = new String[] { "IC2:reactorCoolantSimple", "IC2:reactorCoolantTriple",
+        "IC2:reactorCoolantSix", "gregtech:gt.reactorCoolant*" };
 
-    public static String[] allowedCoolantFluids = new String[] {
-        "ic2coolant",
-        "heavywater",
-        "distilledwater",
-        "sodium",
-        "lead",
-        "molten.sodium",
-        "molten.lead"
-    };
+    public static String[] allowedCoolantFluids = new String[] { "ic2coolant", "heavywater", "distilledwater", "sodium",
+        "lead", "molten.sodium", "molten.lead" };
 
-    public static String[] allowedControlRods = new String[] {
-        "stickLongSilver=SILVER",
-        "stickLongBoron=BORON",
-        "stickLongCadmium=CADMIUM",
-        "stickLongIndium=INDIUM",
-        "stickLongHafnium=HAFNIUM"
-    };
+    public static String[] allowedControlRods = new String[] { "stickLongSilver=SILVER", "stickLongBoron=BORON",
+        "stickLongCadmium=CADMIUM", "stickLongIndium=INDIUM", "stickLongHafnium=HAFNIUM" };
 
-    public static String[] allowedReflectors = new String[] {
-        "plateGold",
-        "plateStainlessSteel",
-        "plateTungstenCarbide",
-        "IC2:reactorReflector",
-        "IC2:reactorReflectorThick",
-        "gregtech:gt.neutronReflector"
-    };
+    public static String[] allowedReflectors = new String[] { "plateGold", "plateStainlessSteel",
+        "plateTungstenCarbide", "IC2:reactorReflector", "IC2:reactorReflectorThick", "gregtech:gt.neutronReflector" };
 
-    public static String[] allowedModerators = new String[] {
-        "stickLongGraphite",
-        "stickLongCarbon",
-        "stickLongBeryllium"
-    };
+    public static String[] allowedModerators = new String[] { "stickLongGraphite", "stickLongCarbon",
+        "stickLongBeryllium" };
 
-    public static String[] allowedHeatVents = new String[] {
-        "IC2:reactorVent*"
-    };
+    public static String[] allowedHeatVents = new String[] { "IC2:reactorVent*" };
 
-    public static String[] allowedHeatExchangers = new String[] {
-        "IC2:reactorHeatSwitch*"
-    };
+    public static String[] allowedHeatExchangers = new String[] { "IC2:reactorHeatSwitch*" };
 
-    public static String[] allowedPlatings = new String[] {
-        "IC2:reactorPlating*"
-    };
+    public static String[] allowedPlatings = new String[] { "IC2:reactorPlating*" };
 
-    public static String[] allowedInsulators = new String[] {
-        "Naquarite_Universal_Insulator_Foil=1.0",
-        "MicaInsulatorFoil=0.60",
-        "ThermalClothT2=0.40",
-        "ThermalCloth=0.20",
-        "itemBasicAsteroids:7=0.20"
-    };
+    public static String[] allowedInsulators = new String[] { "Naquarite_Universal_Insulator_Foil=1.0",
+        "MicaInsulatorFoil=0.60", "ThermalClothT2=0.40", "ThermalCloth=0.20", "itemBasicAsteroids:7=0.20" };
 
-    public static String[] allowedRadiovoltaics = new String[] {
-        "modularnuclear:radiovoltaicPlateHV",
-        "modularnuclear:radiovoltaicPlateEV"
-    };
+    public static String[] allowedRadiovoltaics = new String[] { "modularnuclear:radiovoltaicPlateHV",
+        "modularnuclear:radiovoltaicPlateEV" };
 
-    public static String[] allowedNeutronSources = new String[] {
-        "GoodGenerator:neutronSource",
-        "item.neutronSource"
-    };
+    public static String[] allowedNeutronSources = new String[] { "GoodGenerator:neutronSource", "item.neutronSource" };
 
     // ==========================================
     // Simulation Physics & Tuning Parameters
@@ -153,16 +92,14 @@ public final class ModularNuclearConfig {
     // ==========================================
     // Reactor Tiers & Material Limits
     // ==========================================
-    public static final double[] DEFAULT_MAX_OPERATING_TEMP_TIER = new double[] {
-        1200.0, 1400.0, 1800.0, 2200.0, 2600.0, 3200.0
-    };
-    public static double[] maxOperatingTempTier = new double[] {
-        1200.0, // Tier 0: Electrum (EV)
+    public static final double[] DEFAULT_MAX_OPERATING_TEMP_TIER = new double[] { 1200.0, 1400.0, 1800.0, 2200.0,
+        2600.0, 3200.0 };
+    public static double[] maxOperatingTempTier = new double[] { 1200.0, // Tier 0: Electrum (EV)
         1400.0, // Tier 1: Platinum (IV)
         1800.0, // Tier 2: Osmium (LuV)
         2200.0, // Tier 3: Quantium (ZPM)
         2600.0, // Tier 4: Fluxed Electrum (UV)
-        3200.0  // Tier 5: Black Plutonium (UHV)
+        3200.0 // Tier 5: Black Plutonium (UHV)
     };
     public static double repairTempThresholdRatio = 0.10;
     public static double coolantBoilingThresholdHeavyWater = 101.4;
@@ -218,7 +155,9 @@ public final class ModularNuclearConfig {
 
             // Allowlists & Blocklists
             final String CAT_ALLOWLISTS = "allowlists";
-            config.setCategoryComment(CAT_ALLOWLISTS, "Data-driven item and fluid allowlists/blocklists for the reactor core.");
+            config.setCategoryComment(
+                CAT_ALLOWLISTS,
+                "Data-driven item and fluid allowlists/blocklists for the reactor core.");
 
             blockedItems = config.getStringList(
                 "blockedItems",
@@ -274,11 +213,8 @@ public final class ModularNuclearConfig {
                 allowedModerators,
                 "Items and oreDict entries recognized as neutron moderators.");
 
-            allowedHeatVents = config.getStringList(
-                "allowedHeatVents",
-                CAT_ALLOWLISTS,
-                allowedHeatVents,
-                "Items recognized as heat vents.");
+            allowedHeatVents = config
+                .getStringList("allowedHeatVents", CAT_ALLOWLISTS, allowedHeatVents, "Items recognized as heat vents.");
 
             allowedHeatExchangers = config.getStringList(
                 "allowedHeatExchangers",
@@ -412,7 +348,9 @@ public final class ModularNuclearConfig {
 
             // Reactor Tiers & Material Limits
             final String CAT_TIERS = "reactor_tiers";
-            config.setCategoryComment(CAT_TIERS, "Maximum operating temperatures and safety thresholds per reactor pipe tier.");
+            config.setCategoryComment(
+                CAT_TIERS,
+                "Maximum operating temperatures and safety thresholds per reactor pipe tier.");
 
             for (int t = 0; t < maxOperatingTempTier.length; t++) {
                 maxOperatingTempTier[t] = config.getFloat(
@@ -463,8 +401,10 @@ public final class ModularNuclearConfig {
 
     public static boolean matchesPattern(String text, String pattern) {
         if (text == null || pattern == null) return false;
-        String t = text.trim().toLowerCase();
-        String p = pattern.trim().toLowerCase();
+        String t = text.trim()
+            .toLowerCase();
+        String p = pattern.trim()
+            .toLowerCase();
         if (p.equals("*") || p.equals(t)) return true;
 
         if (p.startsWith("*") && p.endsWith("*")) {
@@ -538,8 +478,10 @@ public final class ModularNuclearConfig {
 
     public static boolean matchesFluid(FluidStack fluid, String[] list) {
         if (fluid == null || fluid.getFluid() == null || list == null || list.length == 0) return false;
-        String name = fluid.getFluid().getName();
-        String unloc = fluid.getFluid().getUnlocalizedName();
+        String name = fluid.getFluid()
+            .getName();
+        String unloc = fluid.getFluid()
+            .getUnlocalizedName();
 
         for (String entry : list) {
             if (entry == null || entry.isEmpty()) continue;

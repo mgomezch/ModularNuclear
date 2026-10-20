@@ -240,8 +240,8 @@ public class MTEHatchNuclearHatch extends MTEHatch {
 
     public boolean hasWaterCoolant() {
         if (mInputFluid != null && mInputFluid.getFluid() != null) {
-            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd =
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(mInputFluid);
+            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+                .findCoolantFluid(mInputFluid);
             return cfd != null && cfd.freezingTemperature >= 0.0;
         }
         return false;
@@ -302,12 +302,16 @@ public class MTEHatchNuclearHatch extends MTEHatch {
 
     public boolean isFluidTierValid() {
         if (mInputFluid == null || mInputFluid.getFluid() == null) return true;
-        return isFluidAllowed(mInputFluid.getFluid().getName());
+        return isFluidAllowed(
+            mInputFluid.getFluid()
+                .getName());
     }
 
     public boolean isFluidInputAllowed(FluidStack aFluid) {
         if (aFluid == null || aFluid.getFluid() == null) return false;
-        return isFluidAllowed(aFluid.getFluid().getName());
+        return isFluidAllowed(
+            aFluid.getFluid()
+                .getName());
     }
 
     public com.cleanroommc.modularui.utils.fluid.FluidStackTank getInputTank() {

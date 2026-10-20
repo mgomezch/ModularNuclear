@@ -51,7 +51,7 @@ public class TierData {
         td.directEuEfficiency = PhysicsData.getDouble(map, "direct_eu_efficiency", 1.0);
 
         Object coolants = map.get("allowed_coolants");
-        if (coolants instanceof List<?> list) {
+        if (coolants instanceof List<?>list) {
             for (Object item : list) {
                 if (item != null) td.allowedCoolants.add(item.toString());
             }

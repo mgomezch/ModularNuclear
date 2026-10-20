@@ -2,7 +2,6 @@ package com.gtnewhorizons.modularnuclear;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -23,7 +22,8 @@ public class ReactorMetricsDashboardTest {
 
     @BeforeAll
     static void initEnvironment() {
-        Thread.currentThread().setName("Server thread");
+        Thread.currentThread()
+            .setName("Server thread");
         try {
             cpw.mods.fml.common.Loader mockLoader = org.mockito.Mockito.mock(cpw.mods.fml.common.Loader.class);
             org.mockito.Mockito.when(mockLoader.getCallableCrashInformation())
@@ -105,8 +105,7 @@ public class ReactorMetricsDashboardTest {
             45000,
             38000,
             8192L,
-            128000
-        );
+            128000);
 
         PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
         original.writeToBuffer(buf);
@@ -147,10 +146,23 @@ public class ReactorMetricsDashboardTest {
 
         ReactorMetricsHistory deserialized = ReactorMetricsHistory.readFromBuffer(buf);
         assertEquals(25, deserialized.size());
-        assertEquals(1L, deserialized.getSnapshots().get(0).cycleIndex);
-        assertEquals(25L, deserialized.getSnapshots().get(24).cycleIndex);
-        assertEquals(324f, deserialized.getSnapshots().get(24).tempMedian, 0.001f);
-        assertEquals(2400L, deserialized.getSnapshots().get(24).directEU);
+        assertEquals(
+            1L,
+            deserialized.getSnapshots()
+                .get(0).cycleIndex);
+        assertEquals(
+            25L,
+            deserialized.getSnapshots()
+                .get(24).cycleIndex);
+        assertEquals(
+            324f,
+            deserialized.getSnapshots()
+                .get(24).tempMedian,
+            0.001f);
+        assertEquals(
+            2400L,
+            deserialized.getSnapshots()
+                .get(24).directEU);
     }
 
     @Test
@@ -173,8 +185,13 @@ public class ReactorMetricsDashboardTest {
         reactor.gridSize = 3;
         reactor.recordMetricsCycleSnapshot(res, 1.0);
 
-        assertEquals(1, reactor.getMetricsHistory().size());
-        ReactorCycleSnapshot s = reactor.getMetricsHistory().getSnapshots().get(0);
+        assertEquals(
+            1,
+            reactor.getMetricsHistory()
+                .size());
+        ReactorCycleSnapshot s = reactor.getMetricsHistory()
+            .getSnapshots()
+            .get(0);
         assertEquals(5000, s.fastNeutronsProduced);
         assertEquals(200, s.escapedNeutrons);
 
@@ -182,10 +199,15 @@ public class ReactorMetricsDashboardTest {
         reactor.mSimulateComputerMonitorCover = false;
         assertFalse(reactor.hasComputerMonitorCover());
 
-        if (!reactor.hasComputerMonitorCover() && !reactor.getMetricsHistory().isEmpty()) {
-            reactor.getMetricsHistory().clear();
+        if (!reactor.hasComputerMonitorCover() && !reactor.getMetricsHistory()
+            .isEmpty()) {
+            reactor.getMetricsHistory()
+                .clear();
         }
-        assertEquals(0, reactor.getMetricsHistory().size());
+        assertEquals(
+            0,
+            reactor.getMetricsHistory()
+                .size());
     }
 
     @Test
@@ -197,7 +219,10 @@ public class ReactorMetricsDashboardTest {
         res.totalNeutronsGenerated = 1000;
         reactor.gridSize = 3;
         reactor.recordMetricsCycleSnapshot(res, 1.0);
-        assertEquals(1, reactor.getMetricsHistory().size());
+        assertEquals(
+            1,
+            reactor.getMetricsHistory()
+                .size());
 
         // Save NBT
         NBTTagCompound tag = new NBTTagCompound();

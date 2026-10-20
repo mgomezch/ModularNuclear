@@ -23,6 +23,9 @@ public class ModItems {
     public static ItemCustomFuelRod rodCustomFuel4;
     public static ItemCustomDepletedFuelRod rodCustomDepletedFuel4;
 
+    public static ItemCoriumDust itemCoriumDust;
+    public static ItemCoriumRod itemCoriumRod;
+
     private static boolean initialized = false;
 
     public static synchronized void init() {
@@ -37,6 +40,14 @@ public class ModItems {
         cellHeavyWater = new ItemNuclearFluidCell("cellHeavyWater", ModFluids.fluidHeavyWater);
         GameRegistry.registerItem(cellHeavyWater, "cellHeavyWater");
         OreDictionary.registerOre("cellHeavyWater", new ItemStack(cellHeavyWater));
+
+        itemCoriumDust = new ItemCoriumDust();
+        GameRegistry.registerItem(itemCoriumDust, "corium_dust");
+        OreDictionary.registerOre("dustCorium", new ItemStack(itemCoriumDust));
+
+        itemCoriumRod = new ItemCoriumRod();
+        GameRegistry.registerItem(itemCoriumRod, "corium_rod");
+        OreDictionary.registerOre("stickCorium", new ItemStack(itemCoriumRod));
 
         rodCustomFuel1 = new ItemCustomFuelRod(1);
         OreDictionary.registerOre("fuelRodCustom1", new ItemStack(rodCustomFuel1));

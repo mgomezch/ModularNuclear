@@ -468,8 +468,7 @@ public class SimTile implements INuclearTile {
     @Override
     public void addHeat(double heat) {
         this.heatHu += heat;
-        this.temperature = Math
-            .max(-273.15, this.temperature + heat / NuclearSimulationEngine.HU_PER_DEGREE);
+        this.temperature = Math.max(-273.15, this.temperature + heat / NuclearSimulationEngine.HU_PER_DEGREE);
     }
 
     public double getHeatHu() {
@@ -531,7 +530,8 @@ public class SimTile implements INuclearTile {
     }
 
     public boolean isModerator() {
-        return type == TileType.MODERATOR_GRAPHITE || type == TileType.MODERATOR_CARBON || type == TileType.MODERATOR_BERYLLIUM;
+        return type == TileType.MODERATOR_GRAPHITE || type == TileType.MODERATOR_CARBON
+            || type == TileType.MODERATOR_BERYLLIUM;
     }
 
     @Override
@@ -570,7 +570,11 @@ public class SimTile implements INuclearTile {
     @Override
     public int generateNeutrons(double efficiency) {
         if (isNeutronSource()) {
-            int packetSize = Math.max(0, (int) Math.round(neutronSourceBeamEnergy * neutronSourceBeamRate * NuclearSimulationEngine.beamEnergyToFastNeutronMultiplier));
+            int packetSize = Math.max(
+                0,
+                (int) Math.round(
+                    neutronSourceBeamEnergy * neutronSourceBeamRate
+                        * NuclearSimulationEngine.beamEnergyToFastNeutronMultiplier));
             int totalNeutrons = packetSize * 4;
             lastNeutronsGenerated = totalNeutrons;
             return totalNeutrons;
@@ -613,13 +617,15 @@ public class SimTile implements INuclearTile {
 
         int baseNeutrons = Math.max(1, (int) Math.round(rawBaseNeutrons * archNbaseMult));
 
-        double baseThermalMult = (type == TileType.HATCH_LIQUID_FUEL_PLUTONIUM) ? 1.80 : ((fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0);
+        double baseThermalMult = (type == TileType.HATCH_LIQUID_FUEL_PLUTONIUM) ? 1.80
+            : ((fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0);
         double baseFissionMult = baseThermalMult * archFissMult;
         double effectiveFissionMult = baseFissionMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
         double baseFastFissionMult = ((fuel != null) ? fuel.baseFastFissionMultiplier : 0.10) * archFissMult;
         double effectiveFastFissionMult = baseFastFissionMult * NuclearSimulationEngine.globalFastFissionMultiplier;
 
-        int chainNeutrons = (int) Math.round(lastThermalAbsorbed * effectiveFissionMult + lastFastAbsorbed * effectiveFastFissionMult);
+        int chainNeutrons = (int) Math
+            .round(lastThermalAbsorbed * effectiveFissionMult + lastFastAbsorbed * effectiveFastFissionMult);
         int produced = (int) Math.round((baseNeutrons + chainNeutrons) * efficiency);
         lastNeutronsGenerated = produced;
         return produced;
@@ -806,10 +812,12 @@ public class SimTile implements INuclearTile {
                 default -> 0.50;
             };
         }
-        if (type == TileType.REFLECTOR_GOLD || type == TileType.REFLECTOR_STAINLESS || type == TileType.REFLECTOR_TUNGSTEN_CARBIDE) {
+        if (type == TileType.REFLECTOR_GOLD || type == TileType.REFLECTOR_STAINLESS
+            || type == TileType.REFLECTOR_TUNGSTEN_CARBIDE) {
             return 0.0;
         }
-        if (type == TileType.REFLECTOR_IC2 || type == TileType.REFLECTOR_BERYLLIUM || type == TileType.REFLECTOR_CARBON) {
+        if (type == TileType.REFLECTOR_IC2 || type == TileType.REFLECTOR_BERYLLIUM
+            || type == TileType.REFLECTOR_CARBON) {
             return 0.20;
         }
         if (type == TileType.REFLECTOR_IC2_THICK) {
@@ -882,7 +890,8 @@ public class SimTile implements INuclearTile {
 
     @Override
     public void onNeutronScattered(NeutronType nType, int count) {
-        if ((type == TileType.REFLECTOR_IC2 || type == TileType.REFLECTOR_IC2_THICK) && !depleted && maxDurability > 0) {
+        if ((type == TileType.REFLECTOR_IC2 || type == TileType.REFLECTOR_IC2_THICK) && !depleted
+            && maxDurability > 0) {
             for (int i = 0; i < count; i++) {
                 if (RAND.nextInt(20) == 0) {
                     durability--;
@@ -932,7 +941,8 @@ public class SimTile implements INuclearTile {
                 }
                 int burn = (int) Math.round(
                     Math.max(0.0, lastNeutronsGenerated * 0.25)
-                        + (fastAbsorbed * NuclearSimulationEngine.fastAbsorptionDamageMultiplier + thermalAbsorbed * NuclearSimulationEngine.thermalAbsorptionDamageMultiplier)
+                        + (fastAbsorbed * NuclearSimulationEngine.fastAbsorptionDamageMultiplier
+                            + thermalAbsorbed * NuclearSimulationEngine.thermalAbsorptionDamageMultiplier)
                         + tempDmg);
                 int toConsume = Math.max(1, Math.min(inputFluidAmount, burn));
                 inputFluidAmount -= toConsume;
@@ -954,7 +964,8 @@ public class SimTile implements INuclearTile {
                 tempDmg = (temperature - NuclearSimulationEngine.AMBIENT_TEMP) / 100.0;
             }
             double rawDamage = (Math.max(0.0, lastNeutronsGenerated * 0.25)
-                + (fastAbsorbed * NuclearSimulationEngine.fastAbsorptionDamageMultiplier + thermalAbsorbed * NuclearSimulationEngine.thermalAbsorptionDamageMultiplier)
+                + (fastAbsorbed * NuclearSimulationEngine.fastAbsorptionDamageMultiplier
+                    + thermalAbsorbed * NuclearSimulationEngine.thermalAbsorptionDamageMultiplier)
                 + tempDmg) * NuclearSimulationEngine.fuelBurnupMultiplier;
             lastDurabilityLoss = rawDamage;
             durabilityLossAccumulator += rawDamage;
@@ -1355,10 +1366,42 @@ public class SimTile implements INuclearTile {
     @Override
     public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData getHeatVentData() {
         return switch (type) {
-            case VENT_STANDARD -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData("vent_standard", "Reactor Heat Vent", 0.40, 6.0, 1500.0, 0.05, 128, 512.0);
-            case VENT_ADVANCED -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData("vent_gold", "Advanced Heat Vent", 0.45, 12.0, 1600.0, 0.05, 512, 2048.0);
-            case VENT_OVERCLOCKED -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData("vent_spread", "Overclocked Heat Vent", 0.40, 8.0, 1500.0, 0.05, 1024, 4096.0);
-            case VENT_COMPONENT -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData("vent_diamond", "Component Heat Vent", 0.50, 20.0, 2000.0, 0.05, 2048, 8192.0);
+            case VENT_STANDARD -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData(
+                "vent_standard",
+                "Reactor Heat Vent",
+                0.40,
+                6.0,
+                1500.0,
+                0.05,
+                128,
+                512.0);
+            case VENT_ADVANCED -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData(
+                "vent_gold",
+                "Advanced Heat Vent",
+                0.45,
+                12.0,
+                1600.0,
+                0.05,
+                512,
+                2048.0);
+            case VENT_OVERCLOCKED -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData(
+                "vent_spread",
+                "Overclocked Heat Vent",
+                0.40,
+                8.0,
+                1500.0,
+                0.05,
+                1024,
+                4096.0);
+            case VENT_COMPONENT -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData(
+                "vent_diamond",
+                "Component Heat Vent",
+                0.50,
+                20.0,
+                2000.0,
+                0.05,
+                2048,
+                8192.0);
             default -> null;
         };
     }
@@ -1374,9 +1417,33 @@ public class SimTile implements INuclearTile {
     @Override
     public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData getHeatExchangerData() {
         return switch (type) {
-            case EXCHANGER_STANDARD -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData("exchanger_standard", "Heat Exchanger", 0.40, 12.0, 1500.0, 0.05, 256, 1024.0);
-            case EXCHANGER_ADVANCED -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData("exchanger_spread", "Advanced Heat Exchanger", 0.45, 24.0, 1600.0, 0.05, 512, 2048.0);
-            case EXCHANGER_COMPONENT -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData("exchanger_diamond", "Component Heat Exchanger", 0.50, 36.0, 2000.0, 0.05, 1024, 4096.0);
+            case EXCHANGER_STANDARD -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData(
+                "exchanger_standard",
+                "Heat Exchanger",
+                0.40,
+                12.0,
+                1500.0,
+                0.05,
+                256,
+                1024.0);
+            case EXCHANGER_ADVANCED -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData(
+                "exchanger_spread",
+                "Advanced Heat Exchanger",
+                0.45,
+                24.0,
+                1600.0,
+                0.05,
+                512,
+                2048.0);
+            case EXCHANGER_COMPONENT -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData(
+                "exchanger_diamond",
+                "Component Heat Exchanger",
+                0.50,
+                36.0,
+                2000.0,
+                0.05,
+                1024,
+                4096.0);
             default -> null;
         };
     }
@@ -1416,7 +1483,8 @@ public class SimTile implements INuclearTile {
     }
 
     public void processNeighborComponents(INuclearTile[][] grid, int x, int y, int sizeX, int sizeY) {
-        NuclearSimulationEngine.processActiveVentsAndExchangers(grid, sizeX, sizeY, NuclearSimulationEngine.ambientTemp);
+        NuclearSimulationEngine
+            .processActiveVentsAndExchangers(grid, sizeX, sizeY, NuclearSimulationEngine.ambientTemp);
     }
 
     public double storedWignerEnergy = 0.0;
@@ -1451,19 +1519,71 @@ public class SimTile implements INuclearTile {
     public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData getModeratorData() {
         if (type == TileType.MODERATOR_GRAPHITE) {
             return new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData(
-                "moderator_graphite", "Graphite Moderator", 0.002, 0.009, 0.93, 0.621, 0.50, 0.05, 2500.0,
-                80000, "ore:dustAsh", 0.0003, 1.0, 1500.0, 2500.0, 0.0,
-                1.0, 1500.0, 2500.0, 2000.0, 10000.0);
+                "moderator_graphite",
+                "Graphite Moderator",
+                0.002,
+                0.009,
+                0.93,
+                0.621,
+                0.50,
+                0.05,
+                2500.0,
+                80000,
+                "ore:dustAsh",
+                0.0003,
+                1.0,
+                1500.0,
+                2500.0,
+                0.0,
+                1.0,
+                1500.0,
+                2500.0,
+                2000.0,
+                10000.0);
         } else if (type == TileType.MODERATOR_CARBON) {
             return new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData(
-                "moderator_carbon", "Carbon Moderator", 0.003, 0.012, 0.90, 0.60, 0.45, 0.05, 2200.0,
-                10000, "ore:dustAsh", 0.0005, 1.0, 1500.0, 2500.0, 0.0,
-                0.0, 1500.0, 2500.0, 0.0);
+                "moderator_carbon",
+                "Carbon Moderator",
+                0.003,
+                0.012,
+                0.90,
+                0.60,
+                0.45,
+                0.05,
+                2200.0,
+                10000,
+                "ore:dustAsh",
+                0.0005,
+                1.0,
+                1500.0,
+                2500.0,
+                0.0,
+                0.0,
+                1500.0,
+                2500.0,
+                0.0);
         } else if (type == TileType.MODERATOR_BERYLLIUM) {
             return new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData(
-                "moderator_beryllium", "Beryllium Moderator", 0.001, 0.004, 0.96, 0.85, 0.65, 0.15, 2600.0,
-                240000, "", 0.0002, 0.5, 1500.0, 2500.0, 0.0,
-                0.0, 1500.0, 2500.0, 0.0);
+                "moderator_beryllium",
+                "Beryllium Moderator",
+                0.001,
+                0.004,
+                0.96,
+                0.85,
+                0.65,
+                0.15,
+                2600.0,
+                240000,
+                "",
+                0.0002,
+                0.5,
+                1500.0,
+                2500.0,
+                0.0,
+                0.0,
+                1500.0,
+                2500.0,
+                0.0);
         }
         return null;
     }

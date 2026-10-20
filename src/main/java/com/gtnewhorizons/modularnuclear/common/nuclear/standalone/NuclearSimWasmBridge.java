@@ -789,7 +789,9 @@ public class NuclearSimWasmBridge {
             .append(cl.getFluidType().displayName)
             .append("\",");
         sb.append("\"secondaryCoolant\":\"")
-            .append(cl.getSecondaryCoolant().name())
+            .append(
+                cl.getSecondaryCoolant()
+                    .name())
             .append("\",");
         sb.append("\"secondaryCoolantName\":\"")
             .append(cl.getSecondaryCoolant().displayName)

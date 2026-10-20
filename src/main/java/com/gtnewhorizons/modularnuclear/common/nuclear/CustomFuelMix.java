@@ -32,8 +32,8 @@ public class CustomFuelMix {
 
     public static int getRequiredUnits(int rodSize) {
         return switch (rodSize) {
-            case 1 -> 90;   // 2.5 dusts
-            case 2 -> 180;  // 5.0 dusts
+            case 1 -> 90; // 2.5 dusts
+            case 2 -> 180; // 5.0 dusts
             default -> 360; // 10.0 dusts (Quad)
         };
     }
@@ -60,7 +60,8 @@ public class CustomFuelMix {
         public final int baseDurability;
 
         ActinideIsotope(String displayName, String symbol, double peakReactivityTemp, double floorTemp,
-            double baseThermalFissionMultiplier, double baseFastFissionMultiplier, int baseNeutrons, int baseDurability) {
+            double baseThermalFissionMultiplier, double baseFastFissionMultiplier, int baseNeutrons,
+            int baseDurability) {
             this.displayName = displayName;
             this.symbol = symbol;
             this.peakReactivityTemp = peakReactivityTemp;
@@ -90,7 +91,10 @@ public class CustomFuelMix {
 
         static {
             for (ActinideIsotope iso : values()) {
-                NAME_LOOKUP.put(iso.name().toLowerCase(Locale.ENGLISH), iso);
+                NAME_LOOKUP.put(
+                    iso.name()
+                        .toLowerCase(Locale.ENGLISH),
+                    iso);
                 NAME_LOOKUP.put(iso.displayName.toLowerCase(Locale.ENGLISH), iso);
                 NAME_LOOKUP.put(iso.symbol.toLowerCase(Locale.ENGLISH), iso);
             }
@@ -145,7 +149,9 @@ public class CustomFuelMix {
 
         public static ActinideIsotope fromName(String name) {
             if (name == null) return null;
-            return NAME_LOOKUP.get(name.trim().toLowerCase(Locale.ENGLISH));
+            return NAME_LOOKUP.get(
+                name.trim()
+                    .toLowerCase(Locale.ENGLISH));
         }
     }
 

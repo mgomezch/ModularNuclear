@@ -650,9 +650,10 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter,
                 .extFacing()
                 .build(),
                 TextureFactory.builder()
-                    .addIcon(ModularNuclearTextures.OVERLAY_HATCH_NUCLEAR_CONTROL_GLOW != null
-                        ? ModularNuclearTextures.OVERLAY_HATCH_NUCLEAR_CONTROL_GLOW
-                        : ModularNuclearTextures.OVERLAY_HATCH_NUCLEAR_CONTROL)
+                    .addIcon(
+                        ModularNuclearTextures.OVERLAY_HATCH_NUCLEAR_CONTROL_GLOW != null
+                            ? ModularNuclearTextures.OVERLAY_HATCH_NUCLEAR_CONTROL_GLOW
+                            : ModularNuclearTextures.OVERLAY_HATCH_NUCLEAR_CONTROL)
                     .extFacing()
                     .glow()
                     .build() };

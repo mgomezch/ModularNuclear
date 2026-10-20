@@ -48,9 +48,18 @@ public enum NuclearFuelType {
     public final double damageRatio;
 
     NuclearFuelType(String displayName, String archetype, double peakReactivityTemp, double floorTemp,
-        double baseThermalFissionMultiplier, double baseFastFissionMultiplier, int defaultDurability, int baseNeutrons) {
-        this(displayName, archetype, peakReactivityTemp, floorTemp, baseThermalFissionMultiplier,
-            baseFastFissionMultiplier, defaultDurability, baseNeutrons, FuelDamageCurveSolver.DEFAULT_T10_WEAR_FACTOR);
+        double baseThermalFissionMultiplier, double baseFastFissionMultiplier, int defaultDurability,
+        int baseNeutrons) {
+        this(
+            displayName,
+            archetype,
+            peakReactivityTemp,
+            floorTemp,
+            baseThermalFissionMultiplier,
+            baseFastFissionMultiplier,
+            defaultDurability,
+            baseNeutrons,
+            FuelDamageCurveSolver.DEFAULT_T10_WEAR_FACTOR);
     }
 
     NuclearFuelType(String displayName, String archetype, double peakReactivityTemp, double floorTemp,
@@ -79,12 +88,14 @@ public enum NuclearFuelType {
         return Math.max(1, (int) Math.round(this.baseNeutrons * mult));
     }
 
-    public double getEffectiveFissionMultiplier(com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics) {
+    public double getEffectiveFissionMultiplier(
+        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics) {
         double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetype) : 1.0;
         return this.baseThermalFissionMultiplier * mult;
     }
 
-    public double getEffectiveFastFissionMultiplier(com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics) {
+    public double getEffectiveFastFissionMultiplier(
+        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics) {
         double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetype) : 1.0;
         return this.baseFastFissionMultiplier * mult;
     }
@@ -148,14 +159,15 @@ public enum NuclearFuelType {
      */
     public static NuclearFuelType fromName(String name) {
         if (name == null || name.isEmpty()) return null;
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd =
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(name);
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findFuel(name);
         if (fd != null) {
             NuclearFuelType nft = fromFuelData(fd);
             if (nft != null) return nft;
         }
         for (NuclearFuelType type : values()) {
-            if (type.name().equalsIgnoreCase(name) || type.displayName.equalsIgnoreCase(name)) {
+            if (type.name()
+                .equalsIgnoreCase(name) || type.displayName.equalsIgnoreCase(name)) {
                 return type;
             }
         }

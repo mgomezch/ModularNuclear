@@ -1,12 +1,10 @@
 package com.gtnewhorizons.modularnuclear.common.entity;
 
 import java.util.List;
-import java.util.Random;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.potion.PotionEffect;
@@ -14,7 +12,6 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldServer;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraftforge.common.ForgeChunkManager;
@@ -46,7 +43,8 @@ public class EntityMeltdownFallout extends Entity {
     public void setupChunkLoading() {
         if (worldObj == null || worldObj.isRemote || mChunkTicket != null) return;
         try {
-            mChunkTicket = ForgeChunkManager.requestTicket(ModularNuclear.instance, worldObj, ForgeChunkManager.Type.ENTITY);
+            mChunkTicket = ForgeChunkManager
+                .requestTicket(ModularNuclear.instance, worldObj, ForgeChunkManager.Type.ENTITY);
             if (mChunkTicket != null) {
                 mChunkTicket.bindEntity(this);
                 forceChunks();
@@ -61,7 +59,8 @@ public class EntityMeltdownFallout extends Entity {
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 try {
-                    ForgeChunkManager.forceChunk(mChunkTicket, new ChunkCoordIntPair(centerChunkX + dx, centerChunkZ + dz));
+                    ForgeChunkManager
+                        .forceChunk(mChunkTicket, new ChunkCoordIntPair(centerChunkX + dx, centerChunkZ + dz));
                 } catch (Throwable ignored) {}
             }
         }
@@ -101,7 +100,8 @@ public class EntityMeltdownFallout extends Entity {
         }
 
         @Override
-        public List<ForgeChunkManager.Ticket> ticketsLoaded(List<ForgeChunkManager.Ticket> tickets, World world, int maxTicketCount) {
+        public List<ForgeChunkManager.Ticket> ticketsLoaded(List<ForgeChunkManager.Ticket> tickets, World world,
+            int maxTicketCount) {
             return tickets;
         }
     }
@@ -215,8 +215,11 @@ public class EntityMeltdownFallout extends Entity {
                 }
             } catch (Throwable ignored) {}
             if (!protects && stack.getUnlocalizedName() != null) {
-                String lower = stack.getUnlocalizedName().toLowerCase();
-                if (lower.contains("hazmat") || lower.contains("rubboot") || lower.contains("rubber") || lower.contains("radiation")) {
+                String lower = stack.getUnlocalizedName()
+                    .toLowerCase();
+                if (lower.contains("hazmat") || lower.contains("rubboot")
+                    || lower.contains("rubber")
+                    || lower.contains("radiation")) {
                     protects = true;
                 }
             }
@@ -224,7 +227,9 @@ public class EntityMeltdownFallout extends Entity {
                 String id = (String) net.minecraft.item.Item.itemRegistry.getNameForObject(stack.getItem());
                 if (id != null) {
                     String lowerId = id.toLowerCase();
-                    if (lowerId.contains("hazmat") || lowerId.contains("rubboot") || lowerId.contains("rubber") || lowerId.contains("radiation")) {
+                    if (lowerId.contains("hazmat") || lowerId.contains("rubboot")
+                        || lowerId.contains("rubber")
+                        || lowerId.contains("radiation")) {
                         protects = true;
                     }
                 }
@@ -293,7 +298,7 @@ public class EntityMeltdownFallout extends Entity {
                                 if (b == ModBlocks.blockCorium) {
                                     int worldX = (chunkX << 4) + lx;
                                     int worldZ = (chunkZ << 4) + lz;
-                                    worldObj.setBlock(worldX, worldY, worldZ, Blocks.bedrock, 0, 3);
+                                    worldObj.setBlock(worldX, worldY, worldZ, ModBlocks.blockCoriumSolid, 0, 3);
                                     worldObj.playSoundEffect(
                                         worldX + 0.5,
                                         worldY + 0.5,

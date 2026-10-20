@@ -22,10 +22,10 @@ import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
-import com.cleanroommc.modularui.value.sync.IntSyncValue;
-import com.cleanroommc.modularui.value.sync.LongSyncValue;
 import com.cleanroommc.modularui.value.sync.DynamicSyncHandler;
 import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
+import com.cleanroommc.modularui.value.sync.IntSyncValue;
+import com.cleanroommc.modularui.value.sync.LongSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.DynamicSyncedWidget;
@@ -84,8 +84,9 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
             "damage",
             new DoubleSyncValue(() -> multiblock.mReactorDamage, v -> multiblock.mReactorDamage = v));
         syncManager.syncValue("scram", new BooleanSyncValue(() -> multiblock.mScram, multiblock::setScram));
-        syncManager
-            .syncValue("moltenDown", new BooleanSyncValue(() -> multiblock.mMoltenDown, v -> multiblock.mMoltenDown = v));
+        syncManager.syncValue(
+            "moltenDown",
+            new BooleanSyncValue(() -> multiblock.mMoltenDown, v -> multiblock.mMoltenDown = v));
 
         syncManager.registerSyncedAction("toggleScram", false, true, buf -> multiblock.setScram(!multiblock.mScram));
     }
@@ -125,7 +126,7 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
     }
 
     public static void applyTextMaxWidth(IWidget widget, int maxWidth) {
-        if (widget instanceof TextWidget<?> tw) {
+        if (widget instanceof TextWidget<?>tw) {
             tw.maxWidth(maxWidth);
         }
         for (IWidget child : widget.getChildren()) {

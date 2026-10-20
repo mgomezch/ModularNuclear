@@ -378,8 +378,7 @@ public class NEIModeratorStatsHandler extends TemplateRecipeHandler {
         GL11.glScalef(0.5f, 0.5f, 0.5f);
 
         // Graph Banner Title inside panel
-        String chartTitle = isWigner ? "Wigner Heat Release Rate (HU/t max)"
-            : "Thermal Durability Wear Rate (/tick)";
+        String chartTitle = isWigner ? "Wigner Heat Release Rate (HU/t max)" : "Thermal Durability Wear Rate (/tick)";
         int chartTitleCol = isWigner ? 0xFF38BDF8 : 0xFFF59E0B;
         font.drawString(chartTitle, (PLOT_X + 2) * 2, (PLOT_Y - 9) * 2, chartTitleCol);
 
@@ -442,7 +441,7 @@ public class NEIModeratorStatsHandler extends TemplateRecipeHandler {
 
         // Interactive Crosshair & Cursor Line
         Point mouseInRecipe = null;
-        if (Minecraft.getMinecraft().currentScreen instanceof GuiRecipe<?> guiRecipe) {
+        if (Minecraft.getMinecraft().currentScreen instanceof GuiRecipe<?>guiRecipe) {
             mouseInRecipe = getMouseInRecipe(guiRecipe, recipeIndex);
         }
 
@@ -484,13 +483,16 @@ public class NEIModeratorStatsHandler extends TemplateRecipeHandler {
 
         // Interactive Tooltip rendering
         if (mouseInRecipe != null && isMouseOverPlot(mouseInRecipe.x, mouseInRecipe.y)
-            && Minecraft.getMinecraft().currentScreen instanceof GuiRecipe<?> guiRecipe) {
+            && Minecraft.getMinecraft().currentScreen instanceof GuiRecipe<?>guiRecipe) {
             Point offset = guiRecipe.getRecipePosition(recipeIndex);
             if (offset != null) {
                 int mx = mouseInRecipe.x;
                 double tempAtMouse = ((mx - PLOT_X) / (double) PLOT_W) * maxTemp;
                 List<String> tip = new ArrayList<>();
-                tip.add(EnumChatFormatting.WHITE + "" + EnumChatFormatting.BOLD + String.format(Locale.US, "%.0f °C", tempAtMouse));
+                tip.add(
+                    EnumChatFormatting.WHITE + ""
+                        + EnumChatFormatting.BOLD
+                        + String.format(Locale.US, "%.0f °C", tempAtMouse));
 
                 if (isWigner) {
                     double releaseRate = mod.calculateWignerHeatRelease(tempAtMouse, mod.wignerMaxReleaseRate);
@@ -502,13 +504,21 @@ public class NEIModeratorStatsHandler extends TemplateRecipeHandler {
                     } else {
                         statusNote = EnumChatFormatting.GOLD + " (Active Release)";
                     }
-                    tip.add(EnumChatFormatting.AQUA + String.format(Locale.US, "Release Rate: %.0f HU/t", releaseRate) + statusNote);
-                    tip.add(EnumChatFormatting.GRAY + String.format(Locale.US, "Storage: %.0f HU / fast (Cap: %,.0f HU)", mod.wignerEnergyPerFast, mod.wignerMaxEnergy));
+                    tip.add(
+                        EnumChatFormatting.AQUA + String.format(Locale.US, "Release Rate: %.0f HU/t", releaseRate)
+                            + statusNote);
+                    tip.add(
+                        EnumChatFormatting.GRAY + String.format(
+                            Locale.US,
+                            "Storage: %.0f HU / fast (Cap: %,.0f HU)",
+                            mod.wignerEnergyPerFast,
+                            mod.wignerMaxEnergy));
                 } else {
                     double wear = mod.calculateTemperatureDamage(tempAtMouse, 20.0);
                     String tempNote = (tempAtMouse > mod.maxTemperature) ? EnumChatFormatting.RED + " (OVERHEATING)"
                         : (wear <= 0.001) ? EnumChatFormatting.GRAY + " (Nominal)" : "";
-                    tip.add(EnumChatFormatting.GOLD + String.format(Locale.US, "Temp wear: %.2f / tick", wear) + tempNote);
+                    tip.add(
+                        EnumChatFormatting.GOLD + String.format(Locale.US, "Temp wear: %.2f / tick", wear) + tempNote);
                 }
 
                 GL11.glPushMatrix();

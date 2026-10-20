@@ -22,11 +22,9 @@ public class ItemCustomDepletedFuelRod extends GTGenericItem {
     public ItemCustomDepletedFuelRod(int rodSize) {
         super(
             "modularnuclear.fuelrod.depleted.custom" + rodSize,
-            rodSize == 1 ? "Depleted Fuel Rod (Custom Mix)" :
-            rodSize == 2 ? "Depleted Dual Fuel Rod (Custom Mix)" :
-                           "Depleted Quad Fuel Rod (Custom Mix)",
-            null
-        );
+            rodSize == 1 ? "Depleted Fuel Rod (Custom Mix)"
+                : rodSize == 2 ? "Depleted Dual Fuel Rod (Custom Mix)" : "Depleted Quad Fuel Rod (Custom Mix)",
+            null);
         this.rodSize = rodSize;
         setMaxStackSize(64);
     }

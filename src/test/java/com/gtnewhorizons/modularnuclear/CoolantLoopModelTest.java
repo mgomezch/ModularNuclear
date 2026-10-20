@@ -187,14 +187,20 @@ public class CoolantLoopModelTest {
 
     @Test
     void testConvectiveCoolingTierGating() {
-        StandaloneNuclearGrid electrumGrid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        StandaloneNuclearGrid electrumGrid = new StandaloneNuclearGrid(
+            5,
+            5,
+            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         assertFalse(electrumGrid.isTier2ConvectiveAllowed());
         assertFalse(
             electrumGrid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP),
             "Convective cooling mode must reject Electrum (EV)");
         assertEquals(CoolantLoopModel.CoolingMode.MODULAR, electrumGrid.getCoolingMode());
 
-        StandaloneNuclearGrid platinumGrid = new StandaloneNuclearGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        StandaloneNuclearGrid platinumGrid = new StandaloneNuclearGrid(
+            7,
+            7,
+            NuclearSimulationEngine.PIPE_TIER_PLATINUM);
         assertFalse(platinumGrid.isTier2ConvectiveAllowed());
         assertFalse(
             platinumGrid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP),
@@ -202,7 +208,10 @@ public class CoolantLoopModelTest {
         assertEquals(CoolantLoopModel.CoolingMode.MODULAR, platinumGrid.getCoolingMode());
 
         // Osmium on 5x5 must be allowed!
-        StandaloneNuclearGrid osmiumSmallGrid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_OSMIUM);
+        StandaloneNuclearGrid osmiumSmallGrid = new StandaloneNuclearGrid(
+            5,
+            5,
+            NuclearSimulationEngine.PIPE_TIER_OSMIUM);
         assertTrue(osmiumSmallGrid.isTier2ConvectiveAllowed(), "Osmium on 5x5 must allow convective loop");
         assertTrue(
             osmiumSmallGrid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP),
@@ -369,11 +378,15 @@ public class CoolantLoopModelTest {
 
         // 4. Heat vent tile actively cools adjacent fuel rod via conduction and active venting
         assertTrue(
-            grid.getTile(5, 5).getTemperature() < grid.getTile(5, 1).getTemperature(),
+            grid.getTile(5, 5)
+                .getTemperature()
+                < grid.getTile(5, 1)
+                    .getTemperature(),
             "Heat vent should keep adjacent fuel rod cooler than completely isolated uncooled rod");
         assertEquals(
             NuclearSimulationEngine.AMBIENT_TEMP,
-            grid.getTile(5, 4).getTemperature(),
+            grid.getTile(5, 4)
+                .getTemperature(),
             1e-3,
             "Heat vent equalizes towards ambient temperature");
 
@@ -432,7 +445,10 @@ public class CoolantLoopModelTest {
         }
         assertTrue(loop.getTotalDeuteriumProduced() > 0, "Distilled water loop must produce radiolytic deuterium");
         assertTrue(loop.getTotalOxygenProduced() > 0, "Distilled water loop must produce radiolytic oxygen");
-        assertEquals(loop.getTotalDeuteriumProduced() / 2, loop.getTotalOxygenProduced(), "Stoichiometry must be 2 D2 to 1 O2");
+        assertEquals(
+            loop.getTotalDeuteriumProduced() / 2,
+            loop.getTotalOxygenProduced(),
+            "Stoichiometry must be 2 D2 to 1 O2");
 
         // Heavy water produces tritium and oxygen
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
@@ -441,8 +457,13 @@ public class CoolantLoopModelTest {
             grid.step();
         }
         assertTrue(loop.getTotalTritiumProduced() > 0, "Heavy water loop must produce radiolytic tritium");
-        assertTrue(loop.getTotalOxygenProduced() > prevOxygen, "Heavy water loop must produce additional radiolytic oxygen");
-        assertEquals(loop.getTotalTritiumProduced() / 2, loop.getTotalOxygenProduced() - prevOxygen, "Stoichiometry must be 2 T2 to 1 O2");
+        assertTrue(
+            loop.getTotalOxygenProduced() > prevOxygen,
+            "Heavy water loop must produce additional radiolytic oxygen");
+        assertEquals(
+            loop.getTotalTritiumProduced() / 2,
+            loop.getTotalOxygenProduced() - prevOxygen,
+            "Stoichiometry must be 2 T2 to 1 O2");
     }
 
     @Test
@@ -500,8 +521,12 @@ public class CoolantLoopModelTest {
     @Test
     void testAllCoolantFluidsPropertiesAndParsing() {
         // IC2 Coolant
-        assertEquals(CoolantLoopModel.CoolantFluidType.IC2_COOLANT, CoolantLoopModel.CoolantFluidType.fromString("IC2_COOLANT"));
-        assertEquals(CoolantLoopModel.CoolantFluidType.IC2_COOLANT, CoolantLoopModel.CoolantFluidType.fromString("coolant"));
+        assertEquals(
+            CoolantLoopModel.CoolantFluidType.IC2_COOLANT,
+            CoolantLoopModel.CoolantFluidType.fromString("IC2_COOLANT"));
+        assertEquals(
+            CoolantLoopModel.CoolantFluidType.IC2_COOLANT,
+            CoolantLoopModel.CoolantFluidType.fromString("coolant"));
         assertEquals("IC2 Coolant", CoolantLoopModel.CoolantFluidType.IC2_COOLANT.displayName);
         assertEquals(1080.0, CoolantLoopModel.CoolantFluidType.IC2_COOLANT.density, 1e-2);
         assertEquals(3800.0, CoolantLoopModel.CoolantFluidType.IC2_COOLANT.specificHeat, 1e-2);
@@ -620,7 +645,9 @@ public class CoolantLoopModelTest {
         double gasProducedL = loop.getLastSecondarySteamProducedLt();
         assertTrue(n2BoiledL > 0.0, "Liquid nitrogen must boil when primary coolant is warmer than -196 C");
         assertEquals(n2BoiledL * 160.0, gasProducedL, 1e-3, "Gas expansion must be exactly 1:160");
-        assertTrue(loop.getCurrentCoolantTempCelsius() < 20.0, "Coolant must be chilled toward -196 C by boiling nitrogen");
+        assertTrue(
+            loop.getCurrentCoolantTempCelsius() < 20.0,
+            "Coolant must be chilled toward -196 C by boiling nitrogen");
     }
 
     @Test
@@ -633,7 +660,8 @@ public class CoolantLoopModelTest {
         loop.attachPoint(2, 2);
 
         grid.setTile(2, 1, SimTile.TileType.MODERATOR_BERYLLIUM);
-        grid.getTile(2, 1).setTemperature(20.0);
+        grid.getTile(2, 1)
+            .setTemperature(20.0);
 
         // Coolant circulated at -150 C
         loop.setCurrentCoolantTempCelsius(-150.0);
@@ -657,7 +685,8 @@ public class CoolantLoopModelTest {
         SimTile neighborTile = grid.getTile(2, 1);
         assertTrue(
             neighborTile.getTemperature() < NuclearSimulationEngine.AMBIENT_TEMP,
-            "Neighboring cell must be cooled below ambient via inter-cell conduction, got: " + neighborTile.getTemperature());
+            "Neighboring cell must be cooled below ambient via inter-cell conduction, got: "
+                + neighborTile.getTemperature());
     }
 
     @Test
@@ -673,7 +702,10 @@ public class CoolantLoopModelTest {
         for (int i = 0; i < 50; i++) {
             grid.step();
         }
-        assertEquals(80.0, loop.getCurrentCoolantTempCelsius(), 1e-6,
+        assertEquals(
+            80.0,
+            loop.getCurrentCoolantTempCelsius(),
+            1e-6,
             "Loop above ambient must NOT relax toward ambient when no heat sinks are active");
 
         // Case 2: Loop below ambient with no attached passages
@@ -681,7 +713,10 @@ public class CoolantLoopModelTest {
         for (int i = 0; i < 50; i++) {
             grid.step();
         }
-        assertEquals(-120.0, loop.getCurrentCoolantTempCelsius(), 1e-6,
+        assertEquals(
+            -120.0,
+            loop.getCurrentCoolantTempCelsius(),
+            1e-6,
             "Loop below ambient must NOT relax toward ambient when no heat sources are present");
 
         // Case 3: Loop with pump turned off (idle / unpowered)
@@ -690,9 +725,10 @@ public class CoolantLoopModelTest {
         for (int i = 0; i < 50; i++) {
             grid.step();
         }
-        assertEquals(180.0, loop.getCurrentCoolantTempCelsius(), 1e-6,
+        assertEquals(
+            180.0,
+            loop.getCurrentCoolantTempCelsius(),
+            1e-6,
             "Unpowered idle loop must maintain its temperature without ambient leakage");
     }
 }
-
-

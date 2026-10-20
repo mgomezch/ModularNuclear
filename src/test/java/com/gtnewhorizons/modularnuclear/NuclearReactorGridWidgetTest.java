@@ -6,8 +6,6 @@ import static org.mockito.Mockito.*;
 import java.lang.reflect.Method;
 
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Items;
-import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -40,26 +38,7 @@ public class NuclearReactorGridWidgetTest {
 
     @BeforeAll
     static void initEnvironment() {
-        Thread.currentThread()
-            .setName("Server thread");
-        try {
-            cpw.mods.fml.common.Loader mockLoader = org.mockito.Mockito.mock(cpw.mods.fml.common.Loader.class);
-            org.mockito.Mockito.when(mockLoader.getCallableCrashInformation())
-                .thenReturn(org.mockito.Mockito.mock(cpw.mods.fml.common.ICrashCallable.class));
-            java.lang.reflect.Field f = cpw.mods.fml.common.Loader.class.getDeclaredField("instance");
-            f.setAccessible(true);
-            if (f.get(null) == null) {
-                f.set(null, mockLoader);
-            }
-        } catch (Throwable t) {
-            t.printStackTrace();
-        }
-
-        try {
-            net.minecraft.init.Bootstrap.func_151354_b();
-        } catch (Throwable t) {
-            t.printStackTrace();
-        }
+        TestEnvironmentHelper.init();
 
         try {
             ModularNuclearTextures.init();
@@ -114,22 +93,27 @@ public class NuclearReactorGridWidgetTest {
     }
 
     private static class DummyFuelRodItem extends net.minecraft.item.Item {
+
         public DummyFuelRodItem() {
             this.maxStackSize = 64;
             setUnlocalizedName("gregtech:gt.reactorUraniumSimple");
         }
+
         @Override
         public String getUnlocalizedName() {
             return "gregtech:gt.reactorUraniumSimple";
         }
+
         @Override
         public String getUnlocalizedName(ItemStack stack) {
             return "gregtech:gt.reactorUraniumSimple";
         }
+
         @Override
         public int getItemStackLimit() {
             return 64;
         }
+
         @Override
         public int getItemStackLimit(ItemStack stack) {
             return 64;
@@ -137,22 +121,27 @@ public class NuclearReactorGridWidgetTest {
     }
 
     private static class DummyEmptyCellItem extends net.minecraft.item.Item {
+
         public DummyEmptyCellItem() {
             this.maxStackSize = 64;
             setUnlocalizedName("ic2.itemCellEmpty");
         }
+
         @Override
         public String getUnlocalizedName() {
             return "ic2.itemCellEmpty";
         }
+
         @Override
         public String getUnlocalizedName(ItemStack stack) {
             return "ic2.itemCellEmpty";
         }
+
         @Override
         public int getItemStackLimit() {
             return 64;
         }
+
         @Override
         public int getItemStackLimit(ItemStack stack) {
             return 64;
@@ -213,10 +202,13 @@ public class NuclearReactorGridWidgetTest {
 
         // Direct setInventorySlotContents rejection with stone
         bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, new ItemStack(net.minecraft.init.Blocks.stone, 5));
-        assertNull(bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT), "setInventorySlotContents must reject non-nuclear blocks");
+        assertNull(
+            bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT),
+            "setInventorySlotContents must reject non-nuclear blocks");
 
         // IItemHandlerModifiable insertItem rejection with stone
-        ItemStack remainingStone = bus.getInventoryHandler().insertItem(MTEHatchNuclearBus.SLOT_INPUT, new ItemStack(net.minecraft.init.Blocks.stone, 5), false);
+        ItemStack remainingStone = bus.getInventoryHandler()
+            .insertItem(MTEHatchNuclearBus.SLOT_INPUT, new ItemStack(net.minecraft.init.Blocks.stone, 5), false);
         assertNotNull(remainingStone);
         assertEquals(5, remainingStone.stackSize);
         assertNull(bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT));
@@ -226,16 +218,21 @@ public class NuclearReactorGridWidgetTest {
         player.inventory.setItemStack(cells);
         NuclearReactorGridWidget.handleSlotClickServer(reactor, player, 1, 1, 0, false);
 
-        assertNull(bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT), "Core bus must strictly reject empty fluid cells");
+        assertNull(
+            bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT),
+            "Core bus must strictly reject empty fluid cells");
         assertNotNull(player.inventory.getItemStack());
         assertEquals(4, player.inventory.getItemStack().stackSize);
 
         // Direct setInventorySlotContents rejection with fluid cells
         bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, createEmptyCell(4));
-        assertNull(bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT), "setInventorySlotContents must reject fluid cells");
+        assertNull(
+            bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT),
+            "setInventorySlotContents must reject fluid cells");
 
         // IItemHandlerModifiable insertItem rejection with fluid cells
-        ItemStack remainingCells = bus.getInventoryHandler().insertItem(MTEHatchNuclearBus.SLOT_INPUT, createEmptyCell(4), false);
+        ItemStack remainingCells = bus.getInventoryHandler()
+            .insertItem(MTEHatchNuclearBus.SLOT_INPUT, createEmptyCell(4), false);
         assertNotNull(remainingCells);
         assertEquals(4, remainingCells.stackSize);
         assertNull(bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT));
@@ -255,19 +252,24 @@ public class NuclearReactorGridWidgetTest {
         // Direct setInventorySlotContents with stack > 1 must clamp to 1
         bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, createValidFuelRod(4));
         assertNotNull(bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT));
-        assertEquals(1, bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT).stackSize, "Bus slot must never hold > 1 item");
+        assertEquals(
+            1,
+            bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT).stackSize,
+            "Bus slot must never hold > 1 item");
 
         // Clear slot
         bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, null);
 
         // insertItem with stack of 4 must insert only 1 and return 3
-        ItemStack remainder = bus.getInventoryHandler().insertItem(MTEHatchNuclearBus.SLOT_INPUT, createValidFuelRod(4), false);
+        ItemStack remainder = bus.getInventoryHandler()
+            .insertItem(MTEHatchNuclearBus.SLOT_INPUT, createValidFuelRod(4), false);
         assertNotNull(remainder);
         assertEquals(3, remainder.stackSize);
         assertEquals(1, bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT).stackSize);
 
         // Trying to insert another fuel rod into filled bus must reject completely
-        ItemStack secondAttempt = bus.getInventoryHandler().insertItem(MTEHatchNuclearBus.SLOT_INPUT, createValidFuelRod(1), false);
+        ItemStack secondAttempt = bus.getInventoryHandler()
+            .insertItem(MTEHatchNuclearBus.SLOT_INPUT, createValidFuelRod(1), false);
         assertNotNull(secondAttempt);
         assertEquals(1, secondAttempt.stackSize);
         assertEquals(1, bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT).stackSize);

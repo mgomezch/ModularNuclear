@@ -481,7 +481,8 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         drawScaledString(l2, 12, 33, STATS_SCALE, 0x333333);
 
         // Line 3: Fission Multiplier & Base Neutron Output
-        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics();
+        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .getPhysics();
         double effFiss = fuel.getEffectiveFissionMultiplier(physics);
         double effFastFiss = fuel.getEffectiveFastFissionMultiplier(physics);
         int effNeutrons = fuel.getEffectiveBaseNeutrons(physics);
@@ -737,7 +738,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         font.drawString("24", BTN_RESET_X + 4, BTN_RESET_Y + 2, overReset ? 0xFFFCD34D : 0xFF38BDF8);
 
         // 9. Tooltip for Control Bar elements
-        if (mouseInRecipe != null && Minecraft.getMinecraft().currentScreen instanceof GuiRecipe<?> guiRecipe) {
+        if (mouseInRecipe != null && Minecraft.getMinecraft().currentScreen instanceof GuiRecipe<?>guiRecipe) {
             Point offset = guiRecipe.getRecipePosition(recipeIndex);
             if (offset != null) {
                 List<String> tip = null;
@@ -833,17 +834,19 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                 double d = stats.calculateDamage(temp);
 
                 currenttip.add(
-                    EnumChatFormatting.WHITE + "" + EnumChatFormatting.BOLD + String.format(Locale.US, "%.0f °C", temp));
+                    EnumChatFormatting.WHITE + ""
+                        + EnumChatFormatting.BOLD
+                        + String.format(Locale.US, "%.0f °C", temp));
 
                 String peakNote = (Math.abs(temp - fuel.peakReactivityTemp) <= (maxTemp / PLOT_W * 0.75))
                     ? EnumChatFormatting.GOLD + " (Peak)"
                     : "";
-                currenttip
-                    .add(EnumChatFormatting.AQUA + String.format(Locale.US, "Reactivity: %.1f %%", r * 100.0) + peakNote);
+                currenttip.add(
+                    EnumChatFormatting.AQUA + String.format(Locale.US, "Reactivity: %.1f %%", r * 100.0) + peakNote);
 
                 String dmgNote = (temp <= sAmbientTemp) ? EnumChatFormatting.GRAY + " (None)" : "";
-                currenttip
-                    .add(EnumChatFormatting.GOLD + String.format(Locale.US, "Durability damage: %.2f / t", d) + dmgNote);
+                currenttip.add(
+                    EnumChatFormatting.GOLD + String.format(Locale.US, "Durability damage: %.2f / t", d) + dmgNote);
             } else if (isMouseOverInput(mouseInRecipe.x, mouseInRecipe.y)) {
                 currenttip.add(
                     EnumChatFormatting.WHITE + "Ambient Temperature: "
@@ -918,7 +921,8 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         @Override
         public boolean keyTyped(GuiContainer gui, char keyChar, int keyCode) {
             if (sInputFocused && gui instanceof GuiRecipe) {
-                if (keyCode == Keyboard.KEY_ESCAPE || keyCode == Keyboard.KEY_RETURN || keyCode == Keyboard.KEY_NUMPADENTER) {
+                if (keyCode == Keyboard.KEY_ESCAPE || keyCode == Keyboard.KEY_RETURN
+                    || keyCode == Keyboard.KEY_NUMPADENTER) {
                     commitInput();
                     sInputFocused = false;
                     return true;
@@ -969,7 +973,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         @Override
         public boolean mouseClicked(GuiContainer gui, int mousex, int mousey, int button) {
             if (sInputFocused) {
-                if (!(gui instanceof GuiRecipe<?> guiRecipe)) {
+                if (!(gui instanceof GuiRecipe<?>guiRecipe)) {
                     commitInput();
                     sInputFocused = false;
                 } else {
