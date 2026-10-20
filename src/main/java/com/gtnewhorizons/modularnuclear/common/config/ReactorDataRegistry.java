@@ -36,9 +36,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import cpw.mods.fml.common.registry.GameRegistry;
-import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
-import gregtech.api.enums.VoltageIndex;
 import gregtech.api.util.GTUtility;
 import ic2.core.Ic2Items;
 
@@ -281,9 +279,8 @@ public final class ReactorDataRegistry {
     public static TierData getTier(int tier) {
         TierData td = tierDataMap.get(tier);
         if (td != null) return td;
-        return tierDataMap.getOrDefault(
-            0,
-            new TierData(tier, "Tier " + tier, "Casing", GTValues.V[VoltageIndex.EV], 1200.0, 120.0, tier >= 2));
+        return tierDataMap
+            .getOrDefault(0, new TierData(tier, "Tier " + tier, "Casing", 2048L, 1200.0, 120.0, tier >= 2));
     }
 
     public static List<TierData> getAllTiers() {
@@ -767,21 +764,13 @@ public final class ReactorDataRegistry {
     public static List<TierData> buildDefaultTiers() {
         List<TierData> list = new ArrayList<>();
         list.add(
-            new TierData(
-                0,
-                "Tier 0 (" + GTValues.VN[VoltageIndex.EV] + " - Electrum)",
-                "Electrum Casing",
-                GTValues.V[VoltageIndex.EV],
-                1200.0,
-                120.0,
-                false,
-                "ic2coolant"));
+            new TierData(0, "Tier 0 (EV - Electrum)", "Electrum Casing", 2048L, 1200.0, 120.0, false, "ic2coolant"));
         list.add(
             new TierData(
                 1,
-                "Tier 1 (" + GTValues.VN[VoltageIndex.IV] + " - Platinum)",
+                "Tier 1 (IV - Platinum)",
                 "Platinum Casing",
-                GTValues.V[VoltageIndex.IV],
+                8192L,
                 1400.0,
                 140.0,
                 false,
@@ -790,9 +779,9 @@ public final class ReactorDataRegistry {
         list.add(
             new TierData(
                 2,
-                "Tier 2 (" + GTValues.VN[VoltageIndex.LuV] + " - Osmium)",
+                "Tier 2 (LuV - Osmium)",
                 "Osmium Casing",
-                GTValues.V[VoltageIndex.LuV],
+                32768L,
                 1800.0,
                 180.0,
                 true,
@@ -803,9 +792,9 @@ public final class ReactorDataRegistry {
         list.add(
             new TierData(
                 3,
-                "Tier 3 (" + GTValues.VN[VoltageIndex.ZPM] + " - Quantium)",
+                "Tier 3 (ZPM - Quantium)",
                 "Quantium Casing",
-                GTValues.V[VoltageIndex.ZPM],
+                131072L,
                 2200.0,
                 220.0,
                 true,
@@ -816,22 +805,13 @@ public final class ReactorDataRegistry {
                 "molten.sodium",
                 "lead",
                 "molten.lead"));
-        list.add(
-            new TierData(
-                4,
-                "Tier 4 (" + GTValues.VN[VoltageIndex.UV] + " - Fluxed)",
-                "Fluxed Electrum Casing",
-                GTValues.V[VoltageIndex.UV],
-                2600.0,
-                260.0,
-                true,
-                "*"));
+        list.add(new TierData(4, "Tier 4 (UV - Fluxed)", "Fluxed Electrum Casing", 524288L, 2600.0, 260.0, true, "*"));
         list.add(
             new TierData(
                 5,
-                "Tier 5 (" + GTValues.VN[VoltageIndex.UHV] + " - Black Plutonium)",
+                "Tier 5 (UHV - Black Plutonium)",
                 "Black Plutonium Casing",
-                GTValues.V[VoltageIndex.UHV],
+                2097152L,
                 3200.0,
                 320.0,
                 true,
