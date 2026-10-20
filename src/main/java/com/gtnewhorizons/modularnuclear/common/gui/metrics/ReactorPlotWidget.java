@@ -48,8 +48,8 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         ESCAPED_NEUTRONS("Escaped neutrons", "n/s", false, s -> (float) s.escapedNeutrons, null, null, null, null, null,
             null, 0xFFF97316, // Orange
             0, 0),
-        DIRECT_EU("Direct EU output", "EU/s", false, s -> (float) (s.directEU * 20L), null, null, null, null, null,
-            null, 0xFFEAB308, // Gold / Yellow
+        DIRECT_EU("Direct EU output", "EU/t", false, s -> (float) s.directEU, null, null, null, null, null, null,
+            0xFFEAB308, // Gold / Yellow
             0, 0),
         COOLANT_OUTPUT("Coolant output", "L/s", false, s -> (float) s.coolantOutput, null, null, null, null, null, null,
             0xFF3B82F6, // Blue

@@ -242,7 +242,7 @@ public class ReactorMetricsDashboardTest {
         assertEquals("n/s", ReactorPlotWidget.Metric.FAST_NEUTRONS.getUnit());
         assertEquals("n/s", ReactorPlotWidget.Metric.THERMAL_NEUTRONS.getUnit());
         assertEquals("n/s", ReactorPlotWidget.Metric.ESCAPED_NEUTRONS.getUnit());
-        assertEquals("EU/s", ReactorPlotWidget.Metric.DIRECT_EU.getUnit());
+        assertEquals("EU/t", ReactorPlotWidget.Metric.DIRECT_EU.getUnit());
         assertEquals("L/s", ReactorPlotWidget.Metric.COOLANT_OUTPUT.getUnit());
 
         ReactorCycleSnapshot s = new ReactorCycleSnapshot();
@@ -250,10 +250,10 @@ public class ReactorMetricsDashboardTest {
         s.fastNeutronsProduced = 5000;
         s.coolantOutput = 32000;
 
-        // Direct EU per tick (125 EU/t) scales to 20x for per-second output (2500 EU/s)
-        float directEUSec = ReactorPlotWidget.Metric.DIRECT_EU.getScalarVal()
+        // Direct EU generation is per-tick (125 EU/t) rather than scaled per-second
+        float directEU = ReactorPlotWidget.Metric.DIRECT_EU.getScalarVal()
             .apply(s);
-        assertEquals(2500f, directEUSec, 0.001f);
+        assertEquals(125f, directEU, 0.001f);
     }
 
     @Test
