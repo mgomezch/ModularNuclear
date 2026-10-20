@@ -976,6 +976,29 @@ public class NuclearSimWasmBridge {
                 .append("}");
         }
         sb.append("],");
+        sb.append("\"secondaryCoolants\":[");
+        int secIdx = 0;
+        for (SecondaryCoolant sc : SecondaryCoolantRegistry.getAll()) {
+            if (secIdx++ > 0) sb.append(",");
+            sb.append("{\"id\":\"")
+                .append(sc.name())
+                .append("\",\"name\":\"")
+                .append(escapeJson(sc.displayName))
+                .append(" (boils at ")
+                .append((int) Math.round(sc.boilingPointCelsius))
+                .append("°C → ")
+                .append(escapeJson(sc.outputGasName))
+                .append(")\",\"boilingPointC\":")
+                .append(fmt1(sc.boilingPointCelsius))
+                .append(",\"fluidName\":\"")
+                .append(escapeJson(sc.fluidName))
+                .append("\",\"outputGasName\":\"")
+                .append(escapeJson(sc.outputGasName))
+                .append("\",\"isSteam\":")
+                .append(sc.isSteam)
+                .append("}");
+        }
+        sb.append("],");
         sb.append("\"allowedMaterials\":[");
         int matIdx = 0;
         for (CoolantLoopModel.LoopMaterial mat : CoolantLoopModel.LoopMaterial.values()) {
@@ -1027,6 +1050,25 @@ public class NuclearSimWasmBridge {
         sb.append("\"turbineFittingName\":\"")
             .append(targetGrid.getTurbineFitting().displayName)
             .append("\",");
+        sb.append("\"turbineMaterials\":[");
+        int turbMatIdx = 0;
+        for (TurbineCalculator.TurbineMaterial m : TurbineCalculator.TurbineMaterial.values()) {
+            if (turbMatIdx++ > 0) sb.append(",");
+            sb.append("{\"id\":\"")
+                .append(m.name())
+                .append("\",\"name\":\"")
+                .append(escapeJson(m.displayName))
+                .append(" (")
+                .append((int) Math.round(m.tightEff * 100))
+                .append("% / ")
+                .append((int) Math.round(m.looseEff * 100))
+                .append("%)\",\"tightEff\":")
+                .append(fmt2(m.tightEff))
+                .append(",\"looseEff\":")
+                .append(fmt2(m.looseEff))
+                .append("}");
+        }
+        sb.append("],");
 
         sb.append("\"flowRegularSteam\":")
             .append(fmt1(targetGrid.getFlowRegularSteam()))

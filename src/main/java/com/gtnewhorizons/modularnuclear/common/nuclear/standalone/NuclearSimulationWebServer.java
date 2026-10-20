@@ -25,7 +25,13 @@ public class NuclearSimulationWebServer {
                 String presetsJson = loadCeilingPresetsJson(args);
                 String html = getIndexHtml()
                     .replace("/*__INITIAL_STATE__*/", "window.__INITIAL_STATE__ = " + getStateJson() + ";")
-                    .replace("/*__CEILING_PRESETS__*/", "window.__CEILING_PRESETS__ = " + presetsJson + ";");
+                    .replace("/*__CEILING_PRESETS__*/", "window.__CEILING_PRESETS__ = " + presetsJson + ";")
+                    .replace(
+                        "/*__SECONDARY_COOLANTS__*/",
+                        "window.__SECONDARY_COOLANTS__ = " + getSecondaryCoolantsJson() + ";")
+                    .replace(
+                        "/*__TURBINE_MATERIALS__*/",
+                        "window.__TURBINE_MATERIALS__ = " + getTurbineMaterialsJson() + ";");
                 java.nio.file.Files.write(file.toPath(), html.getBytes(StandardCharsets.UTF_8));
                 System.out.println("Exported static simulator HTML to " + file.getAbsolutePath());
             } catch (Exception e) {
@@ -66,6 +72,60 @@ public class NuclearSimulationWebServer {
 
     public static String getStateJson() {
         return NuclearSimWasmBridge.buildStateJson(grid, false);
+    }
+
+    public static String getSecondaryCoolantsJson() {
+        StringBuilder sb = new StringBuilder("[");
+        int i = 0;
+        for (SecondaryCoolant sc : SecondaryCoolantRegistry.getAll()) {
+            if (i++ > 0) sb.append(",");
+            sb.append("{\"id\":\"")
+                .append(sc.name())
+                .append("\",\"name\":\"")
+                .append(sc.displayName)
+                .append(" (boils at ")
+                .append((int) Math.round(sc.boilingPointCelsius))
+                .append("°C → ")
+                .append(sc.outputGasName)
+                .append(")\",\"boilingPointC\":")
+                .append(sc.boilingPointCelsius)
+                .append(",\"fluidName\":\"")
+                .append(sc.fluidName)
+                .append("\",\"outputGasName\":\"")
+                .append(sc.outputGasName)
+                .append("\",\"isSteam\":")
+                .append(sc.isSteam)
+                .append("}");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    public static String getTurbineMaterialsJson() {
+        StringBuilder sb = new StringBuilder("[");
+        int i = 0;
+        for (TurbineCalculator.TurbineMaterial m : TurbineCalculator.TurbineMaterial.values()) {
+            if (i++ > 0) sb.append(",");
+            sb.append("{\"id\":\"")
+                .append(m.name())
+                .append("\",\"name\":\"")
+                .append(m.displayName)
+                .append(" (")
+                .append((int) Math.round(m.tightEff * 100))
+                .append("% / ")
+                .append((int) Math.round(m.looseEff * 100))
+                .append("%)\",\"tightEff\":")
+                .append(m.tightEff)
+                .append(",\"looseEff\":")
+                .append(m.looseEff)
+                .append(",\"optFlowLargeTight\":")
+                .append(m.optFlowLargeTight)
+                .append(",\"optFlowLargeLoose\":")
+                .append(m.optFlowLargeLoose)
+                .append("}");
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
     private static String getIndexHtml() {
@@ -1485,7 +1545,7 @@ public class NuclearSimulationWebServer {
               return `${euStr} · ${ampStr} @ ${selectedVoltageTier}`;
             }
 
-            const TURBINE_MATERIALS = [
+            const DEFAULT_TURBINE_MATERIALS = [
               { id: "HSS_E", name: "HSS-E (175% / 116%)" },
               { id: "HSS_S", name: "HSS-S (185% / 123%)" },
               { id: "ELVEN_ELEMENTIUM", name: "Elven Elementium (175% / 116%)" },
@@ -1504,13 +1564,42 @@ public class NuclearSimulationWebServer {
 
             function initTurbineSelects() {
               const matSelect = document.getElementById("turbine-mat");
+              if (!matSelect) return;
+              const materials = (window.__TURBINE_MATERIALS__ && window.__TURBINE_MATERIALS__.length > 0)
+                ? window.__TURBINE_MATERIALS__
+                : DEFAULT_TURBINE_MATERIALS;
+              const cur = matSelect.value;
               matSelect.innerHTML = "";
-              TURBINE_MATERIALS.forEach(m => {
+              materials.forEach(m => {
                 const opt = document.createElement("option");
                 opt.value = m.id;
                 opt.innerText = m.name;
                 matSelect.appendChild(opt);
               });
+              if (cur) {
+                const found = Array.from(matSelect.options).some(o => o.value === cur);
+                if (found) matSelect.value = cur;
+              }
+            }
+
+            function initSecondaryCoolantSelect() {
+              const secSelect = document.getElementById("loop-secondary-select");
+              if (!secSelect) return;
+              if (!window.__SECONDARY_COOLANTS__ || !Array.isArray(window.__SECONDARY_COOLANTS__) || window.__SECONDARY_COOLANTS__.length === 0) {
+                return;
+              }
+              const cur = secSelect.value;
+              secSelect.innerHTML = "";
+              window.__SECONDARY_COOLANTS__.forEach(c => {
+                const opt = document.createElement("option");
+                opt.value = c.id;
+                opt.innerText = c.name;
+                secSelect.appendChild(opt);
+              });
+              if (cur) {
+                const found = Array.from(secSelect.options).some(o => o.value === cur);
+                if (found) secSelect.value = cur;
+              }
             }
 
             async function onTurbineConfigChange() {
@@ -2165,6 +2254,21 @@ public class NuclearSimulationWebServer {
               // Turbine config sync
               const activeEl = document.activeElement;
               const turbMat = document.getElementById("turbine-mat");
+              if (turbMat && currentState.turbineMaterials) {
+                const matKeys = currentState.turbineMaterials.map(m => m.id).join(",");
+                if (turbMat.dataset.lastKeys !== matKeys) {
+                  turbMat.dataset.lastKeys = matKeys;
+                  const cur = turbMat.value;
+                  turbMat.innerHTML = "";
+                  currentState.turbineMaterials.forEach(m => {
+                    const opt = document.createElement("option");
+                    opt.value = m.id;
+                    opt.innerText = m.name;
+                    turbMat.appendChild(opt);
+                  });
+                  if (cur) turbMat.value = cur;
+                }
+              }
               if (activeEl !== turbMat && currentState.turbineMaterial) {
                 const target = currentState.turbineMaterial;
                 const opt = Array.from(turbMat.options).find(o => o.value.toLowerCase() === target.toLowerCase() || o.value.replace(/_/g,"").toLowerCase() === target.replace(/_/g,"").toLowerCase());
@@ -2220,6 +2324,21 @@ public class NuclearSimulationWebServer {
                 const fluidSel = document.getElementById("loop-fluid-select");
                 if (fluidSel && activeEl !== fluidSel && fluidSel.value !== cl.fluid) fluidSel.value = cl.fluid;
                 const secSel = document.getElementById("loop-secondary-select");
+                if (secSel && cl.secondaryCoolants) {
+                  const secKeys = cl.secondaryCoolants.map(m => m.id).join(",");
+                  if (secSel.dataset.lastKeys !== secKeys) {
+                    secSel.dataset.lastKeys = secKeys;
+                    const cur = secSel.value;
+                    secSel.innerHTML = "";
+                    cl.secondaryCoolants.forEach(sc => {
+                      const opt = document.createElement("option");
+                      opt.value = sc.id;
+                      opt.innerText = sc.name;
+                      secSel.appendChild(opt);
+                    });
+                    if (cur) secSel.value = cur;
+                  }
+                }
                 if (secSel && activeEl !== secSel && cl.secondaryCoolant && secSel.value !== cl.secondaryCoolant) {
                   secSel.value = cl.secondaryCoolant;
                 }
@@ -4028,6 +4147,7 @@ public class NuclearSimulationWebServer {
             });
 
             initTurbineSelects();
+            initSecondaryCoolantSelect();
             initPalette();
             setInteractionMode("INSPECT");
 
@@ -4041,6 +4161,12 @@ public class NuclearSimulationWebServer {
             if (selX !== null && selY !== null) {
               selectedTilePos = { x: parseInt(selX), y: parseInt(selY) };
             }
+
+            /*__SECONDARY_COOLANTS__*/
+            initSecondaryCoolantSelect();
+
+            /*__TURBINE_MATERIALS__*/
+            initTurbineSelects();
 
             /*__CEILING_PRESETS__*/
             initCeilingPresets();

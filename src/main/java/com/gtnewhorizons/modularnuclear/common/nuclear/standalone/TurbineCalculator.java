@@ -6,51 +6,114 @@ package com.gtnewhorizons.modularnuclear.common.nuclear.standalone;
  */
 public class TurbineCalculator {
 
-    public enum TurbineMaterial {
+    public static class TurbineMaterial {
 
-        HSS_E("HSS-E", 1.75, 1.16, 76800, 1409106),
-        HSS_S("HSS-S", 1.85, 1.23, 76800, 1705018),
-        ELVEN_ELEMENTIUM("Elven Elementium", 1.75, 1.16, 48000, 880691),
-        ORINARUKON("Oriharukon", 1.55, 1.05, 76800, 1100000),
-        SHADOW_METAL("Shadow Metal", 1.45, 0.98, 76800, 950000),
-        ICHORIUM("Ichorium", 2.25, 1.52, 460800, 12000000),
-        DURANIUM("Duranium", 2.15, 1.66, 1228800, 103778507),
-        GAIA_SPIRIT("Gaia Spirit", 1.95, 1.54, 1125000, 3654858),
-        ADAMANTIUM("Adamantium", 1.80, 1.58, 1200000, 5360459),
-        EXT_UNST_NAQUADAH("Ext. Unst. Naquadah", 1.90, 1.66, 4000000, 20269239),
-        COSMIC_NEUTRONIUM("Cosmic Neutronium", 2.00, 1.74, 5000000, 23544749),
-        INFINITY("Infinity", 2.12, 2.12, 122138061, 162850748),
-        TUNGSTENSTEEL("Tungstensteel", 1.30, 0.88, 48000, 600000),
-        TITANIUM("Titanium", 1.20, 0.81, 32000, 400000);
+        private static final java.util.Map<String, TurbineMaterial> REGISTRY = new java.util.LinkedHashMap<>();
 
+        public static final TurbineMaterial HSS_E = register(
+            new TurbineMaterial("HSS_E", "HSS-E", 1.75, 1.16, 76800, 1409106));
+        public static final TurbineMaterial HSS_S = register(
+            new TurbineMaterial("HSS_S", "HSS-S", 1.85, 1.23, 76800, 1705018));
+        public static final TurbineMaterial ELVEN_ELEMENTIUM = register(
+            new TurbineMaterial("ELVEN_ELEMENTIUM", "Elven Elementium", 1.75, 1.16, 48000, 880691));
+        public static final TurbineMaterial ORINARUKON = register(
+            new TurbineMaterial("ORINARUKON", "Oriharukon", 1.55, 1.05, 76800, 1100000));
+        public static final TurbineMaterial SHADOW_METAL = register(
+            new TurbineMaterial("SHADOW_METAL", "Shadow Metal", 1.45, 0.98, 76800, 950000));
+        public static final TurbineMaterial ICHORIUM = register(
+            new TurbineMaterial("ICHORIUM", "Ichorium", 2.25, 1.52, 460800, 12000000));
+        public static final TurbineMaterial DURANIUM = register(
+            new TurbineMaterial("DURANIUM", "Duranium", 2.15, 1.66, 1228800, 103778507));
+        public static final TurbineMaterial GAIA_SPIRIT = register(
+            new TurbineMaterial("GAIA_SPIRIT", "Gaia Spirit", 1.95, 1.54, 1125000, 3654858));
+        public static final TurbineMaterial ADAMANTIUM = register(
+            new TurbineMaterial("ADAMANTIUM", "Adamantium", 1.80, 1.58, 1200000, 5360459));
+        public static final TurbineMaterial EXT_UNST_NAQUADAH = register(
+            new TurbineMaterial("EXT_UNST_NAQUADAH", "Ext. Unst. Naquadah", 1.90, 1.66, 4000000, 20269239));
+        public static final TurbineMaterial COSMIC_NEUTRONIUM = register(
+            new TurbineMaterial("COSMIC_NEUTRONIUM", "Cosmic Neutronium", 2.00, 1.74, 5000000, 23544749));
+        public static final TurbineMaterial INFINITY = register(
+            new TurbineMaterial("INFINITY", "Infinity", 2.12, 2.12, 122138061, 162850748));
+        public static final TurbineMaterial TUNGSTENSTEEL = register(
+            new TurbineMaterial("TUNGSTENSTEEL", "Tungstensteel", 1.30, 0.88, 48000, 600000));
+        public static final TurbineMaterial TITANIUM = register(
+            new TurbineMaterial("TITANIUM", "Titanium", 1.20, 0.81, 32000, 400000));
+
+        public final String name;
         public final String displayName;
         public final double tightEff;
         public final double looseEff;
         public final double optFlowLargeTight;
         public final double optFlowLargeLoose;
 
-        TurbineMaterial(String displayName, double tightEff, double looseEff, double optFlowLargeTight,
-            double optFlowLargeLoose) {
-            this.displayName = displayName;
+        public TurbineMaterial(String name, String displayName, double tightEff, double looseEff,
+            double optFlowLargeTight, double optFlowLargeLoose) {
+            this.name = name != null ? name : "UNKNOWN";
+            this.displayName = displayName != null ? displayName : this.name;
             this.tightEff = tightEff;
             this.looseEff = looseEff;
             this.optFlowLargeTight = optFlowLargeTight;
             this.optFlowLargeLoose = optFlowLargeLoose;
         }
 
+        public static synchronized TurbineMaterial register(TurbineMaterial mat) {
+            if (mat == null) return null;
+            if (REGISTRY != null) {
+                REGISTRY.put(mat.name.toUpperCase(java.util.Locale.ROOT), mat);
+            }
+            return mat;
+        }
+
+        public String name() {
+            return name;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        public double getTightEff() {
+            return tightEff;
+        }
+
+        public double getLooseEff() {
+            return looseEff;
+        }
+
+        public double getOptFlowLargeTight() {
+            return optFlowLargeTight;
+        }
+
+        public double getOptFlowLargeLoose() {
+            return optFlowLargeLoose;
+        }
+
+        public static synchronized java.util.List<TurbineMaterial> getAll() {
+            return new java.util.ArrayList<>(REGISTRY.values());
+        }
+
+        public static TurbineMaterial[] values() {
+            java.util.List<TurbineMaterial> all = getAll();
+            return all.toArray(new TurbineMaterial[0]);
+        }
+
+        public static TurbineMaterial valueOf(String name) {
+            return fromString(name);
+        }
+
         public static TurbineMaterial fromString(String name) {
             if (name == null || name.trim()
                 .isEmpty()) return HSS_E;
             String trimmed = name.trim();
-            for (TurbineMaterial m : values()) {
-                if (m.name()
-                    .equalsIgnoreCase(trimmed) || m.displayName.equalsIgnoreCase(trimmed)) {
+            for (TurbineMaterial m : getAll()) {
+                if (m.name.equalsIgnoreCase(trimmed) || m.displayName.equalsIgnoreCase(trimmed)) {
                     return m;
                 }
             }
             String cleanTrimmed = cleanString(trimmed);
-            for (TurbineMaterial m : values()) {
-                if (cleanTrimmed.equalsIgnoreCase(cleanString(m.name()))) {
+            for (TurbineMaterial m : getAll()) {
+                if (cleanTrimmed.equalsIgnoreCase(cleanString(m.name))
+                    || cleanTrimmed.equalsIgnoreCase(cleanString(m.displayName))) {
                     return m;
                 }
             }
@@ -67,6 +130,25 @@ public class TurbineCalculator {
                 }
             }
             return sb.toString();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            TurbineMaterial that = (TurbineMaterial) o;
+            return name.equalsIgnoreCase(that.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return name.toLowerCase()
+                .hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return displayName;
         }
     }
 

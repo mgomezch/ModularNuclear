@@ -264,69 +264,27 @@ public class CoolantLoopModel {
         }
     }
 
-    public enum SecondaryCoolantType {
+    public static final class SecondaryCoolantType {
 
-        DISTILLED_WATER("Distilled Water", "ic2distilledwater", 100.0, 2260.0, 160, "steam", true),
-        WATER("Water", "water", 100.0, 2260.0, 160, "steam", true),
-        LIQUID_AIR("Liquid Air", "liquidair", -194.0, 174.0, 160, "air", false),
-        LIQUID_NITROGEN("Liquid Nitrogen", "liquidnitrogen", -196.0, 160.0, 160, "nitrogen", false),
-        LIQUID_OXYGEN("Liquid Oxygen", "liquidoxygen", -183.0, 243.0, 160, "oxygen", false),
-        LIQUID_HELIUM("Liquid Helium", "liquidhelium", -269.0, 20.7, 160, "helium", false);
+        public static final SecondaryCoolant DISTILLED_WATER = SecondaryCoolantRegistry.DISTILLED_WATER;
+        public static final SecondaryCoolant WATER = SecondaryCoolantRegistry.WATER;
+        public static final SecondaryCoolant LIQUID_AIR = SecondaryCoolantRegistry.LIQUID_AIR;
+        public static final SecondaryCoolant LIQUID_NITROGEN = SecondaryCoolantRegistry.LIQUID_NITROGEN;
+        public static final SecondaryCoolant LIQUID_OXYGEN = SecondaryCoolantRegistry.LIQUID_OXYGEN;
+        public static final SecondaryCoolant LIQUID_HELIUM = SecondaryCoolantRegistry.LIQUID_HELIUM;
 
-        public final String displayName;
-        public final String fluidName;
-        public final double boilingPointCelsius;
-        public final double latentHeatJoulesPerLiter;
-        public final int expansionRatio;
-        public final String outputGasName;
-        public final boolean isSteam;
+        private SecondaryCoolantType() {}
 
-        SecondaryCoolantType(String displayName, String fluidName, double boilingPointCelsius,
-            double latentHeatJoulesPerLiter, int expansionRatio, String outputGasName, boolean isSteam) {
-            this.displayName = displayName;
-            this.fluidName = fluidName;
-            this.boilingPointCelsius = boilingPointCelsius;
-            this.latentHeatJoulesPerLiter = latentHeatJoulesPerLiter;
-            this.expansionRatio = expansionRatio;
-            this.outputGasName = outputGasName;
-            this.isSteam = isSteam;
+        public static SecondaryCoolant fromFluidName(String fluidName) {
+            return SecondaryCoolantRegistry.fromFluidName(fluidName);
         }
 
-        public static SecondaryCoolantType fromFluidName(String fluidName) {
-            if (fluidName == null) return DISTILLED_WATER;
-            for (SecondaryCoolantType c : values()) {
-                if (c.fluidName.equalsIgnoreCase(fluidName)) return c;
-            }
-            return fromString(fluidName);
+        public static SecondaryCoolant fromString(String str) {
+            return SecondaryCoolantRegistry.fromString(str);
         }
 
-        public static SecondaryCoolantType fromString(String str) {
-            if (str == null) return DISTILLED_WATER;
-            String s = str.trim()
-                .toUpperCase(Locale.ROOT)
-                .replace(" ", "_");
-            switch (s) {
-                case "DISTILLED_WATER", "DISTILLEDWATER", "IC2DISTILLEDWATER":
-                    return DISTILLED_WATER;
-                case "WATER":
-                    return WATER;
-                case "LIQUID_AIR", "LIQUIDAIR", "AIR":
-                    return LIQUID_AIR;
-                case "LIQUID_NITROGEN", "LIQUIDNITROGEN", "NITROGEN":
-                    return LIQUID_NITROGEN;
-                case "LIQUID_OXYGEN", "LIQUIDOXYGEN", "OXYGEN":
-                    return LIQUID_OXYGEN;
-                case "LIQUID_HELIUM", "LIQUIDHELIUM", "HELIUM":
-                    return LIQUID_HELIUM;
-            }
-            for (SecondaryCoolantType type : values()) {
-                if (type.name()
-                    .equalsIgnoreCase(s) || type.displayName.equalsIgnoreCase(s)
-                    || type.fluidName.equalsIgnoreCase(s)) {
-                    return type;
-                }
-            }
-            return DISTILLED_WATER;
+        public static SecondaryCoolant[] values() {
+            return SecondaryCoolantRegistry.values();
         }
     }
 
@@ -441,7 +399,7 @@ public class CoolantLoopModel {
     private LoopMaterial material = LoopMaterial.TITANIUM;
     private LoopPipeSize pipeSize = LoopPipeSize.NORMAL;
     private CoolantFluidType fluidType = CoolantFluidType.DISTILLED_WATER;
-    private SecondaryCoolantType secondaryCoolant = SecondaryCoolantType.DISTILLED_WATER;
+    private SecondaryCoolant secondaryCoolant = SecondaryCoolantRegistry.DISTILLED_WATER;
     private EnergyHatchTier hatchTier = EnergyHatchTier.EV;
     private double dutyCyclePercent = 100.0;
     private double maxFlowRateLPerSec = 0.0; // 0 = no user limit
@@ -941,7 +899,7 @@ public class CoolantLoopModel {
         this.totalHeatExtractedJoules = 0.0;
         this.totalHeatExtractedHut = 0.0;
         this.neutronTransmuteAccumulator = 0;
-        this.secondaryCoolant = SecondaryCoolantType.DISTILLED_WATER;
+        this.secondaryCoolant = SecondaryCoolantRegistry.DISTILLED_WATER;
     }
 
     // Attach / Detach coordinate helpers
@@ -1014,11 +972,11 @@ public class CoolantLoopModel {
         }
     }
 
-    public SecondaryCoolantType getSecondaryCoolant() {
-        return secondaryCoolant != null ? secondaryCoolant : SecondaryCoolantType.DISTILLED_WATER;
+    public SecondaryCoolant getSecondaryCoolant() {
+        return secondaryCoolant != null ? secondaryCoolant : SecondaryCoolantRegistry.DISTILLED_WATER;
     }
 
-    public void setSecondaryCoolant(SecondaryCoolantType secondaryCoolant) {
+    public void setSecondaryCoolant(SecondaryCoolant secondaryCoolant) {
         if (secondaryCoolant != null) {
             this.secondaryCoolant = secondaryCoolant;
         }
