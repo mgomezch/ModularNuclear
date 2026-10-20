@@ -3,11 +3,15 @@ package com.gtnewhorizons.modularnuclear.common.nei;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.lang.reflect.Field;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
@@ -1383,8 +1387,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             GuiDraw.changeTexture(TEXTURE_ATLAS);
             // Fast diagram: (0, 0, 88, 54) at (14, 12)
             GuiDraw.drawTexturedModalRect(14, 12, 0, 0, 88, 54);
-            // Thermal diagram: (0, 54, 88, 54) at (14, 78)
-            GuiDraw.drawTexturedModalRect(14, 78, 0, 54, 88, 54);
+            // Thermal diagram: (0, 60, 88, 54) at (14, 78)
+            GuiDraw.drawTexturedModalRect(14, 78, 0, 60, 88, 54);
 
             // Pie chart: (u=index*16, v=240, w=16, h=16) at (115, 28)
             double slowing = recipe.data.slowingProbability;
@@ -1474,7 +1478,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             // Bottom summary
             GuiDraw.drawString(EnumChatFormatting.DARK_BLUE + "[" + d.category + "]", 28, 137, 0x103080, false);
             if (d.extraInfo != null) {
-                GuiDraw.drawString(EnumChatFormatting.GRAY + d.extraInfo, 28, 147, 0x505050, false);
+                renderWrappedExtraInfo(d.extraInfo, 28, 147, 132);
             }
 
         } else if (cached instanceof CachedComponentThermalRecipe recipe) {
@@ -1616,7 +1620,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             // Bottom summary
             GuiDraw.drawString(EnumChatFormatting.DARK_BLUE + "[" + d.category + "]", 28, 137, 0x103080, false);
             if (d.extraInfo != null) {
-                GuiDraw.drawString(EnumChatFormatting.GRAY + d.extraInfo, 28, 147, 0x505050, false);
+                renderWrappedExtraInfo(d.extraInfo, 28, 147, 132);
             }
         }
     }
@@ -1633,29 +1637,114 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         return String.valueOf(n);
     }
 
+    public static List<String> wrapExtraInfo(String text, int wrapWidth, FontRenderer fr) {
+        if (text == null || text.isEmpty()) return Collections.emptyList();
+        if (fr != null) {
+            try {
+                @SuppressWarnings("unchecked")
+                List<String> lines = (List<String>) fr.listFormattedStringToWidth(text, wrapWidth);
+                if (lines != null && !lines.isEmpty()) {
+                    return lines;
+                }
+            } catch (Throwable ignored) {}
+        }
+        // Fallback character-based word wrapping (~5px per char average in MC)
+        int maxChars = Math.max(15, wrapWidth / 5);
+        if (text.length() <= maxChars) {
+            return Collections.singletonList(text);
+        }
+        List<String> lines = new ArrayList<>();
+        String[] words = text.split("\\s+");
+        StringBuilder current = new StringBuilder();
+        for (String word : words) {
+            if (current.length() == 0) {
+                current.append(word);
+            } else if (current.length() + 1 + word.length() <= maxChars) {
+                current.append(" ")
+                    .append(word);
+            } else {
+                lines.add(current.toString());
+                current = new StringBuilder(word);
+            }
+        }
+        if (current.length() > 0) {
+            lines.add(current.toString());
+        }
+        return lines;
+    }
+
+    private void renderWrappedExtraInfo(String text, int x, int startY, int wrapWidth) {
+        List<String> lines = wrapExtraInfo(text, wrapWidth, GuiDraw.fontRenderer);
+        if (lines.isEmpty()) return;
+        int lineSpacing = lines.size() > 2 ? 8 : 9;
+        int y = lines.size() > 2 ? startY - 1 : startY;
+        for (String line : lines) {
+            GuiDraw.drawString(EnumChatFormatting.GRAY + line, x, y, 0x505050, false);
+            y += lineSpacing;
+        }
+    }
+
     // =========================================================================
     // Tooltips
     // =========================================================================
 
-    @Override
-    public List<String> handleTooltip(GuiRecipe<?> gui, List<String> currenttip, int recipeIndex) {
-        currenttip = super.handleTooltip(gui, currenttip, recipeIndex);
-        if (recipeIndex < 0 || recipeIndex >= arecipes.size()) return currenttip;
+    private static Field fieldGuiLeft;
+    private static Field fieldGuiTop;
 
+    static {
+        try {
+            fieldGuiLeft = GuiContainer.class.getDeclaredField("guiLeft");
+            fieldGuiLeft.setAccessible(true);
+        } catch (Throwable t) {
+            try {
+                fieldGuiLeft = GuiContainer.class.getDeclaredField("field_147003_i");
+                fieldGuiLeft.setAccessible(true);
+            } catch (Throwable ignored) {}
+        }
+        try {
+            fieldGuiTop = GuiContainer.class.getDeclaredField("guiTop");
+            fieldGuiTop.setAccessible(true);
+        } catch (Throwable t) {
+            try {
+                fieldGuiTop = GuiContainer.class.getDeclaredField("field_147009_r");
+                fieldGuiTop.setAccessible(true);
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    private static int getGuiLeft(GuiRecipe<?> gui) {
+        if (fieldGuiLeft != null) {
+            try {
+                return fieldGuiLeft.getInt(gui);
+            } catch (Throwable ignored) {}
+        }
+        return (gui.width - 176) / 2;
+    }
+
+    private static int getGuiTop(GuiRecipe<?> gui) {
+        if (fieldGuiTop != null) {
+            try {
+                return fieldGuiTop.getInt(gui);
+            } catch (Throwable ignored) {}
+        }
+        return (gui.height - 166) / 2;
+    }
+
+    public static Point getMouseInRecipe(GuiRecipe<?> gui, int recipeIndex) {
+        if (gui == null) return null;
         Point mousepos = GuiDraw.getMousePosition();
-        Dimension displaySize = GuiDraw.displaySize();
-        int ySize = Math.min(Math.max(displaySize.height - 68, 166), 370);
-        int guiLeft = (displaySize.width - 176) / 2;
-        int guiTop = (displaySize.height - ySize) / 2 + 10;
         Point offset = gui.getRecipePosition(recipeIndex);
-        int relX = mousepos.x - guiLeft - offset.x;
-        int relY = mousepos.y - guiTop - offset.y;
+        if (offset == null) return null;
+        return new Point(mousepos.x - getGuiLeft(gui) - offset.x, mousepos.y - getGuiTop(gui) - offset.y);
+    }
 
-        CachedRecipe rec = arecipes.get(recipeIndex);
+    public List<String> getTooltipsAt(CachedRecipe rec, int relX, int relY, List<String> currenttip) {
+        if (currenttip == null) currenttip = new ArrayList<>();
         if (rec instanceof CachedNeutronInteractionRecipe r1) {
             ComponentStatsData d = r1.data;
             // Page 1 Tooltips
-            if (relX >= 25 && relX <= 65 && relY >= 10 && relY <= 26) {
+            // Fast scattering / reflection: covers text (47, 16) and arrow (40, 24 -> 65, 33)
+            if (relX >= 25 && relX <= 66 && relY >= 8 && relY <= 36) {
                 if (d.isReflector) {
                     currenttip.add(
                         EnumChatFormatting.GOLD
@@ -1671,54 +1760,63 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                         EnumChatFormatting.GRAY
                             + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering_fast.desc"));
                 }
-            } else if (relX >= 80 && relX <= 115 && relY >= 46 && relY <= 62) {
-                currenttip.add(
-                    EnumChatFormatting.GREEN
-                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_title"));
-                currenttip.add(
-                    EnumChatFormatting.GRAY
-                        + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_fast.desc"));
-            } else if ((relX >= 105 && relX <= 145 && relY >= 10 && relY <= 24)
-                || (relX >= 112 && relX <= 134 && relY >= 26 && relY <= 46)) {
-                    currenttip.add(
-                        EnumChatFormatting.BLUE
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.thermal_fraction"));
-                    currenttip.add(
-                        EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
-                            "gt.nei.neutron_interaction.thermal_fraction.desc",
-                            d.slowingProbability * 100.0));
-                } else if (relX >= 105 && relX <= 145 && relY >= 40 && relY <= 54) {
-                    currenttip.add(
-                        EnumChatFormatting.RED
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.fast_fraction"));
-                    currenttip.add(
-                        EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
-                            "gt.nei.neutron_interaction.fast_fraction.desc",
-                            (1.0 - d.slowingProbability) * 100.0));
-                } else if (relX >= 25 && relX <= 65 && relY >= 74 && relY <= 92) {
-                    if (d.isReflector) {
-                        currenttip.add(
-                            EnumChatFormatting.GOLD
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection"));
-                        currenttip.add(
-                            EnumChatFormatting.GRAY
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection_thermal.desc"));
-                    } else {
-                        currenttip.add(
-                            EnumChatFormatting.WHITE
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
-                        currenttip.add(
-                            EnumChatFormatting.GRAY
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering_thermal.desc"));
-                    }
-                } else if (relX >= 80 && relX <= 115 && relY >= 112 && relY <= 128) {
+                // Fast absorption: covers text (97, 54) and curved absorption arrow (72..104, 18..40)
+            } else if ((relX >= 80 && relX <= 118 && relY >= 44 && relY <= 64)
+                || (relX >= 72 && relX <= 104 && relY >= 18 && relY <= 40)) {
                     currenttip.add(
                         EnumChatFormatting.GREEN
                             + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_title"));
                     currenttip.add(
                         EnumChatFormatting.GRAY
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_thermal.desc"));
-                }
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_fast.desc"));
+                    // Thermal fraction: covers text (123, 16) and pie chart (115, 28)
+                } else if ((relX >= 105 && relX <= 145 && relY >= 10 && relY <= 24)
+                    || (relX >= 112 && relX <= 134 && relY >= 26 && relY <= 46)) {
+                        currenttip.add(
+                            EnumChatFormatting.BLUE
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.thermal_fraction"));
+                        currenttip.add(
+                            EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
+                                "gt.nei.neutron_interaction.thermal_fraction.desc",
+                                d.slowingProbability * 100.0));
+                        // Fast fraction: covers text (123, 46)
+                    } else if (relX >= 105 && relX <= 145 && relY >= 40 && relY <= 54) {
+                        currenttip.add(
+                            EnumChatFormatting.RED
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.fast_fraction"));
+                        currenttip.add(
+                            EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
+                                "gt.nei.neutron_interaction.fast_fraction.desc",
+                                (1.0 - d.slowingProbability) * 100.0));
+                        // Thermal scattering / reflection: covers text (47, 82) and full curved arrow (40, 90 -> 65,
+                        // 99)
+                    } else if (relX >= 25 && relX <= 66 && relY >= 74 && relY <= 102) {
+                        if (d.isReflector) {
+                            currenttip.add(
+                                EnumChatFormatting.GOLD
+                                    + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection"));
+                            currenttip.add(
+                                EnumChatFormatting.GRAY + StatCollector
+                                    .translateToLocal("gt.nei.neutron_interaction.reflection_thermal.desc"));
+                        } else {
+                            currenttip.add(
+                                EnumChatFormatting.WHITE
+                                    + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
+                            currenttip.add(
+                                EnumChatFormatting.GRAY + StatCollector
+                                    .translateToLocal("gt.nei.neutron_interaction.scattering_thermal.desc"));
+                        }
+                        // Thermal absorption: covers text (97, 120), downward arrow (70..80, 114..128), and curved
+                        // arrow (72..104, 84..106)
+                    } else if ((relX >= 65 && relX <= 118 && relY >= 108 && relY <= 130)
+                        || (relX >= 72 && relX <= 104 && relY >= 84 && relY <= 106)) {
+                            currenttip.add(
+                                EnumChatFormatting.GREEN
+                                    + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_title"));
+                            currenttip.add(
+                                EnumChatFormatting.GRAY + StatCollector
+                                    .translateToLocal("gt.nei.neutron_interaction.absorption_thermal.desc"));
+                        }
         } else if (rec instanceof CachedComponentThermalRecipe r2) {
             ComponentStatsData d = r2.data;
             // Page 2 Tooltips
@@ -1756,6 +1854,32 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             }
         }
         return currenttip;
+    }
+
+    @Override
+    public List<String> handleTooltip(GuiRecipe<?> gui, List<String> currenttip, int recipeIndex) {
+        currenttip = super.handleTooltip(gui, currenttip, recipeIndex);
+        if (recipeIndex < 0 || recipeIndex >= arecipes.size()) return currenttip;
+
+        Point m = getMouseInRecipe(gui, recipeIndex);
+        int relX;
+        int relY;
+        if (m != null) {
+            relX = m.x;
+            relY = m.y;
+        } else {
+            Point mousepos = GuiDraw.getMousePosition();
+            Dimension displaySize = GuiDraw.displaySize();
+            int ySize = Math.min(Math.max(displaySize.height - 68, 166), 370);
+            int guiLeft = (displaySize.width - 176) / 2;
+            int guiTop = (displaySize.height - ySize) / 2 + 10;
+            Point offset = gui.getRecipePosition(recipeIndex);
+            relX = mousepos.x - guiLeft - offset.x;
+            relY = mousepos.y - guiTop - offset.y;
+        }
+
+        CachedRecipe rec = arecipes.get(recipeIndex);
+        return getTooltipsAt(rec, relX, relY, currenttip);
     }
 
     @Override

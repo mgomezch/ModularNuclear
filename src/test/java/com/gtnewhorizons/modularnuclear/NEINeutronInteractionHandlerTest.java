@@ -191,4 +191,90 @@ public class NEINeutronInteractionHandlerTest {
         handler.loadUsageRecipes(controller);
         assertFalse(handler.arecipes.isEmpty(), "Clicking 'U' on reactor controller should load all components");
     }
+
+    @Test
+    public void testThermalNeutronArrowTooltips() {
+        NEINeutronInteractionHandler handler = new NEINeutronInteractionHandler();
+        handler.loadCraftingRecipes(handler.getOverlayIdentifier());
+
+        CachedNeutronInteractionRecipe r1 = null;
+        for (CachedRecipe cr : handler.arecipes) {
+            if (cr instanceof CachedNeutronInteractionRecipe recipe && !recipe.data.isReflector) {
+                r1 = recipe;
+                break;
+            }
+        }
+        assertNotNull(r1, "Should find non-reflector neutron recipe");
+
+        // 1. Thermal scattering arrow and text
+        java.util.List<String> tipScatTip = handler.getTooltipsAt(r1, 40, 90, null);
+        assertFalse(tipScatTip.isEmpty(), "Thermal scattering arrow tip (40, 90) must show tooltip");
+        assertTrue(
+            tipScatTip.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("scattering")),
+            "Should mention scattering");
+
+        java.util.List<String> tipScatCurve = handler.getTooltipsAt(r1, 52, 95, null);
+        assertFalse(tipScatCurve.isEmpty(), "Thermal scattering arrow curve (52, 95) must show tooltip");
+
+        java.util.List<String> tipScatText = handler.getTooltipsAt(r1, 47, 82, null);
+        assertFalse(tipScatText.isEmpty(), "Thermal scattering text (47, 82) must show tooltip");
+
+        // 2. Thermal absorption downward arrow, curved arrow, and text
+        java.util.List<String> tipAbsDown = handler.getTooltipsAt(r1, 74, 120, null);
+        assertFalse(tipAbsDown.isEmpty(), "Thermal absorption downward arrow (74, 120) must show tooltip");
+        assertTrue(
+            tipAbsDown.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("absorption")),
+            "Should mention absorption");
+
+        java.util.List<String> tipAbsCurved = handler.getTooltipsAt(r1, 85, 92, null);
+        assertFalse(tipAbsCurved.isEmpty(), "Thermal absorption curved arrow (85, 92) must show tooltip");
+        assertTrue(
+            tipAbsCurved.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("absorption")),
+            "Should mention absorption");
+
+        java.util.List<String> tipAbsText = handler.getTooltipsAt(r1, 97, 120, null);
+        assertFalse(tipAbsText.isEmpty(), "Thermal absorption text (97, 120) must show tooltip");
+
+        // 3. Fast neutron arrows
+        java.util.List<String> tipFastScat = handler.getTooltipsAt(r1, 40, 24, null);
+        assertFalse(tipFastScat.isEmpty(), "Fast scattering arrow (40, 24) must show tooltip");
+
+        java.util.List<String> tipFastAbsCurved = handler.getTooltipsAt(r1, 85, 26, null);
+        assertFalse(tipFastAbsCurved.isEmpty(), "Fast absorption curved arrow (85, 26) must show tooltip");
+
+        java.util.List<String> tipFastAbsText = handler.getTooltipsAt(r1, 97, 54, null);
+        assertFalse(tipFastAbsText.isEmpty(), "Fast absorption text (97, 54) must show tooltip");
+    }
+
+    @Test
+    public void testWordWrappingExtraInfo() {
+        String longText = "Liquid metal coolant (melts at 97.8 °C, boils at 883 °C) | k = 0.70";
+        java.util.List<String> lines = NEINeutronInteractionHandler.wrapExtraInfo(longText, 132, null);
+        assertTrue(lines.size() >= 2, "Long extraInfo text must wrap into at least 2 lines");
+
+        for (String line : lines) {
+            assertTrue(line.length() <= 35, "Each wrapped line should fit within max character limit: " + line);
+        }
+
+        String shortText = "Short info";
+        java.util.List<String> shortLines = NEINeutronInteractionHandler.wrapExtraInfo(shortText, 132, null);
+        assertEquals(1, shortLines.size(), "Short text should remain a single line");
+        assertEquals("Short info", shortLines.get(0));
+
+        assertTrue(
+            NEINeutronInteractionHandler.wrapExtraInfo(null, 132, null)
+                .isEmpty());
+        assertTrue(
+            NEINeutronInteractionHandler.wrapExtraInfo("", 132, null)
+                .isEmpty());
+    }
 }
