@@ -1013,8 +1013,7 @@ public class NuclearSimulationEngineTest {
         }
         assertTrue(res.neutronsEscaped > 0, "Neutrons hitting outer boundary / null cells must escape");
         assertEquals(0, res.wallNeutronsReflected, "Outer casing walls must not reflect neutrons");
-        assertEquals(0, res.wallNeutronsAbsorbed, "Outer casing walls must not absorb neutrons into heat pool");
-        assertEquals(0.0, res.wallHeatPool, 1e-6, "Wall heat pool must remain 0");
+        assertEquals(0, res.wallNeutronsAbsorbed, "Outer casing walls must not absorb neutrons");
     }
 
     @Test

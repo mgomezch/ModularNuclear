@@ -53,7 +53,6 @@ public class StandaloneNuclearGrid {
     private int lastEscapedNeutrons = 0;
     private int lastWallReflected = 0;
     private int lastWallAbsorbed = 0;
-    private double lastWallHeatPool = 0;
     private int burnedFuelCount = 0;
     private int voidedHatchCount = 0;
     private double peakLifetimeTemp = NuclearSimulationEngine.AMBIENT_TEMP;
@@ -702,7 +701,6 @@ public class StandaloneNuclearGrid {
         lastEscapedNeutrons = res.neutronsEscaped;
         lastWallReflected = res.wallNeutronsReflected;
         lastWallAbsorbed = res.wallNeutronsAbsorbed;
-        lastWallHeatPool = res.wallHeatPool;
         efficiency = res.averageReactivity;
 
         totalNeutronsGenerated += lastNeutronsProduced;
@@ -1689,10 +1687,6 @@ public class StandaloneNuclearGrid {
 
     public int getLastWallAbsorbed() {
         return lastWallAbsorbed;
-    }
-
-    public double getLastWallHeatPool() {
-        return lastWallHeatPool;
     }
 
     public long getTotalNeutronsGenerated() {

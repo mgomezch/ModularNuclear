@@ -125,8 +125,6 @@ public class NuclearSimulationEngine {
 
     public static final double DEFAULT_WALL_REFLECTION_CHANCE = 0.0;
     public static double wallReflectionChance = DEFAULT_WALL_REFLECTION_CHANCE;
-    public static final double DEFAULT_WALL_ABSORB_HEAT_PER_NEUTRON = 0.0;
-    public static double wallAbsorbHeatPerNeutron = DEFAULT_WALL_ABSORB_HEAT_PER_NEUTRON;
 
     public static final double DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER = 0.001;
     public static double beamEnergyToFastNeutronMultiplier = DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER;
@@ -231,7 +229,6 @@ public class NuclearSimulationEngine {
         breederNbaseMultiplier = DEFAULT_BREEDER_NBASE_MULT;
         breederFissionMultiplier = DEFAULT_BREEDER_FISSION_MULT;
         wallReflectionChance = DEFAULT_WALL_REFLECTION_CHANCE;
-        wallAbsorbHeatPerNeutron = DEFAULT_WALL_ABSORB_HEAT_PER_NEUTRON;
         ic2CoolantHeatPerLiter = DEFAULT_IC2_COOLANT_HEAT_PER_LITER;
         baseHatchConductance = DEFAULT_BASE_HATCH_CONDUCTANCE;
         setBeamEnergyToFastNeutronMultiplier(DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER);
@@ -458,7 +455,6 @@ public class NuclearSimulationEngine {
         public int thermalNeutronsAbsorbed = 0;
         public int wallNeutronsReflected = 0;
         public int wallNeutronsAbsorbed = 0;
-        public double wallHeatPool = 0;
         public int neutronsEscaped = 0;
         public double maxTemperature = AMBIENT_TEMP;
         public double averageTemperature = AMBIENT_TEMP;
@@ -908,21 +904,7 @@ public class NuclearSimulationEngine {
             }
         }
 
-        // --- PASS 6: WALL HEAT DISTRIBUTION ---
-        result.totalHeatHU += result.wallHeatPool;
-        if (activeTileCount > 0 && result.wallHeatPool > 0) {
-            double heatPerCell = result.wallHeatPool / activeTileCount;
-            for (int x = 0; x < sizeX; x++) {
-                for (int y = 0; y < sizeY; y++) {
-                    INuclearTile tile = grid[x][y];
-                    if (tile != null) {
-                        tile.addHeat(heatPerCell);
-                    }
-                }
-            }
-        }
-
-        // --- PASS 7: END-OF-TICK TELEMETRY & METRICS ---
+        // --- PASS 6: END-OF-TICK TELEMETRY & METRICS ---
         result.maxTemperature = ambient;
         result.averageTemperature = ambient;
         sumTemp = 0;

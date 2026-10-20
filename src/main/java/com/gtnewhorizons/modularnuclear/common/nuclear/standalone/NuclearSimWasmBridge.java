@@ -768,9 +768,6 @@ public class NuclearSimWasmBridge {
         sb.append("\"wallAbsorbed\":")
             .append(targetGrid.getLastWallAbsorbed())
             .append(",");
-        sb.append("\"wallHeatPool\":")
-            .append(fmt1(targetGrid.getLastWallHeatPool()))
-            .append(",");
         sb.append("\"totalNeutrons\":")
             .append(targetGrid.getTotalNeutronsGenerated())
             .append(",");

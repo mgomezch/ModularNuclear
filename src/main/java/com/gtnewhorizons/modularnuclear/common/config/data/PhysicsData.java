@@ -13,14 +13,11 @@ public class PhysicsData {
     public double fastAbsorptionDamageMultiplier = 8.0;
     public double thermalAbsorptionDamageMultiplier = 1.0;
     public double fissionHeatPerNeutron = NuclearSimulationEngine.DEFAULT_FISSION_HEAT_PER_NEUTRON;
-    public double heatPerFastNeutronAbsorption = 10.0;
-    public double heatPerThermalNeutronAbsorption = 25.0;
     public double gridHeatConduction = 0.15;
     public double boundaryHeatLoss = 0.02;
     public double radiationDecayFactor = 0.95;
     public double dopplerDeficitExponent = 1.2;
     public double wallReflectionChance = 0.0;
-    public double wallAbsorbHeatPerNeutron = 1.0;
     public int wallMaintenanceNeutronThreshold = 10000;
     public double defaultAmbientTemp = 293.15;
     public double beamEnergyToFastNeutronMultiplier = 0.001;
@@ -74,20 +71,11 @@ public class PhysicsData {
             "thermal_absorption_damage_multiplier",
             d.thermalAbsorptionDamageMultiplier);
         d.fissionHeatPerNeutron = getDouble(map, "fission_heat_per_neutron", d.fissionHeatPerNeutron);
-        d.heatPerFastNeutronAbsorption = getDouble(
-            map,
-            "heat_per_fast_neutron_absorption",
-            d.heatPerFastNeutronAbsorption);
-        d.heatPerThermalNeutronAbsorption = getDouble(
-            map,
-            "heat_per_thermal_neutron_absorption",
-            d.heatPerThermalNeutronAbsorption);
         d.gridHeatConduction = getDouble(map, "grid_heat_conduction", d.gridHeatConduction);
         d.boundaryHeatLoss = getDouble(map, "boundary_heat_loss", d.boundaryHeatLoss);
         d.radiationDecayFactor = getDouble(map, "radiation_decay_factor", d.radiationDecayFactor);
         d.dopplerDeficitExponent = getDouble(map, "doppler_deficit_exponent", d.dopplerDeficitExponent);
         d.wallReflectionChance = getDouble(map, "wall_reflection_chance", d.wallReflectionChance);
-        d.wallAbsorbHeatPerNeutron = getDouble(map, "wall_absorb_heat_per_neutron", d.wallAbsorbHeatPerNeutron);
         d.wallMaintenanceNeutronThreshold = getInt(
             map,
             "wall_maintenance_neutron_threshold",
@@ -118,14 +106,11 @@ public class PhysicsData {
         m.put("fast_absorption_damage_multiplier", fastAbsorptionDamageMultiplier);
         m.put("thermal_absorption_damage_multiplier", thermalAbsorptionDamageMultiplier);
         m.put("fission_heat_per_neutron", fissionHeatPerNeutron);
-        m.put("heat_per_fast_neutron_absorption", heatPerFastNeutronAbsorption);
-        m.put("heat_per_thermal_neutron_absorption", heatPerThermalNeutronAbsorption);
         m.put("grid_heat_conduction", gridHeatConduction);
         m.put("boundary_heat_loss", boundaryHeatLoss);
         m.put("radiation_decay_factor", radiationDecayFactor);
         m.put("doppler_deficit_exponent", dopplerDeficitExponent);
         m.put("wall_reflection_chance", wallReflectionChance);
-        m.put("wall_absorb_heat_per_neutron", wallAbsorbHeatPerNeutron);
         m.put("wall_maintenance_neutron_threshold", wallMaintenanceNeutronThreshold);
         m.put("default_ambient_temp", defaultAmbientTemp);
         m.put("beam_energy_to_fast_neutron_multiplier", beamEnergyToFastNeutronMultiplier);
