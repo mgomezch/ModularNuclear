@@ -634,6 +634,7 @@ public class NuclearSimulationWebServer {
               <h1><span>⚛</span> Modular Pressure Tube Reactor (MPTR) Standalone Simulator</h1>
               <div style="display:flex; gap:10px; align-items:center;">
                 <span class="badge" id="engine-badge" style="background:#065f46; border-color:#059669; color:#34d399;" title="Simulation running client-side via WebAssembly">⚡ Client WASM (0ms)</span>
+                <a href="/monitor/" class="badge" style="text-decoration:none; background:#1e1b4b; border-color:#6366f1; color:#a5b4fc;" title="Open real-time simulator telemetry & calibration dashboard">📊 Live Monitor</a>
                 <span class="badge" id="casing-badge">Electrum Casing (1000°C Max)</span>
                 <span class="badge" id="damage-badge" style="display:none; color:var(--danger); border-color:var(--danger);" title="Cumulative Reactor Structural Damage">Damage: 0.0%</span>
                 <span class="badge" id="maint-badge" style="color:var(--success);" title="Maintenance Health (Efficiency Penalty)">Maint: 100%</span>

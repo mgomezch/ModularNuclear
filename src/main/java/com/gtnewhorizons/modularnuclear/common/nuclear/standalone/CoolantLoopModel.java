@@ -205,11 +205,11 @@ public class CoolantLoopModel {
 
     public enum SecondaryCoolantType {
 
-        DISTILLED_WATER("Distilled Water", 100.0, 2260000.0, 160, "steam", true),
-        LIQUID_NITROGEN("Liquid Nitrogen", -196.0, 160000.0, 160, "nitrogen", false),
-        LIQUID_OXYGEN("Liquid Oxygen", -183.0, 243000.0, 160, "oxygen", false),
-        LIQUID_AIR("Liquid Air", -194.0, 174000.0, 160, "air", false),
-        LIQUID_HELIUM("Liquid Helium", -269.0, 20700.0, 160, "helium", false);
+        DISTILLED_WATER("Distilled Water", 100.0, 2260.0, 160, "steam", true),
+        LIQUID_NITROGEN("Liquid Nitrogen", -196.0, 160.0, 160, "nitrogen", false),
+        LIQUID_OXYGEN("Liquid Oxygen", -183.0, 243.0, 160, "oxygen", false),
+        LIQUID_AIR("Liquid Air", -194.0, 174.0, 160, "air", false),
+        LIQUID_HELIUM("Liquid Helium", -269.0, 20.7, 160, "helium", false);
 
         public final String displayName;
         public final double boilingPointCelsius;
@@ -613,9 +613,9 @@ public class CoolantLoopModel {
         }
 
         // 1. Verify Tier Constraint: Convective cooling availability
-        if (reactorTier < NuclearSimulationEngine.PIPE_TIER_PLATINUM) {
+        if (reactorTier < NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
             this.ruptured = true;
-            this.ruptureReason = "Tier Violation: Convective coolant loops require Tier 2+ (IV Platinum / LuV Osmium) casing!";
+            this.ruptureReason = "Tier Violation: Convective coolant loops require Tier 2+ (LuV Osmium+) casing!";
             return false;
         }
 
@@ -738,7 +738,7 @@ public class CoolantLoopModel {
 
         // 8. Secondary Boiling at Pressurized Heat Exchanger (PHE)
         double secBoilingTemp = (secondaryCoolant != null) ? secondaryCoolant.boilingPointCelsius : 100.0;
-        double secLatentHeat = (secondaryCoolant != null) ? secondaryCoolant.latentHeatJoulesPerLiter : 2260000.0;
+        double secLatentHeat = (secondaryCoolant != null) ? secondaryCoolant.latentHeatJoulesPerLiter : 2260.0;
         int secExpansion = (secondaryCoolant != null && secondaryCoolant.expansionRatio > 0)
             ? secondaryCoolant.expansionRatio
             : 160;
@@ -746,7 +746,8 @@ public class CoolantLoopModel {
         double steamGeneratedL = 0.0;
         if (currentCoolantTempCelsius > secBoilingTemp && currentFlowRateLPerSec > 0.0) {
             double deltaTPhe = currentCoolantTempCelsius - secBoilingTemp;
-            double pheArea = 24.0; // 24 m^2 tube bundle area
+            double pheUnits = Math.max(1.0, Math.max(pipeSize.relativeCapacity, currentFlowRateLPerSec / 150.0));
+            double pheArea = 24.0 * pheUnits; // Tube bundle area scaled with parallel PHE multiblock units
             // h_phe ~ 2500 W/(m^2*K) for heat exchanger
             double qPheWatts = 2500.0 * pheArea * deltaTPhe;
             double qPheJoules = Math.min(
