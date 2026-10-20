@@ -4028,6 +4028,45 @@ public class NuclearSimulationWebServer {
 
             initEngine().then((wasmLoaded) => {
               loadColorMaps();
+              const urlLayout = urlParams.get("layout");
+              const urlTier = urlParams.get("tier");
+              const urlTurbine = urlParams.get("turbine");
+              if (urlLayout && isWasmMode && wasmSim) {
+                const rows = urlLayout.trim().split(";");
+                const h = rows.length;
+                const w = rows[0].split(",").length;
+                let pipeTier = 0;
+                if (urlTier) {
+                  const tUp = urlTier.toUpperCase();
+                  if (tUp === "EV") pipeTier = 0;
+                  else if (tUp === "IV") pipeTier = 1;
+                  else if (tUp === "LUV") pipeTier = 2;
+                  else if (tUp === "ZPM") pipeTier = 3;
+                  else if (tUp === "UV") pipeTier = 4;
+                  else if (tUp === "UHV") pipeTier = 5;
+                  if (typeof setVoltageTier === "function") setVoltageTier(tUp);
+                }
+                if (w > 0 && h > 0) {
+                  wasmSim.initGrid(w, h, pipeTier);
+                }
+                if (typeof applyTierCoolingDefaults === "function") {
+                  applyTierCoolingDefaults(pipeTier, { tier: urlTier || "EV" });
+                }
+                if (wasmSim.loadLayout) {
+                  wasmSim.loadLayout(urlLayout, false);
+                }
+                if (urlTurbine && wasmSim.setTurbine) {
+                  const parts = urlTurbine.split(",");
+                  if (parts.length >= 3) {
+                    const mat = parts[0].toUpperCase().replace(/-/g, "_");
+                    const sz = parts[1].toUpperCase();
+                    const fit = parts[2].toUpperCase();
+                    wasmSim.setTurbine(mat, sz, fit, false);
+                  }
+                }
+                currentState = wasmSim.getState();
+                renderUI();
+              }
               if (isFitMode) recalculateFitZoom();
             });
             </script>

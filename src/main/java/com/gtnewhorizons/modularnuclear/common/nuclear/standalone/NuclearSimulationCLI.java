@@ -33,6 +33,7 @@ public class NuclearSimulationCLI {
         TurbineCalculator.TurbineMaterial turbMat = TurbineCalculator.TurbineMaterial.HSS_E;
         TurbineCalculator.TurbineSize turbSize = TurbineCalculator.TurbineSize.LARGE;
         TurbineCalculator.FittingMode turbFitting = TurbineCalculator.FittingMode.TIGHT;
+        TurbineCalculator.MachineLimits cliLimits = new TurbineCalculator.MachineLimits();
         boolean jsonOutput = false;
         boolean batchMode = false;
         boolean traceEnabled = false;
@@ -299,6 +300,62 @@ public class NuclearSimulationCLI {
                     autoReplaceFuel = false;
                     autoReplaceFuelSpecified = true;
                 }
+                case "--max-thermal-boilers", "--max-boilers" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            cliLimits.maxThermalBoilers = Integer.parseInt(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                case "--max-lhe" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            cliLimits.maxLhe = Integer.parseInt(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                case "--max-ehe" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            cliLimits.maxEhe = Integer.parseInt(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                case "--max-lst" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            cliLimits.maxLst = Integer.parseInt(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                case "--max-xlst" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            cliLimits.maxXlst = Integer.parseInt(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                case "--max-xlst-hp" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            cliLimits.maxXlstHp = Integer.parseInt(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                case "--max-xlst-sc" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            cliLimits.maxXlstSc = Integer.parseInt(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+                case "--max-turbines" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            cliLimits.maxTurbines = Integer.parseInt(args[++i]);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
                 case "--cooling-mode", "--cooling" -> {
                     if (i + 1 < args.length) {
                         coolingModeSpecified = true;
@@ -409,7 +466,9 @@ public class NuclearSimulationCLI {
                 stopOnIncidents,
                 stopOnIncidentsSpecified,
                 steadyState,
-                steadyWindow);
+                steadyWindow,
+                false,
+                cliLimits);
         } else {
             runCliSimulation(
                 preset,
@@ -442,7 +501,8 @@ public class NuclearSimulationCLI {
                 autoReplaceFuel,
                 autoReplaceFuelSpecified,
                 stopOnIncidents,
-                stopOnIncidentsSpecified);
+                stopOnIncidentsSpecified,
+                cliLimits);
         }
     }
 
@@ -487,6 +547,7 @@ public class NuclearSimulationCLI {
                 boolean steadyState = false;
                 int steadyWindow = 200;
                 boolean trackHistory = false;
+                TurbineCalculator.MachineLimits batchLimits = new TurbineCalculator.MachineLimits();
 
                 String[] tokens = line.split("\\s+");
                 for (String token : tokens) {
@@ -679,6 +740,46 @@ public class NuclearSimulationCLI {
                         case "history", "track_history", "trackhistory" -> {
                             trackHistory = Boolean.parseBoolean(v) || "1".equals(v) || "true".equalsIgnoreCase(v);
                         }
+                        case "max_thermal_boilers", "maxthermalboilers", "max_boilers", "maxboilers" -> {
+                            try {
+                                batchLimits.maxThermalBoilers = Integer.parseInt(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "max_lhe", "maxlhe" -> {
+                            try {
+                                batchLimits.maxLhe = Integer.parseInt(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "max_ehe", "maxehe" -> {
+                            try {
+                                batchLimits.maxEhe = Integer.parseInt(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "max_lst", "maxlst" -> {
+                            try {
+                                batchLimits.maxLst = Integer.parseInt(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "max_xlst", "maxxlst" -> {
+                            try {
+                                batchLimits.maxXlst = Integer.parseInt(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "max_xlst_hp", "maxxlsthp" -> {
+                            try {
+                                batchLimits.maxXlstHp = Integer.parseInt(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "max_xlst_sc", "maxxlstsc" -> {
+                            try {
+                                batchLimits.maxXlstSc = Integer.parseInt(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "max_turbines", "maxturbines" -> {
+                            try {
+                                batchLimits.maxTurbines = Integer.parseInt(v);
+                            } catch (Exception ignored) {}
+                        }
                         default -> {}
                     }
                 }
@@ -714,7 +815,8 @@ public class NuclearSimulationCLI {
                     stopOnIncidentsSpecified,
                     steadyState,
                     steadyWindow,
-                    trackHistory);
+                    trackHistory,
+                    batchLimits);
                 System.out.flush();
             }
         } catch (java.io.IOException e) {
@@ -865,8 +967,57 @@ public class NuclearSimulationCLI {
         boolean repair, boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified,
         boolean stopOnIncidents, boolean stopOnIncidentsSpecified, boolean steadyStateStop, int steadyWindow,
         boolean trackHistory) {
+        runJsonSimulation(
+            preset,
+            layout,
+            size,
+            tier,
+            ticks,
+            turbMat,
+            turbSize,
+            turbFitting,
+            tierSpecified,
+            turbSpecified,
+            coolingMode,
+            coolingModeSpecified,
+            loopMat,
+            loopMatSpecified,
+            loopSize,
+            loopSizeSpecified,
+            loopFluid,
+            loopFluidSpecified,
+            loopPumpPower,
+            loopFlowRate,
+            loopPoints,
+            baseConductance,
+            baseConductanceSpecified,
+            repair,
+            strictMode,
+            autoReplaceFuel,
+            autoReplaceFuelSpecified,
+            stopOnIncidents,
+            stopOnIncidentsSpecified,
+            steadyStateStop,
+            steadyWindow,
+            trackHistory,
+            null);
+    }
+
+    private static void runJsonSimulation(String preset, String layout, int size, int tier, int ticks,
+        TurbineCalculator.TurbineMaterial turbMat, TurbineCalculator.TurbineSize turbSize,
+        TurbineCalculator.FittingMode turbFitting, boolean tierSpecified, boolean turbSpecified,
+        CoolantLoopModel.CoolingMode coolingMode, boolean coolingModeSpecified, CoolantLoopModel.LoopMaterial loopMat,
+        boolean loopMatSpecified, CoolantLoopModel.LoopPipeSize loopSize, boolean loopSizeSpecified,
+        CoolantLoopModel.CoolantFluidType loopFluid, boolean loopFluidSpecified, double loopPumpPower,
+        double loopFlowRate, String loopPoints, double baseConductance, boolean baseConductanceSpecified,
+        boolean repair, boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified,
+        boolean stopOnIncidents, boolean stopOnIncidentsSpecified, boolean steadyStateStop, int steadyWindow,
+        boolean trackHistory, TurbineCalculator.MachineLimits limits) {
         StandaloneNuclearGrid grid = new StandaloneNuclearGrid(size, size, tier);
         grid.setStrictMode(strictMode);
+        if (limits != null) {
+            grid.setMachineLimits(limits);
+        }
         if (autoReplaceFuelSpecified) {
             grid.setAutoReplaceFuel(autoReplaceFuel);
         }
@@ -1203,7 +1354,8 @@ public class NuclearSimulationCLI {
                 grid.getFlowHotCoolant(),
                 grid.getFlowDirectEU(),
                 null,
-                null);
+                null,
+                grid.getMachineLimits());
         }
         sb.append("\"scenarios\":{");
         sb.append("\"tight\":{")
@@ -1245,6 +1397,15 @@ public class NuclearSimulationCLI {
             .append("\",")
             .append("\"coolantMachineCount\":")
             .append(String.format(java.util.Locale.US, "%.1f", sc.tightResult.coolantMachineCount))
+            .append(",")
+            .append("\"machineLimitExceeded\":")
+            .append(sc.tightResult.machineLimitExceeded)
+            .append(",")
+            .append("\"voidedCoolantFlow\":")
+            .append(String.format(java.util.Locale.US, "%.1f", sc.tightResult.voidedCoolantFlow))
+            .append(",")
+            .append("\"voidedSteamFlow\":")
+            .append(String.format(java.util.Locale.US, "%.1f", sc.tightResult.totalVoidedSteamFlow))
             .append("},");
         sb.append("\"loose\":{")
             .append("\"material\":\"")
@@ -1285,6 +1446,15 @@ public class NuclearSimulationCLI {
             .append("\",")
             .append("\"coolantMachineCount\":")
             .append(String.format(java.util.Locale.US, "%.1f", sc.looseResult.coolantMachineCount))
+            .append(",")
+            .append("\"machineLimitExceeded\":")
+            .append(sc.looseResult.machineLimitExceeded)
+            .append(",")
+            .append("\"voidedCoolantFlow\":")
+            .append(String.format(java.util.Locale.US, "%.1f", sc.looseResult.voidedCoolantFlow))
+            .append(",")
+            .append("\"voidedSteamFlow\":")
+            .append(String.format(java.util.Locale.US, "%.1f", sc.looseResult.totalVoidedSteamFlow))
             .append("},");
         sb.append("\"turbineReductionRatio\":")
             .append(String.format(java.util.Locale.US, "%.2f", sc.turbineReductionRatio))
@@ -1292,6 +1462,24 @@ public class NuclearSimulationCLI {
         sb.append("\"powerReductionRatio\":")
             .append(String.format(java.util.Locale.US, "%.2f", sc.powerReductionRatio));
         sb.append("},");
+        sb.append("\"machineLimitExceeded\":")
+            .append(p != null && p.machineLimitExceeded)
+            .append(",");
+        sb.append("\"voidedCoolantFlow\":")
+            .append(String.format(java.util.Locale.US, "%.1f", p != null ? p.voidedCoolantFlow : 0.0))
+            .append(",");
+        sb.append("\"voidedSteamFlow\":")
+            .append(String.format(java.util.Locale.US, "%.1f", p != null ? p.totalVoidedSteamFlow : 0.0))
+            .append(",");
+        sb.append("\"voidedSupercriticalSteam\":")
+            .append(String.format(java.util.Locale.US, "%.1f", p != null ? p.voidedSupercriticalSteam : 0.0))
+            .append(",");
+        sb.append("\"voidedSuperheatedSteam\":")
+            .append(String.format(java.util.Locale.US, "%.1f", p != null ? p.voidedSuperheatedSteam : 0.0))
+            .append(",");
+        sb.append("\"voidedRegularSteam\":")
+            .append(String.format(java.util.Locale.US, "%.1f", p != null ? p.voidedRegularSteam : 0.0))
+            .append(",");
         sb.append("\"coolingMode\":\"")
             .append(
                 grid.getCoolingMode()
@@ -1615,13 +1803,17 @@ public class NuclearSimulationCLI {
         boolean loopSizeSpecified, CoolantLoopModel.CoolantFluidType loopFluid, boolean loopFluidSpecified,
         double loopPumpPower, double loopFlowRate, String loopPoints, double baseConductance,
         boolean baseConductanceSpecified, boolean repair, boolean strictMode, boolean autoReplaceFuel,
-        boolean autoReplaceFuelSpecified, boolean stopOnIncidents, boolean stopOnIncidentsSpecified) {
+        boolean autoReplaceFuelSpecified, boolean stopOnIncidents, boolean stopOnIncidentsSpecified,
+        TurbineCalculator.MachineLimits limits) {
         System.out.println(ANSI_CYAN + "============================================================" + ANSI_RESET);
         System.out.println(ANSI_WHITE_BOLD + "   GTNH MODULAR PRESSURE TUBE REACTOR (MPTR) SIMULATOR" + ANSI_RESET);
         System.out.println(ANSI_CYAN + "============================================================" + ANSI_RESET);
 
         StandaloneNuclearGrid grid = new StandaloneNuclearGrid(size, size, tier);
         grid.setStrictMode(strictMode);
+        if (limits != null) {
+            grid.setMachineLimits(limits);
+        }
         if (autoReplaceFuelSpecified) {
             grid.setAutoReplaceFuel(autoReplaceFuel);
         }
@@ -1916,6 +2108,12 @@ public class NuclearSimulationCLI {
                 "  Total Estimated Power:" + ANSI_GREEN
                     + String.format(" %.1f EU/t (%s)", p.totalPowerEUt, getVoltageTier(p.totalPowerEUt))
                     + ANSI_RESET);
+            if (p.machineLimitExceeded) {
+                System.out.println(
+                    ANSI_YELLOW + "  [!] Machine limits exceeded! Voided: "
+                        + String.format(java.util.Locale.US, "%.1f L/t coolant, %.1f L/t steam", p.voidedCoolantFlow, p.totalVoidedSteamFlow)
+                        + ANSI_RESET);
+            }
             if (p.isLST && p.lstPowerEUt > 0) {
                 System.out.println(
                     "    - LST Power:        "

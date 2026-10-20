@@ -120,6 +120,54 @@ public class TurbineCalculator {
         }
     }
 
+    public static class MachineLimits {
+
+        public int maxThermalBoilers = -1;
+        public int maxLhe = -1;
+        public int maxEhe = -1;
+        public int maxLst = -1;
+        public int maxXlst = -1;
+        public int maxXlstHp = -1;
+        public int maxXlstSc = -1;
+        public int maxTurbines = -1;
+
+        public MachineLimits() {}
+
+        public MachineLimits(int maxThermalBoilers, int maxLhe, int maxEhe, int maxLst, int maxXlst, int maxXlstHp,
+            int maxXlstSc, int maxTurbines) {
+            this.maxThermalBoilers = maxThermalBoilers;
+            this.maxLhe = maxLhe;
+            this.maxEhe = maxEhe;
+            this.maxLst = maxLst;
+            this.maxXlst = maxXlst;
+            this.maxXlstHp = maxXlstHp;
+            this.maxXlstSc = maxXlstSc;
+            this.maxTurbines = maxTurbines;
+        }
+
+        public MachineLimits copy() {
+            return new MachineLimits(
+                maxThermalBoilers,
+                maxLhe,
+                maxEhe,
+                maxLst,
+                maxXlst,
+                maxXlstHp,
+                maxXlstSc,
+                maxTurbines);
+        }
+
+        public boolean hasAnyLimit() {
+            return maxThermalBoilers >= 0 || maxLhe >= 0
+                || maxEhe >= 0
+                || maxLst >= 0
+                || maxXlst >= 0
+                || maxXlstHp >= 0
+                || maxXlstSc >= 0
+                || maxTurbines >= 0;
+        }
+    }
+
     public static class PowerEstimationResult {
 
         public double totalPowerEUt = 0;
@@ -146,11 +194,37 @@ public class TurbineCalculator {
         public double efficiency = 1.0;
         public double optFlowPerTurbine = 0;
         public boolean isLST = false;
+
+        // Machine limit and voiding diagnostics
+        public boolean machineLimitExceeded = false;
+        public double voidedCoolantFlow = 0;
+        public double voidedSupercriticalSteam = 0;
+        public double voidedSuperheatedSteam = 0;
+        public double voidedRegularSteam = 0;
+        public double totalVoidedSteamFlow = 0;
     }
 
     public static PowerEstimationResult calculatePower(int tier, double regularSteamFlow, double superheatedSteamFlow,
         double supercriticalSteamFlow, double heavyWaterSteamFlow, double hpHeavyWaterSteamFlow, double hotCoolantFlow,
         double directPowerEU, TurbineMaterial material, TurbineSize size, FittingMode mode) {
+        return calculatePower(
+            tier,
+            regularSteamFlow,
+            superheatedSteamFlow,
+            supercriticalSteamFlow,
+            heavyWaterSteamFlow,
+            hpHeavyWaterSteamFlow,
+            hotCoolantFlow,
+            directPowerEU,
+            material,
+            size,
+            mode,
+            null);
+    }
+
+    public static PowerEstimationResult calculatePower(int tier, double regularSteamFlow, double superheatedSteamFlow,
+        double supercriticalSteamFlow, double heavyWaterSteamFlow, double hpHeavyWaterSteamFlow, double hotCoolantFlow,
+        double directPowerEU, TurbineMaterial material, TurbineSize size, FittingMode mode, MachineLimits limits) {
         PowerEstimationResult res = new PowerEstimationResult();
 
         boolean isTight = (mode == FittingMode.TIGHT);
@@ -182,10 +256,21 @@ public class TurbineCalculator {
                 // In EV, superheated steam cannot be processed in turbines, so LHE produces Regular Steam (1:400)
                 res.coolantMachine = "Large Heat Exchanger";
                 res.coolantMachineMode = "Regular Steam (1:400)";
-                res.coolantSteamProduced = hotCoolantFlow * 400.0;
+                int maxLhe = limits != null ? limits.maxLhe : -1;
+                double usableCoolant = hotCoolantFlow;
+                if (maxLhe >= 0) {
+                    double maxCoolantCapacity = maxLhe * 80.0; // 1,600 L/s = 80 L/t per LHE
+                    if (hotCoolantFlow > maxCoolantCapacity) {
+                        usableCoolant = maxCoolantCapacity;
+                        res.voidedCoolantFlow = hotCoolantFlow - usableCoolant;
+                        res.machineLimitExceeded = true;
+                    }
+                    res.coolantMachineCount = maxLhe;
+                } else {
+                    res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 1600.0));
+                }
+                res.coolantSteamProduced = usableCoolant * 400.0;
                 res.coolantWaterConsumed = res.coolantSteamProduced / 160.0;
-                // Max throughput per LHE: 1,600 L/s (80 L/t)
-                res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 1600.0));
                 effectiveRegular += res.coolantSteamProduced;
             } else if (tier
                 == com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_PLATINUM) {
@@ -193,9 +278,21 @@ public class TurbineCalculator {
                     // Fixed rate: 500 L/s (25 L/t) per Thermal Boiler, produces 200L SH Steam per 1L Hot Coolant
                     res.coolantMachine = "Thermal Boiler";
                     res.coolantMachineMode = "Superheated Steam (1:200)";
-                    res.coolantSteamProduced = hotCoolantFlow * 200.0;
-                    res.coolantWaterConsumed = hotCoolantFlow * 1.25; // 625 L/s water for 500 L/s hot coolant
-                    res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 500.0));
+                    int maxBoilers = limits != null ? limits.maxThermalBoilers : -1;
+                    double usableCoolant = hotCoolantFlow;
+                    if (maxBoilers >= 0) {
+                        double maxCoolantCapacity = maxBoilers * 25.0; // 500 L/s = 25 L/t per boiler
+                        if (hotCoolantFlow > maxCoolantCapacity) {
+                            usableCoolant = maxCoolantCapacity;
+                            res.voidedCoolantFlow = hotCoolantFlow - usableCoolant;
+                            res.machineLimitExceeded = true;
+                        }
+                        res.coolantMachineCount = maxBoilers;
+                    } else {
+                        res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 500.0));
+                    }
+                    res.coolantSteamProduced = usableCoolant * 200.0;
+                    res.coolantWaterConsumed = usableCoolant * 1.25; // 625 L/s water for 500 L/s hot coolant
                     effectiveSuperheated += res.coolantSteamProduced;
                 } else
                 if (tier == com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
@@ -204,25 +301,50 @@ public class TurbineCalculator {
                     // (1:200)
                     res.coolantMachine = "Extreme Heat Exchanger";
                     res.coolantMachineMode = "Superheated Steam (1:200)";
-                    res.coolantSteamProduced = hotCoolantFlow * 200.0;
+                    int maxEhe = limits != null ? limits.maxEhe : -1;
+                    double usableCoolant = hotCoolantFlow;
+                    if (maxEhe >= 0) {
+                        double maxCoolantCapacity = maxEhe * 6400.0; // 128,000 L/s = 6,400 L/t per EHE
+                        if (hotCoolantFlow > maxCoolantCapacity) {
+                            usableCoolant = maxCoolantCapacity;
+                            res.voidedCoolantFlow = hotCoolantFlow - usableCoolant;
+                            res.machineLimitExceeded = true;
+                        }
+                        res.coolantMachineCount = maxEhe;
+                    } else {
+                        res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 128000.0));
+                    }
+                    res.coolantSteamProduced = usableCoolant * 200.0;
                     res.coolantWaterConsumed = res.coolantSteamProduced / 160.0;
-                    res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 128000.0));
                     effectiveSuperheated += res.coolantSteamProduced;
                 } else {
                     // ZPM+: Extreme Heat Exchanger (EHE)
                     // >= 8,000 L/s -> Supercritical Steam; < 8,000 L/s -> Superheated Steam
                     res.coolantMachine = "Extreme Heat Exchanger";
-                    if (coolantLPerSec >= 8000.0) {
+                    int maxEhe = limits != null ? limits.maxEhe : -1;
+                    double usableCoolant = hotCoolantFlow;
+                    if (maxEhe >= 0) {
+                        double maxCoolantCapacity = maxEhe * 6400.0;
+                        if (hotCoolantFlow > maxCoolantCapacity) {
+                            usableCoolant = maxCoolantCapacity;
+                            res.voidedCoolantFlow = hotCoolantFlow - usableCoolant;
+                            res.machineLimitExceeded = true;
+                        }
+                        res.coolantMachineCount = maxEhe;
+                    } else {
+                        res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 128000.0));
+                    }
+                    double usableLPerSec = usableCoolant * 20.0;
+                    if (usableLPerSec >= 8000.0) {
                         res.coolantMachineMode = "Supercritical (>= 8,000 L/s)";
-                        res.coolantSteamProduced = hotCoolantFlow * 200.0;
+                        res.coolantSteamProduced = usableCoolant * 200.0;
                         effectiveSupercritical += res.coolantSteamProduced;
                     } else {
                         res.coolantMachineMode = "Superheated (< 8,000 L/s)";
-                        res.coolantSteamProduced = hotCoolantFlow * 200.0;
+                        res.coolantSteamProduced = usableCoolant * 200.0;
                         effectiveSuperheated += res.coolantSteamProduced;
                     }
                     res.coolantWaterConsumed = res.coolantSteamProduced / 160.0;
-                    res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 128000.0));
                 }
         }
 
@@ -230,6 +352,12 @@ public class TurbineCalculator {
         // EV: Large Steam Turbines (LST) exclusively for regular steam. No XLST, no SH or SC turbine.
         // IV+: XLST-HP unlocked for Superheated Steam (1.0 EU/L, cascades 1:1 into Regular Steam)
         // ZPM+: XLST-SC unlocked for Supercritical Steam (1.0 EU/L, cascades 1:1 into Superheated Steam)
+
+        int maxLst = limits != null ? limits.maxLst : -1;
+        int maxXlst = limits != null ? limits.maxXlst : -1;
+        int maxXlstHp = limits != null ? limits.maxXlstHp : -1;
+        int maxXlstSc = limits != null ? limits.maxXlstSc : -1;
+        int maxTurbines = limits != null ? limits.maxTurbines : -1;
 
         if (tier <= com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_ELECTRUM) {
             // EV: Large Steam Turbine (LST)
@@ -239,9 +367,22 @@ public class TurbineCalculator {
 
             // Only regular steam can be processed in LST (at 0.5 EU/L * efficiency)
             if (effectiveRegular > 0) {
-                res.lstPowerEUt = effectiveRegular * 0.5 * res.efficiency;
+                int capLst = maxLst;
+                if (maxTurbines >= 0) {
+                    capLst = (capLst >= 0) ? Math.min(capLst, maxTurbines) : maxTurbines;
+                }
+                double neededTurbines = (lstOptFlow > 0) ? (effectiveRegular / lstOptFlow) : 0;
+                double processedRegular = effectiveRegular;
+                if (capLst >= 0 && neededTurbines > capLst) {
+                    processedRegular = capLst * lstOptFlow;
+                    res.voidedRegularSteam = effectiveRegular - processedRegular;
+                    res.machineLimitExceeded = true;
+                    res.lstTurbinesNeeded = capLst;
+                } else {
+                    res.lstTurbinesNeeded = neededTurbines;
+                }
+                res.lstPowerEUt = processedRegular * 0.5 * res.efficiency;
                 res.xlstPowerEUt = res.lstPowerEUt; // alias
-                res.lstTurbinesNeeded = (lstOptFlow > 0) ? (effectiveRegular / lstOptFlow) : 0;
                 res.totalTurbinesNeeded = res.lstTurbinesNeeded;
             }
             // Superheated or supercritical steam cannot be processed in EV
@@ -249,36 +390,83 @@ public class TurbineCalculator {
             // IV+: XL Turbo Steam Turbines (XLST)
             res.isLST = false;
             res.optFlowPerTurbine = xlstOptFlow;
+            int remTurbines = maxTurbines;
 
             // 2a. XLST-SC (Supercritical Steam): Requires ZPM or higher (tier >= 3)
             if (tier >= com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_QUANTIUM) {
                 double scFlowTotal = effectiveSupercritical + hpHeavyWaterSteamFlow;
                 if (scFlowTotal > 0) {
-                    res.xlstScPowerEUt = scFlowTotal * 1.0 * res.efficiency;
-                    res.xlstScTurbinesNeeded = (xlstOptFlow > 0) ? (scFlowTotal / xlstOptFlow) : 0;
-                    // Cascades 1:1 into Superheated Steam
-                    effectiveSuperheated += scFlowTotal;
+                    int capSc = maxXlstSc;
+                    if (remTurbines >= 0) {
+                        capSc = (capSc >= 0) ? Math.min(capSc, remTurbines) : remTurbines;
+                    }
+                    double neededSc = (xlstOptFlow > 0) ? (scFlowTotal / xlstOptFlow) : 0;
+                    double processedSc = scFlowTotal;
+                    if (capSc >= 0 && neededSc > capSc) {
+                        processedSc = capSc * xlstOptFlow;
+                        res.voidedSupercriticalSteam = scFlowTotal - processedSc;
+                        res.machineLimitExceeded = true;
+                        res.xlstScTurbinesNeeded = capSc;
+                    } else {
+                        res.xlstScTurbinesNeeded = neededSc;
+                    }
+                    if (remTurbines >= 0) {
+                        remTurbines = Math.max(0, remTurbines - (int) Math.ceil(res.xlstScTurbinesNeeded));
+                    }
+                    res.xlstScPowerEUt = processedSc * 1.0 * res.efficiency;
+                    // Only processed SC cascades 1:1 into Superheated Steam
+                    effectiveSuperheated += processedSc;
                 }
             }
 
             // 2b. XLST-HP (Superheated Steam): Requires IV or higher (tier >= 1)
             double hpFlowTotal = effectiveSuperheated;
             if (hpFlowTotal > 0) {
-                res.xlstHpPowerEUt = hpFlowTotal * 1.0 * res.efficiency;
-                res.xlstHpTurbinesNeeded = (xlstOptFlow > 0) ? (hpFlowTotal / xlstOptFlow) : 0;
-                // Regular superheated cascades 1:1 into Regular Steam
-                effectiveRegular += effectiveSuperheated;
+                int capHp = maxXlstHp;
+                if (remTurbines >= 0) {
+                    capHp = (capHp >= 0) ? Math.min(capHp, remTurbines) : remTurbines;
+                }
+                double neededHp = (xlstOptFlow > 0) ? (hpFlowTotal / xlstOptFlow) : 0;
+                double processedHp = hpFlowTotal;
+                if (capHp >= 0 && neededHp > capHp) {
+                    processedHp = capHp * xlstOptFlow;
+                    res.voidedSuperheatedSteam = hpFlowTotal - processedHp;
+                    res.machineLimitExceeded = true;
+                    res.xlstHpTurbinesNeeded = capHp;
+                } else {
+                    res.xlstHpTurbinesNeeded = neededHp;
+                }
+                if (remTurbines >= 0) {
+                    remTurbines = Math.max(0, remTurbines - (int) Math.ceil(res.xlstHpTurbinesNeeded));
+                }
+                res.xlstHpPowerEUt = processedHp * 1.0 * res.efficiency;
+                // Only processed HP cascades 1:1 into Regular Steam
+                effectiveRegular += processedHp;
             }
 
             // 2c. XLST (Regular Steam):
             if (effectiveRegular > 0) {
-                res.xlstPowerEUt = effectiveRegular * 0.5 * res.efficiency;
-                res.xlstTurbinesNeeded = (xlstOptFlow > 0) ? (effectiveRegular / xlstOptFlow) : 0;
+                int capReg = maxXlst;
+                if (remTurbines >= 0) {
+                    capReg = (capReg >= 0) ? Math.min(capReg, remTurbines) : remTurbines;
+                }
+                double neededReg = (xlstOptFlow > 0) ? (effectiveRegular / xlstOptFlow) : 0;
+                double processedReg = effectiveRegular;
+                if (capReg >= 0 && neededReg > capReg) {
+                    processedReg = capReg * xlstOptFlow;
+                    res.voidedRegularSteam = effectiveRegular - processedReg;
+                    res.machineLimitExceeded = true;
+                    res.xlstTurbinesNeeded = capReg;
+                } else {
+                    res.xlstTurbinesNeeded = neededReg;
+                }
+                res.xlstPowerEUt = processedReg * 0.5 * res.efficiency;
             }
 
             res.totalTurbinesNeeded = res.xlstScTurbinesNeeded + res.xlstHpTurbinesNeeded + res.xlstTurbinesNeeded;
         }
 
+        res.totalVoidedSteamFlow = res.voidedSupercriticalSteam + res.voidedSuperheatedSteam + res.voidedRegularSteam;
         res.directPowerEUt = directPowerEU;
         res.totalPowerEUt = res.xlstScPowerEUt + res.xlstHpPowerEUt + res.xlstPowerEUt + directPowerEU;
         return res;
@@ -431,6 +619,24 @@ public class TurbineCalculator {
         double superheatedSteamFlow, double supercriticalSteamFlow, double heavyWaterSteamFlow,
         double hpHeavyWaterSteamFlow, double hotCoolantFlow, double directPowerEU, ScenarioTurbineConfig tightOverride,
         ScenarioTurbineConfig looseOverride) {
+        return calculateBothScenarios(
+            tier,
+            regularSteamFlow,
+            superheatedSteamFlow,
+            supercriticalSteamFlow,
+            heavyWaterSteamFlow,
+            hpHeavyWaterSteamFlow,
+            hotCoolantFlow,
+            directPowerEU,
+            tightOverride,
+            looseOverride,
+            null);
+    }
+
+    public static ScenarioHypotheticalResult calculateBothScenarios(int tier, double regularSteamFlow,
+        double superheatedSteamFlow, double supercriticalSteamFlow, double heavyWaterSteamFlow,
+        double hpHeavyWaterSteamFlow, double hotCoolantFlow, double directPowerEU, ScenarioTurbineConfig tightOverride,
+        ScenarioTurbineConfig looseOverride, MachineLimits limits) {
 
         ScenarioTurbineConfig tightCfg = tightOverride != null ? tightOverride : getDefaultTightTurbine(tier);
         ScenarioTurbineConfig looseCfg = looseOverride != null ? looseOverride : getDefaultLooseTurbine(tier);
@@ -450,7 +656,8 @@ public class TurbineCalculator {
             directPowerEU,
             tightCfg.material,
             tightCfg.size,
-            tightCfg.mode);
+            tightCfg.mode,
+            limits);
 
         res.looseResult = calculatePower(
             tier,
@@ -463,7 +670,8 @@ public class TurbineCalculator {
             directPowerEU,
             looseCfg.material,
             looseCfg.size,
-            looseCfg.mode);
+            looseCfg.mode,
+            limits);
 
         if (res.looseResult.totalTurbinesNeeded > 0) {
             res.turbineReductionRatio = res.tightResult.totalTurbinesNeeded / res.looseResult.totalTurbinesNeeded;

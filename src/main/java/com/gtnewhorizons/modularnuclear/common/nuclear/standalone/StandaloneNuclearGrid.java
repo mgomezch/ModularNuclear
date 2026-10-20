@@ -60,6 +60,7 @@ public class StandaloneNuclearGrid {
     private TurbineCalculator.TurbineMaterial turbineMaterial = TurbineCalculator.TurbineMaterial.HSS_E;
     private TurbineCalculator.TurbineSize turbineSize = TurbineCalculator.TurbineSize.LARGE;
     private TurbineCalculator.FittingMode turbineFitting = TurbineCalculator.FittingMode.TIGHT;
+    private TurbineCalculator.MachineLimits machineLimits = null;
 
     // Instantaneous flows (L/t)
     private double flowRegularSteam = 0;
@@ -473,7 +474,7 @@ public class StandaloneNuclearGrid {
         this.height = height;
         this.pipeTier = pipeTier;
         applyDefaultTurbinesForTier();
-        this.lastScenariosResult = TurbineCalculator.calculateBothScenarios(pipeTier, 0, 0, 0, 0, 0, 0, 0, null, null);
+        this.lastScenariosResult = TurbineCalculator.calculateBothScenarios(pipeTier, 0, 0, 0, 0, 0, 0, 0, null, null, this.machineLimits);
         this.grid = new SimTile[width][height];
         clearGrid();
     }
@@ -933,7 +934,8 @@ public class StandaloneNuclearGrid {
             flowDirectEU,
             turbineMaterial,
             turbineSize,
-            turbineFitting);
+            turbineFitting,
+            machineLimits);
 
         lastScenariosResult = TurbineCalculator.calculateBothScenarios(
             pipeTier,
@@ -945,7 +947,8 @@ public class StandaloneNuclearGrid {
             flowHotCoolant,
             flowDirectEU,
             null,
-            null);
+            null,
+            machineLimits);
 
         grossPowerEUt = lastPowerResult.totalPowerEUt;
         if (shouldStepCoolantLoop()) {
@@ -1730,6 +1733,14 @@ public class StandaloneNuclearGrid {
 
     public void setTurbineFitting(TurbineCalculator.FittingMode turbineFitting) {
         this.turbineFitting = turbineFitting;
+    }
+
+    public TurbineCalculator.MachineLimits getMachineLimits() {
+        return machineLimits;
+    }
+
+    public void setMachineLimits(TurbineCalculator.MachineLimits machineLimits) {
+        this.machineLimits = machineLimits;
     }
 
     public double getFlowRegularSteam() {

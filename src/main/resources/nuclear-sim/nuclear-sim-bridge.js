@@ -152,6 +152,13 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    setMachineLimits(maxThermalBoilers = -1, maxLhe = -1, maxEhe = -1, maxLst = -1, maxXlst = -1, maxXlstHp = -1, maxXlstSc = -1, maxTurbines = -1, notify = true) {
+        if (this.inst.exports.setMachineLimits) {
+            this.inst.exports.setMachineLimits(maxThermalBoilers, maxLhe, maxEhe, maxLst, maxXlst, maxXlstHp, maxXlstSc, maxTurbines);
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     setCoolingMode(mode, notify = true) {
         if (this.inst.exports.setCoolingMode) {
             this.inst.exports.setCoolingMode(this.createJavaString(mode));

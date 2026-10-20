@@ -116,6 +116,23 @@ public class NuclearSimWasmBridge {
         }
     }
 
+    @Export(name = "setMachineLimits")
+    public static void setMachineLimits(int maxThermalBoilers, int maxLhe, int maxEhe, int maxLst, int maxXlst,
+        int maxXlstHp, int maxXlstSc, int maxTurbines) {
+        if (grid != null) {
+            TurbineCalculator.MachineLimits limits = new TurbineCalculator.MachineLimits(
+                maxThermalBoilers,
+                maxLhe,
+                maxEhe,
+                maxLst,
+                maxXlst,
+                maxXlstHp,
+                maxXlstSc,
+                maxTurbines);
+            grid.setMachineLimits(limits);
+        }
+    }
+
     @Export(name = "setRunning")
     public static void setRunning(boolean running) {
         if (running && grid != null && grid.isExploded()) {
@@ -1068,7 +1085,25 @@ public class NuclearSimWasmBridge {
             .append(fmt3(p.efficiency))
             .append(",");
         sb.append("\"optFlowPerTurbine\":")
-            .append(fmt0(p.optFlowPerTurbine));
+            .append(fmt0(p.optFlowPerTurbine))
+            .append(",");
+        sb.append("\"machineLimitExceeded\":")
+            .append(p.machineLimitExceeded)
+            .append(",");
+        sb.append("\"voidedCoolantFlow\":")
+            .append(fmt1(p.voidedCoolantFlow))
+            .append(",");
+        sb.append("\"voidedSteamFlow\":")
+            .append(fmt1(p.totalVoidedSteamFlow))
+            .append(",");
+        sb.append("\"voidedSupercriticalSteam\":")
+            .append(fmt1(p.voidedSupercriticalSteam))
+            .append(",");
+        sb.append("\"voidedSuperheatedSteam\":")
+            .append(fmt1(p.voidedSuperheatedSteam))
+            .append(",");
+        sb.append("\"voidedRegularSteam\":")
+            .append(fmt1(p.voidedRegularSteam));
         sb.append("},");
 
         TurbineCalculator.ScenarioHypotheticalResult sc = targetGrid.getLastScenariosResult();
@@ -1083,7 +1118,8 @@ public class NuclearSimWasmBridge {
                 targetGrid.getFlowHotCoolant(),
                 targetGrid.getFlowDirectEU(),
                 null,
-                null);
+                null,
+                targetGrid.getMachineLimits());
         }
         sb.append("\"scenarios\":{");
         sb.append("\"tight\":{")
