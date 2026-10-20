@@ -15,6 +15,8 @@ public class NEIConfig implements IConfigureNEI {
 
     @Override
     public void loadConfig() {
+        com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler.register();
+
         NEINeutronInteractionHandler neutronHandler = new NEINeutronInteractionHandler();
         API.registerRecipeHandler(neutronHandler);
         API.registerUsageHandler(neutronHandler);

@@ -22,6 +22,9 @@ public class ClientProxy extends CommonProxy {
             try {
                 MinecraftForge.EVENT_BUS.register(new NEIConfig());
             } catch (Throwable ignored) {}
+            try {
+                com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler.register();
+            } catch (Throwable ignored) {}
         }
     }
 
