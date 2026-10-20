@@ -79,22 +79,6 @@ public final class ModularNuclearConfig {
     public static String[] allowedNeutronSources = new String[] { "GoodGenerator:neutronSource", "item.neutronSource" };
 
     // ==========================================
-    // Simulation Physics & Tuning Parameters
-    // ==========================================
-    public static double baseAbsorptionProbability = 0.05;
-    public static double baseScatteringProbability = 0.10;
-    public static double baseModerationProbability = 0.0;
-    public static double gridHeatConduction = 0.15;
-    public static double boundaryHeatLoss = 0.02;
-    public static double radiationDecayFactor = 0.95;
-    public static double heatPerFastNeutronAbsorption = 10.0;
-    public static double heatPerThermalNeutronAbsorption = 25.0;
-    public static double dopplerDeficitExponent = 1.2;
-    public static int wallMaintenanceNeutronThreshold = 10000;
-    public static double defaultAmbientTemp = 293.15;
-    public static float beamEnergyToFastNeutronMultiplier = 0.001f;
-
-    // ==========================================
     // Reactor Tiers & Material Limits
     // ==========================================
     public static final double[] DEFAULT_MAX_OPERATING_TEMP_TIER = new double[] { 1200.0, 1400.0, 1800.0, 2200.0,
@@ -261,106 +245,6 @@ public final class ModularNuclearConfig {
                 CAT_ALLOWLISTS,
                 allowedNeutronSources,
                 "Items recognized as external beam neutron sources.");
-
-            // Simulation Physics & Tuning Parameters
-            final String CAT_PHYSICS = "simulation_physics";
-            config.setCategoryComment(CAT_PHYSICS, "Simulation constants and physics tuning parameters.");
-
-            baseAbsorptionProbability = config.getFloat(
-                "baseAbsorptionProbability",
-                CAT_PHYSICS,
-                (float) baseAbsorptionProbability,
-                0.0f,
-                1.0f,
-                "Base neutron absorption probability for standard reactor components.");
-
-            baseScatteringProbability = config.getFloat(
-                "baseScatteringProbability",
-                CAT_PHYSICS,
-                (float) baseScatteringProbability,
-                0.0f,
-                1.0f,
-                "Base neutron scattering probability for standard reactor components.");
-
-            baseModerationProbability = config.getFloat(
-                "baseModerationProbability",
-                CAT_PHYSICS,
-                (float) baseModerationProbability,
-                0.0f,
-                1.0f,
-                "Base fast-to-thermal neutron moderation probability.");
-
-            gridHeatConduction = config.getFloat(
-                "gridHeatConduction",
-                CAT_PHYSICS,
-                (float) gridHeatConduction,
-                0.0f,
-                1.0f,
-                "Inter-tile heat conduction coefficient across adjacent grid cells.");
-
-            boundaryHeatLoss = config.getFloat(
-                "boundaryHeatLoss",
-                CAT_PHYSICS,
-                (float) boundaryHeatLoss,
-                0.0f,
-                1.0f,
-                "Passive thermal loss coefficient across the reactor casing boundary.");
-
-            radiationDecayFactor = config.getFloat(
-                "radiationDecayFactor",
-                CAT_PHYSICS,
-                (float) radiationDecayFactor,
-                0.0f,
-                1.0f,
-                "Decay factor applied to residual neutron flux and radiation fields per tick.");
-
-            heatPerFastNeutronAbsorption = config.getFloat(
-                "heatPerFastNeutronAbsorption",
-                CAT_PHYSICS,
-                (float) heatPerFastNeutronAbsorption,
-                0.0f,
-                1000.0f,
-                "Heat energy in Hu deposited per fast neutron absorption.");
-
-            heatPerThermalNeutronAbsorption = config.getFloat(
-                "heatPerThermalNeutronAbsorption",
-                CAT_PHYSICS,
-                (float) heatPerThermalNeutronAbsorption,
-                0.0f,
-                1000.0f,
-                "Heat energy in Hu deposited per thermal neutron absorption.");
-
-            dopplerDeficitExponent = config.getFloat(
-                "dopplerDeficitExponent",
-                CAT_PHYSICS,
-                (float) dopplerDeficitExponent,
-                0.1f,
-                5.0f,
-                "Exponent for thermal Doppler broadening and resonance absorption deficit.");
-
-            wallMaintenanceNeutronThreshold = config.getInt(
-                "wallMaintenanceNeutronThreshold",
-                CAT_PHYSICS,
-                wallMaintenanceNeutronThreshold,
-                100,
-                1000000,
-                "Cumulative neutron wall absorption required to trigger a maintenance inspection check.");
-
-            defaultAmbientTemp = config.getFloat(
-                "defaultAmbientTemp",
-                CAT_PHYSICS,
-                (float) defaultAmbientTemp,
-                0.0f,
-                1000.0f,
-                "Default ambient temperature in Kelvin (293.15 K = 20 C).");
-
-            beamEnergyToFastNeutronMultiplier = config.getFloat(
-                "beamEnergyToFastNeutronMultiplier",
-                CAT_PHYSICS,
-                (float) beamEnergyToFastNeutronMultiplier,
-                0.0f,
-                10.0f,
-                "Conversion factor from beam energy intensity (E * R) to fast neutron packet size.");
 
             // Reactor Tiers & Material Limits
             final String CAT_TIERS = "reactor_tiers";
