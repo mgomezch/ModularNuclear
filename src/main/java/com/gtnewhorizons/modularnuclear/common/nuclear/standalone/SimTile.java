@@ -1467,7 +1467,7 @@ public class SimTile implements INuclearTile {
                 "Reactor Heat Vent",
                 0.40,
                 6.0,
-                1500.0,
+                0.0,
                 0.05,
                 128,
                 512.0);
@@ -1476,7 +1476,7 @@ public class SimTile implements INuclearTile {
                 "Advanced Heat Vent",
                 0.45,
                 12.0,
-                1600.0,
+                0.0,
                 0.05,
                 512,
                 2048.0);
@@ -1485,7 +1485,7 @@ public class SimTile implements INuclearTile {
                 "Overclocked Heat Vent",
                 0.40,
                 8.0,
-                1500.0,
+                0.0,
                 0.05,
                 1024,
                 4096.0);
@@ -1494,7 +1494,7 @@ public class SimTile implements INuclearTile {
                 "Component Heat Vent",
                 0.50,
                 20.0,
-                2000.0,
+                0.0,
                 0.05,
                 2048,
                 8192.0);
@@ -1518,7 +1518,7 @@ public class SimTile implements INuclearTile {
                 "Heat Exchanger",
                 0.40,
                 12.0,
-                1500.0,
+                0.0,
                 0.05,
                 256,
                 1024.0);
@@ -1527,7 +1527,7 @@ public class SimTile implements INuclearTile {
                 "Advanced Heat Exchanger",
                 0.45,
                 24.0,
-                1600.0,
+                0.0,
                 0.05,
                 512,
                 2048.0);
@@ -1536,7 +1536,7 @@ public class SimTile implements INuclearTile {
                 "Component Heat Exchanger",
                 0.50,
                 36.0,
-                2000.0,
+                0.0,
                 0.05,
                 1024,
                 4096.0);
@@ -1687,5 +1687,10 @@ public class SimTile implements INuclearTile {
     @Override
     public double getThermalNeutronEmissionYield(int fastNeutronsAbsorbed) {
         return 0.0;
+    }
+
+    @Override
+    public void voidComponent() {
+        this.type = TileType.EMPTY;
     }
 }

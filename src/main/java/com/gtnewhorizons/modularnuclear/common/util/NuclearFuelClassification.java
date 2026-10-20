@@ -205,6 +205,18 @@ public final class NuclearFuelClassification {
         return false;
     }
 
+    public static boolean isReflectorAtMaxDamage(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) return false;
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData refl = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findReflector(stack);
+        if (refl != null && refl.durability > 0
+            && stack.stackTagCompound != null
+            && stack.stackTagCompound.hasKey("advDmg")) {
+            return stack.stackTagCompound.getInteger("advDmg") >= refl.durability;
+        }
+        return false;
+    }
+
     public static ItemStack getModeratorSpentProduct(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return null;
         com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
@@ -329,11 +341,11 @@ public final class NuclearFuelClassification {
 
     public static boolean isConfigurationItem(ItemStack stack) {
         if (stack == null) return false;
-        return isItemReflector(stack) || isItemModerator(stack)
+        return isItemReflector(stack) || isReflectorAtMaxDamage(stack)
+            || isItemModerator(stack)
             || isModeratorAtMaxDamage(stack)
             || isItemHeatVent(stack)
             || isItemHeatExchanger(stack)
-            || isItemReactorPlating(stack)
             || getInsulationDampening(stack) > 0.0
             || isItemRadiovoltaic(stack)
             || isItemNeutronSource(stack);
@@ -375,9 +387,8 @@ public final class NuclearFuelClassification {
     }
 
     public static boolean isItemReactorPlating(ItemStack stack) {
-        if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findPlating(stack) != null) return true;
-        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemReactorPlating(stack);
+        // Platings are not admitted in MPTR reactors
+        return false;
     }
 
     public static boolean isItemRadiovoltaic(ItemStack stack) {
@@ -428,9 +439,9 @@ public final class NuclearFuelClassification {
         if (isItemHeatVent(stack)) return true;
         if (isItemHeatExchanger(stack)) return true;
         if (isItemReflector(stack)) return true;
+        if (isReflectorAtMaxDamage(stack)) return true;
         if (isItemModerator(stack)) return true;
         if (isModeratorAtMaxDamage(stack)) return true;
-        if (isItemReactorPlating(stack)) return true;
         if (getInsulationDampening(stack) > 0.0) return true;
         if (isItemRadiovoltaic(stack)) return true;
         if (isItemNeutronSource(stack)) return true;

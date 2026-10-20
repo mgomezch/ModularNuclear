@@ -365,6 +365,13 @@ public class NuclearSimulationEngine {
         return 800.0;
     }
 
+    public static boolean allowsCoolantLoops(int tier) {
+        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .getTier(tier);
+        if (td != null) return td.allowsCoolantLoops;
+        return tier >= PIPE_TIER_OSMIUM;
+    }
+
     /**
      * Calculates the maximum average core temperature under which structural damage repair is permitted.
      * Uniformly calculated as configured percentage of the casing tier's maximum operating temperature.
@@ -1035,10 +1042,16 @@ public class NuclearSimulationEngine {
     public static void processHeatVent(INuclearTile tile, double ambient) {
         com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData vent = tile.getHeatVentData();
         if (vent == null) return;
-        double maxHU = vent.maxHUt > 0.0 ? vent.maxHUt : 512.0;
-        long maxEU = vent.maxEUt > 0 ? vent.maxEUt : (long) Math.ceil(maxHU / 4.0);
-
         double curTemp = tile.getTemperature();
+        if (vent.maxTemperature > 0.0 && curTemp > vent.maxTemperature) {
+            tile.voidComponent();
+            return;
+        }
+
+        double euPerHu = vent.euPerHu > 0.0 ? vent.euPerHu : 0.25;
+        double maxHU = vent.maxHUt > 0.0 ? vent.maxHUt : 512.0;
+        long maxEU = vent.maxEUt > 0 ? vent.maxEUt : (long) Math.ceil(maxHU * euPerHu);
+
         double tempDiff = curTemp - ambient;
         if (Math.abs(tempDiff) < 1e-4) return;
 
@@ -1046,10 +1059,10 @@ public class NuclearSimulationEngine {
         double huToMove = Math.min(huNeeded, maxHU);
         if (huToMove <= 0.0) return;
 
-        long euNeeded = (long) Math.ceil(huToMove / 4.0);
+        long euNeeded = (long) Math.ceil(huToMove * euPerHu);
         if (euNeeded > maxEU) {
             euNeeded = maxEU;
-            huToMove = euNeeded * 4.0;
+            huToMove = euNeeded / euPerHu;
         }
 
         // Draws from energy hatch buffers. If insufficient EU, component stops work for that tick.
@@ -1067,7 +1080,7 @@ public class NuclearSimulationEngine {
 
     /**
      * Processes an active heat exchanger, equalizing temperature between own cell and all cardinally adjacent cells.
-     * Consumes 1 EU per 4 HU transported.
+     * Consumes configured EU per HU transported (default 1 EU per 4 HU).
      */
     public static void processHeatExchanger(INuclearTile[][] grid, int x, int y, int sizeX, int sizeY) {
         INuclearTile center = grid[x][y];
@@ -1075,8 +1088,15 @@ public class NuclearSimulationEngine {
         com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData hex = center
             .getHeatExchangerData();
         if (hex == null) return;
+        double curTemp = center.getTemperature();
+        if (hex.maxTemperature > 0.0 && curTemp > hex.maxTemperature) {
+            center.voidComponent();
+            return;
+        }
+
+        double euPerHu = hex.euPerHu > 0.0 ? hex.euPerHu : 0.25;
         double maxHU = hex.maxHUt > 0.0 ? hex.maxHUt : 1024.0;
-        long maxEU = hex.maxEUt > 0 ? hex.maxEUt : (long) Math.ceil(maxHU / 4.0);
+        long maxEU = hex.maxEUt > 0 ? hex.maxEUt : (long) Math.ceil(maxHU * euPerHu);
 
         // Gather center and up to 4 cardinally adjacent neighbor cells
         int[] dX = { 0, 0, -1, 1 };
@@ -1117,10 +1137,10 @@ public class NuclearSimulationEngine {
         }
 
         double huActuallyTransported = totalHuTransported * scale;
-        long euNeeded = (long) Math.ceil(huActuallyTransported / 4.0);
+        long euNeeded = (long) Math.ceil(huActuallyTransported * euPerHu);
         if (euNeeded > maxEU) {
             euNeeded = maxEU;
-            huActuallyTransported = euNeeded * 4.0;
+            huActuallyTransported = euNeeded / euPerHu;
             scale = huActuallyTransported / totalHuTransported;
         }
 

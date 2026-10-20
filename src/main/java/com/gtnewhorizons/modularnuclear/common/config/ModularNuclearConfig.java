@@ -68,7 +68,7 @@ public final class ModularNuclearConfig {
 
     public static String[] allowedHeatExchangers = new String[] { "IC2:reactorHeatSwitch*" };
 
-    public static String[] allowedPlatings = new String[] { "IC2:reactorPlating*" };
+    public static String[] allowedPlatings = new String[0];
 
     public static String[] allowedInsulators = new String[] { "Naquarite_Universal_Insulator_Foil=1.0",
         "MicaInsulatorFoil=0.60", "ThermalClothT2=0.40", "ThermalCloth=0.20", "itemBasicAsteroids:7=0.20" };
@@ -549,7 +549,7 @@ public final class ModularNuclearConfig {
     }
 
     public static boolean isItemReactorPlating(ItemStack stack) {
-        return matchesItem(stack, allowedPlatings);
+        return false;
     }
 
     public static boolean isItemRadiovoltaic(ItemStack stack) {

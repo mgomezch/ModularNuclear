@@ -1149,7 +1149,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public void validateHighPressureHatchPairing(IGregTechTileEntity aBaseMetaTileEntity, List<StructureError> errors) {
         if (!mTopHighPressureHatches.isEmpty() || !mBottomHighPressureHatches.isEmpty()) {
-            if (mPipeTier < NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
+            if (!NuclearSimulationEngine.allowsCoolantLoops(mPipeTier)) {
                 errors.add(StructureErrors.of("GT5U.gui.text.structure_error.hp_hatch_tier"));
             }
             if (mTopHighPressureHatches.size() != mBottomHighPressureHatches.size()) {
@@ -2258,7 +2258,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public static boolean isItemReactorPlating(ItemStack stack) {
-        return NuclearFuelClassification.isItemReactorPlating(stack);
+        return false;
     }
 
     public boolean isItemAllowedInBus(ItemStack stack) {

@@ -592,10 +592,36 @@ public class NuclearReactorPhysics {
         if (tile.isBus()) {
             MTEHatchNuclearBus bus = tile.getBus();
             ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            if (stack != null && stack.isItemStackDamageable()) {
-                if (NuclearFuelClassification.isItemReflector(stack)) {
-                    if (reactor.getRandomNumber(20) == 0) {
+            if (stack != null && NuclearFuelClassification.isItemReflector(stack)) {
+                ReflectorData refl = ReactorDataRegistry.findReflector(stack);
+                int maxDur = refl != null ? refl.durability
+                    : (stack.isItemStackDamageable() ? stack.getMaxDamage() : 0);
+                if (maxDur > 0 && reactor.getRandomNumber(20) == 0) {
+                    if (stack.isItemStackDamageable()) {
                         reactor.damageItemComponent(bus, 1);
+                    } else {
+                        int curDmg = 0;
+                        if (stack.stackTagCompound != null && stack.stackTagCompound.hasKey("advDmg")) {
+                            curDmg = stack.stackTagCompound.getInteger("advDmg");
+                        }
+                        int newDmg = curDmg + 1;
+                        if (newDmg >= maxDur) {
+                            reactor.mCycleZeroedFuelItems++;
+                            if (stack.stackSize > 1) {
+                                stack.stackSize--;
+                                if (stack.stackTagCompound != null) {
+                                    stack.stackTagCompound.removeTag("advDmg");
+                                }
+                            } else {
+                                bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                            }
+                        } else {
+                            if (stack.stackTagCompound == null) {
+                                stack.stackTagCompound = new net.minecraft.nbt.NBTTagCompound();
+                            }
+                            stack.stackTagCompound.setInteger("advDmg", newDmg);
+                        }
+                        bus.markTileDirty();
                     }
                 }
             }
@@ -825,11 +851,13 @@ public class NuclearReactorPhysics {
         }
         // 3. RADIOVOLTAIC DIRECT EU GENERATION
         else if (reactor.isItemRadiovoltaic(stack)) {
+            RadiovoltaicData rv = ReactorDataRegistry.findRadiovoltaic(stack);
             int tier = reactor.getRadiovoltaicTier(stack);
-            long maxEU = (tier >= 2) ? 4096 : 1024;
+            long maxEU = (rv != null && rv.maxEU > 0) ? rv.maxEU : ((tier >= 2) ? 4096 : 1024);
+            double eff = (rv != null) ? rv.euConversionEfficiency : 1.0;
             double weightedFlux = bus.mFastAbsorbed * 4.0 + bus.mThermalAbsorbed * 1.0;
             double satFlux = 60.0;
-            long genEU = (long) Math.round(maxEU * Math.tanh(weightedFlux / satFlux));
+            long genEU = (long) Math.round(maxEU * eff * Math.tanh(weightedFlux / satFlux));
             bus.mDirectEUProduced = genEU;
             double totalEnergy = weightedFlux * 20.0;
             double excessHeat = Math.max(0.0, totalEnergy - genEU);
@@ -837,11 +865,24 @@ public class NuclearReactorPhysics {
                 addTileHeat(tile, excessHeat);
             }
         }
-        // 3. ACTIVE HEAT VENTS & HEAT EXCHANGERS (Processed actively each tick via processActiveVentsAndExchangers)
+        // 4. ACTIVE HEAT VENTS & HEAT EXCHANGERS (Processed actively each tick via processActiveVentsAndExchangers)
         else if (MTENuclearReactor.isItemHeatVent(stack) || MTENuclearReactor.isItemHeatExchanger(stack)) {
             bus.mDirectEUProduced = 0;
+            double maxTemp = 0.0;
+            if (MTENuclearReactor.isItemHeatVent(stack)) {
+                HeatVentData vent = ReactorDataRegistry.findHeatVent(stack);
+                if (vent != null) maxTemp = vent.maxTemperature;
+            } else {
+                HeatExchangerData hex = ReactorDataRegistry.findHeatExchanger(stack);
+                if (hex != null) maxTemp = hex.maxTemperature;
+            }
+            if (maxTemp > 0.0 && bus.mTemperature > maxTemp) {
+                bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                reactor.mCycleZeroedCoolantItems++;
+                bus.markTileDirty();
+            }
         }
-        // 4. COOLANT CELL HEAT ABSORPTION (Capacity-based scaling via IReactorComponent)
+        // 5. COOLANT CELL HEAT ABSORPTION (Capacity-based scaling via IReactorComponent)
         else if (stack.getItem() instanceof IReactorComponent comp) {
             reactor.getReactorDummy()
                 .setCurrentTile(tile);
@@ -851,17 +892,19 @@ public class NuclearReactorPhysics {
                 int curHeat = comp.getCurrentHeat(reactor.getReactorDummy(), stack, 0, 0);
                 double ambient = reactor.getAmbientTemperature();
                 if (maxHeat > 0 && bus.mTemperature > ambient) {
+                    CoolantItemData cItem = ReactorDataRegistry.findCoolantItem(stack);
+                    double huPerDurability = (cItem != null) ? cItem.getHuPerDurability() : 25.0;
                     int maxTransferPerTick = Math.max(1, maxHeat / 100);
                     double heatAvailable = (bus.mTemperature - ambient) * NuclearSimulationEngine.HU_PER_DEGREE;
                     double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
                     int heatToTake = (int) Math
-                        .round(Math.min(heatAvailable / 25.0, (double) maxTransferPerTick) * effFactor);
+                        .round(Math.min(heatAvailable / huPerDurability, (double) maxTransferPerTick) * effFactor);
                     int room = maxHeat - curHeat;
                     heatToTake = Math.min(heatToTake, room);
 
                     if (heatToTake > 0) {
                         comp.alterHeat(reactor.getReactorDummy(), stack, 0, 0, heatToTake);
-                        double heatConsumed = heatToTake * 25.0;
+                        double heatConsumed = heatToTake * huPerDurability;
                         bus.mTemperature -= (heatConsumed / NuclearSimulationEngine.HU_PER_DEGREE);
                         bus.mLastHeatOutput = heatConsumed;
                         bus.markTileDirty();

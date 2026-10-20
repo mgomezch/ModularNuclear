@@ -27,6 +27,8 @@ import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ItemNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
@@ -48,6 +50,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNucl
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemCardModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.recipe.ModRecipes;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
+import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
@@ -7745,6 +7748,98 @@ public class NuclearSimulationEngineTest {
             "Power in EU/t should double when ticksPerCycle is halved");
 
         NuclearSimulationEngine.setTicksPerCycle(20);
+    }
+
+    @Test
+    void testConfigFieldsCleanupAndWiring() {
+        // 1. Reflector durability
+        ComponentData.ReflectorData goldRefl = ReactorDataRegistry.getComponentData().reflectors.stream()
+            .filter(r -> "reflector_gold".equals(r.id))
+            .findFirst()
+            .orElse(null);
+        assertNotNull(goldRefl);
+        assertEquals(0, goldRefl.durability, "Pure reflector durability must default to 0 (infinite)");
+
+        net.minecraft.item.ItemStack dummyGold = org.mockito.Mockito.mock(net.minecraft.item.ItemStack.class);
+        net.minecraft.item.Item dummyItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(dummyGold.getItem())
+            .thenReturn(dummyItem);
+        assertFalse(NuclearFuelClassification.isReflectorAtMaxDamage(dummyGold));
+
+        // 2. Radiovoltaic defaults and fields
+        ComponentData.RadiovoltaicData rvHv = ReactorDataRegistry.getComponentData().radiovoltaics.get(0);
+        assertEquals(1.0, rvHv.euConversionEfficiency, 1e-4, "Radiovoltaic efficiency must default to 1.0 (100%)");
+        assertEquals(1024L, rvHv.maxEU, "HV radiovoltaic maxEU must default to 1024 EU/t");
+
+        ComponentData.RadiovoltaicData rvEv = ReactorDataRegistry.getComponentData().radiovoltaics.get(1);
+        assertEquals(1.0, rvEv.euConversionEfficiency, 1e-4, "Radiovoltaic efficiency must default to 1.0 (100%)");
+        assertEquals(4096L, rvEv.maxEU, "EV radiovoltaic maxEU must default to 4096 EU/t");
+
+        // 3. Platings rejection
+        assertFalse(NuclearFuelClassification.isItemReactorPlating(dummyGold), "Platings must not be admitted");
+        assertEquals(0, ReactorDataRegistry.getComponentData().platings.size(), "Platings list must be empty");
+
+        // 4. Heat vent and heat exchanger maxTemperature default = 0.0 and over-temperature voiding
+        for (ComponentData.HeatVentData vent : ReactorDataRegistry.getComponentData().heatVents) {
+            assertEquals(0.0, vent.maxTemperature, 1e-4, "Vent " + vent.id + " max temperature must default to 0.0");
+            assertEquals(0.25, vent.euPerHu, 1e-4, "Vent " + vent.id + " euPerHu must default to 0.25");
+        }
+        for (ComponentData.HeatExchangerData hex : ReactorDataRegistry.getComponentData().heatExchangers) {
+            assertEquals(0.0, hex.maxTemperature, 1e-4, "Exchanger " + hex.id + " max temperature must default to 0.0");
+            assertEquals(0.25, hex.euPerHu, 1e-4, "Exchanger " + hex.id + " euPerHu must default to 0.25");
+        }
+
+        // Test overtemp voiding for heat vent
+        SimTile overtempVent = new SimTile(SimTile.TileType.VENT_STANDARD) {
+
+            @Override
+            public ComponentData.HeatVentData getHeatVentData() {
+                ComponentData.HeatVentData data = super.getHeatVentData();
+                data.maxTemperature = 100.0;
+                return data;
+            }
+        };
+        overtempVent.setTemperature(150.0);
+        NuclearSimulationEngine.processHeatVent(overtempVent, 20.0);
+        assertEquals(SimTile.TileType.EMPTY, overtempVent.getType(), "Over-temperature vent must be voided");
+
+        // Test overtemp voiding for heat exchanger
+        SimTile[][] hexGrid = new SimTile[3][3];
+        for (int x = 0; x < 3; x++) {
+            for (int y = 0; y < 3; y++) {
+                hexGrid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+            }
+        }
+        SimTile overtempHex = new SimTile(SimTile.TileType.EXCHANGER_STANDARD) {
+
+            @Override
+            public ComponentData.HeatExchangerData getHeatExchangerData() {
+                ComponentData.HeatExchangerData data = super.getHeatExchangerData();
+                data.maxTemperature = 100.0;
+                return data;
+            }
+        };
+        overtempHex.setTemperature(150.0);
+        hexGrid[1][1] = overtempHex;
+        NuclearSimulationEngine.processHeatExchanger(hexGrid, 1, 1, 3, 3);
+        assertEquals(SimTile.TileType.EMPTY, overtempHex.getType(), "Over-temperature exchanger must be voided");
+
+        // 5. CoolantItemData heat capacity scaling
+        ComponentData.CoolantItemData ic2Cell = ReactorDataRegistry.getComponentData().coolantItems.stream()
+            .filter(c -> "coolant_cell_ic2".equals(c.id))
+            .findFirst()
+            .orElse(null);
+        assertNotNull(ic2Cell);
+        assertEquals(250000.0, ic2Cell.heatCapacity, 1e-4);
+        assertEquals(25.0, ic2Cell.getHuPerDurability(), 1e-4, "Default huPerDurability must be 25.0");
+
+        // 6. TierData allowsCoolantLoops
+        assertFalse(ReactorDataRegistry.getTier(0).allowsCoolantLoops, "Tier 0 must not allow coolant loops");
+        assertFalse(ReactorDataRegistry.getTier(1).allowsCoolantLoops, "Tier 1 must not allow coolant loops");
+        assertTrue(ReactorDataRegistry.getTier(2).allowsCoolantLoops, "Tier 2 must allow coolant loops");
+        assertTrue(ReactorDataRegistry.getTier(3).allowsCoolantLoops, "Tier 3 must allow coolant loops");
+        assertTrue(NuclearSimulationEngine.allowsCoolantLoops(2));
+        assertFalse(NuclearSimulationEngine.allowsCoolantLoops(1));
     }
 
     private static void deleteRecursively(File file) {

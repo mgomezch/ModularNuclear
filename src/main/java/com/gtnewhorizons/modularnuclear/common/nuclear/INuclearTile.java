@@ -182,6 +182,11 @@ public interface INuclearTile {
     }
 
     /**
+     * Instantly voids / destroys the component inside this tile (e.g. on over-temperature).
+     */
+    default void voidComponent() {}
+
+    /**
      * Checks if this tile has an active control rod hatch beneath it.
      */
     default boolean hasControlRod() {

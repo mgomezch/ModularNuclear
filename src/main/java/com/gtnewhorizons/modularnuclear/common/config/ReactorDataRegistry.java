@@ -281,7 +281,7 @@ public final class ReactorDataRegistry {
         TierData td = tierDataMap.get(tier);
         if (td != null) return td;
         return tierDataMap
-            .getOrDefault(0, new TierData(tier, "Tier " + tier, "Casing", 2048L, 1200.0, 120.0, 100.0, 1.0));
+            .getOrDefault(0, new TierData(tier, "Tier " + tier, "Casing", 2048L, 1200.0, 120.0, tier >= 2));
     }
 
     public static List<TierData> getAllTiers() {
@@ -731,16 +731,7 @@ public final class ReactorDataRegistry {
     public static List<TierData> buildDefaultTiers() {
         List<TierData> list = new ArrayList<>();
         list.add(
-            new TierData(
-                0,
-                "Tier 0 (EV - Electrum)",
-                "Electrum Casing",
-                2048L,
-                1200.0,
-                120.0,
-                100.0,
-                1.0,
-                "ic2coolant"));
+            new TierData(0, "Tier 0 (EV - Electrum)", "Electrum Casing", 2048L, 1200.0, 120.0, false, "ic2coolant"));
         list.add(
             new TierData(
                 1,
@@ -749,8 +740,7 @@ public final class ReactorDataRegistry {
                 8192L,
                 1400.0,
                 140.0,
-                150.0,
-                1.1,
+                false,
                 "ic2coolant",
                 "distilledwater"));
         list.add(
@@ -761,8 +751,7 @@ public final class ReactorDataRegistry {
                 32768L,
                 1800.0,
                 180.0,
-                250.0,
-                1.2,
+                true,
                 "ic2coolant",
                 "distilledwater",
                 "sodium",
@@ -775,8 +764,7 @@ public final class ReactorDataRegistry {
                 131072L,
                 2200.0,
                 220.0,
-                400.0,
-                1.35,
+                true,
                 "ic2coolant",
                 "distilledwater",
                 "heavywater",
@@ -784,8 +772,7 @@ public final class ReactorDataRegistry {
                 "molten.sodium",
                 "lead",
                 "molten.lead"));
-        list.add(
-            new TierData(4, "Tier 4 (UV - Fluxed)", "Fluxed Electrum Casing", 524288L, 2600.0, 260.0, 600.0, 1.5, "*"));
+        list.add(new TierData(4, "Tier 4 (UV - Fluxed)", "Fluxed Electrum Casing", 524288L, 2600.0, 260.0, true, "*"));
         list.add(
             new TierData(
                 5,
@@ -794,8 +781,7 @@ public final class ReactorDataRegistry {
                 2097152L,
                 3200.0,
                 320.0,
-                1000.0,
-                1.75,
+                true,
                 "*"));
         return list;
     }
@@ -1824,14 +1810,14 @@ public final class ReactorDataRegistry {
                 "rodHafnium",
                 "ore:rodHafnium"));
 
-        // Heat Vents - explicitly configured, moderation = 0.05
+        // Heat Vents - explicitly configured, moderation = 0.05, default max_temperature = 0.0 (no limit)
         cd.heatVents.add(
             new HeatVentData(
                 "vent_standard",
                 "Reactor Heat Vent",
                 0.40,
                 6.0,
-                1500.0,
+                0.0,
                 0.05,
                 128,
                 512.0,
@@ -1842,7 +1828,7 @@ public final class ReactorDataRegistry {
                 "Advanced Heat Vent",
                 0.45,
                 12.0,
-                1600.0,
+                0.0,
                 0.05,
                 512,
                 2048.0,
@@ -1853,7 +1839,7 @@ public final class ReactorDataRegistry {
                 "Overclocked Heat Vent",
                 0.40,
                 8.0,
-                1500.0,
+                0.0,
                 0.05,
                 1024,
                 4096.0,
@@ -1864,20 +1850,20 @@ public final class ReactorDataRegistry {
                 "Component Heat Vent",
                 0.50,
                 20.0,
-                2000.0,
+                0.0,
                 0.05,
                 2048,
                 8192.0,
                 "IC2:reactorVentDiamond"));
 
-        // Heat Exchangers - explicitly configured, moderation = 0.05
+        // Heat Exchangers - explicitly configured, moderation = 0.05, default max_temperature = 0.0 (no limit)
         cd.heatExchangers.add(
             new HeatExchangerData(
                 "exchanger_standard",
                 "Heat Exchanger",
                 0.40,
                 12.0,
-                1500.0,
+                0.0,
                 0.05,
                 256,
                 1024.0,
@@ -1888,7 +1874,7 @@ public final class ReactorDataRegistry {
                 "Advanced Heat Exchanger",
                 0.45,
                 24.0,
-                1600.0,
+                0.0,
                 0.05,
                 512,
                 2048.0,
@@ -1899,31 +1885,11 @@ public final class ReactorDataRegistry {
                 "Component Heat Exchanger",
                 0.50,
                 36.0,
-                2000.0,
+                0.0,
                 0.05,
                 1024,
                 4096.0,
                 "IC2:reactorHeatSwitchDiamond"));
-
-        // Platings
-        cd.platings
-            .add(new PlatingData("plating_standard", "Reactor Plating", 1000.0, 0.05, 0.05, "IC2:reactorPlating"));
-        cd.platings.add(
-            new PlatingData(
-                "plating_heat",
-                "Heat-Capacity Reactor Plating",
-                2000.0,
-                0.02,
-                0.08,
-                "IC2:reactorPlatingHeat"));
-        cd.platings.add(
-            new PlatingData(
-                "plating_explosive",
-                "Containment Reactor Plating",
-                500.0,
-                0.15,
-                0.05,
-                "IC2:reactorPlatingExplosive"));
 
         // Insulators - explicitly configured, no wildcards
         cd.insulators.add(
@@ -1980,13 +1946,14 @@ public final class ReactorDataRegistry {
                 "item.ThermalCloth",
                 "itemThermalCloth"));
 
-        // Radiovoltaics
+        // Radiovoltaics - default efficiency = 1.0 (100%), explicit maxEU
         cd.radiovoltaics.add(
             new RadiovoltaicData(
                 "radiovoltaic_hv",
                 "HV Radiovoltaic Plate",
                 1,
-                0.25,
+                1.0,
+                1024L,
                 0.10,
                 1.0,
                 1.0,
@@ -1996,7 +1963,8 @@ public final class ReactorDataRegistry {
                 "radiovoltaic_ev",
                 "EV Radiovoltaic Plate",
                 2,
-                0.50,
+                1.0,
+                4096L,
                 0.10,
                 1.0,
                 1.0,
@@ -2017,7 +1985,6 @@ public final class ReactorDataRegistry {
                 0.70,
                 0.25,
                 "ic2superheatedsteam",
-                1.2,
                 160,
                 160.0,
                 0.0,
@@ -2042,7 +2009,6 @@ public final class ReactorDataRegistry {
                 0.85,
                 0.90,
                 "heavywatersteam",
-                1.5,
                 160,
                 160.0,
                 3.8,
@@ -2065,7 +2031,6 @@ public final class ReactorDataRegistry {
                 0.45,
                 0.05,
                 "ic2hotcoolant",
-                2.0,
                 1,
                 320.0,
                 -273.15,
@@ -2090,7 +2055,6 @@ public final class ReactorDataRegistry {
                 0.20,
                 0.05,
                 "molten.sodium",
-                3.0,
                 1,
                 480.0,
                 97.8,
@@ -2115,7 +2079,6 @@ public final class ReactorDataRegistry {
                 0.15,
                 0.02,
                 "molten.lead",
-                3.5,
                 1,
                 560.0,
                 327.5,
@@ -2127,12 +2090,12 @@ public final class ReactorDataRegistry {
                 "molten.lead",
                 "fluid.molten.lead"));
 
-        // Coolant Items - all moderation set to 0.05, explicitly configured items
+        // Coolant Items - all moderation set to 0.05, configurable heatCapacity in HU
         cd.coolantItems.add(
             new CoolantItemData(
                 "coolant_cell_ic2",
                 "IC2 Coolant Cell",
-                10000.0,
+                250000.0,
                 0.40,
                 0.02,
                 0.05,
@@ -2149,7 +2112,7 @@ public final class ReactorDataRegistry {
             new CoolantItemData(
                 "coolant_cell_he",
                 "Helium Coolant Cell",
-                60000.0,
+                1500000.0,
                 0.40,
                 0.02,
                 0.05,
@@ -2166,7 +2129,7 @@ public final class ReactorDataRegistry {
             new CoolantItemData(
                 "coolant_cell_nak",
                 "NaK Coolant Cell",
-                180000.0,
+                4500000.0,
                 0.50,
                 0.02,
                 0.05,
@@ -2183,7 +2146,7 @@ public final class ReactorDataRegistry {
             new CoolantItemData(
                 "coolant_cell_sp",
                 "Sp Coolant Cell",
-                360000.0,
+                9000000.0,
                 0.60,
                 0.01,
                 0.03,
@@ -2202,7 +2165,7 @@ public final class ReactorDataRegistry {
             new CoolantItemData(
                 "condensator",
                 "Condensator",
-                100000.0,
+                2500000.0,
                 0.45,
                 0.03,
                 0.08,

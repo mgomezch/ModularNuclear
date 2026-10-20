@@ -9,11 +9,11 @@ import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantItemData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.InsulatorData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData;
-import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.PlatingData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
@@ -85,10 +85,10 @@ public class NuclearFuelTooltipHandler {
             appendRadiovoltaicTooltips(event, rv);
         }
 
-        // 9. Reactor plating tooltips
-        PlatingData pl = ReactorDataRegistry.findPlating(stack);
-        if (pl != null) {
-            appendPlatingTooltips(event, pl);
+        // 9. Coolant item tooltips
+        CoolantItemData cl = ReactorDataRegistry.findCoolantItem(stack);
+        if (cl != null) {
+            appendCoolantItemTooltips(event, stack, cl);
         }
     }
 
@@ -240,7 +240,9 @@ public class NuclearFuelTooltipHandler {
 
         if (ref.durability > 0) {
             int curDmg = 0;
-            if (stack.stackTagCompound != null && stack.stackTagCompound.hasKey("advDmg")) {
+            if (stack.isItemStackDamageable()) {
+                curDmg = stack.getItemDamage();
+            } else if (stack.stackTagCompound != null && stack.stackTagCompound.hasKey("advDmg")) {
                 curDmg = stack.stackTagCompound.getInteger("advDmg");
             }
             int remaining = Math.max(0, ref.durability - curDmg);
@@ -275,46 +277,63 @@ public class NuclearFuelTooltipHandler {
 
     private void appendHeatVentTooltips(ItemTooltipEvent event, HeatVentData vent) {
         event.toolTip.add(EnumChatFormatting.AQUA + "MPTR heat vent: " + EnumChatFormatting.WHITE + vent.name);
+        String maxTempStr = (vent.maxTemperature > 0.0)
+            ? (EnumChatFormatting.DARK_GRAY + " | "
+                + EnumChatFormatting.RED
+                + String.format(Locale.US, "Max temp: %,.0f °C", vent.maxTemperature))
+            : "";
         event.toolTip.add(
             EnumChatFormatting.GRAY + "Self-cooling rate: "
                 + EnumChatFormatting.AQUA
                 + String.format(Locale.US, "%.1f HU/t", vent.selfCoolingRate)
-                + EnumChatFormatting.DARK_GRAY
-                + " | "
-                + EnumChatFormatting.RED
-                + String.format(Locale.US, "Max temp: %,.0f °C", vent.maxTemperature));
+                + maxTempStr);
     }
 
     private void appendHeatExchangerTooltips(ItemTooltipEvent event, HeatExchangerData hex) {
         event.toolTip.add(EnumChatFormatting.AQUA + "MPTR heat exchanger: " + EnumChatFormatting.WHITE + hex.name);
+        String maxTempStr = (hex.maxTemperature > 0.0)
+            ? (EnumChatFormatting.DARK_GRAY + " | "
+                + EnumChatFormatting.RED
+                + String.format(Locale.US, "Max temp: %,.0f °C", hex.maxTemperature))
+            : "";
         event.toolTip.add(
             EnumChatFormatting.GRAY + "Transfer rate: "
                 + EnumChatFormatting.AQUA
                 + String.format(Locale.US, "%.1f HU/t", hex.switchTransferRate)
-                + EnumChatFormatting.DARK_GRAY
-                + " | "
-                + EnumChatFormatting.RED
-                + String.format(Locale.US, "Max temp: %,.0f °C", hex.maxTemperature));
+                + maxTempStr);
     }
 
     private void appendRadiovoltaicTooltips(ItemTooltipEvent event, RadiovoltaicData rv) {
-        long maxEU = (rv.tier >= 2) ? 4096 : 1024;
+        long maxEU = (rv.maxEU > 0) ? rv.maxEU : ((rv.tier >= 2) ? 4096 : 1024);
         event.toolTip.add(EnumChatFormatting.AQUA + "MPTR radiovoltaic cell: " + EnumChatFormatting.WHITE + rv.name);
+        String effStr = (rv.euConversionEfficiency < 0.999 || rv.euConversionEfficiency > 1.001)
+            ? String.format(Locale.US, " (%.0f%% eff)", rv.euConversionEfficiency * 100.0)
+            : "";
         event.toolTip.add(
             EnumChatFormatting.GRAY + "Direct generation: "
                 + EnumChatFormatting.GREEN
-                + String.format(Locale.US, "Tier %d (up to %d EU/t)", rv.tier, maxEU));
+                + String.format(Locale.US, "Tier %d (up to %,d EU/t%s)", rv.tier, maxEU, effStr));
     }
 
-    private void appendPlatingTooltips(ItemTooltipEvent event, PlatingData pl) {
-        event.toolTip.add(EnumChatFormatting.AQUA + "MPTR reactor plating: " + EnumChatFormatting.WHITE + pl.name);
-        event.toolTip.add(
-            EnumChatFormatting.GRAY + "Heat capacity bonus: "
-                + EnumChatFormatting.GOLD
-                + String.format(Locale.US, "+%,.0f HU", pl.heatCapacityBonus)
-                + EnumChatFormatting.DARK_GRAY
-                + " | "
-                + EnumChatFormatting.GREEN
-                + String.format(Locale.US, "Containment: +%.0f%%", pl.explosionContainmentBonus * 100));
+    private void appendCoolantItemTooltips(ItemTooltipEvent event, ItemStack stack, CoolantItemData cl) {
+        event.toolTip.add(EnumChatFormatting.AQUA + "MPTR coolant item: " + EnumChatFormatting.WHITE + cl.name);
+        double huPerPt = cl.getHuPerDurability();
+        if (stack.getItem() instanceof ic2.api.reactor.IReactorComponent comp) {
+            int maxHeat = comp.getMaxHeat(null, stack, 0, 0);
+            double totalHu = maxHeat * huPerPt;
+            event.toolTip.add(
+                EnumChatFormatting.GRAY + "Heat capacity: "
+                    + EnumChatFormatting.GOLD
+                    + String.format(Locale.US, "%,.0f HU", totalHu)
+                    + EnumChatFormatting.DARK_GRAY
+                    + String.format(Locale.US, " (%.1f HU/pt)", huPerPt));
+        } else {
+            event.toolTip.add(
+                EnumChatFormatting.GRAY + "Heat capacity: "
+                    + EnumChatFormatting.GOLD
+                    + String.format(Locale.US, "%,.0f HU", cl.heatCapacity)
+                    + EnumChatFormatting.DARK_GRAY
+                    + String.format(Locale.US, " (%.1f HU/pt)", huPerPt));
+        }
     }
 }

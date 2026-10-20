@@ -348,4 +348,15 @@ public class NuclearGridTile implements INuclearTile {
     public boolean drainEnergy(long eu) {
         return reactor != null && reactor.drainEnergyUnits(eu);
     }
+
+    @Override
+    public void voidComponent() {
+        if (isBus() && getBus() != null) {
+            getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+            if (reactor != null) {
+                reactor.mCycleZeroedCoolantItems++;
+            }
+            getBus().markTileDirty();
+        }
+    }
 }

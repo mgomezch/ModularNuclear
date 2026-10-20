@@ -340,7 +340,19 @@ public class MTEHatchNuclearBus extends MTEHatch {
                     mReactor.addOutputPartial(byproduct);
                 }
                 markTileDirty();
-            }
+            } else if (com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
+                .isReflectorAtMaxDamage(stack)) {
+                    mReactor.mCycleZeroedFuelItems++;
+                    if (stack.stackSize > 1) {
+                        stack.stackSize--;
+                        if (stack.stackTagCompound != null) {
+                            stack.stackTagCompound.removeTag("advDmg");
+                        }
+                    } else {
+                        mInventory[SLOT_INPUT] = null;
+                    }
+                    markTileDirty();
+                }
     }
 
     @Override

@@ -502,7 +502,8 @@ public class ComponentData {
         public List<String> matching = new ArrayList<>();
         public double heatTransferCoeff = 0.40;
         public double selfCoolingRate = 6.0;
-        public double maxTemperature = 1500.0;
+        public double maxTemperature = 0.0;
+        public double euPerHu = 0.25;
         public double moderation = 0.05;
         public long maxEUt = 128;
         public double maxHUt = 512.0;
@@ -541,6 +542,7 @@ public class ComponentData {
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
             d.selfCoolingRate = PhysicsData.getDouble(map, "self_cooling_rate", d.selfCoolingRate);
             d.maxTemperature = PhysicsData.getDouble(map, "max_temperature", d.maxTemperature);
+            d.euPerHu = PhysicsData.getDouble(map, "eu_per_hu", d.euPerHu);
             d.moderation = PhysicsData.getDouble(map, "moderation", d.moderation);
             d.maxEUt = (long) PhysicsData.getDouble(map, "max_eu_t", d.maxEUt);
             d.maxHUt = PhysicsData.getDouble(map, "max_hu_t", d.maxHUt);
@@ -555,6 +557,7 @@ public class ComponentData {
             m.put("heat_transfer_coeff", heatTransferCoeff);
             m.put("self_cooling_rate", selfCoolingRate);
             m.put("max_temperature", maxTemperature);
+            m.put("eu_per_hu", euPerHu);
             m.put("moderation", moderation);
             m.put("max_eu_t", maxEUt);
             m.put("max_hu_t", maxHUt);
@@ -572,7 +575,8 @@ public class ComponentData {
         public List<String> matching = new ArrayList<>();
         public double heatTransferCoeff = 0.40;
         public double switchTransferRate = 12.0;
-        public double maxTemperature = 1500.0;
+        public double maxTemperature = 0.0;
+        public double euPerHu = 0.25;
         public double moderation = 0.05;
         public long maxEUt = 256;
         public double maxHUt = 1024.0;
@@ -611,6 +615,7 @@ public class ComponentData {
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
             d.switchTransferRate = PhysicsData.getDouble(map, "switch_transfer_rate", d.switchTransferRate);
             d.maxTemperature = PhysicsData.getDouble(map, "max_temperature", d.maxTemperature);
+            d.euPerHu = PhysicsData.getDouble(map, "eu_per_hu", d.euPerHu);
             d.moderation = PhysicsData.getDouble(map, "moderation", d.moderation);
             d.maxEUt = (long) PhysicsData.getDouble(map, "max_eu_t", d.maxEUt);
             d.maxHUt = PhysicsData.getDouble(map, "max_hu_t", d.maxHUt);
@@ -625,6 +630,7 @@ public class ComponentData {
             m.put("heat_transfer_coeff", heatTransferCoeff);
             m.put("switch_transfer_rate", switchTransferRate);
             m.put("max_temperature", maxTemperature);
+            m.put("eu_per_hu", euPerHu);
             m.put("moderation", moderation);
             m.put("max_eu_t", maxEUt);
             m.put("max_hu_t", maxHUt);
@@ -750,7 +756,8 @@ public class ComponentData {
         public String name;
         public List<String> matching = new ArrayList<>();
         public int tier = 1;
-        public double euConversionEfficiency = 0.25;
+        public double euConversionEfficiency = 1.0;
+        public long maxEU = 0;
         public double heatTransferCoeff = 0.10;
         public double absorptionFast = 1.0;
         public double absorptionThermal = 1.0;
@@ -759,10 +766,16 @@ public class ComponentData {
 
         public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency,
             double heatTransferCoeff, double absFast, double absThermal, String... matching) {
+            this(id, name, tier, euConversionEfficiency, 0, heatTransferCoeff, absFast, absThermal, matching);
+        }
+
+        public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency, long maxEU,
+            double heatTransferCoeff, double absFast, double absThermal, String... matching) {
             this.id = id;
             this.name = name;
             this.tier = tier;
             this.euConversionEfficiency = euConversionEfficiency;
+            this.maxEU = maxEU;
             this.heatTransferCoeff = heatTransferCoeff;
             this.absorptionFast = absFast;
             this.absorptionThermal = absThermal;
@@ -782,6 +795,11 @@ public class ComponentData {
             readMatching(map, d.matching);
             d.tier = PhysicsData.getInt(map, "tier", d.tier);
             d.euConversionEfficiency = PhysicsData.getDouble(map, "eu_conversion_efficiency", d.euConversionEfficiency);
+            if (map.containsKey("max_eu")) {
+                d.maxEU = ((Number) map.get("max_eu")).longValue();
+            } else if (map.containsKey("max_eu_t")) {
+                d.maxEU = ((Number) map.get("max_eu_t")).longValue();
+            }
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
             d.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", d.absorptionFast);
             d.absorptionThermal = PhysicsData.getDouble(map, "absorption_thermal", d.absorptionThermal);
@@ -795,6 +813,7 @@ public class ComponentData {
             m.put("matching", new ArrayList<>(matching));
             m.put("tier", tier);
             m.put("eu_conversion_efficiency", euConversionEfficiency);
+            if (maxEU > 0) m.put("max_eu_t", maxEU);
             m.put("heat_transfer_coeff", heatTransferCoeff);
             m.put("absorption_fast", absorptionFast);
             m.put("absorption_thermal", absorptionThermal);
@@ -819,7 +838,6 @@ public class ComponentData {
         public double scatteringThermal = 0.70;
         public double moderation = 0.25;
         public String hotFluidName;
-        public double coolingMultiplier = 1.0;
         public int requiredTier = 0;
         public int expansionRatio = 160;
         public double heatPerLiter = 160.0;
@@ -832,9 +850,9 @@ public class ComponentData {
 
         public CoolantFluidData(String id, String name, int requiredTier, double boilingTemp, double heatTransferCoeff,
             double heatCapacity, double absFast, double absThermal, double scattFast, double scattThermal,
-            double moderation, String hotFluidName, double coolingMult, int expansionRatio, double heatPerLiter,
-            double freezingTemperature, double explosionTemperature, String transmutationProduct,
-            double transmutationChancePerNeutron, String... matching) {
+            double moderation, String hotFluidName, int expansionRatio, double heatPerLiter, double freezingTemperature,
+            double explosionTemperature, String transmutationProduct, double transmutationChancePerNeutron,
+            String... matching) {
             this.id = id;
             this.name = name;
             this.requiredTier = requiredTier;
@@ -847,7 +865,6 @@ public class ComponentData {
             this.scatteringThermal = scattThermal;
             this.moderation = moderation;
             this.hotFluidName = hotFluidName;
-            this.coolingMultiplier = coolingMult;
             this.expansionRatio = expansionRatio;
             this.heatPerLiter = heatPerLiter;
             this.freezingTemperature = freezingTemperature;
@@ -859,7 +876,7 @@ public class ComponentData {
 
         public CoolantFluidData(String id, String name, double boilingTemp, double heatTransferCoeff,
             double heatCapacity, double absFast, double absThermal, double scattFast, double scattThermal,
-            double moderation, String hotFluidName, double coolingMult, String... matching) {
+            double moderation, String hotFluidName, String... matching) {
             this(
                 id,
                 name,
@@ -873,7 +890,6 @@ public class ComponentData {
                 scattThermal,
                 moderation,
                 hotFluidName,
-                coolingMult,
                 160,
                 160.0,
                 -273.15,
@@ -898,7 +914,6 @@ public class ComponentData {
             d.scatteringThermal = PhysicsData.getDouble(map, "scattering_thermal", d.scatteringThermal);
             d.moderation = PhysicsData.getDouble(map, "moderation", d.moderation);
             d.hotFluidName = (String) map.get("hot_fluid_name");
-            d.coolingMultiplier = PhysicsData.getDouble(map, "cooling_multiplier", d.coolingMultiplier);
             d.requiredTier = PhysicsData.getInt(map, "required_tier", d.requiredTier);
             d.expansionRatio = PhysicsData.getInt(map, "expansion_ratio", d.expansionRatio);
             d.heatPerLiter = PhysicsData.getDouble(map, "heat_per_liter", d.heatPerLiter);
@@ -924,7 +939,6 @@ public class ComponentData {
             m.put("scattering_thermal", scatteringThermal);
             m.put("moderation", moderation);
             if (hotFluidName != null) m.put("hot_fluid_name", hotFluidName);
-            m.put("cooling_multiplier", coolingMultiplier);
             m.put("required_tier", requiredTier);
             m.put("expansion_ratio", expansionRatio);
             m.put("heat_per_liter", heatPerLiter);
@@ -952,6 +966,20 @@ public class ComponentData {
         public double scatteringFast = 0.45;
         public double scatteringThermal = 0.45;
         public double moderation = 0.05;
+
+        public double getBaseHeatCapacity() {
+            if ("coolant_cell_ic2".equals(id)) return 10000.0;
+            if ("coolant_cell_he".equals(id)) return 60000.0;
+            if ("coolant_cell_nak".equals(id)) return 180000.0;
+            if ("coolant_cell_sp".equals(id)) return 360000.0;
+            if ("condensator".equals(id)) return 100000.0;
+            return 10000.0;
+        }
+
+        public double getHuPerDurability() {
+            double base = getBaseHeatCapacity();
+            return (heatCapacity > 0.0 && base > 0.0) ? (heatCapacity / base) : 25.0;
+        }
 
         public CoolantItemData() {}
 

@@ -170,4 +170,13 @@ public class PhysicsData {
         if (val != null) return String.valueOf(val);
         return def;
     }
+
+    public static boolean getBoolean(Map<String, Object> map, String key, boolean def) {
+        Object val = map.get(key);
+        if (val instanceof Boolean b) return b;
+        if (val instanceof String s) {
+            return Boolean.parseBoolean(s);
+        }
+        return def;
+    }
 }
