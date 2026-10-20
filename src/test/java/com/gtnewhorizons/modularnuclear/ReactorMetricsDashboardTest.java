@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.gui.metrics.ReactorCycleSnapshot;
 import com.gtnewhorizons.modularnuclear.common.gui.metrics.ReactorMetricsHistory;
+import com.gtnewhorizons.modularnuclear.common.gui.metrics.ReactorPlotWidget;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
@@ -232,5 +233,47 @@ public class ReactorMetricsDashboardTest {
         assertFalse(tag.hasKey("mMetricsHistory"));
         assertFalse(tag.hasKey("metricsHistory"));
         assertFalse(tag.hasKey("mCumulativeNeutrons"));
+    }
+
+    @Test
+    void testMetricUnitsAndScaling() {
+        assertEquals("°C", ReactorPlotWidget.Metric.CORE_TEMP.getUnit());
+        assertEquals("%", ReactorPlotWidget.Metric.REACTIVITY.getUnit());
+        assertEquals("n/s", ReactorPlotWidget.Metric.FAST_NEUTRONS.getUnit());
+        assertEquals("n/s", ReactorPlotWidget.Metric.THERMAL_NEUTRONS.getUnit());
+        assertEquals("n/s", ReactorPlotWidget.Metric.ESCAPED_NEUTRONS.getUnit());
+        assertEquals("EU/s", ReactorPlotWidget.Metric.DIRECT_EU.getUnit());
+        assertEquals("L/s", ReactorPlotWidget.Metric.COOLANT_OUTPUT.getUnit());
+
+        ReactorCycleSnapshot s = new ReactorCycleSnapshot();
+        s.directEU = 125L;
+        s.fastNeutronsProduced = 5000;
+        s.coolantOutput = 32000;
+
+        // Direct EU per tick (125 EU/t) scales to 20x for per-second output (2500 EU/s)
+        float directEUSec = ReactorPlotWidget.Metric.DIRECT_EU.getScalarVal()
+            .apply(s);
+        assertEquals(2500f, directEUSec, 0.001f);
+    }
+
+    @Test
+    void testPercentageMetricRange() {
+        // Test with varying reactivity snapshots
+        ReactorCycleSnapshot s1 = new ReactorCycleSnapshot();
+        s1.reactivityMin = 10f;
+        s1.reactivityMedian = 50f;
+        s1.reactivityMax = 95f;
+
+        float[] bounds = ReactorPlotWidget.calculateBounds(ReactorPlotWidget.Metric.REACTIVITY, List.of(s1));
+        // Vertical axis must strictly be exactly 0 to 100% (range = 100.0f, not 110.0f)
+        assertEquals(0.0f, bounds[0], 0.001f, "minVal must be 0");
+        assertEquals(100.0f, bounds[1], 0.001f, "maxVal must be 100");
+        assertEquals(100.0f, bounds[2], 0.001f, "range must be exactly 100 (never 110%)");
+
+        // Even with an empty list or 0 reactivity
+        float[] emptyBounds = ReactorPlotWidget.calculateBounds(ReactorPlotWidget.Metric.REACTIVITY, List.of());
+        assertEquals(0.0f, emptyBounds[0], 0.001f);
+        assertEquals(100.0f, emptyBounds[1], 0.001f);
+        assertEquals(100.0f, emptyBounds[2], 0.001f);
     }
 }

@@ -12,6 +12,7 @@ import net.minecraft.util.EnumChatFormatting;
 
 import org.lwjgl.opengl.GL11;
 
+import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.screen.RichTooltip;
@@ -38,19 +39,19 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
             0x996366F1, // Subtle indigo for min
             0xCC38BDF8 // Subtle sky blue for max
         ),
-        FAST_NEUTRONS("Fast neutrons produced", "n/c", false, s -> (float) s.fastNeutronsProduced, null, null, null,
+        FAST_NEUTRONS("Fast neutrons produced", "n/s", false, s -> (float) s.fastNeutronsProduced, null, null, null,
             null, null, null, 0xFFA855F7, // Purple
             0, 0),
-        THERMAL_NEUTRONS("Thermal neutrons absorbed", "n/c", false, s -> (float) s.thermalNeutronsAbsorbed, null, null,
+        THERMAL_NEUTRONS("Thermal neutrons absorbed", "n/s", false, s -> (float) s.thermalNeutronsAbsorbed, null, null,
             null, null, null, null, 0xFF06B6D4, // Teal / Cyan
             0, 0),
-        ESCAPED_NEUTRONS("Escaped neutrons", "n/c", false, s -> (float) s.escapedNeutrons, null, null, null, null, null,
+        ESCAPED_NEUTRONS("Escaped neutrons", "n/s", false, s -> (float) s.escapedNeutrons, null, null, null, null, null,
             null, 0xFFF97316, // Orange
             0, 0),
-        DIRECT_EU("Direct EU output", "EU/t", false, s -> (float) s.directEU, null, null, null, null, null, null,
-            0xFFEAB308, // Gold / Yellow
+        DIRECT_EU("Direct EU output", "EU/s", false, s -> (float) (s.directEU * 20L), null, null, null, null, null,
+            null, 0xFFEAB308, // Gold / Yellow
             0, 0),
-        COOLANT_OUTPUT("Coolant output", "L/c", false, s -> (float) s.coolantOutput, null, null, null, null, null, null,
+        COOLANT_OUTPUT("Coolant output", "L/s", false, s -> (float) s.coolantOutput, null, null, null, null, null, null,
             0xFF3B82F6, // Blue
             0, 0);
 
@@ -98,6 +99,22 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
 
         public boolean isQuartile() {
             return quartile;
+        }
+
+        public Function<ReactorCycleSnapshot, Float> getScalarVal() {
+            return scalarVal;
+        }
+
+        public Function<ReactorCycleSnapshot, Float> getMinVal() {
+            return minVal;
+        }
+
+        public Function<ReactorCycleSnapshot, Float> getMaxVal() {
+            return maxVal;
+        }
+
+        public Function<ReactorCycleSnapshot, Float> getMedVal() {
+            return medVal;
         }
     }
 
@@ -182,33 +199,10 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         GuiDraw.drawRect(plotX, plotY, plotW, plotH, 0x44030712);
 
         // Compute min and max value range across all snapshots
-        float minVal = Float.MAX_VALUE;
-        float maxVal = -Float.MAX_VALUE;
-
-        for (ReactorCycleSnapshot s : snapshots) {
-            if (metric.isQuartile()) {
-                minVal = Math.min(minVal, metric.minVal.apply(s));
-                maxVal = Math.max(maxVal, metric.maxVal.apply(s));
-            } else {
-                float v = metric.scalarVal.apply(s);
-                minVal = Math.min(minVal, v);
-                maxVal = Math.max(maxVal, v);
-            }
-        }
-
-        if (metric == Metric.CORE_TEMP) {
-            minVal = Math.min(minVal, 20f);
-            maxVal = Math.max(maxVal, 100f);
-        } else if (metric == Metric.REACTIVITY) {
-            minVal = 0f;
-            maxVal = Math.max(maxVal, 100f);
-        } else {
-            minVal = Math.min(minVal, 0f);
-            maxVal = Math.max(maxVal, 1f);
-        }
-
-        float range = (maxVal - minVal) * 1.1f;
-        if (range < 0.001f) range = 1.0f;
+        float[] bounds = calculateBounds(metric, snapshots);
+        float minVal = bounds[0];
+        float maxVal = bounds[1];
+        float range = bounds[2];
 
         // Draw horizontal grid lines & Y-axis labels
         float[] gridFracs = { 1.0f, 0.5f, 0.0f };
@@ -222,12 +216,12 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
             font.drawString(lbl, plotX - strW - 3, lineY - 4, 0xFF6B7280);
         }
 
-        // Draw X-axis relative cycle labels
+        // Draw X-axis relative time labels
         if (N > 1) {
-            String leftLbl = "-" + (N - 1) + "c";
+            String leftLbl = "-" + (N - 1) + "s";
             font.drawString(leftLbl, plotX, plotY + plotH + 3, 0xFF6B7280);
 
-            String midLbl = "-" + (N / 2) + "c";
+            String midLbl = "-" + (N / 2) + "s";
             font.drawString(midLbl, plotX + (plotW - font.getStringWidth(midLbl)) / 2, plotY + plotH + 3, 0xFF6B7280);
 
             String rightLbl = "now";
@@ -340,6 +334,49 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         GL11.glPopMatrix();
     }
 
+    public static float[] calculateBounds(Metric metric, List<ReactorCycleSnapshot> snapshots) {
+        float minVal = Float.MAX_VALUE;
+        float maxVal = -Float.MAX_VALUE;
+
+        if (snapshots != null) {
+            for (ReactorCycleSnapshot s : snapshots) {
+                if (metric.isQuartile()) {
+                    minVal = Math.min(
+                        minVal,
+                        metric.getMinVal()
+                            .apply(s));
+                    maxVal = Math.max(
+                        maxVal,
+                        metric.getMaxVal()
+                            .apply(s));
+                } else {
+                    float v = metric.getScalarVal()
+                        .apply(s);
+                    minVal = Math.min(minVal, v);
+                    maxVal = Math.max(maxVal, v);
+                }
+            }
+        }
+
+        float range;
+        if ("%".equals(metric.getUnit())) {
+            minVal = 0.0f;
+            maxVal = 100.0f;
+            range = 100.0f;
+        } else if (metric == Metric.CORE_TEMP) {
+            minVal = Math.min(minVal, 20f);
+            maxVal = Math.max(maxVal, 100f);
+            range = (maxVal - minVal) * 1.1f;
+        } else {
+            minVal = Math.min(minVal, 0f);
+            maxVal = Math.max(maxVal, 1f);
+            range = (maxVal - minVal) * 1.1f;
+        }
+
+        if (range < 0.001f) range = 1.0f;
+        return new float[] { minVal, maxVal, range };
+    }
+
     private void drawCurve(List<ReactorCycleSnapshot> snapshots, Function<ReactorCycleSnapshot, Float> valueGetter,
         int plotX, int plotY, int plotW, int plotH, float minVal, float range) {
         int n = snapshots.size();
@@ -402,7 +439,7 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
 
         int cyclesAgo = hoveredTotalCount - 1 - hoveredIndex;
         String cycleTitle = "Cycle #" + hoveredSnapshot.cycleIndex
-            + (cyclesAgo == 0 ? " (current)" : " (" + cyclesAgo + " cycles ago)");
+            + (cyclesAgo == 0 ? " (current)" : " (" + cyclesAgo + "s ago)");
 
         tooltip.addLine(EnumChatFormatting.GOLD + "" + EnumChatFormatting.BOLD + cycleTitle);
 
@@ -439,5 +476,13 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
                     + EnumChatFormatting.WHITE
                     + String.format(Locale.US, "%,d %s", Math.round(val), metric.getUnit()));
         }
+    }
+
+    @Override
+    public boolean onMouseScroll(UpOrDown upOrDown, int delta) {
+        if (getParent() instanceof Interactable) {
+            return ((Interactable) getParent()).onMouseScroll(upOrDown, delta);
+        }
+        return false;
     }
 }

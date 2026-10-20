@@ -2,19 +2,16 @@ package com.gtnewhorizons.modularnuclear.common.gui.metrics;
 
 import java.util.function.Supplier;
 
-import net.minecraft.util.EnumChatFormatting;
-import net.minecraft.util.StatCollector;
-
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
-import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widget.ScrollWidget;
+import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ItemDisplayWidget;
+import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.gui.PanelDragHandle;
 import com.gtnewhorizons.modularnuclear.common.gui.ResizeableFloatingPanel;
@@ -46,7 +43,7 @@ public class ReactorMetricsDashboardPanel {
             ReactorMetricsHistory::writeToBuffer);
         syncManager.syncValue("metricsHistory", metricsSyncer);
 
-        // Header bar with Computer Screen icon, title, drag handle, and close button
+        // Header bar with Computer Screen icon, drag handle (no title), and close button
         Flow headerRow = Flow.row()
             .fullWidth()
             .height(18)
@@ -58,13 +55,7 @@ public class ReactorMetricsDashboardPanel {
                     .displayAmount(false)
                     .marginRight(4))
             .child(
-                new PanelDragHandle(panel)
-                    .title(
-                        IKey.str(
-                            EnumChatFormatting.BOLD
-                                + StatCollector.translateToLocal("modularnuclear.gui.title.metrics_dashboard")))
-                    .color(Color.WHITE.main)
-                    .expanded()
+                new PanelDragHandle(panel).expanded()
                     .height(14))
             .child(
                 new ButtonWidget<>().size(14, 14)
@@ -78,15 +69,12 @@ public class ReactorMetricsDashboardPanel {
                         return true;
                     }));
 
-        // Scrollable content area
-        ScrollWidget<?> scrollWidget = new ScrollWidget<>(new VerticalScrollData());
-        scrollWidget.fullWidth();
-        scrollWidget.expanded();
-
-        Flow chartsColumn = Flow.column()
-            .fullWidth()
-            .coverChildrenHeight()
-            .padding(2);
+        // Scrollable list area with vertical scrollbar
+        ListWidget<Widget<?>, ?> listWidget = new ListWidget<>();
+        listWidget.fullWidth();
+        listWidget.expanded();
+        listWidget.scrollDirection(new VerticalScrollData(false, 8));
+        listWidget.showScrollShadows(true);
 
         Supplier<ReactorMetricsHistory> historySupplier = () -> {
             ReactorMetricsHistory client = reactor.getClientMetricsHistory();
@@ -95,22 +83,20 @@ public class ReactorMetricsDashboardPanel {
         };
 
         // Add 7 telemetry plots
-        chartsColumn.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.CORE_TEMP, historySupplier));
-        chartsColumn.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.REACTIVITY, historySupplier));
-        chartsColumn.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.FAST_NEUTRONS, historySupplier));
-        chartsColumn.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.THERMAL_NEUTRONS, historySupplier));
-        chartsColumn.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.ESCAPED_NEUTRONS, historySupplier));
-        chartsColumn.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.DIRECT_EU, historySupplier));
-        chartsColumn.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.COOLANT_OUTPUT, historySupplier));
-
-        scrollWidget.child(chartsColumn);
+        listWidget.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.CORE_TEMP, historySupplier));
+        listWidget.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.REACTIVITY, historySupplier));
+        listWidget.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.FAST_NEUTRONS, historySupplier));
+        listWidget.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.THERMAL_NEUTRONS, historySupplier));
+        listWidget.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.ESCAPED_NEUTRONS, historySupplier));
+        listWidget.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.DIRECT_EU, historySupplier));
+        listWidget.child(new ReactorPlotWidget(ReactorPlotWidget.Metric.COOLANT_OUTPUT, historySupplier));
 
         panel.child(
             Flow.column()
                 .full()
                 .padding(4)
                 .child(headerRow)
-                .child(scrollWidget));
+                .child(listWidget));
 
         return panel;
     }
