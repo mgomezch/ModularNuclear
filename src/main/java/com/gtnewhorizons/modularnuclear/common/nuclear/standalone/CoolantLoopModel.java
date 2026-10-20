@@ -580,37 +580,20 @@ public class CoolantLoopModel {
      * Executes one tick (0.05 seconds) of joint coolant loop simulation.
      */
     public boolean step(StandaloneNuclearGrid grid, SimTile[][] tiles, int width, int height) {
+        return step(grid, tiles, width, height, 1);
+    }
+
+    /**
+     * Executes joint coolant loop simulation for the given number of ticks (subticks).
+     * Accurately integrates convective heat extraction and secondary PHE boiling across the cycle.
+     */
+    public boolean step(StandaloneNuclearGrid grid, SimTile[][] tiles, int width, int height, int ticks) {
         if (ruptured) {
             return false;
         }
 
+        int subTicks = Math.max(1, ticks);
         int reactorTier = grid.getPipeTier();
-
-        // 0. Solidification / Freezing check for loop coolant
-        if (fluidType != null && Double.isFinite(fluidType.meltingPointCelsius)
-            && fluidType.meltingPointCelsius != Double.NEGATIVE_INFINITY
-            && currentCoolantTempCelsius < fluidType.meltingPointCelsius) {
-            if (currentFlowRateLPerSec > 0.0) {
-                this.ruptured = true;
-                if (fluidType.isMolten()) {
-                    this.ruptureReason = String.format(
-                        "Catastrophic Coolant Solidification! Coolant temperature %.1f °C dropped below declared GregTech melting point %.1f °C for molten fluid %s. Solidified plug ruptured loop!",
-                        currentCoolantTempCelsius,
-                        fluidType.meltingPointCelsius,
-                        fluidType.displayName);
-                } else {
-                    this.ruptureReason = String.format(
-                        "Catastrophic Coolant Freezing! Coolant temperature %.1f °C dropped below freezing point %.1f °C for fluid %s. Solidified ice/plug ruptured loop!",
-                        currentCoolantTempCelsius,
-                        fluidType.meltingPointCelsius,
-                        fluidType.displayName);
-                }
-                return false;
-            } else {
-                updatePumpState();
-                return true;
-            }
-        }
 
         // 1. Verify Tier Constraint: Convective cooling availability
         if (reactorTier < NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
@@ -619,34 +602,7 @@ public class CoolantLoopModel {
             return false;
         }
 
-        // 2. Control System: Calculate pump power, duty cycle, flow, and safety throttling
-        updatePumpState();
-
-        // 3. Safety Burst Verification (in case of forced external flow or edge conditions)
-        currentPressureBar = calculatePeakPressureBar(currentFlowRateLPerSec);
-        if (currentPressureBar > material.maxPressureBar) {
-            this.ruptured = true;
-            this.ruptureReason = String.format(
-                "Coolant Loop Burst! Peak pressure %.1f bar exceeded maximum burst rating %.1f bar for %s piping.",
-                currentPressureBar,
-                material.maxPressureBar,
-                material.displayName);
-            return false;
-        }
-
-        // 4. Melt Limit Verification
-        if (currentCoolantTempCelsius > material.maxTemperatureCelsius) {
-            this.ruptured = true;
-            this.ruptureReason = String.format(
-                "Coolant Loop Melted! Coolant temperature %.1f °C exceeded maximum safe rating %.1f °C (%d K) for %s piping.",
-                currentCoolantTempCelsius,
-                material.maxTemperatureCelsius,
-                material.maxTemperatureKelvin,
-                material.displayName);
-            return false;
-        }
-
-        // 5. Gather all attached core passage cells (configured points + any placed PASSAGE_CORE tiles)
+        // Gather all attached core passage cells (configured points + any placed PASSAGE_CORE tiles)
         List<SimTile> passageTiles = new ArrayList<>();
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
@@ -659,115 +615,177 @@ public class CoolantLoopModel {
             }
         }
 
-        // 6. Convective Heat Transfer in Core Passages (Dittus-Boelter Correlation)
-        double totalHeatExtractedJoulesTick = 0.0;
+        double totalJoulesAcrossSubticks = 0.0;
+        double totalWaterBoiledAcrossSubticks = 0.0;
+        double totalSteamProducedAcrossSubticks = 0.0;
 
-        if (!passageTiles.isEmpty() && currentFlowRateLPerSec > 0.0) {
-            int numPassages = passageTiles.size();
-            double flowPerPassageM3s = (currentFlowRateLPerSec / 1000.0) / Math.max(1, numPassages);
-            double passageDiameter = pipeSize.diameterMeters;
-            double passageLength = 5.0; // Standard 5m core channel height
-            double passageArea = Math.PI * passageDiameter * passageLength; // ~1.57 m^2 per channel
-            double flowArea = Math.PI * Math.pow(passageDiameter / 2.0, 2);
-            double vel = flowArea > 0 ? (flowPerPassageM3s / flowArea) : 0.0;
-
-            double re = (fluidType.density * vel * passageDiameter) / Math.max(1e-6, fluidType.dynamicViscosity);
-            double pr = (fluidType.dynamicViscosity * fluidType.specificHeat)
-                / Math.max(1e-4, fluidType.thermalConductivity);
-
-            double nu;
-            if (re < 2300.0) {
-                nu = 4.36; // Laminar fully developed
-            } else {
-                nu = 0.023 * Math.pow(re, 0.8) * Math.pow(Math.max(0.6, pr), 0.4); // Turbulent Dittus-Boelter
+        for (int stepIdx = 0; stepIdx < subTicks; stepIdx++) {
+            // 0. Solidification / Freezing check for loop coolant
+            if (fluidType != null && Double.isFinite(fluidType.meltingPointCelsius)
+                && fluidType.meltingPointCelsius != Double.NEGATIVE_INFINITY
+                && currentCoolantTempCelsius < fluidType.meltingPointCelsius) {
+                if (currentFlowRateLPerSec > 0.0) {
+                    this.ruptured = true;
+                    if (fluidType.isMolten()) {
+                        this.ruptureReason = String.format(
+                            "Catastrophic Coolant Solidification! Coolant temperature %.1f °C dropped below declared GregTech melting point %.1f °C for molten fluid %s. Solidified plug ruptured loop!",
+                            currentCoolantTempCelsius,
+                            fluidType.meltingPointCelsius,
+                            fluidType.displayName);
+                    } else {
+                        this.ruptureReason = String.format(
+                            "Catastrophic Coolant Freezing! Coolant temperature %.1f °C dropped below freezing point %.1f °C for fluid %s. Solidified ice/plug ruptured loop!",
+                            currentCoolantTempCelsius,
+                            fluidType.meltingPointCelsius,
+                            fluidType.displayName);
+                    }
+                    return false;
+                } else {
+                    updatePumpState();
+                    return true;
+                }
             }
 
-            double hConvective = (nu * fluidType.thermalConductivity) / passageDiameter; // W/(m^2*K)
+            // 2. Control System: Calculate pump power, duty cycle, flow, and safety throttling
+            updatePumpState();
 
-            for (SimTile pTile : passageTiles) {
-                double cellTemp = pTile.getTemperature();
-                double deltaT = cellTemp - currentCoolantTempCelsius;
-                if (deltaT > 0.001) {
-                    double qDotWatts = hConvective * passageArea * deltaT;
-                    double joulesTick = qDotWatts * 0.05; // 0.05s per tick
-                    double huTick = joulesTick / 128.0;
+            // 3. Safety Burst Verification (in case of forced external flow or edge conditions)
+            currentPressureBar = calculatePeakPressureBar(currentFlowRateLPerSec);
+            if (currentPressureBar > material.maxPressureBar) {
+                this.ruptured = true;
+                this.ruptureReason = String.format(
+                    "Coolant Loop Burst! Peak pressure %.1f bar exceeded maximum burst rating %.1f bar for %s piping.",
+                    currentPressureBar,
+                    material.maxPressureBar,
+                    material.displayName);
+                return false;
+            }
 
-                    // Max heat without overcooling tile below coolant temperature
-                    double maxHuDrop = (cellTemp - currentCoolantTempCelsius) * NuclearSimulationEngine.huPerDegree;
-                    if (huTick > maxHuDrop) {
-                        huTick = maxHuDrop;
-                        joulesTick = huTick * 128.0;
-                    }
+            // 4. Melt Limit Verification
+            if (currentCoolantTempCelsius > material.maxTemperatureCelsius) {
+                this.ruptured = true;
+                this.ruptureReason = String.format(
+                    "Coolant Loop Melted! Coolant temperature %.1f °C exceeded maximum safe rating %.1f °C (%d K) for %s piping.",
+                    currentCoolantTempCelsius,
+                    material.maxTemperatureCelsius,
+                    material.maxTemperatureKelvin,
+                    material.displayName);
+                return false;
+            }
 
-                    pTile.setTemperature(
-                        Math.max(currentCoolantTempCelsius, cellTemp - huTick / NuclearSimulationEngine.huPerDegree));
-                    pTile.setLastHeatOutput(pTile.getLastHeatOutput() + huTick);
-                    totalHeatExtractedJoulesTick += joulesTick;
+            // 6. Convective Heat Transfer in Core Passages (Dittus-Boelter Correlation)
+            double totalHeatExtractedJoulesTick = 0.0;
+
+            if (!passageTiles.isEmpty() && currentFlowRateLPerSec > 0.0) {
+                int numPassages = passageTiles.size();
+                double flowPerPassageM3s = (currentFlowRateLPerSec / 1000.0) / Math.max(1, numPassages);
+                double passageDiameter = pipeSize.diameterMeters;
+                double passageLength = 5.0; // Standard 5m core channel height
+                double passageArea = Math.PI * passageDiameter * passageLength; // ~1.57 m^2 per channel
+                double flowArea = Math.PI * Math.pow(passageDiameter / 2.0, 2);
+                double vel = flowArea > 0 ? (flowPerPassageM3s / flowArea) : 0.0;
+
+                double re = (fluidType.density * vel * passageDiameter) / Math.max(1e-6, fluidType.dynamicViscosity);
+                double pr = (fluidType.dynamicViscosity * fluidType.specificHeat)
+                    / Math.max(1e-4, fluidType.thermalConductivity);
+
+                double nu;
+                if (re < 2300.0) {
+                    nu = 4.36; // Laminar fully developed
+                } else {
+                    nu = 0.023 * Math.pow(re, 0.8) * Math.pow(Math.max(0.6, pr), 0.4); // Turbulent Dittus-Boelter
                 }
 
-                // Radiolytic dissociation: every 4 absorbed fast neutrons dissociates 2L water -> 2L byproduct gas
-                int fastAbsorbed = pTile.getLastFastAbsorbed();
-                if (fastAbsorbed > 0) {
-                    neutronTransmuteAccumulator += fastAbsorbed;
-                    if (neutronTransmuteAccumulator >= 4) {
-                        int cycles = neutronTransmuteAccumulator / 4;
-                        neutronTransmuteAccumulator %= 4;
-                        if (fluidType == CoolantFluidType.HEAVY_WATER) {
-                            totalTritiumProduced += cycles * 2L;
-                            totalOxygenProduced += cycles * 1L;
-                        } else if (fluidType == CoolantFluidType.DISTILLED_WATER) {
-                            totalDeuteriumProduced += cycles * 2L;
-                            totalOxygenProduced += cycles * 1L;
+                double hConvective = (nu * fluidType.thermalConductivity) / passageDiameter; // W/(m^2*K)
+
+                for (SimTile pTile : passageTiles) {
+                    double cellTemp = pTile.getTemperature();
+                    double deltaT = cellTemp - currentCoolantTempCelsius;
+                    if (deltaT > 0.001) {
+                        double qDotWatts = hConvective * passageArea * deltaT;
+                        double joulesTick = qDotWatts * 0.05; // 0.05s per tick
+                        double huTick = joulesTick / 128.0;
+
+                        // Max heat without overcooling tile below coolant temperature
+                        double maxHuDrop = (cellTemp - currentCoolantTempCelsius) * NuclearSimulationEngine.huPerDegree;
+                        if (huTick > maxHuDrop) {
+                            huTick = maxHuDrop;
+                            joulesTick = huTick * 128.0;
                         }
-                        // Radiolysis is strictly disallowed for any other fluid
+
+                        pTile.setTemperature(
+                            Math.max(currentCoolantTempCelsius, cellTemp - huTick / NuclearSimulationEngine.huPerDegree));
+                        pTile.setLastHeatOutput(pTile.getLastHeatOutput() + huTick);
+                        totalHeatExtractedJoulesTick += joulesTick;
+                    }
+
+                    // Radiolytic dissociation: executed once per cycle on first subtick
+                    if (stepIdx == 0) {
+                        int fastAbsorbed = pTile.getLastFastAbsorbed();
+                        if (fastAbsorbed > 0) {
+                            neutronTransmuteAccumulator += fastAbsorbed;
+                            if (neutronTransmuteAccumulator >= 4) {
+                                int cycles = neutronTransmuteAccumulator / 4;
+                                neutronTransmuteAccumulator %= 4;
+                                if (fluidType == CoolantFluidType.HEAVY_WATER) {
+                                    totalTritiumProduced += cycles * 2L;
+                                    totalOxygenProduced += cycles * 1L;
+                                } else if (fluidType == CoolantFluidType.DISTILLED_WATER) {
+                                    totalDeuteriumProduced += cycles * 2L;
+                                    totalOxygenProduced += cycles * 1L;
+                                }
+                                // Radiolysis is strictly disallowed for any other fluid
+                            }
+                        }
                     }
                 }
             }
+
+            totalJoulesAcrossSubticks += totalHeatExtractedJoulesTick;
+
+            // 7. Coolant Temperature Rise
+            // Mass flow per tick (kg)
+            double loopFluidMassKg = Math.max(10.0, (currentFlowRateLPerSec * 0.05) * (fluidType.density / 1000.0) * 10.0);
+            double tempRise = totalHeatExtractedJoulesTick / (loopFluidMassKg * fluidType.specificHeat);
+            currentCoolantTempCelsius += tempRise;
+
+            // 8. Secondary Boiling at Pressurized Heat Exchanger (PHE)
+            double secBoilingTemp = (secondaryCoolant != null) ? secondaryCoolant.boilingPointCelsius : 100.0;
+            double secLatentHeat = (secondaryCoolant != null) ? secondaryCoolant.latentHeatJoulesPerLiter : 2260.0;
+            int secExpansion = (secondaryCoolant != null && secondaryCoolant.expansionRatio > 0)
+                ? secondaryCoolant.expansionRatio
+                : 160;
+
+            if (currentCoolantTempCelsius > secBoilingTemp && currentFlowRateLPerSec > 0.0) {
+                double deltaTPhe = currentCoolantTempCelsius - secBoilingTemp;
+                double pheUnits = Math.max(1.0, Math.max(pipeSize.relativeCapacity, currentFlowRateLPerSec / 150.0));
+                double pheArea = 24.0 * pheUnits; // Tube bundle area scaled with parallel PHE multiblock units
+                // h_phe ~ 2500 W/(m^2*K) for heat exchanger
+                double qPheWatts = 2500.0 * pheArea * deltaTPhe;
+                double qPheJoules = Math.min(
+                    totalHeatExtractedJoulesTick + (deltaTPhe * loopFluidMassKg * fluidType.specificHeat * 0.5),
+                    qPheWatts * 0.05);
+
+                double fluidBoiledL = qPheJoules / secLatentHeat;
+                double steamGeneratedL = fluidBoiledL * secExpansion;
+
+                totalWaterBoiledAcrossSubticks += fluidBoiledL;
+                totalSteamProducedAcrossSubticks += steamGeneratedL;
+                totalSecondarySteamProduced += steamGeneratedL;
+
+                // Cool coolant back down toward secondary boiling temperature
+                double tempDrop = qPheJoules / (loopFluidMassKg * fluidType.specificHeat);
+                currentCoolantTempCelsius = Math.max(secBoilingTemp, currentCoolantTempCelsius - tempDrop);
+            }
         }
 
-        lastHeatExtractedWatts = totalHeatExtractedJoulesTick / 0.05;
-        lastHeatExtractedHut = totalHeatExtractedJoulesTick / 128.0;
-        totalHeatExtractedJoules += totalHeatExtractedJoulesTick;
-        totalHeatExtractedHut += lastHeatExtractedHut;
+        totalHeatExtractedJoules += totalJoulesAcrossSubticks;
+        totalHeatExtractedHut += totalJoulesAcrossSubticks / 128.0;
 
-        // 7. Coolant Temperature Rise
-        // Mass flow per tick (kg)
-        double loopFluidMassKg = Math.max(10.0, (currentFlowRateLPerSec * 0.05) * (fluidType.density / 1000.0) * 10.0);
-        double tempRise = totalHeatExtractedJoulesTick / (loopFluidMassKg * fluidType.specificHeat);
-        currentCoolantTempCelsius += tempRise;
-
-        // 8. Secondary Boiling at Pressurized Heat Exchanger (PHE)
-        double secBoilingTemp = (secondaryCoolant != null) ? secondaryCoolant.boilingPointCelsius : 100.0;
-        double secLatentHeat = (secondaryCoolant != null) ? secondaryCoolant.latentHeatJoulesPerLiter : 2260.0;
-        int secExpansion = (secondaryCoolant != null && secondaryCoolant.expansionRatio > 0)
-            ? secondaryCoolant.expansionRatio
-            : 160;
-
-        double steamGeneratedL = 0.0;
-        if (currentCoolantTempCelsius > secBoilingTemp && currentFlowRateLPerSec > 0.0) {
-            double deltaTPhe = currentCoolantTempCelsius - secBoilingTemp;
-            double pheUnits = Math.max(1.0, Math.max(pipeSize.relativeCapacity, currentFlowRateLPerSec / 150.0));
-            double pheArea = 24.0 * pheUnits; // Tube bundle area scaled with parallel PHE multiblock units
-            // h_phe ~ 2500 W/(m^2*K) for heat exchanger
-            double qPheWatts = 2500.0 * pheArea * deltaTPhe;
-            double qPheJoules = Math.min(
-                totalHeatExtractedJoulesTick + (deltaTPhe * loopFluidMassKg * fluidType.specificHeat * 0.5),
-                qPheWatts * 0.05);
-
-            double fluidBoiledL = qPheJoules / secLatentHeat;
-            steamGeneratedL = fluidBoiledL * secExpansion;
-
-            lastSecondaryWaterBoiledLt = fluidBoiledL;
-            lastSecondarySteamProducedLt = steamGeneratedL;
-            totalSecondarySteamProduced += steamGeneratedL;
-
-            // Cool coolant back down toward secondary boiling temperature
-            double tempDrop = qPheJoules / (loopFluidMassKg * fluidType.specificHeat);
-            currentCoolantTempCelsius = Math.max(secBoilingTemp, currentCoolantTempCelsius - tempDrop);
-        } else {
-            lastSecondaryWaterBoiledLt = 0.0;
-            lastSecondarySteamProducedLt = 0.0;
-        }
+        lastHeatExtractedWatts = totalJoulesAcrossSubticks / (subTicks * 0.05);
+        lastHeatExtractedHut = (totalJoulesAcrossSubticks / 128.0) / (double) subTicks;
+        lastSecondaryWaterBoiledLt = totalWaterBoiledAcrossSubticks / (double) subTicks;
+        lastSecondarySteamProducedLt = totalSteamProducedAcrossSubticks / (double) subTicks;
 
         return true;
     }

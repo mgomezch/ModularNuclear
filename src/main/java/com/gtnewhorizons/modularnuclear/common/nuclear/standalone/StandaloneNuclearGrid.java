@@ -29,7 +29,16 @@ public class StandaloneNuclearGrid {
     private int maintenanceIssues = 0;
 
     // Simulation metrics
+    private int ticksPerCycle = NuclearSimulationEngine.ticksPerCycle;
     private long currentTick = 0;
+
+    public int getTicksPerCycle() {
+        return ticksPerCycle;
+    }
+
+    public void setTicksPerCycle(int ticks) {
+        this.ticksPerCycle = Math.max(1, ticks);
+    }
     private boolean exploded = false;
     private String explosionReason = "";
     private boolean powerFailed = false;
@@ -593,7 +602,7 @@ public class StandaloneNuclearGrid {
         if (stopOnIncidents && haltedByIncident) return false;
 
         double initialDamage = this.reactorDamage;
-        currentTick++;
+        currentTick += ticksPerCycle;
         recordTraceSnapshot("PRE_TICK", "State before coolant feed");
 
         // 1. Coolant & Liquid Fuel Feed Phase: Replenish hatches that have space, checking dry thermal shock
@@ -756,7 +765,7 @@ public class StandaloneNuclearGrid {
 
         // 3.5. Execute Coolant Loop Convective Heat Transfer & Secondary Boiling
         if (shouldStepCoolantLoop()) {
-            boolean loopOk = coolantLoop.step(this, grid, width, height);
+            boolean loopOk = coolantLoop.step(this, grid, width, height, ticksPerCycle);
             if (!loopOk || coolantLoop.isRuptured()) {
                 triggerExplosion("Coolant Loop Failure: " + coolantLoop.getRuptureReason());
                 return false;
@@ -886,10 +895,11 @@ public class StandaloneNuclearGrid {
 
                 int tickProduced = tile.getLastTickProduced();
                 if (tickProduced > 0) {
+                    double ratePerTick = (double) tickProduced / (double) ticksPerCycle;
                     switch (tile.getType()) {
-                        case HATCH_DISTILLED_WATER -> flowRegularSteam += tickProduced;
-                        case HATCH_HEAVY_WATER -> flowHeavyWaterSteam += tickProduced;
-                        case HATCH_IC2_COOLANT -> flowHotCoolant += tickProduced;
+                        case HATCH_DISTILLED_WATER -> flowRegularSteam += ratePerTick;
+                        case HATCH_HEAVY_WATER -> flowHeavyWaterSteam += ratePerTick;
+                        case HATCH_IC2_COOLANT -> flowHotCoolant += ratePerTick;
                         default -> {}
                     }
                 }
@@ -956,7 +966,7 @@ public class StandaloneNuclearGrid {
             lastPowerResult.totalPowerEUt = Math.max(0.0, lastPowerResult.totalPowerEUt - pumpPower);
         }
 
-        totalEnergyEU += lastPowerResult.totalPowerEUt;
+        totalEnergyEU += lastPowerResult.totalPowerEUt * ticksPerCycle;
 
         // Telemetry sampling (keep last 500 ticks for charts)
         if (history.size() >= 500) {
@@ -1895,13 +1905,14 @@ public class StandaloneNuclearGrid {
                     com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType f = new SimTile(type).getFuelType();
                     if (f != null) maxDur = f.defaultDurability;
                 }
-                double itemsPerMin = (maxDur > 0) ? (totalDamage / (double) maxDur) * 1200.0 : 0.0;
+                double cyclesPerMin = 1200.0 / (double) ticksPerCycle;
+                double itemsPerMin = (maxDur > 0) ? (totalDamage / (double) maxDur) * cyclesPerMin : 0.0;
                 if (itemsPerMin == 0.0 && currentTick == 0 && active > 0 && maxDur > 0) {
-                    itemsPerMin = ((double) active / (double) maxDur) * 1200.0;
+                    itemsPerMin = ((double) active / (double) maxDur) * cyclesPerMin;
                 }
                 double itemsPerHour = itemsPerMin * 60.0;
                 double avgLifespan = (active > 0 && totalDamage > 0 && maxDur > 0)
-                    ? ((double) maxDur / (totalDamage / (double) active)) / 1200.0
+                    ? ((double) maxDur / (totalDamage / (double) active)) / cyclesPerMin
                     : Double.POSITIVE_INFINITY;
                 SimTile sample = new SimTile(type);
                 list.add(
@@ -1948,9 +1959,10 @@ public class StandaloneNuclearGrid {
                     fluidName = sample.getOutputFluidName();
                     dispName = sample.getDepletedDisplayName();
                 }
-                double lPerMin = totalBurned * 1200.0;
+                double cyclesPerMin = 1200.0 / (double) ticksPerCycle;
+                double lPerMin = totalBurned * cyclesPerMin;
                 if (lPerMin == 0.0 && currentTick == 0 && active > 0) {
-                    lPerMin = active * 1200.0;
+                    lPerMin = active * cyclesPerMin;
                 }
                 double lPerHour = lPerMin * 60.0;
                 list.add(new LiquidFuelByproduct(type, fluidName, dispName, active, lPerMin, lPerHour, totalLiters));

@@ -521,7 +521,27 @@ public class NuclearSimWasmBridge {
             NuclearSimulationEngine.breederNbaseMultiplier = d;
         } else if ("breederFissionMultiplier".equals(key)) {
             NuclearSimulationEngine.breederFissionMultiplier = d;
+        } else if ("ticksPerCycle".equalsIgnoreCase(key) || "ticks_per_cycle".equalsIgnoreCase(key)) {
+            int ticks = Math.max(1, (int) d);
+            NuclearSimulationEngine.setTicksPerCycle(ticks);
+            if (grid != null) {
+                grid.setTicksPerCycle(ticks);
+            }
         }
+    }
+
+    @Export(name = "setTicksPerCycle")
+    public static void setTicksPerCycle(int ticks) {
+        int t = Math.max(1, ticks);
+        NuclearSimulationEngine.setTicksPerCycle(t);
+        if (grid != null) {
+            grid.setTicksPerCycle(t);
+        }
+    }
+
+    @Export(name = "getTicksPerCycle")
+    public static int getTicksPerCycle() {
+        return grid != null ? grid.getTicksPerCycle() : NuclearSimulationEngine.getTicksPerCycle();
     }
 
     @Export(name = "getLayoutString")
@@ -1222,6 +1242,9 @@ public class NuclearSimWasmBridge {
         sb.append("},");
 
         sb.append("\"params\":{");
+        sb.append("\"ticksPerCycle\":")
+            .append(grid != null ? grid.getTicksPerCycle() : NuclearSimulationEngine.ticksPerCycle)
+            .append(",");
         sb.append("\"huPerDegree\":")
             .append(fmt1(NuclearSimulationEngine.huPerDegree))
             .append(",");

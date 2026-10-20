@@ -94,6 +94,13 @@ public class NuclearSimulationCLI {
                         } catch (NumberFormatException ignored) {}
                     }
                 }
+                case "--ticks-per-cycle", "--tickspercycle" -> {
+                    if (i + 1 < args.length) {
+                        try {
+                            NuclearSimulationEngine.setTicksPerCycle(Integer.parseInt(args[++i]));
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
                 case "--tier" -> {
                     if (i + 1 < args.length) {
                         tierSpecified = true;
@@ -571,6 +578,11 @@ public class NuclearSimulationCLI {
                         case "ticks" -> {
                             try {
                                 ticks = Integer.parseInt(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "ticks_per_cycle", "tickspercycle" -> {
+                            try {
+                                NuclearSimulationEngine.setTicksPerCycle(Integer.parseInt(v));
                             } catch (Exception ignored) {}
                         }
                         case "temp_low", "templow" -> {

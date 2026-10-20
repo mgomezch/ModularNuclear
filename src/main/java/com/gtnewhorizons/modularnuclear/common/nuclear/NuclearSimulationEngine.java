@@ -52,7 +52,9 @@ public class NuclearSimulationEngine {
     public static final int DEFAULT_COOLANT_FEED_RATE = 999999;
     public static final double DEFAULT_COOLING_HEAT_PER_LITER = 17.65625;
     public static final double DEFAULT_IC2_COOLANT_HEAT_PER_LITER = 20.0;
+    public static final int DEFAULT_TICKS_PER_CYCLE = 20;
 
+    public static int ticksPerCycle = DEFAULT_TICKS_PER_CYCLE;
     public static double tempThresholdLow = DEFAULT_TEMP_THRESHOLD_LOW;
     public static double tempThresholdHigh = DEFAULT_TEMP_THRESHOLD_HIGH;
     public static double reactivityPower = DEFAULT_REACTIVITY_POWER;
@@ -231,6 +233,15 @@ public class NuclearSimulationEngine {
         baseHatchConductance = DEFAULT_BASE_HATCH_CONDUCTANCE;
         setBeamEnergyToFastNeutronMultiplier(DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER);
         setAmbientTemperature(DEFAULT_AMBIENT_TEMP);
+        ticksPerCycle = DEFAULT_TICKS_PER_CYCLE;
+    }
+
+    public static void setTicksPerCycle(int ticks) {
+        ticksPerCycle = Math.max(1, ticks);
+    }
+
+    public static int getTicksPerCycle() {
+        return ticksPerCycle;
     }
 
     public static final double DEFAULT_BASE_HATCH_CONDUCTANCE = 2.0;

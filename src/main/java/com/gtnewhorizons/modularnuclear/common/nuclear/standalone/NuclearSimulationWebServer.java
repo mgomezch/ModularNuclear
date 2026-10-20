@@ -838,6 +838,11 @@ public class NuclearSimulationWebServer {
                       <label style="font-size:0.7rem; color:var(--text-muted);">Ambient Temp (°C):</label>
                       <input id="p-ambient-temp" type="number" step="1.0" value="20.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Ticks Per Cycle (t):</label>
+                      <input id="p-ticks-per-cycle" type="number" min="1" step="1" value="20" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                    </div>
+                  </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Hatch Capacity (L):</label>
@@ -2992,6 +2997,7 @@ public class NuclearSimulationWebServer {
               setVal("p-fission-heat", p.fissionHeatPerNeutron != null ? p.fissionHeatPerNeutron : 76.0);
               setVal("p-fiss-mult", p.globalThermalFissionMultiplier != null ? p.globalThermalFissionMultiplier : (p.thermalFissionMultiplier != null ? p.thermalFissionMultiplier : 0.350));
               setVal("p-ambient-temp", p.ambientTemp);
+              setVal("p-ticks-per-cycle", p.ticksPerCycle != null ? p.ticksPerCycle : 20);
               setVal("p-hatch-cap", p.hatchCapacity);
               setVal("p-turn-curve", p.turnoverCurve);
               setVal("p-turn-dt", p.turnoverDeltaTMax);
@@ -3017,6 +3023,7 @@ public class NuclearSimulationWebServer {
               const fHeat = document.getElementById("p-fission-heat") ? document.getElementById("p-fission-heat").value : 76.0;
               const fMult = document.getElementById("p-fiss-mult") ? document.getElementById("p-fiss-mult").value : 0.350;
               const amb = document.getElementById("p-ambient-temp").value;
+              const ticksCycle = document.getElementById("p-ticks-per-cycle") ? document.getElementById("p-ticks-per-cycle").value : 20;
               const cap = document.getElementById("p-hatch-cap").value;
               const curve = document.getElementById("p-turn-curve").value;
               const dt = document.getElementById("p-turn-dt").value;
@@ -3041,6 +3048,7 @@ public class NuclearSimulationWebServer {
                 wasmSim.setParam("fissionHeat", fHeat);
                 wasmSim.setParam("fissionMult", fMult);
                 wasmSim.setParam("ambientTemp", amb);
+                wasmSim.setParam("ticksPerCycle", ticksCycle);
                 wasmSim.setParam("hatchCapacity", cap);
                 wasmSim.setParam("turnoverCurve", curve);
                 wasmSim.setParam("turnoverDeltaTMax", dt);
@@ -3063,13 +3071,14 @@ public class NuclearSimulationWebServer {
                 return;
               }
 
-              const url = `/api/set-params?huPerDegree=${huDeg}&baseHatchConductance=${baseCond}&fissionHeat=${fHeat}&fissionMult=${fMult}&ambientTemp=${amb}&hatchCapacity=${cap}&turnoverCurve=${curve}&turnoverDeltaTMax=${dt}&turnoverExponent=${exp}&coolantFeedRate=${feed}&coolingHeat=${ch}&ic2CoolantHeat=${ic2Ch}&hpBoil=${hpBoil}`;
+              const url = `/api/set-params?huPerDegree=${huDeg}&baseHatchConductance=${baseCond}&fissionHeat=${fHeat}&fissionMult=${fMult}&ambientTemp=${amb}&ticksPerCycle=${ticksCycle}&hatchCapacity=${cap}&turnoverCurve=${curve}&turnoverDeltaTMax=${dt}&turnoverExponent=${exp}&coolantFeedRate=${feed}&coolingHeat=${ch}&ic2CoolantHeat=${ic2Ch}&hpBoil=${hpBoil}`;
               await fetch(url);
               await fetchState();
               schedulePoll();
             }
 
             async function resetSimParams() {
+              if (document.getElementById("p-ticks-per-cycle")) document.getElementById("p-ticks-per-cycle").value = 20;
               if (isWasmMode && wasmSim) {
                 wasmSim.setParam("reset", "true");
                 currentState = wasmSim.getState();
