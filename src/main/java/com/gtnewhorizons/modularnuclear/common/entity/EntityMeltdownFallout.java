@@ -170,12 +170,11 @@ public class EntityMeltdownFallout extends Entity {
     }
 
     public static boolean isPollutionEnabled() {
-        if (Loader.isModLoaded("gregtech")) {
-            try {
-                return gregtech.GTMod.proxy.mPollution;
-            } catch (Throwable ignored) {}
+        try {
+            return gregtech.GTMod.proxy != null && gregtech.GTMod.proxy.mPollution;
+        } catch (Throwable ignored) {
+            return false;
         }
-        return false;
     }
 
     public double getContamination() {
@@ -204,6 +203,71 @@ public class EntityMeltdownFallout extends Entity {
         }
     }
 
+    public boolean isAffectingChunk(int chunkX, int chunkZ) {
+        if (this.isDead || this.mContamination <= 0.0) return false;
+        int entityChunkX = MathHelper.floor_double(this.posX) >> 4;
+        int entityChunkZ = MathHelper.floor_double(this.posZ) >> 4;
+
+        if (Math.abs(chunkX - entityChunkX) <= 1 && Math.abs(chunkZ - entityChunkZ) <= 1) {
+            return true;
+        }
+
+        double currentRadius = 160.0 * (this.mContamination / (double) INITIAL_CONTAMINATION);
+        double chunkCenterX = (chunkX << 4) + 8.0;
+        double chunkCenterZ = (chunkZ << 4) + 8.0;
+        double dx = chunkCenterX - this.posX;
+        double dz = chunkCenterZ - this.posZ;
+        return (dx * dx + dz * dz) <= (currentRadius * currentRadius);
+    }
+
+    public static int getVirtualPollution(World world, int chunkX, int chunkZ) {
+        if (world == null || !isPollutionEnabled()) return 0;
+        if (ACTIVE_SERVER_FALLOUTS.isEmpty()) return 0;
+
+        double reductionRatio = ModularNuclearConfig.falloutContaminationReductionPerPollution;
+        if (reductionRatio <= 0.0) return 0;
+
+        int totalVirtual = 0;
+        for (EntityMeltdownFallout fallout : ACTIVE_SERVER_FALLOUTS) {
+            if (fallout.isDead || fallout.worldObj != world || fallout.mContamination <= 0.0) continue;
+
+            if (fallout.isAffectingChunk(chunkX, chunkZ)) {
+                int equivalent = (int) Math
+                    .min(Integer.MAX_VALUE / 2, Math.round(fallout.mContamination / reductionRatio));
+                if (equivalent > totalVirtual) {
+                    totalVirtual = equivalent;
+                }
+            }
+        }
+        return totalVirtual;
+    }
+
+    public static void registerActiveFallout(EntityMeltdownFallout fallout) {
+        if (fallout != null) {
+            ACTIVE_SERVER_FALLOUTS.add(fallout);
+        }
+    }
+
+    public static void clearActiveFallouts() {
+        ACTIVE_SERVER_FALLOUTS.clear();
+    }
+
+    public static Set<EntityMeltdownFallout> getActiveServerFallouts() {
+        return Collections.unmodifiableSet(ACTIVE_SERVER_FALLOUTS);
+    }
+
+    public void setContamination(double contamination) {
+        this.mContamination = Math.max(0.0, contamination);
+        if (worldObj != null && !worldObj.isRemote) {
+            try {
+                this.dataWatcher.updateObject(12, (float) mContamination);
+            } catch (Throwable ignored) {}
+        }
+        if (this.mContamination <= 0.0) {
+            setDead();
+        }
+    }
+
     public static void onPollutionRemoved(World world, int chunkX, int chunkZ, int removedPollution) {
         if (world == null || world.isRemote || removedPollution <= 0) return;
         if (ACTIVE_SERVER_FALLOUTS.isEmpty()) return;
@@ -212,23 +276,11 @@ public class EntityMeltdownFallout extends Entity {
         if (reductionRatio <= 0.0) return;
 
         double contaminationReduction = removedPollution * reductionRatio;
-        double chunkCenterX = (chunkX << 4) + 8.0;
-        double chunkCenterZ = (chunkZ << 4) + 8.0;
 
         for (EntityMeltdownFallout fallout : ACTIVE_SERVER_FALLOUTS) {
             if (fallout.isDead || fallout.worldObj != world) continue;
 
-            int entityChunkX = MathHelper.floor_double(fallout.posX) >> 4;
-            int entityChunkZ = MathHelper.floor_double(fallout.posZ) >> 4;
-
-            boolean in3x3 = Math.abs(chunkX - entityChunkX) <= 1 && Math.abs(chunkZ - entityChunkZ) <= 1;
-
-            double currentRadius = 160.0 * (fallout.mContamination / (double) INITIAL_CONTAMINATION);
-            double dx = chunkCenterX - fallout.posX;
-            double dz = chunkCenterZ - fallout.posZ;
-            boolean inRadius = (dx * dx + dz * dz) <= (currentRadius * currentRadius);
-
-            if (in3x3 || inRadius) {
+            if (fallout.isAffectingChunk(chunkX, chunkZ)) {
                 fallout.reduceContamination(contaminationReduction);
             }
         }

@@ -7163,6 +7163,68 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
+    void testVirtualPollutionCalculations() {
+        EntityMeltdownFallout.clearActiveFallouts();
+        try {
+            boolean prevPollution = gregtech.GTMod.proxy.mPollution;
+            gregtech.GTMod.proxy.mPollution = true;
+            try {
+                net.minecraft.world.World mockWorld = org.mockito.Mockito.mock(net.minecraft.world.World.class);
+                mockWorld.isRemote = false;
+
+                EntityMeltdownFallout fallout = org.mockito.Mockito
+                    .mock(EntityMeltdownFallout.class, org.mockito.Mockito.CALLS_REAL_METHODS);
+                fallout.worldObj = mockWorld;
+                fallout.posX = 0.0;
+                fallout.posY = 64.0;
+                fallout.posZ = 0.0;
+                fallout.setContamination(10000.0);
+                EntityMeltdownFallout.registerActiveFallout(fallout);
+
+                // Initial contamination is 10000.
+                // Ratio is 62.5 / 30000 = 1 / 480.
+                // Equivalent pollution = 10000 * 480 = 4,800,000.
+                int virtualCenter = EntityMeltdownFallout.getVirtualPollution(mockWorld, 0, 0);
+                assertEquals(4800000, virtualCenter, "Center chunk must report 4,800,000 virtual pollution");
+
+                // Adjacent chunk in 3x3 (1, 0)
+                int virtualAdj = EntityMeltdownFallout.getVirtualPollution(mockWorld, 1, 0);
+                assertEquals(4800000, virtualAdj, "Adjacent chunk in 3x3 must report virtual pollution");
+
+                // Chunk within 160m radius (e.g. 5 chunks away = 80m)
+                // Chunk 5 has center at (5 * 16 + 8) = 88m. 88m <= 160m.
+                int virtualRadius = EntityMeltdownFallout.getVirtualPollution(mockWorld, 5, 0);
+                assertEquals(4800000, virtualRadius, "Chunk within radius must report virtual pollution");
+
+                // Chunk far away (e.g. 20 chunks = 320m)
+                int virtualFar = EntityMeltdownFallout.getVirtualPollution(mockWorld, 20, 0);
+                assertEquals(0, virtualFar, "Chunk outside radius must report 0 virtual pollution");
+
+                // Now simulate cleaning: a machine removes 48000 pollution in chunk (1, 0)
+                EntityMeltdownFallout.onPollutionRemoved(mockWorld, 1, 0, 48000);
+                // Contamination should decrease by 48000 * (1 / 480) = 100
+                assertEquals(9900.0, fallout.getContamination(), 1e-4, "Contamination should decrease to 9900");
+
+                // Virtual pollution should now reflect 9900 * 480 = 4,752,000
+                int virtualAfter = EntityMeltdownFallout.getVirtualPollution(mockWorld, 0, 0);
+                assertEquals(4752000, virtualAfter, "Virtual pollution should decrease to 4,752,000");
+
+                // Reduce contamination to 0
+                EntityMeltdownFallout.onPollutionRemoved(mockWorld, 0, 0, 4752000);
+                assertEquals(0.0, fallout.getContamination(), 1e-4, "Contamination should reach 0");
+                assertTrue(fallout.isDead, "Fallout entity should be marked dead once cleared");
+
+                // After clearing, virtual pollution must be 0
+                assertEquals(0, EntityMeltdownFallout.getVirtualPollution(mockWorld, 0, 0));
+            } finally {
+                gregtech.GTMod.proxy.mPollution = prevPollution;
+            }
+        } finally {
+            EntityMeltdownFallout.clearActiveFallouts();
+        }
+    }
+
+    @Test
     void testHighPressurePassageOvertemperatureAndOutletDisplay() {
         MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.hp.overtemp");
         reactor.mMachine = true;
