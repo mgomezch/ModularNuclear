@@ -67,7 +67,7 @@ public class EntityCherenkovBeamFX extends EntityFX {
         this.prevPosZ = this.posZ;
 
         int tier = Math.max(1, reactor.mClientTier);
-        double R = (tier == 3) ? 6.0 : (tier == 2) ? 4.0 : 2.0;
+        double R = 2.0 * tier;
         this.boundingBox.setBounds(
             this.posX - R * 2,
             this.posY - 1,
@@ -150,9 +150,9 @@ public class EntityCherenkovBeamFX extends EntityFX {
         MTENuclearReactor reactor, long worldTime, float partialTicks, float intensity) {
 
         int tier = Math.max(1, reactor.mClientTier);
-        double R = (tier == 3) ? 6.0 : (tier == 2) ? 4.0 : 2.0;
+        double R = 2.0 * tier;
 
-        double beamHeight = Math.min(3.0, maxY - minY);
+        double beamHeight = Math.min(3.0 * tier, maxY - minY);
         if (beamHeight <= 0.2) return;
         double startY = minY + 0.03;
         double topY = startY + beamHeight;
@@ -251,7 +251,7 @@ public class EntityCherenkovBeamFX extends EntityFX {
         MTENuclearReactor reactor, long worldTime, float partialTicks, float intensity) {
 
         int tier = Math.max(1, reactor.mClientTier);
-        double poolRadius = (tier == 3) ? 6.2 : (tier == 2) ? 4.2 : 2.2;
+        double poolRadius = 2.2 * tier;
         float pulse = (float) Math.sin((worldTime + partialTicks) * 0.05) * 0.01f;
         float baseAlpha = Math.min(1.0f, Math.max(0.02f, (0.11f + pulse) * intensity));
 

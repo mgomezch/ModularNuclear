@@ -5939,6 +5939,27 @@ public class NuclearSimulationEngineTest {
         reactor.receiveClientEvent((byte) 101, (byte) 0);
         assertEquals(0.0f, reactor.mClientRadiationIntensity, 1e-4);
 
+        // Cherenkov tier scaling via block event 100
+        reactor.receiveClientEvent((byte) 100, (byte) 1);
+        assertEquals(1, reactor.mClientTier);
+        assertEquals(2.5, reactor.mClientRadius, 1e-4);
+
+        reactor.receiveClientEvent((byte) 100, (byte) 2);
+        assertEquals(2, reactor.mClientTier);
+        assertEquals(5.0, reactor.mClientRadius, 1e-4);
+
+        reactor.receiveClientEvent((byte) 100, (byte) 3);
+        assertEquals(3, reactor.mClientTier);
+        assertEquals(7.5, reactor.mClientRadius, 1e-4);
+
+        io.netty.buffer.ByteBuf buf = io.netty.buffer.Unpooled.buffer();
+        reactor.gridSize = 9;
+        reactor.writeToStream(buf);
+        MTENuclearReactor clientReactor = new MTENuclearReactor("nuclear.reactor.client");
+        clientReactor.readFromStream(buf);
+        assertEquals(2, clientReactor.mClientTier);
+        assertEquals(5.0, clientReactor.mClientRadius, 1e-4);
+
         // 2. Sigmoid curve evaluation
         double[] testEscaped = { 0, 500, 1000, 2000, 5000, 10000 };
         for (double nEsc : testEscaped) {

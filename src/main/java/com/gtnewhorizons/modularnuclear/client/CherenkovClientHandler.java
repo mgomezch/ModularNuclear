@@ -115,9 +115,9 @@ public class CherenkovClientHandler {
         ForgeDirection facing = base.getFrontFacing();
         ForgeDirection back = facing.getOpposite();
 
-        int tier = reactor.mClientTier;
-        int offset = (tier == 3) ? 7 : (tier == 2) ? 5 : 3;
-        int radius = (tier == 3) ? 6 : (tier == 2) ? 4 : 2;
+        int tier = Math.max(1, reactor.mClientTier);
+        int offset = 1 + 2 * tier;
+        int radius = 2 * tier;
 
         int centerX = base.getXCoord() + back.offsetX * offset;
         int centerZ = base.getZCoord() + back.offsetZ * offset;
@@ -252,7 +252,9 @@ public class CherenkovClientHandler {
 
     private static void spawnParticles(MTENuclearReactor reactor, IGregTechTileEntity base, World world) {
         Random rand = world.rand;
-        for (int i = 0; i < 2; i++) {
+        int tier = Math.max(1, reactor.mClientTier);
+        int particleCount = tier * 2;
+        for (int i = 0; i < particleCount; i++) {
             double angle = rand.nextDouble() * Math.PI * 2;
             double dist = Math.sqrt(rand.nextDouble()) * (reactor.mClientRadius * 0.85);
             double px = reactor.mClientCenterX + Math.cos(angle) * dist;

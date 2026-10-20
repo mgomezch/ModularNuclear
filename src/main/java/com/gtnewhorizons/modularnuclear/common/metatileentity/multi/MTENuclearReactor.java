@@ -59,6 +59,8 @@ import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
 import cpw.mods.fml.common.Loader;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.GTMod;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.ItemList;
@@ -91,6 +93,7 @@ import gregtech.common.pollution.Pollution;
 import gtnhlanth.common.beamline.BeamInformation;
 import gtnhlanth.common.beamline.Particle;
 import gtnhlanth.common.hatch.MTEHatchInputBeamline;
+import io.netty.buffer.ByteBuf;
 import mcp.mobius.waila.api.IWailaConfigHandler;
 import mcp.mobius.waila.api.IWailaDataAccessor;
 import shedar.mods.ic2.nuclearcontrol.panel.CardWrapperImpl;
@@ -1353,11 +1356,29 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     @Override
+    public void writeToStream(ByteBuf buffer) {
+        super.writeToStream(buffer);
+        buffer.writeByte(getReactorTier());
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void readFromStream(ByteBuf buffer) {
+        super.readFromStream(buffer);
+        byte tier = buffer.readByte();
+        if (tier > 0) {
+            this.mClientTier = tier;
+            this.mClientRadius = 2.5 * mClientTier;
+            this.mClientWaterBlocks = -1;
+        }
+    }
+
+    @Override
     public void receiveClientEvent(byte aEventID, byte aValue) {
         super.receiveClientEvent(aEventID, aValue);
         if (aEventID == 100) {
-            this.mClientTier = aValue;
-            this.mClientRadius = (mClientTier == 3) ? 6.5 : (mClientTier == 2) ? 4.5 : 2.5;
+            this.mClientTier = Math.max(1, (int) aValue);
+            this.mClientRadius = 2.5 * mClientTier;
             this.mClientWaterBlocks = -1;
         } else if (aEventID == 101) {
             this.mClientRadiationIntensity = Math.max(0.0f, Math.min(1.0f, (aValue & 0xFF) / 100.0f));
@@ -1581,8 +1602,17 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 float cherenkovMetric = (flux > 0) ? (float) Math.min(1.0, 0.40 + 0.60 * (flux / (flux + 400.0)))
                     : 0.0f;
                 byte metricByte = (byte) Math.round(cherenkovMetric * 100.0f);
+                int tier = getReactorTier();
                 if (metricByte != mLastSentCherenkovMetricByte) {
                     mLastSentCherenkovMetricByte = metricByte;
+                    if (tier > 0) {
+                        aBaseMetaTileEntity.sendBlockEvent((byte) 100, (byte) tier);
+                    }
+                    aBaseMetaTileEntity.sendBlockEvent((byte) 101, metricByte);
+                } else if (aTick % 100 == 0 && cherenkovMetric > 0) {
+                    if (tier > 0) {
+                        aBaseMetaTileEntity.sendBlockEvent((byte) 100, (byte) tier);
+                    }
                     aBaseMetaTileEntity.sendBlockEvent((byte) 101, metricByte);
                 }
 
@@ -1904,8 +1934,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (data.gridSize > 0) this.mMachine = true;
             this.gridSize = data.gridSize;
             this.coreDimension = data.coreDimension;
-            this.mClientTier = getReactorTier();
-            this.mClientRadius = (mClientTier == 3) ? 6.5 : (mClientTier == 2) ? 4.5 : 2.5;
+            int calculatedTier = getReactorTier();
+            if (calculatedTier > 0) {
+                this.mClientTier = calculatedTier;
+            }
+            this.mClientRadius = 2.5 * mClientTier;
             this.mClientWaterBlocks = -1;
             this.mCoreTemp = data.coreTemp;
             this.mAvgTemp = data.avgTemp;
