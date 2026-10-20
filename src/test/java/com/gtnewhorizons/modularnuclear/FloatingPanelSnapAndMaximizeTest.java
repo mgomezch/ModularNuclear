@@ -311,14 +311,12 @@ public class FloatingPanelSnapAndMaximizeTest {
 
         PanelDragHandle handle = new PanelDragHandle(panel);
         assertFalse(handle.canClickThrough(), "PanelDragHandle must not allow clicks through");
-        assertEquals(
-            com.cleanroommc.modularui.api.widget.Interactable.Result.STOP,
-            handle.onMousePressed(0),
-            "Left click on handle must STOP propagation to lower layers");
-        assertEquals(
-            com.cleanroommc.modularui.api.widget.Interactable.Result.IGNORE,
-            handle.onMousePressed(1),
-            "Right click should not stop interaction");
+        assertTrue(
+            handle instanceof com.cleanroommc.modularui.api.widget.IDraggable,
+            "PanelDragHandle must implement IDraggable");
+        assertFalse(
+            handle instanceof com.cleanroommc.modularui.api.widget.Interactable,
+            "PanelDragHandle must not implement Interactable to avoid bypassing onHoveredClick");
     }
 
     @Test
