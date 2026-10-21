@@ -540,7 +540,7 @@ public final class ReactorDataRegistry {
                 }
             } catch (Throwable ignored) {}
             try {
-                ItemStack is = gregtech.api.util.GTModHandler.getModItem("IC2", ic2Name, 1);
+                ItemStack is = GameRegistry.findItemStack("IC2", ic2Name, 1);
                 if (is != null) return is;
             } catch (Throwable ignored) {}
         }
@@ -638,7 +638,36 @@ public final class ReactorDataRegistry {
         for (String pattern : patterns) {
             if (pattern == null || pattern.isEmpty()) continue;
 
-            // 1. Exact ItemList match (supports "ItemList.RodUranium" or enum name "RodUranium")
+            // 1. Exact Registry Name match ("gregtech:gt.rodUranium", "IC2:reactorUraniumSimple", or
+            // "modid:item:damage")
+            if (regName != null) {
+                if (regName.equalsIgnoreCase(pattern)) return true;
+                if ((regName + ":" + damage).equalsIgnoreCase(pattern)) return true;
+            }
+
+            // 2. Exact Unlocalized Name match ("gt.rodUranium", "item.super_uranium", etc.)
+            if (unloc != null) {
+                if (unloc.equalsIgnoreCase(pattern)) return true;
+                if (unloc.startsWith("item.") && unloc.substring(5)
+                    .equalsIgnoreCase(pattern)) return true;
+                if (unloc.startsWith("tile.") && unloc.substring(5)
+                    .equalsIgnoreCase(pattern)) return true;
+                if (pattern.startsWith("item.") && pattern.substring(5)
+                    .equalsIgnoreCase(unloc)) return true;
+                if (pattern.startsWith("tile.") && pattern.substring(5)
+                    .equalsIgnoreCase(unloc)) return true;
+            }
+
+            // 3. Exact OreDictionary match ("ore:plateBeryllium" or "plateBeryllium")
+            String oreTarget = pattern.startsWith("ore:") ? pattern.substring(4) : pattern;
+            if (oreIDs != null && oreIDs.length > 0) {
+                for (int id : oreIDs) {
+                    String oreName = OreDictionary.getOreName(id);
+                    if (oreName != null && oreName.equalsIgnoreCase(oreTarget)) return true;
+                }
+            }
+
+            // 4. Exact ItemList match (supports "ItemList.RodUranium" or enum name "RodUranium")
             if (pattern.startsWith("ItemList.")) {
                 try {
                     ItemList il = ItemList.valueOf(pattern.substring("ItemList.".length()));
@@ -655,7 +684,7 @@ public final class ReactorDataRegistry {
                 } catch (Throwable ignored) {}
             }
 
-            // 2. Exact IC2 item match ("IC2:reactorUraniumSimple")
+            // 5. Exact IC2 item match ("IC2:reactorUraniumSimple") via reflection / GameRegistry
             if (pattern.toUpperCase()
                 .startsWith("IC2:")) {
                 String ic2Name = pattern.substring(4);
@@ -667,39 +696,11 @@ public final class ReactorDataRegistry {
                     }
                 } catch (Throwable ignored) {}
                 try {
-                    ItemStack is = gregtech.api.util.GTModHandler.getModItem("IC2", ic2Name, 1);
+                    ItemStack is = GameRegistry.findItemStack("IC2", ic2Name, 1);
                     if (is != null && GTUtility.areStacksEqual(stack, is, true)) {
                         return true;
                     }
                 } catch (Throwable ignored) {}
-            }
-
-            // 3. Exact OreDictionary match ("ore:plateBeryllium" or "plateBeryllium")
-            String oreTarget = pattern.startsWith("ore:") ? pattern.substring(4) : pattern;
-            if (oreIDs != null && oreIDs.length > 0) {
-                for (int id : oreIDs) {
-                    String oreName = OreDictionary.getOreName(id);
-                    if (oreName != null && oreName.equalsIgnoreCase(oreTarget)) return true;
-                }
-            }
-
-            // 4. Exact Registry Name match ("gregtech:gt.rodUranium" or "modid:item:damage")
-            if (regName != null) {
-                if (regName.equalsIgnoreCase(pattern)) return true;
-                if ((regName + ":" + damage).equalsIgnoreCase(pattern)) return true;
-            }
-
-            // 5. Exact Unlocalized Name match ("gt.rodUranium", "item.super_uranium", etc.)
-            if (unloc != null) {
-                if (unloc.equalsIgnoreCase(pattern)) return true;
-                if (unloc.startsWith("item.") && unloc.substring(5)
-                    .equalsIgnoreCase(pattern)) return true;
-                if (unloc.startsWith("tile.") && unloc.substring(5)
-                    .equalsIgnoreCase(pattern)) return true;
-                if (pattern.startsWith("item.") && pattern.substring(5)
-                    .equalsIgnoreCase(unloc)) return true;
-                if (pattern.startsWith("tile.") && pattern.substring(5)
-                    .equalsIgnoreCase(unloc)) return true;
             }
 
             // 6. Explicit Wildcard Fallback (only if pattern explicitly contains '*')
@@ -1951,7 +1952,9 @@ public final class ReactorDataRegistry {
                 0.05,
                 "dreamcraft:MicaInsulatorFoil",
                 "MicaInsulatorFoil",
-                "item.MicaInsulatorFoil"));
+                "item.MicaInsulatorFoil",
+                "ore:foilMica",
+                "foilMica"));
         cd.insulators.add(
             new InsulatorData(
                 "insulator_cloth_t2",
@@ -1978,6 +1981,20 @@ public final class ReactorDataRegistry {
                 "itemBasicAsteroids:7",
                 "item.ThermalCloth",
                 "itemThermalCloth"));
+        cd.insulators.add(
+            new InsulatorData(
+                "insulator_wool",
+                "Alumino-Silicate Wool",
+                0.30,
+                0.015,
+                0.01,
+                0.01,
+                0.05,
+                0.05,
+                "dreamcraft:AluminoSilicateWool",
+                "AluminoSilicateWool",
+                "item.AluminoSilicateWool",
+                "woolAluminoSilicate"));
 
         // Radiovoltaics - default efficiency = 1.0 (100%), explicit maxEU
         cd.radiovoltaics.add(
