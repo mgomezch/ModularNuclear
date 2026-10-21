@@ -461,13 +461,13 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
 
     @Override
     public boolean isItemValidForSlot(int aIndex, ItemStack aStack) {
-        return aIndex == SLOT_ROD && isControlRod(aStack);
+        return aIndex == SLOT_ROD && mInventory[SLOT_ROD] == null && isControlRod(aStack);
     }
 
     @Override
     public boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection aSide,
         ItemStack aStack) {
-        return aIndex == SLOT_ROD && isControlRod(aStack) && (mInventory[SLOT_ROD] == null);
+        return aIndex == SLOT_ROD && mInventory[SLOT_ROD] == null && isControlRod(aStack);
     }
 
     @Override

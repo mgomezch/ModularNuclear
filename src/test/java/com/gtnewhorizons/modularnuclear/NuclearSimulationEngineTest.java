@@ -5726,6 +5726,82 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
+    void testOccupiedHatchSlotShortCircuits() {
+        MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.nuclear.bus", 4, new String[0], null) {
+
+            @Override
+            public boolean isItemAllowed(ItemStack stack) {
+                return stack != null;
+            }
+        };
+        com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod rodHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod(
+            "test.control.rod",
+            4,
+            new String[0],
+            null);
+
+        net.minecraft.item.Item silverRodItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        org.mockito.Mockito.when(silverRodItem.getUnlocalizedName(org.mockito.Mockito.any()))
+            .thenReturn("stickLongSilver");
+        ItemStack silverRodStack = new ItemStack(silverRodItem, 1, 0);
+
+        net.minecraft.item.Item dummyItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        ItemStack validStack = new ItemStack(dummyItem, 1, 0);
+
+        // 1. When bus is empty: accepts valid item
+        assertTrue(bus.isItemValidForSlot(MTEHatchNuclearBus.SLOT_INPUT, validStack));
+        assertTrue(bus.allowPutStack(null, MTEHatchNuclearBus.SLOT_INPUT, ForgeDirection.UNKNOWN, validStack));
+
+        // 2. When bus is occupied: short-circuits to false immediately
+        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = validStack;
+        assertFalse(bus.isItemValidForSlot(MTEHatchNuclearBus.SLOT_INPUT, validStack));
+        assertFalse(bus.allowPutStack(null, MTEHatchNuclearBus.SLOT_INPUT, ForgeDirection.UNKNOWN, validStack));
+
+        // 3. When bus is emptied: accepts valid item again
+        bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+        assertTrue(bus.isItemValidForSlot(MTEHatchNuclearBus.SLOT_INPUT, validStack));
+        assertTrue(bus.allowPutStack(null, MTEHatchNuclearBus.SLOT_INPUT, ForgeDirection.UNKNOWN, validStack));
+
+        // 4. When control rod hatch is empty: accepts control rod
+        assertTrue(
+            rodHatch.isItemValidForSlot(
+                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
+                silverRodStack));
+        assertTrue(
+            rodHatch.allowPutStack(
+                null,
+                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
+                ForgeDirection.UNKNOWN,
+                silverRodStack));
+
+        // 5. When control rod hatch is occupied: short-circuits to false immediately
+        rodHatch.mInventory[com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD] = silverRodStack;
+        assertFalse(
+            rodHatch.isItemValidForSlot(
+                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
+                silverRodStack));
+        assertFalse(
+            rodHatch.allowPutStack(
+                null,
+                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
+                ForgeDirection.UNKNOWN,
+                silverRodStack));
+
+        // 6. When control rod hatch is emptied: accepts control rod again
+        rodHatch.mInventory[com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD] = null;
+        assertTrue(
+            rodHatch.isItemValidForSlot(
+                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
+                silverRodStack));
+        assertTrue(
+            rodHatch.allowPutStack(
+                null,
+                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
+                ForgeDirection.UNKNOWN,
+                silverRodStack));
+    }
+
+    @Test
     void testConfigDrivenTierLimitsAndBoilingPoints() {
         // Default tier limits
         assertEquals(

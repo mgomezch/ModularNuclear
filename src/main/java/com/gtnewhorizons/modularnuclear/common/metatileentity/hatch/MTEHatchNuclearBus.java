@@ -174,7 +174,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
 
     @Override
     public boolean isItemValidForSlot(int aIndex, ItemStack aStack) {
-        return aIndex == SLOT_INPUT && aStack != null && isItemAllowed(aStack);
+        return aIndex == SLOT_INPUT && mInventory[SLOT_INPUT] == null && aStack != null && isItemAllowed(aStack);
     }
 
     @Override
