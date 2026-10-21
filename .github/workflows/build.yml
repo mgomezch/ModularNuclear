@@ -19,17 +19,16 @@ jobs:
       - name: Checkout ModularNuclear
         uses: actions/checkout@v4
         with:
-          path: ModularNuclear
           fetch-depth: 0
 
       - name: Set up Java 21 (for TeaVM WebAssembly compilation)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Set up Java 25 (Primary build JDK)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '25'
           distribution: 'temurin'
@@ -38,7 +37,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build ModularNuclear
-        working-directory: ModularNuclear
         run: |
           chmod +x gradlew
           ./gradlew build generateWasm exportStaticDist
@@ -48,25 +46,24 @@ jobs:
         with:
           name: ModularNuclear-jars
           path: |
-            ModularNuclear/build/libs/modularnuclear-*.jar
-            !ModularNuclear/build/libs/*-sources.jar
-            !ModularNuclear/build/libs/*-predowngrade.jar
-            !ModularNuclear/build/libs/*-dirty*.jar
+            build/libs/*.jar
+            !build/libs/*-sources.jar
+            !build/libs/*-predowngrade.jar
+            !build/libs/*-dirty*.jar
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ModularNuclear/build/libs/modularnuclear-*.jar
-            !ModularNuclear/build/libs/*-sources.jar
-            !ModularNuclear/build/libs/*-predowngrade.jar
-            !ModularNuclear/build/libs/*-dirty*.jar
+            build/libs/*.jar
+            !build/libs/*-sources.jar
+            !build/libs/*-predowngrade.jar
+            !build/libs/*-dirty*.jar
           generate_release_notes: true
 
       - name: Deploy Simulator WebApp to GitHub Pages (Staging)
         if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) || github.event_name == 'workflow_dispatch'
-        working-directory: ModularNuclear
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -90,7 +87,6 @@ jobs:
 
       - name: Deploy Simulator WebApp to GitHub Pages (Production)
         if: startsWith(github.ref, 'refs/tags/v')
-        working-directory: ModularNuclear
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
