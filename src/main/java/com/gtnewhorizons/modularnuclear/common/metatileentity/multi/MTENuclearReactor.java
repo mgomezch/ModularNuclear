@@ -1586,6 +1586,16 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 mCycleTransmutationByproducts = 0;
                 mCycleDepletedLiquidFuel = 0;
 
+                if (mGrid != null) {
+                    for (int x = 0; x < gridSize; x++) {
+                        for (int y = 0; y < gridSize; y++) {
+                            if (mGrid[x][y] instanceof NuclearGridTile gt) {
+                                gt.refreshProperties();
+                            }
+                        }
+                    }
+                }
+
                 double maintEff = getMaintenanceEfficiency();
                 NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine
                     .simulate(mGrid, gridSize, gridSize, maintEff, ambient);
@@ -2288,10 +2298,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public static boolean isItemModerator(ItemStack stack) {
         return NuclearFuelClassification.isItemModerator(stack);
-    }
-
-    public static boolean isItemReactorPlating(ItemStack stack) {
-        return false;
     }
 
     public boolean isItemAllowedInBus(ItemStack stack) {

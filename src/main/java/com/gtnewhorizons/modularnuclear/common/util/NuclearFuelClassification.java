@@ -62,6 +62,104 @@ public final class NuclearFuelClassification {
         ItemList.Reactor_Coolant_NaK_3, ItemList.Reactor_Coolant_NaK_6, ItemList.Reactor_Coolant_Sp_1,
         ItemList.Reactor_Coolant_Sp_2, ItemList.Reactor_Coolant_Sp_3, ItemList.Reactor_Coolant_Sp_6 };
 
+    private static final java.util.Map<Long, Boolean> BUS_ITEM_ALLOWED_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Set<Long> ACTIVE_ROD_KEYS = new java.util.HashSet<>();
+    private static final java.util.Set<Long> DEPLETED_ROD_KEYS = new java.util.HashSet<>();
+    private static final java.util.Set<Long> GT_COOLANT_KEYS = new java.util.HashSet<>();
+    private static final java.util.Set<Long> IC2_ACTIVE_KEYS = new java.util.HashSet<>();
+    private static final java.util.Set<Long> IC2_DEPLETED_KEYS = new java.util.HashSet<>();
+    private static final java.util.Set<Long> HULL_ONLY_KEYS = new java.util.HashSet<>();
+    private static volatile boolean keysInitialized = false;
+    private static net.minecraft.item.Item cachedNeutronSourceItem = null;
+    private static volatile boolean neutronSourceInitialized = false;
+
+    public static synchronized void clearCaches() {
+        BUS_ITEM_ALLOWED_CACHE.clear();
+        ACTIVE_ROD_KEYS.clear();
+        DEPLETED_ROD_KEYS.clear();
+        GT_COOLANT_KEYS.clear();
+        IC2_ACTIVE_KEYS.clear();
+        IC2_DEPLETED_KEYS.clear();
+        HULL_ONLY_KEYS.clear();
+        keysInitialized = false;
+        cachedNeutronSourceItem = null;
+        neutronSourceInitialized = false;
+    }
+
+    public static synchronized void preIndexKeys() {
+        initKeys();
+    }
+
+    private static void initKeys() {
+        if (keysInitialized) return;
+        synchronized (ACTIVE_ROD_KEYS) {
+            if (keysInitialized) return;
+            for (ItemList item : ACTIVE_FUEL_RODS) {
+                if (item != null && item.hasBeenSet()) {
+                    ItemStack is = item.get(1L);
+                    if (is != null) {
+                        long k = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(is);
+                        if (k != 0L) ACTIVE_ROD_KEYS.add(k);
+                    }
+                }
+            }
+            for (ItemList item : DEPLETED_FUEL_RODS) {
+                if (item != null && item.hasBeenSet()) {
+                    ItemStack is = item.get(1L);
+                    if (is != null) {
+                        long k = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(is);
+                        if (k != 0L) DEPLETED_ROD_KEYS.add(k);
+                    }
+                }
+            }
+            if (ItemList.IC2_Fuel_Rod_Empty != null && ItemList.IC2_Fuel_Rod_Empty.hasBeenSet()) {
+                ItemStack is = ItemList.IC2_Fuel_Rod_Empty.get(1L);
+                if (is != null) {
+                    long k = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(is);
+                    if (k != 0L) DEPLETED_ROD_KEYS.add(k);
+                }
+            }
+            for (ItemList item : GT_COOLANT_CELLS) {
+                if (item != null && item.hasBeenSet()) {
+                    ItemStack is = item.get(1L);
+                    if (is != null) {
+                        long k = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(is);
+                        if (k != 0L) GT_COOLANT_KEYS.add(k);
+                    }
+                }
+            }
+            addKeyIfNotNull(IC2_ACTIVE_KEYS, Ic2Items.reactorUraniumSimple);
+            addKeyIfNotNull(IC2_ACTIVE_KEYS, Ic2Items.reactorUraniumDual);
+            addKeyIfNotNull(IC2_ACTIVE_KEYS, Ic2Items.reactorUraniumQuad);
+            addKeyIfNotNull(IC2_ACTIVE_KEYS, Ic2Items.reactorMOXSimple);
+            addKeyIfNotNull(IC2_ACTIVE_KEYS, Ic2Items.reactorMOXDual);
+            addKeyIfNotNull(IC2_ACTIVE_KEYS, Ic2Items.reactorMOXQuad);
+            addKeyIfNotNull(IC2_ACTIVE_KEYS, Ic2Items.reactorLithiumCell);
+
+            addKeyIfNotNull(IC2_DEPLETED_KEYS, Ic2Items.reactorDepletedUraniumSimple);
+            addKeyIfNotNull(IC2_DEPLETED_KEYS, Ic2Items.reactorDepletedUraniumDual);
+            addKeyIfNotNull(IC2_DEPLETED_KEYS, Ic2Items.reactorDepletedUraniumQuad);
+            addKeyIfNotNull(IC2_DEPLETED_KEYS, Ic2Items.reactorDepletedMOXSimple);
+            addKeyIfNotNull(IC2_DEPLETED_KEYS, Ic2Items.reactorDepletedMOXDual);
+            addKeyIfNotNull(IC2_DEPLETED_KEYS, Ic2Items.reactorDepletedMOXQuad);
+            addKeyIfNotNull(DEPLETED_ROD_KEYS, Ic2Items.fuelRod);
+
+            addKeyIfNotNull(HULL_ONLY_KEYS, Ic2Items.reactorVentCore);
+            addKeyIfNotNull(HULL_ONLY_KEYS, Ic2Items.reactorHeatSwitchCore);
+
+            if (!ACTIVE_ROD_KEYS.isEmpty()) {
+                keysInitialized = true;
+            }
+        }
+    }
+
+    private static void addKeyIfNotNull(java.util.Set<Long> set, ItemStack stack) {
+        if (stack != null) {
+            long k = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+            if (k != 0L) set.add(k);
+        }
+    }
+
     public static boolean isOreDictMatch(ItemStack stack, String oreName) {
         if (stack == null || oreName == null) return false;
         try {
@@ -77,6 +175,9 @@ public final class NuclearFuelClassification {
 
     public static boolean isIC2ActiveFuelCell(ItemStack stack) {
         if (stack == null) return false;
+        initKeys();
+        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        if (key != 0L && IC2_ACTIVE_KEYS.contains(key)) return true;
         if (Ic2Items.reactorUraniumSimple != null
             && GTUtility.areStacksEqual(stack, Ic2Items.reactorUraniumSimple, true)) return true;
         if (Ic2Items.reactorUraniumDual != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorUraniumDual, true))
@@ -96,6 +197,9 @@ public final class NuclearFuelClassification {
 
     public static boolean isIC2DepletedFuelCell(ItemStack stack) {
         if (stack == null) return false;
+        initKeys();
+        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        if (key != 0L && IC2_DEPLETED_KEYS.contains(key)) return true;
         if (Ic2Items.reactorDepletedUraniumSimple != null
             && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedUraniumSimple, true)) return true;
         if (Ic2Items.reactorDepletedUraniumDual != null
@@ -113,6 +217,12 @@ public final class NuclearFuelClassification {
 
     public static boolean isDepletedOrEmptyRod(ItemStack stack) {
         if (stack == null) return false;
+
+        initKeys();
+        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        if (key != 0L && (DEPLETED_ROD_KEYS.contains(key) || IC2_DEPLETED_KEYS.contains(key))) {
+            return true;
+        }
 
         if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemBlocked(stack)) {
             return true;
@@ -232,6 +342,12 @@ public final class NuclearFuelClassification {
         if (stack == null) return false;
         if (isDepletedOrEmptyRod(stack)) return false;
 
+        initKeys();
+        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        if (key != 0L && (ACTIVE_ROD_KEYS.contains(key) || IC2_ACTIVE_KEYS.contains(key))) {
+            return true;
+        }
+
         if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(stack) != null) {
             return true;
         }
@@ -311,6 +427,9 @@ public final class NuclearFuelClassification {
 
     public static boolean isHullOnlyComponent(ItemStack stack) {
         if (stack == null) return false;
+        initKeys();
+        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        if (key != 0L && HULL_ONLY_KEYS.contains(key)) return true;
         if (Ic2Items.reactorVentCore != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorVentCore, true))
             return true;
         if (Ic2Items.reactorHeatSwitchCore != null
@@ -326,6 +445,9 @@ public final class NuclearFuelClassification {
 
     public static boolean isItemCoolant(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return false;
+        initKeys();
+        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        if (key != 0L && GT_COOLANT_KEYS.contains(key)) return true;
         if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantItem(stack) != null)
             return true;
         if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemCoolant(stack)) return true;
@@ -386,11 +508,6 @@ public final class NuclearFuelClassification {
         return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemModerator(stack);
     }
 
-    public static boolean isItemReactorPlating(ItemStack stack) {
-        // Platings are not admitted in MPTR reactors
-        return false;
-    }
-
     public static boolean isItemRadiovoltaic(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return false;
         if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findRadiovoltaic(stack) != null)
@@ -413,6 +530,35 @@ public final class NuclearFuelClassification {
     public static boolean isItemAllowedInBus(ItemStack stack, MTEHatchNuclearBus bus) {
         if (stack == null) return false;
 
+        // Custom fuel rods require valid NBT mix
+        if (stack.getItem() != null && (stack.getItem() instanceof ItemCustomFuelRod
+            || (ModItems.rodCustomFuel1 != null && stack.getItem() == ModItems.rodCustomFuel1)
+            || (ModItems.rodCustomFuel2 != null && stack.getItem() == ModItems.rodCustomFuel2)
+            || (ModItems.rodCustomFuel4 != null && stack.getItem() == ModItems.rodCustomFuel4))) {
+            return CustomFuelMix.hasCustomMix(stack);
+        }
+
+        // Subclasses or buses with cheese extraction recipe
+        if (bus != null && bus.findCheeseExtractionRecipe(stack) != null) {
+            return true;
+        }
+
+        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        if (key != 0L) {
+            Boolean cached = BUS_ITEM_ALLOWED_CACHE.get(key);
+            if (cached != null) {
+                return cached.booleanValue();
+            }
+        }
+
+        boolean allowed = computeIsItemAllowedInBus(stack, bus);
+        if (key != 0L) {
+            BUS_ITEM_ALLOWED_CACHE.put(key, Boolean.valueOf(allowed));
+        }
+        return allowed;
+    }
+
+    private static boolean computeIsItemAllowedInBus(ItemStack stack, MTEHatchNuclearBus bus) {
         // 1. Dynamic cheese extraction Easter egg inputs:
         if (com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
             .isCheeseInput(stack)) {
@@ -451,21 +597,39 @@ public final class NuclearFuelClassification {
 
     public static boolean isItemNeutronSource(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return false;
-        try {
-            if (goodgenerator.loader.Loaders.neutronSource != null
-                && stack.getItem() == goodgenerator.loader.Loaders.neutronSource) {
-                return true;
+        if (!neutronSourceInitialized) {
+            try {
+                if (goodgenerator.loader.Loaders.neutronSource != null) {
+                    cachedNeutronSourceItem = goodgenerator.loader.Loaders.neutronSource;
+                    neutronSourceInitialized = true;
+                }
+            } catch (Throwable ignored) {}
+            if (cachedNeutronSourceItem == null) {
+                try {
+                    cachedNeutronSourceItem = cpw.mods.fml.common.registry.GameRegistry
+                        .findItem("GoodGenerator", "neutronSource");
+                    if (cachedNeutronSourceItem != null) {
+                        neutronSourceInitialized = true;
+                    }
+                } catch (Throwable ignored) {}
             }
-        } catch (Throwable ignored) {}
+        }
+        if (cachedNeutronSourceItem != null) {
+            return stack.getItem() == cachedNeutronSourceItem;
+        }
         try {
             net.minecraft.item.Item item = stack.getItem();
             cpw.mods.fml.common.registry.GameRegistry.UniqueIdentifier uid = cpw.mods.fml.common.registry.GameRegistry
                 .findUniqueIdentifierFor(item);
             if (uid != null && "GoodGenerator".equalsIgnoreCase(uid.modId)
                 && "neutronSource".equalsIgnoreCase(uid.name)) {
+                cachedNeutronSourceItem = item;
+                neutronSourceInitialized = true;
                 return true;
             }
             if ("item.neutronSource".equalsIgnoreCase(item.getUnlocalizedName())) {
+                cachedNeutronSourceItem = item;
+                neutronSourceInitialized = true;
                 return true;
             }
         } catch (Throwable ignored) {}

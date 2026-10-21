@@ -1,0 +1,560 @@
+reflectors:
+- id: reflector_gold
+  name: Gold Plate Reflector
+  matching:
+  - plateGold
+  - ore:plateGold
+  absorption_fast: 0.15
+  absorption_thermal: 0.1
+  scattering_fast: 0.85
+  scattering_thermal: 0.9
+  moderation: 0.0
+  heat_transfer_coeff: 0.3
+  durability: 0
+- id: reflector_stainless_steel
+  name: Stainless Steel Plate Reflector
+  matching:
+  - plateStainlessSteel
+  - ore:plateStainlessSteel
+  absorption_fast: 0.1
+  absorption_thermal: 0.05
+  scattering_fast: 0.9
+  scattering_thermal: 0.95
+  moderation: 0.0
+  heat_transfer_coeff: 0.2
+  durability: 0
+- id: reflector_tungsten_carbide
+  name: Tungsten Carbide Plate Reflector
+  matching:
+  - plateTungstenCarbide
+  - ore:plateTungstenCarbide
+  absorption_fast: 0.07
+  absorption_thermal: 0.02
+  scattering_fast: 0.93
+  scattering_thermal: 0.98
+  moderation: 0.0
+  heat_transfer_coeff: 0.1
+  durability: 0
+- id: reflector_ic2
+  name: Neutron Reflector
+  matching:
+  - IC2:reactorReflector
+  - ItemList.Neutron_Reflector
+  - gregtech:gt.neutronReflector
+  absorption_fast: 0.01
+  absorption_thermal: 0.02
+  scattering_fast: 0.95
+  scattering_thermal: 0.98
+  moderation: 0.2
+  heat_transfer_coeff: 0.15
+  durability: 10000
+- id: reflector_ic2_thick
+  name: Thick Neutron Reflector
+  matching:
+  - IC2:reactorReflectorThick
+  - ItemList.Neutron_Reflector_Thick
+  absorption_fast: 0.005
+  absorption_thermal: 0.01
+  scattering_fast: 0.98
+  scattering_thermal: 0.99
+  moderation: 0.25
+  heat_transfer_coeff: 0.2
+  durability: 40000
+moderators:
+- id: moderator_graphite
+  name: Graphite Moderator
+  matching:
+  - stickLongGraphite
+  - ore:stickLongGraphite
+  absorption_fast: 0.002
+  absorption_thermal: 0.009
+  scattering_fast: 0.93
+  scattering_thermal: 0.621
+  moderation: 0.5
+  heat_transfer_coeff: 0.05
+  max_temperature: 2500.0
+  durability: 80000
+  spent_product: ore:dustAsh
+  temp_wear_k: 3.0E-4
+  temp_wear_a: 1.0
+  thermal_emission_onset_temp: 1500.0
+  thermal_emission_half_temp: 2500.0
+  thermal_emission_max_per_fast: 0.0
+  wigner_energy_per_fast: 1.0
+  wigner_release_onset_temp: 1500.0
+  wigner_release_half_temp: 2500.0
+  wigner_max_release_rate: 2000.0
+  wigner_max_energy: 10000.0
+- id: moderator_carbon
+  name: Carbon Moderator
+  matching:
+  - stickLongCarbon
+  - ore:stickLongCarbon
+  absorption_fast: 0.003
+  absorption_thermal: 0.012
+  scattering_fast: 0.9
+  scattering_thermal: 0.6
+  moderation: 0.45
+  heat_transfer_coeff: 0.05
+  max_temperature: 2200.0
+  durability: 10000
+  spent_product: ore:dustAsh
+  temp_wear_k: 5.0E-4
+  temp_wear_a: 1.0
+  thermal_emission_onset_temp: 1500.0
+  thermal_emission_half_temp: 2500.0
+  thermal_emission_max_per_fast: 0.0
+  wigner_energy_per_fast: 0.0
+  wigner_release_onset_temp: 1500.0
+  wigner_release_half_temp: 2500.0
+  wigner_max_release_rate: 0.0
+  wigner_max_energy: 10000.0
+- id: moderator_beryllium
+  name: Beryllium Moderator
+  matching:
+  - stickLongBeryllium
+  - ore:stickLongBeryllium
+  absorption_fast: 0.001
+  absorption_thermal: 0.004
+  scattering_fast: 0.96
+  scattering_thermal: 0.85
+  moderation: 0.65
+  heat_transfer_coeff: 0.15
+  max_temperature: 2600.0
+  durability: 240000
+  spent_product: ''
+  temp_wear_k: 2.0E-4
+  temp_wear_a: 0.5
+  thermal_emission_onset_temp: 1500.0
+  thermal_emission_half_temp: 2500.0
+  thermal_emission_max_per_fast: 0.0
+  wigner_energy_per_fast: 0.0
+  wigner_release_onset_temp: 1500.0
+  wigner_release_half_temp: 2500.0
+  wigner_max_release_rate: 0.0
+  wigner_max_energy: 10000.0
+control_rods:
+- id: rod_silver
+  name: Silver Control Rod
+  matching:
+  - stickLongSilver
+  - ore:stickLongSilver
+  - stickSilver
+  - ore:stickSilver
+  - rodSilver
+  - ore:rodSilver
+  max_thermal_absorption: 0.5
+  max_fast_absorption: 0.2
+  scattering_fast: 0.05
+  scattering_thermal: 0.05
+  heat_transfer_coeff: 0.2
+- id: rod_boron
+  name: Boron Control Rod
+  matching:
+  - stickLongBoron
+  - ore:stickLongBoron
+  - stickBoron
+  - ore:stickBoron
+  - rodBoron
+  - ore:rodBoron
+  max_thermal_absorption: 0.7
+  max_fast_absorption: 0.35
+  scattering_fast: 0.05
+  scattering_thermal: 0.05
+  heat_transfer_coeff: 0.08
+- id: rod_cadmium
+  name: Cadmium Control Rod
+  matching:
+  - stickLongCadmium
+  - ore:stickLongCadmium
+  - stickCadmium
+  - ore:stickCadmium
+  - rodCadmium
+  - ore:rodCadmium
+  max_thermal_absorption: 0.85
+  max_fast_absorption: 0.5
+  scattering_fast: 0.05
+  scattering_thermal: 0.05
+  heat_transfer_coeff: 0.12
+- id: rod_indium
+  name: Indium Control Rod
+  matching:
+  - stickLongIndium
+  - ore:stickLongIndium
+  - stickIndium
+  - ore:stickIndium
+  - rodIndium
+  - ore:rodIndium
+  max_thermal_absorption: 0.95
+  max_fast_absorption: 0.65
+  scattering_fast: 0.05
+  scattering_thermal: 0.05
+  heat_transfer_coeff: 0.14
+- id: rod_hafnium
+  name: Hafnium Control Rod
+  matching:
+  - stickLongHafnium
+  - ore:stickLongHafnium
+  - stickHafnium
+  - ore:stickHafnium
+  - rodHafnium
+  - ore:rodHafnium
+  max_thermal_absorption: 0.99
+  max_fast_absorption: 0.8
+  scattering_fast: 0.05
+  scattering_thermal: 0.05
+  heat_transfer_coeff: 0.16
+heat_vents:
+- id: vent_standard
+  name: Reactor Heat Vent
+  matching:
+  - IC2:reactorVent
+  heat_transfer_coeff: 0.4
+  self_cooling_rate: 6.0
+  max_temperature: 0.0
+  eu_per_hu: 0.25
+  moderation: 0.05
+  max_eu_t: 128
+  max_hu_t: 512.0
+- id: vent_gold
+  name: Advanced Heat Vent
+  matching:
+  - IC2:reactorVentGold
+  heat_transfer_coeff: 0.45
+  self_cooling_rate: 12.0
+  max_temperature: 0.0
+  eu_per_hu: 0.25
+  moderation: 0.05
+  max_eu_t: 512
+  max_hu_t: 2048.0
+- id: vent_spread
+  name: Overclocked Heat Vent
+  matching:
+  - IC2:reactorVentSpread
+  heat_transfer_coeff: 0.4
+  self_cooling_rate: 8.0
+  max_temperature: 0.0
+  eu_per_hu: 0.25
+  moderation: 0.05
+  max_eu_t: 1024
+  max_hu_t: 4096.0
+- id: vent_diamond
+  name: Component Heat Vent
+  matching:
+  - IC2:reactorVentDiamond
+  heat_transfer_coeff: 0.5
+  self_cooling_rate: 20.0
+  max_temperature: 0.0
+  eu_per_hu: 0.25
+  moderation: 0.05
+  max_eu_t: 2048
+  max_hu_t: 8192.0
+heat_exchangers:
+- id: exchanger_standard
+  name: Heat Exchanger
+  matching:
+  - IC2:reactorHeatSwitch
+  heat_transfer_coeff: 0.4
+  switch_transfer_rate: 12.0
+  max_temperature: 0.0
+  eu_per_hu: 0.25
+  moderation: 0.05
+  max_eu_t: 256
+  max_hu_t: 1024.0
+- id: exchanger_spread
+  name: Advanced Heat Exchanger
+  matching:
+  - IC2:reactorHeatSwitchSpread
+  heat_transfer_coeff: 0.45
+  switch_transfer_rate: 24.0
+  max_temperature: 0.0
+  eu_per_hu: 0.25
+  moderation: 0.05
+  max_eu_t: 512
+  max_hu_t: 2048.0
+- id: exchanger_diamond
+  name: Component Heat Exchanger
+  matching:
+  - IC2:reactorHeatSwitchDiamond
+  heat_transfer_coeff: 0.5
+  switch_transfer_rate: 36.0
+  max_temperature: 0.0
+  eu_per_hu: 0.25
+  moderation: 0.05
+  max_eu_t: 1024
+  max_hu_t: 4096.0
+insulators:
+- id: insulator_naquarite
+  name: Naquarite Universal Insulator Foil
+  matching:
+  - ItemList.Naquarite_Universal_Insulator_Foil
+  - Naquarite_Universal_Insulator_Foil
+  - gregtech:gt.naquariteUniversalInsulatorFoil
+  - ore:foilNaquarite
+  dampening: 1.0
+  heat_transfer_coeff: 0.005
+  absorption_fast: 1.0
+  absorption_thermal: 1.0
+  scattering_fast: 0.0
+  scattering_thermal: 0.0
+- id: insulator_mica
+  name: Mica Insulator Foil
+  matching:
+  - dreamcraft:MicaInsulatorFoil
+  - MicaInsulatorFoil
+  - item.MicaInsulatorFoil
+  - ore:foilMica
+  - foilMica
+  dampening: 0.6
+  heat_transfer_coeff: 0.01
+  absorption_fast: 0.01
+  absorption_thermal: 0.01
+  scattering_fast: 0.05
+  scattering_thermal: 0.05
+- id: insulator_cloth_t2
+  name: Thermal Cloth T2
+  matching:
+  - GalaxySpace:item.ThermalClothT2
+  - item.ThermalClothT2
+  dampening: 0.4
+  heat_transfer_coeff: 0.01
+  absorption_fast: 0.01
+  absorption_thermal: 0.01
+  scattering_fast: 0.05
+  scattering_thermal: 0.05
+- id: insulator_cloth_t1
+  name: Thermal Cloth
+  matching:
+  - GalacticraftMars:item.itemBasicAsteroids:7
+  - itemBasicAsteroids:7
+  - item.ThermalCloth
+  - itemThermalCloth
+  dampening: 0.2
+  heat_transfer_coeff: 0.01
+  absorption_fast: 0.01
+  absorption_thermal: 0.01
+  scattering_fast: 0.05
+  scattering_thermal: 0.05
+- id: insulator_wool
+  name: Alumino-Silicate Wool
+  matching:
+  - dreamcraft:AluminoSilicateWool
+  - AluminoSilicateWool
+  - item.AluminoSilicateWool
+  - woolAluminoSilicate
+  dampening: 0.3
+  heat_transfer_coeff: 0.015
+  absorption_fast: 0.01
+  absorption_thermal: 0.01
+  scattering_fast: 0.05
+  scattering_thermal: 0.05
+radiovoltaics:
+- id: radiovoltaic_hv
+  name: HV Radiovoltaic Plate
+  matching:
+  - modularnuclear:radiovoltaicPlateHV
+  tier: 1
+  eu_conversion_efficiency: 1.0
+  max_eu_t: 1024
+  heat_transfer_coeff: 0.1
+  absorption_fast: 1.0
+  absorption_thermal: 1.0
+- id: radiovoltaic_ev
+  name: EV Radiovoltaic Plate
+  matching:
+  - modularnuclear:radiovoltaicPlateEV
+  tier: 2
+  eu_conversion_efficiency: 1.0
+  max_eu_t: 4096
+  heat_transfer_coeff: 0.1
+  absorption_fast: 1.0
+  absorption_thermal: 1.0
+coolant_fluids:
+- id: coolant_distilled_water
+  name: Distilled Water
+  matching:
+  - distilledwater
+  - fluid.distilledwater
+  - ic2distilledwater
+  - fluid.ic2distilledwater
+  boiling_temperature: 100.0
+  heat_transfer_coeff: 0.3
+  heat_capacity: 4.184
+  absorption_fast: 0.05
+  absorption_thermal: 0.1
+  scattering_fast: 0.7
+  scattering_thermal: 0.7
+  moderation: 0.25
+  hot_fluid_name: ic2superheatedsteam
+  required_tier: 1
+  expansion_ratio: 160
+  heat_per_liter: 160.0
+  freezing_temperature: 0.0
+  explosion_temperature: 100.0
+  transmutation_product: deuterium
+  transmutation_chance_per_neutron: 0.025
+- id: coolant_heavy_water
+  name: Heavy Water
+  matching:
+  - heavywater
+  - fluid.heavywater
+  boiling_temperature: 101.4
+  heat_transfer_coeff: 0.3
+  heat_capacity: 4.22
+  absorption_fast: 0.005
+  absorption_thermal: 0.01
+  scattering_fast: 0.85
+  scattering_thermal: 0.85
+  moderation: 0.9
+  hot_fluid_name: heavywatersteam
+  required_tier: 3
+  expansion_ratio: 160
+  heat_per_liter: 160.0
+  freezing_temperature: 3.8
+  explosion_temperature: 101.4
+  transmutation_product: tritium
+  transmutation_chance_per_neutron: 0.01
+- id: coolant_ic2
+  name: IC2 Coolant
+  matching:
+  - coolant
+  - fluid.coolant
+  - ic2coolant
+  - fluid.ic2coolant
+  boiling_temperature: 300.0
+  heat_transfer_coeff: 0.5
+  heat_capacity: 8.0
+  absorption_fast: 0.03
+  absorption_thermal: 0.12
+  scattering_fast: 0.45
+  scattering_thermal: 0.45
+  moderation: 0.05
+  hot_fluid_name: ic2hotcoolant
+  required_tier: 0
+  expansion_ratio: 1
+  heat_per_liter: 320.0
+  freezing_temperature: -273.15
+  explosion_temperature: .inf
+- id: coolant_sodium
+  name: Molten Sodium
+  matching:
+  - sodium
+  - fluid.sodium
+  - molten.sodium
+  - fluid.molten.sodium
+  boiling_temperature: 883.0
+  heat_transfer_coeff: 0.7
+  heat_capacity: 1.28
+  absorption_fast: 0.01
+  absorption_thermal: 0.05
+  scattering_fast: 0.2
+  scattering_thermal: 0.2
+  moderation: 0.05
+  hot_fluid_name: molten.sodium
+  required_tier: 2
+  expansion_ratio: 1
+  heat_per_liter: 480.0
+  freezing_temperature: 97.8
+  explosion_temperature: 883.0
+- id: coolant_lead
+  name: Molten Lead
+  matching:
+  - lead
+  - fluid.lead
+  - molten.lead
+  - fluid.molten.lead
+  boiling_temperature: 1749.0
+  heat_transfer_coeff: 0.75
+  heat_capacity: 0.16
+  absorption_fast: 0.005
+  absorption_thermal: 0.02
+  scattering_fast: 0.15
+  scattering_thermal: 0.15
+  moderation: 0.02
+  hot_fluid_name: molten.lead
+  required_tier: 3
+  expansion_ratio: 1
+  heat_per_liter: 560.0
+  freezing_temperature: 327.5
+  explosion_temperature: 1749.0
+coolant_items:
+- id: coolant_cell_ic2
+  name: IC2 Coolant Cell
+  matching:
+  - IC2:reactorCoolantSimple
+  - IC2:reactorCoolantTriple
+  - IC2:reactorCoolantSix
+  - ItemList.Reactor_Coolant_Simple
+  - ItemList.Reactor_Coolant_Triple
+  - ItemList.Reactor_Coolant_Six
+  heat_capacity: 250000.0
+  heat_transfer_coeff: 0.4
+  absorption_fast: 0.02
+  absorption_thermal: 0.05
+  scattering_fast: 0.45
+  scattering_thermal: 0.45
+  moderation: 0.05
+- id: coolant_cell_he
+  name: Helium Coolant Cell
+  matching:
+  - ItemList.Reactor_Coolant_He_1
+  - ItemList.Reactor_Coolant_He_3
+  - ItemList.Reactor_Coolant_He_6
+  - gregtech:gt.reactorCoolantHe1
+  - gregtech:gt.reactorCoolantHe3
+  - gregtech:gt.reactorCoolantHe6
+  heat_capacity: 1500000.0
+  heat_transfer_coeff: 0.4
+  absorption_fast: 0.02
+  absorption_thermal: 0.05
+  scattering_fast: 0.45
+  scattering_thermal: 0.45
+  moderation: 0.05
+- id: coolant_cell_nak
+  name: NaK Coolant Cell
+  matching:
+  - ItemList.Reactor_Coolant_NaK_1
+  - ItemList.Reactor_Coolant_NaK_3
+  - ItemList.Reactor_Coolant_NaK_6
+  - gregtech:gt.reactorCoolantNaK1
+  - gregtech:gt.reactorCoolantNaK3
+  - gregtech:gt.reactorCoolantNaK6
+  heat_capacity: 4500000.0
+  heat_transfer_coeff: 0.5
+  absorption_fast: 0.02
+  absorption_thermal: 0.05
+  scattering_fast: 0.35
+  scattering_thermal: 0.35
+  moderation: 0.05
+- id: coolant_cell_sp
+  name: Sp Coolant Cell
+  matching:
+  - ItemList.Reactor_Coolant_Sp_1
+  - ItemList.Reactor_Coolant_Sp_2
+  - ItemList.Reactor_Coolant_Sp_3
+  - ItemList.Reactor_Coolant_Sp_6
+  - gregtech:gt.reactorCoolantSp1
+  - gregtech:gt.reactorCoolantSp2
+  - gregtech:gt.reactorCoolantSp3
+  - gregtech:gt.reactorCoolantSp6
+  heat_capacity: 9000000.0
+  heat_transfer_coeff: 0.6
+  absorption_fast: 0.01
+  absorption_thermal: 0.03
+  scattering_fast: 0.25
+  scattering_thermal: 0.25
+  moderation: 0.05
+- id: condensator
+  name: Condensator
+  matching:
+  - IC2:reactorCondensator
+  - IC2:reactorCondensatorLap
+  - ItemList.Reactor_Condensator
+  - ItemList.Reactor_Condensator_Lap
+  heat_capacity: 2500000.0
+  heat_transfer_coeff: 0.45
+  absorption_fast: 0.03
+  absorption_thermal: 0.08
+  scattering_fast: 0.4
+  scattering_thermal: 0.4
+  moderation: 0.05

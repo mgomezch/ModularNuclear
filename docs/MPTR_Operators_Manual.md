@@ -1778,7 +1778,7 @@ If the structure becomes invalid, or the controller is removed, while **any** co
 - all fuel items and coolant items in Nuclear Core Buses are deleted;
 - all coolant fluids (and liquid fuels) in Nuclear Core Hatches are deleted.
 
-Non-fuel, non-coolant items in Nuclear Core Buses (such as reflectors, moderators, heat vents, heat exchangers, reactor plating, thermal insulators, and radiovoltaic plates) as well as control-rod items in control rod hatches and passages are strictly preserved. Conceptually, the penalty for failing the structure check applies only to materials that must be actively and continuously supplied (fuel and coolants). Configuration items that define the spatial layout of the core—even those like moderators and reflectors that experience durability wear—are preserved to spare the operator unnecessary rebuilding tedium.
+Non-fuel, non-coolant items in Nuclear Core Buses (such as reflectors, moderators, heat vents, heat exchangers, thermal insulators, and radiovoltaic plates) as well as control-rod items in control rod hatches and passages are strictly preserved. Conceptually, the penalty for failing the structure check applies only to materials that must be actively and continuously supplied (fuel and coolants). Configuration items that define the spatial layout of the core—even those like moderators and reflectors that experience durability wear—are preserved to spare the operator unnecessary rebuilding tedium.
 
 Before any maintenance that breaks the structure, the core should still ideally be cooled below 100 °C to prevent loss of active fuel rods and coolants.
 
@@ -1918,10 +1918,9 @@ ModularNuclear incorporates a deeply structured, data-driven configuration syste
 ├── physics.yaml       # Core simulation constants & transport coefficients
 ├── tiers.yaml         # Pressure tube tiers, temperature ceilings & fluid allowlists
 ├── fuels.yaml         # Deep neutronic, thermodynamic & damage-curve definitions
-└── components.yaml    # Reflectors, moderators, control rods, vents, exchangers, platings, fluids
-```
+└── components.yaml    # Reflectors, moderators, control rods, vents, exchangers, fluids
 
-If these files are missing on startup, `ReactorDataRegistry` automatically generates complete default templates populated with all standard materials and extensive comments.
+All default values are bundled directly inside the mod JAR. Configuration files in this directory are optional override files: any properties specified here override the in-JAR defaults, while omitted values fall back to defaults automatically.
 
 ### 15.1 Physics configuration (`physics.yaml`)
 
@@ -2039,8 +2038,8 @@ Controls all non-fuel core items, control rods, and coolant definitions:
   - `maxThermalAbsorption` ($r_t$), `maxFastAbsorption` ($r_f$), `scatteringProbability` ($p_s$), `heatTransferCoeff` ($c$). Allows modifying rod absorption limits and adding new absorber materials (e.g. tungsten, hafnium, boron).
 - **Heat Vents & Exchangers (`heatVents`, `heatExchangers`)**:
   - `selfCoolingRate`, `reactorCoolingRate`, `adjacentSwitchRate`, `reactorSwitchRate`, `heatTransferCoeff`.
-- **Platings & Insulators (`platings`, `insulators`)**:
-  - `heatCapacityBoost`, `explosionResistanceBoost`, `heatTransferCoeff`.
+- **Insulators (`insulators`)**:
+  - `dampening`, `heatTransferCoeff`.
 - **Radiovoltaics (`radiovoltaics`)**:
   - `radiationCaptureRatio` (fraction of escaping/incident radiation converted), `euPerCapture` (direct EU generated per captured neutron).
 - **Coolant Fluids & Items (`coolantFluids`, `coolantItems`)**:

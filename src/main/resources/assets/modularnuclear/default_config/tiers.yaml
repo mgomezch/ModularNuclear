@@ -1,0 +1,65 @@
+tiers:
+- tier: 0
+  name: Tier 0 (EV - Electrum)
+  casing_material: Electrum Casing
+  voltage_eu: 2048
+  max_operating_temp: 1200.0
+  repair_temp_threshold: 120.0
+  allows_coolant_loops: false
+  allowed_coolants:
+  - ic2coolant
+- tier: 1
+  name: Tier 1 (IV - Platinum)
+  casing_material: Platinum Casing
+  voltage_eu: 8192
+  max_operating_temp: 1400.0
+  repair_temp_threshold: 140.0
+  allows_coolant_loops: false
+  allowed_coolants:
+  - ic2coolant
+  - distilledwater
+- tier: 2
+  name: Tier 2 (LuV - Osmium)
+  casing_material: Osmium Casing
+  voltage_eu: 32768
+  max_operating_temp: 1800.0
+  repair_temp_threshold: 180.0
+  allows_coolant_loops: true
+  allowed_coolants:
+  - ic2coolant
+  - distilledwater
+  - sodium
+  - molten.sodium
+- tier: 3
+  name: Tier 3 (ZPM - Quantium)
+  casing_material: Quantium Casing
+  voltage_eu: 131072
+  max_operating_temp: 2200.0
+  repair_temp_threshold: 220.0
+  allows_coolant_loops: true
+  allowed_coolants:
+  - ic2coolant
+  - distilledwater
+  - heavywater
+  - sodium
+  - molten.sodium
+  - lead
+  - molten.lead
+- tier: 4
+  name: Tier 4 (UV - Fluxed)
+  casing_material: Fluxed Electrum Casing
+  voltage_eu: 524288
+  max_operating_temp: 2600.0
+  repair_temp_threshold: 260.0
+  allows_coolant_loops: true
+  allowed_coolants:
+  - '*'
+- tier: 5
+  name: Tier 5 (UHV - Black Plutonium)
+  casing_material: Black Plutonium Casing
+  voltage_eu: 2097152
+  max_operating_temp: 3200.0
+  repair_temp_threshold: 320.0
+  allows_coolant_loops: true
+  allowed_coolants:
+  - '*'

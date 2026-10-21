@@ -28,6 +28,37 @@ public class NuclearGridTile implements INuclearTile {
     private final int gx;
     private final int gy;
 
+    // Cached property fields
+    private boolean isFuel;
+    private double insulationDampening;
+    private double heatTransferCoeff = 0.05;
+    private boolean isHeatVent;
+    private boolean isHeatExchanger;
+    private boolean isNeutronSource;
+    private com.gtnewhorizons.modularnuclear.common.config.data.FuelData cachedFuelData;
+    private NuclearFuelType cachedFuelType;
+    private com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix cachedCustomFuelMix;
+    private com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData cachedModeratorData;
+    private HeatVentData cachedHeatVentData;
+    private HeatExchangerData cachedHeatExchangerData;
+    private double pAbsorptionFast = 0.01;
+    private double pAbsorptionThermal = 0.01;
+    private double pScatteringFast = 0.02;
+    private double pScatteringThermal = 0.02;
+    private double pModeration = 0.05;
+    private int neutronEmissionCount = 1;
+    private double controlRodAbsorptionFractionFast = 0.0;
+    private double controlRodAbsorptionFractionThermal = 0.0;
+
+    // Change-tracking state
+    private long lastItemKey = Long.MIN_VALUE;
+    private int lastItemDamage = -1;
+    private Object lastFluid = null;
+    private int lastAmount = -1;
+    private int lastPipes = -1;
+    private boolean lastScram = false;
+    private boolean dirty = true;
+
     public NuclearGridTile(MTENuclearReactor reactor, MTEHatchNuclearBus bus, int gx, int gy) {
         this.reactor = reactor;
         this.bus = bus;
@@ -35,6 +66,7 @@ public class NuclearGridTile implements INuclearTile {
         this.highPressureHatch = null;
         this.gx = gx;
         this.gy = gy;
+        refreshProperties();
     }
 
     public NuclearGridTile(MTENuclearReactor reactor, MTEHatchNuclearHatch hatch, int gx, int gy) {
@@ -44,6 +76,7 @@ public class NuclearGridTile implements INuclearTile {
         this.highPressureHatch = null;
         this.gx = gx;
         this.gy = gy;
+        refreshProperties();
     }
 
     public NuclearGridTile(MTENuclearReactor reactor, MTEHatchNuclearControlRod controlRod, int gx, int gy) {
@@ -54,6 +87,7 @@ public class NuclearGridTile implements INuclearTile {
         this.highPressureHatch = null;
         this.gx = gx;
         this.gy = gy;
+        refreshProperties();
     }
 
     public NuclearGridTile(MTENuclearReactor reactor, MTEHatchNuclearHighPressure highPressureHatch, int gx, int gy) {
@@ -63,6 +97,7 @@ public class NuclearGridTile implements INuclearTile {
         this.highPressureHatch = highPressureHatch;
         this.gx = gx;
         this.gy = gy;
+        refreshProperties();
     }
 
     public NuclearGridTile(MTENuclearReactor reactor, MTEHatchPressurizedFluid pressurizedHatch, int gx, int gy) {
@@ -84,6 +119,7 @@ public class NuclearGridTile implements INuclearTile {
         }
         this.gx = gx;
         this.gy = gy;
+        refreshProperties();
     }
 
     public MTENuclearReactor getReactor() {
@@ -97,11 +133,7 @@ public class NuclearGridTile implements INuclearTile {
 
     @Override
     public double getControlRodAbsorptionFraction(NeutronType type) {
-        if (bottomControlRod == null) return 0.0;
-        double pRod = bottomControlRod.getAbsorptionProbability(type);
-        double pBase = (reactor != null) ? reactor.getBaseAbsorptionProbability(this, type) : 0.01;
-        double sum = pBase + pRod;
-        return (sum > 0.0) ? (pRod / sum) : 0.0;
+        return (type == NeutronType.FAST) ? controlRodAbsorptionFractionFast : controlRodAbsorptionFractionThermal;
     }
 
     @Override
@@ -115,6 +147,8 @@ public class NuclearGridTile implements INuclearTile {
 
     public void setBottomControlRod(MTEHatchNuclearControlRod bottomControlRod) {
         this.bottomControlRod = bottomControlRod;
+        this.dirty = true;
+        refreshProperties();
     }
 
     public boolean hasBottomBeamInput() {
@@ -127,15 +161,13 @@ public class NuclearGridTile implements INuclearTile {
 
     public void setBottomBeamInput(MTEHatchInputBeamline bottomBeamInput) {
         this.bottomBeamInput = bottomBeamInput;
+        this.dirty = true;
+        refreshProperties();
     }
 
     @Override
     public boolean isNeutronSource() {
-        if (isBus()) {
-            ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            return NuclearFuelClassification.isItemNeutronSource(stack);
-        }
-        return false;
+        return isNeutronSource;
     }
 
     public boolean isBus() {
@@ -202,32 +234,32 @@ public class NuclearGridTile implements INuclearTile {
 
     @Override
     public double getHeatTransferCoeff() {
-        return reactor.getTileHeatTransferCoeff(this);
+        return heatTransferCoeff;
     }
 
     @Override
     public boolean isFuel() {
-        return reactor.isTileFuel(this);
+        return isFuel;
     }
 
     @Override
     public NuclearFuelType getFuelType() {
-        return reactor.getTileFuelType(this);
+        return cachedFuelType;
     }
 
     @Override
     public com.gtnewhorizons.modularnuclear.common.config.data.FuelData getFuelData() {
-        return reactor.getTileFuelData(this);
+        return cachedFuelData;
     }
 
     @Override
     public com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix getCustomFuelMix() {
-        return reactor.getTileCustomFuelMix(this);
+        return cachedCustomFuelMix;
     }
 
     @Override
     public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData getModeratorData() {
-        return reactor.getTileModeratorData(this);
+        return cachedModeratorData;
     }
 
     @Override
@@ -260,88 +292,80 @@ public class NuclearGridTile implements INuclearTile {
 
     @Override
     public int generateNeutrons(double efficiency) {
-        return reactor.generateTileNeutrons(this, efficiency);
+        return (reactor != null) ? reactor.generateTileNeutrons(this, efficiency) : 0;
     }
 
     @Override
     public int getNeutronEmissionCount() {
-        return reactor.getTileNeutronEmissionCount(this);
+        return neutronEmissionCount;
     }
 
     @Override
     public double getAbsorptionProbability(NeutronType type) {
-        return reactor.getTileAbsorptionProbability(this, type);
+        return (type == NeutronType.FAST) ? pAbsorptionFast : pAbsorptionThermal;
     }
 
     @Override
     public double getScatteringProbability(NeutronType type) {
-        return reactor.getTileScatteringProbability(this, type);
+        return (type == NeutronType.FAST) ? pScatteringFast : pScatteringThermal;
     }
 
     @Override
     public double getModerationProbability() {
-        return reactor.getTileModerationProbability(this);
+        return pModeration;
     }
 
     @Override
     public void onNeutronAbsorbed(NeutronType type, int count) {
-        reactor.onTileNeutronAbsorbed(this, type, count);
+        if (reactor != null) {
+            reactor.onTileNeutronAbsorbed(this, type, count);
+        }
     }
 
     @Override
     public void onNeutronScattered(NeutronType type, int count) {
-        reactor.onTileNeutronScattered(this, type, count);
+        if (reactor != null) {
+            reactor.onTileNeutronScattered(this, type, count);
+        }
     }
 
     @Override
     public void addNeutronFlux(NeutronType type, int count) {
-        reactor.addTileNeutronFlux(this, type, count);
+        if (reactor != null) {
+            reactor.addTileNeutronFlux(this, type, count);
+        }
     }
 
     @Override
     public void nuclearTick(double efficiency) {
-        reactor.processTileNuclearTick(this, efficiency);
+        if (reactor != null) {
+            reactor.processTileNuclearTick(this, efficiency);
+        }
     }
 
     @Override
     public double getInsulationDampening() {
-        return reactor.getTileInsulationDampening(this);
+        return insulationDampening;
     }
 
     @Override
     public boolean isHeatVent() {
-        if (isBus() && getBus() != null) {
-            ItemStack stack = getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            return NuclearFuelClassification.isItemHeatVent(stack);
-        }
-        return false;
+        return isHeatVent;
     }
 
     @Override
     public HeatVentData getHeatVentData() {
-        if (isBus() && getBus() != null) {
-            ItemStack stack = getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            return ReactorDataRegistry.findHeatVent(stack);
-        }
-        return null;
+        return cachedHeatVentData;
     }
 
     @Override
     public boolean isHeatExchanger() {
-        if (isBus() && getBus() != null) {
-            ItemStack stack = getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            return NuclearFuelClassification.isItemHeatExchanger(stack);
-        }
-        return false;
+        return isHeatExchanger;
     }
 
     @Override
     public HeatExchangerData getHeatExchangerData() {
-        if (isBus() && getBus() != null) {
-            ItemStack stack = getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            return ReactorDataRegistry.findHeatExchanger(stack);
-        }
-        return null;
+        return cachedHeatExchangerData;
     }
 
     @Override
@@ -357,6 +381,115 @@ public class NuclearGridTile implements INuclearTile {
                 reactor.mCycleZeroedCoolantItems++;
             }
             getBus().markTileDirty();
+            this.dirty = true;
+            refreshProperties();
+        }
+    }
+
+    public void markDirty() {
+        this.dirty = true;
+    }
+
+    public void refreshTileProperties() {
+        refreshProperties();
+    }
+
+    public void refreshProperties() {
+        ItemStack stack = (bus != null) ? bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] : null;
+        long itemKey = (stack != null) ? ReactorDataRegistry.getItemKey(stack) : 0L;
+        int damage = (stack != null) ? stack.getItemDamage() : 0;
+        boolean damageable = (stack != null) && stack.isItemStackDamageable();
+
+        net.minecraftforge.fluids.FluidStack fluid = (hatch != null) ? hatch.mInputFluid : null;
+        Object currentFluid = (fluid != null) ? fluid.getFluid() : null;
+        int currentAmount = (fluid != null) ? fluid.amount : 0;
+
+        int pipes = (bottomControlRod != null) ? bottomControlRod.getMiningPipeCount() : -1;
+        boolean scram = (bottomControlRod != null) && bottomControlRod.mScram;
+
+        if (!dirty && itemKey == lastItemKey
+            && (damageable || damage == lastItemDamage)
+            && currentFluid == lastFluid
+            && (currentAmount > 0) == (lastAmount > 0)
+            && pipes == lastPipes
+            && scram == lastScram) {
+            return;
+        }
+
+        lastItemKey = itemKey;
+        lastItemDamage = damage;
+        lastFluid = currentFluid;
+        lastAmount = currentAmount;
+        lastPipes = pipes;
+        lastScram = scram;
+        dirty = false;
+
+        if (reactor != null) {
+            this.isFuel = NuclearReactorPhysics.isTileFuel(reactor, this);
+            this.heatTransferCoeff = NuclearReactorPhysics.getTileHeatTransferCoeff(reactor, this);
+            this.insulationDampening = reactor.getTileInsulationDampening(this);
+            this.pAbsorptionFast = NuclearReactorPhysics.getTileAbsorptionProbability(reactor, this, NeutronType.FAST);
+            this.pAbsorptionThermal = NuclearReactorPhysics
+                .getTileAbsorptionProbability(reactor, this, NeutronType.THERMAL);
+            this.pScatteringFast = NuclearReactorPhysics.getTileScatteringProbability(reactor, this, NeutronType.FAST);
+            this.pScatteringThermal = NuclearReactorPhysics
+                .getTileScatteringProbability(reactor, this, NeutronType.THERMAL);
+        } else {
+            if (isBus() && bus != null) {
+                this.isFuel = NuclearFuelClassification.isItemFuel(stack);
+                this.insulationDampening = NuclearFuelClassification.getInsulationDampening(stack);
+            } else if (isHatch() && hatch != null) {
+                this.isFuel = NuclearFuelClassification.isFluidFuel(fluid);
+                this.insulationDampening = 0.0;
+            } else {
+                this.isFuel = false;
+                this.insulationDampening = 0.0;
+            }
+            this.heatTransferCoeff = 0.05;
+            this.pAbsorptionFast = 0.01;
+            this.pAbsorptionThermal = 0.01;
+            this.pScatteringFast = 0.02;
+            this.pScatteringThermal = 0.02;
+        }
+
+        this.cachedFuelType = NuclearReactorPhysics.getTileFuelType(this);
+        this.cachedCustomFuelMix = NuclearReactorPhysics.getTileCustomFuelMix(this);
+        this.cachedFuelData = NuclearReactorPhysics.getTileFuelData(this);
+        this.cachedModeratorData = NuclearReactorPhysics.getTileModeratorData(this);
+        this.pModeration = NuclearReactorPhysics.getTileModerationProbability(this);
+        this.neutronEmissionCount = NuclearReactorPhysics.getTileNeutronEmissionCount(this);
+
+        if (isBus() && bus != null && stack != null) {
+            this.isNeutronSource = NuclearFuelClassification.isItemNeutronSource(stack);
+            this.isHeatVent = NuclearFuelClassification.isItemHeatVent(stack);
+            this.cachedHeatVentData = this.isHeatVent ? ReactorDataRegistry.findHeatVent(stack) : null;
+            this.isHeatExchanger = NuclearFuelClassification.isItemHeatExchanger(stack);
+            this.cachedHeatExchangerData = this.isHeatExchanger ? ReactorDataRegistry.findHeatExchanger(stack) : null;
+        } else {
+            this.isNeutronSource = false;
+            this.isHeatVent = false;
+            this.cachedHeatVentData = null;
+            this.isHeatExchanger = false;
+            this.cachedHeatExchangerData = null;
+        }
+
+        if (bottomControlRod == null) {
+            this.controlRodAbsorptionFractionFast = 0.0;
+            this.controlRodAbsorptionFractionThermal = 0.0;
+        } else {
+            double pRodFast = bottomControlRod.getAbsorptionProbability(NeutronType.FAST);
+            double pBaseFast = (reactor != null)
+                ? NuclearReactorPhysics.getBaseAbsorptionProbability(reactor, this, NeutronType.FAST)
+                : 0.01;
+            double sumFast = pBaseFast + pRodFast;
+            this.controlRodAbsorptionFractionFast = (sumFast > 0.0) ? (pRodFast / sumFast) : 0.0;
+
+            double pRodTherm = bottomControlRod.getAbsorptionProbability(NeutronType.THERMAL);
+            double pBaseTherm = (reactor != null)
+                ? NuclearReactorPhysics.getBaseAbsorptionProbability(reactor, this, NeutronType.THERMAL)
+                : 0.01;
+            double sumTherm = pBaseTherm + pRodTherm;
+            this.controlRodAbsorptionFractionThermal = (sumTherm > 0.0) ? (pRodTherm / sumTherm) : 0.0;
         }
     }
 }

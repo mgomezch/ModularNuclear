@@ -5785,17 +5785,10 @@ public class NuclearSimulationEngineTest {
 
             File configFolder = new File(tempDir.toFile(), "modularnuclear");
             assertTrue(configFolder.exists(), "Config folder modularnuclear should be created");
-            File physicsFile = new File(configFolder, "physics.yaml");
-            File tiersFile = new File(configFolder, "tiers.yaml");
-            File fuelsFile = new File(configFolder, "fuels.yaml");
-            File componentsFile = new File(configFolder, "components.yaml");
+            File readmeFile = new File(configFolder, "README.txt");
+            assertTrue(readmeFile.exists(), "README.txt should be written on init");
 
-            assertTrue(physicsFile.exists(), "physics.yaml should be written");
-            assertTrue(tiersFile.exists(), "tiers.yaml should be written");
-            assertTrue(fuelsFile.exists(), "fuels.yaml should be written");
-            assertTrue(componentsFile.exists(), "components.yaml should be written");
-
-            // Check content of fuels
+            // Default configurations are loaded directly from JAR resources without cluttering disk
             assertTrue(
                 com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllFuels()
                     .size() >= 20);
@@ -5806,6 +5799,96 @@ public class NuclearSimulationEngineTest {
                 6,
                 com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllTiers()
                     .size());
+
+            // Explicitly saving to directory writes out complete YAML files
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.saveToDir(configFolder);
+            File physicsFile = new File(configFolder, "physics.yaml");
+            File tiersFile = new File(configFolder, "tiers.yaml");
+            File fuelsFile = new File(configFolder, "fuels.yaml");
+            File componentsFile = new File(configFolder, "components.yaml");
+
+            assertTrue(physicsFile.exists(), "physics.yaml should be written");
+            assertTrue(tiersFile.exists(), "tiers.yaml should be written");
+            assertTrue(fuelsFile.exists(), "fuels.yaml should be written");
+            assertTrue(componentsFile.exists(), "components.yaml should be written");
+
+            // Re-loading from the exported dir verifies roundtrip parity
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadFromDir(configFolder);
+            assertTrue(
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllFuels()
+                    .size() >= 20);
+            assertNotNull(
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel("thoriumbasedliquidfuel"));
+            assertNotNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics());
+            assertEquals(
+                6,
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllTiers()
+                    .size());
+        } finally {
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadDefaults();
+            deleteRecursively(tempDir.toFile());
+        }
+    }
+
+    @Test
+    void testYamlDataRegistryOverridesAndDisallow() throws Exception {
+        java.nio.file.Path tempDir = java.nio.file.Files.createTempDirectory("mptr_yaml_override_test");
+        try {
+            File configFolder = new File(tempDir.toFile(), "modularnuclear");
+            configFolder.mkdirs();
+
+            // 1. Partial fuel override (only override base_neutrons for fluid_fuel_thorium)
+            // and fuel disallow (remove fluid_fuel_uranium)
+            String fuelsOverride = "fuels:\n" + "  - id: \"fluid_fuel_thorium\"\n"
+                + "    base_neutrons: 999\n"
+                + "  - id: \"fluid_fuel_uranium\"\n"
+                + "    remove: true\n";
+            java.nio.file.Files.write(new File(configFolder, "fuels.yaml").toPath(), fuelsOverride.getBytes());
+
+            // 2. Component disallow via disabled: true and map null
+            String compOverride = "reflectors:\n" + "  - id: \"reflector_gold\"\n"
+                + "    disabled: true\n"
+                + "moderators:\n"
+                + "  moderator_graphite: null\n";
+            java.nio.file.Files.write(new File(configFolder, "components.yaml").toPath(), compOverride.getBytes());
+
+            // 3. Tier disallow via remove: true
+            String tiersOverride = "tiers:\n" + "  - tier: 5\n" + "    remove: true\n";
+            java.nio.file.Files.write(new File(configFolder, "tiers.yaml").toPath(), tiersOverride.getBytes());
+
+            // Load overrides
+            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadFromDir(configFolder);
+
+            // Verify partial override kept default fields but updated overridden field
+            com.gtnewhorizons.modularnuclear.common.config.data.FuelData thorium = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+                .findFuel("thoriumbasedliquidfuel");
+            assertNotNull(thorium);
+            assertEquals(999, thorium.baseNeutrons);
+            assertTrue(thorium.isLiquid);
+            assertTrue(thorium.thermalFissionMultiplier > 0);
+
+            // Verify removed fuel is gone
+            assertNull(
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel("uraniumbasedliquidfuel"));
+
+            // Verify disabled reflector is gone from reflectors list
+            assertFalse(
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getComponentData().reflectors
+                    .stream()
+                    .anyMatch(r -> "reflector_gold".equals(r.id)));
+
+            // Verify null moderator is gone from moderators list
+            assertFalse(
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getComponentData().moderators
+                    .stream()
+                    .anyMatch(m -> "moderator_graphite".equals(m.id)));
+
+            // Verify tier 5 is removed
+            assertEquals(
+                5,
+                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllTiers()
+                    .size());
+            assertFalse(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.hasTier(5));
         } finally {
             com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadDefaults();
             deleteRecursively(tempDir.toFile());
@@ -7809,9 +7892,10 @@ public class NuclearSimulationEngineTest {
         assertEquals(1.0, rvEv.euConversionEfficiency, 1e-4, "Radiovoltaic efficiency must default to 1.0 (100%)");
         assertEquals(4096L, rvEv.maxEU, "EV radiovoltaic maxEU must default to 4096 EU/t");
 
-        // 3. Platings rejection
-        assertFalse(NuclearFuelClassification.isItemReactorPlating(dummyGold), "Platings must not be admitted");
-        assertEquals(0, ReactorDataRegistry.getComponentData().platings.size(), "Platings list must be empty");
+        // 3. Platings are not admitted or recognized as reactor components
+        assertFalse(
+            NuclearFuelClassification.isItemAllowedInBus(dummyGold, null),
+            "Dummy non-component must not be admitted");
 
         // 4. Heat vent and heat exchanger maxTemperature default = 0.0 and over-temperature voiding
         for (ComponentData.HeatVentData vent : ReactorDataRegistry.getComponentData().heatVents) {
@@ -7874,6 +7958,51 @@ public class NuclearSimulationEngineTest {
         assertTrue(ReactorDataRegistry.getTier(3).allowsCoolantLoops, "Tier 3 must allow coolant loops");
         assertTrue(NuclearSimulationEngine.allowsCoolantLoops(2));
         assertFalse(NuclearSimulationEngine.allowsCoolantLoops(1));
+    }
+
+    @Test
+    void testNuclearCoreHatchesDisableTicking() {
+        IGregTechTileEntity mockTe = org.mockito.Mockito.mock(IGregTechTileEntity.class);
+        org.mockito.Mockito.when(mockTe.isServerSide())
+            .thenReturn(true);
+
+        // 1. Bus
+        MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 4, new String[0], null);
+        bus.onPostTick(mockTe, 1);
+        org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.times(1))
+            .tryDisableTicking();
+
+        // 2. Hatch
+        org.mockito.Mockito.clearInvocations(mockTe);
+        MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 4, 16000, new String[0], null);
+        hatch.onPostTick(mockTe, 1);
+        org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.times(1))
+            .tryDisableTicking();
+
+        // 3. Control Rod
+        org.mockito.Mockito.clearInvocations(mockTe);
+        MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test.rod", 4, new String[0], null);
+        rod.onPostTick(mockTe, 1);
+        org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.times(1))
+            .tryDisableTicking();
+
+        // 4. High Pressure Hatch
+        org.mockito.Mockito.clearInvocations(mockTe);
+        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 4, new String[0], null);
+        hp.onPostTick(mockTe, 1);
+        org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.times(1))
+            .tryDisableTicking();
+
+        // Client side must not call tryDisableTicking
+        IGregTechTileEntity clientTe = org.mockito.Mockito.mock(IGregTechTileEntity.class);
+        org.mockito.Mockito.when(clientTe.isServerSide())
+            .thenReturn(false);
+        bus.onPostTick(clientTe, 1);
+        hatch.onPostTick(clientTe, 1);
+        rod.onPostTick(clientTe, 1);
+        hp.onPostTick(clientTe, 1);
+        org.mockito.Mockito.verify(clientTe, org.mockito.Mockito.never())
+            .tryDisableTicking();
     }
 
     private static void deleteRecursively(File file) {

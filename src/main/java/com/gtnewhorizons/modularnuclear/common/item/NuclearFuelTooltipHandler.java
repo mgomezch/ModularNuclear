@@ -25,7 +25,7 @@ import ic2.core.item.reactor.ItemReactorUranium;
 
 /**
  * Appends configured reactor physics and component tooltips to MPTR fuel rods, moderators,
- * reflectors, absorbers, insulators, heat vents, heat exchangers, platings, and radiovoltaic cells.
+ * reflectors, absorbers, insulators, heat vents, heat exchangers, and radiovoltaic cells.
  */
 public class NuclearFuelTooltipHandler {
 

@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Structured data models for non-fuel reactor components:
  * Reflectors, Moderators, Control Rods, Heat Vents, Heat Exchangers,
- * Platings, Insulators, Radiovoltaics, Coolant Fluids, and Coolant Items.
+ * Insulators, Radiovoltaics, Coolant Fluids, and Coolant Items.
  */
 public class ComponentData {
 
@@ -18,7 +18,6 @@ public class ComponentData {
     public List<ControlRodData> controlRods = new ArrayList<>();
     public List<HeatVentData> heatVents = new ArrayList<>();
     public List<HeatExchangerData> heatExchangers = new ArrayList<>();
-    public List<PlatingData> platings = new ArrayList<>();
     public List<InsulatorData> insulators = new ArrayList<>();
     public List<RadiovoltaicData> radiovoltaics = new ArrayList<>();
     public List<CoolantFluidData> coolantFluids = new ArrayList<>();
@@ -54,11 +53,6 @@ public class ComponentData {
             for (Object obj : list) {
                 if (obj instanceof Map<?, ?>m)
                     cd.heatExchangers.add(HeatExchangerData.fromMap((Map<String, Object>) m));
-            }
-        });
-        loadList(map, "platings", list -> {
-            for (Object obj : list) {
-                if (obj instanceof Map<?, ?>m) cd.platings.add(PlatingData.fromMap((Map<String, Object>) m));
             }
         });
         loadList(map, "insulators", list -> {
@@ -114,10 +108,6 @@ public class ComponentData {
         List<Map<String, Object>> heList = new ArrayList<>();
         for (HeatExchangerData d : heatExchangers) heList.add(d.toMap());
         m.put("heat_exchangers", heList);
-
-        List<Map<String, Object>> plList = new ArrayList<>();
-        for (PlatingData d : platings) plList.add(d.toMap());
-        m.put("platings", plList);
 
         List<Map<String, Object>> inList = new ArrayList<>();
         for (InsulatorData d : insulators) inList.add(d.toMap());
@@ -634,55 +624,6 @@ public class ComponentData {
             m.put("moderation", moderation);
             m.put("max_eu_t", maxEUt);
             m.put("max_hu_t", maxHUt);
-            return m;
-        }
-    }
-
-    // =========================================================================
-    // PlatingData
-    // =========================================================================
-    public static class PlatingData {
-
-        public String id;
-        public String name;
-        public List<String> matching = new ArrayList<>();
-        public double heatCapacityBonus = 1000.0;
-        public double explosionContainmentBonus = 0.05;
-        public double heatTransferCoeff = 0.05;
-
-        public PlatingData() {}
-
-        public PlatingData(String id, String name, double heatCapacityBonus, double explosionContainmentBonus,
-            double heatTransferCoeff, String... matching) {
-            this.id = id;
-            this.name = name;
-            this.heatCapacityBonus = heatCapacityBonus;
-            this.explosionContainmentBonus = explosionContainmentBonus;
-            this.heatTransferCoeff = heatTransferCoeff;
-            if (matching != null) this.matching.addAll(Arrays.asList(matching));
-        }
-
-        public static PlatingData fromMap(Map<String, Object> map) {
-            PlatingData d = new PlatingData();
-            if (map == null) return d;
-            d.id = (String) map.getOrDefault("id", "plating");
-            d.name = (String) map.getOrDefault("name", d.id);
-            readMatching(map, d.matching);
-            d.heatCapacityBonus = PhysicsData.getDouble(map, "heat_capacity_bonus", d.heatCapacityBonus);
-            d.explosionContainmentBonus = PhysicsData
-                .getDouble(map, "explosion_containment_bonus", d.explosionContainmentBonus);
-            d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
-            return d;
-        }
-
-        public Map<String, Object> toMap() {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", id);
-            m.put("name", name);
-            m.put("matching", new ArrayList<>(matching));
-            m.put("heat_capacity_bonus", heatCapacityBonus);
-            m.put("explosion_containment_bonus", explosionContainmentBonus);
-            m.put("heat_transfer_coeff", heatTransferCoeff);
             return m;
         }
     }

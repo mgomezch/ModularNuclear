@@ -155,12 +155,15 @@ public class MTEHatchNuclearBus extends MTEHatch {
                 mInventory[SLOT_INPUT] = null;
             } else if (mInventory[SLOT_INPUT].stackSize > 1) {
                 mInventory[SLOT_INPUT].stackSize = 1;
+            } else if (mReactor != null) {
+                processMaxDamageFailsafe();
             }
         }
         super.onContentsChanged(aIndex);
     }
 
     public boolean isItemAllowed(ItemStack aStack) {
+        if (aStack == null) return false;
         return com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(aStack, this);
     }
 
@@ -178,7 +181,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
     public boolean allowPutStack(IGregTechTileEntity aBaseMetaTileEntity, int aIndex, ForgeDirection aSide,
         ItemStack aStack) {
         // Automation can ONLY insert allowlisted components into slot 0, and only if empty (stack size 1)
-        return aIndex == SLOT_INPUT && mInventory[SLOT_INPUT] == null && isItemAllowed(aStack);
+        return aIndex == SLOT_INPUT && mInventory[SLOT_INPUT] == null && aStack != null && isItemAllowed(aStack);
     }
 
     @Override
@@ -358,10 +361,11 @@ public class MTEHatchNuclearBus extends MTEHatch {
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (aBaseMetaTileEntity.isServerSide()) {
+        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide()) {
             if (mReactor != null && mInventory[SLOT_INPUT] != null) {
                 processMaxDamageFailsafe();
             }
+            aBaseMetaTileEntity.tryDisableTicking();
         }
     }
 

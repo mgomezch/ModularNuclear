@@ -68,8 +68,6 @@ public final class ModularNuclearConfig {
 
     public static String[] allowedHeatExchangers = new String[] { "IC2:reactorHeatSwitch*" };
 
-    public static String[] allowedPlatings = new String[0];
-
     public static String[] allowedInsulators = new String[] { "Naquarite_Universal_Insulator_Foil=1.0",
         "MicaInsulatorFoil=0.60", "ThermalClothT2=0.40", "ThermalCloth=0.20", "itemBasicAsteroids:7=0.20" };
 
@@ -221,12 +219,6 @@ public final class ModularNuclearConfig {
                 CAT_ALLOWLISTS,
                 allowedHeatExchangers,
                 "Items recognized as heat exchangers.");
-
-            allowedPlatings = config.getStringList(
-                "allowedPlatings",
-                CAT_ALLOWLISTS,
-                allowedPlatings,
-                "Items recognized as reactor platings.");
 
             allowedInsulators = config.getStringList(
                 "allowedInsulators",
@@ -430,10 +422,6 @@ public final class ModularNuclearConfig {
 
     public static boolean isItemHeatExchanger(ItemStack stack) {
         return matchesItem(stack, allowedHeatExchangers);
-    }
-
-    public static boolean isItemReactorPlating(ItemStack stack) {
-        return false;
     }
 
     public static boolean isItemRadiovoltaic(ItemStack stack) {

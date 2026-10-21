@@ -207,6 +207,14 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         markTileDirty();
     }
 
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide()) {
+            aBaseMetaTileEntity.tryDisableTicking();
+        }
+    }
+
     public double getAmbientTemperature() {
         if (getBaseMetaTileEntity() != null && getBaseMetaTileEntity().getWorld() != null) {
             return MTENuclearReactor.calculateAmbientTemperature(

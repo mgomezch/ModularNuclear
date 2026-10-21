@@ -136,6 +136,14 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
     }
 
     @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide()) {
+            aBaseMetaTileEntity.tryDisableTicking();
+        }
+    }
+
+    @Override
     public int fill(ForgeDirection side, FluidStack resource, boolean doFill) {
         return 0;
     }

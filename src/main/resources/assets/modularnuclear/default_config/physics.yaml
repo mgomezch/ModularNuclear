@@ -1,0 +1,24 @@
+physics:
+  hu_per_degree: 32.0
+  global_thermal_fission_multiplier: 1.0
+  global_fast_fission_multiplier: 1.0
+  fast_absorption_damage_multiplier: 8.0
+  thermal_absorption_damage_multiplier: 1.0
+  fission_heat_per_neutron: 38.0
+  grid_heat_conduction: 0.15
+  boundary_heat_loss: 0.02
+  radiation_decay_factor: 0.95
+  doppler_deficit_exponent: 1.2
+  wall_reflection_chance: 0.0
+  wall_maintenance_neutron_threshold: 10000
+  default_ambient_temp: 293.15
+  beam_energy_to_fast_neutron_multiplier: 0.001
+  t10_wear_factor: 8.0
+  dense_nbase_multiplier: 0.5
+  dense_fission_multiplier: 1.2
+  excited_nbase_multiplier: 1.4
+  excited_fission_multiplier: 0.8
+  standard_nbase_multiplier: 1.0
+  standard_fission_multiplier: 1.0
+  breeder_nbase_multiplier: 1.0
+  breeder_fission_multiplier: 1.0

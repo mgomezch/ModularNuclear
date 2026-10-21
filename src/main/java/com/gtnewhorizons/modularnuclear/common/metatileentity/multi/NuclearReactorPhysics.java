@@ -12,7 +12,6 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExc
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.InsulatorData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData;
-import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.PlatingData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
@@ -102,8 +101,6 @@ public class NuclearReactorPhysics {
             if (vent != null) return vent.heatTransferCoeff;
             HeatExchangerData hex = ReactorDataRegistry.findHeatExchanger(stack);
             if (hex != null) return hex.heatTransferCoeff;
-            PlatingData plat = ReactorDataRegistry.findPlating(stack);
-            if (plat != null) return plat.heatTransferCoeff;
             CoolantItemData cItem = ReactorDataRegistry.findCoolantItem(stack);
             if (cItem != null) return cItem.heatTransferCoeff;
 
@@ -477,14 +474,14 @@ public class NuclearReactorPhysics {
             FuelData fuel = ReactorDataRegistry.findFuel(stack);
             if (fuel != null) return fuel.moderation;
 
-            if (tile.getReactor()
+            if (tile.getReactor() != null && tile.getReactor()
                 .isItemRadiovoltaic(stack)) return 0.0;
             if (NuclearFuelClassification.isItemModerator(stack)) return 0.50;
             if (NuclearFuelClassification.isItemReflector(stack)) return 0.20;
             if (NuclearFuelClassification.isItemCoolant(stack)) return 0.05;
             if (NuclearFuelClassification.isItemHeatVent(stack)) return 0.05;
             if (NuclearFuelClassification.isItemHeatExchanger(stack)) return 0.05;
-            if (tile.getReactor()
+            if (tile.getReactor() != null && tile.getReactor()
                 .isItemFuel(stack)) return 0.10;
             return 0.05;
         } else if (tile.isHatch()) {

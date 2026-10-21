@@ -100,6 +100,8 @@ public class ModularNuclear {
         com.gtnewhorizons.coolantloops.CoolantLoops.postInit(event);
         com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
             .loadRecipes();
+        com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.preIndexKnownItems();
+        com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.preIndexKeys();
     }
 
     @Mod.EventHandler
