@@ -40,6 +40,7 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew build generateWasm exportStaticDist
+          ls -la build/libs/
 
       - name: Upload Mod Jars
         uses: actions/upload-artifact@v4
@@ -49,7 +50,7 @@ jobs:
             build/libs/*.jar
             !build/libs/*-sources.jar
             !build/libs/*-predowngrade.jar
-            !build/libs/*-dirty*.jar
+            !build/libs/*-preshadow.jar
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -59,7 +60,7 @@ jobs:
             build/libs/*.jar
             !build/libs/*-sources.jar
             !build/libs/*-predowngrade.jar
-            !build/libs/*-dirty*.jar
+            !build/libs/*-preshadow.jar
           generate_release_notes: true
 
       - name: Deploy Simulator WebApp to GitHub Pages (Staging)
