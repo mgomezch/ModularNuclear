@@ -1365,6 +1365,11 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         return false;
     }
 
+    @Override
+    public int getRecipeHeight(int recipe) {
+        return 166;
+    }
+
     // =========================================================================
     // GUI Rendering
     // =========================================================================

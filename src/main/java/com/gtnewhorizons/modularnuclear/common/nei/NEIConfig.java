@@ -39,6 +39,8 @@ public class NEIConfig implements IConfigureNEI {
                 "Modular Nuclear",
                 ModularNuclear.MODID).setDisplayStack(controller)
                     .setMaxRecipesPerPage(1)
+                    .setHeight(166)
+                    .setShowOverlayButton(false)
                     .build();
             GuiRecipeTab.handlerMap.put(NEIFuelStatsHandler.OVERLAY_ID, fuelInfo);
             GuiRecipeTab.handlerMap.put(fuelHandler.getRecipeName(), fuelInfo);
@@ -59,6 +61,8 @@ public class NEIConfig implements IConfigureNEI {
                 "Modular Nuclear",
                 ModularNuclear.MODID).setDisplayStack(controller)
                     .setMaxRecipesPerPage(1)
+                    .setHeight(166)
+                    .setShowOverlayButton(false)
                     .build();
             GuiRecipeTab.handlerMap.put(NEINeutronInteractionHandler.OVERLAY_ID, compInfo);
             GuiRecipeTab.handlerMap.put(neutronHandler.getRecipeName(), compInfo);
@@ -77,11 +81,15 @@ public class NEIConfig implements IConfigureNEI {
                 new HandlerInfo.Builder(NEIFuelStatsHandler.OVERLAY_ID, "Modular Nuclear", ModularNuclear.MODID)
                     .setDisplayStack(controller)
                     .setMaxRecipesPerPage(1)
+                    .setHeight(166)
+                    .setShowOverlayButton(false)
                     .build());
             event.registerHandlerInfo(
                 new HandlerInfo.Builder(NEIFuelStatsHandler.class.getName(), "Modular Nuclear", ModularNuclear.MODID)
                     .setDisplayStack(controller)
                     .setMaxRecipesPerPage(1)
+                    .setHeight(166)
+                    .setShowOverlayButton(false)
                     .build());
             event.registerHandlerInfo(
                 new HandlerInfo.Builder(
@@ -89,6 +97,8 @@ public class NEIConfig implements IConfigureNEI {
                     "Modular Nuclear",
                     ModularNuclear.MODID).setDisplayStack(controller)
                         .setMaxRecipesPerPage(1)
+                        .setHeight(166)
+                        .setShowOverlayButton(false)
                         .build());
 
             event.registerHandlerInfo(
@@ -97,6 +107,8 @@ public class NEIConfig implements IConfigureNEI {
                     "Modular Nuclear",
                     ModularNuclear.MODID).setDisplayStack(controller)
                         .setMaxRecipesPerPage(1)
+                        .setHeight(166)
+                        .setShowOverlayButton(false)
                         .build());
             event.registerHandlerInfo(
                 new HandlerInfo.Builder(
@@ -104,6 +116,8 @@ public class NEIConfig implements IConfigureNEI {
                     "Modular Nuclear",
                     ModularNuclear.MODID).setDisplayStack(controller)
                         .setMaxRecipesPerPage(1)
+                        .setHeight(166)
+                        .setShowOverlayButton(false)
                         .build());
             event.registerHandlerInfo(
                 new HandlerInfo.Builder(
@@ -111,6 +125,8 @@ public class NEIConfig implements IConfigureNEI {
                     "Modular Nuclear",
                     ModularNuclear.MODID).setDisplayStack(controller)
                         .setMaxRecipesPerPage(1)
+                        .setHeight(166)
+                        .setShowOverlayButton(false)
                         .build());
         }
     }
