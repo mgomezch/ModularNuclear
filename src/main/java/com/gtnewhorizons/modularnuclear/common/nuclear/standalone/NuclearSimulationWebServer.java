@@ -2846,6 +2846,8 @@ public class NuclearSimulationWebServer {
                         };
                       };
                     }
+                    const isHeatmap = gridDisplayMode !== "COMPONENTS" && gridDisplayMode !== "CONTROL_RODS";
+                    imgEl.style.filter = isHeatmap ? "grayscale(100%)" : "none";
                     if (imgEl.style.display !== "block") {
                       imgEl.style.display = "block";
                     }

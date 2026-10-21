@@ -405,9 +405,22 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0xFF1E1E1E);
 
                 if (cell != null && cell.exists) {
+                    boolean isHeatmap = reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_TEMPERATURE
+                        || reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_HEAT_OUTPUT
+                        || reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_FLUX
+                        || reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_ABSORPTION;
+
                     // Contents (item, fluid, or empty hatch tint)
                     if (cell.itemStack != null) {
-                        GuiDraw.drawItem(cell.itemStack, px + 1, py + 1, 16, 16, 0);
+                        boolean shaderActive = isHeatmap
+                            && com.gtnewhorizons.modularnuclear.client.renderer.GrayscaleShader.begin();
+                        try {
+                            GuiDraw.drawItem(cell.itemStack, px + 1, py + 1, 16, 16, 0);
+                        } finally {
+                            if (shaderActive) {
+                                com.gtnewhorizons.modularnuclear.client.renderer.GrayscaleShader.end();
+                            }
+                        }
 
                         // Stack size readout
                         if (cell.itemStack.stackSize > 1) {
@@ -423,16 +436,27 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                             double health = (double) (maxD - curD) / (double) maxD;
                             int barW = (int) Math.round(13.0 * health);
                             int barColor = (int) Math.round(255.0 * health);
-                            int color = ((255 - barColor) << 16) | (barColor << 8);
+                            int color = isHeatmap ? ((barColor << 16) | (barColor << 8) | barColor)
+                                : (((255 - barColor) << 16) | (barColor << 8));
                             GuiDraw.drawRect(px + 2, py + 14, 13, 2, 0xFF000000);
                             GuiDraw.drawRect(px + 2, py + 14, barW, 1, 0xFF000000 | color);
                         }
                     } else if (cell.fluidStack != null) {
-                        GuiDraw.drawFluidTexture(cell.fluidStack, px + 1, py + 1, 16, 16, 0);
-                    } else if (cell.isHighPressure) {
-                        GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x40FFA500);
-                    } else if (cell.isFluid) {
-                        GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x300055AA);
+                        boolean shaderActive = isHeatmap
+                            && com.gtnewhorizons.modularnuclear.client.renderer.GrayscaleShader.begin();
+                        try {
+                            GuiDraw.drawFluidTexture(cell.fluidStack, px + 1, py + 1, 16, 16, 0);
+                        } finally {
+                            if (shaderActive) {
+                                com.gtnewhorizons.modularnuclear.client.renderer.GrayscaleShader.end();
+                            }
+                        }
+                    } else if (!isHeatmap) {
+                        if (cell.isHighPressure) {
+                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x40FFA500);
+                        } else if (cell.isFluid) {
+                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x300055AA);
+                        }
                     }
 
                     // Mode Overlays
