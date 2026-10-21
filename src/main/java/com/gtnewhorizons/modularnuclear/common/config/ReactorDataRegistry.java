@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -53,6 +54,66 @@ public final class ReactorDataRegistry {
     private static final List<FuelData> fuels = new ArrayList<>();
     private static ComponentData componentData = new ComponentData();
 
+    // Fast item-level lookup caches for WAILA and client tick responsiveness
+    private static final Map<Long, FuelData> fuelCache = new ConcurrentHashMap<>();
+    private static final Map<Long, ModeratorData> moderatorCache = new ConcurrentHashMap<>();
+    private static final Map<Long, ReflectorData> reflectorCache = new ConcurrentHashMap<>();
+    private static final Map<Long, ControlRodData> controlRodCache = new ConcurrentHashMap<>();
+    private static final Map<Long, InsulatorData> insulatorCache = new ConcurrentHashMap<>();
+    private static final Map<Long, HeatVentData> heatVentCache = new ConcurrentHashMap<>();
+    private static final Map<Long, HeatExchangerData> heatExchangerCache = new ConcurrentHashMap<>();
+    private static final Map<Long, PlatingData> platingCache = new ConcurrentHashMap<>();
+    private static final Map<Long, RadiovoltaicData> radiovoltaicCache = new ConcurrentHashMap<>();
+    private static final Map<Long, CoolantItemData> coolantItemCache = new ConcurrentHashMap<>();
+    private static final Map<Long, CoolantFluidData> coolantFluidItemCache = new ConcurrentHashMap<>();
+    private static final Map<Long, Boolean> spentProductCache = new ConcurrentHashMap<>();
+
+    private static final FuelData NO_FUEL = new FuelData();
+    private static final ModeratorData NO_MODERATOR = new ModeratorData();
+    private static final ReflectorData NO_REFLECTOR = new ReflectorData();
+    private static final ControlRodData NO_CONTROL_ROD = new ControlRodData();
+    private static final InsulatorData NO_INSULATOR = new InsulatorData();
+    private static final HeatVentData NO_HEAT_VENT = new HeatVentData();
+    private static final HeatExchangerData NO_HEAT_EXCHANGER = new HeatExchangerData();
+    private static final PlatingData NO_PLATING = new PlatingData();
+    private static final RadiovoltaicData NO_RADIOVOLTAIC = new RadiovoltaicData();
+    private static final CoolantItemData NO_COOLANT_ITEM = new CoolantItemData();
+    private static final CoolantFluidData NO_COOLANT_FLUID = new CoolantFluidData();
+
+    private static long getItemKey(ItemStack stack) {
+        if (stack == null) return 0L;
+        Item item = null;
+        try {
+            item = stack.getItem();
+        } catch (Throwable ignored) {}
+        if (item == null) return 0L;
+        int id = 0;
+        try {
+            id = Item.getIdFromItem(item);
+        } catch (Throwable ignored) {}
+        if (id <= 0) return 0L;
+        int damage = 0;
+        try {
+            damage = stack.getItemDamage();
+        } catch (Throwable ignored) {}
+        return (((long) id) << 32) | (damage & 0xFFFFFFFFL);
+    }
+
+    public static synchronized void clearCaches() {
+        fuelCache.clear();
+        moderatorCache.clear();
+        reflectorCache.clear();
+        controlRodCache.clear();
+        insulatorCache.clear();
+        heatVentCache.clear();
+        heatExchangerCache.clear();
+        platingCache.clear();
+        radiovoltaicCache.clear();
+        coolantItemCache.clear();
+        coolantFluidItemCache.clear();
+        spentProductCache.clear();
+    }
+
     static {
         loadDefaults();
     }
@@ -68,6 +129,7 @@ public final class ReactorDataRegistry {
     }
 
     public static synchronized void loadDefaults() {
+        clearCaches();
         physicsData = buildDefaultPhysics();
 
         tierDataMap.clear();
@@ -103,6 +165,7 @@ public final class ReactorDataRegistry {
     }
 
     public static synchronized void loadFromDir(File dir) {
+        clearCaches();
         if (dir == null) return;
         if (!dir.exists()) dir.mkdirs();
 
@@ -202,6 +265,7 @@ public final class ReactorDataRegistry {
         } else {
             saveComponentsFile(compFile, yaml);
         }
+        clearCaches();
     }
 
     public static synchronized void saveToDir(File dir) {
@@ -337,6 +401,14 @@ public final class ReactorDataRegistry {
             return null;
         }
 
+        long key = getItemKey(stack);
+        if (key != 0L) {
+            FuelData cached = fuelCache.get(key);
+            if (cached != null) {
+                return cached == NO_FUEL ? null : cached;
+            }
+        }
+
         FluidStack fs = null;
         try {
             if (ItemList.Display_Fluid.hasBeenSet()) {
@@ -344,14 +416,18 @@ public final class ReactorDataRegistry {
             }
         } catch (Throwable ignored) {}
         if (fs != null) {
-            return findFuel(fs);
+            FuelData result = findFuel(fs);
+            if (key != 0L) fuelCache.put(key, result != null ? result : NO_FUEL);
+            return result;
         }
 
         for (FuelData fd : fuels) {
             if (!fd.isLiquid && matchesItem(stack, fd.matching)) {
+                if (key != 0L) fuelCache.put(key, fd);
                 return fd;
             }
         }
+        if (key != 0L) fuelCache.put(key, NO_FUEL);
         return null;
     }
 
@@ -377,70 +453,165 @@ public final class ReactorDataRegistry {
 
     public static ReflectorData findReflector(ItemStack stack) {
         if (stack == null) return null;
-        for (ReflectorData d : componentData.reflectors) {
-            if (matchesItem(stack, d.matching)) return d;
+        long key = getItemKey(stack);
+        if (key != 0L) {
+            ReflectorData cached = reflectorCache.get(key);
+            if (cached != null) {
+                return cached == NO_REFLECTOR ? null : cached;
+            }
         }
+        for (ReflectorData d : componentData.reflectors) {
+            if (matchesItem(stack, d.matching)) {
+                if (key != 0L) reflectorCache.put(key, d);
+                return d;
+            }
+        }
+        if (key != 0L) reflectorCache.put(key, NO_REFLECTOR);
         return null;
     }
 
     public static ModeratorData findModerator(ItemStack stack) {
         if (stack == null) return null;
-        for (ModeratorData d : componentData.moderators) {
-            if (matchesItem(stack, d.matching)) return d;
+        long key = getItemKey(stack);
+        if (key != 0L) {
+            ModeratorData cached = moderatorCache.get(key);
+            if (cached != null) {
+                return cached == NO_MODERATOR ? null : cached;
+            }
         }
+        for (ModeratorData d : componentData.moderators) {
+            if (matchesItem(stack, d.matching)) {
+                if (key != 0L) moderatorCache.put(key, d);
+                return d;
+            }
+        }
+        if (key != 0L) moderatorCache.put(key, NO_MODERATOR);
         return null;
     }
 
     public static ControlRodData findControlRod(ItemStack stack) {
         if (stack == null) return null;
-        for (ControlRodData d : componentData.controlRods) {
-            if (matchesItem(stack, d.matching)) return d;
+        long key = getItemKey(stack);
+        if (key != 0L) {
+            ControlRodData cached = controlRodCache.get(key);
+            if (cached != null) {
+                return cached == NO_CONTROL_ROD ? null : cached;
+            }
         }
+        for (ControlRodData d : componentData.controlRods) {
+            if (matchesItem(stack, d.matching)) {
+                if (key != 0L) controlRodCache.put(key, d);
+                return d;
+            }
+        }
+        if (key != 0L) controlRodCache.put(key, NO_CONTROL_ROD);
         return null;
     }
 
     public static HeatVentData findHeatVent(ItemStack stack) {
         if (stack == null) return null;
-        for (HeatVentData d : componentData.heatVents) {
-            if (matchesItem(stack, d.matching)) return d;
+        long key = getItemKey(stack);
+        if (key != 0L) {
+            HeatVentData cached = heatVentCache.get(key);
+            if (cached != null) {
+                return cached == NO_HEAT_VENT ? null : cached;
+            }
         }
+        for (HeatVentData d : componentData.heatVents) {
+            if (matchesItem(stack, d.matching)) {
+                if (key != 0L) heatVentCache.put(key, d);
+                return d;
+            }
+        }
+        if (key != 0L) heatVentCache.put(key, NO_HEAT_VENT);
         return null;
     }
 
     public static HeatExchangerData findHeatExchanger(ItemStack stack) {
         if (stack == null) return null;
-        for (HeatExchangerData d : componentData.heatExchangers) {
-            if (matchesItem(stack, d.matching)) return d;
+        long key = getItemKey(stack);
+        if (key != 0L) {
+            HeatExchangerData cached = heatExchangerCache.get(key);
+            if (cached != null) {
+                return cached == NO_HEAT_EXCHANGER ? null : cached;
+            }
         }
+        for (HeatExchangerData d : componentData.heatExchangers) {
+            if (matchesItem(stack, d.matching)) {
+                if (key != 0L) heatExchangerCache.put(key, d);
+                return d;
+            }
+        }
+        if (key != 0L) heatExchangerCache.put(key, NO_HEAT_EXCHANGER);
         return null;
     }
 
     public static PlatingData findPlating(ItemStack stack) {
         if (stack == null) return null;
-        for (PlatingData d : componentData.platings) {
-            if (matchesItem(stack, d.matching)) return d;
+        long key = getItemKey(stack);
+        if (key != 0L) {
+            PlatingData cached = platingCache.get(key);
+            if (cached != null) {
+                return cached == NO_PLATING ? null : cached;
+            }
         }
+        for (PlatingData d : componentData.platings) {
+            if (matchesItem(stack, d.matching)) {
+                if (key != 0L) platingCache.put(key, d);
+                return d;
+            }
+        }
+        if (key != 0L) platingCache.put(key, NO_PLATING);
         return null;
     }
 
     public static InsulatorData findInsulator(ItemStack stack) {
         if (stack == null) return null;
-        for (InsulatorData d : componentData.insulators) {
-            if (matchesItem(stack, d.matching)) return d;
+        long key = getItemKey(stack);
+        if (key != 0L) {
+            InsulatorData cached = insulatorCache.get(key);
+            if (cached != null) {
+                return cached == NO_INSULATOR ? null : cached;
+            }
         }
+        for (InsulatorData d : componentData.insulators) {
+            if (matchesItem(stack, d.matching)) {
+                if (key != 0L) insulatorCache.put(key, d);
+                return d;
+            }
+        }
+        if (key != 0L) insulatorCache.put(key, NO_INSULATOR);
         return null;
     }
 
     public static RadiovoltaicData findRadiovoltaic(ItemStack stack) {
         if (stack == null) return null;
-        for (RadiovoltaicData d : componentData.radiovoltaics) {
-            if (matchesItem(stack, d.matching)) return d;
+        long key = getItemKey(stack);
+        if (key != 0L) {
+            RadiovoltaicData cached = radiovoltaicCache.get(key);
+            if (cached != null) {
+                return cached == NO_RADIOVOLTAIC ? null : cached;
+            }
         }
+        for (RadiovoltaicData d : componentData.radiovoltaics) {
+            if (matchesItem(stack, d.matching)) {
+                if (key != 0L) radiovoltaicCache.put(key, d);
+                return d;
+            }
+        }
+        if (key != 0L) radiovoltaicCache.put(key, NO_RADIOVOLTAIC);
         return null;
     }
 
     public static CoolantFluidData findCoolantFluid(ItemStack stack) {
         if (stack == null) return null;
+        long key = getItemKey(stack);
+        if (key != 0L) {
+            CoolantFluidData cached = coolantFluidItemCache.get(key);
+            if (cached != null) {
+                return cached == NO_COOLANT_FLUID ? null : cached;
+            }
+        }
         FluidStack fs = null;
         try {
             if (ItemList.Display_Fluid.hasBeenSet()) {
@@ -448,8 +619,11 @@ public final class ReactorDataRegistry {
             }
         } catch (Throwable ignored) {}
         if (fs != null) {
-            return findCoolantFluid(fs);
+            CoolantFluidData res = findCoolantFluid(fs);
+            if (key != 0L) coolantFluidItemCache.put(key, res != null ? res : NO_COOLANT_FLUID);
+            return res;
         }
+        if (key != 0L) coolantFluidItemCache.put(key, NO_COOLANT_FLUID);
         return null;
     }
 
@@ -471,19 +645,41 @@ public final class ReactorDataRegistry {
 
     public static CoolantItemData findCoolantItem(ItemStack stack) {
         if (stack == null) return null;
-        for (CoolantItemData d : componentData.coolantItems) {
-            if (matchesItem(stack, d.matching)) return d;
+        long key = getItemKey(stack);
+        if (key != 0L) {
+            CoolantItemData cached = coolantItemCache.get(key);
+            if (cached != null) {
+                return cached == NO_COOLANT_ITEM ? null : cached;
+            }
         }
+        for (CoolantItemData d : componentData.coolantItems) {
+            if (matchesItem(stack, d.matching)) {
+                if (key != 0L) coolantItemCache.put(key, d);
+                return d;
+            }
+        }
+        if (key != 0L) coolantItemCache.put(key, NO_COOLANT_ITEM);
         return null;
     }
 
     public static boolean isSpentProduct(ItemStack stack) {
         if (stack == null) return false;
-        for (FuelData fd : fuels) {
-            if (fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
-                if (matchesItem(stack, Collections.singletonList(fd.spentProduct))) return true;
+        long key = getItemKey(stack);
+        if (key != 0L) {
+            Boolean cached = spentProductCache.get(key);
+            if (cached != null) {
+                return cached.booleanValue();
             }
         }
+        for (FuelData fd : fuels) {
+            if (fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
+                if (matchesItem(stack, Collections.singletonList(fd.spentProduct))) {
+                    if (key != 0L) spentProductCache.put(key, Boolean.TRUE);
+                    return true;
+                }
+            }
+        }
+        if (key != 0L) spentProductCache.put(key, Boolean.FALSE);
         return false;
     }
 

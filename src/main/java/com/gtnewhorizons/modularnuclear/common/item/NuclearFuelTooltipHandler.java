@@ -41,54 +41,63 @@ public class NuclearFuelTooltipHandler {
         FuelData fd = ReactorDataRegistry.findFuel(stack);
         if (fd != null && !fd.isLiquid && !(stack.getItem() instanceof ItemCustomFuelRod)) {
             appendFuelRodTooltips(event, stack, fd);
+            return;
         }
 
         // 2. Moderator tooltips
         ModeratorData mod = ReactorDataRegistry.findModerator(stack);
         if (mod != null) {
             appendModeratorTooltips(event, stack, mod);
+            return;
         }
 
         // 3. Neutron reflector tooltips
         ReflectorData ref = ReactorDataRegistry.findReflector(stack);
         if (ref != null) {
             appendReflectorTooltips(event, stack, ref);
+            return;
         }
 
         // 4. Control rod tooltips
         ControlRodData cr = ReactorDataRegistry.findControlRod(stack);
         if (cr != null) {
             appendControlRodTooltips(event, cr);
+            return;
         }
 
         // 5. Thermal insulator tooltips
         InsulatorData ins = ReactorDataRegistry.findInsulator(stack);
         if (ins != null) {
             appendInsulatorTooltips(event, ins);
+            return;
         }
 
         // 6. Heat vent tooltips
         HeatVentData vent = ReactorDataRegistry.findHeatVent(stack);
         if (vent != null) {
             appendHeatVentTooltips(event, vent);
+            return;
         }
 
         // 7. Heat exchanger tooltips
         HeatExchangerData hex = ReactorDataRegistry.findHeatExchanger(stack);
         if (hex != null) {
             appendHeatExchangerTooltips(event, hex);
+            return;
         }
 
         // 8. Radiovoltaic cell tooltips
         RadiovoltaicData rv = ReactorDataRegistry.findRadiovoltaic(stack);
         if (rv != null) {
             appendRadiovoltaicTooltips(event, rv);
+            return;
         }
 
         // 9. Coolant item tooltips
         CoolantItemData cl = ReactorDataRegistry.findCoolantItem(stack);
         if (cl != null) {
             appendCoolantItemTooltips(event, stack, cl);
+            return;
         }
     }
 
