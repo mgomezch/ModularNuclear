@@ -339,4 +339,41 @@ public class NEINeutronInteractionHandlerTest {
             NEINeutronInteractionHandler.wrapExtraInfo("", 132, null)
                 .isEmpty());
     }
+
+    @Test
+    public void testLangFilePercentEscaping() throws Exception {
+        java.util.Properties props = new java.util.Properties();
+        try (java.io.InputStream in = getClass().getResourceAsStream("/assets/modularnuclear/lang/en_US.lang")) {
+            assertNotNull(in, "en_US.lang must be present in classpath");
+            props.load(in);
+        }
+
+        String[] testKeys = {
+            "gt.nei.neutron_interaction.fast_fraction.desc",
+            "gt.nei.neutron_interaction.thermal_fraction.desc",
+            "gt.nei.neutron_interaction.fast_stats",
+            "gt.nei.neutron_interaction.thermal_stats"
+        };
+
+        for (String key : testKeys) {
+            String raw = props.getProperty(key);
+            assertNotNull(raw, "Key " + key + " must exist in en_US.lang");
+            assertFalse(raw.contains("%%%%"), "Key " + key + " must not contain four percent signs (%%%%): " + raw);
+
+            // Test String.format with dummy arguments to ensure single % is output
+            String formatted;
+            if (key.endsWith("stats")) {
+                if (key.contains("fast")) {
+                    formatted = String.format(java.util.Locale.US, raw, 80.0, 10.0, 10.0);
+                } else {
+                    formatted = String.format(java.util.Locale.US, raw, 15.0, 85.0);
+                }
+            } else {
+                formatted = String.format(java.util.Locale.US, raw, 50.0);
+            }
+
+            assertTrue(formatted.contains("%"), "Formatted string must contain % sign: " + formatted);
+            assertFalse(formatted.contains("%%"), "Formatted string must NOT contain double percent sign (%%): " + formatted);
+        }
+    }
 }

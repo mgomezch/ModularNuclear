@@ -1000,7 +1000,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                     ? EnumChatFormatting.GOLD + " (Peak)"
                     : "";
                 currenttip.add(
-                    EnumChatFormatting.YELLOW + String.format(Locale.US, "Reactivity: %.1f %%", r * 100.0) + peakNote);
+                    EnumChatFormatting.YELLOW + String.format(Locale.US, "Reactivity: %.1f%%", r * 100.0) + peakNote);
 
                 String dmgNote = (temp <= AMBIENT_TEMP) ? EnumChatFormatting.GRAY + " (None)" : "";
                 currenttip
