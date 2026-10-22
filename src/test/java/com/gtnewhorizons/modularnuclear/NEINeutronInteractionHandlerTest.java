@@ -244,15 +244,77 @@ public class NEINeutronInteractionHandlerTest {
         java.util.List<String> tipAbsText = handler.getTooltipsAt(r1, 97, 120, null);
         assertFalse(tipAbsText.isEmpty(), "Thermal absorption text (97, 120) must show tooltip");
 
-        // 3. Fast neutron arrows
-        java.util.List<String> tipFastScat = handler.getTooltipsAt(r1, 40, 24, null);
-        assertFalse(tipFastScat.isEmpty(), "Fast scattering arrow (40, 24) must show tooltip");
+        // 3. Fast neutron interaction elements (redesigned layout)
+        // 3a. Fast reflection / incoming arrow (40, 24)
+        java.util.List<String> tipFastRefl = handler.getTooltipsAt(r1, 40, 24, null);
+        assertFalse(tipFastRefl.isEmpty(), "Fast reflection arrow/text (40, 24) must show tooltip");
+        assertTrue(
+            tipFastRefl.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("reflection")),
+            "Should mention reflection");
 
-        java.util.List<String> tipFastAbsCurved = handler.getTooltipsAt(r1, 85, 26, null);
-        assertFalse(tipFastAbsCurved.isEmpty(), "Fast absorption curved arrow (85, 26) must show tooltip");
+        // 3b. Fast absorption arrow (83, 48) and text (83, 56)
+        java.util.List<String> tipFastAbsArrow = handler.getTooltipsAt(r1, 83, 48, null);
+        assertFalse(tipFastAbsArrow.isEmpty(), "Fast absorption arrow (83, 48) must show tooltip");
+        assertTrue(
+            tipFastAbsArrow.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("absorption")),
+            "Should mention absorption");
 
-        java.util.List<String> tipFastAbsText = handler.getTooltipsAt(r1, 97, 54, null);
-        assertFalse(tipFastAbsText.isEmpty(), "Fast absorption text (97, 54) must show tooltip");
+        java.util.List<String> tipFastAbsText = handler.getTooltipsAt(r1, 83, 56, null);
+        assertFalse(tipFastAbsText.isEmpty(), "Fast absorption text (83, 56) must show tooltip");
+
+        // 3c. Fast scattering green arrows (102, 34)
+        java.util.List<String> tipFastScatArrows = handler.getTooltipsAt(r1, 102, 34, null);
+        assertFalse(tipFastScatArrows.isEmpty(), "Fast scattering arrows (102, 34) must show tooltip");
+        assertTrue(
+            tipFastScatArrows.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("scattering")),
+            "Should mention scattering");
+
+        // 3d. Fast scattered fraction arrow and text (136, 12)
+        java.util.List<String> tipFastFraction = handler.getTooltipsAt(r1, 136, 12, null);
+        assertFalse(tipFastFraction.isEmpty(), "Fast scattered fraction (136, 12) must show tooltip");
+        assertTrue(
+            tipFastFraction.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("fast")),
+            "Should mention fast fraction");
+
+        // 3e. Moderated scattered fraction arrow and text (136, 56)
+        java.util.List<String> tipModFraction = handler.getTooltipsAt(r1, 136, 56, null);
+        assertFalse(tipModFraction.isEmpty(), "Moderated scattered fraction (136, 56) must show tooltip");
+        assertTrue(
+            tipModFraction.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("thermal")),
+            "Should mention thermal fraction");
+
+        // 3f. Pie chart (136, 34)
+        java.util.List<String> tipPieChart = handler.getTooltipsAt(r1, 136, 34, null);
+        assertFalse(tipPieChart.isEmpty(), "Pie chart (136, 34) must show tooltip");
+
+        // 3g. Input slot position centered at (75, 26)
+        assertEquals(75, r1.input.relx, "Input stack X must be 75");
+        assertEquals(26, r1.input.rely, "Input stack Y must be 26");
+    }
+
+    @Test
+    public void testFormatPercent() {
+        assertEquals("0%", NEINeutronInteractionHandler.formatPercent(0.0));
+        assertEquals("50%", NEINeutronInteractionHandler.formatPercent(0.50));
+        assertEquals("15%", NEINeutronInteractionHandler.formatPercent(0.15));
+        assertEquals("25%", NEINeutronInteractionHandler.formatPercent(0.25));
+        assertEquals("62.1%", NEINeutronInteractionHandler.formatPercent(0.621));
+        assertEquals("0.2%", NEINeutronInteractionHandler.formatPercent(0.002));
     }
 
     @Test

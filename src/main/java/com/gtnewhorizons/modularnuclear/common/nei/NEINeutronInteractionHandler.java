@@ -22,6 +22,8 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
+import org.lwjgl.opengl.GL11;
+
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 
@@ -163,7 +165,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             if (data.stack != null) allVariants.add(data.stack);
             allVariants.addAll(data.alternateStacks);
 
-            this.input = new PositionedStack(allVariants, 67, 31);
+            this.input = new PositionedStack(allVariants, 75, 26);
             this.inputThermal = new PositionedStack(allVariants, 67, 97);
             ItemStack ctrl = getControllerStack();
             this.catalyst = ctrl != null ? new PositionedStack(ctrl, 6, 135) : null;
@@ -1386,21 +1388,15 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         if (cached instanceof CachedNeutronInteractionRecipe recipe) {
             // Page 1: Fast & Thermal interaction diagrams
-            drawSlotBox(66, 30);
+            drawSlotBox(74, 25);
             drawSlotBox(66, 96);
 
-            GuiDraw.changeTexture(TEXTURE_ATLAS);
-            // Fast diagram: (0, 0, 88, 54) at (14, 12)
-            GuiDraw.drawTexturedModalRect(14, 12, 0, 0, 88, 54);
-            // Thermal diagram: (0, 60, 88, 54) at (14, 78)
-            GuiDraw.drawTexturedModalRect(14, 78, 0, 60, 88, 54);
+            // Fast diagram: vector rendering
+            drawFastNeutronDiagram(recipe.data);
 
-            // Pie chart: (u=index*16, v=240, w=16, h=16) at (115, 28)
-            double slowing = recipe.data.slowingProbability;
-            int index = 1 + (int) Math.floor(slowing * 9.0);
-            if (slowing <= 0.0) index = 0;
-            else if (slowing >= 1.0) index = 10;
-            GuiDraw.drawTexturedModalRect(115, 28, index * 16, 240, 16, 16);
+            // Thermal diagram: (0, 60, 88, 54) at (14, 78)
+            GuiDraw.changeTexture(TEXTURE_ATLAS);
+            GuiDraw.drawTexturedModalRect(14, 78, 0, 60, 88, 54);
 
         } else if (cached instanceof CachedComponentThermalRecipe recipe) {
             // Page 2: Thermal & Energy Properties and Durability / Transmutation
@@ -1442,23 +1438,24 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             GuiDraw
                 .drawStringC(StatCollector.translateToLocal("gt.nei.neutron_interaction.fast"), 83, 5, 0x404040, false);
 
-            if (d.isReflector) {
-                String reflStr = String.format(Locale.US, "%.1f %%", d.reflectionFast * 100.0);
-                GuiDraw.drawStringC(reflStr, 47, 16, 0x9A6B00, false);
-                GuiDraw.drawStringC("REFLECT", 47, 25, 0x9A6B00, false);
-            } else {
-                String fastScatStr = String.format(Locale.US, "%.1f %%", d.fastScattering * 100.0);
-                GuiDraw.drawStringC(fastScatStr, 47, 16, 0x404040, false);
-            }
+            // Reflected neutrons percentage (between the two blue arrows)
+            String fastReflStr = formatPercent(d.isReflector ? d.reflectionFast : 0.0);
+            GuiDraw
+                .drawStringC(fastReflStr, 38, 30, (d.isReflector && d.reflectionFast > 0) ? 0x9A6B00 : 0x404040, false);
 
-            String fastAbsStr = String.format(Locale.US, "%.1f %%", d.fastAbsorption * 100.0);
-            GuiDraw.drawStringC(fastAbsStr, 97, 54, 0x00A000, false);
+            // Absorbed neutrons percentage (below red arrow)
+            String absStr = formatPercent(d.fastAbsorption);
+            GuiDraw.drawStringC(absStr, 83, 55, d.fastAbsorption > 0 ? 0xCC0000 : 0x404040, false);
 
-            String thermFracStr = String.format(Locale.US, "%.1f %%", d.slowingProbability * 100.0);
-            GuiDraw.drawStringC(thermFracStr, 123, 16, 0x0C27A7, false);
+            // Scattered fast neutrons percentage (above blue arrow)
+            double pFast = d.fastScattering * (1.0 - d.slowingProbability);
+            String fastScatStr = formatPercent(pFast);
+            GuiDraw.drawStringC(fastScatStr, 136, 6, pFast > 0 ? 0x0033CC : 0x404040, false);
 
-            String fastFracStr = String.format(Locale.US, "%.1f %%", (1.0 - d.slowingProbability) * 100.0);
-            GuiDraw.drawStringC(fastFracStr, 123, 46, 0xBC1A1A, false);
+            // Scattered moderated neutrons percentage (below purple arrow)
+            double pMod = d.fastScattering * d.slowingProbability;
+            String modScatStr = formatPercent(pMod);
+            GuiDraw.drawStringC(modScatStr, 136, 55, pMod > 0 ? 0x7F00FF : 0x404040, false);
 
             // --- Page 1: Thermal Neutron Panel ---
             GuiDraw.drawStringC(
@@ -1747,81 +1744,108 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (currenttip == null) currenttip = new ArrayList<>();
         if (rec instanceof CachedNeutronInteractionRecipe r1) {
             ComponentStatsData d = r1.data;
-            // Page 1 Tooltips
-            // Fast scattering / reflection: covers text (47, 16) and arrow (40, 24 -> 65, 33)
-            if (relX >= 25 && relX <= 66 && relY >= 8 && relY <= 36) {
-                if (d.isReflector) {
+            // Page 1: Fast Neutron Panel (Y in [2, 66])
+            if (relY >= 2 && relY <= 66) {
+                // 1. Fast reflection & incoming neutrons (covers the two blue arrows and % text: X in [18, 73], Y in
+                // [14, 54])
+                if (relX >= 18 && relX <= 73 && relY >= 14 && relY <= 54) {
+                    if (d.isReflector) {
+                        currenttip.add(
+                            EnumChatFormatting.GOLD
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection"));
+                        currenttip.add(
+                            EnumChatFormatting.GRAY
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection_fast.desc"));
+                    } else {
+                        currenttip.add(
+                            EnumChatFormatting.WHITE
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection"));
+                        currenttip.add(
+                            EnumChatFormatting.GRAY
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection_fast.desc"));
+                    }
+                    // 2. Fast absorption (center bottom: arrow at (83, 44..52) and % text at (83, 55))
+                } else if (relX >= 68 && relX <= 98 && relY >= 44 && relY <= 65) {
                     currenttip.add(
-                        EnumChatFormatting.GOLD
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection"));
-                    currenttip.add(
-                        EnumChatFormatting.GRAY
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection_fast.desc"));
-                } else {
-                    currenttip.add(
-                        EnumChatFormatting.WHITE
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
-                    currenttip.add(
-                        EnumChatFormatting.GRAY
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering_fast.desc"));
-                }
-                // Fast absorption: covers text (97, 54) and curved absorption arrow (72..104, 18..40)
-            } else if ((relX >= 80 && relX <= 118 && relY >= 44 && relY <= 64)
-                || (relX >= 72 && relX <= 104 && relY >= 18 && relY <= 40)) {
-                    currenttip.add(
-                        EnumChatFormatting.GREEN
+                        EnumChatFormatting.RED
                             + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_title"));
                     currenttip.add(
                         EnumChatFormatting.GRAY
                             + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_fast.desc"));
-                    // Thermal fraction: covers text (123, 16) and pie chart (115, 28)
-                } else if ((relX >= 105 && relX <= 145 && relY >= 10 && relY <= 24)
-                    || (relX >= 112 && relX <= 134 && relY >= 26 && relY <= 46)) {
+                    // 3. Scattering arrows (green arrows between center slot and pie chart: X in [94, 118], Y in [18,
+                    // 50])
+                } else if (relX >= 94 && relX <= 118 && relY >= 18 && relY <= 50) {
+                    currenttip.add(
+                        EnumChatFormatting.GREEN
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
+                    currenttip.add(
+                        EnumChatFormatting.GRAY
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering_fast.desc"));
+                    // 4. Upper: Scattered fast arrow & percentage (X in [120, 155], Y in [4, 23])
+                } else if (relX >= 120 && relX <= 155 && relY >= 4 && relY <= 23) {
+                    currenttip.add(
+                        EnumChatFormatting.BLUE
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.fast_fraction"));
+                    currenttip.add(
+                        EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
+                            "gt.nei.neutron_interaction.fast_fraction.desc",
+                            (1.0 - d.slowingProbability) * 100.0));
+                    // 5. Lower: Scattered moderated arrow & percentage (X in [120, 155], Y in [45, 65])
+                } else if (relX >= 120 && relX <= 155 && relY >= 45 && relY <= 65) {
+                    currenttip.add(
+                        EnumChatFormatting.LIGHT_PURPLE
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.thermal_fraction"));
+                    currenttip.add(
+                        EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
+                            "gt.nei.neutron_interaction.thermal_fraction.desc",
+                            d.slowingProbability * 100.0));
+                    // 6. Center: Pie chart (X in [124, 148], Y in [24, 44])
+                } else if (relX >= 124 && relX <= 148 && relY >= 24 && relY <= 44) {
+                    currenttip.add(
+                        EnumChatFormatting.BLUE
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.fast_fraction"));
+                    currenttip.add(
+                        EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
+                            "gt.nei.neutron_interaction.fast_fraction.desc",
+                            (1.0 - d.slowingProbability) * 100.0));
+                    currenttip.add(
+                        EnumChatFormatting.LIGHT_PURPLE
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.thermal_fraction"));
+                    currenttip.add(
+                        EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
+                            "gt.nei.neutron_interaction.thermal_fraction.desc",
+                            d.slowingProbability * 100.0));
+                }
+            } else if (relY >= 68 && relY <= 132) {
+                // Thermal scattering / reflection: covers text (47, 82) and full curved arrow (40, 90 -> 65, 99)
+                if (relX >= 25 && relX <= 66 && relY >= 74 && relY <= 102) {
+                    if (d.isReflector) {
                         currenttip.add(
-                            EnumChatFormatting.BLUE
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.thermal_fraction"));
+                            EnumChatFormatting.GOLD
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection"));
                         currenttip.add(
-                            EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
-                                "gt.nei.neutron_interaction.thermal_fraction.desc",
-                                d.slowingProbability * 100.0));
-                        // Fast fraction: covers text (123, 46)
-                    } else if (relX >= 105 && relX <= 145 && relY >= 40 && relY <= 54) {
+                            EnumChatFormatting.GRAY
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection_thermal.desc"));
+                    } else {
                         currenttip.add(
-                            EnumChatFormatting.RED
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.fast_fraction"));
+                            EnumChatFormatting.WHITE
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
                         currenttip.add(
-                            EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
-                                "gt.nei.neutron_interaction.fast_fraction.desc",
-                                (1.0 - d.slowingProbability) * 100.0));
-                        // Thermal scattering / reflection: covers text (47, 82) and full curved arrow (40, 90 -> 65,
-                        // 99)
-                    } else if (relX >= 25 && relX <= 66 && relY >= 74 && relY <= 102) {
-                        if (d.isReflector) {
-                            currenttip.add(
-                                EnumChatFormatting.GOLD
-                                    + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection"));
-                            currenttip.add(
-                                EnumChatFormatting.GRAY + StatCollector
-                                    .translateToLocal("gt.nei.neutron_interaction.reflection_thermal.desc"));
-                        } else {
-                            currenttip.add(
-                                EnumChatFormatting.WHITE
-                                    + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
-                            currenttip.add(
-                                EnumChatFormatting.GRAY + StatCollector
-                                    .translateToLocal("gt.nei.neutron_interaction.scattering_thermal.desc"));
-                        }
-                        // Thermal absorption: covers text (97, 120), downward arrow (70..80, 114..128), and curved
-                        // arrow (72..104, 84..106)
-                    } else if ((relX >= 65 && relX <= 118 && relY >= 108 && relY <= 130)
-                        || (relX >= 72 && relX <= 104 && relY >= 84 && relY <= 106)) {
-                            currenttip.add(
-                                EnumChatFormatting.GREEN
-                                    + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_title"));
-                            currenttip.add(
-                                EnumChatFormatting.GRAY + StatCollector
-                                    .translateToLocal("gt.nei.neutron_interaction.absorption_thermal.desc"));
-                        }
+                            EnumChatFormatting.GRAY
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering_thermal.desc"));
+                    }
+                    // Thermal absorption: covers text (97, 120), downward arrow (70..80, 114..128), and curved arrow
+                    // (72..104, 84..106)
+                } else if ((relX >= 65 && relX <= 118 && relY >= 108 && relY <= 130)
+                    || (relX >= 72 && relX <= 104 && relY >= 84 && relY <= 106)) {
+                        currenttip.add(
+                            EnumChatFormatting.GREEN
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_title"));
+                        currenttip.add(
+                            EnumChatFormatting.GRAY
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_thermal.desc"));
+                    }
+            }
         } else if (rec instanceof CachedComponentThermalRecipe r2) {
             ComponentStatsData d = r2.data;
             // Page 2 Tooltips
@@ -1960,5 +1984,159 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         tessellator.addVertexWithUV(x + width, y, 0.0, (float) (u + width) * f, (float) v * f1);
         tessellator.addVertexWithUV(x, y, 0.0, (float) u * f, (float) v * f1);
         tessellator.draw();
+    }
+
+    public static String formatPercent(double frac) {
+        double pct = frac * 100.0;
+        if (Math.abs(pct) < 1e-6) {
+            return "0%";
+        }
+        if (Math.abs(pct - Math.round(pct)) < 0.05) {
+            return String.format(Locale.US, "%.0f%%", pct);
+        }
+        if (pct < 0.1 && pct > 0.0) {
+            return String.format(Locale.US, "%.2f%%", pct);
+        }
+        return String.format(Locale.US, "%.1f%%", pct);
+    }
+
+    public static void drawArrow(double x1, double y1, double x2, double y2, double shaftWidth, double headLength,
+        double headWidth, int argb) {
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+        double len = Math.sqrt(dx * dx + dy * dy);
+        if (len < 1e-4) return;
+
+        double ux = dx / len;
+        double uy = dy / len;
+        double nx = -uy;
+        double ny = ux;
+
+        double hLen = Math.min(headLength, len * 0.8);
+        double baseX = x2 - hLen * ux;
+        double baseY = y2 - hLen * uy;
+
+        float a = ((argb >> 24) & 0xFF) / 255.0F;
+        float r = ((argb >> 16) & 0xFF) / 255.0F;
+        float g = ((argb >> 8) & 0xFF) / 255.0F;
+        float b = (argb & 0xFF) / 255.0F;
+
+        GL11.glPushMatrix();
+        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glColor4f(r, g, b, a);
+
+        Tessellator tess = Tessellator.instance;
+
+        // Draw shaft as 2 triangles
+        tess.startDrawing(GL11.GL_TRIANGLES);
+        double sLeftX1 = x1 + (shaftWidth / 2.0) * nx;
+        double sLeftY1 = y1 + (shaftWidth / 2.0) * ny;
+        double sRightX1 = x1 - (shaftWidth / 2.0) * nx;
+        double sRightY1 = y1 - (shaftWidth / 2.0) * ny;
+        double sLeftX2 = baseX + (shaftWidth / 2.0) * nx;
+        double sLeftY2 = baseY + (shaftWidth / 2.0) * ny;
+        double sRightX2 = baseX - (shaftWidth / 2.0) * nx;
+        double sRightY2 = baseY - (shaftWidth / 2.0) * ny;
+
+        tess.addVertex(sLeftX1, sLeftY1, 0.0);
+        tess.addVertex(sLeftX2, sLeftY2, 0.0);
+        tess.addVertex(sRightX2, sRightY2, 0.0);
+
+        tess.addVertex(sLeftX1, sLeftY1, 0.0);
+        tess.addVertex(sRightX2, sRightY2, 0.0);
+        tess.addVertex(sRightX1, sRightY1, 0.0);
+
+        // Draw head as 1 triangle
+        tess.addVertex(x2, y2, 0.0);
+        tess.addVertex(baseX + (headWidth / 2.0) * nx, baseY + (headWidth / 2.0) * ny, 0.0);
+        tess.addVertex(baseX - (headWidth / 2.0) * nx, baseY - (headWidth / 2.0) * ny, 0.0);
+
+        tess.draw();
+
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glPopAttrib();
+        GL11.glPopMatrix();
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    public static void drawPieSlice(double cx, double cy, double radius, double startAngle, double endAngle, int argb) {
+        double sweep = endAngle - startAngle;
+        if (sweep <= 1e-4) return;
+
+        float a = ((argb >> 24) & 0xFF) / 255.0F;
+        float r = ((argb >> 16) & 0xFF) / 255.0F;
+        float g = ((argb >> 8) & 0xFF) / 255.0F;
+        float b = (argb & 0xFF) / 255.0F;
+
+        GL11.glPushMatrix();
+        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glColor4f(r, g, b, a);
+
+        int segments = Math.max(3, (int) Math.ceil(36 * (sweep / (2 * Math.PI))));
+        double step = sweep / segments;
+
+        Tessellator tess = Tessellator.instance;
+        tess.startDrawing(GL11.GL_TRIANGLES);
+        for (int i = 0; i < segments; i++) {
+            double a1 = startAngle + i * step;
+            double a2 = startAngle + (i + 1) * step;
+            tess.addVertex(cx, cy, 0.0);
+            tess.addVertex(cx + radius * Math.cos(a1), cy - radius * Math.sin(a1), 0.0);
+            tess.addVertex(cx + radius * Math.cos(a2), cy - radius * Math.sin(a2), 0.0);
+        }
+        tess.draw();
+
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glPopAttrib();
+        GL11.glPopMatrix();
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    public static void drawFastNeutronDiagram(ComponentStatsData d) {
+        try {
+            // Incoming fast neutrons arrow (blue, down-right towards center tile)
+            drawArrow(24.0, 17.0, 70.0, 30.0, 2.0, 5.0, 6.0, 0xFF0033EE);
+
+            // Reflected fast neutrons arrow (blue, down-left away from center tile)
+            drawArrow(70.0, 38.0, 24.0, 51.0, 2.0, 5.0, 6.0, 0xFF0033EE);
+
+            // Absorbed neutrons arrow (red, straight down under center tile)
+            drawArrow(83.0, 44.0, 83.0, 52.0, 2.0, 4.0, 5.5, 0xFFDD0000);
+
+            // Three scattered neutrons arrows (green, pointing right away from center tile)
+            // Middle: horizontal
+            drawArrow(96.0, 34.0, 110.0, 34.0, 1.2, 3.5, 4.5, 0xFF00CC00);
+            // Upper: 45 degrees up-right
+            drawArrow(96.0, 32.0, 107.0, 21.0, 1.2, 3.5, 4.5, 0xFF00CC00);
+            // Lower: 45 degrees down-right
+            drawArrow(96.0, 36.0, 107.0, 47.0, 1.2, 3.5, 4.5, 0xFF00CC00);
+
+            // Dynamic pie chart at (136, 34), radius 9.0
+            double slowing = Math.max(0.0, Math.min(1.0, d.slowingProbability));
+            double fastFrac = 1.0 - slowing;
+            if (slowing <= 0.001) {
+                drawPieSlice(136.0, 34.0, 9.0, 0.0, 2.0 * Math.PI, 0xFF0033EE);
+            } else if (fastFrac <= 0.001) {
+                drawPieSlice(136.0, 34.0, 9.0, 0.0, 2.0 * Math.PI, 0xFF7F00FF);
+            } else {
+                double splitAngle = fastFrac * 2.0 * Math.PI;
+                drawPieSlice(136.0, 34.0, 9.0, 0.0, splitAngle, 0xFF0033EE);
+                drawPieSlice(136.0, 34.0, 9.0, splitAngle, 2.0 * Math.PI, 0xFF7F00FF);
+            }
+
+            // Scattered fast neutrons arrow (blue, straight up above pie chart)
+            drawArrow(136.0, 24.0, 136.0, 16.0, 2.0, 4.0, 5.5, 0xFF0033EE);
+
+            // Scattered moderated neutrons arrow (purple, straight down below pie chart)
+            drawArrow(136.0, 44.0, 136.0, 52.0, 2.0, 4.0, 5.5, 0xFF7F00FF);
+        } catch (Throwable ignored) {}
     }
 }
