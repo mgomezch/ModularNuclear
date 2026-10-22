@@ -347,6 +347,11 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     }
 
     @Override
+    protected boolean forceUseMui2() {
+        return true;
+    }
+
+    @Override
     public com.cleanroommc.modularui.screen.ModularPanel buildUI(com.cleanroommc.modularui.factory.PosGuiData data,
         com.cleanroommc.modularui.value.sync.PanelSyncManager syncManager,
         com.cleanroommc.modularui.screen.UISettings uiSettings) {

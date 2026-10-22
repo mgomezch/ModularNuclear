@@ -119,6 +119,6 @@ public class MTEHatchNuclearHatchGui extends MTEHatchBaseGui<MTEHatchNuclearHatc
                 .background(GTGuiTextures.SLOT_FLUID_TANK));
         mainRow.child(inputScreen);
 
-        return super.createContentSection(panel, syncManager).child(mainRow);
+        return mainRow;
     }
 }

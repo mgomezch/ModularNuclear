@@ -230,6 +230,14 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         }
     }
 
+    public boolean hasOppositeHatch() {
+        return getOppositeHatchTile() != null;
+    }
+
+    public boolean hasConnectedPump() {
+        return getConnectedPump() != null;
+    }
+
     @Override
     public void convertToDirectionalVariant(boolean isInput) {
         convertToDirectionalHatch(getBaseMetaTileEntity(), isInput);
@@ -619,6 +627,24 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         }
         openGui(aPlayer);
         return true;
+    }
+
+    @Override
+    protected boolean useMui2() {
+        return true;
+    }
+
+    @Override
+    protected boolean forceUseMui2() {
+        return true;
+    }
+
+    @Override
+    public com.cleanroommc.modularui.screen.ModularPanel buildUI(com.cleanroommc.modularui.factory.PosGuiData data,
+        com.cleanroommc.modularui.value.sync.PanelSyncManager syncManager,
+        com.cleanroommc.modularui.screen.UISettings uiSettings) {
+        return new com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearHighPressureGui(this)
+            .build(data, syncManager, uiSettings);
     }
 
     @Override

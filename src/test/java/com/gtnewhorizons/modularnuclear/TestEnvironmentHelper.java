@@ -69,5 +69,13 @@ public class TestEnvironmentHelper {
         } catch (Throwable t) {
             t.printStackTrace();
         }
+
+        try {
+            cpw.mods.fml.common.IFMLSidedHandler sided = org.mockito.Mockito.mock(cpw.mods.fml.common.IFMLSidedHandler.class);
+            org.mockito.Mockito.when(sided.getSide()).thenReturn(cpw.mods.fml.relauncher.Side.SERVER);
+            java.lang.reflect.Field sidedField = cpw.mods.fml.common.FMLCommonHandler.class.getDeclaredField("sidedDelegate");
+            sidedField.setAccessible(true);
+            sidedField.set(cpw.mods.fml.common.FMLCommonHandler.instance(), sided);
+        } catch (Throwable ignored) {}
     }
 }

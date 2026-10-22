@@ -124,6 +124,6 @@ public class MTEHatchNuclearBusGui extends MTEHatchBaseGui<MTEHatchNuclearBus> {
 
         mainRow.child(inputCol);
 
-        return super.createContentSection(panel, syncManager).child(mainRow);
+        return mainRow;
     }
 }
