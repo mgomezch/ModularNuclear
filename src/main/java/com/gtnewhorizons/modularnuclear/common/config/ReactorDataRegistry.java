@@ -14,6 +14,8 @@ import java.util.function.Function;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
@@ -1190,12 +1192,11 @@ public final class ReactorDataRegistry {
             }
         }
 
-        // 5. Try FluidRegistry (e.g. "fluid.distilledwater", "distilledwater")
+        // 5. Try FluidRegistry (e.g. "fluid.distilledwater", "distilledwater", "Thorium Based Liquid Fuel")
         try {
-            String fluidName = id.startsWith("fluid.") ? id.substring("fluid.".length()) : id;
-            net.minecraftforge.fluids.Fluid f = net.minecraftforge.fluids.FluidRegistry.getFluid(fluidName);
+            Fluid f = findFluid(id);
             if (f != null && gregtech.api.enums.ItemList.Display_Fluid.hasBeenSet()) {
-                ItemStack is = GTUtility.getFluidDisplayStack(new net.minecraftforge.fluids.FluidStack(f, 1000), false);
+                ItemStack is = GTUtility.getFluidDisplayStack(new FluidStack(f, 1000), false);
                 if (is != null) return is;
             }
         } catch (Throwable ignored) {}
@@ -1341,12 +1342,118 @@ public final class ReactorDataRegistry {
         return false;
     }
 
+    public static String normalizeFluidString(String s) {
+        if (s == null) return "";
+        String clean = s.toLowerCase();
+        if (clean.startsWith("fluid.")) clean = clean.substring(6);
+        if (clean.startsWith("molten.")) clean = clean.substring(7);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < clean.length(); i++) {
+            char c = clean.charAt(i);
+            if (Character.isLetterOrDigit(c)) {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Resolves a Forge Fluid by exact name, unlocalized name, localized name, or normalized name.
+     * Handles common prefixes ("fluid.", "molten.") and spacing/parentheses variations.
+     */
+    public static Fluid findFluid(String query) {
+        if (query == null || query.trim().isEmpty()) return null;
+        String q = query.trim();
+        try {
+            // 1. Direct registry lookup
+            Fluid fluid = FluidRegistry.getFluid(q);
+            if (fluid != null) return fluid;
+
+            // 2. Prefix variations (fluid. and molten.)
+            if (q.startsWith("fluid.")) {
+                fluid = FluidRegistry.getFluid(q.substring(6));
+                if (fluid != null) return fluid;
+            } else {
+                fluid = FluidRegistry.getFluid("fluid." + q);
+                if (fluid != null) return fluid;
+            }
+
+            if (q.startsWith("molten.")) {
+                fluid = FluidRegistry.getFluid(q.substring(7));
+                if (fluid != null) return fluid;
+            } else {
+                fluid = FluidRegistry.getFluid("molten." + q);
+                if (fluid != null) return fluid;
+            }
+
+            // 3. Scan registered fluids
+            Map<String, Fluid> registered = FluidRegistry.getRegisteredFluids();
+            if (registered != null && !registered.isEmpty()) {
+                // 3a. Case-insensitive exact match against registered key, unlocalizedName, or localizedName
+                for (Map.Entry<String, Fluid> entry : registered.entrySet()) {
+                    if (entry.getKey().equalsIgnoreCase(q)) return entry.getValue();
+                    Fluid f = entry.getValue();
+                    if (f != null) {
+                        String unloc = f.getUnlocalizedName();
+                        if (unloc != null) {
+                            if (unloc.equalsIgnoreCase(q)) return f;
+                            if (unloc.startsWith("fluid.") && unloc.substring(6).equalsIgnoreCase(q)) return f;
+                            if (q.startsWith("fluid.") && q.substring(6).equalsIgnoreCase(unloc)) return f;
+                        }
+                        try {
+                            String loc = f.getLocalizedName(new FluidStack(f, 1000));
+                            if (loc != null && loc.equalsIgnoreCase(q)) return f;
+                        } catch (Throwable ignored) {}
+                    }
+                }
+
+                // 3b. Normalized alphanumeric comparison (ignoring spaces, punctuation, prefixes)
+                String normQ = normalizeFluidString(q);
+                if (!normQ.isEmpty()) {
+                    for (Map.Entry<String, Fluid> entry : registered.entrySet()) {
+                        String normKey = normalizeFluidString(entry.getKey());
+                        if (matchesPermutedDescriptors(normKey, normQ)) return entry.getValue();
+                        Fluid f = entry.getValue();
+                        if (f != null) {
+                            String normUnloc = normalizeFluidString(f.getUnlocalizedName());
+                            if (matchesPermutedDescriptors(normUnloc, normQ)) return f;
+                            try {
+                                String loc = f.getLocalizedName(new FluidStack(f, 1000));
+                                if (loc != null && matchesPermutedDescriptors(normalizeFluidString(loc), normQ)) return f;
+                            } catch (Throwable ignored) {}
+                        }
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    private static boolean matchesPermutedDescriptors(String a, String b) {
+        if (a == null || b == null || a.isEmpty() || b.isEmpty()) return false;
+        String stripA = a.replace("state", "");
+        String stripB = b.replace("state", "");
+        if (stripA.equals(stripB)) return true;
+        for (String modifier : new String[]{"excited", "depleted"}) {
+            if (stripA.contains(modifier) && stripB.contains(modifier)) {
+                String baseA = stripA.replace(modifier, "");
+                String baseB = stripB.replace(modifier, "");
+                if (!baseA.isEmpty() && baseA.equals(baseB)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public static boolean matchesFluid(FluidStack fluid, List<String> patterns) {
         if (fluid == null || fluid.getFluid() == null || patterns == null || patterns.isEmpty()) return false;
         String name = fluid.getFluid()
             .getName();
         String unloc = fluid.getFluid()
             .getUnlocalizedName();
+        String normName = normalizeFluidString(name);
+        String normUnloc = normalizeFluidString(unloc);
         for (String pattern : patterns) {
             if (pattern == null || pattern.isEmpty()) continue;
             if (name != null && name.equalsIgnoreCase(pattern)) return true;
@@ -1361,6 +1468,10 @@ public final class ReactorDataRegistry {
                 if (matchesPattern(name, pattern)) return true;
                 if (unloc != null && matchesPattern(unloc, pattern)) return true;
             }
+            String normPattern = normalizeFluidString(pattern);
+            if (!normPattern.isEmpty()) {
+                if (matchesPermutedDescriptors(normName, normPattern) || matchesPermutedDescriptors(normUnloc, normPattern)) return true;
+            }
         }
         return false;
     }
@@ -1368,12 +1479,17 @@ public final class ReactorDataRegistry {
     public static boolean matchesFluid(String fluidName, List<String> patterns) {
         if (fluidName == null || patterns == null || patterns.isEmpty()) return false;
         String cleanFluid = fluidName.startsWith("fluid.") ? fluidName.substring(6) : fluidName;
+        String normFluid = normalizeFluidString(fluidName);
         for (String pattern : patterns) {
             if (pattern == null || pattern.isEmpty()) continue;
             if (fluidName.equalsIgnoreCase(pattern)) return true;
             String cleanPattern = pattern.startsWith("fluid.") ? pattern.substring(6) : pattern;
             if (cleanFluid.equalsIgnoreCase(cleanPattern)) return true;
             if (pattern.contains("*") && matchesPattern(fluidName, pattern)) return true;
+            String normPattern = normalizeFluidString(pattern);
+            if (!normPattern.isEmpty()) {
+                if (matchesPermutedDescriptors(normFluid, normPattern)) return true;
+            }
         }
         return false;
     }

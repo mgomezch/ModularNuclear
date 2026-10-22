@@ -139,8 +139,8 @@ public enum NuclearFuelType {
         return switch (fd.id) {
             case "fuel_glowstone" -> GLOWSTONE;
             case "fuel_lithium" -> LITHIUM;
-            case "fuel_thorium_1", "fuel_thorium_2", "fuel_thorium_4", "fluid_fuel_thorium" -> THORIUM;
-            case "fuel_uranium_1", "fuel_uranium_2", "fuel_uranium_4", "fluid_fuel_uranium" -> URANIUM;
+            case "fuel_thorium_1", "fuel_thorium_2", "fuel_thorium_4", "fluid_fuel_thorium", "fluid_fuel_thorium_excited" -> THORIUM;
+            case "fuel_uranium_1", "fuel_uranium_2", "fuel_uranium_4", "fluid_fuel_uranium", "fluid_fuel_u_hexafluoride" -> URANIUM;
             case "fuel_mox_1", "fuel_mox_2", "fuel_mox_4" -> MOX;
             case "fuel_hd_uranium_1", "fuel_hd_uranium_2", "fuel_hd_uranium_4" -> HD_URANIUM;
             case "fuel_hd_plutonium_1", "fuel_hd_plutonium_2", "fuel_hd_plutonium_4", "fluid_fuel_plutonium" -> HD_PLUTONIUM;

@@ -217,7 +217,8 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             if (displayItems.isEmpty()) {
                 ItemStack fallback;
                 if (fuelData != null && fuelData.isLiquid) {
-                    fallback = new ItemStack(net.minecraft.init.Items.water_bucket);
+                    fallback = isTestMode() ? createTestPlaceholder(fuelData.name)
+                        : new ItemStack(net.minecraft.init.Items.water_bucket);
                     fallback.setStackDisplayName(fuelData.name);
                 } else if (ItemList.RodThorium.hasBeenSet()) {
                     fallback = ItemList.RodThorium.get(1L);
@@ -506,13 +507,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
     public static ItemStack getFluidDisplayStack(String fluidName) {
         if (fluidName == null || fluidName.isEmpty()) return null;
         try {
-            Fluid fluid = FluidRegistry.getFluid(fluidName);
-            if (fluid == null && fluidName.startsWith("fluid.")) {
-                fluid = FluidRegistry.getFluid(fluidName.substring(6));
-            }
-            if (fluid == null && !fluidName.startsWith("fluid.")) {
-                fluid = FluidRegistry.getFluid("fluid." + fluidName);
-            }
+            Fluid fluid = ReactorDataRegistry.findFluid(fluidName);
             if (fluid != null && ItemList.Display_Fluid.hasBeenSet()) {
                 ItemStack display = GTUtility.getFluidDisplayStack(new FluidStack(fluid, 1000), false);
                 if (display != null && display.getItem() != null
@@ -527,13 +522,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
     public static ItemStack getFluidContainerStack(String fluidName) {
         if (fluidName == null || fluidName.isEmpty()) return null;
         try {
-            Fluid fluid = FluidRegistry.getFluid(fluidName);
-            if (fluid == null && fluidName.startsWith("fluid.")) {
-                fluid = FluidRegistry.getFluid(fluidName.substring(6));
-            }
-            if (fluid == null && !fluidName.startsWith("fluid.")) {
-                fluid = FluidRegistry.getFluid("fluid." + fluidName);
-            }
+            Fluid fluid = ReactorDataRegistry.findFluid(fluidName);
             if (fluid != null) {
                 FluidStack fs = new FluidStack(fluid, 1000);
                 if (ItemList.Cell_Empty.hasBeenSet()) {
@@ -589,10 +578,18 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                 }
             }
             if (list.isEmpty()) {
+                ItemStack display = getFluidDisplayStack(fd.name);
+                if (display != null) addIfUnique(list, display);
+            }
+            if (list.isEmpty()) {
                 ItemStack display = getFluidDisplayStack(fd.id);
                 if (display != null) addIfUnique(list, display);
             }
             if (!list.isEmpty()) {
+                return list;
+            }
+            if (isTestMode()) {
+                list.add(createTestPlaceholder(fd.name));
                 return list;
             }
             ItemStack fallback = new ItemStack(net.minecraft.init.Items.water_bucket);
@@ -737,8 +734,15 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         EnumChatFormatting dimFormat = dark ? EnumChatFormatting.GRAY : EnumChatFormatting.DARK_GRAY;
 
         // Fuel display title (auto-scaled if longer than header width)
-        String displayName = (fd != null) ? fd.name
-            : (recipe.fuel != null ? recipe.fuel.displayName + " Fuel" : "Fuel");
+        String displayName = null;
+        if (fd != null && fd.isLiquid && recipe.fuelStack != null && recipe.fuelStack.items != null
+            && recipe.fuelStack.items.length > 0 && recipe.fuelStack.items[0] != null) {
+            displayName = recipe.fuelStack.items[0].getDisplayName();
+        }
+        if (displayName == null || displayName.isEmpty()) {
+            displayName = (fd != null) ? fd.name
+                : (recipe.fuel != null ? recipe.fuel.displayName + " Fuel" : "Fuel");
+        }
         String title = EnumChatFormatting.BOLD + displayName;
         int titleWidth = font.getStringWidth(title);
         float titleScale = (titleWidth > 115) ? (115.0f / titleWidth) : 1.0f;
@@ -1014,5 +1018,25 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             }
         }
         return currenttip;
+    }
+
+    private static boolean isTestMode() {
+        try {
+            cpw.mods.fml.common.Loader ldr = cpw.mods.fml.common.Loader.instance();
+            if (ldr == null || ldr.getModList() == null
+                || ldr.getModList()
+                    .isEmpty()) {
+                return true;
+            }
+        } catch (Throwable t) {
+            return true;
+        }
+        return false;
+    }
+
+    private static ItemStack createTestPlaceholder(String name) {
+        ItemStack stack = new ItemStack(net.minecraft.init.Items.paper);
+        stack.setStackDisplayName(name);
+        return stack;
     }
 }

@@ -1147,11 +1147,16 @@ fuels:
     end_reactivity_mult: 0.1
     end_damage_fraction: 1.0
 - id: fluid_fuel_thorium_excited
-  name: Excited Thorium-Based Liquid Fuel
+  name: Thorium Based Liquid Fuel (Excited State)
   archetype: excited
   matching:
+  - "Thorium Based Liquid Fuel (Excited State)"
+  - "thorium based liquid fuel (excited state)"
+  - "fluid.thorium based liquid fuel (excited state)"
   - thoriumbasedliquidfuelexcited
   - fluid.thoriumbasedliquidfuelexcited
+  - thoriumbasedliquidfuelexcitedstate
+  - fluid.thoriumbasedliquidfuelexcitedstate
   is_liquid: true
   required_tier: 4
   packet_count: 4
@@ -1168,16 +1173,19 @@ fuels:
   default_durability: 35000
   peak_reactivity_temp: 580.0
   floor_temp: 2200.0
-  spent_product: thoriumbasedliquidfueldepleted
+  spent_product: "Thorium Based Liquid Fuel (Depleted)"
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
     end_reactivity_mult: 0.1
     end_damage_fraction: 1.0
 - id: fluid_fuel_thorium
-  name: Thorium-Based Liquid Fuel
+  name: Thorium Based Liquid Fuel
   archetype: standard
   matching:
+  - "Thorium Based Liquid Fuel"
+  - "thorium based liquid fuel"
+  - "fluid.thorium based liquid fuel"
   - thoriumbasedliquidfuel
   - fluid.thoriumbasedliquidfuel
   is_liquid: true
@@ -1196,18 +1204,23 @@ fuels:
   default_durability: 50000
   peak_reactivity_temp: 580.0
   floor_temp: 2200.0
-  spent_product: thoriumbasedliquidfueldepleted
+  spent_product: "Thorium Based Liquid Fuel (Depleted)"
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
     end_reactivity_mult: 0.1
     end_damage_fraction: 1.0
 - id: fluid_fuel_uranium_excited
-  name: Excited Uranium-Based Liquid Fuel
+  name: Uranium Based Liquid Fuel (Excited State)
   archetype: excited
   matching:
+  - "Uranium Based Liquid Fuel (Excited State)"
+  - "uranium based liquid fuel (excited state)"
+  - "fluid.uranium based liquid fuel (excited state)"
   - uraniumbasedliquidfuelexcited
   - fluid.uraniumbasedliquidfuelexcited
+  - uraniumbasedliquidfuelexcitedstate
+  - fluid.uraniumbasedliquidfuelexcitedstate
   is_liquid: true
   required_tier: 3
   packet_count: 4
@@ -1224,16 +1237,19 @@ fuels:
   default_durability: 15000
   peak_reactivity_temp: 1540.0
   floor_temp: 2700.0
-  spent_product: uraniumbasedliquidfueldepleted
+  spent_product: "Uranium Based Liquid Fuel (Depleted)"
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
     end_reactivity_mult: 0.1
     end_damage_fraction: 1.0
 - id: fluid_fuel_uranium
-  name: Uranium-Based Liquid Fuel
+  name: Uranium Based Liquid Fuel
   archetype: standard
   matching:
+  - "Uranium Based Liquid Fuel"
+  - "uranium based liquid fuel"
+  - "fluid.uranium based liquid fuel"
   - uraniumbasedliquidfuel
   - fluid.uraniumbasedliquidfuel
   is_liquid: true
@@ -1252,18 +1268,23 @@ fuels:
   default_durability: 20000
   peak_reactivity_temp: 770.0
   floor_temp: 2300.0
-  spent_product: uraniumbasedliquidfueldepleted
+  spent_product: "Uranium Based Liquid Fuel (Depleted)"
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
     end_reactivity_mult: 0.1
     end_damage_fraction: 1.0
 - id: fluid_fuel_plutonium_excited
-  name: Excited Plutonium-Based Liquid Fuel
+  name: Plutonium Based Liquid Fuel (Excited State)
   archetype: excited
   matching:
+  - "Plutonium Based Liquid Fuel (Excited State)"
+  - "plutonium based liquid fuel (excited state)"
+  - "fluid.plutonium based liquid fuel (excited state)"
   - plutoniumbasedliquidfuelexcited
   - fluid.plutoniumbasedliquidfuelexcited
+  - plutoniumbasedliquidfuelexcitedstate
+  - fluid.plutoniumbasedliquidfuelexcitedstate
   is_liquid: true
   required_tier: 4
   packet_count: 4
@@ -1280,16 +1301,19 @@ fuels:
   default_durability: 15000
   peak_reactivity_temp: 1730.0
   floor_temp: 2800.0
-  spent_product: plutoniumbasedliquidfueldepleted
+  spent_product: "Plutonium Based Liquid Fuel (Depleted)"
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
     end_reactivity_mult: 0.1
     end_damage_fraction: 1.0
 - id: fluid_fuel_plutonium
-  name: Plutonium-Based Liquid Fuel
+  name: Plutonium Based Liquid Fuel
   archetype: standard
   matching:
+  - "Plutonium Based Liquid Fuel"
+  - "plutonium based liquid fuel"
+  - "fluid.plutonium based liquid fuel"
   - plutoniumbasedliquidfuel
   - fluid.plutoniumbasedliquidfuel
   is_liquid: true
@@ -1308,7 +1332,7 @@ fuels:
   default_durability: 20000
   peak_reactivity_temp: 1350.0
   floor_temp: 2600.0
-  spent_product: plutoniumbasedliquidfueldepleted
+  spent_product: "Plutonium Based Liquid Fuel (Depleted)"
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -1318,8 +1342,10 @@ fuels:
   name: Uranium Hexafluoride
   archetype: standard
   matching:
-  - uraniumhexafluoride
-  - fluid.uraniumhexafluoride
+  - "molten.uraniumhexafluoride"
+  - "uraniumhexafluoride"
+  - "fluid.uraniumhexafluoride"
+  - "Uranium Hexafluoride"
   is_liquid: true
   required_tier: 2
   packet_count: 4
@@ -1336,9 +1362,10 @@ fuels:
   default_durability: 25000
   peak_reactivity_temp: 770.0
   floor_temp: 2300.0
-  spent_product: uraniumtetrafluoride
+  spent_product: "molten.uraniumtetrafluoride"
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
     end_reactivity_mult: 0.1
     end_damage_fraction: 1.0
+

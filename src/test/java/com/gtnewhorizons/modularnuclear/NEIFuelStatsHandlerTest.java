@@ -5,10 +5,17 @@ import static org.junit.jupiter.api.Assertions.*;
 import net.minecraft.init.Bootstrap;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.nei.NEIFuelStatsHandler;
 
@@ -18,12 +25,20 @@ public class NEIFuelStatsHandlerTest {
 
     @BeforeAll
     public static void setUp() {
-        try {
-            Bootstrap.func_151354_b();
-        } catch (Throwable ignored) {}
+        TestEnvironmentHelper.init();
 
         if (ModMetaTileEntities.reactor == null) {
             ModMetaTileEntities.reactor = new ItemStack(Items.diamond, 1, 0);
+        }
+
+        if (FluidRegistry.getFluid("thorium based liquid fuel") == null) {
+            FluidRegistry.registerFluid(new Fluid("thorium based liquid fuel"));
+        }
+        if (FluidRegistry.getFluid("thorium based liquid fuel (excited state)") == null) {
+            FluidRegistry.registerFluid(new Fluid("thorium based liquid fuel (excited state)"));
+        }
+        if (FluidRegistry.getFluid("molten.uraniumhexafluoride") == null) {
+            FluidRegistry.registerFluid(new Fluid("molten.uraniumhexafluoride"));
         }
     }
 
@@ -120,5 +135,91 @@ public class NEIFuelStatsHandlerTest {
             assertTrue(dFloor > dPeak, "Damage at floor temp must exceed damage at peak temp for " + fuel);
             assertTrue(stats.damageRatioPercent <= 25.01, "Damage ratio D(T_pk)/D(T_10) must be <= 25% for " + fuel);
         }
+    }
+
+    @Test
+    public void testLiquidFuelCanonicalNames() {
+        FuelData thExcited = ReactorDataRegistry.getAllFuels().stream()
+            .filter(f -> "fluid_fuel_thorium_excited".equalsIgnoreCase(f.id))
+            .findFirst().orElse(null);
+        assertNotNull(thExcited);
+        assertEquals("Thorium Based Liquid Fuel (Excited State)", thExcited.name);
+        assertTrue(thExcited.isLiquid);
+        assertEquals("Thorium Based Liquid Fuel (Depleted)", thExcited.spentProduct);
+
+        FuelData thStd = ReactorDataRegistry.getAllFuels().stream()
+            .filter(f -> "fluid_fuel_thorium".equalsIgnoreCase(f.id))
+            .findFirst().orElse(null);
+        assertNotNull(thStd);
+        assertEquals("Thorium Based Liquid Fuel", thStd.name);
+        assertTrue(thStd.isLiquid);
+        assertEquals("Thorium Based Liquid Fuel (Depleted)", thStd.spentProduct);
+
+        FuelData uHex = ReactorDataRegistry.getAllFuels().stream()
+            .filter(f -> "fluid_fuel_u_hexafluoride".equalsIgnoreCase(f.id))
+            .findFirst().orElse(null);
+        assertNotNull(uHex);
+        assertEquals("Uranium Hexafluoride", uHex.name);
+        assertTrue(uHex.isLiquid);
+        assertEquals("molten.uraniumtetrafluoride", uHex.spentProduct);
+    }
+
+    @Test
+    public void testFindFluidAndNormalization() {
+        // Register test fluids if not already registered
+        if (FluidRegistry.getFluid("thorium based liquid fuel (excited state)") == null) {
+            FluidRegistry.registerFluid(new Fluid("thorium based liquid fuel (excited state)"));
+        }
+        if (FluidRegistry.getFluid("molten.uraniumhexafluoride") == null) {
+            FluidRegistry.registerFluid(new Fluid("molten.uraniumhexafluoride"));
+        }
+
+        // Test exact matches
+        assertNotNull(ReactorDataRegistry.findFluid("thorium based liquid fuel (excited state)"));
+        assertNotNull(ReactorDataRegistry.findFluid("molten.uraniumhexafluoride"));
+
+        // Test prefix variations
+        assertNotNull(ReactorDataRegistry.findFluid("uraniumhexafluoride"));
+        assertNotNull(ReactorDataRegistry.findFluid("fluid.molten.uraniumhexafluoride"));
+
+        // Test normalized alphanumeric matches
+        assertNotNull(ReactorDataRegistry.findFluid("thoriumbasedliquidfuelexcited"));
+        assertNotNull(ReactorDataRegistry.findFluid("thoriumbasedliquidfuelexcitedstate"));
+        assertNotNull(ReactorDataRegistry.findFluid("Thorium-Based Liquid Fuel"));
+        assertNotNull(ReactorDataRegistry.findFluid("Excited Thorium-Based Liquid Fuel"));
+    }
+
+    @Test
+    public void testMatchesFluid() {
+        if (FluidRegistry.getFluid("thorium based liquid fuel (excited state)") == null) {
+            FluidRegistry.registerFluid(new Fluid("thorium based liquid fuel (excited state)"));
+        }
+        Fluid fTh = ReactorDataRegistry.findFluid("thorium based liquid fuel (excited state)");
+        assertNotNull(fTh);
+        FluidStack fs = new FluidStack(fTh, 1000);
+
+        List<String> patterns = List.of(
+            "Thorium Based Liquid Fuel (Excited State)",
+            "thoriumbasedliquidfuelexcited",
+            "fluid.thoriumbasedliquidfuelexcited"
+        );
+        assertTrue(ReactorDataRegistry.matchesFluid(fs, patterns));
+        assertTrue(ReactorDataRegistry.matchesFluid("thorium based liquid fuel (excited state)", patterns));
+        assertTrue(ReactorDataRegistry.matchesFluid("thoriumbasedliquidfuelexcited", patterns));
+    }
+
+    @Test
+    public void testLiquidFuelNEIDisplayStacks() {
+        FuelData thExcited = ReactorDataRegistry.getAllFuels().stream()
+            .filter(f -> "fluid_fuel_thorium_excited".equalsIgnoreCase(f.id))
+            .findFirst().orElse(null);
+        assertNotNull(thExcited);
+
+        List<ItemStack> stacks = NEIFuelStatsHandler.getFuelStacks(thExcited);
+        assertNotNull(stacks);
+        assertFalse(stacks.isEmpty(), "Liquid fuel should produce display stacks in NEI handler");
+        ItemStack displayStack = stacks.get(0);
+        assertNotNull(displayStack);
+        assertNotEquals(Items.water_bucket, displayStack.getItem(), "Should not fall back to water bucket");
     }
 }
