@@ -55,6 +55,9 @@ import gregtech.api.util.GTUtility;
  */
 public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> implements Interactable {
 
+    public static final float MIN_ZOOM = 0.001f;
+    public static final float MAX_ZOOM = 1000.0f;
+
     private final MTENuclearReactor reactor;
     private final PanelSyncManager syncManager;
 
@@ -62,6 +65,9 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
     private float panY = 0.0f;
     private float zoom = 1.0f;
     private boolean hasInitialFit = false;
+    private boolean autoFitLocked = false;
+    private int lastWidth = -1;
+    private int lastHeight = -1;
 
     // Pan dragging state
     private boolean isPanning = false;
@@ -101,16 +107,42 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         return Math.round(zoom * 100.0f);
     }
 
+    public String getZoomString() {
+        float pct = zoom * 100.0f;
+        if (pct >= 10.0f) {
+            return Math.round(pct) + "%";
+        } else if (pct >= 1.0f) {
+            return String.format(Locale.US, "%.1f%%", pct);
+        } else {
+            return String.format(Locale.US, "%.2f%%", pct);
+        }
+    }
+
+    public boolean isAutoFitLocked() {
+        return autoFitLocked;
+    }
+
+    public void setAutoFitLocked(boolean autoFitLocked) {
+        this.autoFitLocked = autoFitLocked;
+    }
+
+    public void toggleAutoFitLocked() {
+        this.autoFitLocked = !this.autoFitLocked;
+        if (!this.autoFitLocked) {
+            fitToView();
+        }
+    }
+
     public void zoomIn() {
         float cx = getArea() != null ? getArea().w() / 2.0f : 0.0f;
         float cy = getArea() != null ? getArea().h() / 2.0f : 0.0f;
-        zoomAt(Math.min(3.0f, zoom * 1.25f), cx, cy);
+        zoomAt(Math.min(MAX_ZOOM, zoom * 1.25f), cx, cy);
     }
 
     public void zoomOut() {
         float cx = getArea() != null ? getArea().w() / 2.0f : 0.0f;
         float cy = getArea() != null ? getArea().h() / 2.0f : 0.0f;
-        zoomAt(Math.max(0.25f, zoom / 1.25f), cx, cy);
+        zoomAt(Math.max(MIN_ZOOM, zoom / 1.25f), cx, cy);
     }
 
     public void resetZoom() {
@@ -129,7 +161,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         float contentH = N * 18.0f + 26.0f; // Grid + controller icon spacing
         float scaleX = (vw - 24.0f) / contentW;
         float scaleY = (vh - 24.0f) / contentH;
-        this.zoom = Math.max(0.25f, Math.min(2.5f, Math.min(scaleX, scaleY)));
+        this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.min(scaleX, scaleY)));
         this.panX = (vw - contentW * zoom) / 2.0f;
         this.panY = (vh - contentH * zoom) / 2.0f;
     }
@@ -146,8 +178,8 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
     }
 
     private void zoomAt(float newZoom, float mouseX, float mouseY) {
-        newZoom = Math.max(0.25f, Math.min(3.0f, newZoom));
-        if (Math.abs(newZoom - zoom) < 0.001f) return;
+        newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
+        if (Math.abs(newZoom - zoom) < 0.00001f) return;
         float graphX = (mouseX - panX) / zoom;
         float graphY = (mouseY - panY) / zoom;
         this.zoom = newZoom;
@@ -323,10 +355,10 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         float my = (ctx != null && area != null) ? (ctx.getAbsMouseY() - area.y)
             : (area != null ? area.h() / 2.0f : 0.0f);
         if (scroll == UpOrDown.UP) {
-            zoomAt(Math.min(3.0f, zoom * 1.15f), mx, my);
+            zoomAt(Math.min(MAX_ZOOM, zoom * 1.15f), mx, my);
             return true;
         } else if (scroll == UpOrDown.DOWN) {
-            zoomAt(Math.max(0.25f, zoom / 1.15f), mx, my);
+            zoomAt(Math.max(MIN_ZOOM, zoom / 1.15f), mx, my);
             return true;
         }
         return false;
@@ -340,10 +372,23 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
 
         ReactorGridSyncData sync = reactor.getClientGridData();
 
-        // Auto-fit on first layout once data is formed
-        if (!hasInitialFit && sync != null && sync.gridSize > 0) {
-            fitToView();
-            hasInitialFit = true;
+        // Auto-fit on first layout once data is formed, or on resize if not locked
+        if (sync != null && sync.gridSize > 0) {
+            if (!hasInitialFit) {
+                fitToView();
+                hasInitialFit = true;
+                lastWidth = rw;
+                lastHeight = rh;
+            } else if (lastWidth != rw || lastHeight != rh) {
+                if (!autoFitLocked) {
+                    fitToView();
+                }
+                lastWidth = rw;
+                lastHeight = rh;
+            }
+        } else {
+            lastWidth = rw;
+            lastHeight = rh;
         }
 
         // Draw background container panel and border in local coords

@@ -80,12 +80,44 @@ public class NuclearReactorGridWidgetTest {
 
     @Test
     void testZoomControls() {
+        assertEquals(0.001f, NuclearReactorGridWidget.MIN_ZOOM, 0.0001f);
+        assertEquals(1000.0f, NuclearReactorGridWidget.MAX_ZOOM, 0.0001f);
+
         widget.resetZoom();
         assertEquals(100, widget.getZoomPercent());
+        assertEquals("100%", widget.getZoomString());
+
         widget.zoomIn();
         assertTrue(widget.getZoomPercent() > 100);
         widget.zoomOut();
         assertEquals(100, widget.getZoomPercent());
+
+        // Test expanded zoom range formatting and limits
+        Method zoomAtMethod;
+        try {
+            zoomAtMethod = NuclearReactorGridWidget.class
+                .getDeclaredMethod("zoomAt", float.class, float.class, float.class);
+            zoomAtMethod.setAccessible(true);
+            zoomAtMethod.invoke(widget, 0.00001f, 100f, 100f);
+            assertEquals(NuclearReactorGridWidget.MIN_ZOOM, widget.getZoom(), 0.0001f);
+            assertEquals("0.10%", widget.getZoomString());
+
+            zoomAtMethod.invoke(widget, 2000.0f, 100f, 100f);
+            assertEquals(NuclearReactorGridWidget.MAX_ZOOM, widget.getZoom(), 0.0001f);
+            assertEquals("100000%", widget.getZoomString());
+
+            zoomAtMethod.invoke(widget, 0.05f, 100f, 100f);
+            assertEquals("5.0%", widget.getZoomString());
+        } catch (Exception e) {
+            fail("Failed to test zoomAt reflection: " + e.getMessage());
+        }
+
+        // Test lock toggle
+        assertFalse(widget.isAutoFitLocked());
+        widget.toggleAutoFitLocked();
+        assertTrue(widget.isAutoFitLocked());
+        widget.toggleAutoFitLocked();
+        assertFalse(widget.isAutoFitLocked());
     }
 
     private MTEHatchNuclearBus createTestBus(String name) {

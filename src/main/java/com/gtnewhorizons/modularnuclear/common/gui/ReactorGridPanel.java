@@ -18,6 +18,7 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.gtnewhorizons.coolantloops.common.gui.LockIconWidget;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
@@ -167,10 +168,10 @@ public class ReactorGridPanel {
 
         // Zoom Readout (also acts as drag handle)
         headerRow.child(
-            new PanelDragHandle(panel).title(IKey.dynamic(() -> gridWidget.getZoomPercent() + "%"))
+            new PanelDragHandle(panel).title(IKey.dynamic(gridWidget::getZoomString))
                 .color(Color.WHITE.main)
                 .textAlign(Alignment.Center)
-                .size(32, 14)
+                .size(36, 14)
                 .marginRight(2));
 
         // Zoom In
@@ -204,7 +205,7 @@ public class ReactorGridPanel {
         // Fit to View
         headerRow.child(
             new ButtonWidget<>().size(22, 14)
-                .marginRight(6)
+                .marginRight(2)
                 .child(
                     IKey.str("Fit")
                         .asWidget()
@@ -212,6 +213,25 @@ public class ReactorGridPanel {
                 .tooltipBuilder(t -> t.addLine("Fit grid to view"))
                 .onMousePressed(d -> {
                     gridWidget.fitToView();
+                    return true;
+                }));
+
+        // Auto-fit lock toggle button
+        headerRow.child(
+            new ButtonWidget<>().size(14, 14)
+                .marginRight(6)
+                .child(new LockIconWidget(gridWidget::isAutoFitLocked).center())
+                .tooltipBuilder(t -> {
+                    if (gridWidget.isAutoFitLocked()) {
+                        t.addLine(EnumChatFormatting.YELLOW + "Auto-fit on resize: locked");
+                        t.addLine(EnumChatFormatting.GRAY + "Click to unlock and auto-fit on window resize");
+                    } else {
+                        t.addLine(EnumChatFormatting.GREEN + "Auto-fit on resize: unlocked");
+                        t.addLine(EnumChatFormatting.GRAY + "Click to lock zoom and pan on resize");
+                    }
+                })
+                .onMousePressed(d -> {
+                    gridWidget.toggleAutoFitLocked();
                     return true;
                 }));
 
