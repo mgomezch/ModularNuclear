@@ -17,46 +17,68 @@ import ic2.api.reactor.IReactorComponent;
 
 public class ItemRadiovoltaicPlate extends Item implements IReactorComponent {
 
-    private final int tier; // 1 for HV (1024 EU/t), 2 for EV (4096 EU/t)
     @SideOnly(Side.CLIENT)
-    private IIcon mIcon;
+    private IIcon iconHV;
+    @SideOnly(Side.CLIENT)
+    private IIcon iconEV;
 
-    public ItemRadiovoltaicPlate(String aUnlocalized, int aTier) {
+    public ItemRadiovoltaicPlate(String aUnlocalized) {
         super();
-        this.tier = aTier;
         this.setUnlocalizedName(aUnlocalized);
         this.setCreativeTab(GregTechAPI.TAB_GREGTECH);
+        this.setHasSubtypes(true);
         this.setMaxStackSize(64);
         this.setMaxDamage(0);
     }
 
+    public static int getTier(ItemStack stack) {
+        if (stack == null) return 1;
+        return getTier(stack.getItemDamage());
+    }
+
+    public static int getTier(int damage) {
+        return damage == 1 ? 2 : 1;
+    }
+
     public int getTier() {
-        return tier;
+        return 1;
+    }
+
+    @Override
+    public String getUnlocalizedName(ItemStack stack) {
+        int damage = stack != null ? stack.getItemDamage() : 0;
+        return damage == 1 ? "item.modularnuclear.radiovoltaic.plate.ev" : "item.modularnuclear.radiovoltaic.plate.hv";
     }
 
     @Override
     @SideOnly(Side.CLIENT)
     public void registerIcons(IIconRegister iconRegister) {
-        if (tier == 1) {
-            mIcon = iconRegister.registerIcon("modularnuclear:gt.radiovoltaic.plate.hv");
-        } else {
-            mIcon = iconRegister.registerIcon("modularnuclear:gt.radiovoltaic.plate.ev");
-        }
+        iconHV = iconRegister.registerIcon("modularnuclear:gt.radiovoltaic.plate.hv");
+        iconEV = iconRegister.registerIcon("modularnuclear:gt.radiovoltaic.plate.ev");
     }
 
     @Override
     @SideOnly(Side.CLIENT)
     public IIcon getIconFromDamage(int damage) {
-        return mIcon;
+        return damage == 1 ? iconEV : iconHV;
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public void getSubItems(Item item, net.minecraft.creativetab.CreativeTabs tab, List list) {
+        list.add(new ItemStack(item, 1, 0));
+        list.add(new ItemStack(item, 1, 1));
     }
 
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void addInformation(ItemStack aStack, EntityPlayer aPlayer, List aList, boolean aF3_H) {
-        if (tier == 1) {
-            GTSplit.splitLocalizedFormatted(aList, "item.modularnuclear.radiovoltaic.plate.hv.desc");
-        } else {
+        int damage = aStack != null ? aStack.getItemDamage() : 0;
+        if (damage == 1) {
             GTSplit.splitLocalizedFormatted(aList, "item.modularnuclear.radiovoltaic.plate.ev.desc");
+        } else {
+            GTSplit.splitLocalizedFormatted(aList, "item.modularnuclear.radiovoltaic.plate.hv.desc");
         }
         GTSplit.splitLocalizedFormatted(aList, "item.modularnuclear.radiovoltaic.plate.common.desc");
     }

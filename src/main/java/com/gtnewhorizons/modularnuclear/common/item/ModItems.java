@@ -9,8 +9,9 @@ import cpw.mods.fml.common.registry.GameRegistry;
 
 public class ModItems {
 
-    public static ItemRadiovoltaicPlate radiovoltaicPlateHV;
-    public static ItemRadiovoltaicPlate radiovoltaicPlateEV;
+    public static ItemRadiovoltaicPlate radiovoltaicPlate;
+    public static ItemStack radiovoltaicPlateHV;
+    public static ItemStack radiovoltaicPlateEV;
 
     public static ItemNuclearFluidCell cellHeavyWater;
 
@@ -36,11 +37,10 @@ public class ModItems {
         emptyCoreTile = new ItemEmptyCoreTile();
         GameRegistry.registerItem(emptyCoreTile, "empty_core_tile");
 
-        radiovoltaicPlateHV = new ItemRadiovoltaicPlate("modularnuclear.radiovoltaic.plate.hv", 1);
-        GameRegistry.registerItem(radiovoltaicPlateHV, "radiovoltaic_plate_hv");
-
-        radiovoltaicPlateEV = new ItemRadiovoltaicPlate("modularnuclear.radiovoltaic.plate.ev", 2);
-        GameRegistry.registerItem(radiovoltaicPlateEV, "radiovoltaic_plate_ev");
+        radiovoltaicPlate = new ItemRadiovoltaicPlate("modularnuclear.radiovoltaic.plate");
+        GameRegistry.registerItem(radiovoltaicPlate, "radiovoltaic_plate");
+        radiovoltaicPlateHV = new ItemStack(radiovoltaicPlate, 1, 0);
+        radiovoltaicPlateEV = new ItemStack(radiovoltaicPlate, 1, 1);
 
         cellHeavyWater = new ItemNuclearFluidCell("cellHeavyWater", ModFluids.fluidHeavyWater);
         GameRegistry.registerItem(cellHeavyWater, "cellHeavyWater");

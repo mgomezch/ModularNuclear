@@ -2634,8 +2634,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public int getRadiovoltaicTier(ItemStack stack) {
         if (stack == null) return 0;
-        if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate plate)
-            return plate.getTier();
+        if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate)
+            return com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate.getTier(stack);
         com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData rvd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
             .findRadiovoltaic(stack);
         if (rvd != null) {

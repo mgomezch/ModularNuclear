@@ -31,15 +31,15 @@ public class NEINeutronInteractionHandlerTest {
             if (ModItems.emptyCoreTile == null) {
                 ModItems.emptyCoreTile = new com.gtnewhorizons.modularnuclear.common.item.ItemEmptyCoreTile();
             }
+            if (ModItems.radiovoltaicPlate == null) {
+                ModItems.radiovoltaicPlate = new com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate(
+                    "modularnuclear.radiovoltaic.plate");
+            }
             if (ModItems.radiovoltaicPlateHV == null) {
-                ModItems.radiovoltaicPlateHV = new com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate(
-                    "modularnuclear.radiovoltaic.plate.hv",
-                    1);
+                ModItems.radiovoltaicPlateHV = new ItemStack(ModItems.radiovoltaicPlate, 1, 0);
             }
             if (ModItems.radiovoltaicPlateEV == null) {
-                ModItems.radiovoltaicPlateEV = new com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate(
-                    "modularnuclear.radiovoltaic.plate.ev",
-                    2);
+                ModItems.radiovoltaicPlateEV = new ItemStack(ModItems.radiovoltaicPlate, 1, 1);
             }
         } catch (Throwable ignored) {}
 

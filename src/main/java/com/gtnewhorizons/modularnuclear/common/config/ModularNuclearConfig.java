@@ -71,8 +71,9 @@ public final class ModularNuclearConfig {
     public static String[] allowedInsulators = new String[] { "Naquarite_Universal_Insulator_Foil=1.0",
         "MicaInsulatorFoil=0.60", "ThermalClothT2=0.40", "ThermalCloth=0.20", "itemBasicAsteroids:7=0.20" };
 
-    public static String[] allowedRadiovoltaics = new String[] { "modularnuclear:radiovoltaicPlateHV",
-        "modularnuclear:radiovoltaicPlateEV" };
+    public static String[] allowedRadiovoltaics = new String[] { "modularnuclear:radiovoltaic_plate:0",
+        "modularnuclear:radiovoltaic_plate:1", "item.modularnuclear.radiovoltaic.plate.hv",
+        "item.modularnuclear.radiovoltaic.plate.ev" };
 
     public static String[] allowedNeutronSources = new String[] { "GoodGenerator:neutronSource", "item.neutronSource" };
 

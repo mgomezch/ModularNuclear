@@ -499,14 +499,14 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         // 4. RADIOVOLTAIC PLATES - 100% absorption, generates direct EU from absorbed neutron flux
         addRadiovoltaic(
-            ModItems.radiovoltaicPlateHV != null ? new ItemStack(ModItems.radiovoltaicPlateHV) : null,
+            ModItems.radiovoltaicPlateHV != null ? ModItems.radiovoltaicPlateHV.copy() : null,
             "HV Radiovoltaic Plate",
             1,
             1024L,
             "HV (2A)",
             "Converts absorbed neutrons to direct EU | Max 1024 EU/t");
         addRadiovoltaic(
-            ModItems.radiovoltaicPlateEV != null ? new ItemStack(ModItems.radiovoltaicPlateEV) : null,
+            ModItems.radiovoltaicPlateEV != null ? ModItems.radiovoltaicPlateEV.copy() : null,
             "EV Radiovoltaic Plate",
             2,
             4096L,
