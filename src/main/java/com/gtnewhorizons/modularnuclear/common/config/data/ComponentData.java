@@ -339,9 +339,13 @@ public class ComponentData {
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
         }
 
+        public double calculateTemperatureDamage(double temp) {
+            return calculateTemperatureDamage(temp, 20.0);
+        }
+
         public double calculateTemperatureDamage(double temp, double ambient) {
-            if (temp <= ambient || tempWearK <= 0.0 || tempWearA <= 0.0) return 0.0;
-            return tempWearA * (Math.exp(tempWearK * (temp - ambient)) - 1.0);
+            if (temp <= 20.0 || tempWearK <= 0.0 || tempWearA <= 0.0) return 0.0;
+            return tempWearA * (Math.exp(tempWearK * (temp - 20.0)) - 1.0);
         }
 
         public double calculateThermalEmission(double temp, int fastNeutronsAbsorbed) {

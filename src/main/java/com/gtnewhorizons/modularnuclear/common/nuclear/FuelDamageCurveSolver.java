@@ -85,32 +85,48 @@ public class FuelDamageCurveSolver {
     }
 
     /**
-     * Solves the exponential parameters (k, A) for a given fuel type and ambient temperature.
+     * Solves the exponential parameters (k, A) for a given fuel type assuming 20 °C ambient calibration.
+     */
+    public static FuelCurveStats solve(NuclearFuelType fuel) {
+        double wear = (fuel != null && fuel.wearFactor > 1.0) ? fuel.wearFactor : DEFAULT_T10_WEAR_FACTOR;
+        return solve(fuel, fuel != null ? fuel.peakReactivityTemp : 770.0, fuel != null ? fuel.floorTemp : 2300.0, DEFAULT_AMBIENT_TEMP, wear);
+    }
+
+    /**
+     * Solves the exponential parameters (k, A) for a given fuel type (ambient temperature is fixed to 20 °C).
      */
     public static FuelCurveStats solve(NuclearFuelType fuel, double ambientTemp) {
-        double wear = (fuel != null && fuel.wearFactor > 1.0) ? fuel.wearFactor : DEFAULT_T10_WEAR_FACTOR;
-        return solve(fuel, fuel.peakReactivityTemp, fuel.floorTemp, ambientTemp, wear);
+        return solve(fuel);
     }
 
     /**
      * Solves the exponential parameters (k, A) given peak and floor temperatures using the default wear factor.
      */
+    public static FuelCurveStats solve(NuclearFuelType fuel, double tPeak, double tFloor) {
+        return solve(fuel, tPeak, tFloor, DEFAULT_AMBIENT_TEMP, DEFAULT_T10_WEAR_FACTOR);
+    }
+
+    /**
+     * Solves the exponential parameters (k, A) given peak and floor temperatures (ambient temperature is fixed to 20 °C).
+     */
     public static FuelCurveStats solve(NuclearFuelType fuel, double tPeak, double tFloor, double ambientTemp) {
-        return solve(fuel, tPeak, tFloor, ambientTemp, DEFAULT_T10_WEAR_FACTOR);
+        return solve(fuel, tPeak, tFloor, DEFAULT_AMBIENT_TEMP, DEFAULT_T10_WEAR_FACTOR);
     }
 
     /**
      * Solves the exponential parameters (k, A) given peak, floor temperatures, and wear factor at T_10%.
+     * Ambient temperature is fixed to 20 °C always.
      *
      * @param wearFactor ratio of damage rate at T_10% to damage rate at T_peak (default 8.0).
      */
     public static FuelCurveStats solve(NuclearFuelType fuel, double tPeak, double tFloor, double ambientTemp,
         double wearFactor) {
+        final double fixedAmbient = DEFAULT_AMBIENT_TEMP;
         if (wearFactor <= 1.0) {
             wearFactor = DEFAULT_T10_WEAR_FACTOR;
         }
         double targetRatio = 1.0 / wearFactor;
-        double safeAmbient = Math.min(ambientTemp, tPeak - 10.0);
+        double safeAmbient = Math.min(fixedAmbient, tPeak - 10.0);
         double t10 = tPeak + P_10_PERCENT * (tFloor - tPeak);
         double dtPeak = tPeak - safeAmbient;
         double dt10 = t10 - safeAmbient;
@@ -142,18 +158,22 @@ public class FuelDamageCurveSolver {
 
         double dPeak = A * (Math.exp(k * dtPeak) - 1.0);
         double d10 = A * (Math.exp(k * dt10) - 1.0);
-        double dFloor = A * (Math.exp(k * (tFloor - ambientTemp)) - 1.0);
+        double dFloor = A * (Math.exp(k * (tFloor - fixedAmbient)) - 1.0);
         double ratioPct = (d10 > 0.0) ? (dPeak / d10) * 100.0 : 0.0;
 
-        return new FuelCurveStats(fuel, tPeak, tFloor, t10, ambientTemp, k, A, dPeak, d10, dFloor, ratioPct);
+        return new FuelCurveStats(fuel, tPeak, tFloor, t10, fixedAmbient, k, A, dPeak, d10, dFloor, ratioPct);
     }
 
     /**
      * Evaluates temperature durability damage for any fuel at a given temperature.
      */
+    public static double getTemperatureDamage(NuclearFuelType fuel, double temp) {
+        if (fuel == null || temp <= DEFAULT_AMBIENT_TEMP) return 0.0;
+        return fuel.calculateTemperatureDamage(temp);
+    }
+
     public static double getTemperatureDamage(NuclearFuelType fuel, double temp, double ambientTemp) {
-        if (fuel == null || temp <= ambientTemp) return 0.0;
-        return fuel.calculateTemperatureDamage(temp, ambientTemp);
+        return getTemperatureDamage(fuel, temp);
     }
 
     /**

@@ -102,17 +102,17 @@ public enum NuclearFuelType {
 
     /**
      * Temperature durability damage following a slowly-growing zero-crossing-adjusted exponential curve.
-     * Produces zero damage at or below ambient temperature.
+     * Produces zero damage at or below ambient temperature (fixed to 20 °C).
      */
     public double calculateTemperatureDamage(double temp, double ambientTemp) {
-        if (temp <= ambientTemp) {
-            return 0.0;
-        }
-        return damageA * (Math.exp(damageK * (temp - ambientTemp)) - 1.0);
+        return calculateTemperatureDamage(temp);
     }
 
     public double calculateTemperatureDamage(double temp) {
-        return calculateTemperatureDamage(temp, 20.0);
+        if (temp <= 20.0) {
+            return 0.0;
+        }
+        return damageA * (Math.exp(damageK * (temp - 20.0)) - 1.0);
     }
 
     /**

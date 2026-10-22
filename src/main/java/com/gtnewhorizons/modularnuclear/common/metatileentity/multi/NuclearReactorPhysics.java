@@ -695,14 +695,13 @@ public class NuclearReactorPhysics {
         // temperature above ambient)
         if (reactor.isItemFuel(stack)) {
             bus.mDirectEUProduced = 0;
-            double ambient = bus.getAmbientTemperature();
             CustomFuelMix customMix = CustomFuelMix.fromStack(stack);
             FuelData fd = ReactorDataRegistry.findFuel(stack);
             NuclearFuelType fuelType = getTileFuelType(tile);
-            double tempDmg = (customMix != null) ? customMix.calculateTemperatureDamage(bus.mTemperature, ambient)
-                : (fd != null) ? fd.calculateTemperatureDamage(bus.mTemperature, ambient)
-                    : (fuelType != null) ? fuelType.calculateTemperatureDamage(bus.mTemperature, ambient)
-                        : (bus.mTemperature > ambient ? (bus.mTemperature - ambient) / 100.0 : 0.0);
+            double tempDmg = (customMix != null) ? customMix.calculateTemperatureDamage(bus.mTemperature)
+                : (fd != null) ? fd.calculateTemperatureDamage(bus.mTemperature)
+                    : (fuelType != null) ? fuelType.calculateTemperatureDamage(bus.mTemperature)
+                        : (bus.mTemperature > 20.0 ? (bus.mTemperature - 20.0) / 100.0 : 0.0);
 
             PhysicsData physics = ReactorDataRegistry.getPhysics();
             double fastWearMult = (physics != null) ? physics.fastAbsorptionDamageMultiplier
@@ -794,8 +793,7 @@ public class NuclearReactorPhysics {
             bus.mDirectEUProduced = 0;
             ModeratorData mod = ReactorDataRegistry.findModerator(stack);
             if (mod != null) {
-                double ambient = bus.getAmbientTemperature();
-                double tempDmg = mod.calculateTemperatureDamage(bus.mTemperature, ambient);
+                double tempDmg = mod.calculateTemperatureDamage(bus.mTemperature);
 
                 PhysicsData physics = ReactorDataRegistry.getPhysics();
                 double fastWearMult = (physics != null) ? physics.fastAbsorptionDamageMultiplier
@@ -1017,10 +1015,9 @@ public class NuclearReactorPhysics {
         if (MTENuclearReactor.isFluidFuel(hatch.mInputFluid)) {
             FluidStack fluid = hatch.mInputFluid;
             Fluid spentFluid = MTENuclearReactor.getSpentFluid(fluid);
-            double ambient = hatch.getAmbientTemperature();
             FuelData fuelData = ReactorDataRegistry.findFuel(fluid);
-            double tempDmg = (fuelData != null) ? fuelData.calculateTemperatureDamage(hatch.mTemperature, ambient)
-                : (hatch.mTemperature > ambient ? (hatch.mTemperature - ambient) / 100.0 : 0.0);
+            double tempDmg = (fuelData != null) ? fuelData.calculateTemperatureDamage(hatch.mTemperature)
+                : (hatch.mTemperature > 20.0 ? (hatch.mTemperature - 20.0) / 100.0 : 0.0);
 
             PhysicsData physics = ReactorDataRegistry.getPhysics();
             double fastWearMult = (physics != null) ? physics.fastAbsorptionDamageMultiplier

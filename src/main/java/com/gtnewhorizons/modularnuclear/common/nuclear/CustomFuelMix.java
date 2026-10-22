@@ -249,14 +249,14 @@ public class CustomFuelMix {
     }
 
     public double calculateTemperatureDamage(double temp, double ambientTemp) {
-        if (temp <= ambientTemp) {
-            return 0.0;
-        }
-        return damageA * (Math.exp(damageK * (temp - ambientTemp)) - 1.0);
+        return calculateTemperatureDamage(temp);
     }
 
     public double calculateTemperatureDamage(double temp) {
-        return calculateTemperatureDamage(temp, 20.0);
+        if (temp <= 20.0) {
+            return 0.0;
+        }
+        return damageA * (Math.exp(damageK * (temp - 20.0)) - 1.0);
     }
 
     public void writeToNBT(NBTTagCompound nbt) {

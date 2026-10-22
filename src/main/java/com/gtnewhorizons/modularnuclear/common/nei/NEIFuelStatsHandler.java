@@ -13,7 +13,6 @@ import javax.imageio.ImageIO;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.resources.IResource;
@@ -27,7 +26,6 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
-import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
@@ -38,10 +36,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 
 import codechicken.lib.gui.GuiDraw;
-import codechicken.nei.NEIClientUtils;
 import codechicken.nei.PositionedStack;
-import codechicken.nei.guihook.GuiContainerManager;
-import codechicken.nei.guihook.IContainerInputHandler;
 import codechicken.nei.recipe.GuiRecipe;
 import codechicken.nei.recipe.TemplateRecipeHandler;
 import gregtech.api.enums.ItemList;
@@ -66,36 +61,10 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
     public static final int PLOT_W = 104;
     public static final int PLOT_H = 50;
 
-    // Ambient Temperature Control Bar bounds
-    public static final int BAR_X = PANEL_X;
-    public static final int BAR_Y = 146;
-    public static final int BAR_W = PANEL_W;
-    public static final int BAR_H = 16;
-
-    public static final int INPUT_X = 50;
-    public static final int INPUT_Y = BAR_Y + 2;
-    public static final int INPUT_W = 44;
-    public static final int INPUT_H = 12;
-
-    public static final int BTN_MINUS_X = 108;
-    public static final int BTN_MINUS_Y = BAR_Y + 2;
-    public static final int BTN_MINUS_W = 12;
-    public static final int BTN_MINUS_H = 12;
-
-    public static final int BTN_PLUS_X = 122;
-    public static final int BTN_PLUS_Y = BAR_Y + 2;
-    public static final int BTN_PLUS_W = 12;
-    public static final int BTN_PLUS_H = 12;
-
-    public static final int BTN_RESET_X = 136;
-    public static final int BTN_RESET_Y = BAR_Y + 2;
-    public static final int BTN_RESET_W = 20;
-    public static final int BTN_RESET_H = 12;
-
-    // Dynamic Ambient Temperature State (defaults to 24.0 °C)
-    public static double sAmbientTemp = 24.0;
-    public static String sInputText = "24";
-    public static boolean sInputFocused = false;
+    // Ambient Temperature (fixed to 20.0 °C for damage curve calibration)
+    public static final double AMBIENT_TEMP = 20.0;
+    public static final double DEFAULT_AMBIENT_TEMP = 20.0;
+    public static final double sAmbientTemp = 20.0;
 
     private static int sCachedThemeBg = -1;
     private static long sLastThemeCheck = 0;
@@ -133,19 +102,6 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         int g = (col >> 8) & 0xFF;
         int b = col & 0xFF;
         return (0.299 * r + 0.587 * g + 0.114 * b) < 128.0;
-    }
-
-    public static void drawBeveledButton(int x, int y, int w, int h, boolean hovered) {
-        boolean dark = isDarkTheme();
-        int highlight = hovered ? 0xFFFFFFFF : (dark ? 0xFF555555 : 0xFFE0E0E0);
-        int shadow = dark ? 0xFF141414 : 0xFF373737;
-        int fill = hovered ? (dark ? 0xFF444444 : 0xFF9E9E9E) : (dark ? 0xFF2E2E2E : 0xFF7A7A7A);
-
-        GuiDraw.drawRect(x, y, w, 1, highlight);
-        GuiDraw.drawRect(x, y, 1, h, highlight);
-        GuiDraw.drawRect(x, y + h - 1, w, 1, shadow);
-        GuiDraw.drawRect(x + w - 1, y, 1, h, shadow);
-        GuiDraw.drawRect(x + 1, y + 1, w - 2, h - 2, fill);
     }
 
     public static void drawThemePanel(int x, int y, int w, int h) {
@@ -190,55 +146,6 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         return x >= PLOT_X && x <= PLOT_X + PLOT_W && y >= PLOT_Y && y <= PLOT_Y + PLOT_H;
     }
 
-    public static boolean isMouseOverInput(int x, int y) {
-        return x >= INPUT_X && x < INPUT_X + INPUT_W && y >= INPUT_Y && y < INPUT_Y + INPUT_H;
-    }
-
-    public static boolean isMouseOverMinus(int x, int y) {
-        return x >= BTN_MINUS_X && x < BTN_MINUS_X + BTN_MINUS_W && y >= BTN_MINUS_Y && y < BTN_MINUS_Y + BTN_MINUS_H;
-    }
-
-    public static boolean isMouseOverPlus(int x, int y) {
-        return x >= BTN_PLUS_X && x < BTN_PLUS_X + BTN_PLUS_W && y >= BTN_PLUS_Y && y < BTN_PLUS_Y + BTN_PLUS_H;
-    }
-
-    public static boolean isMouseOverReset(int x, int y) {
-        return x >= BTN_RESET_X && x < BTN_RESET_X + BTN_RESET_W && y >= BTN_RESET_Y && y < BTN_RESET_Y + BTN_RESET_H;
-    }
-
-    public static boolean isMouseOverControlBar(int x, int y) {
-        return x >= BAR_X && x < BAR_X + BAR_W && y >= BAR_Y && y < BAR_Y + BAR_H;
-    }
-
-    public static void updateAmbientFromInput() {
-        if (sInputText == null || sInputText.isEmpty() || sInputText.equals("-") || sInputText.equals(".")) {
-            return;
-        }
-        try {
-            double val = Double.parseDouble(sInputText);
-            if (val < -273.15) val = -273.15;
-            if (val > 5000.0) val = 5000.0;
-            sAmbientTemp = val;
-        } catch (NumberFormatException ignored) {}
-    }
-
-    public static void commitInput() {
-        updateAmbientFromInput();
-        sInputText = (sAmbientTemp == (long) sAmbientTemp) ? String.valueOf((long) sAmbientTemp)
-            : String.format(Locale.US, "%.1f", sAmbientTemp);
-    }
-
-    public static void adjustAmbientTemp(double delta) {
-        sAmbientTemp = Math.max(-273.15, Math.min(5000.0, Math.round((sAmbientTemp + delta) * 10.0) / 10.0));
-        sInputText = (sAmbientTemp == (long) sAmbientTemp) ? String.valueOf((long) sAmbientTemp)
-            : String.format(Locale.US, "%.1f", sAmbientTemp);
-    }
-
-    public static void resetAmbientTemp() {
-        sAmbientTemp = 24.0;
-        sInputText = "24";
-    }
-
     private static java.lang.reflect.Field fieldGuiLeft;
     private static java.lang.reflect.Field fieldGuiTop;
 
@@ -261,9 +168,6 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                 fieldGuiTop.setAccessible(true);
             } catch (Throwable ignored) {}
         }
-        try {
-            GuiContainerManager.addInputHandler(new FuelStatsInputHandler());
-        } catch (Throwable ignored) {}
     }
 
     private static int getGuiLeft(GuiRecipe<?> gui) {
@@ -802,9 +706,6 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             int gx = PLOT_X + (int) Math.round((t / maxTemp) * PLOT_W);
             GuiDraw.drawRect(gx, PLOT_Y, 1, PLOT_H, 0x18FFFFFF);
         }
-
-        // Ambient temperature control bar container panel
-        drawThemePanel(BAR_X, BAR_Y, BAR_W, BAR_H);
     }
 
     @Override
@@ -826,7 +727,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                 : (physics != null ? physics.t10WearFactor : FuelDamageCurveSolver.DEFAULT_T10_WEAR_FACTOR));
 
         FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver
-            .solve(recipe.fuel, peakTemp, floorTemp, sAmbientTemp, wear);
+            .solve(recipe.fuel, peakTemp, floorTemp, AMBIENT_TEMP, wear);
 
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
         boolean dark = isDarkTheme();
@@ -1029,49 +930,6 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         GL11.glPopMatrix();
-
-        // 7. Interactive Ambient Temperature Control Bar Elements
-        int labelCol = dark ? 0xFFE0E0E0 : 0xFF373737;
-        font.drawString("Ambient:", BAR_X + 4, BAR_Y + 4, labelCol);
-
-        // Input box (sunken frame with amber focus border)
-        boolean overInput = mouseInRecipe != null && isMouseOverInput(mouseInRecipe.x, mouseInRecipe.y);
-        int inputBorderCol = sInputFocused ? 0xFFF59E0B : (overInput ? 0xFF9CA3AF : (dark ? 0xFF404040 : 0xFF7F7F7F));
-        int inputBg = dark ? 0xFF141416 : 0xFF000000;
-        GuiDraw.drawRect(INPUT_X, INPUT_Y, INPUT_W, INPUT_H, inputBg);
-        GuiDraw.drawRect(INPUT_X, INPUT_Y, INPUT_W, 1, inputBorderCol);
-        GuiDraw.drawRect(INPUT_X, INPUT_Y + INPUT_H - 1, INPUT_W, 1, inputBorderCol);
-        GuiDraw.drawRect(INPUT_X, INPUT_Y, 1, INPUT_H, inputBorderCol);
-        GuiDraw.drawRect(INPUT_X + INPUT_W - 1, INPUT_Y, 1, INPUT_H, inputBorderCol);
-
-        String dispText = sInputFocused ? sInputText
-            : ((sAmbientTemp == (long) sAmbientTemp) ? String.valueOf((long) sAmbientTemp)
-                : String.format(Locale.US, "%.1f", sAmbientTemp));
-        if (sInputFocused && ((System.currentTimeMillis() / 500) % 2 == 0)) {
-            dispText += "_";
-        }
-        int textCol = sInputFocused ? 0xFFFFFFFF : 0xFFFCD34D;
-        int tw = font.getStringWidth(dispText);
-        int tx = INPUT_X + Math.max(2, (INPUT_W - tw) / 2);
-        font.drawString(dispText, tx, INPUT_Y + 2, textCol);
-
-        // Unit "°C"
-        font.drawString("°C", INPUT_X + INPUT_W + 3, BAR_Y + 4, labelCol);
-
-        // Decrement button [-]
-        boolean overMinus = mouseInRecipe != null && isMouseOverMinus(mouseInRecipe.x, mouseInRecipe.y);
-        drawBeveledButton(BTN_MINUS_X, BTN_MINUS_Y, BTN_MINUS_W, BTN_MINUS_H, overMinus);
-        font.drawString("-", BTN_MINUS_X + 5, BTN_MINUS_Y + 2, overMinus ? 0xFFFFFFA0 : 0xFFFFFFFF);
-
-        // Increment button [+]
-        boolean overPlus = mouseInRecipe != null && isMouseOverPlus(mouseInRecipe.x, mouseInRecipe.y);
-        drawBeveledButton(BTN_PLUS_X, BTN_PLUS_Y, BTN_PLUS_W, BTN_PLUS_H, overPlus);
-        font.drawString("+", BTN_PLUS_X + 4, BTN_PLUS_Y + 2, overPlus ? 0xFFFFFFA0 : 0xFFFFFFFF);
-
-        // Reset button [24]
-        boolean overReset = mouseInRecipe != null && isMouseOverReset(mouseInRecipe.x, mouseInRecipe.y);
-        drawBeveledButton(BTN_RESET_X, BTN_RESET_Y, BTN_RESET_W, BTN_RESET_H, overReset);
-        font.drawString("24", BTN_RESET_X + 4, BTN_RESET_Y + 2, overReset ? 0xFFFFFFA0 : 0xFFFFFFFF);
     }
 
     private static void drawScaledString(String text, float x, float y, float scale, int color) {
@@ -1124,7 +982,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                     : (physics != null ? physics.t10WearFactor : FuelDamageCurveSolver.DEFAULT_T10_WEAR_FACTOR));
 
             FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver
-                .solve(recipe.fuel, peakTemp, floorTemp, sAmbientTemp, wear);
+                .solve(recipe.fuel, peakTemp, floorTemp, AMBIENT_TEMP, wear);
 
             if (isMouseOverPlot(mouseInRecipe.x, mouseInRecipe.y)) {
                 double maxTemp = Math.ceil((floorTemp + 200.0) / 500.0) * 500.0;
@@ -1144,212 +1002,11 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                 currenttip.add(
                     EnumChatFormatting.YELLOW + String.format(Locale.US, "Reactivity: %.1f %%", r * 100.0) + peakNote);
 
-                String dmgNote = (temp <= sAmbientTemp) ? EnumChatFormatting.GRAY + " (None)" : "";
+                String dmgNote = (temp <= AMBIENT_TEMP) ? EnumChatFormatting.GRAY + " (None)" : "";
                 currenttip
                     .add(EnumChatFormatting.RED + String.format(Locale.US, "Durability damage: %.2f / t", d) + dmgNote);
-            } else if (isMouseOverInput(mouseInRecipe.x, mouseInRecipe.y)) {
-                currenttip.add(
-                    EnumChatFormatting.WHITE + "Ambient Temperature: "
-                        + EnumChatFormatting.YELLOW
-                        + String.format(Locale.US, "%.1f °C", sAmbientTemp));
-                currenttip.add(EnumChatFormatting.GRAY + "Click to edit directly");
-                currenttip.add(EnumChatFormatting.DARK_GRAY + "Scroll wheel: adjust ±1 °C (Shift: ±5 °C)");
-            } else if (isMouseOverMinus(mouseInRecipe.x, mouseInRecipe.y)) {
-                currenttip.add(
-                    EnumChatFormatting.WHITE + "Decrease Ambient Temp ("
-                        + EnumChatFormatting.RED
-                        + "-1.0 °C"
-                        + EnumChatFormatting.WHITE
-                        + ")");
-                currenttip.add(EnumChatFormatting.GRAY + "Right-click or Shift-click: -5.0 °C");
-            } else if (isMouseOverPlus(mouseInRecipe.x, mouseInRecipe.y)) {
-                currenttip.add(
-                    EnumChatFormatting.WHITE + "Increase Ambient Temp ("
-                        + EnumChatFormatting.GREEN
-                        + "+1.0 °C"
-                        + EnumChatFormatting.WHITE
-                        + ")");
-                currenttip.add(EnumChatFormatting.GRAY + "Right-click or Shift-click: +5.0 °C");
-            } else if (isMouseOverReset(mouseInRecipe.x, mouseInRecipe.y)) {
-                currenttip.add(EnumChatFormatting.AQUA + "Reset to Default (24.0 °C)");
             }
         }
         return currenttip;
-    }
-
-    @Override
-    public boolean mouseClicked(GuiRecipe<?> gui, int button, int recipeIndex) {
-        Point m = getMouseInRecipe(gui, recipeIndex);
-        if (m != null) {
-            if (isMouseOverInput(m.x, m.y)) {
-                sInputFocused = true;
-                sInputText = (sAmbientTemp == (long) sAmbientTemp) ? String.valueOf((long) sAmbientTemp)
-                    : String.format(Locale.US, "%.1f", sAmbientTemp);
-                NEIClientUtils.playClickSound();
-                return true;
-            } else if (isMouseOverMinus(m.x, m.y)) {
-                double delta = (button == 1 || GuiScreen.isShiftKeyDown()) ? -5.0 : -1.0;
-                adjustAmbientTemp(delta);
-                NEIClientUtils.playClickSound();
-                return true;
-            } else if (isMouseOverPlus(m.x, m.y)) {
-                double delta = (button == 1 || GuiScreen.isShiftKeyDown()) ? 5.0 : 1.0;
-                adjustAmbientTemp(delta);
-                NEIClientUtils.playClickSound();
-                return true;
-            } else if (isMouseOverReset(m.x, m.y)) {
-                resetAmbientTemp();
-                NEIClientUtils.playClickSound();
-                return true;
-            } else if (sInputFocused) {
-                commitInput();
-                sInputFocused = false;
-            }
-        }
-        return super.mouseClicked(gui, button, recipeIndex);
-    }
-
-    @Override
-    public boolean mouseScrolled(GuiRecipe<?> gui, int direction, int recipeIndex) {
-        Point m = getMouseInRecipe(gui, recipeIndex);
-        if (m != null && isMouseOverControlBar(m.x, m.y)) {
-            double delta = (direction > 0 ? 1.0 : -1.0) * (GuiScreen.isShiftKeyDown() ? 5.0 : 1.0);
-            adjustAmbientTemp(delta);
-            return true;
-        }
-        return super.mouseScrolled(gui, direction, recipeIndex);
-    }
-
-    @Override
-    public boolean keyTyped(GuiRecipe<?> gui, char keyChar, int keyCode, int recipeIndex) {
-        if (sInputFocused) {
-            if (keyCode == Keyboard.KEY_ESCAPE || keyCode == Keyboard.KEY_RETURN
-                || keyCode == Keyboard.KEY_NUMPADENTER) {
-                commitInput();
-                sInputFocused = false;
-                return true;
-            }
-            if (keyCode == Keyboard.KEY_BACK) {
-                if (sInputText != null && !sInputText.isEmpty()) {
-                    sInputText = sInputText.substring(0, sInputText.length() - 1);
-                    updateAmbientFromInput();
-                }
-                return true;
-            }
-            if ((keyChar >= '0' && keyChar <= '9') && sInputText != null && sInputText.length() < 7) {
-                sInputText += keyChar;
-                updateAmbientFromInput();
-                return true;
-            }
-            if (keyChar == '.' && sInputText != null && !sInputText.contains(".") && sInputText.length() < 7) {
-                sInputText += ".";
-                updateAmbientFromInput();
-                return true;
-            }
-            if (keyChar == '-') {
-                if (sInputText == null || sInputText.isEmpty()) {
-                    sInputText = "-";
-                } else if (sInputText.startsWith("-")) {
-                    sInputText = sInputText.substring(1);
-                    updateAmbientFromInput();
-                } else {
-                    sInputText = "-" + sInputText;
-                    updateAmbientFromInput();
-                }
-                return true;
-            }
-            // Suppress any other keys while input is focused
-            return true;
-        }
-        return super.keyTyped(gui, keyChar, keyCode, recipeIndex);
-    }
-
-    public static class FuelStatsInputHandler implements IContainerInputHandler {
-
-        @Override
-        public boolean keyTyped(GuiContainer gui, char keyChar, int keyCode) {
-            if (sInputFocused && gui instanceof GuiRecipe) {
-                if (keyCode == Keyboard.KEY_ESCAPE || keyCode == Keyboard.KEY_RETURN
-                    || keyCode == Keyboard.KEY_NUMPADENTER) {
-                    commitInput();
-                    sInputFocused = false;
-                    return true;
-                }
-                if (keyCode == Keyboard.KEY_BACK) {
-                    if (sInputText != null && !sInputText.isEmpty()) {
-                        sInputText = sInputText.substring(0, sInputText.length() - 1);
-                        updateAmbientFromInput();
-                    }
-                    return true;
-                }
-                if ((keyChar >= '0' && keyChar <= '9') && sInputText != null && sInputText.length() < 7) {
-                    sInputText += keyChar;
-                    updateAmbientFromInput();
-                    return true;
-                }
-                if (keyChar == '.' && sInputText != null && !sInputText.contains(".") && sInputText.length() < 7) {
-                    sInputText += ".";
-                    updateAmbientFromInput();
-                    return true;
-                }
-                if (keyChar == '-') {
-                    if (sInputText == null || sInputText.isEmpty()) {
-                        sInputText = "-";
-                    } else if (sInputText.startsWith("-")) {
-                        sInputText = sInputText.substring(1);
-                        updateAmbientFromInput();
-                    } else {
-                        sInputText = "-" + sInputText;
-                        updateAmbientFromInput();
-                    }
-                    return true;
-                }
-                // Suppress any other keys while input is focused
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        public void onKeyTyped(GuiContainer gui, char keyChar, int keyCode) {}
-
-        @Override
-        public boolean lastKeyTyped(GuiContainer gui, char keyChar, int keyCode) {
-            return false;
-        }
-
-        @Override
-        public boolean mouseClicked(GuiContainer gui, int mousex, int mousey, int button) {
-            if (sInputFocused) {
-                if (!(gui instanceof GuiRecipe<?>guiRecipe)) {
-                    commitInput();
-                    sInputFocused = false;
-                } else {
-                    Point m = getMouseInRecipe(guiRecipe, guiRecipe.page);
-                    if (m == null || !isMouseOverInput(m.x, m.y)) {
-                        commitInput();
-                        sInputFocused = false;
-                    }
-                }
-            }
-            return false;
-        }
-
-        @Override
-        public void onMouseClicked(GuiContainer gui, int mousex, int mousey, int button) {}
-
-        @Override
-        public void onMouseUp(GuiContainer gui, int mousex, int mousey, int button) {}
-
-        @Override
-        public boolean mouseScrolled(GuiContainer gui, int mousex, int mousey, int scrolled) {
-            return false;
-        }
-
-        @Override
-        public void onMouseScrolled(GuiContainer gui, int mousex, int mousey, int scrolled) {}
-
-        @Override
-        public void onMouseDragged(GuiContainer gui, int mousex, int mousey, int button, long heldTime) {}
     }
 }
