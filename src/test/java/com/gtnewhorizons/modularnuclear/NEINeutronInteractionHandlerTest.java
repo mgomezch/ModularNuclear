@@ -164,22 +164,20 @@ public class NEINeutronInteractionHandlerTest {
     }
 
     @Test
-    public void testTwoPagesPerComponent() {
+    public void testSinglePagePerComponent() {
         NEINeutronInteractionHandler handler = new NEINeutronInteractionHandler();
         handler.loadCraftingRecipes(handler.getOverlayIdentifier());
 
         long p1Count = handler.arecipes.stream()
             .filter(r -> r instanceof CachedNeutronInteractionRecipe)
             .count();
-        long p2Count = handler.arecipes.stream()
-            .filter(r -> r instanceof CachedComponentThermalRecipe)
-            .count();
 
         assertEquals(
-            p1Count,
-            p2Count,
-            "Every component must have Page 1 (Interaction) and Page 2 (Thermal/Durability)");
+            NEINeutronInteractionHandler.ALL_COMPONENTS.size(),
+            handler.arecipes.size(),
+            "Every component must have exactly 1 unified scrollable page");
         assertTrue(p1Count >= 20, "Should have at least 20 component recipes registered");
+        assertEquals(304, handler.getRecipeHeight(0), "Recipe height must be 304 for full 4-card display");
     }
 
     @Test
@@ -206,9 +204,9 @@ public class NEINeutronInteractionHandlerTest {
         }
         assertNotNull(r1, "Should find non-reflector neutron recipe");
 
-        // 1. Thermal scattering arrow and text
-        java.util.List<String> tipScatTip = handler.getTooltipsAt(r1, 40, 90, null);
-        assertFalse(tipScatTip.isEmpty(), "Thermal scattering arrow tip (40, 90) must show tooltip");
+        // 1. Thermal scattering arrow and text (Card 2: dy = +33)
+        java.util.List<String> tipScatTip = handler.getTooltipsAt(r1, 40, 123, null);
+        assertFalse(tipScatTip.isEmpty(), "Thermal scattering arrow tip (40, 123) must show tooltip");
         assertTrue(
             tipScatTip.stream()
                 .anyMatch(
@@ -216,15 +214,15 @@ public class NEINeutronInteractionHandlerTest {
                         .contains("scattering")),
             "Should mention scattering");
 
-        java.util.List<String> tipScatCurve = handler.getTooltipsAt(r1, 52, 95, null);
-        assertFalse(tipScatCurve.isEmpty(), "Thermal scattering arrow curve (52, 95) must show tooltip");
+        java.util.List<String> tipScatCurve = handler.getTooltipsAt(r1, 52, 128, null);
+        assertFalse(tipScatCurve.isEmpty(), "Thermal scattering arrow curve (52, 128) must show tooltip");
 
-        java.util.List<String> tipScatText = handler.getTooltipsAt(r1, 47, 82, null);
-        assertFalse(tipScatText.isEmpty(), "Thermal scattering text (47, 82) must show tooltip");
+        java.util.List<String> tipScatText = handler.getTooltipsAt(r1, 47, 115, null);
+        assertFalse(tipScatText.isEmpty(), "Thermal scattering text (47, 115) must show tooltip");
 
-        // 2. Thermal absorption downward arrow, curved arrow, and text
-        java.util.List<String> tipAbsDown = handler.getTooltipsAt(r1, 74, 120, null);
-        assertFalse(tipAbsDown.isEmpty(), "Thermal absorption downward arrow (74, 120) must show tooltip");
+        // 2. Thermal absorption downward arrow, curved arrow, and text (Card 2: dy = +33)
+        java.util.List<String> tipAbsDown = handler.getTooltipsAt(r1, 74, 153, null);
+        assertFalse(tipAbsDown.isEmpty(), "Thermal absorption downward arrow (74, 153) must show tooltip");
         assertTrue(
             tipAbsDown.stream()
                 .anyMatch(
@@ -232,8 +230,8 @@ public class NEINeutronInteractionHandlerTest {
                         .contains("absorption")),
             "Should mention absorption");
 
-        java.util.List<String> tipAbsCurved = handler.getTooltipsAt(r1, 85, 92, null);
-        assertFalse(tipAbsCurved.isEmpty(), "Thermal absorption curved arrow (85, 92) must show tooltip");
+        java.util.List<String> tipAbsCurved = handler.getTooltipsAt(r1, 85, 125, null);
+        assertFalse(tipAbsCurved.isEmpty(), "Thermal absorption curved arrow (85, 125) must show tooltip");
         assertTrue(
             tipAbsCurved.stream()
                 .anyMatch(
@@ -241,13 +239,13 @@ public class NEINeutronInteractionHandlerTest {
                         .contains("absorption")),
             "Should mention absorption");
 
-        java.util.List<String> tipAbsText = handler.getTooltipsAt(r1, 97, 120, null);
-        assertFalse(tipAbsText.isEmpty(), "Thermal absorption text (97, 120) must show tooltip");
+        java.util.List<String> tipAbsText = handler.getTooltipsAt(r1, 97, 153, null);
+        assertFalse(tipAbsText.isEmpty(), "Thermal absorption text (97, 153) must show tooltip");
 
-        // 3. Fast neutron interaction elements (redesigned layout)
-        // 3a. Fast reflection / incoming arrow (40, 24)
-        java.util.List<String> tipFastRefl = handler.getTooltipsAt(r1, 40, 24, null);
-        assertFalse(tipFastRefl.isEmpty(), "Fast reflection arrow/text (40, 24) must show tooltip");
+        // 3. Fast neutron interaction elements (Card 1: dy = +31)
+        // 3a. Fast reflection / incoming arrow (40, 55)
+        java.util.List<String> tipFastRefl = handler.getTooltipsAt(r1, 40, 55, null);
+        assertFalse(tipFastRefl.isEmpty(), "Fast reflection arrow/text (40, 55) must show tooltip");
         assertTrue(
             tipFastRefl.stream()
                 .anyMatch(
@@ -255,9 +253,9 @@ public class NEINeutronInteractionHandlerTest {
                         .contains("reflection")),
             "Should mention reflection");
 
-        // 3b. Fast absorption arrow (83, 48) and text (83, 56)
-        java.util.List<String> tipFastAbsArrow = handler.getTooltipsAt(r1, 83, 48, null);
-        assertFalse(tipFastAbsArrow.isEmpty(), "Fast absorption arrow (83, 48) must show tooltip");
+        // 3b. Fast absorption arrow (83, 79) and text (83, 87)
+        java.util.List<String> tipFastAbsArrow = handler.getTooltipsAt(r1, 83, 79, null);
+        assertFalse(tipFastAbsArrow.isEmpty(), "Fast absorption arrow (83, 79) must show tooltip");
         assertTrue(
             tipFastAbsArrow.stream()
                 .anyMatch(
@@ -265,12 +263,12 @@ public class NEINeutronInteractionHandlerTest {
                         .contains("absorption")),
             "Should mention absorption");
 
-        java.util.List<String> tipFastAbsText = handler.getTooltipsAt(r1, 83, 56, null);
-        assertFalse(tipFastAbsText.isEmpty(), "Fast absorption text (83, 56) must show tooltip");
+        java.util.List<String> tipFastAbsText = handler.getTooltipsAt(r1, 83, 87, null);
+        assertFalse(tipFastAbsText.isEmpty(), "Fast absorption text (83, 87) must show tooltip");
 
-        // 3c. Fast scattering green arrows (102, 34)
-        java.util.List<String> tipFastScatArrows = handler.getTooltipsAt(r1, 102, 34, null);
-        assertFalse(tipFastScatArrows.isEmpty(), "Fast scattering arrows (102, 34) must show tooltip");
+        // 3c. Fast scattering green arrows (102, 65)
+        java.util.List<String> tipFastScatArrows = handler.getTooltipsAt(r1, 102, 65, null);
+        assertFalse(tipFastScatArrows.isEmpty(), "Fast scattering arrows (102, 65) must show tooltip");
         assertTrue(
             tipFastScatArrows.stream()
                 .anyMatch(
@@ -278,9 +276,9 @@ public class NEINeutronInteractionHandlerTest {
                         .contains("scattering")),
             "Should mention scattering");
 
-        // 3d. Fast scattered fraction arrow and text (136, 12)
-        java.util.List<String> tipFastFraction = handler.getTooltipsAt(r1, 136, 12, null);
-        assertFalse(tipFastFraction.isEmpty(), "Fast scattered fraction (136, 12) must show tooltip");
+        // 3d. Fast scattered fraction arrow and text (136, 43)
+        java.util.List<String> tipFastFraction = handler.getTooltipsAt(r1, 136, 43, null);
+        assertFalse(tipFastFraction.isEmpty(), "Fast scattered fraction (136, 43) must show tooltip");
         assertTrue(
             tipFastFraction.stream()
                 .anyMatch(
@@ -288,9 +286,9 @@ public class NEINeutronInteractionHandlerTest {
                         .contains("fast")),
             "Should mention fast fraction");
 
-        // 3e. Moderated scattered fraction arrow and text (136, 56)
-        java.util.List<String> tipModFraction = handler.getTooltipsAt(r1, 136, 56, null);
-        assertFalse(tipModFraction.isEmpty(), "Moderated scattered fraction (136, 56) must show tooltip");
+        // 3e. Moderated scattered fraction arrow and text (136, 87)
+        java.util.List<String> tipModFraction = handler.getTooltipsAt(r1, 136, 87, null);
+        assertFalse(tipModFraction.isEmpty(), "Moderated scattered fraction (136, 87) must show tooltip");
         assertTrue(
             tipModFraction.stream()
                 .anyMatch(
@@ -298,13 +296,33 @@ public class NEINeutronInteractionHandlerTest {
                         .contains("thermal")),
             "Should mention thermal fraction");
 
-        // 3f. Pie chart (136, 34)
-        java.util.List<String> tipPieChart = handler.getTooltipsAt(r1, 136, 34, null);
-        assertFalse(tipPieChart.isEmpty(), "Pie chart (136, 34) must show tooltip");
+        // 3f. Pie chart (136, 65)
+        java.util.List<String> tipPieChart = handler.getTooltipsAt(r1, 136, 65, null);
+        assertFalse(tipPieChart.isEmpty(), "Pie chart (136, 65) must show tooltip");
 
-        // 3g. Input slot position centered at (75, 26)
-        assertEquals(75, r1.input.relx, "Input stack X must be 75");
-        assertEquals(26, r1.input.rely, "Input stack Y must be 26");
+        // 3g. Slot positions on single page
+        assertEquals(75, r1.input.relx, "Fast input stack X must be 75");
+        assertEquals(57, r1.input.rely, "Fast input stack Y must be 57");
+        assertEquals(67, r1.inputThermal.relx, "Thermal input stack X must be 67");
+        assertEquals(130, r1.inputThermal.rely, "Thermal input stack Y must be 130");
+        assertEquals(58, r1.inputHeat.relx, "Heat input stack X must be 58");
+        assertEquals(194, r1.inputHeat.rely, "Heat input stack Y must be 194");
+        assertNotNull(r1.catalyst, "Header catalyst stack must not be null");
+        assertEquals(7, r1.catalyst.relx, "Header catalyst stack X must be 7");
+        assertEquals(3, r1.catalyst.rely, "Header catalyst stack Y must be 3");
+
+        // 4. Card 3 (Heat) & Card 4 (Durability) tooltips on the same page
+        java.util.List<String> tipConduction = handler.getTooltipsAt(r1, 110, 190, null);
+        assertFalse(tipConduction.isEmpty(), "Conduction tooltip in Card 3 must show");
+        assertTrue(
+            tipConduction.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("conduction")),
+            "Should mention conduction");
+
+        java.util.List<String> tipDurability = handler.getTooltipsAt(r1, 80, 275, null);
+        assertFalse(tipDurability.isEmpty(), "Durability capacity tooltip in Card 4 must show");
     }
 
     @Test

@@ -124,7 +124,7 @@ gt.gui.modularnuclear.tab.switch=Click to switch to this tab
 # NEI Tooltips
 gt.nei.neutron_interaction.fast=Fast neutrons
 gt.nei.neutron_interaction.thermal=Thermal neutrons
-gt.nei.neutron_interaction.capture=Thermal & energy
+gt.nei.neutron_interaction.capture=Heat
 gt.nei.neutron_interaction.absorption=Durability & byproducts
 gt.nei.neutron_interaction.scattering=Scattering probability
 gt.nei.neutron_interaction.scattering_fast.desc=Chance of fast neutrons bouncing off this component
