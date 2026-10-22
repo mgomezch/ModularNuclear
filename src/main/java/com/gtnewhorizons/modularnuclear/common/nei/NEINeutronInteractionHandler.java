@@ -1466,15 +1466,15 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 false);
 
             if (d.isReflector) {
-                String reflStr = String.format(Locale.US, "%.1f %%", d.reflectionThermal * 100.0);
+                String reflStr = formatPercent(d.reflectionThermal);
                 GuiDraw.drawStringC(reflStr, 47, 82, 0x9A6B00, false);
                 GuiDraw.drawStringC("REFLECT", 47, 91, 0x9A6B00, false);
             } else {
-                String thermScatStr = String.format(Locale.US, "%.1f %%", d.thermalScattering * 100.0);
+                String thermScatStr = formatPercent(d.thermalScattering);
                 GuiDraw.drawStringC(thermScatStr, 47, 82, 0x404040, false);
             }
 
-            String thermAbsStr = String.format(Locale.US, "%.1f %%", d.thermalAbsorption * 100.0);
+            String thermAbsStr = formatPercent(d.thermalAbsorption);
             GuiDraw.drawStringC(thermAbsStr, 97, 120, 0x00A000, false);
 
             // Bottom summary
@@ -1518,35 +1518,23 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
             // Heat transfer & thermal metrics (right of diagram)
             if (d.thermalInsulationFactor > 0.0) {
-                GuiDraw.drawString(
-                    String.format(Locale.US, "Barrier: %.0f%%", d.thermalInsulationFactor * 100.0),
-                    110,
-                    18,
-                    0x902020,
-                    false);
-                GuiDraw.drawString(String.format(Locale.US, "k = %.3f", d.heatTransferCoeff), 110, 34, 0x404040, false);
+                GuiDraw.drawString("Barrier: " + formatPercent(d.thermalInsulationFactor), 110, 18, 0x902020, false);
+                GuiDraw.drawString("k = " + formatNumber(d.heatTransferCoeff), 110, 34, 0x404040, false);
             } else if (d.boilingPoint > 0.0) {
-                GuiDraw
-                    .drawString(String.format(Locale.US, "Boils: %.0f °C", d.boilingPoint), 110, 18, 0x205090, false);
-                GuiDraw.drawString(String.format(Locale.US, "Cp: %.2f", d.specificHeat), 110, 34, 0x404040, false);
+                GuiDraw.drawString("Boils: " + formatNumber(d.boilingPoint) + " °C", 110, 18, 0x205090, false);
+                GuiDraw.drawString("Cp: " + formatNumber(d.specificHeat), 110, 34, 0x404040, false);
             } else if (d.selfCoolingRate > 0.0 || d.componentCoolingRate > 0.0) {
                 double cool = d.selfCoolingRate > 0 ? d.selfCoolingRate : d.componentCoolingRate;
-                GuiDraw.drawString(String.format(Locale.US, "Cool: %.0f Hu/t", cool), 110, 18, 0x0055AA, false);
-                GuiDraw.drawString(String.format(Locale.US, "k = %.2f", d.heatTransferCoeff), 110, 34, 0x404040, false);
+                GuiDraw.drawString("Cool: " + formatNumber(cool) + " Hu/t", 110, 18, 0x0055AA, false);
+                GuiDraw.drawString("k = " + formatNumber(d.heatTransferCoeff), 110, 34, 0x404040, false);
             } else if (d.heatTransferRate > 0.0) {
-                GuiDraw.drawString(
-                    String.format(Locale.US, "Xfer: %.0f Hu/t", d.heatTransferRate),
-                    110,
-                    18,
-                    0x0055AA,
-                    false);
-                GuiDraw.drawString(String.format(Locale.US, "k = %.2f", d.heatTransferCoeff), 110, 34, 0x404040, false);
+                GuiDraw.drawString("Xfer: " + formatNumber(d.heatTransferRate) + " Hu/t", 110, 18, 0x0055AA, false);
+                GuiDraw.drawString("k = " + formatNumber(d.heatTransferCoeff), 110, 34, 0x404040, false);
             } else if (d.maxTemperature > 0.0) {
-                GuiDraw.drawString(String.format(Locale.US, "k = %.2f", d.heatTransferCoeff), 110, 18, 0x404040, false);
-                GuiDraw
-                    .drawString(String.format(Locale.US, "Max: %.0f °C", d.maxTemperature), 110, 34, 0xAA5500, false);
+                GuiDraw.drawString("k = " + formatNumber(d.heatTransferCoeff), 110, 18, 0x404040, false);
+                GuiDraw.drawString("Max: " + formatNumber(d.maxTemperature) + " °C", 110, 34, 0xAA5500, false);
             } else {
-                GuiDraw.drawString(String.format(Locale.US, "k = %.2f", d.heatTransferCoeff), 110, 18, 0x404040, false);
+                GuiDraw.drawString("k = " + formatNumber(d.heatTransferCoeff), 110, 18, 0x404040, false);
                 GuiDraw.drawString("Passive", 110, 34, 0x606060, false);
             }
 
@@ -1559,40 +1547,15 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     d.directEUTier != null ? d.directEUTier : "");
                 GuiDraw.drawStringC(euText, 83, 54, 0x00A000, false);
             } else if (d.selfCoolingRate > 0) {
-                GuiDraw.drawStringC(
-                    String.format(Locale.US, "Self-cooling rate: %.1f Hu/t", d.selfCoolingRate),
-                    83,
-                    54,
-                    0x0055AA,
-                    false);
+                GuiDraw.drawStringC("Self-cooling rate: " + formatNumber(d.selfCoolingRate) + " Hu/t", 83, 54, 0x0055AA, false);
             } else if (d.componentCoolingRate > 0) {
-                GuiDraw.drawStringC(
-                    String.format(Locale.US, "Adjacent cooling: %.1f Hu/t", d.componentCoolingRate),
-                    83,
-                    54,
-                    0x0055AA,
-                    false);
+                GuiDraw.drawStringC("Adjacent cooling: " + formatNumber(d.componentCoolingRate) + " Hu/t", 83, 54, 0x0055AA, false);
             } else if (d.heatTransferRate > 0) {
-                GuiDraw.drawStringC(
-                    String.format(Locale.US, "Adjacent component transfer: %.1f Hu/t", d.heatTransferRate),
-                    83,
-                    54,
-                    0x0055AA,
-                    false);
+                GuiDraw.drawStringC("Adjacent component transfer: " + formatNumber(d.heatTransferRate) + " Hu/t", 83, 54, 0x0055AA, false);
             } else if (d.thermalInsulationFactor > 0) {
-                GuiDraw.drawStringC(
-                    String.format(Locale.US, "Blocks %.0f%% of heat conduction", d.thermalInsulationFactor * 100.0),
-                    83,
-                    54,
-                    0x902020,
-                    false);
+                GuiDraw.drawStringC("Blocks " + formatPercent(d.thermalInsulationFactor) + " of heat conduction", 83, 54, 0x902020, false);
             } else {
-                GuiDraw.drawStringC(
-                    String.format(Locale.US, "Thermal conduction coefficient: k = %.2f", d.heatTransferCoeff),
-                    83,
-                    54,
-                    0x505050,
-                    false);
+                GuiDraw.drawStringC("Thermal conduction coefficient: k = " + formatNumber(d.heatTransferCoeff), 83, 54, 0x505050, false);
             }
 
             // --- Page 2: Durability & Byproducts Panel ---
@@ -1789,7 +1752,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     currenttip.add(
                         EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
                             "gt.nei.neutron_interaction.fast_fraction.desc",
-                            (1.0 - d.slowingProbability) * 100.0));
+                            formatPercent(1.0 - d.slowingProbability)));
                     // 5. Lower: Scattered moderated arrow & percentage (X in [120, 155], Y in [45, 65])
                 } else if (relX >= 120 && relX <= 155 && relY >= 45 && relY <= 65) {
                     currenttip.add(
@@ -1798,7 +1761,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     currenttip.add(
                         EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
                             "gt.nei.neutron_interaction.thermal_fraction.desc",
-                            d.slowingProbability * 100.0));
+                            formatPercent(d.slowingProbability)));
                     // 6. Center: Pie chart (X in [124, 148], Y in [24, 44])
                 } else if (relX >= 124 && relX <= 148 && relY >= 24 && relY <= 44) {
                     currenttip.add(
@@ -1807,14 +1770,14 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     currenttip.add(
                         EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
                             "gt.nei.neutron_interaction.fast_fraction.desc",
-                            (1.0 - d.slowingProbability) * 100.0));
+                            formatPercent(1.0 - d.slowingProbability)));
                     currenttip.add(
                         EnumChatFormatting.LIGHT_PURPLE
                             + StatCollector.translateToLocal("gt.nei.neutron_interaction.thermal_fraction"));
                     currenttip.add(
                         EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
                             "gt.nei.neutron_interaction.thermal_fraction.desc",
-                            d.slowingProbability * 100.0));
+                            formatPercent(d.slowingProbability)));
                 }
             } else if (relY >= 68 && relY <= 132) {
                 // Thermal scattering / reflection: covers text (47, 82) and full curved arrow (40, 90 -> 65, 99)
@@ -1865,7 +1828,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     EnumChatFormatting.GOLD + StatCollector.translateToLocal("gt.nei.neutron_interaction.conduction"));
                 currenttip.add(
                     EnumChatFormatting.GRAY + StatCollector
-                        .translateToLocalFormatted("gt.nei.neutron_interaction.conduction.desc", d.heatTransferCoeff));
+                        .translateToLocalFormatted("gt.nei.neutron_interaction.conduction.desc", formatNumber(d.heatTransferCoeff)));
             } else if (relX >= 25 && relX <= 140 && relY >= 48 && relY <= 64) {
                 currenttip.add(
                     EnumChatFormatting.AQUA
@@ -1928,21 +1891,21 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             currenttip.add(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocalFormatted(
                     "gt.nei.neutron_interaction.fast_stats",
-                    data.fastScattering * 100.0,
-                    data.fastAbsorption * 100.0,
-                    data.slowingProbability * 100.0));
+                    formatPercent(data.fastScattering),
+                    formatPercent(data.fastAbsorption),
+                    formatPercent(data.slowingProbability)));
             currenttip.add(
                 EnumChatFormatting.AQUA + StatCollector.translateToLocalFormatted(
                     "gt.nei.neutron_interaction.thermal_stats",
-                    data.thermalScattering * 100.0,
-                    data.thermalAbsorption * 100.0));
+                    formatPercent(data.thermalScattering),
+                    formatPercent(data.thermalAbsorption)));
             if (data.isReflector) {
                 currenttip.add(
                     EnumChatFormatting.GREEN + String.format(
                         Locale.US,
-                        "Reflection: Fast %.1f%%, Thermal %.1f%%",
-                        data.reflectionFast * 100.0,
-                        data.reflectionThermal * 100.0));
+                        "Reflection: Fast %s, Thermal %s",
+                        formatPercent(data.reflectionFast),
+                        formatPercent(data.reflectionThermal)));
             }
             if (data.extraInfo != null) {
                 currenttip.add(EnumChatFormatting.GRAY + data.extraInfo);
@@ -1986,18 +1949,43 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         tessellator.draw();
     }
 
+    /**
+     * Formats a numeric value with up to 2 fractional digits (rounded half-up)
+     * and trims trailing decimal zeros and decimal points (e.g. 10.00 -> "10", 10.50 -> "10.5", 10.25 -> "10.25").
+     */
+    public static String formatNumber(double val) {
+        if (Double.isNaN(val) || Double.isInfinite(val)) {
+            return "0";
+        }
+        double rounded = Math.round(val * 100.0) / 100.0;
+        if (Math.abs(rounded) == 0.0) {
+            return "0";
+        }
+        String s = String.format(Locale.US, "%.2f", rounded);
+        if (s.indexOf('.') >= 0) {
+            while (s.endsWith("0")) {
+                s = s.substring(0, s.length() - 1);
+            }
+            if (s.endsWith(".")) {
+                s = s.substring(0, s.length() - 1);
+            }
+        }
+        return s;
+    }
+
+    /**
+     * Formats a fraction (0.0 .. 1.0) as a percentage string (0% .. 100%) with up to 2 fractional digits,
+     * trimming trailing zeros (e.g. 0.10 -> "10%", 0.09999999999999998 -> "10%", 0.125 -> "12.5%").
+     */
     public static String formatPercent(double frac) {
-        double pct = frac * 100.0;
-        if (Math.abs(pct) < 1e-6) {
-            return "0%";
-        }
-        if (Math.abs(pct - Math.round(pct)) < 0.05) {
-            return String.format(Locale.US, "%.0f%%", pct);
-        }
-        if (pct < 0.1 && pct > 0.0) {
-            return String.format(Locale.US, "%.2f%%", pct);
-        }
-        return String.format(Locale.US, "%.1f%%", pct);
+        return formatPercentFromPercent(frac * 100.0);
+    }
+
+    /**
+     * Formats a percentage value (0.0 .. 100.0) with up to 2 fractional digits and a trailing '%' sign.
+     */
+    public static String formatPercentFromPercent(double pct) {
+        return formatNumber(pct) + "%";
     }
 
     public static void drawArrow(double x1, double y1, double x2, double y2, double shaftWidth, double headLength,

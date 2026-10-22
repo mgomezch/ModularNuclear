@@ -761,12 +761,12 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         // Line 2: 10% Reactivity Point & Damage Ratio (calculated dynamically for sAmbientTemp)
         String l2 = String.format(
             Locale.US,
-            "10%% Point: %s%.0f °C%s (Ratio: %s%.1f%%%s)",
+            "10%% Point: %s%.0f °C%s (Ratio: %s%s%s)",
             EnumChatFormatting.BLUE,
             t10,
             dimFormat,
             EnumChatFormatting.DARK_GREEN,
-            stats.damageRatioPercent,
+            NEINeutronInteractionHandler.formatPercentFromPercent(stats.damageRatioPercent),
             dimFormat);
         drawScaledString(l2, 12, 33, STATS_SCALE, subtitleColor);
 
@@ -780,12 +780,12 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
         String l3 = String.format(
             Locale.US,
-            "Th: %s%.2fx%s | Fast: %s%.2fx%s | %s%d n/t",
+            "Th: %s%sx%s | Fast: %s%sx%s | %s%d n/t",
             EnumChatFormatting.DARK_PURPLE,
-            effFiss,
+            NEINeutronInteractionHandler.formatNumber(effFiss),
             dimFormat,
             EnumChatFormatting.BLUE,
-            effFastFiss,
+            NEINeutronInteractionHandler.formatNumber(effFastFiss),
             dimFormat,
             EnumChatFormatting.DARK_RED,
             effNeutrons);
@@ -1000,11 +1000,17 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                     ? EnumChatFormatting.GOLD + " (Peak)"
                     : "";
                 currenttip.add(
-                    EnumChatFormatting.YELLOW + String.format(Locale.US, "Reactivity: %.1f%%", r * 100.0) + peakNote);
+                    EnumChatFormatting.YELLOW + "Reactivity: "
+                        + NEINeutronInteractionHandler.formatNumber(r * 100.0)
+                        + "%"
+                        + peakNote);
 
                 String dmgNote = (temp <= AMBIENT_TEMP) ? EnumChatFormatting.GRAY + " (None)" : "";
-                currenttip
-                    .add(EnumChatFormatting.RED + String.format(Locale.US, "Durability damage: %.2f / t", d) + dmgNote);
+                currenttip.add(
+                    EnumChatFormatting.RED + "Durability damage: "
+                        + NEINeutronInteractionHandler.formatNumber(d)
+                        + " / t"
+                        + dmgNote);
             }
         }
         return currenttip;

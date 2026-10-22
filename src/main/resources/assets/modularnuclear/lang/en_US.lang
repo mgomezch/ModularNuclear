@@ -131,16 +131,16 @@ gt.nei.neutron_interaction.scattering_fast.desc=Chance of fast neutrons bouncing
 gt.nei.neutron_interaction.absorption_title=Absorption probability
 gt.nei.neutron_interaction.absorption_fast.desc=Chance of fast neutrons being absorbed by this component
 gt.nei.neutron_interaction.thermal_fraction=Thermal scattered neutron fraction
-gt.nei.neutron_interaction.thermal_fraction.desc=%.1f%% of scattered neutrons moderate to thermal
+gt.nei.neutron_interaction.thermal_fraction.desc=%s of scattered neutrons moderate to thermal
 gt.nei.neutron_interaction.fast_fraction=Fast scattered neutron fraction
-gt.nei.neutron_interaction.fast_fraction.desc=%.1f%% of scattered neutrons remain fast
+gt.nei.neutron_interaction.fast_fraction.desc=%s of scattered neutrons remain fast
 gt.nei.neutron_interaction.scattering_thermal.desc=Chance of thermal neutrons bouncing off this component
 gt.nei.neutron_interaction.absorption_thermal.desc=Chance of thermal neutrons being absorbed by this component
 gt.nei.neutron_interaction.reflection=Neutron reflection
 gt.nei.neutron_interaction.reflection_fast.desc=Chance of fast neutrons reflecting directly back towards source
 gt.nei.neutron_interaction.reflection_thermal.desc=Chance of thermal neutrons reflecting directly back towards source
 gt.nei.neutron_interaction.conduction=Heat transfer coefficient
-gt.nei.neutron_interaction.conduction.desc=Thermal conduction coefficient k = %.2f with adjacent reactor cells
+gt.nei.neutron_interaction.conduction.desc=Thermal conduction coefficient k = %s with adjacent reactor cells
 gt.nei.neutron_interaction.direct_eu=Direct EU production
 gt.nei.neutron_interaction.direct_eu.desc=Generates up to %d EU/t directly from absorbed neutron flux
 gt.nei.neutron_interaction.fast_energy=Direct energy & cooling
@@ -152,8 +152,8 @@ gt.nei.neutron_interaction.multiplication.desc=Operating capacity and thermal li
 gt.nei.neutron_interaction.absorption_capacity=Durability & lifetime
 gt.nei.neutron_interaction.absorption_capacity.desc=Total lifetime before wear depletion or auto-ejection
 gt.nei.neutron_interaction.role=Reactor role: %s
-gt.nei.neutron_interaction.fast_stats=Fast: Scatter %.1f%%, Absorb %.1f%%, Slow %.1f%%
-gt.nei.neutron_interaction.thermal_stats=Thermal: Scatter %.1f%%, Absorb %.1f%%
+gt.nei.neutron_interaction.fast_stats=Fast: Scatter %s, Absorb %s, Slow %s
+gt.nei.neutron_interaction.thermal_stats=Thermal: Scatter %s, Absorb %s
 gt.nei.neutron_interaction.depleted_title=Depleted component (byproduct)
 gt.nei.neutron_interaction.depleted_desc=Produced after full component wear in the nuclear reactor
 

@@ -308,13 +308,31 @@ public class NEINeutronInteractionHandlerTest {
     }
 
     @Test
-    public void testFormatPercent() {
+    public void testFormatPercentAndFormatNumber() {
+        // Percentage formatting from fraction (0..1)
         assertEquals("0%", NEINeutronInteractionHandler.formatPercent(0.0));
         assertEquals("50%", NEINeutronInteractionHandler.formatPercent(0.50));
         assertEquals("15%", NEINeutronInteractionHandler.formatPercent(0.15));
         assertEquals("25%", NEINeutronInteractionHandler.formatPercent(0.25));
         assertEquals("62.1%", NEINeutronInteractionHandler.formatPercent(0.621));
         assertEquals("0.2%", NEINeutronInteractionHandler.formatPercent(0.002));
+
+        // Heavy water floating point precision: (1.0 - 0.9) = 0.09999999999999998
+        assertEquals("10%", NEINeutronInteractionHandler.formatPercent(1.0 - 0.9));
+        assertEquals("90%", NEINeutronInteractionHandler.formatPercent(0.90));
+
+        // Up to two fractional digits and trailing zero trimming
+        assertEquals("10.5%", NEINeutronInteractionHandler.formatPercent(0.105));
+        assertEquals("10.25%", NEINeutronInteractionHandler.formatPercent(0.1025));
+        assertEquals("10.26%", NEINeutronInteractionHandler.formatPercent(0.10256));
+
+        // formatNumber checks
+        assertEquals("0", NEINeutronInteractionHandler.formatNumber(0.0));
+        assertEquals("10", NEINeutronInteractionHandler.formatNumber(10.0));
+        assertEquals("10", NEINeutronInteractionHandler.formatNumber(9.999999999999998));
+        assertEquals("10.5", NEINeutronInteractionHandler.formatNumber(10.50));
+        assertEquals("10.25", NEINeutronInteractionHandler.formatNumber(10.25));
+        assertEquals("0.7", NEINeutronInteractionHandler.formatNumber(0.70));
     }
 
     @Test
@@ -351,6 +369,7 @@ public class NEINeutronInteractionHandlerTest {
         String[] testKeys = {
             "gt.nei.neutron_interaction.fast_fraction.desc",
             "gt.nei.neutron_interaction.thermal_fraction.desc",
+            "gt.nei.neutron_interaction.conduction.desc",
             "gt.nei.neutron_interaction.fast_stats",
             "gt.nei.neutron_interaction.thermal_stats"
         };
@@ -360,19 +379,36 @@ public class NEINeutronInteractionHandlerTest {
             assertNotNull(raw, "Key " + key + " must exist in en_US.lang");
             assertFalse(raw.contains("%%%%"), "Key " + key + " must not contain four percent signs (%%%%): " + raw);
 
-            // Test String.format with dummy arguments to ensure single % is output
+            // Test String.format with preformatted concise arguments to ensure single % and no double %%
             String formatted;
             if (key.endsWith("stats")) {
                 if (key.contains("fast")) {
-                    formatted = String.format(java.util.Locale.US, raw, 80.0, 10.0, 10.0);
+                    formatted = String.format(
+                        java.util.Locale.US,
+                        raw,
+                        NEINeutronInteractionHandler.formatPercent(0.80),
+                        NEINeutronInteractionHandler.formatPercent(0.10),
+                        NEINeutronInteractionHandler.formatPercent(1.0 - 0.90));
+                    assertEquals("Fast: Scatter 80%, Absorb 10%, Slow 10%", formatted);
                 } else {
-                    formatted = String.format(java.util.Locale.US, raw, 15.0, 85.0);
+                    formatted = String.format(
+                        java.util.Locale.US,
+                        raw,
+                        NEINeutronInteractionHandler.formatPercent(0.15),
+                        NEINeutronInteractionHandler.formatPercent(0.85));
+                    assertEquals("Thermal: Scatter 15%, Absorb 85%", formatted);
                 }
+            } else if (key.contains("conduction")) {
+                formatted = String.format(java.util.Locale.US, raw, NEINeutronInteractionHandler.formatNumber(0.70));
+                assertEquals("Thermal conduction coefficient k = 0.7 with adjacent reactor cells", formatted);
+            } else if (key.contains("fast_fraction")) {
+                formatted = String.format(java.util.Locale.US, raw, NEINeutronInteractionHandler.formatPercent(1.0 - 0.90));
+                assertEquals("10% of scattered neutrons remain fast", formatted);
             } else {
-                formatted = String.format(java.util.Locale.US, raw, 50.0);
+                formatted = String.format(java.util.Locale.US, raw, NEINeutronInteractionHandler.formatPercent(0.90));
+                assertEquals("90% of scattered neutrons moderate to thermal", formatted);
             }
 
-            assertTrue(formatted.contains("%"), "Formatted string must contain % sign: " + formatted);
             assertFalse(formatted.contains("%%"), "Formatted string must NOT contain double percent sign (%%): " + formatted);
         }
     }
