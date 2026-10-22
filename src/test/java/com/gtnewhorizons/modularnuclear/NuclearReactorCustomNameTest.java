@@ -67,10 +67,8 @@ public class NuclearReactorCustomNameTest {
         NBTTagCompound tag = new NBTTagCompound();
         reactor1.saveNBTData(tag);
 
-        assertTrue(tag.hasKey("mCustomName"));
-        assertEquals("Primary Core Alpha", tag.getString("mCustomName"));
-        assertTrue(tag.hasKey("customName"));
-        assertEquals("Primary Core Alpha", tag.getString("customName"));
+        assertFalse(tag.hasKey("mCustomName"));
+        assertFalse(tag.hasKey("customName"));
         assertTrue(tag.hasKey("display"));
         assertEquals(
             "Primary Core Alpha",
@@ -98,15 +96,16 @@ public class NuclearReactorCustomNameTest {
     }
 
     @Test
-    public void testSetItemNBT() {
+    public void testSetItemNBTAndGregTechNameRemover() {
         MTENuclearReactor reactor = new MTENuclearReactor("multimachine.nuclearreactor");
         reactor.setCustomName("Fukushima Unit 1");
 
         NBTTagCompound itemTag = new NBTTagCompound();
         reactor.setItemNBT(itemTag);
 
-        assertEquals("Fukushima Unit 1", itemTag.getString("mCustomName"));
-        assertEquals("Fukushima Unit 1", itemTag.getString("customName"));
+        assertFalse(itemTag.hasKey("mCustomName"));
+        assertFalse(itemTag.hasKey("customName"));
+        assertTrue(itemTag.hasKey("display"));
         assertEquals(
             "Fukushima Unit 1",
             itemTag.getCompoundTag("display")
@@ -114,7 +113,28 @@ public class NuclearReactorCustomNameTest {
 
         ItemStack stack = new ItemStack(net.minecraft.init.Blocks.stone);
         stack.setTagCompound(itemTag);
+        assertTrue(stack.hasDisplayName());
         assertEquals("Fukushima Unit 1", MTENuclearReactor.getCustomNameFromStack(stack));
+
+        // Simulate GregTech MTENameRemover recipe execution:
+        // tag.getCompoundTag("display").removeTag("Name");
+        // if (tag.getCompoundTag("display").hasNoTags()) tag.removeTag("display");
+        itemTag.getCompoundTag("display")
+            .removeTag("Name");
+        if (itemTag.getCompoundTag("display")
+            .hasNoTags()) {
+            itemTag.removeTag("display");
+        }
+
+        assertFalse(stack.hasDisplayName());
+        assertNull(MTENuclearReactor.getCustomNameFromStack(stack));
+
+        // When placed back into the world after Name Remover, reactor custom name is reset
+        MTENuclearReactor clearedReactor = new MTENuclearReactor("multimachine.nuclearreactor");
+        clearedReactor.loadNBTData(itemTag);
+        assertFalse(clearedReactor.hasCustomName());
+        assertNull(clearedReactor.getCustomName());
+        assertEquals(clearedReactor.getBaseLocalName(), clearedReactor.getLocalName());
     }
 
     @Test

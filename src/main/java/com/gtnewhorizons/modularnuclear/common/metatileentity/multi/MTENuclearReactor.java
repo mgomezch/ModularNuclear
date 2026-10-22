@@ -10,7 +10,6 @@ import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -169,31 +168,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (aItemStack == null) {
             return null;
         }
-        if (aItemStack.hasTagCompound()) {
-            NBTTagCompound nbt = aItemStack.getTagCompound();
-            if (nbt.hasKey("display", 10)) {
-                NBTTagCompound disp = nbt.getCompoundTag("display");
-                if (disp.hasKey("Name", 8)) {
-                    String name = disp.getString("Name")
-                        .trim();
-                    if (!name.isEmpty()) {
-                        return name;
-                    }
-                }
-            }
-            if (nbt.hasKey("mCustomName", 8)) {
-                String name = nbt.getString("mCustomName")
-                    .trim();
-                if (!name.isEmpty()) {
-                    return name;
-                }
-            }
-            if (nbt.hasKey("customName", 8)) {
-                String name = nbt.getString("customName")
-                    .trim();
-                if (!name.isEmpty()) {
-                    return name;
-                }
+        if (aItemStack.hasDisplayName()) {
+            String name = aItemStack.getDisplayName()
+                .trim();
+            if (!name.isEmpty()) {
+                return name;
             }
         }
         return null;
@@ -1919,8 +1898,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         aNBT.setLong("mTransmutationByproductsLastCycle", mTransmutationByproductsLastCycle);
         aNBT.setLong("mDepletedLiquidFuelLastCycle", mDepletedLiquidFuelLastCycle);
         if (hasCustomName()) {
-            aNBT.setString("mCustomName", mCustomName);
-            aNBT.setString("customName", mCustomName);
             NBTTagCompound display;
             if (aNBT.hasKey("display", 10)) {
                 display = aNBT.getCompoundTag("display");
@@ -1929,6 +1906,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 aNBT.setTag("display", display);
             }
             display.setString("Name", mCustomName);
+        } else if (aNBT.hasKey("display", 10)) {
+            NBTTagCompound display = aNBT.getCompoundTag("display");
+            display.removeTag("Name");
+            if (display.hasNoTags()) {
+                aNBT.removeTag("display");
+            }
         }
     }
 
@@ -1942,8 +1925,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             aNBT.setBoolean("mMoltenDown", true);
         }
         if (hasCustomName()) {
-            aNBT.setString("mCustomName", mCustomName);
-            aNBT.setString("customName", mCustomName);
             NBTTagCompound display;
             if (aNBT.hasKey("display", 10)) {
                 display = aNBT.getCompoundTag("display");
@@ -1952,6 +1933,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 aNBT.setTag("display", display);
             }
             display.setString("Name", mCustomName);
+        } else if (aNBT.hasKey("display", 10)) {
+            NBTTagCompound display = aNBT.getCompoundTag("display");
+            display.removeTag("Name");
+            if (display.hasNoTags()) {
+                aNBT.removeTag("display");
+            }
         }
     }
 
@@ -1999,20 +1986,16 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (getBaseMetaTileEntity() != null) {
             super.loadNBTData(aNBT);
         }
-        if (aNBT.hasKey("mCustomName", 8)) {
-            this.mCustomName = aNBT.getString("mCustomName")
-                .trim();
-        } else if (aNBT.hasKey("customName", 8)) {
-            this.mCustomName = aNBT.getString("customName")
-                .trim();
-        } else if (aNBT.hasKey("display", 10)) {
+        if (aNBT.hasKey("display", 10)) {
             NBTTagCompound display = aNBT.getCompoundTag("display");
             if (display.hasKey("Name", 8)) {
-                this.mCustomName = display.getString("Name")
+                String name = display.getString("Name")
                     .trim();
+                this.mCustomName = !name.isEmpty() ? name : null;
+            } else {
+                this.mCustomName = null;
             }
-        }
-        if (this.mCustomName != null && this.mCustomName.isEmpty()) {
+        } else {
             this.mCustomName = null;
         }
         mWorldSaved = aNBT.getBoolean("mWorldSaved");
@@ -2636,27 +2619,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
         if (aPlayer != null && aPlayer.getHeldItem() != null) {
             ItemStack held = aPlayer.getHeldItem();
-            if (held.getItem() == Items.name_tag && held.hasDisplayName()) {
-                String newName = held.getDisplayName()
-                    .trim();
-                if (!newName.isEmpty()) {
-                    setCustomName(newName);
-                    if (!aPlayer.capabilities.isCreativeMode) {
-                        held.stackSize--;
-                        if (held.stackSize <= 0) {
-                            aPlayer.inventory.mainInventory[aPlayer.inventory.currentItem] = null;
-                        }
-                    }
-                    if (!aBaseMetaTileEntity.getWorld().isRemote) {
-                        aBaseMetaTileEntity.issueTextureUpdate();
-                        aBaseMetaTileEntity.issueTileUpdate();
-                        if (aBaseMetaTileEntity instanceof TileEntity te) {
-                            te.markDirty();
-                        }
-                    }
-                    return true;
-                }
-            }
             if (handleSensorCardLinking(held, aPlayer, aBaseMetaTileEntity)) {
                 return true;
             }
