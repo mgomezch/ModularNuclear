@@ -10,6 +10,7 @@ import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -58,7 +59,10 @@ import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlInte
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
+import appeng.helpers.ICustomNameObject;
 import cpw.mods.fml.common.Loader;
+import cpw.mods.fml.common.Optional;
+import cpw.mods.fml.common.network.ByteBufUtils;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.GTMod;
@@ -98,8 +102,9 @@ import mcp.mobius.waila.api.IWailaConfigHandler;
 import mcp.mobius.waila.api.IWailaDataAccessor;
 import shedar.mods.ic2.nuclearcontrol.panel.CardWrapperImpl;
 
+@Optional.Interface(iface = "appeng.helpers.ICustomNameObject", modid = "appliedenergistics2")
 public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReactor>
-    implements ISurvivalConstructable, ICasingTextureProvider {
+    implements ISurvivalConstructable, ICasingTextureProvider, ICustomNameObject {
 
     public static final int CASING_INDEX = BlockNuclearCasing.CASING_TEXTURE_INDEX;
     public static final String STRUCTURE_TIER_1 = NuclearReactorStructure.STRUCTURE_TIER_1;
@@ -113,6 +118,87 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public int mPipeTier = -1;
     public int gridSize = 0;
     public int coreDimension = 0;
+    public String mCustomName = null;
+
+    @Override
+    public String getCustomName() {
+        return mCustomName;
+    }
+
+    @Override
+    public boolean hasCustomName() {
+        return mCustomName != null && !mCustomName.trim()
+            .isEmpty();
+    }
+
+    @Override
+    public void setCustomName(String name) {
+        this.mCustomName = (name != null && !name.trim()
+            .isEmpty()) ? name.trim() : null;
+    }
+
+    public String getBaseLocalName() {
+        return super.getLocalName();
+    }
+
+    @Override
+    public String getLocalName() {
+        if (hasCustomName()) {
+            return getCustomName();
+        }
+        return super.getLocalName();
+    }
+
+    @Override
+    public boolean hasCustomInventoryName() {
+        return hasCustomName();
+    }
+
+    @Override
+    public String getInventoryName() {
+        if (hasCustomName()) {
+            return getCustomName();
+        }
+        if (getBaseMetaTileEntity() == null) {
+            return getBaseLocalName();
+        }
+        return super.getInventoryName();
+    }
+
+    public static String getCustomNameFromStack(ItemStack aItemStack) {
+        if (aItemStack == null) {
+            return null;
+        }
+        if (aItemStack.hasTagCompound()) {
+            NBTTagCompound nbt = aItemStack.getTagCompound();
+            if (nbt.hasKey("display", 10)) {
+                NBTTagCompound disp = nbt.getCompoundTag("display");
+                if (disp.hasKey("Name", 8)) {
+                    String name = disp.getString("Name")
+                        .trim();
+                    if (!name.isEmpty()) {
+                        return name;
+                    }
+                }
+            }
+            if (nbt.hasKey("mCustomName", 8)) {
+                String name = nbt.getString("mCustomName")
+                    .trim();
+                if (!name.isEmpty()) {
+                    return name;
+                }
+            }
+            if (nbt.hasKey("customName", 8)) {
+                String name = nbt.getString("customName")
+                    .trim();
+                if (!name.isEmpty()) {
+                    return name;
+                }
+            }
+        }
+        return null;
+    }
+
     public INuclearTile[][] mGrid = null;
     public final List<IGregTechTileEntity> mNuclearTiles = new ArrayList<>();
     public final List<ICoolantPassageHatch> mTopHighPressureHatches = new ArrayList<>();
@@ -1359,6 +1445,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public void writeToStream(ByteBuf buffer) {
         super.writeToStream(buffer);
         buffer.writeByte(getReactorTier());
+        ByteBufUtils.writeUTF8String(buffer, mCustomName != null ? mCustomName : "");
     }
 
     @Override
@@ -1371,6 +1458,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             this.mClientRadius = 2.5 * mClientTier;
             this.mClientWaterBlocks = -1;
         }
+        String customName = ByteBufUtils.readUTF8String(buffer);
+        this.mCustomName = (customName != null && !customName.trim()
+            .isEmpty()) ? customName.trim() : null;
     }
 
     @Override
@@ -1828,6 +1918,18 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         aNBT.setLong("mTransmutationLossLastCycle", mTransmutationLossLastCycle);
         aNBT.setLong("mTransmutationByproductsLastCycle", mTransmutationByproductsLastCycle);
         aNBT.setLong("mDepletedLiquidFuelLastCycle", mDepletedLiquidFuelLastCycle);
+        if (hasCustomName()) {
+            aNBT.setString("mCustomName", mCustomName);
+            aNBT.setString("customName", mCustomName);
+            NBTTagCompound display;
+            if (aNBT.hasKey("display", 10)) {
+                display = aNBT.getCompoundTag("display");
+            } else {
+                display = new NBTTagCompound();
+                aNBT.setTag("display", display);
+            }
+            display.setString("Name", mCustomName);
+        }
     }
 
     @Override
@@ -1839,23 +1941,54 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (mMoltenDown) {
             aNBT.setBoolean("mMoltenDown", true);
         }
+        if (hasCustomName()) {
+            aNBT.setString("mCustomName", mCustomName);
+            aNBT.setString("customName", mCustomName);
+            NBTTagCompound display;
+            if (aNBT.hasKey("display", 10)) {
+                display = aNBT.getCompoundTag("display");
+            } else {
+                display = new NBTTagCompound();
+                aNBT.setTag("display", display);
+            }
+            display.setString("Name", mCustomName);
+        }
     }
 
     @Override
     public void addAdditionalTooltipInformation(ItemStack aItemStack, List<String> aList) {
         super.addAdditionalTooltipInformation(aItemStack, aList);
-        if (aItemStack != null && aItemStack.hasTagCompound()) {
-            if (aItemStack.getTagCompound()
-                .getBoolean("mMoltenDown")) {
-                aList.add(
-                    EnumChatFormatting.DARK_RED + "" + EnumChatFormatting.BOLD + "Molten down (permanently ruined)");
+        if (aItemStack != null) {
+            String customName = getCustomNameFromStack(aItemStack);
+            if (customName != null && !customName.isEmpty()) {
+                String formattedCustomName = EnumChatFormatting.ITALIC + customName + EnumChatFormatting.RESET;
+                if (!aList.isEmpty()) {
+                    aList.set(0, formattedCustomName);
+                } else {
+                    aList.add(formattedCustomName);
+                }
+                String baseName = EnumChatFormatting.GRAY + getBaseLocalName();
+                if (aList.size() <= 1 || !aList.get(1)
+                    .contains(getBaseLocalName())) {
+                    aList.add(1, baseName);
+                }
             }
-            if (aItemStack.getTagCompound()
-                .hasKey("mReactorDamage")) {
-                double dmg = aItemStack.getTagCompound()
-                    .getDouble("mReactorDamage");
-                if (dmg > 0.0) {
-                    aList.add(EnumChatFormatting.RED + String.format(Locale.US, "Reactor damage: %.1f%%", dmg));
+
+            if (aItemStack.hasTagCompound()) {
+                if (aItemStack.getTagCompound()
+                    .getBoolean("mMoltenDown")) {
+                    aList.add(
+                        EnumChatFormatting.DARK_RED + ""
+                            + EnumChatFormatting.BOLD
+                            + "Molten down (permanently ruined)");
+                }
+                if (aItemStack.getTagCompound()
+                    .hasKey("mReactorDamage")) {
+                    double dmg = aItemStack.getTagCompound()
+                        .getDouble("mReactorDamage");
+                    if (dmg > 0.0) {
+                        aList.add(EnumChatFormatting.RED + String.format(Locale.US, "Reactor damage: %.1f%%", dmg));
+                    }
                 }
             }
         }
@@ -1863,7 +1996,25 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
-        super.loadNBTData(aNBT);
+        if (getBaseMetaTileEntity() != null) {
+            super.loadNBTData(aNBT);
+        }
+        if (aNBT.hasKey("mCustomName", 8)) {
+            this.mCustomName = aNBT.getString("mCustomName")
+                .trim();
+        } else if (aNBT.hasKey("customName", 8)) {
+            this.mCustomName = aNBT.getString("customName")
+                .trim();
+        } else if (aNBT.hasKey("display", 10)) {
+            NBTTagCompound display = aNBT.getCompoundTag("display");
+            if (display.hasKey("Name", 8)) {
+                this.mCustomName = display.getString("Name")
+                    .trim();
+            }
+        }
+        if (this.mCustomName != null && this.mCustomName.isEmpty()) {
+            this.mCustomName = null;
+        }
         mWorldSaved = aNBT.getBoolean("mWorldSaved");
         if (!mWorldSaved) {
             mWrench = false;
@@ -2484,7 +2635,29 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     @Override
     public boolean onRightclick(IGregTechTileEntity aBaseMetaTileEntity, EntityPlayer aPlayer) {
         if (aPlayer != null && aPlayer.getHeldItem() != null) {
-            if (handleSensorCardLinking(aPlayer.getHeldItem(), aPlayer, aBaseMetaTileEntity)) {
+            ItemStack held = aPlayer.getHeldItem();
+            if (held.getItem() == Items.name_tag && held.hasDisplayName()) {
+                String newName = held.getDisplayName()
+                    .trim();
+                if (!newName.isEmpty()) {
+                    setCustomName(newName);
+                    if (!aPlayer.capabilities.isCreativeMode) {
+                        held.stackSize--;
+                        if (held.stackSize <= 0) {
+                            aPlayer.inventory.mainInventory[aPlayer.inventory.currentItem] = null;
+                        }
+                    }
+                    if (!aBaseMetaTileEntity.getWorld().isRemote) {
+                        aBaseMetaTileEntity.issueTextureUpdate();
+                        aBaseMetaTileEntity.issueTileUpdate();
+                        if (aBaseMetaTileEntity instanceof TileEntity te) {
+                            te.markDirty();
+                        }
+                    }
+                    return true;
+                }
+            }
+            if (handleSensorCardLinking(held, aPlayer, aBaseMetaTileEntity)) {
                 return true;
             }
         }
