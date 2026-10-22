@@ -18,7 +18,9 @@ gt.blockmachines.hatch.nuclearhatch.uv.name=Nuclear core hatch (UV)
 gt.blockmachines.hatch.nuclearhatch.uhv.name=Nuclear core hatch (UHV)
 gt.blockmachines.hatch.nuclearcontrol.name=Nuclear control hatch
 gt.blockmachines.hatch.nuclearcontrolrod.name=Nuclear core control rod
-gt.blockmachines.hatch.nuclearhighpressure.name=Nuclear core high-pressure hatch
+gt.blockmachines.hatch.nuclearhighpressure.name=Nuclear core high-pressure hatch (legacy)
+gt.blockmachines.hatch.nuclearhighpressure.input.name=Nuclear core high-pressure input hatch
+gt.blockmachines.hatch.nuclearhighpressure.output.name=Nuclear core high-pressure output hatch
 
 GT5U.gui.button.reactor_hatches=Inspect core
 modularnuclear.gui.title.metrics_dashboard=Reactor metrics dashboard
@@ -96,6 +98,8 @@ gt.multiblock.nuclearreactor.structure.optional_outer=Any outer casing (optional
 gt.blockmachines.hatch.nuclearbus.desc=Nuclear core bus for items\nHolds fuel rods, coolant cells, moderators, reflectors, insulators, radiovoltaics\nInput-only core component bus\nOutputs (depleted fuel) eject to output buses/hatches
 gt.blockmachines.hatch.nuclearhatch.desc=Tiered nuclear fluid hatch (%s)\nHolds input coolant or liquid nuclear fuel\nInput-only core fluid hatch\nOutputs (steam, hot coolant, byproducts, depleted fuel) eject to output hatches\nCapacity: %s L\nCoolant boiling and transmutation under neutron flux\nConductance: %s Hu/(s·°C)\nItem pipe casing determines allowed coolants\nInserting coolant to dry hot hatches will damage hull!
 gt.blockmachines.hatch.nuclearhighpressure.desc=Core pass-through endpoint for high-pressure coolant loops\nCoolant flows from top inlet to bottom outlet\nDoes not support standard-pressure fluid logistics!
+gt.blockmachines.hatch.nuclearhighpressure.input.desc=Core pass-through top inlet for high-pressure coolant loops\nMust be placed on the top core layer (slice 0)\nPairs strictly with a bottom outlet hatch in the same column\nDoes not support standard-pressure fluid logistics!
+gt.blockmachines.hatch.nuclearhighpressure.output.desc=Core pass-through bottom outlet for high-pressure coolant loops\nMust be placed on the bottom core layer (slice 4)\nPairs strictly with a top inlet hatch in the same column\nDoes not support standard-pressure fluid logistics!
 gt.blockmachines.hatch.nuclearcontrol.desc=Emits redstone signals based on nuclear reactor conditions\nRight-click with screwdriver to cycle metric (sneak+right-click for bundled mode)\nRight-click with soldering iron to cycle statistic\nOutputs 0-15 vanilla redstone or 0-255 ProjectRed bundled signals from front side\nSupports 16-channel ProjectRed bundled cables and OpenComputers interface
 gt.blockmachines.hatch.nuclearcontrolrod.desc=Nuclear core control rod\nHolds long rods of silver, boron, cadmium, indium, or hafnium\nControlled by external redstone (0..15) or ProjectRed bundled cable (0..255)\nRight-click with screwdriver to cycle bundled input channel\nController SCRAM state overrides insertion to 100%!
 

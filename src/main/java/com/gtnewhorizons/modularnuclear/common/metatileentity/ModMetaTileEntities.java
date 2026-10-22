@@ -17,6 +17,8 @@ public class ModMetaTileEntities {
     public static final int ID_NUCLEAR_CONTROL = 32110;
     public static final int ID_NUCLEAR_CONTROL_ROD = 32111;
     public static final int ID_NUCLEAR_HIGH_PRESSURE = 32112;
+    public static final int ID_NUCLEAR_HIGH_PRESSURE_INPUT = 32113;
+    public static final int ID_NUCLEAR_HIGH_PRESSURE_OUTPUT = 32114;
     public static final int ID_NUCLEAR_REACTOR = 32115;
     public static final int ID_ACTINIDE_COMPOUNDER = 32116;
 
@@ -27,6 +29,8 @@ public class ModMetaTileEntities {
     public static ItemStack nuclearControlHatch;
     public static ItemStack nuclearControlRodHatch;
     public static ItemStack nuclearHighPressureHatch;
+    public static ItemStack nuclearHighPressureInputHatch;
+    public static ItemStack nuclearHighPressureOutputHatch;
 
     public static void init() {
         NuclearStructureChannels.register();
@@ -58,9 +62,21 @@ public class ModMetaTileEntities {
         nuclearHighPressureHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure(
             ID_NUCLEAR_HIGH_PRESSURE,
             "hatch.nuclearhighpressure",
-            "Nuclear core high-pressure hatch",
+            "Nuclear core high-pressure hatch (Legacy)",
             5).getStackForm(1L);
-        NuclearStructureChannels.NUCLEAR_HATCH.registerAsIndicator(nuclearHighPressureHatch, 10);
+
+        nuclearHighPressureInputHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput(
+            ID_NUCLEAR_HIGH_PRESSURE_INPUT,
+            "hatch.nuclearhighpressure.input",
+            "Nuclear core high-pressure input hatch",
+            5).getStackForm(1L);
+        NuclearStructureChannels.NUCLEAR_HATCH.registerAsIndicator(nuclearHighPressureInputHatch, 10);
+
+        nuclearHighPressureOutputHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput(
+            ID_NUCLEAR_HIGH_PRESSURE_OUTPUT,
+            "hatch.nuclearhighpressure.output",
+            "Nuclear core high-pressure output hatch",
+            5).getStackForm(1L);
 
         reactor = new MTENuclearReactor(
             ID_NUCLEAR_REACTOR,

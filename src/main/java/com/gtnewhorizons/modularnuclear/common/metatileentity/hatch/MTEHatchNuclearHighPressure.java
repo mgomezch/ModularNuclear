@@ -2,6 +2,8 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity.hatch;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
@@ -12,6 +14,7 @@ import com.gtnewhorizons.coolantloops.engine.ICoolantLoopPump;
 import com.gtnewhorizons.coolantloops.engine.ICoolantPassageHatch;
 import com.gtnewhorizons.coolantloops.engine.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
@@ -22,9 +25,11 @@ import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 
+import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.modularui.IAddGregtechLogo;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -51,6 +56,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
 
     protected boolean mIsInlet = true;
     protected IGregTechTileEntity mOppositeHatch = null;
+    protected int[] mOppositeCoord = null;
     protected ICoolantLoopPump mConnectedPump = null;
     protected int mNeutronAccumulator = 0;
 
@@ -193,11 +199,97 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
 
     @Override
     public IGregTechTileEntity getOppositeHatchTile() {
+        if (mOppositeHatch != null && !mOppositeHatch.isDead()) {
+            return mOppositeHatch;
+        }
+        IGregTechTileEntity te = getBaseMetaTileEntity();
+        if (te != null && te.getWorld() != null) {
+            World w = te.getWorld();
+            if (mOppositeCoord != null && mOppositeCoord.length >= 3) {
+                TileEntity target = w.getTileEntity(mOppositeCoord[0], mOppositeCoord[1], mOppositeCoord[2]);
+                if (target instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof ICoolantPassageHatch) {
+                    mOppositeHatch = gte;
+                    return mOppositeHatch;
+                }
+            }
+            int targetY = mIsInlet ? te.getYCoord() - 4 : te.getYCoord() + 4;
+            TileEntity target = w.getTileEntity(te.getXCoord(), targetY, te.getZCoord());
+            if (target instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof ICoolantPassageHatch) {
+                mOppositeHatch = gte;
+                mOppositeCoord = new int[] { te.getXCoord(), targetY, te.getZCoord() };
+                return mOppositeHatch;
+            }
+        }
         return mOppositeHatch;
     }
 
     public void setOppositeHatch(IGregTechTileEntity opposite) {
         this.mOppositeHatch = opposite;
+        if (opposite != null) {
+            this.mOppositeCoord = new int[] { opposite.getXCoord(), opposite.getYCoord(), opposite.getZCoord() };
+        }
+    }
+
+    @Override
+    public void convertToDirectionalVariant(boolean isInput) {
+        convertToDirectionalHatch(getBaseMetaTileEntity(), isInput);
+    }
+
+    public static MTEHatchNuclearHighPressure convertToDirectionalHatch(IGregTechTileEntity te, boolean isInput) {
+        if (te == null) return null;
+        IMetaTileEntity currentMte = te.getMetaTileEntity();
+        if (isInput && currentMte instanceof MTEHatchNuclearHighPressureInput inputHatch) {
+            return inputHatch;
+        }
+        if (!isInput && currentMte instanceof MTEHatchNuclearHighPressureOutput outputHatch) {
+            return outputHatch;
+        }
+        if (!(currentMte instanceof MTEHatchNuclearHighPressure oldHatch)) {
+            return null;
+        }
+
+        NBTTagCompound nbt = new NBTTagCompound();
+        oldHatch.saveNBTData(nbt);
+
+        int targetId = isInput ? ModMetaTileEntities.ID_NUCLEAR_HIGH_PRESSURE_INPUT
+            : ModMetaTileEntities.ID_NUCLEAR_HIGH_PRESSURE_OUTPUT;
+        IMetaTileEntity newMteTemplate = GregTechAPI.METATILEENTITIES[targetId];
+        if (newMteTemplate == null) return oldHatch;
+
+        IMetaTileEntity newMte = newMteTemplate.newMetaEntity(te);
+        if (!(newMte instanceof MTEHatchNuclearHighPressure newHatch)) {
+            return oldHatch;
+        }
+
+        newHatch.loadNBTData(nbt);
+        newHatch.setIsInlet(isInput);
+        newHatch.setOppositeHatch(oldHatch.getOppositeHatchTile());
+        newHatch.setConnectedPump(oldHatch.getConnectedPump());
+        newHatch.mReactor = oldHatch.mReactor;
+
+        if (oldHatch.mReactor != null) {
+            int topIdx = oldHatch.mReactor.mTopHighPressureHatches.indexOf(oldHatch);
+            if (topIdx >= 0) {
+                oldHatch.mReactor.mTopHighPressureHatches.set(topIdx, newHatch);
+            }
+            int botIdx = oldHatch.mReactor.mBottomHighPressureHatches.indexOf(oldHatch);
+            if (botIdx >= 0) {
+                oldHatch.mReactor.mBottomHighPressureHatches.set(botIdx, newHatch);
+            }
+        }
+
+        te.setMetaTileID((short) targetId);
+        te.setMetaTileEntity(newHatch);
+        newHatch.setBaseMetaTileEntity(te);
+        if (newHatch.mReactor != null) {
+            newHatch.updateTexture(MTENuclearReactor.CASING_INDEX);
+            if (newHatch.mReactor.getBaseMetaTileEntity() != null) {
+                newHatch.updateCraftingIcon(newHatch.mReactor.getMachineCraftingIcon());
+            }
+        }
+        te.issueTextureUpdate();
+        te.markDirty();
+        return newHatch;
     }
 
     @Override
@@ -486,6 +578,11 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setBoolean("mIsInlet", mIsInlet);
         aNBT.setDouble("mIncomingCoolantTemp", mIncomingCoolantTemp);
+        if (mOppositeHatch != null) {
+            aNBT.setIntArray("oppositeCoord", new int[] { mOppositeHatch.getXCoord(), mOppositeHatch.getYCoord(), mOppositeHatch.getZCoord() });
+        } else if (mOppositeCoord != null) {
+            aNBT.setIntArray("oppositeCoord", mOppositeCoord);
+        }
     }
 
     @Override
@@ -505,6 +602,9 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         }
         if (aNBT.hasKey("mIncomingCoolantTemp")) {
             mIncomingCoolantTemp = aNBT.getDouble("mIncomingCoolantTemp");
+        }
+        if (aNBT.hasKey("oppositeCoord")) {
+            mOppositeCoord = aNBT.getIntArray("oppositeCoord");
         }
     }
 

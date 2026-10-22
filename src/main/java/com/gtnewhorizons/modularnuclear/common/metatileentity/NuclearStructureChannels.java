@@ -47,8 +47,10 @@ public enum NuclearStructureChannels implements IStructureChannels {
 
     public static void register() {
         for (NuclearStructureChannels value : values()) {
-            StructureLibAPI
-                .registerChannelDescription(value.get(), "modularnuclear", "channels.modularnuclear." + value.get());
+            try {
+                StructureLibAPI
+                    .registerChannelDescription(value.get(), "modularnuclear", "channels.modularnuclear." + value.get());
+            } catch (Throwable ignored) {}
         }
     }
 }
