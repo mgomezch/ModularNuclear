@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
 import com.gtnewhorizons.coolantloops.engine.ICoolantLoopPump;
 import com.gtnewhorizons.coolantloops.engine.LoopSegment;
@@ -40,6 +41,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
@@ -1546,6 +1548,7 @@ public class NuclearSimulationEngineTest {
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 4, 32000, new String[0], null);
         MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test.rod", 4, new String[0], null);
         MTEHatchNuclearControl control = new MTEHatchNuclearControl("test.control", 4, new String[0], null);
+        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 4, new String[0], null);
 
         // All 6 ForgeDirections must be valid for all nuclear hatches
         for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
@@ -1553,6 +1556,7 @@ public class NuclearSimulationEngineTest {
             assertTrue(hatch.isFacingValid(dir), "Hatch facing " + dir + " must be valid");
             assertTrue(rod.isFacingValid(dir), "Rod facing " + dir + " must be valid");
             assertTrue(control.isFacingValid(dir), "Control facing " + dir + " must be valid");
+            assertTrue(hp.isFacingValid(dir), "HP hatch facing " + dir + " must be valid");
         }
 
         // Casing texture must default to Nuclear Casing
@@ -1560,6 +1564,7 @@ public class NuclearSimulationEngineTest {
         assertNotNull(hatch.getCasingTexture(), "Hatch casing texture must not be null");
         assertNotNull(rod.getCasingTexture(), "Rod casing texture must not be null");
         assertNotNull(control.getCasingTexture(), "Control casing texture must not be null");
+        assertNotNull(hp.getCasingTexture(), "HP hatch casing texture must not be null");
 
         // Inventory textures rendering must not throw NPE when getBaseMetaTileEntity() is null
         assertDoesNotThrow(() -> {
@@ -1571,6 +1576,8 @@ public class NuclearSimulationEngineTest {
             rod.getTexturesInactive(rod.getCasingTexture());
             control.getTexturesActive(control.getCasingTexture());
             control.getTexturesInactive(control.getCasingTexture());
+            hp.getTexturesActive(hp.getCasingTexture());
+            hp.getTexturesInactive(hp.getCasingTexture());
         });
 
         // Controller front face must have casing and overlay textures, sides only casing
@@ -1589,6 +1596,194 @@ public class NuclearSimulationEngineTest {
         ITexture[] sideTextures = reactor.getTexture(null, ForgeDirection.NORTH, ForgeDirection.SOUTH, 0, false, false);
         assertEquals(1, sideTextures.length, "Side face must have only casing texture");
         assertNotNull(sideTextures[0]);
+    }
+
+    @Test
+    void testNuclearReactorHatchCasingTextureInheritanceOnStructureCheck() {
+        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.texture.check");
+        ITexture nuclearCasingTex = Textures.BlockIcons.getCasingTextureForId(MTENuclearReactor.CASING_INDEX);
+        assertNotNull(nuclearCasingTex, "Nuclear casing texture must not be null");
+
+        // 1. Nuclear Hatch
+        MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 4, 32000, new String[0], null);
+        gregtech.api.metatileentity.BaseMetaTileEntity mockHatchTile = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(mockHatchTile.getMetaTileEntity())
+            .thenReturn(hatch);
+        org.mockito.Mockito.when(mockHatchTile.getFrontFacing())
+            .thenReturn(ForgeDirection.UP);
+        org.mockito.Mockito.when(mockHatchTile.isServerSide())
+            .thenReturn(true);
+        hatch.setBaseMetaTileEntity(mockHatchTile);
+
+        // 2. Nuclear Bus
+        MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 4, new String[0], null);
+        gregtech.api.metatileentity.BaseMetaTileEntity mockBusTile = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(mockBusTile.getMetaTileEntity())
+            .thenReturn(bus);
+        org.mockito.Mockito.when(mockBusTile.getFrontFacing())
+            .thenReturn(ForgeDirection.UP);
+        org.mockito.Mockito.when(mockBusTile.isServerSide())
+            .thenReturn(true);
+        bus.setBaseMetaTileEntity(mockBusTile);
+
+        // 3. Nuclear High-Pressure Hatch (Top Inlet)
+        MTEHatchNuclearHighPressure hpTop = new MTEHatchNuclearHighPressure("test.hp.top", 4, new String[0], null);
+        gregtech.api.metatileentity.BaseMetaTileEntity mockHpTopTile = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(mockHpTopTile.getMetaTileEntity())
+            .thenReturn(hpTop);
+        org.mockito.Mockito.when(mockHpTopTile.getFrontFacing())
+            .thenReturn(ForgeDirection.UP);
+        org.mockito.Mockito.when(mockHpTopTile.isServerSide())
+            .thenReturn(true);
+        hpTop.setBaseMetaTileEntity(mockHpTopTile);
+
+        // 4. Pressurized Fluid Hatch (Top Inlet)
+        MTEHatchPressurizedFluid pfTop = new MTEHatchPressurizedFluid("test.pf.top", 4, new String[0], null);
+        pfTop.setMode(MTEHatchPressurizedFluid.HatchMode.SUCTION);
+        gregtech.api.metatileentity.BaseMetaTileEntity mockPfTopTile = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(mockPfTopTile.getMetaTileEntity())
+            .thenReturn(pfTop);
+        org.mockito.Mockito.when(mockPfTopTile.getFrontFacing())
+            .thenReturn(ForgeDirection.UP);
+        org.mockito.Mockito.when(mockPfTopTile.isServerSide())
+            .thenReturn(true);
+        pfTop.setBaseMetaTileEntity(mockPfTopTile);
+
+        // Run NuclearHatchElement checks
+        NuclearReactorStructure.NuclearHatchElement topElement = new NuclearReactorStructure.NuclearHatchElement();
+        net.minecraft.world.World mockWorld = org.mockito.Mockito.mock(net.minecraft.world.World.class);
+
+        org.mockito.Mockito.when(mockWorld.getTileEntity(0, 1, 0))
+            .thenReturn(mockHatchTile);
+        assertTrue(topElement.check(reactor, mockWorld, 0, 1, 0));
+        assertEquals(nuclearCasingTex, hatch.getCasingTexture(), "Nuclear hatch must adopt nuclear casing texture");
+
+        org.mockito.Mockito.when(mockWorld.getTileEntity(1, 1, 0))
+            .thenReturn(mockBusTile);
+        assertTrue(topElement.check(reactor, mockWorld, 1, 1, 0));
+        assertEquals(nuclearCasingTex, bus.getCasingTexture(), "Nuclear bus must adopt nuclear casing texture");
+
+        org.mockito.Mockito.when(mockWorld.getTileEntity(2, 1, 0))
+            .thenReturn(mockHpTopTile);
+        assertTrue(topElement.check(reactor, mockWorld, 2, 1, 0));
+        assertEquals(
+            nuclearCasingTex,
+            hpTop.getCasingTexture(),
+            "Nuclear HP top hatch must adopt nuclear casing texture");
+
+        org.mockito.Mockito.when(mockWorld.getTileEntity(3, 1, 0))
+            .thenReturn(mockPfTopTile);
+        assertTrue(topElement.check(reactor, mockWorld, 3, 1, 0));
+        assertEquals(
+            nuclearCasingTex,
+            pfTop.getCasingTexture(),
+            "Pressurized fluid top hatch must adopt nuclear casing texture");
+
+        // 5. Nuclear High-Pressure Hatch (Bottom Outlet)
+        MTEHatchNuclearHighPressure hpBottom = new MTEHatchNuclearHighPressure(
+            "test.hp.bottom",
+            4,
+            new String[0],
+            null);
+        gregtech.api.metatileentity.BaseMetaTileEntity mockHpBottomTile = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(mockHpBottomTile.getMetaTileEntity())
+            .thenReturn(hpBottom);
+        org.mockito.Mockito.when(mockHpBottomTile.getFrontFacing())
+            .thenReturn(ForgeDirection.DOWN);
+        org.mockito.Mockito.when(mockHpBottomTile.isServerSide())
+            .thenReturn(true);
+        hpBottom.setBaseMetaTileEntity(mockHpBottomTile);
+
+        // 6. Pressurized Fluid Hatch (Bottom Outlet)
+        MTEHatchPressurizedFluid pfBottom = new MTEHatchPressurizedFluid("test.pf.bottom", 4, new String[0], null);
+        pfBottom.setMode(MTEHatchPressurizedFluid.HatchMode.DISCHARGE);
+        gregtech.api.metatileentity.BaseMetaTileEntity mockPfBottomTile = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(mockPfBottomTile.getMetaTileEntity())
+            .thenReturn(pfBottom);
+        org.mockito.Mockito.when(mockPfBottomTile.getFrontFacing())
+            .thenReturn(ForgeDirection.DOWN);
+        org.mockito.Mockito.when(mockPfBottomTile.isServerSide())
+            .thenReturn(true);
+        pfBottom.setBaseMetaTileEntity(mockPfBottomTile);
+
+        // 7. Control Rod Hatch
+        MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test.rod", 4, new String[0], null);
+        gregtech.api.metatileentity.BaseMetaTileEntity mockRodTile = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(mockRodTile.getMetaTileEntity())
+            .thenReturn(rod);
+        org.mockito.Mockito.when(mockRodTile.getFrontFacing())
+            .thenReturn(ForgeDirection.DOWN);
+        org.mockito.Mockito.when(mockRodTile.isServerSide())
+            .thenReturn(true);
+        rod.setBaseMetaTileEntity(mockRodTile);
+
+        NuclearReactorStructure.BottomCoreElement bottomElement = new NuclearReactorStructure.BottomCoreElement();
+
+        org.mockito.Mockito.when(mockWorld.getTileEntity(0, 0, 0))
+            .thenReturn(mockHpBottomTile);
+        assertTrue(bottomElement.check(reactor, mockWorld, 0, 0, 0));
+        assertEquals(
+            nuclearCasingTex,
+            hpBottom.getCasingTexture(),
+            "Nuclear HP bottom hatch must adopt nuclear casing texture");
+
+        org.mockito.Mockito.when(mockWorld.getTileEntity(1, 0, 0))
+            .thenReturn(mockPfBottomTile);
+        assertTrue(bottomElement.check(reactor, mockWorld, 1, 0, 0));
+        assertEquals(
+            nuclearCasingTex,
+            pfBottom.getCasingTexture(),
+            "Pressurized fluid bottom hatch must adopt nuclear casing texture");
+
+        org.mockito.Mockito.when(mockWorld.getTileEntity(2, 0, 0))
+            .thenReturn(mockRodTile);
+        assertTrue(bottomElement.check(reactor, mockWorld, 2, 0, 0));
+        assertEquals(
+            nuclearCasingTex,
+            rod.getCasingTexture(),
+            "Nuclear control rod hatch must adopt nuclear casing texture");
+
+        // 8. Control Hatch
+        MTEHatchNuclearControl controlHatch = new MTEHatchNuclearControl("test.control", 4, new String[0], null);
+        gregtech.api.metatileentity.BaseMetaTileEntity mockControlTile = org.mockito.Mockito
+            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+        org.mockito.Mockito.when(mockControlTile.getMetaTileEntity())
+            .thenReturn(controlHatch);
+        org.mockito.Mockito.when(mockControlTile.isServerSide())
+            .thenReturn(true);
+        controlHatch.setBaseMetaTileEntity(mockControlTile);
+
+        assertTrue(reactor.addNuclearControlHatchToMachineList(mockControlTile, MTENuclearReactor.CASING_INDEX));
+        assertEquals(
+            nuclearCasingTex,
+            controlHatch.getCasingTexture(),
+            "Nuclear control hatch must adopt nuclear casing texture");
+
+        // Check non-facing and facing texture rendering
+        ITexture[] hpNonFacing = hpTop
+            .getTexture(mockHpTopTile, ForgeDirection.NORTH, ForgeDirection.UP, 0, false, false);
+        assertEquals(1, hpNonFacing.length);
+        assertEquals(nuclearCasingTex, hpNonFacing[0], "Non-facing side of HP hatch must render nuclear casing");
+
+        ITexture[] hpFacing = hpTop.getTexture(mockHpTopTile, ForgeDirection.UP, ForgeDirection.UP, 0, false, false);
+        assertTrue(hpFacing.length >= 2);
+        assertEquals(nuclearCasingTex, hpFacing[0], "Facing side base texture of HP hatch must be nuclear casing");
+
+        ITexture[] pfNonFacing = pfTop
+            .getTexture(mockPfTopTile, ForgeDirection.NORTH, ForgeDirection.UP, 0, false, false);
+        assertEquals(1, pfNonFacing.length);
+        assertEquals(nuclearCasingTex, pfNonFacing[0], "Non-facing side of PF hatch must render nuclear casing");
+
+        ITexture[] pfFacing = pfTop.getTexture(mockPfTopTile, ForgeDirection.UP, ForgeDirection.UP, 0, false, false);
+        assertTrue(pfFacing.length >= 2);
+        assertEquals(nuclearCasingTex, pfFacing[0], "Facing side base texture of PF hatch must be nuclear casing");
     }
 
     @Test

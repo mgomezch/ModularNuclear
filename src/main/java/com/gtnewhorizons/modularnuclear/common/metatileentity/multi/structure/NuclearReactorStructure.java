@@ -179,29 +179,73 @@ public class NuclearReactorStructure {
                 }
                 IMetaTileEntity mte = te.getMetaTileEntity();
                 if (mte instanceof MTEHatchNuclearHatch hatch) {
-                    hatch.mReactor = t;
-                    int tier = hatch.mTier;
-                    if (t.mHatchTier == -1 || tier < t.mHatchTier) {
-                        t.mHatchTier = tier;
+                    if (t != null) {
+                        if (hatch.getBaseMetaTileEntity() == null) {
+                            hatch.setBaseMetaTileEntity(te);
+                        }
+                        if (hatch.getBaseMetaTileEntity() != null) {
+                            hatch.updateTexture(MTENuclearReactor.CASING_INDEX);
+                        }
+                        if (t.getBaseMetaTileEntity() != null) {
+                            hatch.updateCraftingIcon(t.getMachineCraftingIcon());
+                        }
+                        hatch.mReactor = t;
+                        int tier = hatch.mTier;
+                        if (t.mHatchTier == -1 || tier < t.mHatchTier) {
+                            t.mHatchTier = tier;
+                        }
+                        t.mNuclearTiles.add(te);
                     }
-                    t.mNuclearTiles.add(te);
                     return true;
                 } else if (mte instanceof MTEHatchNuclearBus bus) {
-                    bus.mReactor = t;
-                    t.mNuclearTiles.add(te);
+                    if (t != null) {
+                        if (bus.getBaseMetaTileEntity() == null) {
+                            bus.setBaseMetaTileEntity(te);
+                        }
+                        if (bus.getBaseMetaTileEntity() != null) {
+                            bus.updateTexture(MTENuclearReactor.CASING_INDEX);
+                        }
+                        if (t.getBaseMetaTileEntity() != null) {
+                            bus.updateCraftingIcon(t.getMachineCraftingIcon());
+                        }
+                        bus.mReactor = t;
+                        t.mNuclearTiles.add(te);
+                    }
                     return true;
                 } else if (mte instanceof MTEHatchNuclearHighPressure hp) {
-                    hp.mReactor = t;
-                    hp.setIsInlet(true);
-                    t.mNuclearTiles.add(te);
-                    t.mTopHighPressureHatches.add(hp);
+                    if (t != null) {
+                        if (hp.getBaseMetaTileEntity() == null) {
+                            hp.setBaseMetaTileEntity(te);
+                        }
+                        if (hp.getBaseMetaTileEntity() != null) {
+                            hp.updateTexture(MTENuclearReactor.CASING_INDEX);
+                        }
+                        if (t.getBaseMetaTileEntity() != null) {
+                            hp.updateCraftingIcon(t.getMachineCraftingIcon());
+                        }
+                        hp.mReactor = t;
+                        hp.setIsInlet(true);
+                        t.mNuclearTiles.add(te);
+                        t.mTopHighPressureHatches.add(hp);
+                    }
                     return true;
                 } else if (mte instanceof MTEHatchPressurizedFluid pf) {
                     if (!pf.isInput()) {
                         return false;
                     }
-                    t.mNuclearTiles.add(te);
-                    t.mTopHighPressureHatches.add(pf);
+                    if (t != null) {
+                        if (pf.getBaseMetaTileEntity() == null) {
+                            pf.setBaseMetaTileEntity(te);
+                        }
+                        if (pf.getBaseMetaTileEntity() != null) {
+                            pf.updateTexture(MTENuclearReactor.CASING_INDEX);
+                        }
+                        if (t.getBaseMetaTileEntity() != null) {
+                            pf.updateCraftingIcon(t.getMachineCraftingIcon());
+                        }
+                        t.mNuclearTiles.add(te);
+                        t.mTopHighPressureHatches.add(pf);
+                    }
                     return true;
                 }
             }
@@ -322,6 +366,15 @@ public class NuclearReactorStructure {
                 IMetaTileEntity mte = te.getMetaTileEntity();
                 if (mte instanceof MTEHatchNuclearHighPressure hpHatch) {
                     if (t != null) {
+                        if (hpHatch.getBaseMetaTileEntity() == null) {
+                            hpHatch.setBaseMetaTileEntity(te);
+                        }
+                        if (hpHatch.getBaseMetaTileEntity() != null) {
+                            hpHatch.updateTexture(MTENuclearReactor.CASING_INDEX);
+                        }
+                        if (t.getBaseMetaTileEntity() != null) {
+                            hpHatch.updateCraftingIcon(t.getMachineCraftingIcon());
+                        }
                         hpHatch.mReactor = t;
                         hpHatch.setIsInlet(false);
                         t.mBottomHighPressureHatches.add(hpHatch);
@@ -332,17 +385,44 @@ public class NuclearReactorStructure {
                         return false;
                     }
                     if (t != null) {
+                        if (pf.getBaseMetaTileEntity() == null) {
+                            pf.setBaseMetaTileEntity(te);
+                        }
+                        if (pf.getBaseMetaTileEntity() != null) {
+                            pf.updateTexture(MTENuclearReactor.CASING_INDEX);
+                        }
+                        if (t.getBaseMetaTileEntity() != null) {
+                            pf.updateCraftingIcon(t.getMachineCraftingIcon());
+                        }
                         t.mBottomHighPressureHatches.add(pf);
                     }
                     return true;
                 } else if (mte instanceof MTEHatchNuclearControlRod rod) {
                     if (t != null) {
+                        if (rod.getBaseMetaTileEntity() == null) {
+                            rod.setBaseMetaTileEntity(te);
+                        }
+                        if (rod.getBaseMetaTileEntity() != null) {
+                            rod.updateTexture(MTENuclearReactor.CASING_INDEX);
+                        }
+                        if (t.getBaseMetaTileEntity() != null) {
+                            rod.updateCraftingIcon(t.getMachineCraftingIcon());
+                        }
                         rod.mReactor = t;
                         t.mBottomControlRodHatches.add(rod);
                     }
                     return true;
                 } else if (mte instanceof MTEHatchInputBeamline beamHatch) {
                     if (t != null) {
+                        if (beamHatch.getBaseMetaTileEntity() == null) {
+                            beamHatch.setBaseMetaTileEntity(te);
+                        }
+                        if (beamHatch.getBaseMetaTileEntity() != null) {
+                            beamHatch.updateTexture(MTENuclearReactor.CASING_INDEX);
+                        }
+                        if (t.getBaseMetaTileEntity() != null) {
+                            beamHatch.updateCraftingIcon(t.getMachineCraftingIcon());
+                        }
                         t.mBottomBeamInputHatches.add(beamHatch);
                     }
                     return true;

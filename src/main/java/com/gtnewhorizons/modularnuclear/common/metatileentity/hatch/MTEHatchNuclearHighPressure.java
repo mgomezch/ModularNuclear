@@ -11,6 +11,7 @@ import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
 import com.gtnewhorizons.coolantloops.engine.ICoolantLoopPump;
 import com.gtnewhorizons.coolantloops.engine.ICoolantPassageHatch;
 import com.gtnewhorizons.coolantloops.engine.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
@@ -85,32 +86,47 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
     }
 
     @Override
+    public ITexture getCasingTexture() {
+        ITexture tex = super.getCasingTexture();
+        if (tex != null) return tex;
+        tex = Textures.BlockIcons.getCasingTextureForId(BlockNuclearCasing.CASING_TEXTURE_INDEX);
+        if (tex != null) return tex;
+        return Textures.BlockIcons.casingTexturePages[0][16];
+    }
+
+    @Override
     public ITexture[] getTexturesActive(ITexture aBaseTexture) {
-        ITexture casing = Textures.BlockIcons.casingTexturePages[0][16];
-        return new ITexture[] { casing, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT),
-            TextureFactory.of(MTEHatchPressurizedFluid.OVERLAY_PRESSURIZED_OUT) };
+        if (mIsInlet) {
+            return new ITexture[] { aBaseTexture, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_IN),
+                TextureFactory.of(MTEHatchPressurizedFluid.OVERLAY_PRESSURIZED_IN) };
+        } else {
+            return new ITexture[] { aBaseTexture, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT),
+                TextureFactory.of(MTEHatchPressurizedFluid.OVERLAY_PRESSURIZED_OUT) };
+        }
     }
 
     @Override
     public ITexture[] getTexturesInactive(ITexture aBaseTexture) {
-        ITexture casing = Textures.BlockIcons.casingTexturePages[0][16];
-        return new ITexture[] { casing, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_IN),
-            TextureFactory.of(MTEHatchPressurizedFluid.OVERLAY_PRESSURIZED_IN) };
+        return getTexturesActive(aBaseTexture);
     }
 
     @Override
     public ITexture[] getTexture(IGregTechTileEntity aBaseMetaTileEntity, ForgeDirection side, ForgeDirection aFacing,
         int colorIndex, boolean aActive, boolean redstoneLevel) {
-        ITexture casing = Textures.BlockIcons.casingTexturePages[0][16];
-        if (side == aFacing) {
-            return new ITexture[] { casing,
-                TextureFactory
-                    .of(mIsInlet ? Textures.BlockIcons.OVERLAY_PIPE_IN : Textures.BlockIcons.OVERLAY_PIPE_OUT),
-                TextureFactory.of(
-                    mIsInlet ? MTEHatchPressurizedFluid.OVERLAY_PRESSURIZED_IN
-                        : MTEHatchPressurizedFluid.OVERLAY_PRESSURIZED_OUT) };
+        ITexture baseTexture = getCasingTexture();
+        if (baseTexture == null) {
+            baseTexture = Textures.BlockIcons.casingTexturePages[0][16];
         }
-        return new ITexture[] { casing };
+        if (side != aFacing) {
+            return new ITexture[] { baseTexture };
+        }
+        if (mIsInlet) {
+            return new ITexture[] { baseTexture, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_IN),
+                TextureFactory.of(MTEHatchPressurizedFluid.OVERLAY_PRESSURIZED_IN) };
+        } else {
+            return new ITexture[] { baseTexture, TextureFactory.of(Textures.BlockIcons.OVERLAY_PIPE_OUT),
+                TextureFactory.of(MTEHatchPressurizedFluid.OVERLAY_PRESSURIZED_OUT) };
+        }
     }
 
     @Override

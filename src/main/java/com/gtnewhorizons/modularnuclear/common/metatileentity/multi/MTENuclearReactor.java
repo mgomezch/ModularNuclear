@@ -310,6 +310,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (mReactorExtendedFacing != null) {
             return mReactorExtendedFacing;
         }
+        if (getBaseMetaTileEntity() == null) {
+            return null;
+        }
         return super.getExtendedFacing();
     }
 
@@ -338,11 +341,28 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (aTileEntity == null) return false;
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte instanceof MTEHatchNuclearControl controlHatch) {
+            if (controlHatch.getBaseMetaTileEntity() == null) {
+                controlHatch.setBaseMetaTileEntity(aTileEntity);
+            }
+            if (controlHatch.getBaseMetaTileEntity() != null) {
+                controlHatch.updateTexture(aBaseCasingIndex);
+            }
+            if (getBaseMetaTileEntity() != null) {
+                controlHatch.updateCraftingIcon(getMachineCraftingIcon());
+            }
             controlHatch.mReactor = this;
             mControlHatches.add(controlHatch);
             return true;
         }
         return false;
+    }
+
+    @Override
+    public ItemStack getMachineCraftingIcon() {
+        if (getBaseMetaTileEntity() == null) {
+            return null;
+        }
+        return super.getMachineCraftingIcon();
     }
 
     @Override
@@ -1043,6 +1063,67 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         for (IGregTechTileEntity te : mNuclearTiles) {
             if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
                 hatch.mWasDry = false;
+            }
+            if (te != null && te.getMetaTileEntity() instanceof MTEHatch hatch) {
+                if (hatch.getBaseMetaTileEntity() == null) {
+                    hatch.setBaseMetaTileEntity(te);
+                }
+                if (hatch.getBaseMetaTileEntity() != null) {
+                    hatch.updateTexture(CASING_INDEX);
+                }
+                if (getBaseMetaTileEntity() != null) {
+                    hatch.updateCraftingIcon(getMachineCraftingIcon());
+                }
+            }
+        }
+        for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
+            if (rod != null) {
+                if (rod.getBaseMetaTileEntity() != null) {
+                    rod.updateTexture(CASING_INDEX);
+                }
+                if (getBaseMetaTileEntity() != null) {
+                    rod.updateCraftingIcon(getMachineCraftingIcon());
+                }
+            }
+        }
+        for (ICoolantPassageHatch hp : mTopHighPressureHatches) {
+            if (hp instanceof MTEHatch hatch) {
+                if (hatch.getBaseMetaTileEntity() != null) {
+                    hatch.updateTexture(CASING_INDEX);
+                }
+                if (getBaseMetaTileEntity() != null) {
+                    hatch.updateCraftingIcon(getMachineCraftingIcon());
+                }
+            }
+        }
+        for (ICoolantPassageHatch hp : mBottomHighPressureHatches) {
+            if (hp instanceof MTEHatch hatch) {
+                if (hatch.getBaseMetaTileEntity() != null) {
+                    hatch.updateTexture(CASING_INDEX);
+                }
+                if (getBaseMetaTileEntity() != null) {
+                    hatch.updateCraftingIcon(getMachineCraftingIcon());
+                }
+            }
+        }
+        for (MTEHatchInputBeamline beam : mBottomBeamInputHatches) {
+            if (beam != null) {
+                if (beam.getBaseMetaTileEntity() != null) {
+                    beam.updateTexture(CASING_INDEX);
+                }
+                if (getBaseMetaTileEntity() != null) {
+                    beam.updateCraftingIcon(getMachineCraftingIcon());
+                }
+            }
+        }
+        for (MTEHatchNuclearControl control : mControlHatches) {
+            if (control != null) {
+                if (control.getBaseMetaTileEntity() != null) {
+                    control.updateTexture(CASING_INDEX);
+                }
+                if (getBaseMetaTileEntity() != null) {
+                    control.updateCraftingIcon(getMachineCraftingIcon());
+                }
             }
         }
 
