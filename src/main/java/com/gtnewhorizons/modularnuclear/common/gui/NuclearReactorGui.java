@@ -183,7 +183,8 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         list.child(
             IKey.dynamic(
                 () -> "Flux: " + NuclearSimulationEngine.formatNeutronFlux(
-                    fluxSyncer != null ? (int) fluxSyncer.getLongValue() : multiblock.mNeutronsProduced))
+                    fluxSyncer != null ? (int) fluxSyncer.getLongValue() : multiblock.mNeutronsProduced,
+                    multiblock.getTicksPerCycle()))
                 .color(Color.rgb(100, 220, 255))
                 .asWidget()
                 .textAlign(Alignment.CenterLeft));
@@ -191,10 +192,13 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         // Fast neutrons
         list.child(
             IKey.dynamic(
-                () -> String.format(
-                    Locale.US,
-                    "Fast neutrons: %d",
-                    fastAbsSyncer != null ? fastAbsSyncer.getLongValue() : multiblock.mFastAbsorbed))
+                () -> {
+                    long fast = fastAbsSyncer != null ? fastAbsSyncer.getLongValue() : multiblock.mFastAbsorbed;
+                    int tpc = multiblock.getTicksPerCycle();
+                    double cps = 20.0 / (double) tpc;
+                    long fastSec = Math.round(fast * cps);
+                    return String.format(Locale.US, "Fast neutrons: %,d /s (%,d /cycle)", fastSec, fast);
+                })
                 .color(Color.rgb(200, 200, 200))
                 .asWidget()
                 .textAlign(Alignment.CenterLeft));
@@ -202,10 +206,13 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         // Thermal neutrons
         list.child(
             IKey.dynamic(
-                () -> String.format(
-                    Locale.US,
-                    "Thermal neutrons: %d",
-                    thermAbsSyncer != null ? thermAbsSyncer.getLongValue() : multiblock.mThermalAbsorbed))
+                () -> {
+                    long therm = thermAbsSyncer != null ? thermAbsSyncer.getLongValue() : multiblock.mThermalAbsorbed;
+                    int tpc = multiblock.getTicksPerCycle();
+                    double cps = 20.0 / (double) tpc;
+                    long thermSec = Math.round(therm * cps);
+                    return String.format(Locale.US, "Thermal neutrons: %,d /s (%,d /cycle)", thermSec, therm);
+                })
                 .color(Color.rgb(200, 200, 200))
                 .asWidget()
                 .textAlign(Alignment.CenterLeft));
@@ -213,10 +220,13 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         // Escaped neutrons
         list.child(
             IKey.dynamic(
-                () -> String.format(
-                    Locale.US,
-                    "Escaped neutrons: %d",
-                    escSyncer != null ? escSyncer.getLongValue() : multiblock.mEscapedNeutrons))
+                () -> {
+                    long esc = escSyncer != null ? escSyncer.getLongValue() : multiblock.mEscapedNeutrons;
+                    int tpc = multiblock.getTicksPerCycle();
+                    double cps = 20.0 / (double) tpc;
+                    long escSec = Math.round(esc * cps);
+                    return String.format(Locale.US, "Escaped neutrons: %,d /s (%,d /cycle)", escSec, esc);
+                })
                 .color(Color.rgb(200, 200, 200))
                 .asWidget()
                 .textAlign(Alignment.CenterLeft));

@@ -42,6 +42,7 @@ public class NuclearReactorWailaProvider {
         tag.setInteger("thermalAbsorbed", reactor.mThermalAbsorbed);
         tag.setInteger("escapedNeutrons", reactor.mEscapedNeutrons);
         tag.setDouble("damage", reactor.mReactorDamage);
+        tag.setInteger("ticksPerCycle", reactor.getTicksPerCycle());
 
         int fuelCount = 0;
         int coolantHatchCount = 0;
@@ -96,18 +97,22 @@ public class NuclearReactorWailaProvider {
         long euOutput = tag.getLong("euOutput");
         int coolantRate = tag.getInteger("coolantRate");
         String coolantName = tag.getString("coolantName");
+        int tpc = tag.hasKey("ticksPerCycle") ? tag.getInteger("ticksPerCycle") : NuclearSimulationEngine.ticksPerCycle;
+        if (tpc <= 0) tpc = NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE;
+        double cyclesPerSec = 20.0 / (double) tpc;
 
         if (euOutput > 0) {
             list.add(
-                EnumChatFormatting.GREEN + "EU Output: "
+                EnumChatFormatting.GREEN + "EU output: "
                     + EnumChatFormatting.WHITE
                     + String.format("+%,d EU/t", euOutput));
         }
         if (coolantRate > 0 && !coolantName.isEmpty()) {
+            long coolantRateSec = Math.round(coolantRate * cyclesPerSec);
             list.add(
-                EnumChatFormatting.AQUA + "Coolant Output: "
+                EnumChatFormatting.AQUA + "Coolant output: "
                     + EnumChatFormatting.WHITE
-                    + String.format("%,d L/s %s", coolantRate, coolantName));
+                    + String.format("%,d L/s (%,d L/cycle) %s", coolantRateSec, coolantRate, coolantName));
         }
         if (euOutput == 0 && coolantRate == 0) {
             list.add(EnumChatFormatting.GRAY + "Output: " + EnumChatFormatting.DARK_GRAY + "0 EU/t | 0 L/s");
@@ -115,7 +120,7 @@ public class NuclearReactorWailaProvider {
 
         double dmg = tag.getDouble("damage");
         if (dmg > 0.0) {
-            list.add(EnumChatFormatting.RED + String.format(Locale.US, "Reactor Damage: %.1f%%", dmg));
+            list.add(EnumChatFormatting.RED + String.format(Locale.US, "Reactor damage: %.1f%%", dmg));
         }
 
         float reactivity = tag.getFloat("reactivity");
@@ -129,14 +134,21 @@ public class NuclearReactorWailaProvider {
                 + EnumChatFormatting.YELLOW
                 + "Flux: "
                 + EnumChatFormatting.WHITE
-                + NuclearSimulationEngine.formatNeutronFlux(flux));
+                + NuclearSimulationEngine.formatNeutronFlux(flux, tpc));
 
         int fast = tag.getInteger("fastAbsorbed");
         int therm = tag.getInteger("thermalAbsorbed");
         int esc = tag.getInteger("escapedNeutrons");
         if (flux > 0 || fast > 0 || therm > 0 || esc > 0) {
             list.add(
-                EnumChatFormatting.GRAY + String.format("Neutrons: %,d fast, %,d therm, %,d esc", fast, therm, esc));
+                EnumChatFormatting.GRAY + String.format(
+                    "Neutrons: %,d fast/s (%,d /cycle), %,d therm/s (%,d /cycle), %,d esc/s (%,d /cycle)",
+                    Math.round(fast * cyclesPerSec),
+                    fast,
+                    Math.round(therm * cyclesPerSec),
+                    therm,
+                    Math.round(esc * cyclesPerSec),
+                    esc));
         }
 
         int fuelCount = tag.getInteger("fuelCount");
@@ -145,7 +157,7 @@ public class NuclearReactorWailaProvider {
         if (totalCells > 0) {
             list.add(
                 EnumChatFormatting.GRAY
-                    + String.format("Grid Cells: %d Fuel, %d Coolant / %d Total", fuelCount, coolantCount, totalCells));
+                    + String.format("Grid cells: %d fuel, %d coolant / %d total", fuelCount, coolantCount, totalCells));
         }
     }
 
@@ -241,6 +253,8 @@ public class NuclearReactorWailaProvider {
         }
 
         // Reactivity & Neutron Flux
+        int tpc = reactor.getTicksPerCycle();
+        double cyclesPerSec = 20.0 / (double) tpc;
         list.add(
             String.format(
                 Locale.US,
@@ -251,15 +265,18 @@ public class NuclearReactorWailaProvider {
                 EnumChatFormatting.RESET,
                 EnumChatFormatting.YELLOW,
                 EnumChatFormatting.RESET,
-                NuclearSimulationEngine.formatNeutronFlux(reactor.mNeutronsProduced)));
+                NuclearSimulationEngine.formatNeutronFlux(reactor.mNeutronsProduced, tpc)));
         list.add(
             String.format(
                 Locale.US,
-                "%sNeutrons: %s%,d fast, %,d therm, %,d esc",
+                "%sNeutrons: %s%,d fast/s (%,d /cycle), %,d therm/s (%,d /cycle), %,d esc/s (%,d /cycle)",
                 EnumChatFormatting.YELLOW,
                 EnumChatFormatting.RESET,
+                Math.round(reactor.mFastAbsorbed * cyclesPerSec),
                 reactor.mFastAbsorbed,
+                Math.round(reactor.mThermalAbsorbed * cyclesPerSec),
                 reactor.mThermalAbsorbed,
+                Math.round(reactor.mEscapedNeutrons * cyclesPerSec),
                 reactor.mEscapedNeutrons));
 
         // Power & Coolant Output
@@ -275,13 +292,16 @@ public class NuclearReactorWailaProvider {
         }
         if (reactor.mOutputCoolantRate > 0 && reactor.mOutputCoolantName != null
             && !reactor.mOutputCoolantName.isEmpty()) {
+            long coolantRateCycle = reactor.mOutputCoolantRate;
+            long coolantRateSec = Math.round(coolantRateCycle * cyclesPerSec);
             list.add(
                 String.format(
                     Locale.US,
-                    "%sCoolant output: %s%,d L/s %s%s",
+                    "%sCoolant output: %s%,d L/s (%,d L/cycle) %s%s",
                     EnumChatFormatting.YELLOW,
                     EnumChatFormatting.AQUA,
-                    reactor.mOutputCoolantRate,
+                    coolantRateSec,
+                    coolantRateCycle,
                     reactor.mOutputCoolantName,
                     EnumChatFormatting.RESET));
         }
@@ -305,7 +325,7 @@ public class NuclearReactorWailaProvider {
             list.add(
                 String.format(
                     Locale.US,
-                    "%sCore Cells: %s%d Fuel, %d Coolant, %d HP Loop, %d Control / %d Total",
+                    "%sCore cells: %s%d fuel, %d coolant, %d HP loop, %d control / %d total",
                     EnumChatFormatting.YELLOW,
                     EnumChatFormatting.RESET,
                     fuelCount,

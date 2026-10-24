@@ -33,6 +33,7 @@ public class ReactorGridSyncData {
     public float ambientTemp = 20.0f;
     public float reactorDamage = 0.0f;
     public long cumulativeNeutrons = 0L;
+    public int ticksPerCycle = NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE;
     public List<ReactorGridCellData> cells = new ArrayList<>();
 
     public static class ReactorGridCellData {
@@ -111,6 +112,7 @@ public class ReactorGridSyncData {
         buf.writeFloat(data.ambientTemp);
         buf.writeFloat(data.reactorDamage);
         buf.writeLong(data.cumulativeNeutrons);
+        buf.writeVarIntToBuffer(data.ticksPerCycle);
 
         buf.writeVarIntToBuffer(data.cells.size());
         for (ReactorGridCellData cell : data.cells) {
@@ -172,6 +174,7 @@ public class ReactorGridSyncData {
         data.ambientTemp = buf.readFloat();
         data.reactorDamage = buf.readFloat();
         data.cumulativeNeutrons = buf.readLong();
+        data.ticksPerCycle = buf.readVarIntFromBuffer();
 
         int cellCount = buf.readVarIntFromBuffer();
         for (int i = 0; i < cellCount; i++) {
@@ -223,7 +226,8 @@ public class ReactorGridSyncData {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ReactorGridSyncData that = (ReactorGridSyncData) o;
-        if (gridSize != that.gridSize || pipeTier != that.pipeTier || directPowerEUt != that.directPowerEUt)
+        if (gridSize != that.gridSize || pipeTier != that.pipeTier || directPowerEUt != that.directPowerEUt
+            || ticksPerCycle != that.ticksPerCycle)
             return false;
         if (scram != that.scram || cumulativeNeutrons != that.cumulativeNeutrons) return false;
         if (Math.abs(ambientTemp - that.ambientTemp) > 0.5f) return false;

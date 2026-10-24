@@ -37,9 +37,38 @@ public class ReactorCycleSnapshot {
     public int thermalNeutronsAbsorbed;
     public long directEU;
     public int coolantOutput;
+    public int ticksPerCycle = com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE;
+
+    public double getCyclesPerSec() {
+        return ticksPerCycle > 0 ? (20.0 / (double) ticksPerCycle) : 1.0;
+    }
+
+    public double getFastNeutronsPerSec() {
+        return fastNeutronsProduced * getCyclesPerSec();
+    }
+
+    public double getThermalNeutronsAbsorbedPerSec() {
+        return thermalNeutronsAbsorbed * getCyclesPerSec();
+    }
+
+    public double getEscapedNeutronsPerSec() {
+        return escapedNeutrons * getCyclesPerSec();
+    }
+
+    public double getCoolantOutputPerSec() {
+        return coolantOutput * getCyclesPerSec();
+    }
 
     public static ReactorCycleSnapshot create(long cycleIndex, List<Double> temperatures, List<Double> reactivities,
         int escapedNeutrons, int fastNeutronsProduced, int thermalNeutronsAbsorbed, long directEU, long coolantOutput) {
+        return create(cycleIndex, temperatures, reactivities, escapedNeutrons, fastNeutronsProduced,
+            thermalNeutronsAbsorbed, directEU, coolantOutput,
+            com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE);
+    }
+
+    public static ReactorCycleSnapshot create(long cycleIndex, List<Double> temperatures, List<Double> reactivities,
+        int escapedNeutrons, int fastNeutronsProduced, int thermalNeutronsAbsorbed, long directEU, long coolantOutput,
+        int ticksPerCycle) {
         ReactorCycleSnapshot s = new ReactorCycleSnapshot();
         s.cycleIndex = cycleIndex;
         s.escapedNeutrons = escapedNeutrons;
@@ -47,6 +76,7 @@ public class ReactorCycleSnapshot {
         s.thermalNeutronsAbsorbed = thermalNeutronsAbsorbed;
         s.directEU = directEU;
         s.coolantOutput = (int) Math.min(Integer.MAX_VALUE, Math.max(0, coolantOutput));
+        s.ticksPerCycle = ticksPerCycle;
 
         // Compute quartiles for temperature
         float[] tStats = calculateQuartiles(temperatures);
@@ -137,6 +167,7 @@ public class ReactorCycleSnapshot {
         buf.writeVarIntToBuffer(thermalNeutronsAbsorbed);
         buf.writeLong(directEU);
         buf.writeVarIntToBuffer(coolantOutput);
+        buf.writeVarIntToBuffer(ticksPerCycle);
     }
 
     public static ReactorCycleSnapshot readFromBuffer(PacketBuffer buf) {
@@ -161,6 +192,7 @@ public class ReactorCycleSnapshot {
         s.thermalNeutronsAbsorbed = buf.readVarIntFromBuffer();
         s.directEU = buf.readLong();
         s.coolantOutput = buf.readVarIntFromBuffer();
+        s.ticksPerCycle = buf.readVarIntFromBuffer();
         return s;
     }
 }

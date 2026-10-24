@@ -353,6 +353,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     }
 
     private static ItemStack getReflectorPlate(Materials mat, String materialName) {
+        if (isTestMode()) {
+            return createTestPlaceholder(materialName + " Plate");
+        }
         ItemStack s = null;
         if (mat != null) {
             s = GTOreDictUnificator.get(OrePrefixes.plate, mat, 1L);
@@ -360,22 +363,19 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (s == null && materialName != null) {
             s = getFirstOre("plate" + materialName);
         }
-        if (s == null && isTestMode()) {
-            s = createTestPlaceholder(materialName + " Plate");
-        }
         return s;
     }
 
     private static ItemStack getModeratorRod(Materials mat, String materialName) {
+        if (isTestMode()) {
+            return createTestPlaceholder(materialName + " Long Rod");
+        }
         ItemStack s = null;
         if (mat != null) {
             s = GTOreDictUnificator.get(OrePrefixes.stickLong, mat, 1L);
         }
         if (s == null && materialName != null) {
             s = getFirstOre("stickLong" + materialName);
-        }
-        if (s == null && isTestMode()) {
-            s = createTestPlaceholder(materialName + " Long Rod");
         }
         if (s != null && s.getItemDamage() == OreDictionary.WILDCARD_VALUE) {
             s.setItemDamage(0);

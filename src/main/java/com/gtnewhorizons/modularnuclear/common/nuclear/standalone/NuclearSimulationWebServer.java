@@ -899,8 +899,8 @@ public class NuclearSimulationWebServer {
                       <input id="p-ambient-temp" type="number" step="1.0" value="20.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                     <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">Ticks Per Cycle (t):</label>
-                      <input id="p-ticks-per-cycle" type="number" min="1" step="1" value="20" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Ticks per cycle (t):</label>
+                      <input id="p-ticks-per-cycle" type="number" min="1" step="1" value="5" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                   </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
@@ -2767,31 +2767,37 @@ public class NuclearSimulationWebServer {
                   let metricStr = "";
                   let tipText = "";
 
+                  const tpc = currentState.ticksPerCycle || 5;
+                  const cps = 20 / tpc;
                   if (gridDisplayMode === "COMPONENTS") {
                     overlayBg = "transparent";
                     metricStr = "";
                     tipText = `${t.name} (${t.x}, ${t.y})` + (t.hasControlRod ? " [Control Rod Hatch]" : "");
                   } else if (gridDisplayMode === "TOTAL_FLUX") {
                     const fl = t.totalFlux || 0;
-                    overlayBg = fl > 0 ? getNeutronColor(fl) : "transparent";
-                    metricStr = formatFluxValue(fl);
-                    tipText = `Total Flux: ${fl.toLocaleString()} n/s (Fast: ${(t.fastFlux||0).toLocaleString()}, Thermal: ${(t.thermalFlux||0).toLocaleString()})`;
+                    const flSec = Math.round(fl * cps);
+                    overlayBg = fl > 0 ? getNeutronColor(flSec) : "transparent";
+                    metricStr = formatFluxValue(flSec);
+                    tipText = `Total flux: ${flSec.toLocaleString()} n/s (${fl.toLocaleString()} /cycle) (Fast: ${Math.round((t.fastFlux||0)*cps).toLocaleString()} n/s, Thermal: ${Math.round((t.thermalFlux||0)*cps).toLocaleString()} n/s)`;
                   } else if (gridDisplayMode === "FAST_FLUX") {
                     const fl = t.fastFlux || 0;
-                    overlayBg = fl > 0 ? getNeutronColor(fl) : "transparent";
-                    metricStr = formatFluxValue(fl);
-                    tipText = `Fast Flux: ${fl.toLocaleString()} n/s`;
+                    const flSec = Math.round(fl * cps);
+                    overlayBg = fl > 0 ? getNeutronColor(flSec) : "transparent";
+                    metricStr = formatFluxValue(flSec);
+                    tipText = `Fast flux: ${flSec.toLocaleString()} n/s (${fl.toLocaleString()} /cycle)`;
                   } else if (gridDisplayMode === "THERMAL_FLUX") {
                     const fl = t.thermalFlux || 0;
-                    overlayBg = fl > 0 ? getNeutronColor(fl) : "transparent";
-                    metricStr = formatFluxValue(fl);
-                    tipText = `Thermal Flux: ${fl.toLocaleString()} n/s`;
+                    const flSec = Math.round(fl * cps);
+                    overlayBg = fl > 0 ? getNeutronColor(flSec) : "transparent";
+                    metricStr = formatFluxValue(flSec);
+                    tipText = `Thermal flux: ${flSec.toLocaleString()} n/s (${fl.toLocaleString()} /cycle)`;
                   } else if (gridDisplayMode === "ABSORPTION") {
                     const abs = (t.fastAbsorbed || 0) + (t.thermalAbsorbed || 0);
                     const rodAbs = (t.controlRodFastAbsorbed || 0) + (t.controlRodThermalAbsorbed || 0);
-                    overlayBg = abs > 0 ? getAbsorptionColor(abs) : "transparent";
-                    metricStr = abs > 0 ? formatFluxValue(abs) : "";
-                    tipText = `Absorbed: ${abs.toLocaleString()} n/s (Base: ${(abs - rodAbs).toLocaleString()}, Bottom Rod: ${rodAbs.toLocaleString()})`;
+                    const absSec = Math.round(abs * cps);
+                    overlayBg = abs > 0 ? getAbsorptionColor(absSec) : "transparent";
+                    metricStr = abs > 0 ? formatFluxValue(absSec) : "";
+                    tipText = `Absorbed: ${absSec.toLocaleString()} n/s (${abs.toLocaleString()} /cycle) (Base: ${Math.round((abs - rodAbs)*cps).toLocaleString()} n/s, Bottom rod: ${Math.round(rodAbs*cps).toLocaleString()} n/s)`;
                   } else if (gridDisplayMode === "CONTROL_RODS") {
                     if (t.hasControlRod) {
                       if (t.controlRodType && t.controlRodType !== "NONE") {
@@ -2812,9 +2818,10 @@ public class NuclearSimulationWebServer {
                     }
                   } else if (gridDisplayMode === "HEAT_OUTPUT") {
                     const ho = t.heatOutput || 0;
-                    overlayBg = ho > 0 ? getHeatOutputColor(ho) : "transparent";
-                    metricStr = ho > 0 ? (ho >= 10000 ? (ho / 1000).toFixed(1) + "k" : Math.round(ho).toString()) : "";
-                    tipText = `Heat Output: ${ho.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/s`;
+                    const hoSec = ho * cps;
+                    overlayBg = ho > 0 ? getHeatOutputColor(hoSec) : "transparent";
+                    metricStr = hoSec > 0 ? (hoSec >= 10000 ? (hoSec / 1000).toFixed(1) + "k" : Math.round(hoSec).toString()) : "";
+                    tipText = `Heat output: ${hoSec.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/s (${ho.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/cycle)`;
                   } else {
                     overlayBg = getTemperatureColor(t.temp, currentState.maxSafeTemp);
                     metricStr = Math.round(t.temp) + "°C";
@@ -3001,16 +3008,18 @@ public class NuclearSimulationWebServer {
                 : "";
 
               let fluxHtml = "";
+              const tpc = currentState.ticksPerCycle || 5;
+              const cps = 20 / tpc;
               if (t.code !== "NL" && ((t.totalFlux && t.totalFlux > 0) || (t.fastFlux && t.fastFlux > 0) || (t.thermalFlux && t.thermalFlux > 0) || (t.fastAbsorbed && t.fastAbsorbed > 0) || (t.thermalAbsorbed && t.thermalAbsorbed > 0) || t.directEU)) {
                 fluxHtml = `
                   <div style="background:#10141d; border:1px solid #373737; border-radius:3px; padding:6px 8px; margin-top:8px;">
-                    <div style="font-weight:700; font-size:0.75rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px;">Neutron Kinetics</div>
-                    <div class="stat-row" style="margin-bottom:2px;"><span>Total Flux:</span><span class="stat-val" style="color:#38bdf8;">${(t.totalFlux || 0).toLocaleString()} n/s</span></div>
-                    <div class="stat-row" style="margin-bottom:2px;"><span>Fast Flux:</span><span class="stat-val" style="color:#fbbf24;">${(t.fastFlux || 0).toLocaleString()} n/s</span></div>
-                    <div class="stat-row" style="margin-bottom:2px;"><span>Thermal Flux:</span><span class="stat-val" style="color:#4ade80;">${(t.thermalFlux || 0).toLocaleString()} n/s</span></div>
-                    <div class="stat-row" style="margin-bottom:2px;"><span>Fast Absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${(t.fastAbsorbed || 0).toLocaleString()} n/s</span></div>
-                    <div class="stat-row" style="margin-bottom:2px;"><span>Thermal Absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${(t.thermalAbsorbed || 0).toLocaleString()} n/s</span></div>
-                    ${t.directEU ? `<div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #373737;"><span>Radiovoltaic Output:</span><span class="stat-val" style="color:#38bdf8;">${t.directEU.toLocaleString()} EU/t</span></div>` : ''}
+                    <div style="font-weight:700; font-size:0.75rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px;">Neutron kinetics</div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Total flux:</span><span class="stat-val" style="color:#38bdf8;">${Math.round((t.totalFlux || 0) * cps).toLocaleString()} n/s (${(t.totalFlux || 0).toLocaleString()} /cycle)</span></div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Fast flux:</span><span class="stat-val" style="color:#fbbf24;">${Math.round((t.fastFlux || 0) * cps).toLocaleString()} n/s (${(t.fastFlux || 0).toLocaleString()} /cycle)</span></div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Thermal flux:</span><span class="stat-val" style="color:#4ade80;">${Math.round((t.thermalFlux || 0) * cps).toLocaleString()} n/s (${(t.thermalFlux || 0).toLocaleString()} /cycle)</span></div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Fast absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${Math.round((t.fastAbsorbed || 0) * cps).toLocaleString()} n/s (${(t.fastAbsorbed || 0).toLocaleString()} /cycle)</span></div>
+                    <div class="stat-row" style="margin-bottom:2px;"><span>Thermal absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${Math.round((t.thermalAbsorbed || 0) * cps).toLocaleString()} n/s (${(t.thermalAbsorbed || 0).toLocaleString()} /cycle)</span></div>
+                    ${t.directEU ? `<div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #373737;"><span>Radiovoltaic output:</span><span class="stat-val" style="color:#38bdf8;">${t.directEU.toLocaleString()} EU/t</span></div>` : ''}
                   </div>
                 `;
               }
@@ -3094,8 +3103,8 @@ public class NuclearSimulationWebServer {
                       </div>
                       ${(fastAbs > 0 || thermAbs > 0) ? `
                         <div style="border-top:1px dashed #373737; padding-top:4px; margin-top:4px; font-size:0.72rem;">
-                          <div class="stat-row" style="margin-bottom:1px;"><span>Rod Fast Absorbed:</span><span class="stat-val" style="color:#fbbf24;">${fastAbs.toLocaleString()} n/s</span></div>
-                          <div class="stat-row" style="margin-bottom:1px;"><span>Rod Thermal Absorbed:</span><span class="stat-val" style="color:#4ade80;">${thermAbs.toLocaleString()} n/s</span></div>
+                          <div class="stat-row" style="margin-bottom:1px;"><span>Rod fast absorbed:</span><span class="stat-val" style="color:#fbbf24;">${Math.round(fastAbs * cps).toLocaleString()} n/s (${fastAbs.toLocaleString()} /cycle)</span></div>
+                          <div class="stat-row" style="margin-bottom:1px;"><span>Rod thermal absorbed:</span><span class="stat-val" style="color:#4ade80;">${Math.round(thermAbs * cps).toLocaleString()} n/s (${thermAbs.toLocaleString()} /cycle)</span></div>
                         </div>
                       ` : ''}
                     </div>
@@ -3117,7 +3126,7 @@ public class NuclearSimulationWebServer {
                   </div>
                 </div>
                 <div class="stat-row"><span>Temperature:</span><span class="stat-val">${t.temp} °C</span></div>
-                ${t.heatOutput != null && t.heatOutput > 0 ? `<div class="stat-row"><span>Heat Output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${t.heatOutput.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/s</span></div>` : ''}
+                ${t.heatOutput != null && t.heatOutput > 0 ? `<div class="stat-row"><span>Heat output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${(t.heatOutput * cps).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/s (${t.heatOutput.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/cycle)</span></div>` : ''}
                 ${coolingMethodHtml}
                 ${controlRodHtml}
                 ${extraHtml}
@@ -3138,7 +3147,7 @@ public class NuclearSimulationWebServer {
               setVal("p-fission-heat", p.fissionHeatPerNeutron != null ? p.fissionHeatPerNeutron : 76.0);
               setVal("p-fiss-mult", p.globalThermalFissionMultiplier != null ? p.globalThermalFissionMultiplier : (p.thermalFissionMultiplier != null ? p.thermalFissionMultiplier : 0.350));
               setVal("p-ambient-temp", p.ambientTemp);
-              setVal("p-ticks-per-cycle", p.ticksPerCycle != null ? p.ticksPerCycle : 20);
+              setVal("p-ticks-per-cycle", p.ticksPerCycle != null ? p.ticksPerCycle : 5);
               setVal("p-hatch-cap", p.hatchCapacity);
               setVal("p-turn-curve", p.turnoverCurve);
               setVal("p-turn-dt", p.turnoverDeltaTMax);
@@ -3164,7 +3173,7 @@ public class NuclearSimulationWebServer {
               const fHeat = document.getElementById("p-fission-heat") ? document.getElementById("p-fission-heat").value : 76.0;
               const fMult = document.getElementById("p-fiss-mult") ? document.getElementById("p-fiss-mult").value : 0.350;
               const amb = document.getElementById("p-ambient-temp").value;
-              const ticksCycle = document.getElementById("p-ticks-per-cycle") ? document.getElementById("p-ticks-per-cycle").value : 20;
+              const ticksCycle = document.getElementById("p-ticks-per-cycle") ? document.getElementById("p-ticks-per-cycle").value : 5;
               const cap = document.getElementById("p-hatch-cap").value;
               const curve = document.getElementById("p-turn-curve").value;
               const dt = document.getElementById("p-turn-dt").value;
@@ -3219,7 +3228,7 @@ public class NuclearSimulationWebServer {
             }
 
             async function resetSimParams() {
-              if (document.getElementById("p-ticks-per-cycle")) document.getElementById("p-ticks-per-cycle").value = 20;
+              if (document.getElementById("p-ticks-per-cycle")) document.getElementById("p-ticks-per-cycle").value = 5;
               if (isWasmMode && wasmSim) {
                 wasmSim.setParam("reset", "true");
                 currentState = wasmSim.getState();

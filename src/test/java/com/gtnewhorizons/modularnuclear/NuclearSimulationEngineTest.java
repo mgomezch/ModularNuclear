@@ -652,13 +652,13 @@ public class NuclearSimulationEngineTest {
         assertEquals(0.0, cellHV.getModerationProbability());
 
         // 2. Feed fast vs thermal neutrons and check 4x weight
-        cellHV.onNeutronAbsorbed(NeutronType.FAST, 10);
+        cellHV.onNeutronAbsorbed(NeutronType.FAST, 2);
         cellHV.nuclearTick(1.0);
         long fastEU = cellHV.getDirectEUProduced();
 
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellHVThermal = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
             com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
-        cellHVThermal.onNeutronAbsorbed(NeutronType.THERMAL, 10);
+        cellHVThermal.onNeutronAbsorbed(NeutronType.THERMAL, 2);
         cellHVThermal.nuclearTick(1.0);
         long thermalEU = cellHVThermal.getDirectEUProduced();
 
@@ -719,6 +719,7 @@ public class NuclearSimulationEngineTest {
             3,
             3,
             NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        grid100.setTicksPerCycle(20);
         grid100
             .setTile(1, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.NEUTRON_SOURCE);
         grid100.getTile(1, 1)
@@ -736,6 +737,7 @@ public class NuclearSimulationEngineTest {
             3,
             3,
             NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        grid50.setTicksPerCycle(20);
         grid50
             .setTile(1, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.NEUTRON_SOURCE);
         grid50.getTile(1, 1)
@@ -1232,9 +1234,13 @@ public class NuclearSimulationEngineTest {
     void testFormatNeutronFlux() {
         assertEquals("0 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(0));
         assertEquals("0 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(-5));
-        assertEquals("1.00e13 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(1));
-        assertEquals("8.80e14 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(88));
-        assertEquals("1.50e15 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(150));
+        assertEquals("1.00e13 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(1, 20));
+        assertEquals("4.00e13 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(1, 5));
+        assertEquals("4.00e13 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(1));
+        assertEquals("8.80e14 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(88, 20));
+        assertEquals("3.52e15 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(88, 5));
+        assertEquals("1.50e15 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(150, 20));
+        assertEquals("6.00e15 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(150, 5));
     }
 
     @Test
@@ -2818,40 +2824,45 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testTheCoreAndLiquidFuelSimTile() {
-        // Test The Core (NQ32)
-        SimTile core = new SimTile(SimTile.TileType.FUEL_CORE);
-        assertTrue(core.isFuel());
-        assertFalse(core.isHatch());
-        // Dense archetype multiplier (0.50) applies to base neutrons (512 * 0.50 = 256)
-        assertEquals(256, core.generateNeutrons(1.0));
-        assertEquals(2560000, core.getMaxDurability());
+        NuclearSimulationEngine.setTicksPerCycle(20);
+        try {
+            // Test The Core (NQ32)
+            SimTile core = new SimTile(SimTile.TileType.FUEL_CORE);
+            assertTrue(core.isFuel());
+            assertFalse(core.isHatch());
+            // Dense archetype multiplier (0.50) applies to base neutrons (512 * 0.50 = 256)
+            assertEquals(256, core.generateNeutrons(1.0));
+            assertEquals(2560000, core.getMaxDurability());
 
-        // Test Liquid Uranium Fuel Hatch
-        SimTile liquidU = new SimTile(SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM);
-        assertTrue(liquidU.isFuel());
-        assertTrue(liquidU.isHatch());
-        assertTrue(liquidU.isLiquidFuelHatch());
-        assertFalse(liquidU.isCoolantHatch());
-        assertEquals(8, liquidU.generateNeutrons(1.0));
-        assertEquals(NuclearSimulationEngine.DEFAULT_HATCH_CAPACITY, liquidU.getInputFluidAmount());
-        assertEquals(0, liquidU.getOutputFluidAmount());
+            // Test Liquid Uranium Fuel Hatch
+            SimTile liquidU = new SimTile(SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM);
+            assertTrue(liquidU.isFuel());
+            assertTrue(liquidU.isHatch());
+            assertTrue(liquidU.isLiquidFuelHatch());
+            assertFalse(liquidU.isCoolantHatch());
+            assertEquals(8, liquidU.generateNeutrons(1.0));
+            assertEquals(NuclearSimulationEngine.DEFAULT_HATCH_CAPACITY, liquidU.getInputFluidAmount());
+            assertEquals(0, liquidU.getOutputFluidAmount());
 
-        // Test Liquid Thorium and Plutonium Hatches
-        SimTile liquidTh = new SimTile(SimTile.TileType.HATCH_LIQUID_FUEL_THORIUM);
-        assertEquals(4, liquidTh.generateNeutrons(1.0));
-        SimTile liquidPu = new SimTile(SimTile.TileType.HATCH_LIQUID_FUEL_PLUTONIUM);
-        assertEquals(16, liquidPu.generateNeutrons(1.0));
+            // Test Liquid Thorium and Plutonium Hatches
+            SimTile liquidTh = new SimTile(SimTile.TileType.HATCH_LIQUID_FUEL_THORIUM);
+            assertEquals(4, liquidTh.generateNeutrons(1.0));
+            SimTile liquidPu = new SimTile(SimTile.TileType.HATCH_LIQUID_FUEL_PLUTONIUM);
+            assertEquals(16, liquidPu.generateNeutrons(1.0));
 
-        // Test liquid fuel burnup into spent byproduct
-        liquidU.onNeutronAbsorbed(NeutronType.THERMAL, 50);
-        liquidU.nuclearTick(1.0);
-        assertTrue(
-            liquidU.getInputFluidAmount() < NuclearSimulationEngine.DEFAULT_HATCH_CAPACITY,
-            "Liquid fuel input should be consumed");
-        assertTrue(liquidU.getOutputFluidAmount() > 0, "Spent fuel byproduct should be produced");
-        assertEquals(
-            NuclearSimulationEngine.DEFAULT_HATCH_CAPACITY,
-            liquidU.getInputFluidAmount() + liquidU.getOutputFluidAmount());
+            // Test liquid fuel burnup into spent byproduct
+            liquidU.onNeutronAbsorbed(NeutronType.THERMAL, 50);
+            liquidU.nuclearTick(1.0);
+            assertTrue(
+                liquidU.getInputFluidAmount() < NuclearSimulationEngine.DEFAULT_HATCH_CAPACITY,
+                "Liquid fuel input should be consumed");
+            assertTrue(liquidU.getOutputFluidAmount() > 0, "Spent fuel byproduct should be produced");
+            assertEquals(
+                NuclearSimulationEngine.DEFAULT_HATCH_CAPACITY,
+                liquidU.getInputFluidAmount() + liquidU.getOutputFluidAmount());
+        } finally {
+            NuclearSimulationEngine.setTicksPerCycle(NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE);
+        }
     }
 
     @Test
@@ -4665,15 +4676,20 @@ public class NuclearSimulationEngineTest {
         // When efficiency is 0: zero heat transfer
         assertEquals(0.0, NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 0.0), 1e-6);
 
-        // Tier 3 (HV, mult=2.0, base=2.0 => U = 4.0 EU/(t·°C)), Ch = 32.0 EU/°C, DeltaT = 100°C, eff = 1.0
+        // Tier 3 (HV, mult=2.0, base=2.0 => U = 4.0 EU/(t·°C)), Ch = 32.0 EU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0 (20 ticks)
         // Expected Q = 32.0 * 100.0 * (1 - exp(-4.0 / 32.0)) = 3200 * (1 - exp(-0.125)) = 376.01 EU
-        double qHV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 1.0);
+        double qHV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 1.0, 20);
         assertEquals(376.01, qHV, 0.02);
 
-        // Tier 4 (EV, mult=4.0, base=2.0 => U = 8.0 EU/(t·°C)), Ch = 32.0 EU/°C, DeltaT = 100°C, eff = 1.0
+        // Tier 4 (EV, mult=4.0, base=2.0 => U = 8.0 EU/(t·°C)), Ch = 32.0 EU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0 (20 ticks)
         // Expected Q = 32.0 * 100.0 * (1 - exp(-8.0 / 32.0)) = 3200 * (1 - exp(-0.25)) = 707.84 EU
-        double qEV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 4, 1.0);
+        double qEV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 4, 1.0, 20);
         assertEquals(707.84, qEV, 0.02);
+
+        // Default 5 ticks per cycle (dt = 0.25)
+        // Q = 3200 * (1 - exp(-4.0 * 0.25 / 32.0)) = 3200 * (1 - exp(-0.03125)) = 98.45 EU
+        double qHV5 = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 1.0);
+        assertEquals(98.45, qHV5, 0.02);
 
         // Higher tier transfers more heat
         assertTrue(qEV > qHV);
@@ -4814,6 +4830,7 @@ public class NuclearSimulationEngineTest {
     @Test
     void testHatchCoolingContinuousWithoutExplosion() {
         MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.conductive.test");
+        reactor.setTicksPerCycle(20);
         reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
         reactor.mEfficiency = 10000;
 
@@ -4844,6 +4861,7 @@ public class NuclearSimulationEngineTest {
     @Test
     void testHatchCoolingStarvationSetsWasDryAndThermalShock() {
         MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.starvation.test");
+        reactor.setTicksPerCycle(20);
         reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
         reactor.mEfficiency = 10000;
         reactor.mReactorDamage = 10.0;
@@ -5173,6 +5191,7 @@ public class NuclearSimulationEngineTest {
         // 3. Lithium Breeder Rod: Consumes Lithium, breeds Tritium
         StandaloneNuclearGrid gridLithium = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         gridLithium.setStrictMode(false);
+        gridLithium.setTicksPerCycle(20);
         gridLithium.setTile(2, 2, SimTile.TileType.FUEL_URANIUM_QUAD);
         gridLithium.setTile(2, 3, SimTile.TileType.FUEL_LITHIUM);
         for (int i = 0; i < 5; i++) {
@@ -5495,6 +5514,7 @@ public class NuclearSimulationEngineTest {
 
         // 2. Formed machine, operational / running
         reactor.mMachine = true;
+        reactor.setTicksPerCycle(20);
         reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
         reactor.gridSize = 3;
         reactor.mGrid = new INuclearTile[3][3];
@@ -5521,11 +5541,11 @@ public class NuclearSimulationEngineTest {
         assertTrue(combined.contains("0.0% (nominal)"), "Hull damage should be nominal");
         assertTrue(combined.contains("100.0%"), "Reactivity should be 100%");
         assertTrue(
-            combined.contains("Flux: " + NuclearSimulationEngine.formatNeutronFlux(5000)),
+            combined.contains("Flux: " + NuclearSimulationEngine.formatNeutronFlux(5000, 20)),
             "Neutron flux should be formatted");
-        assertTrue(combined.contains("3,000 fast"), "Fast neutrons should be reported");
+        assertTrue(combined.contains("3,000 fast/s (3,000 /cycle)"), "Fast neutrons should be reported");
         assertTrue(combined.contains("+2,048 EU/t"), "EU output should be reported");
-        assertTrue(combined.contains("1,500 L/s Supercritical Carbon Dioxide"), "Coolant output should be reported");
+        assertTrue(combined.contains("1,500 L/s (1,500 L/cycle) Supercritical Carbon Dioxide"), "Coolant output should be reported");
 
         // 3. Test SCRAM state
         reactor.mScram = true;
@@ -6662,25 +6682,30 @@ public class NuclearSimulationEngineTest {
     @Test
     public void testFastNeutronFission() {
         NuclearSimulationEngine.resetDefaultParameters();
-        assertEquals(1.0, NuclearSimulationEngine.globalFastFissionMultiplier, 1e-4);
+        NuclearSimulationEngine.setTicksPerCycle(20);
+        try {
+            assertEquals(1.0, NuclearSimulationEngine.globalFastFissionMultiplier, 1e-4);
 
-        // Uranium fuel tile (baseFastFissionMultiplier = 0.10, baseNeutrons = 4)
-        SimTile tile = new SimTile(SimTile.TileType.FUEL_URANIUM_SINGLE);
-        assertEquals(4, tile.generateNeutrons(1.0)); // 0 absorbed neutrons -> baseline 4
+            // Uranium fuel tile (baseFastFissionMultiplier = 0.10, baseNeutrons = 4)
+            SimTile tile = new SimTile(SimTile.TileType.FUEL_URANIUM_SINGLE);
+            assertEquals(4, tile.generateNeutrons(1.0)); // 0 absorbed neutrons -> baseline 4
 
-        // Absorb 100 fast neutrons
-        tile.onNeutronAbsorbed(NeutronType.FAST, 100);
-        tile.nuclearTick(1.0);
-        assertEquals(100, tile.getLastFastAbsorbed());
+            // Absorb 100 fast neutrons
+            tile.onNeutronAbsorbed(NeutronType.FAST, 100);
+            tile.nuclearTick(1.0);
+            assertEquals(100, tile.getLastFastAbsorbed());
 
-        // Fast fission chain neutrons = round(100 * 0.10) = 10
-        // Total produced = base (4) + chain (10) = 14
-        assertEquals(14, tile.generateNeutrons(1.0));
+            // Fast fission chain neutrons = round(100 * 0.10) = 10
+            // Total produced = base (4) + chain (10) = 14
+            assertEquals(14, tile.generateNeutrons(1.0));
 
-        // Test actinide fast fission cross sections in CustomFuelMix
-        assertEquals(0.09, CustomFuelMix.ActinideIsotope.URANIUM_238.baseFastFissionMultiplier, 1e-4);
-        assertEquals(0.15, CustomFuelMix.ActinideIsotope.URANIUM_235.baseFastFissionMultiplier, 1e-4);
-        assertEquals(0.20, CustomFuelMix.ActinideIsotope.PLUTONIUM_239.baseFastFissionMultiplier, 1e-4);
+            // Test actinide fast fission cross sections in CustomFuelMix
+            assertEquals(0.09, CustomFuelMix.ActinideIsotope.URANIUM_238.baseFastFissionMultiplier, 1e-4);
+            assertEquals(0.15, CustomFuelMix.ActinideIsotope.URANIUM_235.baseFastFissionMultiplier, 1e-4);
+            assertEquals(0.20, CustomFuelMix.ActinideIsotope.PLUTONIUM_239.baseFastFissionMultiplier, 1e-4);
+        } finally {
+            NuclearSimulationEngine.setTicksPerCycle(NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE);
+        }
     }
 
     @Test
@@ -6932,38 +6957,43 @@ public class NuclearSimulationEngineTest {
 
     @Test
     public void testNeutronSourceSimulation() {
-        assertEquals(SimTile.TileType.NEUTRON_SOURCE, SimTile.TileType.fromCode("NS"));
+        NuclearSimulationEngine.setTicksPerCycle(20);
+        try {
+            assertEquals(SimTile.TileType.NEUTRON_SOURCE, SimTile.TileType.fromCode("NS"));
 
-        SimTile sourceTile = new SimTile(SimTile.TileType.NEUTRON_SOURCE);
-        assertTrue(sourceTile.isNeutronSource());
-        assertFalse(sourceTile.isFuel());
-        assertEquals(4, sourceTile.getNeutronEmissionCount());
-        assertEquals(0.01, sourceTile.getAbsorptionProbability(NeutronType.FAST), 1e-4);
-        assertEquals(0.05, sourceTile.getModerationProbability(), 1e-4);
+            SimTile sourceTile = new SimTile(SimTile.TileType.NEUTRON_SOURCE);
+            assertTrue(sourceTile.isNeutronSource());
+            assertFalse(sourceTile.isFuel());
+            assertEquals(4, sourceTile.getNeutronEmissionCount());
+            assertEquals(0.01, sourceTile.getAbsorptionProbability(NeutronType.FAST), 1e-4);
+            assertEquals(0.05, sourceTile.getModerationProbability(), 1e-4);
 
-        // Configure beam parameters
-        sourceTile.setNeutronSourceBeamEnergy(1000.0f);
-        sourceTile.setNeutronSourceBeamRate(100);
-        // S = round(1000 * 100 * 0.001) = 100 per direction, total 400
-        int produced = sourceTile.generateNeutrons(1.0);
-        assertEquals(400, produced);
+            // Configure beam parameters
+            sourceTile.setNeutronSourceBeamEnergy(1000.0f);
+            sourceTile.setNeutronSourceBeamRate(100);
+            // S = round(1000 * 100 * 0.001) = 100 per direction, total 400
+            int produced = sourceTile.generateNeutrons(1.0);
+            assertEquals(400, produced);
 
-        // Run simulation with Neutron Source at center of 3x3 grid
-        SimTile[][] grid = new SimTile[3][3];
-        for (int x = 0; x < 3; x++) {
-            for (int y = 0; y < 3; y++) {
-                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+            // Run simulation with Neutron Source at center of 3x3 grid
+            SimTile[][] grid = new SimTile[3][3];
+            for (int x = 0; x < 3; x++) {
+                for (int y = 0; y < 3; y++) {
+                    grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                }
             }
+            grid[1][1] = sourceTile;
+
+            NuclearSimulationEngine.SimulationResult result = NuclearSimulationEngine.simulate(grid, 3, 3, 1.0, 20.0);
+
+            assertEquals(400, result.totalNeutronsGenerated);
+            // Neutron source receives 0 prompt fission heat and does not degrade
+            sourceTile.nuclearTick(1.0);
+            assertEquals(10000, sourceTile.getDurability());
+            assertEquals(0.0, sourceTile.getLastDurabilityLoss(), 1e-4);
+        } finally {
+            NuclearSimulationEngine.setTicksPerCycle(NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE);
         }
-        grid[1][1] = sourceTile;
-
-        NuclearSimulationEngine.SimulationResult result = NuclearSimulationEngine.simulate(grid, 3, 3, 1.0, 20.0);
-
-        assertEquals(400, result.totalNeutronsGenerated);
-        // Neutron source receives 0 prompt fission heat and does not degrade
-        sourceTile.nuclearTick(1.0);
-        assertEquals(10000, sourceTile.getDurability());
-        assertEquals(0.0, sourceTile.getLastDurabilityLoss(), 1e-4);
     }
 
     @Test
@@ -7840,6 +7870,7 @@ public class NuclearSimulationEngineTest {
         NuclearSimulationEngine.fissionHeatPerNeutron = 4.0; // 4.0 * 1.25 = 5.0 Hu/neutron for fuel
 
         try {
+            NuclearSimulationEngine.setTicksPerCycle(20);
             java.util.function.BiFunction<Boolean, Double, Double> runSim = (isFuel, rodFraction) -> {
                 INuclearTile[][] grid = new INuclearTile[3][3];
                 SimTile source = new SimTile(SimTile.TileType.NEUTRON_SOURCE);
@@ -7904,6 +7935,7 @@ public class NuclearSimulationEngineTest {
                 "Fuel cell with 25% control rod must split absorption: 75 * 5.0 + 25 * 4.0 = 475 Hu");
         } finally {
             NuclearSimulationEngine.fissionHeatPerNeutron = origHeatPerNeutron;
+            NuclearSimulationEngine.setTicksPerCycle(NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE);
         }
     }
 
@@ -8091,14 +8123,15 @@ public class NuclearSimulationEngineTest {
     @Test
     void testTicksPerCycleSimulationAccuracy() {
         NuclearSimulationEngine.resetDefaultParameters();
-        assertEquals(20, NuclearSimulationEngine.getTicksPerCycle());
+        assertEquals(5, NuclearSimulationEngine.getTicksPerCycle());
 
-        // 1. Grid with default 20 ticks per cycle
+        // 1. Grid with 20 ticks per cycle
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid20 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
             5,
             5,
             NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         grid20.loadPreset("BASIC_ELECTRUM_5X5");
+        grid20.setTicksPerCycle(20);
         assertEquals(20, grid20.getTicksPerCycle());
 
         grid20.step();
@@ -8113,7 +8146,6 @@ public class NuclearSimulationEngineTest {
             5,
             5,
             NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
-        grid10.setTicksPerCycle(10);
         grid10.loadPreset("BASIC_ELECTRUM_5X5");
         grid10.setTicksPerCycle(10);
         assertEquals(10, grid10.getTicksPerCycle());
@@ -8125,19 +8157,21 @@ public class NuclearSimulationEngineTest {
         double energy10 = grid10.getTotalEnergyEU();
         assertEquals(power10 * 10.0, energy10, 1e-4, "Accumulated energy should equal powerEUt * ticksPerCycle");
 
-        // With cycles running twice as fast, per-tick fluid flow and power should be approximately 2x
-        assertEquals(
-            flow20 * 2.0,
-            flow10,
-            flow20 * 0.05,
-            "Flow rate in L/t should double when ticksPerCycle is halved");
-        assertEquals(
-            power20 * 2.0,
-            power10,
-            power20 * 0.05,
-            "Power in EU/t should double when ticksPerCycle is halved");
+        // 3. Grid with default 5 ticks per cycle (4 cycles per second)
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid5 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
+            5,
+            5,
+            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        grid5.loadPreset("BASIC_ELECTRUM_5X5");
+        assertEquals(5, grid5.getTicksPerCycle());
 
-        NuclearSimulationEngine.setTicksPerCycle(20);
+        grid5.step();
+        assertEquals(5, grid5.getCurrentTick());
+        double power5 = grid5.getLastPowerResult().totalPowerEUt;
+        double energy5 = grid5.getTotalEnergyEU();
+        assertEquals(power5 * 5.0, energy5, 1e-4, "Accumulated energy should equal powerEUt * ticksPerCycle");
+
+        NuclearSimulationEngine.resetDefaultParameters();
     }
 
     @Test

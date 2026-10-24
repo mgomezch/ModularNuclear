@@ -52,9 +52,20 @@ public class NuclearSimulationEngine {
     public static final int DEFAULT_COOLANT_FEED_RATE = 999999;
     public static final double DEFAULT_COOLING_HEAT_PER_LITER = 17.65625;
     public static final double DEFAULT_IC2_COOLANT_HEAT_PER_LITER = 20.0;
-    public static final int DEFAULT_TICKS_PER_CYCLE = 20;
+    public static final int DEFAULT_TICKS_PER_CYCLE = 5;
 
     public static int ticksPerCycle = DEFAULT_TICKS_PER_CYCLE;
+    public static com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider configProvider;
+
+    public static void setConfigProvider(
+        com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider provider) {
+        configProvider = provider;
+    }
+
+    public static com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider getConfigProvider() {
+        return configProvider;
+    }
+
     public static double tempThresholdLow = DEFAULT_TEMP_THRESHOLD_LOW;
     public static double tempThresholdHigh = DEFAULT_TEMP_THRESHOLD_HIGH;
     public static double reactivityPower = DEFAULT_REACTIVITY_POWER;
@@ -269,13 +280,25 @@ public class NuclearSimulationEngine {
      */
     public static double getCoolantSinkTemperature(String fluidName, double ambientTemp) {
         if (fluidName == null) return ambientTemp;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findCoolantFluid(fluidName);
-        if (cfd != null) {
-            if (cfd.expansionRatio > 1) {
-                return Math.max(ambientTemp, cfd.boilingTemperature);
+        if (configProvider != null) {
+            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = configProvider
+                .findCoolantFluid(fluidName);
+            if (cfd != null) {
+                if (cfd.expansionRatio > 1) {
+                    return Math.max(ambientTemp, cfd.boilingTemperature);
+                }
+                return ambientTemp;
             }
+        }
+        String name = fluidName.toLowerCase();
+        if (name.contains("coolant")) {
             return ambientTemp;
+        }
+        if (name.contains("heavywater")) {
+            return Math.max(ambientTemp, 101.4);
+        }
+        if (name.contains("distilledwater")) {
+            return Math.max(ambientTemp, 100.0);
         }
         return ambientTemp;
     }
@@ -283,21 +306,39 @@ public class NuclearSimulationEngine {
     /**
      * Analytical lumped-capacitance heat transfer model based on continuous exponential cooling.
      * Calculates the maximum heat energy (Hu) transferred from a hatch at temperature temp
-     * into a coolant heat sink at sinkTemp over a 1-tick interval (dt = 1).
+     * into a coolant heat sink at sinkTemp over the default ticksPerCycle interval.
      *
      * @param temp       The hatch temperature in °C
      * @param sinkTemp   The coolant sink temperature in °C
      * @param tier       The tier of the nuclear core hatch (LV=1, MV=2, HV=3, EV=4, ...)
      * @param efficiency Reactor efficiency multiplier [0.0, 1.0]
-     * @return Heat energy in Hu transferred this tick
+     * @return Heat energy in Hu transferred this cycle
      */
     public static double calculateConductiveHeatTransfer(double temp, double sinkTemp, int tier, double efficiency) {
+        return calculateConductiveHeatTransfer(temp, sinkTemp, tier, efficiency, ticksPerCycle);
+    }
+
+    /**
+     * Analytical lumped-capacitance heat transfer model based on continuous exponential cooling.
+     * Calculates the maximum heat energy (Hu) transferred from a hatch at temperature temp
+     * into a coolant heat sink at sinkTemp over a specified interval of ticks (dt = ticks / 20.0).
+     *
+     * @param temp       The hatch temperature in °C
+     * @param sinkTemp   The coolant sink temperature in °C
+     * @param tier       The tier of the nuclear core hatch (LV=1, MV=2, HV=3, EV=4, ...)
+     * @param efficiency Reactor efficiency multiplier [0.0, 1.0]
+     * @param ticks      The duration of the cycle in world ticks
+     * @return Heat energy in Hu transferred over the specified duration
+     */
+    public static double calculateConductiveHeatTransfer(double temp, double sinkTemp, int tier, double efficiency,
+        int ticks) {
         if (temp <= sinkTemp || efficiency <= 0.0) return 0.0;
         double deltaT = temp - sinkTemp;
         double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
         double conductance = getHatchConductance(tier) * effFactor;
         double ch = HU_PER_DEGREE;
-        return ch * deltaT * (1.0 - Math.exp(-conductance / ch));
+        double dt = (double) Math.max(1, ticks) / 20.0;
+        return ch * deltaT * (1.0 - Math.exp(-conductance * dt / ch));
     }
 
     public static final int PIPE_TIER_ELECTRUM = 0;
@@ -352,9 +393,10 @@ public class NuclearSimulationEngine {
                 return cfg;
             }
         }
-        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getTier(tier);
-        if (td != null) return td.maxOperatingTemp;
+        if (configProvider != null) {
+            com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(tier);
+            if (td != null) return td.maxOperatingTemp;
+        }
         if (tier >= 0
             && tier < com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier.length) {
             return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[tier];
@@ -363,9 +405,10 @@ public class NuclearSimulationEngine {
     }
 
     public static boolean allowsCoolantLoops(int tier) {
-        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getTier(tier);
-        if (td != null) return td.allowsCoolantLoops;
+        if (configProvider != null) {
+            com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(tier);
+            if (td != null) return td.allowsCoolantLoops;
+        }
         return tier >= PIPE_TIER_OSMIUM;
     }
 
@@ -378,35 +421,55 @@ public class NuclearSimulationEngine {
             return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio
                 * getMaxOperatingTemperature(tier);
         }
-        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getTier(tier);
-        if (td != null) return td.repairTempThreshold;
+        if (configProvider != null) {
+            com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(tier);
+            if (td != null) return td.repairTempThreshold;
+        }
         return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio
             * getMaxOperatingTemperature(tier);
     }
 
     public static double getCoolantBoilingThreshold(String fluidName) {
         if (fluidName == null) return Double.POSITIVE_INFINITY;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findCoolantFluid(fluidName);
-        if (cfd != null) {
-            return cfd.explosionTemperature;
+        if (configProvider != null) {
+            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = configProvider
+                .findCoolantFluid(fluidName);
+            if (cfd != null) {
+                return cfd.explosionTemperature;
+            }
         }
-        return Double.POSITIVE_INFINITY;
+        String name = fluidName.toLowerCase();
+        if (name.contains("coolant")) return Double.POSITIVE_INFINITY;
+        if (name.contains("heavywater")) return 101.4;
+        return 100.0;
     }
 
     public static int getRequiredFluidTier(String fluidName) {
         if (fluidName == null) return -1;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findCoolantFluid(fluidName);
-        if (cfd != null) {
-            return cfd.requiredTier;
+        if (configProvider != null) {
+            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = configProvider
+                .findCoolantFluid(fluidName);
+            if (cfd != null) {
+                return cfd.requiredTier;
+            }
+            com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = configProvider.findFuel(fluidName);
+            if (fd != null && fd.isLiquid) {
+                return fd.requiredTier;
+            }
+            return -1;
         }
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findFuel(fluidName);
-        if (fd != null && fd.isLiquid) {
-            return fd.requiredTier;
-        }
+        String name = fluidName.toLowerCase();
+        if (name.equals("water")) return -1;
+        if (name.contains("naquadah")) return -1;
+        if (name.contains("coolant") && !name.contains("hot")) return PIPE_TIER_ELECTRUM;
+        if (name.contains("distilledwater")) return PIPE_TIER_PLATINUM;
+        if (name.contains("heavywater")) return PIPE_TIER_QUANTIUM;
+        if (name.contains("thoriumbasedliquidfuel") || (name.contains("thorium") && name.contains("liquidfuel")))
+            return PIPE_TIER_ELECTRUM;
+        if (name.contains("uraniumbasedliquidfuel") || (name.contains("uranium") && name.contains("liquidfuel")))
+            return PIPE_TIER_PLATINUM;
+        if (name.contains("plutoniumbasedliquidfuel") || (name.contains("plutonium") && name.contains("liquidfuel")))
+            return PIPE_TIER_FLUXED_ELECTRUM;
         return -1;
     }
 
@@ -414,12 +477,12 @@ public class NuclearSimulationEngine {
         if (fluidName == null) return false;
         int reqTier = getRequiredFluidTier(fluidName);
         if (reqTier < 0) return false;
-        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getTier(pipeTier);
-        if (td != null && !td.allowedCoolants.isEmpty()) {
-            if (td.allowedCoolants.contains("*") || com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-                .matchesFluid(fluidName, td.allowedCoolants)) {
-                return true;
+        if (configProvider != null) {
+            com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(pipeTier);
+            if (td != null && !td.allowedCoolants.isEmpty()) {
+                if (td.allowedCoolants.contains("*") || configProvider.matchesFluid(fluidName, td.allowedCoolants)) {
+                    return true;
+                }
             }
         }
         return pipeTier < 0 || pipeTier >= reqTier;
@@ -463,19 +526,29 @@ public class NuclearSimulationEngine {
      * Formats neutron flux into realistic physical units (multiples of 10¹³ neutrons/cm²/sec).
      * Follows the US Nuclear Regulatory Commission (NRC) definition:
      * Rate of flow of neutrons per unit area per second (nv = n·v), measured in neutrons/cm²/sec.
+     * Uses current ticksPerCycle to extrapolate from per-cycle neutron population to physical rate per second.
      */
     public static String formatNeutronFlux(double neutronsProduced) {
+        return formatNeutronFlux(neutronsProduced, ticksPerCycle);
+    }
+
+    public static String formatNeutronFlux(double neutronsProduced, int tpc) {
         if (neutronsProduced <= 0) {
             return "0 neutrons/cm²/sec";
         }
-        double physicalFlux = neutronsProduced * 1.0e13;
+        double cyclesPerSec = (tpc > 0) ? (20.0 / (double) tpc) : 1.0;
+        double physicalFlux = neutronsProduced * cyclesPerSec * 1.0e13;
         return String.format(java.util.Locale.US, "%.2e neutrons/cm²/sec", physicalFlux)
             .replace("+0", "")
             .replace("+", "");
     }
 
     public static String formatNeutronFlux(int neutronsProduced) {
-        return formatNeutronFlux((double) neutronsProduced);
+        return formatNeutronFlux((double) neutronsProduced, ticksPerCycle);
+    }
+
+    public static String formatNeutronFlux(int neutronsProduced, int tpc) {
+        return formatNeutronFlux((double) neutronsProduced, tpc);
     }
 
     /**
@@ -858,7 +931,8 @@ public class NuclearSimulationEngine {
                             INuclearTile tileB = grid[nx][ny];
                             double tempB = tileB.getTemperature();
                             double coeffB = Math.max(BASE_HEAT_CONDUCTION, tileB.getHeatTransferCoeff());
-                            double transferCoeff = 0.5 * (coeffA + coeffB) / SUBSTEPS;
+                            double dt = (double) ticksPerCycle / 20.0;
+                            double transferCoeff = 0.5 * (coeffA + coeffB) * dt / SUBSTEPS;
                             if (tempA > tempB) {
                                 double dampening = Math
                                     .max(tileA.getInsulationDampening(), tileB.getInsulationDampening());
@@ -869,8 +943,9 @@ public class NuclearSimulationEngine {
                             }
                         } else {
                             // Heat loss to empty space / outer walls at ambient temperature
+                            double dt = (double) ticksPerCycle / 20.0;
                             double dampening = tileA.getInsulationDampening();
-                            double loss = (tempA - ambient) * (coeffA / (2.0 * SUBSTEPS))
+                            double loss = (tempA - ambient) * (coeffA * dt / (2.0 * SUBSTEPS))
                                 * (1.0 - Math.min(1.0, Math.max(0.0, dampening)));
                             deltaTemp[x][y] -= loss;
                         }

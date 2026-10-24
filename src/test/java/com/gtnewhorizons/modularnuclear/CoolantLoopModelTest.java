@@ -19,6 +19,7 @@ public class CoolantLoopModelTest {
     void setUp() {
         NuclearSimulationEngine.resetDefaultParameters();
         grid = new StandaloneNuclearGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_OSMIUM);
+        grid.setTicksPerCycle(20);
         grid.loadLayout(
             "U4,U4,U4,M4,U4,U4,U4;U4,M4,HD,HD,HD,M4,U4;T4,HD,M4,HD,M4,HD,T4;U4,M2,HD,HD,HD,M2,U4;T4,HD,M4,HD,M4,HD,T4;U4,M4,HD,HD,HD,M4,U4;U4,U4,U4,M4,U4,U4,U4");
         loop = grid.getCoolantLoop();

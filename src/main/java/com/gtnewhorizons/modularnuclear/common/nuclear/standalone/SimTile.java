@@ -205,6 +205,12 @@ public class SimTile implements INuclearTile {
     // Radiovoltaic direct EU state
     private long directEUProduced = 0;
 
+    public StandaloneNuclearGrid grid;
+
+    public int getTicksPerCycle() {
+        return grid != null ? grid.getTicksPerCycle() : NuclearSimulationEngine.ticksPerCycle;
+    }
+
     public long getDirectEUProduced() {
         return directEUProduced;
     }
@@ -234,6 +240,7 @@ public class SimTile implements INuclearTile {
     // Neutron source state
     private float neutronSourceBeamEnergy = 0.0f;
     private int neutronSourceBeamRate = 0;
+    private double beamlinePacketAccumulator = 0.0;
 
     public float getNeutronSourceBeamEnergy() {
         return neutronSourceBeamEnergy;
@@ -347,6 +354,7 @@ public class SimTile implements INuclearTile {
         this.lastFastAbsorbed = 0;
         this.lastThermalAbsorbed = 0;
         this.durabilityLossAccumulator = 0.0;
+        this.beamlinePacketAccumulator = 0.0;
         this.directEUProduced = 0;
 
         NuclearFuelType fuel = getFuelType();
@@ -599,12 +607,13 @@ public class SimTile implements INuclearTile {
 
     @Override
     public int generateNeutrons(double efficiency) {
+        double dt = (double) getTicksPerCycle() / 20.0;
         if (isNeutronSource()) {
-            int packetSize = Math.max(
-                0,
-                (int) Math.round(
-                    neutronSourceBeamEnergy * neutronSourceBeamRate
-                        * NuclearSimulationEngine.beamEnergyToFastNeutronMultiplier));
+            double packets = neutronSourceBeamEnergy * neutronSourceBeamRate
+                * NuclearSimulationEngine.beamEnergyToFastNeutronMultiplier * dt;
+            beamlinePacketAccumulator += packets;
+            int packetSize = (int) beamlinePacketAccumulator;
+            beamlinePacketAccumulator -= packetSize;
             int totalNeutrons = packetSize * 4;
             lastNeutronsGenerated = totalNeutrons;
             return totalNeutrons;
@@ -667,7 +676,10 @@ public class SimTile implements INuclearTile {
         double archNbaseMult = NuclearSimulationEngine.getArchetypeNbaseMultiplier(archetype);
         double archFissMult = NuclearSimulationEngine.getArchetypeFissionMultiplier(archetype);
 
-        int baseNeutrons = Math.max(1, (int) Math.round(rawBaseNeutrons * archNbaseMult));
+        double scaledBase = rawBaseNeutrons * archNbaseMult * dt;
+        int baseInt = (int) Math.floor(scaledBase);
+        double frac = scaledBase - baseInt;
+        int baseNeutrons = baseInt + (Math.random() < frac ? 1 : 0);
 
         double baseThermalMult = (type == TileType.HATCH_LIQUID_FUEL_PLUTONIUM) ? 1.80
             : ((fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0);
@@ -982,6 +994,7 @@ public class SimTile implements INuclearTile {
 
         // 1. Fuel burnup (3 physical processes: emitting fast neutrons, absorbing any neutron, and temperature above
         // ambient)
+        double dt = (double) getTicksPerCycle() / 20.0;
         if (isLiquidFuelHatch()) {
             if (inputFluidAmount > 0) {
                 double tempDmg = 0.0;
@@ -991,6 +1004,7 @@ public class SimTile implements INuclearTile {
                 } else if (temperature > NuclearSimulationEngine.AMBIENT_TEMP) {
                     tempDmg = (temperature - NuclearSimulationEngine.AMBIENT_TEMP) / 100.0;
                 }
+                tempDmg *= dt;
                 int burn = (int) Math.round(
                     Math.max(0.0, lastNeutronsGenerated * 0.25)
                         + (fastAbsorbed * NuclearSimulationEngine.fastAbsorptionDamageMultiplier
@@ -1015,6 +1029,7 @@ public class SimTile implements INuclearTile {
             } else if (temperature > NuclearSimulationEngine.AMBIENT_TEMP) {
                 tempDmg = (temperature - NuclearSimulationEngine.AMBIENT_TEMP) / 100.0;
             }
+            tempDmg *= dt;
             double rawDamage = (Math.max(0.0, lastNeutronsGenerated * 0.25)
                 + (fastAbsorbed * NuclearSimulationEngine.fastAbsorptionDamageMultiplier
                     + thermalAbsorbed * NuclearSimulationEngine.thermalAbsorptionDamageMultiplier)
@@ -1039,6 +1054,7 @@ public class SimTile implements INuclearTile {
             };
             double a = (type == TileType.MODERATOR_BERYLLIUM) ? 0.5 : 1.0;
             double tempDmg = (temperature > ambient) ? a * (Math.exp(k * (temperature - ambient)) - 1.0) : 0.0;
+            tempDmg *= dt;
             double fastWearMult = NuclearSimulationEngine.fastAbsorptionDamageMultiplier;
             double thermalWearMult = NuclearSimulationEngine.thermalAbsorptionDamageMultiplier;
             double rawDamage = (fastAbsorbed * fastWearMult + thermalAbsorbed * thermalWearMult)
@@ -1060,12 +1076,14 @@ public class SimTile implements INuclearTile {
         // Radiovoltaic direct EU generation & excess heat
         if (isRadiovoltaic()) {
             long maxEU = (type == TileType.RADIOVOLTAIC_EV) ? 4096 : 1024;
-            double weightedFlux = fastAbsorbed * 4.0 + thermalAbsorbed * 1.0;
+            double cyclesPerSec = (dt > 0) ? (1.0 / dt) : 1.0;
+            double weightedFluxCycle = fastAbsorbed * 4.0 + thermalAbsorbed * 1.0;
+            double weightedFluxRate = weightedFluxCycle * cyclesPerSec;
             double satFlux = (type == TileType.RADIOVOLTAIC_EV) ? 150.0 : 50.0;
-            long genEU = (long) Math.round(maxEU * Math.tanh(weightedFlux / satFlux));
+            long genEU = (long) Math.round(maxEU * Math.tanh(weightedFluxRate / satFlux));
             this.directEUProduced = genEU;
-            double totalEnergy = weightedFlux * 20.0;
-            double excessHeat = Math.max(0.0, totalEnergy - genEU);
+            double totalEnergy = weightedFluxCycle * 20.0;
+            double excessHeat = Math.max(0.0, totalEnergy - (genEU * dt));
             if (excessHeat > 0.0) {
                 addHeat(excessHeat);
             }
@@ -1084,9 +1102,11 @@ public class SimTile implements INuclearTile {
                 double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
                 double tempDiff = temperature - NuclearSimulationEngine.AMBIENT_TEMP;
                 if (tempDiff > 0) {
+                    int maxTransferPerTick = Math.max(1, (int) Math.round((maxCellHeat / 100.0) * dt));
                     int heatToAbsorb = (int) Math.min(
-                        tempDiff * NuclearSimulationEngine.HU_PER_DEGREE * 0.1 * effFactor,
+                        tempDiff * NuclearSimulationEngine.HU_PER_DEGREE * 0.1 * effFactor * dt,
                         maxCellHeat - currentCellHeat);
+                    heatToAbsorb = Math.min(heatToAbsorb, maxTransferPerTick);
                     currentCellHeat += heatToAbsorb;
                     temperature = Math.max(
                         NuclearSimulationEngine.AMBIENT_TEMP,
@@ -1107,7 +1127,7 @@ public class SimTile implements INuclearTile {
 
             if (inputFluidAmount > 0 && temperature > operatingThreshold) {
                 double qMax = NuclearSimulationEngine
-                    .calculateConductiveHeatTransfer(temperature, operatingThreshold, tier, effFactor);
+                    .calculateConductiveHeatTransfer(temperature, operatingThreshold, tier, effFactor, getTicksPerCycle());
                 int desiredTurnover = (heatPerL > 0) ? (int) Math.round(qMax / heatPerL) : 0;
                 int mbToCool = Math.min(inputFluidAmount, desiredTurnover);
 

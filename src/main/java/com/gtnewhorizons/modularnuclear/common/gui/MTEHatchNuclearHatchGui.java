@@ -2,6 +2,8 @@ package com.gtnewhorizons.modularnuclear.common.gui;
 
 import static com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil.formatNumber;
 
+import java.util.Locale;
+
 import net.minecraft.util.EnumChatFormatting;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
@@ -77,15 +79,22 @@ public class MTEHatchNuclearHatchGui extends MTEHatchBaseGui<MTEHatchNuclearHatc
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(
-            IKey.dynamic(
-                () -> EnumChatFormatting.GRAY
-                    + String.format("Absorbed: %d n/s", machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed))
+            IKey.dynamic(() -> {
+                int abs = machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed;
+                int tpc = machine.getTicksPerCycle();
+                double cps = 20.0 / (double) tpc;
+                long absSec = Math.round(abs * cps);
+                return EnumChatFormatting.GRAY + String.format(Locale.US, "Abs: %,d n/s (%,d /cycle)", absSec, abs);
+            })
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
             if (machine.mLastProducedAmount > 0) {
-                return EnumChatFormatting.GREEN + String.format("Out: %d L/s", machine.mLastProducedAmount);
+                int tpc = machine.getTicksPerCycle();
+                double cps = 20.0 / (double) tpc;
+                long outSec = Math.round(machine.mLastProducedAmount * cps);
+                return EnumChatFormatting.GREEN + String.format(Locale.US, "Out: %,d L/s (%,d /cycle)", outSec, machine.mLastProducedAmount);
             }
             return EnumChatFormatting.DARK_GRAY + "Out: idle";
         })

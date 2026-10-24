@@ -33,6 +33,12 @@ public final class ModularNuclearConfig {
     public static double falloutContaminationReductionPerPollution = 62.5 / 30000.0;
 
     // ==========================================
+    // Reactor simulation
+    // ==========================================
+    public static final String CAT_SIMULATION = "simulation";
+    public static int ticksPerCycle = 5;
+
+    // ==========================================
     // Allowlists & Blocklists (Core Components)
     // ==========================================
     public static String[] blockedItems = new String[] { "*depleted*", "*fuelrodempty*", "IC2:itemFuelRod",
@@ -278,6 +284,15 @@ public final class ModularNuclearConfig {
                 50.0f,
                 500.0f,
                 "Atmospheric boiling threshold (C) for distilled water coolant.");
+
+            ticksPerCycle = config.getInt(
+                "ticksPerCycle",
+                CAT_SIMULATION,
+                ticksPerCycle,
+                1,
+                100,
+                "Number of ticks per reactor simulation cycle (default 5, i.e. 4 cycles/second).");
+            com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.ticksPerCycle = ticksPerCycle;
 
         } catch (Exception e) {
             ModularNuclear.LOG.error("Failed to load ModularNuclear config", e);

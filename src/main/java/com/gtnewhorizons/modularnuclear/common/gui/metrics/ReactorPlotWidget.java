@@ -39,19 +39,19 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
             0x996366F1, // Subtle indigo for min
             0xCC38BDF8 // Subtle sky blue for max
         ),
-        FAST_NEUTRONS("Fast neutrons produced", "n/s", false, s -> (float) s.fastNeutronsProduced, null, null, null,
+        FAST_NEUTRONS("Fast neutrons produced", "n/s", false, s -> (float) s.getFastNeutronsPerSec(), null, null, null,
             null, null, null, 0xFFA855F7, // Purple
             0, 0),
-        THERMAL_NEUTRONS("Thermal neutrons absorbed", "n/s", false, s -> (float) s.thermalNeutronsAbsorbed, null, null,
+        THERMAL_NEUTRONS("Thermal neutrons absorbed", "n/s", false, s -> (float) s.getThermalNeutronsAbsorbedPerSec(), null, null,
             null, null, null, null, 0xFF06B6D4, // Teal / Cyan
             0, 0),
-        ESCAPED_NEUTRONS("Escaped neutrons", "n/s", false, s -> (float) s.escapedNeutrons, null, null, null, null, null,
+        ESCAPED_NEUTRONS("Escaped neutrons", "n/s", false, s -> (float) s.getEscapedNeutronsPerSec(), null, null, null, null, null,
             null, 0xFFF97316, // Orange
             0, 0),
         DIRECT_EU("Direct EU output", "EU/t", false, s -> (float) s.directEU, null, null, null, null, null, null,
             0xFFEAB308, // Gold / Yellow
             0, 0),
-        COOLANT_OUTPUT("Coolant output", "L/s", false, s -> (float) s.coolantOutput, null, null, null, null, null, null,
+        COOLANT_OUTPUT("Coolant output", "L/s", false, s -> (float) s.getCoolantOutputPerSec(), null, null, null, null, null, null,
             0xFF3B82F6, // Blue
             0, 0);
 
@@ -438,8 +438,9 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         if (hoveredSnapshot == null || hoveredIndex < 0) return;
 
         int cyclesAgo = hoveredTotalCount - 1 - hoveredIndex;
+        double secsAgo = (cyclesAgo * (double) hoveredSnapshot.ticksPerCycle) / 20.0;
         String cycleTitle = "Cycle #" + hoveredSnapshot.cycleIndex
-            + (cyclesAgo == 0 ? " (current)" : " (" + cyclesAgo + "s ago)");
+            + (cyclesAgo == 0 ? " (current)" : String.format(Locale.US, " (%.1fs ago, %d cycles ago)", secsAgo, cyclesAgo));
 
         tooltip.addLine(EnumChatFormatting.GOLD + "" + EnumChatFormatting.BOLD + cycleTitle);
 
@@ -470,11 +471,45 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
                     + String.format(Locale.US, "%.1f %s", metric.avgVal.apply(hoveredSnapshot), metric.getUnit()));
         } else {
             float val = metric.scalarVal.apply(hoveredSnapshot);
-            tooltip.addLine(
-                EnumChatFormatting.GRAY + metric.getTitle()
-                    + ": "
-                    + EnumChatFormatting.WHITE
-                    + String.format(Locale.US, "%,d %s", Math.round(val), metric.getUnit()));
+            if (metric == Metric.DIRECT_EU) {
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + metric.getTitle()
+                        + ": "
+                        + EnumChatFormatting.WHITE
+                        + String.format(Locale.US, "%,d %s", Math.round(val), metric.getUnit()));
+            } else {
+                long perCycle = 0;
+                String cycleUnit = switch (metric) {
+                    case FAST_NEUTRONS -> {
+                        perCycle = hoveredSnapshot.fastNeutronsProduced;
+                        yield "n/cycle";
+                    }
+                    case THERMAL_NEUTRONS -> {
+                        perCycle = hoveredSnapshot.thermalNeutronsAbsorbed;
+                        yield "n/cycle";
+                    }
+                    case ESCAPED_NEUTRONS -> {
+                        perCycle = hoveredSnapshot.escapedNeutrons;
+                        yield "n/cycle";
+                    }
+                    case COOLANT_OUTPUT -> {
+                        perCycle = hoveredSnapshot.coolantOutput;
+                        yield "L/cycle";
+                    }
+                    default -> "";
+                };
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + metric.getTitle()
+                        + ": "
+                        + EnumChatFormatting.WHITE
+                        + String.format(
+                            Locale.US,
+                            "%,d %s (%,d %s)",
+                            Math.round(val),
+                            metric.getUnit(),
+                            perCycle,
+                            cycleUnit));
+            }
         }
     }
 

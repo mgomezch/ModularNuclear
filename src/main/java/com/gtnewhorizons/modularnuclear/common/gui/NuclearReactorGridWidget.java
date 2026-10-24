@@ -943,26 +943,37 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         }
 
         // 4. Neutron Telemetry
+        int tpc = sync.ticksPerCycle > 0 ? sync.ticksPerCycle : NuclearSimulationEngine.ticksPerCycle;
+        double cyclesPerSec = 20.0 / (double) tpc;
         int totalFlux = cell.fastFlux + cell.thermalFlux;
         if (totalFlux > 0) {
             tooltip.addLine(
                 EnumChatFormatting.GRAY + "Neutron flux: "
                     + EnumChatFormatting.AQUA
-                    + NuclearSimulationEngine.formatNeutronFlux(totalFlux)
+                    + NuclearSimulationEngine.formatNeutronFlux(totalFlux, tpc)
                     + EnumChatFormatting.DARK_GRAY
-                    + String.format(Locale.US, " (%d fast, %d thermal)", cell.fastFlux, cell.thermalFlux));
+                    + String.format(
+                        Locale.US,
+                        " (%,d fast/s, %,d thermal/s)",
+                        Math.round(cell.fastFlux * cyclesPerSec),
+                        Math.round(cell.thermalFlux * cyclesPerSec)));
         } else {
             tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Neutron flux: 0 n/s");
         }
 
         int totalAbs = cell.fastAbsorbed + cell.thermalAbsorbed;
         if (totalAbs > 0) {
+            long totalAbsSec = Math.round(totalAbs * cyclesPerSec);
             tooltip.addLine(
                 EnumChatFormatting.GRAY + "Neutrons absorbed: "
                     + EnumChatFormatting.LIGHT_PURPLE
-                    + String.format(Locale.US, "%,d /s", totalAbs)
+                    + String.format(Locale.US, "%,d /s (%,d /cycle)", totalAbsSec, totalAbs)
                     + EnumChatFormatting.DARK_GRAY
-                    + String.format(Locale.US, " (%d fast, %d thermal)", cell.fastAbsorbed, cell.thermalAbsorbed));
+                    + String.format(
+                        Locale.US,
+                        " (%,d fast/s, %,d thermal/s)",
+                        Math.round(cell.fastAbsorbed * cyclesPerSec),
+                        Math.round(cell.thermalAbsorbed * cyclesPerSec)));
         }
 
         if (cell.cumulativeFluence > 0) {
@@ -983,10 +994,11 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
 
         // 5.5 Heat Output
         if (cell.heatOutput > 0) {
+            double heatSec = cell.heatOutput * cyclesPerSec;
             tooltip.addLine(
                 EnumChatFormatting.GRAY + "Heat output: "
                     + EnumChatFormatting.GOLD
-                    + String.format(Locale.US, "%,.1f Hu/s", cell.heatOutput));
+                    + String.format(Locale.US, "%,.1f Hu/s (%,.1f Hu/cycle)", heatSec, (double) cell.heatOutput));
         }
 
         // 6. Control Rod Info

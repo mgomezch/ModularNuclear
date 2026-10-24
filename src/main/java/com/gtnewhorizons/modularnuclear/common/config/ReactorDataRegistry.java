@@ -116,7 +116,6 @@ public final class ReactorDataRegistry {
         coolantFluidItemCache.clear();
         spentProductCache.clear();
         com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.clearCaches();
-        preIndexKnownItems();
     }
 
     public static synchronized void preIndexKnownItems() {
@@ -223,6 +222,30 @@ public final class ReactorDataRegistry {
     }
 
     static {
+        NuclearSimulationEngine.setConfigProvider(
+            new com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider() {
+
+                @Override
+                public com.gtnewhorizons.modularnuclear.common.config.data.TierData getTier(int tier) {
+                    return ReactorDataRegistry.getTier(tier);
+                }
+
+                @Override
+                public com.gtnewhorizons.modularnuclear.common.config.data.FuelData findFuel(String name) {
+                    return ReactorDataRegistry.findFuel(name);
+                }
+
+                @Override
+                public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData findCoolantFluid(
+                    String name) {
+                    return ReactorDataRegistry.findCoolantFluid(name);
+                }
+
+                @Override
+                public boolean matchesFluid(String fluidName, List<String> allowed) {
+                    return ReactorDataRegistry.matchesFluid(fluidName, allowed);
+                }
+            });
         loadDefaults();
     }
 

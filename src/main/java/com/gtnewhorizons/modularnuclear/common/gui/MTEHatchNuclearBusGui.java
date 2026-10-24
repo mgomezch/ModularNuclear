@@ -1,5 +1,7 @@
 package com.gtnewhorizons.modularnuclear.common.gui;
 
+import java.util.Locale;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 
@@ -65,12 +67,22 @@ public class MTEHatchNuclearBusGui extends MTEHatchBaseGui<MTEHatchNuclearBus> {
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(
-            IKey.dynamic(() -> EnumChatFormatting.AQUA + String.format("Fast: %d n/s", machine.mLastFastFlux))
+            IKey.dynamic(() -> {
+                int tpc = machine.getTicksPerCycle();
+                double cps = 20.0 / (double) tpc;
+                long sec = Math.round(machine.mLastFastFlux * cps);
+                return EnumChatFormatting.AQUA + String.format(Locale.US, "Fast: %,d n/s (%,d /cycle)", sec, machine.mLastFastFlux);
+            })
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(
-            IKey.dynamic(() -> EnumChatFormatting.BLUE + String.format("Thermal: %d n/s", machine.mLastThermalFlux))
+            IKey.dynamic(() -> {
+                int tpc = machine.getTicksPerCycle();
+                double cps = 20.0 / (double) tpc;
+                long sec = Math.round(machine.mLastThermalFlux * cps);
+                return EnumChatFormatting.BLUE + String.format(Locale.US, "Thermal: %,d n/s (%,d /cycle)", sec, machine.mLastThermalFlux);
+            })
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
@@ -81,9 +93,12 @@ public class MTEHatchNuclearBusGui extends MTEHatchBaseGui<MTEHatchNuclearBus> {
             if (damp >= 1.0) {
                 return EnumChatFormatting.DARK_PURPLE + "Insulation: 100% (universal)";
             } else if (damp > 0.0) {
-                return EnumChatFormatting.LIGHT_PURPLE + String.format("Insulation: %.0f%%", damp * 100.0);
+                return EnumChatFormatting.LIGHT_PURPLE + String.format(Locale.US, "Insulation: %.0f%%", damp * 100.0);
             }
-            return EnumChatFormatting.GRAY + String.format("Neutrons: %d n/s", machine.mLastNeutronsGenerated);
+            int tpc = machine.getTicksPerCycle();
+            double cps = 20.0 / (double) tpc;
+            long sec = Math.round(machine.mLastNeutronsGenerated * cps);
+            return EnumChatFormatting.GRAY + String.format(Locale.US, "Neutrons: %,d n/s (%,d /cycle)", sec, machine.mLastNeutronsGenerated);
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));

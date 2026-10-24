@@ -497,6 +497,7 @@ public class StandaloneNuclearGrid {
                 } else {
                     grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
                 }
+                grid[x][y].grid = this;
             }
         }
         resetMetrics();

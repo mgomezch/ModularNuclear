@@ -22,6 +22,7 @@ public class PhysicsData {
     public double defaultAmbientTemp = 293.15;
     public double beamEnergyToFastNeutronMultiplier = 0.001;
     public double t10WearFactor = 8.0;
+    public int ticksPerCycle = NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE;
 
     // Fuel Archetype / Class Multipliers (Global Calibration Parameters)
     public double denseNbaseMultiplier = 0.50; // -50% base neutrons (subcritical/mostly-inert)
@@ -86,6 +87,7 @@ public class PhysicsData {
             "beam_energy_to_fast_neutron_multiplier",
             d.beamEnergyToFastNeutronMultiplier);
         d.t10WearFactor = getDouble(map, "t10_wear_factor", d.t10WearFactor);
+        d.ticksPerCycle = getInt(map, "ticks_per_cycle", getInt(map, "ticksPerCycle", d.ticksPerCycle));
 
         d.denseNbaseMultiplier = getDouble(map, "dense_nbase_multiplier", d.denseNbaseMultiplier);
         d.denseFissionMultiplier = getDouble(map, "dense_fission_multiplier", d.denseFissionMultiplier);
@@ -100,6 +102,7 @@ public class PhysicsData {
 
     public Map<String, Object> toMap() {
         Map<String, Object> m = new LinkedHashMap<>();
+        m.put("ticks_per_cycle", ticksPerCycle);
         m.put("hu_per_degree", huPerDegree);
         m.put("global_thermal_fission_multiplier", globalThermalFissionMultiplier);
         m.put("global_fast_fission_multiplier", globalFastFissionMultiplier);

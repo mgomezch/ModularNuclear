@@ -226,10 +226,13 @@ public class NuclearReactorPhysics {
                             bus.mLastNeutronsGenerated = 0;
                             return 0;
                         }
+                        double dt = (double) reactor.getTicksPerCycle() / 20.0;
                         double multiplier = (physics != null) ? physics.beamEnergyToFastNeutronMultiplier
                             : NuclearSimulationEngine.beamEnergyToFastNeutronMultiplier;
-                        int packetSize = Math
-                            .max(0, (int) Math.round(beamInfo.getEnergy() * beamInfo.getRate() * multiplier));
+                        double packets = beamInfo.getEnergy() * beamInfo.getRate() * multiplier * dt;
+                        bus.mBeamlinePacketAccumulator += packets;
+                        int packetSize = (int) bus.mBeamlinePacketAccumulator;
+                        bus.mBeamlinePacketAccumulator -= packetSize;
                         int totalNeutrons = packetSize * 4;
                         bus.mLastNeutronsGenerated = totalNeutrons;
                         return totalNeutrons;
@@ -265,11 +268,17 @@ public class NuclearReactorPhysics {
                 baseFastFissMult = fuel.getEffectiveFastFissionMultiplier(physics);
             }
 
+            double dt = (double) reactor.getTicksPerCycle() / 20.0;
+            double scaledBase = baseNeutrons * dt;
+            int baseInt = (int) Math.floor(scaledBase);
+            double frac = scaledBase - baseInt;
+            int effectiveBaseNeutrons = baseInt + (Math.random() < frac ? 1 : 0);
+
             double effectiveFissMult = baseFissMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
             double effectiveFastFissMult = baseFastFissMult * NuclearSimulationEngine.globalFastFissionMultiplier;
             int chainNeutrons = (int) Math
                 .round(bus.mLastThermalAbsorbed * effectiveFissMult + bus.mLastFastAbsorbed * effectiveFastFissMult);
-            int produced = (int) Math.round((baseNeutrons + chainNeutrons) * efficiency);
+            int produced = (int) Math.round((effectiveBaseNeutrons + chainNeutrons) * efficiency);
             bus.mLastNeutronsGenerated = produced;
             return produced;
         } else if (tile.isHatch()) {
@@ -291,11 +300,17 @@ public class NuclearReactorPhysics {
                 baseFastFissMult = fuel.getEffectiveFastFissionMultiplier(physics);
             }
 
+            double dt = (double) reactor.getTicksPerCycle() / 20.0;
+            double scaledBase = baseNeutrons * dt;
+            int baseInt = (int) Math.floor(scaledBase);
+            double frac = scaledBase - baseInt;
+            int effectiveBaseNeutrons = baseInt + (Math.random() < frac ? 1 : 0);
+
             double effectiveFissMult = baseFissMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
             double effectiveFastFissMult = baseFastFissMult * NuclearSimulationEngine.globalFastFissionMultiplier;
             int chainNeutrons = (int) Math.round(
                 hatch.mLastThermalAbsorbed * effectiveFissMult + hatch.mLastFastAbsorbed * effectiveFastFissMult);
-            int produced = (int) Math.round((baseNeutrons + chainNeutrons) * efficiency);
+            int produced = (int) Math.round((effectiveBaseNeutrons + chainNeutrons) * efficiency);
             hatch.mLastNeutronsGenerated = produced;
             return produced;
         }
@@ -721,10 +736,12 @@ public class NuclearReactorPhysics {
             CustomFuelMix customMix = CustomFuelMix.fromStack(stack);
             FuelData fd = ReactorDataRegistry.findFuel(stack);
             NuclearFuelType fuelType = getTileFuelType(tile);
-            double tempDmg = (customMix != null) ? customMix.calculateTemperatureDamage(bus.mTemperature)
+            double dt = (double) reactor.getTicksPerCycle() / 20.0;
+            double rawTempDmg = (customMix != null) ? customMix.calculateTemperatureDamage(bus.mTemperature)
                 : (fd != null) ? fd.calculateTemperatureDamage(bus.mTemperature)
                     : (fuelType != null) ? fuelType.calculateTemperatureDamage(bus.mTemperature)
                         : (bus.mTemperature > 20.0 ? (bus.mTemperature - 20.0) / 100.0 : 0.0);
+            double tempDmg = rawTempDmg * dt;
 
             PhysicsData physics = ReactorDataRegistry.getPhysics();
             double fastWearMult = (physics != null) ? physics.fastAbsorptionDamageMultiplier
@@ -816,7 +833,8 @@ public class NuclearReactorPhysics {
             bus.mDirectEUProduced = 0;
             ModeratorData mod = ReactorDataRegistry.findModerator(stack);
             if (mod != null) {
-                double tempDmg = mod.calculateTemperatureDamage(bus.mTemperature);
+                double dt = (double) reactor.getTicksPerCycle() / 20.0;
+                double tempDmg = mod.calculateTemperatureDamage(bus.mTemperature) * dt;
 
                 PhysicsData physics = ReactorDataRegistry.getPhysics();
                 double fastWearMult = (physics != null) ? physics.fastAbsorptionDamageMultiplier
@@ -873,12 +891,15 @@ public class NuclearReactorPhysics {
             int tier = reactor.getRadiovoltaicTier(stack);
             long maxEU = (rv != null && rv.maxEU > 0) ? rv.maxEU : ((tier >= 2) ? 4096 : 1024);
             double eff = (rv != null) ? rv.euConversionEfficiency : 1.0;
-            double weightedFlux = bus.mFastAbsorbed * 4.0 + bus.mThermalAbsorbed * 1.0;
+            double dt = (double) reactor.getTicksPerCycle() / 20.0;
+            double cyclesPerSec = (dt > 0) ? (1.0 / dt) : 1.0;
+            double weightedFluxCycle = bus.mFastAbsorbed * 4.0 + bus.mThermalAbsorbed * 1.0;
+            double weightedFluxRate = weightedFluxCycle * cyclesPerSec;
             double satFlux = (rv != null && rv.saturationFlux > 0) ? rv.saturationFlux : ((tier >= 2) ? 150.0 : 50.0);
-            long genEU = (long) Math.round(maxEU * eff * Math.tanh(weightedFlux / satFlux));
+            long genEU = (long) Math.round(maxEU * eff * Math.tanh(weightedFluxRate / satFlux));
             bus.mDirectEUProduced = genEU;
-            double totalEnergy = weightedFlux * 20.0;
-            double excessHeat = Math.max(0.0, totalEnergy - genEU);
+            double totalEnergy = weightedFluxCycle * 20.0;
+            double excessHeat = Math.max(0.0, totalEnergy - (genEU * dt));
             if (excessHeat > 0.0) {
                 addTileHeat(tile, excessHeat);
             }
@@ -912,7 +933,8 @@ public class NuclearReactorPhysics {
                 if (maxHeat > 0 && bus.mTemperature > ambient) {
                     CoolantItemData cItem = ReactorDataRegistry.findCoolantItem(stack);
                     double huPerDurability = (cItem != null) ? cItem.getHuPerDurability() : 25.0;
-                    int maxTransferPerTick = Math.max(1, maxHeat / 100);
+                    double dt = (double) reactor.getTicksPerCycle() / 20.0;
+                    int maxTransferPerTick = Math.max(1, (int) Math.round((maxHeat / 100.0) * dt));
                     double heatAvailable = (bus.mTemperature - ambient) * NuclearSimulationEngine.HU_PER_DEGREE;
                     double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
                     int heatToTake = (int) Math
@@ -1039,8 +1061,10 @@ public class NuclearReactorPhysics {
             FluidStack fluid = hatch.mInputFluid;
             Fluid spentFluid = MTENuclearReactor.getSpentFluid(fluid);
             FuelData fuelData = ReactorDataRegistry.findFuel(fluid);
-            double tempDmg = (fuelData != null) ? fuelData.calculateTemperatureDamage(hatch.mTemperature)
+            double dt = (double) reactor.getTicksPerCycle() / 20.0;
+            double rawTempDmg = (fuelData != null) ? fuelData.calculateTemperatureDamage(hatch.mTemperature)
                 : (hatch.mTemperature > 20.0 ? (hatch.mTemperature - 20.0) / 100.0 : 0.0);
+            double tempDmg = rawTempDmg * dt;
 
             PhysicsData physics = ReactorDataRegistry.getPhysics();
             double fastWearMult = (physics != null) ? physics.fastAbsorptionDamageMultiplier
@@ -1096,7 +1120,7 @@ public class NuclearReactorPhysics {
         if (hatch.mTemperature > minOperatingTemp) {
             double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
             double qMax = NuclearSimulationEngine
-                .calculateConductiveHeatTransfer(hatch.mTemperature, minOperatingTemp, hatch.mTier, effFactor);
+                .calculateConductiveHeatTransfer(hatch.mTemperature, minOperatingTemp, hatch.mTier, effFactor, reactor.getTicksPerCycle());
             int desiredTurnover = (heatPerMB > 0) ? (int) Math.round(qMax / heatPerMB) : 0;
             int fluidToProcess = Math.min(hatch.mInputFluid.amount, desiredTurnover);
 

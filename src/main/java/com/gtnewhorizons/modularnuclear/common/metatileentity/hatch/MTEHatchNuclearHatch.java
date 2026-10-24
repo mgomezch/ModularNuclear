@@ -66,6 +66,10 @@ public class MTEHatchNuclearHatch extends MTEHatch {
         return mReactorPipeTier;
     }
 
+    public int getTicksPerCycle() {
+        return mReactor != null ? mReactor.getTicksPerCycle() : NuclearSimulationEngine.ticksPerCycle;
+    }
+
     public void setReactorPipeTier(int aTier) {
         this.mReactorPipeTier = aTier;
     }

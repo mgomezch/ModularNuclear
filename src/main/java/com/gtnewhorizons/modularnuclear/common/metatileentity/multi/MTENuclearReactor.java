@@ -1651,11 +1651,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 mCachedAmbientTemp = getAmbientTemperature();
             }
 
-            if (mGrid != null && (aTick % 20 != 0)) {
+            int tpc = getTicksPerCycle();
+            if (mGrid != null && (aTick % tpc != 0)) {
                 NuclearSimulationEngine.processActiveVentsAndExchangers(mGrid, gridSize, gridSize, mCachedAmbientTemp);
             }
 
-            if (mGrid != null && (aTick % 20 == 0)) {
+            if (mGrid != null && (aTick % tpc == 0)) {
                 for (IGregTechTileEntity te : mNuclearTiles) {
                     if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearBus bus) {
                         bus.processMaxDamageFailsafe();
@@ -1778,7 +1779,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
                 // Accumulate escaped neutrons for vessel maintenance wear mechanic
                 mWallNeutronAccumulator += res.neutronsEscaped;
-                mWallMaintenanceTimer += 20;
+                mWallMaintenanceTimer += tpc;
 
                 // Once per minute (1200 ticks = 60s), check maintenance issue probability:
                 // S(N) = N^2 / (N^2 + 1000^2), scaling maintenance wear from 1.0x to 10.0x base rate (0.01 per minute)
@@ -2205,6 +2206,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         data.scram = this.mScram;
         data.ambientTemp = (float) getAmbientTemperature();
         data.reactorDamage = (float) this.mReactorDamage;
+        data.ticksPerCycle = getTicksPerCycle();
 
         if (mGrid != null && gridSize > 0) {
             for (int x = 0; x < gridSize; x++) {
@@ -2324,7 +2326,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             res.totalNeutronsGenerated,
             res.thermalNeutronsAbsorbed,
             mDirectPowerEUt,
-            mProducedHotCoolantLastCycle);
+            mProducedHotCoolantLastCycle,
+            getTicksPerCycle());
         mMetricsHistory.addSnapshot(snapshot);
     }
 
@@ -2924,6 +2927,16 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public void processHatchNuclearTick(MTEHatchNuclearHatch hatch, NuclearGridTile tile, double efficiency) {
         NuclearReactorPhysics.processHatchNuclearTick(this, hatch, tile, efficiency);
+    }
+
+    public int mTicksPerCycle = -1;
+
+    public int getTicksPerCycle() {
+        return mTicksPerCycle > 0 ? mTicksPerCycle : NuclearSimulationEngine.ticksPerCycle;
+    }
+
+    public void setTicksPerCycle(int ticks) {
+        this.mTicksPerCycle = Math.max(1, ticks);
     }
 
     @Override

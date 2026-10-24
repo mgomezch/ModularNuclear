@@ -54,6 +54,10 @@ public class MTEHatchNuclearBus extends MTEHatch {
         return NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     }
 
+    public int getTicksPerCycle() {
+        return mReactor != null ? mReactor.getTicksPerCycle() : NuclearSimulationEngine.ticksPerCycle;
+    }
+
     public int mFastFlux = 0;
     public int mThermalFlux = 0;
     public int mFastAbsorbed = 0;
@@ -63,6 +67,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
     public int mLastFastAbsorbed = 0;
     public int mLastThermalAbsorbed = 0;
     public int mLastNeutronsGenerated = 0;
+    public double mBeamlinePacketAccumulator = 0.0;
     public long mDirectEUProduced = 0;
     public double mLastHeatOutput = 0.0;
     public boolean mUsedForCooling = false;
