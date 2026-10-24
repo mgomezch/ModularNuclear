@@ -591,7 +591,7 @@ public class NuclearSimulationEngine {
         double[][] tileFluxFast = new double[sizeX][sizeY];
         double[][] tileFluxThermal = new double[sizeX][sizeY];
         double[][] tileAbsThermal = new double[sizeX][sizeY];
-        double[][] tileScatThermal = new double[sizeX][sizeY];
+        double[][] tileScatteringThermal = new double[sizeX][sizeY];
 
         // Part A: Fast Neutron Emission & Monte Carlo Propagation
         for (int i = 0; i < sizeX; i++) {
@@ -746,11 +746,11 @@ public class NuclearSimulationEngine {
                     }
 
                     double survT = Math.max(0.0, arrivingT - absT);
-                    double pScatT = Math.max(0.0, Math.min(1.0, hitTile.getScatteringProbability(NeutronType.THERMAL)));
-                    double scatterT = survT * pScatT;
+                    double pScatteringThermal = Math.max(0.0, Math.min(1.0, hitTile.getScatteringProbability(NeutronType.THERMAL)));
+                    double scatterT = survT * pScatteringThermal;
                     double unscatteredT = Math.max(0.0, survT - scatterT);
                     result.neutronsEscaped += (int) Math.round(unscatteredT);
-                    tileScatThermal[x][y] += scatterT;
+                    tileScatteringThermal[x][y] += scatterT;
 
                     for (int d = 0; d < 8; d++) {
                         double w = DIR_WEIGHTS[d];
@@ -807,7 +807,7 @@ public class NuclearSimulationEngine {
                     result.thermalNeutronsAbsorbed += aT;
                 }
 
-                int sT = (int) Math.round(tileScatThermal[x][y]);
+                int sT = (int) Math.round(tileScatteringThermal[x][y]);
                 if (sT > 0) {
                     tile.onNeutronScattered(NeutronType.THERMAL, sT);
                 }

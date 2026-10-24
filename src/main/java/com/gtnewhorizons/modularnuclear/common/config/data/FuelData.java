@@ -50,8 +50,8 @@ public class FuelData {
     public FuelData() {}
 
     public FuelData(String id, String name, String archetype, boolean isLiquid, int packetCount, int baseNeutrons,
-        double thermalFissMult, double fastFissMult, double absFast, double absThermal, double scattFast,
-        double scattThermal, double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability,
+        double thermalFissMult, double fastFissMult, double absFast, double absThermal, double scatteringFast,
+        double scatteringThermal, double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability,
         double peakReactivityTemp, double floorTemp, double peakMult, double peakPoint, double endMult,
         String spentProduct, String... matchPatterns) {
         this.id = id;
@@ -64,8 +64,8 @@ public class FuelData {
         this.fastFissionMultiplier = fastFissMult;
         this.absorptionFast = absFast;
         this.absorptionThermal = absThermal;
-        this.scatteringFast = scattFast;
-        this.scatteringThermal = scattThermal;
+        this.scatteringFast = scatteringFast;
+        this.scatteringThermal = scatteringThermal;
         this.moderation = moderation;
         this.heatTransferCoeff = heatTransferCoeff;
         this.heatPerReaction = heatPerReaction;
@@ -87,8 +87,8 @@ public class FuelData {
     }
 
     public FuelData(String id, String name, String archetype, boolean isLiquid, int packetCount, int baseNeutrons,
-        double thermalFissMult, double fastFissMult, double absFast, double absThermal, double scattFast,
-        double scattThermal, double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability,
+        double thermalFissMult, double fastFissMult, double absFast, double absThermal, double scatteringFast,
+        double scatteringThermal, double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability,
         double peakReactivityTemp, double floorTemp, double peakMult, double peakPoint, double endMult,
         String spentProduct, int requiredTier, String... matchPatterns) {
         this(
@@ -102,8 +102,8 @@ public class FuelData {
             fastFissMult,
             absFast,
             absThermal,
-            scattFast,
-            scattThermal,
+            scatteringFast,
+            scatteringThermal,
             moderation,
             heatTransferCoeff,
             heatPerReaction,
@@ -119,7 +119,7 @@ public class FuelData {
     }
 
     public FuelData(String id, String name, boolean isLiquid, int packetCount, int baseNeutrons, double thermalFissMult,
-        double fastFissMult, double absFast, double absThermal, double scattFast, double scattThermal,
+        double fastFissMult, double absFast, double absThermal, double scatteringFast, double scatteringThermal,
         double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability,
         double peakReactivityTemp, double floorTemp, double peakMult, double peakPoint, double endMult,
         String spentProduct, String... matchPatterns) {
@@ -134,8 +134,8 @@ public class FuelData {
             fastFissMult,
             absFast,
             absThermal,
-            scattFast,
-            scattThermal,
+            scatteringFast,
+            scatteringThermal,
             moderation,
             heatTransferCoeff,
             heatPerReaction,
@@ -150,7 +150,7 @@ public class FuelData {
     }
 
     public FuelData(String id, String name, boolean isLiquid, int baseNeutrons, double thermalFissMult,
-        double fastFissMult, double absFast, double absThermal, double scattFast, double scattThermal,
+        double fastFissMult, double absFast, double absThermal, double scatteringFast, double scatteringThermal,
         double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability, double peakMult,
         double peakPoint, double endMult, String spentProduct, String... matchPatterns) {
         this(
@@ -163,8 +163,8 @@ public class FuelData {
             fastFissMult,
             absFast,
             absThermal,
-            scattFast,
-            scattThermal,
+            scatteringFast,
+            scatteringThermal,
             moderation,
             heatTransferCoeff,
             heatPerReaction,

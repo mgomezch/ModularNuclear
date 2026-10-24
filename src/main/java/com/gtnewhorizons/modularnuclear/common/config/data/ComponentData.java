@@ -146,14 +146,14 @@ public class ComponentData {
 
         public ReflectorData() {}
 
-        public ReflectorData(String id, String name, double absFast, double absThermal, double scattFast,
-            double scattThermal, double moderation, double heatTransferCoeff, int durability, String... matching) {
+        public ReflectorData(String id, String name, double absFast, double absThermal, double scatteringFast,
+            double scatteringThermal, double moderation, double heatTransferCoeff, int durability, String... matching) {
             this.id = id;
             this.name = name;
             this.absorptionFast = absFast;
             this.absorptionThermal = absThermal;
-            this.scatteringFast = scattFast;
-            this.scatteringThermal = scattThermal;
+            this.scatteringFast = scatteringFast;
+            this.scatteringThermal = scatteringThermal;
             this.moderation = moderation;
             this.heatTransferCoeff = heatTransferCoeff;
             this.durability = durability;
@@ -222,15 +222,15 @@ public class ComponentData {
 
         public ModeratorData() {}
 
-        public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
-            double scattThermal, double moderation, double heatTransferCoeff, double maxTemp, String... matching) {
+        public ModeratorData(String id, String name, double absFast, double absThermal, double scatteringFast,
+            double scatteringThermal, double moderation, double heatTransferCoeff, double maxTemp, String... matching) {
             this(
                 id,
                 name,
                 absFast,
                 absThermal,
-                scattFast,
-                scattThermal,
+                scatteringFast,
+                scatteringThermal,
                 moderation,
                 heatTransferCoeff,
                 maxTemp,
@@ -249,8 +249,8 @@ public class ComponentData {
                 matching);
         }
 
-        public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
-            double scattThermal, double moderation, double heatTransferCoeff, double maxTemp, int durability,
+        public ModeratorData(String id, String name, double absFast, double absThermal, double scatteringFast,
+            double scatteringThermal, double moderation, double heatTransferCoeff, double maxTemp, int durability,
             String spentProduct, double tempWearK, double tempWearA, double thermalEmissionOnsetTemp,
             double thermalEmissionHalfTemp, double thermalEmissionMaxPerFast, String... matching) {
             this(
@@ -258,8 +258,8 @@ public class ComponentData {
                 name,
                 absFast,
                 absThermal,
-                scattFast,
-                scattThermal,
+                scatteringFast,
+                scatteringThermal,
                 moderation,
                 heatTransferCoeff,
                 maxTemp,
@@ -278,8 +278,8 @@ public class ComponentData {
                 matching);
         }
 
-        public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
-            double scattThermal, double moderation, double heatTransferCoeff, double maxTemp, int durability,
+        public ModeratorData(String id, String name, double absFast, double absThermal, double scatteringFast,
+            double scatteringThermal, double moderation, double heatTransferCoeff, double maxTemp, int durability,
             String spentProduct, double tempWearK, double tempWearA, double thermalEmissionOnsetTemp,
             double thermalEmissionHalfTemp, double thermalEmissionMaxPerFast, double wignerEnergyPerFast,
             double wignerReleaseOnsetTemp, double wignerReleaseHalfTemp, double wignerMaxReleaseRate,
@@ -289,8 +289,8 @@ public class ComponentData {
                 name,
                 absFast,
                 absThermal,
-                scattFast,
-                scattThermal,
+                scatteringFast,
+                scatteringThermal,
                 moderation,
                 heatTransferCoeff,
                 maxTemp,
@@ -309,8 +309,8 @@ public class ComponentData {
                 matching);
         }
 
-        public ModeratorData(String id, String name, double absFast, double absThermal, double scattFast,
-            double scattThermal, double moderation, double heatTransferCoeff, double maxTemp, int durability,
+        public ModeratorData(String id, String name, double absFast, double absThermal, double scatteringFast,
+            double scatteringThermal, double moderation, double heatTransferCoeff, double maxTemp, int durability,
             String spentProduct, double tempWearK, double tempWearA, double thermalEmissionOnsetTemp,
             double thermalEmissionHalfTemp, double thermalEmissionMaxPerFast, double wignerEnergyPerFast,
             double wignerReleaseOnsetTemp, double wignerReleaseHalfTemp, double wignerMaxReleaseRate,
@@ -319,8 +319,8 @@ public class ComponentData {
             this.name = name;
             this.absorptionFast = absFast;
             this.absorptionThermal = absThermal;
-            this.scatteringFast = scattFast;
-            this.scatteringThermal = scattThermal;
+            this.scatteringFast = scatteringFast;
+            this.scatteringThermal = scatteringThermal;
             this.moderation = moderation;
             this.heatTransferCoeff = heatTransferCoeff;
             this.maxTemperature = maxTemp;
@@ -446,14 +446,14 @@ public class ComponentData {
 
         public ControlRodData() {}
 
-        public ControlRodData(String id, String name, double maxThermal, double maxFast, double scattFast,
-            double scattThermal, double heatTransferCoeff, String... matching) {
+        public ControlRodData(String id, String name, double maxThermal, double maxFast, double scatteringFast,
+            double scatteringThermal, double heatTransferCoeff, String... matching) {
             this.id = id;
             this.name = name;
             this.maxThermalAbsorption = maxThermal;
             this.maxFastAbsorption = maxFast;
-            this.scatteringFast = scattFast;
-            this.scatteringThermal = scattThermal;
+            this.scatteringFast = scatteringFast;
+            this.scatteringThermal = scatteringThermal;
             this.heatTransferCoeff = heatTransferCoeff;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
         }
@@ -650,15 +650,15 @@ public class ComponentData {
         public InsulatorData() {}
 
         public InsulatorData(String id, String name, double dampening, double heatTransferCoeff, double absFast,
-            double absThermal, double scattFast, double scattThermal, String... matching) {
+            double absThermal, double scatteringFast, double scatteringThermal, String... matching) {
             this.id = id;
             this.name = name;
             this.dampening = dampening;
             this.heatTransferCoeff = heatTransferCoeff;
             this.absorptionFast = absFast;
             this.absorptionThermal = absThermal;
-            this.scatteringFast = scattFast;
-            this.scatteringThermal = scattThermal;
+            this.scatteringFast = scatteringFast;
+            this.scatteringThermal = scatteringThermal;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
         }
 
@@ -819,7 +819,7 @@ public class ComponentData {
         public CoolantFluidData() {}
 
         public CoolantFluidData(String id, String name, int requiredTier, double boilingTemp, double heatTransferCoeff,
-            double heatCapacity, double absFast, double absThermal, double scattFast, double scattThermal,
+            double heatCapacity, double absFast, double absThermal, double scatteringFast, double scatteringThermal,
             double moderation, String hotFluidName, int expansionRatio, double heatPerLiter, double freezingTemperature,
             double explosionTemperature, String transmutationProduct, double transmutationChancePerNeutron,
             String... matching) {
@@ -831,8 +831,8 @@ public class ComponentData {
             this.heatCapacity = heatCapacity;
             this.absorptionFast = absFast;
             this.absorptionThermal = absThermal;
-            this.scatteringFast = scattFast;
-            this.scatteringThermal = scattThermal;
+            this.scatteringFast = scatteringFast;
+            this.scatteringThermal = scatteringThermal;
             this.moderation = moderation;
             this.hotFluidName = hotFluidName;
             this.expansionRatio = expansionRatio;
@@ -845,7 +845,7 @@ public class ComponentData {
         }
 
         public CoolantFluidData(String id, String name, double boilingTemp, double heatTransferCoeff,
-            double heatCapacity, double absFast, double absThermal, double scattFast, double scattThermal,
+            double heatCapacity, double absFast, double absThermal, double scatteringFast, double scatteringThermal,
             double moderation, String hotFluidName, String... matching) {
             this(
                 id,
@@ -856,8 +856,8 @@ public class ComponentData {
                 heatCapacity,
                 absFast,
                 absThermal,
-                scattFast,
-                scattThermal,
+                scatteringFast,
+                scatteringThermal,
                 moderation,
                 hotFluidName,
                 160,
@@ -954,15 +954,15 @@ public class ComponentData {
         public CoolantItemData() {}
 
         public CoolantItemData(String id, String name, double heatCapacity, double heatTransferCoeff, double absFast,
-            double absThermal, double scattFast, double scattThermal, double moderation, String... matching) {
+            double absThermal, double scatteringFast, double scatteringThermal, double moderation, String... matching) {
             this.id = id;
             this.name = name;
             this.heatCapacity = heatCapacity;
             this.heatTransferCoeff = heatTransferCoeff;
             this.absorptionFast = absFast;
             this.absorptionThermal = absThermal;
-            this.scatteringFast = scattFast;
-            this.scatteringThermal = scattThermal;
+            this.scatteringFast = scatteringFast;
+            this.scatteringThermal = scatteringThermal;
             this.moderation = moderation;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
         }

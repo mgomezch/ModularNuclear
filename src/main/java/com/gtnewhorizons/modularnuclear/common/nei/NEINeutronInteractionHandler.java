@@ -81,7 +81,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     public static final int RV_PLOT_H = 42;
 
     public static final int FAST_PIE_X = 142;
-    public static final int FAST_SCAT_LABEL_X = 120;
+    public static final int FAST_SCATTERING_LABEL_X = 120;
 
     public static class ComponentStatsData {
 
@@ -929,8 +929,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         }
     }
 
-    private static void addModerator(ItemStack stack, String name, double fastScat, double fastAbs, double slowing,
-        double thermScat, double thermAbs, double conduction, double maxTemp, long wearCapacity, ItemStack byproduct,
+    private static void addModerator(ItemStack stack, String name, double fastScattering, double fastAbs, double slowing,
+        double thermScattering, double thermAbs, double conduction, double maxTemp, long wearCapacity, ItemStack byproduct,
         String extra) {
         if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
         if (stack == null) return;
@@ -942,10 +942,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 stack,
                 name,
                 "Moderator",
-                fastScat,
+                fastScattering,
                 fastAbs,
                 slowing,
-                thermScat,
+                thermScattering,
                 thermAbs,
                 false,
                 0.0,
@@ -990,7 +990,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     }
 
     private static void addControlRod(Materials mat, String materialName, String name, double fastAbs, double thermAbs,
-        double fastScat, double thermScat, double conduction, long capacity, String extra) {
+        double fastScattering, double thermScattering, double conduction, long capacity, String extra) {
         ItemStack mainStack = null;
         if (mat != null) {
             mainStack = GTOreDictUnificator.get(OrePrefixes.stickLong, mat, 1L);
@@ -1010,10 +1010,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             mainStack,
             name,
             "Control Rod",
-            fastScat,
+            fastScattering,
             fastAbs,
             0.0,
-            thermScat,
+            thermScattering,
             thermAbs,
             false,
             0.0,
@@ -1084,7 +1084,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     }
 
     private static void addInsulator(ItemStack stack, String name, double insulation, double conduction, double fastAbs,
-        double thermAbs, double fastScat, double thermScat, String extra) {
+        double thermAbs, double fastScattering, double thermScattering, String extra) {
         if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
         if (stack == null) return;
         ALL_COMPONENTS.add(
@@ -1092,10 +1092,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 stack,
                 name,
                 "Thermal Insulator",
-                fastScat,
+                fastScattering,
                 fastAbs,
                 0.0,
-                thermScat,
+                thermScattering,
                 thermAbs,
                 false,
                 0.0,
@@ -1172,8 +1172,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         ALL_COMPONENTS.add(data);
     }
 
-    private static void addFluidCoolant(String fluidName, String name, double fastScat, double fastAbs, double slowing,
-        double thermScat, double thermAbs, double conduction, double boilingPoint, double specificHeat,
+    private static void addFluidCoolant(String fluidName, String name, double fastScattering, double fastAbs, double slowing,
+        double thermScattering, double thermAbs, double conduction, double boilingPoint, double specificHeat,
         boolean hasTransmutation, ItemStack product, long reqNeutrons, String extra) {
         Fluid fluid = null;
         try {
@@ -1204,10 +1204,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 display,
                 name,
                 "Fluid Coolant",
-                fastScat,
+                fastScattering,
                 fastAbs,
                 slowing,
-                thermScat,
+                thermScattering,
                 thermAbs,
                 false,
                 0.0,
@@ -1554,18 +1554,18 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             GuiDraw.drawStringC(absStr, 83, 86, d.fastAbsorption > 0 ? 0xCC0000 : 0x404040, false);
 
             // Overall scattered fast neutrons percentage (between green arrows and pie chart, vertically centered)
-            String fastScatProbStr = formatPercent(d.fastScattering);
-            GuiDraw.drawStringC(fastScatProbStr, FAST_SCAT_LABEL_X, 61, d.fastScattering > 0 ? 0x00A000 : 0x404040, false);
+            String fastScatteringProbStr = formatPercent(d.fastScattering);
+            GuiDraw.drawStringC(fastScatteringProbStr, FAST_SCATTERING_LABEL_X, 61, d.fastScattering > 0 ? 0x00A000 : 0x404040, false);
 
             // Relative scattered fast neutrons conditional percentage (above blue arrow)
             double slowing = Math.max(0.0, Math.min(1.0, d.slowingProbability));
             double fastFrac = 1.0 - slowing;
-            String fastScatStr = formatPercent(fastFrac);
-            GuiDraw.drawStringC(fastScatStr, FAST_PIE_X, 37, fastFrac > 0 ? 0x0033CC : 0x404040, false);
+            String fastScatteringStr = formatPercent(fastFrac);
+            GuiDraw.drawStringC(fastScatteringStr, FAST_PIE_X, 37, fastFrac > 0 ? 0x0033CC : 0x404040, false);
 
             // Relative scattered moderated neutrons conditional percentage (below purple arrow)
-            String modScatStr = formatPercent(slowing);
-            GuiDraw.drawStringC(modScatStr, FAST_PIE_X, 86, slowing > 0 ? 0x7F00FF : 0x404040, false);
+            String modScatteringStr = formatPercent(slowing);
+            GuiDraw.drawStringC(modScatteringStr, FAST_PIE_X, 86, slowing > 0 ? 0x7F00FF : 0x404040, false);
 
             // --- Card 2: Thermal Neutron Panel (baseY = 101) ---
             GuiDraw.drawStringC(
@@ -1580,8 +1580,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 GuiDraw.drawStringC(reflStr, 47, 115, 0x9A6B00, false);
                 GuiDraw.drawStringC("REFLECT", 47, 124, 0x9A6B00, false);
             } else {
-                String thermScatStr = formatPercent(d.thermalScattering);
-                GuiDraw.drawStringC(thermScatStr, 47, 115, 0x404040, false);
+                String thermScatteringStr = formatPercent(d.thermalScattering);
+                GuiDraw.drawStringC(thermScatteringStr, 47, 115, 0x404040, false);
             }
 
             String thermAbsStr = formatPercent(d.thermalAbsorption);

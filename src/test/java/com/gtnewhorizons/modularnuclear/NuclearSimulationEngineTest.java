@@ -6390,16 +6390,16 @@ public class NuclearSimulationEngineTest {
         fuelA.scatterProb = 0.10;
         gridZero[1][1] = fuelA;
 
-        MockNuclearTile zeroScat = new MockNuclearTile(false, 0);
-        zeroScat.absorbProb = 0.0;
-        zeroScat.scatterProb = 0.0; // 0% scattering: non-absorbed thermal flux should escape immediately
-        gridZero[0][1] = zeroScat;
-        gridZero[2][1] = zeroScat;
-        gridZero[1][0] = zeroScat;
-        gridZero[1][2] = zeroScat;
+        MockNuclearTile zeroScattering = new MockNuclearTile(false, 0);
+        zeroScattering.absorbProb = 0.0;
+        zeroScattering.scatterProb = 0.0; // 0% scattering: non-absorbed thermal flux should escape immediately
+        gridZero[0][1] = zeroScattering;
+        gridZero[2][1] = zeroScattering;
+        gridZero[1][0] = zeroScattering;
+        gridZero[1][2] = zeroScattering;
 
         NuclearSimulationEngine.SimulationResult resZero = NuclearSimulationEngine.simulate(gridZero, 3, 3);
-        assertEquals(0, zeroScat.scattered, "Zero-scattering tile must never scatter thermal neutrons");
+        assertEquals(0, zeroScattering.scattered, "Zero-scattering tile must never scatter thermal neutrons");
         assertTrue(resZero.neutronsEscaped > 0, "Non-scattered thermal neutrons must escape");
 
         // Grid B: Fuel in center, surrounded by high-scattering beryllium reflectors
@@ -6411,16 +6411,16 @@ public class NuclearSimulationEngineTest {
         fuelB.scatterProb = 0.10;
         gridRefl[1][1] = fuelB;
 
-        MockNuclearTile highScat = new MockNuclearTile(false, 0);
-        highScat.absorbProb = 0.01;
-        highScat.scatterProb = 0.98; // 98% scattering
-        gridRefl[0][1] = highScat;
-        gridRefl[2][1] = highScat;
-        gridRefl[1][0] = highScat;
-        gridRefl[1][2] = highScat;
+        MockNuclearTile highScattering = new MockNuclearTile(false, 0);
+        highScattering.absorbProb = 0.01;
+        highScattering.scatterProb = 0.98; // 98% scattering
+        gridRefl[0][1] = highScattering;
+        gridRefl[2][1] = highScattering;
+        gridRefl[1][0] = highScattering;
+        gridRefl[1][2] = highScattering;
 
         NuclearSimulationEngine.SimulationResult resRefl = NuclearSimulationEngine.simulate(gridRefl, 3, 3);
-        assertTrue(highScat.scattered > 0, "High-scattering tile must receive and scatter thermal neutrons");
+        assertTrue(highScattering.scattered > 0, "High-scattering tile must receive and scatter thermal neutrons");
         assertTrue(resRefl.thermalNeutronsAbsorbed > 0, "Scattered thermal neutrons must diffuse and be absorbed");
     }
 

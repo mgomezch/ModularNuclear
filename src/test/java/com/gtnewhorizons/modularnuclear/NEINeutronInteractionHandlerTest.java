@@ -211,20 +211,20 @@ public class NEINeutronInteractionHandlerTest {
         assertNotNull(r1, "Should find non-reflector neutron recipe");
 
         // 1. Thermal scattering arrow and text (Card 2: dy = +33)
-        java.util.List<String> tipScatTip = handler.getTooltipsAt(r1, 40, 123, null);
-        assertFalse(tipScatTip.isEmpty(), "Thermal scattering arrow tip (40, 123) must show tooltip");
+        java.util.List<String> tipScatteringTip = handler.getTooltipsAt(r1, 40, 123, null);
+        assertFalse(tipScatteringTip.isEmpty(), "Thermal scattering arrow tip (40, 123) must show tooltip");
         assertTrue(
-            tipScatTip.stream()
+            tipScatteringTip.stream()
                 .anyMatch(
                     s -> s.toLowerCase()
                         .contains("scattering")),
             "Should mention scattering");
 
-        java.util.List<String> tipScatCurve = handler.getTooltipsAt(r1, 52, 128, null);
-        assertFalse(tipScatCurve.isEmpty(), "Thermal scattering arrow curve (52, 128) must show tooltip");
+        java.util.List<String> tipScatteringCurve = handler.getTooltipsAt(r1, 52, 128, null);
+        assertFalse(tipScatteringCurve.isEmpty(), "Thermal scattering arrow curve (52, 128) must show tooltip");
 
-        java.util.List<String> tipScatText = handler.getTooltipsAt(r1, 47, 115, null);
-        assertFalse(tipScatText.isEmpty(), "Thermal scattering text (47, 115) must show tooltip");
+        java.util.List<String> tipScatteringText = handler.getTooltipsAt(r1, 47, 115, null);
+        assertFalse(tipScatteringText.isEmpty(), "Thermal scattering text (47, 115) must show tooltip");
 
         // 2. Thermal absorption downward arrow, curved arrow, and text (Card 2: dy = +33)
         java.util.List<String> tipAbsDown = handler.getTooltipsAt(r1, 74, 153, null);
@@ -273,10 +273,10 @@ public class NEINeutronInteractionHandlerTest {
         assertFalse(tipFastAbsText.isEmpty(), "Fast absorption text (83, 87) must show tooltip");
 
         // 3c. Fast scattering green arrows (102, 65)
-        java.util.List<String> tipFastScatArrows = handler.getTooltipsAt(r1, 102, 65, null);
-        assertFalse(tipFastScatArrows.isEmpty(), "Fast scattering arrows (102, 65) must show tooltip");
+        java.util.List<String> tipFastScatteringArrows = handler.getTooltipsAt(r1, 102, 65, null);
+        assertFalse(tipFastScatteringArrows.isEmpty(), "Fast scattering arrows (102, 65) must show tooltip");
         assertTrue(
-            tipFastScatArrows.stream()
+            tipFastScatteringArrows.stream()
                 .anyMatch(
                     s -> s.toLowerCase()
                         .contains("scattering")),
@@ -683,21 +683,21 @@ public class NEINeutronInteractionHandlerTest {
             "Gold Reflector thermal fraction tooltip must be present at (FAST_PIE_X, 87)");
 
         // 4. Overall fast scattering probability label
-        assertEquals(120, NEINeutronInteractionHandler.FAST_SCAT_LABEL_X, "Fast scattering label X must be positioned at 120");
-        assertTrue(NEINeutronInteractionHandler.FAST_SCAT_LABEL_X < NEINeutronInteractionHandler.FAST_PIE_X,
+        assertEquals(120, NEINeutronInteractionHandler.FAST_SCATTERING_LABEL_X, "Fast scattering label X must be positioned at 120");
+        assertTrue(NEINeutronInteractionHandler.FAST_SCATTERING_LABEL_X < NEINeutronInteractionHandler.FAST_PIE_X,
             "Fast scattering label must be to the left of the pie chart");
-        assertTrue(NEINeutronInteractionHandler.FAST_SCAT_LABEL_X > 107,
+        assertTrue(NEINeutronInteractionHandler.FAST_SCATTERING_LABEL_X > 107,
             "Fast scattering label must be to the right of the green scattering arrows");
 
         assertEquals("93%", NEINeutronInteractionHandler.formatPercent(graphiteRecipe.data.fastScattering));
         assertEquals("96%", NEINeutronInteractionHandler.formatPercent(berylliumRecipe.data.fastScattering));
         assertEquals("85%", NEINeutronInteractionHandler.formatPercent(goldReflectorRecipe.data.fastScattering));
 
-        int scatLabelX = NEINeutronInteractionHandler.FAST_SCAT_LABEL_X;
-        List<String> scatLabelTip = handler.getTooltipsAt(graphiteRecipe, scatLabelX, 61, null);
-        assertFalse(scatLabelTip.isEmpty(), "Hovering over scattering probability label (120, 61) must show tooltip");
+        int scatteringLabelX = NEINeutronInteractionHandler.FAST_SCATTERING_LABEL_X;
+        List<String> scatteringLabelTip = handler.getTooltipsAt(graphiteRecipe, scatteringLabelX, 61, null);
+        assertFalse(scatteringLabelTip.isEmpty(), "Hovering over scattering probability label (120, 61) must show tooltip");
         assertTrue(
-            scatLabelTip.stream().anyMatch(s -> s.toLowerCase().contains("scattering")),
+            scatteringLabelTip.stream().anyMatch(s -> s.toLowerCase().contains("scattering")),
             "Scattering label tooltip must mention scattering");
     }
 }

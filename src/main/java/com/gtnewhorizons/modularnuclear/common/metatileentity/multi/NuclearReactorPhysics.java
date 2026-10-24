@@ -456,9 +456,9 @@ public class NuclearReactorPhysics {
             double pRodAbs = rod.getAbsorptionProbability(type);
             double pMod = (type == NeutronType.FAST) ? rod.getModeratorProbability() : 0.0;
             double pBaseEff = Math.max(0.0, 1.0 - pRodAbs - pMod);
-            double pRodScatt = rod.getScatteringProbability(type);
-            double pModScatt = rod.getModeratorScatteringProbability(type);
-            return Math.min(1.0, pRodScatt + pModScatt + pBaseEff * pBase);
+            double pRodScattering = rod.getScatteringProbability(type);
+            double pModScattering = rod.getModeratorScatteringProbability(type);
+            return Math.min(1.0, pRodScattering + pModScattering + pBaseEff * pBase);
         }
         return pBase;
     }
