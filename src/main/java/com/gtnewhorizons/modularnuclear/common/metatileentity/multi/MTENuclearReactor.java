@@ -2251,10 +2251,16 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                         if (gt.hasControlRod()) {
                             MTEHatchNuclearControlRod rod = gt.getBottomControlRod();
                             cell.hasControlRod = true;
+                            cell.isAdvancedControlRod = rod.hasModerator()
+                                || (rod instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod);
                             cell.controlRodInsertion = rod.getInsertionPercent();
                             cell.controlRodType = MTEHatchNuclearControlRod
                                 .getRodType(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD])
                                 .ordinal();
+                            if (cell.isAdvancedControlRod) {
+                                cell.moderatorInsertion = rod.getModeratorInsertionPercent();
+                                cell.moderatorName = rod.getModeratorDisplayName();
+                            }
                         }
                     }
                     data.cells.add(cell);

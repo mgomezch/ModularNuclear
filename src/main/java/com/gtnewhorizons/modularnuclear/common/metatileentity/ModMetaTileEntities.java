@@ -21,6 +21,7 @@ public class ModMetaTileEntities {
     public static final int ID_NUCLEAR_HIGH_PRESSURE_OUTPUT = 32114;
     public static final int ID_NUCLEAR_REACTOR = 32115;
     public static final int ID_ACTINIDE_COMPOUNDER = 32116;
+    public static final int ID_NUCLEAR_ADVANCED_CONTROL_ROD = 32117;
 
     public static ItemStack reactor;
     public static ItemStack actinideCompounder;
@@ -28,6 +29,7 @@ public class ModMetaTileEntities {
     public static ItemStack[] nuclearHatches = new ItemStack[9];
     public static ItemStack nuclearControlHatch;
     public static ItemStack nuclearControlRodHatch;
+    public static ItemStack nuclearAdvancedControlRodHatch;
     public static ItemStack nuclearHighPressureHatch;
     public static ItemStack nuclearHighPressureInputHatch;
     public static ItemStack nuclearHighPressureOutputHatch;
@@ -57,6 +59,12 @@ public class ModMetaTileEntities {
             ID_NUCLEAR_CONTROL_ROD,
             "hatch.nuclearcontrolrod",
             "Nuclear core control rod",
+            5).getStackForm(1L);
+
+        nuclearAdvancedControlRodHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod(
+            ID_NUCLEAR_ADVANCED_CONTROL_ROD,
+            "hatch.nuclearadvancedcontrolrod",
+            "Advanced nuclear core control rod",
             5).getStackForm(1L);
 
         nuclearHighPressureHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure(

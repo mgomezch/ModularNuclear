@@ -18,6 +18,7 @@ gt.blockmachines.hatch.nuclearhatch.uv.name=Nuclear core hatch (UV)
 gt.blockmachines.hatch.nuclearhatch.uhv.name=Nuclear core hatch (UHV)
 gt.blockmachines.hatch.nuclearcontrol.name=Nuclear control hatch
 gt.blockmachines.hatch.nuclearcontrolrod.name=Nuclear core control rod
+gt.blockmachines.hatch.nuclearadvancedcontrolrod.name=Advanced nuclear core control rod
 gt.blockmachines.hatch.nuclearhighpressure.name=Nuclear core high-pressure hatch (legacy)
 gt.blockmachines.hatch.nuclearhighpressure.input.name=Nuclear core high-pressure input hatch
 gt.blockmachines.hatch.nuclearhighpressure.output.name=Nuclear core high-pressure output hatch
@@ -102,6 +103,7 @@ gt.blockmachines.hatch.nuclearhighpressure.input.desc=Core pass-through top inle
 gt.blockmachines.hatch.nuclearhighpressure.output.desc=Core pass-through bottom outlet for high-pressure coolant loops\nMust be placed on the bottom core layer (slice 4)\nPairs strictly with a top inlet hatch in the same column\nDoes not support standard-pressure fluid logistics!
 gt.blockmachines.hatch.nuclearcontrol.desc=Emits redstone signals based on nuclear reactor conditions\nRight-click with screwdriver to cycle metric (sneak+right-click for bundled mode)\nRight-click with soldering iron to cycle statistic\nOutputs 0-15 vanilla redstone or 0-255 ProjectRed bundled signals from front side\nSupports 16-channel ProjectRed bundled cables and OpenComputers interface
 gt.blockmachines.hatch.nuclearcontrolrod.desc=Nuclear core control rod\nHolds long rods of silver, boron, cadmium, indium, or hafnium\nControlled by external redstone (0..15) or ProjectRed bundled cable (0..255)\nRight-click with screwdriver to cycle bundled input channel\nController SCRAM state overrides insertion to 100%!
+gt.blockmachines.hatch.nuclearadvancedcontrolrod.desc=Dual-slot nuclear core control rod with moderator displacer\nSlot 0 holds a control rod; Slot 1 holds a moderator\nWithdrawing the control rod displaces the moderator into the core\nControlled by external redstone (0..15) or ProjectRed bundled cable (0..255)\nRight-click with screwdriver to cycle bundled input channel\nController SCRAM state overrides insertion to 100%!
 
 # Item Tooltips
 item.modularnuclear.radiovoltaic.plate.hv.desc=Converts absorbed neutron flux into direct HV electricity\nMax output: 1,024 EU/t (2A HV)

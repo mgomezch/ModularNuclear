@@ -393,9 +393,12 @@ public class NuclearReactorPhysics {
         NeutronType type) {
         double pBase = getBaseAbsorptionProbability(reactor, tile, type);
         if (tile.hasControlRod()) {
-            double pRod = tile.getBottomControlRod()
-                .getAbsorptionProbability(type);
-            return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
+            MTEHatchNuclearControlRod rod = tile.getBottomControlRod();
+            double pRod = rod.getAbsorptionProbability(type);
+            double pMod = (type == NeutronType.FAST) ? rod.getModeratorProbability() : 0.0;
+            double pModAbs = rod.getModeratorAbsorptionProbability(type);
+            double pBaseEff = Math.max(0.0, 1.0 - pRod - pMod);
+            return Math.min(1.0, pRod + pModAbs + pBaseEff * pBase);
         }
         return pBase;
     }
@@ -449,14 +452,19 @@ public class NuclearReactorPhysics {
         NeutronType type) {
         double pBase = getBaseScatteringProbability(reactor, tile, type);
         if (tile.hasControlRod()) {
-            double pRod = tile.getBottomControlRod()
-                .getScatteringProbability(type);
-            return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
+            MTEHatchNuclearControlRod rod = tile.getBottomControlRod();
+            double pRodAbs = rod.getAbsorptionProbability(type);
+            double pMod = (type == NeutronType.FAST) ? rod.getModeratorProbability() : 0.0;
+            double pBaseEff = Math.max(0.0, 1.0 - pRodAbs - pMod);
+            double pRodScatt = rod.getScatteringProbability(type);
+            double pModScatt = rod.getModeratorScatteringProbability(type);
+            return Math.min(1.0, pRodScatt + pModScatt + pBaseEff * pBase);
         }
         return pBase;
     }
 
-    public static double getTileModerationProbability(NuclearGridTile tile) {
+    public static double getBaseModerationProbability(NuclearGridTile tile) {
+        if (tile == null) return 0.05;
         if (tile.isBus()) {
             ItemStack stack = tile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
             if (stack == null || NuclearFuelClassification.isItemNeutronSource(stack)) return 0.05;
@@ -502,12 +510,26 @@ public class NuclearReactorPhysics {
         return 0.05;
     }
 
+    public static double getTileModerationProbability(NuclearGridTile tile) {
+        double pBase = getBaseModerationProbability(tile);
+        if (tile != null && tile.hasControlRod()) {
+            MTEHatchNuclearControlRod rod = tile.getBottomControlRod();
+            double pRodAbs = rod.getAbsorptionProbability(NeutronType.FAST);
+            double pMod = rod.getModeratorProbability();
+            double pBaseEff = Math.max(0.0, 1.0 - pRodAbs - pMod);
+            return Math.min(1.0, pMod + pBaseEff * pBase);
+        }
+        return pBase;
+    }
+
     public static void onTileNeutronAbsorbed(MTENuclearReactor reactor, NuclearGridTile tile, NeutronType type,
         int count) {
         if (count <= 0) return;
         if (tile.hasControlRod()) {
-            double pRod = tile.getBottomControlRod()
-                .getAbsorptionProbability(type);
+            MTEHatchNuclearControlRod rod = tile.getBottomControlRod();
+            double pRod = rod.getAbsorptionProbability(type);
+            double pMod = (type == NeutronType.FAST) ? rod.getModeratorProbability() : 0.0;
+            double pBaseEff = Math.max(0.0, 1.0 - pRod - pMod);
             double pBase = getBaseAbsorptionProbability(reactor, tile, type);
             double sum = pBase + pRod;
             int nRod = (sum > 0) ? (int) Math.round(count * (pRod / sum)) : count / 2;
@@ -515,7 +537,6 @@ public class NuclearReactorPhysics {
             int nBase = count - nRod;
 
             if (nRod > 0) {
-                MTEHatchNuclearControlRod rod = tile.getBottomControlRod();
                 if (type == NeutronType.FAST) rod.mFastAbsorbed += nRod;
                 else rod.mThermalAbsorbed += nRod;
             }

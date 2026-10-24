@@ -41,8 +41,11 @@ public class ReactorGridSyncData {
         public boolean isFluid = false;
         public boolean isHighPressure = false;
         public boolean hasControlRod = false;
+        public boolean isAdvancedControlRod = false;
         public int controlRodInsertion = 0;
         public int controlRodType = 0;
+        public int moderatorInsertion = 0;
+        public String moderatorName = "";
         public ItemStack itemStack = null;
         public FluidStack fluidStack = null;
         public float temperature = 20.0f;
@@ -62,8 +65,11 @@ public class ReactorGridSyncData {
             if (exists != that.exists || isFluid != that.isFluid
                 || isHighPressure != that.isHighPressure
                 || hasControlRod != that.hasControlRod
+                || isAdvancedControlRod != that.isAdvancedControlRod
                 || controlRodInsertion != that.controlRodInsertion
-                || controlRodType != that.controlRodType) return false;
+                || controlRodType != that.controlRodType
+                || moderatorInsertion != that.moderatorInsertion
+                || !Objects.equals(moderatorName, that.moderatorName)) return false;
             if (Math.abs(temperature - that.temperature) > 0.5f) return false;
             if (Math.abs(heatOutput - that.heatOutput) > 0.5f) return false;
             if (fastFlux != that.fastFlux || thermalFlux != that.thermalFlux) return false;
@@ -115,6 +121,7 @@ public class ReactorGridSyncData {
             if (cell.fluidStack != null) mask |= 8;
             if (cell.isHighPressure) mask |= 16;
             if (cell.hasControlRod) mask |= 32;
+            if (cell.isAdvancedControlRod) mask |= 64;
             buf.writeByte(mask);
             if (cell.exists) {
                 buf.writeFloat(cell.temperature);
@@ -128,6 +135,10 @@ public class ReactorGridSyncData {
                 if (cell.hasControlRod) {
                     buf.writeByte(cell.controlRodInsertion);
                     buf.writeByte(cell.controlRodType);
+                    if (cell.isAdvancedControlRod) {
+                        buf.writeByte(cell.moderatorInsertion);
+                        ByteBufUtils.writeUTF8String(buf, cell.moderatorName != null ? cell.moderatorName : "");
+                    }
                 }
                 if (cell.itemStack != null) {
                     NetworkUtils.writeItemStack(buf, cell.itemStack);
@@ -172,6 +183,7 @@ public class ReactorGridSyncData {
             boolean hasFluid = (mask & 8) != 0;
             cell.isHighPressure = (mask & 16) != 0;
             cell.hasControlRod = (mask & 32) != 0;
+            cell.isAdvancedControlRod = (mask & 64) != 0;
             if (cell.exists) {
                 cell.temperature = buf.readFloat();
                 cell.heatOutput = buf.readFloat();
@@ -184,6 +196,10 @@ public class ReactorGridSyncData {
                 if (cell.hasControlRod) {
                     cell.controlRodInsertion = buf.readByte() & 0xFF;
                     cell.controlRodType = buf.readByte() & 0xFF;
+                    if (cell.isAdvancedControlRod) {
+                        cell.moderatorInsertion = buf.readByte() & 0xFF;
+                        cell.moderatorName = ByteBufUtils.readUTF8String(buf);
+                    }
                 }
                 if (hasItem) {
                     cell.itemStack = NetworkUtils.readItemStack(buf);

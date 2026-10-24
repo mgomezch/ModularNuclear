@@ -52,6 +52,7 @@ import gregtech.api.util.GTUtility;
 public class MTEHatchNuclearControlRod extends MTEHatch {
 
     public static final int SLOT_ROD = 0;
+    public static final int SLOT_MODERATOR = 1;
     public com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor mReactor;
 
     public enum ControlRodType {
@@ -112,11 +113,20 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public MTEHatchNuclearControlRod(int aID, String aName, String aNameRegional, int aTier) {
-        super(aID, aName, aNameRegional, aTier, 1, (String) null);
+        this(aID, aName, aNameRegional, aTier, 1);
+    }
+
+    public MTEHatchNuclearControlRod(int aID, String aName, String aNameRegional, int aTier, int aInventorySize) {
+        super(aID, aName, aNameRegional, aTier, aInventorySize, (String) null);
     }
 
     public MTEHatchNuclearControlRod(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
-        super(aName, aTier, 1, aDescription, aTextures);
+        this(aName, aTier, 1, aDescription, aTextures);
+    }
+
+    public MTEHatchNuclearControlRod(String aName, int aTier, int aInventorySize, String[] aDescription,
+        ITexture[][][] aTextures) {
+        super(aName, aTier, aInventorySize, aDescription, aTextures);
     }
 
     @Override
@@ -198,6 +208,80 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(stack) != null)
             return true;
         return getRodType(stack) != ControlRodType.NONE;
+    }
+
+    public static boolean isModerator(ItemStack stack) {
+        if (stack == null) return false;
+        if (isControlRod(stack)) return false;
+        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack) != null)
+            return true;
+        return com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemModerator(stack);
+    }
+
+    public boolean hasControlRodItem() {
+        return mInventory != null && mInventory.length > SLOT_ROD && isControlRod(mInventory[SLOT_ROD]);
+    }
+
+    public ItemStack getModeratorStack() {
+        if (mInventory != null && mInventory.length > SLOT_MODERATOR) {
+            return mInventory[SLOT_MODERATOR];
+        }
+        return null;
+    }
+
+    public boolean hasModerator() {
+        return isModerator(getModeratorStack());
+    }
+
+    public double getModeratorInsertionRatio() {
+        if (!hasModerator()) return 0.0;
+        return Math.max(0.0, Math.min(1.0, 1.0 - getInsertionRatio()));
+    }
+
+    public int getModeratorInsertionPercent() {
+        return (int) Math.round(getModeratorInsertionRatio() * 100.0);
+    }
+
+    public String getModeratorDisplayName() {
+        ItemStack modStack = getModeratorStack();
+        if (modStack == null) return "None";
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData data = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findModerator(modStack);
+        if (data != null && data.name != null && !data.name.isEmpty()) {
+            return data.name;
+        }
+        return modStack.getDisplayName();
+    }
+
+    public double getModeratorProbability() {
+        if (!hasModerator()) return 0.0;
+        double ratio = getModeratorInsertionRatio();
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData data = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findModerator(getModeratorStack());
+        double mod = (data != null) ? data.moderation : 0.50;
+        return Math.max(0.0, Math.min(1.0, ratio * mod));
+    }
+
+    public double getModeratorAbsorptionProbability(NeutronType type) {
+        if (!hasModerator()) return 0.0;
+        double ratio = getModeratorInsertionRatio();
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData data = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findModerator(getModeratorStack());
+        double abs = (data != null)
+            ? ((type == NeutronType.FAST) ? data.absorptionFast : data.absorptionThermal)
+            : ((type == NeutronType.FAST) ? 0.002 : 0.009);
+        return Math.max(0.0, Math.min(1.0, ratio * abs));
+    }
+
+    public double getModeratorScatteringProbability(NeutronType type) {
+        if (!hasModerator()) return 0.0;
+        double ratio = getModeratorInsertionRatio();
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData data = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
+            .findModerator(getModeratorStack());
+        double scatt = (data != null)
+            ? ((type == NeutronType.FAST) ? data.scatteringFast : data.scatteringThermal)
+            : ((type == NeutronType.FAST) ? 0.93 : 0.621);
+        return Math.max(0.0, Math.min(1.0, ratio * scatt));
     }
 
     public boolean mScram = false;

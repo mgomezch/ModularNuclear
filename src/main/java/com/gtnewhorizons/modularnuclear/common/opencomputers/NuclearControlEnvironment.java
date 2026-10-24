@@ -313,6 +313,16 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
                     } else {
                         rodMap.put("item", null);
                     }
+                    rodMap.put("hasModerator", rod.hasModerator());
+                    rodMap.put("moderatorInsertion", rod.getModeratorInsertionPercent());
+                    ItemStack modStack = rod.getModeratorStack();
+                    if (modStack != null) {
+                        Map<String, Object> modItemMap = serializeItemStack(modStack);
+                        modItemMap.put("moderatorName", rod.getModeratorDisplayName());
+                        rodMap.put("moderatorItem", modItemMap);
+                    } else {
+                        rodMap.put("moderatorItem", null);
+                    }
                     cellMap.put("controlRod", rodMap);
                 } else {
                     cellMap.put("controlRod", null);

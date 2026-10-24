@@ -995,14 +995,35 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 && cell.controlRodType < MTEHatchNuclearControlRod.ControlRodType.values().length)
                     ? MTEHatchNuclearControlRod.ControlRodType.values()[cell.controlRodType]
                     : MTEHatchNuclearControlRod.ControlRodType.NONE;
-            tooltip.addLine(
-                EnumChatFormatting.GOLD + "Control rod: "
-                    + EnumChatFormatting.WHITE
-                    + rodType.displayName
-                    + EnumChatFormatting.YELLOW
-                    + " ("
-                    + cell.controlRodInsertion
-                    + "%)");
+            if (cell.isAdvancedControlRod) {
+                tooltip.addLine(
+                    EnumChatFormatting.LIGHT_PURPLE + "Advanced control rod:");
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + "  Rod: "
+                        + EnumChatFormatting.WHITE
+                        + rodType.displayName
+                        + EnumChatFormatting.YELLOW
+                        + " ("
+                        + cell.controlRodInsertion
+                        + "%)");
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + "  Mod: "
+                        + EnumChatFormatting.AQUA
+                        + (cell.moderatorName == null || cell.moderatorName.isEmpty() ? "None" : cell.moderatorName)
+                        + EnumChatFormatting.YELLOW
+                        + " ("
+                        + cell.moderatorInsertion
+                        + "%)");
+            } else {
+                tooltip.addLine(
+                    EnumChatFormatting.GOLD + "Control rod: "
+                        + EnumChatFormatting.WHITE
+                        + rodType.displayName
+                        + EnumChatFormatting.YELLOW
+                        + " ("
+                        + cell.controlRodInsertion
+                        + "%)");
+            }
             tooltip.addLine(
                 EnumChatFormatting.DARK_GRAY + String.format(
                     Locale.US,
@@ -1015,7 +1036,11 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 } else {
                     tooltip.addLine(EnumChatFormatting.GRAY + "Controlled via hatch redstone signal");
                 }
-                tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Click with rod item to insert/extract");
+                if (cell.isAdvancedControlRod) {
+                    tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Click with rod/moderator item to insert/extract");
+                } else {
+                    tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Click with rod item to insert/extract");
+                }
             }
         } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
             tooltip.addLine(EnumChatFormatting.DARK_GRAY + "No control rod hatch installed");
@@ -1073,22 +1098,39 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS && gridTile.hasControlRod()) {
             MTEHatchNuclearControlRod rod = gridTile.getBottomControlRod();
             ItemStack slotStack = rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD];
+            boolean hasModSlot = rod.mInventory.length > MTEHatchNuclearControlRod.SLOT_MODERATOR;
+            ItemStack modStack = hasModSlot ? rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] : null;
 
             if (isShift) {
-                if (cursorStack == null && slotStack != null) {
-                    if (playerMP.inventory.addItemStackToInventory(slotStack)) {
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
-                    } else if (slotStack.stackSize <= 0) {
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                if (cursorStack == null) {
+                    if (slotStack != null) {
+                        if (playerMP.inventory.addItemStackToInventory(slotStack)) {
+                            rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                        } else if (slotStack.stackSize <= 0) {
+                            rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                        }
+                        rod.markTileDirty();
+                        syncPlayerAndReactor(reactor, playerMP);
+                    } else if (modStack != null) {
+                        if (playerMP.inventory.addItemStackToInventory(modStack)) {
+                            rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = null;
+                        } else if (modStack.stackSize <= 0) {
+                            rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = null;
+                        }
+                        rod.markTileDirty();
+                        syncPlayerAndReactor(reactor, playerMP);
                     }
-                    rod.markTileDirty();
-                    syncPlayerAndReactor(reactor, playerMP);
                 }
             } else if (button == 0) {
                 if (cursorStack == null) {
                     if (slotStack != null) {
                         playerMP.inventory.setItemStack(slotStack);
                         rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                        rod.markTileDirty();
+                        syncPlayerAndReactor(reactor, playerMP);
+                    } else if (modStack != null) {
+                        playerMP.inventory.setItemStack(modStack);
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = null;
                         rod.markTileDirty();
                         syncPlayerAndReactor(reactor, playerMP);
                     }
@@ -1109,6 +1151,23 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                         rod.markTileDirty();
                         syncPlayerAndReactor(reactor, playerMP);
                     }
+                } else if (hasModSlot && MTEHatchNuclearControlRod.isModerator(cursorStack)) {
+                    if (modStack == null) {
+                        ItemStack placed = cursorStack.copy();
+                        placed.stackSize = 1;
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = placed;
+                        rod.markTileDirty();
+                        cursorStack.stackSize--;
+                        if (cursorStack.stackSize <= 0) {
+                            playerMP.inventory.setItemStack(null);
+                        }
+                        syncPlayerAndReactor(reactor, playerMP);
+                    } else if (cursorStack.stackSize == 1) {
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = cursorStack;
+                        playerMP.inventory.setItemStack(modStack);
+                        rod.markTileDirty();
+                        syncPlayerAndReactor(reactor, playerMP);
+                    }
                 }
             } else if (button == 1) {
                 if (cursorStack == null) {
@@ -1117,11 +1176,26 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                         rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
                         rod.markTileDirty();
                         syncPlayerAndReactor(reactor, playerMP);
+                    } else if (modStack != null) {
+                        playerMP.inventory.setItemStack(modStack);
+                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = null;
+                        rod.markTileDirty();
+                        syncPlayerAndReactor(reactor, playerMP);
                     }
                 } else if (slotStack == null && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
                     ItemStack placed = cursorStack.copy();
                     placed.stackSize = 1;
                     rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
+                    rod.markTileDirty();
+                    cursorStack.stackSize--;
+                    if (cursorStack.stackSize <= 0) {
+                        playerMP.inventory.setItemStack(null);
+                    }
+                    syncPlayerAndReactor(reactor, playerMP);
+                } else if (hasModSlot && modStack == null && MTEHatchNuclearControlRod.isModerator(cursorStack)) {
+                    ItemStack placed = cursorStack.copy();
+                    placed.stackSize = 1;
+                    rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = placed;
                     rod.markTileDirty();
                     cursorStack.stackSize--;
                     if (cursorStack.stackSize <= 0) {
@@ -1230,15 +1304,27 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                         cursorStack.stackSize--;
                         insertedAny = true;
                     }
-                } else if (gridTile.hasControlRod() && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
+                } else if (gridTile.hasControlRod()) {
                     MTEHatchNuclearControlRod rod = gridTile.getBottomControlRod();
-                    if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] == null) {
-                        ItemStack placed = cursorStack.copy();
-                        placed.stackSize = 1;
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
-                        rod.markTileDirty();
-                        cursorStack.stackSize--;
-                        insertedAny = true;
+                    if (MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
+                        if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] == null) {
+                            ItemStack placed = cursorStack.copy();
+                            placed.stackSize = 1;
+                            rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
+                            rod.markTileDirty();
+                            cursorStack.stackSize--;
+                            insertedAny = true;
+                        }
+                    } else if (MTEHatchNuclearControlRod.isModerator(cursorStack)
+                        && rod.mInventory.length > MTEHatchNuclearControlRod.SLOT_MODERATOR) {
+                        if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] == null) {
+                            ItemStack placed = cursorStack.copy();
+                            placed.stackSize = 1;
+                            rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = placed;
+                            rod.markTileDirty();
+                            cursorStack.stackSize--;
+                            insertedAny = true;
+                        }
                     }
                 }
             }
@@ -1274,18 +1360,33 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 }
                 syncPlayerAndReactor(reactor, playerMP);
             }
-        } else if (gridTile.hasControlRod() && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
+        } else if (gridTile.hasControlRod()) {
             MTEHatchNuclearControlRod rod = gridTile.getBottomControlRod();
-            if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] == null) {
-                ItemStack placed = cursorStack.copy();
-                placed.stackSize = 1;
-                rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
-                rod.markTileDirty();
-                cursorStack.stackSize--;
-                if (cursorStack.stackSize <= 0) {
-                    playerMP.inventory.setItemStack(null);
+            if (MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
+                if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] == null) {
+                    ItemStack placed = cursorStack.copy();
+                    placed.stackSize = 1;
+                    rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
+                    rod.markTileDirty();
+                    cursorStack.stackSize--;
+                    if (cursorStack.stackSize <= 0) {
+                        playerMP.inventory.setItemStack(null);
+                    }
+                    syncPlayerAndReactor(reactor, playerMP);
                 }
-                syncPlayerAndReactor(reactor, playerMP);
+            } else if (MTEHatchNuclearControlRod.isModerator(cursorStack)
+                && rod.mInventory.length > MTEHatchNuclearControlRod.SLOT_MODERATOR) {
+                if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] == null) {
+                    ItemStack placed = cursorStack.copy();
+                    placed.stackSize = 1;
+                    rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = placed;
+                    rod.markTileDirty();
+                    cursorStack.stackSize--;
+                    if (cursorStack.stackSize <= 0) {
+                        playerMP.inventory.setItemStack(null);
+                    }
+                    syncPlayerAndReactor(reactor, playerMP);
+                }
             }
         }
     }

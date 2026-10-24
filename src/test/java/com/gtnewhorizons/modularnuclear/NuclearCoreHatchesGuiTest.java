@@ -126,6 +126,34 @@ public class NuclearCoreHatchesGuiTest {
     }
 
     @Test
+    void testNuclearAdvancedControlRodBuildUI() {
+        com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod advRod =
+            new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod(
+                "test.advrod", 1, new String[0], null);
+        BaseMetaTileEntity te = createMockTileEntity();
+        advRod.setBaseMetaTileEntity(te);
+
+        assertTrue(advRod.hasMui2Gui(), "Advanced control rod must declare MUI2 GUI");
+        assertEquals(2, advRod.mInventory.length, "Advanced control rod must have 2 inventory slots");
+
+        EntityPlayerMP player = mock(EntityPlayerMP.class);
+        player.inventory = new net.minecraft.entity.player.InventoryPlayer(player);
+        PosGuiData data = createMockGuiData(player, te);
+
+        UISettings uiSettings = new UISettings(RecipeViewerSettings.DUMMY);
+        ModularSyncManager syncManager = new ModularSyncManager(false);
+        PanelSyncManager panelSyncManager = new PanelSyncManager(syncManager, true);
+
+        ModularPanel panel = advRod.buildUI(data, panelSyncManager, uiSettings);
+        assertNotNull(panel, "Advanced control rod buildUI must return a non-null ModularPanel");
+        WidgetTree.collectSyncValues(panelSyncManager, panel);
+
+        com.cleanroommc.modularui.screen.ModularContainer container = new com.cleanroommc.modularui.screen.ModularContainer();
+        container.construct(player, syncManager, uiSettings, panel.getName(), data);
+        assertNotNull(container);
+    }
+
+    @Test
     void testNuclearHighPressureBuildUI() {
         MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 1, new String[0], null);
         BaseMetaTileEntity te = createMockTileEntity();
