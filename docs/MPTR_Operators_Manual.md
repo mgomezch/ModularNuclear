@@ -818,7 +818,7 @@ An empty bus or hatch is almost transparent. About 3% of fast packets interact i
 
 ### 8.3 Moderators
 
-Moderator components are completely data-driven via `config/modularnuclear/components.yaml` under `moderators`. Component recognition is **never based on fuzzy substring matching**; instead, each moderator material is explicitly configured with individual cross-sections, durability budgets, temperature wear constants, and spent products. Long rods made of Carbon, Graphite, and Beryllium (`stickLongCarbon`, `stickLongGraphite`, `stickLongBeryllium`) as well as plates, blocks, and dusts are supported directly in the Nuclear Core Bus.
+Moderator components are completely data-driven via `config/modularnuclear/components.yaml` under `moderators`. Component recognition is **never based on fuzzy substring matching**; instead, each moderator material is explicitly configured with individual cross-sections, durability budgets, temperature wear constants, and spent products. Moderators strictly require long-rod form (`stickLongCarbon`, `stickLongGraphite`, `stickLongBeryllium`). Plates, blocks, dusts, and regular short rods are strictly rejected by the Nuclear Core Bus, NEI handlers, and Advanced Control Rod Hatch.
 
 #### Supported Moderator Types
 
@@ -834,7 +834,7 @@ Moderator components are completely data-driven via `config/modularnuclear/compo
 
 #### Moderator Durability and Wear
 
-When freshly crafted or inserted into the reactor bus, GT rods and blocks carry no initial durability metadata. As soon as the cell receives neutron flux, the reactor tracks cumulative damage in an NBT integer tag (`advDmg`).
+When freshly crafted or inserted into the reactor bus, GT long rods carry no initial durability metadata. As soon as the cell receives neutron flux, the reactor tracks cumulative damage in an NBT integer tag (`advDmg`).
 
 Each cycle, moderator wear is calculated from incident flux, absorbed neutrons, and temperature:
 

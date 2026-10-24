@@ -9,6 +9,7 @@ import java.util.Set;
 
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.oredict.OreDictionary;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -511,5 +512,86 @@ public class NEINeutronInteractionHandlerTest {
         assertTrue(hasFlux, "Tooltip must contain flux information");
         assertTrue(hasPower, "Tooltip must contain power output information");
         assertTrue(hasHeat, "Tooltip must contain excess heat information");
+    }
+
+    @Test
+    public void testModeratorsExclusivelyAcceptLongRodsInNEI() {
+        NEINeutronInteractionHandler handler = new NEINeutronInteractionHandler();
+        handler.loadCraftingRecipes(handler.getOverlayIdentifier());
+
+        List<CachedNeutronInteractionRecipe> moderatorRecipes = new ArrayList<>();
+        for (CachedRecipe cr : handler.arecipes) {
+            if (cr instanceof CachedNeutronInteractionRecipe nr && "Moderator".equals(nr.data.category)) {
+                moderatorRecipes.add(nr);
+            }
+        }
+
+        assertFalse(moderatorRecipes.isEmpty(), "Moderator recipes must be registered");
+
+        // 1. Verify all registered moderator recipes have name and stack strictly as long rod
+        for (CachedNeutronInteractionRecipe nr : moderatorRecipes) {
+            ComponentStatsData d = nr.data;
+            assertTrue(d.name.contains("Long Rod"), "Moderator component name must specify Long Rod: " + d.name);
+            assertFalse(d.name.toLowerCase().contains("plate"), "Moderator component must never be a plate: " + d.name);
+            assertNotNull(d.stack, "Moderator recipe must have non-null stack");
+            assertNotEquals(
+                OreDictionary.WILDCARD_VALUE,
+                d.stack.getItemDamage(),
+                "Moderator item damage must never be WILDCARD_VALUE");
+            assertTrue(d.alternateStacks.isEmpty(), "Moderators should not register arbitrary alternates");
+        }
+
+        // 2. Querying usage on long rods must match their respective moderator recipes
+        ItemStack carbonLongRod = NEINeutronInteractionHandler.createTestPlaceholder("Carbon Long Rod");
+        ItemStack graphiteLongRod = NEINeutronInteractionHandler.createTestPlaceholder("Graphite Long Rod");
+        ItemStack berylliumLongRod = NEINeutronInteractionHandler.createTestPlaceholder("Beryllium Long Rod");
+
+        NEINeutronInteractionHandler carbonUsage = new NEINeutronInteractionHandler();
+        carbonUsage.loadUsageRecipes(carbonLongRod);
+        assertTrue(
+            carbonUsage.arecipes.stream()
+                .anyMatch(r -> r instanceof CachedNeutronInteractionRecipe nr && nr.data.name.equals("Carbon Long Rod")),
+            "Querying usage on Carbon Long Rod must find Carbon Long Rod moderator recipe");
+
+        NEINeutronInteractionHandler graphiteUsage = new NEINeutronInteractionHandler();
+        graphiteUsage.loadUsageRecipes(graphiteLongRod);
+        assertTrue(
+            graphiteUsage.arecipes.stream()
+                .anyMatch(r -> r instanceof CachedNeutronInteractionRecipe nr && nr.data.name.equals("Graphite Long Rod")),
+            "Querying usage on Graphite Long Rod must find Graphite Long Rod moderator recipe");
+
+        NEINeutronInteractionHandler berylliumUsage = new NEINeutronInteractionHandler();
+        berylliumUsage.loadUsageRecipes(berylliumLongRod);
+        assertTrue(
+            berylliumUsage.arecipes.stream()
+                .anyMatch(r -> r instanceof CachedNeutronInteractionRecipe nr && nr.data.name.equals("Beryllium Long Rod")),
+            "Querying usage on Beryllium Long Rod must find Beryllium Long Rod moderator recipe");
+
+        // 3. Querying usage on plates, short rods, or dusts must NEVER match moderator recipes
+        ItemStack carbonPlate = NEINeutronInteractionHandler.createTestPlaceholder("Carbon Plate");
+        ItemStack graphitePlate = NEINeutronInteractionHandler.createTestPlaceholder("Graphite Plate");
+        ItemStack berylliumRod = NEINeutronInteractionHandler.createTestPlaceholder("Beryllium Rod");
+        ItemStack carbonDust = NEINeutronInteractionHandler.createTestPlaceholder("Carbon Dust");
+
+        for (ItemStack nonModerator : new ItemStack[] { carbonPlate, graphitePlate, berylliumRod, carbonDust }) {
+            NEINeutronInteractionHandler nonModUsage = new NEINeutronInteractionHandler();
+            nonModUsage.loadUsageRecipes(nonModerator);
+            boolean matchedModerator = nonModUsage.arecipes.stream()
+                .anyMatch(r -> r instanceof CachedNeutronInteractionRecipe nr && "Moderator".equals(nr.data.category));
+            assertFalse(
+                matchedModerator,
+                "Non-long-rod item " + nonModerator.getDisplayName() + " must never match any moderator recipe");
+        }
+
+        // 4. Verify cross-meta matching behavior simulating GregTech MetaGeneratedItem01
+        // (same Item class, different metadata/damage values on non-damageable items)
+        ItemStack itemA0 = new ItemStack(net.minecraft.init.Items.paper, 1, 100);
+        ItemStack itemA1 = new ItemStack(net.minecraft.init.Items.paper, 1, 101);
+        ItemStack itemAWildcard = new ItemStack(net.minecraft.init.Items.paper, 1, OreDictionary.WILDCARD_VALUE);
+
+        assertTrue(handler.matchesStack(itemA0, itemA0), "Identical item and meta must match");
+        assertFalse(handler.matchesStack(itemA0, itemA1), "Different metadata on same non-damageable item must not match");
+        assertFalse(handler.matchesStack(itemAWildcard, itemA0), "Wildcard metadata query must not match specific non-damageable item");
+        assertFalse(handler.matchesStack(itemA0, itemAWildcard), "Specific item must not match wildcard non-damageable component");
     }
 }

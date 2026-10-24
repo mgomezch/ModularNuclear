@@ -222,21 +222,27 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             if (data.stack != null) allVariants.add(data.stack);
             allVariants.addAll(data.alternateStacks);
 
+            for (ItemStack is : allVariants) {
+                if (is != null && is.getItemDamage() == OreDictionary.WILDCARD_VALUE) {
+                    is.setItemDamage(0);
+                }
+            }
+
             // Card 1 (Fast neutrons): slot box at (74, 56) -> stack at (75, 57)
-            this.input = new PositionedStack(allVariants, 75, 57);
+            this.input = new PositionedStack(allVariants, 75, 57, false);
 
             // Card 2 (Thermal neutrons): slot box at (66, 129) -> stack at (67, 130)
-            this.inputThermal = new PositionedStack(allVariants, 67, 130);
+            this.inputThermal = new PositionedStack(allVariants, 67, 130, false);
 
-            // Card 3 (Heat): slot box at (57, 193) -> stack at (58, 194)
-            this.inputHeat = new PositionedStack(allVariants, 58, 194);
+            // Card 3 (Heat): slot box at (57, 193) -> stack at (58, 194, false);
+            this.inputHeat = new PositionedStack(allVariants, 58, 194, false);
 
             // Card 4 (Durability & byproducts):
             if (!data.isRadiovoltaic) {
                 int durSlotX = data.transmutationOutput != null ? 30 : 66;
-                this.durabilityInput = new PositionedStack(allVariants, durSlotX + 1, 266);
+                this.durabilityInput = new PositionedStack(allVariants, durSlotX + 1, 266, false);
                 this.transmutationOutput = data.transmutationOutput != null
-                    ? new PositionedStack(data.transmutationOutput, 101, 266)
+                    ? new PositionedStack(data.transmutationOutput, 101, 266, false)
                     : null;
             } else {
                 this.durabilityInput = null;
@@ -245,7 +251,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
             // Header: catalyst slot box at (6, 2) -> stack at (7, 3)
             ItemStack ctrl = getControllerStack();
-            this.catalyst = ctrl != null ? new PositionedStack(ctrl, 7, 3) : null;
+            this.catalyst = ctrl != null ? new PositionedStack(ctrl, 7, 3, false) : null;
         }
 
         @Override
@@ -299,9 +305,14 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
     public static boolean sTestMode = false;
 
+    private static int placeholderCounter = 1;
+    private static final java.util.Map<String, Integer> placeholderMetaMap = new java.util.HashMap<>();
+
     public static synchronized void resetData() {
         initialized = false;
         ALL_COMPONENTS.clear();
+        placeholderCounter = 1;
+        placeholderMetaMap.clear();
     }
 
     private static boolean isTestMode() {
@@ -319,8 +330,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         return false;
     }
 
-    private static ItemStack createTestPlaceholder(String name) {
-        ItemStack stack = new ItemStack(net.minecraft.init.Items.paper);
+    public static synchronized ItemStack createTestPlaceholder(String name) {
+        int meta = placeholderMetaMap.computeIfAbsent(name, k -> placeholderCounter++);
+        ItemStack stack = new ItemStack(net.minecraft.init.Items.paper, 1, meta);
         stack.setStackDisplayName(name);
         return stack;
     }
@@ -361,6 +373,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         }
         if (s == null && isTestMode()) {
             s = createTestPlaceholder(materialName + " Long Rod");
+        }
+        if (s != null && s.getItemDamage() == OreDictionary.WILDCARD_VALUE) {
+            s.setItemDamage(0);
         }
         return s;
     }
@@ -916,6 +931,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         String extra) {
         if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
         if (stack == null) return;
+        if (stack.getItemDamage() == OreDictionary.WILDCARD_VALUE) {
+            stack.setItemDamage(0);
+        }
         ALL_COMPONENTS.add(
             new ComponentStatsData(
                 stack,
@@ -954,8 +972,16 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     private static ItemStack getFirstOre(String oreName) {
         List<ItemStack> ores = OreDictionary.getOres(oreName);
         if (ores != null && !ores.isEmpty()) {
-            return ores.get(0)
-                .copy();
+            for (ItemStack ore : ores) {
+                if (ore != null && ore.getItemDamage() != OreDictionary.WILDCARD_VALUE) {
+                    return ore.copy();
+                }
+            }
+            ItemStack first = ores.get(0).copy();
+            if (first.getItemDamage() == OreDictionary.WILDCARD_VALUE) {
+                first.setItemDamage(0);
+            }
+            return first;
         }
         return null;
     }
@@ -965,18 +991,17 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         ItemStack mainStack = null;
         if (mat != null) {
             mainStack = GTOreDictUnificator.get(OrePrefixes.stickLong, mat, 1L);
-            if (mainStack == null) mainStack = GTOreDictUnificator.get(OrePrefixes.stick, mat, 1L);
-            if (mainStack == null) mainStack = GTOreDictUnificator.get(OrePrefixes.plate, mat, 1L);
         }
         if (mainStack == null && materialName != null) {
             mainStack = getFirstOre("stickLong" + materialName);
-            if (mainStack == null) mainStack = getFirstOre("stick" + materialName);
-            if (mainStack == null) mainStack = getFirstOre("plate" + materialName);
         }
         if (mainStack == null && isTestMode()) {
             mainStack = createTestPlaceholder(name);
         }
         if (mainStack == null) return;
+        if (mainStack.getItemDamage() == OreDictionary.WILDCARD_VALUE) {
+            mainStack.setItemDamage(0);
+        }
 
         ComponentStatsData data = new ComponentStatsData(
             mainStack,
@@ -1011,14 +1036,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0L,
             extra);
 
-        if (mat != null) {
-            addAlternate(data, GTOreDictUnificator.get(OrePrefixes.stick, mat, 1L));
-            addAlternate(data, GTOreDictUnificator.get(OrePrefixes.plate, mat, 1L));
-        }
-        if (materialName != null) {
-            addAlternate(data, getFirstOre("stick" + materialName));
-            addAlternate(data, getFirstOre("plate" + materialName));
-        }
         ALL_COMPONENTS.add(data);
     }
 
@@ -1424,7 +1441,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         }
     }
 
-    private boolean matches(ItemStack target, ComponentStatsData data) {
+    public boolean matches(ItemStack target, ComponentStatsData data) {
         if (target == null || data == null) return false;
         if (matchesStack(target, data.stack)) return true;
         for (ItemStack alt : data.alternateStacks) {
@@ -1433,15 +1450,13 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         return false;
     }
 
-    private boolean matchesStack(ItemStack target, ItemStack component) {
+    public boolean matchesStack(ItemStack target, ItemStack component) {
         if (target == null || component == null) return false;
-        if (GTUtility.areStacksEqual(target, component, true)) return true;
-        if (target.getItem() == component.getItem()) {
-            return target.getItemDamage() == OreDictionary.WILDCARD_VALUE
-                || component.getItemDamage() == OreDictionary.WILDCARD_VALUE
-                || target.getItemDamage() == component.getItemDamage();
+        if (target.getItem() != component.getItem()) return false;
+        if (!target.isItemStackDamageable() && target.getItemDamage() != component.getItemDamage()) {
+            return false;
         }
-        return false;
+        return true;
     }
 
     @Override
