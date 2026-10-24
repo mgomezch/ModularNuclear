@@ -82,20 +82,20 @@ def generate_plate(out_path, wafer_base, busbar_color, pad_color, highlight_colo
             elif is_bot_right:
                 r -= 35; g -= 35; b -= 35
 
-            # Longitudinal collector busbars at x=6 and x=9
-            if (x == 6 or x == 9) and y >= 3 and y <= 12:
+            # Horizontal collector busbars at y=6 and y=9 (rotated 90 degrees)
+            if (y == 6 or y == 9) and x >= 3 and x <= 12:
                 r, g, b = bb_r, bb_g, bb_b
-                if x == 6:
+                if y == 6:
                     r = min(255, r + 15); g = min(255, g + 15); b = min(255, b + 15)
 
-            # Central horizontal interconnect at y=7 and y=8 between busbars
-            if (y == 7 or y == 8) and x >= 6 and x <= 9:
+            # Central vertical interconnect at x=7 and x=8 between busbars
+            if (x == 7 or x == 8) and y >= 6 and y <= 9:
                 r, g, b = bb_r, bb_g, bb_b
 
-            # Contact pads at top and bottom of busbars
-            if (x in (5, 6, 7) or x in (8, 9, 10)) and (y == 3 or y == 12):
+            # Contact pads at left and right ends of busbars
+            if (y in (5, 6, 7) or y in (8, 9, 10)) and (x == 3 or x == 12):
                 r, g, b = pd_r, pd_g, pd_b
-            if (x == 6 or x == 9) and (y == 3 or y == 12):
+            if (y == 6 or y == 9) and (x == 3 or x == 12):
                 r, g, b = hl_r, hl_g, hl_b  # Contact glint
 
             pixels.append((r, g, b, 255))
@@ -135,6 +135,28 @@ def main(output_dir=None):
     )
     print(f"  [✓] Wrote {ev_dest.name} (pure procedural EV Cyan superconductor)")
 
+    # Also update web simulator tile icons if present
+    sim_icons_dir = script_dir.parent.parent / "src/main/resources/assets/modularnuclear/textures/sim/icons"
+    if sim_icons_dir.exists():
+        hv_sim = sim_icons_dir / "RADIOVOLTAIC_HV.png"
+        ev_sim = sim_icons_dir / "RADIOVOLTAIC_EV.png"
+        generate_plate(
+            hv_sim,
+            wafer_base=(48, 56, 64),
+            busbar_color=(235, 175, 25),
+            pad_color=(255, 210, 60),
+            highlight_color=(255, 245, 160)
+        )
+        generate_plate(
+            ev_sim,
+            wafer_base=(30, 36, 42),
+            busbar_color=(0, 200, 230),
+            pad_color=(60, 230, 255),
+            highlight_color=(200, 250, 255)
+        )
+        print(f"  [✓] Synchronized {hv_sim.name} and {ev_sim.name} for web simulator")
+
 
 if __name__ == "__main__":
     main()
+
