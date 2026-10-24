@@ -569,7 +569,9 @@ public class StandaloneNuclearGrid {
             if (grid[x][y].isHatch()) {
                 int hatchTier = Math.max(1, pipeTier + 4);
                 grid[x][y].setTier(hatchTier);
-                grid[x][y].setInputFluidCapacity(8000 * (1 << hatchTier));
+                int cap = Math.max(NuclearSimulationEngine.hatchCoolantCapacity, 8000 * (1 << hatchTier));
+                grid[x][y].setInputFluidCapacity(cap);
+                grid[x][y].setInputFluidAmount(cap);
             }
             if (type == SimTile.TileType.PASSAGE_CORE && isTier2ConvectiveAllowed()
                 && coolingMode == CoolantLoopModel.CoolingMode.MODULAR) {
@@ -591,6 +593,7 @@ public class StandaloneNuclearGrid {
                 SimTile tile = grid[x][y];
                 if (tile != null && tile.isHatch()) {
                     tile.setInputFluidCapacity(newCap);
+                    tile.setInputFluidAmount(newCap);
                 }
             }
         }
@@ -1473,7 +1476,9 @@ public class StandaloneNuclearGrid {
                 SimTile tile = grid[x][y];
                 if (tile != null && tile.isHatch()) {
                     tile.setTier(hatchTier);
-                    tile.setInputFluidCapacity(8000 * (1 << hatchTier));
+                    int cap = Math.max(NuclearSimulationEngine.hatchCoolantCapacity, 8000 * (1 << hatchTier));
+                    tile.setInputFluidCapacity(cap);
+                    tile.setInputFluidAmount(cap);
                 }
             }
         }
