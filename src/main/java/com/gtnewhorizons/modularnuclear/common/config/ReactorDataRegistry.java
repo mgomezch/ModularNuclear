@@ -115,7 +115,13 @@ public final class ReactorDataRegistry {
         coolantItemCache.clear();
         coolantFluidItemCache.clear();
         spentProductCache.clear();
-        com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.clearCaches();
+        try {
+            Class.forName("net.minecraft.item.Item");
+            Class<?> clazz = Class.forName("com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification");
+            clazz.getMethod("clearCaches").invoke(null);
+        } catch (Throwable ignored) {
+            // Standalone CLI or WebAssembly environment without Minecraft classes
+        }
     }
 
     public static synchronized void preIndexKnownItems() {
