@@ -936,7 +936,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         GL11.glPopMatrix();
     }
 
-    private static void drawScaledString(String text, float x, float y, float scale, int color) {
+    public static void drawScaledString(String text, float x, float y, float scale, int color) {
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
         GL11.glPushMatrix();
         GL11.glTranslatef(x, y, 0.0f);
@@ -946,7 +946,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
-    private static void drawIndicatorDot(float x, float y, float r, float g, float b) {
+    public static void drawIndicatorDot(float x, float y, float r, float g, float b) {
         // Outer colored diamond (radius 2.5)
         GL11.glColor4f(r, g, b, 1.0f);
         GL11.glBegin(GL11.GL_QUADS);

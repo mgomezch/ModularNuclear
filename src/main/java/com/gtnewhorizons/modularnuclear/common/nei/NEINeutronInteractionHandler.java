@@ -10,8 +10,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
@@ -24,6 +26,8 @@ import net.minecraftforge.oredict.OreDictionary;
 
 import org.lwjgl.opengl.GL11;
 
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 
@@ -60,6 +64,21 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         "textures/gui/nei/long_arrow.png");
 
     public static final String OVERLAY_ID = "gt.nei.neutron_interaction";
+
+    public static final int RV_PANEL_X = 6;
+    public static final int RV_PANEL_Y = 237;
+    public static final int RV_PANEL_W = 154;
+    public static final int RV_PANEL_H = 72;
+
+    public static final int RV_SCREEN_X = 8;
+    public static final int RV_SCREEN_Y = 249;
+    public static final int RV_SCREEN_W = 150;
+    public static final int RV_SCREEN_H = 58;
+
+    public static final int RV_PLOT_X = 28;
+    public static final int RV_PLOT_Y = 252;
+    public static final int RV_PLOT_W = 104;
+    public static final int RV_PLOT_H = 42;
 
     public static class ComponentStatsData {
 
@@ -107,6 +126,20 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         public final String extraInfo;
 
+        public final boolean isRadiovoltaic;
+        public final double saturationFlux;
+
+        public double calculatePower(double absorbedFlux) {
+            double effectiveSat = saturationFlux > 0 ? saturationFlux : 50.0;
+            return maxDirectEU * Math.tanh(absorbedFlux / effectiveSat);
+        }
+
+        public double calculateHeat(double absorbedFlux) {
+            double totalEnergy = absorbedFlux * 20.0;
+            double power = calculatePower(absorbedFlux);
+            return Math.max(0.0, totalEnergy - power);
+        }
+
         public ComponentStatsData(ItemStack stack, String name, String category, double fastScattering,
             double fastAbsorption, double slowingProbability, double thermalScattering, double thermalAbsorption,
             boolean isReflector, double reflectionFast, double reflectionThermal, double heatTransferCoeff,
@@ -115,6 +148,23 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             boolean producesDirectEU, long maxDirectEU, String directEUTier, double directEUPenNeutronFast,
             double directEUPenNeutronThermal, boolean hasDurability, long durability, String durabilityLabel,
             boolean hasTransmutation, ItemStack transmutationOutput, long transmutationNeutrons, String extraInfo) {
+            this(stack, name, category, fastScattering, fastAbsorption, slowingProbability, thermalScattering,
+                thermalAbsorption, isReflector, reflectionFast, reflectionThermal, heatTransferCoeff,
+                thermalInsulationFactor, selfCoolingRate, componentCoolingRate, heatTransferRate, maxTemperature,
+                boilingPoint, specificHeat, producesDirectEU, maxDirectEU, directEUTier, directEUPenNeutronFast,
+                directEUPenNeutronThermal, hasDurability, durability, durabilityLabel, hasTransmutation,
+                transmutationOutput, transmutationNeutrons, extraInfo, false, 0.0);
+        }
+
+        public ComponentStatsData(ItemStack stack, String name, String category, double fastScattering,
+            double fastAbsorption, double slowingProbability, double thermalScattering, double thermalAbsorption,
+            boolean isReflector, double reflectionFast, double reflectionThermal, double heatTransferCoeff,
+            double thermalInsulationFactor, double selfCoolingRate, double componentCoolingRate,
+            double heatTransferRate, double maxTemperature, double boilingPoint, double specificHeat,
+            boolean producesDirectEU, long maxDirectEU, String directEUTier, double directEUPenNeutronFast,
+            double directEUPenNeutronThermal, boolean hasDurability, long durability, String durabilityLabel,
+            boolean hasTransmutation, ItemStack transmutationOutput, long transmutationNeutrons, String extraInfo,
+            boolean isRadiovoltaic, double saturationFlux) {
             this.stack = stack;
             this.name = name;
             this.category = category;
@@ -146,6 +196,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             this.transmutationOutput = transmutationOutput;
             this.transmutationNeutrons = transmutationNeutrons;
             this.extraInfo = extraInfo;
+            this.isRadiovoltaic = isRadiovoltaic;
+            this.saturationFlux = saturationFlux;
         }
     }
 
@@ -180,11 +232,16 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             this.inputHeat = new PositionedStack(allVariants, 58, 194);
 
             // Card 4 (Durability & byproducts):
-            int durSlotX = data.transmutationOutput != null ? 30 : 66;
-            this.durabilityInput = new PositionedStack(allVariants, durSlotX + 1, 266);
-            this.transmutationOutput = data.transmutationOutput != null
-                ? new PositionedStack(data.transmutationOutput, 101, 266)
-                : null;
+            if (!data.isRadiovoltaic) {
+                int durSlotX = data.transmutationOutput != null ? 30 : 66;
+                this.durabilityInput = new PositionedStack(allVariants, durSlotX + 1, 266);
+                this.transmutationOutput = data.transmutationOutput != null
+                    ? new PositionedStack(data.transmutationOutput, 101, 266)
+                    : null;
+            } else {
+                this.durabilityInput = null;
+                this.transmutationOutput = null;
+            }
 
             // Header: catalyst slot box at (6, 2) -> stack at (7, 3)
             ItemStack ctrl = getControllerStack();
@@ -206,7 +263,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             List<PositionedStack> list = new ArrayList<>();
             list.add(inputThermal);
             list.add(inputHeat);
-            list.add(durabilityInput);
+            if (durabilityInput != null) {
+                list.add(durabilityInput);
+            }
             if (transmutationOutput != null) {
                 list.add(transmutationOutput);
             }
@@ -495,20 +554,44 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             100_000_000L,
             "Extreme absorber | 99% thermal capture, high fast capture");
 
-        // 4. RADIOVOLTAIC PLATES - 100% absorption, generates direct EU from absorbed neutron flux
+        // 4. RADIOVOLTAIC PLATES - 40% (HV) / 60% (EV) absorption, generates direct EU from absorbed neutron flux
+        ComponentData.RadiovoltaicData rvHv = null;
+        ComponentData.RadiovoltaicData rvEv = null;
+        try {
+            if (ReactorDataRegistry.getComponentData() != null
+                && ReactorDataRegistry.getComponentData().radiovoltaics != null) {
+                for (ComponentData.RadiovoltaicData r : ReactorDataRegistry.getComponentData().radiovoltaics) {
+                    if ("radiovoltaic_hv".equals(r.id) || r.tier == 1) rvHv = r;
+                    else if ("radiovoltaic_ev".equals(r.id) || r.tier == 2) rvEv = r;
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        double hvAbs = (rvHv != null) ? rvHv.absorptionFast : 0.40;
+        double hvSat = (rvHv != null && rvHv.saturationFlux > 0) ? rvHv.saturationFlux : 50.0;
+        long hvMaxEU = (rvHv != null && rvHv.maxEU > 0) ? rvHv.maxEU : 1024L;
+
+        double evAbs = (rvEv != null) ? rvEv.absorptionFast : 0.60;
+        double evSat = (rvEv != null && rvEv.saturationFlux > 0) ? rvEv.saturationFlux : 150.0;
+        long evMaxEU = (rvEv != null && rvEv.maxEU > 0) ? rvEv.maxEU : 4096L;
+
         addRadiovoltaic(
             ModItems.radiovoltaicPlateHV != null ? ModItems.radiovoltaicPlateHV.copy() : null,
             "HV Radiovoltaic Plate",
             1,
-            1024L,
+            hvMaxEU,
             "HV (2A)",
+            hvSat,
+            hvAbs,
             "Converts absorbed neutrons to direct EU | Max 1024 EU/t");
         addRadiovoltaic(
             ModItems.radiovoltaicPlateEV != null ? ModItems.radiovoltaicPlateEV.copy() : null,
             "EV Radiovoltaic Plate",
             2,
-            4096L,
+            evMaxEU,
             "EV (2A)",
+            evSat,
+            evAbs,
             "Converts absorbed neutrons to direct EU | Max 4096 EU/t");
 
         // 5. THERMAL INSULATORS - Restrict heat conduction across reactor core zones
@@ -940,7 +1023,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     }
 
     private static void addRadiovoltaic(ItemStack stack, String name, int tier, long maxEU, String tierLabel,
-        String extra) {
+        double satFlux, double absRate, String extra) {
         if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
         if (stack == null) return;
         ALL_COMPONENTS.add(
@@ -949,10 +1032,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 name,
                 "Radiovoltaic Plate",
                 0.0,
-                1.0,
+                absRate,
                 0.0,
                 0.0,
-                1.0,
+                absRate,
                 false,
                 0.0,
                 0.0,
@@ -975,7 +1058,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 false,
                 null,
                 0L,
-                extra));
+                extra,
+                true,
+                satFlux));
     }
 
     private static void addInsulator(ItemStack stack, String name, double insulation, double conduction, double fastAbs,
@@ -1361,6 +1446,12 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
     @Override
     public int getRecipeHeight(int recipe) {
+        if (recipe >= 0 && recipe < arecipes.size()) {
+            CachedRecipe cr = arecipes.get(recipe);
+            if (cr instanceof CachedNeutronInteractionRecipe nr && nr.data.isRadiovoltaic) {
+                return 314;
+            }
+        }
         return 304;
     }
 
@@ -1394,19 +1485,24 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             GuiDraw.changeTexture(TEXTURE_ATLAS);
             GuiDraw.drawTexturedModalRect(30, 187, 0, 109, 92, 31);
 
-            // Card 4: Durability & byproducts panel at y=237
-            drawPanel(6, 237, 154, 64);
-            int durSlotX = recipe.data.transmutationOutput != null ? 30 : 66;
-            drawSlotBox(durSlotX, 265);
+            // Card 4: Durability & byproducts panel at y=237 OR Radiovoltaic curve panel
+            if (recipe.data.isRadiovoltaic) {
+                NEIFuelStatsHandler.drawThemePanel(RV_PANEL_X, RV_PANEL_Y, RV_PANEL_W, RV_PANEL_H);
+                NEIFuelStatsHandler.drawSunkenBox(RV_SCREEN_X, RV_SCREEN_Y, RV_SCREEN_W, RV_SCREEN_H, 0xFF141619);
+            } else {
+                drawPanel(6, 237, 154, 64);
+                int durSlotX = recipe.data.transmutationOutput != null ? 30 : 66;
+                drawSlotBox(durSlotX, 265);
 
-            if (recipe.data.transmutationOutput != null) {
-                drawSlotBox(100, 265);
-                GuiDraw.changeTexture(LONG_ARROW);
-                drawCustomTexturedModalRect(58, 264, 0, 0, 40, 20, 40, 40);
-                long cycle = System.currentTimeMillis() % 3000L;
-                int fillW = (int) (40.0 * (cycle / 3000.0));
-                if (fillW > 0) {
-                    drawCustomTexturedModalRect(58, 264, 0, 20, fillW, 20, 40, 40);
+                if (recipe.data.transmutationOutput != null) {
+                    drawSlotBox(100, 265);
+                    GuiDraw.changeTexture(LONG_ARROW);
+                    drawCustomTexturedModalRect(58, 264, 0, 0, 40, 20, 40, 40);
+                    long cycle = System.currentTimeMillis() % 3000L;
+                    int fillW = (int) (40.0 * (cycle / 3000.0));
+                    if (fillW > 0) {
+                        drawCustomTexturedModalRect(58, 264, 0, 20, fillW, 20, 40, 40);
+                    }
                 }
             }
         }
@@ -1541,30 +1637,196 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 GuiDraw.drawStringC("Thermal conduction coefficient: k = " + formatNumber(d.heatTransferCoeff), 83, 221, 0x505050, false);
             }
 
-            // --- Card 4: Durability & Byproducts Panel (baseY = 237) ---
-            GuiDraw.drawStringC(
-                StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption"),
-                83,
-                240,
-                0x404040,
-                false);
-
-            if (d.transmutationOutput != null) {
-                String reqStr = formatNeutrons(d.transmutationNeutrons);
-                String transStr = reqStr + " Neutrons -> " + d.transmutationOutput.getDisplayName();
-                GuiDraw.drawStringC(transStr, 83, 289, 0x205090, false);
-            } else if (d.hasDurability) {
-                String durStr = d.durabilityLabel + ": " + formatNeutrons(d.durability);
-                GuiDraw.drawStringC(durStr, 83, 289, 0x404040, false);
+            // --- Card 4: Durability & Byproducts Panel OR Radiovoltaic Power & Heat Curve (baseY = 237) ---
+            if (d.isRadiovoltaic) {
+                drawRadiovoltaicCurve(recipe, recipeIndex);
             } else {
                 GuiDraw.drawStringC(
-                    d.durabilityLabel != null ? d.durabilityLabel : "Indestructible",
+                    StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption"),
                     83,
-                    289,
-                    0x008000,
+                    240,
+                    0x404040,
                     false);
+
+                if (d.transmutationOutput != null) {
+                    String reqStr = formatNeutrons(d.transmutationNeutrons);
+                    String transStr = reqStr + " Neutrons -> " + d.transmutationOutput.getDisplayName();
+                    GuiDraw.drawStringC(transStr, 83, 289, 0x205090, false);
+                } else if (d.hasDurability) {
+                    String durStr = d.durabilityLabel + ": " + formatNeutrons(d.durability);
+                    GuiDraw.drawStringC(durStr, 83, 289, 0x404040, false);
+                } else {
+                    GuiDraw.drawStringC(
+                        d.durabilityLabel != null ? d.durabilityLabel : "Indestructible",
+                        83,
+                        289,
+                        0x008000,
+                        false);
+                }
             }
         }
+    }
+
+    public static boolean isMouseOverRVPlot(int x, int y) {
+        return x >= RV_PLOT_X && x <= (RV_PLOT_X + RV_PLOT_W) && y >= RV_PLOT_Y && y <= (RV_PLOT_Y + RV_PLOT_H);
+    }
+
+    private void drawRadiovoltaicCurve(CachedNeutronInteractionRecipe recipe, int recipeIndex) {
+        ComponentStatsData d = recipe.data;
+        long maxEU = d.maxDirectEU > 0 ? d.maxDirectEU : (d.saturationFlux > 100.0 ? 4096 : 1024);
+        double satFlux = d.saturationFlux > 0 ? d.saturationFlux : (maxEU >= 4096 ? 150.0 : 50.0);
+        double maxFlux = (maxEU >= 4096) ? 300.0 : 100.0;
+        double maxHeat = (maxEU >= 4096) ? 3000.0 : 1500.0;
+
+        // Title at (83, 239)
+        GuiDraw.drawStringC(
+            StatCollector.translateToLocal("gt.nei.neutron_interaction.radiovoltaic_curve"),
+            83,
+            239,
+            0x404040,
+            false);
+
+        // 1. Grid Lines
+        GL11.glPushMatrix();
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+
+        GL11.glColor4f(1.0f, 1.0f, 1.0f, 0.08f);
+        GL11.glLineWidth(1.0f);
+        GL11.glBegin(GL11.GL_LINES);
+        for (int p = 25; p < 100; p += 25) {
+            int gy = RV_PLOT_Y + RV_PLOT_H - (int) Math.round((p / 100.0) * RV_PLOT_H);
+            GL11.glVertex2f(RV_PLOT_X, gy);
+            GL11.glVertex2f(RV_PLOT_X + RV_PLOT_W, gy);
+        }
+        for (int p = 25; p < 100; p += 25) {
+            int gx = RV_PLOT_X + (int) Math.round((p / 100.0) * RV_PLOT_W);
+            GL11.glVertex2f(gx, RV_PLOT_Y);
+            GL11.glVertex2f(gx, RV_PLOT_Y + RV_PLOT_H);
+        }
+        GL11.glEnd();
+        GL11.glEnable(GL11.GL_ALPHA_TEST);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glPopMatrix();
+
+        // 2. Axis text & labels (using 0.5x scale font renderer)
+        FontRenderer font = Minecraft.getMinecraft().fontRenderer;
+        GL11.glPushMatrix();
+        GL11.glScalef(0.5f, 0.5f, 1.0f);
+
+        // Left Axis: Power EU/t (Cyan: 0xFF38BDF8)
+        font.drawString("EU", (RV_PLOT_X - 16) * 2, (RV_PLOT_Y - 2) * 2, 0xFF38BDF8);
+        for (int p = 0; p <= 100; p += 50) {
+            int gy = RV_PLOT_Y + RV_PLOT_H - (int) Math.round((p / 100.0) * RV_PLOT_H);
+            long pVal = Math.round((p / 100.0) * maxEU);
+            String pStr = (pVal >= 1000) ? String.format(Locale.US, "%.1fk", pVal / 1000.0) : String.valueOf(pVal);
+            int sw = font.getStringWidth(pStr);
+            font.drawString(pStr, (RV_PLOT_X - 2) * 2 - sw, (gy - 2) * 2, 0xFF38BDF8);
+        }
+
+        // Right Axis: Excess Heat Hu/t (Coral Red: 0xFFF87171)
+        font.drawString("Hu", (RV_PLOT_X + RV_PLOT_W + 3) * 2, (RV_PLOT_Y - 2) * 2, 0xFFF87171);
+        for (int p = 0; p <= 100; p += 50) {
+            int gy = RV_PLOT_Y + RV_PLOT_H - (int) Math.round((p / 100.0) * RV_PLOT_H);
+            double hVal = (p / 100.0) * maxHeat;
+            String hStr = (hVal >= 1000.0) ? String.format(Locale.US, "%.1fk", hVal / 1000.0) : String.valueOf((int) hVal);
+            font.drawString(hStr, (RV_PLOT_X + RV_PLOT_W + 3) * 2, (gy - 2) * 2, 0xFFF87171);
+        }
+
+        // Bottom Axis: Flux labels (Silver: 0xFF9CA3AF)
+        font.drawString("0", (RV_PLOT_X - 1) * 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, 0xFF9CA3AF);
+        int midFlux = (int) (maxFlux / 2);
+        String midStr = String.valueOf(midFlux);
+        int midSw = font.getStringWidth(midStr);
+        font.drawString(midStr, (RV_PLOT_X + RV_PLOT_W / 2) * 2 - midSw / 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, 0xFF9CA3AF);
+        String maxStr = String.valueOf((int) maxFlux);
+        int maxSw = font.getStringWidth(maxStr);
+        font.drawString(maxStr, (RV_PLOT_X + RV_PLOT_W) * 2 - maxSw / 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, 0xFF9CA3AF);
+        font.drawString("n/t", (RV_PLOT_X + RV_PLOT_W + 10) * 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, 0xFF9CA3AF);
+
+        GL11.glPopMatrix();
+
+        // 3. Draw Dynamic Anti-aliased Vector Curves
+        GL11.glPushMatrix();
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+        GL11.glEnable(GL11.GL_LINE_SMOOTH);
+        GL11.glHint(GL11.GL_LINE_SMOOTH_HINT, GL11.GL_NICEST);
+        GL11.glLineWidth(2.0f);
+
+        // Power curve (Cyan: #38BDF8)
+        GL11.glColor4f(0.22f, 0.74f, 0.97f, 1.0f);
+        GL11.glBegin(GL11.GL_LINE_STRIP);
+        for (int i = 0; i <= RV_PLOT_W; i++) {
+            double flux = (i / (double) RV_PLOT_W) * maxFlux;
+            double p = d.calculatePower(flux);
+            float y = (float) (RV_PLOT_Y + RV_PLOT_H - Math.max(0.0, Math.min(1.0, p / maxEU)) * RV_PLOT_H);
+            GL11.glVertex2f(RV_PLOT_X + i, y);
+        }
+        GL11.glEnd();
+
+        // Heat curve (Coral Red: #F87171)
+        GL11.glColor4f(0.97f, 0.44f, 0.44f, 1.0f);
+        GL11.glBegin(GL11.GL_LINE_STRIP);
+        for (int i = 0; i <= RV_PLOT_W; i++) {
+            double flux = (i / (double) RV_PLOT_W) * maxFlux;
+            double h = d.calculateHeat(flux);
+            float y = (float) (RV_PLOT_Y + RV_PLOT_H - Math.max(0.0, Math.min(1.0, h / maxHeat)) * RV_PLOT_H);
+            GL11.glVertex2f(RV_PLOT_X + i, y);
+        }
+        GL11.glEnd();
+
+        // 4. Interactive Crosshair & Guide Lines on Hover
+        Point mouseInRecipe = null;
+        if (Minecraft.getMinecraft().currentScreen instanceof GuiRecipe<?> guiRecipe) {
+            mouseInRecipe = getMouseInRecipe(guiRecipe, recipeIndex);
+        }
+
+        if (mouseInRecipe != null && isMouseOverRVPlot(mouseInRecipe.x, mouseInRecipe.y)) {
+            int mx = mouseInRecipe.x;
+            double fluxAtMouse = ((mx - RV_PLOT_X) / (double) RV_PLOT_W) * maxFlux;
+            double pAtMouse = d.calculatePower(fluxAtMouse);
+            double hAtMouse = d.calculateHeat(fluxAtMouse);
+            float yp = (float) (RV_PLOT_Y + RV_PLOT_H - Math.max(0.0, Math.min(1.0, pAtMouse / maxEU)) * RV_PLOT_H);
+            float yh = (float) (RV_PLOT_Y + RV_PLOT_H - Math.max(0.0, Math.min(1.0, hAtMouse / maxHeat)) * RV_PLOT_H);
+
+            // Vertical cursor line (neutral white)
+            GL11.glLineWidth(1.0f);
+            GL11.glColor4f(1.0f, 1.0f, 1.0f, 0.6f);
+            GL11.glBegin(GL11.GL_LINES);
+            GL11.glVertex2f(mx, RV_PLOT_Y);
+            GL11.glVertex2f(mx, RV_PLOT_Y + RV_PLOT_H);
+            GL11.glEnd();
+
+            // Horizontal projection to left axis for Power (Cyan)
+            GL11.glColor4f(0.22f, 0.74f, 0.97f, 0.5f);
+            GL11.glBegin(GL11.GL_LINES);
+            GL11.glVertex2f(RV_PLOT_X, yp);
+            GL11.glVertex2f(mx, yp);
+            GL11.glEnd();
+
+            // Horizontal projection to right axis for Heat (Coral Red)
+            GL11.glColor4f(0.97f, 0.44f, 0.44f, 0.5f);
+            GL11.glBegin(GL11.GL_LINES);
+            GL11.glVertex2f(mx, yh);
+            GL11.glVertex2f(RV_PLOT_X + RV_PLOT_W, yh);
+            GL11.glEnd();
+
+            // Snap indicator dots (diamonds)
+            NEIFuelStatsHandler.drawIndicatorDot(mx, yp, 0.22f, 0.74f, 0.97f);
+            NEIFuelStatsHandler.drawIndicatorDot(mx, yh, 0.97f, 0.44f, 0.44f);
+        }
+
+        GL11.glDisable(GL11.GL_LINE_SMOOTH);
+        GL11.glLineWidth(1.0f);
+        GL11.glEnable(GL11.GL_ALPHA_TEST);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        GL11.glPopMatrix();
     }
 
     private static String formatNeutrons(long n) {
@@ -1818,15 +2080,57 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                             + StatCollector.translateToLocal("gt.nei.neutron_interaction.multiplication.desc"));
                 }
 
-            // Card 4: Durability & Byproducts Panel (Y in [237, 301])
-            } else if (relY >= 237 && relY <= 301) {
-                if (relX >= 25 && relX <= 140 && relY >= 257 && relY <= 299) {
-                    currenttip.add(
-                        EnumChatFormatting.WHITE
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_capacity"));
-                    currenttip.add(
-                        EnumChatFormatting.GRAY
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_capacity.desc"));
+            // Card 4: Durability & Byproducts Panel OR Radiovoltaic Power & Heat Curve (Y in [237, 309])
+            } else if (relY >= 237 && relY <= 309) {
+                if (d.isRadiovoltaic) {
+                    if (isMouseOverRVPlot(relX, relY)) {
+                        long maxEU = d.maxDirectEU > 0 ? d.maxDirectEU : (d.saturationFlux > 100.0 ? 4096 : 1024);
+                        double satFlux = d.saturationFlux > 0 ? d.saturationFlux : (maxEU >= 4096 ? 150.0 : 50.0);
+                        double maxFlux = (maxEU >= 4096) ? 300.0 : 100.0;
+                        double flux = ((relX - RV_PLOT_X) / (double) RV_PLOT_W) * maxFlux;
+                        double power = d.calculatePower(flux);
+                        double heat = d.calculateHeat(flux);
+
+                        currenttip.add(
+                            EnumChatFormatting.WHITE + ""
+                                + EnumChatFormatting.BOLD
+                                + String.format(Locale.US, "%.1f n/t flux", flux));
+
+                        String satNote = (flux >= satFlux * 1.5)
+                            ? EnumChatFormatting.GOLD + " (Saturated)"
+                            : (flux >= satFlux ? EnumChatFormatting.YELLOW + " (Knee)" : "");
+
+                        currenttip.add(
+                            EnumChatFormatting.AQUA + "Power output: "
+                                + formatNumber(power)
+                                + " EU/t ("
+                                + formatPercent(power / maxEU)
+                                + ")"
+                                + satNote);
+
+                        String heatNote = (heat <= 0.0) ? EnumChatFormatting.GRAY + " (None)" : "";
+                        currenttip.add(
+                            EnumChatFormatting.RED + "Excess heating: "
+                                + formatNumber(heat)
+                                + " Hu/t"
+                                + heatNote);
+                    } else if (relX >= 6 && relX <= 160 && relY >= 237 && relY <= 248) {
+                        currenttip.add(
+                            EnumChatFormatting.AQUA
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.radiovoltaic_curve"));
+                        currenttip.add(
+                            EnumChatFormatting.GRAY
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.radiovoltaic_curve.desc"));
+                    }
+                } else {
+                    if (relX >= 25 && relX <= 140 && relY >= 257 && relY <= 299) {
+                        currenttip.add(
+                            EnumChatFormatting.WHITE
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_capacity"));
+                        currenttip.add(
+                            EnumChatFormatting.GRAY
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_capacity.desc"));
+                    }
                 }
             }
         }

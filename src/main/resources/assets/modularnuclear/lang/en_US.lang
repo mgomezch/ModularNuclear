@@ -156,6 +156,8 @@ gt.nei.neutron_interaction.fast_stats=Fast: Scatter %s, Absorb %s, Slow %s
 gt.nei.neutron_interaction.thermal_stats=Thermal: Scatter %s, Absorb %s
 gt.nei.neutron_interaction.depleted_title=Depleted component (byproduct)
 gt.nei.neutron_interaction.depleted_desc=Produced after full component wear in the nuclear reactor
+gt.nei.neutron_interaction.radiovoltaic_curve=Power & heating
+gt.nei.neutron_interaction.radiovoltaic_curve.desc=Direct electric power output and excess heating vs absorbed neutron flux
 
 # BetterQuesting
 modularnuclear=Modern nuclear engineering

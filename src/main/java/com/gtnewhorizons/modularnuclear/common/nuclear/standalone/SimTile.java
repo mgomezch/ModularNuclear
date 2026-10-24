@@ -705,7 +705,7 @@ public class SimTile implements INuclearTile {
             return 1.0;
         }
         if (isRadiovoltaic()) {
-            return 1.0;
+            return (type == TileType.RADIOVOLTAIC_HV) ? 0.40 : 0.60;
         }
         if (isModerator()) {
             return switch (type) {
@@ -1061,7 +1061,7 @@ public class SimTile implements INuclearTile {
         if (isRadiovoltaic()) {
             long maxEU = (type == TileType.RADIOVOLTAIC_EV) ? 4096 : 1024;
             double weightedFlux = fastAbsorbed * 4.0 + thermalAbsorbed * 1.0;
-            double satFlux = 60.0;
+            double satFlux = (type == TileType.RADIOVOLTAIC_EV) ? 150.0 : 50.0;
             long genEU = (long) Math.round(maxEU * Math.tanh(weightedFlux / satFlux));
             this.directEUProduced = genEU;
             double totalEnergy = weightedFlux * 20.0;

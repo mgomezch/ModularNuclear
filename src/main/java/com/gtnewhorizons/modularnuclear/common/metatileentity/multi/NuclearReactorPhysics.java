@@ -361,7 +361,9 @@ public class NuclearReactorPhysics {
 
             if (reactor.isNaquariteInsulatorFoil(stack)) return 1.0;
             if (reactor.isItemInsulator(stack)) return 0.01;
-            if (reactor.isItemRadiovoltaic(stack)) return 1.0;
+            if (reactor.isItemRadiovoltaic(stack)) {
+                return (reactor.getRadiovoltaicTier(stack) >= 2) ? 0.60 : 0.40;
+            }
             if (NuclearFuelClassification.isItemModerator(stack)) {
                 return (type == NeutronType.THERMAL) ? 0.009 : 0.002;
             }
@@ -851,7 +853,7 @@ public class NuclearReactorPhysics {
             long maxEU = (rv != null && rv.maxEU > 0) ? rv.maxEU : ((tier >= 2) ? 4096 : 1024);
             double eff = (rv != null) ? rv.euConversionEfficiency : 1.0;
             double weightedFlux = bus.mFastAbsorbed * 4.0 + bus.mThermalAbsorbed * 1.0;
-            double satFlux = 60.0;
+            double satFlux = (rv != null && rv.saturationFlux > 0) ? rv.saturationFlux : ((tier >= 2) ? 150.0 : 50.0);
             long genEU = (long) Math.round(maxEU * eff * Math.tanh(weightedFlux / satFlux));
             bus.mDirectEUProduced = genEU;
             double totalEnergy = weightedFlux * 20.0;

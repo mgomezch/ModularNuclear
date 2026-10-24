@@ -704,18 +704,24 @@ public class ComponentData {
         public double euConversionEfficiency = 1.0;
         public long maxEU = 0;
         public double heatTransferCoeff = 0.10;
-        public double absorptionFast = 1.0;
-        public double absorptionThermal = 1.0;
+        public double absorptionFast = 0.40;
+        public double absorptionThermal = 0.40;
+        public double saturationFlux = 50.0;
 
         public RadiovoltaicData() {}
 
         public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency,
             double heatTransferCoeff, double absFast, double absThermal, String... matching) {
-            this(id, name, tier, euConversionEfficiency, 0, heatTransferCoeff, absFast, absThermal, matching);
+            this(id, name, tier, euConversionEfficiency, 0, heatTransferCoeff, absFast, absThermal, (tier >= 2 ? 150.0 : 50.0), matching);
         }
 
         public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency, long maxEU,
             double heatTransferCoeff, double absFast, double absThermal, String... matching) {
+            this(id, name, tier, euConversionEfficiency, maxEU, heatTransferCoeff, absFast, absThermal, (tier >= 2 ? 150.0 : 50.0), matching);
+        }
+
+        public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency, long maxEU,
+            double heatTransferCoeff, double absFast, double absThermal, double saturationFlux, String... matching) {
             this.id = id;
             this.name = name;
             this.tier = tier;
@@ -724,12 +730,29 @@ public class ComponentData {
             this.heatTransferCoeff = heatTransferCoeff;
             this.absorptionFast = absFast;
             this.absorptionThermal = absThermal;
+            this.saturationFlux = saturationFlux;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
         }
 
         public RadiovoltaicData(String id, String name, double euConversionEfficiency, double heatTransferCoeff,
             double absFast, double absThermal, String... matching) {
             this(id, name, 1, euConversionEfficiency, heatTransferCoeff, absFast, absThermal, matching);
+        }
+
+        public long getMaxEffectiveEU() {
+            if (maxEU > 0) return maxEU;
+            return (tier >= 2) ? 4096 : 1024;
+        }
+
+        public double calculatePower(double absorbedFlux) {
+            double effectiveSat = saturationFlux > 0 ? saturationFlux : (tier >= 2 ? 150.0 : 50.0);
+            return getMaxEffectiveEU() * euConversionEfficiency * Math.tanh(absorbedFlux / effectiveSat);
+        }
+
+        public double calculateHeat(double absorbedFlux) {
+            double totalEnergy = absorbedFlux * 20.0;
+            double power = calculatePower(absorbedFlux);
+            return Math.max(0.0, totalEnergy - power);
         }
 
         public static RadiovoltaicData fromMap(Map<String, Object> map) {
@@ -746,8 +769,9 @@ public class ComponentData {
                 d.maxEU = ((Number) map.get("max_eu_t")).longValue();
             }
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
-            d.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", d.absorptionFast);
-            d.absorptionThermal = PhysicsData.getDouble(map, "absorption_thermal", d.absorptionThermal);
+            d.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", d.tier >= 2 ? 0.60 : 0.40);
+            d.absorptionThermal = PhysicsData.getDouble(map, "absorption_thermal", d.tier >= 2 ? 0.60 : 0.40);
+            d.saturationFlux = PhysicsData.getDouble(map, "saturation_flux", d.tier >= 2 ? 150.0 : 50.0);
             return d;
         }
 
@@ -762,6 +786,7 @@ public class ComponentData {
             m.put("heat_transfer_coeff", heatTransferCoeff);
             m.put("absorption_fast", absorptionFast);
             m.put("absorption_thermal", absorptionThermal);
+            m.put("saturation_flux", saturationFlux);
             return m;
         }
     }

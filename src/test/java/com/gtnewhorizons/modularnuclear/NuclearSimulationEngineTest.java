@@ -643,9 +643,11 @@ public class NuclearSimulationEngineTest {
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellEV = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
             com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
 
-        // 1. Check absorption properties
-        assertEquals(1.0, cellHV.getAbsorptionProbability(NeutronType.FAST));
-        assertEquals(1.0, cellHV.getAbsorptionProbability(NeutronType.THERMAL));
+        // 1. Check absorption properties (rebalanced: 40% for HV, 60% for EV)
+        assertEquals(0.40, cellHV.getAbsorptionProbability(NeutronType.FAST), 1e-4);
+        assertEquals(0.40, cellHV.getAbsorptionProbability(NeutronType.THERMAL), 1e-4);
+        assertEquals(0.60, cellEV.getAbsorptionProbability(NeutronType.FAST), 1e-4);
+        assertEquals(0.60, cellEV.getAbsorptionProbability(NeutronType.THERMAL), 1e-4);
         assertEquals(0.0, cellHV.getScatteringProbability(NeutronType.FAST));
         assertEquals(0.0, cellHV.getModerationProbability());
 
@@ -8158,10 +8160,16 @@ public class NuclearSimulationEngineTest {
         ComponentData.RadiovoltaicData rvHv = ReactorDataRegistry.getComponentData().radiovoltaics.get(0);
         assertEquals(1.0, rvHv.euConversionEfficiency, 1e-4, "Radiovoltaic efficiency must default to 1.0 (100%)");
         assertEquals(1024L, rvHv.maxEU, "HV radiovoltaic maxEU must default to 1024 EU/t");
+        assertEquals(0.40, rvHv.absorptionFast, 1e-4, "HV radiovoltaic fast absorption must default to 0.40");
+        assertEquals(0.40, rvHv.absorptionThermal, 1e-4, "HV radiovoltaic thermal absorption must default to 0.40");
+        assertEquals(50.0, rvHv.saturationFlux, 1e-4, "HV radiovoltaic saturationFlux must default to 50.0");
 
         ComponentData.RadiovoltaicData rvEv = ReactorDataRegistry.getComponentData().radiovoltaics.get(1);
         assertEquals(1.0, rvEv.euConversionEfficiency, 1e-4, "Radiovoltaic efficiency must default to 1.0 (100%)");
         assertEquals(4096L, rvEv.maxEU, "EV radiovoltaic maxEU must default to 4096 EU/t");
+        assertEquals(0.60, rvEv.absorptionFast, 1e-4, "EV radiovoltaic fast absorption must default to 0.60");
+        assertEquals(0.60, rvEv.absorptionThermal, 1e-4, "EV radiovoltaic thermal absorption must default to 0.60");
+        assertEquals(150.0, rvEv.saturationFlux, 1e-4, "EV radiovoltaic saturationFlux must default to 150.0");
 
         // 3. Platings are not admitted or recognized as reactor components
         assertFalse(

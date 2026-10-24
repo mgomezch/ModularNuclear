@@ -2,7 +2,9 @@ package com.gtnewhorizons.modularnuclear;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import net.minecraft.init.Items;
@@ -98,10 +100,13 @@ public class NEINeutronInteractionHandlerTest {
                     }
                     case "Radiovoltaic Plate" -> {
                         foundRadiovoltaic = true;
-                        assertEquals(1.0, d.fastAbsorption, 1e-6);
-                        assertEquals(1.0, d.thermalAbsorption, 1e-6);
+                        assertTrue(d.fastAbsorption == 0.40 || d.fastAbsorption == 0.60,
+                            "Radiovoltaic plates must have 40% (HV) or 60% (EV) absorption");
+                        assertEquals(d.fastAbsorption, d.thermalAbsorption, 1e-6);
                         assertTrue(d.producesDirectEU, "Radiovoltaic plates must produce direct EU");
                         assertTrue(d.maxDirectEU >= 1024L, "Radiovoltaic plates must specify max EU/t");
+                        assertTrue(d.isRadiovoltaic, "Radiovoltaic plates must have isRadiovoltaic flag");
+                        assertTrue(d.saturationFlux > 0, "Radiovoltaic plates must specify saturation flux");
                     }
                     case "Thermal Insulator" -> {
                         foundInsulator = true;
@@ -429,5 +434,82 @@ public class NEINeutronInteractionHandlerTest {
 
             assertFalse(formatted.contains("%%"), "Formatted string must NOT contain double percent sign (%%): " + formatted);
         }
+    }
+
+    @Test
+    public void testRadiovoltaicCurveAndTooltips() {
+        NEINeutronInteractionHandler handler = new NEINeutronInteractionHandler();
+        handler.loadCraftingRecipes(handler.getOverlayIdentifier());
+
+        CachedNeutronInteractionRecipe rvHvRecipe = null;
+        CachedNeutronInteractionRecipe rvEvRecipe = null;
+        int rvHvIndex = -1;
+        int rvEvIndex = -1;
+
+        for (int i = 0; i < handler.arecipes.size(); i++) {
+            CachedRecipe cr = handler.arecipes.get(i);
+            if (cr instanceof CachedNeutronInteractionRecipe recipe && recipe.data.isRadiovoltaic) {
+                if ("HV Radiovoltaic Plate".equals(recipe.data.name)) {
+                    rvHvRecipe = recipe;
+                    rvHvIndex = i;
+                } else if ("EV Radiovoltaic Plate".equals(recipe.data.name)) {
+                    rvEvRecipe = recipe;
+                    rvEvIndex = i;
+                }
+            }
+        }
+
+        assertNotNull(rvHvRecipe, "HV Radiovoltaic recipe must be registered");
+        assertNotNull(rvEvRecipe, "EV Radiovoltaic recipe must be registered");
+
+        // 1. Absorption rates: 40% for HV, 60% for EV
+        assertEquals(0.40, rvHvRecipe.data.fastAbsorption, 1e-4, "HV absorption fast must be 40%");
+        assertEquals(0.40, rvHvRecipe.data.thermalAbsorption, 1e-4, "HV absorption thermal must be 40%");
+        assertEquals(0.60, rvEvRecipe.data.fastAbsorption, 1e-4, "EV absorption fast must be 60%");
+        assertEquals(0.60, rvEvRecipe.data.thermalAbsorption, 1e-4, "EV absorption thermal must be 60%");
+
+        // 2. Saturation and max EU
+        assertEquals(1024L, rvHvRecipe.data.maxDirectEU, "HV max direct EU must be 1024 EU/t (2A HV)");
+        assertEquals(4096L, rvEvRecipe.data.maxDirectEU, "EV max direct EU must be 4096 EU/t (2A EV)");
+        assertEquals(50.0, rvHvRecipe.data.saturationFlux, 1e-4, "HV saturation flux must be 50.0");
+        assertEquals(150.0, rvEvRecipe.data.saturationFlux, 1e-4, "EV saturation flux must be 150.0");
+
+        // 3. Recipe height: 314 for radiovoltaics (to comfortably accommodate the curve), 304 for standard
+        assertEquals(314, handler.getRecipeHeight(rvHvIndex), "HV Radiovoltaic recipe height must be 314");
+        assertEquals(314, handler.getRecipeHeight(rvEvIndex), "EV Radiovoltaic recipe height must be 314");
+
+        // 4. Power & heat curve calculations
+        double hvPowerLow = rvHvRecipe.data.calculatePower(25.0);
+        double hvHeatLow = rvHvRecipe.data.calculateHeat(25.0);
+        assertTrue(hvPowerLow > 0.0, "Low flux must generate power");
+        assertTrue(hvHeatLow < 50.0, "Low flux must generate minimal excess heat");
+
+        double hvPowerHigh = rvHvRecipe.data.calculatePower(200.0);
+        double hvHeatHigh = rvHvRecipe.data.calculateHeat(200.0);
+        assertTrue(hvPowerHigh >= 1020.0, "High flux power must approach 1024 EU/t saturation");
+        assertTrue(hvHeatHigh > 2500.0, "High flux excess energy must convert to heat");
+
+        // 5. Interactive tooltips on hover over Card 4 curve
+        List<String> tip = new ArrayList<>();
+        int midPlotX = NEINeutronInteractionHandler.RV_PLOT_X + NEINeutronInteractionHandler.RV_PLOT_W / 2;
+        int midPlotY = NEINeutronInteractionHandler.RV_PLOT_Y + NEINeutronInteractionHandler.RV_PLOT_H / 2;
+
+        assertTrue(NEINeutronInteractionHandler.isMouseOverRVPlot(midPlotX, midPlotY), "Center of plot must be mouse over");
+        assertFalse(NEINeutronInteractionHandler.isMouseOverRVPlot(5, 5), "Top left of GUI is not mouse over");
+
+        List<String> hoverTips = handler.getTooltipsAt(rvHvRecipe, midPlotX, midPlotY, tip);
+        assertFalse(hoverTips.isEmpty(), "Hovering over plot must generate tooltips");
+
+        boolean hasFlux = false;
+        boolean hasPower = false;
+        boolean hasHeat = false;
+        for (String line : hoverTips) {
+            if (line.contains("n/t flux")) hasFlux = true;
+            if (line.contains("Power output:")) hasPower = true;
+            if (line.contains("Excess heating:")) hasHeat = true;
+        }
+        assertTrue(hasFlux, "Tooltip must contain flux information");
+        assertTrue(hasPower, "Tooltip must contain power output information");
+        assertTrue(hasHeat, "Tooltip must contain excess heat information");
     }
 }
