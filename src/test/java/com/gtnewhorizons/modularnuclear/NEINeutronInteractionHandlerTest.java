@@ -594,4 +594,92 @@ public class NEINeutronInteractionHandlerTest {
         assertFalse(handler.matchesStack(itemAWildcard, itemA0), "Wildcard metadata query must not match specific non-damageable item");
         assertFalse(handler.matchesStack(itemA0, itemAWildcard), "Specific item must not match wildcard non-damageable component");
     }
+
+    @Test
+    public void testCard1FastNeutronPieChartLayoutAndConditionalPercentages() {
+        NEINeutronInteractionHandler handler = new NEINeutronInteractionHandler();
+        handler.loadCraftingRecipes(handler.getOverlayIdentifier());
+
+        // Verify the constant is moved further to the right than the old position 136
+        assertEquals(142, NEINeutronInteractionHandler.FAST_PIE_X, "Fast pie chart X must be positioned at 142");
+        assertTrue(NEINeutronInteractionHandler.FAST_PIE_X > 136, "Fast pie chart must be further to the right than 136");
+
+        CachedNeutronInteractionRecipe graphiteRecipe = null;
+        CachedNeutronInteractionRecipe berylliumRecipe = null;
+        CachedNeutronInteractionRecipe goldReflectorRecipe = null;
+
+        for (CachedRecipe cr : handler.arecipes) {
+            if (cr instanceof CachedNeutronInteractionRecipe nr) {
+                if ("Graphite Long Rod".equals(nr.data.name)) {
+                    graphiteRecipe = nr;
+                } else if ("Beryllium Long Rod".equals(nr.data.name)) {
+                    berylliumRecipe = nr;
+                } else if ("Gold Plate Reflector".equals(nr.data.name)) {
+                    goldReflectorRecipe = nr;
+                }
+            }
+        }
+
+        assertNotNull(graphiteRecipe, "Graphite Long Rod must be present");
+        assertNotNull(berylliumRecipe, "Beryllium Long Rod must be present");
+        assertNotNull(goldReflectorRecipe, "Gold Plate Reflector must be present");
+
+        int pieX = NEINeutronInteractionHandler.FAST_PIE_X;
+
+        // 1. Graphite: slowingProbability = 0.50 -> fast conditional fraction = 50%, thermal = 50%
+        assertEquals(0.50, graphiteRecipe.data.slowingProbability, 1e-4);
+        assertEquals("50%", NEINeutronInteractionHandler.formatPercent(1.0 - graphiteRecipe.data.slowingProbability));
+        assertEquals("50%", NEINeutronInteractionHandler.formatPercent(graphiteRecipe.data.slowingProbability));
+
+        List<String> graphiteFastTip = handler.getTooltipsAt(graphiteRecipe, pieX, 43, null);
+        assertFalse(graphiteFastTip.isEmpty(), "Graphite fast tooltip at (FAST_PIE_X, 43) must be present");
+        assertTrue(
+            graphiteFastTip.stream().anyMatch(s -> s.toLowerCase().contains("fast_fraction")),
+            "Graphite fast fraction tooltip must be present at (FAST_PIE_X, 43)");
+
+        List<String> graphiteModTip = handler.getTooltipsAt(graphiteRecipe, pieX, 87, null);
+        assertFalse(graphiteModTip.isEmpty(), "Graphite moderated tooltip at (FAST_PIE_X, 87) must be present");
+        assertTrue(
+            graphiteModTip.stream().anyMatch(s -> s.toLowerCase().contains("thermal_fraction")),
+            "Graphite thermal fraction tooltip must be present at (FAST_PIE_X, 87)");
+
+        List<String> graphitePieTip = handler.getTooltipsAt(graphiteRecipe, pieX, 65, null);
+        assertFalse(graphitePieTip.isEmpty(), "Graphite pie chart tooltip at (FAST_PIE_X, 65) must be present");
+        assertTrue(
+            graphitePieTip.stream().anyMatch(s -> s.toLowerCase().contains("fast_fraction")),
+            "Graphite pie chart tooltip must contain fast fraction");
+        assertTrue(
+            graphitePieTip.stream().anyMatch(s -> s.toLowerCase().contains("thermal_fraction")),
+            "Graphite pie chart tooltip must contain thermal fraction");
+
+        // 2. Beryllium: slowingProbability = 0.65 -> fast conditional = 35%, thermal = 65%
+        assertEquals(0.65, berylliumRecipe.data.slowingProbability, 1e-4);
+        assertEquals("35%", NEINeutronInteractionHandler.formatPercent(1.0 - berylliumRecipe.data.slowingProbability));
+        assertEquals("65%", NEINeutronInteractionHandler.formatPercent(berylliumRecipe.data.slowingProbability));
+
+        List<String> beryFastTip = handler.getTooltipsAt(berylliumRecipe, pieX, 43, null);
+        assertTrue(
+            beryFastTip.stream().anyMatch(s -> s.toLowerCase().contains("fast_fraction")),
+            "Beryllium fast fraction tooltip must be present at (FAST_PIE_X, 43)");
+
+        List<String> beryModTip = handler.getTooltipsAt(berylliumRecipe, pieX, 87, null);
+        assertTrue(
+            beryModTip.stream().anyMatch(s -> s.toLowerCase().contains("thermal_fraction")),
+            "Beryllium thermal fraction tooltip must be present at (FAST_PIE_X, 87)");
+
+        // 3. Gold Reflector: slowingProbability = 0.0 -> fast conditional = 100%, thermal = 0%
+        assertEquals(0.0, goldReflectorRecipe.data.slowingProbability, 1e-4);
+        assertEquals("100%", NEINeutronInteractionHandler.formatPercent(1.0 - goldReflectorRecipe.data.slowingProbability));
+        assertEquals("0%", NEINeutronInteractionHandler.formatPercent(goldReflectorRecipe.data.slowingProbability));
+
+        List<String> goldFastTip = handler.getTooltipsAt(goldReflectorRecipe, pieX, 43, null);
+        assertTrue(
+            goldFastTip.stream().anyMatch(s -> s.toLowerCase().contains("fast_fraction")),
+            "Gold Reflector fast fraction tooltip must be present at (FAST_PIE_X, 43)");
+
+        List<String> goldModTip = handler.getTooltipsAt(goldReflectorRecipe, pieX, 87, null);
+        assertTrue(
+            goldModTip.stream().anyMatch(s -> s.toLowerCase().contains("thermal_fraction")),
+            "Gold Reflector thermal fraction tooltip must be present at (FAST_PIE_X, 87)");
+    }
 }
