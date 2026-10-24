@@ -30,14 +30,36 @@ public enum NuclearStructureChannels implements IStructureChannels {
 
     @Override
     public void registerAsIndicator(ItemStack indicator, int channelValue) {
+        if (indicator == null) return;
+        if (channelValue > 0) {
+            try {
+                StructureLibAPI.registerChannelItem(get(), "modularnuclear", channelValue, indicator);
+                return;
+            } catch (Throwable ignored) {}
+        }
         try {
-            StructureLibAPI.registerChannelItem(get(), "modularnuclear", channelValue, indicator);
+            if (!StructureLibAPI.isDebugEnabled()) {
+                com.gtnewhorizon.structurelib.ChannelDescription.item(get(), channelValue, indicator);
+            }
+        } catch (Throwable ignored) {}
+        try {
+            com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler.addItemTooltip(
+                indicator,
+                com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler.translatedText("structurelib.tooltip.channelvalue", channelValue, get())
+            );
+            com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler.addItemTooltip(
+                indicator,
+                com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler.translatedText("structurelib.tooltip.indicator_dnd", channelValue, get())
+            );
         } catch (Throwable ignored) {}
     }
 
     @Override
     public int getValueClamped(ItemStack trigger, int min, int max) {
         if (trigger == null) {
+            return min;
+        }
+        if (!com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor.hasSubChannel(trigger, get())) {
             return min;
         }
         int raw = com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor

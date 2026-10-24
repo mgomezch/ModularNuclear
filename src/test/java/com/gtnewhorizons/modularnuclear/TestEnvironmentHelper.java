@@ -57,6 +57,9 @@ public class TestEnvironmentHelper {
             if (gregtech.GTMod.proxy == null) {
                 gregtech.GTMod.proxy = org.mockito.Mockito.mock(gregtech.common.GTProxy.class);
             }
+            if (gregtech.GTMod.GT == null) {
+                gregtech.GTMod.GT = org.mockito.Mockito.mock(gregtech.GTMod.class);
+            }
             if (gregtech.api.enums.GTValues.RA == null) {
                 gregtech.api.enums.GTValues.RA = new gregtech.common.RecipeAdder();
             }

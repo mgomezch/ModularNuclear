@@ -110,6 +110,7 @@ public class NuclearReactorStructure {
                 .addShape(STRUCTURE_TIER_2, transpose(SHAPE_TIER_2))
                 // Tier 3: 15x15 Footprint, 13x13 Octagonal Chamber (145 cells), Height 5
                 .addShape(STRUCTURE_TIER_3, transpose(SHAPE_TIER_3))
+                .addChannel(gregtech.common.misc.GTStructureChannels.ITEM_PIPE_CASING.get(), 2, 8)
                 .addElement(
                     'c',
                     buildHatchAdder(MTENuclearReactor.class).atLeast(Maintenance)
