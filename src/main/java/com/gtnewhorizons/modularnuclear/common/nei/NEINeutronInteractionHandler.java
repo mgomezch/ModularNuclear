@@ -81,6 +81,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     public static final int RV_PLOT_H = 42;
 
     public static final int FAST_PIE_X = 142;
+    public static final int FAST_SCAT_LABEL_X = 120;
 
     public static class ComponentStatsData {
 
@@ -1552,6 +1553,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             String absStr = formatPercent(d.fastAbsorption);
             GuiDraw.drawStringC(absStr, 83, 86, d.fastAbsorption > 0 ? 0xCC0000 : 0x404040, false);
 
+            // Overall scattered fast neutrons percentage (between green arrows and pie chart, vertically centered)
+            String fastScatProbStr = formatPercent(d.fastScattering);
+            GuiDraw.drawStringC(fastScatProbStr, FAST_SCAT_LABEL_X, 61, d.fastScattering > 0 ? 0x00A000 : 0x404040, false);
+
             // Relative scattered fast neutrons conditional percentage (above blue arrow)
             double slowing = Math.max(0.0, Math.min(1.0, d.slowingProbability));
             double fastFrac = 1.0 - slowing;
@@ -1991,8 +1996,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     currenttip.add(
                         EnumChatFormatting.GRAY
                             + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_fast.desc"));
-                    // 3. Scattering arrows (green arrows between center slot and pie chart: X in [94, 120], Y in [49, 81])
-                } else if (relX >= 94 && relX <= 120 && relY >= 49 && relY <= 81) {
+                    // 3. Scattering arrows and overall probability label: X in [94, 129], Y in [49, 81]
+                } else if (relX >= 94 && relX <= 129 && relY >= 49 && relY <= 81) {
                     currenttip.add(
                         EnumChatFormatting.GREEN
                             + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
@@ -2017,8 +2022,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                         EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
                             "gt.nei.neutron_interaction.thermal_fraction.desc",
                             formatPercent(d.slowingProbability)));
-                    // 6. Center: Pie chart (X in [126, 158], Y in [55, 75])
-                } else if (relX >= 126 && relX <= 158 && relY >= 55 && relY <= 75) {
+                    // 6. Center: Pie chart (X in [130, 158], Y in [55, 75])
+                } else if (relX >= 130 && relX <= 158 && relY >= 55 && relY <= 75) {
                     currenttip.add(
                         EnumChatFormatting.BLUE
                             + StatCollector.translateToLocal("gt.nei.neutron_interaction.fast_fraction"));
@@ -2413,11 +2418,11 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
             // Three scattered neutrons arrows (green, pointing right away from center tile)
             // Middle: horizontal
-            drawArrow(96.0, 34.0 + dy, 110.0, 34.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
+            drawArrow(96.0, 34.0 + dy, 107.0, 34.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
             // Upper: 45 degrees up-right
-            drawArrow(96.0, 32.0 + dy, 107.0, 21.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
+            drawArrow(96.0, 32.0 + dy, 106.0, 22.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
             // Lower: 45 degrees down-right
-            drawArrow(96.0, 36.0 + dy, 107.0, 47.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
+            drawArrow(96.0, 36.0 + dy, 106.0, 46.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
 
             // Dynamic pie chart at (FAST_PIE_X, 34 + dy), radius 9.0
             double slowing = Math.max(0.0, Math.min(1.0, d.slowingProbability));

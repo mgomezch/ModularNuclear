@@ -681,5 +681,23 @@ public class NEINeutronInteractionHandlerTest {
         assertTrue(
             goldModTip.stream().anyMatch(s -> s.toLowerCase().contains("thermal_fraction")),
             "Gold Reflector thermal fraction tooltip must be present at (FAST_PIE_X, 87)");
+
+        // 4. Overall fast scattering probability label
+        assertEquals(120, NEINeutronInteractionHandler.FAST_SCAT_LABEL_X, "Fast scattering label X must be positioned at 120");
+        assertTrue(NEINeutronInteractionHandler.FAST_SCAT_LABEL_X < NEINeutronInteractionHandler.FAST_PIE_X,
+            "Fast scattering label must be to the left of the pie chart");
+        assertTrue(NEINeutronInteractionHandler.FAST_SCAT_LABEL_X > 107,
+            "Fast scattering label must be to the right of the green scattering arrows");
+
+        assertEquals("93%", NEINeutronInteractionHandler.formatPercent(graphiteRecipe.data.fastScattering));
+        assertEquals("96%", NEINeutronInteractionHandler.formatPercent(berylliumRecipe.data.fastScattering));
+        assertEquals("85%", NEINeutronInteractionHandler.formatPercent(goldReflectorRecipe.data.fastScattering));
+
+        int scatLabelX = NEINeutronInteractionHandler.FAST_SCAT_LABEL_X;
+        List<String> scatLabelTip = handler.getTooltipsAt(graphiteRecipe, scatLabelX, 61, null);
+        assertFalse(scatLabelTip.isEmpty(), "Hovering over scattering probability label (120, 61) must show tooltip");
+        assertTrue(
+            scatLabelTip.stream().anyMatch(s -> s.toLowerCase().contains("scattering")),
+            "Scattering label tooltip must mention scattering");
     }
 }
