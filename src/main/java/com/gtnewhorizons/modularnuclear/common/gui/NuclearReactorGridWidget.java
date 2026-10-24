@@ -976,11 +976,6 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                         Math.round(cell.thermalAbsorbed * cyclesPerSec)));
         }
 
-        if (cell.cumulativeFluence > 0) {
-            tooltip.addLine(
-                EnumChatFormatting.DARK_GRAY
-                    + String.format(Locale.US, "Cumulative fluence: %,d n", cell.cumulativeFluence));
-        }
 
         // 5. Radiovoltaic Power
         if (cell.directEU > 0) {

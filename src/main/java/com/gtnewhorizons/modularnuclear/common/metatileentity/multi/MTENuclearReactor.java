@@ -2227,7 +2227,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             cell.thermalAbsorbed = bus.mLastThermalAbsorbed;
                             cell.directEU = bus.mDirectEUProduced;
                             cell.heatOutput = (float) bus.mLastHeatOutput;
-                            cell.cumulativeFluence = bus.mCumulativeFluence;
                         } else if (gt.isHatch()) {
                             MTEHatchNuclearHatch hatch = gt.getHatch();
                             cell.isFluid = true;
@@ -2237,7 +2236,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             cell.fastAbsorbed = hatch.mLastFastAbsorbed;
                             cell.thermalAbsorbed = hatch.mLastThermalAbsorbed;
                             cell.heatOutput = (float) hatch.mLastHeatOutput;
-                            cell.cumulativeFluence = hatch.mCumulativeFluence;
                         } else if (gt.isHighPressureHatch()) {
                             MTEHatchNuclearHighPressure hp = gt.getHighPressureHatch();
                             cell.isFluid = false;
@@ -2247,7 +2245,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             cell.fastAbsorbed = hp.mLastFastAbsorbed;
                             cell.thermalAbsorbed = hp.mLastThermalAbsorbed;
                             cell.heatOutput = (float) hp.mLastHeatOutput;
-                            cell.cumulativeFluence = hp.mCumulativeFluence;
                         }
 
                         if (gt.hasControlRod()) {

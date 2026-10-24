@@ -56,7 +56,6 @@ public class ReactorGridSyncData {
         public int fastAbsorbed = 0;
         public int thermalAbsorbed = 0;
         public long directEU = 0;
-        public long cumulativeFluence = 0L;
 
         @Override
         public boolean equals(Object o) {
@@ -76,7 +75,6 @@ public class ReactorGridSyncData {
             if (fastFlux != that.fastFlux || thermalFlux != that.thermalFlux) return false;
             if (fastAbsorbed != that.fastAbsorbed || thermalAbsorbed != that.thermalAbsorbed) return false;
             if (directEU != that.directEU) return false;
-            if (cumulativeFluence != that.cumulativeFluence) return false;
             if (!ItemStack.areItemStacksEqual(itemStack, that.itemStack)) return false;
             if (fluidStack == null ? that.fluidStack != null : !fluidStack.isFluidStackIdentical(that.fluidStack))
                 return false;
@@ -133,7 +131,6 @@ public class ReactorGridSyncData {
                 buf.writeVarIntToBuffer(cell.fastAbsorbed);
                 buf.writeVarIntToBuffer(cell.thermalAbsorbed);
                 buf.writeLong(cell.directEU);
-                buf.writeLong(cell.cumulativeFluence);
                 if (cell.hasControlRod) {
                     buf.writeByte(cell.controlRodInsertion);
                     buf.writeByte(cell.controlRodType);
@@ -195,7 +192,6 @@ public class ReactorGridSyncData {
                 cell.fastAbsorbed = buf.readVarIntFromBuffer();
                 cell.thermalAbsorbed = buf.readVarIntFromBuffer();
                 cell.directEU = buf.readLong();
-                cell.cumulativeFluence = buf.readLong();
                 if (cell.hasControlRod) {
                     cell.controlRodInsertion = buf.readByte() & 0xFF;
                     cell.controlRodType = buf.readByte() & 0xFF;
