@@ -26,24 +26,16 @@ public class MTEHatchNuclearHighPressureGui extends MTEHatchBaseGui<MTEHatchNucl
     @Override
     protected void registerSyncValues(PanelSyncManager syncManager) {
         super.registerSyncValues(syncManager);
-        syncManager.syncValue(
-            "temperature",
-            new DoubleSyncValue(machine::getTemperature, val -> machine.mTemperature = val));
-        syncManager.syncValue(
-            "fastFlux",
-            new IntSyncValue(() -> machine.mLastFastFlux, val -> machine.mLastFastFlux = val));
+        syncManager
+            .syncValue("temperature", new DoubleSyncValue(machine::getTemperature, val -> machine.mTemperature = val));
+        syncManager
+            .syncValue("fastFlux", new IntSyncValue(() -> machine.mLastFastFlux, val -> machine.mLastFastFlux = val));
         syncManager.syncValue(
             "thermalFlux",
             new IntSyncValue(() -> machine.mLastThermalFlux, val -> machine.mLastThermalFlux = val));
-        syncManager.syncValue(
-            "isInlet",
-            new BooleanSyncValue(machine::isPassageInlet, machine::setIsInlet));
-        syncManager.syncValue(
-            "isPaired",
-            new BooleanSyncValue(machine::hasOppositeHatch, val -> {}));
-        syncManager.syncValue(
-            "hasPump",
-            new BooleanSyncValue(machine::hasConnectedPump, val -> {}));
+        syncManager.syncValue("isInlet", new BooleanSyncValue(machine::isPassageInlet, machine::setIsInlet));
+        syncManager.syncValue("isPaired", new BooleanSyncValue(machine::hasOppositeHatch, val -> {}));
+        syncManager.syncValue("hasPump", new BooleanSyncValue(machine::hasConnectedPump, val -> {}));
     }
 
     @Override
@@ -84,15 +76,13 @@ public class MTEHatchNuclearHighPressureGui extends MTEHatchBaseGui<MTEHatchNucl
 
         textColumn.child(
             IKey.dynamic(
-                () -> EnumChatFormatting.GREEN
-                    + (machine.hasOppositeHatch() ? "Paired: Linked" : "Paired: Unpaired"))
+                () -> EnumChatFormatting.GREEN + (machine.hasOppositeHatch() ? "Paired: Linked" : "Paired: Unpaired"))
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(
             IKey.dynamic(
-                () -> EnumChatFormatting.BLUE
-                    + (machine.hasConnectedPump() ? "Pump: Connected" : "Pump: Disconnected"))
+                () -> EnumChatFormatting.BLUE + (machine.hasConnectedPump() ? "Pump: Connected" : "Pump: Disconnected"))
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 

@@ -45,12 +45,12 @@ public enum NuclearStructureChannels implements IStructureChannels {
         try {
             com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler.addItemTooltip(
                 indicator,
-                com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler.translatedText("structurelib.tooltip.channelvalue", channelValue, get())
-            );
+                com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler
+                    .translatedText("structurelib.tooltip.channelvalue", channelValue, get()));
             com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler.addItemTooltip(
                 indicator,
-                com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler.translatedText("structurelib.tooltip.indicator_dnd", channelValue, get())
-            );
+                com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler
+                    .translatedText("structurelib.tooltip.indicator_dnd", channelValue, get()));
         } catch (Throwable ignored) {}
     }
 
@@ -70,8 +70,10 @@ public enum NuclearStructureChannels implements IStructureChannels {
     public static void register() {
         for (NuclearStructureChannels value : values()) {
             try {
-                StructureLibAPI
-                    .registerChannelDescription(value.get(), "modularnuclear", "channels.modularnuclear." + value.get());
+                StructureLibAPI.registerChannelDescription(
+                    value.get(),
+                    "modularnuclear",
+                    "channels.modularnuclear." + value.get());
             } catch (Throwable ignored) {}
         }
     }

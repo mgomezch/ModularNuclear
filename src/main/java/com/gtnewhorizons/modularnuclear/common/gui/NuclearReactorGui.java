@@ -190,46 +190,40 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
                 .textAlign(Alignment.CenterLeft));
 
         // Fast neutrons
-        list.child(
-            IKey.dynamic(
-                () -> {
-                    long fast = fastAbsSyncer != null ? fastAbsSyncer.getLongValue() : multiblock.mFastAbsorbed;
-                    int tpc = multiblock.getTicksPerCycle();
-                    double cps = 20.0 / (double) tpc;
-                    long fastSec = Math.round(fast * cps);
-                    return String.format(Locale.US, "Fast neutrons: %,d /s (%,d /cycle)", fastSec, fast);
-                })
-                .color(Color.rgb(200, 200, 200))
-                .asWidget()
-                .textAlign(Alignment.CenterLeft));
+        list.child(IKey.dynamic(() -> {
+            long fast = fastAbsSyncer != null ? fastAbsSyncer.getLongValue() : multiblock.mFastAbsorbed;
+            int tpc = multiblock.getTicksPerCycle();
+            double cps = 20.0 / (double) tpc;
+            long fastSec = Math.round(fast * cps);
+            return String.format(Locale.US, "Fast neutrons: %,d /s (%,d /cycle)", fastSec, fast);
+        })
+            .color(Color.rgb(200, 200, 200))
+            .asWidget()
+            .textAlign(Alignment.CenterLeft));
 
         // Thermal neutrons
-        list.child(
-            IKey.dynamic(
-                () -> {
-                    long therm = thermAbsSyncer != null ? thermAbsSyncer.getLongValue() : multiblock.mThermalAbsorbed;
-                    int tpc = multiblock.getTicksPerCycle();
-                    double cps = 20.0 / (double) tpc;
-                    long thermSec = Math.round(therm * cps);
-                    return String.format(Locale.US, "Thermal neutrons: %,d /s (%,d /cycle)", thermSec, therm);
-                })
-                .color(Color.rgb(200, 200, 200))
-                .asWidget()
-                .textAlign(Alignment.CenterLeft));
+        list.child(IKey.dynamic(() -> {
+            long therm = thermAbsSyncer != null ? thermAbsSyncer.getLongValue() : multiblock.mThermalAbsorbed;
+            int tpc = multiblock.getTicksPerCycle();
+            double cps = 20.0 / (double) tpc;
+            long thermSec = Math.round(therm * cps);
+            return String.format(Locale.US, "Thermal neutrons: %,d /s (%,d /cycle)", thermSec, therm);
+        })
+            .color(Color.rgb(200, 200, 200))
+            .asWidget()
+            .textAlign(Alignment.CenterLeft));
 
         // Escaped neutrons
-        list.child(
-            IKey.dynamic(
-                () -> {
-                    long esc = escSyncer != null ? escSyncer.getLongValue() : multiblock.mEscapedNeutrons;
-                    int tpc = multiblock.getTicksPerCycle();
-                    double cps = 20.0 / (double) tpc;
-                    long escSec = Math.round(esc * cps);
-                    return String.format(Locale.US, "Escaped neutrons: %,d /s (%,d /cycle)", escSec, esc);
-                })
-                .color(Color.rgb(200, 200, 200))
-                .asWidget()
-                .textAlign(Alignment.CenterLeft));
+        list.child(IKey.dynamic(() -> {
+            long esc = escSyncer != null ? escSyncer.getLongValue() : multiblock.mEscapedNeutrons;
+            int tpc = multiblock.getTicksPerCycle();
+            double cps = 20.0 / (double) tpc;
+            long escSec = Math.round(esc * cps);
+            return String.format(Locale.US, "Escaped neutrons: %,d /s (%,d /cycle)", escSec, esc);
+        })
+            .color(Color.rgb(200, 200, 200))
+            .asWidget()
+            .textAlign(Alignment.CenterLeft));
 
         // Damage (only shown when damage > 0)
         list.child(

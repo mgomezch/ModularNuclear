@@ -818,7 +818,8 @@ public class NuclearSimulationEngine {
                     }
 
                     double survT = Math.max(0.0, arrivingT - absT);
-                    double pScatteringThermal = Math.max(0.0, Math.min(1.0, hitTile.getScatteringProbability(NeutronType.THERMAL)));
+                    double pScatteringThermal = Math
+                        .max(0.0, Math.min(1.0, hitTile.getScatteringProbability(NeutronType.THERMAL)));
                     double scatterT = survT * pScatteringThermal;
                     double unscatteredT = Math.max(0.0, survT - scatterT);
                     result.neutronsEscaped += (int) Math.round(unscatteredT);

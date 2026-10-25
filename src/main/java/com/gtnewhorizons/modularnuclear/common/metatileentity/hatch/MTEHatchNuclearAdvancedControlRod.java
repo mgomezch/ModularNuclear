@@ -33,8 +33,7 @@ public class MTEHatchNuclearAdvancedControlRod extends MTEHatchNuclearControlRod
         super(aID, aName, aNameRegional, aTier, 2);
     }
 
-    public MTEHatchNuclearAdvancedControlRod(String aName, int aTier, String[] aDescription,
-        ITexture[][][] aTextures) {
+    public MTEHatchNuclearAdvancedControlRod(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
         super(aName, aTier, 2, aDescription, aTextures);
     }
 
@@ -98,7 +97,8 @@ public class MTEHatchNuclearAdvancedControlRod extends MTEHatchNuclearControlRod
             .widget(new TextWidget().setStringSupplier(() -> {
                 int fine = getFineRedstoneSignal();
                 if (fine >= 0) {
-                    return String.format("Rod: %d%% | Mod: %d%%", getInsertionPercent(), getModeratorInsertionPercent());
+                    return String
+                        .format("Rod: %d%% | Mod: %d%%", getInsertionPercent(), getModeratorInsertionPercent());
                 }
                 return String.format("Rod: %d%% | Mod: %d%%", getInsertionPercent(), getModeratorInsertionPercent());
             })

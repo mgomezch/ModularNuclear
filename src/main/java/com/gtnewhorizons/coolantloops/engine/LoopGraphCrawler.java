@@ -1238,7 +1238,11 @@ public class LoopGraphCrawler {
                         double pipeDiam = step.segmentThickness != null
                             ? CoolantPipingRegistry.getDiameterForThickness(step.segmentThickness)
                             : 0.05;
-                        double totalManifoldK = groupTiles.isEmpty() ? 0.50 : Math.max(0.50, groupTiles.get(0).getMinorLossK());
+                        double totalManifoldK = groupTiles.isEmpty() ? 0.50
+                            : Math.max(
+                                0.50,
+                                groupTiles.get(0)
+                                    .getMinorLossK());
                         int numTiles = Math.max(1, groupTiles.size());
                         double perTileK = totalManifoldK / numTiles;
 
@@ -1719,7 +1723,8 @@ public class LoopGraphCrawler {
                     } else if (mte instanceof ICoolantPassageHatch) {
                         ICoolantPassageHatch passage = (ICoolantPassageHatch) mte;
                         passage.convertToDirectionalVariant(true);
-                        if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof ICoolantPassageHatch p) {
+                        if (te instanceof IGregTechTileEntity gte
+                            && gte.getMetaTileEntity() instanceof ICoolantPassageHatch p) {
                             passage = p;
                         }
                         if (!passage.isPassageInlet()) {

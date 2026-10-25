@@ -222,9 +222,9 @@ public class ReactorGridSyncData {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ReactorGridSyncData that = (ReactorGridSyncData) o;
-        if (gridSize != that.gridSize || pipeTier != that.pipeTier || directPowerEUt != that.directPowerEUt
-            || ticksPerCycle != that.ticksPerCycle)
-            return false;
+        if (gridSize != that.gridSize || pipeTier != that.pipeTier
+            || directPowerEUt != that.directPowerEUt
+            || ticksPerCycle != that.ticksPerCycle) return false;
         if (scram != that.scram || cumulativeNeutrons != that.cumulativeNeutrons) return false;
         if (Math.abs(ambientTemp - that.ambientTemp) > 0.5f) return false;
         if (Math.abs(coreTemp - that.coreTemp) > 0.5f) return false;

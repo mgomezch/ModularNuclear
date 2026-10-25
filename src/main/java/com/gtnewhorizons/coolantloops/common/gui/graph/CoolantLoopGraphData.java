@@ -221,10 +221,7 @@ public class CoolantLoopGraphData {
      * Builds a comprehensive topological graph data snapshot from the active pump.
      */
     public static CoolantLoopGraphData buildFrom(MTECoolantPump pump) {
-        return buildFrom(
-            pump,
-            pump != null ? pump.getEngine() : null,
-            pump != null ? pump.getLastCrawlResult() : null);
+        return buildFrom(pump, pump != null ? pump.getEngine() : null, pump != null ? pump.getLastCrawlResult() : null);
     }
 
     public static CoolantLoopGraphData buildFrom(MTECoolantPump pump, CoolantLoopEngine engine, CrawlResult crawl) {
@@ -368,12 +365,16 @@ public class CoolantLoopGraphData {
             tempOut = tempIn;
             pressureIn = 1.0;
             pressureOut = 1.0 + engine.getPumpHeadPressureBar();
-            status = (pump != null && pump.getLoopState() != null) ? pump.getLoopState().name() : "Normal";
+            status = (pump != null && pump.getLoopState() != null) ? pump.getLoopState()
+                .name() : "Normal";
             if (pump != null) {
                 extra.put(
                     "Reservoir level",
-                    String
-                        .format(Locale.US, "%,d / %,d L", pump.getCurrentFillLiters(), pump.getReservoirCapacityLiters()));
+                    String.format(
+                        Locale.US,
+                        "%,d / %,d L",
+                        pump.getCurrentFillLiters(),
+                        pump.getReservoirCapacityLiters()));
                 extra.put("Head pressure", String.format(Locale.US, "%.2f bar", engine.getPumpHeadPressureBar()));
                 extra.put("Pump power", String.format(Locale.US, "%,d EU/t", pump.getPowerConsumptionEU()));
                 if (pump.getCoolantFluidProperty() != null) {

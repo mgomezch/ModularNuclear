@@ -51,9 +51,9 @@ public class FuelData {
 
     public FuelData(String id, String name, String archetype, boolean isLiquid, int packetCount, int baseNeutrons,
         double thermalFissMult, double fastFissMult, double absFast, double absThermal, double scatteringFast,
-        double scatteringThermal, double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability,
-        double peakReactivityTemp, double floorTemp, double peakMult, double peakPoint, double endMult,
-        String spentProduct, String... matchPatterns) {
+        double scatteringThermal, double moderation, double heatTransferCoeff, double heatPerReaction,
+        int defaultDurability, double peakReactivityTemp, double floorTemp, double peakMult, double peakPoint,
+        double endMult, String spentProduct, String... matchPatterns) {
         this.id = id;
         this.name = name;
         this.archetype = archetype != null ? archetype : "standard";
@@ -88,9 +88,9 @@ public class FuelData {
 
     public FuelData(String id, String name, String archetype, boolean isLiquid, int packetCount, int baseNeutrons,
         double thermalFissMult, double fastFissMult, double absFast, double absThermal, double scatteringFast,
-        double scatteringThermal, double moderation, double heatTransferCoeff, double heatPerReaction, int defaultDurability,
-        double peakReactivityTemp, double floorTemp, double peakMult, double peakPoint, double endMult,
-        String spentProduct, int requiredTier, String... matchPatterns) {
+        double scatteringThermal, double moderation, double heatTransferCoeff, double heatPerReaction,
+        int defaultDurability, double peakReactivityTemp, double floorTemp, double peakMult, double peakPoint,
+        double endMult, String spentProduct, int requiredTier, String... matchPatterns) {
         this(
             id,
             name,

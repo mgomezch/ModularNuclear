@@ -13,7 +13,6 @@ import javax.imageio.ImageIO;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.resources.IResource;
 import net.minecraft.item.Item;
@@ -22,7 +21,6 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
@@ -735,13 +733,15 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
         // Fuel display title (auto-scaled if longer than header width)
         String displayName = null;
-        if (fd != null && fd.isLiquid && recipe.fuelStack != null && recipe.fuelStack.items != null
-            && recipe.fuelStack.items.length > 0 && recipe.fuelStack.items[0] != null) {
+        if (fd != null && fd.isLiquid
+            && recipe.fuelStack != null
+            && recipe.fuelStack.items != null
+            && recipe.fuelStack.items.length > 0
+            && recipe.fuelStack.items[0] != null) {
             displayName = recipe.fuelStack.items[0].getDisplayName();
         }
         if (displayName == null || displayName.isEmpty()) {
-            displayName = (fd != null) ? fd.name
-                : (recipe.fuel != null ? recipe.fuel.displayName + " Fuel" : "Fuel");
+            displayName = (fd != null) ? fd.name : (recipe.fuel != null ? recipe.fuel.displayName + " Fuel" : "Fuel");
         }
         String title = EnumChatFormatting.BOLD + displayName;
         int titleWidth = font.getStringWidth(title);

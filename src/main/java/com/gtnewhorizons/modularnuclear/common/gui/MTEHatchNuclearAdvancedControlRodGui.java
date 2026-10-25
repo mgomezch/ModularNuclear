@@ -87,18 +87,19 @@ public class MTEHatchNuclearAdvancedControlRodGui extends MTEHatchBaseGui<MTEHat
             }
             int fine = machine.getFineRedstoneSignal();
             String src = (fine >= 0) ? "PR:" + fine : "RS:" + machine.getRedstoneSignal();
-            return EnumChatFormatting.GREEN
-                + String.format("Rod: %d%% (%s)", machine.getInsertionPercent(), src);
+            return EnumChatFormatting.GREEN + String.format("Rod: %d%% (%s)", machine.getInsertionPercent(), src);
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
-        textColumn.child(IKey.dynamic(() -> {
-            return EnumChatFormatting.AQUA
-                + String.format("Mod: %d%% (displaced)", machine.getModeratorInsertionPercent());
-        })
-            .asWidget()
-            .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
+        textColumn.child(
+            IKey.dynamic(
+                () -> {
+                    return EnumChatFormatting.AQUA
+                        + String.format("Mod: %d%% (displaced)", machine.getModeratorInsertionPercent());
+                })
+                .asWidget()
+                .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
             ItemStack rod = machine.mInventory[MTEHatchNuclearControlRod.SLOT_ROD];
@@ -108,22 +109,20 @@ public class MTEHatchNuclearAdvancedControlRodGui extends MTEHatchBaseGui<MTEHat
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
+        textColumn.child(
+            IKey.dynamic(() -> { return EnumChatFormatting.WHITE + "Mod: " + machine.getModeratorDisplayName(); })
+                .asWidget()
+                .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
+
         textColumn.child(IKey.dynamic(() -> {
-            return EnumChatFormatting.WHITE + "Mod: " + machine.getModeratorDisplayName();
+            int abs = machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed;
+            int tpc = machine.getTicksPerCycle();
+            double cps = 20.0 / (double) tpc;
+            long absSec = Math.round(abs * cps);
+            return EnumChatFormatting.GRAY + String.format(Locale.US, "Abs: %,d n/s (%,d /cycle)", absSec, abs);
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
-
-        textColumn.child(
-            IKey.dynamic(() -> {
-                int abs = machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed;
-                int tpc = machine.getTicksPerCycle();
-                double cps = 20.0 / (double) tpc;
-                long absSec = Math.round(abs * cps);
-                return EnumChatFormatting.GRAY + String.format(Locale.US, "Abs: %,d n/s (%,d /cycle)", absSec, abs);
-            })
-                .asWidget()
-                .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         statsScreen.child(textColumn);
         mainRow.child(statsScreen);

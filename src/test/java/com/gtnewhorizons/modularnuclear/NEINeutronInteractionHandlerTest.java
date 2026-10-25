@@ -18,7 +18,6 @@ import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.nei.NEIFuelStatsHandler;
 import com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler;
-import com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.CachedComponentThermalRecipe;
 import com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.CachedNeutronInteractionRecipe;
 import com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.ComponentStatsData;
 
@@ -101,7 +100,8 @@ public class NEINeutronInteractionHandlerTest {
                     }
                     case "Radiovoltaic Plate" -> {
                         foundRadiovoltaic = true;
-                        assertTrue(d.fastAbsorption == 0.40 || d.fastAbsorption == 0.60,
+                        assertTrue(
+                            d.fastAbsorption == 0.40 || d.fastAbsorption == 0.60,
                             "Radiovoltaic plates must have 40% (HV) or 60% (EV) absorption");
                         assertEquals(d.fastAbsorption, d.thermalAbsorption, 1e-6);
                         assertTrue(d.producesDirectEU, "Radiovoltaic plates must produce direct EU");
@@ -390,13 +390,9 @@ public class NEINeutronInteractionHandlerTest {
             props.load(in);
         }
 
-        String[] testKeys = {
-            "gt.nei.neutron_interaction.fast_fraction.desc",
-            "gt.nei.neutron_interaction.thermal_fraction.desc",
-            "gt.nei.neutron_interaction.conduction.desc",
-            "gt.nei.neutron_interaction.fast_stats",
-            "gt.nei.neutron_interaction.thermal_stats"
-        };
+        String[] testKeys = { "gt.nei.neutron_interaction.fast_fraction.desc",
+            "gt.nei.neutron_interaction.thermal_fraction.desc", "gt.nei.neutron_interaction.conduction.desc",
+            "gt.nei.neutron_interaction.fast_stats", "gt.nei.neutron_interaction.thermal_stats" };
 
         for (String key : testKeys) {
             String raw = props.getProperty(key);
@@ -426,14 +422,17 @@ public class NEINeutronInteractionHandlerTest {
                 formatted = String.format(java.util.Locale.US, raw, NEINeutronInteractionHandler.formatNumber(0.70));
                 assertEquals("Thermal conduction coefficient k = 0.7 with adjacent reactor cells", formatted);
             } else if (key.contains("fast_fraction")) {
-                formatted = String.format(java.util.Locale.US, raw, NEINeutronInteractionHandler.formatPercent(1.0 - 0.90));
+                formatted = String
+                    .format(java.util.Locale.US, raw, NEINeutronInteractionHandler.formatPercent(1.0 - 0.90));
                 assertEquals("10% of scattered neutrons remain fast", formatted);
             } else {
                 formatted = String.format(java.util.Locale.US, raw, NEINeutronInteractionHandler.formatPercent(0.90));
                 assertEquals("90% of scattered neutrons moderate to thermal", formatted);
             }
 
-            assertFalse(formatted.contains("%%"), "Formatted string must NOT contain double percent sign (%%): " + formatted);
+            assertFalse(
+                formatted.contains("%%"),
+                "Formatted string must NOT contain double percent sign (%%): " + formatted);
         }
     }
 
@@ -495,7 +494,9 @@ public class NEINeutronInteractionHandlerTest {
         int midPlotX = NEINeutronInteractionHandler.RV_PLOT_X + NEINeutronInteractionHandler.RV_PLOT_W / 2;
         int midPlotY = NEINeutronInteractionHandler.RV_PLOT_Y + NEINeutronInteractionHandler.RV_PLOT_H / 2;
 
-        assertTrue(NEINeutronInteractionHandler.isMouseOverRVPlot(midPlotX, midPlotY), "Center of plot must be mouse over");
+        assertTrue(
+            NEINeutronInteractionHandler.isMouseOverRVPlot(midPlotX, midPlotY),
+            "Center of plot must be mouse over");
         assertFalse(NEINeutronInteractionHandler.isMouseOverRVPlot(5, 5), "Top left of GUI is not mouse over");
 
         List<String> hoverTips = handler.getTooltipsAt(rvHvRecipe, midPlotX, midPlotY, tip);
@@ -532,7 +533,10 @@ public class NEINeutronInteractionHandlerTest {
         for (CachedNeutronInteractionRecipe nr : moderatorRecipes) {
             ComponentStatsData d = nr.data;
             assertTrue(d.name.contains("Long Rod"), "Moderator component name must specify Long Rod: " + d.name);
-            assertFalse(d.name.toLowerCase().contains("plate"), "Moderator component must never be a plate: " + d.name);
+            assertFalse(
+                d.name.toLowerCase()
+                    .contains("plate"),
+                "Moderator component must never be a plate: " + d.name);
             assertNotNull(d.stack, "Moderator recipe must have non-null stack");
             assertNotEquals(
                 OreDictionary.WILDCARD_VALUE,
@@ -550,21 +554,24 @@ public class NEINeutronInteractionHandlerTest {
         carbonUsage.loadUsageRecipes(carbonLongRod);
         assertTrue(
             carbonUsage.arecipes.stream()
-                .anyMatch(r -> r instanceof CachedNeutronInteractionRecipe nr && nr.data.name.equals("Carbon Long Rod")),
+                .anyMatch(
+                    r -> r instanceof CachedNeutronInteractionRecipe nr && nr.data.name.equals("Carbon Long Rod")),
             "Querying usage on Carbon Long Rod must find Carbon Long Rod moderator recipe");
 
         NEINeutronInteractionHandler graphiteUsage = new NEINeutronInteractionHandler();
         graphiteUsage.loadUsageRecipes(graphiteLongRod);
         assertTrue(
             graphiteUsage.arecipes.stream()
-                .anyMatch(r -> r instanceof CachedNeutronInteractionRecipe nr && nr.data.name.equals("Graphite Long Rod")),
+                .anyMatch(
+                    r -> r instanceof CachedNeutronInteractionRecipe nr && nr.data.name.equals("Graphite Long Rod")),
             "Querying usage on Graphite Long Rod must find Graphite Long Rod moderator recipe");
 
         NEINeutronInteractionHandler berylliumUsage = new NEINeutronInteractionHandler();
         berylliumUsage.loadUsageRecipes(berylliumLongRod);
         assertTrue(
             berylliumUsage.arecipes.stream()
-                .anyMatch(r -> r instanceof CachedNeutronInteractionRecipe nr && nr.data.name.equals("Beryllium Long Rod")),
+                .anyMatch(
+                    r -> r instanceof CachedNeutronInteractionRecipe nr && nr.data.name.equals("Beryllium Long Rod")),
             "Querying usage on Beryllium Long Rod must find Beryllium Long Rod moderator recipe");
 
         // 3. Querying usage on plates, short rods, or dusts must NEVER match moderator recipes
@@ -590,9 +597,15 @@ public class NEINeutronInteractionHandlerTest {
         ItemStack itemAWildcard = new ItemStack(net.minecraft.init.Items.paper, 1, OreDictionary.WILDCARD_VALUE);
 
         assertTrue(handler.matchesStack(itemA0, itemA0), "Identical item and meta must match");
-        assertFalse(handler.matchesStack(itemA0, itemA1), "Different metadata on same non-damageable item must not match");
-        assertFalse(handler.matchesStack(itemAWildcard, itemA0), "Wildcard metadata query must not match specific non-damageable item");
-        assertFalse(handler.matchesStack(itemA0, itemAWildcard), "Specific item must not match wildcard non-damageable component");
+        assertFalse(
+            handler.matchesStack(itemA0, itemA1),
+            "Different metadata on same non-damageable item must not match");
+        assertFalse(
+            handler.matchesStack(itemAWildcard, itemA0),
+            "Wildcard metadata query must not match specific non-damageable item");
+        assertFalse(
+            handler.matchesStack(itemA0, itemAWildcard),
+            "Specific item must not match wildcard non-damageable component");
     }
 
     @Test
@@ -602,7 +615,9 @@ public class NEINeutronInteractionHandlerTest {
 
         // Verify the constant is moved further to the right than the old position 136
         assertEquals(142, NEINeutronInteractionHandler.FAST_PIE_X, "Fast pie chart X must be positioned at 142");
-        assertTrue(NEINeutronInteractionHandler.FAST_PIE_X > 136, "Fast pie chart must be further to the right than 136");
+        assertTrue(
+            NEINeutronInteractionHandler.FAST_PIE_X > 136,
+            "Fast pie chart must be further to the right than 136");
 
         CachedNeutronInteractionRecipe graphiteRecipe = null;
         CachedNeutronInteractionRecipe berylliumRecipe = null;
@@ -634,22 +649,34 @@ public class NEINeutronInteractionHandlerTest {
         List<String> graphiteFastTip = handler.getTooltipsAt(graphiteRecipe, pieX, 43, null);
         assertFalse(graphiteFastTip.isEmpty(), "Graphite fast tooltip at (FAST_PIE_X, 43) must be present");
         assertTrue(
-            graphiteFastTip.stream().anyMatch(s -> s.toLowerCase().contains("fast_fraction")),
+            graphiteFastTip.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("fast_fraction")),
             "Graphite fast fraction tooltip must be present at (FAST_PIE_X, 43)");
 
         List<String> graphiteModTip = handler.getTooltipsAt(graphiteRecipe, pieX, 87, null);
         assertFalse(graphiteModTip.isEmpty(), "Graphite moderated tooltip at (FAST_PIE_X, 87) must be present");
         assertTrue(
-            graphiteModTip.stream().anyMatch(s -> s.toLowerCase().contains("thermal_fraction")),
+            graphiteModTip.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("thermal_fraction")),
             "Graphite thermal fraction tooltip must be present at (FAST_PIE_X, 87)");
 
         List<String> graphitePieTip = handler.getTooltipsAt(graphiteRecipe, pieX, 65, null);
         assertFalse(graphitePieTip.isEmpty(), "Graphite pie chart tooltip at (FAST_PIE_X, 65) must be present");
         assertTrue(
-            graphitePieTip.stream().anyMatch(s -> s.toLowerCase().contains("fast_fraction")),
+            graphitePieTip.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("fast_fraction")),
             "Graphite pie chart tooltip must contain fast fraction");
         assertTrue(
-            graphitePieTip.stream().anyMatch(s -> s.toLowerCase().contains("thermal_fraction")),
+            graphitePieTip.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("thermal_fraction")),
             "Graphite pie chart tooltip must contain thermal fraction");
 
         // 2. Beryllium: slowingProbability = 0.65 -> fast conditional = 35%, thermal = 65%
@@ -659,34 +686,53 @@ public class NEINeutronInteractionHandlerTest {
 
         List<String> beryFastTip = handler.getTooltipsAt(berylliumRecipe, pieX, 43, null);
         assertTrue(
-            beryFastTip.stream().anyMatch(s -> s.toLowerCase().contains("fast_fraction")),
+            beryFastTip.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("fast_fraction")),
             "Beryllium fast fraction tooltip must be present at (FAST_PIE_X, 43)");
 
         List<String> beryModTip = handler.getTooltipsAt(berylliumRecipe, pieX, 87, null);
         assertTrue(
-            beryModTip.stream().anyMatch(s -> s.toLowerCase().contains("thermal_fraction")),
+            beryModTip.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("thermal_fraction")),
             "Beryllium thermal fraction tooltip must be present at (FAST_PIE_X, 87)");
 
         // 3. Gold Reflector: slowingProbability = 0.0 -> fast conditional = 100%, thermal = 0%
         assertEquals(0.0, goldReflectorRecipe.data.slowingProbability, 1e-4);
-        assertEquals("100%", NEINeutronInteractionHandler.formatPercent(1.0 - goldReflectorRecipe.data.slowingProbability));
+        assertEquals(
+            "100%",
+            NEINeutronInteractionHandler.formatPercent(1.0 - goldReflectorRecipe.data.slowingProbability));
         assertEquals("0%", NEINeutronInteractionHandler.formatPercent(goldReflectorRecipe.data.slowingProbability));
 
         List<String> goldFastTip = handler.getTooltipsAt(goldReflectorRecipe, pieX, 43, null);
         assertTrue(
-            goldFastTip.stream().anyMatch(s -> s.toLowerCase().contains("fast_fraction")),
+            goldFastTip.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("fast_fraction")),
             "Gold Reflector fast fraction tooltip must be present at (FAST_PIE_X, 43)");
 
         List<String> goldModTip = handler.getTooltipsAt(goldReflectorRecipe, pieX, 87, null);
         assertTrue(
-            goldModTip.stream().anyMatch(s -> s.toLowerCase().contains("thermal_fraction")),
+            goldModTip.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("thermal_fraction")),
             "Gold Reflector thermal fraction tooltip must be present at (FAST_PIE_X, 87)");
 
         // 4. Overall fast scattering probability label
-        assertEquals(120, NEINeutronInteractionHandler.FAST_SCATTERING_LABEL_X, "Fast scattering label X must be positioned at 120");
-        assertTrue(NEINeutronInteractionHandler.FAST_SCATTERING_LABEL_X < NEINeutronInteractionHandler.FAST_PIE_X,
+        assertEquals(
+            120,
+            NEINeutronInteractionHandler.FAST_SCATTERING_LABEL_X,
+            "Fast scattering label X must be positioned at 120");
+        assertTrue(
+            NEINeutronInteractionHandler.FAST_SCATTERING_LABEL_X < NEINeutronInteractionHandler.FAST_PIE_X,
             "Fast scattering label must be to the left of the pie chart");
-        assertTrue(NEINeutronInteractionHandler.FAST_SCATTERING_LABEL_X > 107,
+        assertTrue(
+            NEINeutronInteractionHandler.FAST_SCATTERING_LABEL_X > 107,
             "Fast scattering label must be to the right of the green scattering arrows");
 
         assertEquals("93%", NEINeutronInteractionHandler.formatPercent(graphiteRecipe.data.fastScattering));
@@ -695,9 +741,14 @@ public class NEINeutronInteractionHandlerTest {
 
         int scatteringLabelX = NEINeutronInteractionHandler.FAST_SCATTERING_LABEL_X;
         List<String> scatteringLabelTip = handler.getTooltipsAt(graphiteRecipe, scatteringLabelX, 61, null);
-        assertFalse(scatteringLabelTip.isEmpty(), "Hovering over scattering probability label (120, 61) must show tooltip");
+        assertFalse(
+            scatteringLabelTip.isEmpty(),
+            "Hovering over scattering probability label (120, 61) must show tooltip");
         assertTrue(
-            scatteringLabelTip.stream().anyMatch(s -> s.toLowerCase().contains("scattering")),
+            scatteringLabelTip.stream()
+                .anyMatch(
+                    s -> s.toLowerCase()
+                        .contains("scattering")),
             "Scattering label tooltip must mention scattering");
     }
 }

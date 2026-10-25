@@ -1119,8 +1119,12 @@ public class NuclearReactorPhysics {
         hatch.mLastProducedFluidName = "";
         if (hatch.mTemperature > minOperatingTemp) {
             double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
-            double qMax = NuclearSimulationEngine
-                .calculateConductiveHeatTransfer(hatch.mTemperature, minOperatingTemp, hatch.mTier, effFactor, reactor.getTicksPerCycle());
+            double qMax = NuclearSimulationEngine.calculateConductiveHeatTransfer(
+                hatch.mTemperature,
+                minOperatingTemp,
+                hatch.mTier,
+                effFactor,
+                reactor.getTicksPerCycle());
             int desiredTurnover = (heatPerMB > 0) ? (int) Math.round(qMax / heatPerMB) : 0;
             int fluidToProcess = Math.min(hatch.mInputFluid.amount, desiredTurnover);
 

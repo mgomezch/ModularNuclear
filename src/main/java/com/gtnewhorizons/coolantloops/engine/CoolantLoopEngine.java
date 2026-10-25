@@ -6,10 +6,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.gtnewhorizons.coolantloops.common.config.CoolantLoopDataRegistry;
-
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+
+import com.gtnewhorizons.coolantloops.common.config.CoolantLoopDataRegistry;
 
 /**
  * 1D Closed-Loop Hydrodynamic and Thermodynamic Simulation Engine.

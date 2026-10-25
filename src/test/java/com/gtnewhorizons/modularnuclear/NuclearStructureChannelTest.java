@@ -29,7 +29,8 @@ public class NuclearStructureChannelTest {
             }
         } catch (Throwable t) {
             if (com.gtnewhorizons.modularnuclear.common.block.ModBlocks.nuclearCasing == null) {
-                com.gtnewhorizons.modularnuclear.common.block.ModBlocks.nuclearCasing = org.mockito.Mockito.mock(com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing.class);
+                com.gtnewhorizons.modularnuclear.common.block.ModBlocks.nuclearCasing = org.mockito.Mockito
+                    .mock(com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing.class);
             }
         }
     }
@@ -41,7 +42,8 @@ public class NuclearStructureChannelTest {
 
         boolean foundItemPipe = false;
         for (IChannelDefinition ch : def.getExplicitChannelDefinitions()) {
-            if (GTStructureChannels.ITEM_PIPE_CASING.get().equals(ch.getChannel())) {
+            if (GTStructureChannels.ITEM_PIPE_CASING.get()
+                .equals(ch.getChannel())) {
                 foundItemPipe = true;
                 assertEquals(2, ch.getMinimumValue(), "item_pipe minimum channel value must be 2");
                 assertEquals(8, ch.getMaximumValue(), "item_pipe maximum channel value must be 8");
@@ -99,8 +101,7 @@ public class NuclearStructureChannelTest {
             gregtech.api.GregTechAPI.sPostloadStarted = false;
             gregtech.api.GregTechAPI.sPreloadStarted = true;
             com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities.init();
-        } catch (Throwable ignored) {
-        } finally {
+        } catch (Throwable ignored) {} finally {
             gregtech.api.GregTechAPI.sPostloadStarted = prevPostload;
             gregtech.api.GregTechAPI.sPreloadStarted = prevPreload;
         }

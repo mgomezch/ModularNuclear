@@ -13,10 +13,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import com.gtnewhorizons.coolantloops.common.gui.graph.CoolantLoopGraphData;
 import com.gtnewhorizons.coolantloops.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.coolantloops.common.metatileentity.pipe.MTECoolantPipe;
 import com.gtnewhorizons.coolantloops.common.tileentity.TileEntityManifold;
-import com.gtnewhorizons.coolantloops.common.gui.graph.CoolantLoopGraphData;
 import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
 import com.gtnewhorizons.coolantloops.engine.CoolantLoopEngine;
 import com.gtnewhorizons.coolantloops.engine.LoopGraphCrawler;
@@ -715,7 +715,9 @@ public class ManifoldGroupAndDagTest {
 
         // Extra stats telemetry
         assertTrue(splitNode.extraStats.containsKey("Pressure drop"), "Splitter extra stats must report Pressure drop");
-        assertTrue(splitNode.extraStats.containsKey("Loss coefficient"), "Splitter extra stats must report Loss coefficient");
+        assertTrue(
+            splitNode.extraStats.containsKey("Loss coefficient"),
+            "Splitter extra stats must report Loss coefficient");
         assertEquals("K = 0.50", splitNode.extraStats.get("Loss coefficient"));
     }
 }

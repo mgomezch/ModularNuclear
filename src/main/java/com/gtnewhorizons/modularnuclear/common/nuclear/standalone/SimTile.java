@@ -610,7 +610,8 @@ public class SimTile implements INuclearTile {
         double dt = (double) getTicksPerCycle() / 20.0;
         if (isNeutronSource()) {
             double packets = neutronSourceBeamEnergy * neutronSourceBeamRate
-                * NuclearSimulationEngine.beamEnergyToFastNeutronMultiplier * dt;
+                * NuclearSimulationEngine.beamEnergyToFastNeutronMultiplier
+                * dt;
             beamlinePacketAccumulator += packets;
             int packetSize = (int) beamlinePacketAccumulator;
             beamlinePacketAccumulator -= packetSize;
@@ -1118,8 +1119,7 @@ public class SimTile implements INuclearTile {
 
         // 3. Fluid cooling & heat exchange (analytical lumped-capacitance conductive cooling)
         if (isCoolantHatch()) {
-            int reqTier = (type == TileType.HATCH_DISTILLED_WATER) ? 1
-                : (type == TileType.HATCH_HEAVY_WATER) ? 3 : 0;
+            int reqTier = (type == TileType.HATCH_DISTILLED_WATER) ? 1 : (type == TileType.HATCH_HEAVY_WATER) ? 3 : 0;
             if (grid != null && grid.getPipeTier() >= 0 && grid.getPipeTier() < reqTier) {
                 return;
             }
@@ -1132,8 +1132,12 @@ public class SimTile implements INuclearTile {
             int steamRatio = (type == TileType.HATCH_IC2_COOLANT) ? 1 : 160;
 
             if (inputFluidAmount > 0 && temperature > operatingThreshold) {
-                double qMax = NuclearSimulationEngine
-                    .calculateConductiveHeatTransfer(temperature, operatingThreshold, tier, effFactor, getTicksPerCycle());
+                double qMax = NuclearSimulationEngine.calculateConductiveHeatTransfer(
+                    temperature,
+                    operatingThreshold,
+                    tier,
+                    effFactor,
+                    getTicksPerCycle());
                 int desiredTurnover = (heatPerL > 0) ? (int) Math.round(qMax / heatPerL) : 0;
                 int mbToCool = Math.min(inputFluidAmount, desiredTurnover);
 

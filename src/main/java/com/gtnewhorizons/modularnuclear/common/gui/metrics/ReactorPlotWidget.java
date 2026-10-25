@@ -42,17 +42,17 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         FAST_NEUTRONS("Fast neutrons produced", "n/s", false, s -> (float) s.getFastNeutronsPerSec(), null, null, null,
             null, null, null, 0xFFA855F7, // Purple
             0, 0),
-        THERMAL_NEUTRONS("Thermal neutrons absorbed", "n/s", false, s -> (float) s.getThermalNeutronsAbsorbedPerSec(), null, null,
-            null, null, null, null, 0xFF06B6D4, // Teal / Cyan
+        THERMAL_NEUTRONS("Thermal neutrons absorbed", "n/s", false, s -> (float) s.getThermalNeutronsAbsorbedPerSec(),
+            null, null, null, null, null, null, 0xFF06B6D4, // Teal / Cyan
             0, 0),
-        ESCAPED_NEUTRONS("Escaped neutrons", "n/s", false, s -> (float) s.getEscapedNeutronsPerSec(), null, null, null, null, null,
-            null, 0xFFF97316, // Orange
+        ESCAPED_NEUTRONS("Escaped neutrons", "n/s", false, s -> (float) s.getEscapedNeutronsPerSec(), null, null, null,
+            null, null, null, 0xFFF97316, // Orange
             0, 0),
         DIRECT_EU("Direct EU output", "EU/t", false, s -> (float) s.directEU, null, null, null, null, null, null,
             0xFFEAB308, // Gold / Yellow
             0, 0),
-        COOLANT_OUTPUT("Coolant output", "L/s", false, s -> (float) s.getCoolantOutputPerSec(), null, null, null, null, null, null,
-            0xFF3B82F6, // Blue
+        COOLANT_OUTPUT("Coolant output", "L/s", false, s -> (float) s.getCoolantOutputPerSec(), null, null, null, null,
+            null, null, 0xFF3B82F6, // Blue
             0, 0);
 
         private final String title;
@@ -440,7 +440,8 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         int cyclesAgo = hoveredTotalCount - 1 - hoveredIndex;
         double secsAgo = (cyclesAgo * (double) hoveredSnapshot.ticksPerCycle) / 20.0;
         String cycleTitle = "Cycle #" + hoveredSnapshot.cycleIndex
-            + (cyclesAgo == 0 ? " (current)" : String.format(Locale.US, " (%.1fs ago, %d cycles ago)", secsAgo, cyclesAgo));
+            + (cyclesAgo == 0 ? " (current)"
+                : String.format(Locale.US, " (%.1fs ago, %d cycles ago)", secsAgo, cyclesAgo));
 
         tooltip.addLine(EnumChatFormatting.GOLD + "" + EnumChatFormatting.BOLD + cycleTitle);
 

@@ -151,12 +151,40 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             boolean producesDirectEU, long maxDirectEU, String directEUTier, double directEUPenNeutronFast,
             double directEUPenNeutronThermal, boolean hasDurability, long durability, String durabilityLabel,
             boolean hasTransmutation, ItemStack transmutationOutput, long transmutationNeutrons, String extraInfo) {
-            this(stack, name, category, fastScattering, fastAbsorption, slowingProbability, thermalScattering,
-                thermalAbsorption, isReflector, reflectionFast, reflectionThermal, heatTransferCoeff,
-                thermalInsulationFactor, selfCoolingRate, componentCoolingRate, heatTransferRate, maxTemperature,
-                boilingPoint, specificHeat, producesDirectEU, maxDirectEU, directEUTier, directEUPenNeutronFast,
-                directEUPenNeutronThermal, hasDurability, durability, durabilityLabel, hasTransmutation,
-                transmutationOutput, transmutationNeutrons, extraInfo, false, 0.0);
+            this(
+                stack,
+                name,
+                category,
+                fastScattering,
+                fastAbsorption,
+                slowingProbability,
+                thermalScattering,
+                thermalAbsorption,
+                isReflector,
+                reflectionFast,
+                reflectionThermal,
+                heatTransferCoeff,
+                thermalInsulationFactor,
+                selfCoolingRate,
+                componentCoolingRate,
+                heatTransferRate,
+                maxTemperature,
+                boilingPoint,
+                specificHeat,
+                producesDirectEU,
+                maxDirectEU,
+                directEUTier,
+                directEUPenNeutronFast,
+                directEUPenNeutronThermal,
+                hasDurability,
+                durability,
+                durabilityLabel,
+                hasTransmutation,
+                transmutationOutput,
+                transmutationNeutrons,
+                extraInfo,
+                false,
+                0.0);
         }
 
         public ComponentStatsData(ItemStack stack, String name, String category, double fastScattering,
@@ -929,9 +957,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         }
     }
 
-    private static void addModerator(ItemStack stack, String name, double fastScattering, double fastAbs, double slowing,
-        double thermScattering, double thermAbs, double conduction, double maxTemp, long wearCapacity, ItemStack byproduct,
-        String extra) {
+    private static void addModerator(ItemStack stack, String name, double fastScattering, double fastAbs,
+        double slowing, double thermScattering, double thermAbs, double conduction, double maxTemp, long wearCapacity,
+        ItemStack byproduct, String extra) {
         if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
         if (stack == null) return;
         if (stack.getItemDamage() == OreDictionary.WILDCARD_VALUE) {
@@ -980,7 +1008,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     return ore.copy();
                 }
             }
-            ItemStack first = ores.get(0).copy();
+            ItemStack first = ores.get(0)
+                .copy();
             if (first.getItemDamage() == OreDictionary.WILDCARD_VALUE) {
                 first.setItemDamage(0);
             }
@@ -1172,9 +1201,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         ALL_COMPONENTS.add(data);
     }
 
-    private static void addFluidCoolant(String fluidName, String name, double fastScattering, double fastAbs, double slowing,
-        double thermScattering, double thermAbs, double conduction, double boilingPoint, double specificHeat,
-        boolean hasTransmutation, ItemStack product, long reqNeutrons, String extra) {
+    private static void addFluidCoolant(String fluidName, String name, double fastScattering, double fastAbs,
+        double slowing, double thermScattering, double thermAbs, double conduction, double boilingPoint,
+        double specificHeat, boolean hasTransmutation, ItemStack product, long reqNeutrons, String extra) {
         Fluid fluid = null;
         try {
             fluid = FluidRegistry.getFluid(fluidName);
@@ -1541,8 +1570,12 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             }
 
             // --- Card 1: Fast Neutron Panel (baseY = 33) ---
-            GuiDraw
-                .drawStringC(StatCollector.translateToLocal("gt.nei.neutron_interaction.fast"), 83, 36, 0x404040, false);
+            GuiDraw.drawStringC(
+                StatCollector.translateToLocal("gt.nei.neutron_interaction.fast"),
+                83,
+                36,
+                0x404040,
+                false);
 
             // Reflected neutrons percentage (between the two blue arrows)
             String fastReflStr = formatPercent(d.isReflector ? d.reflectionFast : 0.0);
@@ -1555,7 +1588,12 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
             // Overall scattered fast neutrons percentage (between green arrows and pie chart, vertically centered)
             String fastScatteringProbStr = formatPercent(d.fastScattering);
-            GuiDraw.drawStringC(fastScatteringProbStr, FAST_SCATTERING_LABEL_X, 61, d.fastScattering > 0 ? 0x00A000 : 0x404040, false);
+            GuiDraw.drawStringC(
+                fastScatteringProbStr,
+                FAST_SCATTERING_LABEL_X,
+                61,
+                d.fastScattering > 0 ? 0x00A000 : 0x404040,
+                false);
 
             // Relative scattered fast neutrons conditional percentage (above blue arrow)
             double slowing = Math.max(0.0, Math.min(1.0, d.slowingProbability));
@@ -1608,8 +1646,12 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     GuiDraw
                         .drawString(String.format(Locale.US, "%.0f Hu/t", d.selfCoolingRate), 32, 219, 0x0055AA, false);
                 } else if (d.heatTransferRate > 0) {
-                    GuiDraw
-                        .drawString(String.format(Locale.US, "%.0f Hu/t", d.heatTransferRate), 32, 219, 0x0055AA, false);
+                    GuiDraw.drawString(
+                        String.format(Locale.US, "%.0f Hu/t", d.heatTransferRate),
+                        32,
+                        219,
+                        0x0055AA,
+                        false);
                 } else {
                     GuiDraw.drawString("Active", 34, 219, 0x00A000, false);
                 }
@@ -1648,15 +1690,40 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     d.directEUTier != null ? d.directEUTier : "");
                 GuiDraw.drawStringC(euText, 83, 221, 0x00A000, false);
             } else if (d.selfCoolingRate > 0) {
-                GuiDraw.drawStringC("Self-cooling rate: " + formatNumber(d.selfCoolingRate) + " Hu/t", 83, 221, 0x0055AA, false);
+                GuiDraw.drawStringC(
+                    "Self-cooling rate: " + formatNumber(d.selfCoolingRate) + " Hu/t",
+                    83,
+                    221,
+                    0x0055AA,
+                    false);
             } else if (d.componentCoolingRate > 0) {
-                GuiDraw.drawStringC("Adjacent cooling: " + formatNumber(d.componentCoolingRate) + " Hu/t", 83, 221, 0x0055AA, false);
+                GuiDraw.drawStringC(
+                    "Adjacent cooling: " + formatNumber(d.componentCoolingRate) + " Hu/t",
+                    83,
+                    221,
+                    0x0055AA,
+                    false);
             } else if (d.heatTransferRate > 0) {
-                GuiDraw.drawStringC("Adjacent component transfer: " + formatNumber(d.heatTransferRate) + " Hu/t", 83, 221, 0x0055AA, false);
+                GuiDraw.drawStringC(
+                    "Adjacent component transfer: " + formatNumber(d.heatTransferRate) + " Hu/t",
+                    83,
+                    221,
+                    0x0055AA,
+                    false);
             } else if (d.thermalInsulationFactor > 0) {
-                GuiDraw.drawStringC("Blocks " + formatPercent(d.thermalInsulationFactor) + " of heat conduction", 83, 221, 0x902020, false);
+                GuiDraw.drawStringC(
+                    "Blocks " + formatPercent(d.thermalInsulationFactor) + " of heat conduction",
+                    83,
+                    221,
+                    0x902020,
+                    false);
             } else {
-                GuiDraw.drawStringC("Thermal conduction coefficient: k = " + formatNumber(d.heatTransferCoeff), 83, 221, 0x505050, false);
+                GuiDraw.drawStringC(
+                    "Thermal conduction coefficient: k = " + formatNumber(d.heatTransferCoeff),
+                    83,
+                    221,
+                    0x505050,
+                    false);
             }
 
             // --- Card 4: Durability & Byproducts Panel OR Radiovoltaic Power & Heat Curve (baseY = 237) ---
@@ -1753,7 +1820,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         for (int p = 0; p <= 100; p += 50) {
             int gy = RV_PLOT_Y + RV_PLOT_H - (int) Math.round((p / 100.0) * RV_PLOT_H);
             double hVal = (p / 100.0) * maxHeat;
-            String hStr = (hVal >= 1000.0) ? String.format(Locale.US, "%.1fk", hVal / 1000.0) : String.valueOf((int) hVal);
+            String hStr = (hVal >= 1000.0) ? String.format(Locale.US, "%.1fk", hVal / 1000.0)
+                : String.valueOf((int) hVal);
             font.drawString(hStr, (RV_PLOT_X + RV_PLOT_W + 3) * 2, (gy - 2) * 2, 0xFFF87171);
         }
 
@@ -1762,7 +1830,11 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         int midFlux = (int) (maxFlux / 2);
         String midStr = String.valueOf(midFlux);
         int midSw = font.getStringWidth(midStr);
-        font.drawString(midStr, (RV_PLOT_X + RV_PLOT_W / 2) * 2 - midSw / 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, 0xFF9CA3AF);
+        font.drawString(
+            midStr,
+            (RV_PLOT_X + RV_PLOT_W / 2) * 2 - midSw / 2,
+            (RV_PLOT_Y + RV_PLOT_H + 2) * 2,
+            0xFF9CA3AF);
         String maxStr = String.valueOf((int) maxFlux);
         int maxSw = font.getStringWidth(maxStr);
         font.drawString(maxStr, (RV_PLOT_X + RV_PLOT_W) * 2 - maxSw / 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, 0xFF9CA3AF);
@@ -1804,7 +1876,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         // 4. Interactive Crosshair & Guide Lines on Hover
         Point mouseInRecipe = null;
-        if (Minecraft.getMinecraft().currentScreen instanceof GuiRecipe<?> guiRecipe) {
+        if (Minecraft.getMinecraft().currentScreen instanceof GuiRecipe<?>guiRecipe) {
             mouseInRecipe = getMouseInRecipe(guiRecipe, recipeIndex);
         }
 
@@ -1971,7 +2043,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
             // Card 1: Fast Neutron Panel (Y in [33, 97])
             if (relY >= 33 && relY <= 97) {
-                // 1. Fast reflection & incoming neutrons (covers the two blue arrows and % text: X in [18, 73], Y in [45, 85])
+                // 1. Fast reflection & incoming neutrons (covers the two blue arrows and % text: X in [18, 73], Y in
+                // [45, 85])
                 if (relX >= 18 && relX <= 73 && relY >= 45 && relY <= 85) {
                     if (d.isReflector) {
                         currenttip.add(
@@ -2040,7 +2113,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                             formatPercent(d.slowingProbability)));
                 }
 
-            // Card 2: Thermal Neutron Panel (Y in [101, 165])
+                // Card 2: Thermal Neutron Panel (Y in [101, 165])
             } else if (relY >= 101 && relY <= 165) {
                 // Thermal scattering / reflection: covers text (47, 115) and full curved arrow
                 if (relX >= 25 && relX <= 66 && relY >= 107 && relY <= 135) {
@@ -2062,15 +2135,15 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     // Thermal absorption: covers text (97, 153), downward arrow, and curved arrow
                 } else if ((relX >= 65 && relX <= 118 && relY >= 141 && relY <= 163)
                     || (relX >= 72 && relX <= 104 && relY >= 117 && relY <= 139)) {
-                    currenttip.add(
-                        EnumChatFormatting.GREEN
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_title"));
-                    currenttip.add(
-                        EnumChatFormatting.GRAY
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_thermal.desc"));
-                }
+                        currenttip.add(
+                            EnumChatFormatting.GREEN
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_title"));
+                        currenttip.add(
+                            EnumChatFormatting.GRAY
+                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_thermal.desc"));
+                    }
 
-            // Card 3: Heat Panel (Y in [169, 233])
+                // Card 3: Heat Panel (Y in [169, 233])
             } else if (relY >= 169 && relY <= 233) {
                 // Direct EU / Hu production (left of diagram)
                 if (relX >= 20 && relX <= 55 && relY >= 211 && relY <= 229) {
@@ -2084,15 +2157,16 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     } else {
                         currenttip.add(EnumChatFormatting.GRAY + "No direct electricity produced");
                     }
-                // Conduction & thermal properties (right of diagram)
+                    // Conduction & thermal properties (right of diagram)
                 } else if (relX >= 95 && relX <= 155 && relY >= 179 && relY <= 207) {
                     currenttip.add(
-                        EnumChatFormatting.GOLD + StatCollector.translateToLocal("gt.nei.neutron_interaction.conduction"));
+                        EnumChatFormatting.GOLD
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.conduction"));
                     currenttip.add(
                         EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
                             "gt.nei.neutron_interaction.conduction.desc",
                             formatNumber(d.heatTransferCoeff)));
-                // Summary line (bottom of heat panel)
+                    // Summary line (bottom of heat panel)
                 } else if (relX >= 25 && relX <= 140 && relY >= 215 && relY <= 231) {
                     currenttip.add(
                         EnumChatFormatting.AQUA
@@ -2102,7 +2176,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                             + StatCollector.translateToLocal("gt.nei.neutron_interaction.multiplication.desc"));
                 }
 
-            // Card 4: Durability & Byproducts Panel OR Radiovoltaic Power & Heat Curve (Y in [237, 309])
+                // Card 4: Durability & Byproducts Panel OR Radiovoltaic Power & Heat Curve (Y in [237, 309])
             } else if (relY >= 237 && relY <= 309) {
                 if (d.isRadiovoltaic) {
                     if (isMouseOverRVPlot(relX, relY)) {
@@ -2118,8 +2192,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                                 + EnumChatFormatting.BOLD
                                 + String.format(Locale.US, "%.1f n/t flux", flux));
 
-                        String satNote = (flux >= satFlux * 1.5)
-                            ? EnumChatFormatting.GOLD + " (Saturated)"
+                        String satNote = (flux >= satFlux * 1.5) ? EnumChatFormatting.GOLD + " (Saturated)"
                             : (flux >= satFlux ? EnumChatFormatting.YELLOW + " (Knee)" : "");
 
                         currenttip.add(
@@ -2131,11 +2204,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                                 + satNote);
 
                         String heatNote = (heat <= 0.0) ? EnumChatFormatting.GRAY + " (None)" : "";
-                        currenttip.add(
-                            EnumChatFormatting.RED + "Excess heating: "
-                                + formatNumber(heat)
-                                + " Hu/t"
-                                + heatNote);
+                        currenttip
+                            .add(EnumChatFormatting.RED + "Excess heating: " + formatNumber(heat) + " Hu/t" + heatNote);
                     } else if (relX >= 6 && relX <= 160 && relY >= 237 && relY <= 248) {
                         currenttip.add(
                             EnumChatFormatting.AQUA
@@ -2150,8 +2220,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                             EnumChatFormatting.WHITE
                                 + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_capacity"));
                         currenttip.add(
-                            EnumChatFormatting.GRAY
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_capacity.desc"));
+                            EnumChatFormatting.GRAY + StatCollector
+                                .translateToLocal("gt.nei.neutron_interaction.absorption_capacity.desc"));
                     }
                 }
             }

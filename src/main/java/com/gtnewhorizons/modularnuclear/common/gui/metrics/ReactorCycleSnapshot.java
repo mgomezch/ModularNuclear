@@ -61,8 +61,15 @@ public class ReactorCycleSnapshot {
 
     public static ReactorCycleSnapshot create(long cycleIndex, List<Double> temperatures, List<Double> reactivities,
         int escapedNeutrons, int fastNeutronsProduced, int thermalNeutronsAbsorbed, long directEU, long coolantOutput) {
-        return create(cycleIndex, temperatures, reactivities, escapedNeutrons, fastNeutronsProduced,
-            thermalNeutronsAbsorbed, directEU, coolantOutput,
+        return create(
+            cycleIndex,
+            temperatures,
+            reactivities,
+            escapedNeutrons,
+            fastNeutronsProduced,
+            thermalNeutronsAbsorbed,
+            directEU,
+            coolantOutput,
             com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE);
     }
 

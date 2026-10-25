@@ -78,23 +78,23 @@ public class MTEHatchNuclearHatchGui extends MTEHatchBaseGui<MTEHatchNuclearHatc
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
-        textColumn.child(
-            IKey.dynamic(() -> {
-                int abs = machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed;
-                int tpc = machine.getTicksPerCycle();
-                double cps = 20.0 / (double) tpc;
-                long absSec = Math.round(abs * cps);
-                return EnumChatFormatting.GRAY + String.format(Locale.US, "Abs: %,d n/s (%,d /cycle)", absSec, abs);
-            })
-                .asWidget()
-                .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
+        textColumn.child(IKey.dynamic(() -> {
+            int abs = machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed;
+            int tpc = machine.getTicksPerCycle();
+            double cps = 20.0 / (double) tpc;
+            long absSec = Math.round(abs * cps);
+            return EnumChatFormatting.GRAY + String.format(Locale.US, "Abs: %,d n/s (%,d /cycle)", absSec, abs);
+        })
+            .asWidget()
+            .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
             if (machine.mLastProducedAmount > 0) {
                 int tpc = machine.getTicksPerCycle();
                 double cps = 20.0 / (double) tpc;
                 long outSec = Math.round(machine.mLastProducedAmount * cps);
-                return EnumChatFormatting.GREEN + String.format(Locale.US, "Out: %,d L/s (%,d /cycle)", outSec, machine.mLastProducedAmount);
+                return EnumChatFormatting.GREEN
+                    + String.format(Locale.US, "Out: %,d L/s (%,d /cycle)", outSec, machine.mLastProducedAmount);
             }
             return EnumChatFormatting.DARK_GRAY + "Out: idle";
         })

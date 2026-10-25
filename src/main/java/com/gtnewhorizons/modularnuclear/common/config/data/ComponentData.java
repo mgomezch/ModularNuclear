@@ -712,12 +712,32 @@ public class ComponentData {
 
         public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency,
             double heatTransferCoeff, double absFast, double absThermal, String... matching) {
-            this(id, name, tier, euConversionEfficiency, 0, heatTransferCoeff, absFast, absThermal, (tier >= 2 ? 150.0 : 50.0), matching);
+            this(
+                id,
+                name,
+                tier,
+                euConversionEfficiency,
+                0,
+                heatTransferCoeff,
+                absFast,
+                absThermal,
+                (tier >= 2 ? 150.0 : 50.0),
+                matching);
         }
 
         public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency, long maxEU,
             double heatTransferCoeff, double absFast, double absThermal, String... matching) {
-            this(id, name, tier, euConversionEfficiency, maxEU, heatTransferCoeff, absFast, absThermal, (tier >= 2 ? 150.0 : 50.0), matching);
+            this(
+                id,
+                name,
+                tier,
+                euConversionEfficiency,
+                maxEU,
+                heatTransferCoeff,
+                absFast,
+                absThermal,
+                (tier >= 2 ? 150.0 : 50.0),
+                matching);
         }
 
         public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency, long maxEU,

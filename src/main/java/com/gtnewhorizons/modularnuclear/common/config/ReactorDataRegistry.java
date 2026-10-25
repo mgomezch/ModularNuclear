@@ -118,7 +118,8 @@ public final class ReactorDataRegistry {
         try {
             Class.forName("net.minecraft.item.Item");
             Class<?> clazz = Class.forName("com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification");
-            clazz.getMethod("clearCaches").invoke(null);
+            clazz.getMethod("clearCaches")
+                .invoke(null);
         } catch (Throwable ignored) {
             // Standalone CLI or WebAssembly environment without Minecraft classes
         }
@@ -228,8 +229,8 @@ public final class ReactorDataRegistry {
     }
 
     static {
-        NuclearSimulationEngine.setConfigProvider(
-            new com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider() {
+        NuclearSimulationEngine
+            .setConfigProvider(new com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider() {
 
                 @Override
                 public com.gtnewhorizons.modularnuclear.common.config.data.TierData getTier(int tier) {
@@ -1391,7 +1392,8 @@ public final class ReactorDataRegistry {
      * Handles common prefixes ("fluid.", "molten.") and spacing/parentheses variations.
      */
     public static Fluid findFluid(String query) {
-        if (query == null || query.trim().isEmpty()) return null;
+        if (query == null || query.trim()
+            .isEmpty()) return null;
         String q = query.trim();
         try {
             // 1. Direct registry lookup
@@ -1420,14 +1422,17 @@ public final class ReactorDataRegistry {
             if (registered != null && !registered.isEmpty()) {
                 // 3a. Case-insensitive exact match against registered key, unlocalizedName, or localizedName
                 for (Map.Entry<String, Fluid> entry : registered.entrySet()) {
-                    if (entry.getKey().equalsIgnoreCase(q)) return entry.getValue();
+                    if (entry.getKey()
+                        .equalsIgnoreCase(q)) return entry.getValue();
                     Fluid f = entry.getValue();
                     if (f != null) {
                         String unloc = f.getUnlocalizedName();
                         if (unloc != null) {
                             if (unloc.equalsIgnoreCase(q)) return f;
-                            if (unloc.startsWith("fluid.") && unloc.substring(6).equalsIgnoreCase(q)) return f;
-                            if (q.startsWith("fluid.") && q.substring(6).equalsIgnoreCase(unloc)) return f;
+                            if (unloc.startsWith("fluid.") && unloc.substring(6)
+                                .equalsIgnoreCase(q)) return f;
+                            if (q.startsWith("fluid.") && q.substring(6)
+                                .equalsIgnoreCase(unloc)) return f;
                         }
                         try {
                             String loc = f.getLocalizedName(new FluidStack(f, 1000));
@@ -1448,7 +1453,8 @@ public final class ReactorDataRegistry {
                             if (matchesPermutedDescriptors(normUnloc, normQ)) return f;
                             try {
                                 String loc = f.getLocalizedName(new FluidStack(f, 1000));
-                                if (loc != null && matchesPermutedDescriptors(normalizeFluidString(loc), normQ)) return f;
+                                if (loc != null && matchesPermutedDescriptors(normalizeFluidString(loc), normQ))
+                                    return f;
                             } catch (Throwable ignored) {}
                         }
                     }
@@ -1463,7 +1469,7 @@ public final class ReactorDataRegistry {
         String stripA = a.replace("state", "");
         String stripB = b.replace("state", "");
         if (stripA.equals(stripB)) return true;
-        for (String modifier : new String[]{"excited", "depleted"}) {
+        for (String modifier : new String[] { "excited", "depleted" }) {
             if (stripA.contains(modifier) && stripB.contains(modifier)) {
                 String baseA = stripA.replace(modifier, "");
                 String baseB = stripB.replace(modifier, "");
@@ -1499,7 +1505,8 @@ public final class ReactorDataRegistry {
             }
             String normPattern = normalizeFluidString(pattern);
             if (!normPattern.isEmpty()) {
-                if (matchesPermutedDescriptors(normName, normPattern) || matchesPermutedDescriptors(normUnloc, normPattern)) return true;
+                if (matchesPermutedDescriptors(normName, normPattern)
+                    || matchesPermutedDescriptors(normUnloc, normPattern)) return true;
             }
         }
         return false;

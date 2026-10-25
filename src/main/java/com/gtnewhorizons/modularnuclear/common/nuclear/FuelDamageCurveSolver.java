@@ -89,7 +89,12 @@ public class FuelDamageCurveSolver {
      */
     public static FuelCurveStats solve(NuclearFuelType fuel) {
         double wear = (fuel != null && fuel.wearFactor > 1.0) ? fuel.wearFactor : DEFAULT_T10_WEAR_FACTOR;
-        return solve(fuel, fuel != null ? fuel.peakReactivityTemp : 770.0, fuel != null ? fuel.floorTemp : 2300.0, DEFAULT_AMBIENT_TEMP, wear);
+        return solve(
+            fuel,
+            fuel != null ? fuel.peakReactivityTemp : 770.0,
+            fuel != null ? fuel.floorTemp : 2300.0,
+            DEFAULT_AMBIENT_TEMP,
+            wear);
     }
 
     /**
@@ -107,7 +112,8 @@ public class FuelDamageCurveSolver {
     }
 
     /**
-     * Solves the exponential parameters (k, A) given peak and floor temperatures (ambient temperature is fixed to 20 °C).
+     * Solves the exponential parameters (k, A) given peak and floor temperatures (ambient temperature is fixed to 20
+     * °C).
      */
     public static FuelCurveStats solve(NuclearFuelType fuel, double tPeak, double tFloor, double ambientTemp) {
         return solve(fuel, tPeak, tFloor, DEFAULT_AMBIENT_TEMP, DEFAULT_T10_WEAR_FACTOR);

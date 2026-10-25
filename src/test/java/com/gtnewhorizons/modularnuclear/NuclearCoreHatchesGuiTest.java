@@ -22,7 +22,6 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput;
 
-import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.BaseMetaTileEntity;
 
 public class NuclearCoreHatchesGuiTest {
@@ -127,9 +126,11 @@ public class NuclearCoreHatchesGuiTest {
 
     @Test
     void testNuclearAdvancedControlRodBuildUI() {
-        com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod advRod =
-            new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod(
-                "test.advrod", 1, new String[0], null);
+        com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod advRod = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod(
+            "test.advrod",
+            1,
+            new String[0],
+            null);
         BaseMetaTileEntity te = createMockTileEntity();
         advRod.setBaseMetaTileEntity(te);
 
@@ -180,7 +181,11 @@ public class NuclearCoreHatchesGuiTest {
 
     @Test
     void testNuclearHighPressureInputBuildUI() {
-        MTEHatchNuclearHighPressureInput hpIn = new MTEHatchNuclearHighPressureInput("test.hp.in", 1, new String[0], null);
+        MTEHatchNuclearHighPressureInput hpIn = new MTEHatchNuclearHighPressureInput(
+            "test.hp.in",
+            1,
+            new String[0],
+            null);
         BaseMetaTileEntity te = createMockTileEntity();
         hpIn.setBaseMetaTileEntity(te);
 
@@ -205,7 +210,11 @@ public class NuclearCoreHatchesGuiTest {
 
     @Test
     void testNuclearHighPressureOutputBuildUI() {
-        MTEHatchNuclearHighPressureOutput hpOut = new MTEHatchNuclearHighPressureOutput("test.hp.out", 1, new String[0], null);
+        MTEHatchNuclearHighPressureOutput hpOut = new MTEHatchNuclearHighPressureOutput(
+            "test.hp.out",
+            1,
+            new String[0],
+            null);
         BaseMetaTileEntity te = createMockTileEntity();
         hpOut.setBaseMetaTileEntity(te);
 

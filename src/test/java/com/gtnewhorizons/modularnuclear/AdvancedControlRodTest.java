@@ -61,8 +61,11 @@ public class AdvancedControlRodTest {
 
     @Test
     void testSlotConfigurationAndItemFiltering() {
-        MTEHatchNuclearAdvancedControlRod advRod =
-            new MTEHatchNuclearAdvancedControlRod("test.advrod", 5, new String[0], null);
+        MTEHatchNuclearAdvancedControlRod advRod = new MTEHatchNuclearAdvancedControlRod(
+            "test.advrod",
+            5,
+            new String[0],
+            null);
         advRod.setBaseMetaTileEntity(createMockTileEntity((byte) 0));
 
         // Inventory size must be exactly 2
@@ -72,11 +75,17 @@ public class AdvancedControlRodTest {
         ItemStack modStack = createMockModeratorItem();
         ItemStack fuelStack = createMockFuelItem();
 
-        assertTrue(MTEHatchNuclearControlRod.isControlRod(rodStack), "Cadmium long rod must be classified as control rod");
+        assertTrue(
+            MTEHatchNuclearControlRod.isControlRod(rodStack),
+            "Cadmium long rod must be classified as control rod");
         assertFalse(MTEHatchNuclearControlRod.isModerator(rodStack), "Control rod must not be classified as moderator");
 
-        assertTrue(MTEHatchNuclearControlRod.isModerator(modStack), "Graphite long rod must be classified as moderator");
-        assertFalse(MTEHatchNuclearControlRod.isControlRod(modStack), "Moderator must not be classified as control rod");
+        assertTrue(
+            MTEHatchNuclearControlRod.isModerator(modStack),
+            "Graphite long rod must be classified as moderator");
+        assertFalse(
+            MTEHatchNuclearControlRod.isControlRod(modStack),
+            "Moderator must not be classified as control rod");
 
         assertFalse(MTEHatchNuclearControlRod.isControlRod(fuelStack));
         assertFalse(MTEHatchNuclearControlRod.isModerator(fuelStack));
@@ -109,8 +118,11 @@ public class AdvancedControlRodTest {
 
     @Test
     void testDisplacementMechanics() {
-        MTEHatchNuclearAdvancedControlRod advRod =
-            new MTEHatchNuclearAdvancedControlRod("test.advrod.disp", 5, new String[0], null);
+        MTEHatchNuclearAdvancedControlRod advRod = new MTEHatchNuclearAdvancedControlRod(
+            "test.advrod.disp",
+            5,
+            new String[0],
+            null);
         BaseMetaTileEntity te = createMockTileEntity((byte) 0);
         advRod.setBaseMetaTileEntity(te);
 
@@ -156,8 +168,11 @@ public class AdvancedControlRodTest {
     @Test
     void testMutualExclusivityNeutronMath() {
         MTENuclearReactor reactor = mock(MTENuclearReactor.class);
-        MTEHatchNuclearAdvancedControlRod advRod =
-            new MTEHatchNuclearAdvancedControlRod("test.advrod.physics", 5, new String[0], null);
+        MTEHatchNuclearAdvancedControlRod advRod = new MTEHatchNuclearAdvancedControlRod(
+            "test.advrod.physics",
+            5,
+            new String[0],
+            null);
         BaseMetaTileEntity te = createMockTileEntity((byte) 0);
         advRod.setBaseMetaTileEntity(te);
 
@@ -203,7 +218,8 @@ public class AdvancedControlRodTest {
         // Fast moderation probability of tile must include the displacer moderation
         double tileModWhenWithdrawn = NuclearReactorPhysics.getTileModerationProbability(tile);
         assertEquals(pModWithdrawn + pBaseEffWithdrawn * baseMod, tileModWhenWithdrawn, 1e-4);
-        assertTrue(tileModWhenWithdrawn > tileModWhenInserted,
+        assertTrue(
+            tileModWhenWithdrawn > tileModWhenInserted,
             "Withdrawing control rod must introduce moderator into core and increase tile moderation!");
 
         // C. Absorption partitioning verification in onTileNeutronAbsorbed
@@ -216,8 +232,7 @@ public class AdvancedControlRodTest {
     @Test
     void testStandardControlRodBackwardCompatibility() {
         MTENuclearReactor reactor = mock(MTENuclearReactor.class);
-        MTEHatchNuclearControlRod stdRod =
-            new MTEHatchNuclearControlRod("test.stdrod", 5, new String[0], null);
+        MTEHatchNuclearControlRod stdRod = new MTEHatchNuclearControlRod("test.stdrod", 5, new String[0], null);
         BaseMetaTileEntity te = createMockTileEntity((byte) 0);
         stdRod.setBaseMetaTileEntity(te);
         stdRod.mInventory[0] = createMockControlRodItem();
@@ -230,6 +245,10 @@ public class AdvancedControlRodTest {
         double tileMod = NuclearReactorPhysics.getTileModerationProbability(tile);
         double baseMod = NuclearReactorPhysics.getBaseModerationProbability(tile);
         double pRod = stdRod.getAbsorptionProbability(NeutronType.FAST);
-        assertEquals((1.0 - pRod) * baseMod, tileMod, 1e-4, "Standard control rod must preserve backward-compatible moderation");
+        assertEquals(
+            (1.0 - pRod) * baseMod,
+            tileMod,
+            1e-4,
+            "Standard control rod must preserve backward-compatible moderation");
     }
 }

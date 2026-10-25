@@ -2,7 +2,8 @@ package com.gtnewhorizons.modularnuclear;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import net.minecraft.init.Bootstrap;
+import java.util.List;
+
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.Fluid;
@@ -11,8 +12,6 @@ import net.minecraftforge.fluids.FluidStack;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
@@ -108,7 +107,11 @@ public class NEIFuelStatsHandlerTest {
 
     @Test
     public void testAmbientTemperatureFixedAt20C() {
-        assertEquals(20.0, NEIFuelStatsHandler.AMBIENT_TEMP, 1e-6, "NEI MPTR fuels ambient temperature must be fixed to 20.0 °C");
+        assertEquals(
+            20.0,
+            NEIFuelStatsHandler.AMBIENT_TEMP,
+            1e-6,
+            "NEI MPTR fuels ambient temperature must be fixed to 20.0 °C");
         assertEquals(20.0, NEIFuelStatsHandler.DEFAULT_AMBIENT_TEMP, 1e-6);
         assertEquals(20.0, NEIFuelStatsHandler.sAmbientTemp, 1e-6);
     }
@@ -139,25 +142,31 @@ public class NEIFuelStatsHandlerTest {
 
     @Test
     public void testLiquidFuelCanonicalNames() {
-        FuelData thExcited = ReactorDataRegistry.getAllFuels().stream()
+        FuelData thExcited = ReactorDataRegistry.getAllFuels()
+            .stream()
             .filter(f -> "fluid_fuel_thorium_excited".equalsIgnoreCase(f.id))
-            .findFirst().orElse(null);
+            .findFirst()
+            .orElse(null);
         assertNotNull(thExcited);
         assertEquals("Thorium Based Liquid Fuel (Excited State)", thExcited.name);
         assertTrue(thExcited.isLiquid);
         assertEquals("Thorium Based Liquid Fuel (Depleted)", thExcited.spentProduct);
 
-        FuelData thStd = ReactorDataRegistry.getAllFuels().stream()
+        FuelData thStd = ReactorDataRegistry.getAllFuels()
+            .stream()
             .filter(f -> "fluid_fuel_thorium".equalsIgnoreCase(f.id))
-            .findFirst().orElse(null);
+            .findFirst()
+            .orElse(null);
         assertNotNull(thStd);
         assertEquals("Thorium Based Liquid Fuel", thStd.name);
         assertTrue(thStd.isLiquid);
         assertEquals("Thorium Based Liquid Fuel (Depleted)", thStd.spentProduct);
 
-        FuelData uHex = ReactorDataRegistry.getAllFuels().stream()
+        FuelData uHex = ReactorDataRegistry.getAllFuels()
+            .stream()
             .filter(f -> "fluid_fuel_u_hexafluoride".equalsIgnoreCase(f.id))
-            .findFirst().orElse(null);
+            .findFirst()
+            .orElse(null);
         assertNotNull(uHex);
         assertEquals("Uranium Hexafluoride", uHex.name);
         assertTrue(uHex.isLiquid);
@@ -201,8 +210,7 @@ public class NEIFuelStatsHandlerTest {
         List<String> patterns = List.of(
             "Thorium Based Liquid Fuel (Excited State)",
             "thoriumbasedliquidfuelexcited",
-            "fluid.thoriumbasedliquidfuelexcited"
-        );
+            "fluid.thoriumbasedliquidfuelexcited");
         assertTrue(ReactorDataRegistry.matchesFluid(fs, patterns));
         assertTrue(ReactorDataRegistry.matchesFluid("thorium based liquid fuel (excited state)", patterns));
         assertTrue(ReactorDataRegistry.matchesFluid("thoriumbasedliquidfuelexcited", patterns));
@@ -210,9 +218,11 @@ public class NEIFuelStatsHandlerTest {
 
     @Test
     public void testLiquidFuelNEIDisplayStacks() {
-        FuelData thExcited = ReactorDataRegistry.getAllFuels().stream()
+        FuelData thExcited = ReactorDataRegistry.getAllFuels()
+            .stream()
             .filter(f -> "fluid_fuel_thorium_excited".equalsIgnoreCase(f.id))
-            .findFirst().orElse(null);
+            .findFirst()
+            .orElse(null);
         assertNotNull(thExcited);
 
         List<ItemStack> stacks = NEIFuelStatsHandler.getFuelStacks(thExcited);

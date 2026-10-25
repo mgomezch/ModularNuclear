@@ -451,7 +451,8 @@ public class NuclearReactorStructure {
             }
             if (world.getTileEntity(x, y, z) instanceof IGregTechTileEntity te) {
                 IMetaTileEntity mte = te.getMetaTileEntity();
-                return (!(mte instanceof MTEHatchNuclearHighPressureInput) && mte instanceof MTEHatchNuclearHighPressure)
+                return (!(mte instanceof MTEHatchNuclearHighPressureInput)
+                    && mte instanceof MTEHatchNuclearHighPressure)
                     || (mte instanceof MTEHatchPressurizedFluid pf && pf.isOutput())
                     || mte instanceof MTEHatchNuclearControlRod
                     || mte instanceof MTEHatchInputBeamline;

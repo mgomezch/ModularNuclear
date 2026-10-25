@@ -66,25 +66,25 @@ public class MTEHatchNuclearBusGui extends MTEHatchBaseGui<MTEHatchNuclearBus> {
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
-        textColumn.child(
-            IKey.dynamic(() -> {
-                int tpc = machine.getTicksPerCycle();
-                double cps = 20.0 / (double) tpc;
-                long sec = Math.round(machine.mLastFastFlux * cps);
-                return EnumChatFormatting.AQUA + String.format(Locale.US, "Fast: %,d n/s (%,d /cycle)", sec, machine.mLastFastFlux);
-            })
-                .asWidget()
-                .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
+        textColumn.child(IKey.dynamic(() -> {
+            int tpc = machine.getTicksPerCycle();
+            double cps = 20.0 / (double) tpc;
+            long sec = Math.round(machine.mLastFastFlux * cps);
+            return EnumChatFormatting.AQUA
+                + String.format(Locale.US, "Fast: %,d n/s (%,d /cycle)", sec, machine.mLastFastFlux);
+        })
+            .asWidget()
+            .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
-        textColumn.child(
-            IKey.dynamic(() -> {
-                int tpc = machine.getTicksPerCycle();
-                double cps = 20.0 / (double) tpc;
-                long sec = Math.round(machine.mLastThermalFlux * cps);
-                return EnumChatFormatting.BLUE + String.format(Locale.US, "Thermal: %,d n/s (%,d /cycle)", sec, machine.mLastThermalFlux);
-            })
-                .asWidget()
-                .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
+        textColumn.child(IKey.dynamic(() -> {
+            int tpc = machine.getTicksPerCycle();
+            double cps = 20.0 / (double) tpc;
+            long sec = Math.round(machine.mLastThermalFlux * cps);
+            return EnumChatFormatting.BLUE
+                + String.format(Locale.US, "Thermal: %,d n/s (%,d /cycle)", sec, machine.mLastThermalFlux);
+        })
+            .asWidget()
+            .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
             net.minecraft.item.ItemStack stack = machine.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
@@ -98,7 +98,8 @@ public class MTEHatchNuclearBusGui extends MTEHatchBaseGui<MTEHatchNuclearBus> {
             int tpc = machine.getTicksPerCycle();
             double cps = 20.0 / (double) tpc;
             long sec = Math.round(machine.mLastNeutronsGenerated * cps);
-            return EnumChatFormatting.GRAY + String.format(Locale.US, "Neutrons: %,d n/s (%,d /cycle)", sec, machine.mLastNeutronsGenerated);
+            return EnumChatFormatting.GRAY
+                + String.format(Locale.US, "Neutrons: %,d n/s (%,d /cycle)", sec, machine.mLastNeutronsGenerated);
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
