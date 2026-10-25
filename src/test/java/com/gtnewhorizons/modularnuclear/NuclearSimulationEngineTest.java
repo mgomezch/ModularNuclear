@@ -3147,6 +3147,240 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
+    void testHeatExchangersRunBeforeVents() {
+        SimTile[][] grid = new SimTile[3][3];
+        for (int x = 0; x < 3; x++) {
+            for (int y = 0; y < 3; y++) {
+                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                grid[x][y].setTemperature(20.0);
+            }
+        }
+
+        // Center: Standard Heat Exchanger (1024 HU/t). Top neighbor: Standard Heat Vent (512 HU/t).
+        SimTile exchanger = new SimTile(SimTile.TileType.EXCHANGER_STANDARD);
+        exchanger.setTemperature(20.0);
+        grid[1][1] = exchanger;
+        SimTile vent = new SimTile(SimTile.TileType.VENT_STANDARD);
+        vent.setTemperature(20.0);
+        grid[1][0] = vent;
+
+        // Right neighbor hot (120°C).
+        grid[2][1].setTemperature(120.0);
+
+        // Exchanger first: cluster mean = (120 + 4 * 20) / 5 = 40°C, deviation 80°C = 2560 HU > 1024 HU, scale 0.4.
+        // Hot -> 120 - 80 * 0.4 = 88°C; vent cell -> 20 + 20 * 0.4 = 28°C.
+        // Vent second: 8°C above ambient = 256 HU < 512 HU, so the vent cell returns to ambient within the same tick.
+        NuclearSimulationEngine.processActiveVentsAndExchangers(grid, 3, 3, 20.0);
+
+        assertEquals(88.0, grid[2][1].getTemperature(), 1e-4, "Hot neighbor drained by exchanger");
+        assertEquals(28.0, exchanger.getTemperature(), 1e-4, "Exchanger own cell warmed by 8°C");
+        assertEquals(20.0, vent.getTemperature(), 1e-4, "Vent must remove heat delivered by the exchanger in the same tick");
+        assertEquals(64, vent.drainedEnergy, "Vent consumes 256 HU / 4 = 64 EU");
+    }
+
+    private static SimTile pooledSimTile(SimTile.TileType type, long[] pool) {
+        return new SimTile(type) {
+
+            @Override
+            public long getAvailableEnergy() {
+                return pool[0];
+            }
+
+            @Override
+            public boolean drainEnergy(long eu) {
+                if (eu > pool[0]) return false;
+                pool[0] -= eu;
+                drainedEnergy += eu;
+                return true;
+            }
+        };
+    }
+
+    private static SimTile[][] randomActiveLayout(long seed, int sizeX, int sizeY) {
+        java.util.Random rand = new java.util.Random(seed);
+        SimTile.TileType[] types = { SimTile.TileType.EMPTY, SimTile.TileType.EXCHANGER_STANDARD,
+            SimTile.TileType.EXCHANGER_COMPONENT, SimTile.TileType.VENT_STANDARD };
+        SimTile[][] grid = new SimTile[sizeX][sizeY];
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                grid[x][y] = new SimTile(types[rand.nextInt(types.length)]);
+                grid[x][y].setTemperature(rand.nextDouble() * 1500.0);
+            }
+        }
+        return grid;
+    }
+
+    @Test
+    void testExchangerPassIsOrderIndependent() {
+        int n = 7;
+        for (long seed = 1; seed <= 20; seed++) {
+            SimTile[][] base = randomActiveLayout(seed, n, n);
+            SimTile[][] mirrored = randomActiveLayout(seed, n, n);
+            SimTile[][] transposed = randomActiveLayout(seed, n, n);
+            // Rearrange the copies so that the grid scan visits the same components in a different order
+            SimTile[][] mirrorGrid = new SimTile[n][n];
+            SimTile[][] transposeGrid = new SimTile[n][n];
+            for (int x = 0; x < n; x++) {
+                for (int y = 0; y < n; y++) {
+                    mirrorGrid[n - 1 - x][y] = mirrored[x][y];
+                    transposeGrid[y][x] = transposed[x][y];
+                }
+            }
+
+            NuclearSimulationEngine.processActiveVentsAndExchangers(base, n, n, 20.0);
+            NuclearSimulationEngine.processActiveVentsAndExchangers(mirrorGrid, n, n, 20.0);
+            NuclearSimulationEngine.processActiveVentsAndExchangers(transposeGrid, n, n, 20.0);
+
+            for (int x = 0; x < n; x++) {
+                for (int y = 0; y < n; y++) {
+                    assertEquals(
+                        base[x][y].getTemperature(),
+                        mirrored[x][y].getTemperature(),
+                        1e-9,
+                        "Mirrored layout must give identical temperatures (seed " + seed + ")");
+                    assertEquals(
+                        base[x][y].getTemperature(),
+                        transposed[x][y].getTemperature(),
+                        1e-9,
+                        "Transposed layout must give identical temperatures (seed " + seed + ")");
+                    assertEquals(base[x][y].drainedEnergy, mirrored[x][y].drainedEnergy, "Mirrored EU must match");
+                    assertEquals(base[x][y].drainedEnergy, transposed[x][y].drainedEnergy, "Transposed EU must match");
+                }
+            }
+        }
+    }
+
+    @Test
+    void testOverlappingExchangersDoNotOvershoot() {
+        // A hot cell between two full-strength exchangers whose other cells are at 0°C.
+        // Each exchanger alone would pull the hot cell 80°C towards its own mean (20°C); summing both naively would
+        // drive it to -60°C, below every temperature around it.
+        SimTile[][] grid = new SimTile[5][3];
+        for (int x = 0; x < 5; x++) {
+            for (int y = 0; y < 3; y++) {
+                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                grid[x][y].setTemperature(0.0);
+            }
+        }
+        SimTile left = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
+        SimTile right = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
+        left.setTemperature(0.0);
+        right.setTemperature(0.0);
+        grid[1][1] = left;
+        grid[3][1] = right;
+        grid[2][1].setTemperature(100.0);
+
+        NuclearSimulationEngine.processHeatExchangers(grid, 5, 3);
+
+        // Hot cell total weight = 2 exchangers * 4 partners * 1/5 = 1.6, so its pairs are scaled by 1/1.6:
+        // it gives 50°C to each exchanger's 4 other cells (12.5°C each) and ends at exactly 0°C.
+        assertEquals(0.0, grid[2][1].getTemperature(), 1e-9, "Hot cell must not be pushed below its surroundings");
+        double sum = 0.0;
+        for (int x = 0; x < 5; x++) {
+            for (int y = 0; y < 3; y++) {
+                double t = grid[x][y].getTemperature();
+                sum += t;
+                assertTrue(t >= -1e-9 && t <= 100.0 + 1e-9, "Every cell must stay within the snapshot range");
+            }
+        }
+        assertEquals(100.0, sum, 1e-9, "Heat must be conserved");
+        assertEquals(12.5, grid[1][1].getTemperature(), 1e-9);
+        assertEquals(12.5, grid[1][0].getTemperature(), 1e-9);
+        assertEquals(12.5, grid[3][2].getTemperature(), 1e-9);
+        assertEquals(12.5, grid[4][1].getTemperature(), 1e-9);
+        assertEquals(400, left.drainedEnergy, "Each exchanger moves 50°C = 1600 HU = 400 EU");
+        assertEquals(400, right.drainedEnergy, "Each exchanger moves 50°C = 1600 HU = 400 EU");
+    }
+
+    @Test
+    void testDenseExchangerGridStaysBoundedAndConservative() {
+        int n = 9;
+        for (long seed = 1; seed <= 20; seed++) {
+            java.util.Random rand = new java.util.Random(seed);
+            SimTile[][] grid = new SimTile[n][n];
+            double min = Double.MAX_VALUE;
+            double max = -Double.MAX_VALUE;
+            double sumBefore = 0.0;
+            for (int x = 0; x < n; x++) {
+                for (int y = 0; y < n; y++) {
+                    // Every cell is a component exchanger: maximal overlap
+                    grid[x][y] = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
+                    double t = rand.nextDouble() * 3000.0 - 200.0;
+                    grid[x][y].setTemperature(t);
+                    min = Math.min(min, t);
+                    max = Math.max(max, t);
+                    sumBefore += t;
+                }
+            }
+            for (int tick = 0; tick < 50; tick++) {
+                NuclearSimulationEngine.processHeatExchangers(grid, n, n);
+                double sumAfter = 0.0;
+                for (int x = 0; x < n; x++) {
+                    for (int y = 0; y < n; y++) {
+                        double t = grid[x][y].getTemperature();
+                        sumAfter += t;
+                        assertTrue(t >= min - 1e-6 && t <= max + 1e-6, "No cell may leave the initial range");
+                    }
+                }
+                assertEquals(sumBefore, sumAfter, 1e-6, "Heat must be conserved every tick (seed " + seed + ")");
+            }
+        }
+    }
+
+    @Test
+    void testExchangersShareShortEnergyProportionally() {
+        // Two independent standard exchangers, each wanting 1024 HU = 256 EU, sharing a pool of 258 EU.
+        // Scale = (258 - 2 headroom) / 512 = 0.5: each moves 512 HU for 128 EU, regardless of scan order.
+        long[] pool = { 258L };
+        SimTile[][] grid = new SimTile[7][3];
+        for (int x = 0; x < 7; x++) {
+            for (int y = 0; y < 3; y++) {
+                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                grid[x][y].setTemperature(20.0);
+            }
+        }
+        SimTile first = pooledSimTile(SimTile.TileType.EXCHANGER_STANDARD, pool);
+        SimTile second = pooledSimTile(SimTile.TileType.EXCHANGER_STANDARD, pool);
+        first.setTemperature(20.0);
+        second.setTemperature(20.0);
+        grid[1][1] = first;
+        grid[5][1] = second;
+        grid[0][1].setTemperature(100.0);
+        grid[6][1].setTemperature(100.0);
+
+        NuclearSimulationEngine.processHeatExchangers(grid, 7, 3);
+
+        assertEquals(128, first.drainedEnergy, "First exchanger gets half its demand");
+        assertEquals(128, second.drainedEnergy, "Second exchanger gets half its demand");
+        assertEquals(2L, pool[0], "Pool keeps only the rounding headroom");
+        // Unthrottled each hot cell would drop 32°C (to 68°C); at half throughput it drops 16°C
+        assertEquals(84.0, grid[0][1].getTemperature(), 1e-9);
+        assertEquals(84.0, grid[6][1].getTemperature(), 1e-9);
+    }
+
+    @Test
+    void testVentsShareShortEnergyProportionally() {
+        // Two standard vents at 100°C, each wanting 512 HU = 128 EU, sharing a pool of 130 EU.
+        // Scale = (130 - 2) / 256 = 0.5: each removes 256 HU (8°C) for 64 EU.
+        long[] pool = { 130L };
+        SimTile[][] grid = new SimTile[3][1];
+        SimTile a = pooledSimTile(SimTile.TileType.VENT_STANDARD, pool);
+        SimTile b = pooledSimTile(SimTile.TileType.VENT_STANDARD, pool);
+        a.setTemperature(100.0);
+        b.setTemperature(100.0);
+        grid[0][0] = a;
+        grid[1][0] = new SimTile(SimTile.TileType.EMPTY);
+        grid[2][0] = b;
+
+        NuclearSimulationEngine.processHeatVents(grid, 3, 1, 20.0);
+
+        assertEquals(92.0, a.getTemperature(), 1e-9);
+        assertEquals(92.0, b.getTemperature(), 1e-9);
+        assertEquals(64, a.drainedEnergy);
+        assertEquals(64, b.drainedEnergy);
+    }
+
+    @Test
     void testHeatVentAndExchangerGridSimulation() {
         SimTile[][] grid = new SimTile[5][5];
         for (int x = 0; x < 5; x++) {

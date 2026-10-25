@@ -182,6 +182,14 @@ public interface INuclearTile {
     }
 
     /**
+     * Energy (EU) currently available to this tile's active components from the reactor buffer. All tiles of one
+     * reactor draw from the same buffer. Defaults to unlimited.
+     */
+    default long getAvailableEnergy() {
+        return Long.MAX_VALUE;
+    }
+
+    /**
      * Instantly voids / destroys the component inside this tile (e.g. on over-temperature).
      */
     default void voidComponent() {}

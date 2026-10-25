@@ -374,6 +374,11 @@ public class NuclearGridTile implements INuclearTile {
     }
 
     @Override
+    public long getAvailableEnergy() {
+        return (reactor != null) ? reactor.getStoredEnergyUnits() : 0L;
+    }
+
+    @Override
     public void voidComponent() {
         if (isBus() && getBus() != null) {
             getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;

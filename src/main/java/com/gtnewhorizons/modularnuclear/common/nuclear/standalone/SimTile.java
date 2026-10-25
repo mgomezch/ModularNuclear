@@ -1580,6 +1580,11 @@ public class SimTile implements INuclearTile {
         return true;
     }
 
+    @Override
+    public long getAvailableEnergy() {
+        return energyDrainingAllowed ? Long.MAX_VALUE : 0L;
+    }
+
     public boolean canStoreHeat() {
         return maxCellHeat > 0;
     }

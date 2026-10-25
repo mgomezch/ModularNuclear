@@ -1,7 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -1058,51 +1057,82 @@ public class NuclearSimulationEngine {
     }
 
     /**
-     * Executes active heat vent cooling and active heat exchanger equalization over the 2D grid.
-     * Heat vents run first, followed by heat exchangers in randomized order to prevent directional bias.
+     * Executes active heat exchanger equalization and active heat vent cooling over the 2D grid.
+     * <p>
+     * Heat exchangers act first, as one atomic, order-independent pass over a snapshot of cell temperatures (see
+     * {@link #processHeatExchangers}). Heat vents then act on the resulting temperatures, so that vents remove heat
+     * moved into their cells by exchangers within the same tick. Within each stage, components share the available
+     * energy proportionally when it cannot cover every component's demand.
      */
     public static void processActiveVentsAndExchangers(INuclearTile[][] grid, int sizeX, int sizeY, double ambient) {
         if (grid == null || sizeX <= 0 || sizeY <= 0) return;
+        processHeatExchangers(grid, sizeX, sizeY);
+        processHeatVents(grid, sizeX, sizeY, ambient);
+    }
 
-        // 1. Process Heat Vents FIRST
-        for (int x = 0; x < sizeX; x++) {
-            for (int y = 0; y < sizeY; y++) {
-                INuclearTile tile = grid[x][y];
-                if (tile != null && tile.isHeatVent()) {
-                    processHeatVent(tile, ambient);
-                }
-            }
-        }
+    private static final double MIN_ACTIVE_TRANSFER_HU = 1e-4;
 
-        // 2. Process Heat Exchangers in RANDOMIZED order each tick to prevent directional bias
-        List<int[]> exchangers = new ArrayList<>();
-        for (int x = 0; x < sizeX; x++) {
-            for (int y = 0; y < sizeY; y++) {
-                INuclearTile tile = grid[x][y];
-                if (tile != null && tile.isHeatExchanger()) {
-                    exchangers.add(new int[] { x, y });
-                }
-            }
+    /**
+     * Rounds an EU amount up, tolerating floating-point noise just above an integer.
+     */
+    private static long ceilEU(double eu) {
+        return (long) Math.ceil(eu - 1e-9);
+    }
+
+    /**
+     * Energy shared by a set of components: they all draw from the same reactor energy hatches, so the pool is the
+     * smallest amount any of them reports as available.
+     */
+    private static long sharedAvailableEnergy(List<INuclearTile> tiles) {
+        long available = Long.MAX_VALUE;
+        for (INuclearTile t : tiles) {
+            available = Math.min(available, t.getAvailableEnergy());
         }
-        if (!exchangers.isEmpty()) {
-            Collections.shuffle(exchangers);
-            for (int[] pos : exchangers) {
-                processHeatExchanger(grid, pos[0], pos[1], sizeX, sizeY);
-            }
+        return available;
+    }
+
+    /**
+     * Fraction of demand that can be served from a pool. Leaves one EU of headroom per component so that rounding
+     * each component's share up never exceeds the pool.
+     */
+    private static double energyScale(double demandEU, long availableEU, int components) {
+        if (demandEU <= availableEU) return 1.0;
+        return Math.max(0.0, (availableEU - (double) components) / demandEU);
+    }
+
+    // ------------------------------------------------------------------------------------------------------------
+    // Heat vents
+    // ------------------------------------------------------------------------------------------------------------
+
+    /** Planned action of one heat vent on its own cell. */
+    private static final class VentPlan {
+
+        final INuclearTile tile;
+        final double ambient;
+        final double huToMove;
+        final double euPerHu;
+        final long euNeeded;
+
+        VentPlan(INuclearTile tile, double ambient, double huToMove, double euPerHu, long euNeeded) {
+            this.tile = tile;
+            this.ambient = ambient;
+            this.huToMove = huToMove;
+            this.euPerHu = euPerHu;
+            this.euNeeded = euNeeded;
         }
     }
 
     /**
-     * Processes an active heat vent on its own cell, equalizing cell temperature towards ambient.
-     * Consumes 1 EU per 4 HU removed or transported.
+     * Plans a heat vent's action, equalizing its own cell towards ambient. Voids an over-temperature vent.
+     * Returns null when the vent has nothing to do.
      */
-    public static void processHeatVent(INuclearTile tile, double ambient) {
+    private static VentPlan planHeatVent(INuclearTile tile, double ambient) {
         com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData vent = tile.getHeatVentData();
-        if (vent == null) return;
+        if (vent == null) return null;
         double curTemp = tile.getTemperature();
         if (vent.maxTemperature > 0.0 && curTemp > vent.maxTemperature) {
             tile.voidComponent();
-            return;
+            return null;
         }
 
         double euPerHu = vent.euPerHu > 0.0 ? vent.euPerHu : 0.25;
@@ -1110,105 +1140,283 @@ public class NuclearSimulationEngine {
         long maxEU = vent.maxEUt > 0 ? vent.maxEUt : (long) Math.ceil(maxHU * euPerHu);
 
         double tempDiff = curTemp - ambient;
-        if (Math.abs(tempDiff) < 1e-4) return;
+        if (Math.abs(tempDiff) < 1e-4) return null;
 
-        double huNeeded = Math.abs(tempDiff) * HU_PER_DEGREE;
-        double huToMove = Math.min(huNeeded, maxHU);
-        if (huToMove <= 0.0) return;
+        double huToMove = Math.min(Math.abs(tempDiff) * HU_PER_DEGREE, maxHU);
+        if (huToMove <= 0.0) return null;
 
-        long euNeeded = (long) Math.ceil(huToMove * euPerHu);
+        long euNeeded = ceilEU(huToMove * euPerHu);
         if (euNeeded > maxEU) {
             euNeeded = maxEU;
             huToMove = euNeeded / euPerHu;
         }
+        return new VentPlan(tile, ambient, huToMove, euPerHu, euNeeded);
+    }
 
-        // Draws from energy hatch buffers. If insufficient EU, component stops work for that tick.
-        if (!tile.drainEnergy(euNeeded)) {
-            return;
-        }
+    /**
+     * Executes a planned vent action at a fraction of its planned throughput. Draws the scaled energy first; if it
+     * cannot be drawn, the vent does nothing this tick.
+     */
+    private static void applyHeatVent(VentPlan plan, double scale) {
+        double huToMove = plan.huToMove * scale;
+        long euNeeded = (scale >= 1.0) ? plan.euNeeded : ceilEU(huToMove * plan.euPerHu);
+        if (huToMove <= 0.0) return;
+        if (!plan.tile.drainEnergy(euNeeded)) return;
 
+        double curTemp = plan.tile.getTemperature();
         double deltaTemp = huToMove / HU_PER_DEGREE;
-        if (tempDiff > 0) {
-            tile.setTemperature(Math.max(ambient, curTemp - deltaTemp));
+        if (curTemp > plan.ambient) {
+            plan.tile.setTemperature(Math.max(plan.ambient, curTemp - deltaTemp));
         } else {
-            tile.setTemperature(Math.min(ambient, curTemp + deltaTemp));
+            plan.tile.setTemperature(Math.min(plan.ambient, curTemp + deltaTemp));
         }
     }
 
     /**
-     * Processes an active heat exchanger, equalizing temperature between own cell and all cardinally adjacent cells.
-     * Consumes configured EU per HU transported (default 1 EU per 4 HU).
+     * Processes a single active heat vent on its own cell, equalizing cell temperature towards ambient.
+     * Consumes 1 EU per 4 HU removed or transported (configurable per vent).
      */
-    public static void processHeatExchanger(INuclearTile[][] grid, int x, int y, int sizeX, int sizeY) {
+    public static void processHeatVent(INuclearTile tile, double ambient) {
+        VentPlan plan = planHeatVent(tile, ambient);
+        if (plan != null) {
+            applyHeatVent(plan, 1.0);
+        }
+    }
+
+    /**
+     * Processes every heat vent on the grid. Vents act only on their own cells, so they are independent of each
+     * other; when the shared energy pool cannot cover every vent's demand, all vents are throttled by the same
+     * fraction.
+     */
+    public static void processHeatVents(INuclearTile[][] grid, int sizeX, int sizeY, double ambient) {
+        List<VentPlan> plans = new ArrayList<>();
+        List<INuclearTile> powered = new ArrayList<>();
+        double demand = 0.0;
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                INuclearTile tile = grid[x][y];
+                if (tile == null || !tile.isHeatVent()) continue;
+                VentPlan plan = planHeatVent(tile, ambient);
+                if (plan == null || tile.getAvailableEnergy() <= 0) continue;
+                plans.add(plan);
+                powered.add(tile);
+                demand += plan.euNeeded;
+            }
+        }
+        if (plans.isEmpty()) return;
+
+        double scale = energyScale(demand, sharedAvailableEnergy(powered), plans.size());
+        for (VentPlan plan : plans) {
+            applyHeatVent(plan, scale);
+        }
+    }
+
+    // ------------------------------------------------------------------------------------------------------------
+    // Heat exchangers
+    // ------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Planned action of one heat exchanger, computed from the temperature snapshot.
+     * <p>
+     * An exchanger equalizing its n cells towards their mean by a fraction s moves each cell by
+     * s * (mean - T_i) = (s / n) * sum_j (T_j - T_i), i.e. it is a set of pairwise flows with weight s / n between
+     * every pair of its cells.
+     */
+    private static final class ExchangerPlan {
+
+        final INuclearTile tile;
+        final int[] cells; // Flat indices x * sizeY + y; cells[0] is the exchanger's own cell
+        final double weight; // Pairwise weight s / n
+        final double euPerHu;
+        final double maxHU;
+        final long maxEU;
+        double[] delta; // Per-cell temperature change (°C) after normalization and caps, parallel to cells
+        double huMoved; // Heat moved (HU) after normalization and caps
+
+        ExchangerPlan(INuclearTile tile, int[] cells, double weight, double euPerHu, double maxHU, long maxEU) {
+            this.tile = tile;
+            this.cells = cells;
+            this.weight = weight;
+            this.euPerHu = euPerHu;
+            this.maxHU = maxHU;
+            this.maxEU = maxEU;
+        }
+    }
+
+    /**
+     * Plans a heat exchanger's action from the snapshot. Voids an over-temperature exchanger. Returns null when the
+     * exchanger has nothing to do or no energy to do it with.
+     */
+    private static ExchangerPlan planHeatExchanger(INuclearTile[][] grid, int x, int y, int sizeX, int sizeY,
+        double[] snapshot) {
         INuclearTile center = grid[x][y];
-        if (center == null) return;
+        if (center == null) return null;
         com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData hex = center
             .getHeatExchangerData();
-        if (hex == null) return;
-        double curTemp = center.getTemperature();
-        if (hex.maxTemperature > 0.0 && curTemp > hex.maxTemperature) {
+        if (hex == null) return null;
+        if (hex.maxTemperature > 0.0 && snapshot[x * sizeY + y] > hex.maxTemperature) {
             center.voidComponent();
-            return;
+            return null;
         }
+        if (center.getAvailableEnergy() <= 0) return null;
 
         double euPerHu = hex.euPerHu > 0.0 ? hex.euPerHu : 0.25;
         double maxHU = hex.maxHUt > 0.0 ? hex.maxHUt : 1024.0;
         long maxEU = hex.maxEUt > 0 ? hex.maxEUt : (long) Math.ceil(maxHU * euPerHu);
 
-        // Gather center and up to 4 cardinally adjacent neighbor cells
-        int[] dX = { 0, 0, -1, 1 };
-        int[] dY = { -1, 1, 0, 0 };
-        List<INuclearTile> cluster = new ArrayList<>(5);
-        cluster.add(center);
-
+        // Gather own cell and up to 4 cardinally adjacent cells
+        int[] cdX = { 0, 0, -1, 1 };
+        int[] cdY = { -1, 1, 0, 0 };
+        int[] buf = new int[5];
+        int n = 0;
+        buf[n++] = x * sizeY + y;
         for (int i = 0; i < 4; i++) {
-            int nx = x + dX[i];
-            int ny = y + dY[i];
+            int nx = x + cdX[i];
+            int ny = y + cdY[i];
             if (nx >= 0 && nx < sizeX && ny >= 0 && ny < sizeY && grid[nx][ny] != null) {
-                cluster.add(grid[nx][ny]);
+                buf[n++] = nx * sizeY + ny;
             }
         }
+        if (n <= 1) return null;
+        int[] cells = java.util.Arrays.copyOf(buf, n);
 
-        if (cluster.size() <= 1) return;
-
-        // Equalize temperature between own cell and all cardinally adjacent cells
         double sumTemp = 0.0;
-        for (INuclearTile t : cluster) {
-            sumTemp += t.getTemperature();
+        for (int c : cells) sumTemp += snapshot[c];
+        double mean = sumTemp / n;
+        double totalHu = 0.0;
+        for (int c : cells) {
+            double diff = snapshot[c] - mean;
+            if (diff > 0) totalHu += diff * HU_PER_DEGREE;
         }
-        double targetTemp = sumTemp / cluster.size();
+        if (totalHu < MIN_ACTIVE_TRANSFER_HU) return null;
 
-        double totalHuTransported = 0.0;
-        for (INuclearTile t : cluster) {
-            double diff = t.getTemperature() - targetTemp;
-            if (diff > 0) {
-                totalHuTransported += diff * HU_PER_DEGREE;
+        double s = Math.min(1.0, maxHU / totalHu);
+        if (ceilEU(totalHu * s * euPerHu) > maxEU) {
+            s = (maxEU / euPerHu) / totalHu;
+        }
+        return new ExchangerPlan(center, cells, s / n, euPerHu, maxHU, maxEU);
+    }
+
+    /**
+     * Processes every heat exchanger on the grid as one atomic, order-independent action.
+     * <p>
+     * 1. Every exchanger plans its equalization from the same temperature snapshot and expresses it as pairwise flows
+     * f_ij = w * (T_j - T_i) between all pairs of its cells.<br>
+     * 2. Pair weights from all exchangers are summed. Where exchangers overlap, a cell's total weight S_i can exceed
+     * 1, which would overshoot (push a cell past every temperature around it). Each pair weight is therefore divided
+     * by max(1, S_i, S_j). The result stays symmetric (heat is conserved) and every cell's total weight is at most 1,
+     * so every new temperature is a weighted average of snapshot temperatures (no overshoot).<br>
+     * 3. Per-exchanger HU and EU caps are re-applied to the normalized flows, and when the shared energy pool cannot
+     * cover all exchangers, every exchanger is throttled by the same fraction. These only scale weights down, which
+     * preserves both properties above.<br>
+     * 4. Energy is drawn and all temperature changes are applied at once.
+     */
+    public static void processHeatExchangers(INuclearTile[][] grid, int sizeX, int sizeY) {
+        if (grid == null || sizeX <= 0 || sizeY <= 0) return;
+        double[] snapshot = takeTemperatureSnapshot(grid, sizeX, sizeY);
+        List<ExchangerPlan> plans = new ArrayList<>();
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                INuclearTile tile = grid[x][y];
+                if (tile != null && tile.isHeatExchanger()) {
+                    ExchangerPlan plan = planHeatExchanger(grid, x, y, sizeX, sizeY, snapshot);
+                    if (plan != null) plans.add(plan);
+                }
             }
         }
+        executeExchangerPlans(grid, sizeX, sizeY, snapshot, plans);
+    }
 
-        if (totalHuTransported < 1e-4) return;
+    /**
+     * Processes a single active heat exchanger, equalizing temperature between its own cell and all cardinally
+     * adjacent cells. Consumes configured EU per HU transported (default 1 EU per 4 HU).
+     */
+    public static void processHeatExchanger(INuclearTile[][] grid, int x, int y, int sizeX, int sizeY) {
+        if (grid == null || grid[x][y] == null) return;
+        double[] snapshot = takeTemperatureSnapshot(grid, sizeX, sizeY);
+        ExchangerPlan plan = planHeatExchanger(grid, x, y, sizeX, sizeY, snapshot);
+        if (plan == null) return;
+        List<ExchangerPlan> plans = new ArrayList<>(1);
+        plans.add(plan);
+        executeExchangerPlans(grid, sizeX, sizeY, snapshot, plans);
+    }
 
-        double scale = 1.0;
-        if (totalHuTransported > maxHU) {
-            scale = maxHU / totalHuTransported;
+    private static double[] takeTemperatureSnapshot(INuclearTile[][] grid, int sizeX, int sizeY) {
+        double[] snapshot = new double[sizeX * sizeY];
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                INuclearTile tile = grid[x][y];
+                snapshot[x * sizeY + y] = (tile != null) ? tile.getTemperature() : 0.0;
+            }
+        }
+        return snapshot;
+    }
+
+    private static void executeExchangerPlans(INuclearTile[][] grid, int sizeX, int sizeY, double[] snapshot,
+        List<ExchangerPlan> plans) {
+        if (plans.isEmpty()) return;
+        int cellCount = sizeX * sizeY;
+
+        // 1. Total weight of each cell across all exchangers (sum over all pairs it belongs to)
+        double[] cellWeight = new double[cellCount];
+        for (ExchangerPlan plan : plans) {
+            double perCell = plan.weight * (plan.cells.length - 1);
+            for (int c : plan.cells) cellWeight[c] += perCell;
         }
 
-        double huActuallyTransported = totalHuTransported * scale;
-        long euNeeded = (long) Math.ceil(huActuallyTransported * euPerHu);
-        if (euNeeded > maxEU) {
-            euNeeded = maxEU;
-            huActuallyTransported = euNeeded / euPerHu;
-            scale = huActuallyTransported / totalHuTransported;
+        // 2. Normalized per-exchanger flows, then per-exchanger HU / EU caps
+        double demandEU = 0.0;
+        List<INuclearTile> powered = new ArrayList<>(plans.size());
+        for (ExchangerPlan plan : plans) {
+            int n = plan.cells.length;
+            double[] delta = new double[n];
+            for (int i = 0; i < n; i++) {
+                int a = plan.cells[i];
+                for (int j = i + 1; j < n; j++) {
+                    int b = plan.cells[j];
+                    double norm = Math.max(1.0, Math.max(cellWeight[a], cellWeight[b]));
+                    double flow = plan.weight / norm * (snapshot[b] - snapshot[a]);
+                    delta[i] += flow;
+                    delta[j] -= flow;
+                }
+            }
+            double hu = 0.0;
+            for (double d : delta) {
+                if (d < 0) hu -= d * HU_PER_DEGREE;
+            }
+            double cap = 1.0;
+            if (hu > plan.maxHU) cap = plan.maxHU / hu;
+            if (hu * cap * plan.euPerHu > plan.maxEU) cap = plan.maxEU / (hu * plan.euPerHu);
+            for (int i = 0; i < n; i++) delta[i] *= cap;
+            plan.delta = delta;
+            plan.huMoved = hu * cap;
+            if (plan.huMoved >= MIN_ACTIVE_TRANSFER_HU) {
+                demandEU += plan.huMoved * plan.euPerHu;
+                powered.add(plan.tile);
+            }
         }
+        if (powered.isEmpty()) return;
 
-        // Draws from energy hatch buffers. If insufficient EU, component stops work for that tick.
-        if (!center.drainEnergy(euNeeded)) {
-            return;
+        // 3. Shared energy pool: throttle all exchangers by the same fraction when it cannot cover the demand
+        double scale = energyScale(demandEU, sharedAvailableEnergy(powered), powered.size());
+
+        // 4. Draw energy, accumulate, then apply all changes atomically
+        double[] totalDelta = new double[cellCount];
+        for (ExchangerPlan plan : plans) {
+            if (plan.huMoved < MIN_ACTIVE_TRANSFER_HU) continue;
+            long euNeeded = ceilEU(plan.huMoved * scale * plan.euPerHu);
+            if (euNeeded <= 0 || !plan.tile.drainEnergy(euNeeded)) continue;
+            for (int i = 0; i < plan.cells.length; i++) {
+                totalDelta[plan.cells[i]] += plan.delta[i] * scale;
+            }
         }
-
-        for (INuclearTile t : cluster) {
-            double diff = targetTemp - t.getTemperature();
-            t.setTemperature(t.getTemperature() + diff * scale);
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                int c = x * sizeY + y;
+                if (grid[x][y] != null && totalDelta[c] != 0.0) {
+                    grid[x][y].setTemperature(snapshot[c] + totalDelta[c]);
+                }
+            }
         }
     }
 }
