@@ -136,7 +136,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide()) {
+        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide() && aTick >= 20) {
             aBaseMetaTileEntity.tryDisableTicking();
         }
     }

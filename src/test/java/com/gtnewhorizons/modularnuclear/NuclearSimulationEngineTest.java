@@ -4676,12 +4676,14 @@ public class NuclearSimulationEngineTest {
         // When efficiency is 0: zero heat transfer
         assertEquals(0.0, NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 0.0), 1e-6);
 
-        // Tier 3 (HV, mult=2.0, base=2.0 => U = 4.0 EU/(t·°C)), Ch = 32.0 EU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0 (20 ticks)
+        // Tier 3 (HV, mult=2.0, base=2.0 => U = 4.0 EU/(t·°C)), Ch = 32.0 EU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0
+        // (20 ticks)
         // Expected Q = 32.0 * 100.0 * (1 - exp(-4.0 / 32.0)) = 3200 * (1 - exp(-0.125)) = 376.01 EU
         double qHV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 1.0, 20);
         assertEquals(376.01, qHV, 0.02);
 
-        // Tier 4 (EV, mult=4.0, base=2.0 => U = 8.0 EU/(t·°C)), Ch = 32.0 EU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0 (20 ticks)
+        // Tier 4 (EV, mult=4.0, base=2.0 => U = 8.0 EU/(t·°C)), Ch = 32.0 EU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0
+        // (20 ticks)
         // Expected Q = 32.0 * 100.0 * (1 - exp(-8.0 / 32.0)) = 3200 * (1 - exp(-0.25)) = 707.84 EU
         double qEV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 4, 1.0, 20);
         assertEquals(707.84, qEV, 0.02);
@@ -5545,7 +5547,9 @@ public class NuclearSimulationEngineTest {
             "Neutron flux should be formatted");
         assertTrue(combined.contains("3,000 fast/s (3,000 /cycle)"), "Fast neutrons should be reported");
         assertTrue(combined.contains("+2,048 EU/t"), "EU output should be reported");
-        assertTrue(combined.contains("1,500 L/s (1,500 L/cycle) Supercritical Carbon Dioxide"), "Coolant output should be reported");
+        assertTrue(
+            combined.contains("1,500 L/s (1,500 L/cycle) Supercritical Carbon Dioxide"),
+            "Coolant output should be reported");
 
         // 3. Test SCRAM state
         reactor.mScram = true;
@@ -8279,41 +8283,48 @@ public class NuclearSimulationEngineTest {
         org.mockito.Mockito.when(mockTe.isServerSide())
             .thenReturn(true);
 
-        // 1. Bus
         MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 4, new String[0], null);
-        bus.onPostTick(mockTe, 1);
-        org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.times(1))
-            .tryDisableTicking();
-
-        // 2. Hatch
-        org.mockito.Mockito.clearInvocations(mockTe);
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 4, 16000, new String[0], null);
-        hatch.onPostTick(mockTe, 1);
-        org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.times(1))
-            .tryDisableTicking();
-
-        // 3. Control Rod
-        org.mockito.Mockito.clearInvocations(mockTe);
         MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test.rod", 4, new String[0], null);
-        rod.onPostTick(mockTe, 1);
-        org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.times(1))
-            .tryDisableTicking();
-
-        // 4. High Pressure Hatch
-        org.mockito.Mockito.clearInvocations(mockTe);
         MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 4, new String[0], null);
+
+        // Before tick 20: must NOT call tryDisableTicking so mTickTimer can exceed 5
+        bus.onPostTick(mockTe, 1);
+        hatch.onPostTick(mockTe, 1);
+        rod.onPostTick(mockTe, 1);
         hp.onPostTick(mockTe, 1);
+        org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.never())
+            .tryDisableTicking();
+
+        // At tick 20: must call tryDisableTicking
+        org.mockito.Mockito.clearInvocations(mockTe);
+        bus.onPostTick(mockTe, 20);
         org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.times(1))
             .tryDisableTicking();
 
-        // Client side must not call tryDisableTicking
+        org.mockito.Mockito.clearInvocations(mockTe);
+        hatch.onPostTick(mockTe, 20);
+        org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.times(1))
+            .tryDisableTicking();
+
+        org.mockito.Mockito.clearInvocations(mockTe);
+        rod.onPostTick(mockTe, 20);
+        org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.times(1))
+            .tryDisableTicking();
+
+        org.mockito.Mockito.clearInvocations(mockTe);
+        hp.onPostTick(mockTe, 20);
+        org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.times(1))
+            .tryDisableTicking();
+
+        // Client side must not call tryDisableTicking even at tick 20
         IGregTechTileEntity clientTe = org.mockito.Mockito.mock(IGregTechTileEntity.class);
         org.mockito.Mockito.when(clientTe.isServerSide())
             .thenReturn(false);
-        bus.onPostTick(clientTe, 1);
-        hatch.onPostTick(clientTe, 1);
-        rod.onPostTick(clientTe, 1);
-        hp.onPostTick(clientTe, 1);
+        bus.onPostTick(clientTe, 20);
+        hatch.onPostTick(clientTe, 20);
+        rod.onPostTick(clientTe, 20);
+        hp.onPostTick(clientTe, 20);
         org.mockito.Mockito.verify(clientTe, org.mockito.Mockito.never())
             .tryDisableTicking();
     }

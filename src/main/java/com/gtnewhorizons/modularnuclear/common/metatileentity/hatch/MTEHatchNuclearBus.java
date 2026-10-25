@@ -370,7 +370,9 @@ public class MTEHatchNuclearBus extends MTEHatch {
             if (mReactor != null && mInventory[SLOT_INPUT] != null) {
                 processMaxDamageFailsafe();
             }
-            aBaseMetaTileEntity.tryDisableTicking();
+            if (aTick >= 20) {
+                aBaseMetaTileEntity.tryDisableTicking();
+            }
         }
     }
 

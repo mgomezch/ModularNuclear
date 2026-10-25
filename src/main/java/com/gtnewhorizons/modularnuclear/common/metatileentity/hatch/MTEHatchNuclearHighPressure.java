@@ -160,7 +160,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide()) {
+        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide() && aTick >= 20) {
             aBaseMetaTileEntity.tryDisableTicking();
         }
     }
@@ -207,7 +207,8 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
             World w = te.getWorld();
             if (mOppositeCoord != null && mOppositeCoord.length >= 3) {
                 TileEntity target = w.getTileEntity(mOppositeCoord[0], mOppositeCoord[1], mOppositeCoord[2]);
-                if (target instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof ICoolantPassageHatch) {
+                if (target instanceof IGregTechTileEntity gte
+                    && gte.getMetaTileEntity() instanceof ICoolantPassageHatch) {
                     mOppositeHatch = gte;
                     return mOppositeHatch;
                 }
@@ -587,7 +588,9 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         aNBT.setBoolean("mIsInlet", mIsInlet);
         aNBT.setDouble("mIncomingCoolantTemp", mIncomingCoolantTemp);
         if (mOppositeHatch != null) {
-            aNBT.setIntArray("oppositeCoord", new int[] { mOppositeHatch.getXCoord(), mOppositeHatch.getYCoord(), mOppositeHatch.getZCoord() });
+            aNBT.setIntArray(
+                "oppositeCoord",
+                new int[] { mOppositeHatch.getXCoord(), mOppositeHatch.getYCoord(), mOppositeHatch.getZCoord() });
         } else if (mOppositeCoord != null) {
             aNBT.setIntArray("oppositeCoord", mOppositeCoord);
         }

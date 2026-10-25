@@ -271,8 +271,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         double ratio = getModeratorInsertionRatio();
         com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData data = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
             .findModerator(getModeratorStack());
-        double abs = (data != null)
-            ? ((type == NeutronType.FAST) ? data.absorptionFast : data.absorptionThermal)
+        double abs = (data != null) ? ((type == NeutronType.FAST) ? data.absorptionFast : data.absorptionThermal)
             : ((type == NeutronType.FAST) ? 0.002 : 0.009);
         return Math.max(0.0, Math.min(1.0, ratio * abs));
     }
@@ -282,8 +281,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         double ratio = getModeratorInsertionRatio();
         com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData data = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
             .findModerator(getModeratorStack());
-        double scattering = (data != null)
-            ? ((type == NeutronType.FAST) ? data.scatteringFast : data.scatteringThermal)
+        double scattering = (data != null) ? ((type == NeutronType.FAST) ? data.scatteringFast : data.scatteringThermal)
             : ((type == NeutronType.FAST) ? 0.93 : 0.621);
         return Math.max(0.0, Math.min(1.0, ratio * scattering));
     }
@@ -298,7 +296,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide()) {
+        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide() && aTick >= 20) {
             aBaseMetaTileEntity.tryDisableTicking();
         }
     }
