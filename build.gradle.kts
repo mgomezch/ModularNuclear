@@ -139,6 +139,14 @@ generateWasm.configure {
     finalizedBy(exportStaticDist)
 }
 
+val wasmSmokeTest by tasks.registering(Exec::class) {
+    dependsOn(generateWasm)
+    group = "verification"
+    description = "Loads the built nuclear-sim.wasm in Node and exercises the bridge entry points used by the web page"
+    val distDir = layout.buildDirectory.dir("nuclear-sim-dist").get().asFile
+    commandLine("node", file("src/test/wasm/nuclear-sim-smoke.mjs").absolutePath, distDir.absolutePath)
+}
+
 val deploySimulatorStaging by tasks.registering(Exec::class) {
     dependsOn(exportStaticDist)
     group = "publishing"

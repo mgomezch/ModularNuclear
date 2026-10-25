@@ -39,7 +39,7 @@ jobs:
       - name: Build ModularNuclear
         run: |
           chmod +x gradlew
-          ./gradlew build generateWasm exportStaticDist
+          ./gradlew build generateWasm exportStaticDist wasmSmokeTest
           ls -la build/libs/
 
       - name: Upload Mod Jars

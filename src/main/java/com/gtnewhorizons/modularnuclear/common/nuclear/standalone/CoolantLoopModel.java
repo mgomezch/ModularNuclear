@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
 
 /**
  * High-fidelity physical simulation model of an external closed Coolant Loop.
@@ -31,9 +31,7 @@ public class CoolantLoopModel {
 
         public static CoolingMode fromString(String str) {
             if (str == null) return MODULAR;
-            String s = str.trim()
-                .toUpperCase(Locale.ROOT)
-                .replace(" ", "_");
+            String s = WasmStrings.normalizeToken(str, " ");
             switch (s) {
                 case "MODULAR", "PER_CELL", "CELL":
                     return MODULAR;
@@ -115,10 +113,7 @@ public class CoolantLoopModel {
 
         public static LoopMaterial fromString(String str) {
             if (str == null) return TITANIUM;
-            String s = str.trim()
-                .toUpperCase(Locale.ROOT)
-                .replace(" ", "_")
-                .replace("-", "_");
+            String s = WasmStrings.normalizeToken(str, " -");
             switch (s) {
                 case "CAST_IRON", "CASTIRON", "CAST", "IRON":
                     return CAST_IRON;
@@ -166,9 +161,7 @@ public class CoolantLoopModel {
 
         public static LoopPipeSize fromString(String str) {
             if (str == null) return NORMAL;
-            String s = str.trim()
-                .toUpperCase(Locale.ROOT)
-                .replace(" ", "_");
+            String s = WasmStrings.normalizeToken(str, " ");
             switch (s) {
                 case "TINY", "PIPE_TINY", "0.05":
                     return TINY;
@@ -235,10 +228,7 @@ public class CoolantLoopModel {
 
         public static CoolantFluidType fromString(String str) {
             if (str == null) return DISTILLED_WATER;
-            String s = str.trim()
-                .toUpperCase(Locale.ROOT)
-                .replace(" ", "_")
-                .replace(".", "_");
+            String s = WasmStrings.normalizeToken(str, " .");
             switch (s) {
                 case "DISTILLED_WATER", "DISTILLEDWATER", "IC2DISTILLEDWATER", "WATER":
                     return DISTILLED_WATER;
@@ -336,9 +326,7 @@ public class CoolantLoopModel {
 
         public static EnergyHatchTier fromString(String str) {
             if (str == null) return EV;
-            String s = str.trim()
-                .toUpperCase(Locale.ROOT)
-                .replace(" ", "_");
+            String s = WasmStrings.normalizeToken(str, " ");
             switch (s) {
                 case "1", "LV", "TIER_LV", "ENERGY_HATCH_LV":
                     return LV;

@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
+
 /**
  * Dynamic registry of secondary coolants for heat exchangers and power generation.
  */
@@ -72,9 +74,7 @@ public final class SecondaryCoolantRegistry {
 
     public static SecondaryCoolant fromString(String str) {
         if (str == null) return DISTILLED_WATER;
-        String s = str.trim()
-            .toUpperCase(Locale.ROOT)
-            .replace(" ", "_");
+        String s = WasmStrings.normalizeToken(str, " ");
         switch (s) {
             case "DISTILLED_WATER":
             case "DISTILLEDWATER":

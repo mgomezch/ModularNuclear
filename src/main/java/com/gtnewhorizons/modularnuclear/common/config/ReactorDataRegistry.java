@@ -38,6 +38,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.enums.ItemList;
@@ -1466,13 +1467,13 @@ public final class ReactorDataRegistry {
 
     private static boolean matchesPermutedDescriptors(String a, String b) {
         if (a == null || b == null || a.isEmpty() || b.isEmpty()) return false;
-        String stripA = a.replace("state", "");
-        String stripB = b.replace("state", "");
+        String stripA = WasmStrings.replace(a, "state", "");
+        String stripB = WasmStrings.replace(b, "state", "");
         if (stripA.equals(stripB)) return true;
         for (String modifier : new String[] { "excited", "depleted" }) {
             if (stripA.contains(modifier) && stripB.contains(modifier)) {
-                String baseA = stripA.replace(modifier, "");
-                String baseB = stripB.replace(modifier, "");
+                String baseA = WasmStrings.replace(stripA, modifier, "");
+                String baseB = WasmStrings.replace(stripB, modifier, "");
                 if (!baseA.isEmpty() && baseA.equals(baseB)) {
                     return true;
                 }

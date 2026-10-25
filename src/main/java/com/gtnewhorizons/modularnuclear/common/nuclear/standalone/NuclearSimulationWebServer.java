@@ -1363,6 +1363,19 @@ public class NuclearSimulationWebServer {
               return `icons/${type}.png`;
             }
 
+            // Fallback for a missing static icon: try the Java dev server's /api/icon once, then hide the image.
+            // Static deployments have no /api, so the second failure is expected there.
+            function iconFallback(img, type) {
+              if (img.dataset.iconFallback) {
+                img.onerror = null;
+                img.style.visibility = "hidden";
+                return;
+              }
+              img.dataset.iconFallback = "1";
+              img.src = "/api/icon/" + type;
+            }
+            window.iconFallback = iconFallback;
+
             async function initEngine() {
               if (typeof NuclearSimWasm !== "undefined") {
                 try {
@@ -1799,7 +1812,7 @@ public class NuclearSimulationWebServer {
                 const iconHtml = p.isControlRod
                   ? `<div class="palette-icon" style="display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:bold; color:${p.color};">${p.remove ? '❌' : '🕹️'}</div>`
                   : (p.type !== "EMPTY"
-                      ? `<img class="palette-icon" src="${getIconUrl(p.type)}" onerror="this.src='/api/icon/' + p.type" alt="${p.code}" />`
+                      ? `<img class="palette-icon" src="${getIconUrl(p.type)}" onerror="iconFallback(this, '${p.type}')" alt="${p.code}" />`
                       : `<div class="palette-icon palette-empty-icon"></div>`);
                 btn.innerHTML = `${iconHtml} <span>${p.name}</span>`;
                 btn.onclick = (e) => {
@@ -3004,7 +3017,7 @@ public class NuclearSimulationWebServer {
                 `;
               }
               const iconHtml = (t.type && t.type !== "EMPTY" && t.code !== "NL")
-                ? `<img src="${getIconUrl(t.type)}" onerror="this.src='/api/icon/' + t.type" class="inspector-icon" alt="${t.code}" />`
+                ? `<img src="${getIconUrl(t.type)}" onerror="iconFallback(this, '${t.type}')" class="inspector-icon" alt="${t.code}" />`
                 : "";
 
               let fluxHtml = "";

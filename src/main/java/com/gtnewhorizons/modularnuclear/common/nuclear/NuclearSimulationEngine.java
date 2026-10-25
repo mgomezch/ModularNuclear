@@ -537,9 +537,10 @@ public class NuclearSimulationEngine {
         }
         double cyclesPerSec = (tpc > 0) ? (20.0 / (double) tpc) : 1.0;
         double physicalFlux = neutronsProduced * cyclesPerSec * 1.0e13;
-        return String.format(java.util.Locale.US, "%.2e neutrons/cm²/sec", physicalFlux)
-            .replace("+0", "")
-            .replace("+", "");
+        return WasmStrings.replace(
+            WasmStrings.replace(String.format(java.util.Locale.US, "%.2e neutrons/cm²/sec", physicalFlux), "+0", ""),
+            "+",
+            "");
     }
 
     public static String formatNeutronFlux(int neutronsProduced) {
@@ -560,9 +561,10 @@ public class NuclearSimulationEngine {
             return "0 neutrons/cm²";
         }
         double physicalFluence = cumulativeNeutrons * 1.0e13;
-        return String.format(java.util.Locale.US, "%.2e neutrons/cm²", physicalFluence)
-            .replace("+0", "")
-            .replace("+", "");
+        return WasmStrings.replace(
+            WasmStrings.replace(String.format(java.util.Locale.US, "%.2e neutrons/cm²", physicalFluence), "+0", ""),
+            "+",
+            "");
     }
 
     public static String formatNeutronFluence(long cumulativeNeutrons) {
