@@ -61,6 +61,7 @@ public class StandaloneNuclearGrid {
     private long totalNeutronsGenerated = 0;
     private long totalSteamProduced = 0;
     private double totalEnergyEU = 0;
+    private double totalDirectEnergyEU = 0;
     private int totalDeuteriumProduced = 0;
     private int totalTritiumProduced = 0;
     private int totalOxygenProduced = 0;
@@ -517,6 +518,7 @@ public class StandaloneNuclearGrid {
         this.totalNeutronsGenerated = 0;
         this.totalSteamProduced = 0;
         this.totalEnergyEU = 0;
+        this.totalDirectEnergyEU = 0;
         this.totalDeuteriumProduced = 0;
         this.totalTritiumProduced = 0;
         this.totalOxygenProduced = 0;
@@ -901,7 +903,13 @@ public class StandaloneNuclearGrid {
                 if (tickProduced > 0) {
                     double ratePerTick = (double) tickProduced / (double) ticksPerCycle;
                     switch (tile.getType()) {
-                        case HATCH_DISTILLED_WATER -> flowRegularSteam += ratePerTick;
+                        case HATCH_DISTILLED_WATER -> {
+                            if (tile.getTemperature() >= 300.0) {
+                                flowSuperheatedSteam += ratePerTick;
+                            } else {
+                                flowRegularSteam += ratePerTick;
+                            }
+                        }
                         case HATCH_HEAVY_WATER -> flowHeavyWaterSteam += ratePerTick;
                         case HATCH_IC2_COOLANT -> flowHotCoolant += ratePerTick;
                         default -> {}
@@ -971,6 +979,7 @@ public class StandaloneNuclearGrid {
         }
 
         totalEnergyEU += lastPowerResult.totalPowerEUt * ticksPerCycle;
+        totalDirectEnergyEU += lastPowerResult.directPowerEUt * ticksPerCycle;
 
         // Telemetry sampling (keep last 500 ticks for charts)
         if (history.size() >= 500) {
@@ -1705,6 +1714,18 @@ public class StandaloneNuclearGrid {
 
     public double getTotalEnergyEU() {
         return totalEnergyEU;
+    }
+
+    public double getTotalDirectEnergyEU() {
+        return totalDirectEnergyEU;
+    }
+
+    public double getAveragePowerEUt() {
+        return currentTick > 0 ? totalEnergyEU / (double) currentTick : 0.0;
+    }
+
+    public double getAverageDirectPowerEUt() {
+        return currentTick > 0 ? totalDirectEnergyEU / (double) currentTick : 0.0;
     }
 
     public int getTotalDeuteriumProduced() {

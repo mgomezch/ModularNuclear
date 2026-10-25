@@ -1118,6 +1118,12 @@ public class SimTile implements INuclearTile {
 
         // 3. Fluid cooling & heat exchange (analytical lumped-capacitance conductive cooling)
         if (isCoolantHatch()) {
+            int reqTier = (type == TileType.HATCH_DISTILLED_WATER) ? 1
+                : (type == TileType.HATCH_HEAVY_WATER) ? 3 : 0;
+            if (grid != null && grid.getPipeTier() >= 0 && grid.getPipeTier() < reqTier) {
+                return;
+            }
+
             double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
             double operatingThreshold = NuclearSimulationEngine
                 .getCoolantSinkTemperature(inputFluidName, NuclearSimulationEngine.AMBIENT_TEMP);

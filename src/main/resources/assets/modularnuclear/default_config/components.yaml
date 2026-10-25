@@ -392,7 +392,7 @@ coolant_fluids:
   hot_fluid_name: ic2superheatedsteam
   required_tier: 1
   expansion_ratio: 160
-  heat_per_liter: 160.0
+  heat_per_liter: 17.65625
   freezing_temperature: 0.0
   explosion_temperature: 100.0
   transmutation_product: deuterium
@@ -413,7 +413,7 @@ coolant_fluids:
   hot_fluid_name: heavywatersteam
   required_tier: 3
   expansion_ratio: 160
-  heat_per_liter: 160.0
+  heat_per_liter: 17.65625
   freezing_temperature: 3.8
   explosion_temperature: 101.4
   transmutation_product: tritium
@@ -436,7 +436,7 @@ coolant_fluids:
   hot_fluid_name: ic2hotcoolant
   required_tier: 0
   expansion_ratio: 1
-  heat_per_liter: 320.0
+  heat_per_liter: 20.0
   freezing_temperature: -273.15
   explosion_temperature: .inf
 - id: coolant_sodium

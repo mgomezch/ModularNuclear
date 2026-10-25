@@ -1111,7 +1111,12 @@ public class NuclearSimulationCLI {
         }
 
         TurbineCalculator.PowerEstimationResult p = grid.getLastPowerResult();
-        double power = p != null ? p.totalPowerEUt : 0.0;
+        double instantPower = p != null ? p.totalPowerEUt : 0.0;
+        double avgPower = grid.getAveragePowerEUt();
+        double instantDirectPower = p != null ? p.directPowerEUt : 0.0;
+        double avgDirectPower = grid.getAverageDirectPowerEUt();
+        double power = avgPower > 0.0 ? avgPower : instantPower;
+        double directPower = avgDirectPower > 0.0 ? avgDirectPower : instantDirectPower;
         double minLongevity = grid.getMinFuelRodLongevityMinutes();
         double avgLongevity = grid.getAvgFuelRodLongevityMinutes();
         int activeFuelRods = grid.getActiveFuelRodCount();
@@ -1253,11 +1258,26 @@ public class NuclearSimulationCLI {
         sb.append("\"totalOxygen\":")
             .append(grid.getTotalOxygenProduced())
             .append(",");
+        sb.append("\"totalEnergyEU\":")
+            .append(String.format(java.util.Locale.US, "%.1f", grid.getTotalEnergyEU()))
+            .append(",");
+        sb.append("\"avgPowerEUt\":")
+            .append(String.format(java.util.Locale.US, "%.1f", avgPower))
+            .append(",");
+        sb.append("\"instantPowerEUt\":")
+            .append(String.format(java.util.Locale.US, "%.1f", instantPower))
+            .append(",");
+        sb.append("\"avgDirectPowerEUt\":")
+            .append(String.format(java.util.Locale.US, "%.1f", avgDirectPower))
+            .append(",");
+        sb.append("\"instantDirectPowerEUt\":")
+            .append(String.format(java.util.Locale.US, "%.1f", instantDirectPower))
+            .append(",");
         sb.append("\"powerEUt\":")
             .append(String.format(java.util.Locale.US, "%.1f", power))
             .append(",");
         sb.append("\"directPowerEUt\":")
-            .append(String.format(java.util.Locale.US, "%.1f", p != null ? p.directPowerEUt : 0.0))
+            .append(String.format(java.util.Locale.US, "%.1f", directPower))
             .append(",");
         sb.append("\"totalTurbinesNeeded\":")
             .append(String.format(java.util.Locale.US, "%.2f", p != null ? p.totalTurbinesNeeded : 0.0))
