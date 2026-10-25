@@ -64,11 +64,8 @@ val generateWasm by tasks.registering(JavaExec::class) {
     )
 
     doLast {
-        copy {
-            from(outputWasmDir)
-            into(resourceDir)
-            include("nuclear-sim.wasm", "nuclear-sim.wasm-runtime.js")
-        }
+        // Generated WebAssembly output lives only under build/; src/main/resources/nuclear-sim holds hand-written
+        // sources (bridge and README) that are packaged alongside it.
         copy {
             from(outputWasmDir)
             into(distDir)
@@ -84,7 +81,7 @@ val generateWasm by tasks.registering(JavaExec::class) {
             into(file("${distDir.absolutePath}/icons"))
             include("*.png")
         }
-        println("WebAssembly compilation complete: ${resourceDir.absolutePath}/nuclear-sim.wasm")
+        println("WebAssembly compilation complete: ${outputWasmDir.absolutePath}/nuclear-sim.wasm")
         println("Standalone web distribution packaged: ${distDir.absolutePath}")
     }
 }

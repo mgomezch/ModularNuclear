@@ -3174,7 +3174,11 @@ public class NuclearSimulationEngineTest {
 
         assertEquals(88.0, grid[2][1].getTemperature(), 1e-4, "Hot neighbor drained by exchanger");
         assertEquals(28.0, exchanger.getTemperature(), 1e-4, "Exchanger own cell warmed by 8°C");
-        assertEquals(20.0, vent.getTemperature(), 1e-4, "Vent must remove heat delivered by the exchanger in the same tick");
+        assertEquals(
+            20.0,
+            vent.getTemperature(),
+            1e-4,
+            "Vent must remove heat delivered by the exchanger in the same tick");
         assertEquals(64, vent.drainedEnergy, "Vent consumes 256 HU / 4 = 64 EU");
     }
 
