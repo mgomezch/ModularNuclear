@@ -1800,6 +1800,19 @@ public class StandaloneNuclearGrid {
         return flowHotCoolant;
     }
 
+    public long getTotalHotCoolantProduced() {
+        long total = 0;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                SimTile tile = grid[x][y];
+                if (tile != null && tile.getType() == SimTile.TileType.HATCH_IC2_COOLANT) {
+                    total += tile.getOutputFluidAmount();
+                }
+            }
+        }
+        return total;
+    }
+
     public double getFlowDirectEU() {
         return flowDirectEU;
     }

@@ -1249,6 +1249,12 @@ public class NuclearSimulationCLI {
         sb.append("\"totalSteam\":")
             .append(grid.getTotalSteamProduced())
             .append(",");
+        sb.append("\"flowHotCoolant\":")
+            .append(String.format(java.util.Locale.US, "%.3f", grid.getFlowHotCoolant()))
+            .append(",");
+        sb.append("\"totalHotCoolant\":")
+            .append(grid.getTotalHotCoolantProduced())
+            .append(",");
         sb.append("\"totalDeuterium\":")
             .append(grid.getTotalDeuteriumProduced())
             .append(",");
