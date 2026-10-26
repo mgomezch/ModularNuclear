@@ -181,8 +181,8 @@ public class FuelData {
     private synchronized void ensureSolver() {
         if (!solverInitialized) {
             double wear = (t10WearFactor != null && t10WearFactor > 1.0) ? t10WearFactor
-                : (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics() != null
-                    ? com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics().t10WearFactor
+                : (com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.getPhysics() != null
+                    ? com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.getPhysics().t10WearFactor
                     : FuelDamageCurveSolver.DEFAULT_T10_WEAR_FACTOR);
             FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver
                 .solve(null, peakReactivityTemp, floorTemp, 20.0, wear);
