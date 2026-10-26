@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
-import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileContent;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
 
@@ -38,6 +37,10 @@ public class SimulatorFuelParityTest {
                 return "fluid_fuel_uranium";
             case "HATCH_LIQUID_FUEL_PLUTONIUM":
                 return "fluid_fuel_plutonium";
+            case "HATCH_LIQUID_FUEL_URANIUM_EXCITED":
+            case "HATCH_LIQUID_FUEL_THORIUM_EXCITED":
+            case "HATCH_LIQUID_FUEL_PLUTONIUM_EXCITED":
+                return SimTile.TileType.valueOf(n).configId;
             default:
                 break;
         }
@@ -118,9 +121,9 @@ public class SimulatorFuelParityTest {
                 fd.absorptionThermal);
             check(diffs, id, "absorption_fast", tile.getBaseAbsorptionProbability(NeutronType.FAST), fd.absorptionFast);
             check(diffs, id, "heat_transfer_coeff", tile.getHeatTransferCoeff(), fd.heatTransferCoeff);
-            NuclearFuelType fuel = tile.getFuelType();
-            if (fuel == null) {
-                diffs.add(id + ": simulator has no fuel type");
+            FuelData used = tile.getFuelData();
+            if (used == null || !id.equals(used.id)) {
+                diffs.add(id + ": simulator uses fuel record " + (used == null ? "none" : used.id));
                 continue;
             }
             check(
@@ -129,9 +132,9 @@ public class SimulatorFuelParityTest {
                 "thermal_fission_multiplier",
                 tile.getThermalFissionMultiplier(),
                 fd.thermalFissionMultiplier);
-            check(diffs, id, "fast_fission_multiplier", fuel.baseFastFissionMultiplier, fd.fastFissionMultiplier);
-            check(diffs, id, "peak_reactivity_temp", fuel.peakReactivityTemp, fd.peakReactivityTemp);
-            check(diffs, id, "floor_temp", fuel.floorTemp, fd.floorTemp);
+            check(diffs, id, "fast_fission_multiplier", used.fastFissionMultiplier, fd.fastFissionMultiplier);
+            check(diffs, id, "peak_reactivity_temp", used.peakReactivityTemp, fd.peakReactivityTemp);
+            check(diffs, id, "floor_temp", used.floorTemp, fd.floorTemp);
         }
         assertTrue(checked > 30, "Expected to compare every simulator fuel, compared " + checked);
         assertTrue(diffs.isEmpty(), diffs.size() + " simulator/config fuel mismatches:\n" + String.join("\n", diffs));

@@ -58,6 +58,10 @@ public class SimTile implements INuclearTile {
         HATCH_LIQUID_FUEL_URANIUM("Liquid Uranium Fuel Hatch", "LFU", "fluid_fuel_uranium"),
         HATCH_LIQUID_FUEL_THORIUM("Liquid Thorium Fuel Hatch", "LFT", "fluid_fuel_thorium"),
         HATCH_LIQUID_FUEL_PLUTONIUM("Liquid Plutonium Fuel Hatch", "LFP", "fluid_fuel_plutonium"),
+        HATCH_LIQUID_FUEL_URANIUM_EXCITED("Excited Liquid Uranium Fuel Hatch", "LFUX", "fluid_fuel_uranium_excited"),
+        HATCH_LIQUID_FUEL_THORIUM_EXCITED("Excited Liquid Thorium Fuel Hatch", "LFTX", "fluid_fuel_thorium_excited"),
+        HATCH_LIQUID_FUEL_PLUTONIUM_EXCITED("Excited Liquid Plutonium Fuel Hatch", "LFPX",
+            "fluid_fuel_plutonium_excited"),
         HATCH_DISTILLED_WATER("Distilled Water Hatch", "HD", "coolant_distilled_water"),
         HATCH_HEAVY_WATER("Heavy Water Hatch", "HW", "coolant_heavy_water"),
         HATCH_IC2_COOLANT("IC2 Coolant Hatch", "HC", "coolant_ic2"),
@@ -466,6 +470,14 @@ public class SimTile implements INuclearTile {
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "depletedplutoniumbasedliquidfuel";
                 }
+                case HATCH_LIQUID_FUEL_URANIUM_EXCITED, HATCH_LIQUID_FUEL_THORIUM_EXCITED, HATCH_LIQUID_FUEL_PLUTONIUM_EXCITED -> {
+                    String element = (this.type == TileType.HATCH_LIQUID_FUEL_URANIUM_EXCITED) ? "uranium"
+                        : (this.type == TileType.HATCH_LIQUID_FUEL_THORIUM_EXCITED) ? "thorium" : "plutonium";
+                    this.inputFluidName = element + "basedliquidfuelexcited";
+                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidAmount = this.inputFluidCapacity;
+                    this.outputFluidName = "depleted" + element + "basedliquidfuel";
+                }
                 case HATCH_DISTILLED_WATER -> {
                     this.inputFluidName = "distilledwater";
                     this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
@@ -617,7 +629,7 @@ public class SimTile implements INuclearTile {
 
     public boolean isLiquidFuelHatch() {
         return switch (type) {
-            case HATCH_LIQUID_FUEL_URANIUM, HATCH_LIQUID_FUEL_THORIUM, HATCH_LIQUID_FUEL_PLUTONIUM -> true;
+            case HATCH_LIQUID_FUEL_URANIUM, HATCH_LIQUID_FUEL_THORIUM, HATCH_LIQUID_FUEL_PLUTONIUM, HATCH_LIQUID_FUEL_URANIUM_EXCITED, HATCH_LIQUID_FUEL_THORIUM_EXCITED, HATCH_LIQUID_FUEL_PLUTONIUM_EXCITED -> true;
             default -> false;
         };
     }
@@ -1119,9 +1131,9 @@ public class SimTile implements INuclearTile {
             case FUEL_TIBERIUM_QUAD -> "Depleted Tiberium Quad";
 
             case FUEL_CORE -> "Depleted The Core";
-            case HATCH_LIQUID_FUEL_URANIUM -> "Depleted Uranium Liquid Fuel";
-            case HATCH_LIQUID_FUEL_THORIUM -> "Depleted Thorium Liquid Fuel";
-            case HATCH_LIQUID_FUEL_PLUTONIUM -> "Depleted Plutonium Liquid Fuel";
+            case HATCH_LIQUID_FUEL_URANIUM, HATCH_LIQUID_FUEL_URANIUM_EXCITED -> "Depleted Uranium Liquid Fuel";
+            case HATCH_LIQUID_FUEL_THORIUM, HATCH_LIQUID_FUEL_THORIUM_EXCITED -> "Depleted Thorium Liquid Fuel";
+            case HATCH_LIQUID_FUEL_PLUTONIUM, HATCH_LIQUID_FUEL_PLUTONIUM_EXCITED -> "Depleted Plutonium Liquid Fuel";
             default -> "Depleted Fuel";
         };
     }
@@ -1169,9 +1181,9 @@ public class SimTile implements INuclearTile {
             case FUEL_TIBERIUM_QUAD -> "DTIB4";
 
             case FUEL_CORE -> "DNQ32";
-            case HATCH_LIQUID_FUEL_URANIUM -> "DLFU";
-            case HATCH_LIQUID_FUEL_THORIUM -> "DLFT";
-            case HATCH_LIQUID_FUEL_PLUTONIUM -> "DLFP";
+            case HATCH_LIQUID_FUEL_URANIUM, HATCH_LIQUID_FUEL_URANIUM_EXCITED -> "DLFU";
+            case HATCH_LIQUID_FUEL_THORIUM, HATCH_LIQUID_FUEL_THORIUM_EXCITED -> "DLFT";
+            case HATCH_LIQUID_FUEL_PLUTONIUM, HATCH_LIQUID_FUEL_PLUTONIUM_EXCITED -> "DLFP";
             default -> "DF";
         };
     }

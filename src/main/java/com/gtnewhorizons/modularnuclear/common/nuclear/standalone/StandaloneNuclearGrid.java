@@ -1971,7 +1971,9 @@ public class StandaloneNuclearGrid {
     public List<LiquidFuelByproduct> getLiquidFuelByproducts() {
         List<LiquidFuelByproduct> list = new ArrayList<>();
         SimTile.TileType[] liquidTypes = new SimTile.TileType[] { SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM,
-            SimTile.TileType.HATCH_LIQUID_FUEL_THORIUM, SimTile.TileType.HATCH_LIQUID_FUEL_PLUTONIUM };
+            SimTile.TileType.HATCH_LIQUID_FUEL_THORIUM, SimTile.TileType.HATCH_LIQUID_FUEL_PLUTONIUM,
+            SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM_EXCITED, SimTile.TileType.HATCH_LIQUID_FUEL_THORIUM_EXCITED,
+            SimTile.TileType.HATCH_LIQUID_FUEL_PLUTONIUM_EXCITED };
         for (SimTile.TileType type : liquidTypes) {
             int active = 0;
             int totalBurned = 0;
@@ -2270,14 +2272,14 @@ public class StandaloneNuclearGrid {
             double kLRate = l.litersPerMinute / 1000.0;
             if (kLRate <= 0.0) continue;
             switch (l.type) {
-                case HATCH_LIQUID_FUEL_URANIUM -> {
+                case HATCH_LIQUID_FUEL_URANIUM, HATCH_LIQUID_FUEL_URANIUM_EXCITED -> {
                     map.get("U-238").consumedPerMin += 36.0 * kLRate;
                 }
-                case HATCH_LIQUID_FUEL_THORIUM -> {
+                case HATCH_LIQUID_FUEL_THORIUM, HATCH_LIQUID_FUEL_THORIUM_EXCITED -> {
                     map.get("Th-232").consumedPerMin += 99.0 * kLRate;
                     map.get("Th-232").producedPerMin += 76.8 * kLRate;
                 }
-                case HATCH_LIQUID_FUEL_PLUTONIUM -> {
+                case HATCH_LIQUID_FUEL_PLUTONIUM, HATCH_LIQUID_FUEL_PLUTONIUM_EXCITED -> {
                     map.get("Pu-239").consumedPerMin += 45.0 * kLRate;
                     map.get("U-238").consumedPerMin += 9.0 * kLRate;
                 }
