@@ -1766,8 +1766,10 @@ public class LoopGraphCrawler {
                             step.x,
                             step.y,
                             step.z,
-                            5.0,
-                            0.10,
+                            com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData.getPhysicsData()
+                                .getStandardPassageLength(),
+                            com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData.getPhysicsData()
+                                .getStandardPassageDiameter(),
                             0.000045,
                             passage.getMinorLossK(),
                             500.0,

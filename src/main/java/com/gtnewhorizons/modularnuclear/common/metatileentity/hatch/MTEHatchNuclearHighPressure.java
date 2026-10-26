@@ -16,6 +16,7 @@ import com.gtnewhorizons.coolantloops.engine.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -342,7 +343,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
 
     @Override
     public double getMinorLossK() {
-        return 2.5; // Pressure tube core passage with fuel bundle spacers
+        return CoolantPassage.MINOR_LOSS_K;
     }
 
     @Override
@@ -361,63 +362,12 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         if (mOppositeHatch != null && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
             other.mIncomingCoolantTemp = coolantTemp;
         }
-        double deltaT = mTemperature - coolantTemp;
-        if (Math.abs(deltaT) < 1e-4) {
+        double heatTransferredHu = CoolantPassage
+            .exchange(mTemperature, volumetricFlowRateM3s, dtSeconds, fluid, segment);
+        if (heatTransferredHu == 0.0) {
             return;
         }
-
-        // Passage geometry: 10cm internal diameter, 5.0m height
-        double diameter = 0.10;
-        double length = 5.0;
-        double area = Math.PI * diameter * length; // ~1.571 m^2
-        double flowArea = Math.PI * Math.pow(diameter / 2.0, 2);
-        double velocity = volumetricFlowRateM3s / flowArea;
-
-        // Convective heat transfer coefficient h(v)
-        double rho = fluid.getDensity();
-        double mu = fluid.getDynamicViscosity();
-        double kThermal = fluid.getThermalConductivity();
-        double cp = fluid.getSpecificHeat();
-
-        double re = (rho * velocity * diameter) / Math.max(1e-6, mu);
-        double pr = (mu * cp) / Math.max(1e-4, kThermal);
-
-        double nu;
-        if (re < 2300.0) {
-            nu = 4.36; // Fully developed laminar flow
-        } else {
-            nu = 0.023 * Math.pow(re, 0.8) * Math.pow(Math.max(0.6, pr), 0.4); // Turbulent Dittus-Boelter
-        }
-
-        double h = (nu * kThermal) / diameter;
-        double qDotWatts = h * area * deltaT;
-
-        // Limit heat transfer to prevent temperature overshooting
-        double maxDeltaT = Math.abs(deltaT);
-        double heatTransferredJoules = qDotWatts * dtSeconds;
-
-        double coreHeatCapacityHuPerC = NuclearSimulationEngine.HU_PER_DEGREE;
-        double coreHeatCapacityJoulesPerC = coreHeatCapacityHuPerC * 128.0;
-
-        double segmentMassKg = segment.getVolume() * rho;
-        double segmentHeatCapacity = segmentMassKg * cp;
-
-        // Limit heat transfer to equilibrium so temperatures cannot cross over in a single tick
-        if (segmentHeatCapacity > 1e-4) {
-            double maxEquilibriumHeatJoules = (coreHeatCapacityJoulesPerC * segmentHeatCapacity)
-                / (coreHeatCapacityJoulesPerC + segmentHeatCapacity)
-                * maxDeltaT;
-            if (Math.abs(heatTransferredJoules) > maxEquilibriumHeatJoules) {
-                heatTransferredJoules = Math.signum(heatTransferredJoules) * maxEquilibriumHeatJoules;
-            }
-        } else {
-            if (Math.abs(heatTransferredJoules) > coreHeatCapacityJoulesPerC * maxDeltaT) {
-                heatTransferredJoules = Math.signum(heatTransferredJoules) * coreHeatCapacityJoulesPerC * maxDeltaT;
-            }
-        }
-
-        double heatTransferredHu = heatTransferredJoules / 128.0;
-        double coreTempChange = heatTransferredHu / coreHeatCapacityHuPerC;
+        double coreTempChange = heatTransferredHu / NuclearSimulationEngine.HU_PER_DEGREE;
 
         mTemperature -= coreTempChange;
         if (mOppositeHatch != null && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
@@ -425,12 +375,6 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         }
         if (coreTempChange > 0) {
             mHeatOutputAccumulator += heatTransferredHu;
-        }
-
-        // Coolant temperature rise: strict finite-volume energy conservation Q = m_seg * cp * deltaT
-        if (segmentHeatCapacity > 1e-4) {
-            double coolantTempRise = heatTransferredJoules / segmentHeatCapacity;
-            segment.setCurrentTemperatureCelsius(coolantTemp + coolantTempRise);
         }
 
         mUsedForCooling = true;
@@ -465,7 +409,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
 
     @Override
     public double getHeatTransferCoeff() {
-        return 0.90; // High thermal conductance in metal pressure tube
+        return CoolantPassage.HEAT_TRANSFER_COEFF;
     }
 
     @Override
@@ -480,27 +424,22 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
 
     @Override
     public double getAbsorptionProbability(NeutronType type) {
-        return type == NeutronType.THERMAL ? 0.05 : 0.02;
+        return CoolantPassage.absorption(type);
     }
 
     @Override
     public double getScatteringProbability(NeutronType type) {
-        return 0.80;
+        return CoolantPassage.SCATTERING;
     }
 
     @Override
     public double getModerationProbability() {
         if (mConnectedPump != null && mConnectedPump.getCoolantFluidProperty() != null) {
-            String name = mConnectedPump.getCoolantFluidProperty()
-                .getFluidName();
-            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-                .findCoolantFluid(name);
-            if (cfd != null) {
-                return cfd.moderation;
-            }
-            return 0.05;
+            return CoolantPassage.moderation(
+                mConnectedPump.getCoolantFluidProperty()
+                    .getFluidName());
         }
-        return 0.05;
+        return CoolantPassage.DEFAULT_MODERATION;
     }
 
     @Override
