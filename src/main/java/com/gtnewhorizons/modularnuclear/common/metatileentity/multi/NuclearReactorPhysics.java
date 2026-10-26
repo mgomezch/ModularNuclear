@@ -888,18 +888,15 @@ public class NuclearReactorPhysics {
         // 3. RADIOVOLTAIC DIRECT EU GENERATION
         else if (reactor.isItemRadiovoltaic(stack)) {
             RadiovoltaicData rv = ReactorDataRegistry.findRadiovoltaic(stack);
-            int tier = reactor.getRadiovoltaicTier(stack);
-            long maxEU = (rv != null && rv.maxEU > 0) ? rv.maxEU : ((tier >= 2) ? 4096 : 1024);
-            double eff = (rv != null) ? rv.euConversionEfficiency : 1.0;
+            if (rv == null) {
+                rv = new RadiovoltaicData();
+                rv.tier = reactor.getRadiovoltaicTier(stack);
+            }
             double dt = (double) reactor.getTicksPerCycle() / 20.0;
-            double cyclesPerSec = (dt > 0) ? (1.0 / dt) : 1.0;
-            double weightedFluxCycle = bus.mFastAbsorbed * 4.0 + bus.mThermalAbsorbed * 1.0;
-            double weightedFluxRate = weightedFluxCycle * cyclesPerSec;
-            double satFlux = (rv != null && rv.saturationFlux > 0) ? rv.saturationFlux : ((tier >= 2) ? 150.0 : 50.0);
-            long genEU = (long) Math.round(maxEU * eff * Math.tanh(weightedFluxRate / satFlux));
+            double weightedAbsorbed = bus.mFastAbsorbed * 4.0 + bus.mThermalAbsorbed * 1.0;
+            long genEU = Math.round(rv.calculatePower(weightedAbsorbed / dt));
             bus.mDirectEUProduced = genEU;
-            double totalEnergy = weightedFluxCycle * 20.0;
-            double excessHeat = Math.max(0.0, totalEnergy - (genEU * dt));
+            double excessHeat = RadiovoltaicData.excessHeat(weightedAbsorbed, genEU, dt);
             if (excessHeat > 0.0) {
                 addTileHeat(tile, excessHeat);
             }

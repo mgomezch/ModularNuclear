@@ -1076,15 +1076,12 @@ public class SimTile implements INuclearTile {
 
         // Radiovoltaic direct EU generation & excess heat
         if (isRadiovoltaic()) {
-            long maxEU = (type == TileType.RADIOVOLTAIC_EV) ? 4096 : 1024;
-            double cyclesPerSec = (dt > 0) ? (1.0 / dt) : 1.0;
-            double weightedFluxCycle = fastAbsorbed * 4.0 + thermalAbsorbed * 1.0;
-            double weightedFluxRate = weightedFluxCycle * cyclesPerSec;
-            double satFlux = (type == TileType.RADIOVOLTAIC_EV) ? 150.0 : 50.0;
-            long genEU = (long) Math.round(maxEU * Math.tanh(weightedFluxRate / satFlux));
+            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData rv = getRadiovoltaicData();
+            double weightedAbsorbed = fastAbsorbed * 4.0 + thermalAbsorbed * 1.0;
+            long genEU = Math.round(rv.calculatePower(dt > 0 ? weightedAbsorbed / dt : weightedAbsorbed));
             this.directEUProduced = genEU;
-            double totalEnergy = weightedFluxCycle * 20.0;
-            double excessHeat = Math.max(0.0, totalEnergy - (genEU * dt));
+            double excessHeat = com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData
+                .excessHeat(weightedAbsorbed, genEU, dt);
             if (excessHeat > 0.0) {
                 addHeat(excessHeat);
             }
@@ -1487,6 +1484,14 @@ public class SimTile implements INuclearTile {
             case VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED, VENT_COMPONENT -> true;
             default -> false;
         };
+    }
+
+    /** Defaults matching components.yaml (HV: 1024 EU/t, EV: 4096 EU/t; 95% output at 10 absorbed per second). */
+    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData getRadiovoltaicData() {
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData rv = new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData();
+        rv.tier = (type == TileType.RADIOVOLTAIC_EV) ? 2 : 1;
+        rv.maxEU = (type == TileType.RADIOVOLTAIC_EV) ? 4096 : 1024;
+        return rv;
     }
 
     @Override

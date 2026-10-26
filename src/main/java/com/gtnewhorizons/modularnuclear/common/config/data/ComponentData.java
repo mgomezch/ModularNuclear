@@ -706,7 +706,32 @@ public class ComponentData {
         public double heatTransferCoeff = 0.10;
         public double absorptionFast = 0.40;
         public double absorptionThermal = 0.40;
-        public double saturationFlux = 50.0;
+        /** Weighted neutrons absorbed per second (fast count 4x) at which output reaches 95% of maxEU. */
+        public double fullOutputAbsorbedPerSecond = DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
+
+        public static final double DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND = 10.0;
+        public static final double FULL_OUTPUT_FRACTION = 0.95;
+        private static final double ATANH_FULL_OUTPUT = 0.5
+            * Math.log((1.0 + FULL_OUTPUT_FRACTION) / (1.0 - FULL_OUTPUT_FRACTION));
+
+        /**
+         * Fraction of maximum output for a given weighted absorption rate: a tanh curve that reaches
+         * FULL_OUTPUT_FRACTION at fullOutputAbsorbedPerSecond. Independent of the reactor cycle length.
+         */
+        public static double outputFraction(double weightedAbsorbedPerSecond, double fullOutputAbsorbedPerSecond) {
+            if (weightedAbsorbedPerSecond <= 0.0) return 0.0;
+            double full = fullOutputAbsorbedPerSecond > 0.0 ? fullOutputAbsorbedPerSecond
+                : DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
+            return Math.tanh(ATANH_FULL_OUTPUT * weightedAbsorbedPerSecond / full);
+        }
+
+        /**
+         * Absorbed neutron energy not converted to EU, deposited as heat in the plate's cell: for weighted
+         * neutrons absorbed over an interval of the given length, the HU deposited over that interval.
+         */
+        public static double excessHeat(double weightedAbsorbed, double euPerTick, double intervalSeconds) {
+            return Math.max(0.0, weightedAbsorbed * 20.0 - euPerTick * intervalSeconds);
+        }
 
         public RadiovoltaicData() {}
 
@@ -721,7 +746,7 @@ public class ComponentData {
                 heatTransferCoeff,
                 absFast,
                 absThermal,
-                (tier >= 2 ? 150.0 : 50.0),
+                DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND,
                 matching);
         }
 
@@ -736,12 +761,13 @@ public class ComponentData {
                 heatTransferCoeff,
                 absFast,
                 absThermal,
-                (tier >= 2 ? 150.0 : 50.0),
+                DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND,
                 matching);
         }
 
         public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency, long maxEU,
-            double heatTransferCoeff, double absFast, double absThermal, double saturationFlux, String... matching) {
+            double heatTransferCoeff, double absFast, double absThermal, double fullOutputAbsorbedPerSecond,
+            String... matching) {
             this.id = id;
             this.name = name;
             this.tier = tier;
@@ -750,7 +776,7 @@ public class ComponentData {
             this.heatTransferCoeff = heatTransferCoeff;
             this.absorptionFast = absFast;
             this.absorptionThermal = absThermal;
-            this.saturationFlux = saturationFlux;
+            this.fullOutputAbsorbedPerSecond = fullOutputAbsorbedPerSecond;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
         }
 
@@ -764,15 +790,15 @@ public class ComponentData {
             return (tier >= 2) ? 4096 : 1024;
         }
 
-        public double calculatePower(double absorbedFlux) {
-            double effectiveSat = saturationFlux > 0 ? saturationFlux : (tier >= 2 ? 150.0 : 50.0);
-            return getMaxEffectiveEU() * euConversionEfficiency * Math.tanh(absorbedFlux / effectiveSat);
+        /** Direct output in EU/t for a weighted absorption rate (fast neutrons count 4x). */
+        public double calculatePower(double weightedAbsorbedPerSecond) {
+            return getMaxEffectiveEU() * euConversionEfficiency
+                * outputFraction(weightedAbsorbedPerSecond, fullOutputAbsorbedPerSecond);
         }
 
-        public double calculateHeat(double absorbedFlux) {
-            double totalEnergy = absorbedFlux * 20.0;
-            double power = calculatePower(absorbedFlux);
-            return Math.max(0.0, totalEnergy - power);
+        /** Excess heat in HU per second for a weighted absorption rate. */
+        public double calculateHeatPerSecond(double weightedAbsorbedPerSecond) {
+            return excessHeat(weightedAbsorbedPerSecond, calculatePower(weightedAbsorbedPerSecond), 1.0);
         }
 
         public static RadiovoltaicData fromMap(Map<String, Object> map) {
@@ -791,7 +817,8 @@ public class ComponentData {
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
             d.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", d.tier >= 2 ? 0.60 : 0.40);
             d.absorptionThermal = PhysicsData.getDouble(map, "absorption_thermal", d.tier >= 2 ? 0.60 : 0.40);
-            d.saturationFlux = PhysicsData.getDouble(map, "saturation_flux", d.tier >= 2 ? 150.0 : 50.0);
+            d.fullOutputAbsorbedPerSecond = PhysicsData
+                .getDouble(map, "full_output_absorbed_per_second", DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND);
             return d;
         }
 
@@ -806,7 +833,7 @@ public class ComponentData {
             m.put("heat_transfer_coeff", heatTransferCoeff);
             m.put("absorption_fast", absorptionFast);
             m.put("absorption_thermal", absorptionThermal);
-            m.put("saturation_flux", saturationFlux);
+            m.put("full_output_absorbed_per_second", fullOutputAbsorbedPerSecond);
             return m;
         }
     }

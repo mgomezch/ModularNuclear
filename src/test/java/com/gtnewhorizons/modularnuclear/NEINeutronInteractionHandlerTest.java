@@ -107,7 +107,9 @@ public class NEINeutronInteractionHandlerTest {
                         assertTrue(d.producesDirectEU, "Radiovoltaic plates must produce direct EU");
                         assertTrue(d.maxDirectEU >= 1024L, "Radiovoltaic plates must specify max EU/t");
                         assertTrue(d.isRadiovoltaic, "Radiovoltaic plates must have isRadiovoltaic flag");
-                        assertTrue(d.saturationFlux > 0, "Radiovoltaic plates must specify saturation flux");
+                        assertTrue(
+                            d.fullOutputAbsorbedPerSecond > 0,
+                            "Radiovoltaic plates must specify their full-output absorption rate");
                     }
                     case "Thermal Insulator" -> {
                         foundInsulator = true;
@@ -471,23 +473,24 @@ public class NEINeutronInteractionHandlerTest {
         // 2. Saturation and max EU
         assertEquals(1024L, rvHvRecipe.data.maxDirectEU, "HV max direct EU must be 1024 EU/t (2A HV)");
         assertEquals(4096L, rvEvRecipe.data.maxDirectEU, "EV max direct EU must be 4096 EU/t (2A EV)");
-        assertEquals(50.0, rvHvRecipe.data.saturationFlux, 1e-4, "HV saturation flux must be 50.0");
-        assertEquals(150.0, rvEvRecipe.data.saturationFlux, 1e-4, "EV saturation flux must be 150.0");
+        assertEquals(10.0, rvHvRecipe.data.fullOutputAbsorbedPerSecond, 1e-4, "HV reaches 95% at 10 absorbed/s");
+        assertEquals(10.0, rvEvRecipe.data.fullOutputAbsorbedPerSecond, 1e-4, "EV reaches 95% at 10 absorbed/s");
 
         // 3. Recipe height: 314 for radiovoltaics (to comfortably accommodate the curve), 304 for standard
         assertEquals(314, handler.getRecipeHeight(rvHvIndex), "HV Radiovoltaic recipe height must be 314");
         assertEquals(314, handler.getRecipeHeight(rvEvIndex), "EV Radiovoltaic recipe height must be 314");
 
         // 4. Power & heat curve calculations
-        double hvPowerLow = rvHvRecipe.data.calculatePower(25.0);
-        double hvHeatLow = rvHvRecipe.data.calculateHeat(25.0);
-        assertTrue(hvPowerLow > 0.0, "Low flux must generate power");
-        assertTrue(hvHeatLow < 50.0, "Low flux must generate minimal excess heat");
+        double hvPowerLow = rvHvRecipe.data.calculatePower(2.0);
+        double hvHeatLow = rvHvRecipe.data.calculateHeat(2.0);
+        assertTrue(hvPowerLow > 0.0, "Low absorption must generate power");
+        assertEquals(0.0, hvHeatLow, 1e-9, "Low absorption must generate no excess heat");
+        assertEquals(0.95 * 1024, rvHvRecipe.data.calculatePower(10.0), 1e-6, "95% output at 10 absorbed/s");
 
         double hvPowerHigh = rvHvRecipe.data.calculatePower(200.0);
         double hvHeatHigh = rvHvRecipe.data.calculateHeat(200.0);
-        assertTrue(hvPowerHigh >= 1020.0, "High flux power must approach 1024 EU/t saturation");
-        assertTrue(hvHeatHigh > 2500.0, "High flux excess energy must convert to heat");
+        assertTrue(hvPowerHigh >= 1020.0, "High absorption power must approach 1024 EU/t saturation");
+        assertTrue(hvHeatHigh > 2500.0, "High absorption excess energy must convert to heat");
 
         // 5. Interactive tooltips on hover over Card 4 curve
         List<String> tip = new ArrayList<>();
@@ -506,11 +509,11 @@ public class NEINeutronInteractionHandlerTest {
         boolean hasPower = false;
         boolean hasHeat = false;
         for (String line : hoverTips) {
-            if (line.contains("n/t flux")) hasFlux = true;
+            if (line.contains("neutrons absorbed/s")) hasFlux = true;
             if (line.contains("Power output:")) hasPower = true;
             if (line.contains("Excess heating:")) hasHeat = true;
         }
-        assertTrue(hasFlux, "Tooltip must contain flux information");
+        assertTrue(hasFlux, "Tooltip must contain the absorption rate");
         assertTrue(hasPower, "Tooltip must contain power output information");
         assertTrue(hasHeat, "Tooltip must contain excess heat information");
     }

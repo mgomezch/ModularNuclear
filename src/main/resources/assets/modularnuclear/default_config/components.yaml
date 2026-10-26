@@ -360,7 +360,7 @@ radiovoltaics:
   heat_transfer_coeff: 0.1
   absorption_fast: 0.4
   absorption_thermal: 0.4
-  saturation_flux: 50.0
+  full_output_absorbed_per_second: 10.0
 - id: radiovoltaic_ev
   name: EV Radiovoltaic Plate
   matching:
@@ -372,7 +372,7 @@ radiovoltaics:
   heat_transfer_coeff: 0.1
   absorption_fast: 0.6
   absorption_thermal: 0.6
-  saturation_flux: 150.0
+  full_output_absorbed_per_second: 10.0
 coolant_fluids:
 - id: coolant_distilled_water
   name: Distilled Water

@@ -652,17 +652,18 @@ public class NuclearSimulationEngineTest {
         assertEquals(0.0, cellHV.getModerationProbability());
 
         // 2. Feed fast vs thermal neutrons and check 4x weight
-        cellHV.onNeutronAbsorbed(NeutronType.FAST, 2);
+        cellHV.onNeutronAbsorbed(NeutronType.FAST, 1);
         cellHV.nuclearTick(1.0);
         long fastEU = cellHV.getDirectEUProduced();
 
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellHVThermal = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
             com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
-        cellHVThermal.onNeutronAbsorbed(NeutronType.THERMAL, 2);
+        cellHVThermal.onNeutronAbsorbed(NeutronType.THERMAL, 4);
         cellHVThermal.nuclearTick(1.0);
         long thermalEU = cellHVThermal.getDirectEUProduced();
 
-        assertTrue(fastEU > thermalEU * 2, "Fast neutrons must generate significantly more EU than thermal neutrons");
+        assertTrue(fastEU > 0, "A fast neutron must generate EU");
+        assertEquals(thermalEU, fastEU, "One fast neutron must count as four thermal neutrons");
 
         // 3. Saturation: HV caps around 1024 EU/t (2A HV)
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellHVSat = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
@@ -695,6 +696,38 @@ public class NuclearSimulationEngineTest {
         assertTrue(grid.getFlowDirectEU() > 0, "Grid must accumulate Radiovoltaic direct EU");
         assertEquals(grid.getFlowDirectEU(), grid.getLastPowerResult().directPowerEUt);
         assertEquals(grid.getFlowDirectEU(), grid.getLastPowerResult().totalPowerEUt);
+    }
+
+    @Test
+    void testRadiovoltaicCurveIsPerSecondAndCycleIndependent() {
+        ComponentData.RadiovoltaicData rv = new ComponentData.RadiovoltaicData();
+        rv.tier = 2;
+        rv.maxEU = 4096;
+        // 95% of maxEU at 10 weighted neutrons absorbed per second
+        assertEquals(0.95 * 4096, rv.calculatePower(10.0), 1e-6);
+        assertEquals(0.0, rv.calculatePower(0.0), 1e-9);
+        assertTrue(rv.calculatePower(30.0) > 0.999 * 4096, "Well past the 95% point the plate is saturated");
+
+        // Same absorption rate gives the same output regardless of cycle length
+        int savedTpc = NuclearSimulationEngine.getTicksPerCycle();
+        try {
+            long[] outputs = new long[2];
+            int[] tpcs = { 5, 20 };
+            for (int i = 0; i < tpcs.length; i++) {
+                NuclearSimulationEngine.setTicksPerCycle(tpcs[i]);
+                com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile plate = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
+                    com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
+                // 8 thermal neutrons per second, absorbed over one cycle (2 at 5 ticks, 8 at 20 ticks)
+                plate.onNeutronAbsorbed(NeutronType.THERMAL, 8 * tpcs[i] / 20);
+                plate.nuclearTick(1.0);
+                outputs[i] = plate.getDirectEUProduced();
+            }
+            assertTrue(outputs[0] > 0, "Plate must produce EU");
+            assertEquals(outputs[0], outputs[1], 1.0, "Output must not depend on ticks per cycle");
+            assertEquals(Math.round(rv.calculatePower(8.0)), outputs[0], 1.0);
+        } finally {
+            NuclearSimulationEngine.setTicksPerCycle(savedTpc);
+        }
     }
 
     @Test
@@ -8438,14 +8471,14 @@ public class NuclearSimulationEngineTest {
         assertEquals(1024L, rvHv.maxEU, "HV radiovoltaic maxEU must default to 1024 EU/t");
         assertEquals(0.40, rvHv.absorptionFast, 1e-4, "HV radiovoltaic fast absorption must default to 0.40");
         assertEquals(0.40, rvHv.absorptionThermal, 1e-4, "HV radiovoltaic thermal absorption must default to 0.40");
-        assertEquals(50.0, rvHv.saturationFlux, 1e-4, "HV radiovoltaic saturationFlux must default to 50.0");
+        assertEquals(10.0, rvHv.fullOutputAbsorbedPerSecond, 1e-4, "HV radiovoltaic reaches 95% at 10 absorbed/s");
 
         ComponentData.RadiovoltaicData rvEv = ReactorDataRegistry.getComponentData().radiovoltaics.get(1);
         assertEquals(1.0, rvEv.euConversionEfficiency, 1e-4, "Radiovoltaic efficiency must default to 1.0 (100%)");
         assertEquals(4096L, rvEv.maxEU, "EV radiovoltaic maxEU must default to 4096 EU/t");
         assertEquals(0.60, rvEv.absorptionFast, 1e-4, "EV radiovoltaic fast absorption must default to 0.60");
         assertEquals(0.60, rvEv.absorptionThermal, 1e-4, "EV radiovoltaic thermal absorption must default to 0.60");
-        assertEquals(150.0, rvEv.saturationFlux, 1e-4, "EV radiovoltaic saturationFlux must default to 150.0");
+        assertEquals(10.0, rvEv.fullOutputAbsorbedPerSecond, 1e-4, "EV radiovoltaic reaches 95% at 10 absorbed/s");
 
         // 3. Platings are not admitted or recognized as reactor components
         assertFalse(

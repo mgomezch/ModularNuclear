@@ -130,17 +130,19 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         public final String extraInfo;
 
         public final boolean isRadiovoltaic;
-        public final double saturationFlux;
+        /** Weighted neutrons absorbed per second at which output reaches 95% of maxDirectEU. */
+        public final double fullOutputAbsorbedPerSecond;
 
-        public double calculatePower(double absorbedFlux) {
-            double effectiveSat = saturationFlux > 0 ? saturationFlux : 50.0;
-            return maxDirectEU * Math.tanh(absorbedFlux / effectiveSat);
+        /** EU/t for a weighted absorption rate (fast neutrons count 4x). */
+        public double calculatePower(double absorbedPerSecond) {
+            return maxDirectEU * com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData
+                .outputFraction(absorbedPerSecond, fullOutputAbsorbedPerSecond);
         }
 
-        public double calculateHeat(double absorbedFlux) {
-            double totalEnergy = absorbedFlux * 20.0;
-            double power = calculatePower(absorbedFlux);
-            return Math.max(0.0, totalEnergy - power);
+        /** Excess heat in HU per second for a weighted absorption rate. */
+        public double calculateHeat(double absorbedPerSecond) {
+            return com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData
+                .excessHeat(absorbedPerSecond, calculatePower(absorbedPerSecond), 1.0);
         }
 
         public ComponentStatsData(ItemStack stack, String name, String category, double fastScattering,
@@ -195,7 +197,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             boolean producesDirectEU, long maxDirectEU, String directEUTier, double directEUPenNeutronFast,
             double directEUPenNeutronThermal, boolean hasDurability, long durability, String durabilityLabel,
             boolean hasTransmutation, ItemStack transmutationOutput, long transmutationNeutrons, String extraInfo,
-            boolean isRadiovoltaic, double saturationFlux) {
+            boolean isRadiovoltaic, double fullOutputAbsorbedPerSecond) {
             this.stack = stack;
             this.name = name;
             this.category = category;
@@ -228,7 +230,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             this.transmutationNeutrons = transmutationNeutrons;
             this.extraInfo = extraInfo;
             this.isRadiovoltaic = isRadiovoltaic;
-            this.saturationFlux = saturationFlux;
+            this.fullOutputAbsorbedPerSecond = fullOutputAbsorbedPerSecond;
         }
     }
 
@@ -614,11 +616,13 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         } catch (Throwable ignored) {}
 
         double hvAbs = (rvHv != null) ? rvHv.absorptionFast : 0.40;
-        double hvSat = (rvHv != null && rvHv.saturationFlux > 0) ? rvHv.saturationFlux : 50.0;
+        double hvSat = (rvHv != null) ? rvHv.fullOutputAbsorbedPerSecond
+            : com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData.DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
         long hvMaxEU = (rvHv != null && rvHv.maxEU > 0) ? rvHv.maxEU : 1024L;
 
         double evAbs = (rvEv != null) ? rvEv.absorptionFast : 0.60;
-        double evSat = (rvEv != null && rvEv.saturationFlux > 0) ? rvEv.saturationFlux : 150.0;
+        double evSat = (rvEv != null) ? rvEv.fullOutputAbsorbedPerSecond
+            : com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData.DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
         long evMaxEU = (rvEv != null && rvEv.maxEU > 0) ? rvEv.maxEU : 4096L;
 
         addRadiovoltaic(
@@ -1756,16 +1760,22 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         }
     }
 
+    static double rvPlotMaxAbsorbed(ComponentStatsData d) {
+        double full = d.fullOutputAbsorbedPerSecond > 0 ? d.fullOutputAbsorbedPerSecond
+            : com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData.DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
+        return 5.0 * full;
+    }
+
     public static boolean isMouseOverRVPlot(int x, int y) {
         return x >= RV_PLOT_X && x <= (RV_PLOT_X + RV_PLOT_W) && y >= RV_PLOT_Y && y <= (RV_PLOT_Y + RV_PLOT_H);
     }
 
     private void drawRadiovoltaicCurve(CachedNeutronInteractionRecipe recipe, int recipeIndex) {
         ComponentStatsData d = recipe.data;
-        long maxEU = d.maxDirectEU > 0 ? d.maxDirectEU : (d.saturationFlux > 100.0 ? 4096 : 1024);
-        double satFlux = d.saturationFlux > 0 ? d.saturationFlux : (maxEU >= 4096 ? 150.0 : 50.0);
-        double maxFlux = (maxEU >= 4096) ? 300.0 : 100.0;
-        double maxHeat = (maxEU >= 4096) ? 3000.0 : 1500.0;
+        long maxEU = Math.max(1L, d.maxDirectEU);
+        // x axis: weighted neutrons absorbed per second, up to 5x the 95% output point
+        double maxFlux = rvPlotMaxAbsorbed(d);
+        double maxHeat = Math.max(1.0, d.calculateHeat(maxFlux));
 
         // Title at (83, 239)
         GuiDraw.drawStringC(
@@ -1815,7 +1825,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             font.drawString(pStr, (RV_PLOT_X - 2) * 2 - sw, (gy - 2) * 2, 0xFF38BDF8);
         }
 
-        // Right Axis: Excess Heat Hu/t (Coral Red: 0xFFF87171)
+        // Right Axis: Excess Heat Hu/s (Coral Red: 0xFFF87171)
         font.drawString("Hu", (RV_PLOT_X + RV_PLOT_W + 3) * 2, (RV_PLOT_Y - 2) * 2, 0xFFF87171);
         for (int p = 0; p <= 100; p += 50) {
             int gy = RV_PLOT_Y + RV_PLOT_H - (int) Math.round((p / 100.0) * RV_PLOT_H);
@@ -1838,7 +1848,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         String maxStr = String.valueOf((int) maxFlux);
         int maxSw = font.getStringWidth(maxStr);
         font.drawString(maxStr, (RV_PLOT_X + RV_PLOT_W) * 2 - maxSw / 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, 0xFF9CA3AF);
-        font.drawString("n/t", (RV_PLOT_X + RV_PLOT_W + 10) * 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, 0xFF9CA3AF);
+        font.drawString("n/s", (RV_PLOT_X + RV_PLOT_W + 10) * 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, 0xFF9CA3AF);
 
         GL11.glPopMatrix();
 
@@ -2180,9 +2190,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             } else if (relY >= 237 && relY <= 309) {
                 if (d.isRadiovoltaic) {
                     if (isMouseOverRVPlot(relX, relY)) {
-                        long maxEU = d.maxDirectEU > 0 ? d.maxDirectEU : (d.saturationFlux > 100.0 ? 4096 : 1024);
-                        double satFlux = d.saturationFlux > 0 ? d.saturationFlux : (maxEU >= 4096 ? 150.0 : 50.0);
-                        double maxFlux = (maxEU >= 4096) ? 300.0 : 100.0;
+                        long maxEU = Math.max(1L, d.maxDirectEU);
+                        double satFlux = d.fullOutputAbsorbedPerSecond;
+                        double maxFlux = rvPlotMaxAbsorbed(d);
                         double flux = ((relX - RV_PLOT_X) / (double) RV_PLOT_W) * maxFlux;
                         double power = d.calculatePower(flux);
                         double heat = d.calculateHeat(flux);
@@ -2190,10 +2200,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                         currenttip.add(
                             EnumChatFormatting.WHITE + ""
                                 + EnumChatFormatting.BOLD
-                                + String.format(Locale.US, "%.1f n/t flux", flux));
+                                + String.format(Locale.US, "%.1f neutrons absorbed/s", flux));
 
-                        String satNote = (flux >= satFlux * 1.5) ? EnumChatFormatting.GOLD + " (Saturated)"
-                            : (flux >= satFlux ? EnumChatFormatting.YELLOW + " (Knee)" : "");
+                        String satNote = (flux >= satFlux) ? EnumChatFormatting.GOLD + " (Saturated)"
+                            : (flux >= satFlux * 0.5 ? EnumChatFormatting.YELLOW + " (Knee)" : "");
 
                         currenttip.add(
                             EnumChatFormatting.AQUA + "Power output: "
@@ -2205,7 +2215,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
                         String heatNote = (heat <= 0.0) ? EnumChatFormatting.GRAY + " (None)" : "";
                         currenttip
-                            .add(EnumChatFormatting.RED + "Excess heating: " + formatNumber(heat) + " Hu/t" + heatNote);
+                            .add(EnumChatFormatting.RED + "Excess heating: " + formatNumber(heat) + " Hu/s" + heatNote);
                     } else if (relX >= 6 && relX <= 160 && relY >= 237 && relY <= 248) {
                         currenttip.add(
                             EnumChatFormatting.AQUA
