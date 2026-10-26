@@ -479,9 +479,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
             .findControlRod(mInventory[SLOT_ROD]);
         if (crData != null) {
-            double ratio = getInsertionRatio();
-            double max = (type == NeutronType.THERMAL) ? crData.maxThermalAbsorption : crData.maxFastAbsorption;
-            return Math.max(0.01, ratio * max);
+            return com.gtnewhorizons.modularnuclear.common.nuclear.TileTick
+                .rodAbsorption(crData, getInsertionRatio(), type);
         }
         ControlRodType rod = getRodType(mInventory[SLOT_ROD]);
         if (rod == ControlRodType.NONE) return 0.01;
@@ -494,9 +493,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
             .findControlRod(mInventory[SLOT_ROD]);
         if (crData != null) {
-            double ratio = getInsertionRatio();
-            double scattering = (type == NeutronType.THERMAL) ? crData.scatteringThermal : crData.scatteringFast;
-            return Math.max(0.01, scattering * (1.0 - ratio));
+            return com.gtnewhorizons.modularnuclear.common.nuclear.TileTick
+                .rodScattering(crData, getInsertionRatio(), type);
         }
         ControlRodType rod = getRodType(mInventory[SLOT_ROD]);
         if (rod == ControlRodType.NONE) return 0.02;

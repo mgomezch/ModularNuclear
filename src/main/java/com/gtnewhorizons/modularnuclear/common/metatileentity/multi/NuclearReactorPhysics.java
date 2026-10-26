@@ -26,6 +26,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileContent;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileTick;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
 import gregtech.api.enums.Materials;
@@ -392,9 +393,7 @@ public class NuclearReactorPhysics {
             MTEHatchNuclearControlRod rod = tile.getBottomControlRod();
             double pRod = rod.getAbsorptionProbability(type);
             double pMod = (type == NeutronType.FAST) ? rod.getModeratorProbability() : 0.0;
-            double pModAbs = rod.getModeratorAbsorptionProbability(type);
-            double pBaseEff = Math.max(0.0, 1.0 - pRod - pMod);
-            return Math.min(1.0, pRod + pModAbs + pBaseEff * pBase);
+            return TileTick.combinedAbsorption(pBase, pRod, pMod, rod.getModeratorAbsorptionProbability(type));
         }
         return pBase;
     }
@@ -415,12 +414,13 @@ public class NuclearReactorPhysics {
         double pBase = getBaseScatteringProbability(reactor, tile, type);
         if (tile.hasControlRod()) {
             MTEHatchNuclearControlRod rod = tile.getBottomControlRod();
-            double pRodAbs = rod.getAbsorptionProbability(type);
             double pMod = (type == NeutronType.FAST) ? rod.getModeratorProbability() : 0.0;
-            double pBaseEff = Math.max(0.0, 1.0 - pRodAbs - pMod);
-            double pRodScattering = rod.getScatteringProbability(type);
-            double pModScattering = rod.getModeratorScatteringProbability(type);
-            return Math.min(1.0, pRodScattering + pModScattering + pBaseEff * pBase);
+            return TileTick.combinedScattering(
+                pBase,
+                rod.getAbsorptionProbability(type),
+                pMod,
+                rod.getScatteringProbability(type),
+                rod.getModeratorScatteringProbability(type));
         }
         return pBase;
     }
@@ -440,10 +440,10 @@ public class NuclearReactorPhysics {
         double pBase = getBaseModerationProbability(tile);
         if (tile != null && tile.hasControlRod()) {
             MTEHatchNuclearControlRod rod = tile.getBottomControlRod();
-            double pRodAbs = rod.getAbsorptionProbability(NeutronType.FAST);
-            double pMod = rod.getModeratorProbability();
-            double pBaseEff = Math.max(0.0, 1.0 - pRodAbs - pMod);
-            return Math.min(1.0, pMod + pBaseEff * pBase);
+            return TileTick.combinedModeration(
+                pBase,
+                rod.getAbsorptionProbability(NeutronType.FAST),
+                rod.getModeratorProbability());
         }
         return pBase;
     }
@@ -454,12 +454,8 @@ public class NuclearReactorPhysics {
         if (tile.hasControlRod()) {
             MTEHatchNuclearControlRod rod = tile.getBottomControlRod();
             double pRod = rod.getAbsorptionProbability(type);
-            double pMod = (type == NeutronType.FAST) ? rod.getModeratorProbability() : 0.0;
-            double pBaseEff = Math.max(0.0, 1.0 - pRod - pMod);
             double pBase = getBaseAbsorptionProbability(reactor, tile, type);
-            double sum = pBase + pRod;
-            int nRod = (sum > 0) ? (int) Math.round(count * (pRod / sum)) : count / 2;
-            nRod = Math.min(count, Math.max(0, nRod));
+            int nRod = TileTick.rodShareOfAbsorbed(count, pBase, pRod);
             int nBase = count - nRod;
 
             if (nRod > 0) {
@@ -488,8 +484,7 @@ public class NuclearReactorPhysics {
             if (type == NeutronType.FAST && hatch.mInputFluid != null && hatch.mInputFluid.amount >= 2) {
                 CoolantFluidData cfd = ReactorDataRegistry.findCoolantFluid(hatch.mInputFluid);
                 if (cfd != null && cfd.transmutationProduct != null && cfd.transmutationChancePerNeutron > 0.0) {
-                    double chance = Math.min(1.0, count * cfd.transmutationChancePerNeutron);
-                    if (reactor.getRandomNumber(10000) < (int) Math.round(chance * 10000)) {
+                    if (TileTick.transmutes(cfd, count, reactor.getRandomNumber(10000))) {
                         hatch.mInputFluid.amount -= 2;
                         if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
                         reactor.mCycleTransmutationLoss += 2;
@@ -651,18 +646,9 @@ public class NuclearReactorPhysics {
             double rawTempDmg = (customMix != null) ? customMix.calculateTemperatureDamage(bus.mTemperature)
                 : (fd != null) ? fd.calculateTemperatureDamage(bus.mTemperature)
                     : (fuelType != null) ? fuelType.calculateTemperatureDamage(bus.mTemperature)
-                        : (bus.mTemperature > 20.0 ? (bus.mTemperature - 20.0) / 100.0 : 0.0);
-            double tempDmg = rawTempDmg * dt;
-
-            PhysicsData physics = ReactorDataRegistry.getPhysics();
-            double fastWearMult = (physics != null) ? physics.fastAbsorptionDamageMultiplier
-                : NuclearSimulationEngine.fastAbsorptionDamageMultiplier;
-            double thermalWearMult = (physics != null) ? physics.thermalAbsorptionDamageMultiplier
-                : NuclearSimulationEngine.thermalAbsorptionDamageMultiplier;
-
-            double totalDmg = Math.max(0.0, bus.mLastNeutronsGenerated * 0.25)
-                + (bus.mFastAbsorbed * fastWearMult + bus.mThermalAbsorbed * thermalWearMult)
-                + tempDmg;
+                        : TileTick.genericFuelTemperatureDamage(bus.mTemperature);
+            double totalDmg = TileTick
+                .fuelWear(rawTempDmg, bus.mLastNeutronsGenerated, bus.mFastAbsorbed, bus.mThermalAbsorbed, dt);
 
             int configuredDurability = (customMix != null) ? customMix.defaultDurability
                 : (fd != null && fd.defaultDurability > 0) ? fd.defaultDurability : 0;
@@ -689,11 +675,7 @@ public class NuclearReactorPhysics {
             double scale = (double) intrinsicMax / (double) configuredDurability;
             double scaledDmg = totalDmg * scale;
 
-            int damage = (int) scaledDmg;
-            double remainder = scaledDmg - damage;
-            if (remainder > 0.0 && Math.random() < remainder) {
-                damage++;
-            }
+            int damage = TileTick.stochasticRound(scaledDmg);
 
             if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
                 radCell.damageItemStack(stack, damage);
@@ -745,23 +727,14 @@ public class NuclearReactorPhysics {
             ModeratorData mod = ReactorDataRegistry.findModerator(stack);
             if (mod != null) {
                 double dt = (double) reactor.getTicksPerCycle() / 20.0;
-                double tempDmg = mod.calculateTemperatureDamage(bus.mTemperature) * dt;
-
-                PhysicsData physics = ReactorDataRegistry.getPhysics();
-                double fastWearMult = (physics != null) ? physics.fastAbsorptionDamageMultiplier
-                    : NuclearSimulationEngine.fastAbsorptionDamageMultiplier;
-                double thermalWearMult = (physics != null) ? physics.thermalAbsorptionDamageMultiplier
-                    : NuclearSimulationEngine.thermalAbsorptionDamageMultiplier;
-
-                double totalDmg = (bus.mFastAbsorbed * fastWearMult + bus.mThermalAbsorbed * thermalWearMult)
-                    + (bus.mFastFlux + bus.mThermalFlux) * 0.05
-                    + tempDmg;
-
-                int damage = (int) totalDmg;
-                double remainder = totalDmg - damage;
-                if (remainder > 0.0 && Math.random() < remainder) {
-                    damage++;
-                }
+                double totalDmg = TileTick.moderatorWear(
+                    mod,
+                    bus.mTemperature,
+                    bus.mFastAbsorbed,
+                    bus.mThermalAbsorbed,
+                    bus.mFastFlux + bus.mThermalFlux,
+                    dt);
+                int damage = TileTick.stochasticRound(totalDmg);
 
                 if (damage > 0) {
                     int curDmg = 0;
@@ -842,13 +815,14 @@ public class NuclearReactorPhysics {
                     CoolantItemData cItem = ReactorDataRegistry.findCoolantItem(stack);
                     double huPerDurability = (cItem != null) ? cItem.getHuPerDurability() : 25.0;
                     double dt = (double) reactor.getTicksPerCycle() / 20.0;
-                    int maxTransferPerTick = Math.max(1, (int) Math.round((maxHeat / 100.0) * dt));
-                    double heatAvailable = (bus.mTemperature - ambient) * NuclearSimulationEngine.HU_PER_DEGREE;
-                    double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
-                    int heatToTake = (int) Math
-                        .round(Math.min(heatAvailable / huPerDurability, (double) maxTransferPerTick) * effFactor);
-                    int room = maxHeat - curHeat;
-                    heatToTake = Math.min(heatToTake, room);
+                    int heatToTake = TileTick.coolantCellUptake(
+                        maxHeat,
+                        curHeat,
+                        bus.mTemperature,
+                        ambient,
+                        huPerDurability,
+                        efficiency,
+                        dt);
 
                     if (heatToTake > 0) {
                         comp.alterHeat(reactor.getReactorDummy(), stack, 0, 0, heatToTake);
@@ -971,24 +945,14 @@ public class NuclearReactorPhysics {
             FuelData fuelData = ReactorDataRegistry.findFuel(fluid);
             double dt = (double) reactor.getTicksPerCycle() / 20.0;
             double rawTempDmg = (fuelData != null) ? fuelData.calculateTemperatureDamage(hatch.mTemperature)
-                : (hatch.mTemperature > 20.0 ? (hatch.mTemperature - 20.0) / 100.0 : 0.0);
-            double tempDmg = rawTempDmg * dt;
-
-            PhysicsData physics = ReactorDataRegistry.getPhysics();
-            double fastWearMult = (physics != null) ? physics.fastAbsorptionDamageMultiplier
-                : NuclearSimulationEngine.fastAbsorptionDamageMultiplier;
-            double thermalWearMult = (physics != null) ? physics.thermalAbsorptionDamageMultiplier
-                : NuclearSimulationEngine.thermalAbsorptionDamageMultiplier;
-
-            double totalBurn = Math.max(0.0, hatch.mLastNeutronsGenerated * 0.25)
-                + (hatch.mLastFastAbsorbed * fastWearMult + hatch.mLastThermalAbsorbed * thermalWearMult)
-                + tempDmg;
-            int burn = (int) totalBurn;
-            double rem = totalBurn - burn;
-            if (rem > 0.0 && Math.random() < rem) {
-                burn++;
-            }
-            burn = Math.max(1, burn);
+                : TileTick.genericFuelTemperatureDamage(hatch.mTemperature);
+            double totalBurn = TileTick.fuelWear(
+                rawTempDmg,
+                hatch.mLastNeutronsGenerated,
+                hatch.mLastFastAbsorbed,
+                hatch.mLastThermalAbsorbed,
+                dt);
+            int burn = Math.max(1, TileTick.stochasticRound(totalBurn));
             int toConsume = Math.max(1, Math.min(fluid.amount, burn));
 
             if (toConsume > 0) {
@@ -1013,9 +977,7 @@ public class NuclearReactorPhysics {
             return;
         }
 
-        double minOperatingTemp = (cfd.expansionRatio > 1)
-            ? Math.max(reactor.getAmbientTemperature(), cfd.boilingTemperature)
-            : reactor.getAmbientTemperature();
+        double minOperatingTemp = TileTick.coolantSinkTemperature(cfd, reactor.getAmbientTemperature());
         double heatPerMB = cfd.heatPerLiter;
         int steamRatio = cfd.expansionRatio;
         String outputFluidName = cfd.hotFluidName;
@@ -1026,14 +988,13 @@ public class NuclearReactorPhysics {
         hatch.mLastProducedAmount = 0;
         hatch.mLastProducedFluidName = "";
         if (hatch.mTemperature > minOperatingTemp) {
-            double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
-            double qMax = NuclearSimulationEngine.calculateConductiveHeatTransfer(
+            int desiredTurnover = TileTick.coolantTurnover(
+                cfd,
                 hatch.mTemperature,
                 minOperatingTemp,
                 hatch.mTier,
-                effFactor,
+                efficiency,
                 reactor.getTicksPerCycle());
-            int desiredTurnover = (heatPerMB > 0) ? (int) Math.round(qMax / heatPerMB) : 0;
             int fluidToProcess = Math.min(hatch.mInputFluid.amount, desiredTurnover);
 
             if (fluidToProcess > 0) {
