@@ -344,6 +344,12 @@ public class NuclearGridTile implements INuclearTile {
     }
 
     @Override
+    public double coolantSubstep(double dtSub, double efficiency) {
+        if (reactor == null || !isHatch() || hatch == null) return 0.0;
+        return NuclearReactorPhysics.hatchCoolantSubstep(reactor, hatch, dtSub, efficiency);
+    }
+
+    @Override
     public double getInsulationDampening() {
         return insulationDampening;
     }

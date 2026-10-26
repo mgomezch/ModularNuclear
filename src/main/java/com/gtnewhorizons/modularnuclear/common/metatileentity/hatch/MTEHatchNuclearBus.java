@@ -67,8 +67,12 @@ public class MTEHatchNuclearBus extends MTEHatch {
     public int mLastFastAbsorbed = 0;
     public int mLastThermalAbsorbed = 0;
     public int mLastNeutronsGenerated = 0;
+    /** Chain-reaction emission rate in neutrons per second (see TileProperties.chainRate); not persisted. */
+    public double mChainRate = 0.0;
     public double mBeamlinePacketAccumulator = 0.0;
     public long mDirectEUProduced = 0;
+    /** Running radiovoltaic absorption-rate estimate (see TileTick.radiovoltaicRate); not persisted. */
+    public double mRadiovoltaicRate = 0.0;
     public double mLastHeatOutput = 0.0;
     public boolean mUsedForCooling = false;
     public long mLastCheeseTick = -1;

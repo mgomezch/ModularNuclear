@@ -237,18 +237,33 @@ public final class TileProperties {
     }
 
     /**
-     * Neutrons a fuel emits in one cycle: its spontaneous base yield (per second, scaled by the cycle length and
-     * rounded stochastically) plus the chain-reaction neutrons from last cycle's absorptions, all scaled by efficiency.
+     * Time constant (seconds) with which a fuel's chain-reaction emission follows its absorptions. A fixed physical
+     * generation time, rather than "one cycle", makes chain build-up, decay and runaway the same for any cycle length;
+     * 0.25 s is one cycle at the game's default of 5 ticks per cycle.
      */
-    public static int fuelNeutrons(int baseNeutronsPerSecond, double thermalFissionMult, double fastFissionMult,
-        int lastThermalAbsorbed, int lastFastAbsorbed, double efficiency, double dt) {
-        double scaledBase = baseNeutronsPerSecond * dt;
-        int baseInt = (int) Math.floor(scaledBase);
-        int base = baseInt + (Math.random() < scaledBase - baseInt ? 1 : 0);
+    public static final double CHAIN_TIME_CONSTANT = 0.25;
+
+    /**
+     * Updates a fuel's chain-reaction emission rate (neutrons per second) from last cycle's absorptions: the rate
+     * relaxes toward absorptions per second times the fission multipliers with time constant
+     * {@link #CHAIN_TIME_CONSTANT}. At steady state it equals that product, as with a one-cycle delay.
+     */
+    public static double chainRate(double previousRate, int lastThermalAbsorbed, int lastFastAbsorbed,
+        double thermalFissionMult, double fastFissionMult, double dt) {
+        if (dt <= 0.0) return previousRate;
         double effThermal = thermalFissionMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
         double effFast = fastFissionMult * NuclearSimulationEngine.globalFastFissionMultiplier;
-        int chain = (int) Math.round(lastThermalAbsorbed * effThermal + lastFastAbsorbed * effFast);
-        return (int) Math.round((base + chain) * efficiency);
+        double target = (lastThermalAbsorbed * effThermal + lastFastAbsorbed * effFast) / dt;
+        double alpha = 1.0 - Math.exp(-dt / CHAIN_TIME_CONSTANT);
+        return previousRate + alpha * (target - previousRate);
+    }
+
+    /**
+     * Neutrons a fuel emits in one cycle: its spontaneous base yield plus its chain-reaction emission (both per
+     * second) over the cycle, scaled by efficiency and rounded stochastically so the expected yield is exact.
+     */
+    public static int fuelNeutrons(int baseNeutronsPerSecond, double chainRate, double efficiency, double dt) {
+        return TileTick.stochasticRound((baseNeutronsPerSecond + Math.max(0.0, chainRate)) * dt * efficiency);
     }
 
     /** Base neutrons per second after the archetype multiplier. */
@@ -265,18 +280,5 @@ public final class TileProperties {
     /** Fast fission multiplier after the archetype multiplier (before the global multiplier). */
     public static double effectiveFastFissionMultiplier(FuelData fd) {
         return fd.fastFissionMultiplier * NuclearSimulationEngine.getArchetypeFissionMultiplier(fd.archetype);
-    }
-
-    /** {@link #fuelNeutrons} for a configured fuel. */
-    public static int fuelNeutrons(FuelData fd, int lastThermalAbsorbed, int lastFastAbsorbed, double efficiency,
-        double dt) {
-        return fuelNeutrons(
-            effectiveBaseNeutrons(fd),
-            effectiveThermalFissionMultiplier(fd),
-            effectiveFastFissionMultiplier(fd),
-            lastThermalAbsorbed,
-            lastFastAbsorbed,
-            efficiency,
-            dt);
     }
 }

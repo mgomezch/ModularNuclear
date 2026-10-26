@@ -1929,7 +1929,7 @@ public class StandaloneNuclearGrid {
                     if (tile != null && tile.getType() == type) {
                         if (tile.isFuel() && !tile.isDepleted()) {
                             active++;
-                            totalDamage += tile.getLastDurabilityLoss();
+                            totalDamage += tile.getAverageDurabilityLoss();
                             maxDur = tile.getMaxDurability();
                         }
                     }

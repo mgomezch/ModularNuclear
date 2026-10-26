@@ -270,6 +270,7 @@ public class NuclearReactorPhysics {
             }
             if (!reactor.isItemFuel(stack)) {
                 bus.mLastNeutronsGenerated = 0;
+                bus.mChainRate = 0.0;
                 return 0;
             }
             int baseNeutrons = 4;
@@ -296,14 +297,14 @@ public class NuclearReactorPhysics {
             }
 
             double dt = (double) reactor.getTicksPerCycle() / 20.0;
-            int produced = TileProperties.fuelNeutrons(
-                baseNeutrons,
-                baseFissMult,
-                baseFastFissMult,
+            bus.mChainRate = TileProperties.chainRate(
+                bus.mChainRate,
                 bus.mLastThermalAbsorbed,
                 bus.mLastFastAbsorbed,
-                efficiency,
+                baseFissMult,
+                baseFastFissMult,
                 dt);
+            int produced = TileProperties.fuelNeutrons(baseNeutrons, bus.mChainRate, efficiency, dt);
             bus.mLastNeutronsGenerated = produced;
             return produced;
         } else if (tile.isHatch()) {
@@ -311,6 +312,7 @@ public class NuclearReactorPhysics {
             FluidStack fluid = hatch.mInputFluid;
             if (!MTENuclearReactor.isFluidFuel(fluid) || fluid == null || fluid.amount <= 0) {
                 hatch.mLastNeutronsGenerated = 0;
+                hatch.mChainRate = 0.0;
                 return 0;
             }
             int baseNeutrons = 8;
@@ -326,14 +328,14 @@ public class NuclearReactorPhysics {
             }
 
             double dt = (double) reactor.getTicksPerCycle() / 20.0;
-            int produced = TileProperties.fuelNeutrons(
-                baseNeutrons,
-                baseFissMult,
-                baseFastFissMult,
+            hatch.mChainRate = TileProperties.chainRate(
+                hatch.mChainRate,
                 hatch.mLastThermalAbsorbed,
                 hatch.mLastFastAbsorbed,
-                efficiency,
+                baseFissMult,
+                baseFastFissMult,
                 dt);
+            int produced = TileProperties.fuelNeutrons(baseNeutrons, hatch.mChainRate, efficiency, dt);
             hatch.mLastNeutronsGenerated = produced;
             return produced;
         }
@@ -778,7 +780,8 @@ public class NuclearReactorPhysics {
             }
             double dt = (double) reactor.getTicksPerCycle() / 20.0;
             double weightedAbsorbed = bus.mFastAbsorbed * 4.0 + bus.mThermalAbsorbed * 1.0;
-            long genEU = Math.round(rv.calculatePower(weightedAbsorbed / dt));
+            bus.mRadiovoltaicRate = TileTick.radiovoltaicRate(bus.mRadiovoltaicRate, weightedAbsorbed, dt);
+            long genEU = Math.round(rv.calculatePower(bus.mRadiovoltaicRate));
             bus.mDirectEUProduced = genEU;
             double excessHeat = RadiovoltaicData.excessHeat(weightedAbsorbed, genEU, dt);
             if (excessHeat > 0.0) {
@@ -924,6 +927,32 @@ public class NuclearReactorPhysics {
         return true;
     }
 
+    /**
+     * The coolant record a hatch can cool with right now, or null (empty, fuel, unknown fluid or pipe tier too low).
+     */
+    private static CoolantFluidData activeCoolant(MTENuclearReactor reactor, MTEHatchNuclearHatch hatch) {
+        if (hatch.mInputFluid == null || hatch.mInputFluid.amount <= 0) return null;
+        if (MTENuclearReactor.isFluidFuel(hatch.mInputFluid)) return null;
+        CoolantFluidData cfd = ReactorDataRegistry.findCoolantFluid(hatch.mInputFluid);
+        if (cfd == null || cfd.hotFluidName == null) return null;
+        if (reactor.mPipeTier >= 0 && reactor.mPipeTier < cfd.requiredTier) return null;
+        return cfd;
+    }
+
+    public static double hatchCoolantSubstep(MTENuclearReactor reactor, MTEHatchNuclearHatch hatch, double dtSub,
+        double efficiency) {
+        CoolantFluidData cfd = activeCoolant(reactor, hatch);
+        if (cfd == null) return 0.0;
+        double sink = TileTick.coolantSinkTemperature(cfd, reactor.getAmbientTemperature());
+        double remaining = hatch.mInputFluid.amount * cfd.heatPerLiter - hatch.mPendingCoolantHeat;
+        double q = TileTick.coolantSubstepHeat(hatch.mTemperature, sink, hatch.mTier, efficiency, dtSub, remaining);
+        if (q > 0.0) {
+            hatch.mPendingCoolantHeat += q;
+            hatch.mTemperature -= q / NuclearSimulationEngine.HU_PER_DEGREE;
+        }
+        return q;
+    }
+
     public static void processHatchNuclearTick(MTENuclearReactor reactor, MTEHatchNuclearHatch hatch,
         NuclearGridTile tile, double efficiency) {
         hatch.mLastFastFlux = hatch.mFastFlux;
@@ -967,35 +996,22 @@ public class NuclearReactorPhysics {
             return;
         }
 
-        CoolantFluidData cfd = ReactorDataRegistry.findCoolantFluid(hatch.mInputFluid);
+        CoolantFluidData cfd = activeCoolant(reactor, hatch);
+        double pendingHeat = hatch.mPendingCoolantHeat;
+        hatch.mPendingCoolantHeat = 0.0;
         if (cfd == null) {
             return;
         }
 
-        int reqTier = cfd.requiredTier;
-        if (reactor.mPipeTier >= 0 && reactor.mPipeTier < reqTier) {
-            return;
-        }
-
-        double minOperatingTemp = TileTick.coolantSinkTemperature(cfd, reactor.getAmbientTemperature());
-        double heatPerMB = cfd.heatPerLiter;
         int steamRatio = cfd.expansionRatio;
         String outputFluidName = cfd.hotFluidName;
-        if (outputFluidName == null) {
-            return;
-        }
 
         hatch.mLastProducedAmount = 0;
         hatch.mLastProducedFluidName = "";
-        if (hatch.mTemperature > minOperatingTemp) {
-            int desiredTurnover = TileTick.coolantTurnover(
-                cfd,
-                hatch.mTemperature,
-                minOperatingTemp,
-                hatch.mTier,
-                efficiency,
-                reactor.getTicksPerCycle());
-            int fluidToProcess = Math.min(hatch.mInputFluid.amount, desiredTurnover);
+        // The heat itself left the hatch during the conduction sub-steps (hatchCoolantSubstep); here it becomes coolant
+        // consumed and hot fluid produced.
+        if (pendingHeat > 0.0) {
+            int fluidToProcess = Math.min(hatch.mInputFluid.amount, TileTick.coolantConsumed(cfd, pendingHeat));
 
             if (fluidToProcess > 0) {
                 int outAmount = fluidToProcess * steamRatio;
@@ -1023,10 +1039,7 @@ public class NuclearReactorPhysics {
 
                 hatch.mLastProducedAmount = outAmount;
                 hatch.mLastProducedFluidName = outputFluidName;
-                double heatConsumed = fluidToProcess * heatPerMB;
-                hatch.mLastHeatOutput = heatConsumed;
-                hatch.mTemperature = Math
-                    .max(minOperatingTemp, hatch.mTemperature - (heatConsumed / NuclearSimulationEngine.HU_PER_DEGREE));
+                hatch.mLastHeatOutput = pendingHeat;
                 hatch.markTileDirty();
             }
         }

@@ -55,9 +55,13 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     public int mLastFastAbsorbed = 0;
     public int mLastThermalAbsorbed = 0;
     public int mLastNeutronsGenerated = 0;
+    /** Chain-reaction emission rate in neutrons per second (see TileProperties.chainRate); not persisted. */
+    public double mChainRate = 0.0;
     public int mLastProducedAmount = 0;
     public String mLastProducedFluidName = "";
     public double mLastHeatOutput = 0.0;
+    /** Heat moved into the coolant during this cycle's conduction sub-steps, consumed by the nuclear tick. */
+    public double mPendingCoolantHeat = 0.0;
     public int mReactorPipeTier = -1;
     public boolean mWasDry = false;
     public boolean mUsedForCooling = false;

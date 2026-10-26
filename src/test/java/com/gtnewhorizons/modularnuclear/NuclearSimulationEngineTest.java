@@ -222,6 +222,11 @@ public class NuclearSimulationEngineTest {
         }
     }
 
+    /** Length of one reactor cycle in seconds; a single coolant sub-step of this length is one cycle of cooling. */
+    private static double cycleSeconds() {
+        return NuclearSimulationEngine.getTicksPerCycle() / 20.0;
+    }
+
     @Test
     void testNegativeTemperatureEfficiencyCurve() {
         assertEquals(0.5, NuclearSimulationEngine.calculateEfficiency(0.0), 1e-6);
@@ -547,6 +552,7 @@ public class NuclearSimulationEngineTest {
         // Case 1: Coolant does NOT extract heat when at or below ambient temperature (20°C)
         hatch.setInputFluidAmount(2000);
         hatch.setTemperature(NuclearSimulationEngine.AMBIENT_TEMP);
+        hatch.coolantSubstep(cycleSeconds(), 1.0);
         hatch.nuclearTick(1.0);
 
         assertEquals(
@@ -559,6 +565,7 @@ public class NuclearSimulationEngineTest {
 
         // Case 2: Above ambient (e.g. 80°C), IC2 coolant extracts heat conductively at 1:1 volume ratio
         hatch.setTemperature(80.0);
+        hatch.coolantSubstep(cycleSeconds(), 1.0);
         hatch.nuclearTick(1.0);
 
         assertTrue(hatch.getTemperature() < 80.0, "IC2 coolant must extract heat above ambient threshold");
@@ -598,6 +605,7 @@ public class NuclearSimulationEngineTest {
         waterTile.setInputFluidAmount(1000);
         waterTile.setTemperature(200.0);
         int initialWater = waterTile.getInputFluidAmount();
+        waterTile.coolantSubstep(cycleSeconds(), 1.0);
         waterTile.nuclearTick(1.0);
         int waterConsumed = initialWater - waterTile.getInputFluidAmount();
         assertTrue(waterConsumed > 0, "Superheated distilled water must boil");
@@ -613,6 +621,7 @@ public class NuclearSimulationEngineTest {
         heavyWaterTile.setInputFluidAmount(1000);
         heavyWaterTile.setTemperature(200.0);
         int initialHw = heavyWaterTile.getInputFluidAmount();
+        heavyWaterTile.coolantSubstep(cycleSeconds(), 1.0);
         heavyWaterTile.nuclearTick(1.0);
         int hwConsumed = initialHw - heavyWaterTile.getInputFluidAmount();
         assertTrue(hwConsumed > 0, "Superheated heavy water must boil");
@@ -628,6 +637,7 @@ public class NuclearSimulationEngineTest {
         ic2Tile.setInputFluidAmount(1000);
         ic2Tile.setTemperature(200.0);
         int initialIc2 = ic2Tile.getInputFluidAmount();
+        ic2Tile.coolantSubstep(cycleSeconds(), 1.0);
         ic2Tile.nuclearTick(1.0);
         int ic2Consumed = initialIc2 - ic2Tile.getInputFluidAmount();
         assertTrue(ic2Consumed > 0, "Superheated IC2 coolant must exchange heat");
@@ -761,9 +771,12 @@ public class NuclearSimulationEngineTest {
                 NuclearSimulationEngine.setTicksPerCycle(tpcs[i]);
                 com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile plate = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
                     com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
-                // 8 thermal neutrons per second, absorbed over one cycle (2 at 5 ticks, 8 at 20 ticks)
-                plate.onNeutronAbsorbed(NeutronType.THERMAL, 8 * tpcs[i] / 20);
-                plate.nuclearTick(1.0);
+                // A steady 8 thermal neutrons per second (2 per cycle at 5 ticks, 8 at 20 ticks) for 30 seconds,
+                // long enough for the plate's rate average to settle
+                for (int c = 0; c < 30 * 20 / tpcs[i]; c++) {
+                    plate.onNeutronAbsorbed(NeutronType.THERMAL, 8 * tpcs[i] / 20);
+                    plate.nuclearTick(1.0);
+                }
                 outputs[i] = plate.getDirectEUProduced();
             }
             assertTrue(outputs[0] > 0, "Plate must produce EU");
@@ -5092,18 +5105,21 @@ public class NuclearSimulationEngineTest {
         hatchMV.setTier(2); // MV
         hatchMV.setInputFluidAmount(8000);
         hatchMV.setTemperature(200.0);
+        hatchMV.coolantSubstep(cycleSeconds(), 1.0);
         hatchMV.nuclearTick(1.0);
 
         SimTile hatchHV = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
         hatchHV.setTier(3); // HV
         hatchHV.setInputFluidAmount(8000);
         hatchHV.setTemperature(200.0);
+        hatchHV.coolantSubstep(cycleSeconds(), 1.0);
         hatchHV.nuclearTick(1.0);
 
         SimTile hatchEV = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
         hatchEV.setTier(4); // EV
         hatchEV.setInputFluidAmount(8000);
         hatchEV.setTemperature(200.0);
+        hatchEV.coolantSubstep(cycleSeconds(), 1.0);
         hatchEV.nuclearTick(1.0);
 
         assertTrue(
@@ -5130,6 +5146,7 @@ public class NuclearSimulationEngineTest {
         hatch.setTier(3); // HV
         hatch.setInputFluidAmount(8000);
         hatch.setTemperature(80.0);
+        hatch.coolantSubstep(cycleSeconds(), 1.0);
         hatch.nuclearTick(1.0);
 
         assertTrue(hatch.getTemperature() < 80.0, "IC2 coolant must cool hatch");
@@ -5164,6 +5181,10 @@ public class NuclearSimulationEngineTest {
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 3, 32000, new String[0], null);
         hatch.mTemperature = 150.0; // Above 100°C boiling point
         hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(distilledWater, 8000);
+
+        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearReactorPhysics
+
+            .hatchCoolantSubstep(reactor, hatch, cycleSeconds(), 1.0);
 
         reactor.processHatchNuclearTick(hatch, null, 1.0);
 
@@ -5207,6 +5228,10 @@ public class NuclearSimulationEngineTest {
         hatch.mTemperature = 200.0;
         // Only 2 mB of distilled water - insufficient to absorb Q_max (~98 EU, needing ~20 mB)
         hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(distilledWater, 2);
+
+        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearReactorPhysics
+
+            .hatchCoolantSubstep(reactor, hatch, cycleSeconds(), 1.0);
 
         reactor.processHatchNuclearTick(hatch, null, 1.0);
 

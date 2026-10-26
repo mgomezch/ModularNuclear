@@ -273,6 +273,11 @@ public class SimTile implements INuclearTile {
 
     // Radiovoltaic direct EU state
     private long directEUProduced = 0;
+    private double radiovoltaicRate = 0.0;
+    private double pendingCoolantHeat = 0.0;
+    private double chainRate = 0.0;
+    private double totalDurabilityLoss = 0.0;
+    private long wearCycles = 0;
 
     public StandaloneNuclearGrid grid;
 
@@ -422,6 +427,11 @@ public class SimTile implements INuclearTile {
         this.lastTotalFlux = 0;
         this.lastFastAbsorbed = 0;
         this.lastThermalAbsorbed = 0;
+        this.radiovoltaicRate = 0.0;
+        this.pendingCoolantHeat = 0.0;
+        this.chainRate = 0.0;
+        this.totalDurabilityLoss = 0.0;
+        this.wearCycles = 0;
         this.durabilityLossAccumulator = 0.0;
         this.beamlinePacketAccumulator = 0.0;
         this.directEUProduced = 0;
@@ -641,11 +651,19 @@ public class SimTile implements INuclearTile {
 
         if (!isFuel() || depleted) {
             lastNeutronsGenerated = 0;
+            chainRate = 0.0;
             return 0;
         }
 
-        int produced = TileProperties
-            .fuelNeutrons(getFuelData(), lastThermalAbsorbed, lastFastAbsorbed, efficiency, dt);
+        FuelData fd = getFuelData();
+        chainRate = TileProperties.chainRate(
+            chainRate,
+            lastThermalAbsorbed,
+            lastFastAbsorbed,
+            TileProperties.effectiveThermalFissionMultiplier(fd),
+            TileProperties.effectiveFastFissionMultiplier(fd),
+            dt);
+        int produced = TileProperties.fuelNeutrons(TileProperties.effectiveBaseNeutrons(fd), chainRate, efficiency, dt);
         lastNeutronsGenerated = produced;
         return produced;
     }
@@ -845,6 +863,8 @@ public class SimTile implements INuclearTile {
                 thermalAbsorbed,
                 dt);
             lastDurabilityLoss = rawDamage;
+            totalDurabilityLoss += rawDamage;
+            wearCycles++;
             int intDamage = TileTick.stochasticRound(rawDamage);
             if (intDamage > 0) {
                 durability = Math.max(0, durability - intDamage);
@@ -861,6 +881,8 @@ public class SimTile implements INuclearTile {
                 fastFlux + thermalFlux,
                 dt);
             lastDurabilityLoss = rawDamage;
+            totalDurabilityLoss += rawDamage;
+            wearCycles++;
             int intDamage = TileTick.stochasticRound(rawDamage);
             if (intDamage > 0) {
                 durability = Math.max(0, durability - intDamage);
@@ -875,7 +897,8 @@ public class SimTile implements INuclearTile {
         if (isRadiovoltaic()) {
             com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData rv = getRadiovoltaicData();
             double weightedAbsorbed = fastAbsorbed * 4.0 + thermalAbsorbed * 1.0;
-            long genEU = Math.round(rv.calculatePower(dt > 0 ? weightedAbsorbed / dt : weightedAbsorbed));
+            radiovoltaicRate = TileTick.radiovoltaicRate(radiovoltaicRate, weightedAbsorbed, dt);
+            long genEU = Math.round(rv.calculatePower(radiovoltaicRate));
             this.directEUProduced = genEU;
             double excessHeat = com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData
                 .excessHeat(weightedAbsorbed, genEU, dt);
@@ -911,55 +934,60 @@ public class SimTile implements INuclearTile {
             }
         }
 
-        // 3. Fluid cooling & heat exchange (analytical lumped-capacitance conductive cooling)
-        ComponentData.CoolantFluidData cfd = isCoolantHatch() ? contentOf(type).coolantFluid() : null;
-        if (cfd != null) {
-            if (grid != null && grid.getPipeTier() >= 0 && grid.getPipeTier() < cfd.requiredTier) {
-                return;
-            }
-
-            double operatingThreshold = TileTick.coolantSinkTemperature(cfd, NuclearSimulationEngine.AMBIENT_TEMP);
-            double heatPerL = cfd.heatPerLiter;
-            int steamRatio = cfd.expansionRatio;
-
-            if (inputFluidAmount > 0 && temperature > operatingThreshold) {
-                int desiredTurnover = TileTick
-                    .coolantTurnover(cfd, temperature, operatingThreshold, tier, efficiency, getTicksPerCycle());
-                int mbToCool = Math.min(inputFluidAmount, desiredTurnover);
-
-                if (mbToCool > 0) {
-                    int fluidOut = mbToCool * steamRatio;
-                    inputFluidAmount -= mbToCool;
-                    lastTickProduced = fluidOut;
-                    outputFluidAmount += fluidOut;
-                    if (type != TileType.HATCH_IC2_COOLANT) {
-                        totalSteamProduced += fluidOut;
-                    }
-
-                    double heatConsumed = mbToCool * heatPerL;
-                    lastHeatOutput = heatConsumed;
-                    double tempDrop = heatConsumed / NuclearSimulationEngine.HU_PER_DEGREE;
-                    double tempBefore = temperature;
-                    temperature = Math.max(operatingThreshold, temperature - tempDrop);
-                    lastCoolingDetails = String.format(
-                        java.util.Locale.US,
-                        "%s %dL (cap %dL, heatPerL %.1f), consumed %.1f Hu, temp %.1f°C -> %.1f°C (drop %.1f°C)",
-                        type.displayName,
-                        mbToCool,
-                        inputFluidCapacity,
-                        heatPerL,
-                        heatConsumed,
-                        tempBefore,
-                        temperature,
-                        tempDrop);
+        // 3. Coolant turnover: the heat left the hatch during the conduction sub-steps (coolantSubstep); here it
+        // becomes coolant consumed and hot fluid produced.
+        ComponentData.CoolantFluidData cfd = activeCoolant();
+        double pendingHeat = pendingCoolantHeat;
+        pendingCoolantHeat = 0.0;
+        if (cfd != null && pendingHeat > 0.0) {
+            int mbToCool = Math.min(inputFluidAmount, TileTick.coolantConsumed(cfd, pendingHeat));
+            if (mbToCool > 0) {
+                int fluidOut = mbToCool * cfd.expansionRatio;
+                inputFluidAmount -= mbToCool;
+                lastTickProduced = fluidOut;
+                outputFluidAmount += fluidOut;
+                if (type != TileType.HATCH_IC2_COOLANT) {
+                    totalSteamProduced += fluidOut;
                 }
-            }
-
-            if (inputFluidAmount <= 0) {
-                inputFluidAmount = 0;
-                wasDry = true;
+                lastHeatOutput = pendingHeat;
+                lastCoolingDetails = String.format(
+                    java.util.Locale.US,
+                    "%s %dL (cap %dL, heatPerL %.1f), consumed %.1f Hu, temp %.1f°C",
+                    type.displayName,
+                    mbToCool,
+                    inputFluidCapacity,
+                    cfd.heatPerLiter,
+                    pendingHeat,
+                    temperature);
             }
         }
+        if (isCoolantHatch() && inputFluidAmount <= 0) {
+            inputFluidAmount = 0;
+            wasDry = true;
+        }
+    }
+
+    /** The coolant this hatch can cool with right now, or null (not a coolant hatch, empty, or pipe tier too low). */
+    private ComponentData.CoolantFluidData activeCoolant() {
+        if (!isCoolantHatch() || inputFluidAmount <= 0) return null;
+        ComponentData.CoolantFluidData cfd = contentOf(type).coolantFluid();
+        if (cfd == null) return null;
+        if (grid != null && grid.getPipeTier() >= 0 && grid.getPipeTier() < cfd.requiredTier) return null;
+        return cfd;
+    }
+
+    @Override
+    public double coolantSubstep(double dtSub, double efficiency) {
+        ComponentData.CoolantFluidData cfd = activeCoolant();
+        if (cfd == null) return 0.0;
+        double sink = TileTick.coolantSinkTemperature(cfd, NuclearSimulationEngine.AMBIENT_TEMP);
+        double remaining = inputFluidAmount * cfd.heatPerLiter - pendingCoolantHeat;
+        double q = TileTick.coolantSubstepHeat(temperature, sink, tier, efficiency, dtSub, remaining);
+        if (q > 0.0) {
+            pendingCoolantHeat += q;
+            temperature -= q / NuclearSimulationEngine.HU_PER_DEGREE;
+        }
+        return q;
     }
 
     /**
@@ -1029,6 +1057,11 @@ public class SimTile implements INuclearTile {
 
     public double getLastDurabilityLoss() {
         return lastDurabilityLoss;
+    }
+
+    /** Mean durability loss per cycle since this tile's content was placed (less noisy than the last cycle's). */
+    public double getAverageDurabilityLoss() {
+        return wearCycles > 0 ? totalDurabilityLoss / wearCycles : lastDurabilityLoss;
     }
 
     public int getLastLiquidFuelBurned() {

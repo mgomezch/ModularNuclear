@@ -57,16 +57,23 @@ public final class TileTick {
     }
 
     /**
-     * Millilitres of coolant a hatch would turn over this cycle, before limiting to what it holds: the conductive
-     * heat transfer into the coolant divided by the coolant's heat per litre.
+     * Heat (HU) a coolant hatch transfers into its coolant over {@code dtSub} seconds: exact exponential cooling of the
+     * hatch's heat capacity toward the sink at the hatch's conductance, limited to the heat the remaining coolant can
+     * still absorb this cycle.
      */
-    public static int coolantTurnover(CoolantFluidData cfd, double temp, double sinkTemp, int hatchTier,
-        double efficiency, int ticksPerCycle) {
-        if (temp <= sinkTemp || cfd.heatPerLiter <= 0.0) return 0;
+    public static double coolantSubstepHeat(double temp, double sinkTemp, int hatchTier, double efficiency,
+        double dtSub, double remainingCapacityHu) {
+        if (temp <= sinkTemp || remainingCapacityHu <= 0.0) return 0.0;
         double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
-        double qMax = NuclearSimulationEngine
-            .calculateConductiveHeatTransfer(temp, sinkTemp, hatchTier, effFactor, ticksPerCycle);
-        return (int) Math.round(qMax / cfd.heatPerLiter);
+        double conductance = NuclearSimulationEngine.getHatchConductance(hatchTier) * effFactor;
+        double ch = NuclearSimulationEngine.HU_PER_DEGREE;
+        double q = ch * (temp - sinkTemp) * (1.0 - Math.exp(-conductance * dtSub / ch));
+        return Math.min(q, remainingCapacityHu);
+    }
+
+    /** Millilitres of coolant consumed for the heat it absorbed this cycle (rounded stochastically). */
+    public static int coolantConsumed(CoolantFluidData cfd, double heatHu) {
+        return cfd.heatPerLiter > 0.0 ? stochasticRound(heatHu / cfd.heatPerLiter) : 0;
     }
 
     /**
@@ -91,6 +98,21 @@ public final class TileTick {
         double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
         int take = (int) Math.round(Math.min(heatAvailable / huPerDurability, (double) maxTransfer) * effFactor);
         return Math.max(0, Math.min(take, maxHeat - currentHeat));
+    }
+
+    /** Time constant of the radiovoltaic absorption-rate average, in seconds. */
+    public static final double RADIOVOLTAIC_RATE_TIME_CONSTANT = 2.0;
+
+    /**
+     * Updates a radiovoltaic plate's running estimate of its weighted absorption rate (neutrons per second, fast
+     * counting 4x) with this cycle's absorptions. The output curve is concave, so applying it to each cycle's noisy
+     * count would make output depend on the cycle length; an exponential average over a fixed time keeps the noise,
+     * and therefore the output, the same for any cycle length.
+     */
+    public static double radiovoltaicRate(double previousRate, double weightedAbsorbed, double dt) {
+        if (dt <= 0.0) return previousRate;
+        double alpha = 1.0 - Math.exp(-dt / RADIOVOLTAIC_RATE_TIME_CONSTANT);
+        return previousRate + alpha * (weightedAbsorbed / dt - previousRate);
     }
 
     // ---- Control rods -------------------------------------------------------------------------------------------

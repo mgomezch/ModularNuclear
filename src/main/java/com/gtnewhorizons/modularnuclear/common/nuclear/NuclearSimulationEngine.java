@@ -878,29 +878,31 @@ public class NuclearSimulationEngine {
             }
         }
 
-        // Execute thermal callbacks
+        // Execute thermal callbacks. The thermal pool diffuses fractional neutron counts; they are converted to whole
+        // neutrons with stochastic rounding so the expected count is exact. Deterministic rounding discarded every
+        // fractional absorption below one half, which starved the thermal chain reaction at short cycle lengths.
         for (int x = 0; x < sizeX; x++) {
             for (int y = 0; y < sizeY; y++) {
                 INuclearTile tile = grid[x][y];
                 if (tile == null) continue;
 
-                int fT = (int) Math.round(tileFluxThermal[x][y]);
+                int fT = TileTick.stochasticRound(tileFluxThermal[x][y]);
                 if (fT > 0) tile.addNeutronFlux(NeutronType.THERMAL, fT);
 
-                int aT = (int) Math.round(tileAbsThermal[x][y]);
+                int aT = TileTick.stochasticRound(tileAbsThermal[x][y]);
                 if (aT > 0) {
                     tile.onNeutronAbsorbed(NeutronType.THERMAL, aT);
                     result.thermalNeutronsAbsorbed += aT;
                 }
 
-                int sT = (int) Math.round(tileScatteringThermal[x][y]);
+                int sT = TileTick.stochasticRound(tileScatteringThermal[x][y]);
                 if (sT > 0) {
                     tile.onNeutronScattered(NeutronType.THERMAL, sT);
                 }
             }
         }
 
-        // --- PASS 3: ATOMIC NUCLEAR HEAT DEPOSITION ---
+        // --- PASS 3: NUCLEAR HEAT (deposited gradually during PASS 4) ---
         for (int x = 0; x < sizeX; x++) {
             for (int y = 0; y < sizeY; y++) {
                 INuclearTile tile = grid[x][y];
@@ -910,7 +912,6 @@ public class NuclearSimulationEngine {
                         pendingHeat[x][y] += wignerHeat;
                     }
                     if (pendingHeat[x][y] > 0.0) {
-                        tile.addHeat(pendingHeat[x][y]);
                         result.totalHeatHU += pendingHeat[x][y];
                     }
                 }
@@ -934,9 +935,15 @@ public class NuclearSimulationEngine {
         double[][] deltaTemp = new double[sizeX][sizeY];
 
         for (int sub = 0; sub < SUBSTEPS; sub++) {
+            // The cycle's nuclear heat is released evenly over its sub-steps, interleaved with conduction and
+            // cooling. Depositing it all at the start of the cycle left end-of-cycle temperatures (which drive
+            // reactivity) lower the longer the cycle, making the reactor's state depend on the cycle length.
             for (int x = 0; x < sizeX; x++) {
                 for (int y = 0; y < sizeY; y++) {
                     deltaTemp[x][y] = 0;
+                    if (pendingHeat[x][y] > 0.0 && grid[x][y] != null) {
+                        grid[x][y].addHeat(pendingHeat[x][y] / SUBSTEPS);
+                    }
                 }
             }
 
@@ -981,6 +988,7 @@ public class NuclearSimulationEngine {
                     INuclearTile tile = grid[x][y];
                     if (tile != null) {
                         tile.setTemperature(Math.max(-273.15, tile.getTemperature() + deltaTemp[x][y]));
+                        tile.coolantSubstep(dt / SUBSTEPS, efficiency[x][y]);
                     }
                 }
             }
