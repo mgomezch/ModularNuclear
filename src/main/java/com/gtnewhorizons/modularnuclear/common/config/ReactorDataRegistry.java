@@ -10,7 +10,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -52,11 +51,6 @@ import ic2.core.Ic2Items;
 public final class ReactorDataRegistry {
 
     private static File configDirectory;
-
-    private static PhysicsData physicsData = new PhysicsData();
-    private static final Map<Integer, TierData> tierDataMap = new LinkedHashMap<>();
-    private static final List<FuelData> fuels = new ArrayList<>();
-    private static ComponentData componentData = new ComponentData();
 
     // Fast item-level lookup caches for WAILA and client tick responsiveness
     private static final Map<Long, FuelData> fuelCache = new ConcurrentHashMap<>();
@@ -127,8 +121,8 @@ public final class ReactorDataRegistry {
     }
 
     public static synchronized void preIndexKnownItems() {
-        if (fuels != null) {
-            for (FuelData fd : fuels) {
+        if (ReactorConfigData.fuels != null) {
+            for (FuelData fd : ReactorConfigData.fuels) {
                 if (fd.isLiquid || fd.matching == null) continue;
                 for (String pattern : fd.matching) {
                     indexPattern(pattern, (key) -> fuelCache.put(key, fd));
@@ -138,65 +132,65 @@ public final class ReactorDataRegistry {
                 }
             }
         }
-        if (componentData != null) {
-            if (componentData.reflectors != null) {
-                for (ReflectorData d : componentData.reflectors) {
+        if (ReactorConfigData.componentData != null) {
+            if (ReactorConfigData.componentData.reflectors != null) {
+                for (ReflectorData d : ReactorConfigData.componentData.reflectors) {
                     if (d.matching == null) continue;
                     for (String p : d.matching) {
                         indexPattern(p, (key) -> reflectorCache.put(key, d));
                     }
                 }
             }
-            if (componentData.moderators != null) {
-                for (ModeratorData d : componentData.moderators) {
+            if (ReactorConfigData.componentData.moderators != null) {
+                for (ModeratorData d : ReactorConfigData.componentData.moderators) {
                     if (d.matching == null) continue;
                     for (String p : d.matching) {
                         indexPattern(p, (key) -> moderatorCache.put(key, d));
                     }
                 }
             }
-            if (componentData.controlRods != null) {
-                for (ControlRodData d : componentData.controlRods) {
+            if (ReactorConfigData.componentData.controlRods != null) {
+                for (ControlRodData d : ReactorConfigData.componentData.controlRods) {
                     if (d.matching == null) continue;
                     for (String p : d.matching) {
                         indexPattern(p, (key) -> controlRodCache.put(key, d));
                     }
                 }
             }
-            if (componentData.heatVents != null) {
-                for (HeatVentData d : componentData.heatVents) {
+            if (ReactorConfigData.componentData.heatVents != null) {
+                for (HeatVentData d : ReactorConfigData.componentData.heatVents) {
                     if (d.matching == null) continue;
                     for (String p : d.matching) {
                         indexPattern(p, (key) -> heatVentCache.put(key, d));
                     }
                 }
             }
-            if (componentData.heatExchangers != null) {
-                for (HeatExchangerData d : componentData.heatExchangers) {
+            if (ReactorConfigData.componentData.heatExchangers != null) {
+                for (HeatExchangerData d : ReactorConfigData.componentData.heatExchangers) {
                     if (d.matching == null) continue;
                     for (String p : d.matching) {
                         indexPattern(p, (key) -> heatExchangerCache.put(key, d));
                     }
                 }
             }
-            if (componentData.insulators != null) {
-                for (InsulatorData d : componentData.insulators) {
+            if (ReactorConfigData.componentData.insulators != null) {
+                for (InsulatorData d : ReactorConfigData.componentData.insulators) {
                     if (d.matching == null) continue;
                     for (String p : d.matching) {
                         indexPattern(p, (key) -> insulatorCache.put(key, d));
                     }
                 }
             }
-            if (componentData.radiovoltaics != null) {
-                for (RadiovoltaicData d : componentData.radiovoltaics) {
+            if (ReactorConfigData.componentData.radiovoltaics != null) {
+                for (RadiovoltaicData d : ReactorConfigData.componentData.radiovoltaics) {
                     if (d.matching == null) continue;
                     for (String p : d.matching) {
                         indexPattern(p, (key) -> radiovoltaicCache.put(key, d));
                     }
                 }
             }
-            if (componentData.coolantItems != null) {
-                for (CoolantItemData d : componentData.coolantItems) {
+            if (ReactorConfigData.componentData.coolantItems != null) {
+                for (CoolantItemData d : ReactorConfigData.componentData.coolantItems) {
                     if (d.matching == null) continue;
                     for (String p : d.matching) {
                         indexPattern(p, (key) -> coolantItemCache.put(key, d));
@@ -310,126 +304,7 @@ public final class ReactorDataRegistry {
 
     public static synchronized void loadDefaults() {
         clearCaches();
-        Yaml yaml = createYaml();
-
-        // 1. Physics defaults
-        try (InputStream in = getResource("physics.yaml")) {
-            if (in != null) {
-                Object obj = yaml.load(in);
-                if (obj instanceof Map<?, ?>m) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> map = (Map<String, Object>) m;
-                    Object phys = map.getOrDefault("physics", map);
-                    if (phys instanceof Map<?, ?>pMap) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> pm = (Map<String, Object>) pMap;
-                        physicsData = PhysicsData.fromMap(pm);
-                    }
-                }
-            } else {
-                ModularNuclear.LOG.error("Default physics.yaml resource not found in JAR!");
-                physicsData = new PhysicsData();
-            }
-        } catch (Exception e) {
-            ModularNuclear.LOG.error("Failed to load default physics.yaml from JAR", e);
-            physicsData = new PhysicsData();
-        }
-        syncPhysicsToEngine();
-
-        // 2. Tiers defaults
-        tierDataMap.clear();
-        try (InputStream in = getResource("tiers.yaml")) {
-            if (in != null) {
-                Object obj = yaml.load(in);
-                List<?> list = null;
-                if (obj instanceof Map<?, ?>m && m.containsKey("tiers")) {
-                    Object tList = m.get("tiers");
-                    if (tList instanceof List<?>l) list = l;
-                } else if (obj instanceof List<?>l) {
-                    list = l;
-                }
-                if (list != null) {
-                    for (Object o : list) {
-                        if (o instanceof Map<?, ?>tm) {
-                            @SuppressWarnings("unchecked")
-                            TierData td = TierData.fromMap((Map<String, Object>) tm);
-                            tierDataMap.put(td.tier, td);
-                        }
-                    }
-                }
-            } else {
-                ModularNuclear.LOG.error("Default tiers.yaml resource not found in JAR!");
-            }
-        } catch (Exception e) {
-            ModularNuclear.LOG.error("Failed to load default tiers.yaml from JAR", e);
-        }
-
-        // 3. Fuels defaults
-        fuels.clear();
-        try (InputStream in = getResource("fuels.yaml")) {
-            if (in != null) {
-                Object obj = yaml.load(in);
-                List<?> list = null;
-                if (obj instanceof Map<?, ?>m && m.containsKey("fuels")) {
-                    Object fObj = m.get("fuels");
-                    if (fObj instanceof List<?>l) list = l;
-                } else if (obj instanceof List<?>l) {
-                    list = l;
-                }
-                if (list != null) {
-                    for (Object o : list) {
-                        if (o instanceof Map<?, ?>fm) {
-                            @SuppressWarnings("unchecked")
-                            Map<String, Object> map = (Map<String, Object>) fm;
-                            fuels.add(FuelData.fromMap(map));
-                        }
-                    }
-                }
-            } else {
-                ModularNuclear.LOG.error("Default fuels.yaml resource not found in JAR!");
-            }
-        } catch (Exception e) {
-            ModularNuclear.LOG.error("Failed to load default fuels.yaml from JAR", e);
-        }
-
-        // 4. Components defaults
-        try (InputStream in = getResource("components.yaml")) {
-            if (in != null) {
-                Object obj = yaml.load(in);
-                if (obj instanceof Map<?, ?>m) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> map = (Map<String, Object>) m;
-                    componentData = ComponentData.fromMap(map);
-                }
-            } else {
-                ModularNuclear.LOG.error("Default components.yaml resource not found in JAR!");
-                componentData = new ComponentData();
-            }
-        } catch (Exception e) {
-            ModularNuclear.LOG.error("Failed to load default components.yaml from JAR", e);
-            componentData = new ComponentData();
-        }
-    }
-
-    public static synchronized void syncPhysicsToEngine() {
-        if (physicsData == null) return;
-        NuclearSimulationEngine.setHuPerDegree(physicsData.huPerDegree);
-        NuclearSimulationEngine.setGlobalThermalFissionMultiplier(physicsData.globalThermalFissionMultiplier);
-        NuclearSimulationEngine.setGlobalFastFissionMultiplier(physicsData.globalFastFissionMultiplier);
-        NuclearSimulationEngine.setFastAbsorptionDamageMultiplier(physicsData.fastAbsorptionDamageMultiplier);
-        NuclearSimulationEngine.setThermalAbsorptionDamageMultiplier(physicsData.thermalAbsorptionDamageMultiplier);
-        NuclearSimulationEngine.fissionHeatPerNeutron = physicsData.fissionHeatPerNeutron;
-        NuclearSimulationEngine.wallReflectionChance = physicsData.wallReflectionChance;
-        NuclearSimulationEngine.setBeamEnergyToFastNeutronMultiplier(physicsData.beamEnergyToFastNeutronMultiplier);
-        NuclearSimulationEngine.setGridConductionMultiplier(physicsData.gridConductionMultiplier);
-        NuclearSimulationEngine.denseNbaseMultiplier = physicsData.denseNbaseMultiplier;
-        NuclearSimulationEngine.denseFissionMultiplier = physicsData.denseFissionMultiplier;
-        NuclearSimulationEngine.excitedNbaseMultiplier = physicsData.excitedNbaseMultiplier;
-        NuclearSimulationEngine.excitedFissionMultiplier = physicsData.excitedFissionMultiplier;
-        NuclearSimulationEngine.standardNbaseMultiplier = physicsData.standardNbaseMultiplier;
-        NuclearSimulationEngine.standardFissionMultiplier = physicsData.standardFissionMultiplier;
-        NuclearSimulationEngine.breederNbaseMultiplier = physicsData.breederNbaseMultiplier;
-        NuclearSimulationEngine.breederFissionMultiplier = physicsData.breederFissionMultiplier;
+        ReactorConfigData.loadDefaults();
     }
 
     public static synchronized void loadFromDir(File dir) {
@@ -446,19 +321,11 @@ public final class ReactorDataRegistry {
                 if (obj instanceof Map<?, ?>m) {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> map = (Map<String, Object>) m;
-                    Object phys = map.getOrDefault("physics", map);
-                    if (phys instanceof Map<?, ?>pMap) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> pm = (Map<String, Object>) pMap;
-                        Map<String, Object> merged = physicsData.toMap();
-                        deepMerge(merged, pm);
-                        physicsData = PhysicsData.fromMap(merged);
-                    }
+                    ReactorConfigData.applyPhysicsOverrides(map);
                 }
             } catch (Exception e) {
                 ModularNuclear.LOG.error("Failed to load physics.yaml overrides", e);
             }
-            syncPhysicsToEngine();
         }
 
         // 2. Tiers overrides
@@ -466,7 +333,7 @@ public final class ReactorDataRegistry {
         if (tiersFile.exists()) {
             try (FileReader r = new FileReader(tiersFile)) {
                 Object obj = yaml.load(r);
-                applyTierOverrides(obj);
+                ReactorConfigData.applyTierOverrides(obj);
             } catch (Exception e) {
                 ModularNuclear.LOG.error("Failed to load tiers.yaml overrides", e);
             }
@@ -477,7 +344,7 @@ public final class ReactorDataRegistry {
         if (fuelsFile.exists()) {
             try (FileReader r = new FileReader(fuelsFile)) {
                 Object obj = yaml.load(r);
-                applyFuelOverrides(obj);
+                ReactorConfigData.applyFuelOverrides(obj);
             } catch (Exception e) {
                 ModularNuclear.LOG.error("Failed to load fuels.yaml overrides", e);
             }
@@ -488,261 +355,13 @@ public final class ReactorDataRegistry {
         if (compFile.exists()) {
             try (FileReader r = new FileReader(compFile)) {
                 Object obj = yaml.load(r);
-                applyComponentOverrides(obj);
+                ReactorConfigData.applyComponentOverrides(obj);
             } catch (Exception e) {
                 ModularNuclear.LOG.error("Failed to load components.yaml overrides", e);
             }
         }
 
         clearCaches();
-    }
-
-    private static boolean isRemoved(Map<String, Object> map) {
-        if (map == null) return true;
-        Object rem = map.get("remove");
-        if (Boolean.TRUE.equals(rem) || "true".equalsIgnoreCase(String.valueOf(rem))) return true;
-        Object dis = map.get("disabled");
-        if (Boolean.TRUE.equals(dis) || "true".equalsIgnoreCase(String.valueOf(dis))) return true;
-        Object en = map.get("enabled");
-        if (Boolean.FALSE.equals(en) || "false".equalsIgnoreCase(String.valueOf(en))) return true;
-        return false;
-    }
-
-    private static void deepMerge(Map<String, Object> target, Map<String, Object> source) {
-        if (target == null || source == null) return;
-        for (Map.Entry<String, Object> entry : source.entrySet()) {
-            String key = entry.getKey();
-            Object val = entry.getValue();
-            if (val instanceof Map<?, ?>sourceChild && target.get(key) instanceof Map<?, ?>targetChild) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> tc = (Map<String, Object>) targetChild;
-                @SuppressWarnings("unchecked")
-                Map<String, Object> sc = (Map<String, Object>) sourceChild;
-                deepMerge(tc, sc);
-            } else if (val != null) {
-                target.put(key, val);
-            }
-        }
-    }
-
-    private static Map<String, Map<String, Object>> normalizeEntries(Object raw) {
-        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
-        if (raw instanceof List<?>list) {
-            for (Object item : list) {
-                if (item instanceof Map<?, ?>m) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> map = new LinkedHashMap<>((Map<String, Object>) m);
-                    String id = (String) map.get("id");
-                    if (id != null) {
-                        result.put(id, map);
-                    }
-                }
-            }
-        } else if (raw instanceof Map<?, ?>m) {
-            for (Map.Entry<?, ?> entry : m.entrySet()) {
-                String key = String.valueOf(entry.getKey());
-                Object val = entry.getValue();
-                if (val == null) {
-                    Map<String, Object> removeEntry = new LinkedHashMap<>();
-                    removeEntry.put("id", key);
-                    removeEntry.put("remove", true);
-                    result.put(key, removeEntry);
-                } else if (val instanceof Map<?, ?>childMap) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> map = new LinkedHashMap<>((Map<String, Object>) childMap);
-                    if (!map.containsKey("id")) {
-                        map.put("id", key);
-                    }
-                    result.put(key, map);
-                }
-            }
-        }
-        return result;
-    }
-
-    private static void applyTierOverrides(Object obj) {
-        if (obj == null) return;
-        Object rawTiers = obj;
-        if (obj instanceof Map<?, ?>m && m.containsKey("tiers")) {
-            rawTiers = m.get("tiers");
-        }
-        if (rawTiers instanceof List<?>list) {
-            for (Object item : list) {
-                if (item instanceof Map<?, ?>tm) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> map = (Map<String, Object>) tm;
-                    int tier = PhysicsData.getInt(map, "tier", -1);
-                    if (tier >= 0) {
-                        if (isRemoved(map)) {
-                            tierDataMap.remove(tier);
-                        } else if (tierDataMap.containsKey(tier)) {
-                            Map<String, Object> merged = tierDataMap.get(tier)
-                                .toMap();
-                            deepMerge(merged, map);
-                            tierDataMap.put(tier, TierData.fromMap(merged));
-                        } else {
-                            tierDataMap.put(tier, TierData.fromMap(map));
-                        }
-                    }
-                }
-            }
-        } else if (rawTiers instanceof Map<?, ?>tm) {
-            for (Map.Entry<?, ?> entry : tm.entrySet()) {
-                int tier;
-                try {
-                    tier = Integer.parseInt(String.valueOf(entry.getKey()));
-                } catch (NumberFormatException e) {
-                    continue;
-                }
-                Object val = entry.getValue();
-                if (val == null) {
-                    tierDataMap.remove(tier);
-                } else if (val instanceof Map<?, ?>map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> userMap = (Map<String, Object>) map;
-                    if (isRemoved(userMap)) {
-                        tierDataMap.remove(tier);
-                    } else if (tierDataMap.containsKey(tier)) {
-                        Map<String, Object> merged = tierDataMap.get(tier)
-                            .toMap();
-                        deepMerge(merged, userMap);
-                        tierDataMap.put(tier, TierData.fromMap(merged));
-                    } else {
-                        userMap.put("tier", tier);
-                        tierDataMap.put(tier, TierData.fromMap(userMap));
-                    }
-                }
-            }
-        }
-    }
-
-    private static void applyFuelOverrides(Object obj) {
-        if (obj == null) return;
-        Object rawFuels = obj;
-        if (obj instanceof Map<?, ?>m && m.containsKey("fuels")) {
-            rawFuels = m.get("fuels");
-        }
-        Map<String, Map<String, Object>> userEntries = normalizeEntries(rawFuels);
-        if (userEntries.isEmpty()) return;
-
-        Map<String, FuelData> fuelMap = new LinkedHashMap<>();
-        for (FuelData fd : fuels) {
-            if (fd.id != null) {
-                fuelMap.put(fd.id, fd);
-            }
-        }
-
-        for (Map.Entry<String, Map<String, Object>> entry : userEntries.entrySet()) {
-            String id = entry.getKey();
-            Map<String, Object> userMap = entry.getValue();
-            if (isRemoved(userMap)) {
-                fuelMap.remove(id);
-            } else if (fuelMap.containsKey(id)) {
-                Map<String, Object> merged = fuelMap.get(id)
-                    .toMap();
-                deepMerge(merged, userMap);
-                fuelMap.put(id, FuelData.fromMap(merged));
-            } else {
-                fuelMap.put(id, FuelData.fromMap(userMap));
-            }
-        }
-
-        fuels.clear();
-        fuels.addAll(fuelMap.values());
-    }
-
-    private static void applyComponentOverrides(Object obj) {
-        if (!(obj instanceof Map<?, ?>m)) return;
-        @SuppressWarnings("unchecked")
-        Map<String, Object> map = (Map<String, Object>) m;
-
-        mergeComponentCategory(
-            componentData.reflectors,
-            map.get("reflectors"),
-            d -> d.id,
-            ReflectorData::toMap,
-            ReflectorData::fromMap);
-        mergeComponentCategory(
-            componentData.moderators,
-            map.get("moderators"),
-            d -> d.id,
-            ModeratorData::toMap,
-            ModeratorData::fromMap);
-        mergeComponentCategory(
-            componentData.controlRods,
-            map.get("control_rods"),
-            d -> d.id,
-            ControlRodData::toMap,
-            ControlRodData::fromMap);
-        mergeComponentCategory(
-            componentData.heatVents,
-            map.get("heat_vents"),
-            d -> d.id,
-            HeatVentData::toMap,
-            HeatVentData::fromMap);
-        mergeComponentCategory(
-            componentData.heatExchangers,
-            map.get("heat_exchangers"),
-            d -> d.id,
-            HeatExchangerData::toMap,
-            HeatExchangerData::fromMap);
-        mergeComponentCategory(
-            componentData.insulators,
-            map.get("insulators"),
-            d -> d.id,
-            InsulatorData::toMap,
-            InsulatorData::fromMap);
-        mergeComponentCategory(
-            componentData.radiovoltaics,
-            map.get("radiovoltaics"),
-            d -> d.id,
-            RadiovoltaicData::toMap,
-            RadiovoltaicData::fromMap);
-        mergeComponentCategory(
-            componentData.coolantFluids,
-            map.get("coolant_fluids"),
-            d -> d.id,
-            CoolantFluidData::toMap,
-            CoolantFluidData::fromMap);
-        mergeComponentCategory(
-            componentData.coolantItems,
-            map.get("coolant_items"),
-            d -> d.id,
-            CoolantItemData::toMap,
-            CoolantItemData::fromMap);
-    }
-
-    private static <T> void mergeComponentCategory(List<T> targetList, Object rawUserCategory,
-        Function<T, String> idGetter, Function<T, Map<String, Object>> toMap,
-        Function<Map<String, Object>, T> fromMap) {
-        if (rawUserCategory == null) return;
-        Map<String, Map<String, Object>> userEntries = normalizeEntries(rawUserCategory);
-        if (userEntries.isEmpty()) return;
-
-        Map<String, T> activeMap = new LinkedHashMap<>();
-        for (T item : targetList) {
-            String id = idGetter.apply(item);
-            if (id != null) {
-                activeMap.put(id, item);
-            }
-        }
-
-        for (Map.Entry<String, Map<String, Object>> entry : userEntries.entrySet()) {
-            String id = entry.getKey();
-            Map<String, Object> userMap = entry.getValue();
-            if (isRemoved(userMap)) {
-                activeMap.remove(id);
-            } else if (activeMap.containsKey(id)) {
-                Map<String, Object> merged = toMap.apply(activeMap.get(id));
-                deepMerge(merged, userMap);
-                activeMap.put(id, fromMap.apply(merged));
-            } else {
-                activeMap.put(id, fromMap.apply(userMap));
-            }
-        }
-
-        targetList.clear();
-        targetList.addAll(activeMap.values());
     }
 
     public static synchronized void saveToDir(File dir) {
@@ -766,7 +385,7 @@ public final class ReactorDataRegistry {
     private static void savePhysicsFile(File file, Yaml yaml) {
         try (FileWriter w = new FileWriter(file)) {
             Map<String, Object> root = new LinkedHashMap<>();
-            root.put("physics", physicsData.toMap());
+            root.put("physics", ReactorConfigData.physicsData.toMap());
             yaml.dump(root, w);
         } catch (Exception e) {
             ModularNuclear.LOG.error("Failed to save default physics.yaml", e);
@@ -776,7 +395,7 @@ public final class ReactorDataRegistry {
     private static void saveTiersFile(File file, Yaml yaml) {
         try (FileWriter w = new FileWriter(file)) {
             List<Map<String, Object>> list = new ArrayList<>();
-            for (TierData td : tierDataMap.values()) {
+            for (TierData td : ReactorConfigData.tierDataMap.values()) {
                 list.add(td.toMap());
             }
             Map<String, Object> root = new LinkedHashMap<>();
@@ -790,7 +409,7 @@ public final class ReactorDataRegistry {
     private static void saveFuelsFile(File file, Yaml yaml) {
         try (FileWriter w = new FileWriter(file)) {
             List<Map<String, Object>> list = new ArrayList<>();
-            for (FuelData fd : fuels) {
+            for (FuelData fd : ReactorConfigData.fuels) {
                 list.add(fd.toMap());
             }
             Map<String, Object> root = new LinkedHashMap<>();
@@ -803,7 +422,7 @@ public final class ReactorDataRegistry {
 
     private static void saveComponentsFile(File file, Yaml yaml) {
         try (FileWriter w = new FileWriter(file)) {
-            yaml.dump(componentData.toMap(), w);
+            yaml.dump(ReactorConfigData.componentData.toMap(), w);
         } catch (Exception e) {
             ModularNuclear.LOG.error("Failed to save default components.yaml", e);
         }
@@ -814,30 +433,31 @@ public final class ReactorDataRegistry {
     // =========================================================================
 
     public static PhysicsData getPhysics() {
-        return physicsData;
+        return ReactorConfigData.getPhysics();
     }
 
     public static TierData getTier(int tier) {
-        TierData td = tierDataMap.get(tier);
-        if (td != null) return td;
-        return tierDataMap
-            .getOrDefault(0, new TierData(tier, "Tier " + tier, "Casing", 2048L, 1200.0, 120.0, tier >= 2));
+        return ReactorConfigData.getTier(tier);
     }
 
     public static boolean hasTier(int tier) {
-        return tierDataMap.containsKey(tier);
+        return ReactorConfigData.hasTier(tier);
     }
 
     public static List<TierData> getAllTiers() {
-        return new ArrayList<>(tierDataMap.values());
+        return ReactorConfigData.getAllTiers();
     }
 
     public static List<FuelData> getAllFuels() {
-        return Collections.unmodifiableList(fuels);
+        return ReactorConfigData.getAllFuels();
     }
 
     public static ComponentData getComponentData() {
-        return componentData;
+        return ReactorConfigData.getComponentData();
+    }
+
+    public static synchronized void syncPhysicsToEngine() {
+        ReactorConfigData.syncPhysicsToEngine();
     }
 
     public static FuelData findFuel(ItemStack stack) {
@@ -902,7 +522,7 @@ public final class ReactorDataRegistry {
             return result;
         }
 
-        for (FuelData fd : fuels) {
+        for (FuelData fd : ReactorConfigData.fuels) {
             if (!fd.isLiquid && matchesItem(stack, fd.matching)) {
                 if (key != 0L) fuelCache.put(key, fd);
                 return fd;
@@ -914,7 +534,7 @@ public final class ReactorDataRegistry {
 
     public static FuelData findFuel(FluidStack fluid) {
         if (fluid == null || fluid.getFluid() == null) return null;
-        for (FuelData fd : fuels) {
+        for (FuelData fd : ReactorConfigData.fuels) {
             if (fd.isLiquid && matchesFluid(fluid, fd.matching)) {
                 return fd;
             }
@@ -924,7 +544,7 @@ public final class ReactorDataRegistry {
 
     public static FuelData findFuel(String fluidName) {
         if (fluidName == null) return null;
-        for (FuelData fd : fuels) {
+        for (FuelData fd : ReactorConfigData.fuels) {
             if (fd.isLiquid && matchesFluid(fluidName, fd.matching)) {
                 return fd;
             }
@@ -941,7 +561,7 @@ public final class ReactorDataRegistry {
                 return cached == NO_REFLECTOR ? null : cached;
             }
         }
-        for (ReflectorData d : componentData.reflectors) {
+        for (ReflectorData d : ReactorConfigData.componentData.reflectors) {
             if (matchesItem(stack, d.matching)) {
                 if (key != 0L) reflectorCache.put(key, d);
                 return d;
@@ -960,7 +580,7 @@ public final class ReactorDataRegistry {
                 return cached == NO_MODERATOR ? null : cached;
             }
         }
-        for (ModeratorData d : componentData.moderators) {
+        for (ModeratorData d : ReactorConfigData.componentData.moderators) {
             if (matchesItem(stack, d.matching)) {
                 if (key != 0L) moderatorCache.put(key, d);
                 return d;
@@ -979,7 +599,7 @@ public final class ReactorDataRegistry {
                 return cached == NO_CONTROL_ROD ? null : cached;
             }
         }
-        for (ControlRodData d : componentData.controlRods) {
+        for (ControlRodData d : ReactorConfigData.componentData.controlRods) {
             if (matchesItem(stack, d.matching)) {
                 if (key != 0L) controlRodCache.put(key, d);
                 return d;
@@ -998,7 +618,7 @@ public final class ReactorDataRegistry {
                 return cached == NO_HEAT_VENT ? null : cached;
             }
         }
-        for (HeatVentData d : componentData.heatVents) {
+        for (HeatVentData d : ReactorConfigData.componentData.heatVents) {
             if (matchesItem(stack, d.matching)) {
                 if (key != 0L) heatVentCache.put(key, d);
                 return d;
@@ -1017,7 +637,7 @@ public final class ReactorDataRegistry {
                 return cached == NO_HEAT_EXCHANGER ? null : cached;
             }
         }
-        for (HeatExchangerData d : componentData.heatExchangers) {
+        for (HeatExchangerData d : ReactorConfigData.componentData.heatExchangers) {
             if (matchesItem(stack, d.matching)) {
                 if (key != 0L) heatExchangerCache.put(key, d);
                 return d;
@@ -1036,7 +656,7 @@ public final class ReactorDataRegistry {
                 return cached == NO_INSULATOR ? null : cached;
             }
         }
-        for (InsulatorData d : componentData.insulators) {
+        for (InsulatorData d : ReactorConfigData.componentData.insulators) {
             if (matchesItem(stack, d.matching)) {
                 if (key != 0L) insulatorCache.put(key, d);
                 return d;
@@ -1055,7 +675,7 @@ public final class ReactorDataRegistry {
                 return cached == NO_RADIOVOLTAIC ? null : cached;
             }
         }
-        for (RadiovoltaicData d : componentData.radiovoltaics) {
+        for (RadiovoltaicData d : ReactorConfigData.componentData.radiovoltaics) {
             if (matchesItem(stack, d.matching)) {
                 if (key != 0L) radiovoltaicCache.put(key, d);
                 return d;
@@ -1091,7 +711,7 @@ public final class ReactorDataRegistry {
 
     public static CoolantFluidData findCoolantFluid(FluidStack fluid) {
         if (fluid == null || fluid.getFluid() == null) return null;
-        for (CoolantFluidData d : componentData.coolantFluids) {
+        for (CoolantFluidData d : ReactorConfigData.componentData.coolantFluids) {
             if (matchesFluid(fluid, d.matching)) return d;
         }
         return null;
@@ -1099,7 +719,7 @@ public final class ReactorDataRegistry {
 
     public static CoolantFluidData findCoolantFluid(String fluidName) {
         if (fluidName == null) return null;
-        for (CoolantFluidData d : componentData.coolantFluids) {
+        for (CoolantFluidData d : ReactorConfigData.componentData.coolantFluids) {
             if (matchesFluid(fluidName, d.matching)) return d;
         }
         return null;
@@ -1114,7 +734,7 @@ public final class ReactorDataRegistry {
                 return cached == NO_COOLANT_ITEM ? null : cached;
             }
         }
-        for (CoolantItemData d : componentData.coolantItems) {
+        for (CoolantItemData d : ReactorConfigData.componentData.coolantItems) {
             if (matchesItem(stack, d.matching)) {
                 if (key != 0L) coolantItemCache.put(key, d);
                 return d;
@@ -1133,7 +753,7 @@ public final class ReactorDataRegistry {
                 return cached.booleanValue();
             }
         }
-        for (FuelData fd : fuels) {
+        for (FuelData fd : ReactorConfigData.fuels) {
             if (fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
                 if (matchesItem(stack, Collections.singletonList(fd.spentProduct))) {
                     if (key != 0L) spentProductCache.put(key, Boolean.TRUE);
@@ -1147,7 +767,7 @@ public final class ReactorDataRegistry {
 
     public static boolean isSpentProduct(String name) {
         if (name == null || name.isEmpty()) return false;
-        for (FuelData fd : fuels) {
+        for (FuelData fd : ReactorConfigData.fuels) {
             if (fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
                 if (fd.spentProduct.equalsIgnoreCase(name) || ("fluid." + fd.spentProduct).equalsIgnoreCase(name))
                     return true;

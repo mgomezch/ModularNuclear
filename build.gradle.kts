@@ -21,6 +21,31 @@ dependencies {
     }
 }
 
+// The default YAML config is converted to JSON constants at build time, so the WebAssembly simulator (which has no
+// YAML parser) loads exactly the same defaults as the game.
+val configGen by sourceSets.creating
+
+dependencies {
+    "configGenImplementation"("org.yaml:snakeyaml:1.33")
+}
+
+val reactorDefaultsSourceDir = layout.buildDirectory.dir("generated/sources/reactorDefaults/java")
+val defaultConfigDir = file("src/main/resources/assets/modularnuclear/default_config")
+
+val generateReactorDefaults by tasks.registering(JavaExec::class) {
+    group = "build"
+    description = "Embeds the default reactor YAML config as JSON constants (ReactorDefaultsJson)"
+    classpath = configGen.runtimeClasspath
+    mainClass.set("com.gtnewhorizons.modularnuclear.configgen.ReactorDefaultsGenerator")
+    inputs.dir(defaultConfigDir)
+    outputs.dir(reactorDefaultsSourceDir)
+    args(defaultConfigDir.absolutePath, reactorDefaultsSourceDir.get().asFile.absolutePath)
+}
+
+sourceSets.main {
+    java.srcDir(generateReactorDefaults.map { reactorDefaultsSourceDir.get() })
+}
+
 val compileTeavmStubs by tasks.registering(JavaCompile::class) {
     source = fileTree("src/teavm/java")
     destinationDirectory.set(layout.buildDirectory.dir("teavm-stubs"))
