@@ -774,12 +774,12 @@ All vents draw from the reactor's shared energy buffer. If the buffer cannot cov
 
 | Vent | $Q_\text{max}$ (HU/t) | $E_\text{max}$ (EU/t) | $c$ |
 | :--- | :--- | :--- | :--- |
-| Reactor Heat Vent | 512 | 128 | 0.40 |
-| Advanced Heat Vent | 2048 | 512 | 0.45 |
-| Overclocked Heat Vent | 4096 | 1024 | 0.40 |
-| Component Heat Vent | 8192 | 2048 | 0.50 |
+| Heat Vent | 512 | 128 | 0.40 |
+| Overclocked Heat Vent | 2048 | 512 | 0.45 |
+| Component Heat Vent | 4096 | 1024 | 0.40 |
+| Advanced Heat Vent | 8192 | 2048 | 0.50 |
 
-All vents cost 1 EU per 4 HU. A Reactor Heat Vent at full rate removes 2560 HU per cycle, equivalent to 80 °C of its own cell. Heat vents destroy heat; they produce nothing.
+All vents cost 1 EU per 4 HU. A Heat Vent at full rate removes 2560 HU per cycle, equivalent to 80 °C of its own cell. Heat vents destroy heat; they produce nothing.
 
 A vent drives its cell toward ambient from either direction: a vent in a cell colder than ambient heats it.
 
@@ -790,8 +790,8 @@ A heat exchanger equalizes its own cell and its up to four cardinal neighbours t
 | Exchanger | Cap (HU/t) | $E_\text{max}$ (EU/t) | $c$ |
 | :--- | :--- | :--- | :--- |
 | Heat Exchanger | 1024 | 256 | 0.40 |
-| Advanced Heat Exchanger | 2048 | 512 | 0.45 |
-| Component Heat Exchanger | 4096 | 1024 | 0.50 |
+| Component Heat Exchanger | 2048 | 512 | 0.45 |
+| Advanced Heat Exchanger | 4096 | 1024 | 0.50 |
 
 Exchangers do not remove heat; they redistribute it, typically from fuel to an adjacent coolant hatch, faster than conduction would.
 

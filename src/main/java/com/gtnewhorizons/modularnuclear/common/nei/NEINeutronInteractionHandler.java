@@ -801,10 +801,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             "High-temperature heavy liquid metal | k = 0.75 conduction");
 
         // 8. IC2 HEAT VENTS & HEAT EXCHANGERS
-        addHeatVent("reactorVent", "Reactor Heat Vent", 6.0, 0.0, 0.40, 128L, 512L, "Self-cooling: 6 Hu/t | 128 EU/t");
+        addHeatVent("reactorVent", "Heat Vent", 6.0, 0.0, 0.40, 128L, 512L, "Self-cooling: 6 Hu/t | 128 EU/t");
         addHeatVent(
             "reactorVentGold",
-            "Advanced Heat Vent",
+            "Overclocked Heat Vent",
             12.0,
             0.0,
             0.45,
@@ -813,7 +813,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             "Self-cooling: 12 Hu/t | 512 EU/t");
         addHeatVent(
             "reactorVentSpread",
-            "Overclocked Heat Vent",
+            "Component Heat Vent",
             8.0,
             0.0,
             0.40,
@@ -822,7 +822,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             "Self-cooling: 8 Hu/t | 1024 EU/t");
         addHeatVent(
             "reactorVentDiamond",
-            "Component Heat Vent",
+            "Advanced Heat Vent",
             0.0,
             20.0,
             0.50,
@@ -840,7 +840,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             "Heat transfer: 12 Hu/t | 256 EU/t");
         addHeatExchanger(
             "reactorHeatSwitchSpread",
-            "Advanced Heat Exchanger",
+            "Component Heat Exchanger",
             24.0,
             0.45,
             512L,
@@ -848,7 +848,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             "Heat transfer: 24 Hu/t | 512 EU/t");
         addHeatExchanger(
             "reactorHeatSwitchDiamond",
-            "Component Heat Exchanger",
+            "Advanced Heat Exchanger",
             36.0,
             0.50,
             1024L,

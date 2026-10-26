@@ -206,7 +206,7 @@ control_rods:
   heat_transfer_coeff: 0.16
 heat_vents:
 - id: vent_standard
-  name: Reactor Heat Vent
+  name: Heat Vent
   matching:
   - IC2:reactorVent
   heat_transfer_coeff: 0.4
@@ -217,7 +217,7 @@ heat_vents:
   max_eu_t: 128
   max_hu_t: 512.0
 - id: vent_gold
-  name: Advanced Heat Vent
+  name: Overclocked Heat Vent
   matching:
   - IC2:reactorVentGold
   heat_transfer_coeff: 0.45
@@ -228,7 +228,7 @@ heat_vents:
   max_eu_t: 512
   max_hu_t: 2048.0
 - id: vent_spread
-  name: Overclocked Heat Vent
+  name: Component Heat Vent
   matching:
   - IC2:reactorVentSpread
   heat_transfer_coeff: 0.4
@@ -239,7 +239,7 @@ heat_vents:
   max_eu_t: 1024
   max_hu_t: 4096.0
 - id: vent_diamond
-  name: Component Heat Vent
+  name: Advanced Heat Vent
   matching:
   - IC2:reactorVentDiamond
   heat_transfer_coeff: 0.5
@@ -262,7 +262,7 @@ heat_exchangers:
   max_eu_t: 256
   max_hu_t: 1024.0
 - id: exchanger_spread
-  name: Advanced Heat Exchanger
+  name: Component Heat Exchanger
   matching:
   - IC2:reactorHeatSwitchSpread
   heat_transfer_coeff: 0.45
@@ -273,7 +273,7 @@ heat_exchangers:
   max_eu_t: 512
   max_hu_t: 2048.0
 - id: exchanger_diamond
-  name: Component Heat Exchanger
+  name: Advanced Heat Exchanger
   matching:
   - IC2:reactorHeatSwitchDiamond
   heat_transfer_coeff: 0.5

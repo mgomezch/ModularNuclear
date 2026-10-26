@@ -3116,24 +3116,23 @@ public class NuclearSimulationEngineTest {
         assertEquals(84.0, ventStd.getTemperature(), 1e-4, "Standard vent must cool 16°C (512 HU)");
         assertEquals(128, ventStd.drainedEnergy, "Standard vent must consume 128 EU");
 
-        // 2. Advanced Vent: up to 512 EU/t (up to 2048 HU/t).
-        // At 100°C: tempDiff = 80°C = 2560 HU. Removes 2048 HU (64°C), consuming 512 EU.
+        // 2. Advanced Vent (IC2 reactorVentDiamond): up to 2048 EU/t (up to 8192 HU/t).
+        // At 100°C: tempDiff = 80°C = 2560 HU <= 8192 HU, so it equalizes to ambient for 2560 / 4 = 640 EU.
         SimTile ventAdv = new SimTile(SimTile.TileType.VENT_ADVANCED);
         ventAdv.setTemperature(100.0);
         NuclearSimulationEngine.processHeatVent(ventAdv, ambient);
-        assertEquals(36.0, ventAdv.getTemperature(), 1e-4, "Advanced vent must cool 64°C (2048 HU)");
-        assertEquals(512, ventAdv.drainedEnergy, "Advanced vent must consume 512 EU");
+        assertEquals(20.0, ventAdv.getTemperature(), 1e-4, "Advanced vent must cool all the way to ambient");
+        assertEquals(640, ventAdv.drainedEnergy, "Advanced vent must consume 640 EU for 2560 HU");
 
-        // 3. Overclocked Vent: up to 1024 EU/t (up to 4096 HU/t).
-        // At 100°C: tempDiff = 80°C = 2560 HU <= 4096 HU.
-        // Equalizes all the way to ambient (20°C). EU needed = 2560 / 4 = 640 EU.
+        // 3. Overclocked Vent (IC2 reactorVentGold): up to 512 EU/t (up to 2048 HU/t).
+        // At 100°C: tempDiff = 80°C = 2560 HU. Removes 2048 HU (64°C), consuming 512 EU.
         SimTile ventOver = new SimTile(SimTile.TileType.VENT_OVERCLOCKED);
         ventOver.setTemperature(100.0);
         NuclearSimulationEngine.processHeatVent(ventOver, ambient);
-        assertEquals(20.0, ventOver.getTemperature(), 1e-4, "Overclocked vent must cool all the way to ambient");
-        assertEquals(640, ventOver.drainedEnergy, "Overclocked vent must consume 640 EU for 2560 HU");
+        assertEquals(36.0, ventOver.getTemperature(), 1e-4, "Overclocked vent must cool 64°C (2048 HU)");
+        assertEquals(512, ventOver.drainedEnergy, "Overclocked vent must consume 512 EU");
 
-        // 4. Component Vent: up to 2048 EU/t (up to 8192 HU/t).
+        // 4. Component Vent (IC2 reactorVentSpread): up to 1024 EU/t (up to 4096 HU/t).
         SimTile ventComp = new SimTile(SimTile.TileType.VENT_COMPONENT);
         ventComp.setTemperature(100.0);
         NuclearSimulationEngine.processHeatVent(ventComp, ambient);
@@ -3158,7 +3157,7 @@ public class NuclearSimulationEngineTest {
             }
         }
 
-        // Center: Component Heat Vent (up to 2048 EU/t, up to 8192 HU/t).
+        // Center: Component Heat Vent (IC2 reactorVentSpread: up to 1024 EU/t, up to 4096 HU/t).
         // Requirement: Operates strictly on its own cell (does NOT interact across cell boundaries).
         SimTile compVent = new SimTile(SimTile.TileType.VENT_COMPONENT);
         compVent.setTemperature(300.0);
@@ -3172,9 +3171,13 @@ public class NuclearSimulationEngineTest {
 
         NuclearSimulationEngine.processActiveVentsAndExchangers(grid, 3, 3, 20.0);
 
-        // Center cools its own cell towards ambient (300 - 256 = 44°C)
+        // Center cools its own cell towards ambient (300 - 128 = 172°C)
         assertTrue(compVent.getTemperature() < 300.0, "Component vent must cool its own cell");
-        assertEquals(44.0, compVent.getTemperature(), 1e-4, "Component vent cools 8192 HU (256°C) from 300°C to 44°C");
+        assertEquals(
+            172.0,
+            compVent.getTemperature(),
+            1e-4,
+            "Component vent cools 4096 HU (128°C) from 300°C to 172°C");
 
         // Neighbors MUST remain strictly unchanged at 100°C because Component Vent does NOT cross cell boundaries!
         assertEquals(100.0, grid[1][0].getTemperature(), 1e-4, "Top neighbor must not be directly altered");
@@ -7039,9 +7042,11 @@ public class NuclearSimulationEngineTest {
             tile.nuclearTick(1.0);
             assertEquals(100, tile.getLastFastAbsorbed());
 
-            // Fast fission chain neutrons = round(100 * 0.10) = 10
-            // Total produced = base (4) + chain (10) = 14
-            assertEquals(14, tile.generateNeutrons(1.0));
+            // Fast fission chain neutrons approach 100 * 0.10 = 10 per second with a 0.25 s time constant; after one
+            // 1 s cycle they reach 10 * (1 - e^-4) = 9.82, so the cycle emits base (4) + 9.82 = 13.82, rounded
+            // stochastically to 13 or 14.
+            int produced = tile.generateNeutrons(1.0);
+            assertTrue(produced == 13 || produced == 14, "Expected 13 or 14 neutrons, got " + produced);
 
             // Test actinide fast fission cross sections in CustomFuelMix
             assertEquals(0.09, CustomFuelMix.ActinideIsotope.URANIUM_238.baseFastFissionMultiplier, 1e-4);
