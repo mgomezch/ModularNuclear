@@ -482,11 +482,11 @@ public class NuclearSimWasmBridge {
         } else if ("coolantFeedRate".equals(key)) {
             NuclearSimulationEngine.coolantFeedRate = (int) d;
         } else if ("coolingHeat".equals(key)) {
-            NuclearSimulationEngine.coolingHeatPerLiter = d;
+            StandaloneConfig.setWaterHeatPerLiter(d);
         } else if ("ambientTemp".equals(key)) {
             NuclearSimulationEngine.ambientTemp = d;
         } else if ("ic2CoolantHeat".equals(key)) {
-            NuclearSimulationEngine.ic2CoolantHeatPerLiter = d;
+            StandaloneConfig.setIc2CoolantHeatPerLiter(d);
         } else if ("tempThresholdLow".equals(key)) {
             NuclearSimulationEngine.tempThresholdLow = d;
         } else if ("tempThresholdHigh".equals(key)) {

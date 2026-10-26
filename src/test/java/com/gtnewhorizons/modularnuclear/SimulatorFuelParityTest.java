@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -63,6 +64,21 @@ public class SimulatorFuelParityTest {
             if (SimTile.contentOf(type).kind == TileContent.Kind.OTHER) missing.add(type + " -> " + type.configId);
         }
         assertTrue(missing.isEmpty(), "Tile config ids without a config entry: " + missing);
+    }
+
+    @Test
+    void testControlRodTypesMatchConfig() {
+        ReactorDataRegistry.loadDefaults();
+        for (SimTile.ControlRodType rod : SimTile.ControlRodType.values()) {
+            if (rod == SimTile.ControlRodType.NONE) continue;
+            SimTile tile = new SimTile(SimTile.TileType.EMPTY);
+            tile.setControlRodType(rod);
+            var data = tile.getControlRodData();
+            assertNotNull(data, rod + " has no components.yaml entry " + rod.configId);
+            assertEquals(data.maxThermalAbsorption, rod.maxThermalAbsorption, 1e-9, rod + " thermal");
+            assertEquals(data.maxFastAbsorption, rod.maxFastAbsorption, 1e-9, rod + " fast");
+            assertEquals(data.heatTransferCoeff, rod.heatTransferCoeff, 1e-9, rod + " conduction");
+        }
     }
 
     @Test

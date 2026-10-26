@@ -11,6 +11,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileContent;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileTick;
 
 /**
  * Pure Java implementation of INuclearTile for standalone simulation and tooling.
@@ -152,6 +153,9 @@ public class SimTile implements INuclearTile {
         CADMIUM("Cadmium", 0.85, 0.50, 0.12),
         INDIUM("Indium", 0.95, 0.65, 0.14),
         HAFNIUM("Hafnium", 0.99, 0.80, 0.16);
+
+        /** Id of the rod's entry in components.yaml control_rods, which supplies its physics in the simulator. */
+        public final String configId = "rod_" + name().toLowerCase(java.util.Locale.ROOT);
 
         public final String displayName;
         public final double maxThermalAbsorption;
@@ -669,10 +673,14 @@ public class SimTile implements INuclearTile {
         if (controlRodType == ControlRodType.NONE || controlRodType == null) {
             return 0.01;
         }
-        double ratio = getEffectiveControlRodInsertion() / 100.0;
-        double max = (nType == NeutronType.THERMAL) ? controlRodType.maxThermalAbsorption
-            : controlRodType.maxFastAbsorption;
-        return Math.max(0.01, ratio * max);
+        return TileTick.rodAbsorption(getControlRodData(), getEffectiveControlRodInsertion() / 100.0, nType);
+    }
+
+    /** The configuration record (components.yaml control_rods) of this tile's control rod, or null for none. */
+    public ComponentData.ControlRodData getControlRodData() {
+        if (controlRodType == null || controlRodType == ControlRodType.NONE) return null;
+        return ReactorConfigData
+            .findById(ReactorConfigData.getComponentData().controlRods, d -> d.id, controlRodType.configId);
     }
 
     @Override
@@ -688,8 +696,8 @@ public class SimTile implements INuclearTile {
     public double getAbsorptionProbability(NeutronType nType) {
         double pBase = getBaseAbsorptionProbability(nType);
         if (hasControlRod) {
-            double pRod = getControlRodAbsorptionProbability(nType);
-            return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
+            // The simulator's rod housings hold no moderator.
+            return TileTick.combinedAbsorption(pBase, getControlRodAbsorptionProbability(nType), 0.0, 0.0);
         }
         return pBase;
     }
@@ -705,35 +713,33 @@ public class SimTile implements INuclearTile {
     public double getScatteringProbability(NeutronType nType) {
         double pBase = getBaseScatteringProbability(nType);
         if (hasControlRod) {
-            double pRod;
-            if (controlRodType == ControlRodType.NONE || controlRodType == null) {
-                pRod = 0.02;
-            } else {
-                double ratio = getEffectiveControlRodInsertion() / 100.0;
-                pRod = Math.max(0.01, 0.05 * (1.0 - ratio));
-            }
-            return Math.min(1.0, 1.0 - (1.0 - pBase) * (1.0 - pRod));
+            ComponentData.ControlRodData rod = getControlRodData();
+            double pRodScattering = rod != null
+                ? TileTick.rodScattering(rod, getEffectiveControlRodInsertion() / 100.0, nType)
+                : 0.02;
+            return TileTick
+                .combinedScattering(pBase, getControlRodAbsorptionProbability(nType), 0.0, pRodScattering, 0.0);
         }
         return pBase;
     }
 
     @Override
     public double getModerationProbability() {
-        if (type == TileType.PASSAGE_CORE) {
-            return 0.05;
+        double pBase = (type == TileType.PASSAGE_CORE) ? 0.05 : TileProperties.moderation(getContent());
+        if (hasControlRod) {
+            return TileTick.combinedModeration(pBase, getControlRodAbsorptionProbability(NeutronType.FAST), 0.0);
         }
-        return TileProperties.moderation(getContent());
+        return pBase;
     }
 
     @Override
     public void onNeutronAbsorbed(NeutronType nType, int count) {
         if (count <= 0) return;
         if (hasControlRod) {
-            double pRod = getControlRodAbsorptionProbability(nType);
-            double pBase = getBaseAbsorptionProbability(nType);
-            double sum = pBase + pRod;
-            int nRod = (sum > 0) ? (int) Math.round(count * (pRod / sum)) : count / 2;
-            nRod = Math.min(count, Math.max(0, nRod));
+            int nRod = TileTick.rodShareOfAbsorbed(
+                count,
+                getBaseAbsorptionProbability(nType),
+                getControlRodAbsorptionProbability(nType));
             int nBase = count - nRod;
 
             if (nRod > 0) {
@@ -754,17 +760,13 @@ public class SimTile implements INuclearTile {
 
         // Fast neutron capture transmutation
         if (nType == NeutronType.FAST && isCoolantHatch() && inputFluidAmount >= 2) {
-            if (type == TileType.HATCH_DISTILLED_WATER) {
-                int chance = Math.min(1000, count * 25);
-                if (RAND.nextInt(1000) < chance) {
-                    inputFluidAmount -= 2;
+            ComponentData.CoolantFluidData cfd = contentOf(type).coolantFluid();
+            if (TileTick.transmutes(cfd, count, RAND.nextInt(10000))) {
+                inputFluidAmount -= 2;
+                if ("deuterium".equalsIgnoreCase(cfd.transmutationProduct)) {
                     totalDeuteriumProduced += 2;
                     totalOxygenProduced += 1;
-                }
-            } else if (type == TileType.HATCH_HEAVY_WATER) {
-                int chance = Math.min(1000, count * 10);
-                if (RAND.nextInt(1000) < chance) {
-                    inputFluidAmount -= 2;
+                } else if ("tritium".equalsIgnoreCase(cfd.transmutationProduct)) {
                     totalTritiumProduced += 2;
                     totalOxygenProduced += 1;
                 }
@@ -817,19 +819,13 @@ public class SimTile implements INuclearTile {
         double dt = (double) getTicksPerCycle() / 20.0;
         if (isLiquidFuelHatch()) {
             if (inputFluidAmount > 0) {
-                double tempDmg = 0.0;
-                NuclearFuelType fuelType = getFuelType();
-                if (fuelType != null) {
-                    tempDmg = fuelType.calculateTemperatureDamage(temperature, NuclearSimulationEngine.AMBIENT_TEMP);
-                } else if (temperature > NuclearSimulationEngine.AMBIENT_TEMP) {
-                    tempDmg = (temperature - NuclearSimulationEngine.AMBIENT_TEMP) / 100.0;
-                }
-                tempDmg *= dt;
-                int burn = (int) Math.round(
-                    Math.max(0.0, lastNeutronsGenerated * 0.25)
-                        + (fastAbsorbed * NuclearSimulationEngine.fastAbsorptionDamageMultiplier
-                            + thermalAbsorbed * NuclearSimulationEngine.thermalAbsorptionDamageMultiplier)
-                        + tempDmg);
+                FuelData fd = getFuelData();
+                double tempDmg = (fd != null) ? fd.calculateTemperatureDamage(temperature)
+                    : TileTick.genericFuelTemperatureDamage(temperature);
+                int burn = Math.max(
+                    1,
+                    TileTick.stochasticRound(
+                        TileTick.fuelWear(tempDmg, lastNeutronsGenerated, fastAbsorbed, thermalAbsorbed, dt)));
                 int toConsume = Math.max(1, Math.min(inputFluidAmount, burn));
                 inputFluidAmount -= toConsume;
                 outputFluidAmount += toConsume;
@@ -842,46 +838,32 @@ public class SimTile implements INuclearTile {
                 depleted = true;
             }
         } else if (isFuel() && !depleted) {
-            double tempDmg = 0.0;
-            NuclearFuelType fuelType = getFuelType();
-            if (fuelType != null) {
-                tempDmg = fuelType.calculateTemperatureDamage(temperature, NuclearSimulationEngine.AMBIENT_TEMP);
-            } else if (temperature > NuclearSimulationEngine.AMBIENT_TEMP) {
-                tempDmg = (temperature - NuclearSimulationEngine.AMBIENT_TEMP) / 100.0;
-            }
-            tempDmg *= dt;
-            double rawDamage = (Math.max(0.0, lastNeutronsGenerated * 0.25)
-                + (fastAbsorbed * NuclearSimulationEngine.fastAbsorptionDamageMultiplier
-                    + thermalAbsorbed * NuclearSimulationEngine.thermalAbsorptionDamageMultiplier)
-                + tempDmg) * NuclearSimulationEngine.fuelBurnupMultiplier;
+            double rawDamage = TileTick.fuelWear(
+                getFuelData().calculateTemperatureDamage(temperature),
+                lastNeutronsGenerated,
+                fastAbsorbed,
+                thermalAbsorbed,
+                dt);
             lastDurabilityLoss = rawDamage;
-            durabilityLossAccumulator += rawDamage;
-            int intDamage = (int) durabilityLossAccumulator;
+            int intDamage = TileTick.stochasticRound(rawDamage);
             if (intDamage > 0) {
                 durability = Math.max(0, durability - intDamage);
-                durabilityLossAccumulator -= intDamage;
                 if (durability == 0) {
                     depleted = true;
                 }
             }
         } else if (isModerator() && !depleted) {
-            double ambient = NuclearSimulationEngine.AMBIENT_TEMP;
-            ComponentData.ModeratorData mod = getModeratorData();
-            double k = mod.tempWearK;
-            double a = mod.tempWearA;
-            double tempDmg = (temperature > ambient) ? a * (Math.exp(k * (temperature - ambient)) - 1.0) : 0.0;
-            tempDmg *= dt;
-            double fastWearMult = NuclearSimulationEngine.fastAbsorptionDamageMultiplier;
-            double thermalWearMult = NuclearSimulationEngine.thermalAbsorptionDamageMultiplier;
-            double rawDamage = (fastAbsorbed * fastWearMult + thermalAbsorbed * thermalWearMult)
-                + (fastFlux + thermalFlux) * 0.05
-                + tempDmg;
+            double rawDamage = TileTick.moderatorWear(
+                getModeratorData(),
+                temperature,
+                fastAbsorbed,
+                thermalAbsorbed,
+                fastFlux + thermalFlux,
+                dt);
             lastDurabilityLoss = rawDamage;
-            durabilityLossAccumulator += rawDamage;
-            int intDamage = (int) durabilityLossAccumulator;
+            int intDamage = TileTick.stochasticRound(rawDamage);
             if (intDamage > 0) {
                 durability = Math.max(0, durability - intDamage);
-                durabilityLossAccumulator -= intDamage;
                 if (durability == 0) {
                     depleted = true;
                     type = TileType.EMPTY;
@@ -911,46 +893,38 @@ public class SimTile implements INuclearTile {
 
         // 2. Heat Vent & Coolant cell absorption & venting
         if (isCoolantCell()) {
-            if (maxCellHeat > 0 && currentCellHeat < maxCellHeat) {
-                double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
-                double tempDiff = temperature - NuclearSimulationEngine.AMBIENT_TEMP;
-                if (tempDiff > 0) {
-                    int maxTransferPerTick = Math.max(1, (int) Math.round((maxCellHeat / 100.0) * dt));
-                    int heatToAbsorb = (int) Math.min(
-                        tempDiff * NuclearSimulationEngine.HU_PER_DEGREE * 0.1 * effFactor * dt,
-                        maxCellHeat - currentCellHeat);
-                    heatToAbsorb = Math.min(heatToAbsorb, maxTransferPerTick);
-                    currentCellHeat += heatToAbsorb;
-                    temperature = Math.max(
-                        NuclearSimulationEngine.AMBIENT_TEMP,
-                        temperature - heatToAbsorb / NuclearSimulationEngine.HU_PER_DEGREE);
-                    lastHeatOutput = heatToAbsorb;
-                }
+            ComponentData.CoolantItemData cItem = contentOf(type).coolantItem();
+            double huPerDurability = (cItem != null) ? cItem.getHuPerDurability() : 25.0;
+            int take = TileTick.coolantCellUptake(
+                maxCellHeat,
+                currentCellHeat,
+                temperature,
+                NuclearSimulationEngine.AMBIENT_TEMP,
+                huPerDurability,
+                efficiency,
+                dt);
+            if (take > 0) {
+                currentCellHeat += take;
+                double heatConsumed = take * huPerDurability;
+                temperature -= heatConsumed / NuclearSimulationEngine.HU_PER_DEGREE;
+                lastHeatOutput = heatConsumed;
             }
         }
 
         // 3. Fluid cooling & heat exchange (analytical lumped-capacitance conductive cooling)
-        if (isCoolantHatch()) {
-            int reqTier = (type == TileType.HATCH_DISTILLED_WATER) ? 1 : (type == TileType.HATCH_HEAVY_WATER) ? 3 : 0;
-            if (grid != null && grid.getPipeTier() >= 0 && grid.getPipeTier() < reqTier) {
+        ComponentData.CoolantFluidData cfd = isCoolantHatch() ? contentOf(type).coolantFluid() : null;
+        if (cfd != null) {
+            if (grid != null && grid.getPipeTier() >= 0 && grid.getPipeTier() < cfd.requiredTier) {
                 return;
             }
 
-            double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
-            double operatingThreshold = NuclearSimulationEngine
-                .getCoolantSinkTemperature(inputFluidName, NuclearSimulationEngine.AMBIENT_TEMP);
-            double heatPerL = (type == TileType.HATCH_IC2_COOLANT) ? NuclearSimulationEngine.ic2CoolantHeatPerLiter
-                : NuclearSimulationEngine.coolingHeatPerLiter;
-            int steamRatio = (type == TileType.HATCH_IC2_COOLANT) ? 1 : 160;
+            double operatingThreshold = TileTick.coolantSinkTemperature(cfd, NuclearSimulationEngine.AMBIENT_TEMP);
+            double heatPerL = cfd.heatPerLiter;
+            int steamRatio = cfd.expansionRatio;
 
             if (inputFluidAmount > 0 && temperature > operatingThreshold) {
-                double qMax = NuclearSimulationEngine.calculateConductiveHeatTransfer(
-                    temperature,
-                    operatingThreshold,
-                    tier,
-                    effFactor,
-                    getTicksPerCycle());
-                int desiredTurnover = (heatPerL > 0) ? (int) Math.round(qMax / heatPerL) : 0;
+                int desiredTurnover = TileTick
+                    .coolantTurnover(cfd, temperature, operatingThreshold, tier, efficiency, getTicksPerCycle());
                 int mbToCool = Math.min(inputFluidAmount, desiredTurnover);
 
                 if (mbToCool > 0) {
@@ -969,11 +943,10 @@ public class SimTile implements INuclearTile {
                     temperature = Math.max(operatingThreshold, temperature - tempDrop);
                     lastCoolingDetails = String.format(
                         java.util.Locale.US,
-                        "%s %dL (cap %dL, qMax %.1f Hu, heatPerL %.1f), consumed %.1f Hu, temp %.1f°C -> %.1f°C (drop %.1f°C)",
+                        "%s %dL (cap %dL, heatPerL %.1f), consumed %.1f Hu, temp %.1f°C -> %.1f°C (drop %.1f°C)",
                         type.displayName,
                         mbToCool,
                         inputFluidCapacity,
-                        qMax,
                         heatPerL,
                         heatConsumed,
                         tempBefore,
@@ -1372,23 +1345,24 @@ public class SimTile implements INuclearTile {
 
     @Override
     public void addWignerEnergy(double amountHu) {
-        if (type == TileType.MODERATOR_GRAPHITE && amountHu > 0.0) {
-            storedWignerEnergy = Math.min(10000.0, storedWignerEnergy + amountHu);
+        ComponentData.ModeratorData mod = getModeratorData();
+        if (mod != null && mod.wignerEnergyPerFast > 0.0 && amountHu > 0.0) {
+            double maxCap = mod.wignerMaxEnergy > 0.0 ? mod.wignerMaxEnergy : 10000.0;
+            storedWignerEnergy = Math.min(maxCap, storedWignerEnergy + amountHu);
         }
     }
 
     @Override
     public double releaseWignerEnergy() {
-        if (type == TileType.MODERATOR_GRAPHITE && storedWignerEnergy > 0.0 && temperature > 1500.0) {
-            double deltaT = temperature - 1500.0;
-            double deltaTHalf = 2500.0 - 1500.0;
-            double factor = (deltaT * deltaT) / (deltaT * deltaT + deltaTHalf * deltaTHalf);
-            double maxReleaseRate = 2000.0;
-            double released = Math.min(storedWignerEnergy, maxReleaseRate * factor);
-            storedWignerEnergy = Math.max(0.0, storedWignerEnergy - released);
-            return released;
+        ComponentData.ModeratorData mod = getModeratorData();
+        if (mod == null || mod.wignerEnergyPerFast <= 0.0) {
+            storedWignerEnergy = 0.0;
+            return 0.0;
         }
-        return 0.0;
+        if (storedWignerEnergy <= 0.0) return 0.0;
+        double released = mod.calculateWignerHeatRelease(temperature, storedWignerEnergy);
+        if (released > 0.0) storedWignerEnergy = Math.max(0.0, storedWignerEnergy - released);
+        return released;
     }
 
     @Override

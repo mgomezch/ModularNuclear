@@ -239,7 +239,7 @@ public class NuclearSimulationCLI {
                 case "--cooling-heat" -> {
                     if (i + 1 < args.length) {
                         try {
-                            NuclearSimulationEngine.coolingHeatPerLiter = Double.parseDouble(args[++i]);
+                            StandaloneConfig.setWaterHeatPerLiter(Double.parseDouble(args[++i]));
                         } catch (NumberFormatException ignored) {}
                     }
                 }
@@ -253,7 +253,7 @@ public class NuclearSimulationCLI {
                 case "--ic2-heat", "--ic2-cooling-heat" -> {
                     if (i + 1 < args.length) {
                         try {
-                            NuclearSimulationEngine.ic2CoolantHeatPerLiter = Double.parseDouble(args[++i]);
+                            StandaloneConfig.setIc2CoolantHeatPerLiter(Double.parseDouble(args[++i]));
                         } catch (NumberFormatException ignored) {}
                     }
                 }
@@ -669,7 +669,7 @@ public class NuclearSimulationCLI {
                         }
                         case "cooling_heat", "coolingheat" -> {
                             try {
-                                NuclearSimulationEngine.coolingHeatPerLiter = Double.parseDouble(v);
+                                StandaloneConfig.setWaterHeatPerLiter(Double.parseDouble(v));
                             } catch (Exception ignored) {}
                         }
                         case "ambient_temp", "ambient" -> {
@@ -679,7 +679,7 @@ public class NuclearSimulationCLI {
                         }
                         case "ic2_heat", "ic2_cooling_heat" -> {
                             try {
-                                NuclearSimulationEngine.ic2CoolantHeatPerLiter = Double.parseDouble(v);
+                                StandaloneConfig.setIc2CoolantHeatPerLiter(Double.parseDouble(v));
                             } catch (Exception ignored) {}
                         }
                         case "burnup_mult", "burnupmult" -> {

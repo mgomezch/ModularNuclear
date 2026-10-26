@@ -242,6 +242,8 @@ public class NuclearSimulationEngine {
         setBeamEnergyToFastNeutronMultiplier(DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER);
         setAmbientTemperature(DEFAULT_AMBIENT_TEMP);
         ticksPerCycle = DEFAULT_TICKS_PER_CYCLE;
+        // physics.yaml (and the fuel/component records) take precedence over the constants above.
+        com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.loadDefaults();
     }
 
     public static void setTicksPerCycle(int ticks) {
