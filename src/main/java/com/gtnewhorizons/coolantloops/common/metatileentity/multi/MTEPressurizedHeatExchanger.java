@@ -24,6 +24,7 @@ import com.gtnewhorizons.coolantloops.engine.ConvectiveHeatTransferModel;
 import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
 import com.gtnewhorizons.coolantloops.engine.ICoolantLoopDevice;
 import com.gtnewhorizons.coolantloops.engine.LoopSegment;
+import com.gtnewhorizons.coolantloops.engine.PheExchange;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
 import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
 
@@ -74,10 +75,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     protected CoolantFluidProperty mLoopFluid = null;
     protected double mLastCoolantFlowRateM3s = 0.0;
     protected long mLastStepTick = -1;
-    protected int mBatchTimer = 0;
-    protected double mBatchAccumulatedHeatJoules = 0.0;
-    protected double mBatchWeightedTempSum = 0.0;
-    protected CoolantDeviceData.PHEData.SecondaryCoolantEntry mBatchCoolantEntry = null;
+    protected final PheExchange.Batch mBatch = new PheExchange.Batch();
 
     public MTEPressurizedHeatExchanger(int aID, String aName, String aNameRegional) {
         super(aID, aName, aNameRegional);
@@ -297,11 +295,11 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     }
 
     public int getBatchTimer() {
-        return mBatchTimer;
+        return mBatch.timer;
     }
 
     public double getBatchAccumulatedHeatJoules() {
-        return mBatchAccumulatedHeatJoules;
+        return mBatch.heatJoules;
     }
 
     public boolean triggerPowerfail() {
@@ -311,10 +309,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
             getBaseMetaTileEntity().setShutDownReason(ShutDownReasonRegistry.POWER_LOSS);
         }
         mLastHeatTransferredWatts = 0.0;
-        mBatchTimer = 0;
-        mBatchAccumulatedHeatJoules = 0.0;
-        mBatchWeightedTempSum = 0.0;
-        mBatchCoolantEntry = null;
+        mBatch.reset();
         return false;
     }
 
@@ -360,9 +355,9 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     }
 
     public void completeBatch() {
-        if (mBatchAccumulatedHeatJoules > 0.0) {
-            mLastHeatTransferredWatts = mBatchAccumulatedHeatJoules / (getBatchTicks() * 0.05);
-            CoolantDeviceData.PHEData.SecondaryCoolantEntry matchedCoolant = mBatchCoolantEntry;
+        if (mBatch.heatJoules > 0.0) {
+            mLastHeatTransferredWatts = mBatch.heatJoules / (getBatchTicks() * 0.05);
+            CoolantDeviceData.PHEData.SecondaryCoolantEntry matchedCoolant = mBatch.coolant;
             CoolantDeviceData.PHEData pheConfig = (CoolantLoopDataRegistry.getDeviceData() != null)
                 ? CoolantLoopDataRegistry.getDeviceData()
                     .getPhe()
@@ -380,10 +375,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
             }
 
             if (matchedCoolant != null) {
-                double latentHeatJoulePerMl = matchedCoolant.latentHeatJoulePerLiter / 1000.0;
-                int fluidToBoil = (latentHeatJoulePerMl > 0)
-                    ? (int) (mBatchAccumulatedHeatJoules / latentHeatJoulePerMl)
-                    : 0;
+                int fluidToBoil = PheExchange.fluidToBoilMl(mBatch.heatJoules, matchedCoolant);
 
                 if (fluidToBoil > 0) {
                     int actualFluidDrained = 0;
@@ -411,25 +403,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
                         int gasProduced = actualFluidDrained * expansion;
 
                         if (matchedCoolant.isSteam) {
-                            double supercritThresh = (CoolantLoopDataRegistry.getDeviceData() != null)
-                                ? CoolantLoopDataRegistry.getDeviceData()
-                                    .getPhe().supercriticalTempThreshold
-                                : 700.0;
-                            double superheatedThresh = (CoolantLoopDataRegistry.getDeviceData() != null)
-                                ? CoolantLoopDataRegistry.getDeviceData()
-                                    .getPhe().superheatedTempThreshold
-                                : 300.0;
-
-                            double effTemp = (mBatchAccumulatedHeatJoules > 0)
-                                ? mBatchWeightedTempSum / mBatchAccumulatedHeatJoules
-                                : mCurrentCoolantTemp;
-
-                            String steamName = "steam";
-                            if (effTemp >= supercritThresh) {
-                                steamName = "supercriticalsteam";
-                            } else if (effTemp >= superheatedThresh) {
-                                steamName = "ic2superheatedsteam";
-                            }
+                            String steamName = PheExchange
+                                .steamGrade(mBatch.effectiveTemperature(mCurrentCoolantTemp), pheConfig);
                             Fluid steamFluid = FluidRegistry.getFluid(steamName);
                             if (steamFluid == null && steamName.equals("supercriticalsteam")) {
                                 steamFluid = FluidRegistry.getFluid("supercriticalSteam");
@@ -460,10 +435,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
             }
         }
 
-        mBatchTimer = 0;
-        mBatchAccumulatedHeatJoules = 0.0;
-        mBatchWeightedTempSum = 0.0;
-        mBatchCoolantEntry = null;
+        mBatch.reset();
     }
 
     public boolean stepHeatExchange() {
@@ -500,11 +472,6 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
             getBaseMetaTileEntity().setActive(true);
         }
 
-        mBatchTimer++;
-
-        // Heat transfer occurs only if loop has flow and primary coolant > secondary boiling temp
-        boolean hasFlow = mBoundSegment != null && Math.abs(mLastCoolantFlowRateM3s) > 1e-9;
-
         ArrayList<FluidStack> inputFluids = getStoredFluids();
         FluidStack secondaryInput = null;
         CoolantDeviceData.PHEData.SecondaryCoolantEntry matchedCoolant = null;
@@ -526,79 +493,27 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         }
 
         double dt = 0.05; // 1 tick = 0.05 seconds
-        double heatTransferredThisTickJoules = 0.0;
-
-        double approachMinDeltaT = (pheConfig != null) ? pheConfig.approachMinDeltaT : 5.0;
-        double minTransferTemp = (matchedCoolant != null) ? matchedCoolant.boilingPointCelsius + approachMinDeltaT
-            : Double.POSITIVE_INFINITY;
-
-        if (hasFlow && secondaryInput != null && matchedCoolant != null && mCurrentCoolantTemp > minTransferTemp) {
-
-            double boilingTemp = matchedCoolant.boilingPointCelsius;
-            double velocity = (mBoundSegment.getArea() > 0)
-                ? Math.abs(mLastCoolantFlowRateM3s) / mBoundSegment.getArea()
-                : 0.0;
-
-            if (velocity > 0.0) {
-                double qWatts = mConvectiveModel
-                    .computeHeatTransferRate(velocity, mExchangeArea, mCurrentCoolantTemp, boilingTemp) * effFactor;
-
-                double sweptVolume = Math.abs(mLastCoolantFlowRateM3s) * dt;
-                double segVolume = (mBoundSegment != null) ? mBoundSegment.getVolume() : 0.007854;
-                double effectiveVolume = Math.max(segVolume, sweptVolume);
-
-                double fluidDensity = (mLoopFluid != null) ? mLoopFluid.getDensity() : 1000.0;
-                double fluidSpecificHeat = (mLoopFluid != null) ? mLoopFluid.getSpecificHeat() : 4184.0;
-                double fluidHeatCapacity = effectiveVolume * fluidDensity * fluidSpecificHeat;
-
-                double maxSensibleHeatJoules = (fluidHeatCapacity > 0)
-                    ? fluidHeatCapacity * Math.max(0.0, mCurrentCoolantTemp - minTransferTemp)
-                    : 0.0;
-
-                double convHeatJoules = qWatts * dt;
-
-                int batchTicks = getBatchTicks();
-                double maxBatchHeatJoules = getMaxHeatExchangePerBatchJoules();
-                double maxTickHeatOverclockJoules = maxBatchHeatJoules / (double) batchTicks;
-                double remainingBatchHeatJoules = Math.max(0.0, maxBatchHeatJoules - mBatchAccumulatedHeatJoules);
-
-                double latentHeatJoulePerMl = matchedCoolant.latentHeatJoulePerLiter / 1000.0;
-                double maxSecondaryFluidHeatJoules = (latentHeatJoulePerMl > 0)
-                    ? secondaryInput.amount * latentHeatJoulePerMl
-                    : 0.0;
-                double remainingSecondaryFluidHeatJoules = Math
-                    .max(0.0, maxSecondaryFluidHeatJoules - mBatchAccumulatedHeatJoules);
-
-                double allowableTickHeat = Math.min(convHeatJoules, maxSensibleHeatJoules);
-                allowableTickHeat = Math.min(allowableTickHeat, maxTickHeatOverclockJoules);
-                allowableTickHeat = Math.min(allowableTickHeat, remainingBatchHeatJoules);
-                allowableTickHeat = Math.min(allowableTickHeat, remainingSecondaryFluidHeatJoules);
-
-                if (allowableTickHeat > 0.0) {
-                    heatTransferredThisTickJoules = allowableTickHeat;
-
-                    if (fluidHeatCapacity > 0) {
-                        double tempDrop = heatTransferredThisTickJoules / fluidHeatCapacity;
-                        double newTemp = Math.max(minTransferTemp, mCurrentCoolantTemp - tempDrop);
-                        mCurrentCoolantTemp = newTemp;
-                        if (mBoundSegment != null) {
-                            mBoundSegment.setCurrentTemperatureCelsius(newTemp);
-                        }
-                        if (mPrimaryOutlet != null) {
-                            mPrimaryOutlet.setCurrentTemperatureCelsius(newTemp);
-                        }
-                    }
-
-                    mBatchAccumulatedHeatJoules += heatTransferredThisTickJoules;
-                    mBatchWeightedTempSum += mCurrentCoolantTemp * heatTransferredThisTickJoules;
-                    mBatchCoolantEntry = matchedCoolant;
-                }
-            }
+        mCurrentCoolantTemp = PheExchange.tick(
+            mBatch,
+            pheConfig,
+            matchedCoolant,
+            secondaryInput != null ? secondaryInput.amount : 0,
+            mLastCoolantFlowRateM3s,
+            mBoundSegment,
+            mLoopFluid,
+            mCurrentCoolantTemp,
+            mExchangeArea,
+            mConvectiveModel,
+            effFactor,
+            getMaxHeatExchangePerBatchJoules());
+        if (mBatch.lastTickHeatJoules > 0.0 && mPrimaryOutlet != null) {
+            mPrimaryOutlet.setCurrentTemperatureCelsius(mCurrentCoolantTemp);
         }
+        double heatTransferredThisTickJoules = mBatch.lastTickHeatJoules;
 
         mLastHeatTransferredWatts = heatTransferredThisTickJoules / dt;
 
-        if (mBatchTimer >= getBatchTicks()) {
+        if (mBatch.timer >= getBatchTicks()) {
             completeBatch();
         }
 
@@ -688,9 +603,9 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
-        aNBT.setInteger("mBatchTimer", mBatchTimer);
-        aNBT.setDouble("mBatchAccumulatedHeatJoules", mBatchAccumulatedHeatJoules);
-        aNBT.setDouble("mBatchWeightedTempSum", mBatchWeightedTempSum);
+        aNBT.setInteger("mBatchTimer", mBatch.timer);
+        aNBT.setDouble("mBatchAccumulatedHeatJoules", mBatch.heatJoules);
+        aNBT.setDouble("mBatchWeightedTempSum", mBatch.weightedTempSum);
         aNBT.setDouble("mCurrentCoolantTemp", mCurrentCoolantTemp);
         aNBT.setDouble("mLastHeatTransferredWatts", mLastHeatTransferredWatts);
     }
@@ -698,9 +613,9 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
-        mBatchTimer = aNBT.getInteger("mBatchTimer");
-        mBatchAccumulatedHeatJoules = aNBT.getDouble("mBatchAccumulatedHeatJoules");
-        mBatchWeightedTempSum = aNBT.getDouble("mBatchWeightedTempSum");
+        mBatch.timer = aNBT.getInteger("mBatchTimer");
+        mBatch.heatJoules = aNBT.getDouble("mBatchAccumulatedHeatJoules");
+        mBatch.weightedTempSum = aNBT.getDouble("mBatchWeightedTempSum");
         if (aNBT.hasKey("mCurrentCoolantTemp")) {
             mCurrentCoolantTemp = aNBT.getDouble("mCurrentCoolantTemp");
         }
