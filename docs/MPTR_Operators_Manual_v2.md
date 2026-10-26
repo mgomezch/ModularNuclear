@@ -642,16 +642,16 @@ Insulators are indestructible.
 
 Radiovoltaic plates convert absorbed neutrons directly into EU.
 
-| Plate | $p_a$ (fast / thermal) | $p_s$ | $p_m$ | Max output | Saturation flux $S$ | $c$ |
+| Plate | $p_a$ (fast / thermal) | $p_s$ | $p_m$ | Max output | 95 % output at $\Psi_{95}$ | $c$ |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| HV | 0.40 / 0.40 | 0 | 0 | 1024 EU/t | 50 | 0.10 |
-| EV | 0.60 / 0.60 | 0 | 0 | 4096 EU/t | 150 | 0.10 |
+| HV | 0.40 / 0.40 | 0 | 0 | 1024 EU/t | 10 /s | 0.10 |
+| EV | 0.60 / 0.60 | 0 | 0 | 4096 EU/t | 10 /s | 0.10 |
 
 With $A_f$, $A_t$ the neutrons absorbed this cycle, the weighted absorption rate is $\Psi = (4A_f + A_t)/\Delta t$ per second, and the output is
 
-$$P = \operatorname{round}\!\left(P_\text{max}\cdot\eta\cdot\tanh\frac{\Psi}{S}\right)\ \text{EU/t}$$
+$$P = \operatorname{round}\!\left(P_\text{max}\cdot\eta\cdot\tanh\!\left(\operatorname{artanh}(0.95)\,\frac{\Psi}{\Psi_{95}}\right)\right)\ \text{EU/t}$$
 
-with conversion efficiency $\eta = 1$. Output saturates: $\Psi = S$ yields 76 % of maximum, $\Psi = 2S$ yields 96 %. The energy not converted is deposited as heat in the plate's cell:
+with conversion efficiency $\eta = 1$ and $\Psi_{95}$ = `full_output_absorbed_per_second` (default 10). Output reaches 95 % of maximum at $\Psi = \Psi_{95}$: 10 thermal neutrons per second, or 2.5 fast ones. $\Psi = \Psi_{95}/2$ yields 72 %. Because $\Psi$ is a rate per second, the curve does not depend on the cycle length. The energy not converted is deposited as heat in the plate's cell:
 
 $$Q = \max\!\big(0,\ 20\,(4A_f + A_t) - P\,\Delta t\big)\ \text{HU}$$
 
@@ -1135,7 +1135,7 @@ The following keys exist in the default configuration or component data but have
 | Rod insertion | $x = \max(1 - 0.2\,n_\text{pipes},\ x_\text{target})$ |
 | Rod absorption | $p_a^\text{rod} = \max(0.01, x\,a_\text{max})$ |
 | Column absorption with rod | $\min(1, p_a^\text{rod} + p_a^\text{fol} + (1 - p_a^\text{rod} - p_m^\text{fol})p_a)$ |
-| Radiovoltaic output | $P = P_\text{max}\tanh(\Psi/S)$, $\Psi = (4A_f + A_t)/\Delta t$ |
+| Radiovoltaic output | $P = P_\text{max}\tanh(\operatorname{artanh}(0.95)\,\Psi/\Psi_{95})$, $\Psi = (4A_f + A_t)/\Delta t$ |
 | Wigner release | $\min(E, 2000\,\tfrac{(T-1500)^2}{(T-1500)^2 + 1000^2})$ HU/cycle |
 | Maintenance efficiency | $\eta = \tfrac{\text{working}}{6}(1 - D_s/100)$ |
 | Wall-wear probability | $0.01\,(1 + 9\bar N^2/(\bar N^2 + 10^6))$ per minute |
