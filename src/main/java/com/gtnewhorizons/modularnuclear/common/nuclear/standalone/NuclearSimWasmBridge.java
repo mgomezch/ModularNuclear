@@ -231,7 +231,7 @@ public class NuclearSimWasmBridge {
         }
     }
 
-    /** Pressurized heat exchangers in series on the loop, with the tier and number of energy hatches on each. */
+    /** Pressurized heat exchangers in parallel on the loop, with the tier and number of energy hatches on each. */
     @Export(name = "setCoolantLoopPhe")
     public static void setCoolantLoopPhe(int count, String hatchTier, int hatchCount) {
         if (grid != null) {

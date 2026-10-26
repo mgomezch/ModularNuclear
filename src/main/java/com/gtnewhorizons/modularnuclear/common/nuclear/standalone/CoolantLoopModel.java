@@ -575,14 +575,28 @@ public class CoolantLoopModel {
             NuclearSimulationEngine.ambientTemp);
     }
 
+    private LoopSegment manifold(String id, double temp) {
+        LoopSegment m = new LoopSegment(
+            id,
+            1.0,
+            pipeSize.diameterMeters(),
+            0.000045,
+            MANIFOLD_MINOR_LOSS_K,
+            500.0,
+            2000.0,
+            temp);
+        m.setManifold(true);
+        return m;
+    }
+
     private static void chain(LoopSegment from, LoopSegment to) {
         to.addUpstreamSegment(from);
     }
 
     /**
      * Builds the canonical loop the game's crawler would produce for a pump feeding all passages in parallel: pump
-     * discharge, cold leg pipes, distribution manifold, the passages, collection manifold, hot leg pipes, the PHEs in
-     * series (one pipe between each), and the return run to the pump suction.
+     * discharge, cold leg pipes, distribution manifold, the passages, collection manifold, hot leg pipes, the PHEs (in
+     * parallel between two more manifolds when there are several), and the return run to the pump suction.
      */
     private void buildLoop(int passageCount) {
         double startTemp = engine != null ? engine.getAvgLoopTempCelsius() : NuclearSimulationEngine.ambientTemp;
@@ -603,29 +617,11 @@ public class CoolantLoopModel {
         }
         coldLegSegment = prev;
 
-        LoopSegment distribution = new LoopSegment(
-            "manifold_in",
-            1.0,
-            pipeSize.diameterMeters(),
-            0.000045,
-            MANIFOLD_MINOR_LOSS_K,
-            500.0,
-            2000.0,
-            startTemp);
-        distribution.setManifold(true);
+        LoopSegment distribution = manifold("manifold_in", startTemp);
         chain(prev, distribution);
         segs.add(distribution);
 
-        LoopSegment collection = new LoopSegment(
-            "manifold_out",
-            1.0,
-            pipeSize.diameterMeters(),
-            0.000045,
-            MANIFOLD_MINOR_LOSS_K,
-            500.0,
-            2000.0,
-            startTemp);
-        collection.setManifold(true);
+        LoopSegment collection = manifold("manifold_out", startTemp);
         for (int i = 0; i < passageCount; i++) {
             LoopSegment p = new LoopSegment(
                 "passage_" + i,
@@ -654,13 +650,15 @@ public class CoolantLoopModel {
         hotLegSegment = segs.get(segs.size() - 1);
 
         PHEData cfg = pheConfig();
+        LoopSegment pheSplit = null;
+        LoopSegment pheJoin = null;
+        if (pheCount > 1) {
+            pheSplit = manifold("phe_manifold_in", startTemp);
+            chain(prev, pheSplit);
+            segs.add(pheSplit);
+            pheJoin = manifold("phe_manifold_out", startTemp);
+        }
         for (int j = 0; j < pheCount; j++) {
-            if (j > 0) {
-                LoopSegment link = pipe("phe_link_" + j);
-                chain(prev, link);
-                segs.add(link);
-                prev = link;
-            }
             LoopSegment phe = new LoopSegment(
                 "phe_" + j,
                 2.0,
@@ -670,11 +668,18 @@ public class CoolantLoopModel {
                 500.0,
                 2000.0,
                 startTemp);
-            chain(prev, phe);
+            phe.setFlowFraction(1.0 / pheCount);
+            chain(pheSplit != null ? pheSplit : prev, phe);
+            if (pheJoin != null) chain(phe, pheJoin);
             segs.add(phe);
             pheSegments.add(phe);
             pheBatches.add(new PheExchange.Batch());
-            prev = phe;
+        }
+        if (pheJoin != null) {
+            segs.add(pheJoin);
+            prev = pheJoin;
+        } else {
+            prev = pheSegments.get(0);
         }
 
         for (int i = 0; i < PIPE_RUN_BLOCKS; i++) {

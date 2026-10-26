@@ -1072,7 +1072,7 @@ public class NuclearSimulationWebServer {
                   </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">PHEs (in series):</label>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">PHEs (in parallel):</label>
                       <input id="loop-phe-count-input" type="number" min="1" max="16" step="1" value="1" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                     <div>

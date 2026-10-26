@@ -225,7 +225,7 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
-    // Heat exchangers in series on the loop, and the tier and number of energy hatches on each.
+    // Heat exchangers in parallel on the loop, and the tier and number of energy hatches on each.
     setCoolantLoopPhe(count, hatchTier, hatchCount, notify = true) {
         if (this.inst.exports.setCoolantLoopPhe) {
             this.inst.exports.setCoolantLoopPhe(count | 0, this.createJavaString(hatchTier || ""), hatchCount | 0);
