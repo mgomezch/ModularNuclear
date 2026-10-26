@@ -2,10 +2,15 @@ package com.gtnewhorizons.modularnuclear.common.nuclear.standalone;
 
 import java.util.Random;
 
+import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileContent;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
 
 /**
  * Pure Java implementation of INuclearTile for standalone simulation and tooling.
@@ -15,76 +20,76 @@ public class SimTile implements INuclearTile {
 
     public enum TileType {
 
-        EMPTY("Empty", "."),
-        FUEL_URANIUM_SINGLE("Uranium Single", "U1"),
-        FUEL_URANIUM_DUAL("Uranium Dual", "U2"),
-        FUEL_URANIUM_QUAD("Uranium Quad", "U4"),
-        FUEL_MOX_SINGLE("MOX Single", "M1"),
-        FUEL_MOX_DUAL("MOX Dual", "M2"),
-        FUEL_MOX_QUAD("MOX Quad", "M4"),
-        FUEL_THORIUM_SINGLE("Thorium Single", "T1"),
-        FUEL_THORIUM_DUAL("Thorium Dual", "T2"),
-        FUEL_THORIUM_QUAD("Thorium Quad", "T4"),
-        FUEL_GLOWSTONE("Glowstone Rod", "G1"),
-        FUEL_LITHIUM("Lithium Rod", "LI1"),
-        FUEL_HD_URANIUM_SINGLE("HD Uranium Single", "HDU1"),
-        FUEL_HD_URANIUM_DUAL("HD Uranium Dual", "HDU2"),
-        FUEL_HD_URANIUM_QUAD("HD Uranium Quad", "HDU4"),
-        FUEL_HD_PLUTONIUM_SINGLE("HD Plutonium Single", "HDP1"),
-        FUEL_HD_PLUTONIUM_DUAL("HD Plutonium Dual", "HDP2"),
-        FUEL_HD_PLUTONIUM_QUAD("HD Plutonium Quad", "HDP4"),
-        FUEL_EXCITED_URANIUM_SINGLE("Excited Uranium Single", "EXU1"),
-        FUEL_EXCITED_URANIUM_DUAL("Excited Uranium Dual", "EXU2"),
-        FUEL_EXCITED_URANIUM_QUAD("Excited Uranium Quad", "EXU4"),
-        FUEL_EXCITED_PLUTONIUM_SINGLE("Excited Plutonium Single", "EXP1"),
-        FUEL_EXCITED_PLUTONIUM_DUAL("Excited Plutonium Dual", "EXP2"),
-        FUEL_EXCITED_PLUTONIUM_QUAD("Excited Plutonium Quad", "EXP4"),
-        FUEL_NAQUADAH_SINGLE("Naquadah Single", "NQ1"),
-        FUEL_NAQUADAH_DUAL("Naquadah Dual", "NQ2"),
-        FUEL_NAQUADAH_QUAD("Naquadah Quad", "NQ4"),
-        FUEL_NAQUADRIA_SINGLE("Naquadria Single", "NQR1"),
-        FUEL_NAQUADRIA_DUAL("Naquadria Dual", "NQR2"),
-        FUEL_NAQUADRIA_QUAD("Naquadria Quad", "NQR4"),
-        FUEL_TIBERIUM_SINGLE("Tiberium Single", "TIB1"),
-        FUEL_TIBERIUM_DUAL("Tiberium Dual", "TIB2"),
-        FUEL_TIBERIUM_QUAD("Tiberium Quad", "TIB4"),
-        FUEL_CORE("The Core", "NQ32"),
-        HATCH_LIQUID_FUEL_URANIUM("Liquid Uranium Fuel Hatch", "LFU"),
-        HATCH_LIQUID_FUEL_THORIUM("Liquid Thorium Fuel Hatch", "LFT"),
-        HATCH_LIQUID_FUEL_PLUTONIUM("Liquid Plutonium Fuel Hatch", "LFP"),
-        HATCH_DISTILLED_WATER("Distilled Water Hatch", "HD"),
-        HATCH_HEAVY_WATER("Heavy Water Hatch", "HW"),
-        HATCH_IC2_COOLANT("IC2 Coolant Hatch", "HC"),
-        REFLECTOR_BERYLLIUM("Beryllium Reflector", "RB"),
-        REFLECTOR_CARBON("Carbon Reflector", "RC"),
-        REFLECTOR_GOLD("Gold Plate Reflector", "RG"),
-        REFLECTOR_STAINLESS("Stainless Steel Plate Reflector", "RS"),
-        REFLECTOR_TUNGSTEN_CARBIDE("Tungsten Carbide Plate Reflector", "RT"),
-        REFLECTOR_IC2("Neutron Reflector", "RN"),
-        REFLECTOR_IC2_THICK("Thick Neutron Reflector", "RTN"),
-        MODERATOR_GRAPHITE("Graphite Moderator", "MG"),
-        MODERATOR_CARBON("Carbon Moderator", "MC"),
-        MODERATOR_BERYLLIUM("Beryllium Moderator", "MB"),
-        CONTROL_ROD("Boron Control Rod", "CR"),
-        COOLANT_CELL_10K("10k Coolant Cell", "C1"),
-        COOLANT_CELL_60K("60k Coolant Cell", "C6"),
-        COOLANT_CELL_360K("360k Coolant Cell", "C3"),
-        RADIOVOLTAIC_HV("Radiovoltaic Cell (HV)", "RH"),
-        RADIOVOLTAIC_EV("Radiovoltaic Cell (EV)", "RV"),
-        INSULATOR_BASIC_THERMAL_CLOTH("Basic Thermal Cloth", "IT1"),
-        INSULATOR_T2_THERMAL_CLOTH("T2 Thermal Cloth", "IT2"),
-        INSULATOR_MICA_FOIL("Mica Insulator Foil", "IM"),
-        INSULATOR_NAQUARITE_FOIL("Naquarite Universal Insulator Foil", "INQ"),
-        VENT_STANDARD("Heat Vent", "V1"),
-        VENT_ADVANCED("Advanced Heat Vent", "VA"),
-        VENT_OVERCLOCKED("Overclocked Heat Vent", "VO"),
-        VENT_COMPONENT("Component Heat Vent", "VC"),
-        EXCHANGER_STANDARD("Heat Exchanger", "X1"),
-        EXCHANGER_ADVANCED("Advanced Heat Exchanger", "XA"),
-        EXCHANGER_COMPONENT("Component Heat Exchanger", "XC"),
-        PASSAGE_CORE("Coolant Passage", "CP"),
-        NEUTRON_SOURCE("Neutron Source", "NS"),
-        NULL_WALL("Casing Wall", "NL");
+        EMPTY("Empty", ".", null),
+        FUEL_URANIUM_SINGLE("Uranium Single", "U1", "fuel_uranium_1"),
+        FUEL_URANIUM_DUAL("Uranium Dual", "U2", "fuel_uranium_2"),
+        FUEL_URANIUM_QUAD("Uranium Quad", "U4", "fuel_uranium_4"),
+        FUEL_MOX_SINGLE("MOX Single", "M1", "fuel_mox_1"),
+        FUEL_MOX_DUAL("MOX Dual", "M2", "fuel_mox_2"),
+        FUEL_MOX_QUAD("MOX Quad", "M4", "fuel_mox_4"),
+        FUEL_THORIUM_SINGLE("Thorium Single", "T1", "fuel_thorium_1"),
+        FUEL_THORIUM_DUAL("Thorium Dual", "T2", "fuel_thorium_2"),
+        FUEL_THORIUM_QUAD("Thorium Quad", "T4", "fuel_thorium_4"),
+        FUEL_GLOWSTONE("Glowstone Rod", "G1", "fuel_glowstone"),
+        FUEL_LITHIUM("Lithium Rod", "LI1", "fuel_lithium"),
+        FUEL_HD_URANIUM_SINGLE("HD Uranium Single", "HDU1", "fuel_hd_uranium_1"),
+        FUEL_HD_URANIUM_DUAL("HD Uranium Dual", "HDU2", "fuel_hd_uranium_2"),
+        FUEL_HD_URANIUM_QUAD("HD Uranium Quad", "HDU4", "fuel_hd_uranium_4"),
+        FUEL_HD_PLUTONIUM_SINGLE("HD Plutonium Single", "HDP1", "fuel_hd_plutonium_1"),
+        FUEL_HD_PLUTONIUM_DUAL("HD Plutonium Dual", "HDP2", "fuel_hd_plutonium_2"),
+        FUEL_HD_PLUTONIUM_QUAD("HD Plutonium Quad", "HDP4", "fuel_hd_plutonium_4"),
+        FUEL_EXCITED_URANIUM_SINGLE("Excited Uranium Single", "EXU1", "fuel_excited_uranium_1"),
+        FUEL_EXCITED_URANIUM_DUAL("Excited Uranium Dual", "EXU2", "fuel_excited_uranium_2"),
+        FUEL_EXCITED_URANIUM_QUAD("Excited Uranium Quad", "EXU4", "fuel_excited_uranium_4"),
+        FUEL_EXCITED_PLUTONIUM_SINGLE("Excited Plutonium Single", "EXP1", "fuel_excited_plutonium_1"),
+        FUEL_EXCITED_PLUTONIUM_DUAL("Excited Plutonium Dual", "EXP2", "fuel_excited_plutonium_2"),
+        FUEL_EXCITED_PLUTONIUM_QUAD("Excited Plutonium Quad", "EXP4", "fuel_excited_plutonium_4"),
+        FUEL_NAQUADAH_SINGLE("Naquadah Single", "NQ1", "fuel_naquadah_1"),
+        FUEL_NAQUADAH_DUAL("Naquadah Dual", "NQ2", "fuel_naquadah_2"),
+        FUEL_NAQUADAH_QUAD("Naquadah Quad", "NQ4", "fuel_naquadah_4"),
+        FUEL_NAQUADRIA_SINGLE("Naquadria Single", "NQR1", "fuel_naquadria_1"),
+        FUEL_NAQUADRIA_DUAL("Naquadria Dual", "NQR2", "fuel_naquadria_2"),
+        FUEL_NAQUADRIA_QUAD("Naquadria Quad", "NQR4", "fuel_naquadria_4"),
+        FUEL_TIBERIUM_SINGLE("Tiberium Single", "TIB1", "fuel_tiberium_1"),
+        FUEL_TIBERIUM_DUAL("Tiberium Dual", "TIB2", "fuel_tiberium_2"),
+        FUEL_TIBERIUM_QUAD("Tiberium Quad", "TIB4", "fuel_tiberium_4"),
+        FUEL_CORE("The Core", "NQ32", "fuel_naquadah_32"),
+        HATCH_LIQUID_FUEL_URANIUM("Liquid Uranium Fuel Hatch", "LFU", "fluid_fuel_uranium"),
+        HATCH_LIQUID_FUEL_THORIUM("Liquid Thorium Fuel Hatch", "LFT", "fluid_fuel_thorium"),
+        HATCH_LIQUID_FUEL_PLUTONIUM("Liquid Plutonium Fuel Hatch", "LFP", "fluid_fuel_plutonium"),
+        HATCH_DISTILLED_WATER("Distilled Water Hatch", "HD", "coolant_distilled_water"),
+        HATCH_HEAVY_WATER("Heavy Water Hatch", "HW", "coolant_heavy_water"),
+        HATCH_IC2_COOLANT("IC2 Coolant Hatch", "HC", "coolant_ic2"),
+        REFLECTOR_BERYLLIUM("Beryllium Reflector", "RB", null),
+        REFLECTOR_CARBON("Carbon Reflector", "RC", null),
+        REFLECTOR_GOLD("Gold Plate Reflector", "RG", "reflector_gold"),
+        REFLECTOR_STAINLESS("Stainless Steel Plate Reflector", "RS", "reflector_stainless_steel"),
+        REFLECTOR_TUNGSTEN_CARBIDE("Tungsten Carbide Plate Reflector", "RT", "reflector_tungsten_carbide"),
+        REFLECTOR_IC2("Neutron Reflector", "RN", "reflector_ic2"),
+        REFLECTOR_IC2_THICK("Thick Neutron Reflector", "RTN", "reflector_ic2_thick"),
+        MODERATOR_GRAPHITE("Graphite Moderator", "MG", "moderator_graphite"),
+        MODERATOR_CARBON("Carbon Moderator", "MC", "moderator_carbon"),
+        MODERATOR_BERYLLIUM("Beryllium Moderator", "MB", "moderator_beryllium"),
+        CONTROL_ROD("Boron Control Rod", "CR", null),
+        COOLANT_CELL_10K("10k Coolant Cell", "C1", "coolant_cell_ic2"),
+        COOLANT_CELL_60K("60k Coolant Cell", "C6", "coolant_cell_ic2"),
+        COOLANT_CELL_360K("360k Coolant Cell", "C3", "coolant_cell_he"),
+        RADIOVOLTAIC_HV("Radiovoltaic Cell (HV)", "RH", "radiovoltaic_hv"),
+        RADIOVOLTAIC_EV("Radiovoltaic Cell (EV)", "RV", "radiovoltaic_ev"),
+        INSULATOR_BASIC_THERMAL_CLOTH("Basic Thermal Cloth", "IT1", "insulator_cloth_t1"),
+        INSULATOR_T2_THERMAL_CLOTH("T2 Thermal Cloth", "IT2", "insulator_cloth_t2"),
+        INSULATOR_MICA_FOIL("Mica Insulator Foil", "IM", "insulator_mica"),
+        INSULATOR_NAQUARITE_FOIL("Naquarite Universal Insulator Foil", "INQ", "insulator_naquarite"),
+        VENT_STANDARD("Heat Vent", "V1", "vent_standard"),
+        VENT_ADVANCED("Advanced Heat Vent", "VA", "vent_gold"),
+        VENT_OVERCLOCKED("Overclocked Heat Vent", "VO", "vent_spread"),
+        VENT_COMPONENT("Component Heat Vent", "VC", "vent_diamond"),
+        EXCHANGER_STANDARD("Heat Exchanger", "X1", "exchanger_standard"),
+        EXCHANGER_ADVANCED("Advanced Heat Exchanger", "XA", "exchanger_spread"),
+        EXCHANGER_COMPONENT("Component Heat Exchanger", "XC", "exchanger_diamond"),
+        PASSAGE_CORE("Coolant Passage", "CP", null),
+        NEUTRON_SOURCE("Neutron Source", "NS", null),
+        NULL_WALL("Casing Wall", "NL", null);
 
         // Backward-compatibility aliases for legacy quad types
         public static final TileType FUEL_HD_URANIUM = FUEL_HD_URANIUM_QUAD;
@@ -97,10 +102,16 @@ public class SimTile implements INuclearTile {
 
         public final String displayName;
         public final String code;
+        /**
+         * Id of this tile's entry in fuels.yaml or components.yaml, which supplies all of its physical properties;
+         * null for tiles without a configuration entry.
+         */
+        public final String configId;
 
-        TileType(String displayName, String code) {
+        TileType(String displayName, String code, String configId) {
             this.displayName = displayName;
             this.code = code;
+            this.configId = configId;
         }
 
         public static TileType fromCode(String code) {
@@ -168,6 +179,60 @@ public class SimTile implements INuclearTile {
     }
 
     private static final Random RAND = new Random();
+
+    private static TileContent[] contentCache = new TileContent[TileType.values().length];
+    private static int contentCacheGeneration = -1;
+
+    /** The configuration-backed content of a tile type, shared with the game through {@link TileContent}. */
+    public static TileContent contentOf(TileType type) {
+        int gen = ReactorConfigData.generation();
+        if (gen != contentCacheGeneration) {
+            contentCache = new TileContent[TileType.values().length];
+            contentCacheGeneration = gen;
+        }
+        TileContent c = contentCache[type.ordinal()];
+        if (c == null) {
+            c = resolveContent(type);
+            contentCache[type.ordinal()] = c;
+        }
+        return c;
+    }
+
+    private static TileContent resolveContent(TileType type) {
+        switch (type) {
+            case EMPTY:
+            case NULL_WALL:
+                return TileContent.EMPTY;
+            case NEUTRON_SOURCE:
+                return TileContent.NEUTRON_SOURCE;
+            case REFLECTOR_BERYLLIUM:
+            case REFLECTOR_CARBON:
+                return TileContent.GENERIC_REFLECTOR;
+            default:
+                break;
+        }
+        ReactorConfigData.ensureLoaded();
+        return type.configId != null ? TileContent.byConfigId(type.configId) : TileContent.OTHER;
+    }
+
+    /**
+     * What this tile currently holds, as the game would see it: an empty hatch or a depleted rod no longer counts as
+     * its original content.
+     */
+    public TileContent getContent() {
+        if (depleted && (isFuel(type) || isLiquidFuelHatch())) return TileContent.OTHER;
+        if ((isCoolantHatch() || isLiquidFuelHatch()) && inputFluidAmount <= 0) return TileContent.EMPTY_HATCH;
+        return contentOf(type);
+    }
+
+    /** The fuel's configuration record, or null if this tile is not a fuel. */
+    public FuelData getFuelData() {
+        return contentOf(type).fuelData();
+    }
+
+    private static boolean isFuel(TileType type) {
+        return contentOf(type).isFuel();
+    }
 
     private TileType type = TileType.EMPTY;
     private double temperature = NuclearSimulationEngine.AMBIENT_TEMP;
@@ -357,11 +422,16 @@ public class SimTile implements INuclearTile {
         this.beamlinePacketAccumulator = 0.0;
         this.directEUProduced = 0;
 
-        NuclearFuelType fuel = getFuelType();
-        if (fuel != null && !isLiquidFuelHatch()) {
-            this.maxDurability = fuel.defaultDurability;
-            this.durability = fuel.defaultDurability;
+        FuelData fuelData = getFuelData();
+        TileContent content = contentOf(this.type);
+        if (fuelData != null && !isLiquidFuelHatch()) {
+            this.maxDurability = fuelData.defaultDurability;
+            this.durability = fuelData.defaultDurability;
             this.inputFluidAmount = 0;
+        } else if (content.moderator() != null || content.reflector() != null) {
+            int d = content.moderator() != null ? content.moderator().durability : content.reflector().durability;
+            this.maxDurability = d;
+            this.durability = d;
         } else {
             switch (this.type) {
                 case HATCH_LIQUID_FUEL_URANIUM -> {
@@ -412,18 +482,6 @@ public class SimTile implements INuclearTile {
                     this.maxCellHeat = 360000;
                     this.currentCellHeat = 0;
                 }
-                case MODERATOR_GRAPHITE -> {
-                    this.maxDurability = 80000;
-                    this.durability = 80000;
-                }
-                case MODERATOR_CARBON -> {
-                    this.maxDurability = 10000;
-                    this.durability = 10000;
-                }
-                case MODERATOR_BERYLLIUM -> {
-                    this.maxDurability = 240000;
-                    this.durability = 240000;
-                }
                 case VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED -> {
                     this.maxCellHeat = 1000;
                     this.currentCellHeat = 0;
@@ -444,14 +502,6 @@ public class SimTile implements INuclearTile {
                     this.maxCellHeat = 5000;
                     this.currentCellHeat = 0;
                 }
-                case REFLECTOR_IC2 -> {
-                    this.maxDurability = 10000;
-                    this.durability = 10000;
-                }
-                case REFLECTOR_IC2_THICK -> {
-                    this.maxDurability = 40000;
-                    this.durability = 40000;
-                }
                 default -> {
                     this.inputFluidAmount = 0;
                     this.maxCellHeat = 0;
@@ -467,30 +517,12 @@ public class SimTile implements INuclearTile {
 
     @Override
     public NuclearFuelType getFuelType() {
-        return switch (type) {
-            case FUEL_GLOWSTONE -> NuclearFuelType.GLOWSTONE;
-            case FUEL_LITHIUM -> NuclearFuelType.LITHIUM;
-            case FUEL_THORIUM_SINGLE, FUEL_THORIUM_DUAL, FUEL_THORIUM_QUAD, HATCH_LIQUID_FUEL_THORIUM -> NuclearFuelType.THORIUM;
-            case FUEL_URANIUM_SINGLE, FUEL_URANIUM_DUAL, FUEL_URANIUM_QUAD, HATCH_LIQUID_FUEL_URANIUM -> NuclearFuelType.URANIUM;
-            case FUEL_MOX_SINGLE, FUEL_MOX_DUAL, FUEL_MOX_QUAD -> NuclearFuelType.MOX;
-            case FUEL_HD_URANIUM_SINGLE, FUEL_HD_URANIUM_DUAL, FUEL_HD_URANIUM_QUAD -> NuclearFuelType.HD_URANIUM;
-            case FUEL_HD_PLUTONIUM_SINGLE, FUEL_HD_PLUTONIUM_DUAL, FUEL_HD_PLUTONIUM_QUAD, HATCH_LIQUID_FUEL_PLUTONIUM -> NuclearFuelType.HD_PLUTONIUM;
-            case FUEL_EXCITED_URANIUM_SINGLE, FUEL_EXCITED_URANIUM_DUAL, FUEL_EXCITED_URANIUM_QUAD -> NuclearFuelType.EXCITED_URANIUM;
-            case FUEL_EXCITED_PLUTONIUM_SINGLE, FUEL_EXCITED_PLUTONIUM_DUAL, FUEL_EXCITED_PLUTONIUM_QUAD -> NuclearFuelType.EXCITED_PLUTONIUM;
-            case FUEL_NAQUADAH_SINGLE, FUEL_NAQUADAH_DUAL, FUEL_NAQUADAH_QUAD -> NuclearFuelType.NAQUADAH;
-            case FUEL_NAQUADRIA_SINGLE, FUEL_NAQUADRIA_DUAL, FUEL_NAQUADRIA_QUAD -> NuclearFuelType.NAQUADRIA;
-            case FUEL_TIBERIUM_SINGLE, FUEL_TIBERIUM_DUAL, FUEL_TIBERIUM_QUAD -> NuclearFuelType.TIBERIUM;
-            case FUEL_CORE -> NuclearFuelType.THE_CORE;
-            default -> null;
-        };
+        return NuclearFuelType.fromFuelData(getFuelData());
     }
 
     public String getArchetype() {
-        if (type == TileType.HATCH_LIQUID_FUEL_PLUTONIUM) {
-            return "standard";
-        }
-        NuclearFuelType fuel = getFuelType();
-        return (fuel != null && fuel.archetype != null) ? fuel.archetype : "standard";
+        FuelData fd = getFuelData();
+        return (fd != null && fd.archetype != null) ? fd.archetype : "standard";
     }
 
     @Override
@@ -515,44 +547,16 @@ public class SimTile implements INuclearTile {
 
     @Override
     public double getHeatTransferCoeff() {
-        if (isFuel() && !isLiquidFuelHatch()) return 0.05;
-        return switch (type) {
-            case HATCH_IC2_COOLANT -> 0.50;
-            case HATCH_DISTILLED_WATER, HATCH_HEAVY_WATER -> 0.30;
-            case COOLANT_CELL_10K, COOLANT_CELL_60K, COOLANT_CELL_360K -> 0.40;
-            case VENT_STANDARD, VENT_OVERCLOCKED -> 0.40;
-            case VENT_ADVANCED -> 0.45;
-            case VENT_COMPONENT -> 0.50;
-            case EXCHANGER_STANDARD -> 0.40;
-            case EXCHANGER_ADVANCED -> 0.45;
-            case EXCHANGER_COMPONENT -> 0.50;
-            case REFLECTOR_GOLD -> 0.30;
-            case REFLECTOR_STAINLESS -> 0.20;
-            case REFLECTOR_TUNGSTEN_CARBIDE -> 0.10;
-            case REFLECTOR_BERYLLIUM, REFLECTOR_CARBON, REFLECTOR_IC2 -> 0.15;
-            case REFLECTOR_IC2_THICK -> 0.20;
-            case MODERATOR_GRAPHITE, MODERATOR_CARBON -> 0.05;
-            case MODERATOR_BERYLLIUM -> 0.15;
-            case RADIOVOLTAIC_HV, RADIOVOLTAIC_EV -> 0.10;
-            case INSULATOR_BASIC_THERMAL_CLOTH, INSULATOR_T2_THERMAL_CLOTH, INSULATOR_MICA_FOIL -> 0.01;
-            case INSULATOR_NAQUARITE_FOIL -> 0.005;
-            case HATCH_LIQUID_FUEL_URANIUM, HATCH_LIQUID_FUEL_THORIUM, HATCH_LIQUID_FUEL_PLUTONIUM -> 0.15;
-            case PASSAGE_CORE -> 0.90;
-            default -> 0.02;
-        };
+        if (type == TileType.PASSAGE_CORE) return 0.90;
+        return TileProperties.heatTransferCoeff(getContent());
     }
 
     private double insulationDampening = 0.0;
 
     @Override
     public double getInsulationDampening() {
-        return switch (type) {
-            case INSULATOR_BASIC_THERMAL_CLOTH -> 0.20;
-            case INSULATOR_T2_THERMAL_CLOTH -> 0.40;
-            case INSULATOR_MICA_FOIL -> 0.60;
-            case INSULATOR_NAQUARITE_FOIL -> 1.00;
-            default -> insulationDampening;
-        };
+        ComponentData.InsulatorData ins = contentOf(type).insulator();
+        return ins != null ? ins.dampening : insulationDampening;
     }
 
     public void setInsulationDampening(double dampening) {
@@ -574,8 +578,7 @@ public class SimTile implements INuclearTile {
 
     @Override
     public boolean isFuel() {
-        if (depleted) return false;
-        return getFuelType() != null;
+        return !depleted && getFuelData() != null;
     }
 
     @Override
@@ -605,61 +608,16 @@ public class SimTile implements INuclearTile {
         };
     }
 
-    /** Base neutron yield per second before archetype multipliers (matches fuels.yaml base_neutrons). */
+    /** Base neutron yield per second before archetype multipliers (fuels.yaml base_neutrons). */
     public int getRawBaseNeutrons() {
-        return switch (type) {
-            case FUEL_GLOWSTONE, FUEL_LITHIUM -> 1;
-            case FUEL_THORIUM_SINGLE -> 2;
-            case FUEL_THORIUM_DUAL -> 4;
-            case FUEL_THORIUM_QUAD -> 8;
-            case FUEL_URANIUM_SINGLE -> 4;
-            case FUEL_URANIUM_DUAL -> 8;
-            case FUEL_URANIUM_QUAD -> 16;
-            case FUEL_MOX_SINGLE -> 8;
-            case FUEL_MOX_DUAL -> 16;
-            case FUEL_MOX_QUAD -> 32;
-
-            case FUEL_HD_URANIUM_SINGLE -> 8;
-            case FUEL_HD_URANIUM_DUAL -> 16;
-            case FUEL_HD_URANIUM_QUAD -> 32;
-
-            case FUEL_HD_PLUTONIUM_SINGLE -> 12;
-            case FUEL_HD_PLUTONIUM_DUAL -> 24;
-            case FUEL_HD_PLUTONIUM_QUAD -> 48;
-
-            case FUEL_EXCITED_URANIUM_SINGLE -> 16;
-            case FUEL_EXCITED_URANIUM_DUAL -> 32;
-            case FUEL_EXCITED_URANIUM_QUAD -> 64;
-
-            case FUEL_EXCITED_PLUTONIUM_SINGLE -> 24;
-            case FUEL_EXCITED_PLUTONIUM_DUAL -> 48;
-            case FUEL_EXCITED_PLUTONIUM_QUAD -> 96;
-
-            case FUEL_NAQUADAH_SINGLE -> 16;
-            case FUEL_NAQUADAH_DUAL -> 32;
-            case FUEL_NAQUADAH_QUAD -> 64;
-
-            case FUEL_NAQUADRIA_SINGLE -> 20;
-            case FUEL_NAQUADRIA_DUAL -> 40;
-            case FUEL_NAQUADRIA_QUAD -> 80;
-
-            case FUEL_TIBERIUM_SINGLE -> 24;
-            case FUEL_TIBERIUM_DUAL -> 48;
-            case FUEL_TIBERIUM_QUAD -> 96;
-
-            case FUEL_CORE -> 512;
-            case HATCH_LIQUID_FUEL_THORIUM -> 4;
-            case HATCH_LIQUID_FUEL_URANIUM -> 8;
-            case HATCH_LIQUID_FUEL_PLUTONIUM -> 16;
-            default -> 4;
-        };
+        FuelData fd = getFuelData();
+        return fd != null ? fd.baseNeutrons : 0;
     }
 
-    /** Thermal fission multiplier before archetype and global multipliers (matches fuels.yaml). */
+    /** Thermal fission multiplier before archetype and global multipliers (fuels.yaml). */
     public double getThermalFissionMultiplier() {
-        if (type == TileType.HATCH_LIQUID_FUEL_PLUTONIUM) return 1.80;
-        NuclearFuelType fuel = getFuelType();
-        return (fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0;
+        FuelData fd = getFuelData();
+        return fd != null ? fd.thermalFissionMultiplier : 1.0;
     }
 
     @Override
@@ -682,109 +640,28 @@ public class SimTile implements INuclearTile {
             return 0;
         }
 
-        int rawBaseNeutrons = getRawBaseNeutrons();
-
-        NuclearFuelType fuel = getFuelType();
-        String archetype = getArchetype();
-        double archNbaseMult = NuclearSimulationEngine.getArchetypeNbaseMultiplier(archetype);
-        double archFissMult = NuclearSimulationEngine.getArchetypeFissionMultiplier(archetype);
-
-        double scaledBase = rawBaseNeutrons * archNbaseMult * dt;
-        int baseInt = (int) Math.floor(scaledBase);
-        double frac = scaledBase - baseInt;
-        int baseNeutrons = baseInt + (Math.random() < frac ? 1 : 0);
-
-        double baseThermalMult = getThermalFissionMultiplier();
-        double baseFissionMult = baseThermalMult * archFissMult;
-        double effectiveFissionMult = baseFissionMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
-        double baseFastFissionMult = ((fuel != null) ? fuel.baseFastFissionMultiplier : 0.10) * archFissMult;
-        double effectiveFastFissionMult = baseFastFissionMult * NuclearSimulationEngine.globalFastFissionMultiplier;
-
-        int chainNeutrons = (int) Math
-            .round(lastThermalAbsorbed * effectiveFissionMult + lastFastAbsorbed * effectiveFastFissionMult);
-        int produced = (int) Math.round((baseNeutrons + chainNeutrons) * efficiency);
+        int produced = TileProperties
+            .fuelNeutrons(getFuelData(), lastThermalAbsorbed, lastFastAbsorbed, efficiency, dt);
         lastNeutronsGenerated = produced;
         return produced;
     }
 
     @Override
     public int getNeutronEmissionCount() {
-        if (isLiquidFuelHatch()) {
-            if (inputFluidAmount <= 0) return 0;
-            double expected = (double) inputFluidAmount / 8000.0;
-            int base = (int) Math.floor(expected);
-            double frac = expected - base;
-            return base + (RAND.nextDouble() < frac ? 1 : 0);
-        }
-        return switch (type) {
-            case FUEL_URANIUM_SINGLE, FUEL_MOX_SINGLE, FUEL_THORIUM_SINGLE, FUEL_GLOWSTONE, FUEL_LITHIUM, FUEL_HD_URANIUM_SINGLE, FUEL_HD_PLUTONIUM_SINGLE, FUEL_EXCITED_URANIUM_SINGLE, FUEL_EXCITED_PLUTONIUM_SINGLE, FUEL_NAQUADAH_SINGLE, FUEL_NAQUADRIA_SINGLE, FUEL_TIBERIUM_SINGLE -> 1;
-            case FUEL_URANIUM_DUAL, FUEL_MOX_DUAL, FUEL_THORIUM_DUAL, FUEL_HD_URANIUM_DUAL, FUEL_HD_PLUTONIUM_DUAL, FUEL_EXCITED_URANIUM_DUAL, FUEL_EXCITED_PLUTONIUM_DUAL, FUEL_NAQUADAH_DUAL, FUEL_NAQUADRIA_DUAL, FUEL_TIBERIUM_DUAL -> 2;
-            case FUEL_CORE -> 16;
-            default -> 4;
-        };
-    }
-
-    /** Solid fuel absorption probabilities (matches fuels.yaml absorption_thermal / absorption_fast). */
-    public double getFuelAbsorptionProbability(NeutronType nType) {
-        boolean thermal = nType == NeutronType.THERMAL;
-        return switch (type) {
-            case FUEL_MOX_SINGLE, FUEL_MOX_DUAL, FUEL_MOX_QUAD, FUEL_HD_PLUTONIUM_SINGLE, FUEL_HD_PLUTONIUM_DUAL, FUEL_HD_PLUTONIUM_QUAD, FUEL_EXCITED_PLUTONIUM_SINGLE, FUEL_EXCITED_PLUTONIUM_DUAL, FUEL_EXCITED_PLUTONIUM_QUAD, FUEL_NAQUADAH_SINGLE, FUEL_NAQUADAH_DUAL, FUEL_NAQUADAH_QUAD, FUEL_NAQUADRIA_SINGLE, FUEL_NAQUADRIA_DUAL, FUEL_NAQUADRIA_QUAD -> thermal
-                ? 0.85
-                : 0.30;
-            case FUEL_LITHIUM -> thermal ? 0.85 : 0.20;
-            case FUEL_GLOWSTONE -> thermal ? 0.80 : 0.20;
-            case FUEL_CORE -> thermal ? 0.90 : 0.35;
-            default -> thermal ? 0.80 : 0.25;
-        };
+        if (isNeutronSource()) return 4;
+        if (isLiquidFuelHatch()) return TileProperties.liquidPacketCount(inputFluidAmount);
+        FuelData fd = getFuelData();
+        return fd != null ? TileProperties.solidPacketCount(fd) : 1;
     }
 
     public double getBaseAbsorptionProbability(NeutronType nType) {
-        if (type == TileType.INSULATOR_NAQUARITE_FOIL) {
-            return 1.0;
-        }
-        if (isRadiovoltaic()) {
-            return (type == TileType.RADIOVOLTAIC_HV) ? 0.40 : 0.60;
-        }
-        if (isModerator()) {
-            return switch (type) {
-                case MODERATOR_GRAPHITE -> (nType == NeutronType.FAST) ? 0.002 : 0.009;
-                case MODERATOR_CARBON -> (nType == NeutronType.FAST) ? 0.003 : 0.012;
-                case MODERATOR_BERYLLIUM -> (nType == NeutronType.FAST) ? 0.001 : 0.004;
-                default -> 0.01;
-            };
-        }
         if (type == TileType.CONTROL_ROD) {
             return (nType == NeutronType.THERMAL) ? 0.95 : 0.85;
         }
         if (type == TileType.PASSAGE_CORE) {
             return (nType == NeutronType.THERMAL) ? 0.05 : 0.02;
         }
-        if (isLiquidFuelHatch()) {
-            if (inputFluidAmount <= 0) return 0.01;
-            return (nType == NeutronType.THERMAL) ? 0.85 : 0.25;
-        }
-        if (isFuel()) {
-            return getFuelAbsorptionProbability(nType);
-        }
-        if (isCoolantHatch()) {
-            if (inputFluidAmount <= 0) return 0.01;
-            return switch (type) {
-                case HATCH_HEAVY_WATER -> (nType == NeutronType.THERMAL) ? 0.01 : 0.005;
-                case HATCH_DISTILLED_WATER -> (nType == NeutronType.THERMAL) ? 0.10 : 0.05;
-                case HATCH_IC2_COOLANT -> (nType == NeutronType.THERMAL) ? 0.12 : 0.03;
-                default -> 0.05;
-            };
-        }
-        return switch (type) {
-            case REFLECTOR_GOLD -> (nType == NeutronType.FAST) ? 0.15 : 0.10;
-            case REFLECTOR_STAINLESS -> (nType == NeutronType.FAST) ? 0.10 : 0.05;
-            case REFLECTOR_TUNGSTEN_CARBIDE -> (nType == NeutronType.FAST) ? 0.07 : 0.02;
-            case REFLECTOR_IC2 -> (nType == NeutronType.FAST) ? 0.01 : 0.02;
-            case REFLECTOR_IC2_THICK -> (nType == NeutronType.FAST) ? 0.005 : 0.01;
-            case REFLECTOR_BERYLLIUM, REFLECTOR_CARBON -> 0.02;
-            case COOLANT_CELL_10K, COOLANT_CELL_60K, COOLANT_CELL_360K, VENT_STANDARD, VENT_ADVANCED, VENT_OVERCLOCKED, VENT_COMPONENT, EXCHANGER_STANDARD, EXCHANGER_ADVANCED, EXCHANGER_COMPONENT -> 0.03;
-            default -> 0.01;
-        };
+        return TileProperties.absorption(getContent(), nType);
     }
 
     public double getControlRodAbsorptionProbability(NeutronType nType) {
@@ -818,56 +695,10 @@ public class SimTile implements INuclearTile {
     }
 
     public double getBaseScatteringProbability(NeutronType nType) {
-        if (type == TileType.INSULATOR_NAQUARITE_FOIL) {
-            return 0.0;
-        }
-        if (isRadiovoltaic()) {
-            return 0.0;
-        }
-        if (isModerator()) {
-            return switch (type) {
-                case MODERATOR_GRAPHITE -> (nType == NeutronType.FAST) ? 0.93 : 0.621;
-                case MODERATOR_CARBON -> (nType == NeutronType.FAST) ? 0.90 : 0.60;
-                case MODERATOR_BERYLLIUM -> (nType == NeutronType.FAST) ? 0.96 : 0.85;
-                default -> 0.10;
-            };
-        }
-        if (type == TileType.REFLECTOR_GOLD) {
-            return (nType == NeutronType.THERMAL) ? 0.90 : 0.85;
-        }
-        if (type == TileType.REFLECTOR_STAINLESS) {
-            return (nType == NeutronType.THERMAL) ? 0.95 : 0.90;
-        }
-        if (type == TileType.REFLECTOR_TUNGSTEN_CARBIDE) {
-            return (nType == NeutronType.THERMAL) ? 0.98 : 0.93;
-        }
-        if (type == TileType.REFLECTOR_IC2) {
-            return (nType == NeutronType.THERMAL) ? 0.98 : 0.95;
-        }
-        if (type == TileType.REFLECTOR_IC2_THICK) {
-            return (nType == NeutronType.THERMAL) ? 0.99 : 0.98;
-        }
-        if (type == TileType.REFLECTOR_BERYLLIUM || type == TileType.REFLECTOR_CARBON) {
-            return (nType == NeutronType.THERMAL) ? 0.98 : 0.95;
-        }
         if (type == TileType.PASSAGE_CORE) {
             return 0.80;
         }
-        if (isLiquidFuelHatch()) {
-            if (inputFluidAmount <= 0) return 0.02;
-            return (nType == NeutronType.THERMAL) ? 0.10 : 0.15;
-        }
-        if (isCoolantHatch()) {
-            if (inputFluidAmount <= 0) return 0.02;
-            return switch (type) {
-                case HATCH_HEAVY_WATER -> (nType == NeutronType.THERMAL) ? 0.85 : 0.85;
-                case HATCH_DISTILLED_WATER -> (nType == NeutronType.THERMAL) ? 0.70 : 0.70;
-                case HATCH_IC2_COOLANT -> (nType == NeutronType.THERMAL) ? 0.45 : 0.45;
-                default -> 0.10;
-            };
-        }
-        if (isFuel()) return (nType == NeutronType.THERMAL) ? 0.10 : 0.15;
-        return 0.05;
+        return TileProperties.scattering(getContent(), nType);
     }
 
     @Override
@@ -888,47 +719,10 @@ public class SimTile implements INuclearTile {
 
     @Override
     public double getModerationProbability() {
-        if (isRadiovoltaic()) {
-            return 0.0;
-        }
-        if (isNeutronSource() || type == TileType.EMPTY) {
-            return 0.05;
-        }
-        if (isModerator()) {
-            return switch (type) {
-                case MODERATOR_GRAPHITE -> 0.50;
-                case MODERATOR_CARBON -> 0.45;
-                case MODERATOR_BERYLLIUM -> 0.65;
-                default -> 0.50;
-            };
-        }
-        if (type == TileType.REFLECTOR_GOLD || type == TileType.REFLECTOR_STAINLESS
-            || type == TileType.REFLECTOR_TUNGSTEN_CARBIDE) {
-            return 0.0;
-        }
-        if (type == TileType.REFLECTOR_IC2 || type == TileType.REFLECTOR_BERYLLIUM
-            || type == TileType.REFLECTOR_CARBON) {
-            return 0.20;
-        }
-        if (type == TileType.REFLECTOR_IC2_THICK) {
-            return 0.25;
-        }
         if (type == TileType.PASSAGE_CORE) {
             return 0.05;
         }
-        if (isLiquidFuelHatch()) {
-            return 0.10;
-        }
-        if (isCoolantHatch()) {
-            if (inputFluidAmount <= 0) return 0.05;
-            return switch (type) {
-                case HATCH_HEAVY_WATER -> 0.90;
-                case HATCH_DISTILLED_WATER -> 0.25;
-                case HATCH_IC2_COOLANT -> 0.05;
-                default -> 0.05;
-            };
-        }
-        return 0.05;
+        return TileProperties.moderation(getContent());
     }
 
     @Override
@@ -1072,13 +866,9 @@ public class SimTile implements INuclearTile {
             }
         } else if (isModerator() && !depleted) {
             double ambient = NuclearSimulationEngine.AMBIENT_TEMP;
-            double k = switch (type) {
-                case MODERATOR_CARBON -> 0.0005;
-                case MODERATOR_GRAPHITE -> 0.0003;
-                case MODERATOR_BERYLLIUM -> 0.0002;
-                default -> 0.0003;
-            };
-            double a = (type == TileType.MODERATOR_BERYLLIUM) ? 0.5 : 1.0;
+            ComponentData.ModeratorData mod = getModeratorData();
+            double k = mod.tempWearK;
+            double a = mod.tempWearA;
             double tempDmg = (temperature > ambient) ? a * (Math.exp(k * (temperature - ambient)) - 1.0) : 0.0;
             tempDmg *= dt;
             double fastWearMult = NuclearSimulationEngine.fastAbsorptionDamageMultiplier;
@@ -1512,54 +1302,13 @@ public class SimTile implements INuclearTile {
     }
 
     /** Defaults matching components.yaml (HV: 1024 EU/t, EV: 4096 EU/t; 95% output at 10 absorbed per second). */
-    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData getRadiovoltaicData() {
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData rv = new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData();
-        rv.tier = (type == TileType.RADIOVOLTAIC_EV) ? 2 : 1;
-        rv.maxEU = (type == TileType.RADIOVOLTAIC_EV) ? 4096 : 1024;
-        return rv;
+    public ComponentData.RadiovoltaicData getRadiovoltaicData() {
+        return contentOf(type).radiovoltaic();
     }
 
     @Override
-    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData getHeatVentData() {
-        return switch (type) {
-            case VENT_STANDARD -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData(
-                "vent_standard",
-                "Reactor Heat Vent",
-                0.40,
-                6.0,
-                0.0,
-                0.05,
-                128,
-                512.0);
-            case VENT_ADVANCED -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData(
-                "vent_gold",
-                "Advanced Heat Vent",
-                0.45,
-                12.0,
-                0.0,
-                0.05,
-                512,
-                2048.0);
-            case VENT_OVERCLOCKED -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData(
-                "vent_spread",
-                "Overclocked Heat Vent",
-                0.40,
-                8.0,
-                0.0,
-                0.05,
-                1024,
-                4096.0);
-            case VENT_COMPONENT -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData(
-                "vent_diamond",
-                "Component Heat Vent",
-                0.50,
-                20.0,
-                0.0,
-                0.05,
-                2048,
-                8192.0);
-            default -> null;
-        };
+    public ComponentData.HeatVentData getHeatVentData() {
+        return contentOf(type).heatVent();
     }
 
     @Override
@@ -1571,37 +1320,8 @@ public class SimTile implements INuclearTile {
     }
 
     @Override
-    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData getHeatExchangerData() {
-        return switch (type) {
-            case EXCHANGER_STANDARD -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData(
-                "exchanger_standard",
-                "Heat Exchanger",
-                0.40,
-                12.0,
-                0.0,
-                0.05,
-                256,
-                1024.0);
-            case EXCHANGER_ADVANCED -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData(
-                "exchanger_spread",
-                "Advanced Heat Exchanger",
-                0.45,
-                24.0,
-                0.0,
-                0.05,
-                512,
-                2048.0);
-            case EXCHANGER_COMPONENT -> new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData(
-                "exchanger_diamond",
-                "Component Heat Exchanger",
-                0.50,
-                36.0,
-                0.0,
-                0.05,
-                1024,
-                4096.0);
-            default -> null;
-        };
+    public ComponentData.HeatExchangerData getHeatExchangerData() {
+        return contentOf(type).heatExchanger();
     }
 
     public long drainedEnergy = 0;
@@ -1677,76 +1397,8 @@ public class SimTile implements INuclearTile {
     }
 
     @Override
-    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData getModeratorData() {
-        if (type == TileType.MODERATOR_GRAPHITE) {
-            return new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData(
-                "moderator_graphite",
-                "Graphite Moderator",
-                0.002,
-                0.009,
-                0.93,
-                0.621,
-                0.50,
-                0.05,
-                2500.0,
-                80000,
-                "ore:dustAsh",
-                0.0003,
-                1.0,
-                1500.0,
-                2500.0,
-                0.0,
-                1.0,
-                1500.0,
-                2500.0,
-                2000.0,
-                10000.0);
-        } else if (type == TileType.MODERATOR_CARBON) {
-            return new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData(
-                "moderator_carbon",
-                "Carbon Moderator",
-                0.003,
-                0.012,
-                0.90,
-                0.60,
-                0.45,
-                0.05,
-                2200.0,
-                10000,
-                "ore:dustAsh",
-                0.0005,
-                1.0,
-                1500.0,
-                2500.0,
-                0.0,
-                0.0,
-                1500.0,
-                2500.0,
-                0.0);
-        } else if (type == TileType.MODERATOR_BERYLLIUM) {
-            return new com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData(
-                "moderator_beryllium",
-                "Beryllium Moderator",
-                0.001,
-                0.004,
-                0.96,
-                0.85,
-                0.65,
-                0.15,
-                2600.0,
-                240000,
-                "",
-                0.0002,
-                0.5,
-                1500.0,
-                2500.0,
-                0.0,
-                0.0,
-                1500.0,
-                2500.0,
-                0.0);
-        }
-        return null;
+    public ComponentData.ModeratorData getModeratorData() {
+        return contentOf(type).moderator();
     }
 
     @Override

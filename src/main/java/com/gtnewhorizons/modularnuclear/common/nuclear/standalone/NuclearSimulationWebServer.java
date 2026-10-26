@@ -13,6 +13,7 @@ public class NuclearSimulationWebServer {
     private static StandaloneNuclearGrid grid;
 
     public static void main(String[] args) {
+        com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.loadDefaults();
         if (args.length >= 2 && "--export-html".equals(args[0])) {
             try {
                 java.io.File file = new java.io.File(args[1]);

@@ -13,11 +13,12 @@ import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileContent;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
 
 /**
- * The standalone simulator (compiled to WebAssembly) cannot read the YAML config, so SimTile carries its own copy of
- * the fuel defaults. This test keeps that copy identical to the game's fuels.yaml defaults.
+ * The standalone simulator (compiled to WebAssembly) reads fuel and component properties from the same embedded config
+ * as the game, through each tile type's config id. These tests check every id resolves and the values come through.
  */
 public class SimulatorFuelParityTest {
 
@@ -51,6 +52,17 @@ public class SimulatorFuelParityTest {
         if (Math.abs(sim - cfg) > 1e-6) {
             diffs.add(String.format(Locale.US, "%s %s: simulator %s, fuels.yaml %s", id, field, sim, cfg));
         }
+    }
+
+    @Test
+    void testEveryTileConfigIdResolves() {
+        ReactorDataRegistry.loadDefaults();
+        List<String> missing = new ArrayList<>();
+        for (SimTile.TileType type : SimTile.TileType.values()) {
+            if (type.configId == null) continue;
+            if (SimTile.contentOf(type).kind == TileContent.Kind.OTHER) missing.add(type + " -> " + type.configId);
+        }
+        assertTrue(missing.isEmpty(), "Tile config ids without a config entry: " + missing);
     }
 
     @Test

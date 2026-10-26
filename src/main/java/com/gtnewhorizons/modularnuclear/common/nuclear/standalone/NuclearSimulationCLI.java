@@ -20,7 +20,7 @@ public class NuclearSimulationCLI {
     public static final String ANSI_WHITE_BOLD = "\u001B[1;37m";
 
     public static void main(String[] args) {
-        com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadDefaults();
+        com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.loadDefaults();
         String preset = "BASIC_ELECTRUM_5X5";
         String layout = null;
         int size = 5;

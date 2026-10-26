@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.teavm.interop.Export;
 
+import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
@@ -21,10 +22,13 @@ public class NuclearSimWasmBridge {
         loadPreset("BEST_PLATINUM_9X9");
     }
 
+    static {
+        // Same defaults as the game: physics.yaml, fuels.yaml and components.yaml embedded at build time.
+        ReactorConfigData.loadDefaults();
+    }
+
     @Export(name = "initGrid")
     public static void initGrid(int width, int height, int pipeTier) {
-        NuclearSimulationEngine.setGlobalThermalFissionMultiplier(0.350);
-        NuclearSimulationEngine.fissionHeatPerNeutron = 76.0;
         grid = new StandaloneNuclearGrid(width, height, pipeTier);
     }
 
