@@ -17,34 +17,49 @@ import org.yaml.snakeyaml.Yaml;
  * code without a YAML parser (the TeaVM/WebAssembly simulator) loads exactly the same defaults as the game.
  *
  * <p>
- * Usage: {@code ReactorDefaultsGenerator <default_config dir> <output source root>}
+ * Usage: {@code ReactorDefaultsGenerator <output source root> [<default_config dir> <package> <class> <name>...]...},
+ * groups separated by {@code --}. Each group turns {@code <dir>/<name>.yaml} into a {@code <name>()} method returning
+ * the document as JSON.
  */
 public final class ReactorDefaultsGenerator {
 
-    private static final String PACKAGE = "com.gtnewhorizons.modularnuclear.common.config";
-    private static final String CLASS = "ReactorDefaultsJson";
-    private static final String[] FILES = { "physics", "tiers", "fuels", "components" };
     /** Keeps each string constant well below the class-file limit of 65535 bytes. */
     private static final int CHUNK = 8000;
 
     public static void main(String[] args) throws IOException {
-        Path configDir = Paths.get(args[0]);
-        Path outRoot = Paths.get(args[1]);
-        Path outFile = outRoot.resolve(PACKAGE.replace('.', '/'))
-            .resolve(CLASS + ".java");
+        Path outRoot = Paths.get(args[0]);
+        int i = 1;
+        while (i < args.length) {
+            Path configDir = Paths.get(args[i]);
+            String pkg = args[i + 1];
+            String cls = args[i + 2];
+            java.util.List<String> names = new java.util.ArrayList<>();
+            i += 3;
+            while (i < args.length && !"--".equals(args[i])) names.add(args[i++]);
+            i++;
+            generate(outRoot, configDir, pkg, cls, names);
+        }
+    }
+
+    private static void generate(Path outRoot, Path configDir, String pkg, String cls, java.util.List<String> names)
+        throws IOException {
+        Path outFile = outRoot.resolve(pkg.replace('.', '/'))
+            .resolve(cls + ".java");
         Files.createDirectories(outFile.getParent());
 
         StringBuilder src = new StringBuilder();
         src.append("package ")
-            .append(PACKAGE)
+            .append(pkg)
             .append(";\n\n");
-        src.append("/** Generated from assets/modularnuclear/default_config/*.yaml by ReactorDefaultsGenerator. */\n");
+        src.append("/** Generated from ")
+            .append(configDir.getFileName())
+            .append("/*.yaml by ReactorDefaultsGenerator. */\n");
         src.append("public final class ")
-            .append(CLASS)
+            .append(cls)
             .append(" {\n\n    private ")
-            .append(CLASS)
+            .append(cls)
             .append("() {}\n");
-        for (String name : FILES) {
+        for (String name : names) {
             Object data;
             try (Reader r = Files.newBufferedReader(configDir.resolve(name + ".yaml"), StandardCharsets.UTF_8)) {
                 data = new Yaml().load(r);
@@ -54,9 +69,9 @@ public final class ReactorDefaultsGenerator {
             src.append("\n    public static String ")
                 .append(name)
                 .append("() {\n        return new StringBuilder()");
-            for (int i = 0; i < json.length(); i += CHUNK) {
+            for (int k = 0; k < json.length(); k += CHUNK) {
                 src.append("\n            .append(\"");
-                escapeJava(src, json.substring(i, Math.min(json.length(), i + CHUNK)));
+                escapeJava(src, json.substring(k, Math.min(json.length(), k + CHUNK)));
                 src.append("\")");
             }
             src.append("\n            .toString();\n    }\n");

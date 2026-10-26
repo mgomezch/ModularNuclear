@@ -31,15 +31,22 @@ dependencies {
 
 val reactorDefaultsSourceDir = layout.buildDirectory.dir("generated/sources/reactorDefaults/java")
 val defaultConfigDir = file("src/main/resources/assets/modularnuclear/default_config")
+val coolantDefaultConfigDir = file("src/main/resources/assets/coolantloops/default_config")
 
 val generateReactorDefaults by tasks.registering(JavaExec::class) {
     group = "build"
-    description = "Embeds the default reactor YAML config as JSON constants (ReactorDefaultsJson)"
+    description = "Embeds the default reactor and coolant loop YAML configs as JSON constants"
     classpath = configGen.runtimeClasspath
     mainClass.set("com.gtnewhorizons.modularnuclear.configgen.ReactorDefaultsGenerator")
     inputs.dir(defaultConfigDir)
+    inputs.dir(coolantDefaultConfigDir)
     outputs.dir(reactorDefaultsSourceDir)
-    args(defaultConfigDir.absolutePath, reactorDefaultsSourceDir.get().asFile.absolutePath)
+    args(
+        reactorDefaultsSourceDir.get().asFile.absolutePath,
+        defaultConfigDir.absolutePath, "com.gtnewhorizons.modularnuclear.common.config", "ReactorDefaultsJson",
+        "physics", "tiers", "fuels", "components", "--",
+        coolantDefaultConfigDir.absolutePath, "com.gtnewhorizons.coolantloops.common.config", "CoolantLoopDefaultsJson",
+        "physics", "fluids", "pipes", "devices")
 }
 
 sourceSets.main {

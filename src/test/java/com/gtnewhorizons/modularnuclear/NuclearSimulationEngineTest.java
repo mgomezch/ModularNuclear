@@ -698,7 +698,8 @@ public class NuclearSimulationEngineTest {
             1,
             com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD);
         grid.setTile(0, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
-        for (int i = 0; i < 10; i++) {
+        // Neutron rays leave in random directions, so allow enough cycles for one to reach the plate.
+        for (int i = 0; i < 100; i++) {
             grid.step();
             if (grid.getFlowDirectEU() > 0) break;
         }

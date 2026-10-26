@@ -1,0 +1,126 @@
+# ==========================================================================
+# Coolant Loops: Thermodynamic Fluid Properties
+# All units are standard SI (kg/m^3, Pa*s, J/(kg*K), W/(m*K), deg C)
+# ==========================================================================
+
+fluids:
+  water:
+    fluidName: "water"
+    density: 1000.0
+    dynamicViscosity: 0.001
+    specificHeat: 4184.0
+    thermalConductivity: 0.606
+    boilingPointCelsius: 100.0
+    freezingPointCelsius: 0.0
+    isMolten: false
+    radiolysisMultiplier: 1.0
+    spillOnRupture: true
+    aliases:
+      - "minecraft:water"
+
+  ic2distilledwater:
+    fluidName: "ic2distilledwater"
+    density: 998.0
+    dynamicViscosity: 0.00095
+    specificHeat: 4186.0
+    thermalConductivity: 0.610
+    boilingPointCelsius: 100.0
+    freezingPointCelsius: 0.0
+    isMolten: false
+    radiolysisMultiplier: 1.0
+    spillOnRupture: true
+    aliases:
+      - "distilledwater"
+      - "distilled_water"
+      - "water.distilled"
+
+  heavywater:
+    fluidName: "heavywater"
+    density: 1105.0
+    dynamicViscosity: 0.00125
+    specificHeat: 4210.0
+    thermalConductivity: 0.595
+    boilingPointCelsius: 101.4
+    freezingPointCelsius: 3.8
+    isMolten: false
+    radiolysisMultiplier: 1.0
+    spillOnRupture: true
+    aliases:
+      - "heavy_water"
+      - "water.heavy"
+
+  ic2coolant:
+    fluidName: "ic2coolant"
+    density: 1080.0
+    dynamicViscosity: 0.0025
+    specificHeat: 3800.0
+    thermalConductivity: 0.520
+    boilingPointCelsius: Infinity
+    freezingPointCelsius: -Infinity
+    isMolten: false
+    radiolysisMultiplier: 1.0
+    spillOnRupture: true
+    aliases:
+      - "coolant"
+
+  sodium:
+    fluidName: "sodium"
+    density: 927.0
+    dynamicViscosity: 0.0007
+    specificHeat: 1260.0
+    thermalConductivity: 86.0
+    boilingPointCelsius: Infinity
+    freezingPointCelsius: 97.8
+    isMolten: false
+    radiolysisMultiplier: 1.0
+    spillOnRupture: true
+    aliases:
+      - "fluid.sodium"
+      - "liquid.sodium"
+
+  molten.cheese:
+    fluidName: "molten.cheese"
+    density: 1120.0
+    dynamicViscosity: 0.557
+    specificHeat: 3000.0
+    thermalConductivity: 0.481
+    boilingPointCelsius: Infinity
+    freezingPointCelsius: 46.85
+    isMolten: true
+    radiolysisMultiplier: 1.0
+    spillOnRupture: true
+    aliases:
+      - "cheese"
+      - "moltencheese"
+
+  lava:
+    fluidName: "lava"
+    density: 3000.0
+    dynamicViscosity: 0.001
+    specificHeat: 1250.0
+    thermalConductivity: 1.5
+    boilingPointCelsius: Infinity
+    freezingPointCelsius: 1000.0
+    isMolten: true
+    radiolysisMultiplier: 1.0
+    spillOnRupture: true
+    aliases:
+      - "fluid.lava"
+      - "minecraft:lava"
+
+# Liquid nuclear fuels that destroy impellers and fail closed-loop pumps
+liquidNuclearFuels:
+  - "liquidfuel"
+  - "liquid_fuel"
+  - "nuclearfuel"
+  - "uraniumhexafluoride"
+  - "uraniumtetrafluoride"
+  - "thoriumbasedliquidfuel"
+  - "uraniumbasedliquidfuel"
+  - "plutoniumbasedliquidfuel"
+  - "naquadahbasedliquidfuel"
+  - "liquid_naquadah_fuel"
+  - "depletedthoriumbasedliquidfuel"
+  - "depleteduraniumbasedliquidfuel"
+  - "depletedplutoniumbasedliquidfuel"
+  - "depletednaquadahbasedliquidfuel"

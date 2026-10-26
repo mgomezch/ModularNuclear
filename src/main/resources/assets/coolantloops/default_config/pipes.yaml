@@ -1,0 +1,57 @@
+# ==========================================================================
+# Coolant Loops: Piping Hydrodynamics & Burst Limits
+# ==========================================================================
+
+# Maximum burst pressure ratings in bar for pipe materials
+materialPressureRatingsBar:
+  castiron: 16.0
+  iron: 16.0
+  wroughtiron: 15.0
+  steel: 35.0
+  stainlesssteel: 70.0
+  titanium: 140.0
+  tungstensteel: 280.0
+  osmium: 600.0
+  neutronium: 3000.0
+
+# Maximum operating temperature limits in degrees Celsius
+materialTemperatureLimitsCelsius:
+  castiron: 1538.0
+  iron: 1538.0
+  wroughtiron: 1500.0
+  steel: 1500.0
+  stainlesssteel: 1700.0
+  titanium: 1668.0
+  tungstensteel: 3000.0
+  osmium: 3033.0
+  neutronium: 10000.0
+
+# Inner flow diameter (meters) by GregTech pipe thickness
+thicknessDiameters:
+  tiny: 0.05
+  small: 0.075
+  normal: 0.10
+  large: 0.15
+  huge: 0.20
+
+# Materials permitted for closed coolant loops (must match Railcraft tank compatibility)
+allowedMaterials:
+  - "steel"
+  - "iron"
+  - "castiron"
+  - "wroughtiron"
+  - "stainlesssteel"
+  - "titanium"
+  - "tungstensteel"
+  - "osmium"
+  - "neutronium"
+
+# Material equivalence families for loop continuity validation
+materialFamilies:
+  iron:
+    - "iron"
+    - "castiron"
+    - "wroughtiron"
+
+# Standard commercial metal pipe surface roughness (meters)
+defaultRoughness: 0.000045

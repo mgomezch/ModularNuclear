@@ -1,0 +1,41 @@
+# ==========================================================================
+# Coolant Loops: Multiblock Device Parameters (PHE, Degasser, Reservoir)
+# ==========================================================================
+
+# Pressurized Heat Exchanger
+phe:
+  exchangeArea: 24.0                # Internal tube bundle surface area in m^2
+  minorLossK: 1.2                  # Minor loss coefficient across bundle
+  latentHeatJoulePerLiter: 2260000.0 # Latent heat of vaporization for water (J/L)
+  steamExpansionRatio: 160          # 1 Liter water -> 160 Liters steam
+  superheatedTempThreshold: 300.0   # Coolant temp for superheated steam (deg C)
+  supercriticalTempThreshold: 700.0 # Coolant temp for supercritical steam (deg C)
+  approachMinDeltaT: 5.0            # Minimum pinch point approach temperature difference (deg C)
+  superheatThresholdDeltaT: 10.0    # Superheat threshold delta above boiling for vapor production (deg C)
+  allowedSecondaryFluids:
+    - "ic2distilledwater"
+    - "distilledwater"
+    - "distilled_water"
+    - "water.distilled"
+
+# Pressurized Degasser
+degasser:
+  minorLossK: 1.5                  # Column packing minor loss coefficient
+  gasExtractionEfficiency: 0.25     # Maximum fraction of dissolved gas extracted per crossing
+  gasExtractionPowerEuPerLiter: 8.0 # EU consumed per liter of gas separated
+
+# Coolant Bath
+bath:
+  fillVolumePerSlotLiters: 1000   # Coolant fill volume per item slot in Liters
+  baseMinorLossK: 1.0            # Base minor loss coefficient of empty bath
+  itemMinorLossK: 1.0            # Additional minor loss K per active item in bath
+
+# Creative Heat Reservoir
+reservoir:
+  exchangeArea: 2.0                # Heat exchange surface area in m^2
+  temperaturePresets:
+    - 20.0
+    - 100.0
+    - 300.0
+    - 600.0
+    - 1000.0

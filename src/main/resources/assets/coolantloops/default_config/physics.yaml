@@ -1,0 +1,51 @@
+# ==========================================================================
+# Coolant Loops: Hydrodynamic & Convective Physics Configuration
+# ==========================================================================
+
+# Velocity at which turbulence begins in m/s (default 0.5 m/s)
+vTurbulent: 0.5
+
+# Velocity at which boundary layer saturation begins in m/s (default 3.0 m/s)
+vSaturation: 3.0
+
+# Convection slope in laminar regime in W/(m^2*K) / (m/s) (default 120.0)
+hLaminarSlope: 120.0
+
+# Scaling factor for turbulent jump in W/(m^2*K) (default 1500.0)
+hTurbulentFactor: 1500.0
+
+# Maximum asymptotic saturation coefficient in W/(m^2*K) (default 5000.0)
+hMax: 5000.0
+
+# Minor loss drag coefficient for unpowered impeller coast-down (default 8.0)
+unpoweredImpellerK: 8.0
+
+# Maximum stall head pressure in Pascals (default .inf / uncapped; physically governed by motor power)
+maxPumpHeadPressurePa: .inf
+
+# Mechanical power output (Watts) delivered per EU drawn by pump (default 80.0)
+pumpMechanicalPowerPerEU: 80.0
+
+# Primary loop fill rate from Railcraft tank in L/tick (default 1000)
+fillRateLitersPerTick: 1000
+
+# Fallback ambient temperature in degrees Celsius (default 20.0)
+defaultAmbientTemp: 20.0
+
+# Thermal softening and creep wear acceleration exponent (default 4.0)
+rotorThermalAlpha: 4.0
+
+# Cavitation wear multiplier when dissolved gas is present (default 10.0)
+cavitationWearMultiplier: 10.0
+
+# Viscous coast-down decay factor per tick when unpowered (default 0.98)
+coastDownDecay: 0.98
+
+# Standard reactor passage length in meters (default 5.0)
+standardPassageLength: 5.0
+
+# Standard reactor passage inner diameter in meters (default 0.10)
+standardPassageDiameter: 0.10
+
+# Commercial metal pipe standard roughness in meters (default 0.000045)
+defaultPipeRoughness: 0.000045

@@ -6,7 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.gtnewhorizons.coolantloops.common.config.CoolantLoopDataRegistry;
+import com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData;
 
 /**
  * 1D Closed-Loop Hydrodynamic and Thermodynamic Simulation Engine.
@@ -154,12 +154,12 @@ public class CoolantLoopEngine {
 
     public CoolantLoopEngine(CoolantFluidProperty fluid) {
         this.fluid = fluid != null ? fluid : CoolantFluidProperty.DISTILLED_WATER;
-        if (CoolantLoopDataRegistry.getPhysicsData() != null) {
-            this.unpoweredImpellerK = CoolantLoopDataRegistry.getPhysicsData()
+        if (CoolantLoopConfigData.getPhysicsData() != null) {
+            this.unpoweredImpellerK = CoolantLoopConfigData.getPhysicsData()
                 .getUnpoweredImpellerK();
-            this.maxPumpHeadPressurePa = CoolantLoopDataRegistry.getPhysicsData()
+            this.maxPumpHeadPressurePa = CoolantLoopConfigData.getPhysicsData()
                 .getMaxPumpHeadPressurePa();
-            this.coastDownDecay = CoolantLoopDataRegistry.getPhysicsData()
+            this.coastDownDecay = CoolantLoopConfigData.getPhysicsData()
                 .getCoastDownDecay();
         }
     }
