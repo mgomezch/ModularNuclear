@@ -37,12 +37,18 @@ public final class ReactorConfigData {
     static final Map<Integer, TierData> tierDataMap = new LinkedHashMap<>();
     static final List<FuelData> fuels = new ArrayList<>();
     static ComponentData componentData = new ComponentData();
-    private static boolean defaultsLoaded = false;
+    private static volatile boolean defaultsLoaded = false;
+    private static int generation = 0;
 
     private ReactorConfigData() {}
 
     /** Loads the built-in defaults and pushes the physics constants into the engine. */
     public static synchronized void loadDefaults() {
+        loadBuiltInDefaults();
+        syncPhysicsToEngine();
+    }
+
+    private static void loadBuiltInDefaults() {
         loadFrom(
             MiniJson.parse(ReactorDefaultsJson.physics()),
             MiniJson.parse(ReactorDefaultsJson.tiers()),
@@ -51,14 +57,26 @@ public final class ReactorConfigData {
         defaultsLoaded = true;
     }
 
-    /** Loads the defaults once; later calls keep whatever is loaded (including overrides). */
-    public static synchronized void ensureDefaultsLoaded() {
-        if (!defaultsLoaded) loadDefaults();
+    /**
+     * Loads the built-in defaults if nothing has been loaded yet, without touching the engine's physics constants
+     * (which a caller may already have set).
+     */
+    public static void ensureLoaded() {
+        if (!defaultsLoaded) loadIfNeeded();
+    }
+
+    private static synchronized void loadIfNeeded() {
+        if (!defaultsLoaded) loadBuiltInDefaults();
+    }
+
+    /** Incremented whenever the configuration changes, so callers can invalidate derived caches. */
+    public static int generation() {
+        return generation;
     }
 
     /**
      * Replaces the whole configuration with parsed documents shaped like physics.yaml, tiers.yaml, fuels.yaml and
-     * components.yaml.
+     * components.yaml. Does not sync the engine; call {@link #syncPhysicsToEngine()} for that.
      */
     @SuppressWarnings("unchecked")
     public static synchronized void loadFrom(Object physicsDoc, Object tiersDoc, Object fuelsDoc,
@@ -68,7 +86,6 @@ public final class ReactorConfigData {
             Object phys = ((Map<String, Object>) m).getOrDefault("physics", m);
             if (phys instanceof Map<?, ?>pm) physicsData = PhysicsData.fromMap((Map<String, Object>) pm);
         }
-        syncPhysicsToEngine();
 
         tierDataMap.clear();
         for (Object o : listOf(tiersDoc, "tiers")) {
@@ -85,6 +102,8 @@ public final class ReactorConfigData {
 
         componentData = (componentsDoc instanceof Map<?, ?>cm) ? ComponentData.fromMap((Map<String, Object>) cm)
             : new ComponentData();
+        defaultsLoaded = true;
+        generation++;
     }
 
     private static List<?> listOf(Object doc, String key) {
@@ -103,6 +122,7 @@ public final class ReactorConfigData {
             deepMerge(merged, (Map<String, Object>) pm);
             physicsData = PhysicsData.fromMap(merged);
         }
+        generation++;
         syncPhysicsToEngine();
     }
 
@@ -129,10 +149,12 @@ public final class ReactorConfigData {
     }
 
     public static PhysicsData getPhysics() {
+        ensureLoaded();
         return physicsData;
     }
 
     public static TierData getTier(int tier) {
+        ensureLoaded();
         TierData td = tierDataMap.get(tier);
         if (td != null) return td;
         return tierDataMap
@@ -140,23 +162,28 @@ public final class ReactorConfigData {
     }
 
     public static boolean hasTier(int tier) {
+        ensureLoaded();
         return tierDataMap.containsKey(tier);
     }
 
     public static List<TierData> getAllTiers() {
+        ensureLoaded();
         return new ArrayList<>(tierDataMap.values());
     }
 
     public static List<FuelData> getAllFuels() {
+        ensureLoaded();
         return Collections.unmodifiableList(fuels);
     }
 
     public static ComponentData getComponentData() {
+        ensureLoaded();
         return componentData;
     }
 
     /** Finds a fuel by its config id (e.g. {@code fuel_uranium_4}). */
     public static FuelData findFuelById(String id) {
+        ensureLoaded();
         if (id == null) return null;
         for (FuelData fd : fuels) {
             if (id.equals(fd.id)) return fd;
@@ -236,6 +263,7 @@ public final class ReactorConfigData {
     }
 
     public static void applyTierOverrides(Object obj) {
+        generation++;
         if (obj == null) return;
         Object rawTiers = obj;
         if (obj instanceof Map<?, ?>m && m.containsKey("tiers")) {
@@ -292,6 +320,7 @@ public final class ReactorConfigData {
     }
 
     public static void applyFuelOverrides(Object obj) {
+        generation++;
         if (obj == null) return;
         Object rawFuels = obj;
         if (obj instanceof Map<?, ?>m && m.containsKey("fuels")) {
@@ -327,6 +356,7 @@ public final class ReactorConfigData {
     }
 
     public static void applyComponentOverrides(Object obj) {
+        generation++;
         if (!(obj instanceof Map<?, ?>m)) return;
         @SuppressWarnings("unchecked")
         Map<String, Object> map = (Map<String, Object>) m;
