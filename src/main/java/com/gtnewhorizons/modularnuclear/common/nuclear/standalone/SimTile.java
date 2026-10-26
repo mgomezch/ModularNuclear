@@ -605,6 +605,63 @@ public class SimTile implements INuclearTile {
         };
     }
 
+    /** Base neutron yield per second before archetype multipliers (matches fuels.yaml base_neutrons). */
+    public int getRawBaseNeutrons() {
+        return switch (type) {
+            case FUEL_GLOWSTONE, FUEL_LITHIUM -> 1;
+            case FUEL_THORIUM_SINGLE -> 2;
+            case FUEL_THORIUM_DUAL -> 4;
+            case FUEL_THORIUM_QUAD -> 8;
+            case FUEL_URANIUM_SINGLE -> 4;
+            case FUEL_URANIUM_DUAL -> 8;
+            case FUEL_URANIUM_QUAD -> 16;
+            case FUEL_MOX_SINGLE -> 8;
+            case FUEL_MOX_DUAL -> 16;
+            case FUEL_MOX_QUAD -> 32;
+
+            case FUEL_HD_URANIUM_SINGLE -> 8;
+            case FUEL_HD_URANIUM_DUAL -> 16;
+            case FUEL_HD_URANIUM_QUAD -> 32;
+
+            case FUEL_HD_PLUTONIUM_SINGLE -> 12;
+            case FUEL_HD_PLUTONIUM_DUAL -> 24;
+            case FUEL_HD_PLUTONIUM_QUAD -> 48;
+
+            case FUEL_EXCITED_URANIUM_SINGLE -> 16;
+            case FUEL_EXCITED_URANIUM_DUAL -> 32;
+            case FUEL_EXCITED_URANIUM_QUAD -> 64;
+
+            case FUEL_EXCITED_PLUTONIUM_SINGLE -> 24;
+            case FUEL_EXCITED_PLUTONIUM_DUAL -> 48;
+            case FUEL_EXCITED_PLUTONIUM_QUAD -> 96;
+
+            case FUEL_NAQUADAH_SINGLE -> 16;
+            case FUEL_NAQUADAH_DUAL -> 32;
+            case FUEL_NAQUADAH_QUAD -> 64;
+
+            case FUEL_NAQUADRIA_SINGLE -> 20;
+            case FUEL_NAQUADRIA_DUAL -> 40;
+            case FUEL_NAQUADRIA_QUAD -> 80;
+
+            case FUEL_TIBERIUM_SINGLE -> 24;
+            case FUEL_TIBERIUM_DUAL -> 48;
+            case FUEL_TIBERIUM_QUAD -> 96;
+
+            case FUEL_CORE -> 512;
+            case HATCH_LIQUID_FUEL_THORIUM -> 4;
+            case HATCH_LIQUID_FUEL_URANIUM -> 8;
+            case HATCH_LIQUID_FUEL_PLUTONIUM -> 16;
+            default -> 4;
+        };
+    }
+
+    /** Thermal fission multiplier before archetype and global multipliers (matches fuels.yaml). */
+    public double getThermalFissionMultiplier() {
+        if (type == TileType.HATCH_LIQUID_FUEL_PLUTONIUM) return 1.80;
+        NuclearFuelType fuel = getFuelType();
+        return (fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0;
+    }
+
     @Override
     public int generateNeutrons(double efficiency) {
         double dt = (double) getTicksPerCycle() / 20.0;
@@ -625,52 +682,7 @@ public class SimTile implements INuclearTile {
             return 0;
         }
 
-        int rawBaseNeutrons = switch (type) {
-            case FUEL_GLOWSTONE, FUEL_LITHIUM -> 1;
-            case FUEL_THORIUM_SINGLE -> 2;
-            case FUEL_THORIUM_DUAL -> 4;
-            case FUEL_THORIUM_QUAD -> 8;
-            case FUEL_URANIUM_SINGLE -> 4;
-            case FUEL_URANIUM_DUAL -> 8;
-            case FUEL_URANIUM_QUAD -> 16;
-            case FUEL_MOX_SINGLE -> 8;
-            case FUEL_MOX_DUAL -> 16;
-            case FUEL_MOX_QUAD -> 32;
-
-            case FUEL_HD_URANIUM_SINGLE -> 4;
-            case FUEL_HD_URANIUM_DUAL -> 8;
-            case FUEL_HD_URANIUM_QUAD -> 16;
-
-            case FUEL_HD_PLUTONIUM_SINGLE -> 6;
-            case FUEL_HD_PLUTONIUM_DUAL -> 12;
-            case FUEL_HD_PLUTONIUM_QUAD -> 24;
-
-            case FUEL_EXCITED_URANIUM_SINGLE -> 8;
-            case FUEL_EXCITED_URANIUM_DUAL -> 16;
-            case FUEL_EXCITED_URANIUM_QUAD -> 32;
-
-            case FUEL_EXCITED_PLUTONIUM_SINGLE -> 12;
-            case FUEL_EXCITED_PLUTONIUM_DUAL -> 24;
-            case FUEL_EXCITED_PLUTONIUM_QUAD -> 48;
-
-            case FUEL_NAQUADAH_SINGLE -> 4;
-            case FUEL_NAQUADAH_DUAL -> 8;
-            case FUEL_NAQUADAH_QUAD -> 16;
-
-            case FUEL_NAQUADRIA_SINGLE -> 8;
-            case FUEL_NAQUADRIA_DUAL -> 16;
-            case FUEL_NAQUADRIA_QUAD -> 32;
-
-            case FUEL_TIBERIUM_SINGLE -> 12;
-            case FUEL_TIBERIUM_DUAL -> 24;
-            case FUEL_TIBERIUM_QUAD -> 48;
-
-            case FUEL_CORE -> 512;
-            case HATCH_LIQUID_FUEL_THORIUM -> 4;
-            case HATCH_LIQUID_FUEL_URANIUM -> 8;
-            case HATCH_LIQUID_FUEL_PLUTONIUM -> 16;
-            default -> 4;
-        };
+        int rawBaseNeutrons = getRawBaseNeutrons();
 
         NuclearFuelType fuel = getFuelType();
         String archetype = getArchetype();
@@ -682,8 +694,7 @@ public class SimTile implements INuclearTile {
         double frac = scaledBase - baseInt;
         int baseNeutrons = baseInt + (Math.random() < frac ? 1 : 0);
 
-        double baseThermalMult = (type == TileType.HATCH_LIQUID_FUEL_PLUTONIUM) ? 1.80
-            : ((fuel != null) ? fuel.baseThermalFissionMultiplier : 1.0);
+        double baseThermalMult = getThermalFissionMultiplier();
         double baseFissionMult = baseThermalMult * archFissMult;
         double effectiveFissionMult = baseFissionMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
         double baseFastFissionMult = ((fuel != null) ? fuel.baseFastFissionMultiplier : 0.10) * archFissMult;
@@ -713,6 +724,20 @@ public class SimTile implements INuclearTile {
         };
     }
 
+    /** Solid fuel absorption probabilities (matches fuels.yaml absorption_thermal / absorption_fast). */
+    public double getFuelAbsorptionProbability(NeutronType nType) {
+        boolean thermal = nType == NeutronType.THERMAL;
+        return switch (type) {
+            case FUEL_MOX_SINGLE, FUEL_MOX_DUAL, FUEL_MOX_QUAD, FUEL_HD_PLUTONIUM_SINGLE, FUEL_HD_PLUTONIUM_DUAL, FUEL_HD_PLUTONIUM_QUAD, FUEL_EXCITED_PLUTONIUM_SINGLE, FUEL_EXCITED_PLUTONIUM_DUAL, FUEL_EXCITED_PLUTONIUM_QUAD, FUEL_NAQUADAH_SINGLE, FUEL_NAQUADAH_DUAL, FUEL_NAQUADAH_QUAD, FUEL_NAQUADRIA_SINGLE, FUEL_NAQUADRIA_DUAL, FUEL_NAQUADRIA_QUAD -> thermal
+                ? 0.85
+                : 0.30;
+            case FUEL_LITHIUM -> thermal ? 0.85 : 0.20;
+            case FUEL_GLOWSTONE -> thermal ? 0.80 : 0.20;
+            case FUEL_CORE -> thermal ? 0.90 : 0.35;
+            default -> thermal ? 0.80 : 0.25;
+        };
+    }
+
     public double getBaseAbsorptionProbability(NeutronType nType) {
         if (type == TileType.INSULATOR_NAQUARITE_FOIL) {
             return 1.0;
@@ -739,7 +764,7 @@ public class SimTile implements INuclearTile {
             return (nType == NeutronType.THERMAL) ? 0.85 : 0.25;
         }
         if (isFuel()) {
-            return (nType == NeutronType.THERMAL) ? 0.80 : 0.25;
+            return getFuelAbsorptionProbability(nType);
         }
         if (isCoolantHatch()) {
             if (inputFluidAmount <= 0) return 0.01;
