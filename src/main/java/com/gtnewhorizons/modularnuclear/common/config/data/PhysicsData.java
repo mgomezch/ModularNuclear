@@ -28,8 +28,8 @@ public class PhysicsData {
     // Fuel Archetype / Class Multipliers (Global Calibration Parameters)
     public double denseNbaseMultiplier = 0.50; // -50% base neutrons (subcritical/mostly-inert)
     public double denseFissionMultiplier = 1.20; // +20% thermal fission multiplication (high reaction potential)
-    public double excitedNbaseMultiplier = 1.40; // +40% base neutrons (driver / primary neutron source)
-    public double excitedFissionMultiplier = 0.80; // -20% thermal fission multiplication (already excited)
+    public double excitedNbaseMultiplier = 2.00; // 2x base neutrons (driver / primary neutron source)
+    public double excitedFissionMultiplier = 0.70; // -30% fission multiplication (already excited)
     public double standardNbaseMultiplier = 1.00;
     public double standardFissionMultiplier = 1.00;
     public double breederNbaseMultiplier = 1.00;

@@ -437,7 +437,7 @@ Each fuel belongs to an archetype that scales its base yield and both fission mu
 | :--- | :--- | :--- | :--- |
 | standard | 1.00 | 1.00 | Reference behaviour. |
 | dense | 0.50 | 1.20 | Low spontaneous emission, strong multiplication. Depends on neighbours to reach power. |
-| excited | 1.40 | 0.80 | High spontaneous emission, weaker multiplication. Produces power with little help from neighbours. |
+| excited | 2.00 | 0.70 | High spontaneous emission, weaker multiplication. Produces power with little help from neighbours. |
 | breeder | 1.00 | 1.00 | Very low yields; used for transmutation products. |
 
 Effective values are rounded: effective base yield is $\max(1, \operatorname{round}(N_0 \times m_N))$. For example, a Quad High Density Uranium rod has an effective yield of 16 n/s (4 per cycle) and an effective $\phi_t = 2.16$; a Quad Excited Uranium rod has 90 n/s (22.5 per cycle) and $\phi_t = 2.0$.
@@ -1090,7 +1090,7 @@ Configuration files are read from `config/modularnuclear/`. Each file may overri
 | `beam_energy_to_fast_neutron_multiplier` | 0.001 | Beam energy × rate → neutron packets |
 | `standard_nbase_multiplier` / `_fission_multiplier` | 1.0 / 1.0 | Archetype multipliers |
 | `dense_nbase_multiplier` / `_fission_multiplier` | 0.5 / 1.2 | |
-| `excited_nbase_multiplier` / `_fission_multiplier` | 1.4 / 0.8 | |
+| `excited_nbase_multiplier` / `_fission_multiplier` | 2.0 / 0.7 | |
 | `breeder_nbase_multiplier` / `_fission_multiplier` | 1.0 / 1.0 | |
 
 **Main mod configuration** (Forge config) additionally sets the cycle length (`ticksPerCycle`, default 5), the per-tier maximum operating temperatures, the repair threshold ratio (0.10), the fallout contamination reduction per pollution removed ($62.5/30000$), item and fluid allow/block lists, and visual effects (Cherenkov glow, fallout overlay).

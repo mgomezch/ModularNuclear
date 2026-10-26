@@ -6943,8 +6943,8 @@ public class NuclearSimulationEngineTest {
         assertNotNull(physics);
         assertEquals(0.50, physics.denseNbaseMultiplier, 1e-4);
         assertEquals(1.20, physics.denseFissionMultiplier, 1e-4);
-        assertEquals(1.40, physics.excitedNbaseMultiplier, 1e-4);
-        assertEquals(0.80, physics.excitedFissionMultiplier, 1e-4);
+        assertEquals(2.00, physics.excitedNbaseMultiplier, 1e-4);
+        assertEquals(0.70, physics.excitedFissionMultiplier, 1e-4);
 
         // Find HD Uranium and Excited Uranium
         com.gtnewhorizons.modularnuclear.common.config.data.FuelData hdUran = null;
@@ -6964,10 +6964,10 @@ public class NuclearSimulationEngineTest {
 
         assertNotNull(excUran, "fuel_excited_uranium_1 must exist");
         assertEquals("excited", excUran.archetype);
-        // Excited Uranium base neutrons = 16. With excited mult 1.40 -> 22
-        assertEquals(Math.round(16 * 1.40), excUran.getEffectiveBaseNeutrons(physics));
-        // Excited Uranium base fission mult = 2.50. With excited mult 0.80 -> 2.00
-        assertEquals(2.50 * 0.80, excUran.getEffectiveFissionMultiplier(physics), 1e-4);
+        // Excited Uranium base neutrons = 16. With excited mult 2.00 -> 32
+        assertEquals(Math.round(16 * 2.00), excUran.getEffectiveBaseNeutrons(physics));
+        // Excited Uranium base fission mult = 2.50. With excited mult 0.70 -> 1.75
+        assertEquals(2.50 * 0.70, excUran.getEffectiveFissionMultiplier(physics), 1e-4);
     }
 
     @Test

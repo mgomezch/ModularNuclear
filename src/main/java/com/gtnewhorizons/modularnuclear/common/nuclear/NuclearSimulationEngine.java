@@ -90,8 +90,8 @@ public class NuclearSimulationEngine {
     // Fuel Archetype / Class Multipliers (Global Calibration Parameters)
     public static final double DEFAULT_DENSE_NBASE_MULT = 0.50;
     public static final double DEFAULT_DENSE_FISSION_MULT = 1.20;
-    public static final double DEFAULT_EXCITED_NBASE_MULT = 1.40;
-    public static final double DEFAULT_EXCITED_FISSION_MULT = 0.80;
+    public static final double DEFAULT_EXCITED_NBASE_MULT = 2.00;
+    public static final double DEFAULT_EXCITED_FISSION_MULT = 0.70;
     public static final double DEFAULT_STANDARD_NBASE_MULT = 1.00;
     public static final double DEFAULT_STANDARD_FISSION_MULT = 1.00;
     public static final double DEFAULT_BREEDER_NBASE_MULT = 1.00;
