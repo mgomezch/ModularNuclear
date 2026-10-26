@@ -35,6 +35,22 @@ public final class CoolantPassage {
         return cfd != null ? cfd.moderation : DEFAULT_MODERATION;
     }
 
+    /** Neutrons a passage absorbs per radiolysis event. */
+    public static final int NEUTRONS_PER_RADIOLYSIS = 4;
+
+    /**
+     * Gas that radiolysis of the loop fluid produces ("Deuterium" or "Tritium"), or null if the fluid has none. Each
+     * event turns 2 L of coolant into 2 L of that gas and 1 L of oxygen.
+     */
+    public static String radiolysisGas(String loopFluidName) {
+        ComponentData.CoolantFluidData cfd = ReactorConfigData
+            .findCoolantFluid(loopFluidName != null ? loopFluidName : "ic2distilledwater");
+        if (cfd == null || cfd.transmutationProduct == null) return null;
+        if ("tritium".equalsIgnoreCase(cfd.transmutationProduct)) return "Tritium";
+        if ("deuterium".equalsIgnoreCase(cfd.transmutationProduct)) return "Deuterium";
+        return null;
+    }
+
     public static double length() {
         return CoolantLoopConfigData.getPhysicsData()
             .getStandardPassageLength();

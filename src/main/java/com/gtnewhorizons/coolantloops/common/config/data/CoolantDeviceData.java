@@ -120,13 +120,21 @@ public class CoolantDeviceData {
             return findSecondaryCoolant(fluidName) != null;
         }
 
+        /** Removes underscores, dots and spaces (TeaVM-safe; no String.replace). */
+        private static String stripSeparators(String s) {
+            StringBuilder sb = new StringBuilder(s.length());
+            for (int i = 0; i < s.length(); i++) {
+                char c = s.charAt(i);
+                if (c != '_' && c != '.' && c != ' ') sb.append(c);
+            }
+            return sb.toString();
+        }
+
         public SecondaryCoolantEntry findSecondaryCoolant(String fluidName) {
             if (fluidName == null) return null;
             String clean = fluidName.trim()
                 .toLowerCase();
-            String norm = clean.replace("_", "")
-                .replace(".", "")
-                .replace(" ", "");
+            String norm = stripSeparators(clean);
 
             // If explicitly configured in allowedSecondaryFluids, allow even plain water
             boolean inAllowedList = false;
@@ -148,9 +156,7 @@ public class CoolantDeviceData {
                 if (entry != null && entry.inputFluidName != null) {
                     String entryClean = entry.inputFluidName.trim()
                         .toLowerCase();
-                    String entryNorm = entryClean.replace("_", "")
-                        .replace(".", "")
-                        .replace(" ", "");
+                    String entryNorm = stripSeparators(entryClean);
                     if (clean.equals(entryClean) || norm.equals(entryNorm)) {
                         return entry;
                     }

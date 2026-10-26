@@ -72,7 +72,8 @@ public class WasmStringsTest {
     @Test
     void testNoStringReplaceInWasmReachableSources() throws IOException {
         Path base = Paths.get("src/main/java/com/gtnewhorizons/modularnuclear/common");
-        List<Path> roots = Arrays.asList(base.resolve("nuclear"), base.resolve("config"));
+        List<Path> roots = new ArrayList<>(Arrays.asList(base.resolve("nuclear"), base.resolve("config")));
+        roots.addAll(SharedCodeIsolationTest.sharedLoopSources());
         // JVM-only entry points: never compiled to WebAssembly
         List<String> jvmOnly = Arrays.asList("NuclearSimulationCLI.java", "NuclearSimulationWebServer.java");
         Pattern call = Pattern.compile("\\.replace(All|First)?\\s*\\(");

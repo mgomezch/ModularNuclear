@@ -450,31 +450,19 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
             mThermalAbsorbed += count;
         }
 
-        // Radiolytic gas generation: every 4 absorbed neutrons transmutes 2L coolant
+        // Radiolytic gas generation: every few absorbed neutrons transmute 2 L of coolant
         if (count > 0) {
             mNeutronAccumulator += count;
-            if (mConnectedPump != null && mNeutronAccumulator >= 4) {
-                int cycles = mNeutronAccumulator / 4;
-                mNeutronAccumulator %= 4;
+            if (mConnectedPump != null && mNeutronAccumulator >= CoolantPassage.NEUTRONS_PER_RADIOLYSIS) {
+                int cycles = mNeutronAccumulator / CoolantPassage.NEUTRONS_PER_RADIOLYSIS;
+                mNeutronAccumulator %= CoolantPassage.NEUTRONS_PER_RADIOLYSIS;
                 CoolantFluidProperty prop = mConnectedPump.getCoolantFluidProperty();
-                String name = prop != null ? prop.getFluidName() : "ic2distilledwater";
-                com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-                    .findCoolantFluid(name);
-                if (cfd != null && cfd.transmutationProduct != null) {
-                    if ("tritium".equalsIgnoreCase(cfd.transmutationProduct)) {
-                        // 2 D2O -> 2 T2 + 1 O2
-                        mConnectedPump.consumeCoolant(cycles * 2L);
-                        mConnectedPump.addDissolvedGas("Tritium", cycles * 2L);
-                        mConnectedPump.addDissolvedGas("Oxygen", cycles * 1L);
-                    } else if ("deuterium".equalsIgnoreCase(cfd.transmutationProduct)) {
-                        // 2 H2O -> 2 D2 + 1 O2
-                        mConnectedPump.consumeCoolant(cycles * 2L);
-                        mConnectedPump.addDissolvedGas("Deuterium", cycles * 2L);
-                        mConnectedPump.addDissolvedGas("Oxygen", cycles * 1L);
-                    }
+                String gas = CoolantPassage.radiolysisGas(prop != null ? prop.getFluidName() : null);
+                if (gas != null) {
+                    mConnectedPump.consumeCoolant(cycles * 2L);
+                    mConnectedPump.addDissolvedGas(gas, cycles * 2L);
+                    mConnectedPump.addDissolvedGas("Oxygen", cycles * 1L);
                 }
-                // Radiolysis is strictly disallowed for any fluid other than fluids configured with deuterium/tritium
-                // transmutationProduct
             }
         }
     }

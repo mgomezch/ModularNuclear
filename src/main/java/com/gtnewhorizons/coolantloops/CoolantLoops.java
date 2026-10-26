@@ -18,6 +18,10 @@ public class CoolantLoops {
     public static void preInit(FMLPreInitializationEvent event) {
         LOG.info("Pre-initializing Coolant Loops thermodynamic engine...");
         com.gtnewhorizons.coolantloops.common.config.CoolantLoopDataRegistry.init(event.getModConfigurationDirectory());
+        com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty.setDeclaredTemperatureSource(name -> {
+            net.minecraftforge.fluids.Fluid f = net.minecraftforge.fluids.FluidRegistry.getFluid(name);
+            return f != null ? f.getTemperature() : 0;
+        });
         com.gtnewhorizons.coolantloops.common.block.ModBlocks.init();
 
         network = cpw.mods.fml.common.network.NetworkRegistry.INSTANCE.newSimpleChannel(MODID);

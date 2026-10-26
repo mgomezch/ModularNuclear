@@ -205,10 +205,9 @@ public class CoolantFluidProperty {
 
     public static CoolantFluidProperty getCanonical(String name) {
         if (name == null) return null;
-        String clean = name.trim()
-            .toLowerCase()
-            .replace(" ", "")
-            .replace("_", "");
+        String clean = stripSpacesAndUnderscores(
+            name.trim()
+                .toLowerCase());
         if (clean.equals("water") || clean.equals("minecraft:water")) return WATER;
         if (clean.equals("ic2distilledwater") || clean.equals("distilledwater") || clean.equals("water.distilled"))
             return DISTILLED_WATER;
@@ -245,17 +244,40 @@ public class CoolantFluidProperty {
         return spillOnRupture;
     }
 
+    /** Looks up the temperature (K) a fluid declares in the game's fluid registry, or 0 if it declares none. */
+    public interface DeclaredTemperatureSource {
+
+        int temperatureKelvin(String fluidName);
+    }
+
+    private static DeclaredTemperatureSource declaredTemperatureSource = null;
+
+    /** Installed by the game at startup; the standalone simulator has no fluid registry and leaves it unset. */
+    public static void setDeclaredTemperatureSource(DeclaredTemperatureSource source) {
+        declaredTemperatureSource = source;
+    }
+
+    /** The temperature the fluid declares in the game's fluid registry, or its freezing point without one. */
     public double getDeclaredTemperatureCelsius() {
-        try {
-            net.minecraftforge.fluids.Fluid f = net.minecraftforge.fluids.FluidRegistry.getFluid(fluidName);
-            if (f != null) {
-                int tempK = f.getTemperature();
+        if (declaredTemperatureSource != null) {
+            try {
+                int tempK = declaredTemperatureSource.temperatureKelvin(fluidName);
                 if (tempK > 0) {
                     return tempK - 273.15;
                 }
-            }
-        } catch (Throwable ignored) {}
+            } catch (RuntimeException ignored) {}
+        }
         return freezingPointCelsius;
+    }
+
+    /** Lower case without spaces or underscores (TeaVM-safe; no String.replace). */
+    private static String stripSpacesAndUnderscores(String s) {
+        StringBuilder sb = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c != ' ' && c != '_') sb.append(c);
+        }
+        return sb.toString();
     }
 
     public String getFluidName() {
@@ -288,10 +310,9 @@ public class CoolantFluidProperty {
 
     public static boolean isIC2Coolant(String fluidName) {
         if (fluidName == null) return false;
-        String clean = fluidName.trim()
-            .toLowerCase()
-            .replace(" ", "")
-            .replace("_", "");
+        String clean = stripSpacesAndUnderscores(
+            fluidName.trim()
+                .toLowerCase());
         return clean.equals("ic2coolant") || clean.equals("coolant");
     }
 

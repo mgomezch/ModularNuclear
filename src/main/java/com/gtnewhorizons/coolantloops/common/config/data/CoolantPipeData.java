@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData;
+
 /**
  * Data-driven configuration container for coolant loop piping, burst ratings, and material limits.
  */
@@ -157,10 +159,7 @@ public class CoolantPipeData {
 
     private static String cleanKey(String key) {
         if (key == null) return "";
-        return key.toLowerCase()
-            .replace(" ", "")
-            .replace("_", "")
-            .replace("-", "");
+        return CoolantLoopConfigData.normalizeMaterial(key);
     }
 
     public Map<String, Double> getMaterialPressureRatingsBar() {
