@@ -520,6 +520,9 @@ public class NuclearSimulationCLI {
             while ((line = br.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty() || line.equalsIgnoreCase("exit") || line.equalsIgnoreCase("quit")) break;
+                // Every line starts from the game's defaults (engine constants, then physics.yaml and the fuel and
+                // component records), so a parameter a line does not set never carries over from an earlier line.
+                NuclearSimulationEngine.resetDefaultParameters();
 
                 String preset = "BREEDER_7X7";
                 String layout = null;
