@@ -814,7 +814,7 @@ public class NuclearSimulationCLI {
                                 } catch (Exception ignored) {}
                             }
                         }
-                        case "loop_hatch", "loop_hatches", "loop_rotor", "loop_rotor_size", "loop_secondary", "phe_count", "phe_hatch", "phe_hatches", "loop_count", "circuit", "loop_duty", "loop_max_flow", "loop_flow", "loop_max_pressure", "loop_temp_min", "loop_temp_max", "loop_sensor" -> loopOptions += k
+                        case "loop_hatch", "loop_hatches", "loop_rotor", "loop_rotor_size", "loop_secondary", "phe_count", "phe_hatch", "phe_hatches", "loop_count", "circuit", "loop_duty", "loop_max_flow", "loop_flow", "loop_max_pressure", "loop_temp_min", "loop_temp_max", "loop_sensor", "loop_fill_temp" -> loopOptions += k
                             + "="
                             + v
                             + ",";
@@ -973,6 +973,8 @@ public class NuclearSimulationCLI {
                     case "loop_max_pressure" -> loop.setMaxPressureBar(Double.parseDouble(v));
                     case "loop_temp_min" -> bandMin = Double.parseDouble(v);
                     case "loop_temp_max" -> bandMax = Double.parseDouble(v);
+                    case "loop_fill_temp" -> loop.getSelectedCircuit()
+                        .setFillTempOverrideC(Double.parseDouble(v));
                     case "loop_sensor" -> loop.getSelectedCircuit()
                         .setSensor(CoolantLoopModel.TempSensor.fromString(v));
                     case "loop_hatch" -> loop.setHatchTier(CoolantLoopModel.EnergyHatchTier.fromString(v));

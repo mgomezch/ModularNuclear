@@ -484,6 +484,7 @@ public class CoolantLoopModel {
     public enum TempSensor {
 
         PASSAGE("Hottest passage"),
+        COLDEST_PASSAGE("Coldest passage"),
         HOT_LEG("Hot leg coolant");
 
         public final String displayName;
@@ -503,6 +504,7 @@ public class CoolantLoopModel {
                     return t;
                 }
             }
+            if (s.equals("COLDEST") || s.equals("COLD")) return COLDEST_PASSAGE;
             return s.equals("HOT") || s.equals("HOTLEG") || s.equals("COOLANT") ? HOT_LEG : PASSAGE;
         }
     }
@@ -532,6 +534,7 @@ public class CoolantLoopModel {
         private double controlMinTempC = Double.NaN; // NaN = no temperature band
         private double controlMaxTempC = Double.NaN;
         private TempSensor sensor = TempSensor.PASSAGE;
+        private double fillTempOverrideC = Double.NaN; // NaN = the game's fill temperature
         private final Set<GridCoord> attachedPoints = new HashSet<>();
 
         private final List<Loop> loops = new ArrayList<>();
@@ -593,10 +596,27 @@ public class CoolantLoopModel {
          * point (the game fills molten fluids at their declared temperature).
          */
         public double fillTemperatureCelsius() {
+            if (!Double.isNaN(fillTempOverrideC)) return fillTempOverrideC;
             double freezing = fluidType.property()
                 .getFreezingPointCelsius();
             double ambient = NuclearSimulationEngine.ambientTemp;
             return Double.isFinite(freezing) && freezing > ambient ? freezing : ambient;
+        }
+
+        public double getFillTempOverrideC() {
+            return fillTempOverrideC;
+        }
+
+        /**
+         * Simulator-only experiment: the coolant enters at this temperature instead of the game's fill temperature (as
+         * if the loop were preheated; NaN restores the game's).
+         */
+        public void setFillTempOverrideC(double temp) {
+            if (Double.compare(temp, fillTempOverrideC) != 0) {
+                fillTempOverrideC = temp;
+                builtFluid = null;
+                markDirty();
+            }
         }
 
         public boolean hasTemperatureBand() {
@@ -1395,6 +1415,11 @@ public class CoolantLoopModel {
     /** The temperature a circuit's controller reads on one copy. */
     private static double sense(Circuit c, Loop loop) {
         if (c.sensor == TempSensor.HOT_LEG) return loop.hotLegSegment.getCurrentTemperatureCelsius();
+        if (c.sensor == TempSensor.COLDEST_PASSAGE) {
+            double min = Double.MAX_VALUE;
+            for (SimTile t : loop.passageTiles) min = Math.min(min, t.getTemperature());
+            return min;
+        }
         double max = -Double.MAX_VALUE;
         for (SimTile t : loop.passageTiles) max = Math.max(max, t.getTemperature());
         return max;
