@@ -312,6 +312,11 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         return mDeviceBindings;
     }
 
+    /** Flow through a device's segment: the loop flow times the share of it that reaches that branch. */
+    private static double branchFlow(double loopFlowM3s, LoopSegment segment) {
+        return segment != null ? loopFlowM3s * segment.getFlowFraction() : loopFlowM3s;
+    }
+
     public List<ICoolantLoopDevice> getLoopDevices() {
         return mLoopDevices;
     }
@@ -1093,7 +1098,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         double flowRate = mEngine.getVolumetricFlowRate();
         if (flowRate > 1e-6) {
             for (DeviceSegmentBinding b : getDeviceBindings()) {
-                b.device.processThermalExchange(flowRate, 0.05, mEngine.getFluid(), b.segment);
+                b.device.processThermalExchange(branchFlow(flowRate, b.segment), 0.05, mEngine.getFluid(), b.segment);
             }
         }
     }
@@ -1421,7 +1426,11 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 // Thermal exchange during deceleration
                 double decelFlowRate = mEngine.getVolumetricFlowRate();
                 for (DeviceSegmentBinding b : getDeviceBindings()) {
-                    b.device.processThermalExchange(decelFlowRate, 0.05, mEngine.getFluid(), b.segment);
+                    b.device.processThermalExchange(
+                        branchFlow(decelFlowRate, b.segment),
+                        0.05,
+                        mEngine.getFluid(),
+                        b.segment);
                 }
                 return true;
             } else {
@@ -1596,7 +1605,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         // Process thermal exchange across in-line devices matching segment ID
         double flowRate = mEngine.getVolumetricFlowRate();
         for (DeviceSegmentBinding b : getDeviceBindings()) {
-            b.device.processThermalExchange(flowRate, 0.05, mEngine.getFluid(), b.segment);
+            b.device.processThermalExchange(branchFlow(flowRate, b.segment), 0.05, mEngine.getFluid(), b.segment);
         }
 
         // Check for catastrophic rupture
