@@ -13,7 +13,7 @@ public class PhysicsData {
     public double fastAbsorptionDamageMultiplier = 8.0;
     public double thermalAbsorptionDamageMultiplier = 1.0;
     public double fissionHeatPerNeutron = NuclearSimulationEngine.DEFAULT_FISSION_HEAT_PER_NEUTRON;
-    public double gridHeatConduction = 0.15;
+    public double gridConductionMultiplier = NuclearSimulationEngine.DEFAULT_GRID_CONDUCTION_MULTIPLIER;
     public double boundaryHeatLoss = 0.02;
     public double radiationDecayFactor = 0.95;
     public double dopplerDeficitExponent = 1.2;
@@ -72,7 +72,7 @@ public class PhysicsData {
             "thermal_absorption_damage_multiplier",
             d.thermalAbsorptionDamageMultiplier);
         d.fissionHeatPerNeutron = getDouble(map, "fission_heat_per_neutron", d.fissionHeatPerNeutron);
-        d.gridHeatConduction = getDouble(map, "grid_heat_conduction", d.gridHeatConduction);
+        d.gridConductionMultiplier = getDouble(map, "grid_conduction_multiplier", d.gridConductionMultiplier);
         d.boundaryHeatLoss = getDouble(map, "boundary_heat_loss", d.boundaryHeatLoss);
         d.radiationDecayFactor = getDouble(map, "radiation_decay_factor", d.radiationDecayFactor);
         d.dopplerDeficitExponent = getDouble(map, "doppler_deficit_exponent", d.dopplerDeficitExponent);
@@ -109,7 +109,7 @@ public class PhysicsData {
         m.put("fast_absorption_damage_multiplier", fastAbsorptionDamageMultiplier);
         m.put("thermal_absorption_damage_multiplier", thermalAbsorptionDamageMultiplier);
         m.put("fission_heat_per_neutron", fissionHeatPerNeutron);
-        m.put("grid_heat_conduction", gridHeatConduction);
+        m.put("grid_conduction_multiplier", gridConductionMultiplier);
         m.put("boundary_heat_loss", boundaryHeatLoss);
         m.put("radiation_decay_factor", radiationDecayFactor);
         m.put("doppler_deficit_exponent", dopplerDeficitExponent);

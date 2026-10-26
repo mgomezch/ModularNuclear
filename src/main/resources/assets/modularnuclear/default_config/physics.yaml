@@ -5,7 +5,7 @@ physics:
   fast_absorption_damage_multiplier: 8.0
   thermal_absorption_damage_multiplier: 1.0
   fission_heat_per_neutron: 38.0
-  grid_heat_conduction: 0.15
+  grid_conduction_multiplier: 1.0
   boundary_heat_loss: 0.02
   radiation_decay_factor: 0.95
   doppler_deficit_exponent: 1.2

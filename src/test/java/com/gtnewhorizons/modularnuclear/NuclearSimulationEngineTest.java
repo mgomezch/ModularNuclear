@@ -698,6 +698,50 @@ public class NuclearSimulationEngineTest {
         assertEquals(grid.getFlowDirectEU(), grid.getLastPowerResult().totalPowerEUt);
     }
 
+    private static double[] conductPair(double mult, int ticksPerCycle) {
+        int savedTpc = NuclearSimulationEngine.getTicksPerCycle();
+        double savedMult = NuclearSimulationEngine.gridConductionMultiplier;
+        try {
+            NuclearSimulationEngine.setTicksPerCycle(ticksPerCycle);
+            NuclearSimulationEngine.setGridConductionMultiplier(mult);
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hot = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
+                com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.REFLECTOR_GOLD);
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cold = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
+                com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.REFLECTOR_GOLD);
+            hot.setTemperature(1000.0);
+            cold.setTemperature(20.0);
+            INuclearTile[][] grid = { { hot }, { cold } };
+            NuclearSimulationEngine.simulate(grid, 2, 1, 1.0, 20.0);
+            return new double[] { hot.getTemperature(), cold.getTemperature() };
+        } finally {
+            NuclearSimulationEngine.setTicksPerCycle(savedTpc);
+            NuclearSimulationEngine.setGridConductionMultiplier(savedMult);
+        }
+    }
+
+    @Test
+    void testGridConductionMultiplierScalesConduction() {
+        assertEquals(
+            1.0,
+            ReactorDataRegistry.getPhysics().gridConductionMultiplier,
+            1e-9,
+            "Default grid conduction multiplier must be 1.0");
+        double[] base = conductPair(1.0, 5);
+        double[] faster = conductPair(2.0, 5);
+        assertTrue(
+            1000.0 - faster[0] > 1000.0 - base[0],
+            "A larger multiplier must move more heat out of the hot cell");
+        assertTrue(faster[1] - 20.0 > base[1] - 20.0, "A larger multiplier must move more heat into the cold cell");
+    }
+
+    @Test
+    void testConductionDoesNotOvershootAtLongCyclesAndHighMultiplier() {
+        // With a fixed 5 sub-steps this would move 120% of the difference per sub-step and swap the cells
+        double[] r = conductPair(20.0, 20);
+        assertTrue(r[0] >= r[1] - 1e-6, "Hot cell must not end up colder than the cold cell (no overshoot)");
+        assertTrue(r[1] <= 1000.0 && r[0] >= 20.0, "Temperatures must stay within the initial range");
+    }
+
     @Test
     void testRadiovoltaicCurveIsPerSecondAndCycleIndependent() {
         ComponentData.RadiovoltaicData rv = new ComponentData.RadiovoltaicData();

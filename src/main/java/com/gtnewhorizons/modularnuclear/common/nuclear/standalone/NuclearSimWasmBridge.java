@@ -503,6 +503,8 @@ public class NuclearSimWasmBridge {
             NuclearSimulationEngine.fissionHeatPerNeutron = d;
         } else if ("hpWaterBoilingPoint".equals(key) || "hpBoil".equals(key)) {
             NuclearSimulationEngine.hpWaterBoilingPoint = d;
+        } else if ("gridConductionMultiplier".equals(key) || "gridConductionMult".equals(key)) {
+            NuclearSimulationEngine.setGridConductionMultiplier(d);
         } else if ("fuelBurnupMultiplier".equals(key) || "burnupMult".equals(key)) {
             NuclearSimulationEngine.setFuelBurnupMultiplier(d);
         } else if ("denseNbaseMultiplier".equals(key)) {
@@ -1345,6 +1347,9 @@ public class NuclearSimWasmBridge {
             .append(",");
         sb.append("\"baseHatchConductance\":")
             .append(fmt1(NuclearSimulationEngine.baseHatchConductance))
+            .append(",");
+        sb.append("\"gridConductionMultiplier\":")
+            .append(fmt3(NuclearSimulationEngine.gridConductionMultiplier))
             .append(",");
         sb.append("\"fuelBurnupMultiplier\":")
             .append(fmt3(NuclearSimulationEngine.fuelBurnupMultiplier))

@@ -421,6 +421,7 @@ public final class ReactorDataRegistry {
         NuclearSimulationEngine.fissionHeatPerNeutron = physicsData.fissionHeatPerNeutron;
         NuclearSimulationEngine.wallReflectionChance = physicsData.wallReflectionChance;
         NuclearSimulationEngine.setBeamEnergyToFastNeutronMultiplier(physicsData.beamEnergyToFastNeutronMultiplier);
+        NuclearSimulationEngine.setGridConductionMultiplier(physicsData.gridConductionMultiplier);
         NuclearSimulationEngine.denseNbaseMultiplier = physicsData.denseNbaseMultiplier;
         NuclearSimulationEngine.denseFissionMultiplier = physicsData.denseFissionMultiplier;
         NuclearSimulationEngine.excitedNbaseMultiplier = physicsData.excitedNbaseMultiplier;

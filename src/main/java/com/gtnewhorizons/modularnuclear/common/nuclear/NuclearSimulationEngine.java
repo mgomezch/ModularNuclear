@@ -238,6 +238,7 @@ public class NuclearSimulationEngine {
         wallReflectionChance = DEFAULT_WALL_REFLECTION_CHANCE;
         ic2CoolantHeatPerLiter = DEFAULT_IC2_COOLANT_HEAT_PER_LITER;
         baseHatchConductance = DEFAULT_BASE_HATCH_CONDUCTANCE;
+        gridConductionMultiplier = DEFAULT_GRID_CONDUCTION_MULTIPLIER;
         setBeamEnergyToFastNeutronMultiplier(DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER);
         setAmbientTemperature(DEFAULT_AMBIENT_TEMP);
         ticksPerCycle = DEFAULT_TICKS_PER_CYCLE;
@@ -249,6 +250,14 @@ public class NuclearSimulationEngine {
 
     public static int getTicksPerCycle() {
         return ticksPerCycle;
+    }
+
+    public static final double DEFAULT_GRID_CONDUCTION_MULTIPLIER = 1.0;
+    /** Scales cell-to-cell heat conduction (not boundary loss or hatch-to-coolant transfer). */
+    public static double gridConductionMultiplier = DEFAULT_GRID_CONDUCTION_MULTIPLIER;
+
+    public static void setGridConductionMultiplier(double mult) {
+        gridConductionMultiplier = Math.max(0.0, mult);
     }
 
     public static final double DEFAULT_BASE_HATCH_CONDUCTANCE = 2.0;
@@ -907,7 +916,19 @@ public class NuclearSimulationEngine {
         }
 
         // --- PASS 4: MULTI-SUBSTEP DISCRETE HEAT CONDUCTION & BOUNDARY LOSS ---
-        final int SUBSTEPS = 5;
+        // Explicit integration overshoots (temperatures oscillate) once a cell's combined transfer per sub-step
+        // exceeds about half its temperature difference, so use enough sub-steps to keep the worst cell under 0.5.
+        final double dt = (double) ticksPerCycle / 20.0;
+        double maxCoeff = BASE_HEAT_CONDUCTION;
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                if (grid[x][y] != null) {
+                    maxCoeff = Math.max(maxCoeff, grid[x][y].getHeatTransferCoeff());
+                }
+            }
+        }
+        final int SUBSTEPS = Math
+            .max(5, (int) Math.ceil(8.0 * maxCoeff * dt * Math.max(1.0, gridConductionMultiplier)));
         double[][] deltaTemp = new double[sizeX][sizeY];
 
         for (int sub = 0; sub < SUBSTEPS; sub++) {
@@ -933,8 +954,7 @@ public class NuclearSimulationEngine {
                             INuclearTile tileB = grid[nx][ny];
                             double tempB = tileB.getTemperature();
                             double coeffB = Math.max(BASE_HEAT_CONDUCTION, tileB.getHeatTransferCoeff());
-                            double dt = (double) ticksPerCycle / 20.0;
-                            double transferCoeff = 0.5 * (coeffA + coeffB) * dt / SUBSTEPS;
+                            double transferCoeff = 0.5 * (coeffA + coeffB) * dt / SUBSTEPS * gridConductionMultiplier;
                             if (tempA > tempB) {
                                 double dampening = Math
                                     .max(tileA.getInsulationDampening(), tileB.getInsulationDampening());
@@ -945,7 +965,6 @@ public class NuclearSimulationEngine {
                             }
                         } else {
                             // Heat loss to empty space / outer walls at ambient temperature
-                            double dt = (double) ticksPerCycle / 20.0;
                             double dampening = tileA.getInsulationDampening();
                             double loss = (tempA - ambient) * (coeffA * dt / (2.0 * SUBSTEPS))
                                 * (1.0 - Math.min(1.0, Math.max(0.0, dampening)));

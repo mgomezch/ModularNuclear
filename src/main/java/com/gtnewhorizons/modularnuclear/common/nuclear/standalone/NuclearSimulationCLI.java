@@ -630,6 +630,11 @@ public class NuclearSimulationCLI {
                                 NuclearSimulationEngine.setHuPerDegree(Double.parseDouble(v));
                             } catch (Exception ignored) {}
                         }
+                        case "grid_conduction_mult", "grid_conduction_multiplier", "gridconductionmult" -> {
+                            try {
+                                NuclearSimulationEngine.setGridConductionMultiplier(Double.parseDouble(v));
+                            } catch (Exception ignored) {}
+                        }
                         case "fission_heat", "fissionheat" -> {
                             try {
                                 NuclearSimulationEngine.fissionHeatPerNeutron = Double.parseDouble(v);
