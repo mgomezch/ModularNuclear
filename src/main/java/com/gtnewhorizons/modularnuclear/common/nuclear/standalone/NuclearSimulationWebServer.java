@@ -1070,9 +1070,13 @@ public class NuclearSimulationWebServer {
                       <option value="ic2distilledwater" selected>ic2distilledwater (boils at 100°C → steam)</option>
                     </select>
                   </div>
-                  <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
+                  <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">PHEs (in parallel):</label>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Loops (pumps):</label>
+                      <input id="loop-count-input" type="number" min="1" max="16" step="1" value="1" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                    </div>
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">PHEs per loop:</label>
                       <input id="loop-phe-count-input" type="number" min="1" max="16" step="1" value="1" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                     <div>
@@ -1400,6 +1404,7 @@ public class NuclearSimulationWebServer {
                       if (cl.hatchTier) wasmSim.setCoolantLoopHatchTier(cl.hatchTier, false);
                       if (cl.pumpHatchCount !== undefined) wasmSim.setCoolantLoopPumpHatches(cl.pumpHatchCount, false);
                       if (cl.rotorMaterial || cl.rotorSize) wasmSim.setCoolantLoopRotor(cl.rotorMaterial, cl.rotorSize, false);
+                      if (cl.loopCount !== undefined) wasmSim.setCoolantLoopCount(cl.loopCount, false);
                       if (cl.pheCount !== undefined) wasmSim.setCoolantLoopPhe(cl.pheCount, cl.pheHatchTier, cl.pheHatchCount !== undefined ? cl.pheHatchCount : 1, false);
                     } else if (window.__INITIAL_STATE__.pipeTier >= 1) {
                       applyTierCoolingDefaults(window.__INITIAL_STATE__.pipeTier);
@@ -1659,6 +1664,7 @@ public class NuclearSimulationWebServer {
               const rotor = val("loop-rotor-select", "TUNGSTENSTEEL");
               const rotorSize = val("loop-rotor-size-select", "HUGE");
               const pheCount = Math.max(1, parseInt(val("loop-phe-count-input", "1"), 10) || 1);
+              const loopCount = Math.max(1, parseInt(val("loop-count-input", "1"), 10) || 1);
               const pheHatch = val("loop-phe-hatch-tier-select", hatch);
               const pheHatches = parseInt(val("loop-phe-hatches-select", "1"), 10) || 1;
 
@@ -1674,6 +1680,7 @@ public class NuclearSimulationWebServer {
                 wasmSim.setCoolantLoopPumpHatches(pumpHatches, false);
                 wasmSim.setCoolantLoopRotor(rotor, rotorSize, false);
                 wasmSim.setCoolantLoopPhe(pheCount, pheHatch, pheHatches, false);
+                wasmSim.setCoolantLoopCount(loopCount, false);
                 currentState = wasmSim.getState();
                 renderUI();
                 return;
@@ -2362,6 +2369,7 @@ public class NuclearSimulationWebServer {
                 syncSel("loop-rotor-size-select", cl.rotorSize);
                 syncSel("loop-pump-hatches-select", cl.pumpHatchCount >= 2 ? 2 : 1);
                 syncSel("loop-phe-count-input", cl.pheCount);
+                syncSel("loop-count-input", cl.loopCount);
                 syncSel("loop-phe-hatch-tier-select", cl.pheHatchTier);
                 syncSel("loop-phe-hatches-select", cl.pheHatchCount >= 2 ? 2 : 1);
 
@@ -3436,6 +3444,7 @@ public class NuclearSimulationWebServer {
                 wasmSim.setCoolantLoopPumpHatches(opt("loop_hatches", 1), false);
                 wasmSim.setCoolantLoopRotor(opt("loop_rotor", def.rotor), opt("loop_rotor_size", "HUGE"), false);
                 wasmSim.setCoolantLoopPhe(opt("phe_count", 1), opt("phe_hatch", ht), opt("phe_hatches", 1), false);
+                wasmSim.setCoolantLoopCount(opt("loop_count", 1), false);
                 if (p && p.loop_secondary) wasmSim.setCoolantLoopSecondaryCoolant(p.loop_secondary, false);
               }
             }

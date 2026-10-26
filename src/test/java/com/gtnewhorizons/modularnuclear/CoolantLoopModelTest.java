@@ -190,6 +190,17 @@ public class CoolantLoopModelTest {
     }
 
     @Test
+    void testPassagesSplitAmongLoops() {
+        attachCenterColumn();
+        loop.setLoopCount(3);
+        run(5);
+        assertFalse(loop.isRuptured(), loop.getRuptureReason());
+        assertEquals(3 * loop.pumpPowerEUt(), loop.getLastPumpPowerEUt(), 1e-9, "each loop has its own pump");
+        assertEquals(3 * loop.phePowerEUt(), loop.getLastPhePowerEUt(), 1e-9, "and its own PHEs");
+        assertTrue(loop.getLastHeatExtractedHut() > 0);
+    }
+
+    @Test
     void testPhePowerDraw() {
         loop.setPheCount(3);
         loop.setPheHatchTier(CoolantLoopModel.EnergyHatchTier.IV);

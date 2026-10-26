@@ -87,6 +87,10 @@ public class NuclearSimulationEngine {
     public static final double DEFAULT_FUEL_BURNUP_MULTIPLIER = 1.0;
     public static double fuelBurnupMultiplier = DEFAULT_FUEL_BURNUP_MULTIPLIER;
 
+    /** Scales the convective heat transfer between a coolant passage and the loop coolant in it. */
+    public static final double DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT = 1.0;
+    public static double coolantPassageHeatTransferMultiplier = DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT;
+
     // Fuel Archetype / Class Multipliers (Global Calibration Parameters)
     public static final double DEFAULT_DENSE_NBASE_MULT = 0.50;
     public static final double DEFAULT_DENSE_FISSION_MULT = 1.20;
@@ -227,6 +231,7 @@ public class NuclearSimulationEngine {
         coolantFeedRate = DEFAULT_COOLANT_FEED_RATE;
         coolingHeatPerLiter = DEFAULT_COOLING_HEAT_PER_LITER;
         fuelBurnupMultiplier = DEFAULT_FUEL_BURNUP_MULTIPLIER;
+        coolantPassageHeatTransferMultiplier = DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT;
         denseNbaseMultiplier = DEFAULT_DENSE_NBASE_MULT;
         denseFissionMultiplier = DEFAULT_DENSE_FISSION_MULT;
         excitedNbaseMultiplier = DEFAULT_EXCITED_NBASE_MULT;

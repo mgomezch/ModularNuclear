@@ -140,6 +140,8 @@ public final class ReactorConfigData {
         NuclearSimulationEngine.setBeamEnergyToFastNeutronMultiplier(physicsData.beamEnergyToFastNeutronMultiplier);
         NuclearSimulationEngine.setGridConductionMultiplier(physicsData.gridConductionMultiplier);
         NuclearSimulationEngine.setFuelBurnupMultiplier(physicsData.fuelBurnupMultiplier);
+        NuclearSimulationEngine.coolantPassageHeatTransferMultiplier = Math
+            .max(0.0, physicsData.coolantPassageHeatTransferMultiplier);
         NuclearSimulationEngine.denseNbaseMultiplier = physicsData.denseNbaseMultiplier;
         NuclearSimulationEngine.denseFissionMultiplier = physicsData.denseFissionMultiplier;
         NuclearSimulationEngine.excitedNbaseMultiplier = physicsData.excitedNbaseMultiplier;

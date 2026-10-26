@@ -487,15 +487,23 @@ public class CoolantLoopModel {
     private int pheHatchCount = 1;
     private final Set<GridCoord> attachedPoints = new HashSet<>();
 
-    // Loop built from the configuration (rebuilt when it or the number of passages changes)
-    private CoolantLoopEngine engine;
-    private final List<LoopSegment> passageSegments = new ArrayList<>();
-    private final List<LoopSegment> pheSegments = new ArrayList<>();
-    private final List<PheExchange.Batch> pheBatches = new ArrayList<>();
-    private LoopSegment hotLegSegment;
-    private LoopSegment coldLegSegment;
+    private int loopCount = 1;
+
+    /** One pump's loop, built from the configuration (rebuilt when it or the number of passages changes). */
+    private static final class Loop {
+
+        CoolantLoopEngine engine;
+        final List<SimTile> passageTiles = new ArrayList<>();
+        final List<LoopSegment> passageSegments = new ArrayList<>();
+        final List<LoopSegment> pheSegments = new ArrayList<>();
+        final List<PheExchange.Batch> pheBatches = new ArrayList<>();
+        LoopSegment hotLegSegment;
+        LoopSegment coldLegSegment;
+        int[] radiolysisAccumulators = new int[0];
+    }
+
+    private final List<Loop> loops = new ArrayList<>();
     private boolean topologyDirty = true;
-    private int[] radiolysisAccumulators = new int[0];
 
     // Last cycle
     private double lastHeatExtractedWatts = 0.0;
@@ -530,7 +538,7 @@ public class CoolantLoopModel {
         return hatchCount == 1 ? tier.voltageEU : 4.0 * tier.voltageEU;
     }
 
-    /** EU/t the pump draws (512 without energy hatches, as in the game). */
+    /** EU/t one loop's pump draws (512 without energy hatches, as in the game). */
     public double pumpPowerEUt() {
         return pumpHatchCount <= 0 ? 512.0 : hatchVoltage(hatchTier, pumpHatchCount);
     }
@@ -540,7 +548,7 @@ public class CoolantLoopModel {
         return pheHatchCount <= 0 ? 32.0 : hatchVoltage(pheHatchTier, pheHatchCount);
     }
 
-    /** EU/t the PHEs draw together (15/16 of their voltage each). */
+    /** EU/t one loop's PHEs draw together (15/16 of their voltage each). */
     public double phePowerEUt() {
         return pheCount * Math.max(1.0, Math.floor(15.0 * pheVoltage() / 16.0));
     }
@@ -598,14 +606,12 @@ public class CoolantLoopModel {
      * discharge, cold leg pipes, distribution manifold, the passages, collection manifold, hot leg pipes, the PHEs (in
      * parallel between two more manifolds when there are several), and the return run to the pump suction.
      */
-    private void buildLoop(int passageCount) {
-        double startTemp = engine != null ? engine.getAvgLoopTempCelsius() : NuclearSimulationEngine.ambientTemp;
-        engine = new CoolantLoopEngine(fluidType.property());
+    private Loop buildLoop(int passageCount, double startTemp) {
+        Loop loop = new Loop();
+        CoolantLoopEngine engine = new CoolantLoopEngine(fluidType.property());
+        loop.engine = engine;
         engine.setMaxVolumetricFlowRate(maxFlowLitersPerSecond() / 1000.0);
-        passageSegments.clear();
-        pheSegments.clear();
-        pheBatches.clear();
-        radiolysisAccumulators = new int[passageCount];
+        loop.radiolysisAccumulators = new int[passageCount];
 
         List<LoopSegment> segs = new ArrayList<>();
         LoopSegment prev = null;
@@ -615,7 +621,7 @@ public class CoolantLoopModel {
             segs.add(s);
             prev = s;
         }
-        coldLegSegment = prev;
+        loop.coldLegSegment = prev;
 
         LoopSegment distribution = manifold("manifold_in", startTemp);
         chain(prev, distribution);
@@ -636,7 +642,7 @@ public class CoolantLoopModel {
             chain(distribution, p);
             chain(p, collection);
             segs.add(p);
-            passageSegments.add(p);
+            loop.passageSegments.add(p);
         }
         segs.add(collection);
         prev = collection;
@@ -647,7 +653,7 @@ public class CoolantLoopModel {
             segs.add(s);
             prev = s;
         }
-        hotLegSegment = segs.get(segs.size() - 1);
+        loop.hotLegSegment = segs.get(segs.size() - 1);
 
         PHEData cfg = pheConfig();
         LoopSegment pheSplit = null;
@@ -672,14 +678,14 @@ public class CoolantLoopModel {
             chain(pheSplit != null ? pheSplit : prev, phe);
             if (pheJoin != null) chain(phe, pheJoin);
             segs.add(phe);
-            pheSegments.add(phe);
-            pheBatches.add(new PheExchange.Batch());
+            loop.pheSegments.add(phe);
+            loop.pheBatches.add(new PheExchange.Batch());
         }
         if (pheJoin != null) {
             segs.add(pheJoin);
             prev = pheJoin;
         } else {
-            prev = pheSegments.get(0);
+            prev = loop.pheSegments.get(0);
         }
 
         for (int i = 0; i < PIPE_RUN_BLOCKS; i++) {
@@ -694,6 +700,26 @@ public class CoolantLoopModel {
             s.setCurrentTemperatureCelsius(startTemp);
             s.setIncomingTemperatureCelsius(startTemp);
             engine.addSegment(s);
+        }
+        return loop;
+    }
+
+    /** Splits the passages among the loops (round robin) and builds each loop, keeping the coolant's temperature. */
+    private void buildLoops(List<SimTile> passageTiles) {
+        double startTemp = NuclearSimulationEngine.ambientTemp;
+        if (!loops.isEmpty()) {
+            double sum = 0.0;
+            for (Loop l : loops) sum += l.engine.getAvgLoopTempCelsius();
+            startTemp = sum / loops.size();
+        }
+        loops.clear();
+        int n = Math.max(1, Math.min(loopCount, Math.max(1, passageTiles.size())));
+        for (int k = 0; k < n; k++) {
+            List<SimTile> mine = new ArrayList<>();
+            for (int i = k; i < passageTiles.size(); i += n) mine.add(passageTiles.get(i));
+            Loop loop = buildLoop(mine.size(), startTemp);
+            loop.passageTiles.addAll(mine);
+            loops.add(loop);
         }
         topologyDirty = false;
     }
@@ -736,13 +762,24 @@ public class CoolantLoopModel {
                 }
             }
         }
-        if (topologyDirty || engine == null || passageTiles.size() != passageSegments.size()) {
-            buildLoop(passageTiles.size());
+        int built = 0;
+        for (Loop l : loops) built += l.passageTiles.size();
+        boolean sameTiles = built == passageTiles.size();
+        for (int k = 0; sameTiles && k < loops.size(); k++) {
+            Loop l = loops.get(k);
+            for (int i = 0; i < l.passageTiles.size(); i++) {
+                if (l.passageTiles.get(i) != passageTiles.get(k + i * loops.size())) {
+                    sameTiles = false;
+                    break;
+                }
+            }
+        }
+        if (topologyDirty || loops.isEmpty() || !sameTiles) {
+            buildLoops(passageTiles);
         }
 
         PHEData cfg = pheConfig();
         SecondaryCoolantEntry secondary = getSecondaryCoolant();
-        CoolantFluidProperty fluid = engine.getFluid();
         double maxBatchHeat = PheExchange.maxBatchHeatJoules(cfg, (long) pheVoltage());
         double exchangeArea = cfg.exchangeArea;
         double mechanicalWatts = pumpMechanicalPowerWatts();
@@ -754,76 +791,83 @@ public class CoolantLoopModel {
         double steam = 0.0, superheated = 0.0, supercritical = 0.0, gas = 0.0;
 
         for (int t = 0; t < subTicks; t++) {
-            engine.setPumpPowered(true);
-            engine.setPumpMechanicalPowerWatts(mechanicalWatts);
-            engine.step(0.05);
-            if (engine.isRuptured()) {
-                return rupture(engine.getFailureReason());
-            }
-            double flow = engine.getVolumetricFlowRate();
-
-            for (int i = 0; i < passageTiles.size(); i++) {
-                SimTile tile = passageTiles.get(i);
-                LoopSegment seg = passageSegments.get(i);
-                double hu = CoolantPassage
-                    .exchange(tile.getTemperature(), flow * seg.getFlowFraction(), 0.05, fluid, seg);
-                if (hu == 0.0) continue;
-                tile.setTemperature(tile.getTemperature() - hu / NuclearSimulationEngine.HU_PER_DEGREE);
-                if (hu > 0) {
-                    tile.setLastHeatOutput(tile.getLastHeatOutput() + hu);
-                    extractedJoules += hu * CoolantPassage.JOULES_PER_HU;
+            for (Loop loop : loops) {
+                CoolantLoopEngine engine = loop.engine;
+                CoolantFluidProperty fluid = engine.getFluid();
+                engine.setPumpPowered(true);
+                engine.setPumpMechanicalPowerWatts(mechanicalWatts);
+                engine.step(0.05);
+                if (engine.isRuptured()) {
+                    return rupture(engine.getFailureReason());
                 }
-            }
+                double flow = engine.getVolumetricFlowRate();
 
-            for (int j = 0; j < pheSegments.size(); j++) {
-                LoopSegment seg = pheSegments.get(j);
-                PheExchange.Batch batch = pheBatches.get(j);
-                PheExchange.tick(
-                    batch,
-                    cfg,
-                    secondary,
-                    Double.MAX_VALUE,
-                    flow * seg.getFlowFraction(),
-                    seg,
-                    fluid,
-                    seg.getCurrentTemperatureCelsius(),
-                    exchangeArea,
-                    CoolantLoopConfigData.getConvectiveModel(),
-                    1.0,
-                    maxBatchHeat);
-                double heat = batch.lastTickHeatJoules;
-                if (heat > 0.0 && latentPerMl > 0.0) {
-                    // Credit output as the heat moves (the game releases it per batch, at the batch's mean temperature)
-                    double ml = heat / latentPerMl;
-                    double out = ml * expansion / 1000.0;
-                    boiledMl += ml;
-                    if (secondary.isSteam) {
-                        String grade = PheExchange
-                            .steamGrade(batch.effectiveTemperature(seg.getCurrentTemperatureCelsius()), cfg);
-                        if (grade.equals("supercriticalsteam")) supercritical += out;
-                        else if (grade.equals("ic2superheatedsteam")) superheated += out;
-                        else steam += out;
-                    } else {
-                        gas += out;
+                for (int i = 0; i < loop.passageTiles.size(); i++) {
+                    SimTile tile = loop.passageTiles.get(i);
+                    LoopSegment seg = loop.passageSegments.get(i);
+                    double hu = CoolantPassage
+                        .exchange(tile.getTemperature(), flow * seg.getFlowFraction(), 0.05, fluid, seg);
+                    if (hu == 0.0) continue;
+                    tile.setTemperature(tile.getTemperature() - hu / NuclearSimulationEngine.HU_PER_DEGREE);
+                    if (hu > 0) {
+                        tile.setLastHeatOutput(tile.getLastHeatOutput() + hu);
+                        extractedJoules += hu * CoolantPassage.JOULES_PER_HU;
                     }
                 }
-                if (PheExchange.batchComplete(batch, cfg)) {
-                    batch.reset();
+
+                for (int j = 0; j < loop.pheSegments.size(); j++) {
+                    LoopSegment seg = loop.pheSegments.get(j);
+                    PheExchange.Batch batch = loop.pheBatches.get(j);
+                    PheExchange.tick(
+                        batch,
+                        cfg,
+                        secondary,
+                        Double.MAX_VALUE,
+                        flow * seg.getFlowFraction(),
+                        seg,
+                        fluid,
+                        seg.getCurrentTemperatureCelsius(),
+                        exchangeArea,
+                        CoolantLoopConfigData.getConvectiveModel(),
+                        1.0,
+                        maxBatchHeat);
+                    double heat = batch.lastTickHeatJoules;
+                    if (heat > 0.0 && latentPerMl > 0.0) {
+                        // Credit output as the heat moves (the game releases it per batch, at the batch's mean
+                        // temperature)
+                        double ml = heat / latentPerMl;
+                        double out = ml * expansion / 1000.0;
+                        boiledMl += ml;
+                        if (secondary.isSteam) {
+                            String grade = PheExchange
+                                .steamGrade(batch.effectiveTemperature(seg.getCurrentTemperatureCelsius()), cfg);
+                            if (grade.equals("supercriticalsteam")) supercritical += out;
+                            else if (grade.equals("ic2superheatedsteam")) superheated += out;
+                            else steam += out;
+                        } else {
+                            gas += out;
+                        }
+                    }
+                    if (PheExchange.batchComplete(batch, cfg)) {
+                        batch.reset();
+                    }
                 }
             }
         }
 
         // Radiolysis in the passages, as the game's high-pressure hatches do on neutron absorption
         String gasProduct = CoolantPassage.radiolysisGas(fluidType.fluidName);
-        for (int i = 0; i < passageTiles.size(); i++) {
-            SimTile tile = passageTiles.get(i);
-            radiolysisAccumulators[i] += tile.getLastFastAbsorbed() + tile.getLastThermalAbsorbed();
-            int events = radiolysisAccumulators[i] / CoolantPassage.NEUTRONS_PER_RADIOLYSIS;
-            radiolysisAccumulators[i] %= CoolantPassage.NEUTRONS_PER_RADIOLYSIS;
-            if (events > 0 && gasProduct != null) {
-                if (gasProduct.equals("Tritium")) totalTritiumProduced += events * 2L;
-                else totalDeuteriumProduced += events * 2L;
-                totalOxygenProduced += events;
+        for (Loop loop : loops) {
+            for (int i = 0; i < loop.passageTiles.size(); i++) {
+                SimTile tile = loop.passageTiles.get(i);
+                loop.radiolysisAccumulators[i] += tile.getLastFastAbsorbed() + tile.getLastThermalAbsorbed();
+                int events = loop.radiolysisAccumulators[i] / CoolantPassage.NEUTRONS_PER_RADIOLYSIS;
+                loop.radiolysisAccumulators[i] %= CoolantPassage.NEUTRONS_PER_RADIOLYSIS;
+                if (events > 0 && gasProduct != null) {
+                    if (gasProduct.equals("Tritium")) totalTritiumProduced += events * 2L;
+                    else totalDeuteriumProduced += events * 2L;
+                    totalOxygenProduced += events;
+                }
             }
         }
 
@@ -838,8 +882,8 @@ public class CoolantLoopModel {
         lastSupercriticalSteamLt = supercritical * 1000.0 / subTicks;
         lastSecondaryGasLt = gas * 1000.0 / subTicks;
         lastSecondaryBoiledLt = boiledMl / 1000.0 / subTicks;
-        lastPumpPowerEUt = pumpPowerEUt();
-        lastPhePowerEUt = phePowerEUt();
+        lastPumpPowerEUt = pumpPowerEUt() * loops.size();
+        lastPhePowerEUt = phePowerEUt() * loops.size();
         return true;
     }
 
@@ -852,7 +896,7 @@ public class CoolantLoopModel {
     public void reset() {
         this.ruptured = false;
         this.ruptureReason = "";
-        this.engine = null;
+        this.loops.clear();
         this.topologyDirty = true;
         this.lastHeatExtractedWatts = 0.0;
         this.lastHeatExtractedHut = 0.0;
@@ -992,6 +1036,19 @@ public class CoolantLoopModel {
         if (size != null) this.rotorSize = size;
     }
 
+    public int getLoopCount() {
+        return loopCount;
+    }
+
+    /** Independent loops (each with its own pump and PHEs) the passages are split among. */
+    public void setLoopCount(int count) {
+        int c = Math.max(1, count);
+        if (c != loopCount) {
+            this.loopCount = c;
+            markDirty();
+        }
+    }
+
     public int getPheCount() {
         return pheCount;
     }
@@ -1022,28 +1079,38 @@ public class CoolantLoopModel {
 
     // ---- State ------------------------------------------------------------------------------------------------------
 
+    /** Flow in each loop (L/s); the loops are identical, so this is their average. */
     public double getCurrentFlowRateLPerSec() {
-        return engine != null ? engine.getFlowRateLitersPerSecond() : 0.0;
+        double sum = 0.0;
+        for (Loop l : loops) sum += l.engine.getFlowRateLitersPerSecond();
+        return loops.isEmpty() ? 0.0 : sum / loops.size();
     }
 
+    /** Highest pressure in any loop. */
     public double getCurrentPressureBar() {
-        return engine != null ? engine.getPeakLoopPressureBar() : 1.0;
+        double max = 1.0;
+        for (Loop l : loops) max = Math.max(max, l.engine.getPeakLoopPressureBar());
+        return max;
     }
 
-    /** Coolant temperature leaving the reactor (hot leg). */
+    /** Coolant temperature leaving the reactor (hot leg), averaged over the loops. */
     public double getCurrentCoolantTempCelsius() {
-        return hotLegSegment != null ? hotLegSegment.getCurrentTemperatureCelsius()
-            : NuclearSimulationEngine.ambientTemp;
+        double sum = 0.0;
+        for (Loop l : loops) sum += l.hotLegSegment.getCurrentTemperatureCelsius();
+        return loops.isEmpty() ? NuclearSimulationEngine.ambientTemp : sum / loops.size();
     }
 
-    /** Coolant temperature entering the reactor (cold leg). */
+    /** Coolant temperature entering the reactor (cold leg), averaged over the loops. */
     public double getColdLegTempCelsius() {
-        return coldLegSegment != null ? coldLegSegment.getCurrentTemperatureCelsius()
-            : NuclearSimulationEngine.ambientTemp;
+        double sum = 0.0;
+        for (Loop l : loops) sum += l.coldLegSegment.getCurrentTemperatureCelsius();
+        return loops.isEmpty() ? NuclearSimulationEngine.ambientTemp : sum / loops.size();
     }
 
     public double getPeakLoopTempCelsius() {
-        return engine != null ? engine.getPeakLoopTempCelsius() : NuclearSimulationEngine.ambientTemp;
+        double max = NuclearSimulationEngine.ambientTemp;
+        for (Loop l : loops) max = Math.max(max, l.engine.getPeakLoopTempCelsius());
+        return max;
     }
 
     public double getLastHeatExtractedWatts() {

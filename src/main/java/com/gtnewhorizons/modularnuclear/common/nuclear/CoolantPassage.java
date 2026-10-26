@@ -63,7 +63,8 @@ public final class CoolantPassage {
 
     /**
      * One tick of convective exchange between a passage cell and the coolant in its loop segment (Dittus-Boelter in
-     * turbulent flow, Nu = 4.36 in laminar flow), limited so the two cannot cross over in temperature. Updates the
+     * turbulent flow, Nu = 4.36 in laminar flow, scaled by the configured passage heat transfer multiplier), limited so
+     * the two cannot cross over in temperature. Updates the
      * segment's temperature and returns the heat moved from the cell into the coolant in HU (negative if the coolant
      * heated the cell).
      */
@@ -86,7 +87,7 @@ public final class CoolantPassage {
         double re = (rho * velocity * diameter) / Math.max(1e-6, mu);
         double pr = (mu * cp) / Math.max(1e-4, kThermal);
         double nu = re < 2300.0 ? 4.36 : 0.023 * Math.pow(re, 0.8) * Math.pow(Math.max(0.6, pr), 0.4);
-        double h = (nu * kThermal) / diameter;
+        double h = (nu * kThermal) / diameter * NuclearSimulationEngine.coolantPassageHeatTransferMultiplier;
         double heatJoules = h * area * deltaT * dtSeconds;
 
         double cellCapacity = NuclearSimulationEngine.HU_PER_DEGREE * JOULES_PER_HU;

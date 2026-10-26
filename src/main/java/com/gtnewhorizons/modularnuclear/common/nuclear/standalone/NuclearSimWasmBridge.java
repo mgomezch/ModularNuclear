@@ -231,6 +231,16 @@ public class NuclearSimWasmBridge {
         }
     }
 
+    /** Independent loops, each with its own pump and PHEs, that the passages are split among. */
+    @Export(name = "setCoolantLoopCount")
+    public static void setCoolantLoopCount(int count) {
+        if (grid != null) {
+            grid.getCoolantLoop()
+                .setLoopCount(count);
+            grid.updatePowerResultNet();
+        }
+    }
+
     /** Pressurized heat exchangers in parallel on the loop, with the tier and number of energy hatches on each. */
     @Export(name = "setCoolantLoopPhe")
     public static void setCoolantLoopPhe(int count, String hatchTier, int hatchCount) {
@@ -861,6 +871,9 @@ public class NuclearSimWasmBridge {
             .append(",");
         sb.append("\"pumpMechanicalPowerW\":")
             .append(fmt1(cl.pumpMechanicalPowerWatts()))
+            .append(",");
+        sb.append("\"loopCount\":")
+            .append(cl.getLoopCount())
             .append(",");
         sb.append("\"pheCount\":")
             .append(cl.getPheCount())

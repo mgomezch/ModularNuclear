@@ -7,6 +7,7 @@ physics:
   fission_heat_per_neutron: 38.0
   grid_conduction_multiplier: 1.0
   fuel_burnup_multiplier: 1.0
+  coolant_passage_heat_transfer_multiplier: 1.0
   boundary_heat_loss: 0.02
   radiation_decay_factor: 0.95
   doppler_deficit_exponent: 1.2

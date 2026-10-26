@@ -525,6 +525,7 @@ public class NuclearSimulationCLI {
                 // Every line starts from the game's defaults (engine constants, then physics.yaml and the fuel and
                 // component records), so a parameter a line does not set never carries over from an earlier line.
                 NuclearSimulationEngine.resetDefaultParameters();
+                com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData.loadDefaults();
 
                 String preset = "BREEDER_7X7";
                 String layout = null;
@@ -727,6 +728,23 @@ public class NuclearSimulationCLI {
                                 StandaloneConfig.setIc2CoolantHeatPerLiter(Double.parseDouble(v));
                             } catch (Exception ignored) {}
                         }
+                        case "passage_htc_mult" -> {
+                            try {
+                                NuclearSimulationEngine.coolantPassageHeatTransferMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "pump_w_per_eu" -> {
+                            try {
+                                com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData.getPhysicsData()
+                                    .setPumpMechanicalPowerPerEU(Double.parseDouble(v));
+                            } catch (Exception ignored) {}
+                        }
+                        case "phe_area" -> {
+                            try {
+                                com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData.getDeviceData()
+                                    .getPhe().exchangeArea = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
                         case "burnup_mult", "burnupmult" -> {
                             try {
                                 NuclearSimulationEngine.fuelBurnupMultiplier = Double.parseDouble(v);
@@ -777,7 +795,7 @@ public class NuclearSimulationCLI {
                                 loopPumpPower = Double.parseDouble(v);
                             } catch (Exception ignored) {}
                         }
-                        case "loop_hatch", "loop_hatches", "loop_rotor", "loop_rotor_size", "loop_secondary", "phe_count", "phe_hatch", "phe_hatches" -> loopOptions += k
+                        case "loop_hatch", "loop_hatches", "loop_rotor", "loop_rotor_size", "loop_secondary", "phe_count", "phe_hatch", "phe_hatches", "loop_count" -> loopOptions += k
                             + "="
                             + v
                             + ",";
@@ -925,6 +943,7 @@ public class NuclearSimulationCLI {
                     case "loop_rotor_size" -> loop.setRotorSize(CoolantLoopModel.RotorSize.fromString(v));
                     case "loop_secondary" -> loop.setSecondaryCoolant(v);
                     case "phe_count" -> loop.setPheCount(Integer.parseInt(v));
+                    case "loop_count" -> loop.setLoopCount(Integer.parseInt(v));
                     case "phe_hatch" -> loop.setPheHatchTier(CoolantLoopModel.EnergyHatchTier.fromString(v));
                     case "phe_hatches" -> loop.setPheHatchCount(Integer.parseInt(v));
                     default -> System.err.println("WARNING: unknown loop option " + key);
@@ -1727,6 +1746,9 @@ public class NuclearSimulationCLI {
             .append(",");
         sb.append("\"pheCount\":")
             .append(cl.getPheCount())
+            .append(",");
+        sb.append("\"loopCount\":")
+            .append(cl.getLoopCount())
             .append(",");
         sb.append("\"pumpHatches\":")
             .append(cl.getPumpHatchCount())
