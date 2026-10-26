@@ -7,6 +7,7 @@ import com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressu
 import com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedOutput;
 import com.gtnewhorizons.coolantloops.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.coolantloops.common.metatileentity.pipe.MTECoolantPipe;
+import com.gtnewhorizons.coolantloops.engine.CoolantPipeSpec;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -38,32 +39,9 @@ public class ModMetaTileEntities {
     public static final Materials[] COOLANT_PIPE_MATERIALS = new Materials[] { Materials.CastIron, Materials.Steel,
         Materials.StainlessSteel, Materials.Titanium, Materials.TungstenSteel, Materials.Osmium, Materials.Neutronium };
 
-    public static final float[] PIPE_THICKNESSES = new float[] { 0.25F, // Tiny
-        0.375F, // Small
-        0.50F, // Medium
-        0.75F, // Large
-        0.875F // Huge
-    };
+    public static final float[] PIPE_THICKNESSES = CoolantPipeSpec.THICKNESSES;
 
-    public static final String[] SIZE_NAMES = new String[] { "Tiny", "Small", "Medium", "Large", "Huge" };
-
-    public static final int[] BASE_CAPACITIES = new int[] { 180, // CastIron
-        240, // Steel
-        360, // StainlessSteel
-        480, // Titanium
-        600, // TungstenSteel
-        1200, // Osmium
-        16800 // Neutronium
-    };
-
-    public static final int[] HEAT_RESISTANCES = new int[] { 2250, // CastIron
-        2500, // Steel
-        3000, // StainlessSteel
-        5000, // Titanium
-        7500, // TungstenSteel
-        10000, // Osmium
-        1000000 // Neutronium
-    };
+    public static final String[] SIZE_NAMES = CoolantPipeSpec.SIZE_NAMES;
 
     public static final MTECoolantPipe[][] coolantPipes = new MTECoolantPipe[COOLANT_PIPE_MATERIALS.length][PIPE_THICKNESSES.length];
     public static final ItemStack[][] coolantPipeItems = new ItemStack[COOLANT_PIPE_MATERIALS.length][PIPE_THICKNESSES.length];
@@ -102,14 +80,8 @@ public class ModMetaTileEntities {
             int sizeBaseId = COOLANT_PIPE_START_ID + s * COOLANT_PIPE_MATERIALS.length;
             for (int m = 0; m < COOLANT_PIPE_MATERIALS.length; m++) {
                 Materials mat = COOLANT_PIPE_MATERIALS[m];
-                int baseCap = BASE_CAPACITIES[m];
-                int heatRes = HEAT_RESISTANCES[m];
-                int cap;
-                if (s == 0) cap = Math.max(1, baseCap / 6);
-                else if (s == 1) cap = Math.max(1, baseCap / 3);
-                else if (s == 2) cap = baseCap;
-                else if (s == 3) cap = baseCap * 2;
-                else cap = baseCap * 4;
+                int heatRes = CoolantPipeSpec.HEAT_RESISTANCES[m];
+                int cap = CoolantPipeSpec.capacityPerTick(m, s);
 
                 int id = sizeBaseId + m;
                 String internalName = "coolantpipe." + sizeName.toLowerCase() + "." + mat.mName.toLowerCase();
