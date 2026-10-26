@@ -821,7 +821,9 @@ From Osmium tier upward, a column may be a **pressure-tube passage**: a high-pre
 
 $$Re = \frac{\rho v D}{\mu}, \qquad Pr = \frac{\mu c_p}{k}, \qquad Nu = \begin{cases} 4.36 & Re < 2300 \\ 0.023\,Re^{0.8}\,\max(0.6, Pr)^{0.4} & \text{otherwise}\end{cases}$$
 
-$$h = \frac{Nu\,k}{D}, \qquad \dot Q = h\,A\,(T_\text{cell} - T_\text{coolant})$$
+$$h = m_p\,\frac{Nu\,k}{D}, \qquad \dot Q = h\,A\,(T_\text{cell} - T_\text{coolant})$$
+
+where $m_p$ is `coolant_passage_heat_transfer_multiplier` in `physics.yaml` (default 1.0). The velocity is that of the passage's own share of the loop flow: where the loop splits into parallel branches (several passages behind one manifold, or several PHEs), each branch carries a share of the flow in proportion to its pipe size, and each device sees only its branch's flow.
 
 The heat transferred in one tick is capped so that the cell and the segment cannot cross over in temperature. The cell's heat capacity is taken as $32 \times 128 = 4096$ J/°C (1 HU = 128 J at the interface). The coolant segment's temperature rises by $Q/(m_\text{seg}\,c_p)$.
 
@@ -840,6 +842,8 @@ with $f = 64/Re$ in laminar flow and the Churchill correlation otherwise. The co
 Loop fluids (in the loop engine): water, distilled water, heavy water, IC2 coolant, sodium, and others, each with SI density, viscosity, specific heat, conductivity, and boiling and freezing points. Sodium's thermal conductivity (86 W·m⁻¹·K⁻¹) is two orders of magnitude above water's, which gives it far higher $h$ at a given flow.
 
 **Heat delivery.** The loop delivers its heat to a **Pressurized Heat Exchanger** (PHE), which boils a secondary fluid (distilled water to steam at 1:160, or cryogenic liquids to gas). The PHE transfers heat only while the primary coolant is at least 5 °C above the secondary's boiling point (the approach temperature), consumes EU, and is limited per 20-tick batch by its rated exchange capacity and by the secondary fluid available.
+
+Each tick a PHE moves heat by convection across its 24 m² tube bundle, $\dot Q = h(v)\,A\,(T_\text{coolant} - T_\text{boil})$, with $h$ rising with the coolant velocity up to 5000 W·m⁻²·K⁻¹ (about 120 kW per °C above the secondary's boiling point, or 47 HU/t per °C). One batch may move at most 2.26 MJ times the PHE's voltage over 32: about 0.9k HU/t at LV, 14k HU/t at HV and 56k HU/t at EV. The PHE draws $\tfrac{15}{16}$ of its voltage every tick it runs. The coolant settles where the reactor's heat equals what the PHEs can move, so fewer PHEs run the loop hotter. Steam leaves at the batch's heat-weighted coolant temperature: supercritical steam at 700 °C and above, superheated steam at 300 °C and above, plain steam below. One HU makes as much steam through a PHE as through a distilled water hatch (about 9 L), so a loop's advantage is the steam grade.
 
 **Radiolysis.** Every 4 neutrons absorbed in a passage cell consume 2 L of loop coolant and add 2 L of dissolved gas plus 1 L of dissolved oxygen to the loop: deuterium for water, tritium for heavy water. Other loop fluids do not undergo radiolysis. Dissolved gas increases pump rotor wear (cavitation) by a factor $1 + 10\,f_\text{gas}$, where $f_\text{gas}$ is the dissolved gas volume fraction. A **Pressurized Degasser** extracts dissolved gases from the loop to output hatches.
 
