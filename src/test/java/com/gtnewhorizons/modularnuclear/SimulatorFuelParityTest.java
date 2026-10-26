@@ -89,6 +89,7 @@ public class SimulatorFuelParityTest {
                 tile.getBaseAbsorptionProbability(NeutronType.THERMAL),
                 fd.absorptionThermal);
             check(diffs, id, "absorption_fast", tile.getBaseAbsorptionProbability(NeutronType.FAST), fd.absorptionFast);
+            check(diffs, id, "heat_transfer_coeff", tile.getHeatTransferCoeff(), fd.heatTransferCoeff);
             NuclearFuelType fuel = tile.getFuelType();
             if (fuel == null) {
                 diffs.add(id + ": simulator has no fuel type");
