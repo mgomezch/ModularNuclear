@@ -642,6 +642,46 @@ public class NuclearSimulationCLI {
                                 NuclearSimulationEngine.setGridConductionMultiplier(Double.parseDouble(v));
                             } catch (Exception ignored) {}
                         }
+                        case "dense_nbase_mult", "dense_nbase_multiplier" -> {
+                            try {
+                                NuclearSimulationEngine.denseNbaseMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "dense_fission_mult", "dense_fission_multiplier" -> {
+                            try {
+                                NuclearSimulationEngine.denseFissionMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "excited_nbase_mult", "excited_nbase_multiplier" -> {
+                            try {
+                                NuclearSimulationEngine.excitedNbaseMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "excited_fission_mult", "excited_fission_multiplier" -> {
+                            try {
+                                NuclearSimulationEngine.excitedFissionMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "standard_nbase_mult", "standard_nbase_multiplier" -> {
+                            try {
+                                NuclearSimulationEngine.standardNbaseMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "standard_fission_mult", "standard_fission_multiplier" -> {
+                            try {
+                                NuclearSimulationEngine.standardFissionMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "breeder_nbase_mult", "breeder_nbase_multiplier" -> {
+                            try {
+                                NuclearSimulationEngine.breederNbaseMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
+                        case "breeder_fission_mult", "breeder_fission_multiplier" -> {
+                            try {
+                                NuclearSimulationEngine.breederFissionMultiplier = Double.parseDouble(v);
+                            } catch (Exception ignored) {}
+                        }
                         case "fission_heat", "fissionheat" -> {
                             try {
                                 NuclearSimulationEngine.fissionHeatPerNeutron = Double.parseDouble(v);
@@ -1090,10 +1130,17 @@ public class NuclearSimulationCLI {
         double[] maxTempHist = trackHistory ? new double[ticks] : null;
         double[] loopTempHist = trackHistory ? new double[ticks] : null;
 
+        // Energy and game tick at the run's half-way point, for the steady-state (second half) average power.
+        double halfEnergy = 0.0;
+        long halfTick = -1;
         for (int t = 1; t <= ticks; t++) {
             tickReached = t;
             boolean ok = grid.step();
             if (!ok) break;
+            if (t == (ticks + 1) / 2) {
+                halfEnergy = grid.getTotalEnergyEU();
+                halfTick = grid.getCurrentTick();
+            }
 
             TurbineCalculator.PowerEstimationResult pr = (steadyStateStop || trackHistory) ? grid.getLastPowerResult()
                 : null;
@@ -1293,6 +1340,12 @@ public class NuclearSimulationCLI {
             .append(",");
         sb.append("\"powerEUt\":")
             .append(String.format(java.util.Locale.US, "%.1f", power))
+            .append(",");
+        double tailPower = (halfTick >= 0 && grid.getCurrentTick() > halfTick)
+            ? (grid.getTotalEnergyEU() - halfEnergy) / (double) (grid.getCurrentTick() - halfTick)
+            : power;
+        sb.append("\"tailPowerEUt\":")
+            .append(String.format(java.util.Locale.US, "%.1f", tailPower))
             .append(",");
         sb.append("\"directPowerEUt\":")
             .append(String.format(java.util.Locale.US, "%.1f", directPower))
