@@ -21,6 +21,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
 
 /**
  * Reactor configuration state (physics, tiers, fuels and components) without any Minecraft or YAML dependency, shared
@@ -449,5 +450,85 @@ public final class ReactorConfigData {
 
         targetList.clear();
         targetList.addAll(activeMap.values());
+    }
+
+    // ---- Fluid name matching (shared with the game's item/fluid lookups) ----
+
+    public static boolean matchesPattern(String text, String pattern) {
+        if (text == null || pattern == null) return false;
+        String t = text.trim()
+            .toLowerCase();
+        String p = pattern.trim()
+            .toLowerCase();
+        if (p.equals("*") || p.equals(t)) return true;
+        if (p.startsWith("*") && p.endsWith("*")) {
+            return t.contains(p.substring(1, p.length() - 1));
+        }
+        if (p.startsWith("*")) {
+            return t.endsWith(p.substring(1));
+        }
+        if (p.endsWith("*")) {
+            return t.startsWith(p.substring(0, p.length() - 1));
+        }
+        return p.equals(t);
+    }
+
+    public static String normalizeFluidString(String s) {
+        if (s == null) return "";
+        String clean = s.toLowerCase();
+        if (clean.startsWith("fluid.")) clean = clean.substring(6);
+        if (clean.startsWith("molten.")) clean = clean.substring(7);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < clean.length(); i++) {
+            char c = clean.charAt(i);
+            if (Character.isLetterOrDigit(c)) {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
+    static boolean matchesPermutedDescriptors(String a, String b) {
+        if (a == null || b == null || a.isEmpty() || b.isEmpty()) return false;
+        String stripA = WasmStrings.replace(a, "state", "");
+        String stripB = WasmStrings.replace(b, "state", "");
+        if (stripA.equals(stripB)) return true;
+        for (String modifier : new String[] { "excited", "depleted" }) {
+            if (stripA.contains(modifier) && stripB.contains(modifier)) {
+                String baseA = WasmStrings.replace(stripA, modifier, "");
+                String baseB = WasmStrings.replace(stripB, modifier, "");
+                if (!baseA.isEmpty() && baseA.equals(baseB)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean matchesFluid(String fluidName, List<String> patterns) {
+        if (fluidName == null || patterns == null || patterns.isEmpty()) return false;
+        String cleanFluid = fluidName.startsWith("fluid.") ? fluidName.substring(6) : fluidName;
+        String normFluid = normalizeFluidString(fluidName);
+        for (String pattern : patterns) {
+            if (pattern == null || pattern.isEmpty()) continue;
+            if (fluidName.equalsIgnoreCase(pattern)) return true;
+            String cleanPattern = pattern.startsWith("fluid.") ? pattern.substring(6) : pattern;
+            if (cleanFluid.equalsIgnoreCase(cleanPattern)) return true;
+            if (pattern.contains("*") && matchesPattern(fluidName, pattern)) return true;
+            String normPattern = normalizeFluidString(pattern);
+            if (!normPattern.isEmpty()) {
+                if (matchesPermutedDescriptors(normFluid, normPattern)) return true;
+            }
+        }
+        return false;
+    }
+
+    /** The coolant fluid entry (components.yaml coolant_fluids) matching a fluid name, or null. */
+    public static ComponentData.CoolantFluidData findCoolantFluid(String fluidName) {
+        if (fluidName == null) return null;
+        for (ComponentData.CoolantFluidData d : getComponentData().coolantFluids) {
+            if (matchesFluid(fluidName, d.matching)) return d;
+        }
+        return null;
     }
 }

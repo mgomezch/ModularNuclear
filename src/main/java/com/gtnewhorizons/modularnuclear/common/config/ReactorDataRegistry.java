@@ -37,7 +37,6 @@ import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
-import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.enums.ItemList;
@@ -718,11 +717,7 @@ public final class ReactorDataRegistry {
     }
 
     public static CoolantFluidData findCoolantFluid(String fluidName) {
-        if (fluidName == null) return null;
-        for (CoolantFluidData d : ReactorConfigData.componentData.coolantFluids) {
-            if (matchesFluid(fluidName, d.matching)) return d;
-        }
-        return null;
+        return ReactorConfigData.findCoolantFluid(fluidName);
     }
 
     public static CoolantItemData findCoolantItem(ItemStack stack) {
@@ -861,22 +856,7 @@ public final class ReactorDataRegistry {
     // =========================================================================
 
     public static boolean matchesPattern(String text, String pattern) {
-        if (text == null || pattern == null) return false;
-        String t = text.trim()
-            .toLowerCase();
-        String p = pattern.trim()
-            .toLowerCase();
-        if (p.equals("*") || p.equals(t)) return true;
-        if (p.startsWith("*") && p.endsWith("*")) {
-            return t.contains(p.substring(1, p.length() - 1));
-        }
-        if (p.startsWith("*")) {
-            return t.endsWith(p.substring(1));
-        }
-        if (p.endsWith("*")) {
-            return t.startsWith(p.substring(0, p.length() - 1));
-        }
-        return p.equals(t);
+        return ReactorConfigData.matchesPattern(text, pattern);
     }
 
     public static boolean matchesItem(ItemStack stack, List<String> patterns) {
@@ -995,18 +975,7 @@ public final class ReactorDataRegistry {
     }
 
     public static String normalizeFluidString(String s) {
-        if (s == null) return "";
-        String clean = s.toLowerCase();
-        if (clean.startsWith("fluid.")) clean = clean.substring(6);
-        if (clean.startsWith("molten.")) clean = clean.substring(7);
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < clean.length(); i++) {
-            char c = clean.charAt(i);
-            if (Character.isLetterOrDigit(c)) {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
+        return ReactorConfigData.normalizeFluidString(s);
     }
 
     /**
@@ -1068,14 +1037,15 @@ public final class ReactorDataRegistry {
                 if (!normQ.isEmpty()) {
                     for (Map.Entry<String, Fluid> entry : registered.entrySet()) {
                         String normKey = normalizeFluidString(entry.getKey());
-                        if (matchesPermutedDescriptors(normKey, normQ)) return entry.getValue();
+                        if (ReactorConfigData.matchesPermutedDescriptors(normKey, normQ)) return entry.getValue();
                         Fluid f = entry.getValue();
                         if (f != null) {
                             String normUnloc = normalizeFluidString(f.getUnlocalizedName());
-                            if (matchesPermutedDescriptors(normUnloc, normQ)) return f;
+                            if (ReactorConfigData.matchesPermutedDescriptors(normUnloc, normQ)) return f;
                             try {
                                 String loc = f.getLocalizedName(new FluidStack(f, 1000));
-                                if (loc != null && matchesPermutedDescriptors(normalizeFluidString(loc), normQ))
+                                if (loc != null
+                                    && ReactorConfigData.matchesPermutedDescriptors(normalizeFluidString(loc), normQ))
                                     return f;
                             } catch (Throwable ignored) {}
                         }
@@ -1084,23 +1054,6 @@ public final class ReactorDataRegistry {
             }
         } catch (Throwable ignored) {}
         return null;
-    }
-
-    private static boolean matchesPermutedDescriptors(String a, String b) {
-        if (a == null || b == null || a.isEmpty() || b.isEmpty()) return false;
-        String stripA = WasmStrings.replace(a, "state", "");
-        String stripB = WasmStrings.replace(b, "state", "");
-        if (stripA.equals(stripB)) return true;
-        for (String modifier : new String[] { "excited", "depleted" }) {
-            if (stripA.contains(modifier) && stripB.contains(modifier)) {
-                String baseA = WasmStrings.replace(stripA, modifier, "");
-                String baseB = WasmStrings.replace(stripB, modifier, "");
-                if (!baseA.isEmpty() && baseA.equals(baseB)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     public static boolean matchesFluid(FluidStack fluid, List<String> patterns) {
@@ -1127,28 +1080,14 @@ public final class ReactorDataRegistry {
             }
             String normPattern = normalizeFluidString(pattern);
             if (!normPattern.isEmpty()) {
-                if (matchesPermutedDescriptors(normName, normPattern)
-                    || matchesPermutedDescriptors(normUnloc, normPattern)) return true;
+                if (ReactorConfigData.matchesPermutedDescriptors(normName, normPattern)
+                    || ReactorConfigData.matchesPermutedDescriptors(normUnloc, normPattern)) return true;
             }
         }
         return false;
     }
 
     public static boolean matchesFluid(String fluidName, List<String> patterns) {
-        if (fluidName == null || patterns == null || patterns.isEmpty()) return false;
-        String cleanFluid = fluidName.startsWith("fluid.") ? fluidName.substring(6) : fluidName;
-        String normFluid = normalizeFluidString(fluidName);
-        for (String pattern : patterns) {
-            if (pattern == null || pattern.isEmpty()) continue;
-            if (fluidName.equalsIgnoreCase(pattern)) return true;
-            String cleanPattern = pattern.startsWith("fluid.") ? pattern.substring(6) : pattern;
-            if (cleanFluid.equalsIgnoreCase(cleanPattern)) return true;
-            if (pattern.contains("*") && matchesPattern(fluidName, pattern)) return true;
-            String normPattern = normalizeFluidString(pattern);
-            if (!normPattern.isEmpty()) {
-                if (matchesPermutedDescriptors(normFluid, normPattern)) return true;
-            }
-        }
-        return false;
+        return ReactorConfigData.matchesFluid(fluidName, patterns);
     }
 }
