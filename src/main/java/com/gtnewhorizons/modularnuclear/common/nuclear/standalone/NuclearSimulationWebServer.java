@@ -999,6 +999,14 @@ public class NuclearSimulationWebServer {
                   <div id="loop-tier-warning" style="display:none; font-size:0.72rem; color:#fbbf24; background:rgba(251,191,36,0.15); border:1px solid #fbbf24; border-radius:4px; padding:6px; margin-bottom:8px;">
                     ⚠️ Convective loops require Osmium or higher item pipe casings (LuV+). Available on all reactor sizes (5×5, 9×9, 13×13).
                   </div>
+                  <div style="display:flex; gap:6px; margin-bottom:6px; align-items:flex-end;">
+                    <div style="flex:1;">
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Loop Circuit (passages CP, CP2, CP3 ...):</label>
+                      <select id="loop-circuit-select" onchange="onCoolantCircuitSelect()" style="width:100%;"><option value="0">Circuit 1 (CP)</option></select>
+                    </div>
+                    <button onclick="addCoolantCircuit()" style="font-size:0.75rem; padding:5px 8px;">＋ Circuit</button>
+                    <button onclick="removeCoolantCircuit()" style="font-size:0.75rem; padding:5px 8px; background:#475569;">－</button>
+                  </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
                       <label style="font-size:0.7rem; color:var(--text-muted);">Loop Material:</label>
@@ -1023,6 +1031,7 @@ public class NuclearSimulationWebServer {
                         <option value="HEAVY_WATER">Heavy Water</option>
                         <option value="IC2_COOLANT">IC2 Coolant</option>
                         <option value="SODIUM">Sodium</option>
+                        <option value="MOLTEN_LEAD">Molten Lead</option>
                         <option value="MOLTEN_CHEESE">🧀 Molten Cheese</option>
                         <option value="LAVA">🌋 Nether Lava</option>
                       </select>
@@ -1091,6 +1100,43 @@ public class NuclearSimulationWebServer {
                       </select>
                     </div>
                   </div>
+                  <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Pump Duty Cycle (%):</label>
+                      <input id="loop-duty-cycle-input" type="number" min="0" max="100" step="5" value="100" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                    </div>
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Flow Cap (L/s):</label>
+                      <input id="loop-max-flow-input" type="number" min="0" step="10" placeholder="No cap" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                    </div>
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Pressure Cap (bar):</label>
+                      <input id="loop-max-pressure-input" type="number" min="0" step="5" placeholder="No cap" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                    </div>
+                  </div>
+                  <div style="display:grid; grid-template-columns: auto 1fr 1fr 1.3fr; gap:6px; margin-bottom:6px; align-items:end;">
+                    <label style="font-size:0.72rem; color:#fde047; display:flex; align-items:center; gap:4px; padding-bottom:6px; cursor:pointer;">
+                      <input id="loop-band-check" type="checkbox" onchange="onCoolantLoopConfigChange()" style="accent-color:#f59e0b;"> Temp band
+                    </label>
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Pump off below (°C):</label>
+                      <input id="loop-band-min-input" type="number" step="10" value="500" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                    </div>
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Pump on above (°C):</label>
+                      <input id="loop-band-max-input" type="number" step="10" value="600" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                    </div>
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Sensor:</label>
+                      <select id="loop-band-sensor-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
+                        <option value="PASSAGE" selected>Hottest passage</option>
+                        <option value="HOT_LEG">Hot leg coolant</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:6px;">
+                    Pump control stands for a machine controller cover driven by redstone: the pump only runs (and draws EU) on the ticks it is switched on.
+                  </div>
                   <div style="display:flex; gap:6px; margin-bottom:8px;">
                     <button id="btn-loop-attach-mode" onclick="toggleLoopAttachMode()" style="flex:1; font-size:0.75rem; padding:4px 8px; background:#0284c7;">🔗 Attach Points Mode</button>
                     <button onclick="clearLoopAttachments()" style="font-size:0.75rem; padding:4px 8px; background:#475569;">✕ Clear Points</button>
@@ -1105,6 +1151,7 @@ public class NuclearSimulationWebServer {
                   <div class="stat-row"><span>Secondary PHE Steam:</span><span class="stat-val" id="loop-steam-val">0 L/t (1:160)</span></div>
                   <div class="stat-row"><span>Pump Power (Parasitic):</span><span class="stat-val" id="loop-pump-val" style="color:#fbbf24;">0 EU/t</span></div>
                   <div class="stat-row"><span>Attached Core Points:</span><span class="stat-val" id="loop-points-val">0 cells</span></div>
+                  <div id="loop-circuits-table" style="font-size:0.72rem; margin-top:6px;"></div>
                   <div class="stat-row"><span>Byproduct (Transmutation):</span><span class="stat-val" id="loop-byproduct-val" style="color:#a855f7;">0 L</span></div>
                 </div>
 
@@ -1472,6 +1519,8 @@ public class NuclearSimulationWebServer {
               { type: "HATCH_HEAVY_WATER", name: "Heavy Water Hatch", code: "HW", color: "#6366f1" },
               { type: "HATCH_IC2_COOLANT", name: "IC2 Coolant Hatch", code: "HC", color: "#14b8a6" },
               { type: "PASSAGE_CORE", name: "Coolant Loop Passage", code: "CP", color: "#00d2ff" },
+              { type: "CP2", name: "Coolant Loop Passage (circuit 2)", code: "CP2", color: "#f97316" },
+              { type: "CP3", name: "Coolant Loop Passage (circuit 3)", code: "CP3", color: "#a855f7" },
               { type: "REFLECTOR_GOLD", name: "Gold Plate Reflector", code: "RG", color: "#fbbf24" },
               { type: "REFLECTOR_STAINLESS", name: "Stainless Steel Plate Reflector", code: "RS", color: "#94a3b8" },
               { type: "REFLECTOR_TUNGSTEN_CARBIDE", name: "Tungsten Carbide Plate Reflector", code: "RT", color: "#475569" },
@@ -1665,6 +1714,14 @@ public class NuclearSimulationWebServer {
               const rotorSize = val("loop-rotor-size-select", "HUGE");
               const pheCount = Math.max(1, parseInt(val("loop-phe-count-input", "1"), 10) || 1);
               const loopCount = Math.max(1, parseInt(val("loop-count-input", "1"), 10) || 1);
+              const duty = parseFloat(val("loop-duty-cycle-input", "100"));
+              const maxFlow = parseFloat(val("loop-max-flow-input", "0")) || 0;
+              const maxPress = parseFloat(val("loop-max-pressure-input", "0")) || 0;
+              const bandCheck = document.getElementById("loop-band-check");
+              const bandOn = bandCheck ? bandCheck.checked : false;
+              const bandMin = parseFloat(val("loop-band-min-input", "500"));
+              const bandMax = parseFloat(val("loop-band-max-input", "600"));
+              const sensor = val("loop-band-sensor-select", "PASSAGE");
               const pheHatch = val("loop-phe-hatch-tier-select", hatch);
               const pheHatches = parseInt(val("loop-phe-hatches-select", "1"), 10) || 1;
 
@@ -1681,6 +1738,8 @@ public class NuclearSimulationWebServer {
                 wasmSim.setCoolantLoopRotor(rotor, rotorSize, false);
                 wasmSim.setCoolantLoopPhe(pheCount, pheHatch, pheHatches, false);
                 wasmSim.setCoolantLoopCount(loopCount, false);
+                wasmSim.setCoolantLoopControl(isNaN(duty) ? 100 : duty, maxFlow, maxPress, false);
+                wasmSim.setCoolantLoopTempBand(bandOn, bandMin, bandMax, sensor, false);
                 currentState = wasmSim.getState();
                 renderUI();
                 return;
@@ -1689,6 +1748,29 @@ public class NuclearSimulationWebServer {
               await fetch(url);
               await fetchState();
               schedulePoll();
+            }
+
+            function onCoolantCircuitSelect() {
+              const sel = document.getElementById("loop-circuit-select");
+              if (!wasmSim || !sel) return;
+              wasmSim.selectCoolantCircuit(parseInt(sel.value, 10) || 0, false);
+              currentState = wasmSim.getState();
+              renderUI();
+            }
+
+            function addCoolantCircuit() {
+              if (!wasmSim || !currentState || !currentState.coolantLoop) return;
+              const n = (currentState.coolantLoop.circuits || []).length;
+              wasmSim.selectCoolantCircuit(n, false);
+              currentState = wasmSim.getState();
+              renderUI();
+            }
+
+            function removeCoolantCircuit() {
+              if (!wasmSim) return;
+              wasmSim.removeCoolantCircuit(false);
+              currentState = wasmSim.getState();
+              renderUI();
             }
 
             function toggleLoopAttachMode() {
@@ -2370,6 +2452,38 @@ public class NuclearSimulationWebServer {
                 syncSel("loop-pump-hatches-select", cl.pumpHatchCount >= 2 ? 2 : 1);
                 syncSel("loop-phe-count-input", cl.pheCount);
                 syncSel("loop-count-input", cl.loopCount);
+                syncSel("loop-duty-cycle-input", Math.round(cl.dutyCyclePercent));
+                syncSel("loop-max-flow-input", cl.maxFlowRateLimit > 0 ? cl.maxFlowRateLimit : "");
+                syncSel("loop-max-pressure-input", cl.maxPressureLimit > 0 ? cl.maxPressureLimit : "");
+                syncSel("loop-band-sensor-select", cl.tempSensor);
+                if (cl.tempBandEnabled) {
+                  syncSel("loop-band-min-input", cl.tempBandMin);
+                  syncSel("loop-band-max-input", cl.tempBandMax);
+                }
+                const bandCheck = document.getElementById("loop-band-check");
+                if (bandCheck && activeEl !== bandCheck) bandCheck.checked = !!cl.tempBandEnabled;
+                const circSel = document.getElementById("loop-circuit-select");
+                if (circSel && cl.circuits) {
+                  const keys = cl.circuits.map(c => c.code + c.fluid).join(",");
+                  if (circSel.dataset.lastKeys !== keys) {
+                    circSel.dataset.lastKeys = keys;
+                    circSel.innerHTML = "";
+                    cl.circuits.forEach(c => {
+                      const opt = document.createElement("option");
+                      opt.value = c.index;
+                      opt.innerText = `Circuit ${c.index + 1} (${c.code}) · ${c.fluid}`;
+                      circSel.appendChild(opt);
+                    });
+                  }
+                  syncSel("loop-circuit-select", cl.selectedCircuit);
+                }
+                const circTable = document.getElementById("loop-circuits-table");
+                if (circTable && cl.circuits) {
+                  circTable.innerHTML = cl.circuits.length < 2 && !cl.limitReason ? "" :
+                    `<table style="width:100%; border-collapse:collapse;"><tr style="color:var(--text-muted);"><td>Circuit</td><td>Cells</td><td>Flow</td><td>Cold → Hot</td><td>Heat</td><td>Pump on</td></tr>` +
+                    cl.circuits.map(c => `<tr${c.index === cl.selectedCircuit ? ' style="color:#00d2ff;"' : ''}><td>${c.code} ${c.fluid}</td><td>${c.passages}</td><td>${Math.round(c.flowLPerSec)} L/s</td><td>${Math.round(c.coldLegC)} → ${Math.round(c.hotLegC)} °C</td><td>${Math.round(c.heatHut).toLocaleString()} HU/t</td><td>${Math.round(c.pumpOn * 100)}%</td></tr>`).join("") +
+                    `</table>` + (cl.limitReason ? `<div style="color:#fde047; margin-top:4px;">⚙️ Pump switched off by ${cl.limitReason} (${Math.round(cl.pumpOnFraction * 100)}% of ticks on)</div>` : "");
+                }
                 syncSel("loop-phe-hatch-tier-select", cl.pheHatchTier);
                 syncSel("loop-phe-hatches-select", cl.pheHatchCount >= 2 ? 2 : 1);
 
@@ -2432,7 +2546,7 @@ public class NuclearSimulationWebServer {
 
                 const pumpEl = document.getElementById("loop-pump-val");
                 if (pumpEl) {
-                  let pText = `-${Math.round(cl.pumpPowerEUt).toLocaleString()} EU/t pump, -${Math.round(cl.phePowerEUt).toLocaleString()} EU/t PHE`;
+                  let pText = `-${Math.round(cl.lastPumpPowerEUt).toLocaleString()} EU/t pumps, -${Math.round(cl.lastPhePowerEUt).toLocaleString()} EU/t PHEs`;
                   pText += ` (${(cl.pumpMechanicalPowerW / 1000).toFixed(0)} kW into the coolant · rotor ${Math.round((cl.rotorEfficiency || 1.0) * 100)}%)`;
                   pumpEl.innerText = pText;
                 }
@@ -3445,6 +3559,7 @@ public class NuclearSimulationWebServer {
                 wasmSim.setCoolantLoopRotor(opt("loop_rotor", def.rotor), opt("loop_rotor_size", "HUGE"), false);
                 wasmSim.setCoolantLoopPhe(opt("phe_count", 1), opt("phe_hatch", ht), opt("phe_hatches", 1), false);
                 wasmSim.setCoolantLoopCount(opt("loop_count", 1), false);
+                wasmSim.setCoolantLoopControl(opt("loop_duty", 100), opt("loop_max_flow", 0), opt("loop_max_pressure", 0), false);
                 if (p && p.loop_secondary) wasmSim.setCoolantLoopSecondaryCoolant(p.loop_secondary, false);
               }
             }

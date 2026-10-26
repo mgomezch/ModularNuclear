@@ -779,28 +779,45 @@ public class NuclearSimulationCLI {
                             strictMode = Boolean.parseBoolean(v) || "1".equals(v) || "true".equalsIgnoreCase(v);
                         }
                         case "loop_material", "loop_mat", "loopmat" -> {
-                            loopMat = CoolantLoopModel.LoopMaterial.fromString(v);
-                            loopMatSpecified = true;
+                            // After a circuit=N, loop settings belong to that circuit
+                            if (loopOptions.contains("circuit=")) {
+                                loopOptions += k + "=" + v + ",";
+                            } else {
+                                loopMat = CoolantLoopModel.LoopMaterial.fromString(v);
+                                loopMatSpecified = true;
+                            }
                         }
                         case "loop_size", "loopsize" -> {
-                            loopSize = CoolantLoopModel.LoopPipeSize.fromString(v);
-                            loopSizeSpecified = true;
+                            // After a circuit=N, loop settings belong to that circuit
+                            if (loopOptions.contains("circuit=")) {
+                                loopOptions += k + "=" + v + ",";
+                            } else {
+                                loopSize = CoolantLoopModel.LoopPipeSize.fromString(v);
+                                loopSizeSpecified = true;
+                            }
                         }
                         case "loop_fluid", "loopfluid" -> {
-                            loopFluid = CoolantLoopModel.CoolantFluidType.fromString(v);
-                            loopFluidSpecified = true;
+                            // After a circuit=N, loop settings belong to that circuit
+                            if (loopOptions.contains("circuit=")) {
+                                loopOptions += k + "=" + v + ",";
+                            } else {
+                                loopFluid = CoolantLoopModel.CoolantFluidType.fromString(v);
+                                loopFluidSpecified = true;
+                            }
                         }
                         case "loop_power", "looppower" -> {
-                            try {
-                                loopPumpPower = Double.parseDouble(v);
-                            } catch (Exception ignored) {}
+                            if (loopOptions.contains("circuit=")) {
+                                loopOptions += "loop_power=" + v + ",";
+                            } else {
+                                try {
+                                    loopPumpPower = Double.parseDouble(v);
+                                } catch (Exception ignored) {}
+                            }
                         }
-                        case "loop_hatch", "loop_hatches", "loop_rotor", "loop_rotor_size", "loop_secondary", "phe_count", "phe_hatch", "phe_hatches", "loop_count" -> loopOptions += k
+                        case "loop_hatch", "loop_hatches", "loop_rotor", "loop_rotor_size", "loop_secondary", "phe_count", "phe_hatch", "phe_hatches", "loop_count", "circuit", "loop_duty", "loop_max_flow", "loop_flow", "loop_max_pressure", "loop_temp_min", "loop_temp_max", "loop_sensor" -> loopOptions += k
                             + "="
                             + v
                             + ",";
-                        case "loop_flow", "loopflow" -> System.err.println(
-                            "WARNING: loop_flow is ignored; the pump's flow follows from its power and the loop.");
                         case "loop_points", "looppoints" -> loopPoints = v;
                         case "auto_refuel", "autorefuel", "auto_replace_fuel", "autoreplacefuel", "auto_supply_fuel", "autosupplyfuel" -> {
                             autoReplaceFuel = Boolean.parseBoolean(v) || "1".equals(v) || "true".equalsIgnoreCase(v);
@@ -924,9 +941,14 @@ public class NuclearSimulationCLI {
         loop.setPumpHatchCount(bestCount);
     }
 
-    /** Applies "key=value" loop settings separated by commas (pump hatches, rotor, PHEs, secondary fluid). */
+    /**
+     * Applies "key=value" loop settings separated by commas, in order. circuit=N (1-based) switches the following
+     * settings to that circuit (its passages are CPN in the layout), adding circuits as needed.
+     */
     private static void applyLoopOptions(CoolantLoopModel loop, String options) {
         if (options == null) return;
+        double bandMin = Double.NaN;
+        double bandMax = Double.NaN;
         for (String opt : options.split(",")) {
             int eq = opt.indexOf('=');
             if (eq <= 0) continue;
@@ -937,6 +959,22 @@ public class NuclearSimulationCLI {
                 .trim();
             try {
                 switch (key) {
+                    case "circuit" -> {
+                        if (!Double.isNaN(bandMin) || !Double.isNaN(bandMax)) loop.setTemperatureBand(bandMin, bandMax);
+                        bandMin = bandMax = Double.NaN;
+                        loop.selectCircuit(Integer.parseInt(v) - 1);
+                    }
+                    case "loop_mat" -> loop.setMaterial(CoolantLoopModel.LoopMaterial.fromString(v));
+                    case "loop_size" -> loop.setPipeSize(CoolantLoopModel.LoopPipeSize.fromString(v));
+                    case "loop_fluid" -> loop.setFluidType(CoolantLoopModel.CoolantFluidType.fromString(v));
+                    case "loop_power" -> setPumpPower(loop, Double.parseDouble(v));
+                    case "loop_duty" -> loop.setDutyCyclePercent(Double.parseDouble(v));
+                    case "loop_max_flow", "loop_flow" -> loop.setMaxFlowRateLPerSec(Double.parseDouble(v));
+                    case "loop_max_pressure" -> loop.setMaxPressureBar(Double.parseDouble(v));
+                    case "loop_temp_min" -> bandMin = Double.parseDouble(v);
+                    case "loop_temp_max" -> bandMax = Double.parseDouble(v);
+                    case "loop_sensor" -> loop.getSelectedCircuit()
+                        .setSensor(CoolantLoopModel.TempSensor.fromString(v));
                     case "loop_hatch" -> loop.setHatchTier(CoolantLoopModel.EnergyHatchTier.fromString(v));
                     case "loop_hatches" -> loop.setPumpHatchCount(Integer.parseInt(v));
                     case "loop_rotor" -> loop.setRotorMaterial(v);
@@ -952,6 +990,8 @@ public class NuclearSimulationCLI {
                 System.err.println("WARNING: bad value for loop option " + key + ": " + v);
             }
         }
+        if (!Double.isNaN(bandMin) || !Double.isNaN(bandMax)) loop.setTemperatureBand(bandMin, bandMax);
+        loop.selectCircuit(0);
     }
 
     private static void configureCoolantLoop(StandaloneNuclearGrid grid, CoolantLoopModel.CoolingMode coolingMode,
@@ -966,6 +1006,7 @@ public class NuclearSimulationCLI {
         }
         CoolantLoopModel loop = grid.getCoolantLoop();
         if (loop != null) {
+            loop.selectCircuit(0);
             if (loopMatSpecified) {
                 loop.setMaterial(loopMat);
             }
@@ -1747,6 +1788,36 @@ public class NuclearSimulationCLI {
         sb.append("\"pheCount\":")
             .append(cl.getPheCount())
             .append(",");
+        sb.append("\"circuits\":[");
+        int circuitIdx = 0;
+        for (CoolantLoopModel.Circuit c : cl.getCircuits()) {
+            if (circuitIdx++ > 0) sb.append(",");
+            sb.append(
+                String.format(
+                    java.util.Locale.US,
+                    "{\"fluid\":\"%s\",\"passages\":%d,\"copies\":%d,\"pheCount\":%d,\"flowLs\":%.1f,"
+                        + "\"pressureBar\":%.2f,\"coldLeg\":%.1f,\"hotLeg\":%.1f,\"heatHut\":%.1f,\"steamLt\":%.1f,"
+                        + "\"superheatedSteamLt\":%.1f,\"supercriticalSteamLt\":%.1f,\"pumpEUt\":%.1f,\"pheEUt\":%.1f,"
+                        + "\"pumpOn\":%.3f,\"limit\":\"%s\"}",
+                    c.getFluidType()
+                        .name(),
+                    c.getPassageCount(),
+                    c.getCopies(),
+                    c.getPheCount(),
+                    c.getCurrentFlowRateLPerSec(),
+                    c.getCurrentPressureBar(),
+                    c.getColdLegTempCelsius(),
+                    c.getHotLegTempCelsius(),
+                    c.getLastHeatExtractedHut(),
+                    c.getLastSteamLt(),
+                    c.getLastSuperheatedSteamLt(),
+                    c.getLastSupercriticalSteamLt(),
+                    c.getLastPumpPowerEUt(),
+                    c.getLastPhePowerEUt(),
+                    c.getLastPumpOnFraction(),
+                    c.getLimitReason()));
+        }
+        sb.append("],");
         sb.append("\"loopCount\":")
             .append(cl.getLoopCount())
             .append(",");

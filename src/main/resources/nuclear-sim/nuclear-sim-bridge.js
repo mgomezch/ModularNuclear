@@ -225,6 +225,39 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    // Selects the loop circuit (0-based) the coolant loop setters act on; its passages are CP, CP2, CP3 ...
+    selectCoolantCircuit(index, notify = true) {
+        if (this.inst.exports.selectCoolantCircuit) {
+            this.inst.exports.selectCoolantCircuit(index | 0);
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    removeCoolantCircuit(notify = true) {
+        if (this.inst.exports.removeCoolantCircuit) {
+            this.inst.exports.removeCoolantCircuit();
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    // Pump control on the selected circuit: duty cycle (%), flow cap (L/s) and pressure cap (bar); 0 caps are off.
+    setCoolantLoopControl(dutyPercent, maxFlow, maxPressure, notify = true) {
+        if (this.inst.exports.setCoolantLoopDutyCycle) {
+            this.inst.exports.setCoolantLoopDutyCycle(dutyPercent);
+            this.inst.exports.setCoolantLoopMaxFlow(maxFlow || 0);
+            this.inst.exports.setCoolantLoopMaxPressure(maxPressure || 0);
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    // Temperature band on the selected circuit: the pump runs above max and stops below min.
+    setCoolantLoopTempBand(enabled, minC, maxC, sensor, notify = true) {
+        if (this.inst.exports.setCoolantLoopTempBand) {
+            this.inst.exports.setCoolantLoopTempBand(enabled ? 1 : 0, minC || 0, maxC || 0, this.createJavaString(sensor || "PASSAGE"));
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     // Independent loops, each with its own pump and PHEs, that the passages are split among.
     setCoolantLoopCount(count, notify = true) {
         if (this.inst.exports.setCoolantLoopCount) {

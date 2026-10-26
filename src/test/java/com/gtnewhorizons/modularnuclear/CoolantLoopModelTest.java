@@ -201,6 +201,140 @@ public class CoolantLoopModelTest {
     }
 
     @Test
+    void testDutyCycleScalesPumpDraw() {
+        attachCenterColumn();
+        loop.setDutyCyclePercent(25.0);
+        run(20);
+        assertEquals(
+            0.25,
+            loop.getSelectedCircuit()
+                .getLastPumpOnFraction(),
+            0.051);
+        assertEquals(
+            loop.pumpPowerEUt() * loop.getSelectedCircuit()
+                .getLastPumpOnFraction(),
+            loop.getLastPumpPowerEUt(),
+            1e-6);
+    }
+
+    @Test
+    void testFlowCapHoldsFlowNearCap() {
+        attachCenterColumn();
+        run(20);
+        double free = loop.getCurrentFlowRateLPerSec();
+        setUp();
+        attachCenterColumn();
+        loop.setMaxFlowRateLPerSec(free / 3.0);
+        run(40);
+        assertTrue(loop.getCurrentFlowRateLPerSec() < free / 2.0, "flow cap should hold the flow down");
+        assertTrue(
+            loop.getSelectedCircuit()
+                .getLastPumpOnFraction() < 1.0);
+        assertEquals(
+            "flow cap",
+            loop.getSelectedCircuit()
+                .getLimitReason());
+    }
+
+    @Test
+    void testPressureCapSwitchesPumpOff() {
+        attachCenterColumn();
+        run(20);
+        double free = loop.getCurrentPressureBar();
+        setUp();
+        attachCenterColumn();
+        loop.setMaxPressureBar(1.0 + (free - 1.0) / 4.0);
+        run(40);
+        assertTrue(
+            loop.getSelectedCircuit()
+                .getLastPumpOnFraction() < 1.0);
+    }
+
+    @Test
+    void testTemperatureBandKeepsPumpOffWhileCold() {
+        attachCenterColumn();
+        loop.setTemperatureBand(5000.0, 6000.0);
+        run(10);
+        assertEquals(
+            0.0,
+            loop.getSelectedCircuit()
+                .getLastPumpOnFraction(),
+            1e-9,
+            "a cold core never reaches the band, so the pump stays off");
+        assertEquals(0.0, loop.getLastPumpPowerEUt(), 1e-9);
+    }
+
+    @Test
+    void testCircuitsTakeTheirPassagesAndFluids() {
+        grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
+        grid.setTileCode(3, 2, "CP");
+        grid.setTileCode(3, 4, "CP2");
+        assertEquals(
+            "CP2",
+            grid.getTile(3, 4)
+                .getLayoutCode());
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
+        loop.selectCircuit(1)
+            .setFluidType(CoolantLoopModel.CoolantFluidType.IC2_COOLANT);
+        loop.selectCircuit(0);
+        run(3);
+        assertEquals(
+            1,
+            loop.getCircuits()
+                .get(0)
+                .getPassageCount());
+        assertEquals(
+            1,
+            loop.getCircuits()
+                .get(1)
+                .getPassageCount());
+        assertEquals(
+            "heavywater",
+            grid.getTile(3, 2)
+                .getPassageLoopFluid());
+        assertEquals(
+            "ic2coolant",
+            grid.getTile(3, 4)
+                .getPassageLoopFluid());
+        assertTrue(
+            grid.toLayoutString()
+                .contains("CP2"),
+            "layouts keep the passage's circuit");
+    }
+
+    @Test
+    void testPassageModeratesAsItsLoopFluid() {
+        grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
+        grid.setTileCode(3, 3, "CP");
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
+        run(1);
+        double heavy = grid.getTile(3, 3)
+            .getModerationProbability();
+        assertEquals(
+            com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage.moderation("heavywater"),
+            heavy,
+            1e-9);
+        loop.selectCircuit(0)
+            .setFluidType(CoolantLoopModel.CoolantFluidType.MOLTEN_LEAD);
+        loop.setTemperatureBand(5000.0, 6000.0);
+        run(1);
+        assertTrue(
+            grid.getTile(3, 3)
+                .getModerationProbability() < heavy,
+            "lead moderates less than heavy water");
+    }
+
+    @Test
+    void testMoltenLeadFillsAtItsMeltingPoint() {
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.MOLTEN_LEAD);
+        assertEquals(
+            327.5,
+            loop.getSelectedCircuit()
+                .fillTemperatureCelsius(),
+            1e-9);
+    }
+
+    @Test
     void testPhePowerDraw() {
         loop.setPheCount(3);
         loop.setPheHatchTier(CoolantLoopModel.EnergyHatchTier.IV);

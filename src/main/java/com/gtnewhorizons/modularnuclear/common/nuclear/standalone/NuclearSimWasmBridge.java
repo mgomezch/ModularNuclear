@@ -91,8 +91,7 @@ public class NuclearSimWasmBridge {
     public static void setTile(int x, int y, String typeStr) {
         if (grid != null && typeStr != null) {
             try {
-                SimTile.TileType type = SimTile.TileType.fromCode(typeStr);
-                grid.setTile(x, y, type);
+                grid.setTileCode(x, y, typeStr);
             } catch (Exception ignored) {}
         }
     }
@@ -227,6 +226,80 @@ public class NuclearSimWasmBridge {
             CoolantLoopModel cl = grid.getCoolantLoop();
             if (material != null && !material.isEmpty()) cl.setRotorMaterial(material);
             if (size != null && !size.isEmpty()) cl.setRotorSize(CoolantLoopModel.RotorSize.fromString(size));
+            grid.updatePowerResultNet();
+        }
+    }
+
+    /**
+     * Selects the loop circuit (0-based) that the coolant loop setters act on, adding circuits up to it. A circuit's
+     * passages are CP (circuit 1), CP2, CP3 ... in the layout.
+     */
+    @Export(name = "selectCoolantCircuit")
+    public static void selectCoolantCircuit(int index) {
+        if (grid != null) {
+            grid.getCoolantLoop()
+                .selectCircuit(index);
+            grid.updatePowerResultNet();
+        }
+    }
+
+    /** Removes the last loop circuit (the first always stays). */
+    @Export(name = "removeCoolantCircuit")
+    public static void removeCoolantCircuit() {
+        if (grid != null) {
+            grid.getCoolantLoop()
+                .removeLastCircuit();
+            grid.updatePowerResultNet();
+        }
+    }
+
+    /** Share of ticks the selected circuit's pump runs (a pulsed signal on its machine controller cover). */
+    @Export(name = "setCoolantLoopDutyCycle")
+    public static void setCoolantLoopDutyCycle(double percent) {
+        if (grid != null) {
+            grid.getCoolantLoop()
+                .setDutyCyclePercent(percent);
+            grid.updatePowerResultNet();
+        }
+    }
+
+    /** Switches the pump off while the loop flow is at or above this (0 for no cap). */
+    @Export(name = "setCoolantLoopMaxFlow")
+    public static void setCoolantLoopMaxFlow(double flowLPerSec) {
+        if (grid != null) {
+            grid.getCoolantLoop()
+                .setMaxFlowRateLPerSec(flowLPerSec);
+            grid.updatePowerResultNet();
+        }
+    }
+
+    /** Switches the pump off while the loop's peak pressure is at or above this (0 for no cap). */
+    @Export(name = "setCoolantLoopMaxPressure")
+    public static void setCoolantLoopMaxPressure(double bar) {
+        if (grid != null) {
+            grid.getCoolantLoop()
+                .setMaxPressureBar(bar);
+            grid.updatePowerResultNet();
+        }
+    }
+
+    /**
+     * Temperature band on the selected circuit: the pump switches on above max and off below min, reading the
+     * hottest passage or the hot leg coolant (sensor PASSAGE or HOT_LEG). enabled 0 turns the band off.
+     */
+    @Export(name = "setCoolantLoopTempBand")
+    public static void setCoolantLoopTempBand(int enabled, double minC, double maxC, String sensor) {
+        if (grid != null) {
+            CoolantLoopModel cl = grid.getCoolantLoop();
+            if (enabled != 0) {
+                cl.setTemperatureBand(minC, maxC);
+            } else {
+                cl.setTemperatureBand(Double.NaN, Double.NaN);
+            }
+            if (sensor != null && !sensor.isEmpty()) {
+                cl.getSelectedCircuit()
+                    .setSensor(CoolantLoopModel.TempSensor.fromString(sensor));
+            }
             grid.updatePowerResultNet();
         }
     }
@@ -872,6 +945,73 @@ public class NuclearSimWasmBridge {
         sb.append("\"pumpMechanicalPowerW\":")
             .append(fmt1(cl.pumpMechanicalPowerWatts()))
             .append(",");
+        CoolantLoopModel.Circuit sel = cl.getSelectedCircuit();
+        sb.append("\"selectedCircuit\":")
+            .append(cl.getSelectedIndex())
+            .append(",");
+        sb.append("\"dutyCyclePercent\":")
+            .append(fmt1(sel.getDutyCyclePercent()))
+            .append(",");
+        sb.append("\"maxFlowRateLimit\":")
+            .append(fmt1(sel.getMaxFlowLPerSec()))
+            .append(",");
+        sb.append("\"maxPressureLimit\":")
+            .append(fmt1(sel.getMaxPressureBar()))
+            .append(",");
+        sb.append("\"tempBandEnabled\":")
+            .append(sel.hasTemperatureBand())
+            .append(",");
+        sb.append("\"tempBandMin\":")
+            .append(fmt1(sel.hasTemperatureBand() ? sel.getControlMinTempC() : 0.0))
+            .append(",");
+        sb.append("\"tempBandMax\":")
+            .append(fmt1(sel.hasTemperatureBand() ? sel.getControlMaxTempC() : 0.0))
+            .append(",");
+        sb.append("\"tempSensor\":\"")
+            .append(
+                sel.getSensor()
+                    .name())
+            .append("\",");
+        sb.append("\"pumpOnFraction\":")
+            .append(fmt2(sel.getLastPumpOnFraction()))
+            .append(",");
+        sb.append("\"limitReason\":\"")
+            .append(escapeJson(sel.getLimitReason()))
+            .append("\",");
+        sb.append("\"fillTempC\":")
+            .append(fmt1(sel.fillTemperatureCelsius()))
+            .append(",");
+        sb.append("\"circuits\":[");
+        int circuitIdx = 0;
+        for (CoolantLoopModel.Circuit c : cl.getCircuits()) {
+            if (circuitIdx > 0) sb.append(",");
+            sb.append("{\"index\":")
+                .append(circuitIdx++)
+                .append(",\"code\":\"")
+                .append(circuitIdx == 1 ? "CP" : "CP" + circuitIdx)
+                .append("\",\"fluid\":\"")
+                .append(c.getFluidType().displayName)
+                .append("\",\"passages\":")
+                .append(c.getPassageCount())
+                .append(",\"copies\":")
+                .append(c.getCopies())
+                .append(",\"flowLPerSec\":")
+                .append(fmt1(c.getCurrentFlowRateLPerSec()))
+                .append(",\"coldLegC\":")
+                .append(fmt1(c.getColdLegTempCelsius()))
+                .append(",\"hotLegC\":")
+                .append(fmt1(c.getHotLegTempCelsius()))
+                .append(",\"heatHut\":")
+                .append(fmt1(c.getLastHeatExtractedHut()))
+                .append(",\"steamLt\":")
+                .append(fmt1(c.getLastSteamLt() + c.getLastSuperheatedSteamLt() + c.getLastSupercriticalSteamLt()))
+                .append(",\"pumpEUt\":")
+                .append(fmt1(c.getLastPumpPowerEUt()))
+                .append(",\"pumpOn\":")
+                .append(fmt2(c.getLastPumpOnFraction()))
+                .append("}");
+        }
+        sb.append("],");
         sb.append("\"loopCount\":")
             .append(cl.getLoopCount())
             .append(",");
@@ -1410,7 +1550,7 @@ public class NuclearSimWasmBridge {
                     .append(t.getType().displayName)
                     .append("\",");
                 sb.append("\"code\":\"")
-                    .append(t.getType().code)
+                    .append(t.getLayoutCode())
                     .append("\",");
                 sb.append("\"temp\":")
                     .append(fmt1(t.getTemperature()))

@@ -562,6 +562,15 @@ public class StandaloneNuclearGrid {
         }
     }
 
+    /** Places a tile by layout code; passage codes CP2 to CP9 put the passage on that coolant loop. */
+    public void setTileCode(int x, int y, String code) {
+        SimTile.TileType type = SimTile.TileType.fromCode(code);
+        setTile(x, y, type);
+        if (type == SimTile.TileType.PASSAGE_CORE && x >= 0 && x < width && y >= 0 && y < height) {
+            grid[x][y].setPassageLoop(Math.max(0, SimTile.passageLoopFromCode(code)));
+        }
+    }
+
     public void setTile(int x, int y, SimTile.TileType type) {
         if (x >= 0 && x < width && y >= 0 && y < height) {
             if (NuclearSimulationEngine.isCornerNullCell(x, y, width, height)) {
@@ -1363,8 +1372,7 @@ public class StandaloneNuclearGrid {
                 crPart = token;
             }
 
-        SimTile.TileType type = SimTile.TileType.fromCode(tilePart);
-        setTile(x, y, type);
+        setTileCode(x, y, tilePart);
 
         if (crPart != null) {
             boolean hasRod = true;
@@ -1416,7 +1424,7 @@ public class StandaloneNuclearGrid {
             for (int x = 0; x < width; x++) {
                 if (x > 0) sb.append(",");
                 SimTile tile = grid[x][y];
-                String code = tile.getType().code;
+                String code = tile.getLayoutCode();
                 if (tile.hasControlRod()) {
                     if (tile.getType() == SimTile.TileType.EMPTY) {
                         code = "CR";

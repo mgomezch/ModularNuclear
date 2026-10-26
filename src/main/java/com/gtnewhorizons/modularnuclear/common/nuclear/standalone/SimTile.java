@@ -5,6 +5,7 @@ import java.util.Random;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
@@ -123,6 +124,7 @@ public class SimTile implements INuclearTile {
             if (code == null) return EMPTY;
             String trimmed = code.trim()
                 .toUpperCase();
+            if (passageLoopFromCode(trimmed) >= 0) return PASSAGE_CORE;
             if (trimmed.equals("BH")) return RADIOVOLTAIC_HV;
             if (trimmed.equals("BV")) return RADIOVOLTAIC_EV;
             if (trimmed.equals("RN")) return REFLECTOR_IC2;
@@ -245,6 +247,44 @@ public class SimTile implements INuclearTile {
     private TileType type = TileType.EMPTY;
     private double temperature = NuclearSimulationEngine.AMBIENT_TEMP;
     private double heatHu = 0;
+    /** The coolant loop (0-based) a passage belongs to: layout code CP is loop 0, CP2 to CP9 are loops 1 to 8. */
+    private int passageLoop = 0;
+    /** Fluid of the running loop a passage is connected to, or null when it is on none. */
+    private String passageLoopFluid = null;
+
+    /** Loop index of a passage layout code (CP, CP2 ... CP9), or -1 if the code is not a passage with a loop. */
+    public static int passageLoopFromCode(String code) {
+        if (code == null) return -1;
+        String c = code.trim()
+            .toUpperCase();
+        if (c.equals("CP")) return 0;
+        if (c.length() == 3 && c.startsWith("CP") && c.charAt(2) >= '2' && c.charAt(2) <= '9') {
+            return c.charAt(2) - '1';
+        }
+        return -1;
+    }
+
+    /** Layout code of this tile, with the loop number for passages on loops other than the first. */
+    public String getLayoutCode() {
+        if (type == TileType.PASSAGE_CORE && passageLoop > 0) return "CP" + (passageLoop + 1);
+        return type.code;
+    }
+
+    public int getPassageLoop() {
+        return passageLoop;
+    }
+
+    public void setPassageLoop(int loop) {
+        this.passageLoop = Math.max(0, Math.min(8, loop));
+    }
+
+    public String getPassageLoopFluid() {
+        return passageLoopFluid;
+    }
+
+    public void setPassageLoopFluid(String fluidName) {
+        this.passageLoopFluid = fluidName;
+    }
 
     // Fuel state
     private int maxDurability = 10000;
@@ -410,6 +450,8 @@ public class SimTile implements INuclearTile {
 
     public void setType(TileType newType) {
         this.type = (newType == null) ? TileType.EMPTY : newType;
+        this.passageLoop = 0;
+        this.passageLoopFluid = null;
         this.depleted = false;
         this.depletionLogged = false;
         this.lastDurabilityLoss = 0.0;
@@ -573,7 +615,7 @@ public class SimTile implements INuclearTile {
 
     @Override
     public double getHeatTransferCoeff() {
-        if (type == TileType.PASSAGE_CORE) return 0.90;
+        if (type == TileType.PASSAGE_CORE) return CoolantPassage.HEAT_TRANSFER_COEFF;
         return TileProperties.heatTransferCoeff(getContent());
     }
 
@@ -693,7 +735,7 @@ public class SimTile implements INuclearTile {
             return (nType == NeutronType.THERMAL) ? 0.95 : 0.85;
         }
         if (type == TileType.PASSAGE_CORE) {
-            return (nType == NeutronType.THERMAL) ? 0.05 : 0.02;
+            return CoolantPassage.absorption(nType);
         }
         return TileProperties.absorption(getContent(), nType);
     }
@@ -734,7 +776,7 @@ public class SimTile implements INuclearTile {
 
     public double getBaseScatteringProbability(NeutronType nType) {
         if (type == TileType.PASSAGE_CORE) {
-            return 0.80;
+            return CoolantPassage.SCATTERING;
         }
         return TileProperties.scattering(getContent(), nType);
     }
@@ -755,7 +797,9 @@ public class SimTile implements INuclearTile {
 
     @Override
     public double getModerationProbability() {
-        double pBase = (type == TileType.PASSAGE_CORE) ? 0.05 : TileProperties.moderation(getContent());
+        // A passage moderates as the coolant of the loop it is connected to, as the game's high-pressure hatch does
+        double pBase = (type == TileType.PASSAGE_CORE) ? CoolantPassage.moderation(passageLoopFluid)
+            : TileProperties.moderation(getContent());
         if (hasControlRod) {
             return TileTick.combinedModeration(pBase, getControlRodAbsorptionProbability(NeutronType.FAST), 0.0);
         }

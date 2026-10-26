@@ -77,6 +77,23 @@ fluids:
     aliases:
       - "fluid.sodium"
       - "liquid.sodium"
+      - "molten.sodium"
+
+  molten.lead:
+    fluidName: "molten.lead"
+    density: 10660.0
+    dynamicViscosity: 0.0026
+    specificHeat: 145.0
+    thermalConductivity: 16.0
+    boilingPointCelsius: 1749.0
+    freezingPointCelsius: 327.5
+    isMolten: true
+    radiolysisMultiplier: 1.0
+    spillOnRupture: true
+    aliases:
+      - "lead"
+      - "moltenlead"
+      - "fluid.molten.lead"
 
   molten.cheese:
     fluidName: "molten.cheese"
