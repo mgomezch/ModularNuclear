@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.teavm.interop.Export;
 
+import com.gtnewhorizons.coolantloops.common.config.data.CoolantDeviceData.PHEData.SecondaryCoolantEntry;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -193,21 +194,10 @@ public class NuclearSimWasmBridge {
     }
 
     @Export(name = "setCoolantLoopSecondaryCoolant")
-    public static void setCoolantLoopSecondaryCoolant(String coolantStr) {
-        if (grid != null && coolantStr != null) {
+    public static void setCoolantLoopSecondaryCoolant(String fluidName) {
+        if (grid != null && fluidName != null) {
             grid.getCoolantLoop()
-                .setSecondaryCoolant(CoolantLoopModel.SecondaryCoolantType.fromString(coolantStr));
-            grid.updatePowerResultNet();
-        }
-    }
-
-    @Export(name = "setCoolantLoopPumpPower")
-    public static void setCoolantLoopPumpPower(double powerEUt) {
-        if (grid != null) {
-            grid.getCoolantLoop()
-                .setPumpElectricalPowerEUt(powerEUt);
-            grid.getCoolantLoop()
-                .setUseTargetFlowMode(false);
+                .setSecondaryCoolant(fluidName);
             grid.updatePowerResultNet();
         }
     }
@@ -217,83 +207,72 @@ public class NuclearSimWasmBridge {
         if (grid != null && tierStr != null) {
             grid.getCoolantLoop()
                 .setHatchTier(CoolantLoopModel.EnergyHatchTier.fromString(tierStr));
-            grid.getCoolantLoop()
-                .setUseTargetFlowMode(false);
             grid.updatePowerResultNet();
         }
     }
 
-    @Export(name = "setCoolantLoopDutyCycle")
-    public static void setCoolantLoopDutyCycle(double dutyPercent) {
+    /** Energy hatches on the pump: one draws the tier's voltage, two or more draw four times it. */
+    @Export(name = "setCoolantLoopPumpHatches")
+    public static void setCoolantLoopPumpHatches(int count) {
         if (grid != null) {
             grid.getCoolantLoop()
-                .setDutyCyclePercent(dutyPercent);
-            grid.getCoolantLoop()
-                .setUseTargetFlowMode(false);
+                .setPumpHatchCount(count);
             grid.updatePowerResultNet();
         }
     }
 
-    @Export(name = "setCoolantLoopMaxFlow")
-    public static void setCoolantLoopMaxFlow(double maxFlow) {
-        if (grid != null) {
-            grid.getCoolantLoop()
-                .setMaxFlowRateLPerSec(maxFlow);
-            grid.updatePowerResultNet();
-        }
-    }
-
-    @Export(name = "setCoolantLoopMaxPressure")
-    public static void setCoolantLoopMaxPressure(double maxPressure) {
-        if (grid != null) {
-            grid.getCoolantLoop()
-                .setMaxPressureBar(maxPressure);
-            grid.updatePowerResultNet();
-        }
-    }
-
-    @Export(name = "setCoolantLoopControl")
-    public static void setCoolantLoopControl(String hatchTier, double dutyCycle, double maxFlow, double maxPressure) {
+    @Export(name = "setCoolantLoopRotor")
+    public static void setCoolantLoopRotor(String material, String size) {
         if (grid != null) {
             CoolantLoopModel cl = grid.getCoolantLoop();
+            if (material != null && !material.isEmpty()) cl.setRotorMaterial(material);
+            if (size != null && !size.isEmpty()) cl.setRotorSize(CoolantLoopModel.RotorSize.fromString(size));
+            grid.updatePowerResultNet();
+        }
+    }
+
+    /** Pressurized heat exchangers in series on the loop, with the tier and number of energy hatches on each. */
+    @Export(name = "setCoolantLoopPhe")
+    public static void setCoolantLoopPhe(int count, String hatchTier, int hatchCount) {
+        if (grid != null) {
+            CoolantLoopModel cl = grid.getCoolantLoop();
+            cl.setPheCount(count);
             if (hatchTier != null && !hatchTier.isEmpty()) {
-                cl.setHatchTier(CoolantLoopModel.EnergyHatchTier.fromString(hatchTier));
+                cl.setPheHatchTier(CoolantLoopModel.EnergyHatchTier.fromString(hatchTier));
             }
-            cl.setDutyCyclePercent(dutyCycle);
-            cl.setMaxFlowRateLPerSec(maxFlow);
-            cl.setMaxPressureBar(maxPressure);
-            cl.setUseTargetFlowMode(false);
+            cl.setPheHatchCount(hatchCount);
             grid.updatePowerResultNet();
         }
     }
 
-    @Export(name = "setCoolantLoopOverclocked")
-    public static void setCoolantLoopOverclocked(boolean oc) {
-        if (grid != null) {
-            grid.getCoolantLoop()
-                .setPumpOverclocked(oc);
-            grid.updatePowerResultNet();
-        }
+    /** Display label of a PHE secondary fluid: its fluid, boiling point and product. */
+    public static String secondaryCoolantLabel(SecondaryCoolantEntry e) {
+        if (e == null) return "None";
+        return e.inputFluidName + " (boils at " + Math.round(e.boilingPointCelsius) + "°C → " + e.outputGasName + ")";
     }
 
-    @Export(name = "setCoolantLoopImpeller")
-    public static void setCoolantLoopImpeller(String material) {
-        if (grid != null && material != null) {
-            grid.getCoolantLoop()
-                .setImpellerMaterial(material);
-            grid.updatePowerResultNet();
+    /** The secondary fluids a PHE accepts, from the coolant loop device config. */
+    public static String secondaryCoolantsJson() {
+        StringBuilder sb = new StringBuilder("[");
+        int i = 0;
+        for (SecondaryCoolantEntry e : CoolantLoopModel.secondaryCoolantChoices()) {
+            if (i++ > 0) sb.append(",");
+            sb.append("{\"id\":\"")
+                .append(escapeJson(e.inputFluidName))
+                .append("\",\"name\":\"")
+                .append(escapeJson(secondaryCoolantLabel(e)))
+                .append("\",\"boilingPointC\":")
+                .append(fmt1(e.boilingPointCelsius))
+                .append(",\"fluidName\":\"")
+                .append(escapeJson(e.inputFluidName))
+                .append("\",\"outputGasName\":\"")
+                .append(escapeJson(e.outputGasName))
+                .append("\",\"isSteam\":")
+                .append(e.isSteam)
+                .append("}");
         }
-    }
-
-    @Export(name = "setCoolantLoopFlowRate")
-    public static void setCoolantLoopFlowRate(double flowRate) {
-        if (grid != null) {
-            grid.getCoolantLoop()
-                .setTargetFlowRateLPerSec(flowRate);
-            grid.getCoolantLoop()
-                .setUseTargetFlowMode(true);
-            grid.updatePowerResultNet();
-        }
+        return sb.append("]")
+            .toString();
     }
 
     @Export(name = "attachCoolantLoopPoint")
@@ -794,105 +773,109 @@ public class NuclearSimWasmBridge {
             .append(",");
 
         CoolantLoopModel cl = targetGrid.getCoolantLoop();
+        SecondaryCoolantEntry secondary = cl.getSecondaryCoolant();
         sb.append("\"coolantLoop\":{");
         sb.append("\"material\":\"")
             .append(
-                cl.getMaterial()
-                    .name())
+                escapeJson(
+                    cl.getMaterial()
+                        .name()))
             .append("\",");
         sb.append("\"materialName\":\"")
-            .append(cl.getMaterial().displayName)
+            .append(escapeJson(cl.getMaterial().displayName))
             .append("\",");
         sb.append("\"materialTier\":\"")
-            .append(cl.getMaterial().tierUnlocked)
+            .append(escapeJson(cl.getMaterial().tierUnlocked))
             .append("\",");
         sb.append("\"maxPressureBar\":")
-            .append(fmt1(cl.getMaterial().maxPressureBar))
+            .append(
+                fmt1(
+                    cl.getMaterial()
+                        .maxPressureBar()))
             .append(",");
         sb.append("\"maxTempC\":")
-            .append(fmt1(cl.getMaterial().maxTemperatureCelsius))
+            .append(
+                fmt1(
+                    cl.getMaterial()
+                        .maxTemperatureCelsius()))
             .append(",");
         sb.append("\"pipeSize\":\"")
             .append(
-                cl.getPipeSize()
-                    .name())
+                escapeJson(
+                    cl.getPipeSize()
+                        .name()))
             .append("\",");
         sb.append("\"pipeSizeName\":\"")
-            .append(cl.getPipeSize().displayName)
+            .append(escapeJson(cl.getPipeSize().displayName))
             .append("\",");
+        sb.append("\"maxFlowLPerSec\":")
+            .append(fmt1(cl.maxFlowLitersPerSecond()))
+            .append(",");
         sb.append("\"fluid\":\"")
             .append(
-                cl.getFluidType()
-                    .name())
+                escapeJson(
+                    cl.getFluidType()
+                        .name()))
             .append("\",");
         sb.append("\"fluidName\":\"")
-            .append(cl.getFluidType().displayName)
+            .append(escapeJson(cl.getFluidType().displayName))
             .append("\",");
         sb.append("\"secondaryCoolant\":\"")
-            .append(
-                cl.getSecondaryCoolant()
-                    .name())
+            .append(escapeJson(cl.getSecondaryFluidName()))
             .append("\",");
         sb.append("\"secondaryCoolantName\":\"")
-            .append(cl.getSecondaryCoolant().displayName)
+            .append(escapeJson(secondaryCoolantLabel(secondary)))
             .append("\",");
         sb.append("\"secondaryBoilingPointC\":")
-            .append(fmt1(cl.getSecondaryCoolant().boilingPointCelsius))
+            .append(fmt1(secondary != null ? secondary.boilingPointCelsius : 0.0))
             .append(",");
-        sb.append("\"byproductGas\":\"")
-            .append(cl.getFluidType().byproductGas)
-            .append("\",");
         sb.append("\"hatchTier\":\"")
             .append(
-                cl.getHatchTier()
-                    .name())
+                escapeJson(
+                    cl.getHatchTier()
+                        .name()))
             .append("\",");
         sb.append("\"hatchTierName\":\"")
-            .append(cl.getHatchTier().displayName)
+            .append(escapeJson(cl.getHatchTier().displayName))
             .append("\",");
-        sb.append("\"hatchVoltage\":")
-            .append(fmt1(cl.getHatchTier().voltageEU * (cl.isPumpOverclocked() ? 4.0 : 1.0)))
+        sb.append("\"pumpHatchCount\":")
+            .append(cl.getPumpHatchCount())
             .append(",");
-        sb.append("\"dutyCyclePercent\":")
-            .append(fmt1(cl.getDutyCyclePercent()))
-            .append(",");
-        sb.append("\"effectiveDutyCyclePercent\":")
-            .append(fmt1(cl.getEffectiveDutyCyclePercent()))
-            .append(",");
-        sb.append("\"maxFlowRateLimit\":")
-            .append(fmt1(cl.getMaxFlowRateLPerSec()))
-            .append(",");
-        sb.append("\"maxPressureLimit\":")
-            .append(fmt1(cl.getMaxPressureBar()))
-            .append(",");
-        sb.append("\"pressureLimited\":")
-            .append(cl.isPressureLimited())
-            .append(",");
-        sb.append("\"flowLimited\":")
-            .append(cl.isFlowLimited())
-            .append(",");
-        sb.append("\"limitReason\":\"")
-            .append(escapeJson(cl.getLimitReason()))
-            .append("\",");
         sb.append("\"pumpPowerEUt\":")
-            .append(fmt1(cl.getPumpElectricalPowerEUt()))
+            .append(fmt1(cl.pumpPowerEUt()))
             .append(",");
-        sb.append("\"pumpOverclocked\":")
-            .append(cl.isPumpOverclocked())
-            .append(",");
-        sb.append("\"impellerMaterial\":\"")
+        sb.append("\"rotorMaterial\":\"")
             .append(
-                cl.getImpellerMaterial()
-                    .name())
+                escapeJson(
+                    cl.getRotorMaterial()
+                        .name()))
             .append("\",");
-        sb.append("\"impellerEfficiency\":")
-            .append(fmt2(cl.getImpellerEfficiency()))
+        sb.append("\"rotorSize\":\"")
+            .append(
+                escapeJson(
+                    cl.getRotorSize()
+                        .name()))
+            .append("\",");
+        sb.append("\"rotorEfficiency\":")
+            .append(fmt2(cl.getRotorEfficiency()))
             .append(",");
-        sb.append("\"targetFlowRateLPerSec\":")
-            .append(fmt1(cl.getTargetFlowRateLPerSec()))
+        sb.append("\"pumpMechanicalPowerW\":")
+            .append(fmt1(cl.pumpMechanicalPowerWatts()))
             .append(",");
-        sb.append("\"useTargetFlowMode\":")
-            .append(cl.isUseTargetFlowMode())
+        sb.append("\"pheCount\":")
+            .append(cl.getPheCount())
+            .append(",");
+        sb.append("\"pheHatchTier\":\"")
+            .append(
+                escapeJson(
+                    cl.getPheHatchTier()
+                        .name()))
+            .append("\",");
+        sb.append("\"pheHatchCount\":")
+            .append(cl.getPheHatchCount())
+            .append(",");
+        sb.append("\"phePowerEUt\":")
+            .append(fmt1(cl.phePowerEUt()))
             .append(",");
         sb.append("\"currentFlowRateLPerSec\":")
             .append(fmt1(cl.getCurrentFlowRateLPerSec()))
@@ -903,20 +886,41 @@ public class NuclearSimWasmBridge {
         sb.append("\"currentCoolantTempCelsius\":")
             .append(fmt1(cl.getCurrentCoolantTempCelsius()))
             .append(",");
+        sb.append("\"coldLegTempCelsius\":")
+            .append(fmt1(cl.getColdLegTempCelsius()))
+            .append(",");
+        sb.append("\"peakLoopTempCelsius\":")
+            .append(fmt1(cl.getPeakLoopTempCelsius()))
+            .append(",");
         sb.append("\"lastHeatExtractedWatts\":")
             .append(fmt1(cl.getLastHeatExtractedWatts()))
             .append(",");
         sb.append("\"lastHeatExtractedHut\":")
             .append(fmt1(cl.getLastHeatExtractedHut()))
             .append(",");
+        sb.append("\"lastSteamLt\":")
+            .append(fmt1(cl.getLastSteamLt()))
+            .append(",");
+        sb.append("\"lastSuperheatedSteamLt\":")
+            .append(fmt1(cl.getLastSuperheatedSteamLt()))
+            .append(",");
+        sb.append("\"lastSupercriticalSteamLt\":")
+            .append(fmt1(cl.getLastSupercriticalSteamLt()))
+            .append(",");
         sb.append("\"lastSecondarySteamProducedLt\":")
             .append(fmt1(cl.getLastSecondarySteamProducedLt()))
+            .append(",");
+        sb.append("\"lastSecondaryGasLt\":")
+            .append(fmt1(cl.getLastSecondaryGasLt()))
             .append(",");
         sb.append("\"lastSecondaryWaterBoiledLt\":")
             .append(fmt1(cl.getLastSecondaryWaterBoiledLt()))
             .append(",");
         sb.append("\"lastPumpPowerEUt\":")
             .append(fmt1(cl.getLastPumpPowerEUt()))
+            .append(",");
+        sb.append("\"lastPhePowerEUt\":")
+            .append(fmt1(cl.getLastPhePowerEUt()))
             .append(",");
         sb.append("\"totalDeuteriumProduced\":")
             .append(cl.getTotalDeuteriumProduced())
@@ -926,9 +930,6 @@ public class NuclearSimWasmBridge {
             .append(",");
         sb.append("\"totalOxygenProduced\":")
             .append(cl.getTotalOxygenProduced())
-            .append(",");
-        sb.append("\"totalMethaneProduced\":")
-            .append(cl.getTotalMethaneProduced())
             .append(",");
         sb.append("\"totalHeatExtractedHut\":")
             .append(fmt1(cl.getTotalHeatExtractedHut()))
@@ -966,42 +967,33 @@ public class NuclearSimWasmBridge {
                 .append("}");
         }
         sb.append("],");
-        sb.append("\"impellerMaterials\":[");
-        int impIdx = 0;
-        for (TurbineCalculator.TurbineMaterial m : TurbineCalculator.TurbineMaterial.values()) {
-            if (impIdx++ > 0) sb.append(",");
+        sb.append("\"rotorMaterials\":[");
+        int rotorIdx = 0;
+        for (CoolantLoopModel.RotorMaterial m : CoolantLoopModel.RotorMaterial.values()) {
+            if (rotorIdx++ > 0) sb.append(",");
             sb.append("{\"id\":\"")
                 .append(m.name())
                 .append("\",\"name\":\"")
-                .append(m.displayName)
-                .append("\",\"tightEff\":")
-                .append(fmt2(m.tightEff))
+                .append(escapeJson(m.displayName))
+                .append("\",\"efficiency\":")
+                .append(fmt2(CoolantLoopModel.rotorEfficiency(m, cl.getRotorSize())))
                 .append("}");
         }
         sb.append("],");
-        sb.append("\"secondaryCoolants\":[");
-        int secIdx = 0;
-        for (SecondaryCoolant sc : SecondaryCoolantRegistry.getAll()) {
-            if (secIdx++ > 0) sb.append(",");
+        sb.append("\"rotorSizes\":[");
+        int sizeIdx = 0;
+        for (CoolantLoopModel.RotorSize size : CoolantLoopModel.RotorSize.values()) {
+            if (sizeIdx++ > 0) sb.append(",");
             sb.append("{\"id\":\"")
-                .append(sc.name())
+                .append(size.name())
                 .append("\",\"name\":\"")
-                .append(escapeJson(sc.displayName))
-                .append(" (boils at ")
-                .append((int) Math.round(sc.boilingPointCelsius))
-                .append("°C → ")
-                .append(escapeJson(sc.outputGasName))
-                .append(")\",\"boilingPointC\":")
-                .append(fmt1(sc.boilingPointCelsius))
-                .append(",\"fluidName\":\"")
-                .append(escapeJson(sc.fluidName))
-                .append("\",\"outputGasName\":\"")
-                .append(escapeJson(sc.outputGasName))
-                .append("\",\"isSteam\":")
-                .append(sc.isSteam)
-                .append("}");
+                .append(size.displayName)
+                .append("\"}");
         }
         sb.append("],");
+        sb.append("\"secondaryCoolants\":")
+            .append(secondaryCoolantsJson())
+            .append(",");
         sb.append("\"allowedMaterials\":[");
         int matIdx = 0;
         for (CoolantLoopModel.LoopMaterial mat : CoolantLoopModel.LoopMaterial.values()) {
@@ -1012,7 +1004,7 @@ public class NuclearSimWasmBridge {
                     .append("\",\"name\":\"")
                     .append(mat.displayName)
                     .append("\",\"maxPressure\":")
-                    .append(mat.maxPressureBar)
+                    .append(fmt1(mat.maxPressureBar()))
                     .append(",\"tier\":\"")
                     .append(mat.tierUnlocked)
                     .append("\",\"progressionAppropriate\":")

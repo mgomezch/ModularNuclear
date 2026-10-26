@@ -6,14 +6,23 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData;
+import com.gtnewhorizons.coolantloops.common.config.data.CoolantDeviceData.PHEData;
+import com.gtnewhorizons.coolantloops.common.config.data.CoolantDeviceData.PHEData.SecondaryCoolantEntry;
+import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
+import com.gtnewhorizons.coolantloops.engine.CoolantLoopEngine;
+import com.gtnewhorizons.coolantloops.engine.CoolantPipeSpec;
+import com.gtnewhorizons.coolantloops.engine.LoopSegment;
+import com.gtnewhorizons.coolantloops.engine.PheExchange;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
 
 /**
- * High-fidelity physical simulation model of an external closed Coolant Loop.
- * Integrates hydrodynamic friction (Darcy-Weisbach / polynomial scaling),
- * Dittus-Boelter convective heat extraction, secondary PHE steam generation (1:160 expansion),
- * radiolytic gas generation, and tier-appropriate pipe/tank material safety limits.
+ * A reactor's convective coolant loop in the standalone simulator. The hydraulics and heat transport run on the
+ * game's own {@link CoolantLoopEngine}, the passages exchange heat through {@link CoolantPassage} and the heat
+ * exchangers through {@link PheExchange}, all configured from the same coolant loop config as the game, on the loop
+ * the game's crawler would build for a pump feeding every passage in parallel.
  */
 public class CoolantLoopModel {
 
@@ -47,234 +56,6 @@ public class CoolantLoopModel {
                 }
             }
             return MODULAR;
-        }
-    }
-
-    public enum LoopMaterial {
-
-        CAST_IRON("Cast Iron", "CastIron", 16.0, 1538.0, 1811, "ULV"),
-        STEEL("Steel", "Steel", 35.0, 2226.85, 2500, "LV"),
-        STAINLESS_STEEL("Stainless Steel", "StainlessSteel", 70.0, 2726.85, 3000, "MV"),
-        TITANIUM("Titanium", "Titanium", 140.0, 4726.85, 5000, "EV"),
-        TUNGSTENSTEEL("Tungstensteel", "TungstenSteel", 280.0, 7226.85, 7500, "IV"),
-        OSMIUM("Osmium", "Osmium", 600.0, 3032.85, 3306, "LuV"),
-        NEUTRONIUM("Neutronium", "Neutronium", 3000.0, 99726.85, 100000, "ZPM");
-
-        public final String displayName;
-        public final String materialName;
-        public final double maxPressureBar;
-        public final double maxTemperatureCelsius;
-        public final int maxTemperatureKelvin;
-        public final String tierUnlocked;
-
-        LoopMaterial(String displayName, String materialName, double maxPressureBar, double maxTemperatureCelsius,
-            int maxTemperatureKelvin, String tierUnlocked) {
-            this.displayName = displayName;
-            this.materialName = materialName;
-            this.maxPressureBar = maxPressureBar;
-            this.maxTemperatureCelsius = maxTemperatureCelsius;
-            this.maxTemperatureKelvin = maxTemperatureKelvin;
-            this.tierUnlocked = tierUnlocked;
-        }
-
-        /**
-         * Checks if this material is physically allowed for convective loop cooling in the given reactor pipe tier.
-         * Pipe Tier < Osmium (Electrum / EV, Platinum / IV): Convective loop cooling not allowed in reactor structure.
-         * Pipe Tier >= Osmium (Osmium / LuV, Quantium / ZPM+): All valid loop materials (including Neutronium)
-         * can physically be installed and will function.
-         */
-        public boolean isAllowedInReactorTier(int reactorTier) {
-            return reactorTier >= NuclearSimulationEngine.PIPE_TIER_OSMIUM;
-        }
-
-        /**
-         * Progression recommendation check for automated layout optimization searches.
-         * In automated searches for LuV reactors, Neutronium is excluded because a player
-         * who has reached ZPM to craft Neutronium would build a larger Tier 3 reactor instead.
-         */
-        public boolean isProgressionAppropriate(int reactorTier) {
-            if (reactorTier < NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
-                return false;
-            }
-            if (reactorTier <= NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
-                // Progression filter: exclude Neutronium from automated LuV search space
-                return this != NEUTRONIUM;
-            }
-            return true;
-        }
-
-        public static LoopMaterial fromMaterialName(String name) {
-            if (name == null) return TITANIUM;
-            for (LoopMaterial mat : values()) {
-                if (mat.materialName.equalsIgnoreCase(name)) return mat;
-            }
-            return fromString(name);
-        }
-
-        public static LoopMaterial fromString(String str) {
-            if (str == null) return TITANIUM;
-            String s = WasmStrings.normalizeToken(str, " -");
-            switch (s) {
-                case "CAST_IRON", "CASTIRON", "CAST", "IRON":
-                    return CAST_IRON;
-                case "STEEL":
-                    return STEEL;
-                case "STAINLESS_STEEL", "STAINLESS", "STAINLESSSTEEL":
-                    return STAINLESS_STEEL;
-                case "TITANIUM", "TITAN":
-                    return TITANIUM;
-                case "TUNGSTENSTEEL", "TUNGSTEN_STEEL", "TUNGSTEN":
-                    return TUNGSTENSTEEL;
-                case "OSMIUM":
-                    return OSMIUM;
-                case "NEUTRONIUM", "NEUTRON":
-                    return NEUTRONIUM;
-            }
-            for (LoopMaterial mat : values()) {
-                if (mat.name()
-                    .equalsIgnoreCase(s) || mat.displayName.equalsIgnoreCase(s)
-                    || mat.materialName.equalsIgnoreCase(s)) {
-                    return mat;
-                }
-            }
-            return TITANIUM;
-        }
-    }
-
-    public enum LoopPipeSize {
-
-        TINY("Tiny", 0.05, 0.5),
-        SMALL("Small", 0.075, 0.75),
-        NORMAL("Normal", 0.10, 1.0),
-        LARGE("Large", 0.15, 1.5),
-        HUGE("Huge", 0.20, 2.0);
-
-        public final String displayName;
-        public final double diameterMeters;
-        public final double relativeCapacity;
-
-        LoopPipeSize(String displayName, double diameterMeters, double relativeCapacity) {
-            this.displayName = displayName;
-            this.diameterMeters = diameterMeters;
-            this.relativeCapacity = relativeCapacity;
-        }
-
-        public static LoopPipeSize fromString(String str) {
-            if (str == null) return NORMAL;
-            String s = WasmStrings.normalizeToken(str, " ");
-            switch (s) {
-                case "TINY", "PIPE_TINY", "0.05":
-                    return TINY;
-                case "SMALL", "PIPE_SMALL", "0.075":
-                    return SMALL;
-                case "NORMAL", "MEDIUM", "REGULAR", "PIPE_NORMAL", "0.1", "0.10":
-                    return NORMAL;
-                case "LARGE", "PIPE_LARGE", "0.15":
-                    return LARGE;
-                case "HUGE", "PIPE_HUGE", "0.2", "0.20":
-                    return HUGE;
-            }
-            for (LoopPipeSize size : values()) {
-                if (size.name()
-                    .equalsIgnoreCase(s) || size.displayName.equalsIgnoreCase(s)) {
-                    return size;
-                }
-            }
-            return NORMAL;
-        }
-    }
-
-    public enum CoolantFluidType {
-
-        DISTILLED_WATER("Distilled Water", "ic2distilledwater", 1000.0, 4184.0, 0.001, 0.60, "Deuterium", 0.0),
-        HEAVY_WATER("Heavy Water", "heavywater", 1105.0, 4220.0, 0.00125, 0.59, "Tritium", 3.8),
-        IC2_COOLANT("IC2 Coolant", "ic2coolant", 1080.0, 3800.0, 0.0025, 0.52, "None", Double.NEGATIVE_INFINITY),
-        SODIUM("Sodium", "sodium", 927.0, 1260.0, 0.0007, 86.0, "None", 97.8),
-        MOLTEN_CHEESE("Molten Cheese", "cheese", 1120.0, 3000.0, 0.557, 0.481, "None", 46.85),
-        LAVA("Lava", "lava", 3000.0, 1250.0, 0.001, 1.5, "None", 1000.0);
-
-        public final String displayName;
-        public final String fluidName;
-        public final double density; // kg/m^3
-        public final double specificHeat; // J/(kg*K)
-        public final double dynamicViscosity; // Pa*s
-        public final double thermalConductivity;// W/(m*K)
-        public final String byproductGas;
-        public final double meltingPointCelsius;
-
-        CoolantFluidType(String displayName, String fluidName, double density, double specificHeat,
-            double dynamicViscosity, double thermalConductivity, String byproductGas, double meltingPointCelsius) {
-            this.displayName = displayName;
-            this.fluidName = fluidName;
-            this.density = density;
-            this.specificHeat = specificHeat;
-            this.dynamicViscosity = dynamicViscosity;
-            this.thermalConductivity = thermalConductivity;
-            this.byproductGas = byproductGas;
-            this.meltingPointCelsius = meltingPointCelsius;
-        }
-
-        public boolean isMolten() {
-            return this == MOLTEN_CHEESE || this == LAVA;
-        }
-
-        public static CoolantFluidType fromFluidName(String fluidName) {
-            if (fluidName == null) return DISTILLED_WATER;
-            for (CoolantFluidType f : values()) {
-                if (f.fluidName.equalsIgnoreCase(fluidName)) return f;
-            }
-            return fromString(fluidName);
-        }
-
-        public static CoolantFluidType fromString(String str) {
-            if (str == null) return DISTILLED_WATER;
-            String s = WasmStrings.normalizeToken(str, " .");
-            switch (s) {
-                case "DISTILLED_WATER", "DISTILLEDWATER", "IC2DISTILLEDWATER", "WATER":
-                    return DISTILLED_WATER;
-                case "HEAVY_WATER", "HEAVYWATER":
-                    return HEAVY_WATER;
-                case "IC2_COOLANT", "IC2COOLANT", "COOLANT":
-                    return IC2_COOLANT;
-                case "SODIUM", "MOLTEN_SODIUM", "MOLTENSODIUM":
-                    return SODIUM;
-                case "LAVA":
-                    return LAVA;
-                case "MOLTEN_CHEESE", "MOLTENCHEESE", "CHEESE":
-                    return MOLTEN_CHEESE;
-            }
-            for (CoolantFluidType fluid : values()) {
-                if (fluid.name()
-                    .equalsIgnoreCase(s) || fluid.displayName.equalsIgnoreCase(s)
-                    || fluid.fluidName.equalsIgnoreCase(s)) {
-                    return fluid;
-                }
-            }
-            return DISTILLED_WATER;
-        }
-    }
-
-    public static final class SecondaryCoolantType {
-
-        public static final SecondaryCoolant DISTILLED_WATER = SecondaryCoolantRegistry.DISTILLED_WATER;
-        public static final SecondaryCoolant WATER = SecondaryCoolantRegistry.WATER;
-        public static final SecondaryCoolant LIQUID_AIR = SecondaryCoolantRegistry.LIQUID_AIR;
-        public static final SecondaryCoolant LIQUID_NITROGEN = SecondaryCoolantRegistry.LIQUID_NITROGEN;
-        public static final SecondaryCoolant LIQUID_OXYGEN = SecondaryCoolantRegistry.LIQUID_OXYGEN;
-        public static final SecondaryCoolant LIQUID_HELIUM = SecondaryCoolantRegistry.LIQUID_HELIUM;
-
-        private SecondaryCoolantType() {}
-
-        public static SecondaryCoolant fromFluidName(String fluidName) {
-            return SecondaryCoolantRegistry.fromFluidName(fluidName);
-        }
-
-        public static SecondaryCoolant fromString(String str) {
-            return SecondaryCoolantRegistry.fromString(str);
-        }
-
-        public static SecondaryCoolant[] values() {
-            return SecondaryCoolantRegistry.values();
         }
     }
 
@@ -393,34 +174,339 @@ public class CoolantLoopModel {
         }
     }
 
+    /** Pipe material of the loop (the coolant pipes the CoolantLoops mod registers). */
+    public enum LoopMaterial {
+
+        CAST_IRON("Cast Iron", "CastIron", "ULV"),
+        STEEL("Steel", "Steel", "LV"),
+        STAINLESS_STEEL("Stainless Steel", "StainlessSteel", "MV"),
+        TITANIUM("Titanium", "Titanium", "EV"),
+        TUNGSTENSTEEL("Tungstensteel", "TungstenSteel", "IV"),
+        OSMIUM("Osmium", "Osmium", "LuV"),
+        NEUTRONIUM("Neutronium", "Neutronium", "ZPM");
+
+        public final String displayName;
+        public final String materialName;
+        public final String tierUnlocked;
+
+        LoopMaterial(String displayName, String materialName, String tierUnlocked) {
+            this.displayName = displayName;
+            this.materialName = materialName;
+            this.tierUnlocked = tierUnlocked;
+        }
+
+        /** Burst pressure from the coolant loop pipe config. */
+        public double maxPressureBar() {
+            return CoolantLoopConfigData.getPipePressureRating(materialName);
+        }
+
+        /** Highest coolant temperature the pipe takes, from the coolant loop pipe config. */
+        public double maxTemperatureCelsius() {
+            return CoolantLoopConfigData.getPipeTemperatureLimit(materialName);
+        }
+
+        /** Throughput of one pipe of this material and size, in L/s. */
+        public double capacityLitersPerSecond(LoopPipeSize size) {
+            return CoolantPipeSpec.capacityLitersPerSecond(CoolantPipeSpec.materialIndex(materialName), size.ordinal());
+        }
+
+        public boolean isAllowedInReactorTier(int reactorTier) {
+            return reactorTier >= NuclearSimulationEngine.PIPE_TIER_OSMIUM;
+        }
+
+        public boolean isProgressionAppropriate(int reactorTier) {
+            if (reactorTier < NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
+                return false;
+            }
+            if (reactorTier <= NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
+                // Progression filter: exclude Neutronium from automated LuV search space
+                return this != NEUTRONIUM;
+            }
+            return true;
+        }
+
+        public static LoopMaterial fromMaterialName(String name) {
+            if (name == null) return TITANIUM;
+            for (LoopMaterial mat : values()) {
+                if (mat.materialName.equalsIgnoreCase(name)) return mat;
+            }
+            return fromString(name);
+        }
+
+        public static LoopMaterial fromString(String str) {
+            if (str == null) return TITANIUM;
+            String s = WasmStrings.normalizeToken(str, " -");
+            switch (s) {
+                case "CAST_IRON", "CASTIRON", "CAST", "IRON":
+                    return CAST_IRON;
+                case "STEEL":
+                    return STEEL;
+                case "STAINLESS_STEEL", "STAINLESS", "STAINLESSSTEEL":
+                    return STAINLESS_STEEL;
+                case "TITANIUM", "TITAN":
+                    return TITANIUM;
+                case "TUNGSTENSTEEL", "TUNGSTEN_STEEL", "TUNGSTEN":
+                    return TUNGSTENSTEEL;
+                case "OSMIUM":
+                    return OSMIUM;
+                case "NEUTRONIUM", "NEUTRON":
+                    return NEUTRONIUM;
+            }
+            for (LoopMaterial mat : values()) {
+                if (mat.name()
+                    .equalsIgnoreCase(s) || mat.displayName.equalsIgnoreCase(s)
+                    || mat.materialName.equalsIgnoreCase(s)) {
+                    return mat;
+                }
+            }
+            return TITANIUM;
+        }
+    }
+
+    /** Pipe size, in the order {@link CoolantPipeSpec} lists them. */
+    public enum LoopPipeSize {
+
+        TINY("Tiny"),
+        SMALL("Small"),
+        NORMAL("Normal"),
+        LARGE("Large"),
+        HUGE("Huge");
+
+        public final String displayName;
+
+        LoopPipeSize(String displayName) {
+            this.displayName = displayName;
+        }
+
+        /** Inner diameter, from the coolant loop pipe config. */
+        public double diameterMeters() {
+            return CoolantLoopConfigData.getDiameterForThickness(CoolantPipeSpec.THICKNESSES[ordinal()]);
+        }
+
+        public static LoopPipeSize fromString(String str) {
+            if (str == null) return NORMAL;
+            String s = WasmStrings.normalizeToken(str, " ");
+            switch (s) {
+                case "TINY", "PIPE_TINY", "0.05":
+                    return TINY;
+                case "SMALL", "PIPE_SMALL", "0.075":
+                    return SMALL;
+                case "NORMAL", "MEDIUM", "REGULAR", "PIPE_NORMAL", "0.1", "0.10":
+                    return NORMAL;
+                case "LARGE", "PIPE_LARGE", "0.15":
+                    return LARGE;
+                case "HUGE", "PIPE_HUGE", "0.2", "0.20":
+                    return HUGE;
+            }
+            for (LoopPipeSize size : values()) {
+                if (size.name()
+                    .equalsIgnoreCase(s) || size.displayName.equalsIgnoreCase(s)) {
+                    return size;
+                }
+            }
+            return NORMAL;
+        }
+    }
+
+    /** Loop coolant; its physical properties come from the coolant loop fluid config. */
+    public enum CoolantFluidType {
+
+        DISTILLED_WATER("Distilled Water", "ic2distilledwater"),
+        HEAVY_WATER("Heavy Water", "heavywater"),
+        IC2_COOLANT("IC2 Coolant", "ic2coolant"),
+        SODIUM("Sodium", "sodium"),
+        MOLTEN_CHEESE("Molten Cheese", "molten.cheese"),
+        LAVA("Lava", "lava");
+
+        public final String displayName;
+        public final String fluidName;
+
+        CoolantFluidType(String displayName, String fluidName) {
+            this.displayName = displayName;
+            this.fluidName = fluidName;
+        }
+
+        public CoolantFluidProperty property() {
+            CoolantLoopConfigData.ensureLoaded();
+            CoolantFluidProperty prop = CoolantFluidProperty.get(fluidName);
+            if (prop == null) prop = CoolantFluidProperty.getCanonical(fluidName);
+            return prop != null ? prop : CoolantFluidProperty.DISTILLED_WATER;
+        }
+
+        public static CoolantFluidType fromFluidName(String fluidName) {
+            if (fluidName == null) return DISTILLED_WATER;
+            for (CoolantFluidType f : values()) {
+                if (f.fluidName.equalsIgnoreCase(fluidName)) return f;
+            }
+            return fromString(fluidName);
+        }
+
+        public static CoolantFluidType fromString(String str) {
+            if (str == null) return DISTILLED_WATER;
+            String s = WasmStrings.normalizeToken(str, " .");
+            switch (s) {
+                case "DISTILLED_WATER", "DISTILLEDWATER", "IC2DISTILLEDWATER", "WATER":
+                    return DISTILLED_WATER;
+                case "HEAVY_WATER", "HEAVYWATER":
+                    return HEAVY_WATER;
+                case "IC2_COOLANT", "IC2COOLANT", "COOLANT":
+                    return IC2_COOLANT;
+                case "SODIUM", "MOLTEN_SODIUM", "MOLTENSODIUM":
+                    return SODIUM;
+                case "LAVA":
+                    return LAVA;
+                case "MOLTEN_CHEESE", "MOLTENCHEESE", "CHEESE":
+                    return MOLTEN_CHEESE;
+            }
+            for (CoolantFluidType fluid : values()) {
+                if (fluid.name()
+                    .equalsIgnoreCase(s) || fluid.displayName.equalsIgnoreCase(s)
+                    || fluid.fluidName.equalsIgnoreCase(s)) {
+                    return fluid;
+                }
+            }
+            return DISTILLED_WATER;
+        }
+    }
+
+    /** Turbine rotor size installed in the pump, with GregTech's base damage for that rotor tool. */
+    public enum RotorSize {
+
+        SMALL("Small", 0.0),
+        NORMAL("Normal", 2.5),
+        LARGE("Large", 5.0),
+        HUGE("Huge", 7.5);
+
+        public final String displayName;
+        public final double baseDamage;
+
+        RotorSize(String displayName, double baseDamage) {
+            this.displayName = displayName;
+            this.baseDamage = baseDamage;
+        }
+
+        public static RotorSize fromString(String str) {
+            if (str == null) return HUGE;
+            for (RotorSize size : values()) {
+                if (size.name()
+                    .equalsIgnoreCase(str.trim()) || size.displayName.equalsIgnoreCase(str.trim())) {
+                    return size;
+                }
+            }
+            return HUGE;
+        }
+    }
+
+    /** Turbine rotor material installed in the pump, with its GregTech tool quality. */
+    public enum RotorMaterial {
+
+        STEEL("Steel", 3),
+        STAINLESS_STEEL("Stainless Steel", 4),
+        TITANIUM("Titanium", 3),
+        TUNGSTENSTEEL("Tungstensteel", 4),
+        OSMIUM("Osmium", 4),
+        NAQUADAH("Naquadah", 4),
+        NAQUADAH_ALLOY("Naquadah Alloy", 5),
+        ORIHARUKON("Oriharukon", 5),
+        NEUTRONIUM("Neutronium", 6),
+        TRITANIUM("Tritanium", 6),
+        HSS_E("HSS-E", 7),
+        HSS_S("HSS-S", 8),
+        TRINIUM("Trinium", 8),
+        BEDROCKIUM("Bedrockium", 9),
+        ADAMANTIUM("Adamantium", 10),
+        DURANIUM("Duranium", 11),
+        ICHORIUM("Ichorium", 12),
+        COSMIC_NEUTRONIUM("Cosmic Neutronium", 12),
+        INFINITY("Infinity", 17);
+
+        public final String displayName;
+        public final int toolQuality;
+
+        RotorMaterial(String displayName, int toolQuality) {
+            this.displayName = displayName;
+            this.toolQuality = toolQuality;
+        }
+
+        public static RotorMaterial fromString(String str) {
+            if (str == null) return TUNGSTENSTEEL;
+            String s = WasmStrings.normalizeToken(str, " -");
+            if (s.equals("ORINARUKON")) return ORIHARUKON;
+            for (RotorMaterial mat : values()) {
+                if (WasmStrings.normalizeToken(mat.name(), "_")
+                    .equals(WasmStrings.normalizeToken(s, "_"))
+                    || WasmStrings.normalizeToken(mat.displayName, " -")
+                        .equals(s)) {
+                    return mat;
+                }
+            }
+            return TUNGSTENSTEEL;
+        }
+    }
+
+    /**
+     * Efficiency of a pump rotor: GregTech's turbine base efficiency, 0.5 + (0.5 + rotor damage) / 10, where the
+     * damage is the rotor tool's base damage plus its material's tool quality.
+     */
+    public static double rotorEfficiency(RotorMaterial material, RotorSize size) {
+        return 0.5 + (0.5 + size.baseDamage + material.toolQuality) * 0.1;
+    }
+
+    /** Secondary fluids a PHE can boil, one per product, from the PHE config. */
+    public static List<SecondaryCoolantEntry> secondaryCoolantChoices() {
+        List<SecondaryCoolantEntry> out = new ArrayList<>();
+        Set<String> products = new HashSet<>();
+        for (SecondaryCoolantEntry e : pheConfig().secondaryCoolants) {
+            if (e != null && e.inputFluidName != null && products.add(e.outputGasName + "@" + e.boilingPointCelsius)) {
+                out.add(e);
+            }
+        }
+        return out;
+    }
+
+    private static PHEData pheConfig() {
+        return CoolantLoopConfigData.getDeviceData()
+            .getPhe();
+    }
+
+    /** Pipe blocks in each of the cold leg, hot leg and return run of the canonical loop. */
+    public static final int PIPE_RUN_BLOCKS = 4;
+    /** Minor loss of the distribution and collection manifolds (the crawler's minimum per manifold group). */
+    private static final double MANIFOLD_MINOR_LOSS_K = 0.5;
+
     private LoopMaterial material = LoopMaterial.TITANIUM;
     private LoopPipeSize pipeSize = LoopPipeSize.NORMAL;
     private CoolantFluidType fluidType = CoolantFluidType.DISTILLED_WATER;
-    private SecondaryCoolant secondaryCoolant = SecondaryCoolantRegistry.DISTILLED_WATER;
+    private String secondaryFluidName = "ic2distilledwater";
     private EnergyHatchTier hatchTier = EnergyHatchTier.EV;
-    private double dutyCyclePercent = 100.0;
-    private double maxFlowRateLPerSec = 0.0; // 0 = no user limit
-    private double maxPressureBar = 0.0; // 0 = no user limit
-    private double pumpElectricalPowerEUt = 2048.0; // EU/t
-    private double targetFlowRateLPerSec = 100.0; // L/s
-    private boolean useTargetFlowMode = false; // If true, flow is set directly and pump EU is calculated
-    private boolean pumpOverclocked = false; // If true, pump draws 4A instead of 1A
-    private TurbineCalculator.TurbineMaterial impellerMaterial = TurbineCalculator.TurbineMaterial.ORINARUKON;
+    private int pumpHatchCount = 1;
+    private RotorMaterial rotorMaterial = RotorMaterial.TUNGSTENSTEEL;
+    private RotorSize rotorSize = RotorSize.HUGE;
+    private int pheCount = 1;
+    private EnergyHatchTier pheHatchTier = EnergyHatchTier.EV;
+    private int pheHatchCount = 1;
     private final Set<GridCoord> attachedPoints = new HashSet<>();
 
-    // Dynamic state
-    private double currentFlowRateLPerSec = 0.0;
-    private double currentPressureBar = 1.0;
-    private double currentCoolantTempCelsius = 20.0;
+    // Loop built from the configuration (rebuilt when it or the number of passages changes)
+    private CoolantLoopEngine engine;
+    private final List<LoopSegment> passageSegments = new ArrayList<>();
+    private final List<LoopSegment> pheSegments = new ArrayList<>();
+    private final List<PheExchange.Batch> pheBatches = new ArrayList<>();
+    private LoopSegment hotLegSegment;
+    private LoopSegment coldLegSegment;
+    private boolean topologyDirty = true;
+    private int[] radiolysisAccumulators = new int[0];
+
+    // Last cycle
     private double lastHeatExtractedWatts = 0.0;
     private double lastHeatExtractedHut = 0.0;
-    private double lastSecondarySteamProducedLt = 0.0;
-    private double lastSecondaryWaterBoiledLt = 0.0;
+    private double lastSteamLt = 0.0;
+    private double lastSuperheatedSteamLt = 0.0;
+    private double lastSupercriticalSteamLt = 0.0;
+    private double lastSecondaryGasLt = 0.0;
+    private double lastSecondaryBoiledLt = 0.0;
     private double lastPumpPowerEUt = 0.0;
-    private boolean pressureLimited = false;
-    private boolean flowLimited = false;
-    private double effectiveDutyCyclePercent = 100.0;
-    private String limitReason = "";
+    private double lastPhePowerEUt = 0.0;
     private boolean ruptured = false;
     private String ruptureReason = "";
 
@@ -428,265 +514,212 @@ public class CoolantLoopModel {
     private long totalDeuteriumProduced = 0;
     private long totalTritiumProduced = 0;
     private long totalOxygenProduced = 0;
-    private long totalMethaneProduced = 0;
     private double totalSecondarySteamProduced = 0.0;
     private double totalHeatExtractedJoules = 0.0;
     private double totalHeatExtractedHut = 0.0;
-    private int neutronTransmuteAccumulator = 0;
 
-    // Polynomial coefficients derived from detailed hydrodynamic CFD simulation:
-    // P_pump(Q) in EU/t = c0 + c1*Q + c2*Q^2 + c3*Q^3 (Q in L/s, Normal D=0.10m pipe)
-    public static final double P_COEFF_C0 = 0.0176;
-    public static final double P_COEFF_C1 = -0.0044;
-    public static final double P_COEFF_C2 = 0.0011;
-    public static final double P_COEFF_C3 = 0.001383;
+    public CoolantLoopModel() {}
 
-    public CoolantLoopModel() {
-        // Defaults: Titanium material, normal pipe, distilled water
-        updatePumpState();
+    // ---- Electrical draw (as the game's pump and PHE compute it) -------------------------------------------------
+
+    /**
+     * Voltage of a multiblock's energy hatches: the tier's voltage with one hatch, four times the highest with more.
+     */
+    private static double hatchVoltage(EnergyHatchTier tier, int hatchCount) {
+        if (hatchCount <= 0) return 0.0;
+        return hatchCount == 1 ? tier.voltageEU : 4.0 * tier.voltageEU;
     }
 
-    public boolean isPumpOverclocked() {
-        return pumpOverclocked;
+    /** EU/t the pump draws (512 without energy hatches, as in the game). */
+    public double pumpPowerEUt() {
+        return pumpHatchCount <= 0 ? 512.0 : hatchVoltage(hatchTier, pumpHatchCount);
     }
 
-    public void setPumpOverclocked(boolean pumpOverclocked) {
-        this.pumpOverclocked = pumpOverclocked;
-        updatePumpState();
+    /** Voltage each PHE runs at (32 without energy hatches, as in the game). */
+    public double pheVoltage() {
+        return pheHatchCount <= 0 ? 32.0 : hatchVoltage(pheHatchTier, pheHatchCount);
     }
 
-    public TurbineCalculator.TurbineMaterial getImpellerMaterial() {
-        return impellerMaterial;
+    /** EU/t the PHEs draw together (15/16 of their voltage each). */
+    public double phePowerEUt() {
+        return pheCount * Math.max(1.0, Math.floor(15.0 * pheVoltage() / 16.0));
     }
 
-    public void setImpellerMaterial(TurbineCalculator.TurbineMaterial mat) {
-        if (mat != null) {
-            this.impellerMaterial = mat;
-            updatePumpState();
+    public double getRotorEfficiency() {
+        return rotorEfficiency(rotorMaterial, rotorSize);
+    }
+
+    /** Mechanical power the pump puts into the coolant, in W. */
+    public double pumpMechanicalPowerWatts() {
+        return pumpPowerEUt() * CoolantLoopConfigData.getPhysicsData()
+            .getPumpMechanicalPowerPerEU() * getRotorEfficiency();
+    }
+
+    /** Most flow the loop's pipes carry, in L/s. */
+    public double maxFlowLitersPerSecond() {
+        return material.capacityLitersPerSecond(pipeSize);
+    }
+
+    // ---- Loop construction ------------------------------------------------------------------------------------------
+
+    private LoopSegment pipe(String id) {
+        return new LoopSegment(
+            id,
+            1.0,
+            pipeSize.diameterMeters(),
+            CoolantLoopConfigData.getPipeData()
+                .getDefaultRoughness(),
+            0.05,
+            material.maxPressureBar(),
+            material.maxTemperatureCelsius(),
+            NuclearSimulationEngine.ambientTemp);
+    }
+
+    private static void chain(LoopSegment from, LoopSegment to) {
+        to.addUpstreamSegment(from);
+    }
+
+    /**
+     * Builds the canonical loop the game's crawler would produce for a pump feeding all passages in parallel: pump
+     * discharge, cold leg pipes, distribution manifold, the passages, collection manifold, hot leg pipes, the PHEs in
+     * series (one pipe between each), and the return run to the pump suction.
+     */
+    private void buildLoop(int passageCount) {
+        double startTemp = engine != null ? engine.getAvgLoopTempCelsius() : NuclearSimulationEngine.ambientTemp;
+        engine = new CoolantLoopEngine(fluidType.property());
+        engine.setMaxVolumetricFlowRate(maxFlowLitersPerSecond() / 1000.0);
+        passageSegments.clear();
+        pheSegments.clear();
+        pheBatches.clear();
+        radiolysisAccumulators = new int[passageCount];
+
+        List<LoopSegment> segs = new ArrayList<>();
+        LoopSegment prev = null;
+        for (int i = 0; i < PIPE_RUN_BLOCKS; i++) {
+            LoopSegment s = pipe("cold_" + i);
+            if (prev != null) chain(prev, s);
+            segs.add(s);
+            prev = s;
         }
-    }
+        coldLegSegment = prev;
 
-    public void setImpellerMaterial(String name) {
-        this.impellerMaterial = TurbineCalculator.TurbineMaterial.fromString(name);
-        updatePumpState();
-    }
+        LoopSegment distribution = new LoopSegment(
+            "manifold_in",
+            1.0,
+            pipeSize.diameterMeters(),
+            0.000045,
+            MANIFOLD_MINOR_LOSS_K,
+            500.0,
+            2000.0,
+            startTemp);
+        distribution.setManifold(true);
+        chain(prev, distribution);
+        segs.add(distribution);
 
-    public double getImpellerEfficiency() {
-        return impellerMaterial != null ? impellerMaterial.tightEff : 1.0;
-    }
+        LoopSegment collection = new LoopSegment(
+            "manifold_out",
+            1.0,
+            pipeSize.diameterMeters(),
+            0.000045,
+            MANIFOLD_MINOR_LOSS_K,
+            500.0,
+            2000.0,
+            startTemp);
+        collection.setManifold(true);
+        for (int i = 0; i < passageCount; i++) {
+            LoopSegment p = new LoopSegment(
+                "passage_" + i,
+                CoolantPassage.length(),
+                CoolantPassage.diameter(),
+                0.000045,
+                CoolantPassage.MINOR_LOSS_K,
+                500.0,
+                3200.0,
+                startTemp);
+            p.setFlowFraction(1.0 / passageCount);
+            chain(distribution, p);
+            chain(p, collection);
+            segs.add(p);
+            passageSegments.add(p);
+        }
+        segs.add(collection);
+        prev = collection;
 
-    /**
-     * Calculates the required electrical pump power (EU/t) for a given flow rate Q (L/s)
-     * using the calibrated cubic hydrodynamic scaling polynomial and impeller efficiency.
-     */
-    public double calculatePumpPowerForFlow(double flowLPerSec) {
-        if (flowLPerSec <= 0.0) return 0.0;
-        double q = flowLPerSec;
-        // Diameter scale factor: D_normal / D_actual
-        double dScale = LoopPipeSize.NORMAL.diameterMeters / pipeSize.diameterMeters;
-        // Pressure drop scales as (1/D)^5 approximately for same flow rate
-        double geomFactor = Math.pow(dScale, 4.5);
-        double basePower = P_COEFF_C0 + P_COEFF_C1 * q + P_COEFF_C2 * q * q + P_COEFF_C3 * q * q * q;
-        double mechanicalPower = Math.max(1.0, basePower * geomFactor);
-        return mechanicalPower / Math.max(0.1, getImpellerEfficiency());
-    }
+        for (int i = 0; i < PIPE_RUN_BLOCKS; i++) {
+            LoopSegment s = pipe("hot_" + i);
+            chain(prev, s);
+            segs.add(s);
+            prev = s;
+        }
+        hotLegSegment = segs.get(segs.size() - 1);
 
-    /**
-     * Estimates flow rate Q (L/s) from available pump electrical power (EU/t) and impeller efficiency.
-     */
-    public double calculateFlowFromPumpPower(double pumpElectricalEUt) {
-        if (pumpElectricalEUt <= 0.0) return 0.0;
-        double mechanicalPowerEUt = pumpElectricalEUt * getImpellerEfficiency();
-        double dScale = LoopPipeSize.NORMAL.diameterMeters / pipeSize.diameterMeters;
-        double geomFactor = Math.pow(dScale, 4.5);
-        double effectiveP = mechanicalPowerEUt / geomFactor;
-        // Invert cubic term P ~ c3 * Q^3 -> Q ~ (P / c3)^(1/3)
-        double qEst = Math.pow(Math.max(0.1, effectiveP / P_COEFF_C3), 1.0 / 3.0);
-        // Fine-tune with Newton-Raphson iterations
-        for (int iter = 0; iter < 3; iter++) {
-            double pCur = P_COEFF_C0 + P_COEFF_C1 * qEst + P_COEFF_C2 * qEst * qEst + P_COEFF_C3 * qEst * qEst * qEst;
-            double pDeriv = P_COEFF_C1 + 2.0 * P_COEFF_C2 * qEst + 3.0 * P_COEFF_C3 * qEst * qEst;
-            if (pDeriv > 1e-6) {
-                qEst -= (pCur - effectiveP) / pDeriv;
+        PHEData cfg = pheConfig();
+        for (int j = 0; j < pheCount; j++) {
+            if (j > 0) {
+                LoopSegment link = pipe("phe_link_" + j);
+                chain(prev, link);
+                segs.add(link);
+                prev = link;
             }
-        }
-        return Math.max(0.0, qEst);
-    }
-
-    /**
-     * Calculates loop peak pressure (bar) for a given flow rate.
-     */
-    public double calculatePeakPressureBar(double flowLPerSec) {
-        if (flowLPerSec <= 0.0) return 1.0;
-        double qM3s = flowLPerSec / 1000.0;
-        double d = pipeSize.diameterMeters;
-        double area = Math.PI * Math.pow(d / 2.0, 2);
-        double vel = qM3s / area;
-        // Total minor + friction K equivalent ~ 30.0 for 25m loop
-        double kEquiv = 25.0 * (0.02 / d) + 8.2;
-        double dpPa = kEquiv * (fluidType.density * vel * vel / 2.0);
-        return 1.0 + (dpPa / 1.0e5);
-    }
-
-    /**
-     * Calculates the maximum circulation flow (L/s) that produces a given peak pressure (bar).
-     * Exact analytical inverse of calculatePeakPressureBar.
-     */
-    public double calculateMaxFlowForPressure(double targetPressureBar) {
-        if (targetPressureBar <= 1.0) return 0.0;
-        double dpPa = (targetPressureBar - 1.0) * 1.0e5;
-        double d = pipeSize.diameterMeters;
-        double area = Math.PI * Math.pow(d / 2.0, 2);
-        double kEquiv = 25.0 * (0.02 / d) + 8.2;
-        double vSquared = (2.0 * dpPa) / Math.max(1e-6, kEquiv * fluidType.density);
-        if (vSquared <= 0.0) return 0.0;
-        double vel = Math.sqrt(vSquared);
-        double qM3s = vel * area;
-        return qM3s * 1000.0;
-    }
-
-    /**
-     * Updates pump electrical power consumption, hydrodynamic flow rate,
-     * system pressure, effective duty cycle, and limit status based on current configuration.
-     */
-    public void updatePumpState() {
-        if (this.ruptured) {
-            return;
+            LoopSegment phe = new LoopSegment(
+                "phe_" + j,
+                2.0,
+                0.12,
+                0.000045,
+                cfg.minorLossK,
+                500.0,
+                2000.0,
+                startTemp);
+            chain(prev, phe);
+            segs.add(phe);
+            pheSegments.add(phe);
+            pheBatches.add(new PheExchange.Batch());
+            prev = phe;
         }
 
-        // Solidification / Freezing check: disallow acceleration if fluid is below declared melting/freezing point
-        if (fluidType != null && Double.isFinite(fluidType.meltingPointCelsius)
-            && fluidType.meltingPointCelsius != Double.NEGATIVE_INFINITY
-            && ((fluidType.isMolten() && NuclearSimulationEngine.ambientTemp < fluidType.meltingPointCelsius)
-                || currentCoolantTempCelsius < fluidType.meltingPointCelsius)) {
-            currentFlowRateLPerSec = 0.0;
-            lastPumpPowerEUt = 0.0;
-            effectiveDutyCyclePercent = 0.0;
-            currentPressureBar = 1.0;
-            flowLimited = true;
-            if (fluidType.isMolten() && NuclearSimulationEngine.ambientTemp < fluidType.meltingPointCelsius) {
-                limitReason = String.format(
-                    "Pump blocked: Biome ambient temperature (%.1f °C) is below declared melting point (%.1f °C) for %s! Fluid would solidify in this biome.",
-                    NuclearSimulationEngine.ambientTemp,
-                    fluidType.meltingPointCelsius,
-                    fluidType.displayName);
-            } else {
-                String verb = fluidType.isMolten() ? "solidify" : "freeze";
-                String noun = fluidType.isMolten() ? "melting" : "freezing";
-                limitReason = String.format(
-                    "Pump blocked: Coolant temperature (%.1f °C) is below declared %s point (%.1f °C) for %s! Fluid would %s.",
-                    currentCoolantTempCelsius,
-                    noun,
-                    fluidType.meltingPointCelsius,
-                    fluidType.displayName,
-                    verb);
-            }
-            return;
+        for (int i = 0; i < PIPE_RUN_BLOCKS; i++) {
+            LoopSegment s = pipe("return_" + i);
+            chain(prev, s);
+            segs.add(s);
+            prev = s;
         }
+        chain(prev, segs.get(0));
 
-        // Control System: Calculate pump power, duty cycle, flow, and safety throttling
-        double pumpAmps = pumpOverclocked ? 4.0 : 1.0;
-        double maxPumpPowerEUt = hatchTier.voltageEU * pumpAmps;
-
-        if (useTargetFlowMode) {
-            currentFlowRateLPerSec = Math.max(0.0, targetFlowRateLPerSec);
-            lastPumpPowerEUt = calculatePumpPowerForFlow(currentFlowRateLPerSec);
-            effectiveDutyCyclePercent = maxPumpPowerEUt > 0 ? (lastPumpPowerEUt / maxPumpPowerEUt) * 100.0 : 0.0;
-            pressureLimited = false;
-            flowLimited = false;
-            limitReason = "";
-            currentPressureBar = calculatePeakPressureBar(currentFlowRateLPerSec);
-        } else {
-            double requestedDuty = Math.max(0.0, Math.min(100.0, dutyCyclePercent));
-            double nominalPower = maxPumpPowerEUt * (requestedDuty / 100.0);
-
-            pressureLimited = false;
-            flowLimited = false;
-            effectiveDutyCyclePercent = requestedDuty;
-            limitReason = "";
-
-            if (requestedDuty <= 0.0 || nominalPower <= 0.0) {
-                lastPumpPowerEUt = 0.0;
-                currentFlowRateLPerSec = 0.0;
-                currentPressureBar = 1.0;
-                effectiveDutyCyclePercent = 0.0;
-            } else {
-                // Implicit pipe material burst protection (safe control system margin, 99.5% of maxPressureBar)
-                double allowedPressure = material.maxPressureBar * 0.995;
-                boolean userPressureActive = false;
-                if (maxPressureBar > 1.0 && maxPressureBar < allowedPressure) {
-                    allowedPressure = maxPressureBar;
-                    userPressureActive = true;
-                }
-
-                double maxFlowFromPressure = calculateMaxFlowForPressure(allowedPressure);
-                double allowedFlow = maxFlowFromPressure;
-                boolean userFlowActive = false;
-                if (maxFlowRateLPerSec > 0.0 && maxFlowRateLPerSec < allowedFlow) {
-                    allowedFlow = maxFlowRateLPerSec;
-                    userFlowActive = true;
-                }
-
-                double maxAllowedPower = calculatePumpPowerForFlow(allowedFlow);
-
-                if (nominalPower > maxAllowedPower) {
-                    lastPumpPowerEUt = Math.max(0.0, maxAllowedPower);
-                    currentFlowRateLPerSec = allowedFlow;
-                    currentPressureBar = calculatePeakPressureBar(currentFlowRateLPerSec);
-                    effectiveDutyCyclePercent = maxPumpPowerEUt > 0 ? (lastPumpPowerEUt / maxPumpPowerEUt) * 100.0
-                        : 0.0;
-
-                    if (userFlowActive && allowedFlow == maxFlowRateLPerSec) {
-                        flowLimited = true;
-                        limitReason = "Flow capped at " + fmt1(maxFlowRateLPerSec) + " L/s";
-                    } else {
-                        pressureLimited = true;
-                        if (userPressureActive) {
-                            limitReason = "Pressure capped at " + fmt1(maxPressureBar) + " bar";
-                        } else {
-                            limitReason = "Throttled by " + material.displayName
-                                + " pipe limit ("
-                                + fmt1(material.maxPressureBar)
-                                + " bar)";
-                        }
-                    }
-                } else {
-                    lastPumpPowerEUt = nominalPower;
-                    currentFlowRateLPerSec = calculateFlowFromPumpPower(lastPumpPowerEUt);
-                    currentPressureBar = calculatePeakPressureBar(currentFlowRateLPerSec);
-                    effectiveDutyCyclePercent = requestedDuty;
-                }
-            }
+        for (LoopSegment s : segs) {
+            s.setCurrentTemperatureCelsius(startTemp);
+            s.setIncomingTemperatureCelsius(startTemp);
+            engine.addSegment(s);
         }
+        topologyDirty = false;
     }
 
-    /**
-     * Executes one tick (0.05 seconds) of joint coolant loop simulation.
-     */
+    private void markDirty() {
+        topologyDirty = true;
+    }
+
+    // ---- Simulation -------------------------------------------------------------------------------------------------
+
+    /** Runs one tick (0.05 s) of the loop. */
     public boolean step(StandaloneNuclearGrid grid, SimTile[][] tiles, int width, int height) {
         return step(grid, tiles, width, height, 1);
     }
 
     /**
-     * Executes joint coolant loop simulation for the given number of ticks (subticks).
-     * Accurately integrates convective heat extraction and secondary PHE boiling across the cycle.
+     * Runs the loop for the given number of ticks, as the game's pump does every tick: powers the pump, advances the
+     * shared loop engine, then lets each passage and PHE exchange heat with the coolant in its segment.
      */
     public boolean step(StandaloneNuclearGrid grid, SimTile[][] tiles, int width, int height, int ticks) {
         if (ruptured) {
             return false;
         }
-
         int subTicks = Math.max(1, ticks);
-        int reactorTier = grid.getPipeTier();
 
-        // 1. Verify Tier Constraint: Convective cooling availability
-        if (reactorTier < NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
+        if (grid.getPipeTier() < NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
             this.ruptured = true;
             this.ruptureReason = "Tier Violation: Convective coolant loops require Tier 2+ (LuV Osmium+) casing!";
             return false;
         }
 
-        // Gather all attached core passage cells (configured points + any placed PASSAGE_CORE tiles)
         List<SimTile> passageTiles = new ArrayList<>();
         boolean hasAttached = !attachedPoints.isEmpty();
         for (int x = 0; x < width; x++) {
@@ -698,208 +731,143 @@ public class CoolantLoopModel {
                 }
             }
         }
+        if (topologyDirty || engine == null || passageTiles.size() != passageSegments.size()) {
+            buildLoop(passageTiles.size());
+        }
 
-        double totalJoulesAcrossSubticks = 0.0;
-        double totalWaterBoiledAcrossSubticks = 0.0;
-        double totalSteamProducedAcrossSubticks = 0.0;
+        PHEData cfg = pheConfig();
+        SecondaryCoolantEntry secondary = getSecondaryCoolant();
+        CoolantFluidProperty fluid = engine.getFluid();
+        double maxBatchHeat = PheExchange.maxBatchHeatJoules(cfg, (long) pheVoltage());
+        double exchangeArea = cfg.exchangeArea;
+        double mechanicalWatts = pumpMechanicalPowerWatts();
+        double latentPerMl = secondary != null ? secondary.latentHeatJoulePerLiter / 1000.0 : 0.0;
+        int expansion = secondary != null && secondary.expansionRatio > 0 ? secondary.expansionRatio : 1;
 
-        for (int stepIdx = 0; stepIdx < subTicks; stepIdx++) {
-            // 0. Solidification / Freezing check for loop coolant
-            if (fluidType != null && Double.isFinite(fluidType.meltingPointCelsius)
-                && fluidType.meltingPointCelsius != Double.NEGATIVE_INFINITY
-                && currentCoolantTempCelsius < fluidType.meltingPointCelsius) {
-                if (currentFlowRateLPerSec > 0.0) {
-                    this.ruptured = true;
-                    if (fluidType.isMolten()) {
-                        this.ruptureReason = String.format(
-                            "Catastrophic Coolant Solidification! Coolant temperature %.1f °C dropped below declared GregTech melting point %.1f °C for molten fluid %s. Solidified plug ruptured loop!",
-                            currentCoolantTempCelsius,
-                            fluidType.meltingPointCelsius,
-                            fluidType.displayName);
+        double extractedJoules = 0.0;
+        double boiledMl = 0.0;
+        double steam = 0.0, superheated = 0.0, supercritical = 0.0, gas = 0.0;
+
+        for (int t = 0; t < subTicks; t++) {
+            engine.setPumpPowered(true);
+            engine.setPumpMechanicalPowerWatts(mechanicalWatts);
+            engine.step(0.05);
+            if (engine.isRuptured()) {
+                return rupture(engine.getFailureReason());
+            }
+            double flow = engine.getVolumetricFlowRate();
+
+            for (int i = 0; i < passageTiles.size(); i++) {
+                SimTile tile = passageTiles.get(i);
+                LoopSegment seg = passageSegments.get(i);
+                double hu = CoolantPassage
+                    .exchange(tile.getTemperature(), flow * seg.getFlowFraction(), 0.05, fluid, seg);
+                if (hu == 0.0) continue;
+                tile.setTemperature(tile.getTemperature() - hu / NuclearSimulationEngine.HU_PER_DEGREE);
+                if (hu > 0) {
+                    tile.setLastHeatOutput(tile.getLastHeatOutput() + hu);
+                    extractedJoules += hu * CoolantPassage.JOULES_PER_HU;
+                }
+            }
+
+            for (int j = 0; j < pheSegments.size(); j++) {
+                LoopSegment seg = pheSegments.get(j);
+                PheExchange.Batch batch = pheBatches.get(j);
+                PheExchange.tick(
+                    batch,
+                    cfg,
+                    secondary,
+                    Double.MAX_VALUE,
+                    flow * seg.getFlowFraction(),
+                    seg,
+                    fluid,
+                    seg.getCurrentTemperatureCelsius(),
+                    exchangeArea,
+                    CoolantLoopConfigData.getConvectiveModel(),
+                    1.0,
+                    maxBatchHeat);
+                double heat = batch.lastTickHeatJoules;
+                if (heat > 0.0 && latentPerMl > 0.0) {
+                    // Credit output as the heat moves (the game releases it per batch, at the batch's mean temperature)
+                    double ml = heat / latentPerMl;
+                    double out = ml * expansion / 1000.0;
+                    boiledMl += ml;
+                    if (secondary.isSteam) {
+                        String grade = PheExchange
+                            .steamGrade(batch.effectiveTemperature(seg.getCurrentTemperatureCelsius()), cfg);
+                        if (grade.equals("supercriticalsteam")) supercritical += out;
+                        else if (grade.equals("ic2superheatedsteam")) superheated += out;
+                        else steam += out;
                     } else {
-                        this.ruptureReason = String.format(
-                            "Catastrophic Coolant Freezing! Coolant temperature %.1f °C dropped below freezing point %.1f °C for fluid %s. Solidified ice/plug ruptured loop!",
-                            currentCoolantTempCelsius,
-                            fluidType.meltingPointCelsius,
-                            fluidType.displayName);
-                    }
-                    return false;
-                } else {
-                    updatePumpState();
-                    return true;
-                }
-            }
-
-            // 2. Control System: Calculate pump power, duty cycle, flow, and safety throttling
-            updatePumpState();
-
-            // 3. Safety Burst Verification (in case of forced external flow or edge conditions)
-            currentPressureBar = calculatePeakPressureBar(currentFlowRateLPerSec);
-            if (currentPressureBar > material.maxPressureBar) {
-                this.ruptured = true;
-                this.ruptureReason = String.format(
-                    "Coolant Loop Burst! Peak pressure %.1f bar exceeded maximum burst rating %.1f bar for %s piping.",
-                    currentPressureBar,
-                    material.maxPressureBar,
-                    material.displayName);
-                return false;
-            }
-
-            // 4. Melt Limit Verification
-            if (currentCoolantTempCelsius > material.maxTemperatureCelsius) {
-                this.ruptured = true;
-                this.ruptureReason = String.format(
-                    "Coolant Loop Melted! Coolant temperature %.1f °C exceeded maximum safe rating %.1f °C (%d K) for %s piping.",
-                    currentCoolantTempCelsius,
-                    material.maxTemperatureCelsius,
-                    material.maxTemperatureKelvin,
-                    material.displayName);
-                return false;
-            }
-
-            // 6. Convective Heat Transfer in Core Passages (Dittus-Boelter Correlation)
-            double totalHeatExtractedJoulesTick = 0.0;
-
-            if (!passageTiles.isEmpty() && currentFlowRateLPerSec > 0.0) {
-                int numPassages = passageTiles.size();
-                double flowPerPassageM3s = (currentFlowRateLPerSec / 1000.0) / Math.max(1, numPassages);
-                double passageDiameter = pipeSize.diameterMeters;
-                double passageLength = 5.0; // Standard 5m core channel height
-                double passageArea = Math.PI * passageDiameter * passageLength; // ~1.57 m^2 per channel
-                double flowArea = Math.PI * Math.pow(passageDiameter / 2.0, 2);
-                double vel = flowArea > 0 ? (flowPerPassageM3s / flowArea) : 0.0;
-
-                double re = (fluidType.density * vel * passageDiameter) / Math.max(1e-6, fluidType.dynamicViscosity);
-                double pr = (fluidType.dynamicViscosity * fluidType.specificHeat)
-                    / Math.max(1e-4, fluidType.thermalConductivity);
-
-                double nu;
-                if (re < 2300.0) {
-                    nu = 4.36; // Laminar fully developed
-                } else {
-                    nu = 0.023 * Math.pow(re, 0.8) * Math.pow(Math.max(0.6, pr), 0.4); // Turbulent Dittus-Boelter
-                }
-
-                double hConvective = (nu * fluidType.thermalConductivity) / passageDiameter; // W/(m^2*K)
-
-                for (SimTile pTile : passageTiles) {
-                    double cellTemp = pTile.getTemperature();
-                    double deltaT = cellTemp - currentCoolantTempCelsius;
-                    if (deltaT > 0.001) {
-                        double qDotWatts = hConvective * passageArea * deltaT;
-                        double joulesTick = qDotWatts * 0.05; // 0.05s per tick
-                        double huTick = joulesTick / 128.0;
-
-                        // Max heat without overcooling tile below coolant temperature
-                        double maxHuDrop = (cellTemp - currentCoolantTempCelsius) * NuclearSimulationEngine.huPerDegree;
-                        if (huTick > maxHuDrop) {
-                            huTick = maxHuDrop;
-                            joulesTick = huTick * 128.0;
-                        }
-
-                        pTile.setTemperature(
-                            Math.max(
-                                currentCoolantTempCelsius,
-                                cellTemp - huTick / NuclearSimulationEngine.huPerDegree));
-                        pTile.setLastHeatOutput(pTile.getLastHeatOutput() + huTick);
-                        totalHeatExtractedJoulesTick += joulesTick;
-                    }
-
-                    // Radiolytic dissociation: executed once per cycle on first subtick
-                    if (stepIdx == 0) {
-                        int fastAbsorbed = pTile.getLastFastAbsorbed();
-                        if (fastAbsorbed > 0) {
-                            neutronTransmuteAccumulator += fastAbsorbed;
-                            if (neutronTransmuteAccumulator >= 4) {
-                                int cycles = neutronTransmuteAccumulator / 4;
-                                neutronTransmuteAccumulator %= 4;
-                                if (fluidType == CoolantFluidType.HEAVY_WATER) {
-                                    totalTritiumProduced += cycles * 2L;
-                                    totalOxygenProduced += cycles * 1L;
-                                } else if (fluidType == CoolantFluidType.DISTILLED_WATER) {
-                                    totalDeuteriumProduced += cycles * 2L;
-                                    totalOxygenProduced += cycles * 1L;
-                                }
-                                // Radiolysis is strictly disallowed for any other fluid
-                            }
-                        }
+                        gas += out;
                     }
                 }
-            }
-
-            totalJoulesAcrossSubticks += totalHeatExtractedJoulesTick;
-
-            // 7. Coolant Temperature Rise
-            // Mass flow per tick (kg)
-            double loopFluidMassKg = Math
-                .max(10.0, (currentFlowRateLPerSec * 0.05) * (fluidType.density / 1000.0) * 10.0);
-            double tempRise = totalHeatExtractedJoulesTick / (loopFluidMassKg * fluidType.specificHeat);
-            currentCoolantTempCelsius += tempRise;
-
-            // 8. Secondary Boiling at High-Pressure Heat Exchanger (PHE)
-            double secBoilingTemp = (secondaryCoolant != null) ? secondaryCoolant.boilingPointCelsius : 100.0;
-            double secLatentHeat = (secondaryCoolant != null) ? secondaryCoolant.latentHeatJoulesPerLiter : 2260.0;
-            int secExpansion = (secondaryCoolant != null && secondaryCoolant.expansionRatio > 0)
-                ? secondaryCoolant.expansionRatio
-                : 160;
-
-            if (currentCoolantTempCelsius > secBoilingTemp && currentFlowRateLPerSec > 0.0) {
-                double deltaTPhe = currentCoolantTempCelsius - secBoilingTemp;
-                double pheUnits = Math.max(1.0, Math.max(pipeSize.relativeCapacity, currentFlowRateLPerSec / 150.0));
-                double pheArea = 24.0 * pheUnits; // Tube bundle area scaled with parallel PHE multiblock units
-                // h_phe ~ 2500 W/(m^2*K) for heat exchanger
-                double qPheWatts = 2500.0 * pheArea * deltaTPhe;
-                double qPheJoules = Math.min(
-                    totalHeatExtractedJoulesTick + (deltaTPhe * loopFluidMassKg * fluidType.specificHeat * 0.5),
-                    qPheWatts * 0.05);
-
-                double fluidBoiledL = qPheJoules / secLatentHeat;
-                double steamGeneratedL = fluidBoiledL * secExpansion;
-
-                totalWaterBoiledAcrossSubticks += fluidBoiledL;
-                totalSteamProducedAcrossSubticks += steamGeneratedL;
-                totalSecondarySteamProduced += steamGeneratedL;
-
-                // Cool coolant back down toward secondary boiling temperature
-                double tempDrop = qPheJoules / (loopFluidMassKg * fluidType.specificHeat);
-                currentCoolantTempCelsius = Math.max(secBoilingTemp, currentCoolantTempCelsius - tempDrop);
+                if (PheExchange.batchComplete(batch, cfg)) {
+                    batch.reset();
+                }
             }
         }
 
-        totalHeatExtractedJoules += totalJoulesAcrossSubticks;
-        totalHeatExtractedHut += totalJoulesAcrossSubticks / 128.0;
+        // Radiolysis in the passages, as the game's high-pressure hatches do on neutron absorption
+        String gasProduct = CoolantPassage.radiolysisGas(fluidType.fluidName);
+        for (int i = 0; i < passageTiles.size(); i++) {
+            SimTile tile = passageTiles.get(i);
+            radiolysisAccumulators[i] += tile.getLastFastAbsorbed() + tile.getLastThermalAbsorbed();
+            int events = radiolysisAccumulators[i] / CoolantPassage.NEUTRONS_PER_RADIOLYSIS;
+            radiolysisAccumulators[i] %= CoolantPassage.NEUTRONS_PER_RADIOLYSIS;
+            if (events > 0 && gasProduct != null) {
+                if (gasProduct.equals("Tritium")) totalTritiumProduced += events * 2L;
+                else totalDeuteriumProduced += events * 2L;
+                totalOxygenProduced += events;
+            }
+        }
 
-        lastHeatExtractedWatts = totalJoulesAcrossSubticks / (subTicks * 0.05);
-        lastHeatExtractedHut = (totalJoulesAcrossSubticks / 128.0) / (double) subTicks;
-        lastSecondaryWaterBoiledLt = totalWaterBoiledAcrossSubticks / (double) subTicks;
-        lastSecondarySteamProducedLt = totalSteamProducedAcrossSubticks / (double) subTicks;
-
+        double seconds = subTicks * 0.05;
+        totalHeatExtractedJoules += extractedJoules;
+        totalHeatExtractedHut += extractedJoules / CoolantPassage.JOULES_PER_HU;
+        totalSecondarySteamProduced += (steam + superheated + supercritical) * 1000.0;
+        lastHeatExtractedWatts = extractedJoules / seconds;
+        lastHeatExtractedHut = extractedJoules / CoolantPassage.JOULES_PER_HU / subTicks;
+        lastSteamLt = steam * 1000.0 / subTicks;
+        lastSuperheatedSteamLt = superheated * 1000.0 / subTicks;
+        lastSupercriticalSteamLt = supercritical * 1000.0 / subTicks;
+        lastSecondaryGasLt = gas * 1000.0 / subTicks;
+        lastSecondaryBoiledLt = boiledMl / 1000.0 / subTicks;
+        lastPumpPowerEUt = pumpPowerEUt();
+        lastPhePowerEUt = phePowerEUt();
         return true;
+    }
+
+    private boolean rupture(String reason) {
+        this.ruptured = true;
+        this.ruptureReason = reason != null ? reason : "Coolant loop failure";
+        return false;
     }
 
     public void reset() {
         this.ruptured = false;
         this.ruptureReason = "";
-        this.currentFlowRateLPerSec = 0.0;
-        this.currentPressureBar = 1.0;
-        this.currentCoolantTempCelsius = NuclearSimulationEngine.ambientTemp;
+        this.engine = null;
+        this.topologyDirty = true;
         this.lastHeatExtractedWatts = 0.0;
         this.lastHeatExtractedHut = 0.0;
-        this.lastSecondarySteamProducedLt = 0.0;
-        this.lastSecondaryWaterBoiledLt = 0.0;
+        this.lastSteamLt = 0.0;
+        this.lastSuperheatedSteamLt = 0.0;
+        this.lastSupercriticalSteamLt = 0.0;
+        this.lastSecondaryGasLt = 0.0;
+        this.lastSecondaryBoiledLt = 0.0;
         this.lastPumpPowerEUt = 0.0;
+        this.lastPhePowerEUt = 0.0;
         this.totalDeuteriumProduced = 0;
         this.totalTritiumProduced = 0;
         this.totalOxygenProduced = 0;
-        this.totalMethaneProduced = 0;
         this.totalSecondarySteamProduced = 0.0;
         this.totalHeatExtractedJoules = 0.0;
         this.totalHeatExtractedHut = 0.0;
-        this.neutronTransmuteAccumulator = 0;
-        this.secondaryCoolant = SecondaryCoolantRegistry.DISTILLED_WATER;
     }
 
-    // Attach / Detach coordinate helpers
+    // ---- Attached passage cells -------------------------------------------------------------------------------------
+
     public void attachPoint(int x, int y) {
         attachedPoints.add(new GridCoord(x, y));
     }
@@ -917,10 +885,7 @@ public class CoolantLoopModel {
     }
 
     public boolean isPointAttached(int x, int y) {
-        for (GridCoord pt : attachedPoints) {
-            if (pt.x == x && pt.y == y) return true;
-        }
-        return false;
+        return attachedPoints.contains(new GridCoord(x, y));
     }
 
     public boolean isPointAttached(GridCoord coord) {
@@ -935,15 +900,16 @@ public class CoolantLoopModel {
         return Collections.unmodifiableSet(attachedPoints);
     }
 
-    // Getters and Setters
+    // ---- Configuration ----------------------------------------------------------------------------------------------
+
     public LoopMaterial getMaterial() {
         return material;
     }
 
     public void setMaterial(LoopMaterial material) {
-        if (material != null) {
+        if (material != null && material != this.material) {
             this.material = material;
-            updatePumpState();
+            markDirty();
         }
     }
 
@@ -952,9 +918,9 @@ public class CoolantLoopModel {
     }
 
     public void setPipeSize(LoopPipeSize pipeSize) {
-        if (pipeSize != null) {
+        if (pipeSize != null && pipeSize != this.pipeSize) {
             this.pipeSize = pipeSize;
-            updatePumpState();
+            markDirty();
         }
     }
 
@@ -963,19 +929,24 @@ public class CoolantLoopModel {
     }
 
     public void setFluidType(CoolantFluidType fluidType) {
-        if (fluidType != null) {
+        if (fluidType != null && fluidType != this.fluidType) {
             this.fluidType = fluidType;
-            updatePumpState();
+            markDirty();
         }
     }
 
-    public SecondaryCoolant getSecondaryCoolant() {
-        return secondaryCoolant != null ? secondaryCoolant : SecondaryCoolantRegistry.DISTILLED_WATER;
+    /** The PHE secondary fluid's config entry, or null if the PHE config does not accept it. */
+    public SecondaryCoolantEntry getSecondaryCoolant() {
+        return pheConfig().findSecondaryCoolant(secondaryFluidName);
     }
 
-    public void setSecondaryCoolant(SecondaryCoolant secondaryCoolant) {
-        if (secondaryCoolant != null) {
-            this.secondaryCoolant = secondaryCoolant;
+    public String getSecondaryFluidName() {
+        return secondaryFluidName;
+    }
+
+    public void setSecondaryCoolant(String fluidName) {
+        if (fluidName != null && pheConfig().findSecondaryCoolant(fluidName) != null) {
+            this.secondaryFluidName = fluidName;
         }
     }
 
@@ -984,109 +955,90 @@ public class CoolantLoopModel {
     }
 
     public void setHatchTier(EnergyHatchTier hatchTier) {
-        if (hatchTier != null) {
-            this.hatchTier = hatchTier;
-            this.useTargetFlowMode = false;
-            updatePumpState();
+        if (hatchTier != null) this.hatchTier = hatchTier;
+    }
+
+    public int getPumpHatchCount() {
+        return pumpHatchCount;
+    }
+
+    /** Energy hatches on the pump: one draws the tier's voltage, two or more draw four times it. */
+    public void setPumpHatchCount(int count) {
+        this.pumpHatchCount = Math.max(0, count);
+    }
+
+    public RotorMaterial getRotorMaterial() {
+        return rotorMaterial;
+    }
+
+    public void setRotorMaterial(RotorMaterial mat) {
+        if (mat != null) this.rotorMaterial = mat;
+    }
+
+    public void setRotorMaterial(String name) {
+        setRotorMaterial(RotorMaterial.fromString(name));
+    }
+
+    public RotorSize getRotorSize() {
+        return rotorSize;
+    }
+
+    public void setRotorSize(RotorSize size) {
+        if (size != null) this.rotorSize = size;
+    }
+
+    public int getPheCount() {
+        return pheCount;
+    }
+
+    public void setPheCount(int count) {
+        int c = Math.max(1, count);
+        if (c != pheCount) {
+            this.pheCount = c;
+            markDirty();
         }
     }
 
-    public double getDutyCyclePercent() {
-        return dutyCyclePercent;
+    public EnergyHatchTier getPheHatchTier() {
+        return pheHatchTier;
     }
 
-    public void setDutyCyclePercent(double dutyCyclePercent) {
-        this.dutyCyclePercent = Math.max(0.0, Math.min(100.0, dutyCyclePercent));
-        this.useTargetFlowMode = false;
-        updatePumpState();
+    public void setPheHatchTier(EnergyHatchTier tier) {
+        if (tier != null) this.pheHatchTier = tier;
     }
 
-    public double getMaxFlowRateLPerSec() {
-        return maxFlowRateLPerSec;
+    public int getPheHatchCount() {
+        return pheHatchCount;
     }
 
-    public void setMaxFlowRateLPerSec(double maxFlowRateLPerSec) {
-        this.maxFlowRateLPerSec = Math.max(0.0, maxFlowRateLPerSec);
-        updatePumpState();
+    public void setPheHatchCount(int count) {
+        this.pheHatchCount = Math.max(0, count);
     }
 
-    public double getMaxPressureBar() {
-        return maxPressureBar;
-    }
-
-    public void setMaxPressureBar(double maxPressureBar) {
-        this.maxPressureBar = Math.max(0.0, maxPressureBar);
-        updatePumpState();
-    }
-
-    public boolean isPressureLimited() {
-        return pressureLimited;
-    }
-
-    public boolean isFlowLimited() {
-        return flowLimited;
-    }
-
-    public double getEffectiveDutyCyclePercent() {
-        return effectiveDutyCyclePercent;
-    }
-
-    public String getLimitReason() {
-        return limitReason;
-    }
-
-    public double getPumpElectricalPowerEUt() {
-        return pumpElectricalPowerEUt;
-    }
-
-    public void setPumpElectricalPowerEUt(double power) {
-        this.pumpElectricalPowerEUt = Math.max(0.0, power);
-        this.useTargetFlowMode = false;
-        for (EnergyHatchTier tier : EnergyHatchTier.values()) {
-            if (power <= tier.voltageEU) {
-                this.hatchTier = tier;
-                this.dutyCyclePercent = Math.min(100.0, (power / tier.voltageEU) * 100.0);
-                updatePumpState();
-                return;
-            }
-        }
-        this.hatchTier = EnergyHatchTier.UHV;
-        this.dutyCyclePercent = Math.min(100.0, (power / EnergyHatchTier.UHV.voltageEU) * 100.0);
-        updatePumpState();
-    }
-
-    public double getTargetFlowRateLPerSec() {
-        return targetFlowRateLPerSec;
-    }
-
-    public void setTargetFlowRateLPerSec(double flow) {
-        this.targetFlowRateLPerSec = Math.max(0.0, flow);
-        updatePumpState();
-    }
-
-    public boolean isUseTargetFlowMode() {
-        return useTargetFlowMode;
-    }
-
-    public void setUseTargetFlowMode(boolean useTargetFlowMode) {
-        this.useTargetFlowMode = useTargetFlowMode;
-        updatePumpState();
-    }
+    // ---- State ------------------------------------------------------------------------------------------------------
 
     public double getCurrentFlowRateLPerSec() {
-        return currentFlowRateLPerSec;
+        return engine != null ? engine.getFlowRateLitersPerSecond() : 0.0;
     }
 
     public double getCurrentPressureBar() {
-        return currentPressureBar;
+        return engine != null ? engine.getPeakLoopPressureBar() : 1.0;
     }
 
+    /** Coolant temperature leaving the reactor (hot leg). */
     public double getCurrentCoolantTempCelsius() {
-        return currentCoolantTempCelsius;
+        return hotLegSegment != null ? hotLegSegment.getCurrentTemperatureCelsius()
+            : NuclearSimulationEngine.ambientTemp;
     }
 
-    public void setCurrentCoolantTempCelsius(double temp) {
-        this.currentCoolantTempCelsius = temp;
+    /** Coolant temperature entering the reactor (cold leg). */
+    public double getColdLegTempCelsius() {
+        return coldLegSegment != null ? coldLegSegment.getCurrentTemperatureCelsius()
+            : NuclearSimulationEngine.ambientTemp;
+    }
+
+    public double getPeakLoopTempCelsius() {
+        return engine != null ? engine.getPeakLoopTempCelsius() : NuclearSimulationEngine.ambientTemp;
     }
 
     public double getLastHeatExtractedWatts() {
@@ -1105,16 +1057,43 @@ public class CoolantLoopModel {
         return totalHeatExtractedHut;
     }
 
+    /** Steam (L/t) of each grade the PHEs made over the last cycle. */
+    public double getLastSteamLt() {
+        return lastSteamLt;
+    }
+
+    public double getLastSuperheatedSteamLt() {
+        return lastSuperheatedSteamLt;
+    }
+
+    public double getLastSupercriticalSteamLt() {
+        return lastSupercriticalSteamLt;
+    }
+
     public double getLastSecondarySteamProducedLt() {
-        return lastSecondarySteamProducedLt;
+        return lastSteamLt + lastSuperheatedSteamLt + lastSupercriticalSteamLt;
+    }
+
+    /** Gas (L/t) from a cryogenic secondary fluid over the last cycle. */
+    public double getLastSecondaryGasLt() {
+        return lastSecondaryGasLt;
     }
 
     public double getLastSecondaryWaterBoiledLt() {
-        return lastSecondaryWaterBoiledLt;
+        return lastSecondaryBoiledLt;
     }
 
     public double getLastPumpPowerEUt() {
         return lastPumpPowerEUt;
+    }
+
+    public double getLastPhePowerEUt() {
+        return lastPhePowerEUt;
+    }
+
+    /** EU/t the loop's machines (pump and PHEs) draw. */
+    public double getLastLoopPowerEUt() {
+        return lastPumpPowerEUt + lastPhePowerEUt;
     }
 
     public boolean isRuptured() {
@@ -1137,27 +1116,7 @@ public class CoolantLoopModel {
         return totalOxygenProduced;
     }
 
-    public long getTotalMethaneProduced() {
-        return totalMethaneProduced;
-    }
-
     public double getTotalSecondarySteamProduced() {
         return totalSecondarySteamProduced;
-    }
-
-    public void setPumpPowerEUt(double power) {
-        setPumpElectricalPowerEUt(power);
-    }
-
-    public void setCirculationFlowLs(double flow) {
-        setTargetFlowRateLPerSec(flow);
-        setUseTargetFlowMode(true);
-    }
-
-    private static String fmt1(double val) {
-        long r = Math.round(val * 10.0);
-        long intPart = r / 10;
-        long fracPart = Math.abs(r % 10);
-        return intPart + "." + fracPart;
     }
 }

@@ -29,7 +29,9 @@ const checks = [
   ["setCoolantLoopFluid", () => sim.inst.exports.setCoolantLoopFluid(sim.createJavaString("distilled water"))],
   ["setCoolantLoopHatchTier", () => sim.inst.exports.setCoolantLoopHatchTier(sim.createJavaString("EV"))],
   ["setCoolantLoopSecondaryCoolant", () => sim.inst.exports.setCoolantLoopSecondaryCoolant(sim.createJavaString("ic2distilledwater"))],
-  ["setCoolantLoopImpeller", () => sim.inst.exports.setCoolantLoopImpeller(sim.createJavaString("Steel"))],
+  ["setCoolantLoopRotor", () => sim.setCoolantLoopRotor("Tungstensteel", "HUGE", false)],
+  ["setCoolantLoopPumpHatches", () => sim.setCoolantLoopPumpHatches(2, false)],
+  ["setCoolantLoopPhe", () => sim.setCoolantLoopPhe(2, "LuV", 1, false)],
   ["setTurbine", () => sim.setTurbine("Oriharukon", "NORMAL", "TIGHT", false)],
   ["loadLayout", () => sim.loadLayout("NL,RS,M4,RS,NL;RS,M4,HC,M4,RS;M4,HC,M4,HC,M4;RS,M4,HC,M4,RS;NL,RS,M4,RS,NL", false)],
   ["stepTicks", () => sim.stepTicks(100)],
@@ -57,6 +59,26 @@ if (!failed) {
     console.log(`FAIL simulation did not advance cleanly (tick ${st.currentTick}, exploded ${st.exploded})`);
   } else {
     console.log(`ok   state (tick ${st.currentTick}, core max ${st.coreMaxTemp} °C)`);
+  }
+}
+
+// A convective loop on an LuV (Osmium) grid runs the shared coolant loop engine
+if (!failed) {
+  try {
+    sim.initGrid(5, 5, 2);
+    sim.setCoolingMode("CONVECTIVE_LOOP", false);
+    sim.loadLayout("U4,M4,U4,M4,U4;M4,U4,CP,U4,M4;U4,CP,U4,CP,U4;M4,U4,CP,U4,M4;U4,M4,U4,M4,U4", false);
+    sim.stepTicks(400);
+    const cl = sim.getState().coolantLoop;
+    if (!cl || cl.ruptured || !(cl.currentFlowRateLPerSec > 0) || !(cl.lastHeatExtractedHut > 0)) {
+      failed++;
+      console.log(`FAIL coolant loop: ${JSON.stringify(cl && { flow: cl.currentFlowRateLPerSec, heat: cl.lastHeatExtractedHut, ruptured: cl.ruptured, reason: cl.ruptureReason })}`);
+    } else {
+      console.log(`ok   coolant loop (${cl.currentFlowRateLPerSec} L/s, ${cl.coldLegTempCelsius} -> ${cl.currentCoolantTempCelsius} °C, ${cl.lastHeatExtractedHut} HU/t)`);
+    }
+  } catch (err) {
+    failed++;
+    console.log(`FAIL coolant loop: ${String(err).split("\n")[0]}`);
   }
 }
 

@@ -76,30 +76,7 @@ public class NuclearSimulationWebServer {
     }
 
     public static String getSecondaryCoolantsJson() {
-        StringBuilder sb = new StringBuilder("[");
-        int i = 0;
-        for (SecondaryCoolant sc : SecondaryCoolantRegistry.getAll()) {
-            if (i++ > 0) sb.append(",");
-            sb.append("{\"id\":\"")
-                .append(sc.name())
-                .append("\",\"name\":\"")
-                .append(sc.displayName)
-                .append(" (boils at ")
-                .append((int) Math.round(sc.boilingPointCelsius))
-                .append("°C → ")
-                .append(sc.outputGasName)
-                .append(")\",\"boilingPointC\":")
-                .append(sc.boilingPointCelsius)
-                .append(",\"fluidName\":\"")
-                .append(sc.fluidName)
-                .append("\",\"outputGasName\":\"")
-                .append(sc.outputGasName)
-                .append("\",\"isSteam\":")
-                .append(sc.isSteam)
-                .append("}");
-        }
-        sb.append("]");
-        return sb.toString();
+        return NuclearSimWasmBridge.secondaryCoolantsJson();
     }
 
     public static String getTurbineMaterialsJson() {
@@ -1065,44 +1042,50 @@ public class NuclearSimulationWebServer {
                       </select>
                     </div>
                   </div>
-                  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px; align-items:center;">
+                  <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">Pump Impeller (Rotor):</label>
-                      <select id="loop-impeller-select" onchange="onCoolantLoopConfigChange()" style="width:100%;"></select>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Pump Energy Hatches:</label>
+                      <select id="loop-pump-hatches-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
+                        <option value="1" selected>1 (1x voltage)</option>
+                        <option value="2">2+ (4x voltage)</option>
+                      </select>
                     </div>
-                    <div style="display:flex; align-items:center; gap:6px; padding-top:14px;">
-                      <label style="font-size:0.75rem; color:#fde047; cursor:pointer; display:flex; align-items:center; gap:5px; user-select:none;">
-                        <input id="loop-overclock-check" type="checkbox" onchange="onCoolantLoopConfigChange()" style="cursor:pointer; accent-color:#f59e0b;">
-                        ⚡ Overclock Pump (4A)
-                      </label>
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Pump Rotor:</label>
+                      <select id="loop-rotor-select" onchange="onCoolantLoopConfigChange()" style="width:100%;"></select>
+                    </div>
+                    <div>
+                      <label style="font-size:0.7rem; color:var(--text-muted);">Rotor Size:</label>
+                      <select id="loop-rotor-size-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
+                        <option value="SMALL">Small</option>
+                        <option value="NORMAL">Normal</option>
+                        <option value="LARGE">Large</option>
+                        <option value="HUGE" selected>Huge</option>
+                      </select>
                     </div>
                   </div>
                   <div style="margin-bottom:6px;">
                     <label style="font-size:0.7rem; color:var(--text-muted);">PHE Secondary Coolant:</label>
                     <select id="loop-secondary-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
-                      <option value="DISTILLED_WATER" selected>💧 Distilled Water (boils at 100°C → steam)</option>
-                      <option value="LIQUID_NITROGEN">❄️ Liquid Nitrogen (boils at -196°C → nitrogen gas)</option>
-                      <option value="LIQUID_OXYGEN">❄️ Liquid Oxygen (boils at -183°C → oxygen gas)</option>
-                      <option value="LIQUID_AIR">❄️ Liquid Air (boils at -194°C → air gas)</option>
-                      <option value="LIQUID_HELIUM">🧊 Liquid Helium (boils at -269°C → helium gas)</option>
+                      <option value="ic2distilledwater" selected>ic2distilledwater (boils at 100°C → steam)</option>
                     </select>
                   </div>
                   <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
                     <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">Duty Cycle (%):</label>
-                      <input id="loop-duty-cycle-input" type="number" min="0" max="100" step="5" value="100" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      <label style="font-size:0.7rem; color:var(--text-muted);">PHEs (in series):</label>
+                      <input id="loop-phe-count-input" type="number" min="1" max="16" step="1" value="1" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
                     </div>
                     <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">Max Flow (L/s):</label>
-                      <input id="loop-max-flow-input" type="number" min="0" step="10" placeholder="No limit" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      <label style="font-size:0.7rem; color:var(--text-muted);">PHE Energy Hatch:</label>
+                      <select id="loop-phe-hatch-tier-select" onchange="onCoolantLoopConfigChange()" style="width:100%;"><option value="LV">LV</option><option value="MV">MV</option><option value="HV">HV</option><option value="EV" selected>EV</option><option value="IV">IV</option><option value="LUV">LuV</option><option value="ZPM">ZPM</option><option value="UV">UV</option><option value="UHV">UHV</option></select>
                     </div>
                     <div>
-                      <label style="font-size:0.7rem; color:var(--text-muted);">Max Press (bar):</label>
-                      <input id="loop-max-pressure-input" type="number" min="0" step="5" placeholder="Auto" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
+                      <label style="font-size:0.7rem; color:var(--text-muted);">PHE Hatches:</label>
+                      <select id="loop-phe-hatches-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
+                        <option value="1" selected>1 (1x voltage)</option>
+                        <option value="2">2+ (4x voltage)</option>
+                      </select>
                     </div>
-                  </div>
-                  <div id="loop-throttled-banner" style="display:none; margin:4px 0 8px 0; font-size:0.74rem; color:#fde047; background:rgba(234,179,8,0.15); border:1px solid #eab308; border-radius:4px; padding:6px 8px; align-items:center; gap:6px;">
-                    <span>⚙️</span> <span id="loop-throttled-text">Pump duty cycle limited by pipe pressure constraints</span>
                   </div>
                   <div style="display:flex; gap:6px; margin-bottom:8px;">
                     <button id="btn-loop-attach-mode" onclick="toggleLoopAttachMode()" style="flex:1; font-size:0.75rem; padding:4px 8px; background:#0284c7;">🔗 Attach Points Mode</button>
@@ -1414,11 +1397,10 @@ public class NuclearSimulationWebServer {
                       if (cl.material) wasmSim.setCoolantLoopMaterial(cl.material, false);
                       if (cl.pipeSize) wasmSim.setCoolantLoopPipeSize(cl.pipeSize, false);
                       if (cl.fluidType) wasmSim.setCoolantLoopFluid(cl.fluidType, false);
-                      if (cl.hatchTier) {
-                        wasmSim.setCoolantLoopControl(cl.hatchTier, cl.dutyCyclePercent !== undefined ? cl.dutyCyclePercent : 100.0, cl.maxFlowRateLimit || 0.0, cl.maxPressureLimit || 0.0, false);
-                      }
-                      if (cl.pumpOverclocked !== undefined) wasmSim.setCoolantLoopOverclocked(cl.pumpOverclocked, false);
-                      if (cl.impellerMaterial) wasmSim.setCoolantLoopImpeller(cl.impellerMaterial, false);
+                      if (cl.hatchTier) wasmSim.setCoolantLoopHatchTier(cl.hatchTier, false);
+                      if (cl.pumpHatchCount !== undefined) wasmSim.setCoolantLoopPumpHatches(cl.pumpHatchCount, false);
+                      if (cl.rotorMaterial || cl.rotorSize) wasmSim.setCoolantLoopRotor(cl.rotorMaterial, cl.rotorSize, false);
+                      if (cl.pheCount !== undefined) wasmSim.setCoolantLoopPhe(cl.pheCount, cl.pheHatchTier, cl.pheHatchCount !== undefined ? cl.pheHatchCount : 1, false);
                     } else if (window.__INITIAL_STATE__.pipeTier >= 1) {
                       applyTierCoolingDefaults(window.__INITIAL_STATE__.pipeTier);
                     }
@@ -1664,22 +1646,21 @@ public class NuclearSimulationWebServer {
             }
 
             async function onCoolantLoopConfigChange() {
-              const matSelect = document.getElementById("loop-material-select");
-              const mat = matSelect ? matSelect.value : "TITANIUM";
-              const size = document.getElementById("loop-size-select").value;
-              const fluid = document.getElementById("loop-fluid-select").value;
-              const secSelect = document.getElementById("loop-secondary-select");
-              const secondary = secSelect ? secSelect.value : "DISTILLED_WATER";
-              const hatch = document.getElementById("loop-hatch-tier-select").value;
-              const duty = parseFloat(document.getElementById("loop-duty-cycle-input").value) || 0;
-              const maxFlowVal = document.getElementById("loop-max-flow-input").value;
-              const maxFlow = maxFlowVal !== "" ? (parseFloat(maxFlowVal) || 0) : 0;
-              const maxPressVal = document.getElementById("loop-max-pressure-input").value;
-              const maxPress = maxPressVal !== "" ? (parseFloat(maxPressVal) || 0) : 0;
-              const ocCheck = document.getElementById("loop-overclock-check");
-              const isOc = ocCheck ? ocCheck.checked : false;
-              const impSelect = document.getElementById("loop-impeller-select");
-              const impeller = impSelect ? impSelect.value : "ORIHARUKON";
+              const val = (id, dflt) => {
+                const el = document.getElementById(id);
+                return el && el.value !== "" ? el.value : dflt;
+              };
+              const mat = val("loop-material-select", "TITANIUM");
+              const size = val("loop-size-select", "NORMAL");
+              const fluid = val("loop-fluid-select", "DISTILLED_WATER");
+              const secondary = val("loop-secondary-select", "ic2distilledwater");
+              const hatch = val("loop-hatch-tier-select", "EV");
+              const pumpHatches = parseInt(val("loop-pump-hatches-select", "1"), 10) || 1;
+              const rotor = val("loop-rotor-select", "TUNGSTENSTEEL");
+              const rotorSize = val("loop-rotor-size-select", "HUGE");
+              const pheCount = Math.max(1, parseInt(val("loop-phe-count-input", "1"), 10) || 1);
+              const pheHatch = val("loop-phe-hatch-tier-select", hatch);
+              const pheHatches = parseInt(val("loop-phe-hatches-select", "1"), 10) || 1;
 
               if (isWasmMode && wasmSim) {
                 if (currentState && currentState.pipeTier >= 1) {
@@ -1688,17 +1669,16 @@ public class NuclearSimulationWebServer {
                 wasmSim.setCoolantLoopMaterial(mat, false);
                 wasmSim.setCoolantLoopPipeSize(size, false);
                 wasmSim.setCoolantLoopFluid(fluid, false);
-                if (wasmSim.setCoolantLoopSecondaryCoolant) {
-                  wasmSim.setCoolantLoopSecondaryCoolant(secondary, false);
-                }
-                wasmSim.setCoolantLoopControl(hatch, duty, maxFlow, maxPress, false);
-                wasmSim.setCoolantLoopOverclocked(isOc, false);
-                wasmSim.setCoolantLoopImpeller(impeller, false);
+                wasmSim.setCoolantLoopSecondaryCoolant(secondary, false);
+                wasmSim.setCoolantLoopHatchTier(hatch, false);
+                wasmSim.setCoolantLoopPumpHatches(pumpHatches, false);
+                wasmSim.setCoolantLoopRotor(rotor, rotorSize, false);
+                wasmSim.setCoolantLoopPhe(pheCount, pheHatch, pheHatches, false);
                 currentState = wasmSim.getState();
                 renderUI();
                 return;
               }
-              const url = `/api/set-coolant-loop?material=${encodeURIComponent(mat)}&size=${encodeURIComponent(size)}&fluid=${encodeURIComponent(fluid)}&hatchTier=${encodeURIComponent(hatch)}&dutyCycle=${duty}&maxFlow=${maxFlow}&maxPressure=${maxPress}&overclocked=${isOc}&impeller=${encodeURIComponent(impeller)}`;
+              const url = `/api/set-coolant-loop?material=${encodeURIComponent(mat)}&size=${encodeURIComponent(size)}&fluid=${encodeURIComponent(fluid)}&hatchTier=${encodeURIComponent(hatch)}&pumpHatches=${pumpHatches}&rotor=${encodeURIComponent(rotor)}&rotorSize=${encodeURIComponent(rotorSize)}&pheCount=${pheCount}&pheHatchTier=${encodeURIComponent(pheHatch)}&pheHatches=${pheHatches}`;
               await fetch(url);
               await fetchState();
               schedulePoll();
@@ -2360,64 +2340,30 @@ public class NuclearSimulationWebServer {
                 if (hatchSel && activeEl !== hatchSel && cl.hatchTier && hatchSel.value !== cl.hatchTier) {
                   hatchSel.value = cl.hatchTier;
                 }
-                const impSelect = document.getElementById("loop-impeller-select");
-                if (impSelect && cl.impellerMaterials) {
-                  const impKeys = cl.impellerMaterials.map(m => m.id).join(",");
-                  if (impSelect.dataset.lastKeys !== impKeys) {
-                    impSelect.dataset.lastKeys = impKeys;
-                    impSelect.innerHTML = "";
-                    cl.impellerMaterials.forEach(m => {
+                const syncSel = (id, v) => {
+                  const el = document.getElementById(id);
+                  if (el && activeEl !== el && v !== undefined && v !== null && String(el.value) !== String(v)) el.value = String(v);
+                };
+                const rotorSel = document.getElementById("loop-rotor-select");
+                if (rotorSel && cl.rotorMaterials) {
+                  const keys = cl.rotorMaterials.map(m => m.id + m.efficiency).join(",");
+                  if (rotorSel.dataset.lastKeys !== keys) {
+                    rotorSel.dataset.lastKeys = keys;
+                    rotorSel.innerHTML = "";
+                    cl.rotorMaterials.forEach(m => {
                       const opt = document.createElement("option");
                       opt.value = m.id;
-                      opt.innerText = `${m.name} (${(m.tightEff * 100).toFixed(0)}% eff)`;
-                      impSelect.appendChild(opt);
+                      opt.innerText = `${m.name} (${(m.efficiency * 100).toFixed(0)}% eff)`;
+                      rotorSel.appendChild(opt);
                     });
                   }
-                  if (activeEl !== impSelect && cl.impellerMaterial && impSelect.value !== cl.impellerMaterial) {
-                    impSelect.value = cl.impellerMaterial;
-                  }
                 }
-                const ocCheck = document.getElementById("loop-overclock-check");
-                if (ocCheck && activeEl !== ocCheck && cl.pumpOverclocked !== undefined) {
-                  ocCheck.checked = !!cl.pumpOverclocked;
-                }
-                const dutyIn = document.getElementById("loop-duty-cycle-input");
-                if (dutyIn && activeEl !== dutyIn && cl.dutyCyclePercent !== undefined) {
-                  if (Math.abs(parseFloat(dutyIn.value || 0) - cl.dutyCyclePercent) > 0.01) {
-                    dutyIn.value = Math.round(cl.dutyCyclePercent);
-                  }
-                }
-                const maxFlowIn = document.getElementById("loop-max-flow-input");
-                if (maxFlowIn && activeEl !== maxFlowIn) {
-                  const currentVal = maxFlowIn.value ? parseFloat(maxFlowIn.value) : 0;
-                  const targetVal = cl.maxFlowRateLimit || 0;
-                  if (currentVal !== targetVal) {
-                    maxFlowIn.value = targetVal > 0 ? targetVal : "";
-                  }
-                }
-                const maxPressIn = document.getElementById("loop-max-pressure-input");
-                if (maxPressIn && activeEl !== maxPressIn) {
-                  const currentVal = maxPressIn.value ? parseFloat(maxPressIn.value) : 0;
-                  const targetVal = cl.maxPressureLimit || 0;
-                  if (currentVal !== targetVal) {
-                    maxPressIn.value = targetVal > 0 ? targetVal : "";
-                  }
-                }
-
-                // Throttled / Pressure Constraint Banner
-                const throttledBanner = document.getElementById("loop-throttled-banner");
-                const throttledText = document.getElementById("loop-throttled-text");
-                if (throttledBanner && throttledText) {
-                  if (cl.pressureLimited) {
-                    throttledBanner.style.display = "flex";
-                    throttledText.innerHTML = `<b>Pump Limited by Pressure:</b> ${cl.limitReason}. Duty cycle throttled to <b>${cl.effectiveDutyCyclePercent.toFixed(0)}%</b> (${Math.round(cl.lastPumpPowerEUt)} EU/t).`;
-                  } else if (cl.flowLimited) {
-                    throttledBanner.style.display = "flex";
-                    throttledText.innerHTML = `<b>Pump Limited by Flow:</b> ${cl.limitReason}. Duty cycle throttled to <b>${cl.effectiveDutyCyclePercent.toFixed(0)}%</b> (${Math.round(cl.lastPumpPowerEUt)} EU/t).`;
-                  } else {
-                    throttledBanner.style.display = "none";
-                  }
-                }
+                syncSel("loop-rotor-select", cl.rotorMaterial);
+                syncSel("loop-rotor-size-select", cl.rotorSize);
+                syncSel("loop-pump-hatches-select", cl.pumpHatchCount >= 2 ? 2 : 1);
+                syncSel("loop-phe-count-input", cl.pheCount);
+                syncSel("loop-phe-hatch-tier-select", cl.pheHatchTier);
+                syncSel("loop-phe-hatches-select", cl.pheHatchCount >= 2 ? 2 : 1);
 
                 // Status Badge
                 const statusBadge = document.getElementById("loop-status-badge");
@@ -2428,11 +2374,8 @@ public class NuclearSimulationWebServer {
                   } else if (cl.currentCoolantTempCelsius > cl.maxTempC) {
                     statusBadge.innerText = "🔥 MELTED";
                     statusBadge.style.color = "var(--danger)";
-                  } else if (cl.pressureLimited) {
-                    statusBadge.innerText = "⚙️ PRESSURE LIMITED";
-                    statusBadge.style.color = "#fde047";
-                  } else if (cl.flowLimited) {
-                    statusBadge.innerText = "⚙️ FLOW LIMITED";
+                  } else if (cl.maxFlowLPerSec > 0 && cl.currentFlowRateLPerSec >= cl.maxFlowLPerSec * 0.999) {
+                    statusBadge.innerText = "⚙️ PIPE CAPACITY";
                     statusBadge.style.color = "#38bdf8";
                   } else if (cl.currentPressureBar > cl.maxPressureBar * 0.85) {
                     statusBadge.innerText = "⚠️ HIGH PRESSURE";
@@ -2445,8 +2388,7 @@ public class NuclearSimulationWebServer {
 
                 const flowEl = document.getElementById("loop-flow-val");
                 if (flowEl) {
-                  let flowTxt = `${cl.currentFlowRateLPerSec.toFixed(1)} L/s`;
-                  if (cl.flowLimited) flowTxt += " [CAPPED]";
+                  let flowTxt = `${cl.currentFlowRateLPerSec.toFixed(1)} / ${Math.round(cl.maxFlowLPerSec).toLocaleString()} L/s`;
                   flowEl.innerText = flowTxt;
                 }
 
@@ -2462,7 +2404,7 @@ public class NuclearSimulationWebServer {
                 }
 
                 const tempEl = document.getElementById("loop-temp-val");
-                if (tempEl) tempEl.innerText = `${cl.currentCoolantTempCelsius.toFixed(1)} °C (Max: ${cl.maxTempC.toFixed(0)} °C)`;
+                if (tempEl) tempEl.innerText = `${cl.coldLegTempCelsius.toFixed(1)} → ${cl.currentCoolantTempCelsius.toFixed(1)} °C (Max: ${cl.maxTempC.toFixed(0)} °C)`;
 
                 const heatEl = document.getElementById("loop-heat-val");
                 if (heatEl) {
@@ -2472,16 +2414,18 @@ public class NuclearSimulationWebServer {
                 }
 
                 const steamEl = document.getElementById("loop-steam-val");
-                if (steamEl) steamEl.innerText = `${Math.round(cl.lastSecondarySteamProducedLt).toLocaleString()} L/t (Water: ${cl.lastSecondaryWaterBoiledLt.toFixed(1)} L/t)`;
+                if (steamEl) {
+                  const grades = [];
+                  if (cl.lastSteamLt > 0) grades.push(`steam ${Math.round(cl.lastSteamLt).toLocaleString()}`);
+                  if (cl.lastSuperheatedSteamLt > 0) grades.push(`superheated ${Math.round(cl.lastSuperheatedSteamLt).toLocaleString()}`);
+                  if (cl.lastSupercriticalSteamLt > 0) grades.push(`supercritical ${Math.round(cl.lastSupercriticalSteamLt).toLocaleString()}`);
+                  steamEl.innerText = `${Math.round(cl.lastSecondarySteamProducedLt).toLocaleString()} L/t` + (grades.length ? ` (${grades.join(", ")})` : "");
+                }
 
                 const pumpEl = document.getElementById("loop-pump-val");
                 if (pumpEl) {
-                  let pText = `-${Math.round(cl.lastPumpPowerEUt).toLocaleString()} EU/t`;
-                  if (cl.hatchTier) {
-                    const ocTag = cl.pumpOverclocked ? " [4A OC]" : " [1A]";
-                    const effPct = Math.round((cl.impellerEfficiency || 1.0) * 100);
-                    pText += ` (${cl.effectiveDutyCyclePercent.toFixed(0)}% duty of ${cl.hatchTier}${ocTag} ${Math.round(cl.hatchVoltage || 0).toLocaleString()} EU/t · Rotor: ${effPct}%)`;
-                  }
+                  let pText = `-${Math.round(cl.pumpPowerEUt).toLocaleString()} EU/t pump, -${Math.round(cl.phePowerEUt).toLocaleString()} EU/t PHE`;
+                  pText += ` (${(cl.pumpMechanicalPowerW / 1000).toFixed(0)} kW into the coolant · rotor ${Math.round((cl.rotorEfficiency || 1.0) * 100)}%)`;
                   pumpEl.innerText = pText;
                 }
 
@@ -2490,15 +2434,12 @@ public class NuclearSimulationWebServer {
 
                 const bypEl = document.getElementById("loop-byproduct-val");
                 if (bypEl) {
-                  if (cl.byproductGas === "None") {
+                  if (cl.fluid !== "DISTILLED_WATER" && cl.fluid !== "HEAVY_WATER") {
                     bypEl.innerText = "None (no radiolysis)";
                   } else {
                     let bypStr = `${cl.totalDeuteriumProduced.toLocaleString()} L D₂ | ${cl.totalTritiumProduced.toLocaleString()} L T₂`;
                     if (cl.totalOxygenProduced && cl.totalOxygenProduced > 0) {
                       bypStr += ` | ${cl.totalOxygenProduced.toLocaleString()} L O₂`;
-                    }
-                    if (cl.totalMethaneProduced && cl.totalMethaneProduced > 0) {
-                      bypStr += ` | ${cl.totalMethaneProduced.toLocaleString()} L CH₄`;
                     }
                     bypEl.innerText = bypStr;
                   }
@@ -3462,12 +3403,12 @@ public class NuclearSimulationWebServer {
             function applyTierCoolingDefaults(tierNum, p = null) {
               if (!wasmSim) return;
               const TIER_DEFAULTS = {
-                0: { mode: "CONDUCTIVE", mat: "TITANIUM", size: "NORMAL", fluid: "DISTILLED_WATER", hatch: "EV", impeller: "ORIHARUKON" },
-                1: { mode: "CONDUCTIVE", mat: "TUNGSTENSTEEL", size: "LARGE", fluid: "DISTILLED_WATER", hatch: "IV", impeller: "ICHORIUM" },
-                2: { mode: "CONVECTIVE_LOOP", mat: "OSMIUM", size: "LARGE", fluid: "DISTILLED_WATER", hatch: "LUV", impeller: "DURANIUM" },
-                3: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "ZPM", impeller: "DURANIUM" },
-                4: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "UV", impeller: "DURANIUM" },
-                5: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "UHV", impeller: "INFINITY" }
+                0: { mode: "CONDUCTIVE", mat: "TITANIUM", size: "NORMAL", fluid: "DISTILLED_WATER", hatch: "EV", rotor: "ORIHARUKON" },
+                1: { mode: "CONDUCTIVE", mat: "TUNGSTENSTEEL", size: "LARGE", fluid: "DISTILLED_WATER", hatch: "IV", rotor: "ICHORIUM" },
+                2: { mode: "CONVECTIVE_LOOP", mat: "OSMIUM", size: "LARGE", fluid: "DISTILLED_WATER", hatch: "LUV", rotor: "DURANIUM" },
+                3: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "ZPM", rotor: "DURANIUM" },
+                4: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "UV", rotor: "DURANIUM" },
+                5: { mode: "CONVECTIVE_LOOP", mat: "NEUTRONIUM", size: "HUGE", fluid: "HEAVY_WATER", hatch: "UHV", rotor: "INFINITY" }
               };
               const def = TIER_DEFAULTS[tierNum] || TIER_DEFAULTS[1];
               const mode = (p && p.cooling_mode) ? p.cooling_mode : def.mode;
@@ -3477,7 +3418,6 @@ public class NuclearSimulationWebServer {
                 let sz = def.size;
                 let fl = def.fluid;
                 let ht = def.hatch;
-                let imp = def.impeller;
                 if (p && p.default_loop && Array.isArray(p.default_loop) && p.default_loop.length >= 3) {
                   mat = p.default_loop[0];
                   sz = p.default_loop[1];
@@ -3487,17 +3427,16 @@ public class NuclearSimulationWebServer {
                 if (p && p.loop_size) sz = p.loop_size;
                 if (p && p.loop_fluid) fl = p.loop_fluid;
                 if (p && p.hatch_tier) ht = p.hatch_tier;
-                if (p && p.turbine && p.turbine.length >= 1) {
-                  imp = p.turbine[0].toUpperCase().replace(/-/g, '_');
-                }
-                if (p && p.loop_impeller) imp = p.loop_impeller;
-                const oc = (p && p.pump_overclocked !== undefined) ? p.pump_overclocked : false;
+                if (p && p.loop_hatch) ht = p.loop_hatch;
+                const opt = (k, d) => (p && p[k] !== undefined && p[k] !== null) ? p[k] : d;
                 wasmSim.setCoolantLoopMaterial(mat, false);
                 wasmSim.setCoolantLoopPipeSize(sz, false);
                 wasmSim.setCoolantLoopFluid(fl, false);
-                wasmSim.setCoolantLoopControl(ht, 100.0, 0.0, 0.0, false);
-                wasmSim.setCoolantLoopOverclocked(oc, false);
-                wasmSim.setCoolantLoopImpeller(imp, false);
+                wasmSim.setCoolantLoopHatchTier(ht, false);
+                wasmSim.setCoolantLoopPumpHatches(opt("loop_hatches", 1), false);
+                wasmSim.setCoolantLoopRotor(opt("loop_rotor", def.rotor), opt("loop_rotor_size", "HUGE"), false);
+                wasmSim.setCoolantLoopPhe(opt("phe_count", 1), opt("phe_hatch", ht), opt("phe_hatches", 1), false);
+                if (p && p.loop_secondary) wasmSim.setCoolantLoopSecondaryCoolant(p.loop_secondary, false);
               }
             }
 

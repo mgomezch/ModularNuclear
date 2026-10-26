@@ -203,13 +203,6 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
-    setCoolantLoopPumpPower(powerEUt, notify = true) {
-        if (this.inst.exports.setCoolantLoopPumpPower) {
-            this.inst.exports.setCoolantLoopPumpPower(powerEUt);
-        }
-        if (notify && this.onStateChange) this.onStateChange(this.getState());
-    }
-
     setCoolantLoopHatchTier(hatchTier, notify = true) {
         if (this.inst.exports.setCoolantLoopHatchTier) {
             this.inst.exports.setCoolantLoopHatchTier(this.createJavaString(hatchTier));
@@ -217,56 +210,25 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
-    setCoolantLoopDutyCycle(dutyPercent, notify = true) {
-        if (this.inst.exports.setCoolantLoopDutyCycle) {
-            this.inst.exports.setCoolantLoopDutyCycle(dutyPercent);
+    // Energy hatches on the pump: one draws the tier's voltage, two or more draw four times it.
+    setCoolantLoopPumpHatches(count, notify = true) {
+        if (this.inst.exports.setCoolantLoopPumpHatches) {
+            this.inst.exports.setCoolantLoopPumpHatches(count | 0);
         }
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
-    setCoolantLoopMaxFlow(maxFlow, notify = true) {
-        if (this.inst.exports.setCoolantLoopMaxFlow) {
-            this.inst.exports.setCoolantLoopMaxFlow(maxFlow);
+    setCoolantLoopRotor(material, size, notify = true) {
+        if (this.inst.exports.setCoolantLoopRotor) {
+            this.inst.exports.setCoolantLoopRotor(this.createJavaString(material || ""), this.createJavaString(size || ""));
         }
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
-    setCoolantLoopMaxPressure(maxPressure, notify = true) {
-        if (this.inst.exports.setCoolantLoopMaxPressure) {
-            this.inst.exports.setCoolantLoopMaxPressure(maxPressure);
-        }
-        if (notify && this.onStateChange) this.onStateChange(this.getState());
-    }
-
-    setCoolantLoopControl(hatchTier, dutyPercent, maxFlow, maxPressure, notify = true) {
-        if (this.inst.exports.setCoolantLoopControl) {
-            this.inst.exports.setCoolantLoopControl(
-                this.createJavaString(hatchTier),
-                dutyPercent,
-                maxFlow,
-                maxPressure
-            );
-        }
-        if (notify && this.onStateChange) this.onStateChange(this.getState());
-    }
-
-    setCoolantLoopOverclocked(isOverclocked, notify = true) {
-        if (this.inst.exports.setCoolantLoopOverclocked) {
-            this.inst.exports.setCoolantLoopOverclocked(isOverclocked ? 1 : 0);
-        }
-        if (notify && this.onStateChange) this.onStateChange(this.getState());
-    }
-
-    setCoolantLoopImpeller(material, notify = true) {
-        if (this.inst.exports.setCoolantLoopImpeller) {
-            this.inst.exports.setCoolantLoopImpeller(this.createJavaString(material));
-        }
-        if (notify && this.onStateChange) this.onStateChange(this.getState());
-    }
-
-    setCoolantLoopFlowRate(flowRateLPerSec, notify = true) {
-        if (this.inst.exports.setCoolantLoopFlowRate) {
-            this.inst.exports.setCoolantLoopFlowRate(flowRateLPerSec);
+    // Heat exchangers in series on the loop, and the tier and number of energy hatches on each.
+    setCoolantLoopPhe(count, hatchTier, hatchCount, notify = true) {
+        if (this.inst.exports.setCoolantLoopPhe) {
+            this.inst.exports.setCoolantLoopPhe(count | 0, this.createJavaString(hatchTier || ""), hatchCount | 0);
         }
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }

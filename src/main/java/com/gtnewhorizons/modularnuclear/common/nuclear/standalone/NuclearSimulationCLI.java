@@ -52,7 +52,7 @@ public class NuclearSimulationCLI {
         CoolantLoopModel.CoolantFluidType loopFluid = CoolantLoopModel.CoolantFluidType.DISTILLED_WATER;
         boolean loopFluidSpecified = false;
         double loopPumpPower = -1.0;
-        double loopFlowRate = -1.0;
+        String loopOptions = "";
         String loopPoints = null;
         boolean strictMode = false;
         boolean strictModeSpecified = false;
@@ -398,11 +398,9 @@ public class NuclearSimulationCLI {
                         } catch (NumberFormatException ignored) {}
                     }
                 }
-                case "--loop-flow", "--loop-flow-rate" -> {
+                case "--loop-options" -> {
                     if (i + 1 < args.length) {
-                        try {
-                            loopFlowRate = Double.parseDouble(args[++i]);
-                        } catch (NumberFormatException ignored) {}
+                        loopOptions += args[++i] + ",";
                     }
                 }
                 case "--loop-points" -> {
@@ -466,7 +464,7 @@ public class NuclearSimulationCLI {
                 loopFluid,
                 loopFluidSpecified,
                 loopPumpPower,
-                loopFlowRate,
+                loopOptions,
                 loopPoints,
                 baseConductance,
                 baseConductanceSpecified,
@@ -503,7 +501,7 @@ public class NuclearSimulationCLI {
                 loopFluid,
                 loopFluidSpecified,
                 loopPumpPower,
-                loopFlowRate,
+                loopOptions,
                 loopPoints,
                 baseConductance,
                 baseConductanceSpecified,
@@ -556,7 +554,7 @@ public class NuclearSimulationCLI {
                 CoolantLoopModel.CoolantFluidType loopFluid = CoolantLoopModel.CoolantFluidType.DISTILLED_WATER;
                 boolean loopFluidSpecified = false;
                 double loopPumpPower = -1.0;
-                double loopFlowRate = -1.0;
+                String loopOptions = "";
                 String loopPoints = null;
                 boolean steadyState = false;
                 int steadyWindow = 200;
@@ -779,11 +777,12 @@ public class NuclearSimulationCLI {
                                 loopPumpPower = Double.parseDouble(v);
                             } catch (Exception ignored) {}
                         }
-                        case "loop_flow", "loopflow" -> {
-                            try {
-                                loopFlowRate = Double.parseDouble(v);
-                            } catch (Exception ignored) {}
-                        }
+                        case "loop_hatch", "loop_hatches", "loop_rotor", "loop_rotor_size", "loop_secondary", "phe_count", "phe_hatch", "phe_hatches" -> loopOptions += k
+                            + "="
+                            + v
+                            + ",";
+                        case "loop_flow", "loopflow" -> System.err.println(
+                            "WARNING: loop_flow is ignored; the pump's flow follows from its power and the loop.");
                         case "loop_points", "looppoints" -> loopPoints = v;
                         case "auto_refuel", "autorefuel", "auto_replace_fuel", "autoreplacefuel", "auto_supply_fuel", "autosupplyfuel" -> {
                             autoReplaceFuel = Boolean.parseBoolean(v) || "1".equals(v) || "true".equalsIgnoreCase(v);
@@ -867,7 +866,7 @@ public class NuclearSimulationCLI {
                     loopFluid,
                     loopFluidSpecified,
                     loopPumpPower,
-                    loopFlowRate,
+                    loopOptions,
                     loopPoints,
                     baseConductance,
                     baseConductanceSpecified,
@@ -888,10 +887,58 @@ public class NuclearSimulationCLI {
         }
     }
 
+    /** Picks the pump's energy hatches whose draw is the least at or above a power, preferring a single hatch. */
+    private static void setPumpPower(CoolantLoopModel loop, double powerEUt) {
+        CoolantLoopModel.EnergyHatchTier bestTier = CoolantLoopModel.EnergyHatchTier.UHV;
+        int bestCount = 2;
+        double bestDraw = Double.MAX_VALUE;
+        for (CoolantLoopModel.EnergyHatchTier tier : CoolantLoopModel.EnergyHatchTier.values()) {
+            for (int count = 1; count <= 2; count++) {
+                double draw = count == 1 ? tier.voltageEU : 4.0 * tier.voltageEU;
+                if (draw >= powerEUt && draw < bestDraw) {
+                    bestDraw = draw;
+                    bestTier = tier;
+                    bestCount = count;
+                }
+            }
+        }
+        loop.setHatchTier(bestTier);
+        loop.setPumpHatchCount(bestCount);
+    }
+
+    /** Applies "key=value" loop settings separated by commas (pump hatches, rotor, PHEs, secondary fluid). */
+    private static void applyLoopOptions(CoolantLoopModel loop, String options) {
+        if (options == null) return;
+        for (String opt : options.split(",")) {
+            int eq = opt.indexOf('=');
+            if (eq <= 0) continue;
+            String key = opt.substring(0, eq)
+                .trim()
+                .toLowerCase();
+            String v = opt.substring(eq + 1)
+                .trim();
+            try {
+                switch (key) {
+                    case "loop_hatch" -> loop.setHatchTier(CoolantLoopModel.EnergyHatchTier.fromString(v));
+                    case "loop_hatches" -> loop.setPumpHatchCount(Integer.parseInt(v));
+                    case "loop_rotor" -> loop.setRotorMaterial(v);
+                    case "loop_rotor_size" -> loop.setRotorSize(CoolantLoopModel.RotorSize.fromString(v));
+                    case "loop_secondary" -> loop.setSecondaryCoolant(v);
+                    case "phe_count" -> loop.setPheCount(Integer.parseInt(v));
+                    case "phe_hatch" -> loop.setPheHatchTier(CoolantLoopModel.EnergyHatchTier.fromString(v));
+                    case "phe_hatches" -> loop.setPheHatchCount(Integer.parseInt(v));
+                    default -> System.err.println("WARNING: unknown loop option " + key);
+                }
+            } catch (NumberFormatException e) {
+                System.err.println("WARNING: bad value for loop option " + key + ": " + v);
+            }
+        }
+    }
+
     private static void configureCoolantLoop(StandaloneNuclearGrid grid, CoolantLoopModel.CoolingMode coolingMode,
         boolean coolingModeSpecified, CoolantLoopModel.LoopMaterial loopMat, boolean loopMatSpecified,
         CoolantLoopModel.LoopPipeSize loopSize, boolean loopSizeSpecified, CoolantLoopModel.CoolantFluidType loopFluid,
-        boolean loopFluidSpecified, double loopPumpPower, double loopFlowRate, String loopPoints) {
+        boolean loopFluidSpecified, double loopPumpPower, String loopOptions, String loopPoints) {
         if (coolingModeSpecified) {
             if (!grid.setCoolingMode(coolingMode)) {
                 System.err.println(
@@ -910,10 +957,9 @@ public class NuclearSimulationCLI {
                 loop.setFluidType(loopFluid);
             }
             if (loopPumpPower >= 0) {
-                loop.setPumpPowerEUt(loopPumpPower);
-            } else if (loopFlowRate >= 0) {
-                loop.setCirculationFlowLs(loopFlowRate);
+                setPumpPower(loop, loopPumpPower);
             }
+            applyLoopOptions(loop, loopOptions);
             if (loopPoints != null && !loopPoints.trim()
                 .isEmpty()) {
                 loop.clearAttachedPoints();
@@ -940,9 +986,9 @@ public class NuclearSimulationCLI {
         CoolantLoopModel.CoolingMode coolingMode, boolean coolingModeSpecified, CoolantLoopModel.LoopMaterial loopMat,
         boolean loopMatSpecified, CoolantLoopModel.LoopPipeSize loopSize, boolean loopSizeSpecified,
         CoolantLoopModel.CoolantFluidType loopFluid, boolean loopFluidSpecified, double loopPumpPower,
-        double loopFlowRate, String loopPoints, double baseConductance, boolean baseConductanceSpecified,
-        boolean repair, boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified,
-        boolean stopOnIncidents, boolean stopOnIncidentsSpecified) {
+        String loopOptions, String loopPoints, double baseConductance, boolean baseConductanceSpecified, boolean repair,
+        boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified, boolean stopOnIncidents,
+        boolean stopOnIncidentsSpecified) {
         runJsonSimulation(
             preset,
             layout,
@@ -963,7 +1009,7 @@ public class NuclearSimulationCLI {
             loopFluid,
             loopFluidSpecified,
             loopPumpPower,
-            loopFlowRate,
+            loopOptions,
             loopPoints,
             baseConductance,
             baseConductanceSpecified,
@@ -983,9 +1029,9 @@ public class NuclearSimulationCLI {
         CoolantLoopModel.CoolingMode coolingMode, boolean coolingModeSpecified, CoolantLoopModel.LoopMaterial loopMat,
         boolean loopMatSpecified, CoolantLoopModel.LoopPipeSize loopSize, boolean loopSizeSpecified,
         CoolantLoopModel.CoolantFluidType loopFluid, boolean loopFluidSpecified, double loopPumpPower,
-        double loopFlowRate, String loopPoints, double baseConductance, boolean baseConductanceSpecified,
-        boolean repair, boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified,
-        boolean stopOnIncidents, boolean stopOnIncidentsSpecified, boolean steadyStateStop, int steadyWindow) {
+        String loopOptions, String loopPoints, double baseConductance, boolean baseConductanceSpecified, boolean repair,
+        boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified, boolean stopOnIncidents,
+        boolean stopOnIncidentsSpecified, boolean steadyStateStop, int steadyWindow) {
         runJsonSimulation(
             preset,
             layout,
@@ -1006,7 +1052,7 @@ public class NuclearSimulationCLI {
             loopFluid,
             loopFluidSpecified,
             loopPumpPower,
-            loopFlowRate,
+            loopOptions,
             loopPoints,
             baseConductance,
             baseConductanceSpecified,
@@ -1027,10 +1073,9 @@ public class NuclearSimulationCLI {
         CoolantLoopModel.CoolingMode coolingMode, boolean coolingModeSpecified, CoolantLoopModel.LoopMaterial loopMat,
         boolean loopMatSpecified, CoolantLoopModel.LoopPipeSize loopSize, boolean loopSizeSpecified,
         CoolantLoopModel.CoolantFluidType loopFluid, boolean loopFluidSpecified, double loopPumpPower,
-        double loopFlowRate, String loopPoints, double baseConductance, boolean baseConductanceSpecified,
-        boolean repair, boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified,
-        boolean stopOnIncidents, boolean stopOnIncidentsSpecified, boolean steadyStateStop, int steadyWindow,
-        boolean trackHistory) {
+        String loopOptions, String loopPoints, double baseConductance, boolean baseConductanceSpecified, boolean repair,
+        boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified, boolean stopOnIncidents,
+        boolean stopOnIncidentsSpecified, boolean steadyStateStop, int steadyWindow, boolean trackHistory) {
         runJsonSimulation(
             preset,
             layout,
@@ -1051,7 +1096,7 @@ public class NuclearSimulationCLI {
             loopFluid,
             loopFluidSpecified,
             loopPumpPower,
-            loopFlowRate,
+            loopOptions,
             loopPoints,
             baseConductance,
             baseConductanceSpecified,
@@ -1073,10 +1118,10 @@ public class NuclearSimulationCLI {
         CoolantLoopModel.CoolingMode coolingMode, boolean coolingModeSpecified, CoolantLoopModel.LoopMaterial loopMat,
         boolean loopMatSpecified, CoolantLoopModel.LoopPipeSize loopSize, boolean loopSizeSpecified,
         CoolantLoopModel.CoolantFluidType loopFluid, boolean loopFluidSpecified, double loopPumpPower,
-        double loopFlowRate, String loopPoints, double baseConductance, boolean baseConductanceSpecified,
-        boolean repair, boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified,
-        boolean stopOnIncidents, boolean stopOnIncidentsSpecified, boolean steadyStateStop, int steadyWindow,
-        boolean trackHistory, TurbineCalculator.MachineLimits limits) {
+        String loopOptions, String loopPoints, double baseConductance, boolean baseConductanceSpecified, boolean repair,
+        boolean strictMode, boolean autoReplaceFuel, boolean autoReplaceFuelSpecified, boolean stopOnIncidents,
+        boolean stopOnIncidentsSpecified, boolean steadyStateStop, int steadyWindow, boolean trackHistory,
+        TurbineCalculator.MachineLimits limits) {
         StandaloneNuclearGrid grid = new StandaloneNuclearGrid(size, size, tier);
         grid.setStrictMode(strictMode);
         if (limits != null) {
@@ -1118,7 +1163,7 @@ public class NuclearSimulationCLI {
             loopFluid,
             loopFluidSpecified,
             loopPumpPower,
-            loopFlowRate,
+            loopOptions,
             loopPoints);
 
         int tickReached = 0;
@@ -1627,10 +1672,20 @@ public class NuclearSimulationCLI {
             .append(String.format(java.util.Locale.US, "%.2f", cl.getCurrentPressureBar()))
             .append(",");
         sb.append("\"maxSafePressureBar\":")
-            .append(String.format(java.util.Locale.US, "%.2f", cl.getMaterial().maxPressureBar))
+            .append(
+                String.format(
+                    java.util.Locale.US,
+                    "%.2f",
+                    cl.getMaterial()
+                        .maxPressureBar()))
             .append(",");
         sb.append("\"maxSafeTemp\":")
-            .append(String.format(java.util.Locale.US, "%.2f", cl.getMaterial().maxTemperatureCelsius))
+            .append(
+                String.format(
+                    java.util.Locale.US,
+                    "%.2f",
+                    cl.getMaterial()
+                        .maxTemperatureCelsius()))
             .append(",");
         sb.append("\"ruptured\":")
             .append(cl.isRuptured())
@@ -1646,6 +1701,51 @@ public class NuclearSimulationCLI {
         sb.append("\"secondarySteamProduced\":")
             .append(String.format(java.util.Locale.US, "%.2f", cl.getLastSecondarySteamProducedLt()))
             .append(",");
+        sb.append("\"steamLt\":")
+            .append(String.format(java.util.Locale.US, "%.2f", cl.getLastSteamLt()))
+            .append(",");
+        sb.append("\"superheatedSteamLt\":")
+            .append(String.format(java.util.Locale.US, "%.2f", cl.getLastSuperheatedSteamLt()))
+            .append(",");
+        sb.append("\"supercriticalSteamLt\":")
+            .append(String.format(java.util.Locale.US, "%.2f", cl.getLastSupercriticalSteamLt()))
+            .append(",");
+        sb.append("\"coldLegTemperature\":")
+            .append(String.format(java.util.Locale.US, "%.2f", cl.getColdLegTempCelsius()))
+            .append(",");
+        sb.append("\"loopPowerEUt\":")
+            .append(String.format(java.util.Locale.US, "%.1f", cl.getLastLoopPowerEUt()))
+            .append(",");
+        sb.append("\"phePowerEUt\":")
+            .append(String.format(java.util.Locale.US, "%.1f", cl.getLastPhePowerEUt()))
+            .append(",");
+        sb.append("\"pumpMechanicalPowerW\":")
+            .append(String.format(java.util.Locale.US, "%.1f", cl.pumpMechanicalPowerWatts()))
+            .append(",");
+        sb.append("\"maxFlowLs\":")
+            .append(String.format(java.util.Locale.US, "%.1f", cl.maxFlowLitersPerSecond()))
+            .append(",");
+        sb.append("\"pheCount\":")
+            .append(cl.getPheCount())
+            .append(",");
+        sb.append("\"pumpHatches\":")
+            .append(cl.getPumpHatchCount())
+            .append(",");
+        sb.append("\"pumpHatchTier\":\"")
+            .append(
+                cl.getHatchTier()
+                    .name())
+            .append("\",");
+        sb.append("\"pheHatchTier\":\"")
+            .append(
+                cl.getPheHatchTier()
+                    .name())
+            .append("\",");
+        sb.append("\"rotor\":\"")
+            .append(
+                cl.getRotorMaterial()
+                    .name())
+            .append("\",");
         sb.append("\"totalDeuteriumProduced\":")
             .append(cl.getTotalDeuteriumProduced())
             .append(",");
@@ -1904,7 +2004,7 @@ public class NuclearSimulationCLI {
         int traceSteps, CoolantLoopModel.CoolingMode coolingMode, boolean coolingModeSpecified,
         CoolantLoopModel.LoopMaterial loopMat, boolean loopMatSpecified, CoolantLoopModel.LoopPipeSize loopSize,
         boolean loopSizeSpecified, CoolantLoopModel.CoolantFluidType loopFluid, boolean loopFluidSpecified,
-        double loopPumpPower, double loopFlowRate, String loopPoints, double baseConductance,
+        double loopPumpPower, String loopOptions, String loopPoints, double baseConductance,
         boolean baseConductanceSpecified, boolean repair, boolean strictMode, boolean autoReplaceFuel,
         boolean autoReplaceFuelSpecified, boolean stopOnIncidents, boolean stopOnIncidentsSpecified,
         TurbineCalculator.MachineLimits limits) {
@@ -1956,7 +2056,7 @@ public class NuclearSimulationCLI {
             loopFluid,
             loopFluidSpecified,
             loopPumpPower,
-            loopFlowRate,
+            loopOptions,
             loopPoints);
 
         if (layout != null && !layout.trim()
@@ -2013,32 +2113,30 @@ public class NuclearSimulationCLI {
             System.out.println(
                 "  Loop Mat:    " + cl.getMaterial().displayName
                     + " (Max: "
-                    + cl.getMaterial().maxPressureBar
+                    + cl.getMaterial()
+                        .maxPressureBar()
                     + " bar, "
-                    + cl.getMaterial().maxTemperatureCelsius
+                    + cl.getMaterial()
+                        .maxTemperatureCelsius()
                     + " °C)");
             System.out.println(
                 "  Pipe Size:   " + cl.getPipeSize().displayName
                     + " ("
-                    + (int) (cl.getPipeSize().diameterMeters * 1000)
+                    + (int) (cl.getPipeSize()
+                        .diameterMeters() * 1000)
                     + " mm ID)");
+            System.out.println("  Loop Fluid:  " + cl.getFluidType().displayName);
             System.out.println(
-                "  Loop Fluid:  " + cl.getFluidType().displayName
-                    + " [Byproduct: "
-                    + cl.getFluidType().byproductGas
-                    + "]");
-            if (cl.isUseTargetFlowMode()) {
-                System.out.println(
-                    "  Target Flow: " + String.format(
-                        java.util.Locale.US,
-                        "%.1f L/s (hydrodynamic power: %.1f EU/t)",
-                        cl.getTargetFlowRateLPerSec(),
-                        cl.getLastPumpPowerEUt()));
-            } else {
-                System.out.println(
-                    "  Pump Power:  "
-                        + String.format(java.util.Locale.US, "%.1f EU/t", cl.getPumpElectricalPowerEUt()));
-            }
+                "  Pump:        " + String.format(
+                    java.util.Locale.US,
+                    "%d x %s hatch, %.0f EU/t, %s %s rotor (%.0f%%), %d PHE(s)",
+                    cl.getPumpHatchCount(),
+                    cl.getHatchTier().displayName,
+                    cl.pumpPowerEUt(),
+                    cl.getRotorSize().displayName,
+                    cl.getRotorMaterial().displayName,
+                    cl.getRotorEfficiency() * 100.0,
+                    cl.getPheCount()));
             if (!cl.getAttachedPoints()
                 .isEmpty()) {
                 System.out.println(
@@ -2331,13 +2429,15 @@ public class NuclearSimulationCLI {
             System.out.println(
                 "  Internal Diameter:    " + cl.getPipeSize().displayName
                     + " ("
-                    + (int) (cl.getPipeSize().diameterMeters * 1000)
+                    + (int) (cl.getPipeSize()
+                        .diameterMeters() * 1000)
                     + " mm)");
             System.out.println("  Working Fluid:        " + cl.getFluidType().displayName);
             System.out.println(
                 "  Operating Flow Rate:  "
                     + String.format(java.util.Locale.US, "%.2f L/s", cl.getCurrentFlowRateLPerSec()));
-            double pressRatio = cl.getCurrentPressureBar() / cl.getMaterial().maxPressureBar * 100.0;
+            double pressRatio = cl.getCurrentPressureBar() / cl.getMaterial()
+                .maxPressureBar() * 100.0;
             String pressColor = pressRatio > 85.0 ? ANSI_RED : pressRatio > 60.0 ? ANSI_YELLOW : ANSI_GREEN;
             System.out.println(
                 "  Peak Loop Pressure:   " + pressColor
@@ -2345,10 +2445,12 @@ public class NuclearSimulationCLI {
                         java.util.Locale.US,
                         "%.1f bar / %.1f bar max (%.1f %%)",
                         cl.getCurrentPressureBar(),
-                        cl.getMaterial().maxPressureBar,
+                        cl.getMaterial()
+                            .maxPressureBar(),
                         pressRatio)
                     + ANSI_RESET);
-            double tempRatio = cl.getCurrentCoolantTempCelsius() / cl.getMaterial().maxTemperatureCelsius * 100.0;
+            double tempRatio = cl.getCurrentCoolantTempCelsius() / cl.getMaterial()
+                .maxTemperatureCelsius() * 100.0;
             String tempColor = tempRatio > 85.0 ? ANSI_RED : tempRatio > 60.0 ? ANSI_YELLOW : ANSI_GREEN;
             System.out.println(
                 "  Coolant Temperature:  " + tempColor
@@ -2356,7 +2458,8 @@ public class NuclearSimulationCLI {
                         java.util.Locale.US,
                         "%.1f °C / %.1f °C max (%.1f %%)",
                         cl.getCurrentCoolantTempCelsius(),
-                        cl.getMaterial().maxTemperatureCelsius,
+                        cl.getMaterial()
+                            .maxTemperatureCelsius(),
                         tempRatio)
                     + ANSI_RESET);
             System.out.println(
@@ -2366,17 +2469,23 @@ public class NuclearSimulationCLI {
                     cl.getLastHeatExtractedHut(),
                     cl.getLastHeatExtractedWatts() / 1e6));
             System.out.println(
+                "  Cold Leg Temperature: " + String.format(java.util.Locale.US, "%.1f °C", cl.getColdLegTempCelsius()));
+            System.out.println(
                 "  Secondary PHE Steam:  " + String.format(
                     java.util.Locale.US,
-                    "%.1f L/t (%.0f L total, 1:160 expansion)",
+                    "%.1f L/t (steam %.1f, superheated %.1f, supercritical %.1f; %.0f L total)",
                     cl.getLastSecondarySteamProducedLt(),
-                    (double) cl.getTotalSecondarySteamProduced()));
+                    cl.getLastSteamLt(),
+                    cl.getLastSuperheatedSteamLt(),
+                    cl.getLastSupercriticalSteamLt(),
+                    cl.getTotalSecondarySteamProduced()));
             System.out.println(
-                "  Parasitic Pump Draw:  " + ANSI_YELLOW
+                "  Parasitic Loop Draw:  " + ANSI_YELLOW
                     + String.format(
                         java.util.Locale.US,
-                        "%.1f EU/t (Net: %.1f EU/t, Gross: %.1f EU/t)",
+                        "%.1f EU/t pump + %.1f EU/t PHE (Net: %.1f EU/t, Gross: %.1f EU/t)",
                         cl.getLastPumpPowerEUt(),
+                        cl.getLastPhePowerEUt(),
                         grid.getLastPowerResult() != null ? grid.getLastPowerResult().totalPowerEUt : 0.0,
                         grid.getGrossPowerEUt())
                     + ANSI_RESET);
