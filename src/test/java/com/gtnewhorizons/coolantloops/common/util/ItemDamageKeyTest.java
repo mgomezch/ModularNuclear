@@ -86,7 +86,7 @@ public class ItemDamageKeyTest {
         assertEquals(10, seg.getBlockX());
         assertEquals(20, seg.getBlockY());
         assertEquals(30, seg.getBlockZ());
-        assertEquals(new ChunkCoordinates(10, 20, 30), seg.getCoordinates());
+        assertEquals(new ChunkCoordinates(10, 20, 30), LoopStateNbt.coordinates(seg));
 
         // Test instantiation with direct coordinates
         LoopSegment segWithCoords = new LoopSegment(
@@ -105,28 +105,19 @@ public class ItemDamageKeyTest {
         assertEquals(10, segWithCoords.getBlockX());
         assertEquals(20, segWithCoords.getBlockY());
         assertEquals(30, segWithCoords.getBlockZ());
-        assertEquals(new ChunkCoordinates(10, 20, 30), segWithCoords.getCoordinates());
+        assertEquals(new ChunkCoordinates(10, 20, 30), LoopStateNbt.coordinates(segWithCoords));
 
-        // Test instantiation with ChunkCoordinates
-        LoopSegment segWithCc = new LoopSegment(
-            "pipe_cc",
-            new ChunkCoordinates(5, 6, 7),
-            1.0,
-            0.1,
-            0.00005,
-            0.0,
-            100.0,
-            1200.0,
-            20.0);
+        // Test instantiation with block coordinates and the Minecraft coordinate adapter
+        LoopSegment segWithCc = new LoopSegment("pipe_cc", 5, 6, 7, 1.0, 0.1, 0.00005, 0.0, 100.0, 1200.0, 20.0);
         assertTrue(segWithCc.hasPosition());
         assertEquals(5, segWithCc.getBlockX());
         assertEquals(6, segWithCc.getBlockY());
         assertEquals(7, segWithCc.getBlockZ());
-        assertEquals(new ChunkCoordinates(5, 6, 7), segWithCc.getCoordinates());
+        assertEquals(new ChunkCoordinates(5, 6, 7), LoopStateNbt.coordinates(segWithCc));
 
-        segWithCc.setPosition((ChunkCoordinates) null);
+        LoopStateNbt.setPosition(segWithCc, null);
         assertFalse(segWithCc.hasPosition());
-        assertNull(segWithCc.getCoordinates());
+        assertNull(LoopStateNbt.coordinates(segWithCc));
     }
 
     @Test

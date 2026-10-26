@@ -6,11 +6,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagString;
-import net.minecraft.util.ChunkCoordinates;
-
 /**
  * Represents a discrete physical pipe segment or in-line device passage
  * within a closed coolant loop.
@@ -69,22 +64,6 @@ public class LoopSegment {
         this.incomingTemperatureCelsius = initialTempCelsius;
     }
 
-    public LoopSegment(String id, ChunkCoordinates coords, double length, double diameter, double roughness,
-        double minorLossK, double maxPressureBar, double maxTemperatureCelsius, double initialTempCelsius) {
-        this(
-            id,
-            coords != null ? coords.posX : Integer.MIN_VALUE,
-            coords != null ? coords.posY : Integer.MIN_VALUE,
-            coords != null ? coords.posZ : Integer.MIN_VALUE,
-            length,
-            diameter,
-            roughness,
-            minorLossK,
-            maxPressureBar,
-            maxTemperatureCelsius,
-            initialTempCelsius);
-    }
-
     public String getId() {
         return id;
     }
@@ -135,16 +114,6 @@ public class LoopSegment {
         this.blockZ = z;
     }
 
-    public void setPosition(ChunkCoordinates coords) {
-        if (coords != null) {
-            setPosition(coords.posX, coords.posY, coords.posZ);
-        } else {
-            this.blockX = Integer.MIN_VALUE;
-            this.blockY = Integer.MIN_VALUE;
-            this.blockZ = Integer.MIN_VALUE;
-        }
-    }
-
     public boolean hasPosition() {
         return blockX != Integer.MIN_VALUE;
     }
@@ -162,11 +131,6 @@ public class LoopSegment {
     public int getBlockZ() {
         if (!hasPosition()) return 0;
         return blockZ;
-    }
-
-    public ChunkCoordinates getCoordinates() {
-        if (!hasPosition()) return null;
-        return new ChunkCoordinates(blockX, blockY, blockZ);
     }
 
     public long getCapacityLiters() {
@@ -445,68 +409,73 @@ public class LoopSegment {
         return (fluid.getDensity() * velocity * diameter) / fluid.getDynamicViscosity();
     }
 
-    public void writeToNBT(NBTTagCompound tag) {
-        tag.setString("id", id != null ? id : "");
-        tag.setInteger("x", blockX);
-        tag.setInteger("y", blockY);
-        tag.setInteger("z", blockZ);
-        tag.setDouble("len", length);
-        tag.setDouble("diam", diameter);
-        tag.setDouble("rough", roughness);
-        tag.setDouble("k", minorLossK);
-        tag.setDouble("pMax", maxPressureBar);
-        tag.setDouble("tMax", maxTemperatureCelsius);
-        tag.setDouble("curTemp", currentTemperatureCelsius);
-        tag.setDouble("inTemp", incomingTemperatureCelsius);
-        tag.setDouble("inP", inletPressureBar);
-        tag.setDouble("outP", outletPressureBar);
-        tag.setDouble("flowFrac", flowFraction);
-        tag.setDouble("weight", flowSizeWeight);
-        tag.setLong("cap", capacityLiters);
-        tag.setBoolean("manifold", manifold);
+    /**
+     * Snapshot of this segment's state as plain values (Integer, Long, Double, Boolean, String, List of String), for
+     * persistence. Keys match the game's saved NBT.
+     */
+    public java.util.Map<String, Object> toStateMap() {
+        java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+        m.put("id", id != null ? id : "");
+        m.put("x", blockX);
+        m.put("y", blockY);
+        m.put("z", blockZ);
+        m.put("len", length);
+        m.put("diam", diameter);
+        m.put("rough", roughness);
+        m.put("k", minorLossK);
+        m.put("pMax", maxPressureBar);
+        m.put("tMax", maxTemperatureCelsius);
+        m.put("curTemp", currentTemperatureCelsius);
+        m.put("inTemp", incomingTemperatureCelsius);
+        m.put("inP", inletPressureBar);
+        m.put("outP", outletPressureBar);
+        m.put("flowFrac", flowFraction);
+        m.put("weight", flowSizeWeight);
+        m.put("cap", capacityLiters);
+        m.put("manifold", manifold);
         if (customVolumeM3 >= 0.0) {
-            tag.setDouble("customVol", customVolumeM3);
+            m.put("customVol", customVolumeM3);
         }
-        NBTTagList upList = new NBTTagList();
+        List<String> ups = new ArrayList<>();
         for (LoopSegment up : upstreamSegments) {
             if (up != null && up.getId() != null) {
-                upList.appendTag(new NBTTagString(up.getId()));
+                ups.add(up.getId());
             }
         }
-        tag.setTag("upstreams", upList);
+        m.put("upstreams", ups);
+        return m;
     }
 
-    public static LoopSegment readFromNBT(NBTTagCompound tag, List<String> outUpstreamIds) {
-        String id = tag.getString("id");
-        int x = tag.getInteger("x");
-        int y = tag.getInteger("y");
-        int z = tag.getInteger("z");
-        double len = tag.getDouble("len");
-        double diam = tag.getDouble("diam");
-        double rough = tag.getDouble("rough");
-        double k = tag.getDouble("k");
-        double pMax = tag.getDouble("pMax");
-        double tMax = tag.getDouble("tMax");
-        double curTemp = tag.getDouble("curTemp");
-        double inTemp = tag.getDouble("inTemp");
-
+    /** Rebuilds a segment from {@link #toStateMap()}; upstream segment ids are added to outUpstreamIds. */
+    public static LoopSegment fromStateMap(java.util.Map<String, Object> m, List<String> outUpstreamIds) {
+        String id = StateValues.str(m, "id", "");
+        double len = StateValues.dbl(m, "len", 0.0);
+        double diam = StateValues.dbl(m, "diam", 0.0);
         if (len <= 0) len = 1.0;
         if (diam <= 0) diam = 0.05;
-
-        LoopSegment seg = new LoopSegment(id, x, y, z, len, diam, rough, k, pMax, tMax, curTemp);
-        seg.setIncomingTemperatureCelsius(inTemp);
-        if (tag.hasKey("inP")) seg.setInletPressureBar(tag.getDouble("inP"));
-        if (tag.hasKey("outP")) seg.setOutletPressureBar(tag.getDouble("outP"));
-        if (tag.hasKey("flowFrac")) seg.setFlowFraction(tag.getDouble("flowFrac"));
-        if (tag.hasKey("weight")) seg.setFlowSizeWeight(tag.getDouble("weight"));
-        if (tag.hasKey("cap")) seg.setCapacityLiters(tag.getLong("cap"));
-        if (tag.hasKey("manifold")) seg.setManifold(tag.getBoolean("manifold"));
-        if (tag.hasKey("customVol")) seg.setCustomVolumeM3(tag.getDouble("customVol"));
-
-        if (outUpstreamIds != null && tag.hasKey("upstreams", 9)) {
-            NBTTagList upList = tag.getTagList("upstreams", 8);
-            for (int i = 0; i < upList.tagCount(); i++) {
-                outUpstreamIds.add(upList.getStringTagAt(i));
+        LoopSegment seg = new LoopSegment(
+            id,
+            StateValues.integer(m, "x", 0),
+            StateValues.integer(m, "y", 0),
+            StateValues.integer(m, "z", 0),
+            len,
+            diam,
+            StateValues.dbl(m, "rough", 0.0),
+            StateValues.dbl(m, "k", 0.0),
+            StateValues.dbl(m, "pMax", 0.0),
+            StateValues.dbl(m, "tMax", 0.0),
+            StateValues.dbl(m, "curTemp", 0.0));
+        seg.setIncomingTemperatureCelsius(StateValues.dbl(m, "inTemp", 0.0));
+        if (m.containsKey("inP")) seg.setInletPressureBar(StateValues.dbl(m, "inP", 0.0));
+        if (m.containsKey("outP")) seg.setOutletPressureBar(StateValues.dbl(m, "outP", 0.0));
+        if (m.containsKey("flowFrac")) seg.setFlowFraction(StateValues.dbl(m, "flowFrac", 0.0));
+        if (m.containsKey("weight")) seg.setFlowSizeWeight(StateValues.dbl(m, "weight", 0.0));
+        if (m.containsKey("cap")) seg.setCapacityLiters(StateValues.lng(m, "cap", 0L));
+        if (m.containsKey("manifold")) seg.setManifold(StateValues.bool(m, "manifold", false));
+        if (m.containsKey("customVol")) seg.setCustomVolumeM3(StateValues.dbl(m, "customVol", 0.0));
+        if (outUpstreamIds != null && m.get("upstreams") instanceof List<?>ups) {
+            for (Object o : ups) {
+                if (o != null) outUpstreamIds.add(o.toString());
             }
         }
         return seg;

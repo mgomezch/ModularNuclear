@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import com.gtnewhorizons.coolantloops.common.util.LoopStateNbt;
 import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
 import com.gtnewhorizons.coolantloops.engine.CoolantLoopEngine;
 import com.gtnewhorizons.coolantloops.engine.LoopSegment;
@@ -236,10 +237,10 @@ public class NuclearHighPressureHatchMigrationTest {
         segB.addUpstreamSegment(segA);
 
         NBTTagCompound nbtB = new NBTTagCompound();
-        segB.writeToNBT(nbtB);
+        LoopStateNbt.write(segB.toStateMap(), nbtB);
 
         List<String> upstreams = new ArrayList<>();
-        LoopSegment restoredB = LoopSegment.readFromNBT(nbtB, upstreams);
+        LoopSegment restoredB = LoopSegment.fromStateMap(LoopStateNbt.read(nbtB), upstreams);
         assertEquals("seg_b", restoredB.getId());
         assertEquals(5.0, restoredB.getLength(), 1e-4);
         assertEquals(1, upstreams.size());
@@ -253,10 +254,10 @@ public class NuclearHighPressureHatchMigrationTest {
         engine.addSegment(segA);
 
         NBTTagCompound engNBT = new NBTTagCompound();
-        engine.saveNBTData(engNBT);
+        LoopStateNbt.write(engine.exportState(), engNBT);
 
         CoolantLoopEngine restoredEngine = new CoolantLoopEngine();
-        restoredEngine.loadNBTData(engNBT);
+        restoredEngine.importState(LoopStateNbt.read(engNBT));
 
         assertEquals(
             "heavywater",

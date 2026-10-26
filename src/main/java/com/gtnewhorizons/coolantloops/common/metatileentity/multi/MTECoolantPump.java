@@ -2489,7 +2489,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
 
         NBTTagCompound engineTag = new NBTTagCompound();
-        mEngine.saveNBTData(engineTag);
+        com.gtnewhorizons.coolantloops.common.util.LoopStateNbt.write(mEngine.exportState(), engineTag);
         aNBT.setTag("mEngine", engineTag);
 
         if (mLastCrawlResult != null && mLastCrawlResult.isSuccess) {
@@ -2583,7 +2583,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
 
         if (aNBT.hasKey("mEngine", 10)) {
-            mEngine.loadNBTData(aNBT.getCompoundTag("mEngine"));
+            mEngine.importState(
+                com.gtnewhorizons.coolantloops.common.util.LoopStateNbt.read(aNBT.getCompoundTag("mEngine")));
         }
         if (aNBT.hasKey("mLoopFormed")) {
             mLoopFormed = aNBT.getBoolean("mLoopFormed") && !mEngine.getSegments()
