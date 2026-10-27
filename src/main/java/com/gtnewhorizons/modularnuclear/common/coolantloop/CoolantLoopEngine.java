@@ -529,11 +529,7 @@ public class CoolantLoopEngine {
         }
     }
 
-    /**
-     * 1D finite-volume advective heat transfer step. The loop is adiabatic, so advection conserves the coolant's
-     * enthalpy exactly: a step that would sweep more than a segment's volume through it is split into sub-steps that
-     * each sweep at most one segment volume (an upwind step past that would drop the excess heat).
-     */
+    /** Carries heat around the loop with the flow (see LoopAdvection), conserving the coolant's heat. */
     private void advectTemperature(double dt) {
         if (volumetricFlowRate <= 1e-7 || segments.size() < 2) {
             for (LoopSegment seg : segments) {
@@ -541,72 +537,7 @@ public class CoolantLoopEngine {
             }
             return;
         }
-
-        double maxCourant = 0.0;
-        for (LoopSegment seg : segments) {
-            double volume = seg.getVolume();
-            if (volume > 0.0) {
-                maxCourant = Math.max(maxCourant, volumetricFlowRate * seg.getFlowFraction() * dt / volume);
-            }
-        }
-        int subSteps = Math.max(1, (int) Math.ceil(maxCourant));
-        double[] newTemps = new double[segments.size()];
-        for (int s = 0; s < subSteps; s++) {
-            advectOnce(dt / subSteps, newTemps);
-        }
-    }
-
-    /** One upwind advection step short enough that no segment has more than its volume swept through it. */
-    private void advectOnce(double dt, double[] newTemps) {
-        double maxTemp = -Double.MAX_VALUE;
-
-        for (int i = 0; i < segments.size(); i++) {
-            LoopSegment curr = segments.get(i);
-            double sweptVolume = volumetricFlowRate * curr.getFlowFraction() * dt;
-            double segVolume = curr.getVolume();
-            // Fraction of segment volume replaced by fluid from upstream segment (at most 1 by the sub-step length;
-            // the bound only absorbs rounding)
-            double replaceFraction = segVolume > 0.0 ? Math.min(1.0, sweptVolume / segVolume) : 1.0;
-
-            double incomingTemp;
-            List<LoopSegment> upstreams = curr.getUpstreamSegments();
-            if (upstreams.isEmpty()) {
-                // Fallback for simple serial loops without graph wiring
-                LoopSegment prev = (i == 0) ? segments.get(segments.size() - 1) : segments.get(i - 1);
-                incomingTemp = prev.getCurrentTemperatureCelsius();
-            } else if (upstreams.size() == 1) {
-                incomingTemp = upstreams.get(0)
-                    .getCurrentTemperatureCelsius();
-            } else {
-                // Flow-weighted blending of multiple incoming branches
-                double totalWeightedTemp = 0.0;
-                double totalWeight = 0.0;
-                for (LoopSegment up : upstreams) {
-                    double w = up.getFlowFraction();
-                    totalWeightedTemp += up.getCurrentTemperatureCelsius() * w;
-                    totalWeight += w;
-                }
-                incomingTemp = totalWeight > 0.0 ? (totalWeightedTemp / totalWeight)
-                    : curr.getCurrentTemperatureCelsius();
-            }
-            curr.setIncomingTemperatureCelsius(incomingTemp);
-
-            // A manifold is a well-mixed junction volume like any other segment: its inflow mixes into the coolant it
-            // holds. (Taking the incoming temperature outright would set the stored heat rather than conserve it.)
-            double blendedTemp = curr.getCurrentTemperatureCelsius() * (1.0 - replaceFraction)
-                + incomingTemp * replaceFraction;
-
-            newTemps[i] = blendedTemp;
-            if (blendedTemp > maxTemp) {
-                maxTemp = blendedTemp;
-            }
-        }
-
-        for (int i = 0; i < segments.size(); i++) {
-            segments.get(i)
-                .setCurrentTemperatureCelsius(newTemps[i]);
-        }
-        peakLoopTempCelsius = maxTemp;
+        peakLoopTempCelsius = LoopAdvection.step(segments, volumetricFlowRate, dt);
     }
 
     /**

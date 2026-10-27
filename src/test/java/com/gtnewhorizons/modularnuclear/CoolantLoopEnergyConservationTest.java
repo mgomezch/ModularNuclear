@@ -27,7 +27,7 @@ public class CoolantLoopEnergyConservationTest {
      * The loop the simulator builds: cold leg, a manifold feeding parallel passages, a collecting manifold, hot leg,
      * parallel PHEs between two more manifolds, and the return run. Temperatures start uneven.
      */
-    private static CoolantLoopEngine loop(int passages, int phes, long seed) {
+    static CoolantLoopEngine loop(int passages, int phes, long seed) {
         Random random = new Random(seed);
         CoolantLoopEngine engine = new CoolantLoopEngine(CoolantFluidProperty.WATER);
         List<LoopSegment> segs = new ArrayList<>();
@@ -87,7 +87,7 @@ public class CoolantLoopEnergyConservationTest {
     }
 
     /** Heat held by the coolant, up to the fluid's constant density and specific heat: sum of volume x temperature. */
-    private static double heat(CoolantLoopEngine engine) {
+    static double heat(CoolantLoopEngine engine) {
         double h = 0.0;
         for (LoopSegment s : engine.getSegments()) h += s.getVolume() * s.getCurrentTemperatureCelsius();
         return h;

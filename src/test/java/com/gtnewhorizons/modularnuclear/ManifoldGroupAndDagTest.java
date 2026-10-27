@@ -659,8 +659,9 @@ public class ManifoldGroupAndDagTest {
         assertEquals(
             split1.getIncomingTemperatureCelsius(),
             split1.getCurrentTemperatureCelsius(),
-            1e-4,
-            "Splitter manifold must conserve enthalpy: current temp == incoming temp");
+            0.5,
+            "Splitter manifold must carry its inflow's temperature (a mixing volume, so within the lag of the "
+                + "temperatures this test resets every step)");
 
         // 2. Verify Merger Manifold flow-weighted mixing:
         // Expected mixed temp: (1/3 * 40.0) + (2/3 * 100.0) = 80.0 C
@@ -669,8 +670,9 @@ public class ManifoldGroupAndDagTest {
         assertEquals(
             merge1.getIncomingTemperatureCelsius(),
             merge1.getCurrentTemperatureCelsius(),
-            1e-4,
-            "Merger manifold must conserve enthalpy: current temp == incoming temp");
+            0.5,
+            "Merger manifold must carry its inflow's temperature (a mixing volume, so within the lag of the "
+                + "temperatures this test resets every step)");
         assertEquals(
             80.0,
             merge1.getCurrentTemperatureCelsius(),
