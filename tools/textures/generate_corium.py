@@ -283,6 +283,9 @@ def generate_corium_dust_and_rod(textures_dir):
         "-compose",
         "Over",
         "-composite",
+        # No date chunks, so a rebuild writes the same bytes
+        "-define",
+        "png:exclude-chunks=date,time",
         str(dust_out),
     ]
     subprocess.run(cmd_dust, check=True)
@@ -308,6 +311,9 @@ def generate_corium_dust_and_rod(textures_dir):
         "-compose",
         "Over",
         "-composite",
+        # No date chunks, so a rebuild writes the same bytes
+        "-define",
+        "png:exclude-chunks=date,time",
         str(rod_out),
     ]
     subprocess.run(cmd_rod, check=True)
