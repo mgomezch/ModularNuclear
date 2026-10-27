@@ -84,11 +84,10 @@ public interface INuclearTile {
     }
 
     /**
-     * Coolant heat removal over one conduction sub-step of {@code dtSub} seconds: a coolant hatch cools itself toward
-     * its coolant's sink temperature and accumulates the heat removed, which its nuclear tick then converts into
-     * coolant
-     * consumed and hot fluid produced. Running inside the sub-steps makes the cooling rate independent of the cycle
-     * length. Returns the heat removed (HU); other tiles return 0.
+     * Coolant heat removal over {@code dtSub} seconds, run once per reactor cycle after the cycle's heat conduction: a
+     * coolant hatch cools itself toward its coolant's sink temperature and accumulates the heat removed, which its
+     * nuclear tick then converts into coolant consumed and hot fluid produced. Returns the heat removed (HU); other
+     * tiles return 0.
      */
     default double coolantSubstep(double dtSub, double efficiency) {
         return 0.0;

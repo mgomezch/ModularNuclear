@@ -1005,8 +1005,18 @@ public class NuclearSimulationEngine {
                     INuclearTile tile = grid[x][y];
                     if (tile != null) {
                         tile.setTemperature(Math.max(-273.15, tile.getTemperature() + deltaTemp[x][y]));
-                        tile.coolantSubstep(dt / SUBSTEPS, efficiency[x][y]);
                     }
+                }
+            }
+        }
+
+        // Coolant hatches take heat once the cycle's heat has spread through the core, as a coolant loop takes heat
+        // from its passages between reactor cycles: a hatch removes what has reached it, not a fixed sink temperature
+        // held throughout the conduction.
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                if (grid[x][y] != null) {
+                    grid[x][y].coolantSubstep(dt, efficiency[x][y]);
                 }
             }
         }
