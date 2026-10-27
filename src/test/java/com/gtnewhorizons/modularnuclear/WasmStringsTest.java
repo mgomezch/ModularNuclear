@@ -74,8 +74,9 @@ public class WasmStringsTest {
         Path base = Paths.get("src/main/java/com/gtnewhorizons/modularnuclear/common");
         List<Path> roots = new ArrayList<>(Arrays.asList(base.resolve("nuclear"), base.resolve("config")));
         roots.addAll(SharedCodeIsolationTest.sharedLoopSources());
-        // JVM-only entry points: never compiled to WebAssembly
+        // JVM-only entry points (and the command-line simulator's cli package): never compiled to WebAssembly
         List<String> jvmOnly = Arrays.asList("NuclearSimulationCLI.java", "NuclearSimulationWebServer.java");
+        Path cliPackage = base.resolve("nuclear/standalone/cli");
         Pattern call = Pattern.compile("\\.replace(All|First)?\\s*\\(");
         List<String> offenders = new ArrayList<>();
         for (Path root : roots) {
@@ -85,7 +86,7 @@ public class WasmStringsTest {
                         .endsWith(".java"))::iterator) {
                     String name = f.getFileName()
                         .toString();
-                    if (jvmOnly.contains(name) || name.equals("WasmStrings.java")) continue;
+                    if (jvmOnly.contains(name) || name.equals("WasmStrings.java") || f.startsWith(cliPackage)) continue;
                     List<String> lines = Files.readAllLines(f, StandardCharsets.UTF_8);
                     for (int i = 0; i < lines.size(); i++) {
                         String line = lines.get(i)
