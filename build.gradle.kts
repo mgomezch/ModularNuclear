@@ -139,8 +139,10 @@ val exportStaticDist by tasks.registering(JavaExec::class) {
     val resolvedPresets = if (presetsFile.exists()) presetsFile else altPresetsFile
     args = listOf(
         "--export-html", file("${distDir.absolutePath}/index.html").absolutePath,
-        "--presets", resolvedPresets.absolutePath
+        "--presets", resolvedPresets.absolutePath,
+        "--web-dir", file("src/main/web/simulator").absolutePath
     )
+    inputs.dir("src/main/web/simulator")
 
     doLast {
         if (resolvedPresets.exists()) {
