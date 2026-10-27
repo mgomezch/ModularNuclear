@@ -1,10 +1,10 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear;
 
-import com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData;
-import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
-import com.gtnewhorizons.coolantloops.engine.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 
 /**
  * A reactor coolant passage (high-pressure hatch pair) as a grid cell and as a coolant loop device, shared by the

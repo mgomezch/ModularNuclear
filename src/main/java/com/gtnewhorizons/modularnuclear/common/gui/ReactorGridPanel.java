@@ -18,7 +18,6 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
-import com.gtnewhorizons.coolantloops.common.gui.LockIconWidget;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;

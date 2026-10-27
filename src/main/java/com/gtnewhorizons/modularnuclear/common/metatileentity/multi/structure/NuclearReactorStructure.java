@@ -24,7 +24,6 @@ import com.gtnewhorizon.structurelib.structure.IStructureElementNoPlacement;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.gtnewhorizon.structurelib.util.ItemStackPredicate;
-import com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.NuclearStructureChannels;
@@ -33,6 +32,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 
 import gregtech.api.GregTechAPI;
@@ -153,9 +153,9 @@ public class NuclearReactorStructure {
             if (ModMetaTileEntities.nuclearHighPressureInputHatch != null) {
                 return ModMetaTileEntities.nuclearHighPressureInputHatch.copy();
             }
-            if (com.gtnewhorizons.coolantloops.common.metatileentity.ModMetaTileEntities.pressurizedInputHatch
+            if (com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities.pressurizedInputHatch
                 != null) {
-                return com.gtnewhorizons.coolantloops.common.metatileentity.ModMetaTileEntities.pressurizedInputHatch
+                return com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities.pressurizedInputHatch
                     .getStackForm(1L);
             }
             if (ModMetaTileEntities.nuclearHighPressureHatch != null) {

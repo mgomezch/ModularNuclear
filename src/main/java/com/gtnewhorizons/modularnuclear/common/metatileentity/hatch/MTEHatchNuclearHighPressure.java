@@ -8,12 +8,11 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
-import com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedFluid;
-import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
-import com.gtnewhorizons.coolantloops.engine.ICoolantLoopPump;
-import com.gtnewhorizons.coolantloops.engine.ICoolantPassageHatch;
-import com.gtnewhorizons.coolantloops.engine.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantPassageHatch;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;

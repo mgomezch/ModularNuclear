@@ -813,7 +813,7 @@ Every cell on the grid edge or adjacent to a cut corner loses heat to ambient th
 
 ### 9.7 Closed coolant loops
 
-From Osmium tier upward, a column may be a **pressure-tube passage**: a high-pressure input hatch on top and a high-pressure output hatch at the bottom of the same column, connected externally to a closed loop driven by a Coolant Pump (CoolantLoops mod). The passage holds no fluid of its own; the loop fluid flows through it.
+From Osmium tier upward, a column may be a **pressure-tube passage**: a high-pressure input hatch on top and a high-pressure output hatch at the bottom of the same column, connected externally to a closed loop driven by a Coolant Pump. The passage holds no fluid of its own; the loop fluid flows through it.
 
 **Passage as a cell.** The passage cell has $p_a = 0.02$ (fast) / $0.05$ (thermal), $p_s = 0.80$, $c = 0.90$, and a moderation probability equal to the loop coolant's $p_m$ (0.05 if unknown). Its high conductivity makes it a strong conductive sink for adjacent fuel.
 

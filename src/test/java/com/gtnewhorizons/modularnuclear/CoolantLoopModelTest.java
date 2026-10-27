@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData;
-import com.gtnewhorizons.coolantloops.engine.CoolantPipeSpec;
+import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.CoolantLoopModel;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;

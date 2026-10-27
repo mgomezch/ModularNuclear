@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
-import com.gtnewhorizons.coolantloops.engine.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
@@ -127,7 +127,7 @@ public class NuclearHighPressureHatchEnergyConservationTest {
 
     @Test
     void testPressurizedInputHatchIntegration() {
-        com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedInput inputHatch = new com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedInput(
+        com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedInput inputHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedInput(
             "test_in",
             4,
             new String[0],

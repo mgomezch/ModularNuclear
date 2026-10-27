@@ -6,14 +6,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData;
-import com.gtnewhorizons.coolantloops.common.config.data.CoolantDeviceData.PHEData;
-import com.gtnewhorizons.coolantloops.common.config.data.CoolantDeviceData.PHEData.SecondaryCoolantEntry;
-import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
-import com.gtnewhorizons.coolantloops.engine.CoolantLoopEngine;
-import com.gtnewhorizons.coolantloops.engine.CoolantPipeSpec;
-import com.gtnewhorizons.coolantloops.engine.LoopSegment;
-import com.gtnewhorizons.coolantloops.engine.PheExchange;
+import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData;
+import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData.PHEData;
+import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData.PHEData.SecondaryCoolantEntry;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.PheExchange;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
@@ -175,7 +175,7 @@ public class CoolantLoopModel {
         }
     }
 
-    /** Pipe material of the loop (the coolant pipes the CoolantLoops mod registers). */
+    /** Pipe material of the loop (the coolant pipes the game registers for loops). */
     public enum LoopMaterial {
 
         CAST_IRON("Cast Iron", "CastIron", "ULV"),

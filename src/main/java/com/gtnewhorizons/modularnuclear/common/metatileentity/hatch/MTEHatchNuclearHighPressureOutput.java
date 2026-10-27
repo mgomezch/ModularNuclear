@@ -2,8 +2,6 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity.hatch;
 
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedFluid;
-
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;

@@ -2,7 +2,6 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
 import net.minecraft.item.ItemStack;
 
-import com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData;
@@ -10,6 +9,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;

@@ -42,14 +42,14 @@ public class ModularNuclear {
         ModFluids.init();
         ModBlocks.init();
         ModItems.init();
-        com.gtnewhorizons.coolantloops.CoolantLoops.preInit(event);
+        com.gtnewhorizons.modularnuclear.CoolantLoops.preInit(event);
     }
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         ModMetaTileEntities.init();
         ModFluids.registerContainers();
-        com.gtnewhorizons.coolantloops.CoolantLoops.init(event);
+        com.gtnewhorizons.modularnuclear.CoolantLoops.init(event);
         com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration.init();
         com.gtnewhorizons.modularnuclear.common.opencomputers.OpenComputersIntegration.init();
         com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedIntegration.init();
@@ -97,7 +97,7 @@ public class ModularNuclear {
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
         ModRecipes.init();
-        com.gtnewhorizons.coolantloops.CoolantLoops.postInit(event);
+        com.gtnewhorizons.modularnuclear.CoolantLoops.postInit(event);
         com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
             .loadRecipes();
         com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.preIndexKnownItems();
@@ -109,27 +109,28 @@ public class ModularNuclear {
         for (cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping mapping : event.getAll()) {
             if ("coolantloops:manifold".equals(mapping.name)) {
                 if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.BLOCK) {
-                    mapping.remap(com.gtnewhorizons.coolantloops.common.block.ModBlocks.manifold);
-                } else if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.ITEM) {
-                    mapping.remap(
-                        net.minecraft.item.Item
-                            .getItemFromBlock(com.gtnewhorizons.coolantloops.common.block.ModBlocks.manifold));
-                }
-            } else if ("coolantloops:creative_heat_reservoir".equals(mapping.name)) {
-                if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.BLOCK) {
-                    mapping.remap(com.gtnewhorizons.coolantloops.common.block.ModBlocks.creativeHeatReservoir);
+                    mapping.remap(com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks.manifold);
                 } else if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.ITEM) {
                     mapping.remap(
                         net.minecraft.item.Item.getItemFromBlock(
-                            com.gtnewhorizons.coolantloops.common.block.ModBlocks.creativeHeatReservoir));
+                            com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks.manifold));
+                }
+            } else if ("coolantloops:creative_heat_reservoir".equals(mapping.name)) {
+                if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.BLOCK) {
+                    mapping
+                        .remap(com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks.creativeHeatReservoir);
+                } else if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.ITEM) {
+                    mapping.remap(
+                        net.minecraft.item.Item.getItemFromBlock(
+                            com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks.creativeHeatReservoir));
                 }
             } else if ("coolantloops:loop_instrument".equals(mapping.name)) {
                 if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.BLOCK) {
-                    mapping.remap(com.gtnewhorizons.coolantloops.common.block.ModBlocks.loopInstrument);
+                    mapping.remap(com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks.loopInstrument);
                 } else if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.ITEM) {
                     mapping.remap(
-                        net.minecraft.item.Item
-                            .getItemFromBlock(com.gtnewhorizons.coolantloops.common.block.ModBlocks.loopInstrument));
+                        net.minecraft.item.Item.getItemFromBlock(
+                            com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks.loopInstrument));
                 }
             }
         }

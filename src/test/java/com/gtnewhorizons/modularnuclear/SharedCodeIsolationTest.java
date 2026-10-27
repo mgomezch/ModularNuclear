@@ -24,27 +24,22 @@ import org.junit.jupiter.api.Test;
 public class SharedCodeIsolationTest {
 
     private static final Path BASE = Paths.get("src/main/java/com/gtnewhorizons/modularnuclear/common");
-    private static final Path LOOPS = Paths.get("src/main/java/com/gtnewhorizons/coolantloops");
 
     /** The coolant loop engine and config core the simulator runs. */
     static final List<String> SHARED_LOOP_FILES = Arrays.asList(
-        "engine/CoolantLoopEngine.java",
-        "engine/LoopSegment.java",
-        "engine/CoolantFluidProperty.java",
-        "engine/ConvectiveHeatTransferModel.java",
-        "engine/PheExchange.java",
-        "engine/CoolantPipeSpec.java",
-        "engine/StateValues.java",
-        "common/config/CoolantLoopConfigData.java");
+        "coolantloop/CoolantLoopEngine.java",
+        "coolantloop/LoopSegment.java",
+        "coolantloop/CoolantFluidProperty.java",
+        "coolantloop/ConvectiveHeatTransferModel.java",
+        "coolantloop/PheExchange.java",
+        "coolantloop/CoolantPipeSpec.java",
+        "coolantloop/StateValues.java",
+        "config/CoolantLoopConfigData.java");
 
-    /** Every shared source file: those of both mods that the WebAssembly simulator compiles in. */
+    /** The coolant loop sources the WebAssembly simulator compiles in (its config data lives in config/data). */
     static List<Path> sharedLoopSources() throws IOException {
         List<Path> files = new ArrayList<>();
-        for (String f : SHARED_LOOP_FILES) files.add(LOOPS.resolve(f));
-        try (Stream<Path> s = Files.walk(LOOPS.resolve("common/config/data"))) {
-            s.filter(Files::isRegularFile)
-                .forEach(files::add);
-        }
+        for (String f : SHARED_LOOP_FILES) files.add(BASE.resolve(f));
         return files;
     }
 

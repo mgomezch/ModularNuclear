@@ -4,8 +4,8 @@ import java.util.List;
 
 import org.teavm.interop.Export;
 
-import com.gtnewhorizons.coolantloops.common.config.data.CoolantDeviceData.PHEData.SecondaryCoolantEntry;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
+import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData.PHEData.SecondaryCoolantEntry;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 

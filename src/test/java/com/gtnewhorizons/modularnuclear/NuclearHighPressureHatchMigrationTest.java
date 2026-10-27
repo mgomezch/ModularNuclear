@@ -12,14 +12,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import com.gtnewhorizons.coolantloops.common.util.LoopStateNbt;
-import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
-import com.gtnewhorizons.coolantloops.engine.CoolantLoopEngine;
-import com.gtnewhorizons.coolantloops.engine.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput;
+import com.gtnewhorizons.modularnuclear.common.util.LoopStateNbt;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.ITexture;

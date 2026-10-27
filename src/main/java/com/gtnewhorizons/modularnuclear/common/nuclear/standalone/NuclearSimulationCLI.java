@@ -525,7 +525,7 @@ public class NuclearSimulationCLI {
                 // Every line starts from the game's defaults (engine constants, then physics.yaml and the fuel and
                 // component records), so a parameter a line does not set never carries over from an earlier line.
                 NuclearSimulationEngine.resetDefaultParameters();
-                com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData.loadDefaults();
+                com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData.loadDefaults();
 
                 String preset = "BREEDER_7X7";
                 String layout = null;
@@ -735,13 +735,13 @@ public class NuclearSimulationCLI {
                         }
                         case "pump_w_per_eu" -> {
                             try {
-                                com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData.getPhysicsData()
+                                com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData.getPhysicsData()
                                     .setPumpMechanicalPowerPerEU(Double.parseDouble(v));
                             } catch (Exception ignored) {}
                         }
                         case "phe_area" -> {
                             try {
-                                com.gtnewhorizons.coolantloops.common.config.CoolantLoopConfigData.getDeviceData()
+                                com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData.getDeviceData()
                                     .getPhe().exchangeArea = Double.parseDouble(v);
                             } catch (Exception ignored) {}
                         }

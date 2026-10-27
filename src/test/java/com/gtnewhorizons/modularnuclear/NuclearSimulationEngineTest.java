@@ -18,10 +18,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.gtnewhorizons.coolantloops.common.metatileentity.hatch.MTEHatchPressurizedFluid;
-import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
-import com.gtnewhorizons.coolantloops.engine.ICoolantLoopPump;
-import com.gtnewhorizons.coolantloops.engine.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.block.BlockCorium;
 import com.gtnewhorizons.modularnuclear.common.block.BlockCoriumSolid;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
@@ -30,6 +26,9 @@ import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
@@ -40,6 +39,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;

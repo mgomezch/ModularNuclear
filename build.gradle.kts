@@ -45,7 +45,7 @@ val generateReactorDefaults by tasks.registering(JavaExec::class) {
         reactorDefaultsSourceDir.get().asFile.absolutePath,
         defaultConfigDir.absolutePath, "com.gtnewhorizons.modularnuclear.common.config", "ReactorDefaultsJson",
         "physics", "tiers", "fuels", "components", "--",
-        coolantDefaultConfigDir.absolutePath, "com.gtnewhorizons.coolantloops.common.config", "CoolantLoopDefaultsJson",
+        coolantDefaultConfigDir.absolutePath, "com.gtnewhorizons.modularnuclear.common.config", "CoolantLoopDefaultsJson",
         "physics", "fluids", "pipes", "devices")
 }
 

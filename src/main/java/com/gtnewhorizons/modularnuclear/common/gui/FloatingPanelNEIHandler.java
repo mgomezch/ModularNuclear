@@ -42,7 +42,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Bridges ModularUI floating panels (such as MPTR reactor grids and metrics dashboards)
+ * Bridges ModularUI floating panels (such as MPTR reactor grids, metrics dashboards and coolant loop graphs)
  * with Not Enough Items (NEI).
  * <p>
  * Ensures floating panels take precedence over NEI widgets:
@@ -86,15 +86,6 @@ public class FloatingPanelNEIHandler
                 GuiContainerManager.addDrawHandler(handler);
             }
             MinecraftForge.EVENT_BUS.register(handler);
-
-            // Also register peer handler in coolantloops package if present
-            try {
-                Class<?> peer = Class.forName("com.gtnewhorizons.coolantloops.common.gui.FloatingPanelNEIHandler");
-                if (peer != FloatingPanelNEIHandler.class) {
-                    peer.getMethod("register")
-                        .invoke(null);
-                }
-            } catch (Throwable ignored) {}
         } catch (Throwable ignored) {}
     }
 
