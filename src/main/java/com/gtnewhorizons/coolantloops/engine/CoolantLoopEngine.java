@@ -33,6 +33,12 @@ public class CoolantLoopEngine {
     private double maxPumpHeadPressurePa = Double.POSITIVE_INFINITY; // Maximum stall head (uncapped by default)
     private double coastDownDecay = 0.98; // Viscous coast-down decay factor per tick when unpowered
 
+    /**
+     * How far below its freezing point coolant may read before it counts as frozen: molten coolants fill at exactly
+     * their melting point, and mixing equal temperatures can round a hair below it.
+     */
+    public static final double FREEZE_TOLERANCE_CELSIUS = 1e-6;
+
     // Simulation status
     private boolean isRuptured = false;
     private LoopSegment rupturedSegment = null;
@@ -499,7 +505,7 @@ public class CoolantLoopEngine {
             if (fluid != null && !fluid.isLava()) {
                 double freezingTemp = fluid.getMeltingPointCelsius();
                 if (freezingTemp != Double.NEGATIVE_INFINITY && Double.isFinite(freezingTemp)
-                    && segment.getCurrentTemperatureCelsius() < freezingTemp) {
+                    && segment.getCurrentTemperatureCelsius() < freezingTemp - FREEZE_TOLERANCE_CELSIUS) {
                     isRuptured = true;
                     rupturedSegment = segment;
                     if (fluid.isMolten()) {

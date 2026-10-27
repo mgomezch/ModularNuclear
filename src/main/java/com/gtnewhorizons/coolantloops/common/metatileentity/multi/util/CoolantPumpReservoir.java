@@ -16,6 +16,7 @@ import com.gtnewhorizons.coolantloops.common.metatileentity.multi.MTECoolantPump
 import com.gtnewhorizons.coolantloops.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.coolantloops.common.util.CoolantLocalization;
 import com.gtnewhorizons.coolantloops.engine.CoolantFluidProperty;
+import com.gtnewhorizons.coolantloops.engine.CoolantLoopEngine;
 import com.gtnewhorizons.coolantloops.engine.LoopGraphCrawler;
 
 import gregtech.api.enums.Materials;
@@ -486,7 +487,7 @@ public class CoolantPumpReservoir {
                         pump.getBiomeTemperatureCelsius());
                     setReservoirTemperatureCelsius(resTemp);
                 }
-                if (resTemp < declaredMelting) {
+                if (resTemp < declaredMelting - CoolantLoopEngine.FREEZE_TOLERANCE_CELSIUS) {
                     pump.setLoopStatus(
                         CoolantLocalization.format(
                             "coolantloops.pump.status.refuse_solidify",

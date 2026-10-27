@@ -1306,7 +1306,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             if (mCurrentFillLiters > 0 && !mEngine.getSegments()
                 .isEmpty()) {
                 double minLoopTemp = mEngine.getMinLoopTempCelsius();
-                if (minLoopTemp < declaredMelting) {
+                if (minLoopTemp < declaredMelting - CoolantLoopEngine.FREEZE_TOLERANCE_CELSIUS) {
                     mEngine.setRuptured(true);
                     mEngine.setFailureReason(
                         CoolantLocalization.format(
@@ -1327,7 +1327,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                         currentProp,
                         getBiomeTemperatureCelsius());
                 }
-                if (resTemp < declaredMelting) {
+                if (resTemp < declaredMelting - CoolantLoopEngine.FREEZE_TOLERANCE_CELSIUS) {
                     mLoopState = LoopState.STOPPED;
                     mEngine.setPumpPowered(false);
                     mEngine.setPumpMechanicalPowerWatts(0.0);
@@ -1341,7 +1341,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 } else if (!mEngine.getSegments()
                     .isEmpty()) {
                         double minLoopTemp = mEngine.getMinLoopTempCelsius();
-                        if (minLoopTemp < declaredMelting) {
+                        if (minLoopTemp < declaredMelting - CoolantLoopEngine.FREEZE_TOLERANCE_CELSIUS) {
                             mLoopState = LoopState.STOPPED;
                             mEngine.setPumpPowered(false);
                             mEngine.setPumpMechanicalPowerWatts(0.0);
@@ -1559,7 +1559,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 reservoirFluid != null ? reservoirFluid.getFluid() : null,
                 reservoirFluid,
                 currentProp);
-            if (minLoopTemp < declaredMelting) {
+            if (minLoopTemp < declaredMelting - CoolantLoopEngine.FREEZE_TOLERANCE_CELSIUS) {
                 mEngine.setRuptured(true);
                 mEngine.setFailureReason(
                     CoolantLocalization.format(
