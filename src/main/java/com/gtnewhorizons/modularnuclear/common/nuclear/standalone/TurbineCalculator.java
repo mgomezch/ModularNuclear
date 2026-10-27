@@ -6,54 +6,87 @@ package com.gtnewhorizons.modularnuclear.common.nuclear.standalone;
  */
 public class TurbineCalculator {
 
+    /** An XL turbine's flow and power relative to a large turbine with the same rotor */
+    public static final double XL_FLOW_MULTIPLIER = 16.0;
+
     public static class TurbineMaterial {
 
         private static final java.util.Map<String, TurbineMaterial> REGISTRY = new java.util.LinkedHashMap<>();
 
-        public static final TurbineMaterial HSS_E = register(
-            new TurbineMaterial("HSS_E", "HSS-E", 1.75, 1.16, 76800, 1409106));
-        public static final TurbineMaterial HSS_S = register(
-            new TurbineMaterial("HSS_S", "HSS-S", 1.85, 1.23, 76800, 1705018));
+        // Rotor stats as GregTech defines them (tool speed, tool quality, steam flow multiplier); efficiency and
+        // flow follow gregtech.api.util.TurbineStatCalculator. TurbineCalculatorGregTechTest checks them against
+        // the game.
+        public static final TurbineMaterial HSS_E = register(new TurbineMaterial("HSS_E", "HSS-E", 32f, 7, 1f));
+        public static final TurbineMaterial HSS_S = register(new TurbineMaterial("HSS_S", "HSS-S", 32f, 8, 1f));
         public static final TurbineMaterial ELVEN_ELEMENTIUM = register(
-            new TurbineMaterial("ELVEN_ELEMENTIUM", "Elven Elementium", 1.75, 1.16, 48000, 880691));
+            new TurbineMaterial("ELVEN_ELEMENTIUM", "Elven Elementium", 20f, 7, 1f));
         public static final TurbineMaterial ORINARUKON = register(
-            new TurbineMaterial("ORINARUKON", "Oriharukon", 1.55, 1.05, 76800, 1100000));
+            new TurbineMaterial("ORINARUKON", "Oriharukon", 32f, 5, 1f));
         public static final TurbineMaterial SHADOW_METAL = register(
-            new TurbineMaterial("SHADOW_METAL", "Shadow Metal", 1.45, 0.98, 76800, 950000));
+            new TurbineMaterial("SHADOW_METAL", "Shadow Metal", 32f, 4, 1f));
         public static final TurbineMaterial ICHORIUM = register(
-            new TurbineMaterial("ICHORIUM", "Ichorium", 2.25, 1.52, 460800, 12000000));
+            new TurbineMaterial("ICHORIUM", "Ichorium", 32f, 12, 6f));
         public static final TurbineMaterial DURANIUM = register(
-            new TurbineMaterial("DURANIUM", "Duranium", 2.15, 1.66, 1228800, 103778507));
+            new TurbineMaterial("DURANIUM", "Duranium", 32f, 11, 16f));
         public static final TurbineMaterial GAIA_SPIRIT = register(
-            new TurbineMaterial("GAIA_SPIRIT", "Gaia Spirit", 1.95, 1.54, 1125000, 3654858));
+            new TurbineMaterial("GAIA_SPIRIT", "Gaia Spirit", 32f, 12, 1f));
         public static final TurbineMaterial ADAMANTIUM = register(
-            new TurbineMaterial("ADAMANTIUM", "Adamantium", 1.80, 1.58, 1200000, 5360459));
+            new TurbineMaterial("ADAMANTIUM", "Adamantium", 32f, 10, 1f));
         public static final TurbineMaterial EXT_UNST_NAQUADAH = register(
-            new TurbineMaterial("EXT_UNST_NAQUADAH", "Ext. Unst. Naquadah", 1.90, 1.66, 4000000, 20269239));
+            new TurbineMaterial("EXT_UNST_NAQUADAH", "Ext. Unst. Naquadah", 100f, 11, 1f));
         public static final TurbineMaterial COSMIC_NEUTRONIUM = register(
-            new TurbineMaterial("COSMIC_NEUTRONIUM", "Cosmic Neutronium", 2.00, 1.74, 5000000, 23544749));
+            new TurbineMaterial("COSMIC_NEUTRONIUM", "Cosmic Neutronium", 96f, 12, 6f));
         public static final TurbineMaterial INFINITY = register(
-            new TurbineMaterial("INFINITY", "Infinity", 2.12, 2.12, 122138061, 162850748));
+            new TurbineMaterial("INFINITY", "Infinity", 256f, 17, 1f));
         public static final TurbineMaterial TUNGSTENSTEEL = register(
-            new TurbineMaterial("TUNGSTENSTEEL", "Tungstensteel", 1.30, 0.88, 48000, 600000));
-        public static final TurbineMaterial TITANIUM = register(
-            new TurbineMaterial("TITANIUM", "Titanium", 1.20, 0.81, 32000, 400000));
+            new TurbineMaterial("TUNGSTENSTEEL", "Tungstensteel", 8f, 4, 1f));
+        public static final TurbineMaterial TITANIUM = register(new TurbineMaterial("TITANIUM", "Titanium", 7f, 3, 1f));
 
         public final String name;
         public final String displayName;
+        public final float toolSpeed;
+        public final int toolQuality;
+        public final float steamMultiplier;
+        // A Large rotor's efficiency and its XL turbine's optimal steam flow (L/t), for listings
         public final double tightEff;
         public final double looseEff;
         public final double optFlowLargeTight;
         public final double optFlowLargeLoose;
 
-        public TurbineMaterial(String name, String displayName, double tightEff, double looseEff,
-            double optFlowLargeTight, double optFlowLargeLoose) {
+        public TurbineMaterial(String name, String displayName, float toolSpeed, int toolQuality,
+            float steamMultiplier) {
             this.name = name != null ? name : "UNKNOWN";
             this.displayName = displayName != null ? displayName : this.name;
-            this.tightEff = tightEff;
-            this.looseEff = looseEff;
-            this.optFlowLargeTight = optFlowLargeTight;
-            this.optFlowLargeLoose = optFlowLargeLoose;
+            this.toolSpeed = toolSpeed;
+            this.toolQuality = toolQuality;
+            this.steamMultiplier = steamMultiplier;
+            this.tightEff = efficiency(TurbineSize.LARGE, FittingMode.TIGHT);
+            this.looseEff = efficiency(TurbineSize.LARGE, FittingMode.LOOSE);
+            this.optFlowLargeTight = xlOptimalSteamFlow(TurbineSize.LARGE, FittingMode.TIGHT);
+            this.optFlowLargeLoose = xlOptimalSteamFlow(TurbineSize.LARGE, FittingMode.LOOSE);
+        }
+
+        private float baseEfficiency(TurbineSize size) {
+            return 0.5F + (0.5F + (size.baseDamage + toolQuality)) * 0.1F;
+        }
+
+        /** Steam efficiency of a rotor of this size, as TurbineStatCalculator computes it. */
+        public double efficiency(TurbineSize size, FittingMode mode) {
+            float base = baseEfficiency(size);
+            if (mode == FittingMode.TIGHT) return base;
+            return (float) (-0.2F + Math.round(base * 85.0F) * 0.01D) * 0.9F;
+        }
+
+        /** Optimal steam flow (L/t) of one rotor of this size in a large turbine. */
+        public double optimalSteamFlow(TurbineSize size, FittingMode mode) {
+            float flow = size.speedMultiplier * toolSpeed * 50.0F * steamMultiplier;
+            if (mode == FittingMode.TIGHT) return flow;
+            return 3.0F * flow * (float) Math.pow(1.1F, (baseEfficiency(size) - 0.8F) * 20.0F);
+        }
+
+        /** Optimal steam flow (L/t) of an XL turbine, which runs 12 rotors at 16x a large turbine's flow. */
+        public double xlOptimalSteamFlow(TurbineSize size, FittingMode mode) {
+            return XL_FLOW_MULTIPLIER * optimalSteamFlow(size, mode);
         }
 
         public static synchronized TurbineMaterial register(TurbineMaterial mat) {
@@ -154,17 +187,23 @@ public class TurbineCalculator {
 
     public enum TurbineSize {
 
-        SMALL("Small", 1.0 / 3.0),
-        NORMAL("Normal", 2.0 / 3.0),
-        LARGE("Large", 1.0),
-        HUGE("Huge", 4.0 / 3.0);
+        // GregTech's rotor speed multiplier and base damage (ToolTurbineSmall ... ToolTurbineHuge)
+        SMALL("Small", 1.0F, 0.0F),
+        NORMAL("Normal", 2.0F, 2.5F),
+        LARGE("Large", 3.0F, 5.0F),
+        HUGE("Huge", 4.0F, 7.5F);
 
         public final String displayName;
+        public final float speedMultiplier;
+        public final float baseDamage;
+        /** Flow relative to a Large rotor */
         public final double multiplier;
 
-        TurbineSize(String displayName, double multiplier) {
+        TurbineSize(String displayName, float speedMultiplier, float baseDamage) {
             this.displayName = displayName;
-            this.multiplier = multiplier;
+            this.speedMultiplier = speedMultiplier;
+            this.baseDamage = baseDamage;
+            this.multiplier = speedMultiplier / 3.0;
         }
 
         public static TurbineSize fromString(String name) {
@@ -309,16 +348,9 @@ public class TurbineCalculator {
         double directPowerEU, TurbineMaterial material, TurbineSize size, FittingMode mode, MachineLimits limits) {
         PowerEstimationResult res = new PowerEstimationResult();
 
-        boolean isTight = (mode == FittingMode.TIGHT);
-        double eff = isTight ? material.tightEff : material.looseEff;
-        // User progression specifications:
-        // Huge Duranium Tight achieves 240% efficiency
-        if (material == TurbineMaterial.DURANIUM && size == TurbineSize.HUGE && isTight) {
-            eff = 2.40;
-        }
+        double eff = material.efficiency(size, mode);
         res.efficiency = eff;
-        double baseOptFlow = isTight ? material.optFlowLargeTight : material.optFlowLargeLoose;
-        double xlstOptFlow = baseOptFlow * size.multiplier;
+        double xlstOptFlow = material.xlOptimalSteamFlow(size, mode);
 
         // 1. Coolant Heat Exchanger Stage:
         // EV (tier <= 0): Large Heat Exchanger (LHE) -> converts Hot Coolant to Regular Steam (1L -> 400L Steam)
@@ -444,7 +476,7 @@ public class TurbineCalculator {
         if (tier <= com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_ELECTRUM) {
             // EV: Large Steam Turbine (LST)
             res.isLST = true;
-            double lstOptFlow = xlstOptFlow / 16.0;
+            double lstOptFlow = material.optimalSteamFlow(size, mode);
             res.optFlowPerTurbine = lstOptFlow;
 
             // Only regular steam can be processed in LST (at 0.5 EU/L * efficiency)
@@ -595,13 +627,16 @@ public class TurbineCalculator {
         public final double efficiency;
         public final String description;
 
-        public ScenarioTurbineConfig(TurbineMaterial material, TurbineSize size, FittingMode mode, double efficiency,
-            String description) {
+        public ScenarioTurbineConfig(TurbineMaterial material, TurbineSize size, FittingMode mode) {
             this.material = material;
             this.size = size;
             this.mode = mode;
-            this.efficiency = efficiency;
-            this.description = description;
+            this.efficiency = material.efficiency(size, mode);
+            this.description = size.displayName + " "
+                + material.displayName
+                + " ("
+                + Math.round(efficiency * 100)
+                + "%)";
         }
     }
 
@@ -620,39 +655,24 @@ public class TurbineCalculator {
             case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_ELECTRUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.ORINARUKON,
                 TurbineSize.NORMAL,
-                FittingMode.TIGHT,
-                1.55,
-                "Normal Oriharukon (155%)");
+                FittingMode.TIGHT);
             case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_PLATINUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.ICHORIUM,
                 TurbineSize.LARGE,
-                FittingMode.TIGHT,
-                2.25,
-                "Large Ichorium (225%)");
+                FittingMode.TIGHT);
             case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_OSMIUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.DURANIUM,
                 TurbineSize.LARGE,
-                FittingMode.TIGHT,
-                2.15,
-                "Large Duranium (215%)");
+                FittingMode.TIGHT);
             case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_QUANTIUM, com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.DURANIUM,
                 TurbineSize.HUGE,
-                FittingMode.TIGHT,
-                2.40,
-                "Huge Duranium (240%)");
+                FittingMode.TIGHT);
             case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.INFINITY,
                 TurbineSize.HUGE,
-                FittingMode.TIGHT,
-                2.12,
-                "Huge Infinity (212%)");
-            default -> new ScenarioTurbineConfig(
-                TurbineMaterial.ORINARUKON,
-                TurbineSize.NORMAL,
-                FittingMode.TIGHT,
-                1.55,
-                "Normal Oriharukon (155%)");
+                FittingMode.TIGHT);
+            default -> new ScenarioTurbineConfig(TurbineMaterial.ORINARUKON, TurbineSize.NORMAL, FittingMode.TIGHT);
         };
     }
 
@@ -661,39 +681,24 @@ public class TurbineCalculator {
             case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_ELECTRUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.ORINARUKON,
                 TurbineSize.NORMAL,
-                FittingMode.LOOSE,
-                1.05,
-                "Normal Oriharukon (105%)");
+                FittingMode.LOOSE);
             case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_PLATINUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.HSS_S,
                 TurbineSize.LARGE,
-                FittingMode.LOOSE,
-                1.23,
-                "Large HSS-S (123%)");
+                FittingMode.LOOSE);
             case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_OSMIUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.GAIA_SPIRIT,
                 TurbineSize.LARGE,
-                FittingMode.LOOSE,
-                1.54,
-                "Large Gaia Spirit (154%)");
+                FittingMode.LOOSE);
             case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_QUANTIUM, com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.DURANIUM,
                 TurbineSize.HUGE,
-                FittingMode.LOOSE,
-                1.66,
-                "Huge Duranium (166%)");
+                FittingMode.LOOSE);
             case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.INFINITY,
                 TurbineSize.HUGE,
-                FittingMode.LOOSE,
-                2.12,
-                "Huge Infinity (212%)");
-            default -> new ScenarioTurbineConfig(
-                TurbineMaterial.ORINARUKON,
-                TurbineSize.NORMAL,
-                FittingMode.LOOSE,
-                1.05,
-                "Normal Oriharukon (105%)");
+                FittingMode.LOOSE);
+            default -> new ScenarioTurbineConfig(TurbineMaterial.ORINARUKON, TurbineSize.NORMAL, FittingMode.LOOSE);
         };
     }
 
