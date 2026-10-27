@@ -524,6 +524,8 @@ public class NuclearSimWasmBridge {
             NuclearSimulationEngine.setHuPerDegree(d);
         } else if ("baseHatchConductance".equals(key) || "baseConductance".equals(key) || "conductance".equals(key)) {
             NuclearSimulationEngine.setBaseHatchConductance(d);
+        } else if ("coreHatchHeatCapacity".equals(key)) {
+            NuclearSimulationEngine.setCoreHatchHeatCapacity(d);
         } else if ("reactorDamage".equals(key) || "damage".equals(key)) {
             if (grid != null) {
                 grid.setReactorDamage(d);
@@ -1499,6 +1501,9 @@ public class NuclearSimWasmBridge {
             .append(",");
         sb.append("\"baseHatchConductance\":")
             .append(fmt1(NuclearSimulationEngine.baseHatchConductance))
+            .append(",");
+        sb.append("\"coreHatchHeatCapacity\":")
+            .append(fmt1(NuclearSimulationEngine.coreHatchHeatCapacity))
             .append(",");
         sb.append("\"gridConductionMultiplier\":")
             .append(fmt3(NuclearSimulationEngine.gridConductionMultiplier))

@@ -233,6 +233,14 @@ public class NuclearGridTile implements INuclearTile {
     }
 
     @Override
+    public double getHeatCapacity() {
+        return hatch != null
+            ? com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine
+                .getCoreHatchHeatCapacity(hatch.mTier)
+            : com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.HU_PER_DEGREE;
+    }
+
+    @Override
     public double getHeatTransferCoeff() {
         return heatTransferCoeff;
     }

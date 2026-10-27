@@ -5008,22 +5008,21 @@ public class NuclearSimulationEngineTest {
         // When efficiency is 0: zero heat transfer
         assertEquals(0.0, NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 0.0), 1e-6);
 
-        // Tier 3 (HV, mult=2.0, base=2.0 => U = 4.0 EU/(t·°C)), Ch = 32.0 EU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0
+        // Tier 3 (HV, mult=2.0, base=2.0 => U = 4.0), Ch = 16 * 2^3 = 128 HU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0
         // (20 ticks)
-        // Expected Q = 32.0 * 100.0 * (1 - exp(-4.0 / 32.0)) = 3200 * (1 - exp(-0.125)) = 376.01 EU
+        // Expected Q = 128 * 100 * (1 - exp(-4.0 / 128)) = 393.81 HU
         double qHV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 1.0, 20);
-        assertEquals(376.01, qHV, 0.02);
+        assertEquals(393.81, qHV, 0.02);
 
-        // Tier 4 (EV, mult=4.0, base=2.0 => U = 8.0 EU/(t·°C)), Ch = 32.0 EU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0
-        // (20 ticks)
-        // Expected Q = 32.0 * 100.0 * (1 - exp(-8.0 / 32.0)) = 3200 * (1 - exp(-0.25)) = 707.84 EU
+        // Tier 4 (EV, mult=4.0, base=2.0 => U = 8.0), Ch = 256 HU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0 (20 ticks)
+        // Expected Q = 256 * 100 * (1 - exp(-8.0 / 256)) = 787.63 HU
         double qEV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 4, 1.0, 20);
-        assertEquals(707.84, qEV, 0.02);
+        assertEquals(787.63, qEV, 0.02);
 
         // Default 5 ticks per cycle (dt = 0.25)
-        // Q = 3200 * (1 - exp(-4.0 * 0.25 / 32.0)) = 3200 * (1 - exp(-0.03125)) = 98.45 EU
+        // Q = 12800 * (1 - exp(-4.0 * 0.25 / 128)) = 99.61 HU
         double qHV5 = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 1.0);
-        assertEquals(98.45, qHV5, 0.02);
+        assertEquals(99.61, qHV5, 0.02);
 
         // Higher tier transfers more heat
         assertTrue(qEV > qHV);
@@ -5031,7 +5030,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testHatchCoolingNeverOvershootsSinkTempInSingleTick() {
-        // In a physical lumped-capacitance model with Ch = HU_PER_DEGREE = 32.0,
+        // In a physical lumped-capacitance model with the hatch's own heat capacity Ch,
         // the temperature drop in 1 tick (Q / Ch) must be strictly less than DeltaT for all tiers.
         double temp = 250.0;
         double sinkTemp = 100.0;
@@ -5039,7 +5038,7 @@ public class NuclearSimulationEngineTest {
 
         for (int tier = 1; tier <= 8; tier++) {
             double qMax = NuclearSimulationEngine.calculateConductiveHeatTransfer(temp, sinkTemp, tier, 1.0);
-            double tempDrop = qMax / NuclearSimulationEngine.HU_PER_DEGREE;
+            double tempDrop = qMax / NuclearSimulationEngine.getCoreHatchHeatCapacity(tier);
             assertTrue(
                 tempDrop < deltaT,
                 "Tier " + tier + " temp drop (" + tempDrop + ") must be strictly less than DeltaT (" + deltaT + ")");
@@ -5066,8 +5065,8 @@ public class NuclearSimulationEngineTest {
             NuclearSimulationEngine.PIPE_TIER_PLATINUM);
         grid.loadPreset("BEST_PLATINUM_7X7");
 
-        // Run 50 ticks of reactor simulation
-        for (int t = 0; t < 50; t++) {
+        // Run 300 cycles: the IV hatches hold 512 HU/°C each and take a while to warm up
+        for (int t = 0; t < 300; t++) {
             grid.step();
         }
 
@@ -5102,42 +5101,32 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
-    void testCoolantHatchHigherTierRunsCooler() {
-        // Compares cooling rate of MV (tier 2) vs HV (tier 3) vs EV (tier 4) hatches
-        // starting at 200°C. Higher tier hatches must achieve greater cooling and lower temperature.
+    void testCoolantHatchHigherTierRemovesMoreHeat() {
+        // MV (tier 2), HV (tier 3) and EV (tier 4) hatches starting at 200°C. A higher tier conducts more and holds
+        // more heat per degree, so it removes more heat from the same temperature.
         SimTile hatchMV = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
         hatchMV.setTier(2); // MV
         hatchMV.setInputFluidAmount(8000);
         hatchMV.setTemperature(200.0);
-        hatchMV.coolantSubstep(cycleSeconds(), 1.0);
+        double qMV = hatchMV.coolantSubstep(cycleSeconds(), 1.0);
         hatchMV.nuclearTick(1.0);
 
         SimTile hatchHV = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
         hatchHV.setTier(3); // HV
         hatchHV.setInputFluidAmount(8000);
         hatchHV.setTemperature(200.0);
-        hatchHV.coolantSubstep(cycleSeconds(), 1.0);
+        double qHV = hatchHV.coolantSubstep(cycleSeconds(), 1.0);
         hatchHV.nuclearTick(1.0);
 
         SimTile hatchEV = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
         hatchEV.setTier(4); // EV
         hatchEV.setInputFluidAmount(8000);
         hatchEV.setTemperature(200.0);
-        hatchEV.coolantSubstep(cycleSeconds(), 1.0);
+        double qEV = hatchEV.coolantSubstep(cycleSeconds(), 1.0);
         hatchEV.nuclearTick(1.0);
 
-        assertTrue(
-            hatchMV.getTemperature() > hatchHV.getTemperature(),
-            "MV hatch temp (" + hatchMV.getTemperature()
-                + "°C) must be higher than HV hatch temp ("
-                + hatchHV.getTemperature()
-                + "°C)");
-        assertTrue(
-            hatchHV.getTemperature() > hatchEV.getTemperature(),
-            "HV hatch temp (" + hatchHV.getTemperature()
-                + "°C) must be higher than EV hatch temp ("
-                + hatchEV.getTemperature()
-                + "°C)");
+        assertTrue(qHV > qMV, "HV hatch must remove more heat (" + qHV + " HU) than MV (" + qMV + " HU)");
+        assertTrue(qEV > qHV, "EV hatch must remove more heat (" + qEV + " HU) than HV (" + qHV + " HU)");
         assertTrue(
             hatchEV.getTemperature() > 100.0,
             "EV hatch temp (" + hatchEV.getTemperature()

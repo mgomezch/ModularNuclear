@@ -602,7 +602,13 @@ public class SimTile implements INuclearTile {
     @Override
     public void addHeat(double heat) {
         this.heatHu += heat;
-        this.temperature = Math.max(-273.15, this.temperature + heat / NuclearSimulationEngine.HU_PER_DEGREE);
+        this.temperature = Math.max(-273.15, this.temperature + heat / getHeatCapacity());
+    }
+
+    @Override
+    public double getHeatCapacity() {
+        return isCoolantHatch() || isLiquidFuelHatch() ? NuclearSimulationEngine.getCoreHatchHeatCapacity(tier)
+            : NuclearSimulationEngine.HU_PER_DEGREE;
     }
 
     public double getHeatHu() {
@@ -1042,7 +1048,7 @@ public class SimTile implements INuclearTile {
         double q = TileTick.coolantSubstepHeat(temperature, sink, tier, efficiency, dtSub, remaining);
         if (q > 0.0) {
             pendingCoolantHeat += q;
-            temperature -= q / NuclearSimulationEngine.HU_PER_DEGREE;
+            temperature -= q / getHeatCapacity();
         }
         return q;
     }

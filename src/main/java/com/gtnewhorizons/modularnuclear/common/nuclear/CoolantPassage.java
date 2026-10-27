@@ -91,6 +91,15 @@ public final class CoolantPassage {
      */
     public static double exchange(double cellTempC, double flowM3s, double dtSeconds, CoolantFluidProperty fluid,
         LoopSegment segment) {
+        return exchange(cellTempC, NuclearSimulationEngine.HU_PER_DEGREE, flowM3s, dtSeconds, fluid, segment);
+    }
+
+    /**
+     * As {@link #exchange(double, double, double, CoolantFluidProperty, LoopSegment)}, for a cell of the given heat
+     * capacity (HU/°C).
+     */
+    public static double exchange(double cellTempC, double cellCapacityHu, double flowM3s, double dtSeconds,
+        CoolantFluidProperty fluid, LoopSegment segment) {
         if (flowM3s <= 1e-6 || fluid == null || segment == null) return 0.0;
         double coolantTemp = segment.getCurrentTemperatureCelsius();
         double deltaT = cellTempC - coolantTemp;
@@ -111,7 +120,7 @@ public final class CoolantPassage {
         double h = (nu * kThermal) / diameter * NuclearSimulationEngine.coolantPassageHeatTransferMultiplier;
         double heatJoules = h * area * deltaT * dtSeconds;
 
-        double cellCapacity = NuclearSimulationEngine.HU_PER_DEGREE * JOULES_PER_HU;
+        double cellCapacity = cellCapacityHu * JOULES_PER_HU;
         double segmentCapacity = segment.getVolume() * rho * cp;
         double maxJoules = segmentCapacity > 1e-4
             ? (cellCapacity * segmentCapacity) / (cellCapacity + segmentCapacity) * Math.abs(deltaT)

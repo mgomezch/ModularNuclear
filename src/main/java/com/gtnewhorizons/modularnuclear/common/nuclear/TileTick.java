@@ -64,10 +64,10 @@ public final class TileTick {
      */
     public static double coolantSubstepHeat(double temp, double sinkTemp, int hatchTier, double efficiency,
         double dtSub, double remainingCapacityHu) {
+        double ch = NuclearSimulationEngine.getCoreHatchHeatCapacity(hatchTier);
         if (temp <= sinkTemp || remainingCapacityHu <= 0.0) return 0.0;
         double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
         double conductance = NuclearSimulationEngine.getHatchConductance(hatchTier) * effFactor;
-        double ch = NuclearSimulationEngine.HU_PER_DEGREE;
         double q = ch * (temp - sinkTemp) * (1.0 - Math.exp(-conductance * dtSub / ch));
         return Math.min(q, remainingCapacityHu);
     }

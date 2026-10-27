@@ -1360,10 +1360,11 @@ public class CoolantLoopModel {
                 for (int i = 0; i < loop.passageTiles.size(); i++) {
                     SimTile tile = loop.passageTiles.get(i);
                     LoopSegment seg = loop.passageSegments.get(i);
+                    double capacity = tile.getHeatCapacity();
                     double hu = CoolantPassage
-                        .exchange(tile.getTemperature(), flow * seg.getFlowFraction(), 0.05, fluid, seg);
+                        .exchange(tile.getTemperature(), capacity, flow * seg.getFlowFraction(), 0.05, fluid, seg);
                     if (hu == 0.0) continue;
-                    tile.setTemperature(tile.getTemperature() - hu / NuclearSimulationEngine.HU_PER_DEGREE);
+                    tile.setTemperature(tile.getTemperature() - hu / capacity);
                     if (hu > 0) {
                         tile.setLastHeatOutput(tile.getLastHeatOutput() + hu);
                         extractedJoules += hu * CoolantPassage.JOULES_PER_HU;

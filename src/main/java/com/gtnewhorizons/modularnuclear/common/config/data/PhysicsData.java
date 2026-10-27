@@ -29,6 +29,8 @@ public class PhysicsData {
     public int ticksPerCycle = NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE;
     /** Conductance of a core hatch cell to its neighbours, before the tier's multiplier (EU/(t·°C)). */
     public double baseHatchConductance = NuclearSimulationEngine.DEFAULT_BASE_HATCH_CONDUCTANCE;
+    /** Heat capacity of a tier-0 core hatch (HU/°C); a tier-t hatch holds 2^t times this, as its tank does. */
+    public double coreHatchHeatCapacity = NuclearSimulationEngine.DEFAULT_CORE_HATCH_HEAT_CAPACITY;
 
     // Coolant passage (high-pressure hatch pair) as a core cell
     /** Conduction coefficient of the passage cell (metal pressure tube). */
@@ -116,6 +118,7 @@ public class PhysicsData {
         d.t10WearFactor = getDouble(map, "t10_wear_factor", d.t10WearFactor);
         d.ticksPerCycle = getInt(map, "ticks_per_cycle", getInt(map, "ticksPerCycle", d.ticksPerCycle));
         d.baseHatchConductance = getDouble(map, "base_hatch_conductance", d.baseHatchConductance);
+        d.coreHatchHeatCapacity = getDouble(map, "core_hatch_heat_capacity", d.coreHatchHeatCapacity);
         d.coolantPassageConduction = getDouble(map, "coolant_passage_conduction", d.coolantPassageConduction);
         d.coolantPassageScattering = getDouble(map, "coolant_passage_scattering", d.coolantPassageScattering);
         d.coolantPassageFastAbsorption = getDouble(
@@ -159,6 +162,7 @@ public class PhysicsData {
         m.put("neutron_yield_multiplier", neutronYieldMultiplier);
         m.put("coolant_passage_heat_transfer_multiplier", coolantPassageHeatTransferMultiplier);
         m.put("base_hatch_conductance", baseHatchConductance);
+        m.put("core_hatch_heat_capacity", coreHatchHeatCapacity);
         m.put("coolant_passage_conduction", coolantPassageConduction);
         m.put("coolant_passage_scattering", coolantPassageScattering);
         m.put("coolant_passage_fast_absorption", coolantPassageFastAbsorption);

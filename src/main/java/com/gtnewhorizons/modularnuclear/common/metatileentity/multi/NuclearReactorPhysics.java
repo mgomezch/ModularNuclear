@@ -69,19 +69,21 @@ public class NuclearReactorPhysics {
     }
 
     public static void addTileHeat(NuclearGridTile tile, double heatHu) {
+        // A control rod below shares its cell's temperature, so it warms with the cell's heat capacity
+        double deltaTemp = heatHu / tile.getHeatCapacity();
         if (tile.isBus()) {
             tile.getBus().mHeatHu += heatHu;
-            tile.getBus().mTemperature += heatHu / NuclearSimulationEngine.HU_PER_DEGREE;
+            tile.getBus().mTemperature += deltaTemp;
         } else if (tile.isHatch()) {
             tile.getHatch().mHeatHu += heatHu;
-            tile.getHatch().mTemperature += heatHu / NuclearSimulationEngine.HU_PER_DEGREE;
+            tile.getHatch().mTemperature += deltaTemp;
         } else if (tile.isHighPressureHatch()) {
             tile.getHighPressureHatch()
                 .addHeat(heatHu);
         }
         if (tile.hasControlRod()) {
             tile.getBottomControlRod().mHeatHu += heatHu;
-            tile.getBottomControlRod().mTemperature += heatHu / NuclearSimulationEngine.HU_PER_DEGREE;
+            tile.getBottomControlRod().mTemperature += deltaTemp;
         }
     }
 
@@ -948,7 +950,7 @@ public class NuclearReactorPhysics {
         double q = TileTick.coolantSubstepHeat(hatch.mTemperature, sink, hatch.mTier, efficiency, dtSub, remaining);
         if (q > 0.0) {
             hatch.mPendingCoolantHeat += q;
-            hatch.mTemperature -= q / NuclearSimulationEngine.HU_PER_DEGREE;
+            hatch.mTemperature -= q / NuclearSimulationEngine.getCoreHatchHeatCapacity(hatch.mTier);
         }
         return q;
     }

@@ -13,6 +13,14 @@ public interface INuclearTile {
     void setTemperature(double temperature);
 
     /**
+     * Heat (HU) that raises this tile's temperature by 1 °C: a nuclear core hatch's grows with its tier, every other
+     * tile holds the configured HU per degree.
+     */
+    default double getHeatCapacity() {
+        return NuclearSimulationEngine.HU_PER_DEGREE;
+    }
+
+    /**
      * Deposits heat into this tile in Hu (heat units, default 32 Hu = 1 °C).
      */
     void addHeat(double heatHu);

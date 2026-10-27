@@ -79,6 +79,7 @@ public final class SimOptions {
             "thermal_damage_mult",
             "thermal_absorption_damage_mult");
         engine(t, NuclearSimulationEngine::setHuPerDegree, "hu_per_degree");
+        engine(t, NuclearSimulationEngine::setCoreHatchHeatCapacity, "core_hatch_heat_capacity", "hatch_heat_capacity");
         engine(
             t,
             NuclearSimulationEngine::setGridConductionMultiplier,

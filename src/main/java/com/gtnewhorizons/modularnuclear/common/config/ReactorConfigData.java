@@ -144,6 +144,7 @@ public final class ReactorConfigData {
         NuclearSimulationEngine.coolantPassageHeatTransferMultiplier = Math
             .max(0.0, physicsData.coolantPassageHeatTransferMultiplier);
         NuclearSimulationEngine.setBaseHatchConductance(physicsData.baseHatchConductance);
+        NuclearSimulationEngine.setCoreHatchHeatCapacity(physicsData.coreHatchHeatCapacity);
         NuclearSimulationEngine.denseNbaseMultiplier = physicsData.denseNbaseMultiplier;
         NuclearSimulationEngine.denseFissionMultiplier = physicsData.denseFissionMultiplier;
         NuclearSimulationEngine.excitedNbaseMultiplier = physicsData.excitedNbaseMultiplier;

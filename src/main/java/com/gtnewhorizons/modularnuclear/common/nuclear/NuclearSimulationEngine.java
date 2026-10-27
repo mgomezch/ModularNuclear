@@ -249,6 +249,7 @@ public class NuclearSimulationEngine {
         wallReflectionChance = DEFAULT_WALL_REFLECTION_CHANCE;
         ic2CoolantHeatPerLiter = DEFAULT_IC2_COOLANT_HEAT_PER_LITER;
         baseHatchConductance = DEFAULT_BASE_HATCH_CONDUCTANCE;
+        coreHatchHeatCapacity = DEFAULT_CORE_HATCH_HEAT_CAPACITY;
         gridConductionMultiplier = DEFAULT_GRID_CONDUCTION_MULTIPLIER;
         setBeamEnergyToFastNeutronMultiplier(DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER);
         setAmbientTemperature(DEFAULT_AMBIENT_TEMP);
@@ -278,6 +279,22 @@ public class NuclearSimulationEngine {
 
     public static void setBaseHatchConductance(double val) {
         baseHatchConductance = Math.max(0.01, val);
+    }
+
+    public static final double DEFAULT_CORE_HATCH_HEAT_CAPACITY = 16.0;
+    /**
+     * Heat capacity (HU/°C) of a tier-0 nuclear core hatch's structure; a hatch of tier t holds this times 2^t, as its
+     * tank holds 8000 L times 2^t. Every other core tile holds {@link #HU_PER_DEGREE}.
+     */
+    public static double coreHatchHeatCapacity = DEFAULT_CORE_HATCH_HEAT_CAPACITY;
+
+    public static void setCoreHatchHeatCapacity(double val) {
+        coreHatchHeatCapacity = Math.max(0.1, val);
+    }
+
+    /** Heat capacity (HU/°C) of a nuclear core hatch of the given tier (LV=1 ... UHV=9), whatever it holds. */
+    public static double getCoreHatchHeatCapacity(int tier) {
+        return coreHatchHeatCapacity * Math.pow(2.0, Math.max(0, tier));
     }
 
     /**
@@ -357,7 +374,7 @@ public class NuclearSimulationEngine {
         double deltaT = temp - sinkTemp;
         double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
         double conductance = getHatchConductance(tier) * effFactor;
-        double ch = HU_PER_DEGREE;
+        double ch = getCoreHatchHeatCapacity(tier);
         double dt = (double) Math.max(1, ticks) / 20.0;
         return ch * deltaT * (1.0 - Math.exp(-conductance * dt / ch));
     }
@@ -939,17 +956,25 @@ public class NuclearSimulationEngine {
         // Explicit integration overshoots (temperatures oscillate) once a cell's combined transfer per sub-step
         // exceeds about half its temperature difference, so use enough sub-steps to keep the worst cell under 0.5.
         final double dt = (double) ticksPerCycle / 20.0;
+        // Conductances are given for a tile of HU_PER_DEGREE heat capacity; a tile holding more heat per degree
+        // changes temperature more slowly, so only the smallest capacity limits the step.
         double maxCoeff = BASE_HEAT_CONDUCTION;
+        double minCapacity = HU_PER_DEGREE;
+        double[][] capacity = new double[sizeX][sizeY];
         for (int x = 0; x < sizeX; x++) {
             for (int y = 0; y < sizeY; y++) {
                 if (grid[x][y] != null) {
                     maxCoeff = Math.max(maxCoeff, grid[x][y].getHeatTransferCoeff());
+                    capacity[x][y] = grid[x][y].getHeatCapacity();
+                    minCapacity = Math.min(minCapacity, capacity[x][y]);
                 }
             }
         }
-        final int SUBSTEPS = Math
-            .max(5, (int) Math.ceil(8.0 * maxCoeff * dt * Math.max(1.0, gridConductionMultiplier)));
-        double[][] deltaTemp = new double[sizeX][sizeY];
+        final int SUBSTEPS = Math.max(
+            5,
+            (int) Math
+                .ceil(8.0 * maxCoeff * dt * Math.max(1.0, gridConductionMultiplier) * HU_PER_DEGREE / minCapacity));
+        double[][] deltaHeat = new double[sizeX][sizeY];
 
         for (int sub = 0; sub < SUBSTEPS; sub++) {
             // The cycle's nuclear heat is released evenly over its sub-steps, interleaved with conduction and
@@ -957,7 +982,7 @@ public class NuclearSimulationEngine {
             // reactivity) lower the longer the cycle, making the reactor's state depend on the cycle length.
             for (int x = 0; x < sizeX; x++) {
                 for (int y = 0; y < sizeY; y++) {
-                    deltaTemp[x][y] = 0;
+                    deltaHeat[x][y] = 0;
                     if (pendingHeat[x][y] > 0.0 && grid[x][y] != null) {
                         grid[x][y].addHeat(pendingHeat[x][y] / SUBSTEPS);
                     }
@@ -980,21 +1005,26 @@ public class NuclearSimulationEngine {
                             INuclearTile tileB = grid[nx][ny];
                             double tempB = tileB.getTemperature();
                             double coeffB = Math.max(BASE_HEAT_CONDUCTION, tileB.getHeatTransferCoeff());
-                            double transferCoeff = 0.5 * (coeffA + coeffB) * dt / SUBSTEPS * gridConductionMultiplier;
+                            double transferCoeff = 0.5 * (coeffA + coeffB)
+                                * dt
+                                / SUBSTEPS
+                                * gridConductionMultiplier
+                                * HU_PER_DEGREE;
                             if (tempA > tempB) {
                                 double dampening = Math
                                     .max(tileA.getInsulationDampening(), tileB.getInsulationDampening());
                                 double flow = (tempA - tempB) * transferCoeff
                                     * (1.0 - Math.min(1.0, Math.max(0.0, dampening)));
-                                deltaTemp[x][y] -= flow;
-                                deltaTemp[nx][ny] += flow;
+                                deltaHeat[x][y] -= flow;
+                                deltaHeat[nx][ny] += flow;
                             }
                         } else {
                             // Heat loss to empty space / outer walls at ambient temperature
                             double dampening = tileA.getInsulationDampening();
                             double loss = (tempA - ambient) * (coeffA * dt / (2.0 * SUBSTEPS))
+                                * HU_PER_DEGREE
                                 * (1.0 - Math.min(1.0, Math.max(0.0, dampening)));
-                            deltaTemp[x][y] -= loss;
+                            deltaHeat[x][y] -= loss;
                         }
                     }
                 }
@@ -1004,7 +1034,8 @@ public class NuclearSimulationEngine {
                 for (int y = 0; y < sizeY; y++) {
                     INuclearTile tile = grid[x][y];
                     if (tile != null) {
-                        tile.setTemperature(Math.max(-273.15, tile.getTemperature() + deltaTemp[x][y]));
+                        tile.setTemperature(
+                            Math.max(-273.15, tile.getTemperature() + deltaHeat[x][y] / capacity[x][y]));
                     }
                 }
             }
@@ -1201,7 +1232,7 @@ public class NuclearSimulationEngine {
         double tempDiff = curTemp - ambient;
         if (Math.abs(tempDiff) < 1e-4) return null;
 
-        double huToMove = Math.min(Math.abs(tempDiff) * HU_PER_DEGREE, maxHU);
+        double huToMove = Math.min(Math.abs(tempDiff) * tile.getHeatCapacity(), maxHU);
         if (huToMove <= 0.0) return null;
 
         long euNeeded = ceilEU(huToMove * euPerHu);
@@ -1223,7 +1254,7 @@ public class NuclearSimulationEngine {
         if (!plan.tile.drainEnergy(euNeeded)) return;
 
         double curTemp = plan.tile.getTemperature();
-        double deltaTemp = huToMove / HU_PER_DEGREE;
+        double deltaTemp = huToMove / plan.tile.getHeatCapacity();
         if (curTemp > plan.ambient) {
             plan.tile.setTemperature(Math.max(plan.ambient, curTemp - deltaTemp));
         } else {
@@ -1289,7 +1320,7 @@ public class NuclearSimulationEngine {
         final double euPerHu;
         final double maxHU;
         final long maxEU;
-        double[] delta; // Per-cell temperature change (°C) after normalization and caps, parallel to cells
+        double[] delta; // Per-cell heat change (HU) after normalization and caps, parallel to cells
         double huMoved; // Heat moved (HU) after normalization and caps
 
         ExchangerPlan(INuclearTile tile, int[] cells, double weight, double euPerHu, double maxHU, long maxEU) {
@@ -1339,13 +1370,17 @@ public class NuclearSimulationEngine {
         if (n <= 1) return null;
         int[] cells = java.util.Arrays.copyOf(buf, n);
 
-        double sumTemp = 0.0;
-        for (int c : cells) sumTemp += snapshot[c];
-        double mean = sumTemp / n;
+        double sumHeat = 0.0, sumCapacity = 0.0;
+        for (int c : cells) {
+            double capacity = grid[c / sizeY][c % sizeY].getHeatCapacity();
+            sumHeat += capacity * snapshot[c];
+            sumCapacity += capacity;
+        }
+        double mean = sumHeat / sumCapacity;
         double totalHu = 0.0;
         for (int c : cells) {
             double diff = snapshot[c] - mean;
-            if (diff > 0) totalHu += diff * HU_PER_DEGREE;
+            if (diff > 0) totalHu += diff * grid[c / sizeY][c % sizeY].getHeatCapacity();
         }
         if (totalHu < MIN_ACTIVE_TRANSFER_HU) return null;
 
@@ -1359,8 +1394,9 @@ public class NuclearSimulationEngine {
     /**
      * Processes every heat exchanger on the grid as one atomic, order-independent action.
      * <p>
-     * 1. Every exchanger plans its equalization from the same temperature snapshot and expresses it as pairwise flows
-     * f_ij = w * (T_j - T_i) between all pairs of its cells.<br>
+     * 1. Every exchanger plans its equalization from the same temperature snapshot and expresses it as pairwise heat
+     * flows f_ij = w * min(C_i, C_j) * (T_j - T_i) between all pairs of its cells, C being each cell's heat capacity.
+     * A cell's temperature then moves by at most w * (T_j - T_i) towards each other cell, as between equal cells.<br>
      * 2. Pair weights from all exchangers are summed. Where exchangers overlap, a cell's total weight S_i can exceed
      * 1, which would overshoot (push a cell past every temperature around it). Each pair weight is therefore divided
      * by max(1, S_i, S_j). The result stays symmetric (heat is conserved) and every cell's total weight is at most 1,
@@ -1415,6 +1451,12 @@ public class NuclearSimulationEngine {
         List<ExchangerPlan> plans) {
         if (plans.isEmpty()) return;
         int cellCount = sizeX * sizeY;
+        double[] capacity = new double[cellCount];
+        for (int x = 0; x < sizeX; x++) {
+            for (int y = 0; y < sizeY; y++) {
+                if (grid[x][y] != null) capacity[x * sizeY + y] = grid[x][y].getHeatCapacity();
+            }
+        }
 
         // 1. Total weight of each cell across all exchangers (sum over all pairs it belongs to)
         double[] cellWeight = new double[cellCount];
@@ -1434,14 +1476,14 @@ public class NuclearSimulationEngine {
                 for (int j = i + 1; j < n; j++) {
                     int b = plan.cells[j];
                     double norm = Math.max(1.0, Math.max(cellWeight[a], cellWeight[b]));
-                    double flow = plan.weight / norm * (snapshot[b] - snapshot[a]);
+                    double flow = plan.weight / norm * Math.min(capacity[a], capacity[b]) * (snapshot[b] - snapshot[a]);
                     delta[i] += flow;
                     delta[j] -= flow;
                 }
             }
             double hu = 0.0;
             for (double d : delta) {
-                if (d < 0) hu -= d * HU_PER_DEGREE;
+                if (d < 0) hu -= d;
             }
             double cap = 1.0;
             if (hu > plan.maxHU) cap = plan.maxHU / hu;
@@ -1473,7 +1515,7 @@ public class NuclearSimulationEngine {
             for (int y = 0; y < sizeY; y++) {
                 int c = x * sizeY + y;
                 if (grid[x][y] != null && totalDelta[c] != 0.0) {
-                    grid[x][y].setTemperature(snapshot[c] + totalDelta[c]);
+                    grid[x][y].setTemperature(snapshot[c] + totalDelta[c] / capacity[c]);
                 }
             }
         }
