@@ -1101,6 +1101,7 @@ Configuration files are read from `config/modularnuclear/`. Each file may overri
 | `dense_nbase_multiplier` / `_fission_multiplier` | 0.5 / 1.2 | |
 | `excited_nbase_multiplier` / `_fission_multiplier` | 2.0 / 0.7 | |
 | `breeder_nbase_multiplier` / `_fission_multiplier` | 1.0 / 1.0 | |
+| `neutron_yield_multiplier` | 1.0 | Scales every fuel's base neutron emission, on top of its archetype multiplier |
 | `grid_conduction_multiplier` | 1.0 | Scales conduction between neighbouring columns |
 | `base_hatch_conductance` | 2.0 | Conductance of a core hatch column to its neighbours, before the tier multiplier |
 | `coolant_passage_heat_transfer_multiplier` | 1.0 | Scales convective transfer between a passage and its loop (§9.7) |

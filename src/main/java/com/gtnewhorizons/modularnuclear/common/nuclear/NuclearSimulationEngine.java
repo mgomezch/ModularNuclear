@@ -86,6 +86,9 @@ public class NuclearSimulationEngine {
 
     public static final double DEFAULT_FUEL_BURNUP_MULTIPLIER = 1.0;
     public static double fuelBurnupMultiplier = DEFAULT_FUEL_BURNUP_MULTIPLIER;
+    public static final double DEFAULT_NEUTRON_YIELD_MULT = 1.0;
+    /** Scales every fuel's base neutron emission, on top of its archetype's multiplier. */
+    public static double neutronYieldMultiplier = DEFAULT_NEUTRON_YIELD_MULT;
 
     /** Scales the convective heat transfer between a coolant passage and the loop coolant in it. */
     public static final double DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT = 1.0;
@@ -110,14 +113,16 @@ public class NuclearSimulationEngine {
     public static double breederNbaseMultiplier = DEFAULT_BREEDER_NBASE_MULT;
     public static double breederFissionMultiplier = DEFAULT_BREEDER_FISSION_MULT;
 
+    /** Base neutron multiplier of a fuel archetype, including the global neutron yield multiplier. */
     public static double getArchetypeNbaseMultiplier(String archetype) {
-        if (archetype == null) return standardNbaseMultiplier;
-        return switch (archetype.toLowerCase(java.util.Locale.ROOT)) {
+        double mult = archetype == null ? standardNbaseMultiplier
+            : switch (archetype.toLowerCase(java.util.Locale.ROOT)) {
             case "dense", "subcritical", "naquadah" -> denseNbaseMultiplier;
             case "excited", "driver" -> excitedNbaseMultiplier;
             case "breeder" -> breederNbaseMultiplier;
             default -> standardNbaseMultiplier;
-        };
+            };
+        return mult * neutronYieldMultiplier;
     }
 
     public static double getArchetypeFissionMultiplier(String archetype) {
@@ -231,6 +236,7 @@ public class NuclearSimulationEngine {
         coolantFeedRate = DEFAULT_COOLANT_FEED_RATE;
         coolingHeatPerLiter = DEFAULT_COOLING_HEAT_PER_LITER;
         fuelBurnupMultiplier = DEFAULT_FUEL_BURNUP_MULTIPLIER;
+        neutronYieldMultiplier = DEFAULT_NEUTRON_YIELD_MULT;
         coolantPassageHeatTransferMultiplier = DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT;
         denseNbaseMultiplier = DEFAULT_DENSE_NBASE_MULT;
         denseFissionMultiplier = DEFAULT_DENSE_FISSION_MULT;

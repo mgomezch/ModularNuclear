@@ -7,6 +7,7 @@ physics:
   fission_heat_per_neutron: 38.0
   grid_conduction_multiplier: 1.0
   fuel_burnup_multiplier: 1.0
+  neutron_yield_multiplier: 1.0
   coolant_passage_heat_transfer_multiplier: 1.0
   base_hatch_conductance: 2.0
   coolant_passage_conduction: 0.9

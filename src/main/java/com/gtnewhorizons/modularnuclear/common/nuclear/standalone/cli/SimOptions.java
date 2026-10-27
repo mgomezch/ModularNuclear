@@ -134,6 +134,11 @@ public final class SimOptions {
         engine(t, NuclearSimulationEngine::setAmbientTemperature, "ambient_temp", "ambient");
         engine(t, StandaloneConfig::setIc2CoolantHeatPerLiter, "ic2_heat", "ic2_cooling_heat");
         engine(t, v -> NuclearSimulationEngine.fuelBurnupMultiplier = v, "burnup_mult");
+        engine(
+            t,
+            v -> NuclearSimulationEngine.neutronYieldMultiplier = Math.max(0.0, v),
+            "neutron_yield_mult",
+            "neutron_yield_multiplier");
         engine(t, v -> NuclearSimulationEngine.coolantPassageHeatTransferMultiplier = v, "passage_htc_mult");
         engine(
             t,

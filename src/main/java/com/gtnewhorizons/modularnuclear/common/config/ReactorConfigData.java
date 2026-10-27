@@ -140,6 +140,7 @@ public final class ReactorConfigData {
         NuclearSimulationEngine.setBeamEnergyToFastNeutronMultiplier(physicsData.beamEnergyToFastNeutronMultiplier);
         NuclearSimulationEngine.setGridConductionMultiplier(physicsData.gridConductionMultiplier);
         NuclearSimulationEngine.setFuelBurnupMultiplier(physicsData.fuelBurnupMultiplier);
+        NuclearSimulationEngine.neutronYieldMultiplier = Math.max(0.0, physicsData.neutronYieldMultiplier);
         NuclearSimulationEngine.coolantPassageHeatTransferMultiplier = Math
             .max(0.0, physicsData.coolantPassageHeatTransferMultiplier);
         NuclearSimulationEngine.setBaseHatchConductance(physicsData.baseHatchConductance);

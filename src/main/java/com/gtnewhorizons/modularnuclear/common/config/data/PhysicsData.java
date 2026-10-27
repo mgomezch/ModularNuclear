@@ -15,6 +15,8 @@ public class PhysicsData {
     public double fissionHeatPerNeutron = NuclearSimulationEngine.DEFAULT_FISSION_HEAT_PER_NEUTRON;
     public double gridConductionMultiplier = NuclearSimulationEngine.DEFAULT_GRID_CONDUCTION_MULTIPLIER;
     public double fuelBurnupMultiplier = NuclearSimulationEngine.DEFAULT_FUEL_BURNUP_MULTIPLIER;
+    /** Scales every fuel's base neutron emission, on top of its archetype's multiplier. */
+    public double neutronYieldMultiplier = NuclearSimulationEngine.DEFAULT_NEUTRON_YIELD_MULT;
     public double coolantPassageHeatTransferMultiplier = NuclearSimulationEngine.DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT;
     public double boundaryHeatLoss = 0.02;
     public double radiationDecayFactor = 0.95;
@@ -51,14 +53,16 @@ public class PhysicsData {
     public double breederNbaseMultiplier = 1.00;
     public double breederFissionMultiplier = 1.00;
 
+    /** Base neutron multiplier of a fuel archetype, including the global neutron yield multiplier. */
     public double getArchetypeNbaseMultiplier(String archetype) {
-        if (archetype == null) return standardNbaseMultiplier;
-        return switch (archetype.toLowerCase(java.util.Locale.ROOT)) {
+        double mult = archetype == null ? standardNbaseMultiplier
+            : switch (archetype.toLowerCase(java.util.Locale.ROOT)) {
             case "dense", "subcritical", "naquadah" -> denseNbaseMultiplier;
             case "excited", "driver" -> excitedNbaseMultiplier;
             case "breeder" -> breederNbaseMultiplier;
             default -> standardNbaseMultiplier;
-        };
+            };
+        return mult * neutronYieldMultiplier;
     }
 
     public double getArchetypeFissionMultiplier(String archetype) {
@@ -91,6 +95,7 @@ public class PhysicsData {
         d.fissionHeatPerNeutron = getDouble(map, "fission_heat_per_neutron", d.fissionHeatPerNeutron);
         d.gridConductionMultiplier = getDouble(map, "grid_conduction_multiplier", d.gridConductionMultiplier);
         d.fuelBurnupMultiplier = getDouble(map, "fuel_burnup_multiplier", d.fuelBurnupMultiplier);
+        d.neutronYieldMultiplier = Math.max(0.0, getDouble(map, "neutron_yield_multiplier", d.neutronYieldMultiplier));
         d.coolantPassageHeatTransferMultiplier = getDouble(
             map,
             "coolant_passage_heat_transfer_multiplier",
@@ -151,6 +156,7 @@ public class PhysicsData {
         m.put("fission_heat_per_neutron", fissionHeatPerNeutron);
         m.put("grid_conduction_multiplier", gridConductionMultiplier);
         m.put("fuel_burnup_multiplier", fuelBurnupMultiplier);
+        m.put("neutron_yield_multiplier", neutronYieldMultiplier);
         m.put("coolant_passage_heat_transfer_multiplier", coolantPassageHeatTransferMultiplier);
         m.put("base_hatch_conductance", baseHatchConductance);
         m.put("coolant_passage_conduction", coolantPassageConduction);
