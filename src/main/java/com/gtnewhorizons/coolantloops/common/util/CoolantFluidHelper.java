@@ -221,11 +221,21 @@ public final class CoolantFluidHelper {
         return 20.0;
     }
 
+    /**
+     * Temperature below which a molten fluid solidifies: its configured freezing point, or the temperature GregTech
+     * declares for the fluid when it has no configured one.
+     */
+    public static double getMeltingPointCelsius(Fluid fluid, FluidStack stack, CoolantFluidProperty prop) {
+        if (prop != null && Double.isFinite(prop.getFreezingPointCelsius())) {
+            return prop.getFreezingPointCelsius();
+        }
+        return getDeclaredGregTechFluidTemperatureCelsius(fluid, stack, prop);
+    }
+
     public static double getBaselineInletTemperatureCelsius(Fluid fluid, FluidStack stack, CoolantFluidProperty prop,
         double ambientTemp) {
         if (isMoltenFluid(fluid, stack, prop)) {
-            double declaredMelting = getDeclaredGregTechFluidTemperatureCelsius(fluid, stack, prop);
-            return Math.max(ambientTemp, declaredMelting);
+            return Math.max(ambientTemp, getMeltingPointCelsius(fluid, stack, prop));
         }
         return ambientTemp;
     }

@@ -117,7 +117,7 @@ fluids:
     specificHeat: 1250.0
     thermalConductivity: 1.5
     boilingPointCelsius: Infinity
-    freezingPointCelsius: 1000.0
+    freezingPointCelsius: 1026.85
     isMolten: true
     radiolysisMultiplier: 1.0
     spillOnRupture: true

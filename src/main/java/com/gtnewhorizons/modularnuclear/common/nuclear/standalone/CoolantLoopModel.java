@@ -599,7 +599,7 @@ public class CoolantLoopModel {
             if (!Double.isNaN(fillTempOverrideC)) return fillTempOverrideC;
             CoolantFluidProperty prop = fluidType.property();
             double ambient = NuclearSimulationEngine.ambientTemp;
-            return prop.isMolten() ? Math.max(ambient, prop.getDeclaredTemperatureCelsius()) : ambient;
+            return prop.isMolten() ? Math.max(ambient, prop.getMeltingPointCelsius()) : ambient;
         }
 
         public double getFillTempOverrideC() {

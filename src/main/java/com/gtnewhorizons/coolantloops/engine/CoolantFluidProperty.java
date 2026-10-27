@@ -174,7 +174,7 @@ public class CoolantFluidProperty {
         1250.0, // 1250 J/(kg*K) silicate melt specific heat
         1.5, // 1.5 W/(m*K) thermal conductivity
         Double.POSITIVE_INFINITY, // Non-boiling closed liquid
-        1000.0); // Lava melting point: ~1000°C
+        1026.85); // Lava's declared temperature: 1300 K
 
     public static void resetDefaults() {
         REGISTRY.clear();
@@ -267,6 +267,15 @@ public class CoolantFluidProperty {
                 }
             } catch (RuntimeException ignored) {}
         }
+        return freezingPointCelsius;
+    }
+
+    /**
+     * The temperature below which the coolant solidifies: the configured freezing point, or for a molten fluid
+     * configured without one, the temperature it declares in the game's fluid registry.
+     */
+    public double getMeltingPointCelsius() {
+        if (isMolten && !Double.isFinite(freezingPointCelsius)) return getDeclaredTemperatureCelsius();
         return freezingPointCelsius;
     }
 

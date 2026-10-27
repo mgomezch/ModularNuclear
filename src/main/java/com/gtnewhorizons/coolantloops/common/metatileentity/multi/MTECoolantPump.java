@@ -1296,7 +1296,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             || (currentProp != null && currentProp.isLava())) && isNetherWorld(loopWorld);
 
         if (isMolten && !isLavaNether) {
-            double declaredMelting = getDeclaredGregTechFluidTemperatureCelsius(
+            double declaredMelting = CoolantFluidHelper.getMeltingPointCelsius(
                 reservoirFluid != null ? reservoirFluid.getFluid() : null,
                 reservoirFluid,
                 currentProp);
@@ -1552,10 +1552,10 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             baseTE.setActive(true);
         }
 
-        // Refuse to accelerate flow if molten fluid is below declared GregTech melting point
+        // Refuse to accelerate flow if molten fluid is below its melting point
         if (isMolten) {
             double minLoopTemp = mEngine.getMinLoopTempCelsius();
-            double declaredMelting = getDeclaredGregTechFluidTemperatureCelsius(
+            double declaredMelting = CoolantFluidHelper.getMeltingPointCelsius(
                 reservoirFluid != null ? reservoirFluid.getFluid() : null,
                 reservoirFluid,
                 currentProp);

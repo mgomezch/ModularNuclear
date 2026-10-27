@@ -406,6 +406,43 @@ public class CoolantPumpStructureTest {
     }
 
     @Test
+    public void testConfiguredMeltingPointOverridesGregTech() {
+        net.minecraftforge.fluids.Fluid sodiumFluid = new net.minecraftforge.fluids.Fluid("sodium");
+        sodiumFluid.setTemperature(370); // GregTech declares 96.85 °C
+        CoolantFluidProperty adminSodium = new CoolantFluidProperty(
+            "sodium",
+            927.0,
+            0.0007,
+            1260.0,
+            86.0,
+            Double.POSITIVE_INFINITY,
+            150.0,
+            true,
+            1.0);
+
+        assertEquals(150.0, CoolantFluidHelper.getMeltingPointCelsius(sodiumFluid, null, adminSodium), 1e-9);
+        assertEquals(
+            150.0,
+            CoolantFluidHelper.getBaselineInletTemperatureCelsius(sodiumFluid, null, adminSodium, 20.0),
+            1e-9);
+
+        com.gtnewhorizons.coolantloops.engine.CoolantLoopEngine engine = new com.gtnewhorizons.coolantloops.engine.CoolantLoopEngine(
+            adminSodium);
+        com.gtnewhorizons.coolantloops.engine.LoopSegment seg = new com.gtnewhorizons.coolantloops.engine.LoopSegment(
+            "sodium_seg",
+            10.0,
+            0.2,
+            0.0001,
+            1.0,
+            100.0,
+            1000.0,
+            140.0);
+        engine.addSegment(seg);
+        engine.step(0.05);
+        assertTrue(engine.isRuptured(), "140 °C is below the configured 150 °C melting point");
+    }
+
+    @Test
     public void testMoltenSodiumReservoirBaselineAndEnthalpyDilution() {
         net.minecraftforge.fluids.Fluid sodiumFluid = new net.minecraftforge.fluids.Fluid("sodium");
         sodiumFluid.setTemperature(370); // 370 K (96.85 °C), as GregTech declares it

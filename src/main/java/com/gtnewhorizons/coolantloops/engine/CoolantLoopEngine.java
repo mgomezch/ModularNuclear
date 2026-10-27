@@ -497,16 +497,14 @@ public class CoolantLoopEngine {
 
             // Solidification/freezing check for loop coolant
             if (fluid != null && !fluid.isLava()) {
-                // Molten coolants solidify at the temperature GregTech declares for the fluid
-                double freezingTemp = fluid.isMolten() ? fluid.getDeclaredTemperatureCelsius()
-                    : fluid.getFreezingPointCelsius();
+                double freezingTemp = fluid.getMeltingPointCelsius();
                 if (freezingTemp != Double.NEGATIVE_INFINITY && Double.isFinite(freezingTemp)
                     && segment.getCurrentTemperatureCelsius() < freezingTemp) {
                     isRuptured = true;
                     rupturedSegment = segment;
                     if (fluid.isMolten()) {
                         failureReason = String.format(
-                            "Catastrophic coolant solidification: Coolant temperature (%.1f °C) in segment %s dropped below declared GregTech melting point (%.1f °C) for %s! Solidified plug ruptured loop.",
+                            "Catastrophic coolant solidification: Coolant temperature (%.1f °C) in segment %s dropped below its melting point (%.1f °C) for %s! Solidified plug ruptured loop.",
                             segment.getCurrentTemperatureCelsius(),
                             segment.getId(),
                             freezingTemp,

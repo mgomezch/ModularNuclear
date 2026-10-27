@@ -476,7 +476,7 @@ public class CoolantPumpReservoir {
         if (CoolantFluidHelper.isMoltenFluid(availableFluid.getFluid(), availableFluid, prop)) {
             if (!(CoolantFluidHelper.isLava(availableFluid) && CoolantFluidHelper.isNetherWorld(world))) {
                 double declaredMelting = CoolantFluidHelper
-                    .getDeclaredGregTechFluidTemperatureCelsius(availableFluid.getFluid(), availableFluid, prop);
+                    .getMeltingPointCelsius(availableFluid.getFluid(), availableFluid, prop);
                 double resTemp = getReservoirTemperatureCelsius();
                 if (Double.isNaN(resTemp)) {
                     resTemp = CoolantFluidHelper.getBaselineInletTemperatureCelsius(
