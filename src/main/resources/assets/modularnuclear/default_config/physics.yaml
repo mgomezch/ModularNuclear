@@ -10,7 +10,7 @@ physics:
   neutron_yield_multiplier: 1.0
   # Convective heat transfer of an MV (tier 2) high-pressure passage into its loop coolant, times
   # coolant_passage_heat_transfer_tier_ratio per voltage tier above. A passage's tier is its pipe material's (cast iron
-  # ULV, steel LV, stainless steel HV, titanium EV, tungstensteel IV, osmium LuV, neutronium ZPM). With 75 L/s of water
+  # LV, steel MV, stainless steel HV, titanium EV, tungstensteel IV, osmium LuV, neutronium ZPM). With 75 L/s of water
   # through it, a passage removes about three times what a core hatch of the same tier conducts into its own coolant.
   coolant_passage_heat_transfer_multiplier: 0.11
   coolant_passage_heat_transfer_tier_ratio: 2.65

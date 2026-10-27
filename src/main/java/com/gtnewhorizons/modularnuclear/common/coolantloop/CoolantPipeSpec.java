@@ -17,10 +17,10 @@ public final class CoolantPipeSpec {
     public static final int[] HEAT_RESISTANCES = { 2250, 2500, 3000, 5000, 7500, 10000, 1000000 };
 
     /**
-     * GregTech voltage tier of each material (ULV 0 ... ZPM 7): the tier of the GregTech hatch a high-pressure passage
+     * GregTech voltage tier of each material (LV 1 ... ZPM 7): the tier of the GregTech hatch a high-pressure passage
      * hatch of that material is crafted from, and the tier that sets its heat capacity and heat transfer.
      */
-    public static final int[] VOLTAGE_TIERS = { 0, 1, 3, 4, 5, 6, 7 };
+    public static final int[] VOLTAGE_TIERS = { 1, 2, 3, 4, 5, 6, 7 };
 
     public static final String[] SIZE_NAMES = { "Tiny", "Small", "Medium", "Large", "Huge" };
 

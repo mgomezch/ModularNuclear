@@ -821,9 +821,9 @@ From Osmium tier upward, a column may be a **pressure-tube passage**: a high-pre
 
 | Material | Cast iron | Steel | Stainless steel | Titanium | Tungstensteel | Osmium | Neutronium |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Voltage tier $t$ | ULV | LV | HV | EV | IV | LuV | ZPM |
-| Heat capacity $C = 16 \cdot 2^t$ (HU/°C) | 16 | 32 | 128 | 256 | 512 | 1024 | 2048 |
-| Heat transfer at 75 L/s of water (HU·s⁻¹·°C⁻¹) | 3.5 | 9.3 | 66 | 174 | 461 | 1221 | 3236 |
+| Voltage tier $t$ | LV | MV | HV | EV | IV | LuV | ZPM |
+| Heat capacity $C = 16 \cdot 2^t$ (HU/°C) | 32 | 64 | 128 | 256 | 512 | 1024 | 2048 |
+| Heat transfer at 75 L/s of water (HU·s⁻¹·°C⁻¹) | 9.3 | 25 | 66 | 174 | 461 | 1221 | 3236 |
 
 At 75 L/s of water a passage removes about three times what a core hatch of the same tier conducts into its own coolant (§9.2), and more with more flow. The untiered high-pressure hatches of earlier versions are no longer accepted by the structure.
 

@@ -178,8 +178,8 @@ public class CoolantLoopModel {
     /** Pipe material of the loop (the coolant pipes the game registers for loops). */
     public enum LoopMaterial {
 
-        CAST_IRON("Cast Iron", "CastIron", "ULV"),
-        STEEL("Steel", "Steel", "LV"),
+        CAST_IRON("Cast Iron", "CastIron", "LV"),
+        STEEL("Steel", "Steel", "MV"),
         STAINLESS_STEEL("Stainless Steel", "StainlessSteel", "HV"),
         TITANIUM("Titanium", "Titanium", "EV"),
         TUNGSTENSTEEL("Tungstensteel", "TungstenSteel", "IV"),
