@@ -136,7 +136,7 @@ The **maximum operating temperature** is not a soft limit. Any core column above
 | :--- | :--- | :--- |
 | Nuclear core bus | One item (stack size 1) | Fuel rod, coolant cell, reflector, moderator, insulator, heat vent, heat exchanger, radiovoltaic plate, or neutron source. |
 | Nuclear core hatch (LV–UHV) | One fluid | Liquid fuel or liquid coolant. Capacity $8000 \cdot 2^{\text{tier}}$ L (LV 16 000 L … UHV 4 096 000 L). The hatch tier also sets its heat-transfer conductance (§9.2). |
-| Nuclear core high-pressure input hatch | Nothing (fluid passage) | Inlet of a closed coolant loop. Must be paired with an output hatch at the bottom of the same column (§9.7). |
+| Nuclear core high-pressure input hatch (cast iron … neutronium) | Nothing (fluid passage) | Inlet of a closed coolant loop. Must be paired with an output hatch of the same material at the bottom of the same column. The material sets the passage's heat capacity and heat transfer (§9.7). |
 
 **Bottom elements** (layer 5) act on the column:
 
@@ -145,7 +145,7 @@ The **maximum operating temperature** is not a soft limit. Any core column above
 | Nuclear Casing | None. |
 | Nuclear core control rod hatch | Holds one control rod; redstone-controlled insertion (§7). |
 | Advanced nuclear core control rod hatch | Holds a control rod and a moderator follower (§7.5). |
-| Nuclear core high-pressure output hatch | Outlet of the closed coolant loop entering at the top of the same column. |
+| Nuclear core high-pressure output hatch (cast iron … neutronium) | Outlet of the closed coolant loop entering at the top of the same column; same material as its input hatch. |
 | Beamline input hatch | Feeds a neutron beam into a neutron source held in the nuclear core bus at the top of the same column. Must be under a bus (§8.5). |
 
 A control rod shares the column's temperature: the rod hatch and the top element are a single thermal node.
@@ -817,6 +817,16 @@ Every cell on the grid edge or adjacent to a cut corner loses heat to ambient th
 
 From Osmium tier upward, a column may be a **pressure-tube passage**: a high-pressure input hatch on top and a high-pressure output hatch at the bottom of the same column, connected externally to a closed loop driven by a Coolant Pump. The passage holds no fluid of its own; the loop fluid flows through it.
 
+**Passage materials.** There is one input and one output hatch for each coolant pipe material, and both ends of a passage must be the same material. Each is crafted from the GregTech input (or output) hatch of the material's voltage tier, a huge coolant pipe of the material and a Clean Stainless Steel Casing; a screwdriver turns an input into the output of the same material and back. The material's voltage tier $t$ sets the passage's heat capacity and heat transfer:
+
+| Material | Cast iron | Steel | Stainless steel | Titanium | Tungstensteel | Osmium | Neutronium |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Voltage tier $t$ | ULV | LV | HV | EV | IV | LuV | ZPM |
+| Heat capacity $C = 16 \cdot 2^t$ (HU/°C) | 16 | 32 | 128 | 256 | 512 | 1024 | 2048 |
+| Heat transfer at 75 L/s of water (HU·s⁻¹·°C⁻¹) | 3.5 | 9.3 | 66 | 174 | 461 | 1221 | 3236 |
+
+At 75 L/s of water a passage removes about three times what a core hatch of the same tier conducts into its own coolant (§9.2), and more with more flow. The untiered high-pressure hatches of earlier versions are no longer accepted by the structure.
+
 **Passage as a cell.** The passage cell has $p_a = 0.02$ (fast) / $0.05$ (thermal), $p_s = 0.80$, $c = 0.90$, and a moderation probability equal to the loop coolant's $p_m$ (0.05 if unknown). Its high conductivity makes it a strong conductive sink for adjacent fuel. All of these are set in `physics.yaml`: `coolant_passage_fast_absorption`, `coolant_passage_thermal_absorption`, `coolant_passage_scattering`, `coolant_passage_conduction` and `coolant_passage_default_moderation`.
 
 **Convective transfer.** Each tick, the loop segment passing through the column exchanges heat with the cell. The passage is modelled as a 5 m tube of 0.10 m internal diameter (wetted area 1.571 m²). With loop velocity $v$, fluid density $\rho$, viscosity $\mu$, specific heat $c_p$ and thermal conductivity $k$:
@@ -825,9 +835,9 @@ $$Re = \frac{\rho v D}{\mu}, \qquad Pr = \frac{\mu c_p}{k}, \qquad Nu = \begin{c
 
 $$h = m_p\,\frac{Nu\,k}{D}, \qquad \dot Q = h\,A\,(T_\text{cell} - T_\text{coolant})$$
 
-where $m_p$ is `coolant_passage_heat_transfer_multiplier` in `physics.yaml` (default 1.0). The velocity is that of the passage's own share of the loop flow: where the loop splits into parallel branches (several passages behind one manifold, or several PHEs), each branch carries a share of the flow in proportion to its pipe size, and each device sees only its branch's flow.
+where $m_p = m_0\,r^{\,t-2}$ for a passage of voltage tier $t$, with $m_0$ = `coolant_passage_heat_transfer_multiplier` (default 0.11) and $r$ = `coolant_passage_heat_transfer_tier_ratio` (default 2.65) in `physics.yaml`. The velocity is that of the passage's own share of the loop flow: where the loop splits into parallel branches (several passages behind one manifold, or several PHEs), each branch carries a share of the flow in proportion to its pipe size, and each device sees only its branch's flow.
 
-The heat transferred in one tick is capped so that the cell and the segment cannot cross over in temperature. The cell's heat capacity is taken as $32 \times 128 = 4096$ J/°C (1 HU = 128 J at the interface). The coolant segment's temperature rises by $Q/(m_\text{seg}\,c_p)$.
+The heat transferred in one tick is capped so that the cell and the segment cannot cross over in temperature. The cell's heat capacity is the passage's $C$ (above) times 128 J/HU (1 HU = 128 J at the interface). The coolant segment's temperature rises by $Q/(m_\text{seg}\,c_p)$.
 
 Laminar flow ($Re < 2300$) transfers very little heat; turbulent flow scales with $v^{0.8}$. Flow rate is therefore the principal control on loop cooling.
 
@@ -1108,7 +1118,9 @@ Configuration files are read from `config/modularnuclear/`. Each file may overri
 | `grid_conduction_multiplier` | 1.0 | Scales conduction between neighbouring columns |
 | `base_hatch_conductance` | 8.12 | Conductance $U$ of an MV core hatch into its coolant (§9.2) |
 | `hatch_conductance_tier_ratio` | 2.65 | Factor by which $U$ grows per hatch tier (§9.2) |
-| `coolant_passage_heat_transfer_multiplier` | 1.0 | Scales convective transfer between a passage and its loop (§9.7) |
+| `coolant_passage_heat_transfer_multiplier` | 0.11 | Scales convective transfer between an MV passage and its loop (§9.7) |
+| `coolant_passage_heat_transfer_tier_ratio` | 2.65 | Factor on a passage's convective transfer per voltage tier (§9.7) |
+| `coolant_passage_heat_capacity` | 16 | Heat capacity of a tier-0 passage; tier $t$ holds $2^t$ times this (§9.7) |
 | `coolant_passage_conduction` | 0.9 | Conduction coefficient $c$ of a passage column |
 | `coolant_passage_scattering` | 0.8 | Scattering probability of a passage column |
 | `coolant_passage_fast_absorption` / `_thermal_absorption` | 0.02 / 0.05 | Absorption probabilities of a passage column |
