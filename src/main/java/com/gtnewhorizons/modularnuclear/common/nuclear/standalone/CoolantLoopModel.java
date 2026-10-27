@@ -592,15 +592,14 @@ public class CoolantLoopModel {
         }
 
         /**
-         * Temperature the coolant enters the loop at: ambient, or for a fluid that is solid at ambient its melting
-         * point (the game fills molten fluids at their declared temperature).
+         * Temperature the coolant enters the loop at: ambient, or for a molten fluid its declared melting point if
+         * that is higher (as the game's pump fills it).
          */
         public double fillTemperatureCelsius() {
             if (!Double.isNaN(fillTempOverrideC)) return fillTempOverrideC;
-            double freezing = fluidType.property()
-                .getFreezingPointCelsius();
+            CoolantFluidProperty prop = fluidType.property();
             double ambient = NuclearSimulationEngine.ambientTemp;
-            return Double.isFinite(freezing) && freezing > ambient ? freezing : ambient;
+            return prop.isMolten() ? Math.max(ambient, prop.getDeclaredTemperatureCelsius()) : ambient;
         }
 
         public double getFillTempOverrideC() {

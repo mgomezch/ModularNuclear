@@ -328,7 +328,7 @@ public class CoolantLoopModelTest {
     void testMoltenLeadFillsAtItsMeltingPoint() {
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.MOLTEN_LEAD);
         assertEquals(
-            327.5,
+            326.85,
             loop.getSelectedCircuit()
                 .fillTemperatureCelsius(),
             1e-9);
