@@ -32,7 +32,8 @@ public class CoolantPassageConfigTest {
         assertEquals(0.05, CoolantPassage.defaultModeration(), 1e-12);
         assertEquals(4, CoolantPassage.neutronsPerRadiolysis());
         assertEquals(2.5, CoolantPassage.minorLossK(), 1e-12);
-        assertEquals(2.0, NuclearSimulationEngine.baseHatchConductance, 1e-12);
+        assertEquals(8.12, NuclearSimulationEngine.baseHatchConductance, 1e-12);
+        assertEquals(2.65, NuclearSimulationEngine.hatchConductanceTierRatio, 1e-12);
     }
 
     @Test
@@ -46,6 +47,7 @@ public class CoolantPassageConfigTest {
         m.put("coolant_passage_neutrons_per_radiolysis", 8);
         m.put("coolant_passage_minor_loss_k", 3.0);
         m.put("base_hatch_conductance", 16.0);
+        m.put("hatch_conductance_tier_ratio", 3.0);
         PhysicsData d = PhysicsData.fromMap(m);
         assertEquals(0.5, d.coolantPassageConduction, 1e-12);
         assertEquals(0.6, d.coolantPassageScattering, 1e-12);
@@ -55,6 +57,7 @@ public class CoolantPassageConfigTest {
         assertEquals(8, d.coolantPassageNeutronsPerRadiolysis);
         assertEquals(3.0, d.coolantPassageMinorLossK, 1e-12);
         assertEquals(16.0, d.baseHatchConductance, 1e-12);
+        assertEquals(3.0, d.hatchConductanceTierRatio, 1e-12);
         assertEquals(
             m.get("coolant_passage_scattering"),
             d.toMap()

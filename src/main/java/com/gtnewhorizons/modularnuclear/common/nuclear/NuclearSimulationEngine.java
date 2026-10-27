@@ -249,6 +249,7 @@ public class NuclearSimulationEngine {
         wallReflectionChance = DEFAULT_WALL_REFLECTION_CHANCE;
         ic2CoolantHeatPerLiter = DEFAULT_IC2_COOLANT_HEAT_PER_LITER;
         baseHatchConductance = DEFAULT_BASE_HATCH_CONDUCTANCE;
+        hatchConductanceTierRatio = DEFAULT_HATCH_CONDUCTANCE_TIER_RATIO;
         coreHatchHeatCapacity = DEFAULT_CORE_HATCH_HEAT_CAPACITY;
         gridConductionMultiplier = DEFAULT_GRID_CONDUCTION_MULTIPLIER;
         setBeamEnergyToFastNeutronMultiplier(DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER);
@@ -274,11 +275,23 @@ public class NuclearSimulationEngine {
         gridConductionMultiplier = Math.max(0.0, mult);
     }
 
-    public static final double DEFAULT_BASE_HATCH_CONDUCTANCE = 2.0;
+    public static final double DEFAULT_BASE_HATCH_CONDUCTANCE = 8.12;
+    /** Conductance (HU/(s·°C)) of an MV (tier 2) nuclear core hatch; see {@link #getHatchConductance(int)}. */
     public static double baseHatchConductance = DEFAULT_BASE_HATCH_CONDUCTANCE;
 
     public static void setBaseHatchConductance(double val) {
         baseHatchConductance = Math.max(0.01, val);
+    }
+
+    public static final double DEFAULT_HATCH_CONDUCTANCE_TIER_RATIO = 2.65;
+    /**
+     * Factor by which a nuclear core hatch's conductance grows per tier. Its heat capacity doubles per tier, so above 2
+     * a higher tier also removes a larger share of its excess heat (better materials, not only a bigger hatch).
+     */
+    public static double hatchConductanceTierRatio = DEFAULT_HATCH_CONDUCTANCE_TIER_RATIO;
+
+    public static void setHatchConductanceTierRatio(double val) {
+        hatchConductanceTierRatio = Math.max(1.0, val);
     }
 
     public static final double DEFAULT_CORE_HATCH_HEAT_CAPACITY = 16.0;
@@ -298,17 +311,12 @@ public class NuclearSimulationEngine {
     }
 
     /**
-     * Calculates the thermal conductance U in Hu/(t·°C) for a nuclear core hatch of the given tier.
-     * Tier scaling: LV(1)=0.50x, MV(2)=1.0x, HV(3)=2.0x, EV(4)=4.0x, IV(5)=8.0x, LuV(6)=16.0x... (base-2 exponential)
+     * Thermal conductance U in HU/(s·°C) of a nuclear core hatch of the given tier: the base (MV) conductance times the
+     * tier ratio per tier above MV. With the defaults an EV hatch removes 20% of its excess heat per second and a UHV
+     * hatch 60%.
      */
     public static double getHatchConductance(int tier) {
-        double mult;
-        if (tier <= 1) {
-            mult = 0.50;
-        } else {
-            mult = Math.pow(2.0, Math.max(0, tier - 2));
-        }
-        return mult * baseHatchConductance;
+        return baseHatchConductance * Math.pow(hatchConductanceTierRatio, Math.max(0, tier) - 2);
     }
 
     /**

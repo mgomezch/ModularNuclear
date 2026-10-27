@@ -82,15 +82,15 @@ public class HatchHeatCapacityTest {
 
     @Test
     void testCoolingRemovesHeatAtTheHatchesOwnCapacity() {
-        // Twice the conductance and twice the capacity per tier: the same fraction of the excess, twice the heat
+        // Twice the capacity and a larger share of the excess per tier: more than twice the heat
         double previous = 0.0;
         for (int tier = 2; tier <= 9; tier++) {
             SimTile h = hatch(SimTile.TileType.HATCH_DISTILLED_WATER, tier);
-            h.setInputFluidAmount(1_000_000);
-            h.setTemperature(300.0);
+            h.setInputFluidAmount(Integer.MAX_VALUE); // a full tank, which at 120 °C never limits the transfer
+            h.setTemperature(120.0);
             double q = h.coolantSubstep(0.25, 1.0);
-            assertEquals(q, (300.0 - h.getTemperature()) * h.getHeatCapacity(), 1e-6, "heat leaves at its capacity");
-            if (previous > 0.0) assertEquals(2.0 * previous, q, 1e-6 * q, "tier " + tier);
+            assertEquals(q, (120.0 - h.getTemperature()) * h.getHeatCapacity(), 1e-6, "heat leaves at its capacity");
+            if (previous > 0.0) assertTrue(q > 2.0 * previous, "tier " + tier);
             previous = q;
         }
     }

@@ -9,7 +9,11 @@ physics:
   fuel_burnup_multiplier: 1.0
   neutron_yield_multiplier: 1.0
   coolant_passage_heat_transfer_multiplier: 1.0
-  base_hatch_conductance: 2.0
+  # Conductance (HU/(s·°C)) from a nuclear core hatch into its coolant: base_hatch_conductance at MV, times
+  # hatch_conductance_tier_ratio per tier above. Heat capacity doubles per tier, so a ratio above 2 lets higher tiers
+  # remove a larger share of their excess heat: by default 20%/s at EV, rising to 60%/s at UHV.
+  base_hatch_conductance: 8.12
+  hatch_conductance_tier_ratio: 2.65
   # Heat capacity (HU/°C) of a tier-0 nuclear core hatch; a hatch of tier t holds 2^t times this (LV 32, EV 256,
   # UV 4096), as its tank holds 8000 L times 2^t. Buses and other core tiles hold hu_per_degree.
   core_hatch_heat_capacity: 16.0

@@ -105,8 +105,9 @@ public class CoolantLoopModelTest {
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
         loop.setHatchTier(CoolantLoopModel.EnergyHatchTier.EV);
         // The loop has to heat up past the secondary's boiling point (plus the PHE approach) before it boils anything,
-        // and its passages are LuV hatches, each holding 1024 HU/°C
-        run(400);
+        // and its passages are LuV hatches, each holding 1024 HU/°C and also cooled by their own boiling water, which
+        // holds them barely above 100 °C
+        run(700);
 
         assertFalse(loop.isRuptured(), loop.getRuptureReason());
         assertTrue(loop.getCurrentFlowRateLPerSec() > 0, "the pump should circulate coolant");

@@ -4988,15 +4988,32 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testConductanceScalingAcrossTiers() {
-        assertEquals(1.0, NuclearSimulationEngine.getHatchConductance(1), 1e-6, "LV (tier 1) conductance");
-        assertEquals(2.0, NuclearSimulationEngine.getHatchConductance(2), 1e-6, "MV (tier 2) conductance");
-        assertEquals(4.0, NuclearSimulationEngine.getHatchConductance(3), 1e-6, "HV (tier 3) conductance");
-        assertEquals(8.0, NuclearSimulationEngine.getHatchConductance(4), 1e-6, "EV (tier 4) conductance");
-        assertEquals(16.0, NuclearSimulationEngine.getHatchConductance(5), 1e-6, "IV (tier 5) conductance");
-        assertEquals(32.0, NuclearSimulationEngine.getHatchConductance(6), 1e-6, "LuV (tier 6) conductance");
-        assertEquals(64.0, NuclearSimulationEngine.getHatchConductance(7), 1e-6, "ZPM (tier 7) conductance");
-        assertEquals(128.0, NuclearSimulationEngine.getHatchConductance(8), 1e-6, "UV (tier 8) conductance");
-        assertEquals(256.0, NuclearSimulationEngine.getHatchConductance(9), 1e-6, "UHV (tier 9) conductance");
+        // Share of its excess heat a hatch removes per second: 20% at EV, rising every tier to 60% at UHV
+        double previous = 0.0;
+        for (int tier = 1; tier <= 9; tier++) {
+            double share = 1.0 - Math.exp(
+                -NuclearSimulationEngine.getHatchConductance(tier)
+                    / NuclearSimulationEngine.getCoreHatchHeatCapacity(tier));
+            assertTrue(share > previous, "tier " + tier + " should remove a larger share than the tier below");
+            previous = share;
+            if (tier == 4) assertEquals(0.20, share, 0.005, "EV share per second");
+            if (tier == 9) assertEquals(0.60, share, 0.005, "UHV share per second");
+        }
+        assertEquals(
+            NuclearSimulationEngine.baseHatchConductance,
+            NuclearSimulationEngine.getHatchConductance(2),
+            1e-9,
+            "MV conductance is the base");
+        NuclearSimulationEngine.setHatchConductanceTierRatio(2.0);
+        try {
+            assertEquals(
+                NuclearSimulationEngine.getHatchConductance(4) / NuclearSimulationEngine.getCoreHatchHeatCapacity(4),
+                NuclearSimulationEngine.getHatchConductance(9) / NuclearSimulationEngine.getCoreHatchHeatCapacity(9),
+                1e-12,
+                "a ratio of 2 keeps pace with heat capacity: every tier removes the same share");
+        } finally {
+            NuclearSimulationEngine.resetDefaultParameters();
+        }
     }
 
     @Test
@@ -5008,21 +5025,21 @@ public class NuclearSimulationEngineTest {
         // When efficiency is 0: zero heat transfer
         assertEquals(0.0, NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 0.0), 1e-6);
 
-        // Tier 3 (HV, mult=2.0, base=2.0 => U = 4.0), Ch = 16 * 2^3 = 128 HU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0
-        // (20 ticks)
-        // Expected Q = 128 * 100 * (1 - exp(-4.0 / 128)) = 393.81 HU
+        // Tier 3 (HV, base 8.12 x ratio 2.65 => U = 21.518), Ch = 16 * 2^3 = 128 HU/°C, DeltaT = 100°C, eff = 1.0,
+        // dt = 1.0 (20 ticks)
+        // Expected Q = 128 * 100 * (1 - exp(-21.518 / 128)) = 1980.65 HU
         double qHV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 1.0, 20);
-        assertEquals(393.81, qHV, 0.02);
+        assertEquals(1980.65, qHV, 0.02);
 
-        // Tier 4 (EV, mult=4.0, base=2.0 => U = 8.0), Ch = 256 HU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0 (20 ticks)
-        // Expected Q = 256 * 100 * (1 - exp(-8.0 / 256)) = 787.63 HU
+        // Tier 4 (EV, 8.12 x 2.65^2 => U = 57.0227), Ch = 256 HU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0 (20 ticks)
+        // Expected Q = 256 * 100 * (1 - exp(-57.0227 / 256)) = 5111.83 HU
         double qEV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 4, 1.0, 20);
-        assertEquals(787.63, qEV, 0.02);
+        assertEquals(5111.83, qEV, 0.02);
 
         // Default 5 ticks per cycle (dt = 0.25)
-        // Q = 12800 * (1 - exp(-4.0 * 0.25 / 128)) = 99.61 HU
+        // Q = 12800 * (1 - exp(-21.518 * 0.25 / 128)) = 526.80 HU
         double qHV5 = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 1.0);
-        assertEquals(99.61, qHV5, 0.02);
+        assertEquals(526.80, qHV5, 0.02);
 
         // Higher tier transfers more heat
         assertTrue(qEV > qHV);
