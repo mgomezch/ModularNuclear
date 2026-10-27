@@ -1,7 +1,5 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear;
 
-import java.util.Random;
-
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantItemData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.InsulatorData;
@@ -19,8 +17,6 @@ public final class TileProperties {
 
     /** Fluid amount (mB) that forms one emitted neutron packet in a liquid fuel hatch. */
     public static final double LIQUID_FUEL_MB_PER_PACKET = 8000.0;
-
-    private static final Random RAND = new Random();
 
     private TileProperties() {}
 
@@ -233,7 +229,8 @@ public final class TileProperties {
         if (fluidAmount <= 0) return 0;
         double expected = fluidAmount / LIQUID_FUEL_MB_PER_PACKET;
         int base = (int) Math.floor(expected);
-        return base + (RAND.nextDouble() < expected - base ? 1 : 0);
+        return base + (NuclearSimulationEngine.random()
+            .nextDouble() < expected - base ? 1 : 0);
     }
 
     /**

@@ -17,7 +17,8 @@ public final class TileTick {
     public static int stochasticRound(double value) {
         if (value <= 0.0) return 0;
         int whole = (int) value;
-        return whole + (Math.random() < value - whole ? 1 : 0);
+        return whole + (NuclearSimulationEngine.random()
+            .nextDouble() < value - whole ? 1 : 0);
     }
 
     /**

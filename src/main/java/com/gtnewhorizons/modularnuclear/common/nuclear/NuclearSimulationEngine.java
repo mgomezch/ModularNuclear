@@ -519,6 +519,12 @@ public class NuclearSimulationEngine {
     };
     private static final Random RAND = new Random();
 
+    /** The one random source of the reactor simulation (neutron walks, stochastic rounding, transmutation). */
+    public static Random random() {
+        return RAND;
+    }
+
+    /** Seeds the simulation's random source, so a run can be repeated exactly. */
     public static void setRandomSeed(long seed) {
         RAND.setSeed(seed);
     }

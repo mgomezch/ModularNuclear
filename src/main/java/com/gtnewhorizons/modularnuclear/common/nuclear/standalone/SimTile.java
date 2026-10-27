@@ -1,7 +1,5 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear.standalone;
 
-import java.util.Random;
-
 import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
@@ -187,8 +185,6 @@ public class SimTile implements INuclearTile {
             return NONE;
         }
     }
-
-    private static final Random RAND = new Random();
 
     private static TileContent[] contentCache = new TileContent[TileType.values().length];
     private static int contentCacheGeneration = -1;
@@ -835,7 +831,11 @@ public class SimTile implements INuclearTile {
         // Fast neutron capture transmutation
         if (nType == NeutronType.FAST && isCoolantHatch() && inputFluidAmount >= 2) {
             ComponentData.CoolantFluidData cfd = contentOf(type).coolantFluid();
-            if (TileTick.transmutes(cfd, count, RAND.nextInt(10000))) {
+            if (TileTick.transmutes(
+                cfd,
+                count,
+                NuclearSimulationEngine.random()
+                    .nextInt(10000))) {
                 inputFluidAmount -= 2;
                 if ("deuterium".equalsIgnoreCase(cfd.transmutationProduct)) {
                     totalDeuteriumProduced += 2;
@@ -853,7 +853,8 @@ public class SimTile implements INuclearTile {
         if ((type == TileType.REFLECTOR_IC2 || type == TileType.REFLECTOR_IC2_THICK) && !depleted
             && maxDurability > 0) {
             for (int i = 0; i < count; i++) {
-                if (RAND.nextInt(20) == 0) {
+                if (NuclearSimulationEngine.random()
+                    .nextInt(20) == 0) {
                     durability--;
                     if (durability <= 0) {
                         durability = 0;
