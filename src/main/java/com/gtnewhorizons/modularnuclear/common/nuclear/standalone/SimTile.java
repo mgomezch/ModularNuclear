@@ -611,7 +611,7 @@ public class SimTile implements INuclearTile {
 
     @Override
     public double getHeatTransferCoeff() {
-        if (type == TileType.PASSAGE_CORE) return CoolantPassage.HEAT_TRANSFER_COEFF;
+        if (type == TileType.PASSAGE_CORE) return CoolantPassage.conduction();
         return TileProperties.heatTransferCoeff(getContent());
     }
 
@@ -772,7 +772,7 @@ public class SimTile implements INuclearTile {
 
     public double getBaseScatteringProbability(NeutronType nType) {
         if (type == TileType.PASSAGE_CORE) {
-            return CoolantPassage.SCATTERING;
+            return CoolantPassage.scattering();
         }
         return TileProperties.scattering(getContent(), nType);
     }

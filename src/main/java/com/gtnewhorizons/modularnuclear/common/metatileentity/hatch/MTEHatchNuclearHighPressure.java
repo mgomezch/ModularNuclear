@@ -342,7 +342,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
 
     @Override
     public double getMinorLossK() {
-        return CoolantPassage.MINOR_LOSS_K;
+        return CoolantPassage.minorLossK();
     }
 
     @Override
@@ -408,7 +408,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
 
     @Override
     public double getHeatTransferCoeff() {
-        return CoolantPassage.HEAT_TRANSFER_COEFF;
+        return CoolantPassage.conduction();
     }
 
     @Override
@@ -428,7 +428,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
 
     @Override
     public double getScatteringProbability(NeutronType type) {
-        return CoolantPassage.SCATTERING;
+        return CoolantPassage.scattering();
     }
 
     @Override
@@ -438,7 +438,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
                 mConnectedPump.getCoolantFluidProperty()
                     .getFluidName());
         }
-        return CoolantPassage.DEFAULT_MODERATION;
+        return CoolantPassage.defaultModeration();
     }
 
     @Override
@@ -452,9 +452,9 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         // Radiolytic gas generation: every few absorbed neutrons transmute 2 L of coolant
         if (count > 0) {
             mNeutronAccumulator += count;
-            if (mConnectedPump != null && mNeutronAccumulator >= CoolantPassage.NEUTRONS_PER_RADIOLYSIS) {
-                int cycles = mNeutronAccumulator / CoolantPassage.NEUTRONS_PER_RADIOLYSIS;
-                mNeutronAccumulator %= CoolantPassage.NEUTRONS_PER_RADIOLYSIS;
+            if (mConnectedPump != null && mNeutronAccumulator >= CoolantPassage.neutronsPerRadiolysis()) {
+                int cycles = mNeutronAccumulator / CoolantPassage.neutronsPerRadiolysis();
+                mNeutronAccumulator %= CoolantPassage.neutronsPerRadiolysis();
                 CoolantFluidProperty prop = mConnectedPump.getCoolantFluidProperty();
                 String gas = CoolantPassage.radiolysisGas(prop != null ? prop.getFluidName() : null);
                 if (gas != null) {

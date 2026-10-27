@@ -815,7 +815,7 @@ Every cell on the grid edge or adjacent to a cut corner loses heat to ambient th
 
 From Osmium tier upward, a column may be a **pressure-tube passage**: a high-pressure input hatch on top and a high-pressure output hatch at the bottom of the same column, connected externally to a closed loop driven by a Coolant Pump. The passage holds no fluid of its own; the loop fluid flows through it.
 
-**Passage as a cell.** The passage cell has $p_a = 0.02$ (fast) / $0.05$ (thermal), $p_s = 0.80$, $c = 0.90$, and a moderation probability equal to the loop coolant's $p_m$ (0.05 if unknown). Its high conductivity makes it a strong conductive sink for adjacent fuel.
+**Passage as a cell.** The passage cell has $p_a = 0.02$ (fast) / $0.05$ (thermal), $p_s = 0.80$, $c = 0.90$, and a moderation probability equal to the loop coolant's $p_m$ (0.05 if unknown). Its high conductivity makes it a strong conductive sink for adjacent fuel. All of these are set in `physics.yaml`: `coolant_passage_fast_absorption`, `coolant_passage_thermal_absorption`, `coolant_passage_scattering`, `coolant_passage_conduction` and `coolant_passage_default_moderation`.
 
 **Convective transfer.** Each tick, the loop segment passing through the column exchanges heat with the cell. The passage is modelled as a 5 m tube of 0.10 m internal diameter (wetted area 1.571 m²). With loop velocity $v$, fluid density $\rho$, viscosity $\mu$, specific heat $c_p$ and thermal conductivity $k$:
 
@@ -837,7 +837,7 @@ with the pump curve $\Delta P_\text{pump} = P_\text{mech}/(Q + Q_r)$, $Q_r = \ma
 
 $$\Delta P_i = \left(f\,\frac{L_i}{D_i} + K_i\right)\frac{\rho v_i^2}{2}$$
 
-with $f = 64/Re$ in laminar flow and the Churchill correlation otherwise. The core passage has a minor-loss coefficient $K = 2.5$. When the pump stops, flow coasts down under friction plus an unpowered impeller loss ($K = 8$) and a 0.98-per-tick decay. Disabling the pump's discharge hatch (for example with a soft mallet or a machine controller cover) instead **brakes** the loop: the pump keeps drawing power and applies its head against the flow, bringing it to a stop faster than coasting; once the flow reaches zero, the pump returns the loop's coolant to its reservoir at its fill rate, until the loop is empty or the reservoir is full. Heat is advected segment to segment with the flow.
+with $f = 64/Re$ in laminar flow and the Churchill correlation otherwise. The core passage has a minor-loss coefficient $K = 2.5$ (`coolant_passage_minor_loss_k`). When the pump stops, flow coasts down under friction plus an unpowered impeller loss ($K = 8$) and a 0.98-per-tick decay. Disabling the pump's discharge hatch (for example with a soft mallet or a machine controller cover) instead **brakes** the loop: the pump keeps drawing power and applies its head against the flow, bringing it to a stop faster than coasting; once the flow reaches zero, the pump returns the loop's coolant to its reservoir at its fill rate, until the loop is empty or the reservoir is full. Heat is advected segment to segment with the flow.
 
 Loop fluids (in the loop engine): water, distilled water, heavy water, IC2 coolant, sodium, and others, each with SI density, viscosity, specific heat, conductivity, and boiling and freezing points. Sodium's thermal conductivity (86 W·m⁻¹·K⁻¹) is two orders of magnitude above water's, which gives it far higher $h$ at a given flow.
 
@@ -850,7 +850,7 @@ Loop fluids (in the loop engine): water, distilled water, heavy water, IC2 coola
 
 Each tick a PHE moves heat by convection across its 24 m² tube bundle, $\dot Q = h(v)\,A\,(T_\text{coolant} - T_\text{boil})$, with $h$ rising with the coolant velocity up to 5000 W·m⁻²·K⁻¹ (about 120 kW per °C above the secondary's boiling point, or 47 HU/t per °C). One batch may move at most 2.26 MJ times the PHE's voltage over 32: about 0.9k HU/t at LV, 14k HU/t at HV and 56k HU/t at EV. The PHE draws $\tfrac{15}{16}$ of its voltage every tick it runs. The coolant settles where the reactor's heat equals what the PHEs can move, so fewer PHEs run the loop hotter. Steam leaves at the batch's heat-weighted coolant temperature: supercritical steam at 700 °C and above, superheated steam at 300 °C and above, plain steam below. One HU makes as much steam through a PHE as through a distilled water hatch (about 9 L), so a loop's advantage is the steam grade.
 
-**Radiolysis.** Every 4 neutrons absorbed in a passage cell consume 2 L of loop coolant and add 2 L of dissolved gas plus 1 L of dissolved oxygen to the loop: deuterium for water, tritium for heavy water. Other loop fluids do not undergo radiolysis. Dissolved gas increases pump rotor wear (cavitation) by a factor $1 + 10\,f_\text{gas}$, where $f_\text{gas}$ is the dissolved gas volume fraction. A **Pressurized Degasser** extracts dissolved gases from the loop to output hatches.
+**Radiolysis.** Every 4 neutrons (`coolant_passage_neutrons_per_radiolysis`) absorbed in a passage cell consume 2 L of loop coolant and add 2 L of dissolved gas plus 1 L of dissolved oxygen to the loop: deuterium for water, tritium for heavy water. Other loop fluids do not undergo radiolysis. Dissolved gas increases pump rotor wear (cavitation) by a factor $1 + 10\,f_\text{gas}$, where $f_\text{gas}$ is the dissolved gas volume fraction. A **Pressurized Degasser** extracts dissolved gases from the loop to output hatches.
 
 Loop failure modes are listed in §12.8.
 
@@ -1101,10 +1101,19 @@ Configuration files are read from `config/modularnuclear/`. Each file may overri
 | `dense_nbase_multiplier` / `_fission_multiplier` | 0.5 / 1.2 | |
 | `excited_nbase_multiplier` / `_fission_multiplier` | 2.0 / 0.7 | |
 | `breeder_nbase_multiplier` / `_fission_multiplier` | 1.0 / 1.0 | |
+| `grid_conduction_multiplier` | 1.0 | Scales conduction between neighbouring columns |
+| `base_hatch_conductance` | 2.0 | Conductance of a core hatch column to its neighbours, before the tier multiplier |
+| `coolant_passage_heat_transfer_multiplier` | 1.0 | Scales convective transfer between a passage and its loop (§9.7) |
+| `coolant_passage_conduction` | 0.9 | Conduction coefficient $c$ of a passage column |
+| `coolant_passage_scattering` | 0.8 | Scattering probability of a passage column |
+| `coolant_passage_fast_absorption` / `_thermal_absorption` | 0.02 / 0.05 | Absorption probabilities of a passage column |
+| `coolant_passage_default_moderation` | 0.05 | Passage moderation on no loop, or with a loop fluid that has no coolant entry |
+| `coolant_passage_neutrons_per_radiolysis` | 4 | Neutrons absorbed per radiolysis event |
+| `coolant_passage_minor_loss_k` | 2.5 | Minor-loss coefficient of a passage in its loop |
 
 **Main mod configuration** (Forge config) additionally sets the cycle length (`ticksPerCycle`, default 5), the per-tier maximum operating temperatures, the repair threshold ratio (0.10), the fallout contamination reduction per pollution removed ($62.5/30000$), item and fluid allow/block lists, and visual effects (Cherenkov glow, fallout overlay).
 
-**Engine constants (not configurable):** fast-absorption and moderation heat 8 HU per neutron; non-fuel thermal absorption heat 4 HU; fuel thermal absorption heat $1.25 \times$ fission heat; base hatch conductance 2.0; conduction floor 0.01; 5 conduction sub-steps; vent/exchanger cost 0.25 EU/HU (configurable per component); coolant cell 25 HU per heat point; wall-wear base probability 1 %/min.
+**Engine constants (not configurable):** fast-absorption and moderation heat 8 HU per neutron; non-fuel thermal absorption heat 4 HU; fuel thermal absorption heat $1.25 \times$ fission heat; conduction floor 0.01; 5 conduction sub-steps; vent/exchanger cost 0.25 EU/HU (configurable per component); coolant cell 25 HU per heat point; wall-wear base probability 1 %/min.
 
 ## Appendix B — Declared but inactive parameters
 

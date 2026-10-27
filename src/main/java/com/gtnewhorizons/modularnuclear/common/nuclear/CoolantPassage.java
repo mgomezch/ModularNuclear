@@ -3,6 +3,7 @@ package com.gtnewhorizons.modularnuclear.common.nuclear;
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 
@@ -14,29 +15,49 @@ public final class CoolantPassage {
 
     /** Joules per heat unit (HU) when exchanging heat with a coolant loop. */
     public static final double JOULES_PER_HU = 128.0;
-    /** Minor loss coefficient of a pressure-tube passage with fuel bundle spacers. */
-    public static final double MINOR_LOSS_K = 2.5;
-    /** Conduction coefficient of the passage cell (metal pressure tube). */
-    public static final double HEAT_TRANSFER_COEFF = 0.90;
-    public static final double SCATTERING = 0.80;
-    /** Moderation when the passage is not connected to a loop, or the loop fluid has no coolant entry. */
-    public static final double DEFAULT_MODERATION = 0.05;
 
     private CoolantPassage() {}
 
+    /** The passage's cell and loop properties (physics.yaml, coolant_passage_*). */
+    private static PhysicsData config() {
+        return ReactorConfigData.getPhysics();
+    }
+
+    /** Minor loss coefficient of the passage in its loop. */
+    public static double minorLossK() {
+        return config().coolantPassageMinorLossK;
+    }
+
+    /** Conduction coefficient of the passage cell. */
+    public static double conduction() {
+        return config().coolantPassageConduction;
+    }
+
+    public static double scattering() {
+        return config().coolantPassageScattering;
+    }
+
     public static double absorption(NeutronType type) {
-        return type == NeutronType.THERMAL ? 0.05 : 0.02;
+        return type == NeutronType.THERMAL ? config().coolantPassageThermalAbsorption
+            : config().coolantPassageFastAbsorption;
+    }
+
+    /** Moderation when the passage is on no loop, or its loop fluid has no coolant entry. */
+    public static double defaultModeration() {
+        return config().coolantPassageDefaultModeration;
     }
 
     /** Moderation of a passage carrying the given loop fluid (its components.yaml coolant fluid moderation). */
     public static double moderation(String loopFluidName) {
-        if (loopFluidName == null) return DEFAULT_MODERATION;
+        if (loopFluidName == null) return defaultModeration();
         ComponentData.CoolantFluidData cfd = ReactorConfigData.findCoolantFluid(loopFluidName);
-        return cfd != null ? cfd.moderation : DEFAULT_MODERATION;
+        return cfd != null ? cfd.moderation : defaultModeration();
     }
 
     /** Neutrons a passage absorbs per radiolysis event. */
-    public static final int NEUTRONS_PER_RADIOLYSIS = 4;
+    public static int neutronsPerRadiolysis() {
+        return config().coolantPassageNeutronsPerRadiolysis;
+    }
 
     /**
      * Gas that radiolysis of the loop fluid produces ("Deuterium" or "Tritium"), or null if the fluid has none. Each

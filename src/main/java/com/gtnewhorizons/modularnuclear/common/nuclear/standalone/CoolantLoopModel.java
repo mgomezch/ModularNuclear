@@ -1074,7 +1074,7 @@ public class CoolantLoopModel {
                 CoolantPassage.length(),
                 CoolantPassage.diameter(),
                 0.000045,
-                CoolantPassage.MINOR_LOSS_K,
+                CoolantPassage.minorLossK(),
                 500.0,
                 3200.0,
                 startTemp);
@@ -1417,8 +1417,8 @@ public class CoolantLoopModel {
             for (int i = 0; i < loop.passageTiles.size(); i++) {
                 SimTile tile = loop.passageTiles.get(i);
                 loop.radiolysisAccumulators[i] += tile.getLastFastAbsorbed() + tile.getLastThermalAbsorbed();
-                int events = loop.radiolysisAccumulators[i] / CoolantPassage.NEUTRONS_PER_RADIOLYSIS;
-                loop.radiolysisAccumulators[i] %= CoolantPassage.NEUTRONS_PER_RADIOLYSIS;
+                int events = loop.radiolysisAccumulators[i] / CoolantPassage.neutronsPerRadiolysis();
+                loop.radiolysisAccumulators[i] %= CoolantPassage.neutronsPerRadiolysis();
                 if (events > 0 && gasProduct != null) {
                     if (gasProduct.equals("Tritium")) totalTritiumProduced += events * 2L;
                     else totalDeuteriumProduced += events * 2L;

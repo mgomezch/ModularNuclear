@@ -25,6 +25,21 @@ public class PhysicsData {
     public double beamEnergyToFastNeutronMultiplier = 0.001;
     public double t10WearFactor = 8.0;
     public int ticksPerCycle = NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE;
+    /** Conductance of a core hatch cell to its neighbours, before the tier's multiplier (EU/(t·°C)). */
+    public double baseHatchConductance = NuclearSimulationEngine.DEFAULT_BASE_HATCH_CONDUCTANCE;
+
+    // Coolant passage (high-pressure hatch pair) as a core cell
+    /** Conduction coefficient of the passage cell (metal pressure tube). */
+    public double coolantPassageConduction = 0.90;
+    public double coolantPassageScattering = 0.80;
+    public double coolantPassageFastAbsorption = 0.02;
+    public double coolantPassageThermalAbsorption = 0.05;
+    /** Moderation when the passage is on no loop, or its loop fluid has no coolant entry. */
+    public double coolantPassageDefaultModeration = 0.05;
+    /** Neutrons a passage absorbs per radiolysis event (2 L of coolant to 2 L of gas and 1 L of oxygen). */
+    public int coolantPassageNeutronsPerRadiolysis = 4;
+    /** Minor loss coefficient of the passage in its loop (pressure tube with fuel bundle spacers). */
+    public double coolantPassageMinorLossK = 2.5;
 
     // Fuel Archetype / Class Multipliers (Global Calibration Parameters)
     public double denseNbaseMultiplier = 0.50; // -50% base neutrons (subcritical/mostly-inert)
@@ -95,6 +110,24 @@ public class PhysicsData {
             d.beamEnergyToFastNeutronMultiplier);
         d.t10WearFactor = getDouble(map, "t10_wear_factor", d.t10WearFactor);
         d.ticksPerCycle = getInt(map, "ticks_per_cycle", getInt(map, "ticksPerCycle", d.ticksPerCycle));
+        d.baseHatchConductance = getDouble(map, "base_hatch_conductance", d.baseHatchConductance);
+        d.coolantPassageConduction = getDouble(map, "coolant_passage_conduction", d.coolantPassageConduction);
+        d.coolantPassageScattering = getDouble(map, "coolant_passage_scattering", d.coolantPassageScattering);
+        d.coolantPassageFastAbsorption = getDouble(
+            map,
+            "coolant_passage_fast_absorption",
+            d.coolantPassageFastAbsorption);
+        d.coolantPassageThermalAbsorption = getDouble(
+            map,
+            "coolant_passage_thermal_absorption",
+            d.coolantPassageThermalAbsorption);
+        d.coolantPassageDefaultModeration = getDouble(
+            map,
+            "coolant_passage_default_moderation",
+            d.coolantPassageDefaultModeration);
+        d.coolantPassageNeutronsPerRadiolysis = Math
+            .max(1, getInt(map, "coolant_passage_neutrons_per_radiolysis", d.coolantPassageNeutronsPerRadiolysis));
+        d.coolantPassageMinorLossK = getDouble(map, "coolant_passage_minor_loss_k", d.coolantPassageMinorLossK);
 
         d.denseNbaseMultiplier = getDouble(map, "dense_nbase_multiplier", d.denseNbaseMultiplier);
         d.denseFissionMultiplier = getDouble(map, "dense_fission_multiplier", d.denseFissionMultiplier);
@@ -119,6 +152,14 @@ public class PhysicsData {
         m.put("grid_conduction_multiplier", gridConductionMultiplier);
         m.put("fuel_burnup_multiplier", fuelBurnupMultiplier);
         m.put("coolant_passage_heat_transfer_multiplier", coolantPassageHeatTransferMultiplier);
+        m.put("base_hatch_conductance", baseHatchConductance);
+        m.put("coolant_passage_conduction", coolantPassageConduction);
+        m.put("coolant_passage_scattering", coolantPassageScattering);
+        m.put("coolant_passage_fast_absorption", coolantPassageFastAbsorption);
+        m.put("coolant_passage_thermal_absorption", coolantPassageThermalAbsorption);
+        m.put("coolant_passage_default_moderation", coolantPassageDefaultModeration);
+        m.put("coolant_passage_neutrons_per_radiolysis", coolantPassageNeutronsPerRadiolysis);
+        m.put("coolant_passage_minor_loss_k", coolantPassageMinorLossK);
         m.put("boundary_heat_loss", boundaryHeatLoss);
         m.put("radiation_decay_factor", radiationDecayFactor);
         m.put("doppler_deficit_exponent", dopplerDeficitExponent);
