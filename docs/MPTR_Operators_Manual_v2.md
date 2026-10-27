@@ -714,18 +714,19 @@ where $C$ is the hatch's heat capacity, $\eta$ is the maintenance efficiency and
 
 | Hatch tier | LV | MV | HV | EV | IV | LuV | ZPM | UV | UHV |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| $U$ (HU·s⁻¹·°C⁻¹) | 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 |
+| $U$ (HU·s⁻¹·°C⁻¹) | 3.06 | 8.12 | 22 | 57 | 151 | 400 | 1061 | 2812 | 7452 |
 | $C$ (HU/°C) | 32 | 64 | 128 | 256 | 512 | 1024 | 2048 | 4096 | 8192 |
-| Heat removed per cycle per °C above the sink (HU) | 0.25 | 0.50 | 1.0 | 2.0 | 4.0 | 8.0 | 15.9 | 31.9 | 63.8 |
+| Share of the excess removed per second | 9 % | 12 % | 15 % | 20 % | 26 % | 32 % | 40 % | 50 % | 60 % |
+| Heat removed per cycle per °C above the sink (HU) | 0.76 | 2.00 | 5.27 | 14 | 36 | 95 | 249 | 646 | 1666 |
 | Capacity (L) | 16 000 | 32 000 | 64 000 | 128 000 | 256 000 | 512 000 | 1 024 000 | 2 048 000 | 4 096 000 |
 
-$U$ is $0.5 \cdot 2.0$ for LV and $2^{\text{tier}-2}\cdot 2.0$ above it (`base_hatch_conductance` = 2.0), and $C$ is $16 \cdot 2^\text{tier}$ (`core_hatch_heat_capacity` = 16). With the defaults both double per tier, so every hatch removes the same 0.78 % of its stored excess heat per cycle; the heat removed is nearly $U\,\eta\,\Delta t\,(T - T_\text{sink})$, set by the conductance. The extraction is capped by the coolant available: the hatch processes
+$U$ is $8.12 \cdot 2.65^{\text{tier}-2}$ (`base_hatch_conductance` = 8.12, `hatch_conductance_tier_ratio` = 2.65), and $C$ is $16 \cdot 2^\text{tier}$ (`core_hatch_heat_capacity` = 16). The heat capacity doubles per tier while the conductance grows 2.65 times, so a higher-tier hatch is not just bigger but made of materials that conduct better: it removes a larger share of its stored excess heat, from 20 % per second at EV to 60 % at UHV. A tier ratio of 2 would give every tier the same share. The extraction is capped by the coolant available: the hatch processes
 
 $$V = \min\!\left(V_\text{stored},\ \operatorname{round}\frac{Q_\text{max}}{h}\right)\ \text{L}$$
 
 of coolant, where $h$ is the coolant's heat per litre. It outputs $V \times$ (expansion ratio) litres of the hot fluid to the reactor's output hatches, and the cell's temperature drops by $V h / C$, never below $T_\text{sink}$.
 
-**Worked example.** An EV hatch of distilled water in a cell at 600 °C: $T_\text{sink} = 100$ °C, $Q_\text{max} = 256 \times 500 \times 0.00778 = 996$ HU. The hatch boils 56 L of water, producing 8960 L of superheated steam per cycle (1792 L/t), and cools its cell by 3.9 °C.
+**Worked example.** An EV hatch of distilled water in a cell at 600 °C: $T_\text{sink} = 100$ °C, $Q_\text{max} = 256 \times 500 \times 0.0542 = 6933$ HU. The hatch boils 393 L of water, producing 62 880 L of superheated steam per cycle (12 576 L/t), and cools its cell by 27.1 °C.
 
 The cooling law has two consequences. First, the hatch cools only its own cell: heat from elsewhere must conduct in. Second, a boiling coolant holds its cell at or above its boiling point, and cooling power is proportional to the difference above it; a water-cooled cell must be hot to be well-cooled.
 
@@ -1105,7 +1106,8 @@ Configuration files are read from `config/modularnuclear/`. Each file may overri
 | `breeder_nbase_multiplier` / `_fission_multiplier` | 1.0 / 1.0 | |
 | `neutron_yield_multiplier` | 1.0 | Scales every fuel's base neutron emission, on top of its archetype multiplier |
 | `grid_conduction_multiplier` | 1.0 | Scales conduction between neighbouring columns |
-| `base_hatch_conductance` | 2.0 | Conductance of a core hatch column to its neighbours, before the tier multiplier |
+| `base_hatch_conductance` | 8.12 | Conductance $U$ of an MV core hatch into its coolant (§9.2) |
+| `hatch_conductance_tier_ratio` | 2.65 | Factor by which $U$ grows per hatch tier (§9.2) |
 | `coolant_passage_heat_transfer_multiplier` | 1.0 | Scales convective transfer between a passage and its loop (§9.7) |
 | `coolant_passage_conduction` | 0.9 | Conduction coefficient $c$ of a passage column |
 | `coolant_passage_scattering` | 0.8 | Scattering probability of a passage column |
@@ -1146,8 +1148,8 @@ The following keys exist in the default configuration or component data but have
 | Conduction per sub-step | $\Delta T = (T_A - T_B)\,\tfrac{c_A + c_B}{2}\,\tfrac{\Delta t}{5}\,(1 - \max\delta)$ |
 | Boundary loss per face per sub-step | $\Delta T = (T - T_\text{amb})\,\tfrac{c\,\Delta t}{10}\,(1 - \delta)$ |
 | Fuel wear per cycle | $D = 0.25N + 8A_f + A_t + A(e^{k(T-20)} - 1)\Delta t$ |
-| Hatch cooling per cycle | $Q = 32\,(T - T_\text{sink})(1 - e^{-U\eta\Delta t/32})$ |
-| Hatch conductance | $U = 1$ (LV), $2^{\text{tier}-1}$ (MV and above) |
+| Hatch cooling per cycle | $Q = C\,(T - T_\text{sink})(1 - e^{-U\eta\Delta t/C})$, $C = 16 \cdot 2^\text{tier}$ |
+| Hatch conductance | $U = 8.12 \cdot 2.65^{\text{tier}-2}$ |
 | Coolant processed | $V = \min(V_\text{stored}, \operatorname{round}(Q/h))$ |
 | Coolant cell absorption | $\min(32\Delta T/25,\ H_\text{max}\Delta t/100)\cdot\eta$ points × 25 HU |
 | Vent per tick | $Q = \min(32|T - T_\text{amb}|, Q_\text{max})$, $E = \lceil Q/4 \rceil$ |
