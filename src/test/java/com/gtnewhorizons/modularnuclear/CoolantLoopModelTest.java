@@ -467,4 +467,51 @@ public class CoolantLoopModelTest {
             loop.getLastHeatExtractedHut() > 0,
             "PASSAGE_CORE tile should automatically be cooled by convective loop");
     }
+
+    /** A 7x7 core cooled only by loop passages (the hatch column of the other tests made into passages). */
+    private CoolantLoopModel passageCore(double pheBandMin) {
+        NuclearSimulationEngine.resetDefaultParameters();
+        grid = new StandaloneNuclearGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_OSMIUM);
+        grid.setTicksPerCycle(20);
+        grid.loadLayout(
+            "U4,U4,U4,M4,U4,U4,U4;U4,M4,CP,CP,CP,M4,U4;T4,CP,M4,CP,M4,CP,T4;U4,M2,CP,CP,CP,M2,U4;T4,CP,M4,CP,M4,CP,T4;U4,M4,CP,CP,CP,M4,U4;U4,U4,U4,M4,U4,U4,U4");
+        grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
+        CoolantLoopModel l = grid.getCoolantLoop();
+        l.setMaterial(CoolantLoopModel.LoopMaterial.OSMIUM);
+        l.setPipeSize(CoolantLoopModel.LoopPipeSize.LARGE);
+        l.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
+        l.setHatchTier(CoolantLoopModel.EnergyHatchTier.EV);
+        if (!Double.isNaN(pheBandMin)) l.setPheTemperatureBand(pheBandMin, pheBandMin + 20.0);
+        loop = l;
+        return l;
+    }
+
+    @Test
+    void testPheBandHoldsTheLoopHotWhileThePumpRuns() {
+        CoolantLoopModel free = passageCore(Double.NaN);
+        run(1200);
+        double freeHotLeg = free.getSelectedCircuit()
+            .getHotLegTempCelsius();
+        double freeCore = grid.getCoreMaxTemp();
+
+        CoolantLoopModel banded = passageCore(600.0);
+        CoolantLoopModel.Circuit c = banded.getSelectedCircuit();
+        assertEquals(
+            CoolantLoopModel.TempSensor.HOT_LEG,
+            c.getPheSensor(),
+            "the PHE band reads the coolant by default");
+        run(1200);
+        double pheOn = 0.0, pumpOn = 0.0;
+        for (int i = 0; i < 200; i++) {
+            run(1);
+            pheOn += c.getLastPheOnFraction();
+            pumpOn += c.getLastPumpOnFraction();
+            double hot = c.getHotLegTempCelsius();
+            assertTrue(hot > 560.0 && hot < 660.0, "the loop stays near its 600-620 C band: " + hot);
+        }
+        assertEquals(200.0, pumpOn, 1e-9, "the pump runs throughout: the PHE band does not touch the flow");
+        assertTrue(pheOn > 0.0 && pheOn < 200.0, "the PHEs run only part of the time: " + pheOn / 200.0);
+        assertTrue(freeHotLeg < 200.0, "without the band the PHEs pull the loop down: " + freeHotLeg);
+        assertTrue(grid.getCoreMaxTemp() > freeCore + 100.0, "the hot loop holds the fuel hotter");
+    }
 }

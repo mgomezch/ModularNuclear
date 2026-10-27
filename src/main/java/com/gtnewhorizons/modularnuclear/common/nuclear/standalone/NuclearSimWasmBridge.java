@@ -304,6 +304,28 @@ public class NuclearSimWasmBridge {
         }
     }
 
+    /**
+     * PHE temperature band on the selected circuit: the PHEs run above max and stop below min while the pump keeps
+     * running, reading the hot leg coolant or a passage (sensor HOT_LEG, PASSAGE or COLDEST_PASSAGE). enabled 0
+     * turns the band off.
+     */
+    @Export(name = "setCoolantLoopPheTempBand")
+    public static void setCoolantLoopPheTempBand(int enabled, double minC, double maxC, String sensor) {
+        if (grid != null) {
+            CoolantLoopModel cl = grid.getCoolantLoop();
+            if (enabled != 0) {
+                cl.setPheTemperatureBand(minC, maxC);
+            } else {
+                cl.setPheTemperatureBand(Double.NaN, Double.NaN);
+            }
+            if (sensor != null && !sensor.isEmpty()) {
+                cl.getSelectedCircuit()
+                    .setPheSensor(CoolantLoopModel.TempSensor.fromString(sensor));
+            }
+            grid.updatePowerResultNet();
+        }
+    }
+
     /** Independent loops, each with its own pump and PHEs, that the passages are split among. */
     @Export(name = "setCoolantLoopCount")
     public static void setCoolantLoopCount(int count) {
@@ -976,6 +998,23 @@ public class NuclearSimWasmBridge {
                 sel.getSensor()
                     .name())
             .append("\",");
+        sb.append("\"pheTempBandEnabled\":")
+            .append(sel.hasPheTemperatureBand())
+            .append(",");
+        sb.append("\"pheTempBandMin\":")
+            .append(fmt1(sel.hasPheTemperatureBand() ? sel.getPheMinTempC() : 0.0))
+            .append(",");
+        sb.append("\"pheTempBandMax\":")
+            .append(fmt1(sel.hasPheTemperatureBand() ? sel.getPheMaxTempC() : 0.0))
+            .append(",");
+        sb.append("\"pheTempSensor\":\"")
+            .append(
+                sel.getPheSensor()
+                    .name())
+            .append("\",");
+        sb.append("\"pheOnFraction\":")
+            .append(fmt2(sel.getLastPheOnFraction()))
+            .append(",");
         sb.append("\"pumpOnFraction\":")
             .append(fmt2(sel.getLastPumpOnFraction()))
             .append(",");

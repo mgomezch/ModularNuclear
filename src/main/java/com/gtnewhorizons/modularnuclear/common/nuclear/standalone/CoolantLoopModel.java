@@ -515,8 +515,10 @@ public class CoolantLoopModel {
     }
 
     /**
-     * One coolant loop design and the passages on it: pipes, coolant, pump, PHEs, and the pump control a player
-     * builds with a machine controller cover and redstone (duty cycle, flow and pressure caps, a temperature band).
+     * One coolant loop design and the passages on it: pipes, coolant, pump, PHEs, and the controls a player builds
+     * with machine controller covers and redstone: on the pump a duty cycle, flow and pressure caps and a temperature
+     * band (to start a molten coolant only once the passages can keep it liquid), and on the PHEs a temperature band
+     * that holds the loop hot by extracting heat only above it.
      * It is built {@code copies} times, each copy with its own pump and PHEs, splitting the circuit's passages.
      */
     public static final class Circuit {
@@ -539,6 +541,9 @@ public class CoolantLoopModel {
         private double controlMinTempC = Double.NaN; // NaN = no temperature band
         private double controlMaxTempC = Double.NaN;
         private TempSensor sensor = TempSensor.PASSAGE;
+        private double pheMinTempC = Double.NaN; // NaN = PHEs always run
+        private double pheMaxTempC = Double.NaN;
+        private TempSensor pheSensor = TempSensor.HOT_LEG;
         private double fillTempOverrideC = Double.NaN; // NaN = the game's fill temperature
         private final Set<GridCoord> attachedPoints = new HashSet<>();
 
@@ -557,6 +562,7 @@ public class CoolantLoopModel {
         private double lastPumpPowerEUt = 0.0;
         private double lastPhePowerEUt = 0.0;
         private double lastPumpOnFraction = 0.0;
+        private double lastPheOnFraction = 0.0;
         private String limitReason = "";
         private int passageCount = 0;
 
@@ -808,6 +814,40 @@ public class CoolantLoopModel {
             if (s != null) sensor = s;
         }
 
+        public boolean hasPheTemperatureBand() {
+            return !Double.isNaN(pheMinTempC) && !Double.isNaN(pheMaxTempC);
+        }
+
+        public double getPheMinTempC() {
+            return pheMinTempC;
+        }
+
+        public double getPheMaxTempC() {
+            return pheMaxTempC;
+        }
+
+        /**
+         * PHE temperature band: the PHEs switch on when the sensed temperature rises above max and off when it falls
+         * below min, while the pump keeps the coolant flowing (NaN for either turns the band off).
+         */
+        public void setPheTemperatureBand(double minC, double maxC) {
+            if (Double.isNaN(minC) || Double.isNaN(maxC)) {
+                pheMinTempC = Double.NaN;
+                pheMaxTempC = Double.NaN;
+            } else {
+                pheMinTempC = Math.min(minC, maxC);
+                pheMaxTempC = Math.max(minC, maxC);
+            }
+        }
+
+        public TempSensor getPheSensor() {
+            return pheSensor;
+        }
+
+        public void setPheSensor(TempSensor s) {
+            if (s != null) pheSensor = s;
+        }
+
         public Set<GridCoord> getAttachedPoints() {
             return Collections.unmodifiableSet(attachedPoints);
         }
@@ -886,6 +926,11 @@ public class CoolantLoopModel {
             return lastPumpOnFraction;
         }
 
+        /** Share of loop ticks the PHEs ran over the last cycle. */
+        public double getLastPheOnFraction() {
+            return lastPheOnFraction;
+        }
+
         /** What last switched a pump off ("", "duty cycle", "flow cap", "pressure cap" or "temperature band"). */
         /** Whether the circuit's loops hold coolant yet (see {@link #hasTemperatureBand()}). */
         public boolean isFilled() {
@@ -910,6 +955,8 @@ public class CoolantLoopModel {
         int[] radiolysisAccumulators = new int[0];
         double dutyAccumulator = 0.0;
         boolean bandOn = true;
+        /** Whether the PHE temperature band has the PHEs running. */
+        boolean pheOn = true;
         /** Whether the loop holds coolant; a loop under a temperature band fills when its pump first turns on. */
         boolean filled = true;
     }
@@ -1282,7 +1329,7 @@ public class CoolantLoopModel {
         c.lastHeatJoules = 0.0;
         c.lastHeatHut = 0.0;
         c.lastSteamLt = c.lastSuperheatedSteamLt = c.lastSupercriticalSteamLt = c.lastGasLt = c.lastBoiledLt = 0.0;
-        c.lastPumpPowerEUt = c.lastPhePowerEUt = c.lastPumpOnFraction = 0.0;
+        c.lastPumpPowerEUt = c.lastPhePowerEUt = c.lastPumpOnFraction = c.lastPheOnFraction = 0.0;
         if (passageTiles.isEmpty()) {
             c.loops.clear();
             c.dirty = true;
@@ -1309,7 +1356,7 @@ public class CoolantLoopModel {
 
         double extractedJoules = 0.0, boiledMl = 0.0;
         double steam = 0.0, superheated = 0.0, supercritical = 0.0, gas = 0.0;
-        int onTicks = 0;
+        int onTicks = 0, pheOnTicks = 0;
         String reason = "";
 
         for (int t = 0; t < subTicks; t++) {
@@ -1385,6 +1432,14 @@ public class CoolantLoopModel {
                     }
                 }
 
+                // PHE control: the redstone a player wires to the PHEs' machine controller covers
+                if (c.hasPheTemperatureBand()) {
+                    double sensed = sense(c.pheSensor, loop);
+                    if (sensed > c.pheMaxTempC) loop.pheOn = true;
+                    else if (sensed < c.pheMinTempC) loop.pheOn = false;
+                }
+                if (!loop.pheOn) continue;
+                pheOnTicks++;
                 for (int j = 0; j < loop.pheSegments.size(); j++) {
                     LoopSegment seg = loop.pheSegments.get(j);
                     PheExchange.Batch batch = loop.pheBatches.get(j);
@@ -1451,16 +1506,23 @@ public class CoolantLoopModel {
         c.lastGasLt = gas * 1000.0 / subTicks;
         c.lastBoiledLt = boiledMl / 1000.0 / subTicks;
         c.lastPumpPowerEUt = c.pumpPowerEUt() * onTicks / subTicks;
-        c.lastPhePowerEUt = c.phePowerEUt() * c.loops.size();
+        // A disabled PHE draws no power, as in the game
+        c.lastPhePowerEUt = loopTicks > 0 ? c.phePowerEUt() * c.loops.size() * pheOnTicks / loopTicks : 0.0;
         c.lastPumpOnFraction = loopTicks > 0 ? (double) onTicks / loopTicks : 0.0;
+        c.lastPheOnFraction = loopTicks > 0 ? (double) pheOnTicks / loopTicks : 0.0;
         c.limitReason = onTicks < loopTicks ? reason : "";
         return true;
     }
 
-    /** The temperature a circuit's controller reads on one copy. */
+    /** The temperature a circuit's pump controller reads on one copy. */
     private static double sense(Circuit c, Loop loop) {
-        if (c.sensor == TempSensor.HOT_LEG) return loop.hotLegSegment.getCurrentTemperatureCelsius();
-        if (c.sensor == TempSensor.COLDEST_PASSAGE) {
+        return sense(c.sensor, loop);
+    }
+
+    /** The temperature a sensor reads on one copy of a circuit. */
+    private static double sense(TempSensor sensor, Loop loop) {
+        if (sensor == TempSensor.HOT_LEG) return loop.hotLegSegment.getCurrentTemperatureCelsius();
+        if (sensor == TempSensor.COLDEST_PASSAGE) {
             double min = Double.MAX_VALUE;
             for (SimTile t : loop.passageTiles) min = Math.min(min, t.getTemperature());
             return min;
@@ -1673,6 +1735,11 @@ public class CoolantLoopModel {
 
     public void setTemperatureBand(double minC, double maxC) {
         getSelectedCircuit().setTemperatureBand(minC, maxC);
+    }
+
+    /** PHE temperature band on the selected circuit (see {@link Circuit#setPheTemperatureBand}). */
+    public void setPheTemperatureBand(double minC, double maxC) {
+        getSelectedCircuit().setPheTemperatureBand(minC, maxC);
     }
 
     // ---- State ------------------------------------------------------------------------------------------------------

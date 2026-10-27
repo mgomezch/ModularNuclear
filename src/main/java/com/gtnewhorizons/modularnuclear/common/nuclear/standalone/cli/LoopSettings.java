@@ -9,12 +9,14 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.CoolantLoopMod
  */
 public final class LoopSettings {
 
-    /** The loop being configured, and the temperature band read so far for the current circuit. */
+    /** The loop being configured, and the temperature bands read so far for the current circuit. */
     private static final class Target {
 
         final CoolantLoopModel loop;
         double bandMin = Double.NaN;
         double bandMax = Double.NaN;
+        double pheBandMin = Double.NaN;
+        double pheBandMax = Double.NaN;
 
         Target(CoolantLoopModel loop) {
             this.loop = loop;
@@ -24,10 +26,13 @@ public final class LoopSettings {
             return loop.getSelectedCircuit();
         }
 
-        /** Applies the band read for the current circuit, if any. */
+        /** Applies the bands read for the current circuit, if any. */
         void flushBand() {
             if (!Double.isNaN(bandMin) || !Double.isNaN(bandMax)) loop.setTemperatureBand(bandMin, bandMax);
-            bandMin = bandMax = Double.NaN;
+            if (!Double.isNaN(pheBandMin) || !Double.isNaN(pheBandMax)) {
+                loop.setPheTemperatureBand(pheBandMin, pheBandMax);
+            }
+            bandMin = bandMax = pheBandMin = pheBandMax = Double.NaN;
         }
     }
 
@@ -59,6 +64,13 @@ public final class LoopSettings {
             (t, v) -> t.circuit()
                 .setSensor(v),
             "loop_sensor")
+        .value(OptionTable.DOUBLE, (t, v) -> t.pheBandMin = v, "phe_temp_min")
+        .value(OptionTable.DOUBLE, (t, v) -> t.pheBandMax = v, "phe_temp_max")
+        .value(
+            s -> CoolantLoopModel.TempSensor.fromString(s),
+            (t, v) -> t.circuit()
+                .setPheSensor(v),
+            "phe_sensor")
         .value(s -> EnergyHatchTier.fromString(s), (t, v) -> t.loop.setHatchTier(v), "loop_hatch")
         .value(OptionTable.INT, (t, v) -> t.loop.setPumpHatchCount(v), "loop_hatches")
         .value(OptionTable.STRING, (t, v) -> t.loop.setRotorMaterial(v), "loop_rotor")
