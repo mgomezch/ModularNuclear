@@ -178,12 +178,13 @@ class CoolantLoopEngineTest {
         LoopSegment seg0 = new LoopSegment("trunk_discharge", 1.0, 0.1, 0.00005, 0.5, 100.0, 1200.0, 20.0);
         seg0.setFlowFraction(1.0);
 
-        // Segment 1: Branch A (flow fraction 1/3, temp 300 C)
-        LoopSegment segA = new LoopSegment("branch_A", 1.0, 0.1, 0.00005, 0.5, 100.0, 1200.0, 300.0);
+        // Segment 1: Branch A (flow fraction 1/3, temp 300 C). The branches are long so that the coolant flowing into
+        // them over a step's advection sub-steps barely moves their temperature.
+        LoopSegment segA = new LoopSegment("branch_A", 1000.0, 0.1, 0.00005, 0.5, 100.0, 1200.0, 300.0);
         segA.setFlowFraction(1.0 / 3.0);
 
         // Segment 2: Branch B (flow fraction 2/3, temp 600 C)
-        LoopSegment segB = new LoopSegment("branch_B", 1.0, 0.1, 0.00005, 0.5, 100.0, 1200.0, 600.0);
+        LoopSegment segB = new LoopSegment("branch_B", 1000.0, 0.1, 0.00005, 0.5, 100.0, 1200.0, 600.0);
         segB.setFlowFraction(2.0 / 3.0);
 
         // Segment 3: Merger (short segment to be fully swept in one step)
