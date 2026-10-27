@@ -325,6 +325,28 @@ public class CoolantLoopModelTest {
     }
 
     @Test
+    void testBandControlledMoltenLoopFillsOnceTheCoreIsHot() {
+        attachCenterColumn();
+        loop.setFluidType(CoolantLoopModel.CoolantFluidType.SODIUM);
+        loop.getSelectedCircuit()
+            .setSensor(CoolantLoopModel.TempSensor.COLDEST_PASSAGE);
+        loop.setTemperatureBand(150.0, 200.0);
+        run(5);
+        assertFalse(
+            loop.getSelectedCircuit()
+                .isFilled(),
+            "the controller keeps a cold core's loop empty");
+        for (int y = 2; y <= 4; y++) grid.getTile(3, y)
+            .setTemperature(400.0);
+        run(5);
+        assertTrue(
+            loop.getSelectedCircuit()
+                .isFilled(),
+            "the loop fills once the passages pass the band");
+        assertFalse(loop.isRuptured());
+    }
+
+    @Test
     void testMoltenLeadFillsAtItsMeltingPoint() {
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.MOLTEN_LEAD);
         assertEquals(

@@ -882,6 +882,11 @@ public class CoolantLoopModel {
         }
 
         /** What last switched a pump off ("", "duty cycle", "flow cap", "pressure cap" or "temperature band"). */
+        /** Whether the circuit's loops hold coolant yet (see {@link #hasTemperatureBand()}). */
+        public boolean isFilled() {
+            return loops.isEmpty() || loops.get(0).filled;
+        }
+
         public String getLimitReason() {
             return limitReason;
         }
@@ -900,6 +905,8 @@ public class CoolantLoopModel {
         int[] radiolysisAccumulators = new int[0];
         double dutyAccumulator = 0.0;
         boolean bandOn = true;
+        /** Whether the loop holds coolant; a loop under a temperature band fills when its pump first turns on. */
+        boolean filled = true;
     }
 
     private final List<Circuit> circuits = new ArrayList<>();
@@ -1143,7 +1150,11 @@ public class CoolantLoopModel {
      */
     private static void buildCircuit(Circuit c, List<SimTile> passageTiles) {
         double startTemp = c.fillTemperatureCelsius();
+        // A controller with a temperature band starts with the pump off and the loop empty, as a player fills it only
+        // once the core is hot enough
+        boolean filled = !c.hasTemperatureBand();
         if (!c.loops.isEmpty() && c.builtFluid == c.fluidType) {
+            filled = c.loops.get(0).filled;
             double sum = 0.0;
             for (Loop l : c.loops) sum += l.engine.getAvgLoopTempCelsius();
             startTemp = sum / c.loops.size();
@@ -1155,6 +1166,8 @@ public class CoolantLoopModel {
             for (int i = k; i < passageTiles.size(); i += n) mine.add(passageTiles.get(i));
             Loop loop = buildLoop(c, mine.size(), startTemp);
             loop.passageTiles.addAll(mine);
+            loop.filled = filled;
+            loop.bandOn = filled;
             c.loops.add(loop);
         }
         c.builtFluid = c.fluidType;
@@ -1271,6 +1284,13 @@ public class CoolantLoopModel {
             buildCircuit(c, passageTiles);
         }
 
+        for (Loop loop : c.loops) {
+            if (loop.filled) continue;
+            for (SimTile tile : loop.passageTiles) {
+                if (tile.isCoolantPassage()) tile.setPassageLoopFluid(null);
+            }
+        }
+
         PHEData cfg = pheConfig();
         SecondaryCoolantEntry secondary = c.getSecondaryCoolant();
         double maxBatchHeat = PheExchange.maxBatchHeatJoules(cfg, (long) c.pheVoltage());
@@ -1316,6 +1336,16 @@ public class CoolantLoopModel {
                         on = false;
                         reason = "temperature band";
                     }
+                }
+                if (!loop.filled) {
+                    if (!on) continue;
+                    // The pump's first start fills the loop at the coolant's fill temperature
+                    double fill = c.fillTemperatureCelsius();
+                    for (LoopSegment seg : engine.getSegments()) {
+                        seg.setCurrentTemperatureCelsius(fill);
+                        seg.setIncomingTemperatureCelsius(fill);
+                    }
+                    loop.filled = true;
                 }
                 engine.setPumpPowered(on);
                 engine.setPumpMechanicalPowerWatts(on ? mechanicalWatts : 0.0);
@@ -1383,6 +1413,7 @@ public class CoolantLoopModel {
         // Radiolysis in the passages, as the game's high-pressure hatches do on neutron absorption
         String gasProduct = CoolantPassage.radiolysisGas(c.fluidType.fluidName);
         for (Loop loop : c.loops) {
+            if (!loop.filled) continue;
             for (int i = 0; i < loop.passageTiles.size(); i++) {
                 SimTile tile = loop.passageTiles.get(i);
                 loop.radiolysisAccumulators[i] += tile.getLastFastAbsorbed() + tile.getLastThermalAbsorbed();

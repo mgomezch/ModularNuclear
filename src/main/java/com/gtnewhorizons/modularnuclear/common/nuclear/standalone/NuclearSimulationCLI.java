@@ -1800,7 +1800,7 @@ public class NuclearSimulationCLI {
                     "{\"fluid\":\"%s\",\"passages\":%d,\"copies\":%d,\"pheCount\":%d,\"flowLs\":%.1f,"
                         + "\"pressureBar\":%.2f,\"coldLeg\":%.1f,\"hotLeg\":%.1f,\"heatHut\":%.1f,\"steamLt\":%.1f,"
                         + "\"superheatedSteamLt\":%.1f,\"supercriticalSteamLt\":%.1f,\"pumpEUt\":%.1f,\"pheEUt\":%.1f,"
-                        + "\"pumpOn\":%.3f,\"limit\":\"%s\"}",
+                        + "\"pumpOn\":%.3f,\"limit\":\"%s\",\"filled\":%b}",
                     c.getFluidType()
                         .name(),
                     c.getPassageCount(),
@@ -1817,7 +1817,8 @@ public class NuclearSimulationCLI {
                     c.getLastPumpPowerEUt(),
                     c.getLastPhePowerEUt(),
                     c.getLastPumpOnFraction(),
-                    c.getLimitReason()));
+                    c.getLimitReason(),
+                    c.isFilled()));
         }
         sb.append("],");
         sb.append("\"loopCount\":")

@@ -978,6 +978,9 @@ public class NuclearSimWasmBridge {
         sb.append("\"limitReason\":\"")
             .append(escapeJson(sel.getLimitReason()))
             .append("\",");
+        sb.append("\"filled\":")
+            .append(sel.isFilled())
+            .append(",");
         sb.append("\"fillTempC\":")
             .append(fmt1(sel.fillTemperatureCelsius()))
             .append(",");
