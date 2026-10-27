@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
-import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import gregtech.api.interfaces.ITexture;
 
@@ -79,7 +78,7 @@ public class NuclearHighPressureHatchEnergyConservationTest {
         assertTrue(deltaTCore > 0, "Core should cool down");
 
         // Energy lost by core: Q_core = deltaTCore * C_core
-        double coreHeatCapacityJoulesPerC = NuclearSimulationEngine.HU_PER_DEGREE * 128.0;
+        double coreHeatCapacityJoulesPerC = hatch.getHeatCapacity() * 128.0;
         double energyLostByCoreJoules = deltaTCore * coreHeatCapacityJoulesPerC;
 
         // Energy gained by coolant: Q_coolant = deltaTCoolant * C_segment
@@ -123,29 +122,5 @@ public class NuclearHighPressureHatchEnergyConservationTest {
         assertTrue(
             segment.getCurrentTemperatureCelsius() >= 20.0,
             "Coolant temperature should not decrease when heated");
-    }
-
-    @Test
-    void testPressurizedInputHatchIntegration() {
-        com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedInput inputHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedInput(
-            "test_in",
-            4,
-            new String[0],
-            new ITexture[0][0][0]);
-        inputHatch.setCurrentTemperatureCelsius(800.0);
-
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile tile = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile(
-            null,
-            inputHatch,
-            0,
-            0);
-
-        LoopSegment segment = new LoopSegment("core_passage_test", 5.0, 0.10, 0.000045, 2.5, 500.0, 3200.0, 100.0);
-        CoolantFluidProperty fluid = CoolantFluidProperty.WATER;
-
-        inputHatch.processThermalExchange(0.1, 0.05, fluid, segment);
-
-        assertTrue(segment.getCurrentTemperatureCelsius() > 100.0, "Coolant should heat up via listener");
-        assertTrue(inputHatch.getDeviceTemperatureCelsius() < 800.0, "Input hatch temperature should cool down");
     }
 }

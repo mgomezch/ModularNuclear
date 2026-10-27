@@ -41,7 +41,6 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.NuclearReactorTelemetry;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.NuclearReactorTooltipValues;
@@ -1016,8 +1015,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     mGrid[gx][gy] = new NuclearGridTile(this, hatch, gx, gy);
                 } else if (mte instanceof MTEHatchNuclearHighPressure hp) {
                     mGrid[gx][gy] = new NuclearGridTile(this, hp, gx, gy);
-                } else if (mte instanceof MTEHatchPressurizedFluid pf) {
-                    mGrid[gx][gy] = new NuclearGridTile(this, pf, gx, gy);
                 }
             }
         }
@@ -1158,8 +1155,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public static boolean isNuclearCoreHatch(IMetaTileEntity mte) {
         return mte instanceof MTEHatchNuclearHatch || mte instanceof MTEHatchNuclearBus
             || mte instanceof MTEHatchNuclearControlRod
-            || mte instanceof MTEHatchNuclearHighPressure
-            || mte instanceof MTEHatchPressurizedFluid;
+            || mte instanceof MTEHatchNuclearHighPressure;
     }
 
     public static boolean isNuclearHatchTile(TileEntity te) {
@@ -1327,6 +1323,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 }
 
                 boolean anyUnpaired = false;
+                boolean anyMismatched = false;
                 for (ICoolantPassageHatch top : mTopHighPressureHatches) {
                     IGregTechTileEntity tTe = top instanceof IMetaTileEntity mte ? mte.getBaseMetaTileEntity() : null;
                     if (tTe != null) {
@@ -1337,6 +1334,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             && gCoords[1] < gridSize) {
                             ICoolantPassageHatch bottom = bottomGrid[gCoords[0]][gCoords[1]];
                             if (bottom != null) {
+                                if (top instanceof MTEHatchNuclearHighPressure in
+                                    && bottom instanceof MTEHatchNuclearHighPressure out
+                                    && in.getMaterialIndex() != out.getMaterialIndex()) {
+                                    anyMismatched = true;
+                                }
                                 IGregTechTileEntity bTe = bottom instanceof IMetaTileEntity mte
                                     ? mte.getBaseMetaTileEntity()
                                     : null;
@@ -1362,6 +1364,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
                 if (anyUnpaired) {
                     errors.add(StructureErrors.of("GT5U.gui.text.structure_error.hp_hatch_unpaired"));
+                }
+                if (anyMismatched) {
+                    errors.add(StructureErrors.of("GT5U.gui.text.structure_error.hp_hatch_material"));
                 }
             }
         }
@@ -1555,8 +1560,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     if (rod.mTemperature > 100.0) return true;
                 } else if (mte instanceof MTEHatchNuclearHighPressure hp) {
                     if (hp.getTemperature() > 100.0) return true;
-                } else if (mte instanceof MTEHatchPressurizedFluid pf) {
-                    if (pf.getDeviceTemperatureCelsius() > 100.0) return true;
                 }
             }
         }
@@ -1565,7 +1568,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
         for (ICoolantPassageHatch hp : mBottomHighPressureHatches) {
             if (hp instanceof MTEHatchNuclearHighPressure nhp && nhp.getTemperature() > 100.0) return true;
-            if (hp instanceof MTEHatchPressurizedFluid pf && pf.getDeviceTemperatureCelsius() > 100.0) return true;
         }
         return false;
     }
@@ -1859,10 +1861,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             }
                         } else if (te.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure hp) {
                             if (hp.getTemperature() > maxTemp || hp.mIncomingCoolantTemp > maxTemp) {
-                                overheatingHatchesCount++;
-                            }
-                        } else if (te.getMetaTileEntity() instanceof MTEHatchPressurizedFluid pf) {
-                            if (pf.getDeviceTemperatureCelsius() > maxTemp) {
                                 overheatingHatchesCount++;
                             }
                         }

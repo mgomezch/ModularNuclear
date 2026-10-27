@@ -90,8 +90,12 @@ public class NuclearSimulationEngine {
     /** Scales every fuel's base neutron emission, on top of its archetype's multiplier. */
     public static double neutronYieldMultiplier = DEFAULT_NEUTRON_YIELD_MULT;
 
-    /** Scales the convective heat transfer between a coolant passage and the loop coolant in it. */
-    public static final double DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT = 1.0;
+    /**
+     * Scales the convective heat transfer between an MV coolant passage and the loop coolant in it; each voltage tier
+     * multiplies it by coolant_passage_heat_transfer_tier_ratio. The default makes a passage carrying 75 L/s of water
+     * remove about three times the heat a core hatch of the same tier conducts into its own coolant.
+     */
+    public static final double DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT = 0.11;
     public static double coolantPassageHeatTransferMultiplier = DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT;
 
     // Fuel Archetype / Class Multipliers (Global Calibration Parameters)

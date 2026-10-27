@@ -27,7 +27,7 @@ public class PhysicsData {
     public double beamEnergyToFastNeutronMultiplier = 0.001;
     public double t10WearFactor = 8.0;
     public int ticksPerCycle = NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE;
-    /** Conductance of a core hatch cell to its neighbours, before the tier's multiplier (EU/(t·°C)). */
+    /** Conductance (HU/(s·°C)) of an MV core hatch into its coolant; see hatchConductanceTierRatio. */
     public double baseHatchConductance = NuclearSimulationEngine.DEFAULT_BASE_HATCH_CONDUCTANCE;
     public double hatchConductanceTierRatio = NuclearSimulationEngine.DEFAULT_HATCH_CONDUCTANCE_TIER_RATIO;
     /** Heat capacity of a tier-0 core hatch (HU/°C); a tier-t hatch holds 2^t times this, as its tank does. */
@@ -45,6 +45,10 @@ public class PhysicsData {
     public int coolantPassageNeutronsPerRadiolysis = 4;
     /** Minor loss coefficient of the passage in its loop (pressure tube with fuel bundle spacers). */
     public double coolantPassageMinorLossK = 2.5;
+    /** Heat capacity of a tier-0 passage (HU/°C); a passage of voltage tier t holds 2^t times this. */
+    public double coolantPassageHeatCapacity = 16.0;
+    /** Factor by which a passage's convective heat transfer grows per voltage tier (better materials). */
+    public double coolantPassageHeatTransferTierRatio = 2.65;
 
     // Fuel Archetype / Class Multipliers (Global Calibration Parameters)
     public double denseNbaseMultiplier = 0.50; // -50% base neutrons (subcritical/mostly-inert)
@@ -138,6 +142,11 @@ public class PhysicsData {
         d.coolantPassageNeutronsPerRadiolysis = Math
             .max(1, getInt(map, "coolant_passage_neutrons_per_radiolysis", d.coolantPassageNeutronsPerRadiolysis));
         d.coolantPassageMinorLossK = getDouble(map, "coolant_passage_minor_loss_k", d.coolantPassageMinorLossK);
+        d.coolantPassageHeatCapacity = Math
+            .max(0.1, getDouble(map, "coolant_passage_heat_capacity", d.coolantPassageHeatCapacity));
+        d.coolantPassageHeatTransferTierRatio = Math.max(
+            1.0,
+            getDouble(map, "coolant_passage_heat_transfer_tier_ratio", d.coolantPassageHeatTransferTierRatio));
 
         d.denseNbaseMultiplier = getDouble(map, "dense_nbase_multiplier", d.denseNbaseMultiplier);
         d.denseFissionMultiplier = getDouble(map, "dense_fission_multiplier", d.denseFissionMultiplier);
@@ -173,6 +182,8 @@ public class PhysicsData {
         m.put("coolant_passage_default_moderation", coolantPassageDefaultModeration);
         m.put("coolant_passage_neutrons_per_radiolysis", coolantPassageNeutronsPerRadiolysis);
         m.put("coolant_passage_minor_loss_k", coolantPassageMinorLossK);
+        m.put("coolant_passage_heat_capacity", coolantPassageHeatCapacity);
+        m.put("coolant_passage_heat_transfer_tier_ratio", coolantPassageHeatTransferTierRatio);
         m.put("boundary_heat_loss", boundaryHeatLoss);
         m.put("radiation_decay_factor", radiationDecayFactor);
         m.put("doppler_deficit_exponent", dopplerDeficitExponent);

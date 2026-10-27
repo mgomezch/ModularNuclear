@@ -116,8 +116,16 @@ public class NuclearStructureChannelTest {
             ItemStack stack9 = NuclearReactorStructure.getNuclearHatchStack(9);
             assertNotNull(stack9, "Nuclear hatch stack for tier 9 must not be null");
 
-            ItemStack stack10 = NuclearReactorStructure.getNuclearHatchStack(10);
-            assertNotNull(stack10, "Nuclear hatch stack for tier 10 must not be null");
+            // Tier 10 hints the first tiered high-pressure input hatch (registered unless another test already took
+            // a legacy hatch's id, which stops registration before the tiered hatches)
+            ItemStack firstInput = com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities.nuclearHighPressureInputHatches[0];
+            if (firstInput != null) {
+                ItemStack stack10 = NuclearReactorStructure.getNuclearHatchStack(10);
+                assertNotNull(stack10, "Nuclear hatch stack for tier 10 must not be null");
+                assertTrue(
+                    ItemStack.areItemStacksEqual(firstInput, stack10),
+                    "tier 10 is the first tiered input hatch");
+            }
 
             assertNull(NuclearReactorStructure.getNuclearHatchStack(-1), "Negative tier should return null");
             assertNull(NuclearReactorStructure.getNuclearHatchStack(11), "Tier > 10 should return null");

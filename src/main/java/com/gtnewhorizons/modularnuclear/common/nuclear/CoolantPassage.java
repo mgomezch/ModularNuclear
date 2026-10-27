@@ -72,6 +72,20 @@ public final class CoolantPassage {
         return null;
     }
 
+    /** Heat capacity (HU/°C) of a passage of the given voltage tier: 2^tier times the configured base. */
+    public static double heatCapacity(int tier) {
+        return config().coolantPassageHeatCapacity * Math.pow(2.0, Math.max(0, tier));
+    }
+
+    /**
+     * Factor on a passage's convective heat transfer for its voltage tier: the configured multiplier at MV (tier 2),
+     * times the tier ratio per tier above.
+     */
+    public static double heatTransferFactor(int tier) {
+        return NuclearSimulationEngine.coolantPassageHeatTransferMultiplier
+            * Math.pow(config().coolantPassageHeatTransferTierRatio, Math.max(0, tier) - 2);
+    }
+
     public static double length() {
         return CoolantLoopConfigData.getPhysicsData()
             .getStandardPassageLength();
@@ -83,22 +97,14 @@ public final class CoolantPassage {
     }
 
     /**
-     * One tick of convective exchange between a passage cell and the coolant in its loop segment (Dittus-Boelter in
-     * turbulent flow, Nu = 4.36 in laminar flow, scaled by the configured passage heat transfer multiplier), limited so
-     * the two cannot cross over in temperature. Updates the
-     * segment's temperature and returns the heat moved from the cell into the coolant in HU (negative if the coolant
-     * heated the cell).
+     * One tick of convective exchange between a passage cell of the given heat capacity (HU/°C) and voltage tier and
+     * the
+     * coolant in its loop segment (Dittus-Boelter in turbulent flow, Nu = 4.36 in laminar flow, scaled by the tier's
+     * {@link #heatTransferFactor(int)}), limited so the two cannot cross over in temperature. Updates the segment's
+     * temperature and returns the heat moved from the cell into the coolant in HU (negative if the coolant heated the
+     * cell).
      */
-    public static double exchange(double cellTempC, double flowM3s, double dtSeconds, CoolantFluidProperty fluid,
-        LoopSegment segment) {
-        return exchange(cellTempC, NuclearSimulationEngine.HU_PER_DEGREE, flowM3s, dtSeconds, fluid, segment);
-    }
-
-    /**
-     * As {@link #exchange(double, double, double, CoolantFluidProperty, LoopSegment)}, for a cell of the given heat
-     * capacity (HU/°C).
-     */
-    public static double exchange(double cellTempC, double cellCapacityHu, double flowM3s, double dtSeconds,
+    public static double exchange(double cellTempC, double cellCapacityHu, int tier, double flowM3s, double dtSeconds,
         CoolantFluidProperty fluid, LoopSegment segment) {
         if (flowM3s <= 1e-6 || fluid == null || segment == null) return 0.0;
         double coolantTemp = segment.getCurrentTemperatureCelsius();
@@ -117,7 +123,7 @@ public final class CoolantPassage {
         double re = (rho * velocity * diameter) / Math.max(1e-6, mu);
         double pr = (mu * cp) / Math.max(1e-4, kThermal);
         double nu = re < 2300.0 ? 4.36 : 0.023 * Math.pow(re, 0.8) * Math.pow(Math.max(0.6, pr), 0.4);
-        double h = (nu * kThermal) / diameter * NuclearSimulationEngine.coolantPassageHeatTransferMultiplier;
+        double h = (nu * kThermal) / diameter * heatTransferFactor(tier);
         double heatJoules = h * area * deltaT * dtSeconds;
 
         double cellCapacity = cellCapacityHu * JOULES_PER_HU;

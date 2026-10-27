@@ -1728,7 +1728,12 @@ public class NuclearSimulationEngineTest {
         bus.setBaseMetaTileEntity(mockBusTile);
 
         // 3. Nuclear High-Pressure Hatch (Top Inlet)
-        MTEHatchNuclearHighPressure hpTop = new MTEHatchNuclearHighPressure("test.hp.top", 4, new String[0], null);
+        MTEHatchNuclearHighPressure hpTop = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput(
+            "test.hp.top",
+            4,
+            3,
+            new String[0],
+            null);
         gregtech.api.metatileentity.BaseMetaTileEntity mockHpTopTile = org.mockito.Mockito
             .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
         org.mockito.Mockito.when(mockHpTopTile.getMetaTileEntity())
@@ -1776,16 +1781,14 @@ public class NuclearSimulationEngineTest {
 
         org.mockito.Mockito.when(mockWorld.getTileEntity(3, 1, 0))
             .thenReturn(mockPfTopTile);
-        assertTrue(topElement.check(reactor, mockWorld, 3, 1, 0));
-        assertEquals(
-            nuclearCasingTex,
-            pfTop.getCasingTexture(),
-            "Pressurized fluid top hatch must adopt nuclear casing texture");
+        // The core takes only the material-tiered nuclear high-pressure hatches as passages
+        assertFalse(topElement.check(reactor, mockWorld, 3, 1, 0), "a pressurized fluid hatch is not a core passage");
 
         // 5. Nuclear High-Pressure Hatch (Bottom Outlet)
-        MTEHatchNuclearHighPressure hpBottom = new MTEHatchNuclearHighPressure(
+        MTEHatchNuclearHighPressure hpBottom = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput(
             "test.hp.bottom",
             4,
+            3,
             new String[0],
             null);
         gregtech.api.metatileentity.BaseMetaTileEntity mockHpBottomTile = org.mockito.Mockito
@@ -1835,11 +1838,10 @@ public class NuclearSimulationEngineTest {
 
         org.mockito.Mockito.when(mockWorld.getTileEntity(1, 0, 0))
             .thenReturn(mockPfBottomTile);
-        assertTrue(bottomElement.check(reactor, mockWorld, 1, 0, 0));
-        assertEquals(
-            nuclearCasingTex,
-            pfBottom.getCasingTexture(),
-            "Pressurized fluid bottom hatch must adopt nuclear casing texture");
+        // The core takes only the material-tiered nuclear high-pressure hatches as passages
+        assertFalse(
+            bottomElement.check(reactor, mockWorld, 1, 0, 0),
+            "a pressurized fluid hatch is not a core passage");
 
         org.mockito.Mockito.when(mockWorld.getTileEntity(2, 0, 0))
             .thenReturn(mockRodTile);
@@ -1874,15 +1876,6 @@ public class NuclearSimulationEngineTest {
         ITexture[] hpFacing = hpTop.getTexture(mockHpTopTile, ForgeDirection.UP, ForgeDirection.UP, 0, false, false);
         assertTrue(hpFacing.length >= 2);
         assertEquals(nuclearCasingTex, hpFacing[0], "Facing side base texture of HP hatch must be nuclear casing");
-
-        ITexture[] pfNonFacing = pfTop
-            .getTexture(mockPfTopTile, ForgeDirection.NORTH, ForgeDirection.UP, 0, false, false);
-        assertEquals(1, pfNonFacing.length);
-        assertEquals(nuclearCasingTex, pfNonFacing[0], "Non-facing side of PF hatch must render nuclear casing");
-
-        ITexture[] pfFacing = pfTop.getTexture(mockPfTopTile, ForgeDirection.UP, ForgeDirection.UP, 0, false, false);
-        assertTrue(pfFacing.length >= 2);
-        assertEquals(nuclearCasingTex, pfFacing[0], "Facing side base texture of PF hatch must be nuclear casing");
     }
 
     @Test
@@ -4403,8 +4396,18 @@ public class NuclearSimulationEngineTest {
     @Test
     void testNuclearCoreHighPressureHatchAndStructureRules() {
         MTENuclearReactor reactor = new MTENuclearReactor("test.reactor");
-        MTEHatchNuclearHighPressure topHp = new MTEHatchNuclearHighPressure("test.top_hp", 4, new String[0], null);
-        MTEHatchNuclearHighPressure botHp = new MTEHatchNuclearHighPressure("test.bot_hp", 4, new String[0], null);
+        MTEHatchNuclearHighPressure topHp = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput(
+            "test.top_hp",
+            4,
+            3,
+            new String[0],
+            null);
+        MTEHatchNuclearHighPressure botHp = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput(
+            "test.bot_hp",
+            4,
+            3,
+            new String[0],
+            null);
 
         // Core hatch predicates
         assertTrue(MTENuclearReactor.isNuclearCoreHatch(topHp));
@@ -4472,6 +4475,24 @@ public class NuclearSimulationEngineTest {
         assertFalse(
             bottomElement.check(reactor, mockWorld, 10, 64, 15),
             "HP hatch facing UP must fail BottomCoreElement");
+
+        // An untiered legacy output hatch, even facing DOWN, is rejected
+        MTEHatchNuclearHighPressure legacyBot = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput(
+            "test.legacy_bot_hp",
+            5,
+            new String[0],
+            null);
+        org.mockito.Mockito.when(mockBotTe.getFrontFacing())
+            .thenReturn(ForgeDirection.DOWN);
+        org.mockito.Mockito.when(mockBotTe.getMetaTileEntity())
+            .thenReturn(legacyBot);
+        assertFalse(
+            bottomElement.check(reactor, mockWorld, 10, 64, 15),
+            "An untiered high-pressure hatch must fail BottomCoreElement");
+        org.mockito.Mockito.when(mockBotTe.getMetaTileEntity())
+            .thenReturn(botHp);
+        org.mockito.Mockito.when(mockBotTe.getFrontFacing())
+            .thenReturn(ForgeDirection.UP);
 
         // 4. Other hatches at bottom -> rejected (bus, fluid hatch, control rod, maintenance)
         MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 4, new String[0], null);

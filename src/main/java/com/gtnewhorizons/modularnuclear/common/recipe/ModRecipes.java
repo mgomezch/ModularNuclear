@@ -16,13 +16,17 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 
 import cpw.mods.fml.common.Loader;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.TierEU;
+import gregtech.api.enums.ToolDictNames;
 import gregtech.api.util.GTModHandler;
 import ic2.core.item.ItemFluidCell;
 
@@ -38,6 +42,45 @@ public class ModRecipes {
         registerCannerRecipes();
         registerFluidHeaterRecipes();
         registerCoriumRecipes();
+        registerHighPressureHatchRecipes();
+    }
+
+    /**
+     * Each material's high-pressure passage hatches: the GregTech input (or output) hatch of the material's voltage
+     * tier, a huge coolant pipe of the material and a clean stainless steel casing (GregTech has no reinforced casing
+     * per pipe material). A screwdriver turns an input into the output of the same material and back.
+     */
+    private static void registerHighPressureHatchRecipes() {
+        if (!ItemList.Casing_CleanStainlessSteel.hasBeenSet()) return;
+        ItemStack casing = ItemList.Casing_CleanStainlessSteel.get(1L);
+        for (int m = 0; m < CoolantPipeSpec.MATERIAL_NAMES.length; m++) {
+            ItemStack input = ModMetaTileEntities.nuclearHighPressureInputHatches[m];
+            ItemStack output = ModMetaTileEntities.nuclearHighPressureOutputHatches[m];
+            ItemStack pipe = CoolantLoopMetaTileEntities.coolantPipeItems[m][CoolantPipeSpec.SIZE_NAMES.length - 1];
+            String tier = GTValues.VN[CoolantPipeSpec.VOLTAGE_TIERS[m]];
+            ItemList inputHatch = ItemList.valueOf("Hatch_Input_" + tier);
+            ItemList outputHatch = ItemList.valueOf("Hatch_Output_" + tier);
+            if (input == null || output == null
+                || pipe == null
+                || !inputHatch.hasBeenSet()
+                || !outputHatch.hasBeenSet()) {
+                continue;
+            }
+            GTModHandler.addCraftingRecipe(
+                input.copy(),
+                GTModHandler.RecipeBits.NOT_REMOVABLE | GTModHandler.RecipeBits.REVERSIBLE,
+                new Object[] { "P", "H", "C", 'P', pipe, 'H', inputHatch.get(1L), 'C', casing });
+            GTModHandler.addCraftingRecipe(
+                output.copy(),
+                GTModHandler.RecipeBits.NOT_REMOVABLE | GTModHandler.RecipeBits.REVERSIBLE,
+                new Object[] { "P", "H", "C", 'P', pipe, 'H', outputHatch.get(1L), 'C', casing });
+            GTModHandler.addShapelessCraftingRecipe(
+                output.copy(),
+                new Object[] { input.copy(), ToolDictNames.craftingToolScrewdriver });
+            GTModHandler.addShapelessCraftingRecipe(
+                input.copy(),
+                new Object[] { output.copy(), ToolDictNames.craftingToolScrewdriver });
+        }
     }
 
     private static void registerCoriumRecipes() {

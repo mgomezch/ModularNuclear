@@ -7,34 +7,44 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.render.TextureFactory;
-import gregtech.api.util.GTSplit;
 
 /**
  * Nuclear Core High-Pressure Input Hatch.
  *
  * Dedicated hermetic inlet endpoint bridging the top of the MPTR core (slice 0)
- * to closed coolant loops. Pairs strictly with a bottom outlet hatch in the same column.
+ * to closed coolant loops. Pairs strictly with a bottom outlet hatch of the same material in the same column.
  */
 public class MTEHatchNuclearHighPressureInput extends MTEHatchNuclearHighPressure {
 
     public MTEHatchNuclearHighPressureInput(int aID, String aName, String aNameRegional, int aTier) {
-        super(aID, aName, aNameRegional, aTier);
+        this(aID, aName, aNameRegional, aTier, -1);
+    }
+
+    /** A material-tiered hatch: aMaterialIndex indexes the coolant pipe materials, aTier is that material's tier. */
+    public MTEHatchNuclearHighPressureInput(int aID, String aName, String aNameRegional, int aTier,
+        int aMaterialIndex) {
+        super(aID, aName, aNameRegional, aTier, aMaterialIndex);
         this.mIsInlet = true;
     }
 
     public MTEHatchNuclearHighPressureInput(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
-        super(aName, aTier, aDescription, aTextures);
+        this(aName, aTier, -1, aDescription, aTextures);
+    }
+
+    public MTEHatchNuclearHighPressureInput(String aName, int aTier, int aMaterialIndex, String[] aDescription,
+        ITexture[][][] aTextures) {
+        super(aName, aTier, aMaterialIndex, aDescription, aTextures);
         this.mIsInlet = true;
     }
 
     @Override
     public String[] getDescription() {
-        return GTSplit.splitLocalized("gt.blockmachines.hatch.nuclearhighpressure.input.desc");
+        return describe("gt.blockmachines.hatch.nuclearhighpressure.input.desc");
     }
 
     @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
-        return new MTEHatchNuclearHighPressureInput(mName, mTier, mDescriptionArray, mTextures);
+        return new MTEHatchNuclearHighPressureInput(mName, mTier, mMaterialIndex, mDescriptionArray, mTextures);
     }
 
     @Override

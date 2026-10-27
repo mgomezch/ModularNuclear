@@ -180,7 +180,7 @@ public class CoolantLoopModel {
 
         CAST_IRON("Cast Iron", "CastIron", "ULV"),
         STEEL("Steel", "Steel", "LV"),
-        STAINLESS_STEEL("Stainless Steel", "StainlessSteel", "MV"),
+        STAINLESS_STEEL("Stainless Steel", "StainlessSteel", "HV"),
         TITANIUM("Titanium", "Titanium", "EV"),
         TUNGSTENSTEEL("Tungstensteel", "TungstenSteel", "IV"),
         OSMIUM("Osmium", "Osmium", "LuV"),
@@ -194,6 +194,11 @@ public class CoolantLoopModel {
             this.displayName = displayName;
             this.materialName = materialName;
             this.tierUnlocked = tierUnlocked;
+        }
+
+        /** Voltage tier of the material's passage hatches, which sets their heat capacity and heat transfer. */
+        public int voltageTier() {
+            return CoolantPipeSpec.VOLTAGE_TIERS[CoolantPipeSpec.materialIndex(materialName)];
         }
 
         /** Burst pressure from the coolant loop pipe config. */
@@ -1230,7 +1235,10 @@ public class CoolantLoopModel {
                 if (target >= 0) {
                     assigned.get(target)
                         .add(tile);
-                    if (tile.isCoolantPassage()) tile.setPassageLoopFluid(circuits.get(target).fluidType.fluidName);
+                    if (tile.isCoolantPassage()) {
+                        tile.setPassageLoopFluid(circuits.get(target).fluidType.fluidName);
+                        tile.setPassageTier(circuits.get(target).material.voltageTier());
+                    }
                 } else if (tile.isCoolantPassage()) {
                     tile.setPassageLoopFluid(null);
                 }
@@ -1361,8 +1369,14 @@ public class CoolantLoopModel {
                     SimTile tile = loop.passageTiles.get(i);
                     LoopSegment seg = loop.passageSegments.get(i);
                     double capacity = tile.getHeatCapacity();
-                    double hu = CoolantPassage
-                        .exchange(tile.getTemperature(), capacity, flow * seg.getFlowFraction(), 0.05, fluid, seg);
+                    double hu = CoolantPassage.exchange(
+                        tile.getTemperature(),
+                        capacity,
+                        tile.getPassageTier(),
+                        flow * seg.getFlowFraction(),
+                        0.05,
+                        fluid,
+                        seg);
                     if (hu == 0.0) continue;
                     tile.setTemperature(tile.getTemperature() - hu / capacity);
                     if (hu > 0) {

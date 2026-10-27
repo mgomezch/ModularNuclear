@@ -10,6 +10,7 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantPassageHatch;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
@@ -26,6 +27,7 @@ import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Textures;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
@@ -43,6 +45,10 @@ import gregtech.api.util.GTSplit;
  * Serves as the hermetic fluid passage endpoint bridging the MPTR core to closed coolant loops.
  * Pairs strictly by column coordinates (Slice 0 Top Inlet <-> Slice 4 Bottom Outlet).
  * Holds zero Forge fluids directly; couples convective heat exchange and radiolytic gas generation.
+ * <p>
+ * The MPTR takes the material-tiered input and output hatches, one per coolant pipe material: the material's voltage
+ * tier ({@link CoolantPipeSpec#VOLTAGE_TIERS}) sets the passage's heat capacity and heat transfer. The untiered hatches
+ * remain registered only so existing worlds keep their blocks.
  */
 public class MTEHatchNuclearHighPressure extends MTEHatch
     implements ICoolantPassageHatch, INuclearTile, IAddGregtechLogo {
@@ -55,6 +61,8 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
     public long mCumulativeFluence = 0L;
 
     protected boolean mIsInlet = true;
+    /** Index in {@link CoolantPipeSpec#MATERIAL_NAMES} of the hatch's material, or -1 for an untiered legacy hatch. */
+    protected final int mMaterialIndex;
     protected IGregTechTileEntity mOppositeHatch = null;
     protected int[] mOppositeCoord = null;
     protected ICoolantLoopPump mConnectedPump = null;
@@ -74,11 +82,22 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
     public double mIncomingCoolantTemp = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
 
     public MTEHatchNuclearHighPressure(int aID, String aName, String aNameRegional, int aTier) {
+        this(aID, aName, aNameRegional, aTier, -1);
+    }
+
+    public MTEHatchNuclearHighPressure(int aID, String aName, String aNameRegional, int aTier, int aMaterialIndex) {
         super(aID, aName, aNameRegional, aTier, 0, (String) null);
+        this.mMaterialIndex = aMaterialIndex;
     }
 
     public MTEHatchNuclearHighPressure(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
+        this(aName, aTier, -1, aDescription, aTextures);
+    }
+
+    public MTEHatchNuclearHighPressure(String aName, int aTier, int aMaterialIndex, String[] aDescription,
+        ITexture[][][] aTextures) {
         super(aName, aTier, 0, aDescription, aTextures);
+        this.mMaterialIndex = aMaterialIndex;
     }
 
     @Override
@@ -86,9 +105,44 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         return GTSplit.splitLocalized("gt.blockmachines.hatch.nuclearhighpressure.desc");
     }
 
+    /** The localized description under the given key, followed by the material's passage properties if tiered. */
+    protected String[] describe(String key) {
+        String[] base = GTSplit.splitLocalized(key);
+        if (!isTiered()) return base;
+        String[] lines = java.util.Arrays.copyOf(base, base.length + 2);
+        lines[base.length] = net.minecraft.util.StatCollector.translateToLocalFormatted(
+            "gt.blockmachines.hatch.nuclearhighpressure.material",
+            com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities.COOLANT_PIPE_MATERIALS[mMaterialIndex]
+                .getLocalizedNameForItem("%material"),
+            GTValues.VN[mTier]);
+        lines[base.length + 1] = net.minecraft.util.StatCollector
+            .translateToLocalFormatted("gt.blockmachines.hatch.nuclearhighpressure.capacity", (long) getHeatCapacity());
+        return lines;
+    }
+
     @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
-        return new MTEHatchNuclearHighPressure(mName, mTier, mDescriptionArray, mTextures);
+        return new MTEHatchNuclearHighPressure(mName, mTier, mMaterialIndex, mDescriptionArray, mTextures);
+    }
+
+    /** Whether this is one of the material-tiered hatches the MPTR accepts. */
+    public boolean isTiered() {
+        return mMaterialIndex >= 0;
+    }
+
+    public int getMaterialIndex() {
+        return mMaterialIndex;
+    }
+
+    /** GregTech name of the hatch's material, or null for an untiered legacy hatch. */
+    public String getMaterialName() {
+        return isTiered() ? CoolantPipeSpec.MATERIAL_NAMES[mMaterialIndex] : null;
+    }
+
+    /** Heat capacity (HU/°C) of the passage cell, set by the hatch's voltage tier. */
+    @Override
+    public double getHeatCapacity() {
+        return CoolantPassage.heatCapacity(mTier);
     }
 
     @Override
@@ -260,8 +314,14 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         NBTTagCompound nbt = new NBTTagCompound();
         oldHatch.saveNBTData(nbt);
 
-        int targetId = isInput ? ModMetaTileEntities.ID_NUCLEAR_HIGH_PRESSURE_INPUT
-            : ModMetaTileEntities.ID_NUCLEAR_HIGH_PRESSURE_OUTPUT;
+        int targetId;
+        if (oldHatch.isTiered()) {
+            targetId = (isInput ? ModMetaTileEntities.ID_NUCLEAR_HIGH_PRESSURE_INPUT_BASE
+                : ModMetaTileEntities.ID_NUCLEAR_HIGH_PRESSURE_OUTPUT_BASE) + oldHatch.getMaterialIndex();
+        } else {
+            targetId = isInput ? ModMetaTileEntities.ID_NUCLEAR_HIGH_PRESSURE_INPUT
+                : ModMetaTileEntities.ID_NUCLEAR_HIGH_PRESSURE_OUTPUT;
+        }
         IMetaTileEntity newMteTemplate = GregTechAPI.METATILEENTITIES[targetId];
         if (newMteTemplate == null) return oldHatch;
 
@@ -361,12 +421,13 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         if (mOppositeHatch != null && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
             other.mIncomingCoolantTemp = coolantTemp;
         }
+        double capacity = getHeatCapacity();
         double heatTransferredHu = CoolantPassage
-            .exchange(mTemperature, volumetricFlowRateM3s, dtSeconds, fluid, segment);
+            .exchange(mTemperature, capacity, mTier, volumetricFlowRateM3s, dtSeconds, fluid, segment);
         if (heatTransferredHu == 0.0) {
             return;
         }
-        double coreTempChange = heatTransferredHu / NuclearSimulationEngine.HU_PER_DEGREE;
+        double coreTempChange = heatTransferredHu / capacity;
 
         mTemperature -= coreTempChange;
         if (mOppositeHatch != null && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
@@ -400,7 +461,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
 
     @Override
     public void addHeat(double heatHu) {
-        this.mTemperature += heatHu / NuclearSimulationEngine.HU_PER_DEGREE;
+        this.mTemperature += heatHu / getHeatCapacity();
         if (mOppositeHatch != null && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
             other.mTemperature = this.mTemperature;
         }

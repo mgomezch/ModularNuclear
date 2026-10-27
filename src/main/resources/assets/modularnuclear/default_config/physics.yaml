@@ -8,7 +8,14 @@ physics:
   grid_conduction_multiplier: 1.0
   fuel_burnup_multiplier: 1.0
   neutron_yield_multiplier: 1.0
-  coolant_passage_heat_transfer_multiplier: 1.0
+  # Convective heat transfer of an MV (tier 2) high-pressure passage into its loop coolant, times
+  # coolant_passage_heat_transfer_tier_ratio per voltage tier above. A passage's tier is its pipe material's (cast iron
+  # ULV, steel LV, stainless steel HV, titanium EV, tungstensteel IV, osmium LuV, neutronium ZPM). With 75 L/s of water
+  # through it, a passage removes about three times what a core hatch of the same tier conducts into its own coolant.
+  coolant_passage_heat_transfer_multiplier: 0.11
+  coolant_passage_heat_transfer_tier_ratio: 2.65
+  # Heat capacity (HU/°C) of a tier-0 passage; a passage of voltage tier t holds 2^t times this.
+  coolant_passage_heat_capacity: 16.0
   # Conductance (HU/(s·°C)) from a nuclear core hatch into its coolant: base_hatch_conductance at MV, times
   # hatch_conductance_tier_ratio per tier above. Heat capacity doubles per tier, so a ratio above 2 lets higher tiers
   # remove a larger share of their excess heat: by default 20%/s at EV, rising to 60%/s at UHV.

@@ -145,17 +145,9 @@ public class CoolantLoopGraphData {
                 ? new ItemStack(CoolantLoopBlocks.creativeHeatReservoir)
                 : null;
             case "core_passage" -> {
-                try {
-                    Class<?> mnMeta = Class
-                        .forName("com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities");
-                    Object hatchField = mnMeta.getField("nuclearHighPressureHatch")
-                        .get(null);
-                    if (hatchField != null) {
-                        java.lang.reflect.Method getStack = hatchField.getClass()
-                            .getMethod("getStackForm", long.class);
-                        yield (ItemStack) getStack.invoke(hatchField, 1L);
-                    }
-                } catch (Throwable ignored) {}
+                for (ItemStack stack : com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities.nuclearHighPressureInputHatches) {
+                    if (stack != null) yield stack.copy();
+                }
                 yield CoolantLoopMetaTileEntities.pressurizedFluidHatch != null
                     ? CoolantLoopMetaTileEntities.pressurizedFluidHatch.getStackForm(1L)
                     : null;

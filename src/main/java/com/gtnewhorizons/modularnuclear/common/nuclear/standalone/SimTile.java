@@ -247,6 +247,9 @@ public class SimTile implements INuclearTile {
     private int passageLoop = 0;
     /** Fluid of the running loop a passage is connected to, or null when it is on none. */
     private String passageLoopFluid = null;
+    /** Voltage tier of a passage: its loop's pipe material's (titanium, EV, until it joins a loop). */
+    private int passageTier = DEFAULT_PASSAGE_TIER;
+    public static final int DEFAULT_PASSAGE_TIER = 4;
 
     /** Loop index of a passage layout code (CP, CP2 ... CP9), or -1 if the code is not a passage with a loop. */
     public static int passageLoopFromCode(String code) {
@@ -280,6 +283,15 @@ public class SimTile implements INuclearTile {
 
     public void setPassageLoopFluid(String fluidName) {
         this.passageLoopFluid = fluidName;
+    }
+
+    /** Voltage tier that sets this cell's exchange with a loop: a passage's own, or a hatch's tier. */
+    public int getPassageTier() {
+        return type == TileType.PASSAGE_CORE ? passageTier : tier;
+    }
+
+    public void setPassageTier(int passageTier) {
+        this.passageTier = Math.max(0, passageTier);
     }
 
     // Fuel state
@@ -448,6 +460,7 @@ public class SimTile implements INuclearTile {
         this.type = (newType == null) ? TileType.EMPTY : newType;
         this.passageLoop = 0;
         this.passageLoopFluid = null;
+        this.passageTier = DEFAULT_PASSAGE_TIER;
         this.depleted = false;
         this.depletionLogged = false;
         this.lastDurabilityLoss = 0.0;
@@ -607,8 +620,9 @@ public class SimTile implements INuclearTile {
 
     @Override
     public double getHeatCapacity() {
-        return isCoolantHatch() || isLiquidFuelHatch() ? NuclearSimulationEngine.getCoreHatchHeatCapacity(tier)
-            : NuclearSimulationEngine.HU_PER_DEGREE;
+        if (isCoolantHatch() || isLiquidFuelHatch()) return NuclearSimulationEngine.getCoreHatchHeatCapacity(tier);
+        if (type == TileType.PASSAGE_CORE) return CoolantPassage.heatCapacity(passageTier);
+        return NuclearSimulationEngine.HU_PER_DEGREE;
     }
 
     public double getHeatHu() {
