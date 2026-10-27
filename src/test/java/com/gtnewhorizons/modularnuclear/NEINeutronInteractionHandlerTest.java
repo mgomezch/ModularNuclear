@@ -363,7 +363,7 @@ public class NEINeutronInteractionHandlerTest {
 
     @Test
     public void testWordWrappingExtraInfo() {
-        String longText = "Liquid metal coolant (melts at 97.8 °C, boils at 883 °C) | k = 0.70";
+        String longText = "Liquid metal coolant (melts at 96.85 °C, boils at 883 °C) | k = 0.70";
         java.util.List<String> lines = NEINeutronInteractionHandler.wrapExtraInfo(longText, 132, null);
         assertTrue(lines.size() >= 2, "Long extraInfo text must wrap into at least 2 lines");
 

@@ -783,7 +783,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             false,
             null,
             0L,
-            "Liquid metal coolant (melts at 97.8 °C, boils at 883 °C) | k = 0.70");
+            "Liquid metal coolant (melts at 96.85 °C, boils at 883 °C) | k = 0.70");
         addFluidCoolant(
             "molten.lead",
             "Molten Lead",

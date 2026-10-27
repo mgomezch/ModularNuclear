@@ -497,10 +497,9 @@ public class CoolantLoopEngine {
 
             // Solidification/freezing check for loop coolant
             if (fluid != null && !fluid.isLava()) {
-                double freezingTemp = fluid.getFreezingPointCelsius();
-                if (fluid.isMolten()) {
-                    freezingTemp = Math.max(freezingTemp, fluid.getDeclaredTemperatureCelsius());
-                }
+                // Molten coolants solidify at the temperature GregTech declares for the fluid
+                double freezingTemp = fluid.isMolten() ? fluid.getDeclaredTemperatureCelsius()
+                    : fluid.getFreezingPointCelsius();
                 if (freezingTemp != Double.NEGATIVE_INFINITY && Double.isFinite(freezingTemp)
                     && segment.getCurrentTemperatureCelsius() < freezingTemp) {
                     isRuptured = true;

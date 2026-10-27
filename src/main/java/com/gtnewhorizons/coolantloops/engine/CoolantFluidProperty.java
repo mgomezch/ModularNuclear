@@ -148,7 +148,7 @@ public class CoolantFluidProperty {
         1260.0,
         86.0, // High liquid metal conductivity
         Double.POSITIVE_INFINITY, // Handled as non-boiling liquid metal
-        97.8);
+        96.85); // GregTech's sodium melting point (370 K)
 
     public static final CoolantFluidProperty MOLTEN_CHEESE = new CoolantFluidProperty(
         "molten.cheese",
