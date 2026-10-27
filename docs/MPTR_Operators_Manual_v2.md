@@ -49,13 +49,13 @@ Power is not produced by the reactor directly, with the single exception of radi
 | :--- | :--- | :--- |
 | Heat | HU (heat unit) | Internal energy unit of the core simulation. |
 | Temperature | °C | All core temperatures are in degrees Celsius. |
-| Heat capacity | 32 HU/°C | Every core column has the same heat capacity, `hu_per_degree` (default 32). |
+| Heat capacity | HU/°C | A nuclear core hatch's column holds $16 \times 2^\text{tier}$ HU/°C (`core_hatch_heat_capacity` = 16: LV 32, EV 256, UV 4096); every other column holds `hu_per_degree` (default 32). |
 | Cycle | 5 ticks | The core is simulated once per cycle (`ticksPerCycle`, default 5; 0.25 s). |
 | $\Delta t$ | s | Cycle length in seconds, $\Delta t = \text{ticksPerCycle}/20 = 0.25$ s by default. |
 | Neutrons | count | Neutron populations are integer counts per cycle (thermal populations are carried as real numbers during diffusion). |
 | Fluid | L (mB) | 1 L = 1 mB. |
 
-Because every column has a heat capacity of 32 HU/°C, adding $Q$ HU to a column raises its temperature by $Q/32$ °C. This equivalence is used throughout this manual.
+Adding $Q$ HU to a column of heat capacity $C$ raises its temperature by $Q/C$ °C. Unless a section says otherwise, the examples in this manual are of 32 HU/°C columns (buses).
 
 ### 1.3 The simulation cycle
 
@@ -166,7 +166,7 @@ where $\tau_\text{biome}$ is Minecraft's biome temperature. The formula treats $
 
 Each core column is one **cell** of the grid. Every cell has:
 
-- a temperature $T$ (°C) and a heat capacity of 32 HU/°C;
+- a temperature $T$ (°C) and a heat capacity $C$: $16 \times 2^\text{tier}$ HU/°C for a nuclear core hatch (it belongs to the hatch's structure, like its $8000 \times 2^\text{tier}$ L tank, whatever fluid it holds), 32 HU/°C for every other cell;
 - interaction probabilities for fast and thermal neutrons: absorption $p_a$ and scattering $p_s$;
 - a fast-neutron moderation probability $p_m$;
 - a heat-transfer coefficient $c$ used for conduction;
@@ -330,15 +330,15 @@ All heat produced by neutron events in a cycle is accumulated and deposited at o
 
 ### 5.2 Conduction
 
-After deposition, heat conducts between each pair of cardinally adjacent cells, in 5 sub-steps per cycle. In each sub-step, the flow from a hotter cell A to a colder neighbour B, expressed as a temperature change, is
+After deposition, heat conducts between each pair of cardinally adjacent cells, in $N \ge 5$ sub-steps per cycle ($N$ grows with the largest coefficient and the conduction multiplier, so that no cell overshoots). In each sub-step, the heat flowing from a hotter cell A to a colder neighbour B is
 
-$$\Delta T_{A\to B} = (T_A - T_B)\cdot\frac{c_A + c_B}{2}\cdot\frac{\Delta t}{5}\cdot\big(1 - \max(\delta_A,\delta_B)\big)$$
+$$Q_{A\to B} = 32\,(T_A - T_B)\cdot\frac{c_A + c_B}{2}\cdot\frac{\Delta t}{N}\cdot\big(1 - \max(\delta_A,\delta_B)\big)$$
 
-with each coefficient floored at 0.01. Because all cells share the same heat capacity, the same $\Delta T$ is subtracted from A and added to B.
+with each coefficient floored at 0.01. A loses $Q/C_A$ °C and B gains $Q/C_B$ °C: between two 32 HU/°C cells the same $\Delta T$ is subtracted from A and added to B, while a hatch of larger heat capacity warms and cools more slowly than its neighbours.
 
-Each missing cardinal neighbour (grid edge or cut corner) is a boundary at ambient temperature. The loss through each such face per sub-step is
+Each missing cardinal neighbour (grid edge or cut corner) is a boundary at ambient temperature. The heat lost through each such face per sub-step is
 
-$$\Delta T_\text{loss} = (T_A - T_\text{amb})\cdot\frac{c_A\,\Delta t}{2\cdot 5}\cdot(1 - \delta_A)$$
+$$Q_\text{loss} = 32\,(T_A - T_\text{amb})\cdot\frac{c_A\,\Delta t}{2N}\cdot(1 - \delta_A)$$
 
 i.e. half the coupling an equivalent neighbour would have.
 
@@ -708,23 +708,24 @@ T_\text{amb} & \text{non-boiling coolant}
 
 If $T > T_\text{sink}$, the maximum heat the hatch can extract this cycle is
 
-$$Q_\text{max} = C\,(T - T_\text{sink})\left(1 - e^{-U\,\eta\,\Delta t / C}\right), \qquad C = 32\ \text{HU/°C}$$
+$$Q_\text{max} = C\,(T - T_\text{sink})\left(1 - e^{-U\,\eta\,\Delta t / C}\right)$$
 
-where $\eta$ is the maintenance efficiency and $U$ is the hatch conductance:
+where $C$ is the hatch's heat capacity, $\eta$ is the maintenance efficiency and $U$ is the hatch conductance:
 
 | Hatch tier | LV | MV | HV | EV | IV | LuV | ZPM | UV | UHV |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | $U$ (HU·s⁻¹·°C⁻¹) | 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 |
-| Fraction of ΔT removed per cycle | 0.8 % | 1.6 % | 3.1 % | 6.1 % | 11.8 % | 22.1 % | 39.3 % | 63.2 % | 86.5 % |
+| $C$ (HU/°C) | 32 | 64 | 128 | 256 | 512 | 1024 | 2048 | 4096 | 8192 |
+| Heat removed per cycle per °C above the sink (HU) | 0.25 | 0.50 | 1.0 | 2.0 | 4.0 | 8.0 | 15.9 | 31.9 | 63.8 |
 | Capacity (L) | 16 000 | 32 000 | 64 000 | 128 000 | 256 000 | 512 000 | 1 024 000 | 2 048 000 | 4 096 000 |
 
-$U$ is $0.5 \cdot 2.0$ for LV and $2^{\text{tier}-2}\cdot 2.0$ above it (`base_hatch_conductance` = 2.0). The extraction is capped by the coolant available: the hatch processes
+$U$ is $0.5 \cdot 2.0$ for LV and $2^{\text{tier}-2}\cdot 2.0$ above it (`base_hatch_conductance` = 2.0), and $C$ is $16 \cdot 2^\text{tier}$ (`core_hatch_heat_capacity` = 16). With the defaults both double per tier, so every hatch removes the same 0.78 % of its stored excess heat per cycle; the heat removed is nearly $U\,\eta\,\Delta t\,(T - T_\text{sink})$, set by the conductance. The extraction is capped by the coolant available: the hatch processes
 
 $$V = \min\!\left(V_\text{stored},\ \operatorname{round}\frac{Q_\text{max}}{h}\right)\ \text{L}$$
 
-of coolant, where $h$ is the coolant's heat per litre. It outputs $V \times$ (expansion ratio) litres of the hot fluid to the reactor's output hatches, and the cell's temperature drops by $V h / 32$, never below $T_\text{sink}$.
+of coolant, where $h$ is the coolant's heat per litre. It outputs $V \times$ (expansion ratio) litres of the hot fluid to the reactor's output hatches, and the cell's temperature drops by $V h / C$, never below $T_\text{sink}$.
 
-**Worked example.** An EV hatch of distilled water in a cell at 600 °C: $T_\text{sink} = 100$ °C, $Q_\text{max} = 32 \times 500 \times 0.0606 = 969$ HU. The hatch boils 55 L of water, producing 8800 L of superheated steam per cycle (1760 L/t), and cools its cell by 30.3 °C.
+**Worked example.** An EV hatch of distilled water in a cell at 600 °C: $T_\text{sink} = 100$ °C, $Q_\text{max} = 256 \times 500 \times 0.00778 = 996$ HU. The hatch boils 56 L of water, producing 8960 L of superheated steam per cycle (1792 L/t), and cools its cell by 3.9 °C.
 
 The cooling law has two consequences. First, the hatch cools only its own cell: heat from elsewhere must conduct in. Second, a boiling coolant holds its cell at or above its boiling point, and cooling power is proportional to the difference above it; a water-cooled cell must be hot to be well-cooled.
 
@@ -768,7 +769,7 @@ The transfer cap is 1 % of the item's capacity per second, so larger cells are p
 
 A heat vent drives the temperature of its own cell toward ambient, consuming EU from the reactor's energy hatches. It acts **every tick** (inside the cycle after conduction, and on each of the four ticks between cycles). Per tick:
 
-$$Q = \min\big(32\,|T - T_\text{amb}|,\ Q_\text{max}\big), \qquad E = \lceil 0.25\,Q \rceil \le E_\text{max}$$
+$$Q = \min\big(C\,|T - T_\text{amb}|,\ Q_\text{max}\big), \qquad E = \lceil 0.25\,Q \rceil \le E_\text{max}$$
 
 All vents draw from the reactor's shared energy buffer. If the buffer cannot cover the combined demand of every vent that tick, all vents are throttled by the same fraction, $f = (E_\text{stored} - n_\text{vents}) / \sum E$; each moves $f\,Q$ and pays $\lceil f\,Q/4 \rceil$ EU. (The $n_\text{vents}$ EU of headroom absorbs the rounding.) With no stored energy at all, vents do nothing.
 
@@ -785,7 +786,7 @@ A vent drives its cell toward ambient from either direction: a vent in a cell co
 
 ### 9.5 Heat exchangers
 
-A heat exchanger equalizes its own cell and its up to four cardinal neighbours toward their mean temperature, every tick. With $\bar T$ the mean, the heat to move is $\sum_{T_i > \bar T} 32\,(T_i - \bar T)$; if this exceeds the exchanger's cap, every cell moves proportionally less. Energy cost is 1 EU per 4 HU moved.
+A heat exchanger equalizes its own cell and its up to four cardinal neighbours toward their mean temperature, every tick. With $\bar T$ the mean weighted by heat capacity, the heat to move is $\sum_{T_i > \bar T} C_i\,(T_i - \bar T)$; if this exceeds the exchanger's cap, every cell moves proportionally less. Energy cost is 1 EU per 4 HU moved.
 
 | Exchanger | Cap (HU/t) | $E_\text{max}$ (EU/t) | $c$ |
 | :--- | :--- | :--- | :--- |
@@ -799,7 +800,7 @@ Exchangers do not remove heat; they redistribute it, typically from fuel to an a
 
 $$s\,(\bar T - T_i) = \frac{s}{n}\sum_j (T_j - T_i) \quad\Rightarrow\quad f_{ij} = w\,(T_j - T_i),\qquad w = \frac{s}{n}$$
 
-with $s$ set by the exchanger's HU and EU caps as above. Where exchangers overlap, a cell can receive more total weight than it can give, $S_i = \sum_e w_e\,(n_e - 1) > 1$. Simply adding up the exchangers' requests would then overshoot: a hot cell between two full-strength exchangers whose other cells are at 0 °C would be driven 80 °C past its mean twice, from 100 °C to −60 °C. Each pair weight is therefore divided by $\max(1, S_i, S_j)$. This keeps the flows symmetric, so heat is conserved, and limits every cell's total weight to at most 1, so every new temperature is a weighted average of snapshot temperatures; no cell is pushed past the hottest or coldest cell it shares an exchanger with. In the example above, the hot cell ends at exactly 0 °C and its eight partner cells each gain 12.5 °C. An exchanger that overlaps no other is unaffected by this normalization.
+with $s$ set by the exchanger's HU and EU caps as above. The pair exchanges $w\,\min(C_i, C_j)\,(T_j - T_i)$ HU, so a cell's temperature moves by at most $f_{ij}$ towards each partner (exactly $f_{ij}$ between equal cells, less for the larger of two unequal ones). Where exchangers overlap, a cell can receive more total weight than it can give, $S_i = \sum_e w_e\,(n_e - 1) > 1$. Simply adding up the exchangers' requests would then overshoot: a hot cell between two full-strength exchangers whose other cells are at 0 °C would be driven 80 °C past its mean twice, from 100 °C to −60 °C. Each pair weight is therefore divided by $\max(1, S_i, S_j)$. This keeps the flows symmetric, so heat is conserved, and limits every cell's total weight to at most 1, so every new temperature is a weighted average of snapshot temperatures; no cell is pushed past the hottest or coldest cell it shares an exchanger with. In the example above, the hot cell ends at exactly 0 °C and its eight partner cells each gain 12.5 °C. An exchanger that overlaps no other is unaffected by this normalization.
 
 Each exchanger's HU and EU caps are then re-applied to its normalized flows. As with vents, if the shared energy buffer cannot cover all exchangers, every exchanger is throttled by the same fraction. All energy is drawn and all temperature changes are applied together. An exchanger with no stored energy available is excluded before normalization.
 
@@ -1088,7 +1089,8 @@ Configuration files are read from `config/modularnuclear/`. Each file may overri
 
 | Key | Default | Meaning |
 | :--- | :--- | :--- |
-| `hu_per_degree` | 32 | Heat capacity of a column (HU/°C) |
+| `hu_per_degree` | 32 | Heat capacity of a column other than a core hatch (HU/°C) |
+| `core_hatch_heat_capacity` | 16 | Heat capacity of a tier-0 core hatch (HU/°C); a tier-$t$ hatch holds $2^t$ times this |
 | `fission_heat_per_neutron` | 38 | Prompt heat per emitted neutron (HU) |
 | `global_thermal_fission_multiplier` | 1.0 | Scales all $\phi_t$ |
 | `global_fast_fission_multiplier` | 1.0 | Scales all $\phi_f$ |
