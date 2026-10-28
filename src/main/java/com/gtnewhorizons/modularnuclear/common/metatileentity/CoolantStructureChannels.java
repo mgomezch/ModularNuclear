@@ -17,7 +17,7 @@ public enum CoolantStructureChannels implements IStructureChannels {
     STRUCTURE_HEIGHT("height", "Tank height (4 to 8)"),
     TANK_MATERIAL("tank_material", "Railcraft tank material"),
     PHE_HEIGHT("phe_height", "Heat exchanger height (3, 5, 7, 9)"),
-    PHE_LENGTH("phe_length", "Heat exchanger length (3 to 9)"),
+    PHE_LENGTH("phe_length", "Heat exchanger length (5 to 11)"),
     PHE_SHEETMETAL("phe_sheetmetal", "Sheetmetal material");
 
     private final String channel;
@@ -100,10 +100,10 @@ public enum CoolantStructureChannels implements IStructureChannels {
             }
         } catch (Throwable ignored) {}
 
-        // Register indicator items for PHE_LENGTH (3 to 9)
+        // Register indicator items for PHE_LENGTH (5 to 11)
         try {
             if (GregTechAPI.sBlockCasings1 != null) {
-                for (int l = 3; l <= 9; l++) {
+                for (int l = 5; l <= 11; l++) {
                     PHE_LENGTH.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings1, l, 11), l);
                 }
             }

@@ -66,7 +66,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     protected int mCasing = 0;
 
     protected int mStructureHeight = 3;
-    protected int mStructureLength = 3;
+    protected int mStructureLength = 5;
     protected int mSheetmetalTier = 0;
     protected PheSheetmetalTier mFirstSheetmetalTier = null;
     protected boolean mSheetmetalsUniform = true;
@@ -74,7 +74,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     protected double mHeatTransferMultiplier = 1.0;
 
     protected double mCurrentCoolantTemp = 20.0;
-    protected double mExchangeArea = 9.0; // Dynamic surface area: height * length (9 m^2 base)
+    protected double mExchangeArea = 9.0; // Dynamic surface area: height * (length - 2) (9 m^2 base)
     protected double mMinorLossK = 1.2; // Heat exchanger core resistance
     protected double mLastHeatTransferredWatts = 0.0;
     protected ConvectiveHeatTransferModel mConvectiveModel = ConvectiveHeatTransferModel.DEFAULT;
@@ -147,7 +147,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     public void setDimensions(int height, int length) {
         mStructureHeight = height;
         mStructureLength = length;
-        mExchangeArea = (double) (height * length);
+        mExchangeArea = (double) (height * (length - 2));
     }
 
     public double getHeatTransferMultiplier() {
@@ -282,7 +282,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
 
         mStructureHeight = matchedH;
         mStructureLength = matchedL;
-        mExchangeArea = (double) (mStructureHeight * mStructureLength);
+        mExchangeArea = (double) (mStructureHeight * (mStructureLength - 2));
 
         if (mFirstSheetmetalTier != null) {
             mSheetmetalTier = mFirstSheetmetalTier.getTier();
@@ -773,6 +773,9 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         }
         if (aNBT.hasKey("mStructureLength")) {
             mStructureLength = aNBT.getInteger("mStructureLength");
+            if (mStructureLength < PressurizedHeatExchangerStructure.MIN_LENGTH) {
+                mStructureLength += 2;
+            }
         }
         if (aNBT.hasKey("mSheetmetalTier")) {
             mSheetmetalTier = aNBT.getInteger("mSheetmetalTier");
@@ -780,7 +783,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         if (aNBT.hasKey("mExchangeArea")) {
             mExchangeArea = aNBT.getDouble("mExchangeArea");
         } else {
-            mExchangeArea = (double) (mStructureHeight * mStructureLength);
+            mExchangeArea = (double) (mStructureHeight * (mStructureLength - 2));
         }
         if (aNBT.hasKey("mHeatTransferMultiplier")) {
             mHeatTransferMultiplier = aNBT.getDouble("mHeatTransferMultiplier");

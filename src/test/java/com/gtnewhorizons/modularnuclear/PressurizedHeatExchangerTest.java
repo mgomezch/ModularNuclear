@@ -826,107 +826,107 @@ public class PressurizedHeatExchangerTest {
         for (int h : PressurizedHeatExchangerStructure.VALID_HEIGHTS) {
             for (int l = PressurizedHeatExchangerStructure.MIN_LENGTH; l
                 <= PressurizedHeatExchangerStructure.MAX_LENGTH; l++) {
-                int expectedArea = h * l;
+                int expectedArea = h * (l - 2);
                 int minCasings = PressurizedHeatExchangerStructure.getMinCasings(h, l);
                 int reqSheetmetal = PressurizedHeatExchangerStructure.getRequiredSheetmetalCount(h, l);
-                assertEquals(2 * l + 6 * h - 9, minCasings);
-                assertEquals((h - 2) * l, reqSheetmetal);
+                assertEquals(2 * l + 6 * h - 13, minCasings);
+                assertEquals((h - 2) * (l - 2), reqSheetmetal);
                 assertTrue(minCasings > 0);
             }
         }
 
-        // Base 3x3x3 midsection: area = 9 m^2, min casings = 15, sheetmetal = 3
-        assertEquals(9, 3 * 3);
-        assertEquals(15, PressurizedHeatExchangerStructure.getMinCasings(3, 3));
-        assertEquals(3, PressurizedHeatExchangerStructure.getRequiredSheetmetalCount(3, 3));
+        // Base 3x3x3 midsection (overall height 3, overall length 5): area = 9 m^2, min casings = 15, sheetmetal = 3
+        assertEquals(9, 3 * (5 - 2));
+        assertEquals(15, PressurizedHeatExchangerStructure.getMinCasings(3, 5));
+        assertEquals(3, PressurizedHeatExchangerStructure.getRequiredSheetmetalCount(3, 5));
 
-        // 5-high minimum length: height = 5, length = 3 -> 9 sheetmetal blocks (main center + 1 above + 1 below)
-        assertEquals(15, 5 * 3);
-        assertEquals(27, PressurizedHeatExchangerStructure.getMinCasings(5, 3));
-        assertEquals(9, PressurizedHeatExchangerStructure.getRequiredSheetmetalCount(5, 3));
+        // 5-high minimum length (overall height 5, overall length 5): area = 15 m^2, min casings = 27, sheetmetal = 9
+        assertEquals(15, 5 * (5 - 2));
+        assertEquals(27, PressurizedHeatExchangerStructure.getMinCasings(5, 5));
+        assertEquals(9, PressurizedHeatExchangerStructure.getRequiredSheetmetalCount(5, 5));
 
-        // Max 9x9 midsection: area = 81 m^2, min casings = 63, sheetmetal = 63
-        assertEquals(81, 9 * 9);
-        assertEquals(63, PressurizedHeatExchangerStructure.getMinCasings(9, 9));
-        assertEquals(63, PressurizedHeatExchangerStructure.getRequiredSheetmetalCount(9, 9));
+        // Max 9x11 structure (overall height 9, overall length 11): area = 81 m^2, min casings = 63, sheetmetal = 63
+        assertEquals(81, 9 * (11 - 2));
+        assertEquals(63, PressurizedHeatExchangerStructure.getMinCasings(9, 11));
+        assertEquals(63, PressurizedHeatExchangerStructure.getRequiredSheetmetalCount(9, 11));
     }
 
     @Test
     public void testPheStructureShapeBuildingAndTransposition() {
-        // Test base 3x3 shape
-        String[][] shape3x3 = PressurizedHeatExchangerStructure.buildShape(3, 3);
-        assertEquals(3, shape3x3.length); // 3 layers
+        // Test base 3x5 shape (height 3, overall length 5)
+        String[][] shape3x5 = PressurizedHeatExchangerStructure.buildShape(3, 5);
+        assertEquals(3, shape3x5.length); // 3 layers
         for (int y = 0; y < 3; y++) {
-            assertEquals(5, shape3x3[y].length); // 3 + 2 = 5 rows along depth
-            for (String row : shape3x3[y]) {
+            assertEquals(5, shape3x5[y].length); // 5 rows along depth
+            for (String row : shape3x5[y]) {
                 assertEquals(3, row.length()); // 3 columns wide
             }
         }
         // Center layer is y = 1
-        assertEquals("L~H", shape3x3[1][0]);
-        assertEquals("lch", shape3x3[1][1]);
-        assertEquals("lch", shape3x3[1][2]);
-        assertEquals("lch", shape3x3[1][3]);
-        assertEquals("LxH", shape3x3[1][4]);
+        assertEquals("L~H", shape3x5[1][0]);
+        assertEquals("lch", shape3x5[1][1]);
+        assertEquals("lch", shape3x5[1][2]);
+        assertEquals("lch", shape3x5[1][3]);
+        assertEquals("LxH", shape3x5[1][4]);
 
         // Non-center layers y = 0, 2 (outer casings)
-        assertEquals("xxx", shape3x3[0][0]);
-        assertEquals("lxh", shape3x3[0][1]);
-        assertEquals("xxx", shape3x3[2][4]);
+        assertEquals("xxx", shape3x5[0][0]);
+        assertEquals("lxh", shape3x5[0][1]);
+        assertEquals("xxx", shape3x5[2][4]);
 
-        // Test 5x3 shape: height = 5, length = 3
+        // Test 5x5 shape: height = 5, overall length = 5
         // Interior layers are y = 1, 2, 3 (each containing 3 sheetmetal blocks 'c')
-        String[][] shape5x3 = PressurizedHeatExchangerStructure.buildShape(5, 3);
-        assertEquals(5, shape5x3.length);
-        int sheetmetalCount5x3 = 0;
-        for (int y = 0; y < shape5x3.length; y++) {
-            for (String row : shape5x3[y]) {
+        String[][] shape5x5 = PressurizedHeatExchangerStructure.buildShape(5, 5);
+        assertEquals(5, shape5x5.length);
+        int sheetmetalCount5x5 = 0;
+        for (int y = 0; y < shape5x5.length; y++) {
+            for (String row : shape5x5[y]) {
                 for (char c : row.toCharArray()) {
-                    if (c == 'c') sheetmetalCount5x3++;
+                    if (c == 'c') sheetmetalCount5x5++;
                 }
             }
         }
-        assertEquals(9, sheetmetalCount5x3, "5-high, 3-length PHE must contain exactly 9 sheetmetal blocks");
+        assertEquals(9, sheetmetalCount5x5, "5-high, min-length (5) PHE must contain exactly 9 sheetmetal blocks");
 
         // Layer y = 1 (interior below center)
-        assertEquals("xxx", shape5x3[1][0]);
-        assertEquals("lch", shape5x3[1][1]);
-        assertEquals("xxx", shape5x3[1][4]);
+        assertEquals("xxx", shape5x5[1][0]);
+        assertEquals("lch", shape5x5[1][1]);
+        assertEquals("xxx", shape5x5[1][4]);
 
         // Layer y = 2 (center)
-        assertEquals("L~H", shape5x3[2][0]);
-        assertEquals("lch", shape5x3[2][1]);
-        assertEquals("LxH", shape5x3[2][4]);
+        assertEquals("L~H", shape5x5[2][0]);
+        assertEquals("lch", shape5x5[2][1]);
+        assertEquals("LxH", shape5x5[2][4]);
 
         // Layer y = 3 (interior above center)
-        assertEquals("xxx", shape5x3[3][0]);
-        assertEquals("lch", shape5x3[3][1]);
-        assertEquals("xxx", shape5x3[3][4]);
+        assertEquals("xxx", shape5x5[3][0]);
+        assertEquals("lch", shape5x5[3][1]);
+        assertEquals("xxx", shape5x5[3][4]);
 
         // Outer layers y = 0, 4 (casings)
-        assertEquals("lxh", shape5x3[0][1]);
-        assertEquals("lxh", shape5x3[4][1]);
+        assertEquals("lxh", shape5x5[0][1]);
+        assertEquals("lxh", shape5x5[4][1]);
 
-        // Test 5x7 shape: center layer is y = 2
-        String[][] shape5x7 = PressurizedHeatExchangerStructure.buildShape(5, 7);
-        assertEquals(5, shape5x7.length);
-        assertEquals(9, shape5x7[2].length); // 7 + 2 = 9 rows
-        assertEquals("L~H", shape5x7[2][0]);
-        assertEquals("lch", shape5x7[2][1]);
-        assertEquals("lch", shape5x7[2][7]);
-        assertEquals("LxH", shape5x7[2][8]);
+        // Test 5x9 shape: height = 5, overall length = 9 (center layer y = 2)
+        String[][] shape5x9 = PressurizedHeatExchangerStructure.buildShape(5, 9);
+        assertEquals(5, shape5x9.length);
+        assertEquals(9, shape5x9[2].length); // 9 rows
+        assertEquals("L~H", shape5x9[2][0]);
+        assertEquals("lch", shape5x9[2][1]);
+        assertEquals("lch", shape5x9[2][7]);
+        assertEquals("LxH", shape5x9[2][8]);
 
         // Outer layers y = 0, 4
-        assertEquals("xxx", shape5x7[0][0]);
-        assertEquals("lxh", shape5x7[0][1]);
-        assertEquals("xxx", shape5x7[4][8]);
+        assertEquals("xxx", shape5x9[0][0]);
+        assertEquals("lxh", shape5x9[0][1]);
+        assertEquals("xxx", shape5x9[4][8]);
 
         // Interior non-center layers y = 1, 3
-        assertEquals("xxx", shape5x7[1][0]);
-        assertEquals("lch", shape5x7[1][1]);
-        assertEquals("xxx", shape5x7[3][8]);
+        assertEquals("xxx", shape5x9[1][0]);
+        assertEquals("lch", shape5x9[1][1]);
+        assertEquals("xxx", shape5x9[3][8]);
 
-        // Verify across all valid heights and lengths that sheetmetal count in shape is (h - 2) * l
+        // Verify across all valid heights and lengths that sheetmetal count in shape is (h - 2) * (l - 2)
         for (int h : PressurizedHeatExchangerStructure.VALID_HEIGHTS) {
             for (int l = PressurizedHeatExchangerStructure.MIN_LENGTH; l
                 <= PressurizedHeatExchangerStructure.MAX_LENGTH; l++) {
@@ -939,7 +939,10 @@ public class PressurizedHeatExchangerTest {
                         }
                     }
                 }
-                assertEquals((h - 2) * l, count, "Sheetmetal count in shape must match (height - 2) * length");
+                assertEquals(
+                    (h - 2) * (l - 2),
+                    count,
+                    "Sheetmetal count in shape must match (height - 2) * (length - 2)");
             }
         }
     }
@@ -976,9 +979,9 @@ public class PressurizedHeatExchangerTest {
         phe.setBaseMetaTileEntity(createMockBaseMetaTileEntity(new boolean[] { true }));
         NBTTagCompound tag = new NBTTagCompound();
 
-        // Simulate a 5x7 structure with Quantium sheetmetal (tier 4, 16x multiplier)
+        // Simulate a 5x9 structure (inner 5x7) with Quantium sheetmetal (tier 4, 16x multiplier)
         tag.setInteger("mStructureHeight", 5);
-        tag.setInteger("mStructureLength", 7);
+        tag.setInteger("mStructureLength", 9);
         tag.setInteger("mSheetmetalTier", 4);
         tag.setDouble("mExchangeArea", 35.0);
         tag.setDouble("mHeatTransferMultiplier", 16.0);
@@ -986,7 +989,7 @@ public class PressurizedHeatExchangerTest {
         phe.loadNBTData(tag);
 
         assertEquals(5, phe.getStructureHeight());
-        assertEquals(7, phe.getStructureLength());
+        assertEquals(9, phe.getStructureLength());
         assertEquals(4, phe.getSheetmetalTier());
         assertEquals(16.0, phe.getHeatTransferMultiplier(), 1e-6);
         assertEquals(6584.0, phe.getMaxTemperatureCelsius(), 1e-6);
@@ -997,10 +1000,17 @@ public class PressurizedHeatExchangerTest {
         phe.saveNBTData(outTag);
 
         assertEquals(5, outTag.getInteger("mStructureHeight"));
-        assertEquals(7, outTag.getInteger("mStructureLength"));
+        assertEquals(9, outTag.getInteger("mStructureLength"));
         assertEquals(4, outTag.getInteger("mSheetmetalTier"));
         assertEquals(35.0, outTag.getDouble("mExchangeArea"), 1e-6);
         assertEquals(16.0, outTag.getDouble("mHeatTransferMultiplier"), 1e-6);
+
+        // Test migration of legacy tag with length < 5
+        NBTTagCompound legacyTag = new NBTTagCompound();
+        legacyTag.setInteger("mStructureHeight", 3);
+        legacyTag.setInteger("mStructureLength", 3); // old inner length
+        phe.loadNBTData(legacyTag);
+        assertEquals(5, phe.getStructureLength(), "Legacy inner length 3 must migrate to overall length 5");
     }
 
     @Test

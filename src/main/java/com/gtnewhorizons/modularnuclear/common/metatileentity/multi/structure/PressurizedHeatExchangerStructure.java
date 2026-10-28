@@ -25,7 +25,7 @@ import gregtech.api.util.GTStructureUtility;
 
 /**
  * Structure definition and helpers for the Pressurized Heat Exchanger (PHE).
- * Supports variable height (3, 5, 7, 9) and variable midsection length (3 to 9).
+ * Supports variable height (3, 5, 7, 9) and variable overall length (5 to 11).
  * Center layer y = height / 2 contains the controller, sheetmetal, and primary/secondary hatches.
  * All interior layers (0 < y < height - 1) contain tiered sheetmetal along the middle column.
  */
@@ -34,8 +34,8 @@ public final class PressurizedHeatExchangerStructure {
     public static final int[] VALID_HEIGHTS = { 3, 5, 7, 9 };
     public static final int MIN_HEIGHT = 3;
     public static final int MAX_HEIGHT = 9;
-    public static final int MIN_LENGTH = 3;
-    public static final int MAX_LENGTH = 9;
+    public static final int MIN_LENGTH = 5;
+    public static final int MAX_LENGTH = 11;
 
     private static IStructureDefinition<MTEPressurizedHeatExchanger> STRUCTURE_DEFINITION = null;
 
@@ -46,36 +46,36 @@ public final class PressurizedHeatExchangerStructure {
     }
 
     public static int getMinCasings(int height, int length) {
-        return 2 * length + 6 * height - 9;
+        return 2 * length + 6 * height - 13;
     }
 
     public static int getRequiredSheetmetalCount(int height, int length) {
-        return (height - 2) * length;
+        return (height - 2) * (length - 2);
     }
 
     public static String[] buildLayer(int y, int height, int length) {
-        String[] rows = new String[length + 2];
+        String[] rows = new String[length];
         boolean isCenter = (y == height / 2);
         boolean isInterior = (y > 0 && y < height - 1);
 
         if (isCenter) {
             rows[0] = "L~H";
-            for (int r = 1; r <= length; r++) {
+            for (int r = 1; r < length - 1; r++) {
                 rows[r] = "lch";
             }
-            rows[length + 1] = "LxH";
+            rows[length - 1] = "LxH";
         } else if (isInterior) {
             rows[0] = "xxx";
-            for (int r = 1; r <= length; r++) {
+            for (int r = 1; r < length - 1; r++) {
                 rows[r] = "lch";
             }
-            rows[length + 1] = "xxx";
+            rows[length - 1] = "xxx";
         } else {
             rows[0] = "xxx";
-            for (int r = 1; r <= length; r++) {
+            for (int r = 1; r < length - 1; r++) {
                 rows[r] = "lxh";
             }
-            rows[length + 1] = "xxx";
+            rows[length - 1] = "xxx";
         }
 
         return rows;
@@ -100,8 +100,8 @@ public final class PressurizedHeatExchangerStructure {
                 }
             }
 
-            // Legacy alias for 3x3x3 midsection (height 3, length 3)
-            builder.addShape("exchanger_3x5x3", StructureUtility.transpose(buildShape(3, 3)));
+            // Legacy alias for 3x5x3 midsection (height 3, length 5)
+            builder.addShape("exchanger_3x5x3", StructureUtility.transpose(buildShape(3, 5)));
 
             builder
                 .addElement(
@@ -215,14 +215,14 @@ public final class PressurizedHeatExchangerStructure {
     }
 
     public static int getLengthFromTrigger(ItemStack trigger) {
-        if (trigger == null) return 3;
-        return CoolantStructureChannels.PHE_LENGTH.getValueClamped(trigger, 3, 9);
+        if (trigger == null) return 5;
+        return CoolantStructureChannels.PHE_LENGTH.getValueClamped(trigger, 5, 11);
     }
 
     public static int[] detectDimensions(IGregTechTileEntity te) {
-        if (te == null) return new int[] { 3, 3 };
+        if (te == null) return new int[] { 3, 5 };
         World world = te.getWorld();
-        if (world == null) return new int[] { 3, 3 };
+        if (world == null) return new int[] { 3, 5 };
         ForgeDirection front = te.getFrontFacing();
         ForgeDirection back = (front != null && front != ForgeDirection.UNKNOWN) ? front.getOpposite()
             : ForgeDirection.NORTH;
@@ -231,7 +231,7 @@ public final class PressurizedHeatExchangerStructure {
         int z = te.getZCoord();
 
         // 1. Detect length: scan line behind controller in the center layer
-        int detectedLength = 0;
+        int innerLength = 0;
         for (int step = 1; step <= 10; step++) {
             int bx = x + back.offsetX * step;
             int by = y + back.offsetY * step;
@@ -240,11 +240,12 @@ public final class PressurizedHeatExchangerStructure {
             int meta = world.getBlockMetadata(bx, by, bz);
             PheSheetmetalTier tier = PheSheetmetalTier.fromBlock(b, meta);
             if (tier != null) {
-                detectedLength++;
+                innerLength++;
             } else {
                 break;
             }
         }
+        int detectedLength = innerLength + 2;
         if (detectedLength < MIN_LENGTH) detectedLength = MIN_LENGTH;
         if (detectedLength > MAX_LENGTH) detectedLength = MAX_LENGTH;
 
