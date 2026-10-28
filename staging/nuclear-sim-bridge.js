@@ -258,6 +258,15 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    // PHE temperature band on the selected circuit: the PHEs run above max and stop below min while the pump keeps
+    // running, so the loop holds the core hot and takes only the heat above the band.
+    setCoolantLoopPheTempBand(enabled, minC, maxC, sensor, notify = true) {
+        if (this.inst.exports.setCoolantLoopPheTempBand) {
+            this.inst.exports.setCoolantLoopPheTempBand(enabled ? 1 : 0, minC || 0, maxC || 0, this.createJavaString(sensor || "HOT_LEG"));
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     // Independent loops, each with its own pump and PHEs, that the passages are split among.
     setCoolantLoopCount(count, notify = true) {
         if (this.inst.exports.setCoolantLoopCount) {
