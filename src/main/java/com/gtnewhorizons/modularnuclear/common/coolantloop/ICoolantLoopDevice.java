@@ -22,6 +22,13 @@ public interface ICoolantLoopDevice {
     double getDeviceTemperatureCelsius();
 
     /**
+     * Maximum safe operating temperature in deg C before this device or loop breaches/fails.
+     */
+    default double getMaxOperatingTemperatureCelsius() {
+        return 2000.0;
+    }
+
+    /**
      * Performs thermal energy exchange between the device and the fluid passing through it.
      *
      * @param coolantFlowRateM3s Volumetric flow rate Q in m^3/s

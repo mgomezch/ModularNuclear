@@ -5,6 +5,7 @@ import net.minecraft.item.ItemStack;
 import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.CoolantPumpStructure;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PheSheetmetalTier;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -14,7 +15,10 @@ public enum CoolantStructureChannels implements IStructureChannels {
 
     STRUCTURE_WIDTH("width", "Tank width (3, 5, 7, 9)"),
     STRUCTURE_HEIGHT("height", "Tank height (4 to 8)"),
-    TANK_MATERIAL("tank_material", "Railcraft tank material");
+    TANK_MATERIAL("tank_material", "Railcraft tank material"),
+    PHE_HEIGHT("phe_height", "Heat exchanger height (3, 5, 7, 9)"),
+    PHE_LENGTH("phe_length", "Heat exchanger length (3 to 9)"),
+    PHE_SHEETMETAL("phe_sheetmetal", "Sheetmetal material");
 
     private final String channel;
     private final String defaultTooltip;
@@ -83,6 +87,34 @@ public enum CoolantStructureChannels implements IStructureChannels {
                 ItemStack stack = CoolantPumpStructure.getTankWallItem(mat);
                 if (stack != null && stack.getItem() != null) {
                     TANK_MATERIAL.registerAsIndicator(stack.copy(), tier);
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        // Register indicator items for PHE_HEIGHT (3, 5, 7, 9)
+        try {
+            if (GregTechAPI.sBlockCasings1 != null) {
+                for (int h : new int[] { 3, 5, 7, 9 }) {
+                    PHE_HEIGHT.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings1, h, 11), h);
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        // Register indicator items for PHE_LENGTH (3 to 9)
+        try {
+            if (GregTechAPI.sBlockCasings1 != null) {
+                for (int l = 3; l <= 9; l++) {
+                    PHE_LENGTH.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings1, l, 11), l);
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        // Register indicator items for PHE_SHEETMETAL (Copper, Steel, Stainless, Titanium, Tungstensteel, Neutronium)
+        try {
+            for (PheSheetmetalTier tier : PheSheetmetalTier.values()) {
+                ItemStack stack = tier.getItemStack();
+                if (stack != null && stack.getItem() != null) {
+                    PHE_SHEETMETAL.registerAsIndicator(stack.copy(), tier.getTier());
                 }
             }
         } catch (Throwable ignored) {}

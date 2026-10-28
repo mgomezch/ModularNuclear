@@ -1536,7 +1536,7 @@ public class LoopGraphCrawler {
                                 0.000045,
                                 phe.getMinorLossK(),
                                 LoopSegment.NO_LIMIT,
-                                2000.0,
+                                phe.getMaxOperatingTemperatureCelsius(),
                                 phe.getDeviceTemperatureCelsius());
                             segments.add(devSeg);
 
@@ -2173,18 +2173,34 @@ public class LoopGraphCrawler {
     }
 
     public static MTEPressurizedHeatExchanger findAdjacentPHE(World world, int x, int y, int z) {
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dz = -2; dz <= 2; dz++) {
-                TileEntity te = world.getTileEntity(x + dx, y, z + dz);
-                if (te instanceof IGregTechTileEntity) {
-                    IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
-                    if (mte instanceof MTEPressurizedHeatExchanger) {
-                        return (MTEPressurizedHeatExchanger) mte;
+        TileEntity targetTe = world.getTileEntity(x, y, z);
+        MTEPressurizedHeatExchanger best = null;
+        int bestDistSq = Integer.MAX_VALUE;
+        for (int dy = -4; dy <= 4; dy++) {
+            for (int dx = -11; dx <= 11; dx++) {
+                for (int dz = -11; dz <= 11; dz++) {
+                    TileEntity te = world.getTileEntity(x + dx, y + dy, z + dz);
+                    if (te instanceof IGregTechTileEntity) {
+                        IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
+                        if (mte instanceof MTEPressurizedHeatExchanger) {
+                            MTEPressurizedHeatExchanger phe = (MTEPressurizedHeatExchanger) mte;
+                            if (targetTe instanceof IGregTechTileEntity) {
+                                IMetaTileEntity targetMte = ((IGregTechTileEntity) targetTe).getMetaTileEntity();
+                                if (phe.getPrimaryInlet() == targetMte || phe.getPrimaryOutlet() == targetMte) {
+                                    return phe;
+                                }
+                            }
+                            int distSq = dx * dx + dy * dy + dz * dz;
+                            if (distSq < bestDistSq) {
+                                bestDistSq = distSq;
+                                best = phe;
+                            }
+                        }
                     }
                 }
             }
         }
-        return null;
+        return best;
     }
 
     public static MTEPressurizedDegasser findAdjacentDegasser(World world, int x, int y, int z) {

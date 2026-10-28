@@ -211,6 +211,10 @@ gt.pipe.coolant.specs.temperature=Max safe temperature: %.1f °C
 channels.coolantloops.width=Tank width (3, 5, 7, 9)
 channels.coolantloops.height=Tank height (4 to 8)
 channels.coolantloops.tank_material=Railcraft tank material
+channels.coolantloops.phe_height=Heat exchanger height (3, 5, 7, 9)
+channels.coolantloops.phe_length=Heat exchanger length (3 to 9)
+channels.coolantloops.phe_sheetmetal=Sheetmetal material
+coolantloops.structure.error.sheetmetal_missing=Missing required tiered sheetmetal blocks along center
 
 # High-pressure heat exchanger
 gt.multiblock.pressurized_heat_exchanger.machine_type=High-pressure heat exchanger
@@ -224,6 +228,8 @@ gt.multiblock.pressurized_heat_exchanger.structure.heating_duct=Heating duct
 gt.multiblock.pressurized_heat_exchanger.structure.heating_duct_pos=9x (primary hot side)
 gt.multiblock.pressurized_heat_exchanger.structure.copper_sheetmetal=Copper sheetmetal
 gt.multiblock.pressurized_heat_exchanger.structure.copper_sheetmetal_pos=3x (middle center)
+gt.multiblock.pressurized_heat_exchanger.structure.sheetmetal_tiered=Tiered sheetmetal
+gt.multiblock.pressurized_heat_exchanger.structure.sheetmetal_tiered_pos=Along center row (Copper: 1x/2000°C, Steel: 2x/2500°C, Stainless: 4x/3000°C, Titanium: 8x/5000°C, Tungstensteel: 16x/7500°C, Neutronium: 32x/1000000°C)
 gt.multiblock.pressurized_heat_exchanger.structure.hatch_inlet=High-pressure fluid hatch (inlet)
 gt.multiblock.pressurized_heat_exchanger.structure.hatch_inlet_pos=1x (middle layer)
 gt.multiblock.pressurized_heat_exchanger.structure.hatch_outlet=High-pressure fluid hatch (outlet)

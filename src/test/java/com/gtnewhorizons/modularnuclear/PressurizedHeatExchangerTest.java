@@ -12,6 +12,8 @@ import net.minecraftforge.fluids.FluidStack;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import net.minecraft.nbt.NBTTagCompound;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -20,6 +22,8 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedInput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedOutput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PheSheetmetalTier;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PressurizedHeatExchangerStructure;
 
 import cpw.mods.fml.common.ICrashCallable;
 import cpw.mods.fml.common.Loader;
@@ -102,6 +106,10 @@ public class PressurizedHeatExchangerTest {
             .thenAnswer(inv -> allowedToWorkHolder[0]);
         Mockito.when(mockBase.isServerSide())
             .thenReturn(true);
+        Mockito.when(mockBase.getFrontFacing())
+            .thenReturn(net.minecraftforge.common.util.ForgeDirection.SOUTH);
+        Mockito.when(mockBase.getBackFacing())
+            .thenReturn(net.minecraftforge.common.util.ForgeDirection.NORTH);
 
         boolean[] shutdownHolder = new boolean[] { false };
         gregtech.api.util.shutdown.ShutDownReason[] reasonHolder = new gregtech.api.util.shutdown.ShutDownReason[] {
@@ -741,4 +749,155 @@ public class PressurizedHeatExchangerTest {
         assertEquals(160_000, outputHatch.getFluid().amount, "Steam produced must be 160,000 mL");
     }
 
+    @Test
+    public void testPheSheetmetalTiersAndBonuses() {
+        // Tiers: 0=Copper, 1=Steel, 2=Stainless Steel, 3=Titanium, 4=Tungstensteel, 5=Neutronium
+        PheSheetmetalTier copper = PheSheetmetalTier.COPPER;
+        assertEquals(0, copper.getTier());
+        assertEquals(1.0, copper.getHeatTransferMultiplier(), 1e-6);
+        assertEquals(2000.0, copper.getMaxTemperatureCelsius(), 1e-6);
+        assertEquals(0.0, copper.getBonusTemperatureCelsius(), 1e-6);
+
+        PheSheetmetalTier steel = PheSheetmetalTier.STEEL;
+        assertEquals(1, steel.getTier());
+        assertEquals(2.0, steel.getHeatTransferMultiplier(), 1e-6);
+        assertEquals(2500.0, steel.getMaxTemperatureCelsius(), 1e-6);
+        assertEquals(500.0, steel.getBonusTemperatureCelsius(), 1e-6);
+
+        PheSheetmetalTier stainless = PheSheetmetalTier.STAINLESS_STEEL;
+        assertEquals(2, stainless.getTier());
+        assertEquals(4.0, stainless.getHeatTransferMultiplier(), 1e-6);
+        assertEquals(3000.0, stainless.getMaxTemperatureCelsius(), 1e-6);
+        assertEquals(1000.0, stainless.getBonusTemperatureCelsius(), 1e-6);
+
+        PheSheetmetalTier titanium = PheSheetmetalTier.TITANIUM;
+        assertEquals(3, titanium.getTier());
+        assertEquals(8.0, titanium.getHeatTransferMultiplier(), 1e-6);
+        assertEquals(5000.0, titanium.getMaxTemperatureCelsius(), 1e-6);
+        assertEquals(3000.0, titanium.getBonusTemperatureCelsius(), 1e-6);
+
+        PheSheetmetalTier tungstensteel = PheSheetmetalTier.TUNGSTEN_STEEL;
+        assertEquals(4, tungstensteel.getTier());
+        assertEquals(16.0, tungstensteel.getHeatTransferMultiplier(), 1e-6);
+        assertEquals(7500.0, tungstensteel.getMaxTemperatureCelsius(), 1e-6);
+        assertEquals(5500.0, tungstensteel.getBonusTemperatureCelsius(), 1e-6);
+
+        PheSheetmetalTier neutronium = PheSheetmetalTier.NEUTRONIUM;
+        assertEquals(5, neutronium.getTier());
+        assertEquals(32.0, neutronium.getHeatTransferMultiplier(), 1e-6);
+        assertEquals(1000000.0, neutronium.getMaxTemperatureCelsius(), 1e-6);
+        assertEquals(998000.0, neutronium.getBonusTemperatureCelsius(), 1e-6);
+
+        // Clamping checks
+        assertSame(PheSheetmetalTier.COPPER, PheSheetmetalTier.getByTier(-1));
+        assertSame(PheSheetmetalTier.COPPER, PheSheetmetalTier.getByTier(0));
+        assertSame(PheSheetmetalTier.NEUTRONIUM, PheSheetmetalTier.getByTier(10));
+    }
+
+    @Test
+    public void testPheVariableDimensionsAndSurfaceArea() {
+        for (int h : PressurizedHeatExchangerStructure.VALID_HEIGHTS) {
+            for (int l = PressurizedHeatExchangerStructure.MIN_LENGTH; l <= PressurizedHeatExchangerStructure.MAX_LENGTH; l++) {
+                int expectedArea = h * l;
+                int minCasings = PressurizedHeatExchangerStructure.getMinCasings(h, l);
+                assertEquals((l + 6) * (h - 1) - 3, minCasings);
+                assertTrue(minCasings > 0);
+            }
+        }
+
+        // Base 3x3x3 midsection: area = 9 m^2, min casings = 15
+        assertEquals(9, 3 * 3);
+        assertEquals(15, PressurizedHeatExchangerStructure.getMinCasings(3, 3));
+
+        // Max 9x9 midsection: area = 81 m^2, min casings = 117
+        assertEquals(81, 9 * 9);
+        assertEquals(117, PressurizedHeatExchangerStructure.getMinCasings(9, 9));
+    }
+
+    @Test
+    public void testPheStructureShapeBuildingAndTransposition() {
+        // Test base 3x3 shape
+        String[][] shape3x3 = PressurizedHeatExchangerStructure.buildShape(3, 3);
+        assertEquals(3, shape3x3.length); // 3 layers
+        for (int y = 0; y < 3; y++) {
+            assertEquals(5, shape3x3[y].length); // 3 + 2 = 5 rows along depth
+            for (String row : shape3x3[y]) {
+                assertEquals(3, row.length()); // 3 columns wide
+            }
+        }
+        // Center layer is y = 1
+        assertEquals("L~H", shape3x3[1][0]);
+        assertEquals("lch", shape3x3[1][1]);
+        assertEquals("lch", shape3x3[1][2]);
+        assertEquals("lch", shape3x3[1][3]);
+        assertEquals("LxH", shape3x3[1][4]);
+
+        // Non-center layers y = 0, 2
+        assertEquals("xxx", shape3x3[0][0]);
+        assertEquals("lxh", shape3x3[0][1]);
+        assertEquals("xxx", shape3x3[2][4]);
+
+        // Test 5x7 shape: center layer is y = 2
+        String[][] shape5x7 = PressurizedHeatExchangerStructure.buildShape(5, 7);
+        assertEquals(5, shape5x7.length);
+        assertEquals(9, shape5x7[2].length); // 7 + 2 = 9 rows
+        assertEquals("L~H", shape5x7[2][0]);
+        assertEquals("lch", shape5x7[2][1]);
+        assertEquals("lch", shape5x7[2][7]);
+        assertEquals("LxH", shape5x7[2][8]);
+
+        assertEquals("xxx", shape5x7[0][0]);
+        assertEquals("lxh", shape5x7[0][1]);
+        assertEquals("xxx", shape5x7[4][8]);
+    }
+
+    @Test
+    public void testPheSheetmetalTierMultipliesHeatTransferRate() {
+        // Base Copper PHE
+        MTEPressurizedHeatExchanger pheCopper = new MTEPressurizedHeatExchanger("phe_copper");
+        pheCopper.setBaseMetaTileEntity(createMockBaseMetaTileEntity(new boolean[] { true }));
+        pheCopper.setSheetmetalTier(PheSheetmetalTier.COPPER.getTier());
+        assertEquals(1.0, pheCopper.getHeatTransferMultiplier(), 1e-6);
+
+        // Titanium PHE
+        MTEPressurizedHeatExchanger pheTitanium = new MTEPressurizedHeatExchanger("phe_titanium");
+        pheTitanium.setBaseMetaTileEntity(createMockBaseMetaTileEntity(new boolean[] { true }));
+        pheTitanium.setSheetmetalTier(PheSheetmetalTier.TITANIUM.getTier());
+        assertEquals(8.0, pheTitanium.getHeatTransferMultiplier(), 1e-6);
+        assertEquals(5000.0, pheTitanium.getMaxTemperatureCelsius(), 1e-6);
+        assertEquals(5000.0, pheTitanium.getMaxOperatingTemperatureCelsius(), 1e-6);
+    }
+
+    @Test
+    public void testPheNbtPersistenceOfDimensionsAndTier() {
+        MTEPressurizedHeatExchanger phe = new MTEPressurizedHeatExchanger("phe_nbt_test");
+        phe.setBaseMetaTileEntity(createMockBaseMetaTileEntity(new boolean[] { true }));
+        NBTTagCompound tag = new NBTTagCompound();
+
+        // Simulate a 5x7 structure with Tungstensteel sheetmetal (tier 4, 16x multiplier)
+        tag.setInteger("mStructureHeight", 5);
+        tag.setInteger("mStructureLength", 7);
+        tag.setInteger("mSheetmetalTier", 4);
+        tag.setDouble("mExchangeArea", 35.0);
+        tag.setDouble("mHeatTransferMultiplier", 16.0);
+
+        phe.loadNBTData(tag);
+
+        assertEquals(5, phe.getStructureHeight());
+        assertEquals(7, phe.getStructureLength());
+        assertEquals(4, phe.getSheetmetalTier());
+        assertEquals(16.0, phe.getHeatTransferMultiplier(), 1e-6);
+        assertEquals(7500.0, phe.getMaxTemperatureCelsius(), 1e-6);
+        assertEquals(7500.0, phe.getMaxOperatingTemperatureCelsius(), 1e-6);
+
+        // Verify roundtrip save
+        NBTTagCompound outTag = new NBTTagCompound();
+        phe.saveNBTData(outTag);
+
+        assertEquals(5, outTag.getInteger("mStructureHeight"));
+        assertEquals(7, outTag.getInteger("mStructureLength"));
+        assertEquals(4, outTag.getInteger("mSheetmetalTier"));
+        assertEquals(35.0, outTag.getDouble("mExchangeArea"), 1e-6);
+        assertEquals(16.0, outTag.getDouble("mHeatTransferMultiplier"), 1e-6);
+    }
 }
