@@ -618,14 +618,17 @@ public class CoolantLoopGraphData {
             .getDiameter();
         double area = pathSegments.get(0)
             .getArea();
-        double burstBar = pathSegments.get(0)
-            .getMaxPressureBar();
+        double burstBar = 0.0;
 
         for (LoopSegment s : pathSegments) {
             totalLen += s.getLength();
             curTemp = s.getCurrentTemperatureCelsius();
-            maxTempLimit = Math.min(maxTempLimit, s.getMaxTemperatureCelsius());
-            maxPress = Math.max(maxPress, s.getMaxPressureBar());
+            if (s.hasTemperatureLimit()) maxTempLimit = Math.min(maxTempLimit, s.getMaxTemperatureCelsius());
+            if (s.hasPressureLimit()) {
+                maxPress = Math.max(maxPress, s.getMaxPressureBar());
+                // The edge bursts at its weakest limited segment (its pipes)
+                burstBar = burstBar > 0.0 ? Math.min(burstBar, s.getMaxPressureBar()) : s.getMaxPressureBar();
+            }
             double localQ = (engine.getFlowRateLitersPerSecond() / 1000.0) * s.getFlowFraction();
             totalDeltaP += s.computePressureDrop(localQ, engine.getFluid());
         }

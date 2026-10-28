@@ -478,7 +478,7 @@ public class CoolantLoopEngine {
 
             // Burst limit check
             double maxSegPressureBar = Math.max(inletPressureBar, outletPressureBar);
-            if (maxSegPressureBar > segment.getMaxPressureBar()) {
+            if (segment.hasPressureLimit() && maxSegPressureBar > segment.getMaxPressureBar()) {
                 isRuptured = true;
                 rupturedSegment = segment;
                 failureReason = String.format(
@@ -490,7 +490,8 @@ public class CoolantLoopEngine {
             }
 
             // Thermal limit check
-            if (segment.getCurrentTemperatureCelsius() > segment.getMaxTemperatureCelsius()) {
+            if (segment.hasTemperatureLimit()
+                && segment.getCurrentTemperatureCelsius() > segment.getMaxTemperatureCelsius()) {
                 isRuptured = true;
                 rupturedSegment = segment;
                 failureReason = String.format(

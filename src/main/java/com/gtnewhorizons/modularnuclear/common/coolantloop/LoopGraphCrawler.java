@@ -1261,8 +1261,8 @@ public class LoopGraphCrawler {
                                 pipeDiam,
                                 0.000045,
                                 perTileK,
-                                500.0,
-                                2000.0,
+                                LoopSegment.NO_LIMIT,
+                                LoopSegment.NO_LIMIT,
                                 tile.getDeviceTemperatureCelsius());
                             manSeg.setManifold(true);
                             segments.add(manSeg);
@@ -1535,7 +1535,7 @@ public class LoopGraphCrawler {
                                 0.12,
                                 0.000045,
                                 phe.getMinorLossK(),
-                                500.0,
+                                LoopSegment.NO_LIMIT,
                                 2000.0,
                                 phe.getDeviceTemperatureCelsius());
                             segments.add(devSeg);
@@ -1585,7 +1585,7 @@ public class LoopGraphCrawler {
                                 0.12,
                                 0.000045,
                                 degasser.getMinorLossK(),
-                                500.0,
+                                LoopSegment.NO_LIMIT,
                                 2000.0,
                                 degasser.getDeviceTemperatureCelsius());
                             segments.add(devSeg);
@@ -1635,7 +1635,7 @@ public class LoopGraphCrawler {
                                 0.20,
                                 0.000045,
                                 bath.getMinorLossK(),
-                                1000.0,
+                                LoopSegment.NO_LIMIT,
                                 3000.0,
                                 bath.getDeviceTemperatureCelsius());
                             devSeg.setCapacityLiters(bath.getFillVolumeLiters());
@@ -1697,7 +1697,7 @@ public class LoopGraphCrawler {
                                 0.10,
                                 0.000045,
                                 hatch.getMinorLossK(),
-                                500.0,
+                                LoopSegment.NO_LIMIT,
                                 3200.0,
                                 hatch.getDeviceTemperatureCelsius());
                             segments.add(devSeg);
@@ -1772,7 +1772,7 @@ public class LoopGraphCrawler {
                                 .getStandardPassageDiameter(),
                             0.000045,
                             passage.getMinorLossK(),
-                            500.0,
+                            LoopSegment.NO_LIMIT,
                             3200.0,
                             passage.getDeviceTemperatureCelsius());
                         segments.add(devSeg);
@@ -1834,7 +1834,7 @@ public class LoopGraphCrawler {
                         0.10,
                         0.000045,
                         device.getMinorLossK(),
-                        500.0,
+                        LoopSegment.NO_LIMIT,
                         2000.0,
                         device.getDeviceTemperatureCelsius());
                     segments.add(devSeg);

@@ -18,8 +18,8 @@ public class LoopSegment {
     private final double area; // Cross-sectional area (m^2)
     private final double roughness; // Absolute pipe wall roughness (m)
     private double minorLossK; // Loss coefficient K (dimensionless)
-    private final double maxPressureBar; // Bursting limit in bar
-    private final double maxTemperatureCelsius;// Maximum safe operating temperature in deg C
+    private final Double maxPressureBar; // Bursting limit in bar, or NO_LIMIT
+    private final Double maxTemperatureCelsius; // Maximum safe operating temperature in deg C, or NO_LIMIT
 
     private double currentTemperatureCelsius; // Current temperature of coolant in this segment
     private double incomingTemperatureCelsius = 20.0; // Temperature of coolant entering this segment
@@ -29,7 +29,7 @@ public class LoopSegment {
     private final List<LoopSegment> upstreamSegments = new ArrayList<>();
 
     public LoopSegment(String id, double length, double diameter, double roughness, double minorLossK,
-        double maxPressureBar, double maxTemperatureCelsius, double initialTempCelsius) {
+        Double maxPressureBar, Double maxTemperatureCelsius, double initialTempCelsius) {
         this(
             id,
             Integer.MIN_VALUE,
@@ -45,7 +45,7 @@ public class LoopSegment {
     }
 
     public LoopSegment(String id, int blockX, int blockY, int blockZ, double length, double diameter, double roughness,
-        double minorLossK, double maxPressureBar, double maxTemperatureCelsius, double initialTempCelsius) {
+        double minorLossK, Double maxPressureBar, Double maxTemperatureCelsius, double initialTempCelsius) {
         if (length <= 0 || diameter <= 0) {
             throw new IllegalArgumentException("Length and diameter must be positive");
         }
@@ -156,12 +156,41 @@ public class LoopSegment {
         this.minorLossK = Math.max(0.0, minorLossK);
     }
 
+    /**
+     * A limit a segment does not have. Only high-pressure pipes have a pressure limit: a loop's pressure is limited by
+     * its pipes, which every loop needs at least at the pump's discharge. Manifolds have no temperature limit either.
+     */
+    public static final Double NO_LIMIT = null;
+    /** How a missing limit is saved. */
+    public static final String NO_LIMIT_STATE = "unlimited";
+
+    public boolean hasPressureLimit() {
+        return maxPressureBar != NO_LIMIT;
+    }
+
+    /** Burst pressure in bar; only for a segment that {@link #hasPressureLimit()}. */
     public double getMaxPressureBar() {
+        if (!hasPressureLimit()) throw new IllegalStateException("Segment " + id + " has no pressure limit");
         return maxPressureBar;
     }
 
+    public boolean hasTemperatureLimit() {
+        return maxTemperatureCelsius != NO_LIMIT;
+    }
+
+    /** Maximum safe temperature in °C; only for a segment that {@link #hasTemperatureLimit()}. */
     public double getMaxTemperatureCelsius() {
+        if (!hasTemperatureLimit()) throw new IllegalStateException("Segment " + id + " has no temperature limit");
         return maxTemperatureCelsius;
+    }
+
+    private static Object limitState(Double limit) {
+        return limit != NO_LIMIT ? (Object) limit : NO_LIMIT_STATE;
+    }
+
+    private static Double limitFromState(Object v) {
+        if (v == null || NO_LIMIT_STATE.equals(v)) return NO_LIMIT;
+        return v instanceof Number n ? n.doubleValue() : Double.parseDouble(v.toString());
     }
 
     public double getCurrentTemperatureCelsius() {
@@ -423,8 +452,8 @@ public class LoopSegment {
         m.put("diam", diameter);
         m.put("rough", roughness);
         m.put("k", minorLossK);
-        m.put("pMax", maxPressureBar);
-        m.put("tMax", maxTemperatureCelsius);
+        m.put("pMax", limitState(maxPressureBar));
+        m.put("tMax", limitState(maxTemperatureCelsius));
         m.put("curTemp", currentTemperatureCelsius);
         m.put("inTemp", incomingTemperatureCelsius);
         m.put("inP", inletPressureBar);
@@ -462,8 +491,8 @@ public class LoopSegment {
             diam,
             StateValues.dbl(m, "rough", 0.0),
             StateValues.dbl(m, "k", 0.0),
-            StateValues.dbl(m, "pMax", 0.0),
-            StateValues.dbl(m, "tMax", 0.0),
+            limitFromState(m.get("pMax")),
+            limitFromState(m.get("tMax")),
             StateValues.dbl(m, "curTemp", 0.0));
         seg.setIncomingTemperatureCelsius(StateValues.dbl(m, "inTemp", 0.0));
         if (m.containsKey("inP")) seg.setInletPressureBar(StateValues.dbl(m, "inP", 0.0));

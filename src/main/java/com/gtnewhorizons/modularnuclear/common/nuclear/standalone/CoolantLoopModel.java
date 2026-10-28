@@ -1082,8 +1082,8 @@ public class CoolantLoopModel {
             c.pipeSize.diameterMeters(),
             0.000045,
             MANIFOLD_MINOR_LOSS_K,
-            500.0,
-            2000.0,
+            LoopSegment.NO_LIMIT,
+            LoopSegment.NO_LIMIT,
             temp);
         m.setManifold(true);
         return m;
@@ -1127,7 +1127,7 @@ public class CoolantLoopModel {
                 CoolantPassage.diameter(),
                 0.000045,
                 CoolantPassage.minorLossK(),
-                500.0,
+                LoopSegment.NO_LIMIT,
                 3200.0,
                 startTemp);
             p.setFlowFraction(1.0 / passageCount);
@@ -1163,7 +1163,7 @@ public class CoolantLoopModel {
                 0.12,
                 0.000045,
                 cfg.minorLossK,
-                500.0,
+                LoopSegment.NO_LIMIT,
                 2000.0,
                 startTemp);
             phe.setFlowFraction(1.0 / c.pheCount);

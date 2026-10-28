@@ -499,7 +499,9 @@ public class TurbineCalculator {
                 res.xlstPowerEUt = res.lstPowerEUt; // alias
                 res.totalTurbinesNeeded = res.lstTurbinesNeeded;
             }
-            // Superheated or supercritical steam cannot be processed in EV
+            // Superheated or supercritical steam cannot be processed in EV: it is wasted
+            res.voidedSuperheatedSteam = effectiveSuperheated;
+            res.voidedSupercriticalSteam = effectiveSupercritical + hpHeavyWaterSteamFlow;
         } else {
             // IV+: XL Turbo Steam Turbines (XLST)
             res.isLST = false;
@@ -531,6 +533,9 @@ public class TurbineCalculator {
                     // Only processed SC cascades 1:1 into Superheated Steam
                     effectiveSuperheated += processedSc;
                 }
+            } else {
+                // Below ZPM there is no supercritical turbine: the steam is wasted
+                res.voidedSupercriticalSteam = effectiveSupercritical + hpHeavyWaterSteamFlow;
             }
 
             // 2b. XLST-HP (Superheated Steam): Requires IV or higher (tier >= 1)
