@@ -14,8 +14,6 @@ import net.minecraftforge.fluids.FluidStack;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
-import com.gtnewhorizon.structurelib.structure.StructureDefinition;
-import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ConvectiveHeatTransferModel;
@@ -34,7 +32,6 @@ import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.HatchElement;
-import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -48,7 +45,6 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrors;
-import gregtech.api.util.GTStructureUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -72,7 +68,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     protected int mStructureHeight = 3;
     protected int mStructureLength = 3;
     protected int mSheetmetalTier = 0;
-    protected int mLowestSheetmetalTier = Integer.MAX_VALUE;
+    protected PheSheetmetalTier mFirstSheetmetalTier = null;
+    protected boolean mSheetmetalsUniform = true;
     protected int mSheetmetalCount = 0;
     protected double mHeatTransferMultiplier = 1.0;
 
@@ -115,8 +112,16 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     public void recordSheetmetalBlock(PheSheetmetalTier tier) {
         if (tier != null) {
             mSheetmetalCount++;
-            mLowestSheetmetalTier = Math.min(mLowestSheetmetalTier, tier.getTier());
+            if (mFirstSheetmetalTier == null) {
+                mFirstSheetmetalTier = tier;
+            } else if (mFirstSheetmetalTier != tier) {
+                mSheetmetalsUniform = false;
+            }
         }
+    }
+
+    public boolean areSheetmetalsUniform() {
+        return mSheetmetalsUniform;
     }
 
     public int getStructureHeight() {
@@ -132,9 +137,11 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     }
 
     public void setSheetmetalTier(int tier) {
-        mSheetmetalTier = Math.max(0, Math.min(5, tier));
-        mLowestSheetmetalTier = mSheetmetalTier;
-        mHeatTransferMultiplier = PheSheetmetalTier.getByTier(mSheetmetalTier).getHeatTransferMultiplier();
+        mSheetmetalTier = Math.max(0, Math.min(PheSheetmetalTier.values().length - 1, tier));
+        mFirstSheetmetalTier = PheSheetmetalTier.getByTier(mSheetmetalTier);
+        mSheetmetalsUniform = true;
+        mHeatTransferMultiplier = PheSheetmetalTier.getByTier(mSheetmetalTier)
+            .getHeatTransferMultiplier();
     }
 
     public void setDimensions(int height, int length) {
@@ -148,7 +155,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     }
 
     public double getMaxTemperatureCelsius() {
-        return PheSheetmetalTier.getByTier(mSheetmetalTier).getMaxTemperatureCelsius();
+        return PheSheetmetalTier.getByTier(mSheetmetalTier)
+            .getMaxTemperatureCelsius();
     }
 
     @Override
@@ -213,7 +221,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         mEnergyHatches.clear();
         mCasing = 0;
         mSheetmetalCount = 0;
-        mLowestSheetmetalTier = Integer.MAX_VALUE;
+        mFirstSheetmetalTier = null;
+        mSheetmetalsUniform = true;
 
         int[] detectedDims = PressurizedHeatExchangerStructure.detectDimensions(aBaseMetaTileEntity);
         int detH = detectedDims[0];
@@ -231,7 +240,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
 
         if (!matched) {
             outer: for (int h : PressurizedHeatExchangerStructure.VALID_HEIGHTS) {
-                for (int l = PressurizedHeatExchangerStructure.MIN_LENGTH; l <= PressurizedHeatExchangerStructure.MAX_LENGTH; l++) {
+                for (int l = PressurizedHeatExchangerStructure.MIN_LENGTH; l
+                    <= PressurizedHeatExchangerStructure.MAX_LENGTH; l++) {
                     if (h == detH && l == detL) continue;
                     mPrimaryInlet = null;
                     mPrimaryOutlet = null;
@@ -241,15 +251,11 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
                     mEnergyHatches.clear();
                     mCasing = 0;
                     mSheetmetalCount = 0;
-                    mLowestSheetmetalTier = Integer.MAX_VALUE;
+                    mFirstSheetmetalTier = null;
+                    mSheetmetalsUniform = true;
                     testErrors.clear();
 
-                    if (checkPiece(
-                        PressurizedHeatExchangerStructure.getPieceName(h, l),
-                        1,
-                        h / 2,
-                        0,
-                        testErrors)) {
+                    if (checkPiece(PressurizedHeatExchangerStructure.getPieceName(h, l), 1, h / 2, 0, testErrors)) {
                         matched = true;
                         matchedH = h;
                         matchedL = l;
@@ -268,7 +274,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
             mEnergyHatches.clear();
             mCasing = 0;
             mSheetmetalCount = 0;
-            mLowestSheetmetalTier = Integer.MAX_VALUE;
+            mFirstSheetmetalTier = null;
+            mSheetmetalsUniform = true;
             checkPiece(PressurizedHeatExchangerStructure.getPieceName(detH, detL), 1, detH / 2, 0, aErrors);
             return;
         }
@@ -277,17 +284,21 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         mStructureLength = matchedL;
         mExchangeArea = (double) (mStructureHeight * mStructureLength);
 
-        if (mLowestSheetmetalTier != Integer.MAX_VALUE) {
-            mSheetmetalTier = mLowestSheetmetalTier;
+        if (mFirstSheetmetalTier != null) {
+            mSheetmetalTier = mFirstSheetmetalTier.getTier();
         } else {
             mSheetmetalTier = 0;
         }
-        mHeatTransferMultiplier = PheSheetmetalTier.getByTier(mSheetmetalTier).getHeatTransferMultiplier();
+        mHeatTransferMultiplier = PheSheetmetalTier.getByTier(mSheetmetalTier)
+            .getHeatTransferMultiplier();
 
         int minCasings = PressurizedHeatExchangerStructure.getMinCasings(matchedH, matchedL);
         checkCasingMin(aErrors, mCasing, minCasings);
         if (mSheetmetalCount < matchedL) {
             aErrors.add(StructureErrors.of("coolantloops.structure.error.sheetmetal_missing"));
+        }
+        if (!mSheetmetalsUniform) {
+            aErrors.add(StructureErrors.of("coolantloops.structure.error.sheetmetal_mixed"));
         }
         checkOneMaintenanceHatch(aErrors);
         if (mEnergyHatches.isEmpty()) {
@@ -773,7 +784,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         if (aNBT.hasKey("mHeatTransferMultiplier")) {
             mHeatTransferMultiplier = aNBT.getDouble("mHeatTransferMultiplier");
         } else {
-            mHeatTransferMultiplier = PheSheetmetalTier.getByTier(mSheetmetalTier).getHeatTransferMultiplier();
+            mHeatTransferMultiplier = PheSheetmetalTier.getByTier(mSheetmetalTier)
+                .getHeatTransferMultiplier();
         }
     }
 

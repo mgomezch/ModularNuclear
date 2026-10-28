@@ -14,18 +14,20 @@ import gregtech.api.enums.Materials;
 
 /**
  * Material tiers for pressurized heat exchanger (PHE) sheetmetal.
- * Base tier is Copper (1x heat transfer, 2000 °C max operating temp).
- * Each subsequent tier doubles heat transfer effectiveness (2x, 4x, 8x, 16x, 32x)
+ * Base tier is Copper (1x heat transfer, 1084 °C max operating temp matching GregTech molten copper).
+ * Each subsequent tier doubles heat transfer effectiveness (2x, 4x, 8x, 16x, 32x, 64x, 128x)
  * and increases safe maximum operating temperature for coolant loops.
  */
 public enum PheSheetmetalTier {
 
-    COPPER(0, Materials.Copper, 1.0, 2000.0, "Copper", 35),
-    STEEL(1, Materials.Steel, 2.0, 2500.0, "Steel", 305),
-    STAINLESS_STEEL(2, Materials.StainlessSteel, 4.0, 3000.0, "Stainless Steel", 306),
-    TITANIUM(3, Materials.Titanium, 8.0, 5000.0, "Titanium", 28),
-    TUNGSTEN_STEEL(4, Materials.TungstenSteel, 16.0, 7500.0, "Tungstensteel", 316),
-    NEUTRONIUM(5, Materials.Neutronium, 32.0, 1000000.0, "Neutronium", 129);
+    COPPER(0, Materials.Copper, 1.0, 1084.0, "Copper", 0),
+    ELECTRUM(1, Materials.Electrum, 2.0, 1584.0, "Electrum", 1),
+    PLATINUM(2, Materials.Platinum, 4.0, 2084.0, "Platinum", 2),
+    OSMIUM(3, Materials.Osmium, 8.0, 4084.0, "Osmium", 3),
+    QUANTIUM(4, Materials.Quantium, 16.0, 6584.0, "Quantium", 4),
+    FLUXED_ELECTRUM(5, Materials.ElectrumFlux, 32.0, 9084.0, "Fluxed Electrum", 5),
+    BLACK_PLUTONIUM(6, Materials.BlackPlutonium, 64.0, 15000.0, "Black Plutonium", 6),
+    NEUTRONIUM(7, Materials.Neutronium, 128.0, 1000000.0, "Neutronium", 7);
 
     private final int tier;
     private final Materials material;
@@ -77,7 +79,8 @@ public enum PheSheetmetalTier {
             if (material != null) {
                 List<ItemStack> ores = OreDictionary.getOres("sheetmetal" + material.mName);
                 if (ores != null && !ores.isEmpty() && ores.get(0) != null) {
-                    return ores.get(0).copy();
+                    return ores.get(0)
+                        .copy();
                 }
             }
         } catch (Throwable ignored) {}
@@ -104,17 +107,23 @@ public enum PheSheetmetalTier {
         for (PheSheetmetalTier t : values()) {
             if (t.material == mat) return t;
         }
-        if (mat == Materials.Bronze || mat == Materials.Brass || mat == Materials.Iron) {
+        if (mat == Materials.Bronze || mat == Materials.Brass
+            || mat == Materials.Iron
+            || mat == Materials.CastIron
+            || mat == Materials.WroughtIron) {
             return COPPER;
         }
-        if (mat == Materials.Invar) {
-            return STEEL;
+        if (mat == Materials.Steel || mat == Materials.Invar) {
+            return ELECTRUM;
         }
-        if (mat == Materials.Aluminium) {
-            return STAINLESS_STEEL;
+        if (mat == Materials.StainlessSteel || mat == Materials.Aluminium) {
+            return PLATINUM;
         }
-        if (mat == Materials.Tungsten) {
-            return TUNGSTEN_STEEL;
+        if (mat == Materials.Titanium) {
+            return OSMIUM;
+        }
+        if (mat == Materials.TungstenSteel || mat == Materials.Tungsten) {
+            return QUANTIUM;
         }
         if (mat == Materials.CosmicNeutronium || mat == Materials.Infinity) {
             return NEUTRONIUM;
@@ -167,6 +176,9 @@ public enum PheSheetmetalTier {
                             return tier;
                         }
                     }
+                    if ("FluxedElectrum".equalsIgnoreCase(sub) || "ElectrumFlux".equalsIgnoreCase(sub)) {
+                        return FLUXED_ELECTRUM;
+                    }
                 }
             }
         } catch (Throwable ignored) {}
@@ -176,7 +188,7 @@ public enum PheSheetmetalTier {
 
     public static PheSheetmetalTier fromTrigger(ItemStack trigger) {
         if (trigger == null) return COPPER;
-        int tierVal = CoolantStructureChannels.PHE_SHEETMETAL.getValueClamped(trigger, 0, 5);
+        int tierVal = CoolantStructureChannels.PHE_SHEETMETAL.getValueClamped(trigger, 0, values().length - 1);
         return getByTier(tierVal);
     }
 }

@@ -169,6 +169,7 @@ public class MultiblockStructureErrorsTest {
         String[] keys = new String[] { "coolantloops.structure.error.missing_primary_inlet",
             "coolantloops.structure.error.missing_primary_outlet",
             "coolantloops.structure.error.single_amp_energy_required",
+            "coolantloops.structure.error.sheetmetal_missing", "coolantloops.structure.error.sheetmetal_mixed",
             "coolantloops.structure.error.pump.missing_or_mismatched_tank",
             "coolantloops.structure.error.pump.corner_frame", "coolantloops.structure.error.pump.casing_req",
             "coolantloops.structure.error.pump.invalid_hatch", "coolantloops.structure.error.missing_suction_hatch",
