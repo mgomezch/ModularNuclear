@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.CoolantLoopModel;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
@@ -513,5 +514,21 @@ public class CoolantLoopModelTest {
         assertTrue(pheOn > 0.0 && pheOn < 200.0, "the PHEs run only part of the time: " + pheOn / 200.0);
         assertTrue(freeHotLeg < 200.0, "without the band the PHEs pull the loop down: " + freeHotLeg);
         assertTrue(grid.getCoreMaxTemp() > freeCore + 100.0, "the hot loop holds the fuel hotter");
+    }
+
+    @Test
+    void testBiggerHigherTierPheHoldsTheLoopCooler() {
+        CoolantLoopModel small = passageCore(Double.NaN);
+        run(600);
+        double smallHotLeg = small.getSelectedCircuit()
+            .getHotLegTempCelsius();
+
+        CoolantLoopModel big = passageCore(Double.NaN);
+        big.setPheDesign(3, 9, 11); // osmium, 9 high, 11 long: 81 m² at 8x
+        assertEquals(81.0 * 8.0, PheGeometry.effectiveExchangeArea(9, 11, 3), 1e-9);
+        run(600);
+        double bigHotLeg = big.getSelectedCircuit()
+            .getHotLegTempCelsius();
+        assertTrue(bigHotLeg < smallHotLeg, "a bigger osmium PHE extracts more: " + bigHotLeg + " vs " + smallHotLeg);
     }
 }

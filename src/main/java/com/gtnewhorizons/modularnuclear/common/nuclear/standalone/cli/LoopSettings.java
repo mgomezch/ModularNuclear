@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear.standalone.cli;
 
+import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.CoolantLoopModel;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.CoolantLoopModel.EnergyHatchTier;
 
@@ -77,6 +78,20 @@ public final class LoopSettings {
         .value(s -> CoolantLoopModel.RotorSize.fromString(s), (t, v) -> t.loop.setRotorSize(v), "loop_rotor_size")
         .value(OptionTable.STRING, (t, v) -> t.loop.setSecondaryCoolant(v), "loop_secondary")
         .value(OptionTable.INT, (t, v) -> t.loop.setPheCount(v), "phe_count")
+        .value(OptionTable.STRING, (t, v) -> {
+            CoolantLoopModel.Circuit c = t.circuit();
+            int tier = PheGeometry.tierFromString(v);
+            if (tier < 0) System.err.println("WARNING: unknown PHE sheetmetal " + v);
+            else t.loop.setPheDesign(tier, c.getPheHeight(), c.getPheLength());
+        }, "phe_sheetmetal")
+        .value(OptionTable.INT, (t, v) -> {
+            CoolantLoopModel.Circuit c = t.circuit();
+            t.loop.setPheDesign(c.getPheSheetmetalTier(), v, c.getPheLength());
+        }, "phe_height")
+        .value(OptionTable.INT, (t, v) -> {
+            CoolantLoopModel.Circuit c = t.circuit();
+            t.loop.setPheDesign(c.getPheSheetmetalTier(), c.getPheHeight(), v);
+        }, "phe_length")
         .value(OptionTable.INT, (t, v) -> t.loop.setLoopCount(v), "loop_count")
         .value(s -> EnergyHatchTier.fromString(s), (t, v) -> t.loop.setPheHatchTier(v), "phe_hatch")
         .value(OptionTable.INT, (t, v) -> t.loop.setPheHatchCount(v), "phe_hatches")

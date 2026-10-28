@@ -14,6 +14,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheExchange;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
@@ -532,6 +533,10 @@ public class CoolantLoopModel {
         private RotorMaterial rotorMaterial = RotorMaterial.TUNGSTENSTEEL;
         private RotorSize rotorSize = RotorSize.HUGE;
         private int pheCount = 1;
+        /** Every PHE's sheetmetal tier and size (see PheGeometry); the game's smallest copper PHE by default. */
+        private int pheSheetmetalTier = 0;
+        private int pheHeight = PheGeometry.VALID_HEIGHTS[0];
+        private int pheLength = PheGeometry.MIN_LENGTH;
         private EnergyHatchTier pheHatchTier = EnergyHatchTier.EV;
         private int pheHatchCount = 1;
         private int copies = 1;
@@ -718,6 +723,30 @@ public class CoolantLoopModel {
 
         public int getPheCount() {
             return pheCount;
+        }
+
+        public int getPheSheetmetalTier() {
+            return pheSheetmetalTier;
+        }
+
+        public int getPheHeight() {
+            return pheHeight;
+        }
+
+        public int getPheLength() {
+            return pheLength;
+        }
+
+        /** Every PHE's sheetmetal tier (0 copper ... 7 neutronium), height (3-9, odd) and overall length (5-11). */
+        public void setPheDesign(int sheetmetalTier, int height, int length) {
+            int t = PheGeometry.clampTier(sheetmetalTier), h = PheGeometry.clampHeight(height),
+                l = PheGeometry.clampLength(length);
+            if (t != pheSheetmetalTier || h != pheHeight || l != pheLength) {
+                pheSheetmetalTier = t;
+                pheHeight = h;
+                pheLength = l;
+                markDirty();
+            }
         }
 
         public void setPheCount(int count) {
@@ -1164,7 +1193,7 @@ public class CoolantLoopModel {
                 0.000045,
                 cfg.minorLossK,
                 LoopSegment.NO_LIMIT,
-                2000.0,
+                PheGeometry.maxTemperatureCelsius(c.pheSheetmetalTier),
                 startTemp);
             phe.setFlowFraction(1.0 / c.pheCount);
             chain(pheSplit != null ? pheSplit : prev, phe);
@@ -1349,7 +1378,8 @@ public class CoolantLoopModel {
         PHEData cfg = pheConfig();
         SecondaryCoolantEntry secondary = c.getSecondaryCoolant();
         double maxBatchHeat = PheExchange.maxBatchHeatJoules(cfg, (long) c.pheVoltage());
-        double exchangeArea = cfg.exchangeArea;
+        double exchangeArea = PheGeometry.effectiveExchangeArea(c.pheHeight, c.pheLength, c.pheSheetmetalTier)
+            * cfg.heatTransferMultiplier;
         double mechanicalWatts = c.pumpMechanicalPowerWatts();
         double latentPerMl = secondary != null ? secondary.latentHeatJoulePerLiter / 1000.0 : 0.0;
         int expansion = secondary != null && secondary.expansionRatio > 0 ? secondary.expansionRatio : 1;
@@ -1691,6 +1721,11 @@ public class CoolantLoopModel {
 
     public void setPheCount(int count) {
         getSelectedCircuit().setPheCount(count);
+    }
+
+    /** PHE sheetmetal tier and size on the selected circuit (see {@link Circuit#setPheDesign}). */
+    public void setPheDesign(int sheetmetalTier, int height, int length) {
+        getSelectedCircuit().setPheDesign(sheetmetalTier, height, length);
     }
 
     public EnergyHatchTier getPheHatchTier() {

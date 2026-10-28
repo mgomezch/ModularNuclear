@@ -267,6 +267,15 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    // PHE design on the selected circuit: sheetmetal tier (0 copper ... 7 neutronium), height (3-9, odd) and overall
+    // length (5-11).
+    setCoolantLoopPheDesign(sheetmetalTier, height, length, notify = true) {
+        if (this.inst.exports.setCoolantLoopPheDesign) {
+            this.inst.exports.setCoolantLoopPheDesign(sheetmetalTier | 0, height | 0, length | 0);
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     // Independent loops, each with its own pump and PHEs, that the passages are split among.
     setCoolantLoopCount(count, notify = true) {
         if (this.inst.exports.setCoolantLoopCount) {

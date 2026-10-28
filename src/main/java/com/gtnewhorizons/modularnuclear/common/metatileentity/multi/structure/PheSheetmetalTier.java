@@ -7,6 +7,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.oredict.OreDictionary;
 
+import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
 
 import gregtech.api.GregTechAPI;
@@ -20,14 +21,14 @@ import gregtech.api.enums.Materials;
  */
 public enum PheSheetmetalTier {
 
-    COPPER(0, Materials.Copper, 1.0, 1084.0, "Copper", 0),
-    ELECTRUM(1, Materials.Electrum, 2.0, 1584.0, "Electrum", 1),
-    PLATINUM(2, Materials.Platinum, 4.0, 2084.0, "Platinum", 2),
-    OSMIUM(3, Materials.Osmium, 8.0, 4084.0, "Osmium", 3),
-    QUANTIUM(4, Materials.Quantium, 16.0, 6584.0, "Quantium", 4),
-    FLUXED_ELECTRUM(5, Materials.ElectrumFlux, 32.0, 9084.0, "Fluxed Electrum", 5),
-    BLACK_PLUTONIUM(6, Materials.BlackPlutonium, 64.0, 15000.0, "Black Plutonium", 6),
-    NEUTRONIUM(7, Materials.Neutronium, 128.0, 1000000.0, "Neutronium", 7);
+    COPPER(0, Materials.Copper, 0),
+    ELECTRUM(1, Materials.Electrum, 1),
+    PLATINUM(2, Materials.Platinum, 2),
+    OSMIUM(3, Materials.Osmium, 3),
+    QUANTIUM(4, Materials.Quantium, 4),
+    FLUXED_ELECTRUM(5, Materials.ElectrumFlux, 5),
+    BLACK_PLUTONIUM(6, Materials.BlackPlutonium, 6),
+    NEUTRONIUM(7, Materials.Neutronium, 7);
 
     private final int tier;
     private final Materials material;
@@ -36,13 +37,13 @@ public enum PheSheetmetalTier {
     private final String displayName;
     private final int fallbackSubId;
 
-    PheSheetmetalTier(int tier, Materials material, double heatTransferMultiplier, double maxTemperatureCelsius,
-        String displayName, int fallbackSubId) {
+    /** Heat transfer, temperature limit and name come from {@link PheGeometry}, which the simulator shares. */
+    PheSheetmetalTier(int tier, Materials material, int fallbackSubId) {
         this.tier = tier;
         this.material = material;
-        this.heatTransferMultiplier = heatTransferMultiplier;
-        this.maxTemperatureCelsius = maxTemperatureCelsius;
-        this.displayName = displayName;
+        this.heatTransferMultiplier = PheGeometry.SHEETMETAL_HEAT_TRANSFER[tier];
+        this.maxTemperatureCelsius = PheGeometry.SHEETMETAL_MAX_TEMP_C[tier];
+        this.displayName = PheGeometry.SHEETMETAL_NAMES[tier];
         this.fallbackSubId = fallbackSubId;
     }
 

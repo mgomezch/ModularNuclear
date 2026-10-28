@@ -326,6 +326,19 @@ public class NuclearSimWasmBridge {
         }
     }
 
+    /**
+     * PHE design on the selected circuit: sheetmetal tier (0 copper ... 7 neutronium), height (3-9, odd) and overall
+     * length (5-11). Exchange area is height x (length - 2) m², times the sheetmetal's heat transfer multiplier.
+     */
+    @Export(name = "setCoolantLoopPheDesign")
+    public static void setCoolantLoopPheDesign(int sheetmetalTier, int height, int length) {
+        if (grid != null) {
+            grid.getCoolantLoop()
+                .setPheDesign(sheetmetalTier, height, length);
+            grid.updatePowerResultNet();
+        }
+    }
+
     /** Independent loops, each with its own pump and PHEs, that the passages are split among. */
     @Export(name = "setCoolantLoopCount")
     public static void setCoolantLoopCount(int count) {
@@ -998,6 +1011,15 @@ public class NuclearSimWasmBridge {
                 sel.getSensor()
                     .name())
             .append("\",");
+        sb.append("\"pheSheetmetalTier\":")
+            .append(sel.getPheSheetmetalTier())
+            .append(",");
+        sb.append("\"pheHeight\":")
+            .append(sel.getPheHeight())
+            .append(",");
+        sb.append("\"pheLength\":")
+            .append(sel.getPheLength())
+            .append(",");
         sb.append("\"pheTempBandEnabled\":")
             .append(sel.hasPheTemperatureBand())
             .append(",");

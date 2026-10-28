@@ -4,7 +4,9 @@
 
 # Pressurized Heat Exchanger
 phe:
-  exchangeArea: 24.0                # Internal tube bundle surface area in m^2
+  # Scales every PHE's heat transfer. A PHE's exchange area is height x (length - 2) m^2 (9 m^2 at 3x5 up to 81 m^2
+  # at 9x11), times its sheetmetal tier's multiplier (copper 1x, doubling per tier to neutronium 128x)
+  heatTransferMultiplier: 1.0
   minorLossK: 1.2                  # Minor loss coefficient across bundle
   latentHeatJoulePerLiter: 2260000.0 # Latent heat of vaporization for water (J/L)
   steamExpansionRatio: 160          # 1 Liter water -> 160 Liters steam

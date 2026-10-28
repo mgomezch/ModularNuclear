@@ -16,6 +16,7 @@ import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
 
@@ -31,11 +32,11 @@ import gregtech.api.util.GTStructureUtility;
  */
 public final class PressurizedHeatExchangerStructure {
 
-    public static final int[] VALID_HEIGHTS = { 3, 5, 7, 9 };
+    public static final int[] VALID_HEIGHTS = PheGeometry.VALID_HEIGHTS;
     public static final int MIN_HEIGHT = 3;
     public static final int MAX_HEIGHT = 9;
-    public static final int MIN_LENGTH = 5;
-    public static final int MAX_LENGTH = 11;
+    public static final int MIN_LENGTH = PheGeometry.MIN_LENGTH;
+    public static final int MAX_LENGTH = PheGeometry.MAX_LENGTH;
 
     private static IStructureDefinition<MTEPressurizedHeatExchanger> STRUCTURE_DEFINITION = null;
 

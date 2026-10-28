@@ -21,6 +21,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheExchange;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantLoopMachineGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
@@ -102,7 +103,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         if (CoolantLoopDataRegistry.getConvectiveModel() != null) {
             mConvectiveModel = CoolantLoopDataRegistry.getConvectiveModel();
         }
-        mExchangeArea = (double) (mStructureHeight * mStructureLength);
+        mExchangeArea = PheGeometry.exchangeArea(mStructureHeight, mStructureLength);
     }
 
     public void addCasingBlock() {
@@ -147,7 +148,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     public void setDimensions(int height, int length) {
         mStructureHeight = height;
         mStructureLength = length;
-        mExchangeArea = (double) (height * (length - 2));
+        mExchangeArea = PheGeometry.exchangeArea(height, length);
     }
 
     public double getHeatTransferMultiplier() {
@@ -282,7 +283,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
 
         mStructureHeight = matchedH;
         mStructureLength = matchedL;
-        mExchangeArea = (double) (mStructureHeight * (mStructureLength - 2));
+        mExchangeArea = PheGeometry.exchangeArea(mStructureHeight, mStructureLength);
 
         if (mFirstSheetmetalTier != null) {
             mSheetmetalTier = mFirstSheetmetalTier.getTier();
@@ -633,7 +634,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         }
 
         double dt = 0.05; // 1 tick = 0.05 seconds
-        double effectiveArea = mExchangeArea * mHeatTransferMultiplier;
+        double effectiveArea = mExchangeArea * mHeatTransferMultiplier * pheConfig.heatTransferMultiplier;
         mCurrentCoolantTemp = PheExchange.tick(
             mBatch,
             pheConfig,
@@ -783,7 +784,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         if (aNBT.hasKey("mExchangeArea")) {
             mExchangeArea = aNBT.getDouble("mExchangeArea");
         } else {
-            mExchangeArea = (double) (mStructureHeight * (mStructureLength - 2));
+            mExchangeArea = PheGeometry.exchangeArea(mStructureHeight, mStructureLength);
         }
         if (aNBT.hasKey("mHeatTransferMultiplier")) {
             mHeatTransferMultiplier = aNBT.getDouble("mHeatTransferMultiplier");

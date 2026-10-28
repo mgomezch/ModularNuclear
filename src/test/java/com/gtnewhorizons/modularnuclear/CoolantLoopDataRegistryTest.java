@@ -138,7 +138,7 @@ public class CoolantLoopDataRegistryTest {
         // Verify default devices
         CoolantDeviceData devices = CoolantLoopDataRegistry.getDeviceData();
         assertNotNull(devices);
-        assertEquals(24.0, devices.getPhe().exchangeArea, 1e-4);
+        assertEquals(1.0, devices.getPhe().heatTransferMultiplier, 1e-4);
         assertEquals(1.2, devices.getPhe().minorLossK, 1e-4);
         assertEquals(160, devices.getPhe().steamExpansionRatio);
         assertEquals(5.0, devices.getPhe().approachMinDeltaT, 1e-4);
@@ -215,7 +215,7 @@ public class CoolantLoopDataRegistryTest {
         Files.write(new File(loopDir, "pipes.yaml").toPath(), customPipes.getBytes());
 
         // Write custom devices.yaml
-        String customDevices = "phe:\n" + "  exchangeArea: 36.0\n"
+        String customDevices = "phe:\n" + "  heatTransferMultiplier: 36.0\n"
             + "  minorLossK: 0.9\n"
             + "  latentHeatJoulePerLiter: 2000000.0\n"
             + "  steamExpansionRatio: 200\n"
@@ -290,7 +290,7 @@ public class CoolantLoopDataRegistryTest {
 
         // 5. Verify custom devices
         CoolantDeviceData devices = CoolantLoopDataRegistry.getDeviceData();
-        assertEquals(36.0, devices.getPhe().exchangeArea, 1e-4);
+        assertEquals(36.0, devices.getPhe().heatTransferMultiplier, 1e-4);
         assertEquals(200, devices.getPhe().steamExpansionRatio);
         assertEquals(7.5, devices.getPhe().approachMinDeltaT, 1e-4);
         assertEquals(15.0, devices.getPhe().superheatThresholdDeltaT, 1e-4);

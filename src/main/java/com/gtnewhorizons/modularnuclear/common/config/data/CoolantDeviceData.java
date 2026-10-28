@@ -61,7 +61,8 @@ public class CoolantDeviceData {
             }
         }
 
-        public double exchangeArea = 24.0; // 24 m^2 internal tube bundle area
+        /** Scales heat transfer across every PHE's exchange area (set by its size and sheetmetal tier). */
+        public double heatTransferMultiplier = 1.0;
         public double minorLossK = 1.2; // Heat exchanger core resistance
         public double latentHeatJoulePerLiter = 2260000.0; // Latent heat of vaporization for water
         public int steamExpansionRatio = 160; // 1 L water -> 160 L steam
@@ -202,7 +203,7 @@ public class CoolantDeviceData {
 
         public Map<String, Object> toMap() {
             Map<String, Object> map = new LinkedHashMap<>();
-            map.put("exchangeArea", exchangeArea);
+            map.put("heatTransferMultiplier", heatTransferMultiplier);
             map.put("minorLossK", minorLossK);
             map.put("latentHeatJoulePerLiter", latentHeatJoulePerLiter);
             map.put("steamExpansionRatio", steamExpansionRatio);
@@ -223,7 +224,8 @@ public class CoolantDeviceData {
         public static PHEData fromMap(Map<String, Object> map) {
             PHEData d = new PHEData();
             if (map == null) return d;
-            if (map.containsKey("exchangeArea")) d.exchangeArea = ((Number) map.get("exchangeArea")).doubleValue();
+            if (map.containsKey("heatTransferMultiplier"))
+                d.heatTransferMultiplier = ((Number) map.get("heatTransferMultiplier")).doubleValue();
             if (map.containsKey("minorLossK")) d.minorLossK = ((Number) map.get("minorLossK")).doubleValue();
             if (map.containsKey("latentHeatJoulePerLiter"))
                 d.latentHeatJoulePerLiter = ((Number) map.get("latentHeatJoulePerLiter")).doubleValue();

@@ -150,8 +150,8 @@ public final class SimOptions {
         engine(
             t,
             v -> CoolantLoopConfigData.getDeviceData()
-                .getPhe().exchangeArea = v,
-            "phe_area");
+                .getPhe().heatTransferMultiplier = v,
+            "phe_htc_mult");
 
         // Run behaviour
         t.toggle((c, v) -> c.repair = v, "repair")
