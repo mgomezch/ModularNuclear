@@ -27,6 +27,7 @@ import gregtech.api.util.GTStructureUtility;
  * Structure definition and helpers for the Pressurized Heat Exchanger (PHE).
  * Supports variable height (3, 5, 7, 9) and variable midsection length (3 to 9).
  * Center layer y = height / 2 contains the controller, sheetmetal, and primary/secondary hatches.
+ * All interior layers (0 < y < height - 1) contain tiered sheetmetal along the middle column.
  */
 public final class PressurizedHeatExchangerStructure {
 
@@ -45,12 +46,17 @@ public final class PressurizedHeatExchangerStructure {
     }
 
     public static int getMinCasings(int height, int length) {
-        return (length + 6) * (height - 1) - 3;
+        return 2 * length + 6 * height - 9;
+    }
+
+    public static int getRequiredSheetmetalCount(int height, int length) {
+        return (height - 2) * length;
     }
 
     public static String[] buildLayer(int y, int height, int length) {
         String[] rows = new String[length + 2];
         boolean isCenter = (y == height / 2);
+        boolean isInterior = (y > 0 && y < height - 1);
 
         if (isCenter) {
             rows[0] = "L~H";
@@ -58,6 +64,12 @@ public final class PressurizedHeatExchangerStructure {
                 rows[r] = "lch";
             }
             rows[length + 1] = "LxH";
+        } else if (isInterior) {
+            rows[0] = "xxx";
+            for (int r = 1; r <= length; r++) {
+                rows[r] = "lch";
+            }
+            rows[length + 1] = "xxx";
         } else {
             rows[0] = "xxx";
             for (int r = 1; r <= length; r++) {

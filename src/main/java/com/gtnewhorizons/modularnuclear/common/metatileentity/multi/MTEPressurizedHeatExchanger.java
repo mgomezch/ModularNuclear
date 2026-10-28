@@ -294,7 +294,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
 
         int minCasings = PressurizedHeatExchangerStructure.getMinCasings(matchedH, matchedL);
         checkCasingMin(aErrors, mCasing, minCasings);
-        if (mSheetmetalCount < matchedL) {
+        int reqSheetmetal = PressurizedHeatExchangerStructure.getRequiredSheetmetalCount(matchedH, matchedL);
+        if (mSheetmetalCount < reqSheetmetal) {
             aErrors.add(StructureErrors.of("coolantloops.structure.error.sheetmetal_missing"));
         }
         if (!mSheetmetalsUniform) {
