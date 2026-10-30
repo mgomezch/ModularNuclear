@@ -62,6 +62,10 @@ public final class ReactorDataRegistry {
     private static final Map<Long, CoolantItemData> coolantItemCache = new ConcurrentHashMap<>();
     private static final Map<Long, CoolantFluidData> coolantFluidItemCache = new ConcurrentHashMap<>();
     private static final Map<Long, Boolean> spentProductCache = new ConcurrentHashMap<>();
+    /** Fluid lookups match names against every entry's patterns, so they are kept per fluid like item lookups. */
+    private static final Map<net.minecraftforge.fluids.Fluid, Object> liquidFuelByFluid = new ConcurrentHashMap<>();
+    private static final Map<net.minecraftforge.fluids.Fluid, Object> coolantFluidByFluid = new ConcurrentHashMap<>();
+    private static final Object NO_FLUID_MATCH = new Object();
 
     private static final FuelData NO_FUEL = new FuelData();
     private static final ModeratorData NO_MODERATOR = new ModeratorData();
@@ -108,6 +112,8 @@ public final class ReactorDataRegistry {
         coolantItemCache.clear();
         coolantFluidItemCache.clear();
         spentProductCache.clear();
+        liquidFuelByFluid.clear();
+        coolantFluidByFluid.clear();
         try {
             Class.forName("net.minecraft.item.Item");
             Class<?> clazz = Class.forName("com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification");
@@ -508,12 +514,18 @@ public final class ReactorDataRegistry {
 
     public static FuelData findFuel(FluidStack fluid) {
         if (fluid == null || fluid.getFluid() == null) return null;
-        for (FuelData fd : ReactorConfigData.fuels) {
-            if (fd.isLiquid && matchesFluid(fluid, fd.matching)) {
-                return fd;
+        Object hit = liquidFuelByFluid.get(fluid.getFluid());
+        if (hit == null) {
+            hit = NO_FLUID_MATCH;
+            for (FuelData fd : ReactorConfigData.fuels) {
+                if (fd.isLiquid && matchesFluid(fluid, fd.matching)) {
+                    hit = fd;
+                    break;
+                }
             }
+            liquidFuelByFluid.put(fluid.getFluid(), hit);
         }
-        return null;
+        return hit == NO_FLUID_MATCH ? null : (FuelData) hit;
     }
 
     public static FuelData findFuel(String fluidName) {
@@ -679,10 +691,18 @@ public final class ReactorDataRegistry {
 
     public static CoolantFluidData findCoolantFluid(FluidStack fluid) {
         if (fluid == null || fluid.getFluid() == null) return null;
-        for (CoolantFluidData d : ReactorConfigData.componentData.coolantFluids) {
-            if (matchesFluid(fluid, d.matching)) return d;
+        Object hit = coolantFluidByFluid.get(fluid.getFluid());
+        if (hit == null) {
+            hit = NO_FLUID_MATCH;
+            for (CoolantFluidData d : ReactorConfigData.componentData.coolantFluids) {
+                if (matchesFluid(fluid, d.matching)) {
+                    hit = d;
+                    break;
+                }
+            }
+            coolantFluidByFluid.put(fluid.getFluid(), hit);
         }
-        return null;
+        return hit == NO_FLUID_MATCH ? null : (CoolantFluidData) hit;
     }
 
     public static CoolantFluidData findCoolantFluid(String fluidName) {

@@ -481,8 +481,30 @@ public class NuclearSimulationEngine {
         return -1;
     }
 
+    /** {@link #isFluidAllowed} answers per casing tier and fluid name, kept until the configuration changes. */
+    private static final java.util.Map<Integer, java.util.Map<String, Boolean>> fluidAllowedCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private static volatile int fluidAllowedGeneration = -1;
+    private static volatile com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider fluidAllowedProvider;
+
     public static boolean isFluidAllowed(String fluidName, int pipeTier) {
         if (fluidName == null) return false;
+        int gen = com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.generation();
+        if (fluidAllowedGeneration != gen || fluidAllowedProvider != configProvider) {
+            fluidAllowedCache.clear();
+            fluidAllowedGeneration = gen;
+            fluidAllowedProvider = configProvider;
+        }
+        java.util.Map<String, Boolean> byName = fluidAllowedCache
+            .computeIfAbsent(pipeTier, t -> new java.util.concurrent.ConcurrentHashMap<>());
+        Boolean hit = byName.get(fluidName);
+        if (hit == null) {
+            hit = computeFluidAllowed(fluidName, pipeTier);
+            byName.put(fluidName, hit);
+        }
+        return hit;
+    }
+
+    private static boolean computeFluidAllowed(String fluidName, int pipeTier) {
         int reqTier = getRequiredFluidTier(fluidName);
         if (reqTier < 0) return false;
         com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(pipeTier);

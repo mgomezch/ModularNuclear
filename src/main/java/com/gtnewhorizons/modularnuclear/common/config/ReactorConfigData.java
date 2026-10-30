@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
@@ -41,6 +42,12 @@ public final class ReactorConfigData {
     static ComponentData componentData = new ComponentData();
     private static volatile boolean defaultsLoaded = false;
     private static int generation = 0;
+
+    /** Name lookups are pattern matches over every entry, so their results are kept until the configuration changes. */
+    private static final Object NO_MATCH = new Object();
+    private static final Map<String, Object> coolantFluidByName = new ConcurrentHashMap<>();
+    private static final Map<String, Object> liquidFuelByName = new ConcurrentHashMap<>();
+    private static volatile int cachedGeneration = -1;
 
     private ReactorConfigData() {}
 
@@ -204,10 +211,29 @@ public final class ReactorConfigData {
     public static FuelData findLiquidFuel(String fluidName) {
         ensureLoaded();
         if (fluidName == null) return null;
+        return (FuelData) cachedLookup(liquidFuelByName, fluidName, ReactorConfigData::scanLiquidFuel);
+    }
+
+    private static Object scanLiquidFuel(String fluidName) {
         for (FuelData fd : fuels) {
             if (fd.isLiquid && matchesFluid(fluidName, fd.matching)) return fd;
         }
         return null;
+    }
+
+    private static Object cachedLookup(Map<String, Object> cache, String name, Function<String, Object> scan) {
+        if (cachedGeneration != generation) {
+            coolantFluidByName.clear();
+            liquidFuelByName.clear();
+            cachedGeneration = generation;
+        }
+        Object hit = cache.get(name);
+        if (hit == null) {
+            Object found = scan.apply(name);
+            hit = found != null ? found : NO_MATCH;
+            cache.put(name, hit);
+        }
+        return hit == NO_MATCH ? null : hit;
     }
 
     /**
@@ -570,9 +596,12 @@ public final class ReactorConfigData {
     /** The coolant fluid entry (components.yaml coolant_fluids) matching a fluid name, or null. */
     public static ComponentData.CoolantFluidData findCoolantFluid(String fluidName) {
         if (fluidName == null) return null;
-        for (ComponentData.CoolantFluidData d : getComponentData().coolantFluids) {
-            if (matchesFluid(fluidName, d.matching)) return d;
-        }
-        return null;
+        ensureLoaded();
+        return (ComponentData.CoolantFluidData) cachedLookup(coolantFluidByName, fluidName, name -> {
+            for (ComponentData.CoolantFluidData d : componentData.coolantFluids) {
+                if (matchesFluid(name, d.matching)) return d;
+            }
+            return null;
+        });
     }
 }
