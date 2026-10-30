@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules;
@@ -718,39 +719,35 @@ public class StandaloneNuclearGrid {
                     if (space > 0) {
                         int feed = Math.min(space, NuclearSimulationEngine.coolantFeedRate);
                         if (feed > 0) {
-                            if (tile.isWasDry()) {
-                                double threshold = NuclearSimulationEngine
-                                    .getCoolantBoilingThreshold(tile.getInputFluidName());
-                                if (tile.getTemperature() > threshold) {
-                                    if (this.stopOnIncidents && !this.haltedByIncident) {
-                                        this.haltedByIncident = true;
-                                        this.lastHaltIncidentReason = String.format(
-                                            java.util.Locale.US,
-                                            "Pending Incident: Cold coolant is about to be fed into dry superheated hatch at (%d,%d) (%.1f°C > %.1f°C boiling threshold). Simulation stopped to prevent thermal shock.",
-                                            x,
-                                            y,
-                                            tile.getTemperature(),
-                                            threshold);
-                                        logIncident("PENDING_INCIDENT", this.lastHaltIncidentReason, 0.0);
-                                        return false;
-                                    }
-                                    triggerThermalShock(
-                                        x,
-                                        y,
-                                        String.format(
-                                            java.util.Locale.US,
-                                            "Thermal Shock: Cold coolant fed into dry superheated hatch at (%d,%d) with temperature %.1f°C exceeding boiling threshold %.1f°C",
-                                            x,
-                                            y,
-                                            tile.getTemperature(),
-                                            threshold));
-                                    tile.setInputFluidAmount(0);
-                                    tile.setWasDry(true);
-                                    if (exploded || powerFailed) return false;
-                                    continue;
+                            double ambient = NuclearSimulationEngine.ambientTemp;
+                            CoreHatchRules.CoolantFeed check = CoreHatchRules.checkCoolantFeed(
+                                tile.getInputFluidName(),
+                                tile.isWasDry(),
+                                tile.getTemperature(),
+                                ambient);
+                            if (check != CoreHatchRules.CoolantFeed.SAFE) {
+                                String reason = String.format(
+                                    java.util.Locale.US,
+                                    "hatch (%d,%d): %s",
+                                    x,
+                                    y,
+                                    CoreHatchRules
+                                        .describe(check, tile.getInputFluidName(), tile.getTemperature(), ambient));
+                                if (this.stopOnIncidents && !this.haltedByIncident) {
+                                    this.haltedByIncident = true;
+                                    this.lastHaltIncidentReason = "Pending Incident: thermal shock about to happen at "
+                                        + reason
+                                        + ". Simulation stopped to prevent it.";
+                                    logIncident("PENDING_INCIDENT", this.lastHaltIncidentReason, 0.0);
+                                    return false;
                                 }
-                                tile.setWasDry(false);
+                                triggerThermalShock(x, y, "Thermal Shock: " + reason);
+                                tile.setInputFluidAmount(0);
+                                tile.setWasDry(true);
+                                if (exploded || powerFailed) return false;
+                                continue;
                             }
+                            tile.setWasDry(false);
                             tile.setInputFluidAmount(tile.getInputFluidAmount() + feed);
                         }
                     }
@@ -1146,7 +1143,7 @@ public class StandaloneNuclearGrid {
     }
 
     public void triggerThermalShock(int x, int y, String reason) {
-        reactorDamage = Math.min(100.0, reactorDamage + 2.0);
+        reactorDamage = Math.min(100.0, reactorDamage + CoreHatchRules.THERMAL_SHOCK_DAMAGE_PERCENT);
         causeNewMaintenanceIssue();
         logIncident("THERMAL_SHOCK", reason, 2.0);
         recordTraceSnapshot(

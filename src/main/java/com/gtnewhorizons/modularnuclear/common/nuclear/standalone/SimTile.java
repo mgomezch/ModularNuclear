@@ -1078,13 +1078,12 @@ public class SimTile implements INuclearTile {
 
     public boolean refillCoolant(int maxFeed) {
         if (inputFluidAmount >= inputFluidCapacity) return true;
-        if (wasDry) {
-            double threshold = NuclearSimulationEngine.getCoolantBoilingThreshold(inputFluidName);
-            if (temperature > threshold) {
-                return false; // Thermal shock explosion!
-            }
-            wasDry = false;
+        if (com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules
+            .checkCoolantFeed(inputFluidName, wasDry, temperature, NuclearSimulationEngine.ambientTemp)
+            != com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules.CoolantFeed.SAFE) {
+            return false; // Thermal shock
         }
+        wasDry = false;
         int toAdd = Math.min(maxFeed, inputFluidCapacity - inputFluidAmount);
         inputFluidAmount += toAdd;
         return true;

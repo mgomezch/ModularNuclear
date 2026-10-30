@@ -47,6 +47,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.Nu
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.NuclearReactorTelemetry;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.NuclearReactorTooltipValues;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.NuclearReactorWailaProvider;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
@@ -830,7 +831,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
 
         // Hot-dry-hatch conduction-coolant flash condition increases reactor damage by 2%
-        mReactorDamage = Math.min(100.0, mReactorDamage + 2.0);
+        mReactorDamage = Math.min(100.0, mReactorDamage + CoreHatchRules.THERMAL_SHOCK_DAMAGE_PERCENT);
         if (mReactorDamage >= 100.0) {
             triggerMeltdown();
             return;
@@ -1778,34 +1779,16 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             String name = hatch.mInputFluid.getFluid()
                                 .getName()
                                 .toLowerCase();
-                            double boilingThreshold = NuclearSimulationEngine.getCoolantBoilingThreshold(name);
-                            if (ambient >= boilingThreshold) {
+                            CoreHatchRules.CoolantFeed feed = CoreHatchRules
+                                .checkCoolantFeed(name, hatch.mWasDry, hatch.mTemperature, ambient);
+                            if (feed != CoreHatchRules.CoolantFeed.SAFE) {
                                 triggerThermalShock(
                                     hatch,
-                                    "Coolant evaporates immediately at ambient temperature (" + name
-                                        + ", ambient="
-                                        + ambient
-                                        + "C >= boiling threshold="
-                                        + boilingThreshold
-                                        + "C)");
+                                    CoreHatchRules.describe(feed, name, hatch.mTemperature, ambient));
                                 if (mReactorDamage >= 100.0 || !mMachine) return;
                                 continue;
                             }
-                            if (hatch.mWasDry) {
-                                if (hatch.mTemperature > boilingThreshold) {
-                                    triggerThermalShock(
-                                        hatch,
-                                        "Coolant injected into dry superheated hatch above boiling threshold (" + name
-                                            + ", temp="
-                                            + hatch.mTemperature
-                                            + "C > threshold="
-                                            + boilingThreshold
-                                            + "C)");
-                                    if (mReactorDamage >= 100.0 || !mMachine) return;
-                                    continue;
-                                }
-                                hatch.mWasDry = false;
-                            }
+                            hatch.mWasDry = false;
                         } else {
                             // Hatch has zero coolant: controller remembers that
                             hatch.mWasDry = true;
