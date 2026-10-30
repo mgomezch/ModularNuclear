@@ -14,13 +14,14 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.event.world.WorldEvent;
 
 import com.gtnewhorizons.modularnuclear.client.particle.EntityCherenkovBeamFX;
 import com.gtnewhorizons.modularnuclear.client.particle.EntityCherenkovFX;
-import com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -70,7 +71,6 @@ public class CherenkovClientHandler {
                 if (beam != null) {
                     beam.setDead();
                 }
-                CherenkovWorldRenderer.unregister(reactor);
             }
             return;
         }
@@ -162,7 +162,6 @@ public class CherenkovClientHandler {
             float waterFactor = Math.min(1.0f, 0.40f + (totalWaterAbove / 15.0f) * 0.60f);
             float radIntensity = Math.max(reactor.mClientRadiationIntensity, base.isActive() ? 0.40f : 0f);
             reactor.mClientCherenkovIntensity = waterFactor * radIntensity;
-            CherenkovWorldRenderer.register(reactor);
 
             EntityCherenkovBeamFX beam = ACTIVE_BEAMS.get(reactor);
             if (beam == null || beam.isDead || beam.worldObj != world) {
@@ -182,7 +181,6 @@ public class CherenkovClientHandler {
         } else {
             reactor.mClientWaterBlocks = 0;
             reactor.mClientCherenkovIntensity = 0f;
-            CherenkovWorldRenderer.unregister(reactor);
             EntityCherenkovBeamFX beam = ACTIVE_BEAMS.remove(reactor);
             if (beam != null) {
                 beam.setDead();
@@ -284,7 +282,12 @@ public class CherenkovClientHandler {
         if (beam != null) {
             beam.setDead();
         }
-        CherenkovWorldRenderer.unregister(reactor);
+    }
+
+    /** Registered on the Forge event bus: drops every reactor's effects when the client's world goes away. */
+    @SubscribeEvent
+    public void onWorldUnload(WorldEvent.Unload event) {
+        if (event.world.isRemote) onWorldUnload();
     }
 
     public static void onWorldUnload() {

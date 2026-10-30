@@ -417,6 +417,18 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
                 64));
     }
 
+    @Override
+    public void onRemoval() {
+        ACTIVE_CLIENT_BATHS.remove(this);
+        super.onRemoval();
+    }
+
+    @Override
+    public void onUnload() {
+        ACTIVE_CLIENT_BATHS.remove(this);
+        super.onUnload();
+    }
+
     public void receiveClientSync(int structureTier, PacketSyncCoolantBath.SlotSyncData[] slots) {
         this.clientStructureTier = structureTier;
         this.clientSlots = slots;

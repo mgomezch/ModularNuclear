@@ -6761,19 +6761,31 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
-    void testCherenkovWorldRendererLifecycle() {
-        MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.test");
-        com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.register(reactor);
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.ACTIVE_REACTORS.contains(reactor));
+    void testUnloadedReactorReleasesItsClientEffects() {
+        com.gtnewhorizons.modularnuclear.common.CommonProxy previous = com.gtnewhorizons.modularnuclear.ModularNuclear.proxy;
+        com.gtnewhorizons.modularnuclear.common.CommonProxy proxy = org.mockito.Mockito
+            .mock(com.gtnewhorizons.modularnuclear.common.CommonProxy.class);
+        com.gtnewhorizons.modularnuclear.ModularNuclear.proxy = proxy;
+        try {
+            MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.test");
+            gregtech.api.interfaces.tileentity.IGregTechTileEntity base = org.mockito.Mockito
+                .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+            reactor.setBaseMetaTileEntity(base);
 
-        com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.unregister(reactor);
-        assertFalse(
-            com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.ACTIVE_REACTORS.contains(reactor));
+            org.mockito.Mockito.when(base.isClientSide())
+                .thenReturn(false);
+            reactor.onUnload();
+            org.mockito.Mockito.verify(proxy, org.mockito.Mockito.never())
+                .removeReactor(reactor);
 
-        com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.register(reactor);
-        new com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer().onWorldUnload(null);
-        assertTrue(com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer.ACTIVE_REACTORS.isEmpty());
+            org.mockito.Mockito.when(base.isClientSide())
+                .thenReturn(true);
+            reactor.onUnload();
+            org.mockito.Mockito.verify(proxy)
+                .removeReactor(reactor);
+        } finally {
+            com.gtnewhorizons.modularnuclear.ModularNuclear.proxy = previous;
+        }
     }
 
     @Test

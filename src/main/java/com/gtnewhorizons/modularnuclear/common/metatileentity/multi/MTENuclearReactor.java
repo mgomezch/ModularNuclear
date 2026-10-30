@@ -1561,6 +1561,18 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
     }
 
+    /** Client effects (Cherenkov beam, lit hatches) are kept per reactor, and go with it. */
+    private void releaseClientEffects() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base != null && base.isClientSide()) ModularNuclear.proxy.removeReactor(this);
+    }
+
+    @Override
+    public void onUnload() {
+        releaseClientEffects();
+        super.onUnload();
+    }
+
     @Override
     public void onRemoval() {
         if (mWasMachineFormed || mMachine) {
@@ -1568,7 +1580,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             handleStructureBreak();
             mLastFormedNuclearTiles.clear();
         }
-        ModularNuclear.proxy.removeReactor(this);
+        releaseClientEffects();
         try {
             super.onRemoval();
         } catch (Throwable swallowed) {

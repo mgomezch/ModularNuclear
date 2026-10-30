@@ -238,6 +238,8 @@ public class FalloutVisualEffectRenderer {
 
     @SubscribeEvent
     public void onWorldUnload(WorldEvent.Unload event) {
+        // Server worlds unload too in single player; only the client's own world holds these entities
+        if (!event.world.isRemote) return;
         CLIENT_FALLOUT_ENTITIES.clear();
         currentIntensity = 0.0f;
         targetIntensity = 0.0f;

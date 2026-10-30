@@ -93,7 +93,7 @@ public class ModularNuclear {
             com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout.class,
             new com.gtnewhorizons.modularnuclear.client.renderer.RenderEmpty());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS
-            .register(new com.gtnewhorizons.modularnuclear.client.renderer.CherenkovWorldRenderer());
+            .register(new com.gtnewhorizons.modularnuclear.client.CherenkovClientHandler());
         com.gtnewhorizons.modularnuclear.client.renderer.FalloutVisualEffectRenderer.init();
     }
 
