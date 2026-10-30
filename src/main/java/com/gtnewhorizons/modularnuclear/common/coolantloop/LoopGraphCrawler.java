@@ -1048,21 +1048,298 @@ public class LoopGraphCrawler {
                     return true;
                 }
 
-                // 1. Manifold Group Structure Handling
-                if (te instanceof TileEntityManifold) {
-                    TileEntityManifold mf = (TileEntityManifold) te;
+                switch (visitManifold(step, te)) {
+                    case STOP:
+                        return true;
+                    case NEXT:
+                        continue;
+                    default:
+                }
+                switch (visitPipe(step, te)) {
+                    case STOP:
+                        return true;
+                    case NEXT:
+                        continue;
+                    default:
+                }
+                switch (visitMachineHatch(step, te)) {
+                    case STOP:
+                        return true;
+                    case NEXT:
+                        continue;
+                    default:
+                }
+                switch (visitInlineDevice(step, te)) {
+                    case STOP:
+                        return true;
+                    case NEXT:
+                        continue;
+                    default:
+                }
+            }
 
-                    // Entry side check: must enter perpendicularly to the manifold plane (along normal axis)
-                    if (!mf.isNormalDirection(step.entrySide)) {
+            if (frontier.isEmpty()) {
+                finishCrawl();
+                return true;
+            }
+
+            return false;
+        }
+
+        /** What the crawl does after visiting a block: go on to the next step, stop (it finished), or keep looking. */
+        private enum Visit {
+            NEXT,
+            STOP,
+            FALL_THROUGH
+        }
+
+        /** A manifold: joins its whole group, checks entry and ports, and queues the group's outlets. */
+        private Visit visitManifold(FrontierStep step, TileEntity te) {
+            if (te instanceof TileEntityManifold) {
+                TileEntityManifold mf = (TileEntityManifold) te;
+
+                // Entry side check: must enter perpendicularly to the manifold plane (along normal axis)
+                if (!mf.isNormalDirection(step.entrySide)) {
+                    finishWithFailure(
+                        CoolantLocalization.format(
+                            "coolantloops.crawler.manifold_parallel",
+                            step.x,
+                            step.y,
+                            step.z,
+                            step.entrySide,
+                            mf.getNormalAxisName()));
+                    return Visit.STOP;
+                }
+                if (!mf.isConnected(step.entrySide)) {
+                    finishWithFailure(
+                        CoolantLocalization
+                            .format("coolantloops.crawler.manifold_disabled", step.x, step.y, step.z, step.entrySide));
+                    return Visit.STOP;
+                }
+
+                BlockPosCoord mfCoord = new BlockPosCoord(step.x, step.y, step.z);
+                ManifoldGroup mg = coordToManifoldGroup.get(mfCoord);
+
+                if (mg == null) {
+                    Set<BlockPosCoord> groupCoords = new LinkedHashSet<>();
+                    List<TileEntityManifold> groupTiles = new ArrayList<>();
+                    Queue<BlockPosCoord> mfQueue = new ArrayDeque<>();
+
+                    groupCoords.add(mfCoord);
+                    groupTiles.add(mf);
+                    mfQueue.add(mfCoord);
+
+                    while (!mfQueue.isEmpty()) {
+                        BlockPosCoord p = mfQueue.poll();
+                        TileEntity pte = world.getTileEntity(p.x, p.y, p.z);
+                        TileEntityManifold pmf = (pte instanceof TileEntityManifold) ? (TileEntityManifold) pte : null;
+                        if (pmf == null) continue;
+
+                        for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
+                            if (!pmf.isInPlane(dir) || !pmf.isConnected(dir)) {
+                                continue;
+                            }
+                            int nx = p.x + dir.offsetX;
+                            int ny = p.y + dir.offsetY;
+                            int nz = p.z + dir.offsetZ;
+                            BlockPosCoord np = new BlockPosCoord(nx, ny, nz);
+                            if (!groupCoords.contains(np)) {
+                                TileEntity nte = world.getTileEntity(nx, ny, nz);
+                                if (nte instanceof TileEntityManifold) {
+                                    TileEntityManifold nmf = (TileEntityManifold) nte;
+                                    if (pmf.hasSamePlaneOrientation(nmf) && nmf.isConnected(dir.getOpposite())) {
+                                        groupCoords.add(np);
+                                        groupTiles.add(nmf);
+                                        mfQueue.add(np);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Check for conflicting loop ownership on all manifold blocks in the group
+                    for (TileEntityManifold tile : groupTiles) {
+                        BlockPosCoord otherPumpPos = tile.getActivePumpPos();
+                        String otherPump = tile.getActivePumpId();
+                        boolean conflicting;
+                        if (otherPumpPos != null && this.pumpPos != null) {
+                            conflicting = !otherPumpPos.equals(this.pumpPos) && isPumpActive(world, otherPumpPos);
+                        } else if (otherPumpPos != null) {
+                            conflicting = isPumpActive(world, otherPumpPos);
+                        } else if (otherPump != null) {
+                            String currentPump = getPumpId();
+                            conflicting = !otherPump.equals(currentPump) && isPumpActive(world, otherPump);
+                        } else {
+                            conflicting = false;
+                        }
+                        if (conflicting) {
+                            finishWithFailure(
+                                CoolantLocalization.format(
+                                    "coolantloops.crawler.manifold_other_loop",
+                                    tile.xCoord,
+                                    tile.yCoord,
+                                    tile.zCoord,
+                                    otherPumpPos != null ? otherPumpPos.toString() : otherPump));
+                            return Visit.STOP;
+                        }
+                    }
+
+                    ForgeDirection groupInputSide = step.entrySide;
+                    ForgeDirection groupOutputSide = step.entrySide.getOpposite();
+
+                    mg = new ManifoldGroup();
+                    mg.blockCoords.addAll(groupCoords);
+                    mg.tiles.addAll(groupTiles);
+                    mg.inputSide = groupInputSide;
+                    mg.outputSide = groupOutputSide;
+
+                    // Validate external connections across every block in the manifold group
+                    for (BlockPosCoord mPos : groupCoords) {
+                        TileEntity mteRaw = world.getTileEntity(mPos.x, mPos.y, mPos.z);
+                        TileEntityManifold mTile = (mteRaw instanceof TileEntityManifold) ? (TileEntityManifold) mteRaw
+                            : null;
+
+                        for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
+                            int nx = mPos.x + dir.offsetX;
+                            int ny = mPos.y + dir.offsetY;
+                            int nz = mPos.z + dir.offsetZ;
+                            BlockPosCoord neighborPos = new BlockPosCoord(nx, ny, nz);
+
+                            if (groupCoords.contains(neighborPos)) {
+                                continue;
+                            }
+
+                            if (mTile != null && !mTile.isConnected(dir)) {
+                                continue;
+                            }
+
+                            boolean isConnected = isExternalBlockConnectedTo(
+                                world,
+                                nx,
+                                ny,
+                                nz,
+                                dir.getOpposite(),
+                                targetX,
+                                targetY,
+                                targetZ,
+                                targetSuctionSide,
+                                startX,
+                                startY,
+                                startZ,
+                                startDir);
+                            if (!isConnected) {
+                                continue;
+                            }
+
+                            if (dir != groupInputSide && dir != groupOutputSide) {
+                                finishWithFailure(
+                                    CoolantLocalization.format(
+                                        "coolantloops.crawler.manifold_unauthorized_dir",
+                                        mPos.x,
+                                        mPos.y,
+                                        mPos.z,
+                                        dir,
+                                        groupInputSide,
+                                        groupOutputSide));
+                                return Visit.STOP;
+                            }
+
+                            if (dir == groupInputSide) {
+                                if (!mg.inputPorts.contains(neighborPos)) {
+                                    mg.inputPorts.add(neighborPos);
+                                }
+                            } else if (dir == groupOutputSide) {
+                                if (!mg.outputPorts.contains(neighborPos)) {
+                                    mg.outputPorts.add(neighborPos);
+                                }
+                            }
+                        }
+                    }
+
+                    if (mg.outputPorts.isEmpty()) {
                         finishWithFailure(
                             CoolantLocalization.format(
-                                "coolantloops.crawler.manifold_parallel",
+                                "coolantloops.crawler.manifold_group_no_output",
+                                step.x,
+                                step.y,
+                                step.z,
+                                groupOutputSide));
+                        return Visit.STOP;
+                    }
+                    if (mg.inputPorts.isEmpty()) {
+                        finishWithFailure(
+                            CoolantLocalization.format(
+                                "coolantloops.crawler.manifold_group_no_input",
+                                step.x,
+                                step.y,
+                                step.z,
+                                groupInputSide));
+                        return Visit.STOP;
+                    }
+
+                    for (BlockPosCoord c : groupCoords) {
+                        coordToManifoldGroup.put(c, mg);
+                        visitedPipeAndDevicePositions.add(c);
+                    }
+                    double pipeDiam = step.segmentThickness != null
+                        ? CoolantPipingRegistry.getDiameterForThickness(step.segmentThickness)
+                        : 0.05;
+                    double totalManifoldK = groupTiles.isEmpty() ? 0.50
+                        : Math.max(
+                            0.50,
+                            groupTiles.get(0)
+                                .getMinorLossK());
+                    int numTiles = Math.max(1, groupTiles.size());
+                    double perTileK = totalManifoldK / numTiles;
+
+                    for (TileEntityManifold tile : groupTiles) {
+                        tile.setInputSide(groupInputSide);
+                        tile.setOutputSide(groupOutputSide);
+                        if (!devices.contains(tile)) {
+                            devices.add(tile);
+                        }
+                        LoopSegment manSeg = new LoopSegment(
+                            tile.getDeviceId(),
+                            tile.xCoord,
+                            tile.yCoord,
+                            tile.zCoord,
+                            1.0,
+                            pipeDiam,
+                            0.000045,
+                            perTileK,
+                            LoopSegment.NO_LIMIT,
+                            LoopSegment.NO_LIMIT,
+                            tile.getDeviceTemperatureCelsius());
+                        manSeg.setManifold(true);
+                        segments.add(manSeg);
+                    }
+                    allManifoldGroups.add(mg);
+
+                    addGraphNode(graphNodes, mg.getGroupId(), NodeType.MANIFOLD_GROUP, mg);
+                    addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, mg.getGroupId());
+
+                    for (BlockPosCoord outPort : mg.outputPorts) {
+                        frontier.add(
+                            new FrontierStep(
+                                mg.getGroupId(),
+                                outPort.x,
+                                outPort.y,
+                                outPort.z,
+                                groupOutputSide.getOpposite(),
+                                null,
+                                null));
+                    }
+                } else {
+                    if (step.entrySide != mg.inputSide) {
+                        finishWithFailure(
+                            CoolantLocalization.format(
+                                "coolantloops.crawler.manifold_group_wrong_side",
                                 step.x,
                                 step.y,
                                 step.z,
                                 step.entrySide,
-                                mf.getNormalAxisName()));
-                        return true;
+                                mg.inputSide));
+                        return Visit.STOP;
                     }
                     if (!mf.isConnected(step.entrySide)) {
                         finishWithFailure(
@@ -1072,902 +1349,690 @@ public class LoopGraphCrawler {
                                 step.y,
                                 step.z,
                                 step.entrySide));
-                        return true;
+                        return Visit.STOP;
                     }
+                    addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, mg.getGroupId());
+                }
+                return Visit.NEXT;
+            }
 
-                    BlockPosCoord mfCoord = new BlockPosCoord(step.x, step.y, step.z);
-                    ManifoldGroup mg = coordToManifoldGroup.get(mfCoord);
+            return Visit.FALL_THROUGH;
+        }
 
-                    if (mg == null) {
-                        Set<BlockPosCoord> groupCoords = new LinkedHashSet<>();
-                        List<TileEntityManifold> groupTiles = new ArrayList<>();
-                        Queue<BlockPosCoord> mfQueue = new ArrayDeque<>();
+        /** An insulated coolant pipe: checks material and size, records its segment, and queues what it leads to. */
+        private Visit visitPipe(FrontierStep step, TileEntity te) {
+            if (te instanceof BaseMetaPipeEntity) {
+                BaseMetaPipeEntity bmpe = (BaseMetaPipeEntity) te;
+                if (!(bmpe.getMetaTileEntity() instanceof MTECoolantPipe)) {
+                    finishWithFailure(
+                        CoolantLocalization.format("coolantloops.crawler.not_coolant_pipe", step.x, step.y, step.z));
+                    return Visit.STOP;
+                }
+                MTECoolantPipe pipe = (MTECoolantPipe) bmpe.getMetaTileEntity();
+                lastPipe = pipe;
 
-                        groupCoords.add(mfCoord);
-                        groupTiles.add(mf);
-                        mfQueue.add(mfCoord);
+                BlockPosCoord pCoord = new BlockPosCoord(step.x, step.y, step.z);
+                if (visitedPipeAndDevicePositions.contains(pCoord)) {
+                    finishWithFailure(
+                        CoolantLocalization
+                            .format("coolantloops.crawler.pipe_merge_needs_manifold", step.x, step.y, step.z));
+                    return Visit.STOP;
+                }
+                visitedPipeAndDevicePositions.add(pCoord);
 
-                        while (!mfQueue.isEmpty()) {
-                            BlockPosCoord p = mfQueue.poll();
-                            TileEntity pte = world.getTileEntity(p.x, p.y, p.z);
-                            TileEntityManifold pmf = (pte instanceof TileEntityManifold) ? (TileEntityManifold) pte
-                                : null;
-                            if (pmf == null) continue;
-
-                            for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
-                                if (!pmf.isInPlane(dir) || !pmf.isConnected(dir)) {
-                                    continue;
-                                }
-                                int nx = p.x + dir.offsetX;
-                                int ny = p.y + dir.offsetY;
-                                int nz = p.z + dir.offsetZ;
-                                BlockPosCoord np = new BlockPosCoord(nx, ny, nz);
-                                if (!groupCoords.contains(np)) {
-                                    TileEntity nte = world.getTileEntity(nx, ny, nz);
-                                    if (nte instanceof TileEntityManifold) {
-                                        TileEntityManifold nmf = (TileEntityManifold) nte;
-                                        if (pmf.hasSamePlaneOrientation(nmf) && nmf.isConnected(dir.getOpposite())) {
-                                            groupCoords.add(np);
-                                            groupTiles.add(nmf);
-                                            mfQueue.add(np);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Check for conflicting loop ownership on all manifold blocks in the group
-                        for (TileEntityManifold tile : groupTiles) {
-                            BlockPosCoord otherPumpPos = tile.getActivePumpPos();
-                            String otherPump = tile.getActivePumpId();
-                            boolean conflicting;
-                            if (otherPumpPos != null && this.pumpPos != null) {
-                                conflicting = !otherPumpPos.equals(this.pumpPos) && isPumpActive(world, otherPumpPos);
-                            } else if (otherPumpPos != null) {
-                                conflicting = isPumpActive(world, otherPumpPos);
-                            } else if (otherPump != null) {
-                                String currentPump = getPumpId();
-                                conflicting = !otherPump.equals(currentPump) && isPumpActive(world, otherPump);
-                            } else {
-                                conflicting = false;
-                            }
-                            if (conflicting) {
-                                finishWithFailure(
-                                    CoolantLocalization.format(
-                                        "coolantloops.crawler.manifold_other_loop",
-                                        tile.xCoord,
-                                        tile.yCoord,
-                                        tile.zCoord,
-                                        otherPumpPos != null ? otherPumpPos.toString() : otherPump));
-                                return true;
-                            }
-                        }
-
-                        ForgeDirection groupInputSide = step.entrySide;
-                        ForgeDirection groupOutputSide = step.entrySide.getOpposite();
-
-                        mg = new ManifoldGroup();
-                        mg.blockCoords.addAll(groupCoords);
-                        mg.tiles.addAll(groupTiles);
-                        mg.inputSide = groupInputSide;
-                        mg.outputSide = groupOutputSide;
-
-                        // Validate external connections across every block in the manifold group
-                        for (BlockPosCoord mPos : groupCoords) {
-                            TileEntity mteRaw = world.getTileEntity(mPos.x, mPos.y, mPos.z);
-                            TileEntityManifold mTile = (mteRaw instanceof TileEntityManifold)
-                                ? (TileEntityManifold) mteRaw
-                                : null;
-
-                            for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
-                                int nx = mPos.x + dir.offsetX;
-                                int ny = mPos.y + dir.offsetY;
-                                int nz = mPos.z + dir.offsetZ;
-                                BlockPosCoord neighborPos = new BlockPosCoord(nx, ny, nz);
-
-                                if (groupCoords.contains(neighborPos)) {
-                                    continue;
-                                }
-
-                                if (mTile != null && !mTile.isConnected(dir)) {
-                                    continue;
-                                }
-
-                                boolean isConnected = isExternalBlockConnectedTo(
-                                    world,
-                                    nx,
-                                    ny,
-                                    nz,
-                                    dir.getOpposite(),
-                                    targetX,
-                                    targetY,
-                                    targetZ,
-                                    targetSuctionSide,
-                                    startX,
-                                    startY,
-                                    startZ,
-                                    startDir);
-                                if (!isConnected) {
-                                    continue;
-                                }
-
-                                if (dir != groupInputSide && dir != groupOutputSide) {
-                                    finishWithFailure(
-                                        CoolantLocalization.format(
-                                            "coolantloops.crawler.manifold_unauthorized_dir",
-                                            mPos.x,
-                                            mPos.y,
-                                            mPos.z,
-                                            dir,
-                                            groupInputSide,
-                                            groupOutputSide));
-                                    return true;
-                                }
-
-                                if (dir == groupInputSide) {
-                                    if (!mg.inputPorts.contains(neighborPos)) {
-                                        mg.inputPorts.add(neighborPos);
-                                    }
-                                } else if (dir == groupOutputSide) {
-                                    if (!mg.outputPorts.contains(neighborPos)) {
-                                        mg.outputPorts.add(neighborPos);
-                                    }
-                                }
-                            }
-                        }
-
-                        if (mg.outputPorts.isEmpty()) {
-                            finishWithFailure(
-                                CoolantLocalization.format(
-                                    "coolantloops.crawler.manifold_group_no_output",
-                                    step.x,
-                                    step.y,
-                                    step.z,
-                                    groupOutputSide));
-                            return true;
-                        }
-                        if (mg.inputPorts.isEmpty()) {
-                            finishWithFailure(
-                                CoolantLocalization.format(
-                                    "coolantloops.crawler.manifold_group_no_input",
-                                    step.x,
-                                    step.y,
-                                    step.z,
-                                    groupInputSide));
-                            return true;
-                        }
-
-                        for (BlockPosCoord c : groupCoords) {
-                            coordToManifoldGroup.put(c, mg);
-                            visitedPipeAndDevicePositions.add(c);
-                        }
-                        double pipeDiam = step.segmentThickness != null
-                            ? CoolantPipingRegistry.getDiameterForThickness(step.segmentThickness)
-                            : 0.05;
-                        double totalManifoldK = groupTiles.isEmpty() ? 0.50
-                            : Math.max(
-                                0.50,
-                                groupTiles.get(0)
-                                    .getMinorLossK());
-                        int numTiles = Math.max(1, groupTiles.size());
-                        double perTileK = totalManifoldK / numTiles;
-
-                        for (TileEntityManifold tile : groupTiles) {
-                            tile.setInputSide(groupInputSide);
-                            tile.setOutputSide(groupOutputSide);
-                            if (!devices.contains(tile)) {
-                                devices.add(tile);
-                            }
-                            LoopSegment manSeg = new LoopSegment(
-                                tile.getDeviceId(),
-                                tile.xCoord,
-                                tile.yCoord,
-                                tile.zCoord,
-                                1.0,
-                                pipeDiam,
-                                0.000045,
-                                perTileK,
-                                LoopSegment.NO_LIMIT,
-                                LoopSegment.NO_LIMIT,
-                                tile.getDeviceTemperatureCelsius());
-                            manSeg.setManifold(true);
-                            segments.add(manSeg);
-                        }
-                        allManifoldGroups.add(mg);
-
-                        addGraphNode(graphNodes, mg.getGroupId(), NodeType.MANIFOLD_GROUP, mg);
-                        addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, mg.getGroupId());
-
-                        for (BlockPosCoord outPort : mg.outputPorts) {
-                            frontier.add(
-                                new FrontierStep(
-                                    mg.getGroupId(),
-                                    outPort.x,
-                                    outPort.y,
-                                    outPort.z,
-                                    groupOutputSide.getOpposite(),
-                                    null,
-                                    null));
-                        }
-                    } else {
-                        if (step.entrySide != mg.inputSide) {
-                            finishWithFailure(
-                                CoolantLocalization.format(
-                                    "coolantloops.crawler.manifold_group_wrong_side",
-                                    step.x,
-                                    step.y,
-                                    step.z,
-                                    step.entrySide,
-                                    mg.inputSide));
-                            return true;
-                        }
-                        if (!mf.isConnected(step.entrySide)) {
-                            finishWithFailure(
-                                CoolantLocalization.format(
-                                    "coolantloops.crawler.manifold_disabled",
-                                    step.x,
-                                    step.y,
-                                    step.z,
-                                    step.entrySide));
-                            return true;
-                        }
-                        addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, mg.getGroupId());
-                    }
-                    continue;
+                Materials pipeMat = pipe.mMaterial;
+                if (!isAllowedCoolantPipeMaterial(pipeMat)) {
+                    finishWithFailure(
+                        CoolantLocalization.format(
+                            "coolantloops.crawler.pipe_mat_not_allowed",
+                            pipeMat != null ? pipeMat.mDefaultLocalName : "unknown",
+                            step.x,
+                            step.y,
+                            step.z));
+                    return Visit.STOP;
                 }
 
-                // 2. Insulated Coolant Pipe Handling
-                if (te instanceof BaseMetaPipeEntity) {
-                    BaseMetaPipeEntity bmpe = (BaseMetaPipeEntity) te;
-                    if (!(bmpe.getMetaTileEntity() instanceof MTECoolantPipe)) {
-                        finishWithFailure(
-                            CoolantLocalization
-                                .format("coolantloops.crawler.not_coolant_pipe", step.x, step.y, step.z));
-                        return true;
-                    }
-                    MTECoolantPipe pipe = (MTECoolantPipe) bmpe.getMetaTileEntity();
-                    lastPipe = pipe;
-
-                    BlockPosCoord pCoord = new BlockPosCoord(step.x, step.y, step.z);
-                    if (visitedPipeAndDevicePositions.contains(pCoord)) {
-                        finishWithFailure(
-                            CoolantLocalization
-                                .format("coolantloops.crawler.pipe_merge_needs_manifold", step.x, step.y, step.z));
-                        return true;
-                    }
-                    visitedPipeAndDevicePositions.add(pCoord);
-
-                    Materials pipeMat = pipe.mMaterial;
-                    if (!isAllowedCoolantPipeMaterial(pipeMat)) {
+                if (detectedLoopMaterial == null) {
+                    detectedLoopMaterial = pipeMat;
+                } else if (!areMaterialsEqual(pipeMat, detectedLoopMaterial)) {
+                    if (expectedTankMaterial != null && areMaterialsEqual(detectedLoopMaterial, expectedTankMaterial)) {
                         finishWithFailure(
                             CoolantLocalization.format(
-                                "coolantloops.crawler.pipe_mat_not_allowed",
-                                pipeMat != null ? pipeMat.mDefaultLocalName : "unknown",
+                                "coolantloops.crawler.pipe_mat_tank_mismatch",
                                 step.x,
                                 step.y,
-                                step.z));
-                        return true;
-                    }
-
-                    if (detectedLoopMaterial == null) {
-                        detectedLoopMaterial = pipeMat;
-                    } else if (!areMaterialsEqual(pipeMat, detectedLoopMaterial)) {
-                        if (expectedTankMaterial != null
-                            && areMaterialsEqual(detectedLoopMaterial, expectedTankMaterial)) {
-                            finishWithFailure(
-                                CoolantLocalization.format(
-                                    "coolantloops.crawler.pipe_mat_tank_mismatch",
-                                    step.x,
-                                    step.y,
-                                    step.z,
-                                    pipeMat != null ? pipeMat.mDefaultLocalName : "unknown",
-                                    expectedTankMaterial.mDefaultLocalName));
-                        } else {
-                            finishWithFailure(
-                                CoolantLocalization.format(
-                                    "coolantloops.crawler.pipe_mat_loop_mismatch",
-                                    step.x,
-                                    step.y,
-                                    step.z,
-                                    pipeMat != null ? pipeMat.mDefaultLocalName : "unknown",
-                                    detectedLoopMaterial.mDefaultLocalName));
-                        }
-                        return true;
-                    }
-
-                    Float currThickness = step.segmentThickness;
-                    Integer currAmount = step.segmentPipeAmount;
-                    if (currThickness == null) {
-                        currThickness = pipe.mThickNess;
-                        currAmount = pipe.mPipeAmount;
+                                step.z,
+                                pipeMat != null ? pipeMat.mDefaultLocalName : "unknown",
+                                expectedTankMaterial.mDefaultLocalName));
                     } else {
-                        if (Math.abs(pipe.mThickNess - currThickness) > 1e-4 || pipe.mPipeAmount != currAmount) {
+                        finishWithFailure(
+                            CoolantLocalization.format(
+                                "coolantloops.crawler.pipe_mat_loop_mismatch",
+                                step.x,
+                                step.y,
+                                step.z,
+                                pipeMat != null ? pipeMat.mDefaultLocalName : "unknown",
+                                detectedLoopMaterial.mDefaultLocalName));
+                    }
+                    return Visit.STOP;
+                }
+
+                Float currThickness = step.segmentThickness;
+                Integer currAmount = step.segmentPipeAmount;
+                if (currThickness == null) {
+                    currThickness = pipe.mThickNess;
+                    currAmount = pipe.mPipeAmount;
+                } else {
+                    if (Math.abs(pipe.mThickNess - currThickness) > 1e-4 || pipe.mPipeAmount != currAmount) {
+                        finishWithFailure(
+                            CoolantLocalization.format(
+                                "coolantloops.crawler.pipe_size_mismatch",
+                                step.x,
+                                step.y,
+                                step.z,
+                                currThickness,
+                                currAmount,
+                                pipe.mThickNess,
+                                pipe.mPipeAmount));
+                        return Visit.STOP;
+                    }
+                }
+
+                if (dischargePipeCapacityLPerSec < 0.0 && step.fromNodeId.startsWith("pump_disc_")) {
+                    dischargePipeCapacityLPerSec = pipe.getCapacity();
+                }
+
+                if (pipe.mFluids != null) {
+                    for (FluidStack fs : pipe.mFluids) {
+                        if (fs != null && fs.amount > 0) {
                             finishWithFailure(
                                 CoolantLocalization.format(
-                                    "coolantloops.crawler.pipe_size_mismatch",
+                                    "coolantloops.crawler.pipe_forge_fluid",
                                     step.x,
                                     step.y,
                                     step.z,
-                                    currThickness,
-                                    currAmount,
-                                    pipe.mThickNess,
-                                    pipe.mPipeAmount));
-                            return true;
+                                    fs.getFluid()
+                                        .getName(),
+                                    fs.amount));
+                            return Visit.STOP;
                         }
                     }
+                }
 
-                    if (dischargePipeCapacityLPerSec < 0.0 && step.fromNodeId.startsWith("pump_disc_")) {
-                        dischargePipeCapacityLPerSec = pipe.getCapacity();
-                    }
+                if (!isPipeConnectedAtSide(
+                    world,
+                    step.x,
+                    step.y,
+                    step.z,
+                    bmpe,
+                    pipe,
+                    step.entrySide,
+                    targetX,
+                    targetY,
+                    targetZ)) {
+                    finishWithFailure(
+                        CoolantLocalization.format(
+                            "coolantloops.crawler.pipe_not_connected_back",
+                            step.x,
+                            step.y,
+                            step.z,
+                            step.entrySide));
+                    return Visit.STOP;
+                }
 
-                    if (pipe.mFluids != null) {
-                        for (FluidStack fs : pipe.mFluids) {
-                            if (fs != null && fs.amount > 0) {
-                                finishWithFailure(
-                                    CoolantLocalization.format(
-                                        "coolantloops.crawler.pipe_forge_fluid",
-                                        step.x,
-                                        step.y,
-                                        step.z,
-                                        fs.getFluid()
-                                            .getName(),
-                                        fs.amount));
-                                return true;
-                            }
-                        }
-                    }
+                CoolantPipingRegistry.PipeProperties props = CoolantPipingRegistry.getProperties(pipe);
+                String pipeNodeId = "pipe_" + step.x + "_" + step.y + "_" + step.z;
+                LoopSegment seg = new LoopSegment(
+                    pipeNodeId,
+                    step.x,
+                    step.y,
+                    step.z,
+                    1.0,
+                    props.diameter,
+                    props.roughness,
+                    0.05,
+                    props.maxPressureBar,
+                    props.maxTemperatureCelsius,
+                    20.0);
+                if (pipe.mCapacity > 0) {
+                    seg.setCapacityLiters(pipe.mCapacity);
+                }
+                seg.setFlowSizeWeight(getPipeSizeWeight(pipe.mThickNess) * Math.max(1, pipe.mPipeAmount));
+                segments.add(seg);
 
-                    if (!isPipeConnectedAtSide(
+                addGraphNode(graphNodes, pipeNodeId, NodeType.PIPE, pCoord);
+                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, pipeNodeId);
+
+                List<ForgeDirection> forwardDirs = new ArrayList<>();
+                for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
+                    if (dir == step.entrySide) continue;
+                    if (isPipeConnectedAtSide(
                         world,
                         step.x,
                         step.y,
                         step.z,
                         bmpe,
                         pipe,
-                        step.entrySide,
+                        dir,
                         targetX,
                         targetY,
                         targetZ)) {
-                        finishWithFailure(
-                            CoolantLocalization.format(
-                                "coolantloops.crawler.pipe_not_connected_back",
-                                step.x,
-                                step.y,
-                                step.z,
-                                step.entrySide));
-                        return true;
+                        int nx = step.x + dir.offsetX;
+                        int ny = step.y + dir.offsetY;
+                        int nz = step.z + dir.offsetZ;
+                        if (isValidLoopBlock(world, nx, ny, nz, targetX, targetY, targetZ)) {
+                            forwardDirs.add(dir);
+                        }
                     }
+                }
 
-                    CoolantPipingRegistry.PipeProperties props = CoolantPipingRegistry.getProperties(pipe);
-                    String pipeNodeId = "pipe_" + step.x + "_" + step.y + "_" + step.z;
-                    LoopSegment seg = new LoopSegment(
+                if (forwardDirs.isEmpty()) {
+                    finishWithFailure(
+                        CoolantLocalization
+                            .format("coolantloops.crawler.pipe_dead_end", step.x, step.y, step.z, step.entrySide));
+                    return Visit.STOP;
+                }
+                if (forwardDirs.size() > 1) {
+                    finishWithFailure(
+                        CoolantLocalization
+                            .format("coolantloops.crawler.pipe_split_needs_manifold", step.x, step.y, step.z));
+                    return Visit.STOP;
+                }
+
+                ForgeDirection nextDir = forwardDirs.get(0);
+                pipeConfigs.add(new PipeFlowConfig(bmpe, pipe, nextDir));
+
+                frontier.add(
+                    new FrontierStep(
                         pipeNodeId,
-                        step.x,
-                        step.y,
-                        step.z,
-                        1.0,
-                        props.diameter,
-                        props.roughness,
-                        0.05,
-                        props.maxPressureBar,
-                        props.maxTemperatureCelsius,
-                        20.0);
-                    if (pipe.mCapacity > 0) {
-                        seg.setCapacityLiters(pipe.mCapacity);
+                        step.x + nextDir.offsetX,
+                        step.y + nextDir.offsetY,
+                        step.z + nextDir.offsetZ,
+                        nextDir.getOpposite(),
+                        currThickness,
+                        currAmount));
+                return Visit.NEXT;
+            }
+
+            return Visit.FALL_THROUGH;
+        }
+
+        /** A hatch of a GregTech multiblock (fluid heater, PHE, degasser, bath, core passage). */
+        private Visit visitMachineHatch(FrontierStep step, TileEntity te) {
+            if (te instanceof IGregTechTileEntity) {
+                IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
+                if (mte instanceof MTEHatchPressurizedFluid) {
+                    MTEHatchPressurizedFluid hatch = (MTEHatchPressurizedFluid) mte;
+                    MTEPressurizedFluidHeater heater = findAdjacentFluidHeater(world, step.x, step.y, step.z);
+                    MTEPressurizedHeatExchanger phe = (heater == null) ? findAdjacentPHE(world, step.x, step.y, step.z)
+                        : null;
+                    MTEPressurizedDegasser degasser = (heater == null && phe == null)
+                        ? findAdjacentDegasser(world, step.x, step.y, step.z)
+                        : null;
+                    MTECoolantBath bath = (heater == null && phe == null && degasser == null)
+                        ? findAdjacentCoolantBath(world, step.x, step.y, step.z)
+                        : null;
+
+                    if (heater != null) {
+                        return visitHeaterHatch(step, hatch, heater);
+                    } else if (phe != null) {
+                        return visitHeatExchangerHatch(step, hatch, phe);
+                    } else if (degasser != null) {
+                        return visitDegasserHatch(step, hatch, degasser);
+                    } else if (bath != null) {
+                        return visitBathHatch(step, hatch, bath);
+                    } else if (hatch.getOppositeHatchTile() != null || !hatch.isPassageInlet()) {
+                        return visitPassageHatchPair(step, hatch);
                     }
-                    seg.setFlowSizeWeight(getPipeSizeWeight(pipe.mThickNess) * Math.max(1, pipe.mPipeAmount));
-                    segments.add(seg);
-
-                    addGraphNode(graphNodes, pipeNodeId, NodeType.PIPE, pCoord);
-                    addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, pipeNodeId);
-
-                    List<ForgeDirection> forwardDirs = new ArrayList<>();
-                    for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
-                        if (dir == step.entrySide) continue;
-                        if (isPipeConnectedAtSide(
-                            world,
-                            step.x,
-                            step.y,
-                            step.z,
-                            bmpe,
-                            pipe,
-                            dir,
-                            targetX,
-                            targetY,
-                            targetZ)) {
-                            int nx = step.x + dir.offsetX;
-                            int ny = step.y + dir.offsetY;
-                            int nz = step.z + dir.offsetZ;
-                            if (isValidLoopBlock(world, nx, ny, nz, targetX, targetY, targetZ)) {
-                                forwardDirs.add(dir);
-                            }
-                        }
-                    }
-
-                    if (forwardDirs.isEmpty()) {
-                        finishWithFailure(
-                            CoolantLocalization
-                                .format("coolantloops.crawler.pipe_dead_end", step.x, step.y, step.z, step.entrySide));
-                        return true;
-                    }
-                    if (forwardDirs.size() > 1) {
-                        finishWithFailure(
-                            CoolantLocalization
-                                .format("coolantloops.crawler.pipe_split_needs_manifold", step.x, step.y, step.z));
-                        return true;
-                    }
-
-                    ForgeDirection nextDir = forwardDirs.get(0);
-                    pipeConfigs.add(new PipeFlowConfig(bmpe, pipe, nextDir));
-
-                    frontier.add(
-                        new FrontierStep(
-                            pipeNodeId,
-                            step.x + nextDir.offsetX,
-                            step.y + nextDir.offsetY,
-                            step.z + nextDir.offsetZ,
-                            nextDir.getOpposite(),
-                            currThickness,
-                            currAmount));
-                    continue;
+                } else if (mte instanceof ICoolantPassageHatch) {
+                    return visitCorePassage(step, te, mte);
                 }
+            }
 
-                // 3. GregTech Multiblock Hatches (Fluid Heater, PHE, Degasser, Bath, Core Passage)
-                if (te instanceof IGregTechTileEntity) {
-                    IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
-                    if (mte instanceof MTEHatchPressurizedFluid) {
-                        MTEHatchPressurizedFluid hatch = (MTEHatchPressurizedFluid) mte;
-                        MTEPressurizedFluidHeater heater = findAdjacentFluidHeater(world, step.x, step.y, step.z);
-                        MTEPressurizedHeatExchanger phe = (heater == null)
-                            ? findAdjacentPHE(world, step.x, step.y, step.z)
-                            : null;
-                        MTEPressurizedDegasser degasser = (heater == null && phe == null)
-                            ? findAdjacentDegasser(world, step.x, step.y, step.z)
-                            : null;
-                        MTECoolantBath bath = (heater == null && phe == null && degasser == null)
-                            ? findAdjacentCoolantBath(world, step.x, step.y, step.z)
-                            : null;
+            return Visit.FALL_THROUGH;
+        }
 
-                        if (heater != null) {
-                            if ((heater.getPressurizedInputHatch() == null
-                                || heater.getPressurizedOutputHatch() == null)
-                                && heater.getBaseMetaTileEntity() != null) {
-                                heater.checkMachine(heater.getBaseMetaTileEntity(), null);
-                            }
-                            if (heater.isPowerFailed()) {
-                                finishWithFailure(
-                                    CoolantLocalization.format(
-                                        "coolantloops.crawler.heater_powerfailed",
-                                        heater.getInnerTemperatureCelsius(),
-                                        heater.getMaxOperatingTemperatureCelsius()));
-                                return true;
-                            }
-                            if (!heater.mMachine || heater.getPressurizedInputHatch() == null
-                                || heater.getPressurizedOutputHatch() == null) {
-                                finishWithFailure(
-                                    CoolantLocalization
-                                        .format("coolantloops.crawler.heater_unformed", step.x, step.y, step.z));
-                                return true;
-                            }
-                            if (heater.getPressurizedOutputHatch() == hatch || !hatch.isInput()) {
-                                finishWithFailure(
-                                    CoolantLocalization
-                                        .format("coolantloops.crawler.heater_output", step.x, step.y, step.z));
-                                return true;
-                            }
-                            if (pump != null) {
-                                heater.setLoopPump(pump);
-                            }
-                            if (!devices.contains(heater)) {
-                                devices.add(heater);
-                            }
-                            LoopSegment devSeg = new LoopSegment(
-                                heater.getDeviceId(),
-                                step.x,
-                                step.y,
-                                step.z,
-                                heater.getRingCount(),
-                                0.15,
-                                0.000045,
-                                heater.getMinorLossK(),
-                                heater.getMaxOperatingPressureBar(),
-                                heater.getMaxOperatingTemperatureCelsius(),
-                                heater.getDeviceTemperatureCelsius());
-                            devSeg.setCapacityLiters(heater.getFillVolumeLiters());
-                            segments.add(devSeg);
-
-                            MTEHatchPressurizedFluid outlet = heater.getPressurizedOutputHatch();
-                            if (outlet != null && outlet != hatch) {
-                                IGregTechTileEntity outTE = outlet.getBaseMetaTileEntity();
-                                visitedPipeAndDevicePositions
-                                    .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
-                                ForgeDirection outFacing = outTE.getFrontFacing();
-
-                                addGraphNode(graphNodes, heater.getDeviceId(), NodeType.DEVICE, heater);
-                                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, heater.getDeviceId());
-
-                                frontier.add(
-                                    new FrontierStep(
-                                        heater.getDeviceId(),
-                                        outTE.getXCoord() + outFacing.offsetX,
-                                        outTE.getYCoord() + outFacing.offsetY,
-                                        outTE.getZCoord() + outFacing.offsetZ,
-                                        outFacing.getOpposite(),
-                                        null,
-                                        null));
-                                continue;
-                            } else {
-                                finishWithFailure(
-                                    CoolantLocalization
-                                        .format("coolantloops.crawler.heater_unformed", step.x, step.y, step.z));
-                                return true;
-                            }
-                        } else if (phe != null) {
-                            if (phe.getPrimaryOutlet() == null && phe.getBaseMetaTileEntity() != null) {
-                                phe.checkMachine(phe.getBaseMetaTileEntity(), null);
-                            }
-                            if (!devices.contains(phe)) {
-                                devices.add(phe);
-                            }
-                            LoopSegment devSeg = new LoopSegment(
-                                phe.getDeviceId(),
-                                step.x,
-                                step.y,
-                                step.z,
-                                2.0,
-                                0.12,
-                                0.000045,
-                                phe.getMinorLossK(),
-                                LoopSegment.NO_LIMIT,
-                                phe.getMaxOperatingTemperatureCelsius(),
-                                phe.getDeviceTemperatureCelsius());
-                            segments.add(devSeg);
-
-                            MTEHatchPressurizedFluid outlet = phe.getPrimaryOutlet();
-                            if (outlet != null && outlet != hatch) {
-                                IGregTechTileEntity outTE = outlet.getBaseMetaTileEntity();
-                                visitedPipeAndDevicePositions
-                                    .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
-                                ForgeDirection outFacing = outTE.getFrontFacing();
-
-                                addGraphNode(graphNodes, phe.getDeviceId(), NodeType.DEVICE, phe);
-                                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, phe.getDeviceId());
-
-                                frontier.add(
-                                    new FrontierStep(
-                                        phe.getDeviceId(),
-                                        outTE.getXCoord() + outFacing.offsetX,
-                                        outTE.getYCoord() + outFacing.offsetY,
-                                        outTE.getZCoord() + outFacing.offsetZ,
-                                        outFacing.getOpposite(),
-                                        null,
-                                        null));
-                                continue;
-                            } else {
-                                finishWithFailure(
-                                    CoolantLocalization
-                                        .format("coolantloops.crawler.phe_unformed", step.x, step.y, step.z));
-                                return true;
-                            }
-                        } else if (degasser != null) {
-                            if (degasser.getPrimaryOutlet() == null && degasser.getBaseMetaTileEntity() != null) {
-                                degasser.checkMachine(degasser.getBaseMetaTileEntity(), null);
-                            }
-                            if (pump != null) {
-                                degasser.setConnectedPump(pump);
-                            }
-                            if (!devices.contains(degasser)) {
-                                devices.add(degasser);
-                            }
-                            LoopSegment devSeg = new LoopSegment(
-                                degasser.getDeviceId(),
-                                step.x,
-                                step.y,
-                                step.z,
-                                2.0,
-                                0.12,
-                                0.000045,
-                                degasser.getMinorLossK(),
-                                LoopSegment.NO_LIMIT,
-                                2000.0,
-                                degasser.getDeviceTemperatureCelsius());
-                            segments.add(devSeg);
-
-                            MTEHatchPressurizedFluid outlet = degasser.getPrimaryOutlet();
-                            if (outlet != null && outlet != hatch) {
-                                IGregTechTileEntity outTE = outlet.getBaseMetaTileEntity();
-                                visitedPipeAndDevicePositions
-                                    .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
-                                ForgeDirection outFacing = outTE.getFrontFacing();
-
-                                addGraphNode(graphNodes, degasser.getDeviceId(), NodeType.DEVICE, degasser);
-                                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, degasser.getDeviceId());
-
-                                frontier.add(
-                                    new FrontierStep(
-                                        degasser.getDeviceId(),
-                                        outTE.getXCoord() + outFacing.offsetX,
-                                        outTE.getYCoord() + outFacing.offsetY,
-                                        outTE.getZCoord() + outFacing.offsetZ,
-                                        outFacing.getOpposite(),
-                                        null,
-                                        null));
-                                continue;
-                            } else {
-                                finishWithFailure(
-                                    CoolantLocalization
-                                        .format("coolantloops.crawler.degasser_unformed", step.x, step.y, step.z));
-                                return true;
-                            }
-                        } else if (bath != null) {
-                            if (bath.getPrimaryOutlet() == null && bath.getBaseMetaTileEntity() != null) {
-                                bath.checkMachine(bath.getBaseMetaTileEntity(), null);
-                            }
-                            if (pump != null) {
-                                bath.setLoopPump(pump);
-                            }
-                            if (!devices.contains(bath)) {
-                                devices.add(bath);
-                            }
-                            LoopSegment devSeg = new LoopSegment(
-                                bath.getDeviceId(),
-                                step.x,
-                                step.y,
-                                step.z,
-                                3.0,
-                                0.20,
-                                0.000045,
-                                bath.getMinorLossK(),
-                                LoopSegment.NO_LIMIT,
-                                3000.0,
-                                bath.getDeviceTemperatureCelsius());
-                            devSeg.setCapacityLiters(bath.getFillVolumeLiters());
-                            devSeg.setCustomVolumeM3(bath.getFillVolumeLiters() / 1000.0);
-                            segments.add(devSeg);
-
-                            MTEHatchPressurizedFluid outlet = bath.getPrimaryOutlet();
-                            if (outlet != null && outlet != hatch) {
-                                IGregTechTileEntity outTE = outlet.getBaseMetaTileEntity();
-                                visitedPipeAndDevicePositions
-                                    .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
-                                ForgeDirection outFacing = outTE.getFrontFacing();
-
-                                addGraphNode(graphNodes, bath.getDeviceId(), NodeType.DEVICE, bath);
-                                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, bath.getDeviceId());
-
-                                frontier.add(
-                                    new FrontierStep(
-                                        bath.getDeviceId(),
-                                        outTE.getXCoord() + outFacing.offsetX,
-                                        outTE.getYCoord() + outFacing.offsetY,
-                                        outTE.getZCoord() + outFacing.offsetZ,
-                                        outFacing.getOpposite(),
-                                        null,
-                                        null));
-                                continue;
-                            } else {
-                                finishWithFailure(
-                                    CoolantLocalization
-                                        .format("coolantloops.crawler.bath_unformed", step.x, step.y, step.z));
-                                return true;
-                            }
-                        } else if (hatch.getOppositeHatchTile() != null || !hatch.isPassageInlet()) {
-                            if (!hatch.isPassageInlet()) {
-                                finishWithFailure(
-                                    CoolantLocalization
-                                        .format("coolantloops.crawler.passage_outlet", step.x, step.y, step.z));
-                                return true;
-                            }
-                            IGregTechTileEntity outTE = hatch.getOppositeHatchTile();
-                            if (outTE == null) {
-                                finishWithFailure(
-                                    CoolantLocalization
-                                        .format("coolantloops.crawler.passage_no_pair", step.x, step.y, step.z));
-                                return true;
-                            }
-                            if (pump != null) {
-                                hatch.setConnectedPump(pump);
-                            }
-                            if (!devices.contains(hatch)) {
-                                devices.add(hatch);
-                            }
-                            LoopSegment devSeg = new LoopSegment(
-                                hatch.getDeviceId(),
-                                step.x,
-                                step.y,
-                                step.z,
-                                5.0,
-                                0.10,
-                                0.000045,
-                                hatch.getMinorLossK(),
-                                LoopSegment.NO_LIMIT,
-                                3200.0,
-                                hatch.getDeviceTemperatureCelsius());
-                            segments.add(devSeg);
-
-                            visitedPipeAndDevicePositions
-                                .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
-                            ForgeDirection outFacing = outTE.getFrontFacing();
-
-                            addGraphNode(graphNodes, hatch.getDeviceId(), NodeType.DEVICE, hatch);
-                            addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, hatch.getDeviceId());
-
-                            frontier.add(
-                                new FrontierStep(
-                                    hatch.getDeviceId(),
-                                    outTE.getXCoord() + outFacing.offsetX,
-                                    outTE.getYCoord() + outFacing.offsetY,
-                                    outTE.getZCoord() + outFacing.offsetZ,
-                                    outFacing.getOpposite(),
-                                    null,
-                                    null));
-                            continue;
-                        }
-                    } else if (mte instanceof ICoolantPassageHatch) {
-                        ICoolantPassageHatch passage = (ICoolantPassageHatch) mte;
-                        passage.convertToDirectionalVariant(true);
-                        if (te instanceof IGregTechTileEntity gte
-                            && gte.getMetaTileEntity() instanceof ICoolantPassageHatch p) {
-                            passage = p;
-                        }
-                        if (!passage.isPassageInlet()) {
-                            finishWithFailure(
-                                CoolantLocalization
-                                    .format("coolantloops.crawler.passage_outlet", step.x, step.y, step.z));
-                            return true;
-                        }
-                        IGregTechTileEntity outTE = passage.getOppositeHatchTile();
-                        if (outTE == null) {
-                            if (world != null) {
-                                int targetY = passage.isPassageInlet() ? step.y - 4 : step.y + 4;
-                                TileEntity fallbackTe = world.getTileEntity(step.x, targetY, step.z);
-                                if (fallbackTe instanceof IGregTechTileEntity fallbackGte
-                                    && fallbackGte.getMetaTileEntity() instanceof ICoolantPassageHatch opp) {
-                                    passage.setOppositeHatch(fallbackGte);
-                                    opp.setOppositeHatch((IGregTechTileEntity) te);
-                                    outTE = fallbackGte;
-                                }
-                            }
-                        }
-                        if (outTE == null) {
-                            finishWithFailure(
-                                CoolantLocalization
-                                    .format("coolantloops.crawler.passage_no_pair", step.x, step.y, step.z));
-                            return true;
-                        }
-                        if (outTE.getMetaTileEntity() instanceof ICoolantPassageHatch outPassage) {
-                            outPassage.convertToDirectionalVariant(false);
-                        }
-                        if (pump != null) {
-                            passage.setConnectedPump(pump);
-                        }
-                        if (!devices.contains(passage)) {
-                            devices.add(passage);
-                        }
-                        LoopSegment devSeg = new LoopSegment(
-                            passage.getDeviceId(),
-                            step.x,
-                            step.y,
-                            step.z,
-                            com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData.getPhysicsData()
-                                .getStandardPassageLength(),
-                            com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData.getPhysicsData()
-                                .getStandardPassageDiameter(),
-                            0.000045,
-                            passage.getMinorLossK(),
-                            LoopSegment.NO_LIMIT,
-                            3200.0,
-                            passage.getDeviceTemperatureCelsius());
-                        segments.add(devSeg);
-
-                        visitedPipeAndDevicePositions
-                            .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
-                        ForgeDirection outFacing = outTE.getFrontFacing();
-
-                        addGraphNode(graphNodes, passage.getDeviceId(), NodeType.DEVICE, passage);
-                        addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, passage.getDeviceId());
-
-                        frontier.add(
-                            new FrontierStep(
-                                passage.getDeviceId(),
-                                outTE.getXCoord() + outFacing.offsetX,
-                                outTE.getYCoord() + outFacing.offsetY,
-                                outTE.getZCoord() + outFacing.offsetZ,
-                                outFacing.getOpposite(),
-                                null,
-                                null));
-                        continue;
-                    }
-                }
-
-                // 4. In-Line Coolant Loop Devices (Instruments, Reservoir)
-                ICoolantLoopDevice device = null;
-                if (te instanceof ICoolantLoopDevice) {
-                    device = (ICoolantLoopDevice) te;
-                } else if (te instanceof IGregTechTileEntity) {
-                    IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
-                    if (mte instanceof ICoolantLoopDevice) {
-                        device = (ICoolantLoopDevice) mte;
-                    }
-                }
-
-                if (device != null) {
-                    BlockPosCoord devCoord = new BlockPosCoord(step.x, step.y, step.z);
-                    if (visitedPipeAndDevicePositions.contains(devCoord)) {
-                        finishWithFailure(
-                            CoolantLocalization
-                                .format("coolantloops.crawler.device_merge_needs_manifold", step.x, step.y, step.z));
-                        return true;
-                    }
-                    visitedPipeAndDevicePositions.add(devCoord);
-
-                    if (pump != null) {
-                        device.setLoopPump(pump);
-                    }
-                    if (!devices.contains(device)) {
-                        devices.add(device);
-                    }
-
-                    LoopSegment devSeg = new LoopSegment(
-                        device.getDeviceId(),
-                        step.x,
-                        step.y,
-                        step.z,
-                        1.0,
-                        0.10,
-                        0.000045,
-                        device.getMinorLossK(),
-                        LoopSegment.NO_LIMIT,
-                        2000.0,
-                        device.getDeviceTemperatureCelsius());
-                    segments.add(devSeg);
-
-                    addGraphNode(graphNodes, device.getDeviceId(), NodeType.DEVICE, device);
-                    addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, device.getDeviceId());
-
-                    ForgeDirection nextDir = findNextDirection(
-                        world,
-                        step.entrySide,
-                        step.x,
-                        step.y,
-                        step.z,
-                        targetX,
-                        targetY,
-                        targetZ,
-                        visitedPipeAndDevicePositions);
-                    if (nextDir == ForgeDirection.UNKNOWN) {
-                        nextDir = step.entrySide.getOpposite();
-                    }
-
-                    frontier.add(
-                        new FrontierStep(
-                            device.getDeviceId(),
-                            step.x + nextDir.offsetX,
-                            step.y + nextDir.offsetY,
-                            step.z + nextDir.offsetZ,
-                            nextDir.getOpposite(),
-                            null,
-                            null));
-                    continue;
-                }
-
+        /** A pressurized hatch of a fluid heater: the loop runs through the heater from its inlet to its outlet. */
+        private Visit visitHeaterHatch(FrontierStep step, MTEHatchPressurizedFluid hatch,
+            MTEPressurizedFluidHeater heater) {
+            if ((heater.getPressurizedInputHatch() == null || heater.getPressurizedOutputHatch() == null)
+                && heater.getBaseMetaTileEntity() != null) {
+                heater.checkMachine(heater.getBaseMetaTileEntity(), null);
+            }
+            if (heater.isPowerFailed()) {
                 finishWithFailure(
                     CoolantLocalization.format(
-                        "coolantloops.crawler.unknown_block",
-                        step.x,
-                        step.y,
-                        step.z,
-                        te.getClass()
-                            .getSimpleName()));
-                return true;
+                        "coolantloops.crawler.heater_powerfailed",
+                        heater.getInnerTemperatureCelsius(),
+                        heater.getMaxOperatingTemperatureCelsius()));
+                return Visit.STOP;
+            }
+            if (!heater.mMachine || heater.getPressurizedInputHatch() == null
+                || heater.getPressurizedOutputHatch() == null) {
+                finishWithFailure(
+                    CoolantLocalization.format("coolantloops.crawler.heater_unformed", step.x, step.y, step.z));
+                return Visit.STOP;
+            }
+            if (heater.getPressurizedOutputHatch() == hatch || !hatch.isInput()) {
+                finishWithFailure(
+                    CoolantLocalization.format("coolantloops.crawler.heater_output", step.x, step.y, step.z));
+                return Visit.STOP;
+            }
+            if (pump != null) {
+                heater.setLoopPump(pump);
+            }
+            if (!devices.contains(heater)) {
+                devices.add(heater);
+            }
+            LoopSegment devSeg = new LoopSegment(
+                heater.getDeviceId(),
+                step.x,
+                step.y,
+                step.z,
+                heater.getRingCount(),
+                0.15,
+                0.000045,
+                heater.getMinorLossK(),
+                heater.getMaxOperatingPressureBar(),
+                heater.getMaxOperatingTemperatureCelsius(),
+                heater.getDeviceTemperatureCelsius());
+            devSeg.setCapacityLiters(heater.getFillVolumeLiters());
+            segments.add(devSeg);
+
+            MTEHatchPressurizedFluid outlet = heater.getPressurizedOutputHatch();
+            if (outlet != null && outlet != hatch) {
+                IGregTechTileEntity outTE = outlet.getBaseMetaTileEntity();
+                visitedPipeAndDevicePositions
+                    .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
+                ForgeDirection outFacing = outTE.getFrontFacing();
+
+                addGraphNode(graphNodes, heater.getDeviceId(), NodeType.DEVICE, heater);
+                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, heater.getDeviceId());
+
+                frontier.add(
+                    new FrontierStep(
+                        heater.getDeviceId(),
+                        outTE.getXCoord() + outFacing.offsetX,
+                        outTE.getYCoord() + outFacing.offsetY,
+                        outTE.getZCoord() + outFacing.offsetZ,
+                        outFacing.getOpposite(),
+                        null,
+                        null));
+                return Visit.NEXT;
+            } else {
+                finishWithFailure(
+                    CoolantLocalization.format("coolantloops.crawler.heater_unformed", step.x, step.y, step.z));
+                return Visit.STOP;
+            }
+        }
+
+        /** A pressurized hatch of a heat exchanger. */
+        private Visit visitHeatExchangerHatch(FrontierStep step, MTEHatchPressurizedFluid hatch,
+            MTEPressurizedHeatExchanger phe) {
+            if (phe.getPrimaryOutlet() == null && phe.getBaseMetaTileEntity() != null) {
+                phe.checkMachine(phe.getBaseMetaTileEntity(), null);
+            }
+            if (!devices.contains(phe)) {
+                devices.add(phe);
+            }
+            LoopSegment devSeg = new LoopSegment(
+                phe.getDeviceId(),
+                step.x,
+                step.y,
+                step.z,
+                2.0,
+                0.12,
+                0.000045,
+                phe.getMinorLossK(),
+                LoopSegment.NO_LIMIT,
+                phe.getMaxOperatingTemperatureCelsius(),
+                phe.getDeviceTemperatureCelsius());
+            segments.add(devSeg);
+
+            MTEHatchPressurizedFluid outlet = phe.getPrimaryOutlet();
+            if (outlet != null && outlet != hatch) {
+                IGregTechTileEntity outTE = outlet.getBaseMetaTileEntity();
+                visitedPipeAndDevicePositions
+                    .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
+                ForgeDirection outFacing = outTE.getFrontFacing();
+
+                addGraphNode(graphNodes, phe.getDeviceId(), NodeType.DEVICE, phe);
+                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, phe.getDeviceId());
+
+                frontier.add(
+                    new FrontierStep(
+                        phe.getDeviceId(),
+                        outTE.getXCoord() + outFacing.offsetX,
+                        outTE.getYCoord() + outFacing.offsetY,
+                        outTE.getZCoord() + outFacing.offsetZ,
+                        outFacing.getOpposite(),
+                        null,
+                        null));
+                return Visit.NEXT;
+            } else {
+                finishWithFailure(
+                    CoolantLocalization.format("coolantloops.crawler.phe_unformed", step.x, step.y, step.z));
+                return Visit.STOP;
+            }
+        }
+
+        /** A pressurized hatch of a degasser. */
+        private Visit visitDegasserHatch(FrontierStep step, MTEHatchPressurizedFluid hatch,
+            MTEPressurizedDegasser degasser) {
+            if (degasser.getPrimaryOutlet() == null && degasser.getBaseMetaTileEntity() != null) {
+                degasser.checkMachine(degasser.getBaseMetaTileEntity(), null);
+            }
+            if (pump != null) {
+                degasser.setConnectedPump(pump);
+            }
+            if (!devices.contains(degasser)) {
+                devices.add(degasser);
+            }
+            LoopSegment devSeg = new LoopSegment(
+                degasser.getDeviceId(),
+                step.x,
+                step.y,
+                step.z,
+                2.0,
+                0.12,
+                0.000045,
+                degasser.getMinorLossK(),
+                LoopSegment.NO_LIMIT,
+                2000.0,
+                degasser.getDeviceTemperatureCelsius());
+            segments.add(devSeg);
+
+            MTEHatchPressurizedFluid outlet = degasser.getPrimaryOutlet();
+            if (outlet != null && outlet != hatch) {
+                IGregTechTileEntity outTE = outlet.getBaseMetaTileEntity();
+                visitedPipeAndDevicePositions
+                    .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
+                ForgeDirection outFacing = outTE.getFrontFacing();
+
+                addGraphNode(graphNodes, degasser.getDeviceId(), NodeType.DEVICE, degasser);
+                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, degasser.getDeviceId());
+
+                frontier.add(
+                    new FrontierStep(
+                        degasser.getDeviceId(),
+                        outTE.getXCoord() + outFacing.offsetX,
+                        outTE.getYCoord() + outFacing.offsetY,
+                        outTE.getZCoord() + outFacing.offsetZ,
+                        outFacing.getOpposite(),
+                        null,
+                        null));
+                return Visit.NEXT;
+            } else {
+                finishWithFailure(
+                    CoolantLocalization.format("coolantloops.crawler.degasser_unformed", step.x, step.y, step.z));
+                return Visit.STOP;
+            }
+        }
+
+        /** A pressurized hatch of a coolant bath. */
+        private Visit visitBathHatch(FrontierStep step, MTEHatchPressurizedFluid hatch, MTECoolantBath bath) {
+            if (bath.getPrimaryOutlet() == null && bath.getBaseMetaTileEntity() != null) {
+                bath.checkMachine(bath.getBaseMetaTileEntity(), null);
+            }
+            if (pump != null) {
+                bath.setLoopPump(pump);
+            }
+            if (!devices.contains(bath)) {
+                devices.add(bath);
+            }
+            LoopSegment devSeg = new LoopSegment(
+                bath.getDeviceId(),
+                step.x,
+                step.y,
+                step.z,
+                3.0,
+                0.20,
+                0.000045,
+                bath.getMinorLossK(),
+                LoopSegment.NO_LIMIT,
+                3000.0,
+                bath.getDeviceTemperatureCelsius());
+            devSeg.setCapacityLiters(bath.getFillVolumeLiters());
+            devSeg.setCustomVolumeM3(bath.getFillVolumeLiters() / 1000.0);
+            segments.add(devSeg);
+
+            MTEHatchPressurizedFluid outlet = bath.getPrimaryOutlet();
+            if (outlet != null && outlet != hatch) {
+                IGregTechTileEntity outTE = outlet.getBaseMetaTileEntity();
+                visitedPipeAndDevicePositions
+                    .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
+                ForgeDirection outFacing = outTE.getFrontFacing();
+
+                addGraphNode(graphNodes, bath.getDeviceId(), NodeType.DEVICE, bath);
+                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, bath.getDeviceId());
+
+                frontier.add(
+                    new FrontierStep(
+                        bath.getDeviceId(),
+                        outTE.getXCoord() + outFacing.offsetX,
+                        outTE.getYCoord() + outFacing.offsetY,
+                        outTE.getZCoord() + outFacing.offsetZ,
+                        outFacing.getOpposite(),
+                        null,
+                        null));
+                return Visit.NEXT;
+            } else {
+                finishWithFailure(
+                    CoolantLocalization.format("coolantloops.crawler.bath_unformed", step.x, step.y, step.z));
+                return Visit.STOP;
+            }
+        }
+
+        /** A pressurized hatch paired with an opposite hatch (a passage through another machine). */
+        private Visit visitPassageHatchPair(FrontierStep step, MTEHatchPressurizedFluid hatch) {
+            if (!hatch.isPassageInlet()) {
+                finishWithFailure(
+                    CoolantLocalization.format("coolantloops.crawler.passage_outlet", step.x, step.y, step.z));
+                return Visit.STOP;
+            }
+            IGregTechTileEntity outTE = hatch.getOppositeHatchTile();
+            if (outTE == null) {
+                finishWithFailure(
+                    CoolantLocalization.format("coolantloops.crawler.passage_no_pair", step.x, step.y, step.z));
+                return Visit.STOP;
+            }
+            if (pump != null) {
+                hatch.setConnectedPump(pump);
+            }
+            if (!devices.contains(hatch)) {
+                devices.add(hatch);
+            }
+            LoopSegment devSeg = new LoopSegment(
+                hatch.getDeviceId(),
+                step.x,
+                step.y,
+                step.z,
+                5.0,
+                0.10,
+                0.000045,
+                hatch.getMinorLossK(),
+                LoopSegment.NO_LIMIT,
+                3200.0,
+                hatch.getDeviceTemperatureCelsius());
+            segments.add(devSeg);
+
+            visitedPipeAndDevicePositions
+                .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
+            ForgeDirection outFacing = outTE.getFrontFacing();
+
+            addGraphNode(graphNodes, hatch.getDeviceId(), NodeType.DEVICE, hatch);
+            addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, hatch.getDeviceId());
+
+            frontier.add(
+                new FrontierStep(
+                    hatch.getDeviceId(),
+                    outTE.getXCoord() + outFacing.offsetX,
+                    outTE.getYCoord() + outFacing.offsetY,
+                    outTE.getZCoord() + outFacing.offsetZ,
+                    outFacing.getOpposite(),
+                    null,
+                    null));
+            return Visit.NEXT;
+        }
+
+        /**
+         * A reactor core passage: the loop enters at its top-layer inlet and leaves at the bottom-layer outlet below
+         * it.
+         */
+        private Visit visitCorePassage(FrontierStep step, TileEntity te, IMetaTileEntity mte) {
+            ICoolantPassageHatch passage = (ICoolantPassageHatch) mte;
+            passage.convertToDirectionalVariant(true);
+            if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof ICoolantPassageHatch p) {
+                passage = p;
+            }
+            if (!passage.isPassageInlet()) {
+                finishWithFailure(
+                    CoolantLocalization.format("coolantloops.crawler.passage_outlet", step.x, step.y, step.z));
+                return Visit.STOP;
+            }
+            IGregTechTileEntity outTE = passage.getOppositeHatchTile();
+            if (outTE == null) {
+                if (world != null) {
+                    int targetY = passage.isPassageInlet() ? step.y - 4 : step.y + 4;
+                    TileEntity fallbackTe = world.getTileEntity(step.x, targetY, step.z);
+                    if (fallbackTe instanceof IGregTechTileEntity fallbackGte
+                        && fallbackGte.getMetaTileEntity() instanceof ICoolantPassageHatch opp) {
+                        passage.setOppositeHatch(fallbackGte);
+                        opp.setOppositeHatch((IGregTechTileEntity) te);
+                        outTE = fallbackGte;
+                    }
+                }
+            }
+            if (outTE == null) {
+                finishWithFailure(
+                    CoolantLocalization.format("coolantloops.crawler.passage_no_pair", step.x, step.y, step.z));
+                return Visit.STOP;
+            }
+            if (outTE.getMetaTileEntity() instanceof ICoolantPassageHatch outPassage) {
+                outPassage.convertToDirectionalVariant(false);
+            }
+            if (pump != null) {
+                passage.setConnectedPump(pump);
+            }
+            if (!devices.contains(passage)) {
+                devices.add(passage);
+            }
+            LoopSegment devSeg = new LoopSegment(
+                passage.getDeviceId(),
+                step.x,
+                step.y,
+                step.z,
+                com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData.getPhysicsData()
+                    .getStandardPassageLength(),
+                com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData.getPhysicsData()
+                    .getStandardPassageDiameter(),
+                0.000045,
+                passage.getMinorLossK(),
+                LoopSegment.NO_LIMIT,
+                3200.0,
+                passage.getDeviceTemperatureCelsius());
+            segments.add(devSeg);
+
+            visitedPipeAndDevicePositions
+                .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
+            ForgeDirection outFacing = outTE.getFrontFacing();
+
+            addGraphNode(graphNodes, passage.getDeviceId(), NodeType.DEVICE, passage);
+            addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, passage.getDeviceId());
+
+            frontier.add(
+                new FrontierStep(
+                    passage.getDeviceId(),
+                    outTE.getXCoord() + outFacing.offsetX,
+                    outTE.getYCoord() + outFacing.offsetY,
+                    outTE.getZCoord() + outFacing.offsetZ,
+                    outFacing.getOpposite(),
+                    null,
+                    null));
+            return Visit.NEXT;
+        }
+
+        /** An in-line loop device (instrument, reservoir); any other block is not part of a loop. */
+        private Visit visitInlineDevice(FrontierStep step, TileEntity te) {
+            ICoolantLoopDevice device = null;
+            if (te instanceof ICoolantLoopDevice) {
+                device = (ICoolantLoopDevice) te;
+            } else if (te instanceof IGregTechTileEntity) {
+                IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
+                if (mte instanceof ICoolantLoopDevice) {
+                    device = (ICoolantLoopDevice) mte;
+                }
             }
 
-            if (frontier.isEmpty()) {
-                finishCrawl();
-                return true;
+            if (device != null) {
+                BlockPosCoord devCoord = new BlockPosCoord(step.x, step.y, step.z);
+                if (visitedPipeAndDevicePositions.contains(devCoord)) {
+                    finishWithFailure(
+                        CoolantLocalization
+                            .format("coolantloops.crawler.device_merge_needs_manifold", step.x, step.y, step.z));
+                    return Visit.STOP;
+                }
+                visitedPipeAndDevicePositions.add(devCoord);
+
+                if (pump != null) {
+                    device.setLoopPump(pump);
+                }
+                if (!devices.contains(device)) {
+                    devices.add(device);
+                }
+
+                LoopSegment devSeg = new LoopSegment(
+                    device.getDeviceId(),
+                    step.x,
+                    step.y,
+                    step.z,
+                    1.0,
+                    0.10,
+                    0.000045,
+                    device.getMinorLossK(),
+                    LoopSegment.NO_LIMIT,
+                    2000.0,
+                    device.getDeviceTemperatureCelsius());
+                segments.add(devSeg);
+
+                addGraphNode(graphNodes, device.getDeviceId(), NodeType.DEVICE, device);
+                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, device.getDeviceId());
+
+                ForgeDirection nextDir = findNextDirection(
+                    world,
+                    step.entrySide,
+                    step.x,
+                    step.y,
+                    step.z,
+                    targetX,
+                    targetY,
+                    targetZ,
+                    visitedPipeAndDevicePositions);
+                if (nextDir == ForgeDirection.UNKNOWN) {
+                    nextDir = step.entrySide.getOpposite();
+                }
+
+                frontier.add(
+                    new FrontierStep(
+                        device.getDeviceId(),
+                        step.x + nextDir.offsetX,
+                        step.y + nextDir.offsetY,
+                        step.z + nextDir.offsetZ,
+                        nextDir.getOpposite(),
+                        null,
+                        null));
+                return Visit.NEXT;
             }
 
-            return false;
+            finishWithFailure(
+                CoolantLocalization.format(
+                    "coolantloops.crawler.unknown_block",
+                    step.x,
+                    step.y,
+                    step.z,
+                    te.getClass()
+                        .getSimpleName()));
+            return Visit.STOP;
         }
 
         private List<LoopSegment> getSegmentsForNode(String nodeId, Map<String, LoopSegment> segmentMap) {
