@@ -624,6 +624,212 @@ public class StandaloneNuclearGrid {
         return out;
     }
 
+    /** Feeds coolant and liquid fuel into hatches with room, applying CoreHatchRules; false when the step must stop. */
+    private boolean feedHatches() {
+        // 1. Coolant & Liquid Fuel Feed Phase: Replenish hatches that have space, checking dry thermal shock
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                SimTile tile = grid[x][y];
+                if (tile == null) continue;
+                if (tile.isLiquidFuelHatch()) {
+                    if (autoReplaceFuel) {
+                        int space = tile.getInputFluidCapacity() - tile.getInputFluidAmount();
+                        if (space > 0) {
+                            tile.setInputFluidAmount(tile.getInputFluidCapacity());
+                            tile.setDepleted(false);
+                            tile.setWasDry(false);
+                        }
+                    }
+                } else if (tile.isCoolantHatch() && tile.isAutoRefill()) {
+                    int space = tile.getInputFluidCapacity() - tile.getInputFluidAmount();
+                    if (space > 0) {
+                        int feed = Math.min(space, NuclearSimulationEngine.coolantFeedRate);
+                        if (feed > 0) {
+                            double ambient = NuclearSimulationEngine.ambientTemp;
+                            CoreHatchRules.CoolantFeed check = CoreHatchRules.checkCoolantFeed(
+                                tile.getInputFluidName(),
+                                tile.isWasDry(),
+                                tile.getTemperature(),
+                                ambient);
+                            if (check != CoreHatchRules.CoolantFeed.SAFE) {
+                                String reason = String.format(
+                                    java.util.Locale.US,
+                                    "hatch (%d,%d): %s",
+                                    x,
+                                    y,
+                                    CoreHatchRules
+                                        .describe(check, tile.getInputFluidName(), tile.getTemperature(), ambient));
+                                if (this.stopOnIncidents && !this.haltedByIncident) {
+                                    this.haltedByIncident = true;
+                                    this.lastHaltIncidentReason = "Pending Incident: thermal shock about to happen at "
+                                        + reason
+                                        + ". Simulation stopped to prevent it.";
+                                    logIncident("PENDING_INCIDENT", this.lastHaltIncidentReason, 0.0);
+                                    return false;
+                                }
+                                triggerThermalShock(x, y, "Thermal Shock: " + reason);
+                                tile.setInputFluidAmount(0);
+                                tile.setWasDry(true);
+                                if (exploded || powerFailed) return false;
+                                continue;
+                            }
+                            tile.setWasDry(false);
+                            tile.setInputFluidAmount(tile.getInputFluidAmount() + feed);
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /** Fuel burnup and the byproducts it leaves. */
+    private void trackBurnup() {
+        // 3.1. Fuel burnup & byproduct tracking
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                SimTile tile = grid[x][y];
+                if (tile == null) continue;
+
+                if (tile.isLiquidFuelHatch()) {
+                    int burned = tile.getLastLiquidFuelBurned();
+                    if (burned > 0) {
+                        cumulativeDepletedLiquidLiters.put(
+                            tile.getType(),
+                            cumulativeDepletedLiquidLiters.getOrDefault(tile.getType(), 0L) + burned);
+                    }
+                    if (autoReplaceFuel) {
+                        tile.setInputFluidAmount(tile.getInputFluidCapacity());
+                        tile.setDepleted(false);
+                        tile.setWasDry(false);
+                    }
+                } else if (tile.isFuel() || tile.isDepleted()) {
+                    if (tile.getDurability() <= 0 || tile.isDepleted()) {
+                        if (autoReplaceFuel) {
+                            cumulativeDepletedFuelItems
+                                .put(tile.getType(), cumulativeDepletedFuelItems.getOrDefault(tile.getType(), 0L) + 1L);
+                            tile.setDurability(tile.getMaxDurability());
+                            tile.setDepleted(false);
+                            logIncident(
+                                "FUEL_CYCLED",
+                                String.format(
+                                    java.util.Locale.US,
+                                    "Spent %s at (%d,%d) replaced with fresh rod (produced 1x %s [%s])",
+                                    tile.getType().displayName,
+                                    x,
+                                    y,
+                                    tile.getDepletedDisplayName(),
+                                    tile.getDepletedCode()),
+                                0.0);
+                        } else if (!tile.isDepletionLogged()) {
+                            cumulativeDepletedFuelItems
+                                .put(tile.getType(), cumulativeDepletedFuelItems.getOrDefault(tile.getType(), 0L) + 1L);
+                            tile.setDepletionLogged(true);
+                            logIncident(
+                                "FUEL_DEPLETED",
+                                String.format(
+                                    java.util.Locale.US,
+                                    "Fuel rod %s at (%d,%d) reached 0 durability and depleted (produced 1x %s [%s])",
+                                    tile.getType().displayName,
+                                    x,
+                                    y,
+                                    tile.getDepletedDisplayName(),
+                                    tile.getDepletedCode()),
+                                0.0);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /** The casing operating temperature limit (manual 12.3); false when the core melted down. */
+    private boolean applyOverheating() {
+        // 5. Casing operating temperature limit, as in the game: an overheating column loses its non-fuel contents
+        // (coolant, components, its control rod) and adds damage; fuel rods and liquid fuel stay. A passage overheats
+        // if its cell or the coolant arriving from its loop is past the limit.
+        double maxTempAllowed = NuclearSimulationEngine.getMaxOperatingTemperature(pipeTier);
+        int overheatingCount = 0;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                SimTile tile = grid[x][y];
+                if (tile == null || tile.getType() == SimTile.TileType.NULL_WALL) continue;
+                boolean hot = tile.getTemperature() > maxTempAllowed
+                    || (tile.isCoolantPassage() && incomingPassageCoolantTemp(tile) > maxTempAllowed);
+                if (!hot) continue;
+                overheatingCount++;
+                if (tile.isCoolantHatch()) {
+                    voidedHatchCount++;
+                    tile.setInputFluidAmount(0);
+                    tile.setOutputFluidAmount(0);
+                    tile.setWasDry(true);
+                } else if (!tile.isFuel() && !tile.isLiquidFuelHatch()
+                    && !tile.isCoolantPassage()
+                    && tile.getType() != SimTile.TileType.EMPTY) {
+                        voidedHatchCount++;
+                        logIncident(
+                            "COMPONENT_VOIDED",
+                            String.format(
+                                java.util.Locale.US,
+                                "%s at (%d,%d) voided by casing overheat (%.1f °C > %.1f °C)",
+                                tile.getType(),
+                                x,
+                                y,
+                                tile.getTemperature(),
+                                maxTempAllowed),
+                            0.0);
+                        tile.voidComponent();
+                    }
+                if (tile.hasControlRod()) {
+                    tile.setHasControlRod(false);
+                    tile.setControlRodType(SimTile.ControlRodType.NONE);
+                }
+            }
+        }
+        if (overheatingCount > 0) {
+            double addedDamage = overheatingCount * CoreHatchRules.OVERHEAT_DAMAGE_PERCENT_PER_COLUMN;
+            reactorDamage = Math.min(100.0, reactorDamage + addedDamage);
+            String overheatMsg = String.format(
+                java.util.Locale.US,
+                "%d tiles overheated casing max (%.1f°C). Reactor Damage +%.1f%% (now %.1f%%)",
+                overheatingCount,
+                maxTempAllowed,
+                addedDamage,
+                reactorDamage);
+            logIncident("CASING_OVERHEAT", overheatMsg, addedDamage);
+            recordTraceSnapshot("CASING_OVERHEAT", overheatMsg);
+            if (strictMode) {
+                triggerPowerFail(
+                    String.format(
+                        java.util.Locale.US,
+                        "Calibration Disqualification: %d tiles overheated casing max (%.1f°C)",
+                        overheatingCount,
+                        maxTempAllowed));
+                return false;
+            }
+            if (reactorDamage >= 100.0) {
+                if (this.stopOnIncidents && !this.haltedByIncident) {
+                    this.reactorDamage = 99.9;
+                    this.haltedByIncident = true;
+                    this.lastHaltIncidentReason = String.format(
+                        java.util.Locale.US,
+                        "Pending Incident: Reactor structural damage at 100%% from %d overheating tile(s). Simulation stopped to prevent meltdown.",
+                        overheatingCount);
+                    logIncident("PENDING_INCIDENT", this.lastHaltIncidentReason, 0.0);
+                    return false;
+                }
+                triggerExplosion(
+                    String.format(
+                        java.util.Locale.US,
+                        "Meltdown: Reactor structural damage reached 100%% from casing overheating! (%d overheated tiles at >%.1f°C)",
+                        overheatingCount,
+                        maxTempAllowed));
+                return false;
+            }
+        }
+        return true;
+    }
+
     /** The temperature of the coolant a passage receives from its loop: that loop's cold leg. */
     private double incomingPassageCoolantTemp(SimTile passage) {
         if (coolantLoop == null || !isCoolantLoopActive()) return Double.NEGATIVE_INFINITY;
@@ -710,60 +916,7 @@ public class StandaloneNuclearGrid {
         currentTick += ticksPerCycle;
         recordTraceSnapshot("PRE_TICK", "State before coolant feed");
 
-        // 1. Coolant & Liquid Fuel Feed Phase: Replenish hatches that have space, checking dry thermal shock
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                SimTile tile = grid[x][y];
-                if (tile == null) continue;
-                if (tile.isLiquidFuelHatch()) {
-                    if (autoReplaceFuel) {
-                        int space = tile.getInputFluidCapacity() - tile.getInputFluidAmount();
-                        if (space > 0) {
-                            tile.setInputFluidAmount(tile.getInputFluidCapacity());
-                            tile.setDepleted(false);
-                            tile.setWasDry(false);
-                        }
-                    }
-                } else if (tile.isCoolantHatch() && tile.isAutoRefill()) {
-                    int space = tile.getInputFluidCapacity() - tile.getInputFluidAmount();
-                    if (space > 0) {
-                        int feed = Math.min(space, NuclearSimulationEngine.coolantFeedRate);
-                        if (feed > 0) {
-                            double ambient = NuclearSimulationEngine.ambientTemp;
-                            CoreHatchRules.CoolantFeed check = CoreHatchRules.checkCoolantFeed(
-                                tile.getInputFluidName(),
-                                tile.isWasDry(),
-                                tile.getTemperature(),
-                                ambient);
-                            if (check != CoreHatchRules.CoolantFeed.SAFE) {
-                                String reason = String.format(
-                                    java.util.Locale.US,
-                                    "hatch (%d,%d): %s",
-                                    x,
-                                    y,
-                                    CoreHatchRules
-                                        .describe(check, tile.getInputFluidName(), tile.getTemperature(), ambient));
-                                if (this.stopOnIncidents && !this.haltedByIncident) {
-                                    this.haltedByIncident = true;
-                                    this.lastHaltIncidentReason = "Pending Incident: thermal shock about to happen at "
-                                        + reason
-                                        + ". Simulation stopped to prevent it.";
-                                    logIncident("PENDING_INCIDENT", this.lastHaltIncidentReason, 0.0);
-                                    return false;
-                                }
-                                triggerThermalShock(x, y, "Thermal Shock: " + reason);
-                                tile.setInputFluidAmount(0);
-                                tile.setWasDry(true);
-                                if (exploded || powerFailed) return false;
-                                continue;
-                            }
-                            tile.setWasDry(false);
-                            tile.setInputFluidAmount(tile.getInputFluidAmount() + feed);
-                        }
-                    }
-                }
-            }
-        }
+        if (!feedHatches()) return false;
         recordTraceSnapshot("POST_COOLANT_FEED", "Coolant fed into hatches");
 
         // 2. Track empty coolant hatches as dry
@@ -806,62 +959,7 @@ public class StandaloneNuclearGrid {
         totalNeutronsGenerated += lastNeutronsProduced;
         recordTraceSnapshot("POST_SIMULATE", "Nuclear fission, diffusion and boiling completed");
 
-        // 3.1. Fuel burnup & byproduct tracking
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                SimTile tile = grid[x][y];
-                if (tile == null) continue;
-
-                if (tile.isLiquidFuelHatch()) {
-                    int burned = tile.getLastLiquidFuelBurned();
-                    if (burned > 0) {
-                        cumulativeDepletedLiquidLiters.put(
-                            tile.getType(),
-                            cumulativeDepletedLiquidLiters.getOrDefault(tile.getType(), 0L) + burned);
-                    }
-                    if (autoReplaceFuel) {
-                        tile.setInputFluidAmount(tile.getInputFluidCapacity());
-                        tile.setDepleted(false);
-                        tile.setWasDry(false);
-                    }
-                } else if (tile.isFuel() || tile.isDepleted()) {
-                    if (tile.getDurability() <= 0 || tile.isDepleted()) {
-                        if (autoReplaceFuel) {
-                            cumulativeDepletedFuelItems
-                                .put(tile.getType(), cumulativeDepletedFuelItems.getOrDefault(tile.getType(), 0L) + 1L);
-                            tile.setDurability(tile.getMaxDurability());
-                            tile.setDepleted(false);
-                            logIncident(
-                                "FUEL_CYCLED",
-                                String.format(
-                                    java.util.Locale.US,
-                                    "Spent %s at (%d,%d) replaced with fresh rod (produced 1x %s [%s])",
-                                    tile.getType().displayName,
-                                    x,
-                                    y,
-                                    tile.getDepletedDisplayName(),
-                                    tile.getDepletedCode()),
-                                0.0);
-                        } else if (!tile.isDepletionLogged()) {
-                            cumulativeDepletedFuelItems
-                                .put(tile.getType(), cumulativeDepletedFuelItems.getOrDefault(tile.getType(), 0L) + 1L);
-                            tile.setDepletionLogged(true);
-                            logIncident(
-                                "FUEL_DEPLETED",
-                                String.format(
-                                    java.util.Locale.US,
-                                    "Fuel rod %s at (%d,%d) reached 0 durability and depleted (produced 1x %s [%s])",
-                                    tile.getType().displayName,
-                                    x,
-                                    y,
-                                    tile.getDepletedDisplayName(),
-                                    tile.getDepletedCode()),
-                                0.0);
-                        }
-                    }
-                }
-            }
-        }
+        trackBurnup();
 
         // 3.5. Execute Coolant Loop Convective Heat Transfer & Secondary Boiling
         if (shouldStepCoolantLoop()) {
@@ -897,88 +995,7 @@ public class StandaloneNuclearGrid {
             }
         }
 
-        // 5. Casing operating temperature limit, as in the game: an overheating column loses its non-fuel contents
-        // (coolant, components, its control rod) and adds damage; fuel rods and liquid fuel stay. A passage overheats
-        // if its cell or the coolant arriving from its loop is past the limit.
-        double maxTempAllowed = NuclearSimulationEngine.getMaxOperatingTemperature(pipeTier);
-        int overheatingCount = 0;
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                SimTile tile = grid[x][y];
-                if (tile == null || tile.getType() == SimTile.TileType.NULL_WALL) continue;
-                boolean hot = tile.getTemperature() > maxTempAllowed
-                    || (tile.isCoolantPassage() && incomingPassageCoolantTemp(tile) > maxTempAllowed);
-                if (!hot) continue;
-                overheatingCount++;
-                if (tile.isCoolantHatch()) {
-                    voidedHatchCount++;
-                    tile.setInputFluidAmount(0);
-                    tile.setOutputFluidAmount(0);
-                    tile.setWasDry(true);
-                } else if (!tile.isFuel() && !tile.isLiquidFuelHatch()
-                    && !tile.isCoolantPassage()
-                    && tile.getType() != SimTile.TileType.EMPTY) {
-                        voidedHatchCount++;
-                        logIncident(
-                            "COMPONENT_VOIDED",
-                            String.format(
-                                java.util.Locale.US,
-                                "%s at (%d,%d) voided by casing overheat (%.1f °C > %.1f °C)",
-                                tile.getType(),
-                                x,
-                                y,
-                                tile.getTemperature(),
-                                maxTempAllowed),
-                            0.0);
-                        tile.voidComponent();
-                    }
-                if (tile.hasControlRod()) {
-                    tile.setHasControlRod(false);
-                    tile.setControlRodType(SimTile.ControlRodType.NONE);
-                }
-            }
-        }
-        if (overheatingCount > 0) {
-            double addedDamage = overheatingCount * CoreHatchRules.OVERHEAT_DAMAGE_PERCENT_PER_COLUMN;
-            reactorDamage = Math.min(100.0, reactorDamage + addedDamage);
-            String overheatMsg = String.format(
-                java.util.Locale.US,
-                "%d tiles overheated casing max (%.1f°C). Reactor Damage +%.1f%% (now %.1f%%)",
-                overheatingCount,
-                maxTempAllowed,
-                addedDamage,
-                reactorDamage);
-            logIncident("CASING_OVERHEAT", overheatMsg, addedDamage);
-            recordTraceSnapshot("CASING_OVERHEAT", overheatMsg);
-            if (strictMode) {
-                triggerPowerFail(
-                    String.format(
-                        java.util.Locale.US,
-                        "Calibration Disqualification: %d tiles overheated casing max (%.1f°C)",
-                        overheatingCount,
-                        maxTempAllowed));
-                return false;
-            }
-            if (reactorDamage >= 100.0) {
-                if (this.stopOnIncidents && !this.haltedByIncident) {
-                    this.reactorDamage = 99.9;
-                    this.haltedByIncident = true;
-                    this.lastHaltIncidentReason = String.format(
-                        java.util.Locale.US,
-                        "Pending Incident: Reactor structural damage at 100%% from %d overheating tile(s). Simulation stopped to prevent meltdown.",
-                        overheatingCount);
-                    logIncident("PENDING_INCIDENT", this.lastHaltIncidentReason, 0.0);
-                    return false;
-                }
-                triggerExplosion(
-                    String.format(
-                        java.util.Locale.US,
-                        "Meltdown: Reactor structural damage reached 100%% from casing overheating! (%d overheated tiles at >%.1f°C)",
-                        overheatingCount,
-                        maxTempAllowed));
-                return false;
-            }
-        }
+        if (!applyOverheating()) return false;
 
         // 4. Calculate energy and steam generation in this tick
         long cumSteam = 0;
