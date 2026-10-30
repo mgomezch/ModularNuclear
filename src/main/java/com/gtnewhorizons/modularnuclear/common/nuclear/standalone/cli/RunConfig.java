@@ -71,7 +71,7 @@ public final class RunConfig {
 
     /** Defaults for each batch line. */
     public static RunConfig batchLine() {
-        RunConfig c = new RunConfig("BREEDER_7X7", 7, 300, true);
+        RunConfig c = new RunConfig("BREEDER_9X9", 9, 300, true);
         c.mode = Mode.JSON;
         c.tierDefault = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
         return c;

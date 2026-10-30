@@ -660,8 +660,8 @@ public class NuclearSimWasmBridge {
     @Export(name = "getStateJson")
     public static String getStateJson() {
         if (grid == null) {
-            initGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
-            loadPreset("BEST_PLATINUM_7X7");
+            initGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+            loadPreset("BEST_PLATINUM_9X9");
         }
         return buildStateJson(grid, isRunning);
     }
