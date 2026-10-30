@@ -831,6 +831,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     }
 
     public boolean applyCrawlResult(LoopGraphCrawler.CrawlResult result) {
+        releaseLoopDevices();
         if (result == null || !result.isSuccess) {
             mLastCrawlResult = result;
             mLoopFormed = false;
@@ -963,7 +964,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             missingOrChanged = true;
         }
 
-        mLoopDevices.clear();
+        releaseLoopDevices();
         Set<String> seenDeviceIds = new HashSet<>();
 
         if (mLastCrawlResult != null && mLastCrawlResult.graphNodes != null) {
@@ -1028,7 +1029,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         if (missingOrChanged) {
             mNeedsPostLoadRebind = false;
             mLoopFormed = false;
-            mLoopDevices.clear();
+            releaseLoopDevices();
             crawlLoopGraph();
             return;
         }
@@ -1172,6 +1173,27 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             return drained;
         }
         return false;
+    }
+
+    /** The devices of the current loop stop pointing at this pump, so a removed pump is not kept alive by them. */
+    protected void releaseLoopDevices() {
+        for (ICoolantLoopDevice dev : mLoopDevices) {
+            if (dev != null) dev.setLoopPump(null);
+        }
+        mLoopDevices = new ArrayList<>();
+        mDeviceBindings.clear();
+    }
+
+    @Override
+    public void onRemoval() {
+        releaseLoopDevices();
+        super.onRemoval();
+    }
+
+    @Override
+    public void onUnload() {
+        releaseLoopDevices();
+        super.onUnload();
     }
 
     /**
