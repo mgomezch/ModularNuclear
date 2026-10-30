@@ -1363,6 +1363,148 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
         // Validate fluid in reservoir / loop: liquid nuclear fuel fails pump and destroys impeller immediately!
         FluidStack reservoirFluid = getReservoirFluid();
+        Boolean refuseUnsuitableFluidResult = refuseUnsuitableFluid(reservoirFluid);
+        if (refuseUnsuitableFluidResult != null) return refuseUnsuitableFluidResult;
+
+        // Validate molten fluid temperature
+        CoolantFluidProperty currentProp = mEngine.getFluid();
+        if (currentProp == null && reservoirFluid != null) {
+            currentProp = CoolantFluidProperty.get(
+                reservoirFluid.getFluid()
+                    .getName());
+        }
+        boolean isMolten = isMoltenFluid(
+            reservoirFluid != null ? reservoirFluid.getFluid() : null,
+            reservoirFluid,
+            currentProp);
+
+        World loopWorld = getBaseMetaTileEntity() != null ? getBaseMetaTileEntity().getWorld() : null;
+        boolean isLavaNether = ((reservoirFluid != null && isLava(reservoirFluid))
+            || (currentProp != null && currentProp.isLava())) && isNetherWorld(loopWorld);
+
+        Boolean checkMoltenCoolantResult = checkMoltenCoolant(reservoirFluid, currentProp, isMolten, isLavaNether);
+        if (checkMoltenCoolantResult != null) return checkMoltenCoolantResult;
+
+        // Require valid turbine rotor impeller in controller slot
+        if (!updateRotorEfficiency()) {
+            mLoopState = LoopState.STOPPED;
+            mEngine.setPumpPowered(false);
+            mEngine.setPumpMechanicalPowerWatts(0.0);
+            mEngine.setBraking(false);
+            setLoopStatusKey("coolantloops.pump.status.missing_rotor");
+            return stepCoastingAndCheckRupture();
+        }
+
+        // Impeller melting check: if fluid temperature exceeds impeller melting point, melt catastrophically!
+        double pumpFluidTemp = getPumpFluidTemperatureCelsius();
+        Materials rotorMat = getRotorMaterial();
+        double th = RotorThermalHelper.calculateHomologousTemperature(pumpFluidTemp, rotorMat);
+        if (RotorThermalHelper.isMelted(th)) {
+            failOnImpellerMelting(pumpFluidTemp, rotorMat);
+            return stepCoastingAndCheckRupture();
+        }
+
+        // Check if high-pressure output hatch is disabled by machine controller cover
+        boolean dischargeDisabled = isDischargeHatchDisabled();
+        Boolean stepWithDischargeDisabledResult = stepWithDischargeDisabled(baseTE, dischargeDisabled);
+        if (stepWithDischargeDisabledResult != null) return stepWithDischargeDisabledResult;
+
+        mEngine.setBraking(false);
+
+        // Initial Loop Filling Phase (when hatch is enabled)
+        Boolean stepFillingResult = stepFilling(baseTE, reservoirFluid, currentProp);
+        if (stepFillingResult != null) return stepFillingResult;
+
+        // Active Circulation Phase
+        checkMaintenance();
+        double effFactor = getEfficiencyFactor();
+        long requiredEU = getRequiredPowerDrawEU();
+        boolean hasPower = drainEnergy(requiredEU);
+        if (!hasPower) {
+            return triggerPowerfail();
+        }
+        if (baseTE != null) {
+            baseTE.setActive(true);
+        }
+
+        // Refuse to accelerate flow if molten fluid is below its melting point
+        if (isMolten) {
+            double minLoopTemp = mEngine.getMinLoopTempCelsius();
+            double declaredMelting = CoolantFluidHelper.getMeltingPointCelsius(
+                reservoirFluid != null ? reservoirFluid.getFluid() : null,
+                reservoirFluid,
+                currentProp);
+            if (minLoopTemp < declaredMelting - CoolantLoopEngine.FREEZE_TOLERANCE_CELSIUS) {
+                mEngine.setRuptured(true);
+                mEngine.setFailureReason(
+                    CoolantLocalization.format(
+                        "coolantloops.pump.status.catastrophic_solidification",
+                        minLoopTemp,
+                        declaredMelting,
+                        currentProp != null ? currentProp.getFluidName() : "molten fluid"));
+                triggerCatastrophicExplosion(mEngine.getFailureReason(), mEngine.getRupturedSegment());
+                return false;
+            }
+        }
+
+        mLoopState = LoopState.CIRCULATING;
+        mEngine.setPumpPowered(true);
+        double wattsPerEu = (CoolantLoopDataRegistry.getPhysicsData() != null)
+            ? CoolantLoopDataRegistry.getPhysicsData()
+                .getPumpMechanicalPowerPerEU()
+            : 80.0;
+        double mechanicalWatts = requiredEU * wattsPerEu * mRotorEfficiency * effFactor;
+        mEngine.setPumpMechanicalPowerWatts(mechanicalWatts);
+        degradeRotor(requiredEU);
+
+        // Synchronize absolute dissolved gases across engine and all segments when changed
+        if (mEngine != null) {
+            long currentGasVer = mReservoir.getDissolvedGasesVersion();
+            if (mLastSyncedGasVersion != currentGasVer) {
+                mLastSyncedGasVersion = currentGasVer;
+                Map<String, Long> gases = mReservoir.getDissolvedGases();
+                mEngine.setDissolvedGases(gases);
+                double gasFrac = getDissolvedGasFraction();
+                mEngine.setDissolvedGasFraction(gasFrac);
+                long loopLiters = mEngine.getTotalLoopVolumeLiters();
+                for (LoopSegment seg : mEngine.getSegments()) {
+                    seg.setDissolvedGases(gases, loopLiters);
+                    seg.setDissolvedGasFraction(gasFrac);
+                }
+            }
+        }
+
+        // Advance 1 tick (0.05 seconds) of fluid dynamics
+        mEngine.step(0.05);
+
+        // Process thermal exchange across in-line devices matching segment ID
+        double flowRate = mEngine.getVolumetricFlowRate();
+        for (DeviceSegmentBinding b : getDeviceBindings()) {
+            b.device.processThermalExchange(branchFlow(flowRate, b.segment), 0.05, mEngine.getFluid(), b.segment);
+        }
+
+        // Check for catastrophic rupture
+        if (mEngine.isRuptured()) {
+            triggerCatastrophicExplosion(mEngine.getFailureReason(), mEngine.getRupturedSegment());
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean onRunningTick(ItemStack aStack) {
+        return true;
+    }
+
+    /**
+     * Trigger catastrophic pump explosion and drain 80% of fluid from the Railcraft tank.
+     */
+    /**
+     * Refuses liquid fuel (which destroys the impeller), plain water, gases, and lava outside the Nether. Returns the
+     * step's result, or null to carry on.
+     */
+    private Boolean refuseUnsuitableFluid(FluidStack reservoirFluid) {
         if (reservoirFluid != null && reservoirFluid.getFluid() != null) {
             if (isLiquidNuclearFuel(reservoirFluid)) {
                 failOnLiquidNuclearFuel(
@@ -1431,23 +1573,15 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 }
             }
         }
+        return null;
+    }
 
-        // Validate molten fluid temperature
-        CoolantFluidProperty currentProp = mEngine.getFluid();
-        if (currentProp == null && reservoirFluid != null) {
-            currentProp = CoolantFluidProperty.get(
-                reservoirFluid.getFluid()
-                    .getName());
-        }
-        boolean isMolten = isMoltenFluid(
-            reservoirFluid != null ? reservoirFluid.getFluid() : null,
-            reservoirFluid,
-            currentProp);
-
-        World loopWorld = getBaseMetaTileEntity() != null ? getBaseMetaTileEntity().getWorld() : null;
-        boolean isLavaNether = ((reservoirFluid != null && isLava(reservoirFluid))
-            || (currentProp != null && currentProp.isLava())) && isNetherWorld(loopWorld);
-
+    /**
+     * A molten coolant must be at its melting point or hotter to fill or flow. Returns the step's result, or null to
+     * carry on.
+     */
+    private Boolean checkMoltenCoolant(FluidStack reservoirFluid, CoolantFluidProperty currentProp, boolean isMolten,
+        boolean isLavaNether) {
         if (isMolten && !isLavaNether) {
             double declaredMelting = CoolantFluidHelper.getMeltingPointCelsius(
                 reservoirFluid != null ? reservoirFluid.getFluid() : null,
@@ -1509,28 +1643,14 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     }
             }
         }
+        return null;
+    }
 
-        // Require valid turbine rotor impeller in controller slot
-        if (!updateRotorEfficiency()) {
-            mLoopState = LoopState.STOPPED;
-            mEngine.setPumpPowered(false);
-            mEngine.setPumpMechanicalPowerWatts(0.0);
-            mEngine.setBraking(false);
-            setLoopStatusKey("coolantloops.pump.status.missing_rotor");
-            return stepCoastingAndCheckRupture();
-        }
-
-        // Impeller melting check: if fluid temperature exceeds impeller melting point, melt catastrophically!
-        double pumpFluidTemp = getPumpFluidTemperatureCelsius();
-        Materials rotorMat = getRotorMaterial();
-        double th = RotorThermalHelper.calculateHomologousTemperature(pumpFluidTemp, rotorMat);
-        if (RotorThermalHelper.isMelted(th)) {
-            failOnImpellerMelting(pumpFluidTemp, rotorMat);
-            return stepCoastingAndCheckRupture();
-        }
-
-        // Check if high-pressure output hatch is disabled by machine controller cover
-        boolean dischargeDisabled = isDischargeHatchDisabled();
+    /**
+     * With the discharge hatch disabled by a cover the pump brakes the flow, then drains the loop. Returns the step's
+     * result, or null to carry on.
+     */
+    private Boolean stepWithDischargeDisabled(IGregTechTileEntity baseTE, boolean dischargeDisabled) {
         if (dischargeDisabled) {
             double flowRate = mEngine.getVolumetricFlowRate();
             if (flowRate > 1e-5) {
@@ -1629,10 +1749,15 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 return true;
             }
         }
+        return null;
+    }
 
-        mEngine.setBraking(false);
-
-        // Initial Loop Filling Phase (when hatch is enabled)
+    /**
+     * Fills the loop from the reservoir until it holds what its pipes and devices need. Returns the step's result, or
+     * null to carry on.
+     */
+    private Boolean stepFilling(IGregTechTileEntity baseTE, FluidStack reservoirFluid,
+        CoolantFluidProperty currentProp) {
         if (mLoopState == LoopState.EMPTY || mLoopState == LoopState.DRAINING
             || mCurrentFillLiters < mRequiredFillLiters) {
             long requiredEU = getRequiredPowerDrawEU();
@@ -1687,92 +1812,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             }
             return true;
         }
-
-        // Active Circulation Phase
-        checkMaintenance();
-        double effFactor = getEfficiencyFactor();
-        long requiredEU = getRequiredPowerDrawEU();
-        boolean hasPower = drainEnergy(requiredEU);
-        if (!hasPower) {
-            return triggerPowerfail();
-        }
-        if (baseTE != null) {
-            baseTE.setActive(true);
-        }
-
-        // Refuse to accelerate flow if molten fluid is below its melting point
-        if (isMolten) {
-            double minLoopTemp = mEngine.getMinLoopTempCelsius();
-            double declaredMelting = CoolantFluidHelper.getMeltingPointCelsius(
-                reservoirFluid != null ? reservoirFluid.getFluid() : null,
-                reservoirFluid,
-                currentProp);
-            if (minLoopTemp < declaredMelting - CoolantLoopEngine.FREEZE_TOLERANCE_CELSIUS) {
-                mEngine.setRuptured(true);
-                mEngine.setFailureReason(
-                    CoolantLocalization.format(
-                        "coolantloops.pump.status.catastrophic_solidification",
-                        minLoopTemp,
-                        declaredMelting,
-                        currentProp != null ? currentProp.getFluidName() : "molten fluid"));
-                triggerCatastrophicExplosion(mEngine.getFailureReason(), mEngine.getRupturedSegment());
-                return false;
-            }
-        }
-
-        mLoopState = LoopState.CIRCULATING;
-        mEngine.setPumpPowered(true);
-        double wattsPerEu = (CoolantLoopDataRegistry.getPhysicsData() != null)
-            ? CoolantLoopDataRegistry.getPhysicsData()
-                .getPumpMechanicalPowerPerEU()
-            : 80.0;
-        double mechanicalWatts = requiredEU * wattsPerEu * mRotorEfficiency * effFactor;
-        mEngine.setPumpMechanicalPowerWatts(mechanicalWatts);
-        degradeRotor(requiredEU);
-
-        // Synchronize absolute dissolved gases across engine and all segments when changed
-        if (mEngine != null) {
-            long currentGasVer = mReservoir.getDissolvedGasesVersion();
-            if (mLastSyncedGasVersion != currentGasVer) {
-                mLastSyncedGasVersion = currentGasVer;
-                Map<String, Long> gases = mReservoir.getDissolvedGases();
-                mEngine.setDissolvedGases(gases);
-                double gasFrac = getDissolvedGasFraction();
-                mEngine.setDissolvedGasFraction(gasFrac);
-                long loopLiters = mEngine.getTotalLoopVolumeLiters();
-                for (LoopSegment seg : mEngine.getSegments()) {
-                    seg.setDissolvedGases(gases, loopLiters);
-                    seg.setDissolvedGasFraction(gasFrac);
-                }
-            }
-        }
-
-        // Advance 1 tick (0.05 seconds) of fluid dynamics
-        mEngine.step(0.05);
-
-        // Process thermal exchange across in-line devices matching segment ID
-        double flowRate = mEngine.getVolumetricFlowRate();
-        for (DeviceSegmentBinding b : getDeviceBindings()) {
-            b.device.processThermalExchange(branchFlow(flowRate, b.segment), 0.05, mEngine.getFluid(), b.segment);
-        }
-
-        // Check for catastrophic rupture
-        if (mEngine.isRuptured()) {
-            triggerCatastrophicExplosion(mEngine.getFailureReason(), mEngine.getRupturedSegment());
-            return false;
-        }
-
-        return true;
+        return null;
     }
 
-    @Override
-    public boolean onRunningTick(ItemStack aStack) {
-        return true;
-    }
-
-    /**
-     * Trigger catastrophic pump explosion and drain 80% of fluid from the Railcraft tank.
-     */
     protected void triggerCatastrophicExplosion(String reason) {
         triggerCatastrophicExplosion(reason, mEngine != null ? mEngine.getRupturedSegment() : null);
     }
