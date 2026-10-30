@@ -1104,6 +1104,61 @@ public class CoolantPumpStructureTest {
     }
 
     @Test
+    public void testFormedLoopNoticesAChangedBlock() {
+        MTECoolantPump pump = createOperatingPumpWithBase(new boolean[] { true });
+        pump.mMachine = true;
+        Mockito.when(
+            pump.getBaseMetaTileEntity()
+                .getTimer())
+            .thenReturn(1000L);
+        LoopSegment seg = new LoopSegment("pipe_test", 10.0, 0.1, 0.00005, 0.5, 100.0, 1000.0, 20.0);
+        java.util.Set<LoopGraphCrawler.BlockPosCoord> positions = new java.util.HashSet<>();
+        positions.add(new LoopGraphCrawler.BlockPosCoord(1, 70, 3));
+        assertTrue(
+            pump.applyCrawlResult(
+                CrawlResult.success(
+                    Collections.singletonList(seg),
+                    Collections.emptyList(),
+                    positions,
+                    500.0,
+                    Materials.Steel,
+                    Collections.emptyList())));
+
+        net.minecraft.world.World world = Mockito.mock(net.minecraft.world.World.class);
+        net.minecraft.block.Block pipe = Mockito.mock(net.minecraft.block.Block.class);
+        net.minecraft.block.Block air = Mockito.mock(net.minecraft.block.Block.class);
+        Mockito.when(world.blockExists(1, 70, 3))
+            .thenReturn(true);
+        Mockito.when(world.getBlock(1, 70, 3))
+            .thenReturn(pipe);
+        assertNull(pump.findLoopBreak(world), "an intact loop is not broken");
+
+        Mockito.when(world.getBlock(1, 70, 3))
+            .thenReturn(air);
+        String reason = pump.findLoopBreak(world);
+        assertNotNull(reason, "a removed pipe breaks the loop");
+        assertTrue(reason.contains("70"), reason);
+
+        // A chunk that unloads is not a break
+        Mockito.when(world.blockExists(1, 70, 3))
+            .thenReturn(false);
+        assertNull(pump.findLoopBreak(world));
+
+        // Nor does the pump's own structure count until it has had time to check itself after a load
+        Mockito.when(world.blockExists(1, 70, 3))
+            .thenReturn(true);
+        Mockito.when(world.getBlock(1, 70, 3))
+            .thenReturn(pipe);
+        pump.mMachine = false;
+        assertNotNull(pump.findLoopBreak(world), "an unformed pump has no loop");
+        Mockito.when(
+            pump.getBaseMetaTileEntity()
+                .getTimer())
+            .thenReturn(10L);
+        assertNull(pump.findLoopBreak(world), "right after a load the pump has not checked its structure yet");
+    }
+
+    @Test
     public void testPumpLoopTooLargeStatusMessage() {
         boolean[] pumpAllowed = new boolean[] { true };
         MTECoolantPump pump = createOperatingPumpWithBase(pumpAllowed);

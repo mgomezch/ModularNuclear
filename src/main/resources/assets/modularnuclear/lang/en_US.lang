@@ -513,4 +513,7 @@ coolantloops.crawler.heater_unformed=Pressurized fluid heater at (%d, %d, %d) is
 coolantloops.crawler.heater_unformed_generic=Pressurized fluid heater is unformed or missing a valid outlet hatch
 coolantloops.crawler.heater_output=Coolant loop entered pressurized fluid heater output hatch at (%d, %d, %d) instead of input hatch
 coolantloops.crawler.heater_powerfailed=Pressurized fluid heater is in a powerfailed state (over-temperature trip: %.1f °C > %.1f °C)!
+coolantloops.crawler.loop_broken=Coolant loop broken at (%d, %d, %d)!
+coolantloops.crawler.device_unformed=Loop device at (%d, %d, %d) is no longer formed!
+coolantloops.crawler.device_removed=A loop device was removed!
 coolantloops.crawler.heater_powerfailed_generic=Pressurized fluid heater is in a powerfailed state (over-temperature trip)!

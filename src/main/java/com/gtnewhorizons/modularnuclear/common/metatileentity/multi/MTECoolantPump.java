@@ -66,6 +66,7 @@ import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
+import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.PositionedStructureError;
 import gregtech.api.structure.error.StructureError;
@@ -114,6 +115,13 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     protected final List<DeviceSegmentBinding> mDeviceBindings = new ArrayList<>();
     protected long mLastSyncedGasVersion = -1L;
     protected boolean mLoopFormed = false;
+    /**
+     * The blocks the formed loop runs through (pipes and devices), as they were when it formed; rebuilt lazily after
+     * a load. A loop whose blocks change no longer exists.
+     */
+    protected int[] mFootprint;
+    private static final long STRUCTURE_SETTLE_TICKS = 200;
+    protected Block[] mFootprintBlocks;
     protected String mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.waiting");
     protected Materials mTankMaterial = Materials.Steel;
 
@@ -859,6 +867,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         rebuildDeviceBindings();
         mRequiredFillLiters = requiredFill;
         mLoopFormed = true;
+        mFootprint = null;
         mHasEverBeenEnabled = true;
 
         if (getBaseMetaTileEntity() != null && !getBaseMetaTileEntity().isAllowedToWork()) {
@@ -903,6 +912,10 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 stepActiveCrawl();
             } else if (!mLoopFormed && mMachine && aTick % 100 == 0) {
                 crawlLoopGraph();
+            }
+            if (mLoopFormed && aTick % 20 == 0) {
+                String loopBreak = findLoopBreak(aBaseMetaTileEntity.getWorld());
+                if (loopBreak != null) onDeviceDisconnected(null, loopBreak);
             }
             stepCoolantLoop();
             if (mLoopFormed && aTick % 20 == 0) {
@@ -1159,6 +1172,64 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             return drained;
         }
         return false;
+    }
+
+    /**
+     * Why the formed loop no longer exists, or null if it still does: the pump's own structure broke, a device's
+     * machine was removed or unformed, or a pipe or device block in a loaded chunk changed since the loop formed.
+     */
+    public String findLoopBreak(World world) {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (mNeedsPostLoadRebind) return null;
+        // Multiblocks report unformed until their first structure check after a load
+        boolean settled = base != null && base.getTimer() > STRUCTURE_SETTLE_TICKS;
+        if (!mMachine && settled) {
+            return CoolantLocalization
+                .format("coolantloops.crawler.loop_broken", base.getXCoord(), (int) base.getYCoord(), base.getZCoord());
+        }
+        for (ICoolantLoopDevice dev : mLoopDevices) {
+            if (dev instanceof IMetaTileEntity mte) {
+                IGregTechTileEntity dte = mte.getBaseMetaTileEntity();
+                if (dte == null || dte.isInvalidTileEntity()) {
+                    return CoolantLocalization.get("coolantloops.crawler.device_removed");
+                }
+                if (mte instanceof MTEMultiBlockBase mb && !mb.mMachine && dte.getTimer() > STRUCTURE_SETTLE_TICKS) {
+                    return CoolantLocalization.format(
+                        "coolantloops.crawler.device_unformed",
+                        dte.getXCoord(),
+                        (int) dte.getYCoord(),
+                        dte.getZCoord());
+                }
+            } else if (dev instanceof TileEntity te && te.isInvalid()) {
+                return CoolantLocalization.get("coolantloops.crawler.device_removed");
+            }
+        }
+        if (world == null || mLastCrawlResult == null) return null;
+        if (mFootprint == null) captureFootprint(world);
+        for (int i = 0, n = mFootprintBlocks.length; i < n; i++) {
+            int x = mFootprint[3 * i], y = mFootprint[3 * i + 1], z = mFootprint[3 * i + 2];
+            if (world.blockExists(x, y, z) && world.getBlock(x, y, z) != mFootprintBlocks[i]) {
+                return CoolantLocalization.format("coolantloops.crawler.loop_broken", x, y, z);
+            }
+        }
+        return null;
+    }
+
+    private void captureFootprint(World world) {
+        Set<LoopGraphCrawler.BlockPosCoord> positions = mLastCrawlResult.pipePositions;
+        int[] coords = new int[3 * positions.size()];
+        Block[] blocks = new Block[positions.size()];
+        int i = 0;
+        for (LoopGraphCrawler.BlockPosCoord p : positions) {
+            // A chunk unloaded now cannot be checked until a new crawl; mark it as matching anything
+            blocks[i] = world.blockExists(p.x, p.y, p.z) ? world.getBlock(p.x, p.y, p.z) : null;
+            coords[3 * i] = blocks[i] != null ? p.x : 0;
+            coords[3 * i + 1] = blocks[i] != null ? p.y : -1;
+            coords[3 * i + 2] = blocks[i] != null ? p.z : 0;
+            i++;
+        }
+        mFootprint = coords;
+        mFootprintBlocks = blocks;
     }
 
     @Override
