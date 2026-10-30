@@ -18,6 +18,7 @@ import net.minecraftforge.common.ForgeChunkManager;
 
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.Loader;
 import gregtech.api.hazards.Hazard;
@@ -52,7 +53,9 @@ public class EntityMeltdownFallout extends Entity {
                 mChunkTicket.bindEntity(this);
                 forceChunks();
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 
     private void forceChunks() {
@@ -64,7 +67,9 @@ public class EntityMeltdownFallout extends Entity {
                 try {
                     ForgeChunkManager
                         .forceChunk(mChunkTicket, new ChunkCoordIntPair(centerChunkX + dx, centerChunkZ + dz));
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
             }
         }
     }
@@ -73,7 +78,9 @@ public class EntityMeltdownFallout extends Entity {
         if (mChunkTicket != null) {
             try {
                 ForgeChunkManager.releaseTicket(mChunkTicket);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
             mChunkTicket = null;
         }
     }
@@ -139,7 +146,9 @@ public class EntityMeltdownFallout extends Entity {
         if (this.dataWatcher != null) {
             try {
                 this.dataWatcher.updateObject(12, (float) mContamination);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
     }
 
@@ -172,7 +181,8 @@ public class EntityMeltdownFallout extends Entity {
     public static boolean isPollutionEnabled() {
         try {
             return gregtech.GTMod.proxy != null && gregtech.GTMod.proxy.mPollution;
-        } catch (Throwable ignored) {
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
             return false;
         }
     }
@@ -181,7 +191,9 @@ public class EntityMeltdownFallout extends Entity {
         if (worldObj != null && worldObj.isRemote) {
             try {
                 return this.dataWatcher.getWatchableObjectFloat(12);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         return mContamination;
     }
@@ -194,12 +206,16 @@ public class EntityMeltdownFallout extends Entity {
             mContamination = 0.0;
             try {
                 this.dataWatcher.updateObject(12, 0.0f);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
             setDead();
         } else {
             try {
                 this.dataWatcher.updateObject(12, (float) mContamination);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
     }
 
@@ -261,7 +277,9 @@ public class EntityMeltdownFallout extends Entity {
         if (worldObj != null && !worldObj.isRemote) {
             try {
                 this.dataWatcher.updateObject(12, (float) mContamination);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         if (this.mContamination <= 0.0) {
             setDead();
@@ -336,7 +354,9 @@ public class EntityMeltdownFallout extends Entity {
             if (HazardProtection.isWearingFullRadioHazmat(player)) {
                 return true;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         int count = 0;
         for (int i = 1; i <= 4; i++) {
             ItemStack stack = player.getEquipmentInSlot(i);
@@ -348,7 +368,9 @@ public class EntityMeltdownFallout extends Entity {
                     || HazardProtection.protectsAgainstHazard(stack, Hazard.RADIOLOGICAL)) {
                     protects = true;
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
             if (!protects && stack.getUnlocalizedName() != null) {
                 String lower = stack.getUnlocalizedName()
                     .toLowerCase();

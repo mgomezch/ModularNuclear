@@ -60,19 +60,22 @@ public class NuclearSimulationWebServer {
                 if (f.exists() && f.isFile()) {
                     try {
                         return new String(java.nio.file.Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8).trim();
-                    } catch (Exception ignored) {}
+                    } catch (java.io.IOException e) {
+                        System.err.println("Cannot read presets " + f + ": " + e);
+                    }
                 }
             }
         }
         String[] candidatePaths = new String[] { "../../tools/nuclear_ceiling_best.json",
-            "../tools/nuclear_ceiling_best.json", "tools/nuclear_ceiling_best.json",
-            "/home/mgomezch/stuff/dev/nh-dev/tools/nuclear_ceiling_best.json" };
+            "../tools/nuclear_ceiling_best.json", "tools/nuclear_ceiling_best.json" };
         for (String p : candidatePaths) {
             java.io.File f = new java.io.File(p);
             if (f.exists() && f.isFile()) {
                 try {
                     return new String(java.nio.file.Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8).trim();
-                } catch (Exception ignored) {}
+                } catch (java.io.IOException e) {
+                    System.err.println("Cannot read presets " + f + ": " + e);
+                }
             }
         }
         return "[]";

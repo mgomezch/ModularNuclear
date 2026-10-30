@@ -122,7 +122,9 @@ public final class CoolantFluidHelper {
                 if (mat != null && mat.mName != null && isLiquidNuclearFuel(mat.mName)) {
                     res = true;
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         sNuclearFuelFluidCache.put(fluid, res);
         return res;
@@ -153,7 +155,9 @@ public final class CoolantFluidHelper {
                     if (mat != null && mat.mGas != null && mat.mGas == fluid) {
                         res = true;
                     }
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
             }
         }
         sGasCache.put(fluid, res);
@@ -207,7 +211,9 @@ public final class CoolantFluidHelper {
         if (fluid == null && prop != null) {
             try {
                 fluid = FluidRegistry.getFluid(prop.getFluidName());
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         if (fluid != null) {
             int tempK = (stack != null) ? fluid.getTemperature(stack) : fluid.getTemperature();
@@ -267,7 +273,9 @@ public final class CoolantFluidHelper {
                 float bTemp = world.getBiomeGenForCoords(x, z)
                     .getFloatTemperature(x, y, z);
                 return (bTemp * 100.0 - 32.0) / 1.8;
-            } catch (Exception ignored) {}
+            } catch (Exception swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         return 20.0;
     }

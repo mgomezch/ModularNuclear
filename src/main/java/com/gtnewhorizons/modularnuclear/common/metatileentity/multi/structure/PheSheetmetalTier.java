@@ -9,6 +9,7 @@ import net.minecraftforge.oredict.OreDictionary;
 
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -84,7 +85,9 @@ public enum PheSheetmetalTier {
                         .copy();
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         try {
             if (GregTechAPI.sBlockSheetmetalGT != null) {
@@ -92,7 +95,9 @@ public enum PheSheetmetalTier {
                     : fallbackSubId;
                 return new ItemStack(GregTechAPI.sBlockSheetmetalGT, 1, subId);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         return new ItemStack(Blocks.stone, 1, fallbackSubId);
     }
@@ -151,7 +156,9 @@ public enum PheSheetmetalTier {
                         return getByMaterial(m);
                     }
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
 
         if (block == Blocks.stone) {
@@ -182,7 +189,9 @@ public enum PheSheetmetalTier {
                     }
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         return null;
     }

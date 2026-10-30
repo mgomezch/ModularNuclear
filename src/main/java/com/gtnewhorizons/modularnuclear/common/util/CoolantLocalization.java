@@ -43,7 +43,9 @@ public final class CoolantLocalization {
                     }
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -61,7 +63,9 @@ public final class CoolantLocalization {
                     list.putAll(FALLBACK_MAP);
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 
     public static String get(String key) {

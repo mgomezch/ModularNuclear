@@ -30,7 +30,9 @@ public final class RotorThermalHelper {
                 }
                 clazz = clazz.getSuperclass();
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return false;
     }
 
@@ -50,7 +52,9 @@ public final class RotorThermalHelper {
                 Materials mat = ((MetaGeneratedTool) stack.getItem()).getPrimaryMaterial(stack);
                 if (mat != null && mat != Materials._NULL) return mat;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return Materials.Steel;
     }
 
@@ -66,7 +70,9 @@ public final class RotorThermalHelper {
                 return molten.getFluid()
                     .getTemperature() - 273.15;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         if (mat.mMeltingPoint > 0) {
             return mat.mMeltingPoint - 273.15;
         }
@@ -126,7 +132,9 @@ public final class RotorThermalHelper {
                 if (StatCollector.canTranslate(key)) {
                     return StatCollector.translateToLocal(key);
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
             return mat.mDefaultLocalName;
         }
         return mat.getLocalizedName();

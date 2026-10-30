@@ -18,6 +18,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -253,7 +254,9 @@ public class CoolantPumpReservoir {
                         }
                     }
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         String name = te.getClass()
             .getSimpleName();
@@ -333,7 +336,9 @@ public class CoolantPumpReservoir {
                     java.lang.reflect.Method mTest = TileMultiBlock.class.getDeclaredMethod("testIfMasterBlock");
                     mTest.setAccessible(true);
                     mTest.invoke(tmbCenter);
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
             }
             masterBlock = tmbCenter.getMasterBlock();
         }
@@ -350,7 +355,9 @@ public class CoolantPumpReservoir {
                                 .getDeclaredMethod("testIfMasterBlock");
                             mTest.setAccessible(true);
                             mTest.invoke(tmb);
-                        } catch (Throwable ignored) {}
+                        } catch (Throwable swallowed) {
+                            Swallowed.note(swallowed);
+                        }
                     }
                     masterBlock = tmb.getMasterBlock();
                     if (masterBlock != null) break;

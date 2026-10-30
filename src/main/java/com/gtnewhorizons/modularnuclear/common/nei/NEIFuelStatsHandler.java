@@ -32,6 +32,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import codechicken.lib.gui.GuiDraw;
 import codechicken.nei.PositionedStack;
@@ -89,7 +90,9 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                     }
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         sCachedThemeBg = 0xFFC6C6C6;
         return sCachedThemeBg;
     }
@@ -155,7 +158,9 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             try {
                 fieldGuiLeft = net.minecraft.client.gui.inventory.GuiContainer.class.getDeclaredField("field_147003_i");
                 fieldGuiLeft.setAccessible(true);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         try {
             fieldGuiTop = net.minecraft.client.gui.inventory.GuiContainer.class.getDeclaredField("guiTop");
@@ -164,7 +169,9 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             try {
                 fieldGuiTop = net.minecraft.client.gui.inventory.GuiContainer.class.getDeclaredField("field_147009_r");
                 fieldGuiTop.setAccessible(true);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
     }
 
@@ -172,7 +179,9 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         if (fieldGuiLeft != null) {
             try {
                 return fieldGuiLeft.getInt(gui);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         return (gui.width - 176) / 2;
     }
@@ -181,7 +190,9 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         if (fieldGuiTop != null) {
             try {
                 return fieldGuiTop.getInt(gui);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         return (gui.height - 166) / 2;
     }
@@ -422,7 +433,9 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                 if (fs != null) {
                     fd = ReactorDataRegistry.findFuel(fs);
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         if (fd != null) {
             List<ItemStack> stacks = getFuelStacks(fd);
@@ -461,7 +474,9 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                 if (fs != null) {
                     fd = ReactorDataRegistry.findFuel(fs);
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         if (fd != null) {
             List<ItemStack> stacks = getFuelStacks(fd);
@@ -513,7 +528,9 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                     return display;
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return null;
     }
 
@@ -542,7 +559,9 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                     }
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return null;
     }
 
@@ -621,11 +640,15 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                 if (ItemList.Display_Fluid.hasBeenSet()) {
                     fs = GTUtility.getFluidFromDisplayStack(target);
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
             if (fs == null) {
                 try {
                     fs = GTUtility.getFluidForFilledItem(target, true);
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
             }
             if (fs != null) {
                 return ReactorDataRegistry.matchesFluid(fs, fd.matching);

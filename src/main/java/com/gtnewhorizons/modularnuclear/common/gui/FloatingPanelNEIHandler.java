@@ -24,6 +24,7 @@ import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.widget.WidgetTree;
 import com.cleanroommc.modularui.widget.sizer.Area;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import codechicken.nei.NEIClientConfig;
 import codechicken.nei.VisiblityData;
@@ -86,7 +87,9 @@ public class FloatingPanelNEIHandler
                 GuiContainerManager.addDrawHandler(handler);
             }
             MinecraftForge.EVENT_BUS.register(handler);
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 
     public static boolean isNEIActive() {
@@ -106,7 +109,9 @@ public class FloatingPanelNEIHandler
                 return ctx.getRecipeViewerSettings()
                     .isEnabled(screen);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return true;
     }
 
@@ -146,7 +151,9 @@ public class FloatingPanelNEIHandler
                     .isClient()) {
                 return ClientScreenHandler.getMuiScreen();
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return null;
     }
 
@@ -194,7 +201,9 @@ public class FloatingPanelNEIHandler
             java.lang.reflect.Method m = panel.getClass()
                 .getMethod("getEffectiveArea");
             return (Area) m.invoke(panel);
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return panel.getArea();
     }
 
@@ -341,7 +350,9 @@ public class FloatingPanelNEIHandler
                     cb.accept(context);
                 }
             }
-        } catch (Throwable ignored) {} finally {
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        } finally {
             drawingOverNEI = false;
             GL11.glPopAttrib();
             GL11.glPopMatrix();
@@ -370,7 +381,9 @@ public class FloatingPanelNEIHandler
             java.lang.reflect.Method m = panel.getClass()
                 .getMethod("setLastRenderFrameId", long.class);
             m.invoke(panel, frameId);
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 
     // --- INEIGuiHandler implementation ---

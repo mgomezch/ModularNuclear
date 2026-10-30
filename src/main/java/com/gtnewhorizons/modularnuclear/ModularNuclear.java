@@ -9,6 +9,7 @@ import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.recipe.ModRecipes;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -79,7 +80,9 @@ public class ModularNuclear {
             if (cpw.mods.fml.common.Loader.isModLoaded("NotEnoughItems")) {
                 try {
                     new com.gtnewhorizons.modularnuclear.common.nei.NEIConfig().loadConfig();
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
             }
         }
     }

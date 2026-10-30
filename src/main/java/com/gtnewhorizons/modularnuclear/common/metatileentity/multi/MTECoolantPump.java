@@ -48,6 +48,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.Coolant
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
 import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
 
@@ -1902,7 +1903,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 }
                 clazz = clazz.getSuperclass();
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return false;
     }
 
@@ -2000,7 +2003,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 mCachedRotorObj = rotor;
                 mCachedRotorDamage = rotor.getItemDamage();
                 return true;
-            } catch (Throwable ignored) {
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
                 mRotorEfficiency = 1.0;
                 mRotorStack = rotor;
                 mRotorMaterial = Materials.Steel;
@@ -2029,7 +2033,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             try {
                 TurbineStatCalculator calc = new TurbineStatCalculator((MetaGeneratedTool) stack.getItem(), stack);
                 this.mRotorEfficiency = calc.getBaseEfficiency();
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
     }
 
@@ -2700,7 +2706,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         if (aNBT.hasKey("mLoopState")) {
             try {
                 mLoopState = LoopState.valueOf(aNBT.getString("mLoopState"));
-            } catch (Exception ignored) {}
+            } catch (Exception swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         if (aNBT.hasKey("mCurrentFillLiters")) {
             mCurrentFillLiters = aNBT.getLong("mCurrentFillLiters");

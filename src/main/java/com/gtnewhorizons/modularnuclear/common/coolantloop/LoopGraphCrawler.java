@@ -26,6 +26,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressuriz
 import com.gtnewhorizons.modularnuclear.common.metatileentity.pipe.MTECoolantPipe;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -76,7 +77,9 @@ public class LoopGraphCrawler {
                         bmpe.sendBlockEvent(GregTechTileClientEvents.CHANGE_CUSTOM_DATA, targetMask);
                         bmpe.issueTextureUpdate();
                         bmpe.markDirty();
-                    } catch (Throwable ignored) {}
+                    } catch (Throwable swallowed) {
+                        Swallowed.note(swallowed);
+                    }
                 }
             }
         }
@@ -732,7 +735,9 @@ public class LoopGraphCrawler {
                     return pump.isLoopFormed() && !te.isInvalid() && pump.getBaseMetaTileEntity() != null;
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return false;
     }
 
@@ -2364,7 +2369,9 @@ public class LoopGraphCrawler {
             if ((pipe.mConnections & flag) != 0) return true;
             try {
                 if (pipe.isConnectedAtSide(side)) return true;
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         if (bmpe != null) {
             if ((bmpe.mConnections & flag) != 0) return true;

@@ -30,6 +30,7 @@ import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import codechicken.lib.gui.GuiDraw;
 import codechicken.nei.PositionedStack;
@@ -613,7 +614,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     else if ("radiovoltaic_ev".equals(r.id) || r.tier == 2) rvEv = r;
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         double hvAbs = (rvHv != null) ? rvHv.absorptionFast : 0.40;
         double hvSat = (rvHv != null) ? rvHv.fullOutputAbsorbedPerSecond
@@ -1217,7 +1220,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             if (fluid == null && fluidName.startsWith("molten.")) {
                 fluid = FluidRegistry.getFluid(fluidName.substring(7));
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         ItemStack display = null;
         if (fluid != null) {
@@ -1225,7 +1230,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 if (ItemList.Display_Fluid.hasBeenSet()) {
                     display = GTUtility.getFluidDisplayStack(new FluidStack(fluid, 1000), false);
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         if (display == null && isTestMode()) {
             display = createTestPlaceholder(name);
@@ -1391,7 +1398,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             if (fluid != null && ItemList.Display_Fluid.hasBeenSet()) {
                 return GTUtility.getFluidDisplayStack(new FluidStack(fluid, amount), false);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         if (isTestMode()) {
             return createTestPlaceholder(fluidName);
         }
@@ -1954,7 +1963,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 if (lines != null && !lines.isEmpty()) {
                     return lines;
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         // Fallback character-based word wrapping (~5px per char average in MC)
         int maxChars = Math.max(15, wrapWidth / 5);
@@ -2007,7 +2018,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             try {
                 fieldGuiLeft = GuiContainer.class.getDeclaredField("field_147003_i");
                 fieldGuiLeft.setAccessible(true);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         try {
             fieldGuiTop = GuiContainer.class.getDeclaredField("guiTop");
@@ -2016,7 +2029,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             try {
                 fieldGuiTop = GuiContainer.class.getDeclaredField("field_147009_r");
                 fieldGuiTop.setAccessible(true);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
     }
 
@@ -2024,7 +2039,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (fieldGuiLeft != null) {
             try {
                 return fieldGuiLeft.getInt(gui);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         return (gui.width - 176) / 2;
     }
@@ -2033,7 +2050,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (fieldGuiTop != null) {
             try {
                 return fieldGuiTop.getInt(gui);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         return (gui.height - 166) / 2;
     }
@@ -2522,6 +2541,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
             // Scattered moderated neutrons arrow (purple, straight down below pie chart)
             drawArrow(FAST_PIE_X, 44.0 + dy, FAST_PIE_X, 52.0 + dy, 2.0, 4.0, 5.5, 0xFF7F00FF);
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 }

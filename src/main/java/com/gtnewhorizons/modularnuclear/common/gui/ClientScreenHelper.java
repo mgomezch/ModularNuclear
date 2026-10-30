@@ -7,6 +7,8 @@ import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
+
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -89,7 +91,9 @@ public class ClientScreenHelper {
                         reserved = Math.max(reserved, y + h);
                     }
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
 
             // Check drawWidgets set in LayoutManager
             try {
@@ -111,8 +115,12 @@ public class ClientScreenHelper {
                         }
                     }
                 }
-            } catch (Throwable ignored) {}
-        } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         if (reserved > 0) {
             return Math.min(reserved + 3, 26); // at most 26px below top bar

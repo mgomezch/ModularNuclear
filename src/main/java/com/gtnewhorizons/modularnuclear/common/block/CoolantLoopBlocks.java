@@ -3,6 +3,7 @@ package com.gtnewhorizons.modularnuclear.common.block;
 import net.minecraft.block.Block;
 
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityCreativeHeatReservoir;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
@@ -77,6 +78,8 @@ public class CoolantLoopBlocks {
             if (map != null) {
                 map.put(from, to);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 }

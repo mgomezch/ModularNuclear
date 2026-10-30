@@ -169,7 +169,9 @@ public final class NuclearFuelClassification {
             for (int id : ids) {
                 if (id == targetId) return true;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return false;
     }
 
@@ -603,7 +605,9 @@ public final class NuclearFuelClassification {
                     cachedNeutronSourceItem = goodgenerator.loader.Loaders.neutronSource;
                     neutronSourceInitialized = true;
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
             if (cachedNeutronSourceItem == null) {
                 try {
                     cachedNeutronSourceItem = cpw.mods.fml.common.registry.GameRegistry
@@ -611,7 +615,9 @@ public final class NuclearFuelClassification {
                     if (cachedNeutronSourceItem != null) {
                         neutronSourceInitialized = true;
                     }
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
             }
         }
         if (cachedNeutronSourceItem != null) {
@@ -632,7 +638,9 @@ public final class NuclearFuelClassification {
                 neutronSourceInitialized = true;
                 return true;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return false;
     }
 

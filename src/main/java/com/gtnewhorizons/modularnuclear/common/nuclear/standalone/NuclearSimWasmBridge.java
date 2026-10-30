@@ -92,7 +92,9 @@ public class NuclearSimWasmBridge {
         if (grid != null && typeStr != null) {
             try {
                 grid.setTileCode(x, y, typeStr);
-            } catch (Exception ignored) {}
+            } catch (RuntimeException e) {
+                System.err.println("setTile(" + x + ", " + y + ", " + typeStr + ") failed: " + e);
+            }
         }
     }
 
@@ -116,7 +118,9 @@ public class NuclearSimWasmBridge {
                 if (fit != null && !fit.isEmpty()) {
                     grid.setTurbineFitting(TurbineCalculator.FittingMode.valueOf(fit));
                 }
-            } catch (Exception ignored) {}
+            } catch (IllegalArgumentException e) {
+                System.err.println("setTurbine: unknown turbine option: " + e.getMessage());
+            }
         }
     }
 
@@ -552,7 +556,8 @@ public class NuclearSimWasmBridge {
         double d = 0;
         try {
             d = Double.parseDouble(value);
-        } catch (Exception ignored) {
+        } catch (NumberFormatException e) {
+            System.err.println("setParam(" + key + "): not a number: " + value);
             return;
         }
         if ("huPerDegree".equals(key)) {

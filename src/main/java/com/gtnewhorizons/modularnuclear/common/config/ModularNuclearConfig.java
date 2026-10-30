@@ -10,6 +10,7 @@ import net.minecraftforge.oredict.OreDictionary;
 
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
@@ -335,7 +336,9 @@ public final class ModularNuclearConfig {
         String unloc = null;
         try {
             unloc = stack.getUnlocalizedName();
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         String regName = null;
         try {
@@ -345,12 +348,16 @@ public final class ModularNuclearConfig {
                     regName = uid.modId + ":" + uid.name;
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         int[] oreIDs = null;
         try {
             oreIDs = OreDictionary.getOreIDs(stack);
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         for (String entry : list) {
             if (entry == null || entry.isEmpty()) continue;
@@ -460,7 +467,9 @@ public final class ModularNuclearConfig {
                 if (matchesItem(stack, new String[] { itemPattern })) {
                     return val;
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         return 0.0;
     }

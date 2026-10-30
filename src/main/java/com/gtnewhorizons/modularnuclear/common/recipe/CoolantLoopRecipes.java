@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
@@ -90,7 +91,9 @@ public class CoolantLoopRecipes {
                     return (ItemStack) m.invoke(constant, 1);
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return null;
     }
 
@@ -105,7 +108,9 @@ public class CoolantLoopRecipes {
                 if (meta > 0) is.setItemDamage(meta);
                 return is;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return null;
     }
 

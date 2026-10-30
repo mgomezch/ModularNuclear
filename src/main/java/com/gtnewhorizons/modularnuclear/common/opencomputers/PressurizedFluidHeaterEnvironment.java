@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.enums.GTValues;
 import li.cil.oc.api.Network;
@@ -31,7 +32,9 @@ public class PressurizedFluidHeaterEnvironment extends ManagedEnvironment implem
                     builder.withComponent("pressurized_fluid_heater")
                         .create());
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 
     @Override

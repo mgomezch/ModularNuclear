@@ -6,6 +6,7 @@ import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.CoolantPumpStructure;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PheSheetmetalTier;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -43,7 +44,9 @@ public enum CoolantStructureChannels implements IStructureChannels {
     public void registerAsIndicator(ItemStack indicator, int channelValue) {
         try {
             StructureLibAPI.registerChannelItem(get(), "coolantloops", channelValue, indicator);
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 
     @Override
@@ -60,7 +63,9 @@ public enum CoolantStructureChannels implements IStructureChannels {
             try {
                 StructureLibAPI
                     .registerChannelDescription(value.get(), "coolantloops", "channels.coolantloops." + value.get());
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
 
         // Register indicator items for STRUCTURE_WIDTH (3, 5, 7, 9)
@@ -70,7 +75,9 @@ public enum CoolantStructureChannels implements IStructureChannels {
                     STRUCTURE_WIDTH.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings2, w, 15), w);
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         // Register indicator items for STRUCTURE_HEIGHT (4 to 8)
         try {
@@ -79,7 +86,9 @@ public enum CoolantStructureChannels implements IStructureChannels {
                     STRUCTURE_HEIGHT.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings2, h, 15), h);
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         // Register indicator items for TANK_MATERIAL (Cast Iron, Steel, Stainless, Titanium, Tungstensteel, Neutronium)
         try {
@@ -90,7 +99,9 @@ public enum CoolantStructureChannels implements IStructureChannels {
                     TANK_MATERIAL.registerAsIndicator(stack.copy(), tier);
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         // Register indicator items for PHE_HEIGHT (3, 5, 7, 9)
         try {
@@ -99,7 +110,9 @@ public enum CoolantStructureChannels implements IStructureChannels {
                     PHE_HEIGHT.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings1, h, 11), h);
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         // Register indicator items for PHE_LENGTH (5 to 11)
         try {
@@ -108,7 +121,9 @@ public enum CoolantStructureChannels implements IStructureChannels {
                     PHE_LENGTH.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings1, l, 11), l);
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         // Register indicator items for PHE_SHEETMETAL (Copper, Steel, Stainless, Titanium, Tungstensteel, Neutronium)
         try {
@@ -118,7 +133,9 @@ public enum CoolantStructureChannels implements IStructureChannels {
                     PHE_SHEETMETAL.registerAsIndicator(stack.copy(), tier.getTier());
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         // Register indicator items for HEATER_LENGTH (3 to 11)
         try {
@@ -127,6 +144,8 @@ public enum CoolantStructureChannels implements IStructureChannels {
                     HEATER_LENGTH.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings1, l, 11), l);
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 }

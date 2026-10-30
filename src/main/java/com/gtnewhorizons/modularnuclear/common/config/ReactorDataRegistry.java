@@ -36,6 +36,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.enums.ItemList;
@@ -83,17 +84,23 @@ public final class ReactorDataRegistry {
         Item item = null;
         try {
             item = stack.getItem();
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         if (item == null) return 0L;
         int id = 0;
         try {
             id = Item.getIdFromItem(item);
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         if (id <= 0) return 0L;
         int damage = 0;
         try {
             damage = stack.isItemStackDamageable() ? 0 : stack.getItemDamage();
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         if (damage == OreDictionary.WILDCARD_VALUE) {
             damage = 0;
         }
@@ -119,7 +126,8 @@ public final class ReactorDataRegistry {
             Class<?> clazz = Class.forName("com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification");
             clazz.getMethod("clearCaches")
                 .invoke(null);
-        } catch (Throwable ignored) {
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
             // Standalone CLI or WebAssembly environment without Minecraft classes
         }
     }
@@ -224,7 +232,9 @@ public final class ReactorDataRegistry {
                 long key = getItemKey(is);
                 if (key != 0L) consumer.accept(key);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 
     static {
@@ -495,7 +505,9 @@ public final class ReactorDataRegistry {
             if (ItemList.Display_Fluid.hasBeenSet()) {
                 fs = GTUtility.getFluidFromDisplayStack(stack);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         if (fs != null) {
             FuelData result = findFuel(fs);
             if (key != 0L) fuelCache.put(key, result != null ? result : NO_FUEL);
@@ -679,7 +691,9 @@ public final class ReactorDataRegistry {
             if (ItemList.Display_Fluid.hasBeenSet()) {
                 fs = GTUtility.getFluidFromDisplayStack(stack);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         if (fs != null) {
             CoolantFluidData res = findCoolantFluid(fs);
             if (key != 0L) coolantFluidItemCache.put(key, res != null ? res : NO_COOLANT_FLUID);
@@ -773,7 +787,9 @@ public final class ReactorDataRegistry {
                 ItemStack is = il.get(1L);
                 if (is != null) return is;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         // 2. Try OreDictionary (e.g. "ore:dustTritium")
         if (id.startsWith("ore:")) {
@@ -785,7 +801,9 @@ public final class ReactorDataRegistry {
                     is.stackSize = 1;
                     return is;
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
 
         // 3. Try IC2 item by name (e.g. "IC2:reactorDepletedUraniumSimple")
@@ -800,11 +818,15 @@ public final class ReactorDataRegistry {
                     res.stackSize = 1;
                     return res;
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
             try {
                 ItemStack is = GameRegistry.findItemStack("IC2", ic2Name, 1);
                 if (is != null) return is;
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
 
         // 4. Try GameRegistry (e.g. "modularnuclear:rodCustomDepletedFuel4", "minecraft:diamond", "modid:item:meta")
@@ -824,7 +846,9 @@ public final class ReactorDataRegistry {
                     if (it != null) {
                         return new ItemStack(it, 1, meta);
                     }
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
             }
         }
 
@@ -835,7 +859,9 @@ public final class ReactorDataRegistry {
                 ItemStack is = GTUtility.getFluidDisplayStack(new FluidStack(f, 1000), false);
                 if (is != null) return is;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         return null;
     }
@@ -854,12 +880,16 @@ public final class ReactorDataRegistry {
         Item item = null;
         try {
             item = stack.getItem();
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         String unloc = null;
         try {
             unloc = stack.getUnlocalizedName();
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         String regName = null;
         try {
@@ -869,17 +899,23 @@ public final class ReactorDataRegistry {
                     regName = uid.modId + ":" + uid.name;
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         int[] oreIDs = null;
         try {
             oreIDs = OreDictionary.getOreIDs(stack);
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         int damage = 0;
         try {
             damage = stack.getItemDamage();
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         for (String pattern : patterns) {
             if (pattern == null || pattern.isEmpty()) continue;
@@ -920,14 +956,18 @@ public final class ReactorDataRegistry {
                     if (il != null && il.hasBeenSet() && il.isStackEqual(stack, false, true)) {
                         return true;
                     }
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
             } else if (!pattern.contains(":") && !pattern.contains(".") && !pattern.contains("*")) {
                 try {
                     ItemList il = ItemList.valueOf(pattern);
                     if (il != null && il.hasBeenSet() && il.isStackEqual(stack, false, true)) {
                         return true;
                     }
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
             }
 
             // 5. Exact IC2 item match ("IC2:reactorUraniumSimple") via reflection / GameRegistry
@@ -940,13 +980,17 @@ public final class ReactorDataRegistry {
                     if (val instanceof ItemStack is && GTUtility.areStacksEqual(stack, is, true)) {
                         return true;
                     }
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
                 try {
                     ItemStack is = GameRegistry.findItemStack("IC2", ic2Name, 1);
                     if (is != null && GTUtility.areStacksEqual(stack, is, true)) {
                         return true;
                     }
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
             }
 
             // 6. Explicit Wildcard Fallback (only if pattern explicitly contains '*')
@@ -1017,7 +1061,9 @@ public final class ReactorDataRegistry {
                         try {
                             String loc = f.getLocalizedName(new FluidStack(f, 1000));
                             if (loc != null && loc.equalsIgnoreCase(q)) return f;
-                        } catch (Throwable ignored) {}
+                        } catch (Throwable swallowed) {
+                            Swallowed.note(swallowed);
+                        }
                     }
                 }
 
@@ -1036,12 +1082,16 @@ public final class ReactorDataRegistry {
                                 if (loc != null
                                     && ReactorConfigData.matchesPermutedDescriptors(normalizeFluidString(loc), normQ))
                                     return f;
-                            } catch (Throwable ignored) {}
+                            } catch (Throwable swallowed) {
+                                Swallowed.note(swallowed);
+                            }
                         }
                     }
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return null;
     }
 

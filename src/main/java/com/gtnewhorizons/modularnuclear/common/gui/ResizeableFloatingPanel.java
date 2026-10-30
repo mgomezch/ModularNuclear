@@ -12,6 +12,7 @@ import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.Platform;
 import com.cleanroommc.modularui.widget.sizer.Area;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 /**
  * A floating modular panel that provides enhanced draggable borders and visible resize indicators.
@@ -128,7 +129,9 @@ public class ResizeableFloatingPanel extends ModularPanel {
                     return new Area(0, 0, sw, sh);
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return null;
     }
 
@@ -157,7 +160,9 @@ public class ResizeableFloatingPanel extends ModularPanel {
                         return area;
                     }
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         return new Area(0, 0, 480, 270);
     }
@@ -167,7 +172,9 @@ public class ResizeableFloatingPanel extends ModularPanel {
             if (isValid()) {
                 return getScreen();
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return null;
     }
 

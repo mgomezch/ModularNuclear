@@ -21,6 +21,7 @@ import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
@@ -255,7 +256,9 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
             if (ItemList.IC2_Fuel_Rod_Empty != null && ItemList.IC2_Fuel_Rod_Empty.isStackEqual(stack, false, true)) {
                 return true;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         for (int id : OreDictionary.getOreIDs(stack)) {
             String ore = OreDictionary.getOreName(id);
             if ("fuelRodEmpty".equals(ore) || "rodEmpty".equals(ore) || "itemFuelRodEmpty".equals(ore)) return true;
@@ -290,7 +293,9 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
             if (ItemList.Circuit_Integrated != null && ItemList.Circuit_Integrated.isStackEqual(stack, false, true)) {
                 return stack.getItemDamage();
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         for (int id : OreDictionary.getOreIDs(stack)) {
             String ore = OreDictionary.getOreName(id);
             if ("circuitIntegrated".equals(ore)) {

@@ -5,6 +5,7 @@ import net.minecraftforge.common.MinecraftForge;
 import com.gtnewhorizons.modularnuclear.common.CommonProxy;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nei.NEIConfig;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -21,10 +22,14 @@ public class ClientProxy extends CommonProxy {
             registeredNEIHandlerInfo = true;
             try {
                 MinecraftForge.EVENT_BUS.register(new NEIConfig());
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
             try {
                 com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler.register();
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
     }
 

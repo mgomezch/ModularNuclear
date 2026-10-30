@@ -14,6 +14,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
+
 import gregtech.api.enums.Materials;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.util.GTRecipe;
@@ -51,22 +53,29 @@ public class CheeseRecipeRegistry {
             Item it = null;
             try {
                 it = stack.getItem();
-            } catch (Exception ignored) {}
+            } catch (Exception swallowed) {
+                Swallowed.note(swallowed);
+            }
             this.item = it;
 
             int dmg = 0;
             if (Items.feather != null) {
                 try {
                     dmg = Items.feather.getDamage(stack);
-                } catch (Exception ignored) {
+                } catch (Exception swallowed) {
+                    Swallowed.note(swallowed);
                     try {
                         dmg = stack.getItemDamage();
-                    } catch (Exception ignored2) {}
+                    } catch (Exception swallowedAgain) {
+                        Swallowed.note(swallowedAgain);
+                    }
                 }
             } else {
                 try {
                     dmg = stack.getItemDamage();
-                } catch (Exception ignored) {}
+                } catch (Exception swallowed) {
+                    Swallowed.note(swallowed);
+                }
             }
             this.damage = dmg;
             this.nbt = stack.getTagCompound();
@@ -135,7 +144,9 @@ public class CheeseRecipeRegistry {
                         }
                     }
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
             isLoaded = true;
         }
     }

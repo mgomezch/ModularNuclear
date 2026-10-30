@@ -93,7 +93,9 @@ public class CoolantBathRegistry {
                     }
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         // 2. Scan all GregTech materials for ingotHot <-> ingot pairs
         try {
@@ -114,7 +116,9 @@ public class CoolantBathRegistry {
                     }
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         // 3. Register cryogenic cells
         try {
@@ -133,7 +137,9 @@ public class CoolantBathRegistry {
             ItemStack airCell = null;
             try {
                 airCell = gregtech.api.util.GTModHandler.getIC2Item("airCell", 1L);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
             if (airCell == null) {
                 airCell = GTOreDictUnificator.get(OrePrefixes.cell, Materials.Air, 1L);
             }
@@ -146,7 +152,9 @@ public class CoolantBathRegistry {
             ItemStack heliumLiquidCell = null;
             try {
                 heliumLiquidCell = bartworks.system.material.WerkstoffLoader.LiquidHelium.get(OrePrefixes.cell);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
             if (heliumLiquidCell == null) {
                 heliumLiquidCell = GTOreDictUnificator.get(OrePrefixes.cell, Materials.Helium, 1L);
             }
@@ -156,7 +164,9 @@ public class CoolantBathRegistry {
                 GTOreDictUnificator.get(OrePrefixes.cell, Materials.Helium, 1L),
                 -269.0,
                 20700.0);
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 
     public static void registerCryoCellPair(String name, ItemStack liquidCell, ItemStack gasCell,
@@ -208,7 +218,9 @@ public class CoolantBathRegistry {
                 ItemStack airOut = null;
                 try {
                     airOut = gregtech.api.util.GTModHandler.getIC2Item("airCell", 1L);
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
                 if (airOut == null) airOut = GTOreDictUnificator.get(OrePrefixes.cell, Materials.Air, 1L);
                 return new CryoCellPair("liquidair", stack, airOut, -194.0, 174000.0);
             }
@@ -244,7 +256,9 @@ public class CoolantBathRegistry {
                 ItemStack airOut = null;
                 try {
                     airOut = gregtech.api.util.GTModHandler.getIC2Item("airCell", 1L);
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
                 if (airOut == null) airOut = GTOreDictUnificator.get(OrePrefixes.cell, Materials.Air, 1L);
                 return new CryoCellPair("liquidair", stack, airOut, -194.0, 174000.0);
             }

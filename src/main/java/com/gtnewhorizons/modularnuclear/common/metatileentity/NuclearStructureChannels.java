@@ -3,6 +3,7 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity;
 import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizon.structurelib.StructureLibAPI;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.structure.IStructureChannels;
 
@@ -35,13 +36,17 @@ public enum NuclearStructureChannels implements IStructureChannels {
             try {
                 StructureLibAPI.registerChannelItem(get(), "modularnuclear", channelValue, indicator);
                 return;
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         try {
             if (!StructureLibAPI.isDebugEnabled()) {
                 com.gtnewhorizon.structurelib.ChannelDescription.item(get(), channelValue, indicator);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         try {
             com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler.addItemTooltip(
                 indicator,
@@ -51,7 +56,9 @@ public enum NuclearStructureChannels implements IStructureChannels {
                 indicator,
                 com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler
                     .translatedText("structurelib.tooltip.indicator_dnd", channelValue, get()));
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 
     @Override
@@ -74,7 +81,9 @@ public enum NuclearStructureChannels implements IStructureChannels {
                     value.get(),
                     "modularnuclear",
                     "channels.modularnuclear." + value.get());
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
     }
 }

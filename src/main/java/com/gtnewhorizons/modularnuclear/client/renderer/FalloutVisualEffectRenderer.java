@@ -24,6 +24,7 @@ import org.lwjgl.opengl.GL11;
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -80,7 +81,9 @@ public class FalloutVisualEffectRenderer {
             if (HazardProtection.isWearingFullRadioHazmat(player)) {
                 return 4;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         int count = 0;
         for (int i = 1; i <= 4; i++) {
@@ -93,7 +96,9 @@ public class FalloutVisualEffectRenderer {
                     || HazardProtection.protectsAgainstHazard(stack, Hazard.RADIOLOGICAL)) {
                     protects = true;
                 }
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
             if (!protects && stack.getUnlocalizedName() != null) {
                 String lower = stack.getUnlocalizedName()
                     .toLowerCase();
@@ -125,7 +130,9 @@ public class FalloutVisualEffectRenderer {
             if (HazardProtection.isWearingFullRadioHazmat(player)) {
                 return true;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         return getHazmatPieceCount(player) >= 4;
     }
 
@@ -254,7 +261,9 @@ public class FalloutVisualEffectRenderer {
             if (shaderGroup != null) {
                 try {
                     shaderGroup.deleteShaderGroup();
-                } catch (Throwable ignored) {}
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
                 shaderGroup = null;
             }
         }
@@ -278,7 +287,9 @@ public class FalloutVisualEffectRenderer {
                     seedUni.func_148090_a((float) (Math.random() * 1000.0));
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 
     private void renderShader(Minecraft mc, float partialTicks) {

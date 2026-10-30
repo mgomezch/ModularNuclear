@@ -13,6 +13,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -111,7 +112,9 @@ public class EntityCherenkovBeamFX extends EntityFX {
                 String line = new String(java.nio.file.Files.readAllBytes(overrideFile.toPath())).trim();
                 intensityMult = Float.parseFloat(line);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         float intensity = Math.min(1.0f, reactor.mClientCherenkovIntensity) * intensityMult;
         if (intensity <= 0.001f) return;

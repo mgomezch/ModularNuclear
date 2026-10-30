@@ -4,6 +4,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.Loader;
 
@@ -28,7 +29,8 @@ public class ProjectRedIntegration {
         if (!isLoaded || world == null) return false;
         try {
             return ProjectRedTransmissionHandler.isInterfacing(world, x, y, z, facing);
-        } catch (Throwable ignored) {
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
             return false;
         }
     }
@@ -37,7 +39,8 @@ public class ProjectRedIntegration {
         if (!isLoaded || world == null) return -1;
         try {
             return ProjectRedTransmissionHandler.getBundledInputAllSides(world, x, y, z, channel);
-        } catch (Throwable ignored) {
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
             return -1;
         }
     }

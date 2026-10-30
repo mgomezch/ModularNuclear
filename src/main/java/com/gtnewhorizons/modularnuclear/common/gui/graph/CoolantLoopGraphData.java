@@ -34,6 +34,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressuriz
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityCreativeHeatReservoir;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -525,7 +526,9 @@ public class CoolantLoopGraphData {
                             .getField("mLastHeatOutput");
                         double heatOut = heatField.getDouble(devObj);
                         extra.put("Heat output", String.format(Locale.US, "%,.1f HU/s", heatOut));
-                    } catch (Throwable ignored) {}
+                    } catch (Throwable swallowed) {
+                        Swallowed.note(swallowed);
+                    }
                 } else if (devObj instanceof MTEHatchPressurizedFluid hatch) {
                     label = "Passage hatch";
                     itemType = "passage_hatch";

@@ -15,6 +15,7 @@ import com.cleanroommc.modularui.utils.fluid.FluidStackTank;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
@@ -153,7 +154,9 @@ public class MTEHatchNuclearHatch extends MTEHatch {
         Fluid fluid = null;
         try {
             fluid = resource.getFluid();
-        } catch (Exception ignored) {}
+        } catch (Exception swallowed) {
+            Swallowed.note(swallowed);
+        }
         if (fluid == null) return 0;
         String name = fluid.getName()
             .toLowerCase();

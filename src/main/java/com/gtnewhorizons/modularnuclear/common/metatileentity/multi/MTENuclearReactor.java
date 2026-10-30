@@ -59,6 +59,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemKitModularNucl
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import appeng.helpers.ICustomNameObject;
 import cpw.mods.fml.common.Loader;
@@ -604,7 +605,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         try {
             GTLog.writeExplosionLog(this, reason);
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         if (!GregTechAPI.sMachineExplosions) {
             ModularNuclear.LOG.warn(
@@ -795,7 +798,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     cX + 0.5,
                     cY + 0.5,
                     cZ + 0.5);
-            } catch (Throwable ignored) {}
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
     }
 
@@ -810,7 +815,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         try {
             GTLog.writeExplosionLog(this, "THERMAL SHOCK: " + reason);
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         // Void the coolant in the affected hatch (flashes into steam)
         if (hatch != null) {
@@ -838,7 +845,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (GTMod.proxy != null && GTMod.proxy.powerfailTracker != null) {
                 GTMod.proxy.powerfailTracker.createPowerfailEvent(base);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         try {
             World world = base.getWorld();
@@ -853,7 +862,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 cX + 0.5,
                 cY + 0.5,
                 cZ + 0.5);
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 
     public void triggerDryCoolantShutdown(String reason) {
@@ -1560,7 +1571,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         ModularNuclear.proxy.removeReactor(this);
         try {
             super.onRemoval();
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
     }
 
     @Override
@@ -2517,7 +2530,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 float bTemp = world.getBiomeGenForCoords(x, z)
                     .getFloatTemperature(x, y, z);
                 return (bTemp * 100.0 - 32.0) / 1.8;
-            } catch (Exception ignored) {}
+            } catch (Exception swallowed) {
+                Swallowed.note(swallowed);
+            }
         }
         return NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     }
@@ -3014,7 +3029,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         int z) {
         try {
             super.getWailaNBTData(player, tile, tag, world, x, y, z);
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         tag.setInteger("progress", 0);
         tag.setInteger("maxProgress", 0);
     }

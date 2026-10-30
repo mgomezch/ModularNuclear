@@ -20,6 +20,8 @@ import net.minecraft.world.World;
 import net.minecraftforge.fluids.BlockFluidClassic;
 import net.minecraftforge.fluids.Fluid;
 
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
+
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
@@ -154,7 +156,9 @@ public class BlockCorium extends BlockFluidClassic {
                     }
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         String unloc = block.getUnlocalizedName();
         if (unloc != null) {

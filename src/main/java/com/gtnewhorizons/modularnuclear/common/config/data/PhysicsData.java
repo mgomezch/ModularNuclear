@@ -210,7 +210,7 @@ public class PhysicsData {
         if (val instanceof String s) {
             try {
                 return Double.parseDouble(s);
-            } catch (Exception ignored) {}
+            } catch (NumberFormatException ignored) {}
         }
         return def;
     }
@@ -221,7 +221,7 @@ public class PhysicsData {
         if (val instanceof String s) {
             try {
                 return Integer.parseInt(s);
-            } catch (Exception ignored) {}
+            } catch (NumberFormatException ignored) {}
         }
         return def;
     }

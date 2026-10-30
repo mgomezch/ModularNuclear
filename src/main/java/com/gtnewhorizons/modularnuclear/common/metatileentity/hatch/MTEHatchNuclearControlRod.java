@@ -20,6 +20,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearRe
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedIntegration;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
@@ -156,7 +157,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 if ("rod_indium".equals(crd.id)) return ControlRodType.INDIUM;
                 if ("rod_hafnium".equals(crd.id)) return ControlRodType.HAFNIUM;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         try {
             String cfgType = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig
@@ -164,7 +167,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
             if (cfgType != null) {
                 return ControlRodType.valueOf(cfgType.toUpperCase());
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         if (stack.getItem() == null) return ControlRodType.NONE;
 
@@ -178,7 +183,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 if (mat == Materials.Indium) return ControlRodType.INDIUM;
                 if (mat != null && "Hafnium".equalsIgnoreCase(mat.mName)) return ControlRodType.HAFNIUM;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         try {
             int[] oreIDs = OreDictionary.getOreIDs(stack);
@@ -190,7 +197,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 if ("stickLongIndium".equals(name)) return ControlRodType.INDIUM;
                 if ("stickLongHafnium".equals(name)) return ControlRodType.HAFNIUM;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         try {
             String unloc = stack.getUnlocalizedName();
@@ -202,7 +211,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 if ("stickLongIndium".equalsIgnoreCase(clean)) return ControlRodType.INDIUM;
                 if ("stickLongHafnium".equalsIgnoreCase(clean)) return ControlRodType.HAFNIUM;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         return ControlRodType.NONE;
     }
@@ -387,17 +398,23 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         try {
             Block ic2Pipe = GameRegistry.findBlock("IC2", "blockMiningPipe");
             if (ic2Pipe != null && block == ic2Pipe) return true;
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         try {
             Block ic2Tip = GameRegistry.findBlock("IC2", "blockMiningTip");
             if (ic2Tip != null && block == ic2Tip) return true;
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         try {
             ItemStack ic2Stack = ic2.api.item.IC2Items.getItem("miningPipe");
             if (ic2Stack != null && Block.getBlockFromItem(ic2Stack.getItem()) == block) return true;
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         // 2. Registry Unique Identifier
         try {
@@ -406,7 +423,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 && ("blockMiningPipe".equalsIgnoreCase(uid.name) || "blockMiningTip".equalsIgnoreCase(uid.name))) {
                 return true;
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         // 3. Unlocalized name check
         try {
@@ -419,7 +438,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                     return true;
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         // 4. OreDictionary check
         try {
@@ -435,7 +456,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                     }
                 }
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
 
         return false;
     }
