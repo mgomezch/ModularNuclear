@@ -7,6 +7,7 @@ import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
@@ -130,8 +131,7 @@ public final class PressurizedFluidHeaterStructure {
                 .<MTEPressurizedFluidHeater>builder()
                 .atLeast(MTEPressurizedFluidHeater.HeaterHatchElement.PressurizedInput)
                 .adder(MTEPressurizedFluidHeater::addPressurizedInputToMachineList)
-                .hatchIds(
-                    com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities.PRESSURIZED_HATCH_INPUT_ID)
+                .hatchIds(CoolantLoopMetaTileEntities.PRESSURIZED_HATCH_INPUT_ID)
                 .shouldReject(t -> !t.mPressurizedInputs.isEmpty())
                 .casingIndex(CASING_INDEX)
                 .hint(2)
@@ -143,8 +143,7 @@ public final class PressurizedFluidHeaterStructure {
                 .<MTEPressurizedFluidHeater>builder()
                 .atLeast(MTEPressurizedFluidHeater.HeaterHatchElement.PressurizedOutput)
                 .adder(MTEPressurizedFluidHeater::addPressurizedOutputToMachineList)
-                .hatchIds(
-                    com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities.PRESSURIZED_HATCH_OUTPUT_ID)
+                .hatchIds(CoolantLoopMetaTileEntities.PRESSURIZED_HATCH_OUTPUT_ID)
                 .shouldReject(t -> !t.mPressurizedOutputs.isEmpty())
                 .casingIndex(CASING_INDEX)
                 .hint(3)

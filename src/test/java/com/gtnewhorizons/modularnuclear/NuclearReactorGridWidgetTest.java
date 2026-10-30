@@ -25,6 +25,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.opencomputers.NuclearControlEnvironment;
@@ -553,7 +554,7 @@ public class NuclearReactorGridWidgetTest {
     @Test
     void testMixedNuclearHatchTiersAllowed() {
         MTENuclearReactor r = new MTENuclearReactor("test.nuclear.reactor");
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.NuclearHatchElement element = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.NuclearHatchElement();
+        NuclearReactorStructure.NuclearHatchElement element = new NuclearReactorStructure.NuclearHatchElement();
 
         MTEHatchNuclearHatch hatchLV = new MTEHatchNuclearHatch("hatch.lv", 1, 16000, new String[0], null);
         MTEHatchNuclearHatch hatchHV = new MTEHatchNuclearHatch("hatch.hv", 3, 64000, new String[0], null);

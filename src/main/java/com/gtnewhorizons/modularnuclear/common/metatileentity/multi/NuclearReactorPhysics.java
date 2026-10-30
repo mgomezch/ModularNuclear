@@ -27,6 +27,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileContent;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileTick;
+import com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
 import gregtech.api.enums.Materials;
@@ -851,24 +852,23 @@ public class NuclearReactorPhysics {
             }
         }
         // 5. EASTER EGG: MOLTEN CHEESE EXTRACTION ABOVE 65°C
-        else if (bus.mTemperature > 65.0
-            && (com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
-                .isCheeseInput(stack)
-                || (bus.getClass() != MTEHatchNuclearBus.class && bus.findCheeseExtractionRecipe(stack) != null))) {
-                    bus.mDirectEUProduced = 0;
-                    if (reactor.getBaseMetaTileEntity() != null) {
-                        long aTick = reactor.getBaseMetaTileEntity()
-                            .getTimer();
-                        if (aTick != bus.mLastCheeseTick) {
-                            bus.mLastCheeseTick = aTick;
-                            processCheeseExtraction(reactor, bus);
-                        }
-                    } else {
+        else if (bus.mTemperature > 65.0 && (CheeseRecipeRegistry.getInstance()
+            .isCheeseInput(stack)
+            || (bus.getClass() != MTEHatchNuclearBus.class && bus.findCheeseExtractionRecipe(stack) != null))) {
+                bus.mDirectEUProduced = 0;
+                if (reactor.getBaseMetaTileEntity() != null) {
+                    long aTick = reactor.getBaseMetaTileEntity()
+                        .getTimer();
+                    if (aTick != bus.mLastCheeseTick) {
+                        bus.mLastCheeseTick = aTick;
                         processCheeseExtraction(reactor, bus);
                     }
                 } else {
-                    bus.mDirectEUProduced = 0;
+                    processCheeseExtraction(reactor, bus);
                 }
+            } else {
+                bus.mDirectEUProduced = 0;
+            }
 
         // Reset transient flux counters for next tick's display
         bus.mLastFastFlux = bus.mFastFlux;

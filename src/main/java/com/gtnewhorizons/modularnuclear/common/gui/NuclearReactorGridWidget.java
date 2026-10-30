@@ -29,6 +29,7 @@ import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.sizer.Area;
+import com.gtnewhorizons.modularnuclear.client.renderer.GrayscaleShader;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData;
@@ -37,6 +38,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.Moderat
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
@@ -457,13 +459,12 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
 
                     // Contents (item, fluid, or empty hatch tint)
                     if (cell.itemStack != null) {
-                        boolean shaderActive = isHeatmap
-                            && com.gtnewhorizons.modularnuclear.client.renderer.GrayscaleShader.begin();
+                        boolean shaderActive = isHeatmap && GrayscaleShader.begin();
                         try {
                             GuiDraw.drawItem(cell.itemStack, px + 1, py + 1, 16, 16, 0);
                         } finally {
                             if (shaderActive) {
-                                com.gtnewhorizons.modularnuclear.client.renderer.GrayscaleShader.end();
+                                GrayscaleShader.end();
                             }
                         }
 
@@ -487,13 +488,12 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                             GuiDraw.drawRect(px + 2, py + 14, barW, 1, 0xFF000000 | color);
                         }
                     } else if (cell.fluidStack != null) {
-                        boolean shaderActive = isHeatmap
-                            && com.gtnewhorizons.modularnuclear.client.renderer.GrayscaleShader.begin();
+                        boolean shaderActive = isHeatmap && GrayscaleShader.begin();
                         try {
                             GuiDraw.drawFluidTexture(cell.fluidStack, px + 1, py + 1, 16, 16, 0);
                         } finally {
                             if (shaderActive) {
-                                com.gtnewhorizons.modularnuclear.client.renderer.GrayscaleShader.end();
+                                GrayscaleShader.end();
                             }
                         }
                     } else if (!isHeatmap) {
@@ -574,14 +574,8 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         int cy = N * 18 + 4;
         GuiDraw.drawRect(cx, cy, 18, 18, 0xFF4A5568);
         GuiDraw.drawRect(cx + 1, cy + 1, 16, 16, 0xFF1A202C);
-        if (com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities.reactor != null) {
-            GuiDraw.drawItem(
-                com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities.reactor.copy(),
-                cx + 1,
-                cy + 1,
-                16,
-                16,
-                0);
+        if (ModMetaTileEntities.reactor != null) {
+            GuiDraw.drawItem(ModMetaTileEntities.reactor.copy(), cx + 1, cy + 1, 16, 16, 0);
         }
 
         int mx = (context != null) ? context.getMouseX() : 0;

@@ -1,5 +1,8 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear;
 
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
+
 public interface INuclearTile {
 
     /**
@@ -125,14 +128,14 @@ public interface INuclearTile {
     /**
      * Data-driven YAML fuel configuration if this tile is a fuel rod or liquid fuel hatch, or null otherwise.
      */
-    default com.gtnewhorizons.modularnuclear.common.config.data.FuelData getFuelData() {
+    default FuelData getFuelData() {
         return null;
     }
 
     /**
      * Data-driven YAML moderator configuration if this tile contains a moderator component, or null otherwise.
      */
-    default com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData getModeratorData() {
+    default ComponentData.ModeratorData getModeratorData() {
         return null;
     }
 
@@ -174,7 +177,7 @@ public interface INuclearTile {
     /**
      * Returns data-driven configuration for active heat vent component if present.
      */
-    default com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData getHeatVentData() {
+    default ComponentData.HeatVentData getHeatVentData() {
         return null;
     }
 
@@ -188,7 +191,7 @@ public interface INuclearTile {
     /**
      * Returns data-driven configuration for active heat exchanger component if present.
      */
-    default com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData getHeatExchangerData() {
+    default ComponentData.HeatExchangerData getHeatExchangerData() {
         return null;
     }
 

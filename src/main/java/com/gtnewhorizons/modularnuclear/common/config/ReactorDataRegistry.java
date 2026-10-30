@@ -35,6 +35,8 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.Reflect
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
+import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
+import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
@@ -457,8 +459,7 @@ public final class ReactorDataRegistry {
             CustomFuelMix mix = CustomFuelMix.fromStack(stack);
             if (mix != null) {
                 int rodSize = 4;
-                if (stack
-                    .getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod customRod) {
+                if (stack.getItem() instanceof ItemCustomFuelRod customRod) {
                     rodSize = customRod.rodSize;
                 }
                 FuelData fd = new FuelData();
@@ -482,13 +483,10 @@ public final class ReactorDataRegistry {
         }
 
         // Uncalibrated / empty-NBT custom fuel rods are not active fuels
-        if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod
-            || (com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel1 != null
-                && stack.getItem() == com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel1)
-            || (com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel2 != null
-                && stack.getItem() == com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel2)
-            || (com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel4 != null
-                && stack.getItem() == com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel4)) {
+        if (stack.getItem() instanceof ItemCustomFuelRod
+            || (ModItems.rodCustomFuel1 != null && stack.getItem() == ModItems.rodCustomFuel1)
+            || (ModItems.rodCustomFuel2 != null && stack.getItem() == ModItems.rodCustomFuel2)
+            || (ModItems.rodCustomFuel4 != null && stack.getItem() == ModItems.rodCustomFuel4)) {
             return null;
         }
 

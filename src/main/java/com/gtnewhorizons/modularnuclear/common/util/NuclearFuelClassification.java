@@ -7,6 +7,10 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
+import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.item.ItemCustomDepletedFuelRod;
 import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
@@ -14,6 +18,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
+import com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry;
 
 import gregtech.api.enums.ItemList;
 import gregtech.api.items.ItemCoolantCell;
@@ -98,7 +103,7 @@ public final class NuclearFuelClassification {
                 if (item != null && item.hasBeenSet()) {
                     ItemStack is = item.get(1L);
                     if (is != null) {
-                        long k = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(is);
+                        long k = ReactorDataRegistry.getItemKey(is);
                         if (k != 0L) ACTIVE_ROD_KEYS.add(k);
                     }
                 }
@@ -107,7 +112,7 @@ public final class NuclearFuelClassification {
                 if (item != null && item.hasBeenSet()) {
                     ItemStack is = item.get(1L);
                     if (is != null) {
-                        long k = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(is);
+                        long k = ReactorDataRegistry.getItemKey(is);
                         if (k != 0L) DEPLETED_ROD_KEYS.add(k);
                     }
                 }
@@ -115,7 +120,7 @@ public final class NuclearFuelClassification {
             if (ItemList.IC2_Fuel_Rod_Empty != null && ItemList.IC2_Fuel_Rod_Empty.hasBeenSet()) {
                 ItemStack is = ItemList.IC2_Fuel_Rod_Empty.get(1L);
                 if (is != null) {
-                    long k = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(is);
+                    long k = ReactorDataRegistry.getItemKey(is);
                     if (k != 0L) DEPLETED_ROD_KEYS.add(k);
                 }
             }
@@ -123,7 +128,7 @@ public final class NuclearFuelClassification {
                 if (item != null && item.hasBeenSet()) {
                     ItemStack is = item.get(1L);
                     if (is != null) {
-                        long k = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(is);
+                        long k = ReactorDataRegistry.getItemKey(is);
                         if (k != 0L) GT_COOLANT_KEYS.add(k);
                     }
                 }
@@ -155,7 +160,7 @@ public final class NuclearFuelClassification {
 
     private static void addKeyIfNotNull(java.util.Set<Long> set, ItemStack stack) {
         if (stack != null) {
-            long k = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+            long k = ReactorDataRegistry.getItemKey(stack);
             if (k != 0L) set.add(k);
         }
     }
@@ -178,7 +183,7 @@ public final class NuclearFuelClassification {
     public static boolean isIC2ActiveFuelCell(ItemStack stack) {
         if (stack == null) return false;
         initKeys();
-        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        long key = ReactorDataRegistry.getItemKey(stack);
         if (key != 0L && IC2_ACTIVE_KEYS.contains(key)) return true;
         if (Ic2Items.reactorUraniumSimple != null
             && GTUtility.areStacksEqual(stack, Ic2Items.reactorUraniumSimple, true)) return true;
@@ -200,7 +205,7 @@ public final class NuclearFuelClassification {
     public static boolean isIC2DepletedFuelCell(ItemStack stack) {
         if (stack == null) return false;
         initKeys();
-        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        long key = ReactorDataRegistry.getItemKey(stack);
         if (key != 0L && IC2_DEPLETED_KEYS.contains(key)) return true;
         if (Ic2Items.reactorDepletedUraniumSimple != null
             && GTUtility.areStacksEqual(stack, Ic2Items.reactorDepletedUraniumSimple, true)) return true;
@@ -221,12 +226,12 @@ public final class NuclearFuelClassification {
         if (stack == null) return false;
 
         initKeys();
-        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        long key = ReactorDataRegistry.getItemKey(stack);
         if (key != 0L && (DEPLETED_ROD_KEYS.contains(key) || IC2_DEPLETED_KEYS.contains(key))) {
             return true;
         }
 
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemBlocked(stack)) {
+        if (ModularNuclearConfig.isItemBlocked(stack)) {
             return true;
         }
 
@@ -254,7 +259,7 @@ public final class NuclearFuelClassification {
             }
         }
 
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.isSpentProduct(stack)) {
+        if (ReactorDataRegistry.isSpentProduct(stack)) {
             return true;
         }
 
@@ -289,8 +294,7 @@ public final class NuclearFuelClassification {
             return stack.getItemDamage() >= stack.getMaxDamage();
         }
 
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findFuel(stack);
+        FuelData fd = ReactorDataRegistry.findFuel(stack);
         if (fd != null) {
             int maxDur = fd.defaultDurability > 0 ? fd.defaultDurability : stack.getMaxDamage();
             return stack.isItemStackDamageable() && stack.getItemDamage() >= maxDur;
@@ -309,8 +313,7 @@ public final class NuclearFuelClassification {
 
     public static boolean isModeratorAtMaxDamage(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return false;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findModerator(stack);
+        ComponentData.ModeratorData mod = ReactorDataRegistry.findModerator(stack);
         if (mod != null && stack.stackTagCompound != null && stack.stackTagCompound.hasKey("advDmg")) {
             return stack.stackTagCompound.getInteger("advDmg") >= mod.durability;
         }
@@ -319,8 +322,7 @@ public final class NuclearFuelClassification {
 
     public static boolean isReflectorAtMaxDamage(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return false;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData refl = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findReflector(stack);
+        ComponentData.ReflectorData refl = ReactorDataRegistry.findReflector(stack);
         if (refl != null && refl.durability > 0
             && stack.stackTagCompound != null
             && stack.stackTagCompound.hasKey("advDmg")) {
@@ -331,11 +333,9 @@ public final class NuclearFuelClassification {
 
     public static ItemStack getModeratorSpentProduct(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return null;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findModerator(stack);
+        ComponentData.ModeratorData mod = ReactorDataRegistry.findModerator(stack);
         if (mod != null && mod.spentProduct != null && !mod.spentProduct.isEmpty()) {
-            return com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-                .resolveItemStack(mod.spentProduct);
+            return ReactorDataRegistry.resolveItemStack(mod.spentProduct);
         }
         return null;
     }
@@ -345,15 +345,15 @@ public final class NuclearFuelClassification {
         if (isDepletedOrEmptyRod(stack)) return false;
 
         initKeys();
-        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        long key = ReactorDataRegistry.getItemKey(stack);
         if (key != 0L && (ACTIVE_ROD_KEYS.contains(key) || IC2_ACTIVE_KEYS.contains(key))) {
             return true;
         }
 
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(stack) != null) {
+        if (ReactorDataRegistry.findFuel(stack) != null) {
             return true;
         }
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemFuel(stack)) {
+        if (ModularNuclearConfig.isItemFuel(stack)) {
             return true;
         }
 
@@ -397,18 +397,16 @@ public final class NuclearFuelClassification {
 
     public static boolean isFluidFuel(FluidStack fluid) {
         if (fluid == null || fluid.getFluid() == null) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isFluidBlocked(fluid)) return false;
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findFuel(fluid);
+        if (ModularNuclearConfig.isFluidBlocked(fluid)) return false;
+        FuelData fd = ReactorDataRegistry.findFuel(fluid);
         if (fd != null && fd.isLiquid) return true;
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isFluidFuel(fluid)) return true;
+        if (ModularNuclearConfig.isFluidFuel(fluid)) return true;
         return false;
     }
 
     public static Fluid getSpentFluid(FluidStack fuel) {
         if (fuel == null || fuel.getFluid() == null) return null;
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findFuel(fuel);
+        FuelData fd = ReactorDataRegistry.findFuel(fuel);
         if (fd != null && fd.spentProduct != null) {
             Fluid f = FluidRegistry.getFluid(fd.spentProduct);
             if (f == null && !fd.spentProduct.startsWith("fluid.")) {
@@ -421,16 +419,15 @@ public final class NuclearFuelClassification {
 
     public static boolean isCoolantFluid(FluidStack fluid) {
         if (fluid == null || fluid.getFluid() == null) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantFluid(fluid) != null)
-            return true;
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isCoolantFluid(fluid)) return true;
+        if (ReactorDataRegistry.findCoolantFluid(fluid) != null) return true;
+        if (ModularNuclearConfig.isCoolantFluid(fluid)) return true;
         return false;
     }
 
     public static boolean isHullOnlyComponent(ItemStack stack) {
         if (stack == null) return false;
         initKeys();
-        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        long key = ReactorDataRegistry.getItemKey(stack);
         if (key != 0L && HULL_ONLY_KEYS.contains(key)) return true;
         if (Ic2Items.reactorVentCore != null && GTUtility.areStacksEqual(stack, Ic2Items.reactorVentCore, true))
             return true;
@@ -448,11 +445,10 @@ public final class NuclearFuelClassification {
     public static boolean isItemCoolant(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return false;
         initKeys();
-        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        long key = ReactorDataRegistry.getItemKey(stack);
         if (key != 0L && GT_COOLANT_KEYS.contains(key)) return true;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findCoolantItem(stack) != null)
-            return true;
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemCoolant(stack)) return true;
+        if (ReactorDataRegistry.findCoolantItem(stack) != null) return true;
+        if (ModularNuclearConfig.isItemCoolant(stack)) return true;
         if (stack.getItem() instanceof ItemCoolantCell) return true;
         if (stack.getItem() instanceof ItemReactorHeatStorage) return true;
         for (ItemList item : GT_COOLANT_CELLS) {
@@ -485,44 +481,39 @@ public final class NuclearFuelClassification {
 
     public static boolean isItemHeatVent(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findHeatVent(stack) != null) return true;
-        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemHeatVent(stack);
+        if (ReactorDataRegistry.findHeatVent(stack) != null) return true;
+        return ModularNuclearConfig.isItemHeatVent(stack);
     }
 
     public static boolean isItemHeatExchanger(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findHeatExchanger(stack) != null)
-            return true;
-        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemHeatExchanger(stack);
+        if (ReactorDataRegistry.findHeatExchanger(stack) != null) return true;
+        return ModularNuclearConfig.isItemHeatExchanger(stack);
     }
 
     public static boolean isItemReflector(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(stack) != null)
-            return true;
-        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemReflector(stack);
+        if (ReactorDataRegistry.findReflector(stack) != null) return true;
+        return ModularNuclearConfig.isItemReflector(stack);
     }
 
     public static boolean isItemModerator(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack) != null)
-            return true;
-        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemModerator(stack);
+        if (ReactorDataRegistry.findModerator(stack) != null) return true;
+        return ModularNuclearConfig.isItemModerator(stack);
     }
 
     public static boolean isItemRadiovoltaic(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findRadiovoltaic(stack) != null)
-            return true;
-        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemRadiovoltaic(stack);
+        if (ReactorDataRegistry.findRadiovoltaic(stack) != null) return true;
+        return ModularNuclearConfig.isItemRadiovoltaic(stack);
     }
 
     public static double getInsulationDampening(ItemStack stack) {
         if (stack == null || isHullOnlyComponent(stack)) return 0.0;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.InsulatorData ins = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findInsulator(stack);
+        ComponentData.InsulatorData ins = ReactorDataRegistry.findInsulator(stack);
         if (ins != null) return ins.dampening;
-        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.getInsulatorDampening(stack);
+        return ModularNuclearConfig.getInsulatorDampening(stack);
     }
 
     public static boolean isItemAllowedInBus(ItemStack stack) {
@@ -545,7 +536,7 @@ public final class NuclearFuelClassification {
             return true;
         }
 
-        long key = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getItemKey(stack);
+        long key = ReactorDataRegistry.getItemKey(stack);
         if (key != 0L) {
             Boolean cached = BUS_ITEM_ALLOWED_CACHE.get(key);
             if (cached != null) {
@@ -562,7 +553,7 @@ public final class NuclearFuelClassification {
 
     private static boolean computeIsItemAllowedInBus(ItemStack stack, MTEHatchNuclearBus bus) {
         // 1. Dynamic cheese extraction Easter egg inputs:
-        if (com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+        if (CheeseRecipeRegistry.getInstance()
             .isCheeseInput(stack)) {
             return true;
         }
@@ -667,11 +658,9 @@ public final class NuclearFuelClassification {
         }
 
         // 1. Check YAML FuelData spentProduct
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findFuel(fuel);
+        FuelData fd = ReactorDataRegistry.findFuel(fuel);
         if (fd != null && fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
-            ItemStack spent = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-                .resolveItemStack(fd.spentProduct);
+            ItemStack spent = ReactorDataRegistry.resolveItemStack(fd.spentProduct);
             if (spent != null) {
                 return spent;
             }

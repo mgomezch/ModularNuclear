@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
@@ -70,7 +71,7 @@ public class ManifoldGroupAndDagTest {
                     int z = inv.getArgument(2);
                     TileEntity te = tiles.get(new ChunkCoordinates(x, y, z));
                     if (te instanceof TileEntityManifold) {
-                        return com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks.manifold;
+                        return CoolantLoopBlocks.manifold;
                     }
                     if (te instanceof BaseMetaPipeEntity) {
                         return gregtech.api.GregTechAPI.sBlockMachines;

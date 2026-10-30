@@ -5,6 +5,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
+
 import gregtech.api.enums.Materials;
 import gregtech.api.items.MetaGeneratedTool;
 
@@ -98,8 +100,8 @@ public final class RotorThermalHelper {
     }
 
     public static double getAlpha() {
-        if (com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry.getPhysicsData() != null) {
-            return com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry.getPhysicsData()
+        if (CoolantLoopDataRegistry.getPhysicsData() != null) {
+            return CoolantLoopDataRegistry.getPhysicsData()
                 .getRotorThermalAlpha();
         }
         return ALPHA;

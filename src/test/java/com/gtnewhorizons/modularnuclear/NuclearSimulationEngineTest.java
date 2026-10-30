@@ -18,19 +18,26 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.gtnewhorizons.modularnuclear.common.CommonProxy;
 import com.gtnewhorizons.modularnuclear.common.block.BlockCorium;
 import com.gtnewhorizons.modularnuclear.common.block.BlockCoriumSolid;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ItemNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
+import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
+import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
+import com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
+import com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGui;
+import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.NuclearStructureChannels;
@@ -39,17 +46,26 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearReactorPhysics;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure;
+import com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
+import com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemCardModularNuclear;
+import com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry;
 import com.gtnewhorizons.modularnuclear.common.recipe.ModRecipes;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
@@ -71,13 +87,13 @@ public class NuclearSimulationEngineTest {
     @BeforeAll
     static void initEnvironment() {
         TestEnvironmentHelper.init();
-        com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.sTestMode = true;
-        com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.resetData();
+        NEINeutronInteractionHandler.sTestMode = true;
+        NEINeutronInteractionHandler.resetData();
 
         try {
             ModFluids.init();
-            if (com.gtnewhorizons.modularnuclear.common.block.ModBlocks.nuclearCasing == null) {
-                com.gtnewhorizons.modularnuclear.common.block.ModBlocks.init();
+            if (ModBlocks.nuclearCasing == null) {
+                ModBlocks.init();
             }
             ModularNuclearTextures.init();
             Textures.BlockIcons.setCasingTexture(
@@ -111,7 +127,7 @@ public class NuclearSimulationEngineTest {
         int emissionCount = 1;
         boolean hasControlRod = false;
         double rodAbsorptionFraction = 0.0;
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fuelData = null;
+        FuelData fuelData = null;
 
         int fluxReceived = 0;
         int fastAbsorbed = 0;
@@ -207,7 +223,7 @@ public class NuclearSimulationEngineTest {
         }
 
         @Override
-        public com.gtnewhorizons.modularnuclear.common.config.data.FuelData getFuelData() {
+        public FuelData getFuelData() {
             return fuelData;
         }
 
@@ -467,10 +483,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testStandaloneGridPresetsAndExecution() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid gridPt = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            9,
-            9,
-            NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        StandaloneNuclearGrid gridPt = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
         gridPt.loadPreset("BREEDER_9X9");
 
         assertEquals(9, gridPt.getWidth());
@@ -486,10 +499,7 @@ public class NuclearSimulationEngineTest {
         assertTrue(gridPt.getTotalNeutronsGenerated() > 0, "Neutrons should be generated by Uranium rods");
         assertTrue(gridPt.getCoreMaxTemp() >= NuclearSimulationEngine.AMBIENT_TEMP);
 
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid9 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            9,
-            9,
-            NuclearSimulationEngine.PIPE_TIER_OSMIUM);
+        StandaloneNuclearGrid grid9 = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_OSMIUM);
         grid9.loadPreset("BEST_OSMIUM_9X9");
 
         assertEquals(9, grid9.getWidth());
@@ -513,10 +523,7 @@ public class NuclearSimulationEngineTest {
             "BEST_QUANTIUM_13X13", "BEST_FLUXED_13X13", "BEST_PLUTONIUM_13X13", "DEFAULT" };
         java.util.Map<String, java.util.List<String>> invalid = new java.util.LinkedHashMap<>();
         for (String preset : presets) {
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-                5,
-                5,
-                NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+            StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
             grid.loadPreset(preset);
             java.util.List<String> violations = grid.getStructureViolations()
                 .stream()
@@ -529,17 +536,11 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testDryHatchBoilingThresholdThermalShock() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
 
         // Put a distilled water hatch at (1, 1)
-        grid.setTile(
-            1,
-            1,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER);
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatch = grid.getTile(1, 1);
+        grid.setTile(1, 1, SimTile.TileType.HATCH_DISTILLED_WATER);
+        SimTile hatch = grid.getTile(1, 1);
 
         // Case 1: Hatch was dry, but cold (20°C <= 100°C boiling threshold) -> safe refill!
         hatch.setInputFluidAmount(0);
@@ -569,16 +570,10 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testIC2CoolantContinuousConductiveExchange() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
 
-        grid.setTile(
-            1,
-            1,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_IC2_COOLANT);
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatch = grid.getTile(1, 1);
+        grid.setTile(1, 1, SimTile.TileType.HATCH_IC2_COOLANT);
+        SimTile hatch = grid.getTile(1, 1);
 
         // Case 1: Coolant does NOT extract heat when at or below ambient temperature (20°C)
         hatch.setInputFluidAmount(2000);
@@ -679,10 +674,8 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testRadiovoltaicGenerationAndSaturation() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellHV = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellEV = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
+        SimTile cellHV = new SimTile(SimTile.TileType.RADIOVOLTAIC_HV);
+        SimTile cellEV = new SimTile(SimTile.TileType.RADIOVOLTAIC_EV);
 
         // 1. Check absorption properties (rebalanced: 40% for HV, 60% for EV)
         assertEquals(0.40, cellHV.getAbsorptionProbability(NeutronType.FAST), 1e-4);
@@ -697,8 +690,7 @@ public class NuclearSimulationEngineTest {
         cellHV.nuclearTick(1.0);
         long fastEU = cellHV.getDirectEUProduced();
 
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellHVThermal = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
+        SimTile cellHVThermal = new SimTile(SimTile.TileType.RADIOVOLTAIC_HV);
         cellHVThermal.onNeutronAbsorbed(NeutronType.THERMAL, 4);
         cellHVThermal.nuclearTick(1.0);
         long thermalEU = cellHVThermal.getDirectEUProduced();
@@ -707,8 +699,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(thermalEU, fastEU, "One fast neutron must count as four thermal neutrons");
 
         // 3. Saturation: HV caps around 1024 EU/t (2A HV)
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellHVSat = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
+        SimTile cellHVSat = new SimTile(SimTile.TileType.RADIOVOLTAIC_HV);
         cellHVSat.onNeutronAbsorbed(NeutronType.FAST, 1000);
         cellHVSat.nuclearTick(1.0);
         assertEquals(1024, cellHVSat.getDirectEUProduced(), "HV Radiovoltaic cell must cap at 1024 EU/t (2A HV)");
@@ -720,15 +711,9 @@ public class NuclearSimulationEngineTest {
         assertEquals(4096, cellEV.getDirectEUProduced(), "EV Radiovoltaic cell must cap at 4096 EU/t (2A EV)");
 
         // 5. Grid integration test with fuel and radiovoltaic
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
-        grid.setTile(
-            1,
-            1,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD);
-        grid.setTile(0, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        grid.setTile(1, 1, SimTile.TileType.FUEL_URANIUM_QUAD);
+        grid.setTile(0, 1, SimTile.TileType.RADIOVOLTAIC_EV);
         // Neutron rays leave in random directions, so allow enough cycles for one to reach the plate.
         for (int i = 0; i < 100; i++) {
             grid.step();
@@ -746,10 +731,8 @@ public class NuclearSimulationEngineTest {
         try {
             NuclearSimulationEngine.setTicksPerCycle(ticksPerCycle);
             NuclearSimulationEngine.setGridConductionMultiplier(mult);
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hot = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
-                com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.REFLECTOR_GOLD);
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cold = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
-                com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.REFLECTOR_GOLD);
+            SimTile hot = new SimTile(SimTile.TileType.REFLECTOR_GOLD);
+            SimTile cold = new SimTile(SimTile.TileType.REFLECTOR_GOLD);
             hot.setTemperature(1000.0);
             cold.setTemperature(20.0);
             INuclearTile[][] grid = { { hot }, { cold } };
@@ -801,8 +784,7 @@ public class NuclearSimulationEngineTest {
             int[] tpcs = { 5, 20 };
             for (int i = 0; i < tpcs.length; i++) {
                 NuclearSimulationEngine.setTicksPerCycle(tpcs[i]);
-                com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile plate = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
-                    com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
+                SimTile plate = new SimTile(SimTile.TileType.RADIOVOLTAIC_EV);
                 // A steady 8 thermal neutrons per second (2 per cycle at 5 ticks, 8 at 20 ticks) for 30 seconds,
                 // long enough for the plate's rate average to settle
                 for (int c = 0; c < 30 * 20 / tpcs[i]; c++) {
@@ -822,14 +804,12 @@ public class NuclearSimulationEngineTest {
     @Test
     void testRadiovoltaicLinearMaintenanceEfficiencyScaling() {
         // 1. SimTile nuclearTick efficiency does not scale individual plate directEUProduced
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellHV100 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
+        SimTile cellHV100 = new SimTile(SimTile.TileType.RADIOVOLTAIC_HV);
         cellHV100.onNeutronAbsorbed(NeutronType.FAST, 20);
         cellHV100.nuclearTick(1.0);
         long directEU100 = cellHV100.getDirectEUProduced();
 
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile cellHV50 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
+        SimTile cellHV50 = new SimTile(SimTile.TileType.RADIOVOLTAIC_HV);
         cellHV50.onNeutronAbsorbed(NeutronType.FAST, 20);
         cellHV50.nuclearTick(0.5);
         long directEU50 = cellHV50.getDirectEUProduced();
@@ -837,37 +817,27 @@ public class NuclearSimulationEngineTest {
         assertEquals(directEU100, directEU50, "Plate-level direct EU must be unscaled by maintenance efficiency");
 
         // 2. StandaloneNuclearGrid scales aggregate flowDirectEU linearly with maintenance efficiency (eta)
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid100 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        StandaloneNuclearGrid grid100 = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         grid100.setTicksPerCycle(20);
-        grid100
-            .setTile(1, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.NEUTRON_SOURCE);
+        grid100.setTile(1, 1, SimTile.TileType.NEUTRON_SOURCE);
         grid100.getTile(1, 1)
             .setNeutronSourceBeamEnergy(100.0f);
         grid100.getTile(1, 1)
             .setNeutronSourceBeamRate(10);
-        grid100
-            .setTile(0, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
+        grid100.setTile(0, 1, SimTile.TileType.RADIOVOLTAIC_EV);
         NuclearSimulationEngine.setRandomSeed(42);
         grid100.step();
         double gridEU100 = grid100.getFlowDirectEU();
         assertTrue(gridEU100 > 0, "Nominal grid must generate direct EU");
 
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid50 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        StandaloneNuclearGrid grid50 = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         grid50.setTicksPerCycle(20);
-        grid50
-            .setTile(1, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.NEUTRON_SOURCE);
+        grid50.setTile(1, 1, SimTile.TileType.NEUTRON_SOURCE);
         grid50.getTile(1, 1)
             .setNeutronSourceBeamEnergy(100.0f);
         grid50.getTile(1, 1)
             .setNeutronSourceBeamRate(10);
-        grid50
-            .setTile(0, 1, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_EV);
+        grid50.setTile(0, 1, SimTile.TileType.RADIOVOLTAIC_EV);
         grid50.setMaintenanceIssues(3); // 3 issues -> (6 - 3)/6 = 0.5 maintenance efficiency
         NuclearSimulationEngine.setRandomSeed(42);
         grid50.step();
@@ -884,20 +854,16 @@ public class NuclearSimulationEngineTest {
     @Test
     void testOverheatingHatchesVoidContentsWithoutExploding() {
         // High core temperature exceeding Electrum casing limit (1000°C)
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
 
         // Put a superheated fuel rod and superheated coolant hatch
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile fuelTile = grid.getTile(1, 1);
-        fuelTile.setType(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD);
+        SimTile fuelTile = grid.getTile(1, 1);
+        fuelTile.setType(SimTile.TileType.FUEL_URANIUM_QUAD);
         fuelTile.setTemperature(3000.0); // Well above 1000°C limit
 
         NuclearSimulationEngine.params().coolantFeedRate = 0; // Prevent refilling so hatch actually overheats
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatchTile = grid.getTile(0, 1);
-        hatchTile
-            .setType(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_IC2_COOLANT);
+        SimTile hatchTile = grid.getTile(0, 1);
+        hatchTile.setType(SimTile.TileType.HATCH_IC2_COOLANT);
         hatchTile.setInputFluidAmount(10);
         hatchTile.setOutputFluidAmount(200);
         hatchTile.setTemperature(3000.0);
@@ -912,51 +878,31 @@ public class NuclearSimulationEngineTest {
         assertEquals(0, hatchTile.getOutputFluidAmount(), "Overheating fluid hatch must void output fluid");
 
         // As in the game (manual §12.3), fuel is not voided by overheating
-        assertEquals(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD,
-            fuelTile.getType(),
-            "Overheating does not void fuel");
+        assertEquals(SimTile.TileType.FUEL_URANIUM_QUAD, fuelTile.getType(), "Overheating does not void fuel");
     }
 
     @Test
     void testOverheatingVoidsNonFuelComponentsAndControlRods() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile moderator = grid.getTile(2, 2);
-        moderator
-            .setType(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.MODERATOR_GRAPHITE);
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        SimTile moderator = grid.getTile(2, 2);
+        moderator.setType(SimTile.TileType.MODERATOR_GRAPHITE);
         moderator.setHasControlRod(true);
-        moderator
-            .setControlRodType(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.ControlRodType.BORON);
+        moderator.setControlRodType(SimTile.ControlRodType.BORON);
         moderator.setTemperature(3000.0);
 
         grid.step();
 
-        assertEquals(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.EMPTY,
-            moderator.getType(),
-            "an overheating column loses its non-fuel component");
+        assertEquals(SimTile.TileType.EMPTY, moderator.getType(), "an overheating column loses its non-fuel component");
         assertFalse(moderator.hasControlRod(), "and the control rod in its rod hatch");
-        assertEquals(
-            com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules.OVERHEAT_DAMAGE_PERCENT_PER_COLUMN,
-            grid.getReactorDamage(),
-            1e-9);
+        assertEquals(CoreHatchRules.OVERHEAT_DAMAGE_PERCENT_PER_COLUMN, grid.getReactorDamage(), 1e-9);
     }
 
     @Test
     void testBoilingCoolantConductiveEvaporationWithoutExplosion() {
         // Distilled water boils at 100°C: a non-dry hatch above boiling point does NOT explode,
         // but instead continuously evaporates coolant into steam and cools down.
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_PLATINUM);
-        grid.setTile(
-            0,
-            1,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER);
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        grid.setTile(0, 1, SimTile.TileType.HATCH_DISTILLED_WATER);
         grid.getTile(0, 1)
             .setInputFluidAmount(100);
         grid.getTile(0, 1)
@@ -974,14 +920,8 @@ public class NuclearSimulationEngineTest {
             "Boiling coolant must cool the hatch");
 
         // Sub-boiling coolant (< 100°C) must NOT explode
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid safeGrid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_PLATINUM);
-        safeGrid.setTile(
-            0,
-            1,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER);
+        StandaloneNuclearGrid safeGrid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        safeGrid.setTile(0, 1, SimTile.TileType.HATCH_DISTILLED_WATER);
         safeGrid.getTile(0, 1)
             .setInputFluidAmount(100);
         safeGrid.getTile(0, 1)
@@ -993,26 +933,16 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testDryCoolantThermalShockTriggersPowerfailShutdown() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
 
         // Grid contains fuel, reflector, and radiovoltaic
-        grid.setTile(
-            1,
-            1,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD);
-        grid.setTile(
-            1,
-            2,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.REFLECTOR_BERYLLIUM);
-        grid.setTile(1, 0, com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV);
+        grid.setTile(1, 1, SimTile.TileType.FUEL_URANIUM_QUAD);
+        grid.setTile(1, 2, SimTile.TileType.REFLECTOR_BERYLLIUM);
+        grid.setTile(1, 0, SimTile.TileType.RADIOVOLTAIC_HV);
 
         // Dry superheated coolant hatch (> 100°C threshold)
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatch = grid.getTile(0, 1);
-        hatch
-            .setType(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER);
+        SimTile hatch = grid.getTile(0, 1);
+        hatch.setType(SimTile.TileType.HATCH_DISTILLED_WATER);
         hatch.setInputFluidAmount(0);
         hatch.setWasDry(true);
         hatch.setTemperature(350.0); // Superheated
@@ -1028,7 +958,7 @@ public class NuclearSimulationEngineTest {
 
         // Fuel must remain intact (not voided on non-meltdown damage)
         assertEquals(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD,
+            SimTile.TileType.FUEL_URANIUM_QUAD,
             grid.getTile(1, 1)
                 .getType(),
             "Fuel must NOT be voided on non-lethal thermal shock");
@@ -1038,12 +968,12 @@ public class NuclearSimulationEngineTest {
 
         // Crucially, Reflector and Radiovoltaic MUST be preserved!
         assertEquals(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.REFLECTOR_BERYLLIUM,
+            SimTile.TileType.REFLECTOR_BERYLLIUM,
             grid.getTile(1, 2)
                 .getType(),
             "Reflector must NOT be voided on dry coolant shutdown!");
         assertEquals(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.RADIOVOLTAIC_HV,
+            SimTile.TileType.RADIOVOLTAIC_HV,
             grid.getTile(1, 0)
                 .getType(),
             "Radiovoltaic cell must NOT be voided on dry coolant shutdown!");
@@ -1061,25 +991,13 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testLossOfCoolantOperatesDryUntilOverheat() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
 
         // Active fuel and an empty coolant hatch with no fluid feed
         NuclearSimulationEngine.params().coolantFeedRate = 0; // Simulate fluid supply failure
-        grid.setTile(
-            1,
-            1,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD);
-        grid.setTile(
-            1,
-            2,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.REFLECTOR_BERYLLIUM);
-        grid.setTile(
-            0,
-            1,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_IC2_COOLANT);
+        grid.setTile(1, 1, SimTile.TileType.FUEL_URANIUM_QUAD);
+        grid.setTile(1, 2, SimTile.TileType.REFLECTOR_BERYLLIUM);
+        grid.setTile(0, 1, SimTile.TileType.HATCH_IC2_COOLANT);
         grid.getTile(0, 1)
             .setInputFluidAmount(0);
 
@@ -1089,12 +1007,12 @@ public class NuclearSimulationEngineTest {
         assertFalse(grid.isExploded(), "Dry operation within safe limits must not explode");
         assertFalse(grid.isPowerFailed(), "Reactor must not powerfail on dry operation");
         assertEquals(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD,
+            SimTile.TileType.FUEL_URANIUM_QUAD,
             grid.getTile(1, 1)
                 .getType(),
             "Fuel must remain intact while within safe operating conditions");
         assertEquals(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.REFLECTOR_BERYLLIUM,
+            SimTile.TileType.REFLECTOR_BERYLLIUM,
             grid.getTile(1, 2)
                 .getType(),
             "Reflector must remain intact");
@@ -1284,7 +1202,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testNeutronComponentInteractionData() {
-        com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.ComponentStatsData graphite = new com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.ComponentStatsData(
+        NEINeutronInteractionHandler.ComponentStatsData graphite = new NEINeutronInteractionHandler.ComponentStatsData(
             null,
             "Graphite Moderator Block",
             "Moderator",
@@ -1786,7 +1704,7 @@ public class NuclearSimulationEngineTest {
         bus.setBaseMetaTileEntity(mockBusTile);
 
         // 3. Nuclear High-Pressure Hatch (Top Inlet)
-        MTEHatchNuclearHighPressure hpTop = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput(
+        MTEHatchNuclearHighPressure hpTop = new MTEHatchNuclearHighPressureInput(
             "test.hp.top",
             4,
             3,
@@ -1843,7 +1761,7 @@ public class NuclearSimulationEngineTest {
         assertFalse(topElement.check(reactor, mockWorld, 3, 1, 0), "a pressurized fluid hatch is not a core passage");
 
         // 5. Nuclear High-Pressure Hatch (Bottom Outlet)
-        MTEHatchNuclearHighPressure hpBottom = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput(
+        MTEHatchNuclearHighPressure hpBottom = new MTEHatchNuclearHighPressureOutput(
             "test.hp.bottom",
             4,
             3,
@@ -1938,8 +1856,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testNuclearCasingSubBlocksAndItemRegistration() {
-        BlockNuclearCasing casing = com.gtnewhorizons.modularnuclear.common.block.ModBlocks.nuclearCasing != null
-            ? com.gtnewhorizons.modularnuclear.common.block.ModBlocks.nuclearCasing
+        BlockNuclearCasing casing = ModBlocks.nuclearCasing != null ? ModBlocks.nuclearCasing
             : new BlockNuclearCasing();
         List<ItemStack> subBlocks = new ArrayList<>();
         casing.getSubBlocks(net.minecraft.init.Items.iron_ingot, null, subBlocks);
@@ -2160,7 +2077,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(9, NuclearStructureChannels.NUCLEAR_HATCH.getValueClamped(triggerOver, 0, 9));
 
         // NuclearHatchElement getBlocksToPlace
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.NuclearHatchElement element = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.NuclearHatchElement();
+        NuclearReactorStructure.NuclearHatchElement element = new NuclearReactorStructure.NuclearHatchElement();
         com.gtnewhorizon.structurelib.structure.IStructureElement.BlocksToPlace blocks0 = element
             .getBlocksToPlace(null, null, 0, 0, 0, trigger0, null);
         assertNotNull(blocks0);
@@ -2793,16 +2710,16 @@ public class NuclearSimulationEngineTest {
         assertSame(mockCheeseRecipe, bus.findCheeseExtractionRecipe(stackA));
         assertTrue(MTEHatchNuclearBus.isCheeseRecipeInput(stackA));
         assertTrue(
-            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+            CheeseRecipeRegistry.getInstance()
                 .isCheeseInput(stackA));
-        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(stackA));
+        assertTrue(NuclearFuelClassification.isItemAllowedInBus(stackA));
 
         // stackB does not match and is negatively cached
         assertNull(bus.findCheeseExtractionRecipe(stackB));
         assertNull(bus.findCheeseExtractionRecipe(stackB));
         assertFalse(MTEHatchNuclearBus.isCheeseRecipeInput(stackB));
         assertFalse(
-            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+            CheeseRecipeRegistry.getInstance()
                 .isCheeseInput(stackB));
 
         // Key equality and hashCode check
@@ -2817,25 +2734,25 @@ public class NuclearSimulationEngineTest {
         // Test singleton behavior with concrete inputs and fast O(1) item set filtering
         MTEHatchNuclearBus.clearCheeseRecipeCache();
         assertFalse(
-            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+            CheeseRecipeRegistry.getInstance()
                 .hasDynamicOrUnknownInputs());
         gregtech.api.util.GTRecipe recipeWithInputs = org.mockito.Mockito.mock(gregtech.api.util.GTRecipe.class);
         recipeWithInputs.mInputs = new ItemStack[] { stackA };
         MTEHatchNuclearBus.registerCheeseRecipe(recipeWithInputs);
         assertFalse(
-            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+            CheeseRecipeRegistry.getInstance()
                 .hasDynamicOrUnknownInputs());
         assertTrue(
-            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+            CheeseRecipeRegistry.getInstance()
                 .getCheeseInputItems()
                 .contains(dummyItem));
         assertTrue(
-            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+            CheeseRecipeRegistry.getInstance()
                 .isCheeseInput(stackA));
         net.minecraft.item.Item otherItem = new net.minecraft.item.Item().setUnlocalizedName("other.dummy");
         ItemStack otherStack = new ItemStack(otherItem, 1, 0);
         assertFalse(
-            com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+            CheeseRecipeRegistry.getInstance()
                 .isCheeseInput(otherStack));
 
         MTEHatchNuclearBus.clearCheeseRecipeCache();
@@ -3697,7 +3614,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(ForgeDirection.UP, reactor.getNuclearHatchFacing());
 
         // Test NuclearHatchElement check()
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.NuclearHatchElement element = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.NuclearHatchElement();
+        NuclearReactorStructure.NuclearHatchElement element = new NuclearReactorStructure.NuclearHatchElement();
         List<String> desc = element.getDescription(reactor);
         assertNotNull(desc);
         assertTrue(
@@ -4454,13 +4371,13 @@ public class NuclearSimulationEngineTest {
     @Test
     void testNuclearCoreHighPressureHatchAndStructureRules() {
         MTENuclearReactor reactor = new MTENuclearReactor("test.reactor");
-        MTEHatchNuclearHighPressure topHp = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput(
+        MTEHatchNuclearHighPressure topHp = new MTEHatchNuclearHighPressureInput(
             "test.top_hp",
             4,
             3,
             new String[0],
             null);
-        MTEHatchNuclearHighPressure botHp = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput(
+        MTEHatchNuclearHighPressure botHp = new MTEHatchNuclearHighPressureOutput(
             "test.bot_hp",
             4,
             3,
@@ -4501,12 +4418,12 @@ public class NuclearSimulationEngineTest {
             .thenReturn(15);
 
         // BottomCoreElement tests
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.BottomCoreElement bottomElement = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure.BottomCoreElement();
+        NuclearReactorStructure.BottomCoreElement bottomElement = new NuclearReactorStructure.BottomCoreElement();
         World mockWorld = org.mockito.Mockito.mock(World.class);
 
         // 1. Nuclear casing at bottom
         org.mockito.Mockito.when(mockWorld.getBlock(10, 64, 15))
-            .thenReturn(com.gtnewhorizons.modularnuclear.common.block.ModBlocks.nuclearCasing);
+            .thenReturn(ModBlocks.nuclearCasing);
         org.mockito.Mockito.when(mockWorld.getBlockMetadata(10, 64, 15))
             .thenReturn(0);
         reactor.mCasing = 0;
@@ -4535,7 +4452,7 @@ public class NuclearSimulationEngineTest {
             "HP hatch facing UP must fail BottomCoreElement");
 
         // An untiered legacy output hatch, even facing DOWN, is rejected
-        MTEHatchNuclearHighPressure legacyBot = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput(
+        MTEHatchNuclearHighPressure legacyBot = new MTEHatchNuclearHighPressureOutput(
             "test.legacy_bot_hp",
             5,
             new String[0],
@@ -4798,7 +4715,7 @@ public class NuclearSimulationEngineTest {
     void testCoriumPlacementHandlerCancelsReplacingCorium() {
         ModFluids.init();
         BlockCorium block = new BlockCorium(ModFluids.fluidCorium);
-        com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler handler = new com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler();
+        CoriumPlacementHandler handler = new CoriumPlacementHandler();
 
         net.minecraft.entity.player.EntityPlayer mockPlayer = org.mockito.Mockito
             .mock(net.minecraft.entity.player.EntityPlayer.class);
@@ -4852,7 +4769,7 @@ public class NuclearSimulationEngineTest {
     void testCoriumPlacementHandlerCancelsBucketFill() {
         ModFluids.init();
         BlockCorium block = new BlockCorium(ModFluids.fluidCorium);
-        com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler handler = new com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler();
+        CoriumPlacementHandler handler = new CoriumPlacementHandler();
 
         net.minecraft.entity.player.EntityPlayer mockPlayer = org.mockito.Mockito
             .mock(net.minecraft.entity.player.EntityPlayer.class);
@@ -5155,10 +5072,7 @@ public class NuclearSimulationEngineTest {
         // Verifies that in an active operating reactor, conductive coolant hatches
         // can and do stabilize at temperatures above boiling point (100°C for distilled water),
         // rather than being artificially pinned to 100.0°C.
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            9,
-            9,
-            NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
         grid.loadPreset("BEST_PLATINUM_9X9");
 
         // Run 300 cycles: the IV hatches hold 512 HU/°C each and take a while to warm up
@@ -5167,12 +5081,11 @@ public class NuclearSimulationEngineTest {
         }
 
         // Find a distilled water hatch
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatch = null;
+        SimTile hatch = null;
         for (int x = 0; x < 7; x++) {
             for (int y = 0; y < 7; y++) {
-                com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile tile = grid.getTile(x, y);
-                if (tile != null && tile.getType()
-                    == com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER) {
+                SimTile tile = grid.getTile(x, y);
+                if (tile != null && tile.getType() == SimTile.TileType.HATCH_DISTILLED_WATER) {
                     hatch = tile;
                     break;
                 }
@@ -5271,7 +5184,7 @@ public class NuclearSimulationEngineTest {
         hatch.mTemperature = 150.0; // Above 100°C boiling point
         hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(distilledWater, 8000);
 
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearReactorPhysics
+        NuclearReactorPhysics
 
             .hatchCoolantSubstep(reactor, hatch, cycleSeconds(), 1.0);
 
@@ -5318,7 +5231,7 @@ public class NuclearSimulationEngineTest {
         // Only 2 mB of distilled water - insufficient to absorb Q_max (~98 EU, needing ~20 mB)
         hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(distilledWater, 2);
 
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearReactorPhysics
+        NuclearReactorPhysics
 
             .hatchCoolantSubstep(reactor, hatch, cycleSeconds(), 1.0);
 
@@ -5337,19 +5250,13 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testStandaloneGridStrictModeThermalShockFailsFast() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
         grid.setStrictMode(true);
         assertTrue(grid.isStrictMode());
 
         // Place a coolant hatch and set it dry and superheated
-        grid.setTile(
-            2,
-            2,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER);
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatch = grid.getTile(2, 2);
+        grid.setTile(2, 2, SimTile.TileType.HATCH_DISTILLED_WATER);
+        SimTile hatch = grid.getTile(2, 2);
         hatch.setTemperature(150.0);
         hatch.setInputFluidAmount(0);
         hatch.setWasDry(true);
@@ -5376,19 +5283,13 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testStandaloneGridPermissiveModeAccumulatesDamageAndLogs() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_PLATINUM);
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
         grid.setStrictMode(false); // Interactive webapp mode
         assertFalse(grid.isStrictMode());
 
         // Place a coolant hatch and set it dry and superheated
-        grid.setTile(
-            2,
-            2,
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_DISTILLED_WATER);
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatch = grid.getTile(2, 2);
+        grid.setTile(2, 2, SimTile.TileType.HATCH_DISTILLED_WATER);
+        SimTile hatch = grid.getTile(2, 2);
         hatch.setTemperature(150.0);
         hatch.setInputFluidAmount(0);
         hatch.setWasDry(true);
@@ -5407,8 +5308,7 @@ public class NuclearSimulationEngineTest {
             grid.getIncidentLog()
                 .isEmpty(),
             "Incident log must contain the event");
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid.IncidentEvent ev = grid
-            .getIncidentLog()
+        StandaloneNuclearGrid.IncidentEvent ev = grid.getIncidentLog()
             .get(0);
         assertEquals("THERMAL_SHOCK", ev.type());
         assertEquals(2.0, ev.damage(), 1e-6);
@@ -5417,8 +5317,7 @@ public class NuclearSimulationEngineTest {
         grid.repair();
         assertEquals(0.0, grid.getReactorDamage(), 1e-6);
         assertEquals(0, grid.getMaintenanceIssues());
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid.IncidentEvent repEv = grid
-            .getIncidentLog()
+        StandaloneNuclearGrid.IncidentEvent repEv = grid.getIncidentLog()
             .get(
                 grid.getIncidentLog()
                     .size() - 1);
@@ -5427,10 +5326,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testStandaloneGridStrictModeCasingOverheatFailsFast() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         grid.setStrictMode(true);
 
         // Electrum casing limit is 1200°C. Set all tiles to 1250°C so diffusion does not cool them below limit
@@ -5539,8 +5435,7 @@ public class NuclearSimulationEngineTest {
             grid.step();
         }
 
-        String json = com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge
-            .buildStateJson(grid, false);
+        String json = NuclearSimWasmBridge.buildStateJson(grid, false);
         assertNotNull(json);
         assertTrue(json.contains("\"byproducts\":{"), "JSON must contain byproducts section");
         assertTrue(json.contains("\"autoReplaceFuel\":true"), "JSON must contain autoReplaceFuel");
@@ -5661,15 +5556,12 @@ public class NuclearSimulationEngineTest {
         assertFalse(stepResult, "step() must return false once exploded");
 
         // Test with WasmBridge
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge
-            .initGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.setRunning(true);
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.getGrid()
+        NuclearSimWasmBridge.initGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        NuclearSimWasmBridge.setRunning(true);
+        NuclearSimWasmBridge.getGrid()
             .triggerExplosion("WASM Meltdown test");
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.step();
-        assertFalse(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.isRunning(),
-            "Bridge isRunning must become false immediately upon meltdown");
+        NuclearSimWasmBridge.step();
+        assertFalse(NuclearSimWasmBridge.isRunning(), "Bridge isRunning must become false immediately upon meltdown");
     }
 
     @Test
@@ -5772,27 +5664,23 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testWasmBridgeIncidentHaltAndResume() {
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge
-            .initGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.setStopOnIncidents(true);
-        assertTrue(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.isStopOnIncidents());
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.setRunning(true);
+        NuclearSimWasmBridge.initGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        NuclearSimWasmBridge.setStopOnIncidents(true);
+        assertTrue(NuclearSimWasmBridge.isStopOnIncidents());
+        NuclearSimWasmBridge.setRunning(true);
 
-        StandaloneNuclearGrid g = com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge
-            .getGrid();
+        StandaloneNuclearGrid g = NuclearSimWasmBridge.getGrid();
         g.logIncident("CELL_HEAT", "Cell heat damage at (1,1)", 3.0);
         assertTrue(g.isHaltedByIncident());
 
         // Step should detect incident halt and set isRunning = false
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.step();
-        assertFalse(
-            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.isRunning(),
-            "Bridge isRunning must become false on incident halt");
+        NuclearSimWasmBridge.step();
+        assertFalse(NuclearSimWasmBridge.isRunning(), "Bridge isRunning must become false on incident halt");
 
         // Resuming by setting running = true clears the incident halt
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.setRunning(true);
+        NuclearSimWasmBridge.setRunning(true);
         assertFalse(g.isHaltedByIncident(), "Bridge resuming must clear haltedByIncident");
-        assertTrue(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.NuclearSimWasmBridge.isRunning());
+        assertTrue(NuclearSimWasmBridge.isRunning());
     }
 
     @Test
@@ -6193,27 +6081,18 @@ public class NuclearSimulationEngineTest {
     @Test
     void testConfigDrivenAllowlistsAndBlocklists() {
         // 1. Save original config state
-        String[] origBlocked = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.blockedItems.clone();
-        String[] origFuels = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedFuelItems
-            .clone();
-        String[] origCoolants = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedCoolantFluids
-            .clone();
-        String[] origRods = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedControlRods
-            .clone();
-        String[] origInsulators = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedInsulators
-            .clone();
+        String[] origBlocked = ModularNuclearConfig.blockedItems.clone();
+        String[] origFuels = ModularNuclearConfig.allowedFuelItems.clone();
+        String[] origCoolants = ModularNuclearConfig.allowedCoolantFluids.clone();
+        String[] origRods = ModularNuclearConfig.allowedControlRods.clone();
+        String[] origInsulators = ModularNuclearConfig.allowedInsulators.clone();
 
         try {
             // 2. Pattern matching helper tests
+            assertTrue(ModularNuclearConfig.matchesPattern("ic2.reactorDepletedUraniumSimple", "*depleted*"));
             assertTrue(
-                com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig
-                    .matchesPattern("ic2.reactorDepletedUraniumSimple", "*depleted*"));
-            assertTrue(
-                com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig
-                    .matchesPattern("gregtech:gt.reactorUranium4", "gregtech:gt.reactorUranium*"));
-            assertFalse(
-                com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig
-                    .matchesPattern("minecraft:dirt", "*fuel*"));
+                ModularNuclearConfig.matchesPattern("gregtech:gt.reactorUranium4", "gregtech:gt.reactorUranium*"));
+            assertFalse(ModularNuclearConfig.matchesPattern("minecraft:dirt", "*fuel*"));
 
             // 3. Dynamic custom fuel item addition
             net.minecraft.item.Item customFuel = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -6222,13 +6101,12 @@ public class NuclearSimulationEngineTest {
             ItemStack fuelStack = new ItemStack(customFuel, 1, 0);
 
             // Initially not allowed
-            assertFalse(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemFuel(fuelStack));
+            assertFalse(NuclearFuelClassification.isItemFuel(fuelStack));
 
             // Server operator adds custom fuel pattern to config:
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedFuelItems = new String[] {
-                "*super_fuel_rod*" };
-            assertTrue(com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.isItemFuel(fuelStack));
-            assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemFuel(fuelStack));
+            ModularNuclearConfig.allowedFuelItems = new String[] { "*super_fuel_rod*" };
+            assertTrue(ModularNuclearConfig.isItemFuel(fuelStack));
+            assertTrue(NuclearFuelClassification.isItemFuel(fuelStack));
 
             // 4. Dynamic custom blocked item addition
             net.minecraft.item.Item customDangerous = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -6236,17 +6114,10 @@ public class NuclearSimulationEngineTest {
                 .thenReturn("somemod.radioactive_waste");
             ItemStack wasteStack = new ItemStack(customDangerous, 1, 0);
 
-            assertFalse(
-                com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                    .isDepletedOrEmptyRod(wasteStack));
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.blockedItems = new String[] {
-                "*radioactive_waste*" };
-            assertTrue(
-                com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                    .isDepletedOrEmptyRod(wasteStack));
-            assertFalse(
-                com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                    .isItemAllowedInBus(wasteStack, null));
+            assertFalse(NuclearFuelClassification.isDepletedOrEmptyRod(wasteStack));
+            ModularNuclearConfig.blockedItems = new String[] { "*radioactive_waste*" };
+            assertTrue(NuclearFuelClassification.isDepletedOrEmptyRod(wasteStack));
+            assertFalse(NuclearFuelClassification.isItemAllowedInBus(wasteStack, null));
 
             // 5. Dynamic custom coolant fluid addition
             net.minecraftforge.fluids.Fluid liquidHelium = org.mockito.Mockito
@@ -6255,12 +6126,9 @@ public class NuclearSimulationEngineTest {
                 .thenReturn("liquid_helium");
             net.minecraftforge.fluids.FluidStack heliumStack = mockFluidStack(liquidHelium, 1000);
 
-            assertFalse(
-                com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isCoolantFluid(heliumStack));
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedCoolantFluids = new String[] {
-                "liquid_helium" };
-            assertTrue(
-                com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isCoolantFluid(heliumStack));
+            assertFalse(NuclearFuelClassification.isCoolantFluid(heliumStack));
+            ModularNuclearConfig.allowedCoolantFluids = new String[] { "liquid_helium" };
+            assertTrue(NuclearFuelClassification.isCoolantFluid(heliumStack));
 
             // 6. Dynamic custom control rod mapping
             net.minecraft.item.Item customRodItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -6270,15 +6138,12 @@ public class NuclearSimulationEngineTest {
 
             assertEquals(
                 "NONE",
-                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod
-                    .getRodType(rodStack)
+                MTEHatchNuclearControlRod.getRodType(rodStack)
                     .name());
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedControlRods = new String[] {
-                "*lead_bismuth_rod*=CADMIUM" };
+            ModularNuclearConfig.allowedControlRods = new String[] { "*lead_bismuth_rod*=CADMIUM" };
             assertEquals(
                 "CADMIUM",
-                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod
-                    .getRodType(rodStack)
+                MTEHatchNuclearControlRod.getRodType(rodStack)
                     .name());
 
             // 7. Dynamic custom insulator mapping
@@ -6287,37 +6152,24 @@ public class NuclearSimulationEngineTest {
                 .thenReturn("aerospace.aerogel_foil");
             ItemStack foilStack = new ItemStack(customFoil, 1, 0);
 
-            assertEquals(
-                0.0,
-                com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                    .getInsulationDampening(foilStack),
-                1e-6);
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedInsulators = new String[] {
-                "*aerogel_foil*=0.85" };
-            assertEquals(
-                0.85,
-                com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                    .getInsulationDampening(foilStack),
-                1e-6);
+            assertEquals(0.0, NuclearFuelClassification.getInsulationDampening(foilStack), 1e-6);
+            ModularNuclearConfig.allowedInsulators = new String[] { "*aerogel_foil*=0.85" };
+            assertEquals(0.85, NuclearFuelClassification.getInsulationDampening(foilStack), 1e-6);
 
         } finally {
             // Restore original config arrays
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.blockedItems = origBlocked;
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedFuelItems = origFuels;
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedCoolantFluids = origCoolants;
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedControlRods = origRods;
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.allowedInsulators = origInsulators;
+            ModularNuclearConfig.blockedItems = origBlocked;
+            ModularNuclearConfig.allowedFuelItems = origFuels;
+            ModularNuclearConfig.allowedCoolantFluids = origCoolants;
+            ModularNuclearConfig.allowedControlRods = origRods;
+            ModularNuclearConfig.allowedInsulators = origInsulators;
         }
     }
 
     @Test
     void testReactorHatchItemSegregationAndDepletedRodRejection() {
         MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.nuclear.bus", 4, new String[0], null);
-        com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod rodHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod(
-            "test.control.rod",
-            4,
-            new String[0],
-            null);
+        MTEHatchNuclearControlRod rodHatch = new MTEHatchNuclearControlRod("test.control.rod", 4, new String[0], null);
 
         // 1. Depleted rod rejection
         net.minecraft.item.Item depletedItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -6325,8 +6177,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn("ic2.reactorDepletedUraniumSimple");
         ItemStack depletedStack = new ItemStack(depletedItem, 1, 0);
 
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isDepletedOrEmptyRod(depletedStack));
+        assertTrue(NuclearFuelClassification.isDepletedOrEmptyRod(depletedStack));
         assertFalse(
             bus.isItemAllowed(depletedStack),
             "Depleted rods must be strictly disallowed in nuclear core buses");
@@ -6339,23 +6190,14 @@ public class NuclearSimulationEngineTest {
             .thenReturn("stickLongSilver");
         ItemStack silverRodStack = new ItemStack(silverRodItem, 1, 0);
 
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod
-                .isControlRod(silverRodStack));
+        assertTrue(MTEHatchNuclearControlRod.isControlRod(silverRodStack));
         // Control rods must NOT be allowed into core buses:
         assertFalse(bus.isItemAllowed(silverRodStack), "Control rods must NOT be allowed in reactor core buses");
         assertFalse(bus.allowPutStack(null, MTEHatchNuclearBus.SLOT_INPUT, ForgeDirection.UNKNOWN, silverRodStack));
         // Control rods MUST be allowed into control rod hatches:
+        assertTrue(rodHatch.isItemValidForSlot(MTEHatchNuclearControlRod.SLOT_ROD, silverRodStack));
         assertTrue(
-            rodHatch.isItemValidForSlot(
-                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
-                silverRodStack));
-        assertTrue(
-            rodHatch.allowPutStack(
-                null,
-                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
-                ForgeDirection.UNKNOWN,
-                silverRodStack));
+            rodHatch.allowPutStack(null, MTEHatchNuclearControlRod.SLOT_ROD, ForgeDirection.UNKNOWN, silverRodStack));
 
         // 3. Normal unrelated items (e.g. cobblestone/dirt) rejected from BOTH hatches
         net.minecraft.item.Item dirtItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -6365,16 +6207,9 @@ public class NuclearSimulationEngineTest {
 
         assertFalse(bus.isItemAllowed(dirtStack), "Dirt cannot be placed in nuclear core bus");
         assertFalse(bus.allowPutStack(null, MTEHatchNuclearBus.SLOT_INPUT, ForgeDirection.UNKNOWN, dirtStack));
+        assertFalse(rodHatch.isItemValidForSlot(MTEHatchNuclearControlRod.SLOT_ROD, dirtStack));
         assertFalse(
-            rodHatch.isItemValidForSlot(
-                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
-                dirtStack));
-        assertFalse(
-            rodHatch.allowPutStack(
-                null,
-                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
-                ForgeDirection.UNKNOWN,
-                dirtStack));
+            rodHatch.allowPutStack(null, MTEHatchNuclearControlRod.SLOT_ROD, ForgeDirection.UNKNOWN, dirtStack));
     }
 
     @Test
@@ -6386,11 +6221,7 @@ public class NuclearSimulationEngineTest {
                 return stack != null;
             }
         };
-        com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod rodHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod(
-            "test.control.rod",
-            4,
-            new String[0],
-            null);
+        MTEHatchNuclearControlRod rodHatch = new MTEHatchNuclearControlRod("test.control.rod", 4, new String[0], null);
 
         net.minecraft.item.Item silverRodItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
         org.mockito.Mockito.when(silverRodItem.getUnlocalizedName(org.mockito.Mockito.any()))
@@ -6415,42 +6246,21 @@ public class NuclearSimulationEngineTest {
         assertTrue(bus.allowPutStack(null, MTEHatchNuclearBus.SLOT_INPUT, ForgeDirection.UNKNOWN, validStack));
 
         // 4. When control rod hatch is empty: accepts control rod
+        assertTrue(rodHatch.isItemValidForSlot(MTEHatchNuclearControlRod.SLOT_ROD, silverRodStack));
         assertTrue(
-            rodHatch.isItemValidForSlot(
-                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
-                silverRodStack));
-        assertTrue(
-            rodHatch.allowPutStack(
-                null,
-                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
-                ForgeDirection.UNKNOWN,
-                silverRodStack));
+            rodHatch.allowPutStack(null, MTEHatchNuclearControlRod.SLOT_ROD, ForgeDirection.UNKNOWN, silverRodStack));
 
         // 5. When control rod hatch is occupied: short-circuits to false immediately
-        rodHatch.mInventory[com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD] = silverRodStack;
+        rodHatch.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = silverRodStack;
+        assertFalse(rodHatch.isItemValidForSlot(MTEHatchNuclearControlRod.SLOT_ROD, silverRodStack));
         assertFalse(
-            rodHatch.isItemValidForSlot(
-                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
-                silverRodStack));
-        assertFalse(
-            rodHatch.allowPutStack(
-                null,
-                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
-                ForgeDirection.UNKNOWN,
-                silverRodStack));
+            rodHatch.allowPutStack(null, MTEHatchNuclearControlRod.SLOT_ROD, ForgeDirection.UNKNOWN, silverRodStack));
 
         // 6. When control rod hatch is emptied: accepts control rod again
-        rodHatch.mInventory[com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD] = null;
+        rodHatch.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+        assertTrue(rodHatch.isItemValidForSlot(MTEHatchNuclearControlRod.SLOT_ROD, silverRodStack));
         assertTrue(
-            rodHatch.isItemValidForSlot(
-                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
-                silverRodStack));
-        assertTrue(
-            rodHatch.allowPutStack(
-                null,
-                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod.SLOT_ROD,
-                ForgeDirection.UNKNOWN,
-                silverRodStack));
+            rodHatch.allowPutStack(null, MTEHatchNuclearControlRod.SLOT_ROD, ForgeDirection.UNKNOWN, silverRodStack));
     }
 
     @Test
@@ -6490,8 +6300,7 @@ public class NuclearSimulationEngineTest {
             electrum.put("tier", 0);
             electrum.put("max_operating_temp", 1500.0);
             electrum.put("repair_temp_threshold", 300.0);
-            com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData
-                .applyTierOverrides(java.util.List.of(electrum));
+            ReactorConfigData.applyTierOverrides(java.util.List.of(electrum));
             assertEquals(
                 1500.0,
                 NuclearSimulationEngine.getMaxOperatingTemperature(NuclearSimulationEngine.PIPE_TIER_ELECTRUM),
@@ -6501,7 +6310,7 @@ public class NuclearSimulationEngineTest {
                 NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_ELECTRUM),
                 1e-4);
         } finally {
-            com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.loadDefaults();
+            ReactorConfigData.loadDefaults();
         }
     }
 
@@ -6509,7 +6318,7 @@ public class NuclearSimulationEngineTest {
     void testYamlDataRegistryRoundtrip() throws Exception {
         java.nio.file.Path tempDir = java.nio.file.Files.createTempDirectory("mptr_yaml_roundtrip_test");
         try {
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.init(tempDir.toFile());
+            ReactorDataRegistry.init(tempDir.toFile());
 
             File configFolder = new File(tempDir.toFile(), "modularnuclear");
             assertTrue(configFolder.exists(), "Config folder modularnuclear should be created");
@@ -6518,18 +6327,17 @@ public class NuclearSimulationEngineTest {
 
             // Default configurations are loaded directly from JAR resources without cluttering disk
             assertTrue(
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllFuels()
+                ReactorDataRegistry.getAllFuels()
                     .size() >= 20);
-            assertNotNull(
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel("thoriumbasedliquidfuel"));
-            assertNotNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics());
+            assertNotNull(ReactorDataRegistry.findFuel("thoriumbasedliquidfuel"));
+            assertNotNull(ReactorDataRegistry.getPhysics());
             assertEquals(
                 6,
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllTiers()
+                ReactorDataRegistry.getAllTiers()
                     .size());
 
             // Explicitly saving to directory writes out complete YAML files
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.saveToDir(configFolder);
+            ReactorDataRegistry.saveToDir(configFolder);
             File physicsFile = new File(configFolder, "physics.yaml");
             File tiersFile = new File(configFolder, "tiers.yaml");
             File fuelsFile = new File(configFolder, "fuels.yaml");
@@ -6541,19 +6349,18 @@ public class NuclearSimulationEngineTest {
             assertTrue(componentsFile.exists(), "components.yaml should be written");
 
             // Re-loading from the exported dir verifies roundtrip parity
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadFromDir(configFolder);
+            ReactorDataRegistry.loadFromDir(configFolder);
             assertTrue(
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllFuels()
+                ReactorDataRegistry.getAllFuels()
                     .size() >= 20);
-            assertNotNull(
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel("thoriumbasedliquidfuel"));
-            assertNotNull(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getPhysics());
+            assertNotNull(ReactorDataRegistry.findFuel("thoriumbasedliquidfuel"));
+            assertNotNull(ReactorDataRegistry.getPhysics());
             assertEquals(
                 6,
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllTiers()
+                ReactorDataRegistry.getAllTiers()
                     .size());
         } finally {
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadDefaults();
+            ReactorDataRegistry.loadDefaults();
             deleteRecursively(tempDir.toFile());
         }
     }
@@ -6585,40 +6392,36 @@ public class NuclearSimulationEngineTest {
             java.nio.file.Files.write(new File(configFolder, "tiers.yaml").toPath(), tiersOverride.getBytes());
 
             // Load overrides
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadFromDir(configFolder);
+            ReactorDataRegistry.loadFromDir(configFolder);
 
             // Verify partial override kept default fields but updated overridden field
-            com.gtnewhorizons.modularnuclear.common.config.data.FuelData thorium = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-                .findFuel("thoriumbasedliquidfuel");
+            FuelData thorium = ReactorDataRegistry.findFuel("thoriumbasedliquidfuel");
             assertNotNull(thorium);
             assertEquals(999, thorium.baseNeutrons);
             assertTrue(thorium.isLiquid);
             assertTrue(thorium.thermalFissionMultiplier > 0);
 
             // Verify removed fuel is gone
-            assertNull(
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel("uraniumbasedliquidfuel"));
+            assertNull(ReactorDataRegistry.findFuel("uraniumbasedliquidfuel"));
 
             // Verify disabled reflector is gone from reflectors list
             assertFalse(
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getComponentData().reflectors
-                    .stream()
+                ReactorDataRegistry.getComponentData().reflectors.stream()
                     .anyMatch(r -> "reflector_gold".equals(r.id)));
 
             // Verify null moderator is gone from moderators list
             assertFalse(
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getComponentData().moderators
-                    .stream()
+                ReactorDataRegistry.getComponentData().moderators.stream()
                     .anyMatch(m -> "moderator_graphite".equals(m.id)));
 
             // Verify tier 5 is removed
             assertEquals(
                 5,
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.getAllTiers()
+                ReactorDataRegistry.getAllTiers()
                     .size());
-            assertFalse(com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.hasTier(5));
+            assertFalse(ReactorDataRegistry.hasTier(5));
         } finally {
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadDefaults();
+            ReactorDataRegistry.loadDefaults();
             deleteRecursively(tempDir.toFile());
         }
     }
@@ -6669,7 +6472,7 @@ public class NuclearSimulationEngineTest {
             java.nio.file.Files.write(new File(configFolder, "components.yaml").toPath(), compYamlContent.getBytes());
 
             // 3. Load from dir
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadFromDir(configFolder);
+            ReactorDataRegistry.loadFromDir(configFolder);
 
             // 4. Verify mock items match and have custom properties
             net.minecraft.item.Item fuelItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -6677,8 +6480,7 @@ public class NuclearSimulationEngineTest {
                 .thenReturn("item.super_uranium_custom");
             ItemStack fuelStack = new ItemStack(fuelItem, 1, 0);
 
-            com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-                .findFuel(fuelStack);
+            FuelData fd = ReactorDataRegistry.findFuel(fuelStack);
             assertNotNull(fd, "Custom fuel must be found by matching pattern");
             assertEquals("super_uranium_custom", fd.id);
             assertEquals(88, fd.baseNeutrons);
@@ -6691,8 +6493,7 @@ public class NuclearSimulationEngineTest {
                 .thenReturn("item.custom_beryllium_mirror");
             ItemStack reflStack = new ItemStack(reflItem, 1, 0);
 
-            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData rd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-                .findReflector(reflStack);
+            ComponentData.ReflectorData rd = ReactorDataRegistry.findReflector(reflStack);
             assertNotNull(rd, "Custom reflector must be found");
             assertEquals(0.999, rd.scatteringThermal, 1e-4);
             assertEquals(0.35, rd.moderation, 1e-4);
@@ -6702,29 +6503,24 @@ public class NuclearSimulationEngineTest {
                 .thenReturn("item.custom_super_rod");
             ItemStack rodStack = new ItemStack(rodItem, 1, 0);
 
-            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-                .findControlRod(rodStack);
+            ComponentData.ControlRodData crd = ReactorDataRegistry.findControlRod(rodStack);
             assertNotNull(crd, "Custom control rod must be found");
             assertEquals(0.995, crd.maxThermalAbsorption, 1e-4);
             assertEquals(0.50, crd.heatTransferCoeff, 1e-4);
-            assertTrue(
-                com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod
-                    .isControlRod(rodStack));
+            assertTrue(MTEHatchNuclearControlRod.isControlRod(rodStack));
 
             net.minecraft.item.Item modItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
             org.mockito.Mockito.when(modItem.getUnlocalizedName(org.mockito.Mockito.any()))
                 .thenReturn("item.custom_heavy_graphite");
             ItemStack modStack = new ItemStack(modItem, 1, 0);
 
-            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData md = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-                .findModerator(modStack);
+            ComponentData.ModeratorData md = ReactorDataRegistry.findModerator(modStack);
             assertNotNull(md, "Custom moderator must be found");
             assertEquals(0.88, md.moderation, 1e-4);
-            assertTrue(
-                com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemModerator(modStack));
+            assertTrue(NuclearFuelClassification.isItemModerator(modStack));
 
         } finally {
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadDefaults();
+            ReactorDataRegistry.loadDefaults();
             deleteRecursively(tempDir.toFile());
         }
     }
@@ -6789,10 +6585,9 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testUnloadedReactorReleasesItsClientEffects() {
-        com.gtnewhorizons.modularnuclear.common.CommonProxy previous = com.gtnewhorizons.modularnuclear.ModularNuclear.proxy;
-        com.gtnewhorizons.modularnuclear.common.CommonProxy proxy = org.mockito.Mockito
-            .mock(com.gtnewhorizons.modularnuclear.common.CommonProxy.class);
-        com.gtnewhorizons.modularnuclear.ModularNuclear.proxy = proxy;
+        CommonProxy previous = ModularNuclear.proxy;
+        CommonProxy proxy = org.mockito.Mockito.mock(CommonProxy.class);
+        ModularNuclear.proxy = proxy;
         try {
             MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.test");
             gregtech.api.interfaces.tileentity.IGregTechTileEntity base = org.mockito.Mockito
@@ -6811,7 +6606,7 @@ public class NuclearSimulationEngineTest {
             org.mockito.Mockito.verify(proxy)
                 .removeReactor(reactor);
         } finally {
-            com.gtnewhorizons.modularnuclear.ModularNuclear.proxy = previous;
+            ModularNuclear.proxy = previous;
         }
     }
 
@@ -6842,7 +6637,7 @@ public class NuclearSimulationEngineTest {
         innerFlow.child(textWidget);
         container.child(innerFlow);
 
-        com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGui.applyTextMaxWidth(container, 142);
+        NuclearReactorGui.applyTextMaxWidth(container, 142);
         assertEquals(142, textWidget.getMaxWidth());
     }
 
@@ -6929,17 +6724,16 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testExplicitFuelDataConfiguration() {
-        List<com.gtnewhorizons.modularnuclear.common.config.data.FuelData> fuels = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getAllFuels();
+        List<FuelData> fuels = ReactorDataRegistry.getAllFuels();
         assertFalse(fuels.isEmpty());
 
         // Check Lithium & Glowstone breeder targets
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData lithium = null;
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData glowstone = null;
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData quadUranium = null;
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData theCore = null;
+        FuelData lithium = null;
+        FuelData glowstone = null;
+        FuelData quadUranium = null;
+        FuelData theCore = null;
 
-        for (com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd : fuels) {
+        for (FuelData fd : fuels) {
             if ("fuel_lithium".equals(fd.id)) lithium = fd;
             if ("fuel_glowstone".equals(fd.id)) glowstone = fd;
             if ("fuel_uranium_4".equals(fd.id)) quadUranium = fd;
@@ -7006,40 +6800,31 @@ public class NuclearSimulationEngineTest {
         }
 
         // Test resolving ItemList names via ReactorDataRegistry
-        ItemStack depLithium = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .resolveItemStack("ItemList.DepletedRodLithium");
+        ItemStack depLithium = ReactorDataRegistry.resolveItemStack("ItemList.DepletedRodLithium");
         assertNotNull(depLithium, "ItemList.DepletedRodLithium must resolve");
 
-        ItemStack depGlowstone = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .resolveItemStack("ItemList.DepletedRodGlowstone");
+        ItemStack depGlowstone = ReactorDataRegistry.resolveItemStack("ItemList.DepletedRodGlowstone");
         assertNotNull(depGlowstone, "ItemList.DepletedRodGlowstone must resolve");
 
         // Test getItemDepletedForm for Lithium and Glowstone rods
         ItemStack activeLithium = gregtech.api.enums.ItemList.RodLithium.get(1L);
-        ItemStack depletedResultLithium = com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-            .getItemDepletedForm(activeLithium);
+        ItemStack depletedResultLithium = NuclearFuelClassification.getItemDepletedForm(activeLithium);
         assertNotNull(depletedResultLithium, "Lithium rod must not be voided on depletion");
         assertTrue(gregtech.api.enums.ItemList.DepletedRodLithium.isStackEqual(depletedResultLithium, false, true));
 
         ItemStack activeGlowstone = gregtech.api.enums.ItemList.RodGlowstone.get(1L);
-        ItemStack depletedResultGlowstone = com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-            .getItemDepletedForm(activeGlowstone);
+        ItemStack depletedResultGlowstone = NuclearFuelClassification.getItemDepletedForm(activeGlowstone);
         assertNotNull(depletedResultGlowstone, "Glowstone rod must not be voided on depletion");
         assertTrue(gregtech.api.enums.ItemList.DepletedRodGlowstone.isStackEqual(depletedResultGlowstone, false, true));
 
         // Test that depleted rods are recognized by isDepletedOrEmptyRod
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                .isDepletedOrEmptyRod(depletedResultLithium));
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                .isDepletedOrEmptyRod(depletedResultGlowstone));
+        assertTrue(NuclearFuelClassification.isDepletedOrEmptyRod(depletedResultLithium));
+        assertTrue(NuclearFuelClassification.isDepletedOrEmptyRod(depletedResultGlowstone));
     }
 
     @Test
     public void testFuelArchetypeMultipliers() {
-        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getPhysics();
+        PhysicsData physics = ReactorDataRegistry.getPhysics();
         assertNotNull(physics);
         assertEquals(0.50, physics.denseNbaseMultiplier, 1e-4);
         assertEquals(1.20, physics.denseFissionMultiplier, 1e-4);
@@ -7047,10 +6832,9 @@ public class NuclearSimulationEngineTest {
         assertEquals(0.70, physics.excitedFissionMultiplier, 1e-4);
 
         // Find HD Uranium and Excited Uranium
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData hdUran = null;
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData excUran = null;
-        for (com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd : com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getAllFuels()) {
+        FuelData hdUran = null;
+        FuelData excUran = null;
+        for (FuelData fd : ReactorDataRegistry.getAllFuels()) {
             if ("fuel_hd_uranium_1".equals(fd.id)) hdUran = fd;
             if ("fuel_excited_uranium_1".equals(fd.id)) excUran = fd;
         }
@@ -7072,15 +6856,14 @@ public class NuclearSimulationEngineTest {
 
     @Test
     public void testDefaultPhysicsFissionHeat() {
-        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData defaultPhysics = new com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData();
+        PhysicsData defaultPhysics = new PhysicsData();
         assertEquals(
             38.0,
             defaultPhysics.fissionHeatPerNeutron,
             1e-4,
             "PhysicsData default fission heat must be 38.0 Hu/neutron");
 
-        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData activePhysics = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getPhysics();
+        PhysicsData activePhysics = ReactorDataRegistry.getPhysics();
         assertNotNull(activePhysics);
         assertEquals(
             38.0,
@@ -7097,10 +6880,10 @@ public class NuclearSimulationEngineTest {
     @Test
     public void testDurabilityScalingReconciliation() {
         // Ensure ModItems are initialized
-        if (com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel4 == null) {
-            com.gtnewhorizons.modularnuclear.common.item.ModItems.init();
+        if (ModItems.rodCustomFuel4 == null) {
+            ModItems.init();
         }
-        com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod customItem = com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel4;
+        ItemCustomFuelRod customItem = ModItems.rodCustomFuel4;
 
         // Create item stack with mock mix
         ItemStack stack = new ItemStack(customItem, 1, 0);
@@ -7184,7 +6967,7 @@ public class NuclearSimulationEngineTest {
             assertEquals(8.0, fastWear / thermalWear, 1e-4);
 
             // Test configurable multipliers via PhysicsData
-            com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics = new com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData();
+            PhysicsData physics = new PhysicsData();
             physics.fastAbsorptionDamageMultiplier = 12.0;
             physics.thermalAbsorptionDamageMultiplier = 2.0;
 
@@ -7192,8 +6975,7 @@ public class NuclearSimulationEngineTest {
             assertEquals(12.0, (Double) map.get("fast_absorption_damage_multiplier"), 1e-4);
             assertEquals(2.0, (Double) map.get("thermal_absorption_damage_multiplier"), 1e-4);
 
-            com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData roundtrip = com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData
-                .fromMap(map);
+            PhysicsData roundtrip = PhysicsData.fromMap(map);
             assertEquals(12.0, roundtrip.fastAbsorptionDamageMultiplier, 1e-4);
             assertEquals(2.0, roundtrip.thermalAbsorptionDamageMultiplier, 1e-4);
         } finally {
@@ -7204,12 +6986,11 @@ public class NuclearSimulationEngineTest {
 
     @Test
     public void testModeratorDurabilityAndProperties() {
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData carbon = null;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData graphite = null;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData beryllium = null;
+        ComponentData.ModeratorData carbon = null;
+        ComponentData.ModeratorData graphite = null;
+        ComponentData.ModeratorData beryllium = null;
 
-        for (com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod : com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getComponentData().moderators) {
+        for (ComponentData.ModeratorData mod : ReactorDataRegistry.getComponentData().moderators) {
             if ("moderator_carbon".equals(mod.id)) carbon = mod;
             if ("moderator_graphite".equals(mod.id)) graphite = mod;
             if ("moderator_beryllium".equals(mod.id)) beryllium = mod;
@@ -7254,9 +7035,8 @@ public class NuclearSimulationEngineTest {
 
     @Test
     public void testGraphiteWignerEnergyStorageAndThermalRelease() {
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData graphite = null;
-        for (com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod : com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getComponentData().moderators) {
+        ComponentData.ModeratorData graphite = null;
+        for (ComponentData.ModeratorData mod : ReactorDataRegistry.getComponentData().moderators) {
             if ("moderator_graphite".equals(mod.id)) {
                 graphite = mod;
                 break;
@@ -7357,7 +7137,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     public void testNEINeutronInteractionHandlerRecipes() {
-        com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler handler = new com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler();
+        NEINeutronInteractionHandler handler = new NEINeutronInteractionHandler();
 
         assertEquals("gt.nei.neutron_interaction", handler.getOverlayIdentifier());
         handler.loadCraftingRecipes(handler.getOverlayIdentifier());
@@ -7377,7 +7157,7 @@ public class NuclearSimulationEngineTest {
         for (int i = 0; i < handler.numRecipes(); i++) {
             codechicken.nei.recipe.TemplateRecipeHandler.CachedRecipe cr = (codechicken.nei.recipe.TemplateRecipeHandler.CachedRecipe) handler.arecipes
                 .get(i);
-            if (cr instanceof com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.CachedNeutronInteractionRecipe recipe) {
+            if (cr instanceof NEINeutronInteractionHandler.CachedNeutronInteractionRecipe recipe) {
                 String cat = recipe.data.category;
                 if ("Moderator".equals(cat) && recipe.data.name.contains("Graphite")) foundGraphite = true;
                 if ("Reflector".equals(cat)) foundReflector = true;
@@ -7448,20 +7228,16 @@ public class NuclearSimulationEngineTest {
     @Test
     public void testNonWaterModerationAndHullOnlyComponentRejection() {
         // 1. Component Registry moderation constants
-        for (com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData vent : com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getComponentData().heatVents) {
+        for (ComponentData.HeatVentData vent : ReactorDataRegistry.getComponentData().heatVents) {
             assertEquals(0.05, vent.moderation, 1e-4, "Vent " + vent.id + " moderation must be 0.05");
         }
-        for (com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData hex : com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getComponentData().heatExchangers) {
+        for (ComponentData.HeatExchangerData hex : ReactorDataRegistry.getComponentData().heatExchangers) {
             assertEquals(0.05, hex.moderation, 1e-4, "Exchanger " + hex.id + " moderation must be 0.05");
         }
-        for (com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantItemData ci : com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getComponentData().coolantItems) {
+        for (ComponentData.CoolantItemData ci : ReactorDataRegistry.getComponentData().coolantItems) {
             assertEquals(0.05, ci.moderation, 1e-4, "Coolant item " + ci.id + " moderation must be 0.05");
         }
-        for (com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cf : com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getComponentData().coolantFluids) {
+        for (ComponentData.CoolantFluidData cf : ReactorDataRegistry.getComponentData().coolantFluids) {
             if ("coolant_ic2".equals(cf.id)) {
                 assertEquals(0.05, cf.moderation, 1e-4, "IC2 coolant fluid moderation must be 0.05");
             }
@@ -7493,23 +7269,16 @@ public class NuclearSimulationEngineTest {
             .thenReturn("ic2.reactorVentCore");
         ItemStack ventCoreStack = new ItemStack(mockVentCore, 1, 0);
 
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isHullOnlyComponent(ventCoreStack));
-        assertFalse(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                .isItemAllowedInBus(ventCoreStack, null));
+        assertTrue(NuclearFuelClassification.isHullOnlyComponent(ventCoreStack));
+        assertFalse(NuclearFuelClassification.isItemAllowedInBus(ventCoreStack, null));
 
         net.minecraft.item.Item mockSwitchCore = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
         org.mockito.Mockito.when(mockSwitchCore.getUnlocalizedName(org.mockito.Mockito.any()))
             .thenReturn("ic2.reactorHeatSwitchCore");
         ItemStack switchCoreStack = new ItemStack(mockSwitchCore, 1, 0);
 
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                .isHullOnlyComponent(switchCoreStack));
-        assertFalse(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                .isItemAllowedInBus(switchCoreStack, null));
+        assertTrue(NuclearFuelClassification.isHullOnlyComponent(switchCoreStack));
+        assertFalse(NuclearFuelClassification.isItemAllowedInBus(switchCoreStack, null));
 
         // 4. Random unknown item rejection
         net.minecraft.item.Item mockRandom = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -7517,15 +7286,13 @@ public class NuclearSimulationEngineTest {
             .thenReturn("random.dirt_block");
         ItemStack randomStack = new ItemStack(mockRandom, 1, 0);
 
-        assertFalse(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                .isItemAllowedInBus(randomStack, null));
+        assertFalse(NuclearFuelClassification.isItemAllowedInBus(randomStack, null));
     }
 
     @Test
     void testExplicitFuelAndComponentMatchingWithoutWildcardCollisions() {
         // Ensure defaults are loaded
-        com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.loadDefaults();
+        ReactorDataRegistry.loadDefaults();
 
         // 1. High Density Uranium quad rod must match fuel_hd_uranium_4, NOT generic fuel_uranium_1 or fuel_uranium_4
         net.minecraft.item.Item hdUraniumItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -7533,8 +7300,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn("gt.rodHighDensityUranium4");
         ItemStack hdUraniumStack = new ItemStack(hdUraniumItem, 1, 0);
 
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData hdUraniumData = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findFuel(hdUraniumStack);
+        FuelData hdUraniumData = ReactorDataRegistry.findFuel(hdUraniumStack);
         assertNotNull(hdUraniumData, "High Density Uranium must be recognized as fuel");
         assertEquals(
             "fuel_hd_uranium_4",
@@ -7549,8 +7315,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn("gt.rodExcitedUranium");
         ItemStack excitedUraniumStack = new ItemStack(excitedUraniumItem, 1, 0);
 
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData excitedUraniumData = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findFuel(excitedUraniumStack);
+        FuelData excitedUraniumData = ReactorDataRegistry.findFuel(excitedUraniumStack);
         assertNotNull(excitedUraniumData, "Excited Uranium must be recognized as fuel");
         assertEquals(
             "fuel_excited_uranium_1",
@@ -7565,8 +7330,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn("gt.rodNaquadah32");
         ItemStack naq32Stack = new ItemStack(naq32Item, 1, 0);
 
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData naq32Data = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findFuel(naq32Stack);
+        FuelData naq32Data = ReactorDataRegistry.findFuel(naq32Stack);
         assertNotNull(naq32Data, "The Core must be recognized as fuel");
         assertEquals(
             "fuel_naquadah_32",
@@ -7581,25 +7345,22 @@ public class NuclearSimulationEngineTest {
             .thenReturn("gt.rodUranium");
         ItemStack plainUraniumStack = new ItemStack(plainUraniumItem, 1, 0);
 
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData plainUraniumData = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findFuel(plainUraniumStack);
+        FuelData plainUraniumData = ReactorDataRegistry.findFuel(plainUraniumStack);
         assertNotNull(plainUraniumData, "Plain Uranium must be recognized as fuel");
         assertEquals("fuel_uranium_1", plainUraniumData.id);
         assertEquals(4, plainUraniumData.baseNeutrons);
 
         // 5. Uncalibrated custom fuel rod without NBT mix must be rejected as fuel
-        if (com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel1 != null) {
-            ItemStack uncalibratedRod = new ItemStack(
-                com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel1);
+        if (ModItems.rodCustomFuel1 != null) {
+            ItemStack uncalibratedRod = new ItemStack(ModItems.rodCustomFuel1);
             assertNull(
-                com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findFuel(uncalibratedRod),
+                ReactorDataRegistry.findFuel(uncalibratedRod),
                 "Uncalibrated custom fuel rod without NBT must not return fuel data");
             assertFalse(
-                com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemFuel(uncalibratedRod),
+                NuclearFuelClassification.isItemFuel(uncalibratedRod),
                 "Uncalibrated custom fuel rod without NBT must not be classified as active fuel");
             assertTrue(
-                com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                    .isDepletedOrEmptyRod(uncalibratedRod),
+                NuclearFuelClassification.isDepletedOrEmptyRod(uncalibratedRod),
                 "Uncalibrated custom fuel rod without NBT must be treated as empty rod");
         }
 
@@ -7614,7 +7375,7 @@ public class NuclearSimulationEngineTest {
         org.mockito.Mockito.when(depletedFluidStack.getFluid())
             .thenReturn(mockFluid);
         assertFalse(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isFluidFuel(depletedFluidStack),
+            NuclearFuelClassification.isFluidFuel(depletedFluidStack),
             "Depleted liquid fuel must never be classified as active fluid fuel");
 
         // 7. Non-rod silver items (e.g. silver ingot or plate) must not be matched as control rods
@@ -7623,7 +7384,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn("item.ingotSilver");
         ItemStack silverIngotStack = new ItemStack(mockSilverIngot, 1, 0);
         assertNull(
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(silverIngotStack),
+            ReactorDataRegistry.findControlRod(silverIngotStack),
             "Silver ingot must not be classified as a control rod (wildcards eliminated)");
 
         // 8. Moderators must strictly require long rods only (blocks, plates, dusts, and short rods rejected)
@@ -7632,7 +7393,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn("tile.blockGraphite");
         ItemStack graphiteBlockStack = new ItemStack(mockGraphiteBlock, 1, 0);
         assertNull(
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(graphiteBlockStack),
+            ReactorDataRegistry.findModerator(graphiteBlockStack),
             "Graphite block must be rejected as a moderator (only long rods accepted)");
 
         net.minecraft.item.Item mockCarbonPlate = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -7640,7 +7401,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn("item.plateCarbon");
         ItemStack carbonPlateStack = new ItemStack(mockCarbonPlate, 1, 0);
         assertNull(
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(carbonPlateStack),
+            ReactorDataRegistry.findModerator(carbonPlateStack),
             "Carbon plate must be rejected as a moderator (only long rods accepted)");
 
         net.minecraft.item.Item mockBerylliumShortRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -7648,7 +7409,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn("item.rodBeryllium");
         ItemStack berylliumShortRodStack = new ItemStack(mockBerylliumShortRod, 1, 0);
         assertNull(
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(berylliumShortRodStack),
+            ReactorDataRegistry.findModerator(berylliumShortRodStack),
             "Beryllium short rod must be rejected as a moderator (only long rods accepted)");
 
         net.minecraft.item.Item mockGraphiteLongRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -7656,7 +7417,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn("item.stickLongGraphite");
         ItemStack graphiteLongRodStack = new ItemStack(mockGraphiteLongRod, 1, 0);
         assertNotNull(
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(graphiteLongRodStack),
+            ReactorDataRegistry.findModerator(graphiteLongRodStack),
             "Graphite long rod must be accepted as a moderator");
 
         net.minecraft.item.Item mockCarbonLongRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -7664,7 +7425,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn("item.stickLongCarbon");
         ItemStack carbonLongRodStack = new ItemStack(mockCarbonLongRod, 1, 0);
         assertNotNull(
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(carbonLongRodStack),
+            ReactorDataRegistry.findModerator(carbonLongRodStack),
             "Carbon long rod must be accepted as a moderator");
 
         net.minecraft.item.Item mockBerylliumLongRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -7672,7 +7433,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn("item.stickLongBeryllium");
         ItemStack berylliumLongRodStack = new ItemStack(mockBerylliumLongRod, 1, 0);
         assertNotNull(
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(berylliumLongRodStack),
+            ReactorDataRegistry.findModerator(berylliumLongRodStack),
             "Beryllium long rod must be accepted as a moderator");
 
         // 9. Reflectors: Gold, Stainless Steel, and Tungsten Carbide plates accepted; Beryllium and all blocks/rods
@@ -7681,8 +7442,7 @@ public class NuclearSimulationEngineTest {
         org.mockito.Mockito.when(mockGoldPlate.getUnlocalizedName(org.mockito.Mockito.any()))
             .thenReturn("item.plateGold");
         ItemStack goldPlateStack = new ItemStack(mockGoldPlate, 1, 0);
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData goldRefl = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findReflector(goldPlateStack);
+        ComponentData.ReflectorData goldRefl = ReactorDataRegistry.findReflector(goldPlateStack);
         assertNotNull(goldRefl, "Gold plate must be accepted as a reflector");
         assertEquals("reflector_gold", goldRefl.id);
         assertEquals(0.90, goldRefl.scatteringThermal, 1e-4);
@@ -7697,8 +7457,7 @@ public class NuclearSimulationEngineTest {
         org.mockito.Mockito.when(mockStainlessPlate.getUnlocalizedName(org.mockito.Mockito.any()))
             .thenReturn("item.plateStainlessSteel");
         ItemStack stainlessPlateStack = new ItemStack(mockStainlessPlate, 1, 0);
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData stainlessRefl = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findReflector(stainlessPlateStack);
+        ComponentData.ReflectorData stainlessRefl = ReactorDataRegistry.findReflector(stainlessPlateStack);
         assertNotNull(stainlessRefl, "Stainless Steel plate must be accepted as a reflector");
         assertEquals("reflector_stainless_steel", stainlessRefl.id);
         assertEquals(0.95, stainlessRefl.scatteringThermal, 1e-4);
@@ -7713,8 +7472,7 @@ public class NuclearSimulationEngineTest {
         org.mockito.Mockito.when(mockTcPlate.getUnlocalizedName(org.mockito.Mockito.any()))
             .thenReturn("item.plateTungstenCarbide");
         ItemStack tcPlateStack = new ItemStack(mockTcPlate, 1, 0);
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData tcRefl = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findReflector(tcPlateStack);
+        ComponentData.ReflectorData tcRefl = ReactorDataRegistry.findReflector(tcPlateStack);
         assertNotNull(tcRefl, "Tungsten Carbide plate must be accepted as a reflector");
         assertEquals("reflector_tungsten_carbide", tcRefl.id);
         assertEquals(0.98, tcRefl.scatteringThermal, 1e-4);
@@ -7731,7 +7489,7 @@ public class NuclearSimulationEngineTest {
             .thenReturn("item.plateBeryllium");
         ItemStack berylliumPlateStack = new ItemStack(mockBerylliumPlate, 1, 0);
         assertNull(
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(berylliumPlateStack),
+            ReactorDataRegistry.findReflector(berylliumPlateStack),
             "Beryllium plate must be rejected as a reflector");
 
         net.minecraft.item.Item mockBerylliumBlockRefl = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
@@ -7739,24 +7497,20 @@ public class NuclearSimulationEngineTest {
             .thenReturn("tile.blockBeryllium");
         ItemStack berylliumBlockStack = new ItemStack(mockBerylliumBlockRefl, 1, 0);
         assertNull(
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(berylliumBlockStack),
+            ReactorDataRegistry.findReflector(berylliumBlockStack),
             "Beryllium block must be rejected as a reflector");
 
         net.minecraft.item.Item mockGoldBlock = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
         org.mockito.Mockito.when(mockGoldBlock.getUnlocalizedName(org.mockito.Mockito.any()))
             .thenReturn("tile.blockGold");
         ItemStack goldBlockStack = new ItemStack(mockGoldBlock, 1, 0);
-        assertNull(
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(goldBlockStack),
-            "Gold block must be rejected as a reflector");
+        assertNull(ReactorDataRegistry.findReflector(goldBlockStack), "Gold block must be rejected as a reflector");
 
         net.minecraft.item.Item mockGoldRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
         org.mockito.Mockito.when(mockGoldRod.getUnlocalizedName(org.mockito.Mockito.any()))
             .thenReturn("item.rodGold");
         ItemStack goldRodStack = new ItemStack(mockGoldRod, 1, 0);
-        assertNull(
-            com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findReflector(goldRodStack),
-            "Gold rod must be rejected as a reflector");
+        assertNull(ReactorDataRegistry.findReflector(goldRodStack), "Gold rod must be rejected as a reflector");
     }
 
     @Test
@@ -7777,20 +7531,18 @@ public class NuclearSimulationEngineTest {
         assertEquals(2560000, NuclearFuelType.THE_CORE.defaultDurability);
 
         // 2. Verify T10 wear factor: D(T10) = 8.0 by default
-        com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver.FuelCurveStats uStats = com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver
-            .solve(NuclearFuelType.URANIUM, 20.0);
+        FuelDamageCurveSolver.FuelCurveStats uStats = FuelDamageCurveSolver.solve(NuclearFuelType.URANIUM, 20.0);
         assertEquals(1.0, uStats.damageAtPeak, 1e-4);
         assertEquals(8.0, uStats.damageAt10Percent, 1e-4);
         assertEquals(12.5, uStats.damageRatioPercent, 1e-2); // 1.0 / 8.0 = 12.5%
 
         // Custom wear factor override test (e.g. 4.0)
-        com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver.FuelCurveStats customStats = com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver
-            .solve(
-                NuclearFuelType.URANIUM,
-                NuclearFuelType.URANIUM.peakReactivityTemp,
-                NuclearFuelType.URANIUM.floorTemp,
-                20.0,
-                4.0);
+        FuelDamageCurveSolver.FuelCurveStats customStats = FuelDamageCurveSolver.solve(
+            NuclearFuelType.URANIUM,
+            NuclearFuelType.URANIUM.peakReactivityTemp,
+            NuclearFuelType.URANIUM.floorTemp,
+            20.0,
+            4.0);
         assertEquals(1.0, customStats.damageAtPeak, 1e-4);
         assertEquals(4.0, customStats.damageAt10Percent, 1e-4);
         assertEquals(25.0, customStats.damageRatioPercent, 1e-2); // 1.0 / 4.0 = 25%
@@ -7831,31 +7583,29 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testMaxDamageFuelFailsafe() {
-        if (com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel4 == null) {
-            com.gtnewhorizons.modularnuclear.common.item.ModItems.init();
+        if (ModItems.rodCustomFuel4 == null) {
+            ModItems.init();
         }
-        com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod customItem = com.gtnewhorizons.modularnuclear.common.item.ModItems.rodCustomFuel4;
+        ItemCustomFuelRod customItem = ModItems.rodCustomFuel4;
 
         ItemStack fuelStack = new ItemStack(customItem, 1, 0);
         fuelStack.stackTagCompound = new net.minecraft.nbt.NBTTagCompound();
 
-        java.util.Map<com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix.ActinideIsotope, Integer> units = new java.util.LinkedHashMap<>();
-        units.put(com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix.ActinideIsotope.URANIUM_235, 360);
-        com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix mix = new com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix(
-            units);
+        java.util.Map<CustomFuelMix.ActinideIsotope, Integer> units = new java.util.LinkedHashMap<>();
+        units.put(CustomFuelMix.ActinideIsotope.URANIUM_235, 360);
+        CustomFuelMix mix = new CustomFuelMix(units);
         mix.writeToNBT(fuelStack.stackTagCompound);
 
         int maxDur = customItem.getMaxDamageEx(fuelStack);
         assertTrue(maxDur > 0, "Max durability must be greater than 0");
 
         customItem.setDamageForStack(fuelStack, 0);
-        assertFalse(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isFuelAtMaxDamage(fuelStack));
+        assertFalse(NuclearFuelClassification.isFuelAtMaxDamage(fuelStack));
 
         customItem.setDamageForStack(fuelStack, maxDur);
-        assertTrue(com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isFuelAtMaxDamage(fuelStack));
+        assertTrue(NuclearFuelClassification.isFuelAtMaxDamage(fuelStack));
         assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(fuelStack),
+            NuclearFuelClassification.isItemAllowedInBus(fuelStack),
             "Max-damaged fuel rod must be allowed in bus for automation");
     }
 
@@ -7868,14 +7618,12 @@ public class NuclearSimulationEngineTest {
 
         // Graphite durability is 80000
         modStack.stackTagCompound.setInteger("advDmg", 79999);
-        assertFalse(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isModeratorAtMaxDamage(modStack));
+        assertFalse(NuclearFuelClassification.isModeratorAtMaxDamage(modStack));
 
         modStack.stackTagCompound.setInteger("advDmg", 80000);
+        assertTrue(NuclearFuelClassification.isModeratorAtMaxDamage(modStack));
         assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isModeratorAtMaxDamage(modStack));
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(modStack),
+            NuclearFuelClassification.isItemAllowedInBus(modStack),
             "Fully damaged moderator must be allowed in bus for automation");
     }
 
@@ -8293,11 +8041,7 @@ public class NuclearSimulationEngineTest {
         // 2. Verify NuclearGridTile control rod absorption fraction with MTEHatchNuclearControlRod
         MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.rod.heat");
         reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile gridTile = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile(
-            reactor,
-            (MTEHatchNuclearBus) null,
-            1,
-            1);
+        NuclearGridTile gridTile = new NuclearGridTile(reactor, (MTEHatchNuclearBus) null, 1, 1);
         assertFalse(gridTile.hasControlRod());
         assertEquals(0.0, gridTile.getControlRodAbsorptionFraction(NeutronType.THERMAL), 1e-6);
 
@@ -8558,11 +8302,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(expectedAbs, simTile.getControlRodAbsorptionProbability(NeutronType.THERMAL), 1e-4);
 
         // 6. NuclearGridTile delegation
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile gridTile = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile(
-            null,
-            (MTEHatchNuclearBus) null,
-            0,
-            0);
+        NuclearGridTile gridTile = new NuclearGridTile(null, (MTEHatchNuclearBus) null, 0, 0);
         assertEquals(5, gridTile.getControlRodMiningPipes(), "Default without hatch is 5");
 
         gridTile.setBottomControlRod(worldRod);
@@ -8575,10 +8315,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(5, NuclearSimulationEngine.getTicksPerCycle());
 
         // 1. Grid with 20 ticks per cycle
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid20 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        StandaloneNuclearGrid grid20 = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         grid20.loadPreset("BASIC_ELECTRUM_5X5");
         grid20.setTicksPerCycle(20);
         assertEquals(20, grid20.getTicksPerCycle());
@@ -8591,10 +8328,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(power20 * 20.0, energy20, 1e-4, "Accumulated energy should equal powerEUt * ticksPerCycle");
 
         // 2. Grid with 10 ticks per cycle (reactor cycle runs twice as fast)
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid10 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        StandaloneNuclearGrid grid10 = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         grid10.loadPreset("BASIC_ELECTRUM_5X5");
         grid10.setTicksPerCycle(10);
         assertEquals(10, grid10.getTicksPerCycle());
@@ -8607,10 +8341,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(power10 * 10.0, energy10, 1e-4, "Accumulated energy should equal powerEUt * ticksPerCycle");
 
         // 3. Grid with default 5 ticks per cycle (4 cycles per second)
-        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid5 = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
-            5,
-            5,
-            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        StandaloneNuclearGrid grid5 = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         grid5.loadPreset("BASIC_ELECTRUM_5X5");
         assertEquals(5, grid5.getTicksPerCycle());
 

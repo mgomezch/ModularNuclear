@@ -20,6 +20,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.gtnewhorizons.modularnuclear.client.renderer.RenderBlockManifold;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
+import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 
 import gregtech.api.enums.SoundResource;
 import gregtech.api.util.GTModHandler;
@@ -269,7 +270,7 @@ public class BlockManifold extends BlockContainer {
                     world.notifyBlocksOfNeighborChange(x, y, z, this);
                     player.addChatMessage(
                         new ChatComponentText(
-                            com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization.format(
+                            CoolantLocalization.format(
                                 "coolantloops.chat.manifold.orient",
                                 manifold.getPlaneName(),
                                 manifold.getFacing()
@@ -283,7 +284,7 @@ public class BlockManifold extends BlockContainer {
                         world.notifyBlocksOfNeighborChange(x, y, z, this);
                         player.addChatMessage(
                             new ChatComponentText(
-                                com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
+                                CoolantLocalization
                                     .format("coolantloops.chat.manifold.invalid_connection", wrenchingSide.name())));
                     } else {
                         boolean connected = manifold.toggleConnectionWithNeighbor(wrenchingSide);
@@ -291,7 +292,7 @@ public class BlockManifold extends BlockContainer {
                         world.notifyBlocksOfNeighborChange(x, y, z, this);
                         player.addChatMessage(
                             new ChatComponentText(
-                                com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization.format(
+                                CoolantLocalization.format(
                                     "coolantloops.chat.manifold.connection",
                                     wrenchingSide.name(),
                                     connected ? "CONNECTED" : "DISCONNECTED")));

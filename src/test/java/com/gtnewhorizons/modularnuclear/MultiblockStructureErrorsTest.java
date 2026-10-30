@@ -17,7 +17,9 @@ import com.gtnewhorizon.structurelib.StructureLib;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
+import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 
 import cpw.mods.fml.common.ICrashCallable;
 import cpw.mods.fml.common.Loader;
@@ -112,8 +114,7 @@ public class MultiblockStructureErrorsTest {
 
     @Test
     void testPressurizedFluidHeaterStructureErrors() {
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater heater = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater(
-            "test_heater");
+        MTEPressurizedFluidHeater heater = new MTEPressurizedFluidHeater("test_heater");
         List<StructureError> errors = new ArrayList<>();
         IGregTechTileEntity mockBase = Mockito.mock(IGregTechTileEntity.class);
         World mockWorld = Mockito.mock(World.class);
@@ -200,7 +201,7 @@ public class MultiblockStructureErrorsTest {
             "coolantloops.structure.error.heater_no_laser",
             "coolantloops.structure.error.heater_energy_tier_too_high" };
         for (String key : keys) {
-            String val = com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization.get(key);
+            String val = CoolantLocalization.get(key);
             assertNotNull(val, "Key should exist in lang file: " + key);
             assertNotEquals(key, val, "Key should be translated: " + key);
         }

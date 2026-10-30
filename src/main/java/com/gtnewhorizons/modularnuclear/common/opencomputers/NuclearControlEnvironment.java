@@ -15,6 +15,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -356,8 +357,7 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
 
         if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
             int max = radCell.getMaxDamageEx();
-            com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix mix = com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix
-                .fromStack(stack);
+            CustomFuelMix mix = CustomFuelMix.fromStack(stack);
             if (mix != null) {
                 max = mix.defaultDurability;
             }

@@ -13,6 +13,9 @@ import net.minecraftforge.fluids.FluidTankInfo;
 
 import com.cleanroommc.modularui.utils.fluid.FluidStackTank;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearHatchGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
@@ -42,7 +45,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
 
     public FluidStack mInputFluid;
     public final int mCapacity;
-    public com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor mReactor;
+    public MTENuclearReactor mReactor;
 
     public double mTemperature = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     public double mHeatHu = 0.0;
@@ -259,8 +262,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
 
     public boolean hasWaterCoolant() {
         if (mInputFluid != null && mInputFluid.getFluid() != null) {
-            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-                .findCoolantFluid(mInputFluid);
+            ComponentData.CoolantFluidData cfd = ReactorDataRegistry.findCoolantFluid(mInputFluid);
             return cfd != null && cfd.freezingTemperature >= 0.0;
         }
         return false;
@@ -366,8 +368,7 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     public com.cleanroommc.modularui.screen.ModularPanel buildUI(com.cleanroommc.modularui.factory.PosGuiData data,
         com.cleanroommc.modularui.value.sync.PanelSyncManager syncManager,
         com.cleanroommc.modularui.screen.UISettings uiSettings) {
-        return new com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearHatchGui(this)
-            .build(data, syncManager, uiSettings);
+        return new MTEHatchNuclearHatchGui(this).build(data, syncManager, uiSettings);
     }
 
     @Override

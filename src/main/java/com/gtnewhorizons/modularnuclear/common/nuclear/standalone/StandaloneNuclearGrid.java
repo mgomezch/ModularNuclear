@@ -9,6 +9,7 @@ import java.util.Map;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules;
 
@@ -2044,7 +2045,7 @@ public class StandaloneNuclearGrid {
             long produced = cumulativeDepletedFuelItems.getOrDefault(type, 0L);
             if (active > 0 || produced > 0) {
                 if (maxDur <= 0) {
-                    com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType f = new SimTile(type).getFuelType();
+                    NuclearFuelType f = new SimTile(type).getFuelType();
                     if (f != null) maxDur = f.defaultDurability;
                 }
                 double cyclesPerMin = 1200.0 / (double) ticksPerCycle;

@@ -17,6 +17,8 @@ import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.nei.NEIFuelStatsHandler;
+import com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 
 import codechicken.nei.recipe.HandlerInfo;
 
@@ -87,8 +89,7 @@ public class NEIFuelStatsHandlerTest {
 
     @Test
     public void testCachedFuelStatsRecipeWithFuelData() {
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .getAllFuels()
+        FuelData fd = ReactorDataRegistry.getAllFuels()
             .stream()
             .filter(f -> "fuel_uranium_1".equalsIgnoreCase(f.id))
             .findFirst()
@@ -118,10 +119,8 @@ public class NEIFuelStatsHandlerTest {
 
     @Test
     public void testDurabilityCurveDamageCalculation() {
-        for (com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType fuel : com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType
-            .values()) {
-            com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver.FuelCurveStats stats = com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver
-                .solve(fuel);
+        for (NuclearFuelType fuel : NuclearFuelType.values()) {
+            FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver.solve(fuel);
 
             // Damage at or below ambient must be strictly 0
             assertEquals(0.0, stats.calculateDamage(20.0), 1e-6, "Damage at ambient temp must be 0 for " + fuel);

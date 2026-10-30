@@ -26,6 +26,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedInput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedOutput;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.HeaterPipeCasingTier;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PressurizedFluidHeaterStructure;
@@ -742,11 +743,9 @@ public class PressurizedFluidHeaterTest {
             .onDeviceDisconnected(Mockito.eq(heater), Mockito.anyString());
 
         // Verify that a real MTECoolantPump in an active/filled loop ruptures when PFH powerfails
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump realPump = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump(
-            "test_pump");
+        MTECoolantPump realPump = new MTECoolantPump("test_pump");
         realPump.setLoopFormed(true);
-        realPump.setLoopState(
-            com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump.LoopState.CIRCULATING);
+        realPump.setLoopState(MTECoolantPump.LoopState.CIRCULATING);
         realPump.setCurrentFillLiters(4000L);
         realPump.setSimulatedTankCapacityLiters(16000L);
         realPump.setSimulatedCoolantLiters(10000L);
@@ -762,7 +761,7 @@ public class PressurizedFluidHeaterTest {
                 .isRuptured(),
             "Active pump loop must rupture when PFH powerfails");
         assertEquals(
-            com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump.LoopState.FAILED,
+            MTECoolantPump.LoopState.FAILED,
             realPump.getLoopState(),
             "Pump state must transition to FAILED on PFH powerfail rupture");
         assertEquals(

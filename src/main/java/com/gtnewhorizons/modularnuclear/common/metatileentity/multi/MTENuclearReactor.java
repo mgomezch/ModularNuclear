@@ -32,12 +32,16 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantPassageHatch;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 import com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGui;
 import com.gtnewhorizons.modularnuclear.common.gui.metrics.ReactorCycleSnapshot;
 import com.gtnewhorizons.modularnuclear.common.gui.metrics.ReactorMetricsHistory;
+import com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControl;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
@@ -1815,8 +1819,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
         for (int gx = 0; gx < gridSize; gx++) {
             for (int gy = 0; gy < gridSize; gy++) {
-                if (mGrid[gx][gy] instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile ngt
-                    && ngt.getBottomControlRod() != null) {
+                if (mGrid[gx][gy] instanceof NuclearGridTile ngt && ngt.getBottomControlRod() != null) {
                     ngt.getBottomControlRod()
                         .updateMiningPipeHousing();
                 }
@@ -2363,7 +2366,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             MTEHatchNuclearControlRod rod = gt.getBottomControlRod();
                             cell.hasControlRod = true;
                             cell.isAdvancedControlRod = rod.hasModerator()
-                                || (rod instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod);
+                                || (rod instanceof MTEHatchNuclearAdvancedControlRod);
                             cell.controlRodInsertion = rod.getInsertionPercent();
                             cell.controlRodType = MTEHatchNuclearControlRod
                                 .getRodType(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD])
@@ -2829,16 +2832,14 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public boolean isItemRadiovoltaic(ItemStack stack) {
         if (stack == null) return false;
-        if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate) return true;
-        return com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findRadiovoltaic(stack) != null;
+        if (stack.getItem() instanceof ItemRadiovoltaicPlate) return true;
+        return ReactorDataRegistry.findRadiovoltaic(stack) != null;
     }
 
     public int getRadiovoltaicTier(ItemStack stack) {
         if (stack == null) return 0;
-        if (stack.getItem() instanceof com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate)
-            return com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate.getTier(stack);
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData rvd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findRadiovoltaic(stack);
+        if (stack.getItem() instanceof ItemRadiovoltaicPlate) return ItemRadiovoltaicPlate.getTier(stack);
+        ComponentData.RadiovoltaicData rvd = ReactorDataRegistry.findRadiovoltaic(stack);
         if (rvd != null) {
             return rvd.tier > 0 ? rvd.tier : 1;
         }
@@ -2967,8 +2968,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         return NuclearReactorPhysics.getTileFuelData(tile);
     }
 
-    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData getTileModeratorData(
-        NuclearGridTile tile) {
+    public ComponentData.ModeratorData getTileModeratorData(NuclearGridTile tile) {
         return NuclearReactorPhysics.getTileModeratorData(tile);
     }
 

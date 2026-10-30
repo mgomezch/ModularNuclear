@@ -3,6 +3,7 @@ package com.gtnewhorizons.modularnuclear.common.nei;
 import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
+import com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler;
 
 import codechicken.nei.api.API;
 import codechicken.nei.api.IConfigureNEI;
@@ -15,7 +16,7 @@ public class NEIConfig implements IConfigureNEI {
 
     @Override
     public void loadConfig() {
-        com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler.register();
+        FloatingPanelNEIHandler.register();
 
         NEINeutronInteractionHandler neutronHandler = new NEINeutronInteractionHandler();
         API.registerRecipeHandler(neutronHandler);

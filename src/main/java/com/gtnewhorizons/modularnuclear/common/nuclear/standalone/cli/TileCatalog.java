@@ -1,5 +1,8 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear.standalone.cli;
 
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileContent;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
 
 /** The tile codes the simulator knows, with the items and fluids each stands for. */
@@ -16,7 +19,7 @@ public final class TileCatalog {
         StringBuilder sb = new StringBuilder("[");
         boolean first = true;
         for (SimTile.TileType type : SimTile.TileType.values()) {
-            com.gtnewhorizons.modularnuclear.common.nuclear.TileContent c = SimTile.contentOf(type);
+            TileContent c = SimTile.contentOf(type);
             if (!first) sb.append(',');
             first = false;
             sb.append("{\"code\":")
@@ -41,25 +44,17 @@ public final class TileCatalog {
             .toString();
     }
 
-    private static java.util.List<String> matchingOf(com.gtnewhorizons.modularnuclear.common.nuclear.TileContent c) {
+    private static java.util.List<String> matchingOf(TileContent c) {
         Object d = c.data;
-        if (d instanceof com.gtnewhorizons.modularnuclear.common.config.data.FuelData f) return f.matching;
-        if (d instanceof com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData x)
-            return x.matching;
-        if (d instanceof com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData x)
-            return x.matching;
-        if (d instanceof com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.InsulatorData x)
-            return x.matching;
-        if (d instanceof com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData x)
-            return x.matching;
-        if (d instanceof com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData x)
-            return x.matching;
-        if (d instanceof com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData x)
-            return x.matching;
-        if (d instanceof com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantItemData x)
-            return x.matching;
-        if (d instanceof com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData x)
-            return x.matching;
+        if (d instanceof FuelData f) return f.matching;
+        if (d instanceof ComponentData.ModeratorData x) return x.matching;
+        if (d instanceof ComponentData.ReflectorData x) return x.matching;
+        if (d instanceof ComponentData.InsulatorData x) return x.matching;
+        if (d instanceof ComponentData.RadiovoltaicData x) return x.matching;
+        if (d instanceof ComponentData.HeatVentData x) return x.matching;
+        if (d instanceof ComponentData.HeatExchangerData x) return x.matching;
+        if (d instanceof ComponentData.CoolantItemData x) return x.matching;
+        if (d instanceof ComponentData.CoolantFluidData x) return x.matching;
         return java.util.Collections.emptyList();
     }
 

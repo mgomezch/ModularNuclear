@@ -12,6 +12,7 @@ import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControl;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedTransmissionHandler;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 
 import gregtech.api.enums.Textures;
@@ -267,7 +268,7 @@ public class ProjectRedIntegrationTest {
 
     @Test
     public void testTransmissionHandlerInteractionLogic() {
-        com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedTransmissionHandler handler = new com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedTransmissionHandler();
+        ProjectRedTransmissionHandler handler = new ProjectRedTransmissionHandler();
         net.minecraft.world.World mockWorld = org.mockito.Mockito.mock(net.minecraft.world.World.class);
         gregtech.api.metatileentity.BaseMetaTileEntity mockGt = org.mockito.Mockito
             .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);

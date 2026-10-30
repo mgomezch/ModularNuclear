@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 /**
@@ -19,7 +20,7 @@ public class NuclearSimulationWebServer {
     private static StandaloneNuclearGrid grid;
 
     public static void main(String[] args) {
-        com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.loadDefaults();
+        ReactorConfigData.loadDefaults();
         if (args.length >= 2 && "--export-html".equals(args[0])) {
             try {
                 java.io.File file = new java.io.File(args[1]);

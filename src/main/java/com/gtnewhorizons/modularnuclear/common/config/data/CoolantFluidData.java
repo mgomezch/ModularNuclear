@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+
 /**
  * Data-driven configuration container for closed-loop coolant fluids.
  */
@@ -103,11 +105,9 @@ public class CoolantFluidData {
             entry.fluidName = fluidName;
 
             // Resolve canonical fluid properties as the baseline when available
-            com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty canonical = com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty
-                .getCanonical(fluidName);
+            CoolantFluidProperty canonical = CoolantFluidProperty.getCanonical(fluidName);
             if (canonical == null && entryKey != null) {
-                canonical = com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty
-                    .getCanonical(entryKey);
+                canonical = CoolantFluidProperty.getCanonical(entryKey);
             }
 
             if (canonical != null) {
@@ -186,9 +186,8 @@ public class CoolantFluidData {
             }
 
             // IC2 coolant intentionally never freezes regardless of configuration
-            if (com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty.isIC2Coolant(fluidName)
-                || com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty.isIC2Coolant(entryKey)
-                || canonical == com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty.IC2_COOLANT) {
+            if (CoolantFluidProperty.isIC2Coolant(fluidName) || CoolantFluidProperty.isIC2Coolant(entryKey)
+                || canonical == CoolantFluidProperty.IC2_COOLANT) {
                 entry.freezingPointCelsius = Double.NEGATIVE_INFINITY;
             }
 

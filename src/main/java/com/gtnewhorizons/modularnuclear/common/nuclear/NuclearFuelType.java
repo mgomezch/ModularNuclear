@@ -1,5 +1,8 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear;
 
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
+import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
+
 /**
  * Fuel tiering progression and thermal neutron physics properties for GTNH nuclear reactor fuels.
  * Progression order:
@@ -83,19 +86,17 @@ public enum NuclearFuelType {
         this.damageRatio = stats.damageRatioPercent;
     }
 
-    public int getEffectiveBaseNeutrons(com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics) {
+    public int getEffectiveBaseNeutrons(PhysicsData physics) {
         double mult = (physics != null) ? physics.getArchetypeNbaseMultiplier(this.archetype) : 1.0;
         return Math.max(1, (int) Math.round(this.baseNeutrons * mult));
     }
 
-    public double getEffectiveFissionMultiplier(
-        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics) {
+    public double getEffectiveFissionMultiplier(PhysicsData physics) {
         double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetype) : 1.0;
         return this.baseThermalFissionMultiplier * mult;
     }
 
-    public double getEffectiveFastFissionMultiplier(
-        com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData physics) {
+    public double getEffectiveFastFissionMultiplier(PhysicsData physics) {
         double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetype) : 1.0;
         return this.baseFastFissionMultiplier * mult;
     }
@@ -134,7 +135,7 @@ public enum NuclearFuelType {
         return 0.05 + 0.95 * (0.5 * (1.0 + Math.cos(Math.PI * progress)));
     }
 
-    public static NuclearFuelType fromFuelData(com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd) {
+    public static NuclearFuelType fromFuelData(FuelData fd) {
         if (fd == null || fd.id == null) return null;
         return switch (fd.id) {
             case "fuel_glowstone" -> GLOWSTONE;
@@ -159,8 +160,7 @@ public enum NuclearFuelType {
      */
     public static NuclearFuelType fromName(String name) {
         if (name == null || name.isEmpty()) return null;
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = NuclearSimulationEngine.configProvider
-            .findFuel(name);
+        FuelData fd = NuclearSimulationEngine.configProvider.findFuel(name);
         if (fd != null) {
             NuclearFuelType nft = fromFuelData(fd);
             if (nft != null) return nft;

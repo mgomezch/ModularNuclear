@@ -4,6 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
+import com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider;
+import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
+
 public class NuclearSimulationEngine {
 
     public static final double HU_FOR_FAST_NEUTRON = 8.0;
@@ -55,16 +61,14 @@ public class NuclearSimulationEngine {
      * Where tiers, liquid fuels and coolant fluids come from: the shared configuration the game loads, so the game,
      * the simulator and unit tests all see the same values. There is no hard-coded fallback.
      */
-    public static com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider configProvider = com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.ENGINE_PROVIDER;
+    public static INuclearConfigProvider configProvider = ReactorConfigData.ENGINE_PROVIDER;
 
     /** Replaces the configuration source; {@code null} restores the shared configuration. */
-    public static void setConfigProvider(
-        com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider provider) {
-        configProvider = provider != null ? provider
-            : com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.ENGINE_PROVIDER;
+    public static void setConfigProvider(INuclearConfigProvider provider) {
+        configProvider = provider != null ? provider : ReactorConfigData.ENGINE_PROVIDER;
     }
 
-    public static com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider getConfigProvider() {
+    public static INuclearConfigProvider getConfigProvider() {
         return configProvider;
     }
 
@@ -231,7 +235,7 @@ public class NuclearSimulationEngine {
         setAmbientTemperature(DEFAULT_AMBIENT_TEMP);
         params().ticksPerCycle = DEFAULT_TICKS_PER_CYCLE;
         // physics.yaml (and the fuel/component records) take precedence over the constants above.
-        com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.loadDefaults();
+        ReactorConfigData.loadDefaults();
     }
 
     public static void setTicksPerCycle(int ticks) {
@@ -287,8 +291,7 @@ public class NuclearSimulationEngine {
      */
     public static double getCoolantSinkTemperature(String fluidName, double ambient) {
         if (fluidName == null) return ambient;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = configProvider
-            .findCoolantFluid(fluidName);
+        ComponentData.CoolantFluidData cfd = configProvider.findCoolantFluid(fluidName);
         if (cfd != null && cfd.expansionRatio > 1) {
             return Math.max(ambient, cfd.boilingTemperature);
         }
@@ -382,7 +385,7 @@ public class NuclearSimulationEngine {
     }
 
     public static boolean allowsCoolantLoops(int tier) {
-        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(tier);
+        TierData td = configProvider.getTier(tier);
         return td != null && td.allowsCoolantLoops;
     }
 
@@ -393,18 +396,16 @@ public class NuclearSimulationEngine {
 
     public static double getCoolantBoilingThreshold(String fluidName) {
         if (fluidName == null) return Double.POSITIVE_INFINITY;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = configProvider
-            .findCoolantFluid(fluidName);
+        ComponentData.CoolantFluidData cfd = configProvider.findCoolantFluid(fluidName);
         return cfd != null ? cfd.explosionTemperature : Double.POSITIVE_INFINITY;
     }
 
     /** The casing tier a core hatch needs to hold this fluid, or -1 if no core hatch accepts it. */
     public static int getRequiredFluidTier(String fluidName) {
         if (fluidName == null) return -1;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = configProvider
-            .findCoolantFluid(fluidName);
+        ComponentData.CoolantFluidData cfd = configProvider.findCoolantFluid(fluidName);
         if (cfd != null) return cfd.requiredTier;
-        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = configProvider.findFuel(fluidName);
+        FuelData fd = configProvider.findFuel(fluidName);
         if (fd != null && fd.isLiquid) return fd.requiredTier;
         return -1;
     }
@@ -412,11 +413,11 @@ public class NuclearSimulationEngine {
     /** {@link #isFluidAllowed} answers per casing tier and fluid name, kept until the configuration changes. */
     private static final java.util.Map<Integer, java.util.Map<String, Boolean>> fluidAllowedCache = new java.util.concurrent.ConcurrentHashMap<>();
     private static volatile int fluidAllowedGeneration = -1;
-    private static volatile com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider fluidAllowedProvider;
+    private static volatile INuclearConfigProvider fluidAllowedProvider;
 
     public static boolean isFluidAllowed(String fluidName, int pipeTier) {
         if (fluidName == null) return false;
-        int gen = com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.generation();
+        int gen = ReactorConfigData.generation();
         if (fluidAllowedGeneration != gen || fluidAllowedProvider != configProvider) {
             fluidAllowedCache.clear();
             fluidAllowedGeneration = gen;
@@ -435,7 +436,7 @@ public class NuclearSimulationEngine {
     private static boolean computeFluidAllowed(String fluidName, int pipeTier) {
         int reqTier = getRequiredFluidTier(fluidName);
         if (reqTier < 0) return false;
-        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(pipeTier);
+        TierData td = configProvider.getTier(pipeTier);
         if (td != null && !td.allowedCoolants.isEmpty()) {
             if (td.allowedCoolants.contains("*") || configProvider.matchesFluid(fluidName, td.allowedCoolants)) {
                 return true;
@@ -1106,7 +1107,7 @@ public class NuclearSimulationEngine {
             if (mix != null) {
                 return mix.calculateReactivity(avgTemp);
             }
-            com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = tile.getFuelData();
+            FuelData fd = tile.getFuelData();
             if (fd != null) {
                 return fd.calculateReactivity(avgTemp);
             }
@@ -1204,7 +1205,7 @@ public class NuclearSimulationEngine {
      * Returns null when the vent has nothing to do.
      */
     private static VentPlan planHeatVent(INuclearTile tile, double ambient) {
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData vent = tile.getHeatVentData();
+        ComponentData.HeatVentData vent = tile.getHeatVentData();
         if (vent == null) return null;
         double curTemp = tile.getTemperature();
         if (vent.maxTemperature > 0.0 && curTemp > vent.maxTemperature) {
@@ -1333,8 +1334,7 @@ public class NuclearSimulationEngine {
         double[] snapshot) {
         INuclearTile center = grid[x][y];
         if (center == null) return null;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData hex = center
-            .getHeatExchangerData();
+        ComponentData.HeatExchangerData hex = center.getHeatExchangerData();
         if (hex == null) return null;
         if (hex.maxTemperature > 0.0 && snapshot[x * sizeY + y] > hex.maxTemperature) {
             center.voidComponent();

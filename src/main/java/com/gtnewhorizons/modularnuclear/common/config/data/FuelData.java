@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver;
 
 public class FuelData {
@@ -181,8 +182,7 @@ public class FuelData {
     private synchronized void ensureSolver() {
         if (!solverInitialized) {
             double wear = (t10WearFactor != null && t10WearFactor > 1.0) ? t10WearFactor
-                : (com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.getPhysics() != null
-                    ? com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.getPhysics().t10WearFactor
+                : (ReactorConfigData.getPhysics() != null ? ReactorConfigData.getPhysics().t10WearFactor
                     : FuelDamageCurveSolver.DEFAULT_T10_WEAR_FACTOR);
             FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver
                 .solve(null, peakReactivityTemp, floorTemp, 20.0, wear);

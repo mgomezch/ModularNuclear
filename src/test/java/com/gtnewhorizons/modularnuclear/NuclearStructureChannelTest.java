@@ -11,9 +11,14 @@ import org.junit.jupiter.api.Test;
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.structure.IChannelDefinition;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
+import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
+import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.NuclearStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import gregtech.common.misc.GTStructureChannels;
 
@@ -23,14 +28,13 @@ public class NuclearStructureChannelTest {
     public static void setUp() {
         TestEnvironmentHelper.init();
         try {
-            com.gtnewhorizons.modularnuclear.common.fluid.ModFluids.init();
-            if (com.gtnewhorizons.modularnuclear.common.block.ModBlocks.nuclearCasing == null) {
-                com.gtnewhorizons.modularnuclear.common.block.ModBlocks.init();
+            ModFluids.init();
+            if (ModBlocks.nuclearCasing == null) {
+                ModBlocks.init();
             }
         } catch (Throwable t) {
-            if (com.gtnewhorizons.modularnuclear.common.block.ModBlocks.nuclearCasing == null) {
-                com.gtnewhorizons.modularnuclear.common.block.ModBlocks.nuclearCasing = org.mockito.Mockito
-                    .mock(com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing.class);
+            if (ModBlocks.nuclearCasing == null) {
+                ModBlocks.nuclearCasing = org.mockito.Mockito.mock(BlockNuclearCasing.class);
             }
         }
     }
@@ -100,13 +104,13 @@ public class NuclearStructureChannelTest {
         try {
             gregtech.api.GregTechAPI.sPostloadStarted = false;
             gregtech.api.GregTechAPI.sPreloadStarted = true;
-            com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities.init();
+            ModMetaTileEntities.init();
         } catch (Throwable ignored) {} finally {
             gregtech.api.GregTechAPI.sPostloadStarted = prevPostload;
             gregtech.api.GregTechAPI.sPreloadStarted = prevPreload;
         }
 
-        if (com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities.nuclearBus != null) {
+        if (ModMetaTileEntities.nuclearBus != null) {
             ItemStack stack0 = NuclearReactorStructure.getNuclearHatchStack(0);
             assertNotNull(stack0, "Nuclear hatch stack for tier 0 must not be null");
 
@@ -118,7 +122,7 @@ public class NuclearStructureChannelTest {
 
             // Tier 10 hints the first tiered high-pressure input hatch (registered unless another test already took
             // a legacy hatch's id, which stops registration before the tiered hatches)
-            ItemStack firstInput = com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities.nuclearHighPressureInputHatches[0];
+            ItemStack firstInput = ModMetaTileEntities.nuclearHighPressureInputHatches[0];
             if (firstInput != null) {
                 ItemStack stack10 = NuclearReactorStructure.getNuclearHatchStack(10);
                 assertNotNull(stack10, "Nuclear hatch stack for tier 10 must not be null");
@@ -135,13 +139,13 @@ public class NuclearStructureChannelTest {
     @Test
     public void testReactorTierPipeCasingRequirements() {
         assertEquals(
-            com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_ELECTRUM,
+            NuclearSimulationEngine.PIPE_TIER_ELECTRUM,
             MTENuclearReactor.getMinRequiredPipeTierForReactorTier(1));
         assertEquals(
-            com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_PLATINUM,
+            NuclearSimulationEngine.PIPE_TIER_PLATINUM,
             MTENuclearReactor.getMinRequiredPipeTierForReactorTier(2));
         assertEquals(
-            com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_OSMIUM,
+            NuclearSimulationEngine.PIPE_TIER_OSMIUM,
             MTENuclearReactor.getMinRequiredPipeTierForReactorTier(3));
 
         MTENuclearReactor reactor = new MTENuclearReactor("test_reactor");

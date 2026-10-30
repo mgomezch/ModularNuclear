@@ -3,15 +3,19 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatExchangerData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.HeatVentData;
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
 import gtnhlanth.common.hatch.MTEHatchInputBeamline;
@@ -34,10 +38,10 @@ public class NuclearGridTile implements INuclearTile {
     private boolean isHeatVent;
     private boolean isHeatExchanger;
     private boolean isNeutronSource;
-    private com.gtnewhorizons.modularnuclear.common.config.data.FuelData cachedFuelData;
+    private FuelData cachedFuelData;
     private NuclearFuelType cachedFuelType;
-    private com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix cachedCustomFuelMix;
-    private com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData cachedModeratorData;
+    private CustomFuelMix cachedCustomFuelMix;
+    private ComponentData.ModeratorData cachedModeratorData;
     private HeatVentData cachedHeatVentData;
     private HeatExchangerData cachedHeatExchangerData;
     private double pAbsorptionFast = 0.01;
@@ -212,11 +216,10 @@ public class NuclearGridTile implements INuclearTile {
     @Override
     public double getHeatCapacity() {
         if (hatch != null) {
-            return com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine
-                .getCoreHatchHeatCapacity(hatch.mTier);
+            return NuclearSimulationEngine.getCoreHatchHeatCapacity(hatch.mTier);
         }
         if (highPressureHatch != null) return highPressureHatch.getHeatCapacity();
-        return com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.HU_PER_DEGREE;
+        return NuclearSimulationEngine.HU_PER_DEGREE;
     }
 
     @Override
@@ -235,17 +238,17 @@ public class NuclearGridTile implements INuclearTile {
     }
 
     @Override
-    public com.gtnewhorizons.modularnuclear.common.config.data.FuelData getFuelData() {
+    public FuelData getFuelData() {
         return cachedFuelData;
     }
 
     @Override
-    public com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix getCustomFuelMix() {
+    public CustomFuelMix getCustomFuelMix() {
         return cachedCustomFuelMix;
     }
 
     @Override
-    public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData getModeratorData() {
+    public ComponentData.ModeratorData getModeratorData() {
         return cachedModeratorData;
     }
 

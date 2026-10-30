@@ -19,6 +19,7 @@ import com.gtnewhorizons.modularnuclear.common.opencomputers.LoopInstrumentEnvir
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
+import com.gtnewhorizons.modularnuclear.data.MaterialRotorDatabaseExporter;
 
 import gregtech.api.enums.Materials;
 import gregtech.common.items.IDMetaTool01;
@@ -29,7 +30,7 @@ public class RotorThermalWearTest {
     @BeforeAll
     public static void setUp() {
         CoolantLocalization.loadLangFile("/assets/coolantloops/lang/en_US.lang");
-        com.gtnewhorizons.modularnuclear.data.MaterialRotorDatabaseExporter.initEnvironment();
+        MaterialRotorDatabaseExporter.initEnvironment();
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear.standalone.cli;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.CoolantLoopModel;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.TurbineCalculator;
@@ -103,8 +104,7 @@ public final class JsonReport {
                 .fixedArray("loopTempHistory", run.loopTemp, run.ticksReached, 1);
         }
         j.array("structureErrors");
-        for (com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules.Violation v : grid
-            .getStructureViolations()) j.value(v.message);
+        for (ReactorStructureRules.Violation v : grid.getStructureViolations()) j.value(v.message);
         j.endArray();
         j.field("exploded", grid.isExploded())
             .field("explosionReason", grid.getExplosionReason())

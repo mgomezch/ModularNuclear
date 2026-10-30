@@ -8,6 +8,7 @@ import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData.PHEData.SecondaryCoolantEntry;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules;
 
 /**
  * WebAssembly and standalone bridge exposing the nuclear simulation engine
@@ -812,8 +813,7 @@ public class NuclearSimWasmBridge {
         // The game's structure rules this core breaks: it would not form, so it does not run
         sb.append("\"structureErrors\":[");
         boolean firstViolation = true;
-        for (com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules.Violation v : targetGrid
-            .getStructureViolations()) {
+        for (ReactorStructureRules.Violation v : targetGrid.getStructureViolations()) {
             if (!firstViolation) sb.append(",");
             firstViolation = false;
             sb.append("\"")

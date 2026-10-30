@@ -1,5 +1,7 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear.standalone;
 
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+
 /**
  * Calculates optimal power generation and turbine requirements for XLST, XLST-HP, XLST-SC,
  * and Extreme Heat Exchanger (EHE) cascading stages based on GTNH Wiki formulas.
@@ -365,7 +367,7 @@ public class TurbineCalculator {
 
         if (hotCoolantFlow > 0) {
             double coolantLPerSec = hotCoolantFlow * 20.0;
-            if (tier <= com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_ELECTRUM) {
+            if (tier <= NuclearSimulationEngine.PIPE_TIER_ELECTRUM) {
                 // EV: Large Heat Exchanger (LHE)
                 // In EV, superheated steam cannot be processed in turbines, so LHE produces Regular Steam (1:400)
                 res.coolantMachine = "Large Heat Exchanger";
@@ -386,80 +388,78 @@ public class TurbineCalculator {
                 res.coolantSteamProduced = usableCoolant * 400.0;
                 res.coolantWaterConsumed = res.coolantSteamProduced / 160.0;
                 effectiveRegular += res.coolantSteamProduced;
-            } else if (tier
-                == com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_PLATINUM) {
-                    // IV: Thermal Boiler
-                    // Fixed rate: 500 L/s (25 L/t) per Thermal Boiler, produces 200L SH Steam per 1L Hot Coolant
-                    res.coolantMachine = "Thermal Boiler";
-                    res.coolantMachineMode = "Superheated Steam (1:200)";
-                    int maxBoilers = limits != null ? limits.maxThermalBoilers : -1;
-                    double usableCoolant = hotCoolantFlow;
-                    if (maxBoilers >= 0) {
-                        double maxCoolantCapacity = maxBoilers * 25.0; // 500 L/s = 25 L/t per boiler
-                        if (hotCoolantFlow > maxCoolantCapacity) {
-                            usableCoolant = maxCoolantCapacity;
-                            res.voidedCoolantFlow = hotCoolantFlow - usableCoolant;
-                            res.machineLimitExceeded = true;
-                        }
-                        res.coolantMachineCount = maxBoilers;
-                    } else {
-                        res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 500.0));
+            } else if (tier == NuclearSimulationEngine.PIPE_TIER_PLATINUM) {
+                // IV: Thermal Boiler
+                // Fixed rate: 500 L/s (25 L/t) per Thermal Boiler, produces 200L SH Steam per 1L Hot Coolant
+                res.coolantMachine = "Thermal Boiler";
+                res.coolantMachineMode = "Superheated Steam (1:200)";
+                int maxBoilers = limits != null ? limits.maxThermalBoilers : -1;
+                double usableCoolant = hotCoolantFlow;
+                if (maxBoilers >= 0) {
+                    double maxCoolantCapacity = maxBoilers * 25.0; // 500 L/s = 25 L/t per boiler
+                    if (hotCoolantFlow > maxCoolantCapacity) {
+                        usableCoolant = maxCoolantCapacity;
+                        res.voidedCoolantFlow = hotCoolantFlow - usableCoolant;
+                        res.machineLimitExceeded = true;
                     }
-                    res.coolantSteamProduced = usableCoolant * 200.0;
-                    res.coolantWaterConsumed = usableCoolant * 1.25; // 625 L/s water for 500 L/s hot coolant
-                    effectiveSuperheated += res.coolantSteamProduced;
-                } else
-                if (tier == com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
-                    // LuV: Extreme Heat Exchanger (EHE)
-                    // Supercritical steam cannot be processed until ZPM (XLST-SC), so EHE produces Superheated Steam
-                    // (1:200)
-                    res.coolantMachine = "Extreme Heat Exchanger";
-                    res.coolantMachineMode = "Superheated Steam (1:200)";
-                    int maxEhe = limits != null ? limits.maxEhe : -1;
-                    double usableCoolant = hotCoolantFlow;
-                    if (maxEhe >= 0) {
-                        double maxCoolantCapacity = maxEhe * 6400.0; // 128,000 L/s = 6,400 L/t per EHE
-                        if (hotCoolantFlow > maxCoolantCapacity) {
-                            usableCoolant = maxCoolantCapacity;
-                            res.voidedCoolantFlow = hotCoolantFlow - usableCoolant;
-                            res.machineLimitExceeded = true;
-                        }
-                        res.coolantMachineCount = maxEhe;
-                    } else {
-                        res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 128000.0));
-                    }
-                    res.coolantSteamProduced = usableCoolant * 200.0;
-                    res.coolantWaterConsumed = res.coolantSteamProduced / 160.0;
-                    effectiveSuperheated += res.coolantSteamProduced;
+                    res.coolantMachineCount = maxBoilers;
                 } else {
-                    // ZPM+: Extreme Heat Exchanger (EHE)
-                    // >= 8,000 L/s -> Supercritical Steam; < 8,000 L/s -> Superheated Steam
-                    res.coolantMachine = "Extreme Heat Exchanger";
-                    int maxEhe = limits != null ? limits.maxEhe : -1;
-                    double usableCoolant = hotCoolantFlow;
-                    if (maxEhe >= 0) {
-                        double maxCoolantCapacity = maxEhe * 6400.0;
-                        if (hotCoolantFlow > maxCoolantCapacity) {
-                            usableCoolant = maxCoolantCapacity;
-                            res.voidedCoolantFlow = hotCoolantFlow - usableCoolant;
-                            res.machineLimitExceeded = true;
-                        }
-                        res.coolantMachineCount = maxEhe;
-                    } else {
-                        res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 128000.0));
-                    }
-                    double usableLPerSec = usableCoolant * 20.0;
-                    if (usableLPerSec >= 8000.0) {
-                        res.coolantMachineMode = "Supercritical (>= 8,000 L/s)";
-                        res.coolantSteamProduced = usableCoolant * 200.0;
-                        effectiveSupercritical += res.coolantSteamProduced;
-                    } else {
-                        res.coolantMachineMode = "Superheated (< 8,000 L/s)";
-                        res.coolantSteamProduced = usableCoolant * 200.0;
-                        effectiveSuperheated += res.coolantSteamProduced;
-                    }
-                    res.coolantWaterConsumed = res.coolantSteamProduced / 160.0;
+                    res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 500.0));
                 }
+                res.coolantSteamProduced = usableCoolant * 200.0;
+                res.coolantWaterConsumed = usableCoolant * 1.25; // 625 L/s water for 500 L/s hot coolant
+                effectiveSuperheated += res.coolantSteamProduced;
+            } else if (tier == NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
+                // LuV: Extreme Heat Exchanger (EHE)
+                // Supercritical steam cannot be processed until ZPM (XLST-SC), so EHE produces Superheated Steam
+                // (1:200)
+                res.coolantMachine = "Extreme Heat Exchanger";
+                res.coolantMachineMode = "Superheated Steam (1:200)";
+                int maxEhe = limits != null ? limits.maxEhe : -1;
+                double usableCoolant = hotCoolantFlow;
+                if (maxEhe >= 0) {
+                    double maxCoolantCapacity = maxEhe * 6400.0; // 128,000 L/s = 6,400 L/t per EHE
+                    if (hotCoolantFlow > maxCoolantCapacity) {
+                        usableCoolant = maxCoolantCapacity;
+                        res.voidedCoolantFlow = hotCoolantFlow - usableCoolant;
+                        res.machineLimitExceeded = true;
+                    }
+                    res.coolantMachineCount = maxEhe;
+                } else {
+                    res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 128000.0));
+                }
+                res.coolantSteamProduced = usableCoolant * 200.0;
+                res.coolantWaterConsumed = res.coolantSteamProduced / 160.0;
+                effectiveSuperheated += res.coolantSteamProduced;
+            } else {
+                // ZPM+: Extreme Heat Exchanger (EHE)
+                // >= 8,000 L/s -> Supercritical Steam; < 8,000 L/s -> Superheated Steam
+                res.coolantMachine = "Extreme Heat Exchanger";
+                int maxEhe = limits != null ? limits.maxEhe : -1;
+                double usableCoolant = hotCoolantFlow;
+                if (maxEhe >= 0) {
+                    double maxCoolantCapacity = maxEhe * 6400.0;
+                    if (hotCoolantFlow > maxCoolantCapacity) {
+                        usableCoolant = maxCoolantCapacity;
+                        res.voidedCoolantFlow = hotCoolantFlow - usableCoolant;
+                        res.machineLimitExceeded = true;
+                    }
+                    res.coolantMachineCount = maxEhe;
+                } else {
+                    res.coolantMachineCount = Math.max(1.0, Math.ceil(coolantLPerSec / 128000.0));
+                }
+                double usableLPerSec = usableCoolant * 20.0;
+                if (usableLPerSec >= 8000.0) {
+                    res.coolantMachineMode = "Supercritical (>= 8,000 L/s)";
+                    res.coolantSteamProduced = usableCoolant * 200.0;
+                    effectiveSupercritical += res.coolantSteamProduced;
+                } else {
+                    res.coolantMachineMode = "Superheated (< 8,000 L/s)";
+                    res.coolantSteamProduced = usableCoolant * 200.0;
+                    effectiveSuperheated += res.coolantSteamProduced;
+                }
+                res.coolantWaterConsumed = res.coolantSteamProduced / 160.0;
+            }
         }
 
         // 2. Turbine Processing Stage:
@@ -473,7 +473,7 @@ public class TurbineCalculator {
         int maxXlstSc = limits != null ? limits.maxXlstSc : -1;
         int maxTurbines = limits != null ? limits.maxTurbines : -1;
 
-        if (tier <= com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_ELECTRUM) {
+        if (tier <= NuclearSimulationEngine.PIPE_TIER_ELECTRUM) {
             // EV: Large Steam Turbine (LST)
             res.isLST = true;
             double lstOptFlow = material.optimalSteamFlow(size, mode);
@@ -509,7 +509,7 @@ public class TurbineCalculator {
             int remTurbines = maxTurbines;
 
             // 2a. XLST-SC (Supercritical Steam): Requires ZPM or higher (tier >= 3)
-            if (tier >= com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_QUANTIUM) {
+            if (tier >= NuclearSimulationEngine.PIPE_TIER_QUANTIUM) {
                 double scFlowTotal = effectiveSupercritical + hpHeavyWaterSteamFlow;
                 if (scFlowTotal > 0) {
                     int capSc = maxXlstSc;
@@ -595,7 +595,7 @@ public class TurbineCalculator {
         double supercriticalSteamFlow, double heavyWaterSteamFlow, double hpHeavyWaterSteamFlow, double hotCoolantFlow,
         double directPowerEU, TurbineMaterial material, TurbineSize size, FittingMode mode) {
         return calculatePower(
-            com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_ELECTRUM,
+            NuclearSimulationEngine.PIPE_TIER_ELECTRUM,
             regularSteamFlow,
             superheatedSteamFlow,
             supercriticalSteamFlow,
@@ -657,23 +657,23 @@ public class TurbineCalculator {
 
     public static ScenarioTurbineConfig getDefaultTightTurbine(int tier) {
         return switch (tier) {
-            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_ELECTRUM -> new ScenarioTurbineConfig(
+            case NuclearSimulationEngine.PIPE_TIER_ELECTRUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.ORINARUKON,
                 TurbineSize.NORMAL,
                 FittingMode.TIGHT);
-            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_PLATINUM -> new ScenarioTurbineConfig(
+            case NuclearSimulationEngine.PIPE_TIER_PLATINUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.ICHORIUM,
                 TurbineSize.LARGE,
                 FittingMode.TIGHT);
-            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_OSMIUM -> new ScenarioTurbineConfig(
+            case NuclearSimulationEngine.PIPE_TIER_OSMIUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.DURANIUM,
                 TurbineSize.LARGE,
                 FittingMode.TIGHT);
-            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_QUANTIUM, com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM -> new ScenarioTurbineConfig(
+            case NuclearSimulationEngine.PIPE_TIER_QUANTIUM, NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.DURANIUM,
                 TurbineSize.HUGE,
                 FittingMode.TIGHT);
-            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM -> new ScenarioTurbineConfig(
+            case NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.INFINITY,
                 TurbineSize.HUGE,
                 FittingMode.TIGHT);
@@ -683,23 +683,23 @@ public class TurbineCalculator {
 
     public static ScenarioTurbineConfig getDefaultLooseTurbine(int tier) {
         return switch (tier) {
-            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_ELECTRUM -> new ScenarioTurbineConfig(
+            case NuclearSimulationEngine.PIPE_TIER_ELECTRUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.ORINARUKON,
                 TurbineSize.NORMAL,
                 FittingMode.LOOSE);
-            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_PLATINUM -> new ScenarioTurbineConfig(
+            case NuclearSimulationEngine.PIPE_TIER_PLATINUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.HSS_S,
                 TurbineSize.LARGE,
                 FittingMode.LOOSE);
-            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_OSMIUM -> new ScenarioTurbineConfig(
+            case NuclearSimulationEngine.PIPE_TIER_OSMIUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.GAIA_SPIRIT,
                 TurbineSize.LARGE,
                 FittingMode.LOOSE);
-            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_QUANTIUM, com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM -> new ScenarioTurbineConfig(
+            case NuclearSimulationEngine.PIPE_TIER_QUANTIUM, NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.DURANIUM,
                 TurbineSize.HUGE,
                 FittingMode.LOOSE);
-            case com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM -> new ScenarioTurbineConfig(
+            case NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM -> new ScenarioTurbineConfig(
                 TurbineMaterial.INFINITY,
                 TurbineSize.HUGE,
                 FittingMode.LOOSE);

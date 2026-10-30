@@ -3,12 +3,29 @@ package com.gtnewhorizons.modularnuclear;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.gtnewhorizons.modularnuclear.client.CherenkovClientHandler;
+import com.gtnewhorizons.modularnuclear.client.renderer.FalloutVisualEffectRenderer;
+import com.gtnewhorizons.modularnuclear.client.renderer.RenderEmpty;
+import com.gtnewhorizons.modularnuclear.common.CommonProxy;
+import com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
+import com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
+import com.gtnewhorizons.modularnuclear.common.item.NuclearFuelTooltipHandler;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.nei.NEIConfig;
+import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration;
+import com.gtnewhorizons.modularnuclear.common.opencomputers.OpenComputersIntegration;
+import com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedIntegration;
+import com.gtnewhorizons.modularnuclear.common.quest.ModularNuclearQuestIntegration;
+import com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry;
 import com.gtnewhorizons.modularnuclear.common.recipe.ModRecipes;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
+import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.Mod;
@@ -33,38 +50,35 @@ public class ModularNuclear {
     @cpw.mods.fml.common.SidedProxy(
         clientSide = "com.gtnewhorizons.modularnuclear.client.ClientProxy",
         serverSide = "com.gtnewhorizons.modularnuclear.common.CommonProxy")
-    public static com.gtnewhorizons.modularnuclear.common.CommonProxy proxy;
+    public static CommonProxy proxy;
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-        com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.init(event.getSuggestedConfigurationFile());
-        com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.init(event.getModConfigurationDirectory());
+        ModularNuclearConfig.init(event.getSuggestedConfigurationFile());
+        ReactorDataRegistry.init(event.getModConfigurationDirectory());
         ModularNuclearTextures.init();
         ModFluids.init();
         ModBlocks.init();
         ModItems.init();
-        com.gtnewhorizons.modularnuclear.CoolantLoops.preInit(event);
+        CoolantLoops.preInit(event);
     }
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         ModMetaTileEntities.init();
         ModFluids.registerContainers();
-        com.gtnewhorizons.modularnuclear.CoolantLoops.init(event);
-        com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration.init();
-        com.gtnewhorizons.modularnuclear.common.opencomputers.OpenComputersIntegration.init();
-        com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedIntegration.init();
-        com.gtnewhorizons.modularnuclear.common.quest.ModularNuclearQuestIntegration.init();
-        net.minecraftforge.common.MinecraftForge.EVENT_BUS
-            .register(new com.gtnewhorizons.modularnuclear.common.item.NuclearFuelTooltipHandler());
-        net.minecraftforge.common.MinecraftForge.EVENT_BUS
-            .register(new com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler());
-        net.minecraftforge.common.ForgeChunkManager.setForcedChunkLoadingCallback(
-            this,
-            new com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout.MeltdownChunkLoadingCallback());
+        CoolantLoops.init(event);
+        NuclearControlIntegration.init();
+        OpenComputersIntegration.init();
+        ProjectRedIntegration.init();
+        ModularNuclearQuestIntegration.init();
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new NuclearFuelTooltipHandler());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new CoriumPlacementHandler());
+        net.minecraftforge.common.ForgeChunkManager
+            .setForcedChunkLoadingCallback(this, new EntityMeltdownFallout.MeltdownChunkLoadingCallback());
 
         cpw.mods.fml.common.registry.EntityRegistry.registerModEntity(
-            com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout.class,
+            EntityMeltdownFallout.class,
             "MeltdownFallout",
             1,
             ModularNuclear.instance,
@@ -79,7 +93,7 @@ public class ModularNuclear {
             proxy.registerNEIHandlerInfo();
             if (cpw.mods.fml.common.Loader.isModLoaded("NotEnoughItems")) {
                 try {
-                    new com.gtnewhorizons.modularnuclear.common.nei.NEIConfig().loadConfig();
+                    new NEIConfig().loadConfig();
                 } catch (Throwable swallowed) {
                     Swallowed.note(swallowed);
                 }
@@ -89,22 +103,20 @@ public class ModularNuclear {
 
     @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
     private void registerClientRenderers() {
-        cpw.mods.fml.client.registry.RenderingRegistry.registerEntityRenderingHandler(
-            com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout.class,
-            new com.gtnewhorizons.modularnuclear.client.renderer.RenderEmpty());
-        net.minecraftforge.common.MinecraftForge.EVENT_BUS
-            .register(new com.gtnewhorizons.modularnuclear.client.CherenkovClientHandler());
-        com.gtnewhorizons.modularnuclear.client.renderer.FalloutVisualEffectRenderer.init();
+        cpw.mods.fml.client.registry.RenderingRegistry
+            .registerEntityRenderingHandler(EntityMeltdownFallout.class, new RenderEmpty());
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new CherenkovClientHandler());
+        FalloutVisualEffectRenderer.init();
     }
 
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
         ModRecipes.init();
-        com.gtnewhorizons.modularnuclear.CoolantLoops.postInit(event);
-        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+        CoolantLoops.postInit(event);
+        CheeseRecipeRegistry.getInstance()
             .loadRecipes();
-        com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.preIndexKnownItems();
-        com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.preIndexKeys();
+        ReactorDataRegistry.preIndexKnownItems();
+        NuclearFuelClassification.preIndexKeys();
     }
 
     @Mod.EventHandler
@@ -112,28 +124,21 @@ public class ModularNuclear {
         for (cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping mapping : event.getAll()) {
             if ("coolantloops:manifold".equals(mapping.name)) {
                 if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.BLOCK) {
-                    mapping.remap(com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks.manifold);
+                    mapping.remap(CoolantLoopBlocks.manifold);
                 } else if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.ITEM) {
-                    mapping.remap(
-                        net.minecraft.item.Item.getItemFromBlock(
-                            com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks.manifold));
+                    mapping.remap(net.minecraft.item.Item.getItemFromBlock(CoolantLoopBlocks.manifold));
                 }
             } else if ("coolantloops:creative_heat_reservoir".equals(mapping.name)) {
                 if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.BLOCK) {
-                    mapping
-                        .remap(com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks.creativeHeatReservoir);
+                    mapping.remap(CoolantLoopBlocks.creativeHeatReservoir);
                 } else if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.ITEM) {
-                    mapping.remap(
-                        net.minecraft.item.Item.getItemFromBlock(
-                            com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks.creativeHeatReservoir));
+                    mapping.remap(net.minecraft.item.Item.getItemFromBlock(CoolantLoopBlocks.creativeHeatReservoir));
                 }
             } else if ("coolantloops:loop_instrument".equals(mapping.name)) {
                 if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.BLOCK) {
-                    mapping.remap(com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks.loopInstrument);
+                    mapping.remap(CoolantLoopBlocks.loopInstrument);
                 } else if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.ITEM) {
-                    mapping.remap(
-                        net.minecraft.item.Item.getItemFromBlock(
-                            com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks.loopInstrument));
+                    mapping.remap(net.minecraft.item.Item.getItemFromBlock(CoolantLoopBlocks.loopInstrument));
                 }
             }
         }

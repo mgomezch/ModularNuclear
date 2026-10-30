@@ -7,6 +7,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControl;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 
 import codechicken.multipart.TileMultipart;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -34,7 +35,7 @@ public class ProjectRedTransmissionHandler implements IBundledTileInteraction {
         if (te instanceof IGregTechTileEntity gt) {
             IMetaTileEntity mte = gt.getMetaTileEntity();
             return mte instanceof MTEHatchNuclearControl || mte instanceof MTEHatchNuclearControlRod
-                || mte instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
+                || mte instanceof MTEPressurizedFluidHeater;
         }
         return false;
     }
@@ -55,7 +56,7 @@ public class ProjectRedTransmissionHandler implements IBundledTileInteraction {
             if (mte instanceof MTEHatchNuclearControlRod) {
                 return true;
             }
-            if (mte instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater heater) {
+            if (mte instanceof MTEPressurizedFluidHeater heater) {
                 return heater.hasEnergyDetectorCoverAtSide(ForgeDirection.getOrientation(side))
                     || heater.hasAnyEnergyDetectorCover();
             }
@@ -78,7 +79,7 @@ public class ProjectRedTransmissionHandler implements IBundledTileInteraction {
                     return hatch.getBundledSignal();
                 }
             }
-            if (mte instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater heater) {
+            if (mte instanceof MTEPressurizedFluidHeater heater) {
                 return heater.getBundledSignal(side);
             }
         }

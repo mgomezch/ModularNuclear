@@ -18,6 +18,7 @@ import org.mockito.Mockito;
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.CrawlResult;
@@ -26,6 +27,7 @@ import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
+import com.gtnewhorizons.modularnuclear.data.MaterialRotorDatabaseExporter;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -82,7 +84,7 @@ public class CoolantPumpStructureTest {
                 .thenReturn(gregtech.common.GTProxy.SeparatorStyle.Dashes);
         } catch (Throwable ignored) {}
 
-        com.gtnewhorizons.modularnuclear.data.MaterialRotorDatabaseExporter.initEnvironment();
+        MaterialRotorDatabaseExporter.initEnvironment();
     }
 
     @Test
@@ -305,18 +307,9 @@ public class CoolantPumpStructureTest {
         pump.setBaseMetaTileEntity(mockPumpBase);
         pump.setLoopFormed(true);
         pump.getEngine()
-            .addSegment(
-                new com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment(
-                    "test_seg",
-                    10.0,
-                    0.2,
-                    0.0001,
-                    1.0,
-                    100.0,
-                    1000.0,
-                    20.0));
+            .addSegment(new LoopSegment("test_seg", 10.0, 0.2, 0.0001, 1.0, 100.0, 1000.0, 20.0));
         pump.getEngine()
-            .setFluid(com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty.WATER);
+            .setFluid(CoolantFluidProperty.WATER);
         assertTrue(pump.stepCoolantLoop());
         assertEquals(MTECoolantPump.LoopState.STOPPED, pump.getLoopState());
         assertTrue(
@@ -345,19 +338,12 @@ public class CoolantPumpStructureTest {
             .thenReturn(true);
         pump.setBaseMetaTileEntity(mockPumpBase);
         pump.setLoopFormed(true);
-        com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment coldSeg = new com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment(
-            "cold_seg",
-            10.0,
-            0.2,
-            0.0001,
-            1.0,
-            100.0,
-            1000.0,
-            20.0); // 20 °C < 46.85 °C
+        LoopSegment coldSeg = new LoopSegment("cold_seg", 10.0, 0.2, 0.0001, 1.0, 100.0, 1000.0, 20.0); // 20 °C < 46.85
+                                                                                                        // °C
         pump.getEngine()
             .addSegment(coldSeg);
         pump.getEngine()
-            .setFluid(com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty.MOLTEN_CHEESE);
+            .setFluid(CoolantFluidProperty.MOLTEN_CHEESE);
         pump.getReservoir()
             .setReservoirTemperatureCelsius(20.0); // reservoir cooled down below 46.85 °C
 
@@ -382,17 +368,9 @@ public class CoolantPumpStructureTest {
             pump.getLoopStatus());
 
         // 3. Circulating molten coolant below melting point causes catastrophic explosion / rupture!
-        com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine engine = new com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine(
-            com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty.MOLTEN_CHEESE);
-        com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment frozenSeg = new com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment(
-            "frozen_seg",
-            10.0,
-            0.2,
-            0.0001,
-            1.0,
-            100.0,
-            1000.0,
-            30.0); // 30 °C < 46.85 °C
+        CoolantLoopEngine engine = new CoolantLoopEngine(CoolantFluidProperty.MOLTEN_CHEESE);
+        LoopSegment frozenSeg = new LoopSegment("frozen_seg", 10.0, 0.2, 0.0001, 1.0, 100.0, 1000.0, 30.0); // 30 °C <
+                                                                                                            // 46.85 °C
         engine.addSegment(frozenSeg);
         engine.setVolumetricFlowRate(0.05); // moving/circulating
         engine.setPumpPowered(true);
@@ -426,17 +404,8 @@ public class CoolantPumpStructureTest {
             CoolantFluidHelper.getBaselineInletTemperatureCelsius(sodiumFluid, null, adminSodium, 20.0),
             1e-9);
 
-        com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine engine = new com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine(
-            adminSodium);
-        com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment seg = new com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment(
-            "sodium_seg",
-            10.0,
-            0.2,
-            0.0001,
-            1.0,
-            100.0,
-            1000.0,
-            140.0);
+        CoolantLoopEngine engine = new CoolantLoopEngine(adminSodium);
+        LoopSegment seg = new LoopSegment("sodium_seg", 10.0, 0.2, 0.0001, 1.0, 100.0, 1000.0, 140.0);
         engine.addSegment(seg);
         engine.step(0.05);
         assertTrue(engine.isRuptured(), "140 °C is below the configured 150 °C melting point");
@@ -542,17 +511,8 @@ public class CoolantPumpStructureTest {
 
         // 7. Exploit prevention: fresh fluid enters at melting point -> Delta-T above freezing is 0
         // Attempting to extract heat without nuclear input drops T < 96.85 °C -> catastrophic rupture!
-        com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine engine = new com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine(
-            CoolantFluidProperty.SODIUM);
-        com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment seg = new com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment(
-            "sodium_seg",
-            10.0,
-            0.2,
-            0.0001,
-            1.0,
-            100.0,
-            1000.0,
-            96.85);
+        CoolantLoopEngine engine = new CoolantLoopEngine(CoolantFluidProperty.SODIUM);
+        LoopSegment seg = new LoopSegment("sodium_seg", 10.0, 0.2, 0.0001, 1.0, 100.0, 1000.0, 96.85);
         engine.addSegment(seg);
         engine.setVolumetricFlowRate(0.05);
         engine.setPumpPowered(true);
@@ -596,37 +556,20 @@ public class CoolantPumpStructureTest {
     @Test
     public void testLiquidNuclearFuelFailureAndImpellerDestruction() {
         // 1. Classification tests
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper
-                .isLiquidNuclearFuel("thoriumbasedliquidfuel"));
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper
-                .isLiquidNuclearFuel("uraniumbasedliquidfuel"));
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper
-                .isLiquidNuclearFuel("plutoniumbasedliquidfuel"));
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper
-                .isLiquidNuclearFuel("naquadahbasedliquidfuel"));
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper
-                .isLiquidNuclearFuel("liquid_naquadah_fuel"));
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper.isLiquidNuclearFuel("uraniumhexafluoride"));
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper
-                .isLiquidNuclearFuel("uraniumtetrafluoride"));
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper
-                .isLiquidNuclearFuel("depleteduraniumbasedliquidfuel"));
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("thoriumbasedliquidfuel"));
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("uraniumbasedliquidfuel"));
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("plutoniumbasedliquidfuel"));
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("naquadahbasedliquidfuel"));
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("liquid_naquadah_fuel"));
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("uraniumhexafluoride"));
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("uraniumtetrafluoride"));
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("depleteduraniumbasedliquidfuel"));
 
         // Regular coolants are NOT liquid nuclear fuels
-        assertFalse(
-            com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper.isLiquidNuclearFuel("ic2distilledwater"));
-        assertFalse(com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper.isLiquidNuclearFuel("heavywater"));
-        assertFalse(com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper.isLiquidNuclearFuel("sodium"));
-        assertFalse(
-            com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper.isLiquidNuclearFuel("molten.cheese"));
+        assertFalse(CoolantFluidHelper.isLiquidNuclearFuel("ic2distilledwater"));
+        assertFalse(CoolantFluidHelper.isLiquidNuclearFuel("heavywater"));
+        assertFalse(CoolantFluidHelper.isLiquidNuclearFuel("sodium"));
+        assertFalse(CoolantFluidHelper.isLiquidNuclearFuel("molten.cheese"));
 
         // 2. Pump failure and impeller destruction
         MTECoolantPump pump = new MTECoolantPump("test_pump_nuke");
@@ -728,10 +671,10 @@ public class CoolantPumpStructureTest {
     @Test
     public void testLavaCoolantLoopEasterEgg() {
         // 1. Classification
-        assertTrue(com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper.isLava("lava"));
-        assertTrue(com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper.isLava("fluid.lava"));
-        assertFalse(com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper.isLava("water"));
-        assertFalse(com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper.isLava("sodium"));
+        assertTrue(CoolantFluidHelper.isLava("lava"));
+        assertTrue(CoolantFluidHelper.isLava("fluid.lava"));
+        assertFalse(CoolantFluidHelper.isLava("water"));
+        assertFalse(CoolantFluidHelper.isLava("sodium"));
 
         net.minecraftforge.fluids.Fluid lavaFluid = net.minecraftforge.fluids.FluidRegistry.getFluid("lava");
         if (lavaFluid == null) {
@@ -739,8 +682,8 @@ public class CoolantPumpStructureTest {
             net.minecraftforge.fluids.FluidRegistry.registerFluid(lavaFluid);
         }
         net.minecraftforge.fluids.FluidStack lavaStack = new net.minecraftforge.fluids.FluidStack(lavaFluid, 1000);
-        assertTrue(com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper.isLava(lavaStack));
-        assertTrue(com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper.isLava(lavaFluid, lavaStack));
+        assertTrue(CoolantFluidHelper.isLava(lavaStack));
+        assertTrue(CoolantFluidHelper.isLava(lavaFluid, lavaStack));
 
         // 2. Nether dimension detection
         net.minecraft.world.World overworld = Mockito.mock(net.minecraft.world.World.class);
@@ -754,7 +697,7 @@ public class CoolantPumpStructureTest {
         } catch (Throwable t) {
             fail("Failed to set World.provider: " + t);
         }
-        assertFalse(com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper.isNetherWorld(overworld));
+        assertFalse(CoolantFluidHelper.isNetherWorld(overworld));
 
         net.minecraft.world.World nether = Mockito.mock(net.minecraft.world.World.class);
         net.minecraft.world.WorldProvider netherProvider = Mockito.mock(net.minecraft.world.WorldProvider.class);
@@ -767,7 +710,7 @@ public class CoolantPumpStructureTest {
         } catch (Throwable t) {
             fail("Failed to set World.provider: " + t);
         }
-        assertTrue(com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper.isNetherWorld(nether));
+        assertTrue(CoolantFluidHelper.isNetherWorld(nether));
 
         // 3. Pump in Overworld rejects lava
         MTECoolantPump pumpOverworld = new MTECoolantPump("test_pump_lava_overworld");
@@ -782,19 +725,11 @@ public class CoolantPumpStructureTest {
         pumpOverworld.setBaseMetaTileEntity(mockPumpBaseOw);
         pumpOverworld.setLoopFormed(true);
 
-        com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment segOw = new com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment(
-            "ow_seg",
-            10.0,
-            0.2,
-            0.0001,
-            1.0,
-            100.0,
-            1000.0,
-            20.0);
+        LoopSegment segOw = new LoopSegment("ow_seg", 10.0, 0.2, 0.0001, 1.0, 100.0, 1000.0, 20.0);
         pumpOverworld.getEngine()
             .addSegment(segOw);
         pumpOverworld.getEngine()
-            .setFluid(com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty.LAVA);
+            .setFluid(CoolantFluidProperty.LAVA);
 
         assertTrue(pumpOverworld.stepCoolantLoop());
         assertEquals(MTECoolantPump.LoopState.STOPPED, pumpOverworld.getLoopState());
@@ -823,19 +758,11 @@ public class CoolantPumpStructureTest {
             .thenReturn(1000);
         pumpNether.setRotorStack(mockRotor);
 
-        com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment segNether = new com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment(
-            "nether_seg",
-            10.0,
-            0.2,
-            0.0001,
-            1.0,
-            100.0,
-            1000.0,
-            93.3);
+        LoopSegment segNether = new LoopSegment("nether_seg", 10.0, 0.2, 0.0001, 1.0, 100.0, 1000.0, 93.3);
         pumpNether.getEngine()
             .addSegment(segNether);
         pumpNether.getEngine()
-            .setFluid(com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty.LAVA);
+            .setFluid(CoolantFluidProperty.LAVA);
 
         assertTrue(pumpNether.stepCoolantLoop());
         assertFalse(

@@ -16,6 +16,7 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 
 import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.api.modularui2.GTWidgetThemes;
@@ -88,8 +89,7 @@ public class MTEHatchNuclearBusGui extends MTEHatchBaseGui<MTEHatchNuclearBus> {
 
         textColumn.child(IKey.dynamic(() -> {
             net.minecraft.item.ItemStack stack = machine.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            double damp = com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor
-                .getInsulationDampening(stack);
+            double damp = MTENuclearReactor.getInsulationDampening(stack);
             if (damp >= 1.0) {
                 return EnumChatFormatting.DARK_PURPLE + "Insulation: 100% (universal)";
             } else if (damp > 0.0) {

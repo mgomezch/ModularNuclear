@@ -9,6 +9,7 @@ import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.World;
 
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityCreativeHeatReservoir;
+import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 import com.gtnewhorizons.modularui.api.UIInfos;
 
 /**
@@ -73,8 +74,7 @@ public class BlockCreativeHeatReservoir extends BlockContainer {
                 res.setTargetTemperatureCelsius(next);
                 player.addChatMessage(
                     new ChatComponentText(
-                        com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                            .format("coolantloops.chat.creative_reservoir.temp_set", next)));
+                        CoolantLocalization.format("coolantloops.chat.creative_reservoir.temp_set", next)));
             }
             return true;
         }

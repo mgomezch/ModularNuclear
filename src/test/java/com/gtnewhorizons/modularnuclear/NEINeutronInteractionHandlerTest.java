@@ -14,6 +14,8 @@ import net.minecraftforge.oredict.OreDictionary;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.gtnewhorizons.modularnuclear.common.item.ItemEmptyCoreTile;
+import com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.nei.NEIFuelStatsHandler;
@@ -31,11 +33,10 @@ public class NEINeutronInteractionHandlerTest {
 
         try {
             if (ModItems.emptyCoreTile == null) {
-                ModItems.emptyCoreTile = new com.gtnewhorizons.modularnuclear.common.item.ItemEmptyCoreTile();
+                ModItems.emptyCoreTile = new ItemEmptyCoreTile();
             }
             if (ModItems.radiovoltaicPlate == null) {
-                ModItems.radiovoltaicPlate = new com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate(
-                    "modularnuclear.radiovoltaic.plate");
+                ModItems.radiovoltaicPlate = new ItemRadiovoltaicPlate("modularnuclear.radiovoltaic.plate");
             }
             if (ModItems.radiovoltaicPlateHV == null) {
                 ModItems.radiovoltaicPlateHV = new ItemStack(ModItems.radiovoltaicPlate, 1, 0);

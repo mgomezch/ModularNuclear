@@ -136,14 +136,13 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         /** EU/t for a weighted absorption rate (fast neutrons count 4x). */
         public double calculatePower(double absorbedPerSecond) {
-            return maxDirectEU * com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData
-                .outputFraction(absorbedPerSecond, fullOutputAbsorbedPerSecond);
+            return maxDirectEU
+                * ComponentData.RadiovoltaicData.outputFraction(absorbedPerSecond, fullOutputAbsorbedPerSecond);
         }
 
         /** Excess heat in HU per second for a weighted absorption rate. */
         public double calculateHeat(double absorbedPerSecond) {
-            return com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData
-                .excessHeat(absorbedPerSecond, calculatePower(absorbedPerSecond), 1.0);
+            return ComponentData.RadiovoltaicData.excessHeat(absorbedPerSecond, calculatePower(absorbedPerSecond), 1.0);
         }
 
         public ComponentStatsData(ItemStack stack, String name, String category, double fastScattering,
@@ -620,12 +619,12 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         double hvAbs = (rvHv != null) ? rvHv.absorptionFast : 0.40;
         double hvSat = (rvHv != null) ? rvHv.fullOutputAbsorbedPerSecond
-            : com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData.DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
+            : ComponentData.RadiovoltaicData.DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
         long hvMaxEU = (rvHv != null && rvHv.maxEU > 0) ? rvHv.maxEU : 1024L;
 
         double evAbs = (rvEv != null) ? rvEv.absorptionFast : 0.60;
         double evSat = (rvEv != null) ? rvEv.fullOutputAbsorbedPerSecond
-            : com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData.DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
+            : ComponentData.RadiovoltaicData.DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
         long evMaxEU = (rvEv != null && rvEv.maxEU > 0) ? rvEv.maxEU : 4096L;
 
         addRadiovoltaic(
@@ -1771,7 +1770,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
     static double rvPlotMaxAbsorbed(ComponentStatsData d) {
         double full = d.fullOutputAbsorbedPerSecond > 0 ? d.fullOutputAbsorbedPerSecond
-            : com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData.DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
+            : ComponentData.RadiovoltaicData.DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
         return 5.0 * full;
     }
 

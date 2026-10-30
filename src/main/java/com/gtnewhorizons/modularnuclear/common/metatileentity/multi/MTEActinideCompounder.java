@@ -18,6 +18,7 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
@@ -470,7 +471,7 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
 
         // 5. Build Custom Fuel Mix Output
         CustomFuelMix mix = new CustomFuelMix(unitsFound);
-        com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod outputItem = switch (targetRodSize) {
+        ItemCustomFuelRod outputItem = switch (targetRodSize) {
             case 1 -> ModItems.rodCustomFuel1;
             case 2 -> ModItems.rodCustomFuel2;
             default -> ModItems.rodCustomFuel4;

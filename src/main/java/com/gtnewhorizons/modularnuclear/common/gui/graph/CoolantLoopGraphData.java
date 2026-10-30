@@ -27,10 +27,12 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.Flow
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.NodeType;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityCreativeHeatReservoir;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
@@ -149,7 +151,7 @@ public class CoolantLoopGraphData {
                 ? new ItemStack(CoolantLoopBlocks.creativeHeatReservoir)
                 : null;
             case "core_passage" -> {
-                for (ItemStack stack : com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities.nuclearHighPressureInputHatches) {
+                for (ItemStack stack : ModMetaTileEntities.nuclearHighPressureInputHatches) {
                     if (stack != null) yield stack.copy();
                 }
                 yield CoolantLoopMetaTileEntities.pressurizedFluidHatch != null
@@ -442,105 +444,103 @@ public class CoolantLoopGraphData {
                 status = phe.getBaseMetaTileEntity() != null && phe.getBaseMetaTileEntity()
                     .isActive() ? "Active" : "Idle";
                 extra.put("Operating mode", "High-pressure convective");
-            } else
-                if (devObj instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater heater) {
-                    label = "Pressurized fluid heater";
-                    itemType = "fluid_heater";
-                    if (heater.getBaseMetaTileEntity() != null) {
-                        x = heater.getBaseMetaTileEntity()
-                            .getXCoord();
-                        y = heater.getBaseMetaTileEntity()
-                            .getYCoord();
-                        z = heater.getBaseMetaTileEntity()
-                            .getZCoord();
-                    }
-                    status = heater.isPowerFailed() ? "Powerfail"
-                        : (heater.getBaseMetaTileEntity() != null && heater.getBaseMetaTileEntity()
-                            .isActive() ? "Active" : "Idle");
-                    extra.put(
-                        "Inner temperature",
-                        String.format(Locale.US, "%.1f °C", heater.getInnerTemperatureCelsius()));
-                    extra.put(
-                        "Heat transfer",
-                        String.format(Locale.US, "%,.1f HU/t", heater.getLastHeatTransferHuPerTick()));
-                } else if (devObj instanceof MTEPressurizedDegasser degasser) {
-                    label = "High-pressure degasser";
-                    itemType = "degasser";
-                    if (degasser.getBaseMetaTileEntity() != null) {
-                        x = degasser.getBaseMetaTileEntity()
-                            .getXCoord();
-                        y = degasser.getBaseMetaTileEntity()
-                            .getYCoord();
-                        z = degasser.getBaseMetaTileEntity()
-                            .getZCoord();
-                    }
-                    status = degasser.getBaseMetaTileEntity() != null && degasser.getBaseMetaTileEntity()
-                        .isActive() ? "Active" : "Idle";
-                    extra.put("Purge state", "Circulating");
-                } else if (devObj instanceof MTECoolantBath bath) {
-                    label = "Coolant bath";
-                    itemType = "coolant_bath";
-                    if (bath.getBaseMetaTileEntity() != null) {
-                        x = bath.getBaseMetaTileEntity()
-                            .getXCoord();
-                        y = bath.getBaseMetaTileEntity()
-                            .getYCoord();
-                        z = bath.getBaseMetaTileEntity()
-                            .getZCoord();
-                    }
-                    status = bath.getBaseMetaTileEntity() != null && bath.getBaseMetaTileEntity()
-                        .isActive() ? "Active" : "Idle";
-                    extra.put("Capacity", String.format(Locale.US, "%,d L", bath.getFillVolumeLiters()));
-                } else if (devObj instanceof TileEntityLoopInstrument inst) {
-                    label = "Loop instrument";
-                    itemType = "instrument";
-                    x = inst.xCoord;
-                    y = inst.yCoord;
-                    z = inst.zCoord;
-                    status = "Monitoring";
-                } else if (devObj instanceof TileEntityCreativeHeatReservoir res) {
-                    label = "Creative heat reservoir";
-                    itemType = "reservoir";
-                    x = res.xCoord;
-                    y = res.yCoord;
-                    z = res.zCoord;
-                    status = "Active";
-                } else if (devObj instanceof ICoolantPassageHatch passage) {
-                    label = "Nuclear core passage";
-                    itemType = "core_passage";
-                    IGregTechTileEntity baseTE = null;
-                    if (passage instanceof MetaTileEntity mte) {
-                        baseTE = mte.getBaseMetaTileEntity();
-                    }
-                    if (baseTE != null) {
-                        x = baseTE.getXCoord();
-                        y = baseTE.getYCoord();
-                        z = baseTE.getZCoord();
-                    }
-                    status = "Active";
-                    extra.put(
-                        "Core temperature",
-                        String.format(Locale.US, "%.1f °C", passage.getDeviceTemperatureCelsius()));
-                    try {
-                        java.lang.reflect.Field heatField = devObj.getClass()
-                            .getField("mLastHeatOutput");
-                        double heatOut = heatField.getDouble(devObj);
-                        extra.put("Heat output", String.format(Locale.US, "%,.1f HU/s", heatOut));
-                    } catch (Throwable swallowed) {
-                        Swallowed.note(swallowed);
-                    }
-                } else if (devObj instanceof MTEHatchPressurizedFluid hatch) {
-                    label = "Passage hatch";
-                    itemType = "passage_hatch";
-                    if (hatch.getBaseMetaTileEntity() != null) {
-                        x = hatch.getBaseMetaTileEntity()
-                            .getXCoord();
-                        y = hatch.getBaseMetaTileEntity()
-                            .getYCoord();
-                        z = hatch.getBaseMetaTileEntity()
-                            .getZCoord();
-                    }
+            } else if (devObj instanceof MTEPressurizedFluidHeater heater) {
+                label = "Pressurized fluid heater";
+                itemType = "fluid_heater";
+                if (heater.getBaseMetaTileEntity() != null) {
+                    x = heater.getBaseMetaTileEntity()
+                        .getXCoord();
+                    y = heater.getBaseMetaTileEntity()
+                        .getYCoord();
+                    z = heater.getBaseMetaTileEntity()
+                        .getZCoord();
                 }
+                status = heater.isPowerFailed() ? "Powerfail"
+                    : (heater.getBaseMetaTileEntity() != null && heater.getBaseMetaTileEntity()
+                        .isActive() ? "Active" : "Idle");
+                extra
+                    .put("Inner temperature", String.format(Locale.US, "%.1f °C", heater.getInnerTemperatureCelsius()));
+                extra.put(
+                    "Heat transfer",
+                    String.format(Locale.US, "%,.1f HU/t", heater.getLastHeatTransferHuPerTick()));
+            } else if (devObj instanceof MTEPressurizedDegasser degasser) {
+                label = "High-pressure degasser";
+                itemType = "degasser";
+                if (degasser.getBaseMetaTileEntity() != null) {
+                    x = degasser.getBaseMetaTileEntity()
+                        .getXCoord();
+                    y = degasser.getBaseMetaTileEntity()
+                        .getYCoord();
+                    z = degasser.getBaseMetaTileEntity()
+                        .getZCoord();
+                }
+                status = degasser.getBaseMetaTileEntity() != null && degasser.getBaseMetaTileEntity()
+                    .isActive() ? "Active" : "Idle";
+                extra.put("Purge state", "Circulating");
+            } else if (devObj instanceof MTECoolantBath bath) {
+                label = "Coolant bath";
+                itemType = "coolant_bath";
+                if (bath.getBaseMetaTileEntity() != null) {
+                    x = bath.getBaseMetaTileEntity()
+                        .getXCoord();
+                    y = bath.getBaseMetaTileEntity()
+                        .getYCoord();
+                    z = bath.getBaseMetaTileEntity()
+                        .getZCoord();
+                }
+                status = bath.getBaseMetaTileEntity() != null && bath.getBaseMetaTileEntity()
+                    .isActive() ? "Active" : "Idle";
+                extra.put("Capacity", String.format(Locale.US, "%,d L", bath.getFillVolumeLiters()));
+            } else if (devObj instanceof TileEntityLoopInstrument inst) {
+                label = "Loop instrument";
+                itemType = "instrument";
+                x = inst.xCoord;
+                y = inst.yCoord;
+                z = inst.zCoord;
+                status = "Monitoring";
+            } else if (devObj instanceof TileEntityCreativeHeatReservoir res) {
+                label = "Creative heat reservoir";
+                itemType = "reservoir";
+                x = res.xCoord;
+                y = res.yCoord;
+                z = res.zCoord;
+                status = "Active";
+            } else if (devObj instanceof ICoolantPassageHatch passage) {
+                label = "Nuclear core passage";
+                itemType = "core_passage";
+                IGregTechTileEntity baseTE = null;
+                if (passage instanceof MetaTileEntity mte) {
+                    baseTE = mte.getBaseMetaTileEntity();
+                }
+                if (baseTE != null) {
+                    x = baseTE.getXCoord();
+                    y = baseTE.getYCoord();
+                    z = baseTE.getZCoord();
+                }
+                status = "Active";
+                extra.put(
+                    "Core temperature",
+                    String.format(Locale.US, "%.1f °C", passage.getDeviceTemperatureCelsius()));
+                try {
+                    java.lang.reflect.Field heatField = devObj.getClass()
+                        .getField("mLastHeatOutput");
+                    double heatOut = heatField.getDouble(devObj);
+                    extra.put("Heat output", String.format(Locale.US, "%,.1f HU/s", heatOut));
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
+            } else if (devObj instanceof MTEHatchPressurizedFluid hatch) {
+                label = "Passage hatch";
+                itemType = "passage_hatch";
+                if (hatch.getBaseMetaTileEntity() != null) {
+                    x = hatch.getBaseMetaTileEntity()
+                        .getXCoord();
+                    y = hatch.getBaseMetaTileEntity()
+                        .getYCoord();
+                    z = hatch.getBaseMetaTileEntity()
+                        .getZCoord();
+                }
+            }
         }
 
         // Match segment for physical telemetry
@@ -708,17 +708,16 @@ public class CoolantLoopGraphData {
             if (dev instanceof MTEPressurizedHeatExchanger) {
                 itemType = "heat_exchanger";
                 label = "High-pressure heat exchanger";
-            } else
-                if (dev instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater) {
-                    itemType = "fluid_heater";
-                    label = "Pressurized fluid heater";
-                } else if (dev instanceof MTEPressurizedDegasser) {
-                    itemType = "degasser";
-                    label = "High-pressure degasser";
-                } else if (dev instanceof MTECoolantBath) {
-                    itemType = "coolant_bath";
-                    label = "Coolant bath";
-                }
+            } else if (dev instanceof MTEPressurizedFluidHeater) {
+                itemType = "fluid_heater";
+                label = "Pressurized fluid heater";
+            } else if (dev instanceof MTEPressurizedDegasser) {
+                itemType = "degasser";
+                label = "High-pressure degasser";
+            } else if (dev instanceof MTECoolantBath) {
+                itemType = "coolant_bath";
+                label = "Coolant bath";
+            }
             GraphNode devNode = new GraphNode(devId, label, itemType, "DEVICE", 0, 0, 0);
             devNode.temperature = engine.getAvgLoopTempCelsius();
             devNode.temperatureIn = devNode.temperature;

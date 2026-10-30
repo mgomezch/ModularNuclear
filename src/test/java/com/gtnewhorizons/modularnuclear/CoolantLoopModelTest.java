@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.CoolantLoopModel;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
@@ -311,10 +312,7 @@ public class CoolantLoopModelTest {
         run(1);
         double heavy = grid.getTile(4, 4)
             .getModerationProbability();
-        assertEquals(
-            com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage.moderation("heavywater"),
-            heavy,
-            1e-9);
+        assertEquals(CoolantPassage.moderation("heavywater"), heavy, 1e-9);
         loop.selectCircuit(0)
             .setFluidType(CoolantLoopModel.CoolantFluidType.MOLTEN_LEAD);
         loop.setTemperatureBand(5000.0, 6000.0);

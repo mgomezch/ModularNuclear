@@ -10,8 +10,13 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearBusGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry;
+import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
@@ -173,7 +178,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
 
     public boolean isItemAllowed(ItemStack aStack) {
         if (aStack == null) return false;
-        return com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemAllowedInBus(aStack, this);
+        return NuclearFuelClassification.isItemAllowedInBus(aStack, this);
     }
 
     @Override
@@ -262,8 +267,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
         if (amountHu <= 0.0) return;
         ItemStack stack = mInventory[SLOT_INPUT];
         if (stack == null) return;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findModerator(stack);
+        ComponentData.ModeratorData mod = ReactorDataRegistry.findModerator(stack);
         if (mod != null && mod.wignerEnergyPerFast > 0.0) {
             double maxCap = mod.wignerMaxEnergy > 0.0 ? mod.wignerMaxEnergy : 10000.0;
             double current = 0.0;
@@ -287,8 +291,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
         }
         double current = stack.stackTagCompound.getDouble("wignerEnergy");
         if (current <= 0.0) return 0.0;
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData mod = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findModerator(stack);
+        ComponentData.ModeratorData mod = ReactorDataRegistry.findModerator(stack);
         if (mod == null || mod.wignerEnergyPerFast <= 0.0) {
             stack.stackTagCompound.removeTag("wignerEnergy");
             markTileDirty();
@@ -326,45 +329,41 @@ public class MTEHatchNuclearBus extends MTEHatch {
         ItemStack stack = mInventory[SLOT_INPUT];
         if (stack == null) return;
 
-        if (com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isFuelAtMaxDamage(stack)) {
+        if (NuclearFuelClassification.isFuelAtMaxDamage(stack)) {
             mReactor.mCycleZeroedFuelItems++;
-            ItemStack depleted = com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                .getItemDepletedForm(stack);
+            ItemStack depleted = NuclearFuelClassification.getItemDepletedForm(stack);
             mInventory[SLOT_INPUT] = null;
             if (depleted != null) {
                 mReactor.addOutputPartial(depleted);
             }
             markTileDirty();
-        } else
-            if (com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isModeratorAtMaxDamage(stack)) {
-                mReactor.mCycleZeroedFuelItems++;
-                ItemStack byproduct = com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                    .getModeratorSpentProduct(stack);
-                if (stack.stackSize > 1) {
-                    stack.stackSize--;
-                    if (stack.stackTagCompound != null) {
-                        stack.stackTagCompound.removeTag("advDmg");
-                    }
-                } else {
-                    mInventory[SLOT_INPUT] = null;
+        } else if (NuclearFuelClassification.isModeratorAtMaxDamage(stack)) {
+            mReactor.mCycleZeroedFuelItems++;
+            ItemStack byproduct = NuclearFuelClassification.getModeratorSpentProduct(stack);
+            if (stack.stackSize > 1) {
+                stack.stackSize--;
+                if (stack.stackTagCompound != null) {
+                    stack.stackTagCompound.removeTag("advDmg");
                 }
-                if (byproduct != null) {
-                    mReactor.addOutputPartial(byproduct);
+            } else {
+                mInventory[SLOT_INPUT] = null;
+            }
+            if (byproduct != null) {
+                mReactor.addOutputPartial(byproduct);
+            }
+            markTileDirty();
+        } else if (NuclearFuelClassification.isReflectorAtMaxDamage(stack)) {
+            mReactor.mCycleZeroedFuelItems++;
+            if (stack.stackSize > 1) {
+                stack.stackSize--;
+                if (stack.stackTagCompound != null) {
+                    stack.stackTagCompound.removeTag("advDmg");
                 }
-                markTileDirty();
-            } else if (com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification
-                .isReflectorAtMaxDamage(stack)) {
-                    mReactor.mCycleZeroedFuelItems++;
-                    if (stack.stackSize > 1) {
-                        stack.stackSize--;
-                        if (stack.stackTagCompound != null) {
-                            stack.stackTagCompound.removeTag("advDmg");
-                        }
-                    } else {
-                        mInventory[SLOT_INPUT] = null;
-                    }
-                    markTileDirty();
-                }
+            } else {
+                mInventory[SLOT_INPUT] = null;
+            }
+            markTileDirty();
+        }
     }
 
     @Override
@@ -381,26 +380,25 @@ public class MTEHatchNuclearBus extends MTEHatch {
     }
 
     public static boolean isMoltenCheese(FluidStack fluid) {
-        return com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.isMoltenCheese(fluid);
+        return CheeseRecipeRegistry.isMoltenCheese(fluid);
     }
 
     public static void loadCheeseRecipes() {
-        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+        CheeseRecipeRegistry.getInstance()
             .loadRecipes();
     }
 
     public static void clearCheeseRecipeCache() {
-        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+        CheeseRecipeRegistry.getInstance()
             .clear();
     }
 
     public static void registerCheeseRecipe(GTRecipe recipe) {
-        com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+        CheeseRecipeRegistry.getInstance()
             .registerRecipe(recipe);
     }
 
-    public static class RecipeCacheKey
-        extends com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.RecipeCacheKey {
+    public static class RecipeCacheKey extends CheeseRecipeRegistry.RecipeCacheKey {
 
         public RecipeCacheKey(ItemStack stack) {
             super(stack);
@@ -408,12 +406,12 @@ public class MTEHatchNuclearBus extends MTEHatch {
     }
 
     public GTRecipe findCheeseExtractionRecipe(ItemStack stack) {
-        return com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+        return CheeseRecipeRegistry.getInstance()
             .findRecipe(stack);
     }
 
     public static boolean isCheeseRecipeInput(ItemStack stack) {
-        return com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry.getInstance()
+        return CheeseRecipeRegistry.getInstance()
             .isCheeseInput(stack);
     }
 
@@ -443,8 +441,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
     public com.cleanroommc.modularui.screen.ModularPanel buildUI(com.cleanroommc.modularui.factory.PosGuiData data,
         com.cleanroommc.modularui.value.sync.PanelSyncManager syncManager,
         com.cleanroommc.modularui.screen.UISettings uiSettings) {
-        return new com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearBusGui(this)
-            .build(data, syncManager, uiSettings);
+        return new MTEHatchNuclearBusGui(this).build(data, syncManager, uiSettings);
     }
 
     @Override

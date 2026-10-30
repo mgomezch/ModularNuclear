@@ -10,6 +10,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ConvectiveHeatTransferModel;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
@@ -485,21 +487,20 @@ public class CoolantBathTest {
 
     @Test
     public void testCoolantBathYAMLConfiguration() {
-        com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData devData = new com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData();
+        CoolantDeviceData devData = new CoolantDeviceData();
         devData.getBath().fillVolumePerSlotLiters = 500L;
         devData.getBath().baseMinorLossK = 2.5;
         devData.getBath().itemMinorLossK = 0.5;
 
         // Verify serialization / deserialization round-trip
         java.util.Map<String, Object> map = devData.toMap();
-        com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData loaded = com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData
-            .fromMap(map);
+        CoolantDeviceData loaded = CoolantDeviceData.fromMap(map);
         assertEquals(500L, loaded.getBath().fillVolumePerSlotLiters);
         assertEquals(2.5, loaded.getBath().baseMinorLossK, 1e-4);
         assertEquals(0.5, loaded.getBath().itemMinorLossK, 1e-4);
 
         // Set as active device data
-        com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry.setDeviceData(loaded);
+        CoolantLoopDataRegistry.setDeviceData(loaded);
         try {
             MTECoolantBath bath = new MTECoolantBath("test.bath");
             bath.mSlots = new CoolantBathSlot[12];
@@ -551,8 +552,7 @@ public class CoolantBathTest {
             assertEquals(4.0, bath.getMinorLossK(), 1e-4, "3 active items must give K = 2.5 + 0.5 * 3 = 4.0");
         } finally {
             // Restore default
-            com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry
-                .setDeviceData(new com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData());
+            CoolantLoopDataRegistry.setDeviceData(new CoolantDeviceData());
         }
     }
 

@@ -10,7 +10,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import com.gtnewhorizons.modularnuclear.common.block.BlockManifold;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.pipe.MTECoolantPipe;
+import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
+import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
+import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.ITexture;
@@ -113,9 +121,7 @@ public class CoolantPipeVisualTest {
         assertEquals("Medium Steel Coolant Pipe", pipe.getLocalizedName());
         String[] desc = pipe.getDescription();
         assertTrue(desc.length >= 4, "Must contain insulated description and specs");
-        assertTrue(
-            desc[0].contains(
-                com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization.get("gt.pipe.coolant.desc")));
+        assertTrue(desc[0].contains(CoolantLocalization.get("gt.pipe.coolant.desc")));
     }
 
     @Test
@@ -127,8 +133,7 @@ public class CoolantPipeVisualTest {
         assertTrue(textures.length >= 1, "Must contain base and optional insulation textures");
     }
 
-    static class DummyDeviceTile extends net.minecraft.tileentity.TileEntity
-        implements com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice {
+    static class DummyDeviceTile extends net.minecraft.tileentity.TileEntity implements ICoolantLoopDevice {
 
         @Override
         public String getDeviceId() {
@@ -146,9 +151,7 @@ public class CoolantPipeVisualTest {
         }
 
         @Override
-        public void processThermalExchange(double flow, double dt,
-            com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty fluid,
-            com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment seg) {}
+        public void processThermalExchange(double flow, double dt, CoolantFluidProperty fluid, LoopSegment seg) {}
     }
 
     @Test
@@ -156,7 +159,7 @@ public class CoolantPipeVisualTest {
         MTECoolantPipe pipe = new MTECoolantPipe("test.coolantpipe", 0.50F, Materials.Steel, 240, 2500, true);
         gregtech.api.metatileentity.BaseMetaTileEntity mockGte = Mockito
             .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
-        com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid hatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid(
+        MTEHatchPressurizedFluid hatch = new MTEHatchPressurizedFluid(
             "hatch",
             4,
             new String[0],
@@ -172,8 +175,7 @@ public class CoolantPipeVisualTest {
     @Test
     public void testCoolantPipeCanConnectToManifoldAndDevices() {
         MTECoolantPipe pipe = new MTECoolantPipe("test.coolantpipe", 0.50F, Materials.Steel, 240, 2500, true);
-        com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold mockManifold = Mockito
-            .mock(com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold.class);
+        TileEntityManifold mockManifold = Mockito.mock(TileEntityManifold.class);
         assertTrue(
             pipe.canConnect(net.minecraftforge.common.util.ForgeDirection.EAST, mockManifold),
             "MTECoolantPipe must allow connection to TileEntityManifold");
@@ -186,7 +188,7 @@ public class CoolantPipeVisualTest {
 
     @Test
     public void testPressurizedHatchReturnsNonEmptyTankInfo() {
-        com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid hatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid(
+        MTEHatchPressurizedFluid hatch = new MTEHatchPressurizedFluid(
             "hatch",
             4,
             new String[0],
@@ -201,7 +203,7 @@ public class CoolantPipeVisualTest {
     @Test
     public void testCoolantPipeRejectsInstrumentFacingConnection() {
         MTECoolantPipe pipe = new MTECoolantPipe("test.coolantpipe", 0.50F, Materials.Steel, 240, 2500, true);
-        com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument inst = new com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument();
+        TileEntityLoopInstrument inst = new TileEntityLoopInstrument();
         inst.setFacing(net.minecraftforge.common.util.ForgeDirection.SOUTH);
 
         // Pipe is to the SOUTH of instrument, querying towards NORTH (oppositeSide is SOUTH, which matches facing)
@@ -224,7 +226,7 @@ public class CoolantPipeVisualTest {
 
     @Test
     public void testManifoldIConnectableImplementation() {
-        com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold manifold = new com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold();
+        TileEntityManifold manifold = new TileEntityManifold();
 
         assertTrue(
             manifold instanceof gregtech.api.interfaces.metatileentity.IConnectable,
@@ -245,13 +247,13 @@ public class CoolantPipeVisualTest {
     public void testManifoldReciprocalNeighborConnection() {
         net.minecraft.world.World mockWorld = Mockito.mock(net.minecraft.world.World.class);
 
-        com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold m1 = new com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold();
+        TileEntityManifold m1 = new TileEntityManifold();
         m1.xCoord = 10;
         m1.yCoord = 64;
         m1.zCoord = 10;
         m1.setWorldObj(mockWorld);
 
-        com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold m2 = new com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold();
+        TileEntityManifold m2 = new TileEntityManifold();
         m2.xCoord = 11;
         m2.yCoord = 64;
         m2.zCoord = 10;
@@ -281,7 +283,7 @@ public class CoolantPipeVisualTest {
 
     @Test
     public void testBlockManifoldHitboxExpansion() {
-        com.gtnewhorizons.modularnuclear.common.block.BlockManifold block = new com.gtnewhorizons.modularnuclear.common.block.BlockManifold() {
+        BlockManifold block = new BlockManifold() {
 
             @Override
             public boolean shouldForceFullBlockBB() {
@@ -303,14 +305,14 @@ public class CoolantPipeVisualTest {
     public void testManifoldDisallowsDirectNormalConnectionToAnotherManifold() {
         net.minecraft.world.World mockWorld = Mockito.mock(net.minecraft.world.World.class);
 
-        com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold m1 = new com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold();
+        TileEntityManifold m1 = new TileEntityManifold();
         m1.xCoord = 10;
         m1.yCoord = 64;
         m1.zCoord = 10;
         m1.setFacing(net.minecraftforge.common.util.ForgeDirection.NORTH); // Z normal
         m1.setWorldObj(mockWorld);
 
-        com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold m2 = new com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold();
+        TileEntityManifold m2 = new TileEntityManifold();
         m2.xCoord = 10;
         m2.yCoord = 64;
         m2.zCoord = 9; // NORTH of m1 (along normal axis)
@@ -353,7 +355,7 @@ public class CoolantPipeVisualTest {
     public void testManifoldDisallowsConnectionToAirOrInvalidDevice() {
         net.minecraft.world.World mockWorld = Mockito.mock(net.minecraft.world.World.class);
 
-        com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold m = new com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold();
+        TileEntityManifold m = new TileEntityManifold();
         m.xCoord = 10;
         m.yCoord = 64;
         m.zCoord = 10;
@@ -382,7 +384,7 @@ public class CoolantPipeVisualTest {
     public void testManifoldAllowsNormalConnectionToCoolantPipeOnly() {
         net.minecraft.world.World mockWorld = Mockito.mock(net.minecraft.world.World.class);
 
-        com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold m = new com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold();
+        TileEntityManifold m = new TileEntityManifold();
         m.xCoord = 10;
         m.yCoord = 64;
         m.zCoord = 10;
@@ -427,7 +429,7 @@ public class CoolantPipeVisualTest {
     public void testManifoldAdoptsCoolantPipeColor() {
         net.minecraft.world.World mockWorld = Mockito.mock(net.minecraft.world.World.class);
 
-        com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold m = new com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold();
+        TileEntityManifold m = new TileEntityManifold();
         m.xCoord = 10;
         m.yCoord = 64;
         m.zCoord = 10;
@@ -486,14 +488,14 @@ public class CoolantPipeVisualTest {
         net.minecraft.world.World mockWorld = Mockito.mock(net.minecraft.world.World.class);
 
         // 1x2 in-plane manifold group (Z normal, EAST/WEST in-plane)
-        com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold m1 = new com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold();
+        TileEntityManifold m1 = new TileEntityManifold();
         m1.xCoord = 10;
         m1.yCoord = 64;
         m1.zCoord = 10;
         m1.setFacing(net.minecraftforge.common.util.ForgeDirection.NORTH);
         m1.setWorldObj(mockWorld);
 
-        com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold m2 = new com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold();
+        TileEntityManifold m2 = new TileEntityManifold();
         m2.xCoord = 11;
         m2.yCoord = 64;
         m2.zCoord = 10;

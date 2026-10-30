@@ -6,6 +6,8 @@ import java.util.List;
 
 import net.minecraft.network.PacketBuffer;
 
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+
 /**
  * Immutable data snapshot of a single MPTR reactor cycle for telemetry and charting.
  * Records temperature and reactivity distributions (min, Q1, median, Q3, max, avg)
@@ -37,7 +39,7 @@ public class ReactorCycleSnapshot {
     public int thermalNeutronsAbsorbed;
     public long directEU;
     public int coolantOutput;
-    public int ticksPerCycle = com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE;
+    public int ticksPerCycle = NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE;
 
     public double getCyclesPerSec() {
         return ticksPerCycle > 0 ? (20.0 / (double) ticksPerCycle) : 1.0;
@@ -70,7 +72,7 @@ public class ReactorCycleSnapshot {
             thermalNeutronsAbsorbed,
             directEU,
             coolantOutput,
-            com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE);
+            NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE);
     }
 
     public static ReactorCycleSnapshot create(long cycleIndex, List<Double> temperatures, List<Double> reactivities,

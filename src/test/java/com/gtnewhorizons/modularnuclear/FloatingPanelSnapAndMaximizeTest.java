@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.widget.sizer.Area;
+import com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler;
 import com.gtnewhorizons.modularnuclear.common.gui.PanelDragHandle;
 import com.gtnewhorizons.modularnuclear.common.gui.ResizeableFloatingPanel;
 import com.gtnewhorizons.modularnuclear.common.gui.ResizeableFloatingPanel.SnapMode;
@@ -322,17 +323,14 @@ public class FloatingPanelSnapAndMaximizeTest {
     @Test
     void testNEIHandlerIntersectsAndMaximize() {
         Area panelArea = new Area(10, 10, 100, 50);
-        assertTrue(
-            com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler.intersects(panelArea, 20, 20, 10, 10));
-        assertFalse(
-            com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler
-                .intersects(panelArea, 200, 200, 50, 50));
-        assertFalse(com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler.intersects(null, 0, 0, 10, 10));
+        assertTrue(FloatingPanelNEIHandler.intersects(panelArea, 20, 20, 10, 10));
+        assertFalse(FloatingPanelNEIHandler.intersects(panelArea, 200, 200, 50, 50));
+        assertFalse(FloatingPanelNEIHandler.intersects(null, 0, 0, 10, 10));
     }
 
     @Test
     void testNEIVisibilityPreserved() {
-        com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler handler = new com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler();
+        FloatingPanelNEIHandler handler = new FloatingPanelNEIHandler();
         codechicken.nei.VisiblityData vis = new codechicken.nei.VisiblityData();
         vis.showNEI = true;
         vis.showItemPanel = true;

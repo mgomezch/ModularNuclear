@@ -16,6 +16,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 import com.gtnewhorizons.modularui.api.drawable.IDrawable;
 import com.gtnewhorizons.modularui.api.drawable.Text;
 import com.gtnewhorizons.modularui.api.math.Alignment;
@@ -61,8 +62,7 @@ public class TileEntityLoopInstrument extends TileEntity
         }
 
         public String getDisplayName() {
-            return com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .get("coolantloops.metric." + name().toLowerCase(), displayName);
+            return CoolantLocalization.get("coolantloops.metric." + name().toLowerCase(), displayName);
         }
     }
 
@@ -150,13 +150,11 @@ public class TileEntityLoopInstrument extends TileEntity
 
     public static String getBundledModeName(int mode) {
         if (mode == BUNDLED_MODE_BROADCAST) {
-            return com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .get("coolantloops.bundled.broadcast");
+            return CoolantLocalization.get("coolantloops.bundled.broadcast");
         }
         int dyeIdx = mode - 1;
         if (dyeIdx >= 0 && dyeIdx < DYE_NAMES.length) {
-            return com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("coolantloops.bundled.channel", dyeIdx, DYE_NAMES[dyeIdx]);
+            return CoolantLocalization.format("coolantloops.bundled.channel", dyeIdx, DYE_NAMES[dyeIdx]);
         }
         return "Unknown";
     }
@@ -470,9 +468,7 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> cycleMetric(-1))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(
-                    com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                        .get("coolantloops.gui.instrument.btn.prev_metric"))
+                .addTooltip(CoolantLocalization.get("coolantloops.gui.instrument.btn.prev_metric"))
                 .setPos(12, 20)
                 .setSize(12, 12));
         builder.widget(
@@ -480,18 +476,14 @@ public class TileEntityLoopInstrument extends TileEntity
                 .setPos(12, 22)
                 .setSize(12, 10));
         builder.widget(
-            new TextWidget()
-                .setStringSupplier(
-                    () -> com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                        .format("coolantloops.gui.instrument.metric", trackedMetric.getDisplayName()))
+            new TextWidget().setStringSupplier(
+                () -> CoolantLocalization.format("coolantloops.gui.instrument.metric", trackedMetric.getDisplayName()))
                 .setDefaultColor(Color.rgb(100, 200, 255))
                 .setPos(28, 22));
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> cycleMetric(1))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(
-                    com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                        .get("coolantloops.gui.instrument.btn.next_metric"))
+                .addTooltip(CoolantLocalization.get("coolantloops.gui.instrument.btn.next_metric"))
                 .setPos(153, 20)
                 .setSize(12, 12));
         builder.widget(
@@ -503,7 +495,7 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new TextWidget()
                 .setStringSupplier(
-                    () -> com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization.format(
+                    () -> CoolantLocalization.format(
                         "coolantloops.gui.instrument.measured",
                         formatMetricValue(getDisplayValue()),
                         trackedMetric.unit))
@@ -514,7 +506,7 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new TextWidget()
                 .setStringSupplier(
-                    () -> com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
+                    () -> CoolantLocalization
                         .format("coolantloops.gui.instrument.output", redstoneOutput, fineOutputStrength))
                 .setDefaultColor(Color.rgb(255, 80, 80))
                 .setPos(12, 54));
@@ -523,9 +515,7 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> cycleBundledMode(-1))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(
-                    com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                        .get("coolantloops.gui.instrument.btn.prev_bundled"))
+                .addTooltip(CoolantLocalization.get("coolantloops.gui.instrument.btn.prev_bundled"))
                 .setPos(12, 70)
                 .setSize(12, 12));
         builder.widget(
@@ -535,16 +525,13 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new TextWidget()
                 .setStringSupplier(
-                    () -> com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                        .format("coolantloops.gui.instrument.pr", getBundledModeName(bundledMode)))
+                    () -> CoolantLocalization.format("coolantloops.gui.instrument.pr", getBundledModeName(bundledMode)))
                 .setDefaultColor(Color.rgb(200, 160, 255))
                 .setPos(28, 72));
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> cycleBundledMode(1))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(
-                    com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                        .get("coolantloops.gui.instrument.btn.next_bundled"))
+                .addTooltip(CoolantLocalization.get("coolantloops.gui.instrument.btn.next_bundled"))
                 .setPos(153, 70)
                 .setSize(12, 12));
         builder.widget(

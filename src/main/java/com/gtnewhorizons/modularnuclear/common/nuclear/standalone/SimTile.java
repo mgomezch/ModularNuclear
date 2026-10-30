@@ -4,6 +4,7 @@ import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
@@ -972,13 +973,12 @@ public class SimTile implements INuclearTile {
 
         // Radiovoltaic direct EU generation & excess heat
         if (isRadiovoltaic()) {
-            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData rv = getRadiovoltaicData();
+            ComponentData.RadiovoltaicData rv = getRadiovoltaicData();
             double weightedAbsorbed = fastAbsorbed * 4.0 + thermalAbsorbed * 1.0;
             radiovoltaicRate = TileTick.radiovoltaicRate(radiovoltaicRate, weightedAbsorbed, dt);
             long genEU = Math.round(rv.calculatePower(radiovoltaicRate));
             this.directEUProduced = genEU;
-            double excessHeat = com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData
-                .excessHeat(weightedAbsorbed, genEU, dt);
+            double excessHeat = ComponentData.RadiovoltaicData.excessHeat(weightedAbsorbed, genEU, dt);
             if (excessHeat > 0.0) {
                 addHeat(excessHeat);
             }
@@ -1078,9 +1078,9 @@ public class SimTile implements INuclearTile {
 
     public boolean refillCoolant(int maxFeed) {
         if (inputFluidAmount >= inputFluidCapacity) return true;
-        if (com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules
+        if (CoreHatchRules
             .checkCoolantFeed(inputFluidName, wasDry, temperature, NuclearSimulationEngine.params().ambientTemp)
-            != com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules.CoolantFeed.SAFE) {
+            != CoreHatchRules.CoolantFeed.SAFE) {
             return false; // Thermal shock
         }
         wasDry = false;

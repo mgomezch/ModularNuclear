@@ -47,6 +47,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.Co
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantPumpReservoir;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
+import com.gtnewhorizons.modularnuclear.common.util.LoopStateNbt;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
@@ -2586,65 +2587,48 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         String tankMatName = mTankMaterial != null ? mTankMaterial.mDefaultLocalName : "Unknown";
         double maxFlowRateLPerSec = mEngine.getMaxFlowRateLitersPerSecond();
         String maxFlowStr = (maxFlowRateLPerSec == Double.MAX_VALUE)
-            ? com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .get("gt.scanner.coolant_pump.max_pipe_flow.unlimited")
+            ? CoolantLocalization.get("gt.scanner.coolant_pump.max_pipe_flow.unlimited")
             : String.format("%.1f L/s", maxFlowRateLPerSec);
         String hatchState = isDischargeHatchDisabled()
-            ? com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .get("gt.scanner.coolant_pump.discharge_hatch.disabled")
-            : com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .get("gt.scanner.coolant_pump.discharge_hatch.enabled");
+            ? CoolantLocalization.get("gt.scanner.coolant_pump.discharge_hatch.disabled")
+            : CoolantLocalization.get("gt.scanner.coolant_pump.discharge_hatch.enabled");
         Materials rMat = getRotorMaterial();
         String impellerStr;
         String thermalWearStr;
         if (rMat != null || hasRotor()) {
             String matName = rMat != null ? RotorThermalHelper.getMaterialLocalizedName(rMat) : "Unknown";
             double meltC = RotorThermalHelper.getMeltingPointCelsius(rMat);
-            impellerStr = com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
+            impellerStr = CoolantLocalization
                 .format("gt.scanner.coolant_pump.impeller", matName, mRotorEfficiency * 100.0, meltC);
             double th = getHomologousTemperature();
             double thermalWear = getThermalWearMultiplier();
             String softeningActive = th >= 0.5
-                ? com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                    .get("gt.scanner.coolant_pump.impeller_thermal.softening")
+                ? CoolantLocalization.get("gt.scanner.coolant_pump.impeller_thermal.softening")
                 : "";
-            thermalWearStr = com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
+            thermalWearStr = CoolantLocalization
                 .format("gt.scanner.coolant_pump.impeller_thermal_wear", thermalWear, th, softeningActive);
         } else {
-            impellerStr = com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .get("gt.scanner.coolant_pump.impeller.none");
-            thermalWearStr = com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.scanner.coolant_pump.impeller_thermal_wear", 1.0, 0.0, "");
+            impellerStr = CoolantLocalization.get("gt.scanner.coolant_pump.impeller.none");
+            thermalWearStr = CoolantLocalization.format("gt.scanner.coolant_pump.impeller_thermal_wear", 1.0, 0.0, "");
         }
 
         String loopStatusStr = mLoopFormed
-            ? com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization.format(
+            ? CoolantLocalization.format(
                 "gt.scanner.coolant_pump.loop_active",
                 mEngine.getSegments()
                     .size(),
                 mLoopDevices.size())
-            : com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.scanner.coolant_pump.loop_incomplete", getLoopStatus());
+            : CoolantLocalization.format("gt.scanner.coolant_pump.loop_incomplete", getLoopStatus());
 
-        return new String[] {
-            com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.scanner.coolant_pump.state", mLoopState.name()),
-            com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.scanner.coolant_pump.discharge_hatch", hatchState),
-            com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.scanner.coolant_pump.tank_material", tankMatName),
-            com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.scanner.coolant_pump.current_flow", mEngine.getFlowRateLitersPerSecond()),
-            com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.scanner.coolant_pump.max_pipe_flow", maxFlowStr),
-            com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.scanner.coolant_pump.peak_pressure", mEngine.getPeakLoopPressureBar()),
-            com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.scanner.coolant_pump.peak_temp", mEngine.getPeakLoopTempCelsius()),
-            com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.scanner.coolant_pump.loop_fluid", mCurrentFillLiters, mRequiredFillLiters),
-            com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.scanner.coolant_pump.dissolved_gas", getDissolvedGasFraction() * 100.0),
+        return new String[] { CoolantLocalization.format("gt.scanner.coolant_pump.state", mLoopState.name()),
+            CoolantLocalization.format("gt.scanner.coolant_pump.discharge_hatch", hatchState),
+            CoolantLocalization.format("gt.scanner.coolant_pump.tank_material", tankMatName),
+            CoolantLocalization.format("gt.scanner.coolant_pump.current_flow", mEngine.getFlowRateLitersPerSecond()),
+            CoolantLocalization.format("gt.scanner.coolant_pump.max_pipe_flow", maxFlowStr),
+            CoolantLocalization.format("gt.scanner.coolant_pump.peak_pressure", mEngine.getPeakLoopPressureBar()),
+            CoolantLocalization.format("gt.scanner.coolant_pump.peak_temp", mEngine.getPeakLoopTempCelsius()),
+            CoolantLocalization.format("gt.scanner.coolant_pump.loop_fluid", mCurrentFillLiters, mRequiredFillLiters),
+            CoolantLocalization.format("gt.scanner.coolant_pump.dissolved_gas", getDissolvedGasFraction() * 100.0),
             impellerStr, thermalWearStr, loopStatusStr };
     }
 
@@ -2713,7 +2697,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
 
         NBTTagCompound engineTag = new NBTTagCompound();
-        com.gtnewhorizons.modularnuclear.common.util.LoopStateNbt.write(mEngine.exportState(), engineTag);
+        LoopStateNbt.write(mEngine.exportState(), engineTag);
         aNBT.setTag("mEngine", engineTag);
 
         if (mLastCrawlResult != null && mLastCrawlResult.isSuccess) {
@@ -2809,8 +2793,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
 
         if (aNBT.hasKey("mEngine", 10)) {
-            mEngine.importState(
-                com.gtnewhorizons.modularnuclear.common.util.LoopStateNbt.read(aNBT.getCompoundTag("mEngine")));
+            mEngine.importState(LoopStateNbt.read(aNBT.getCompoundTag("mEngine")));
         }
         if (aNBT.hasKey("mLoopFormed")) {
             mLoopFormed = aNBT.getBoolean("mLoopFormed") && !mEngine.getSegments()

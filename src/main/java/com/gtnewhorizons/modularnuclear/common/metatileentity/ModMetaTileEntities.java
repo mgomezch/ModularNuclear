@@ -3,10 +3,15 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity;
 import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControl;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEActinideCompounder;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 
 import gregtech.api.enums.GTValues;
@@ -68,25 +73,25 @@ public class ModMetaTileEntities {
             "Nuclear core control rod",
             5).getStackForm(1L);
 
-        nuclearAdvancedControlRodHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod(
+        nuclearAdvancedControlRodHatch = new MTEHatchNuclearAdvancedControlRod(
             ID_NUCLEAR_ADVANCED_CONTROL_ROD,
             "hatch.nuclearadvancedcontrolrod",
             "Advanced nuclear core control rod",
             5).getStackForm(1L);
 
-        nuclearHighPressureHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure(
+        nuclearHighPressureHatch = new MTEHatchNuclearHighPressure(
             ID_NUCLEAR_HIGH_PRESSURE,
             "hatch.nuclearhighpressure",
             "Nuclear core high-pressure hatch (Legacy)",
             5).getStackForm(1L);
 
-        nuclearHighPressureInputHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput(
+        nuclearHighPressureInputHatch = new MTEHatchNuclearHighPressureInput(
             ID_NUCLEAR_HIGH_PRESSURE_INPUT,
             "hatch.nuclearhighpressure.input",
             "Nuclear core high-pressure input hatch (legacy)",
             5).getStackForm(1L);
 
-        nuclearHighPressureOutputHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput(
+        nuclearHighPressureOutputHatch = new MTEHatchNuclearHighPressureOutput(
             ID_NUCLEAR_HIGH_PRESSURE_OUTPUT,
             "hatch.nuclearhighpressure.output",
             "Nuclear core high-pressure output hatch (legacy)",
@@ -95,7 +100,7 @@ public class ModMetaTileEntities {
         // All the inputs, then all the outputs, so each kind lists together
         for (int m = 0; m < CoolantPipeSpec.MATERIAL_NAMES.length; m++) {
             String material = CoolantPipeSpec.MATERIAL_NAMES[m];
-            nuclearHighPressureInputHatches[m] = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput(
+            nuclearHighPressureInputHatches[m] = new MTEHatchNuclearHighPressureInput(
                 ID_NUCLEAR_HIGH_PRESSURE_INPUT_BASE + m,
                 "hatch.nuclearhighpressure.input." + material.toLowerCase(),
                 "Nuclear core high-pressure input hatch ("
@@ -107,7 +112,7 @@ public class ModMetaTileEntities {
         }
         for (int m = 0; m < CoolantPipeSpec.MATERIAL_NAMES.length; m++) {
             String material = CoolantPipeSpec.MATERIAL_NAMES[m];
-            nuclearHighPressureOutputHatches[m] = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput(
+            nuclearHighPressureOutputHatches[m] = new MTEHatchNuclearHighPressureOutput(
                 ID_NUCLEAR_HIGH_PRESSURE_OUTPUT_BASE + m,
                 "hatch.nuclearhighpressure.output." + material.toLowerCase(),
                 "Nuclear core high-pressure output hatch ("
@@ -122,7 +127,7 @@ public class ModMetaTileEntities {
             "multimachine.nuclearreactor",
             "Modular Pressure Tube Reactor (MPTR)").getStackForm(1L);
 
-        actinideCompounder = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEActinideCompounder(
+        actinideCompounder = new MTEActinideCompounder(
             ID_ACTINIDE_COMPOUNDER,
             "multimachine.actinidecompounder",
             "Actinide Fuel Compounder").getStackForm(1L);

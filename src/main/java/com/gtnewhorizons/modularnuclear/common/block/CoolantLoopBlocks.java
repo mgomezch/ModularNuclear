@@ -3,6 +3,8 @@ package com.gtnewhorizons.modularnuclear.common.block;
 import net.minecraft.block.Block;
 
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityCreativeHeatReservoir;
+import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
+import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -22,21 +24,13 @@ public class CoolantLoopBlocks {
 
         manifold = new BlockManifold();
         GameRegistry.registerBlock(manifold, "manifold");
-        GameRegistry.registerTileEntity(
-            com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold.class,
-            "coolantloops.manifold");
-        GameRegistry.registerTileEntity(
-            com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold.class,
-            "modularnuclear.manifold");
+        GameRegistry.registerTileEntity(TileEntityManifold.class, "coolantloops.manifold");
+        GameRegistry.registerTileEntity(TileEntityManifold.class, "modularnuclear.manifold");
 
         loopInstrument = new BlockLoopInstrument();
         GameRegistry.registerBlock(loopInstrument, "loop_instrument");
-        GameRegistry.registerTileEntity(
-            com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument.class,
-            "coolantloops.loop_instrument");
-        GameRegistry.registerTileEntity(
-            com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument.class,
-            "modularnuclear.loop_instrument");
+        GameRegistry.registerTileEntity(TileEntityLoopInstrument.class, "coolantloops.loop_instrument");
+        GameRegistry.registerTileEntity(TileEntityLoopInstrument.class, "modularnuclear.loop_instrument");
 
         registerAliases();
     }

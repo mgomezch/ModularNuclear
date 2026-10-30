@@ -17,6 +17,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
@@ -1631,9 +1632,9 @@ public class LoopGraphCrawler {
                 step.x,
                 step.y,
                 step.z,
-                com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData.getPhysicsData()
+                CoolantLoopConfigData.getPhysicsData()
                     .getStandardPassageLength(),
-                com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData.getPhysicsData()
+                CoolantLoopConfigData.getPhysicsData()
                     .getStandardPassageDiameter(),
                 0.000045,
                 passage.getMinorLossK(),

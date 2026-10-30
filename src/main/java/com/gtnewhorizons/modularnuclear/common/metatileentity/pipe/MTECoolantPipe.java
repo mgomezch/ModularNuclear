@@ -25,6 +25,11 @@ import net.minecraft.util.IIcon;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipingRegistry;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
+import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
+import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
+import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -103,18 +108,16 @@ public class MTECoolantPipe extends MTEFluidPipe {
     @Override
     public boolean canConnect(ForgeDirection side, net.minecraft.tileentity.TileEntity tileEntity) {
         if (tileEntity == null) return false;
-        if (tileEntity instanceof com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument inst) {
+        if (tileEntity instanceof TileEntityLoopInstrument inst) {
             // Coolant pipes cannot connect to the instrument's facing side (which is reserved for redstone output)
             return side.getOpposite() != inst.getFacing();
         }
-        if (tileEntity instanceof com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice
-            || tileEntity instanceof com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold) {
+        if (tileEntity instanceof ICoolantLoopDevice || tileEntity instanceof TileEntityManifold) {
             return true;
         }
         if (tileEntity instanceof IGregTechTileEntity gte) {
             IMetaTileEntity mte = gte.getMetaTileEntity();
-            if (mte instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid
-                || mte instanceof com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice) {
+            if (mte instanceof MTEHatchPressurizedFluid || mte instanceof ICoolantLoopDevice) {
                 return true;
             }
         }
@@ -158,8 +161,8 @@ public class MTECoolantPipe extends MTEFluidPipe {
     public String[] getDescription() {
         List<String> list = new ArrayList<>();
         list.add(
-            EnumChatFormatting.AQUA + com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .get("gt.pipe.coolant.desc", "Thermally insulated coolant loop pipe"));
+            EnumChatFormatting.AQUA
+                + CoolantLocalization.get("gt.pipe.coolant.desc", "Thermally insulated coolant loop pipe"));
         String[] superDesc = super.getDescription();
         if (superDesc != null) {
             list.addAll(Arrays.asList(superDesc));
@@ -167,15 +170,9 @@ public class MTECoolantPipe extends MTEFluidPipe {
         double maxP = CoolantPipingRegistry.getMaxPressureBar(mMaterial);
         double maxT = CoolantPipingRegistry.getMaxTemperatureCelsius(this);
         double diamCm = CoolantPipingRegistry.getDiameterForThickness(mThickNess) * 100.0;
-        list.add(
-            EnumChatFormatting.GRAY + com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.pipe.coolant.specs.diameter", diamCm));
-        list.add(
-            EnumChatFormatting.GRAY + com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.pipe.coolant.specs.pressure", maxP));
-        list.add(
-            EnumChatFormatting.GRAY + com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.pipe.coolant.specs.temperature", maxT));
+        list.add(EnumChatFormatting.GRAY + CoolantLocalization.format("gt.pipe.coolant.specs.diameter", diamCm));
+        list.add(EnumChatFormatting.GRAY + CoolantLocalization.format("gt.pipe.coolant.specs.pressure", maxP));
+        list.add(EnumChatFormatting.GRAY + CoolantLocalization.format("gt.pipe.coolant.specs.temperature", maxT));
         return list.toArray(new String[0]);
     }
 

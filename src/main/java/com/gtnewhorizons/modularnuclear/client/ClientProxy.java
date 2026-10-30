@@ -2,7 +2,10 @@ package com.gtnewhorizons.modularnuclear.client;
 
 import net.minecraftforge.common.MinecraftForge;
 
+import com.gtnewhorizons.modularnuclear.client.renderer.FalloutVisualEffectRenderer;
 import com.gtnewhorizons.modularnuclear.common.CommonProxy;
+import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
+import com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nei.NEIConfig;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
@@ -26,7 +29,7 @@ public class ClientProxy extends CommonProxy {
                 Swallowed.note(swallowed);
             }
             try {
-                com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler.register();
+                FloatingPanelNEIHandler.register();
             } catch (Throwable swallowed) {
                 Swallowed.note(swallowed);
             }
@@ -44,12 +47,12 @@ public class ClientProxy extends CommonProxy {
     }
 
     @Override
-    public void registerFallout(com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout fallout) {
-        com.gtnewhorizons.modularnuclear.client.renderer.FalloutVisualEffectRenderer.registerFallout(fallout);
+    public void registerFallout(EntityMeltdownFallout fallout) {
+        FalloutVisualEffectRenderer.registerFallout(fallout);
     }
 
     @Override
-    public void unregisterFallout(com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout fallout) {
-        com.gtnewhorizons.modularnuclear.client.renderer.FalloutVisualEffectRenderer.unregisterFallout(fallout);
+    public void unregisterFallout(EntityMeltdownFallout fallout) {
+        FalloutVisualEffectRenderer.unregisterFallout(fallout);
     }
 }

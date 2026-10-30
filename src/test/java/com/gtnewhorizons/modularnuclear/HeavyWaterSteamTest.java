@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.TurbineCalculator;
@@ -182,8 +183,7 @@ public class HeavyWaterSteamTest {
 
     @Test
     void testCoolantHeavyWaterHotFluidName() {
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData data = ReactorDataRegistry
-            .findCoolantFluid("heavywater");
+        ComponentData.CoolantFluidData data = ReactorDataRegistry.findCoolantFluid("heavywater");
         assertNotNull(data);
         assertEquals("heavywatersteam", data.hotFluidName);
     }

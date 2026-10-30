@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common;
 
+import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -12,7 +13,7 @@ public class CommonProxy {
 
     public void registerNEIHandlerInfo() {}
 
-    public void registerFallout(com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout fallout) {}
+    public void registerFallout(EntityMeltdownFallout fallout) {}
 
-    public void unregisterFallout(com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout fallout) {}
+    public void unregisterFallout(EntityMeltdownFallout fallout) {}
 }

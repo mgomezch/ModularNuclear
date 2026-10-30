@@ -15,11 +15,16 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
+import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearControlRodGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileTick;
 import com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedIntegration;
+import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
@@ -54,7 +59,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
 
     public static final int SLOT_ROD = 0;
     public static final int SLOT_MODERATOR = 1;
-    public com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor mReactor;
+    public MTENuclearReactor mReactor;
 
     public int getTicksPerCycle() {
         return mReactor != null ? mReactor.getTicksPerCycle() : NuclearSimulationEngine.params().ticksPerCycle;
@@ -148,8 +153,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         if (stack == null) return ControlRodType.NONE;
 
         try {
-            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crd = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-                .findControlRod(stack);
+            ComponentData.ControlRodData crd = ReactorDataRegistry.findControlRod(stack);
             if (crd != null && crd.id != null) {
                 if ("rod_silver".equals(crd.id)) return ControlRodType.SILVER;
                 if ("rod_boron".equals(crd.id)) return ControlRodType.BORON;
@@ -162,8 +166,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         }
 
         try {
-            String cfgType = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig
-                .getControlRodType(stack);
+            String cfgType = ModularNuclearConfig.getControlRodType(stack);
             if (cfgType != null) {
                 return ControlRodType.valueOf(cfgType.toUpperCase());
             }
@@ -220,17 +223,15 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
 
     public static boolean isControlRod(ItemStack stack) {
         if (stack == null) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findControlRod(stack) != null)
-            return true;
+        if (ReactorDataRegistry.findControlRod(stack) != null) return true;
         return getRodType(stack) != ControlRodType.NONE;
     }
 
     public static boolean isModerator(ItemStack stack) {
         if (stack == null) return false;
         if (isControlRod(stack)) return false;
-        if (com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry.findModerator(stack) != null)
-            return true;
-        return com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification.isItemModerator(stack);
+        if (ReactorDataRegistry.findModerator(stack) != null) return true;
+        return NuclearFuelClassification.isItemModerator(stack);
     }
 
     public boolean hasControlRodItem() {
@@ -260,8 +261,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     public String getModeratorDisplayName() {
         ItemStack modStack = getModeratorStack();
         if (modStack == null) return "None";
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData data = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findModerator(modStack);
+        ComponentData.ModeratorData data = ReactorDataRegistry.findModerator(modStack);
         if (data != null && data.name != null && !data.name.isEmpty()) {
             return data.name;
         }
@@ -271,8 +271,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     public double getModeratorProbability() {
         if (!hasModerator()) return 0.0;
         double ratio = getModeratorInsertionRatio();
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData data = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findModerator(getModeratorStack());
+        ComponentData.ModeratorData data = ReactorDataRegistry.findModerator(getModeratorStack());
         double mod = (data != null) ? data.moderation : 0.50;
         return Math.max(0.0, Math.min(1.0, ratio * mod));
     }
@@ -280,8 +279,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     public double getModeratorAbsorptionProbability(NeutronType type) {
         if (!hasModerator()) return 0.0;
         double ratio = getModeratorInsertionRatio();
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData data = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findModerator(getModeratorStack());
+        ComponentData.ModeratorData data = ReactorDataRegistry.findModerator(getModeratorStack());
         double abs = (data != null) ? ((type == NeutronType.FAST) ? data.absorptionFast : data.absorptionThermal)
             : ((type == NeutronType.FAST) ? 0.002 : 0.009);
         return Math.max(0.0, Math.min(1.0, ratio * abs));
@@ -290,8 +288,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     public double getModeratorScatteringProbability(NeutronType type) {
         if (!hasModerator()) return 0.0;
         double ratio = getModeratorInsertionRatio();
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ModeratorData data = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findModerator(getModeratorStack());
+        ComponentData.ModeratorData data = ReactorDataRegistry.findModerator(getModeratorStack());
         double scattering = (data != null) ? ((type == NeutronType.FAST) ? data.scatteringFast : data.scatteringThermal)
             : ((type == NeutronType.FAST) ? 0.93 : 0.621);
         return Math.max(0.0, Math.min(1.0, ratio * scattering));
@@ -499,11 +496,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public double getAbsorptionProbability(NeutronType type) {
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findControlRod(mInventory[SLOT_ROD]);
+        ComponentData.ControlRodData crData = ReactorDataRegistry.findControlRod(mInventory[SLOT_ROD]);
         if (crData != null) {
-            return com.gtnewhorizons.modularnuclear.common.nuclear.TileTick
-                .rodAbsorption(crData, getInsertionRatio(), type);
+            return TileTick.rodAbsorption(crData, getInsertionRatio(), type);
         }
         ControlRodType rod = getRodType(mInventory[SLOT_ROD]);
         if (rod == ControlRodType.NONE) return 0.01;
@@ -513,11 +508,9 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public double getScatteringProbability(NeutronType type) {
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findControlRod(mInventory[SLOT_ROD]);
+        ComponentData.ControlRodData crData = ReactorDataRegistry.findControlRod(mInventory[SLOT_ROD]);
         if (crData != null) {
-            return com.gtnewhorizons.modularnuclear.common.nuclear.TileTick
-                .rodScattering(crData, getInsertionRatio(), type);
+            return TileTick.rodScattering(crData, getInsertionRatio(), type);
         }
         ControlRodType rod = getRodType(mInventory[SLOT_ROD]);
         if (rod == ControlRodType.NONE) return 0.02;
@@ -526,8 +519,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public double getHeatTransferCoeff() {
-        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData crData = com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry
-            .findControlRod(mInventory[SLOT_ROD]);
+        ComponentData.ControlRodData crData = ReactorDataRegistry.findControlRod(mInventory[SLOT_ROD]);
         if (crData != null) {
             return crData.heatTransferCoeff;
         }

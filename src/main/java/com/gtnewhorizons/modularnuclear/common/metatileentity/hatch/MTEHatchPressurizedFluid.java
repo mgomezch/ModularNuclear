@@ -14,6 +14,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantPassageHatch;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
@@ -103,11 +104,8 @@ public class MTEHatchPressurizedFluid extends MTEHatch implements ICoolantLoopDe
             aName,
             aNameRegional,
             aTier,
-            new String[] {
-                com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                    .get("gt.hatch.pressurized_fluid.desc1"),
-                com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                    .get("gt.hatch.pressurized_fluid.desc2") });
+            new String[] { CoolantLocalization.get("gt.hatch.pressurized_fluid.desc1"),
+                CoolantLocalization.get("gt.hatch.pressurized_fluid.desc2") });
     }
 
     public MTEHatchPressurizedFluid(int aID, String aName, String aNameRegional, int aTier, String[] aDescription) {

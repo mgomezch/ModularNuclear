@@ -6,7 +6,11 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedInput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedOutput;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.pipe.MTECoolantPipe;
 
 import gregtech.api.enums.Materials;
@@ -18,10 +22,10 @@ public class CoolantLoopMetaTileEntities {
     public static MTEHatchPressurizedInput pressurizedInputHatch;
     public static MTEHatchPressurizedOutput pressurizedOutputHatch;
     public static MTEHatchPressurizedFluid pressurizedFluidHatch;
-    public static com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger pressurizedHeatExchanger;
-    public static com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser pressurizedDegasser;
-    public static com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath coolantBath;
-    public static com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater pressurizedFluidHeater;
+    public static MTEPressurizedHeatExchanger pressurizedHeatExchanger;
+    public static MTEPressurizedDegasser pressurizedDegasser;
+    public static MTECoolantBath coolantBath;
+    public static MTEPressurizedFluidHeater pressurizedFluidHeater;
 
     public static final int PUMP_ID = 32120;
     public static final int PRESSURIZED_HATCH_INPUT_ID = 32121;
@@ -50,32 +54,29 @@ public class CoolantLoopMetaTileEntities {
 
     public static void init() {
         coolantPump = new MTECoolantPump(PUMP_ID, "multimachine.coolantpump", "Coolant loop pump");
-        pressurizedInputHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedInput(
+        pressurizedInputHatch = new MTEHatchPressurizedInput(
             PRESSURIZED_HATCH_INPUT_ID,
             "hatch.pressurizedfluid.input",
             "High-pressure input hatch",
             4 // EV Tier
         );
-        pressurizedOutputHatch = new com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedOutput(
+        pressurizedOutputHatch = new MTEHatchPressurizedOutput(
             PRESSURIZED_HATCH_OUTPUT_ID,
             "hatch.pressurizedfluid.output",
             "High-pressure output hatch",
             4 // EV Tier
         );
         pressurizedFluidHatch = pressurizedInputHatch;
-        pressurizedHeatExchanger = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger(
+        pressurizedHeatExchanger = new MTEPressurizedHeatExchanger(
             HEAT_EXCHANGER_ID,
             "multimachine.pressurizedheatexchanger",
             "High-pressure heat exchanger");
-        pressurizedDegasser = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser(
+        pressurizedDegasser = new MTEPressurizedDegasser(
             DEGASSER_ID,
             "multimachine.pressurizeddegasser",
             "High-pressure degasser");
-        coolantBath = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath(
-            COOLANT_BATH_ID,
-            "multimachine.coolantbath",
-            "Coolant Bath");
-        pressurizedFluidHeater = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater(
+        coolantBath = new MTECoolantBath(COOLANT_BATH_ID, "multimachine.coolantbath", "Coolant Bath");
+        pressurizedFluidHeater = new MTEPressurizedFluidHeater(
             PRESSURIZED_FLUID_HEATER_ID,
             "multimachine.pressurizedfluidheater",
             "Pressurized fluid heater");

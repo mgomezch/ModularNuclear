@@ -14,6 +14,8 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantPassageHatch;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearHighPressureGui;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
@@ -112,8 +114,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         String[] lines = java.util.Arrays.copyOf(base, base.length + 2);
         lines[base.length] = net.minecraft.util.StatCollector.translateToLocalFormatted(
             "gt.blockmachines.hatch.nuclearhighpressure.material",
-            com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities.COOLANT_PIPE_MATERIALS[mMaterialIndex]
-                .getLocalizedNameForItem("%material"),
+            CoolantLoopMetaTileEntities.COOLANT_PIPE_MATERIALS[mMaterialIndex].getLocalizedNameForItem("%material"),
             GTValues.VN[mTier]);
         lines[base.length + 1] = net.minecraft.util.StatCollector
             .translateToLocalFormatted("gt.blockmachines.hatch.nuclearhighpressure.capacity", (long) getHeatCapacity());
@@ -633,8 +634,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
     public com.cleanroommc.modularui.screen.ModularPanel buildUI(com.cleanroommc.modularui.factory.PosGuiData data,
         com.cleanroommc.modularui.value.sync.PanelSyncManager syncManager,
         com.cleanroommc.modularui.screen.UISettings uiSettings) {
-        return new com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearHighPressureGui(this)
-            .build(data, syncManager, uiSettings);
+        return new MTEHatchNuclearHighPressureGui(this).build(data, syncManager, uiSettings);
     }
 
     @Override

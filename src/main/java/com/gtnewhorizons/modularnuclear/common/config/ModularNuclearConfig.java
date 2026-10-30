@@ -9,6 +9,7 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
@@ -253,8 +254,7 @@ public final class ModularNuclearConfig {
                 1,
                 100,
                 "Number of ticks per reactor simulation cycle (default 5, i.e. 4 cycles/second).");
-            com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine
-                .params().ticksPerCycle = ticksPerCycle;
+            NuclearSimulationEngine.params().ticksPerCycle = ticksPerCycle;
 
         } catch (Exception e) {
             ModularNuclear.LOG.error("Failed to load ModularNuclear config", e);

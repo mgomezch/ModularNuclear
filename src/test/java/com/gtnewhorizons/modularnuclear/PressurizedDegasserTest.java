@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser;
 
 /**
  * Analytical test suite verifying Pressurized Degasser physics,
@@ -261,8 +262,7 @@ public class PressurizedDegasserTest {
         } catch (Throwable ignored) {}
         gregtech.api.GregTechAPI.sBlockCasings4 = net.minecraft.init.Blocks.stone;
 
-        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser degasser = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser(
-            "test.degasser");
+        MTEPressurizedDegasser degasser = new MTEPressurizedDegasser("test.degasser");
         gregtech.api.interfaces.tileentity.IGregTechTileEntity mockBase = org.mockito.Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
         net.minecraft.world.World mockWorld = org.mockito.Mockito.mock(net.minecraft.world.World.class);
