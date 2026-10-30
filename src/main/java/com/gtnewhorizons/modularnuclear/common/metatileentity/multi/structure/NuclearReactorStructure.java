@@ -128,12 +128,13 @@ public class NuclearReactorStructure {
                             StructureUtility
                                 .onElementPass(t -> t.mCasing++, StructureUtility.ofBlock(ModBlocks.nuclearCasing, 0))))
                 .addElement('p', chainItemPipeCasings(-1, (t, casingTier) -> {
+                    t.mCheckedCasingTier = casingTier;
                     if (casingTier < 3) {
                         t.mPipeTier = -1;
                     } else {
                         t.mPipeTier = casingTier - 3;
                     }
-                }, t -> t.mPipeTier == -1 ? -1 : t.mPipeTier + 3))
+                }, t -> t.mCheckedCasingTier))
                 .addElement('g', NuclearStructureChannels.NUCLEAR_HATCH.use(new NuclearHatchElement()))
                 .addElement('b', new BottomCoreElement())
                 .addElement('-', new HollowChamberElement())

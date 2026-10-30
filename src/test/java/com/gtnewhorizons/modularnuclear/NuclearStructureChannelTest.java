@@ -131,4 +131,102 @@ public class NuclearStructureChannelTest {
             assertNull(NuclearReactorStructure.getNuclearHatchStack(11), "Tier > 10 should return null");
         }
     }
+
+    @Test
+    public void testReactorTierPipeCasingRequirements() {
+        assertEquals(
+            com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_ELECTRUM,
+            MTENuclearReactor.getMinRequiredPipeTierForReactorTier(1));
+        assertEquals(
+            com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_PLATINUM,
+            MTENuclearReactor.getMinRequiredPipeTierForReactorTier(2));
+        assertEquals(
+            com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.PIPE_TIER_OSMIUM,
+            MTENuclearReactor.getMinRequiredPipeTierForReactorTier(3));
+
+        MTENuclearReactor reactor = new MTENuclearReactor("test_reactor");
+        java.util.List<gregtech.api.structure.error.StructureError> errors = new java.util.ArrayList<>();
+
+        // Tier 1 (gridSize = 5): requires Electrum (0) or higher
+        reactor.gridSize = 5;
+        reactor.mPipeTier = -1; // Tin or Brass
+        errors.clear();
+        reactor.validatePipeTierForStructureTier(errors);
+        assertEquals(1, errors.size(), "Tier 1 must reject Tin/Brass item pipe casings");
+
+        for (int pipeTier = 0; pipeTier <= 5; pipeTier++) {
+            reactor.mPipeTier = pipeTier;
+            errors.clear();
+            reactor.validatePipeTierForStructureTier(errors);
+            assertTrue(errors.isEmpty(), "Tier 1 must accept pipe tier " + pipeTier);
+        }
+
+        // Tier 2 (gridSize = 9): requires Platinum (1) or higher
+        reactor.gridSize = 9;
+        for (int pipeTier = -1; pipeTier <= 0; pipeTier++) {
+            reactor.mPipeTier = pipeTier;
+            errors.clear();
+            reactor.validatePipeTierForStructureTier(errors);
+            assertEquals(1, errors.size(), "Tier 2 must reject pipe tier " + pipeTier);
+        }
+        for (int pipeTier = 1; pipeTier <= 5; pipeTier++) {
+            reactor.mPipeTier = pipeTier;
+            errors.clear();
+            reactor.validatePipeTierForStructureTier(errors);
+            assertTrue(errors.isEmpty(), "Tier 2 must accept pipe tier " + pipeTier);
+        }
+
+        // Tier 3 (gridSize = 13): requires Osmium (2) or higher
+        reactor.gridSize = 13;
+        for (int pipeTier = -1; pipeTier <= 1; pipeTier++) {
+            reactor.mPipeTier = pipeTier;
+            errors.clear();
+            reactor.validatePipeTierForStructureTier(errors);
+            assertEquals(1, errors.size(), "Tier 3 must reject pipe tier " + pipeTier);
+        }
+        for (int pipeTier = 2; pipeTier <= 5; pipeTier++) {
+            reactor.mPipeTier = pipeTier;
+            errors.clear();
+            reactor.validatePipeTierForStructureTier(errors);
+            assertTrue(errors.isEmpty(), "Tier 3 must accept pipe tier " + pipeTier);
+        }
+    }
+
+    @Test
+    public void testPrepareConstructTriggerClampsMinPipeCasingTier() {
+        String channel = GTStructureChannels.ITEM_PIPE_CASING.get();
+
+        // Unset channel defaults to Electrum (3) for Tier 1, Platinum (4) for Tier 2, Osmium (5) for Tier 3
+        ItemStack t1 = MTENuclearReactor.prepareConstructTrigger(new ItemStack(Items.feather, 1, 0), 1);
+        assertEquals(3, ChannelDataAccessor.getChannelData(t1, channel));
+
+        ItemStack t2 = MTENuclearReactor.prepareConstructTrigger(new ItemStack(Items.feather, 2, 0), 2);
+        assertEquals(4, ChannelDataAccessor.getChannelData(t2, channel));
+
+        ItemStack t3 = MTENuclearReactor.prepareConstructTrigger(new ItemStack(Items.feather, 3, 0), 3);
+        assertEquals(5, ChannelDataAccessor.getChannelData(t3, channel));
+
+        // Low explicit channel (e.g. Electrum = 3) on Tier 2 or Tier 3 is raised to minimum required
+        ItemStack lowForT2 = new ItemStack(Items.feather, 2, 0);
+        ChannelDataAccessor.setChannelData(lowForT2, channel, 3);
+        assertEquals(
+            4,
+            ChannelDataAccessor.getChannelData(MTENuclearReactor.prepareConstructTrigger(lowForT2, 2), channel));
+
+        ItemStack lowForT3 = new ItemStack(Items.feather, 3, 0);
+        ChannelDataAccessor.setChannelData(lowForT3, channel, 4);
+        assertEquals(
+            5,
+            ChannelDataAccessor.getChannelData(MTENuclearReactor.prepareConstructTrigger(lowForT3, 3), channel));
+
+        // Higher explicit channel (e.g. Quantium = 6) is preserved across all tiers
+        for (int reactorTier = 1; reactorTier <= 3; reactorTier++) {
+            ItemStack high = new ItemStack(Items.feather, reactorTier, 0);
+            ChannelDataAccessor.setChannelData(high, channel, 6);
+            assertEquals(
+                6,
+                ChannelDataAccessor
+                    .getChannelData(MTENuclearReactor.prepareConstructTrigger(high, reactorTier), channel));
+        }
+    }
 }

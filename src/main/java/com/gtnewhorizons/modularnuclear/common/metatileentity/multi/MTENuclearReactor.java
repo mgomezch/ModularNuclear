@@ -10,6 +10,7 @@ import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -22,6 +23,7 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
+import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
@@ -91,6 +93,7 @@ import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.misc.GTStructureChannels;
 import gregtech.common.pollution.Pollution;
 import gtnhlanth.common.beamline.BeamInformation;
 import gtnhlanth.common.beamline.Particle;
@@ -114,6 +117,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public static final String[][] SHAPE_TIER_3 = NuclearReactorStructure.SHAPE_TIER_3;
 
     public int mPipeTier = -1;
+    public int mCheckedCasingTier = -1;
     public int gridSize = 0;
     public int coreDimension = 0;
     public String mCustomName = null;
@@ -504,15 +508,51 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         return NuclearReactorTooltipValues.createTooltip();
     }
 
+    public static int getMinRequiredPipeTierForReactorTier(int reactorTier) {
+        if (reactorTier >= 3) return NuclearSimulationEngine.PIPE_TIER_OSMIUM;
+        if (reactorTier == 2) return NuclearSimulationEngine.PIPE_TIER_PLATINUM;
+        return NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
+    }
+
+    public int getMinRequiredPipeTier() {
+        return getMinRequiredPipeTierForReactorTier(getReactorTier());
+    }
+
+    public void validatePipeTierForStructureTier(List<StructureError> errors) {
+        int minPipeTier = getMinRequiredPipeTier();
+        if (mPipeTier < minPipeTier) {
+            int reactorTier = getReactorTier();
+            if (reactorTier == 2) {
+                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.invalid_pipe_tier_t2"));
+            } else if (reactorTier >= 3) {
+                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.invalid_pipe_tier_t3"));
+            } else {
+                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.invalid_pipe_tier"));
+            }
+        }
+    }
+
+    public static ItemStack prepareConstructTrigger(ItemStack stackSize, int reactorTier) {
+        int clampedReactorTier = Math.max(1, Math.min(3, reactorTier));
+        int minCasingTier = getMinRequiredPipeTierForReactorTier(clampedReactorTier) + 3;
+        ItemStack trigger = stackSize != null ? stackSize.copy() : new ItemStack(Items.feather, clampedReactorTier, 0);
+        String channel = GTStructureChannels.ITEM_PIPE_CASING.get();
+        if (!ChannelDataAccessor.hasSubChannel(trigger, channel)
+            || ChannelDataAccessor.getChannelData(trigger, channel) < minCasingTier) {
+            ChannelDataAccessor.setChannelData(trigger, channel, minCasingTier);
+        }
+        return trigger;
+    }
+
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
         int tier = stackSize == null ? 1 : stackSize.stackSize;
         if (tier >= 3) {
-            buildPiece(STRUCTURE_TIER_3, stackSize, hintsOnly, 7, 3, 0);
+            buildPiece(STRUCTURE_TIER_3, prepareConstructTrigger(stackSize, 3), hintsOnly, 7, 3, 0);
         } else if (tier == 2) {
-            buildPiece(STRUCTURE_TIER_2, stackSize, hintsOnly, 5, 3, 0);
+            buildPiece(STRUCTURE_TIER_2, prepareConstructTrigger(stackSize, 2), hintsOnly, 5, 3, 0);
         } else {
-            buildPiece(STRUCTURE_TIER_1, stackSize, hintsOnly, 3, 3, 0);
+            buildPiece(STRUCTURE_TIER_1, prepareConstructTrigger(stackSize, 1), hintsOnly, 3, 3, 0);
         }
     }
 
@@ -521,11 +561,38 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (mMachine) return -1;
         int tier = stackSize == null ? 1 : stackSize.stackSize;
         if (tier >= 3) {
-            return survivalBuildPiece(STRUCTURE_TIER_3, stackSize, 7, 3, 0, elementBudget, env, false, true);
+            return survivalBuildPiece(
+                STRUCTURE_TIER_3,
+                prepareConstructTrigger(stackSize, 3),
+                7,
+                3,
+                0,
+                elementBudget,
+                env,
+                false,
+                true);
         } else if (tier == 2) {
-            return survivalBuildPiece(STRUCTURE_TIER_2, stackSize, 5, 3, 0, elementBudget, env, false, true);
+            return survivalBuildPiece(
+                STRUCTURE_TIER_2,
+                prepareConstructTrigger(stackSize, 2),
+                5,
+                3,
+                0,
+                elementBudget,
+                env,
+                false,
+                true);
         } else {
-            return survivalBuildPiece(STRUCTURE_TIER_1, stackSize, 3, 3, 0, elementBudget, env, false, true);
+            return survivalBuildPiece(
+                STRUCTURE_TIER_1,
+                prepareConstructTrigger(stackSize, 1),
+                3,
+                3,
+                0,
+                elementBudget,
+                env,
+                false,
+                true);
         }
     }
 
@@ -927,6 +994,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         gridSize = 0;
         coreDimension = 0;
         mPipeTier = -1;
+        mCheckedCasingTier = -1;
         mHatchTier = -1;
         mHatchTierInconsistent = false;
         mCasing = 0;
@@ -938,6 +1006,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             clearHatches();
             mNuclearTiles.clear();
             mPipeTier = -1;
+            mCheckedCasingTier = -1;
             mHatchTier = -1;
             mHatchTierInconsistent = false;
             mCasing = 0;
@@ -949,6 +1018,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 clearHatches();
                 mNuclearTiles.clear();
                 mPipeTier = -1;
+                mCheckedCasingTier = -1;
                 mHatchTier = -1;
                 mHatchTierInconsistent = false;
                 mCasing = 0;
@@ -969,9 +1039,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             errors.add(StructureErrors.tooManyHatches(ItemList.Hatch_Dynamo_HV.get(1), 1));
         }
 
-        if (mPipeTier < 0) {
-            errors.add(StructureErrors.of("GT5U.gui.text.structure_error.invalid_pipe_tier"));
-        }
+        validatePipeTierForStructureTier(errors);
 
         checkCasingMin(errors, mCasing, 50);
 
