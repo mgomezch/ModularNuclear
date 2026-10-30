@@ -1939,7 +1939,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     }
                 }
                 if (overheatingHatchesCount > 0) {
-                    mReactorDamage = Math.min(100.0, mReactorDamage + overheatingHatchesCount * 1.0);
+                    mReactorDamage = Math.min(
+                        100.0,
+                        mReactorDamage + overheatingHatchesCount * CoreHatchRules.OVERHEAT_DAMAGE_PERCENT_PER_COLUMN);
                 }
 
                 // 5. Update last cycle totals, calculate telemetry, coolant tracking, and nuclear control hatches

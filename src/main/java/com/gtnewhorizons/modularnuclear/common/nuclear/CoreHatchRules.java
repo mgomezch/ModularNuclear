@@ -12,6 +12,12 @@ public final class CoreHatchRules {
     /** Structural damage (percent) of one thermal shock. */
     public static final double THERMAL_SHOCK_DAMAGE_PERCENT = 2.0;
 
+    /**
+     * Structural damage (percent) per core column above the casing's maximum operating temperature at the end of a
+     * cycle. Such a column also loses its non-fuel contents; fuel rods and liquid fuel stay.
+     */
+    public static final double OVERHEAT_DAMAGE_PERCENT_PER_COLUMN = 1.0;
+
     public enum CoolantFeed {
         /** The coolant can enter the hatch. */
         SAFE,

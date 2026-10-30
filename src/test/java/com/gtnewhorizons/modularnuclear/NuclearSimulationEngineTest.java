@@ -911,11 +911,38 @@ public class NuclearSimulationEngineTest {
         assertEquals(0, hatchTile.getInputFluidAmount(), "Overheating fluid hatch must void input fluid");
         assertEquals(0, hatchTile.getOutputFluidAmount(), "Overheating fluid hatch must void output fluid");
 
-        // Overheating fuel bus must have voided its fuel
+        // As in the game (manual §12.3), fuel is not voided by overheating
+        assertEquals(
+            com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD,
+            fuelTile.getType(),
+            "Overheating does not void fuel");
+    }
+
+    @Test
+    void testOverheatingVoidsNonFuelComponentsAndControlRods() {
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid grid = new com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid(
+            5,
+            5,
+            NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
+        com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile moderator = grid.getTile(2, 2);
+        moderator
+            .setType(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.MODERATOR_GRAPHITE);
+        moderator.setHasControlRod(true);
+        moderator
+            .setControlRodType(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.ControlRodType.BORON);
+        moderator.setTemperature(3000.0);
+
+        grid.step();
+
         assertEquals(
             com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.EMPTY,
-            fuelTile.getType(),
-            "Overheating fuel tile must void its fuel contents");
+            moderator.getType(),
+            "an overheating column loses its non-fuel component");
+        assertFalse(moderator.hasControlRod(), "and the control rod in its rod hatch");
+        assertEquals(
+            com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules.OVERHEAT_DAMAGE_PERCENT_PER_COLUMN,
+            grid.getReactorDamage(),
+            1e-9);
     }
 
     @Test

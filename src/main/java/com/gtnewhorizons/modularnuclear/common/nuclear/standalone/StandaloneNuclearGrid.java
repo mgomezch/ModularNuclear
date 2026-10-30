@@ -624,6 +624,16 @@ public class StandaloneNuclearGrid {
         return out;
     }
 
+    /** The temperature of the coolant a passage receives from its loop: that loop's cold leg. */
+    private double incomingPassageCoolantTemp(SimTile passage) {
+        if (coolantLoop == null || !isCoolantLoopActive()) return Double.NEGATIVE_INFINITY;
+        List<CoolantLoopModel.Circuit> circuits = coolantLoop.getCircuits();
+        int loop = passage.getPassageLoop();
+        if (loop < 0 || loop >= circuits.size()) return Double.NEGATIVE_INFINITY;
+        CoolantLoopModel.Circuit c = circuits.get(loop);
+        return c.isFilled() ? c.getColdLegTempCelsius() : Double.NEGATIVE_INFINITY;
+    }
+
     /** Whether the core breaks no structure rule; allocates nothing, since every step asks. */
     public boolean isStructureValid() {
         return !scanStructure(null);
@@ -887,39 +897,49 @@ public class StandaloneNuclearGrid {
             }
         }
 
-        // 5. Check casing operating temperature limit:
-        // Overheating hatches void items and fluids inside and inflict 1% reactor damage per tile per tick
+        // 5. Casing operating temperature limit, as in the game: an overheating column loses its non-fuel contents
+        // (coolant, components, its control rod) and adds damage; fuel rods and liquid fuel stay. A passage overheats
+        // if its cell or the coolant arriving from its loop is past the limit.
         double maxTempAllowed = NuclearSimulationEngine.getMaxOperatingTemperature(pipeTier);
         int overheatingCount = 0;
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 SimTile tile = grid[x][y];
-                if (tile != null && tile.getTemperature() > maxTempAllowed) {
-                    overheatingCount++;
-                    if (tile.isHatch()) {
+                if (tile == null || tile.getType() == SimTile.TileType.NULL_WALL) continue;
+                boolean hot = tile.getTemperature() > maxTempAllowed
+                    || (tile.isCoolantPassage() && incomingPassageCoolantTemp(tile) > maxTempAllowed);
+                if (!hot) continue;
+                overheatingCount++;
+                if (tile.isCoolantHatch()) {
+                    voidedHatchCount++;
+                    tile.setInputFluidAmount(0);
+                    tile.setOutputFluidAmount(0);
+                    tile.setWasDry(true);
+                } else if (!tile.isFuel() && !tile.isLiquidFuelHatch()
+                    && !tile.isCoolantPassage()
+                    && tile.getType() != SimTile.TileType.EMPTY) {
                         voidedHatchCount++;
-                        tile.setInputFluidAmount(0);
-                        tile.setOutputFluidAmount(0);
-                        tile.setWasDry(true);
-                    } else if (tile.isFuel()) {
-                        burnedFuelCount++;
-                        tile.setType(SimTile.TileType.EMPTY);
                         logIncident(
-                            "FUEL_BURNED",
+                            "COMPONENT_VOIDED",
                             String.format(
                                 java.util.Locale.US,
-                                "Fuel rod burned up at (%d,%d) due to casing overheat (%.1f °C > %.1f °C)",
+                                "%s at (%d,%d) voided by casing overheat (%.1f °C > %.1f °C)",
+                                tile.getType(),
                                 x,
                                 y,
                                 tile.getTemperature(),
                                 maxTempAllowed),
-                            1.0);
+                            0.0);
+                        tile.voidComponent();
                     }
+                if (tile.hasControlRod()) {
+                    tile.setHasControlRod(false);
+                    tile.setControlRodType(SimTile.ControlRodType.NONE);
                 }
             }
         }
         if (overheatingCount > 0) {
-            double addedDamage = overheatingCount * 1.0;
+            double addedDamage = overheatingCount * CoreHatchRules.OVERHEAT_DAMAGE_PERCENT_PER_COLUMN;
             reactorDamage = Math.min(100.0, reactorDamage + addedDamage);
             String overheatMsg = String.format(
                 java.util.Locale.US,
