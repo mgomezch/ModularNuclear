@@ -854,7 +854,6 @@ public class LoopGraphCrawler {
 
         private final List<LoopSegment> segments = new ArrayList<>();
         private final List<ICoolantLoopDevice> devices = new ArrayList<>();
-        private final List<MTEPressurizedFluidHeater> visitedHeaters = new ArrayList<>();
         private final Set<BlockPosCoord> visitedPipeAndDevicePositions = new HashSet<>();
         private final List<PipeFlowConfig> pipeConfigs = new ArrayList<>();
         private final Map<BlockPosCoord, ManifoldGroup> coordToManifoldGroup = new HashMap<>();
@@ -1347,20 +1346,6 @@ public class LoopGraphCrawler {
 
                     if (detectedLoopMaterial == null) {
                         detectedLoopMaterial = pipeMat;
-                        for (MTEPressurizedFluidHeater vh : visitedHeaters) {
-                            if (!vh.matchesLoopMaterial(detectedLoopMaterial)) {
-                                finishWithFailure(
-                                    CoolantLocalization.format(
-                                        "coolantloops.crawler.heater_material_mismatch",
-                                        step.x,
-                                        step.y,
-                                        step.z,
-                                        vh.getHeaterPipeCasingTier()
-                                            .getDisplayName(),
-                                        detectedLoopMaterial.mDefaultLocalName));
-                                return true;
-                            }
-                        }
                     } else if (!areMaterialsEqual(pipeMat, detectedLoopMaterial)) {
                         if (expectedTankMaterial != null
                             && areMaterialsEqual(detectedLoopMaterial, expectedTankMaterial)) {
@@ -1564,21 +1549,6 @@ public class LoopGraphCrawler {
                                     CoolantLocalization
                                         .format("coolantloops.crawler.heater_output", step.x, step.y, step.z));
                                 return true;
-                            }
-                            if (detectedLoopMaterial != null && !heater.matchesLoopMaterial(detectedLoopMaterial)) {
-                                finishWithFailure(
-                                    CoolantLocalization.format(
-                                        "coolantloops.crawler.heater_material_mismatch",
-                                        step.x,
-                                        step.y,
-                                        step.z,
-                                        heater.getHeaterPipeCasingTier()
-                                            .getDisplayName(),
-                                        detectedLoopMaterial.mDefaultLocalName));
-                                return true;
-                            }
-                            if (!visitedHeaters.contains(heater)) {
-                                visitedHeaters.add(heater);
                             }
                             if (pump != null) {
                                 heater.setLoopPump(pump);

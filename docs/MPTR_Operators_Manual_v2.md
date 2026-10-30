@@ -909,16 +909,16 @@ Exactly one maintenance hatch (any type) and exactly one energy hatch (single- o
 
 **Exchange with the loop.** Whether enabled or not, the heater exchanges heat with the coolant flowing through it as a core passage does (§9.7), in either direction: Dittus–Boelter convection over 4 m² per ring (`heater.baseExchangeArea` in `devices.yaml`), scaled by the item pipe casing tier's passage heat transfer factor and by the maintenance efficiency. Its heat capacity is that of a passage of the casing's tier, times the number of rings. With no flow it exchanges nothing.
 
-**Item pipe casings.** The casing tier sets the heater's limits, and must match the loop's pipe material, or the pump's crawl fails:
+**Item pipe casings.** The casing tier sets the heater's heat transfer and limits. Any tier works in a loop of any pipe material: the loop's pipes are what withstand its pressure, the casings what the heat crosses. The pressure limit is that of a loop pipe of the equivalent material:
 
-| Item pipe casing | Matching loop pipes | Max pressure | Max inner temp. | Passage heat capacity per ring |
+| Item pipe casing | Pressure rated as | Max pressure | Max inner temp. | Passage heat capacity per ring |
 | :--- | :--- | :--- | :--- | :--- |
 | Tin | Cast iron | 16 bar | 1000 °C | 32 HU/°C |
 | Brass | Steel | 35 bar | 1100 °C | 64 HU/°C |
 | Electrum | Stainless steel | 70 bar | 1200 °C | 128 HU/°C |
-| Platinum | Titanium, tungstensteel | 140 bar | 1400 °C | 256 HU/°C |
+| Platinum | Titanium | 140 bar | 1400 °C | 256 HU/°C |
 | Osmium | Osmium | 600 bar | 1800 °C | 512 HU/°C |
-| Quantium | Tungstensteel, neutronium | 3000 bar | 2200 °C | 1024 HU/°C |
+| Quantium | Neutronium | 3000 bar | 2200 °C | 1024 HU/°C |
 | Fluxed Electrum | Neutronium | 3000 bar | 2600 °C | 2048 HU/°C |
 | Black Plutonium | Neutronium | 3000 bar | 3200 °C | 4096 HU/°C |
 

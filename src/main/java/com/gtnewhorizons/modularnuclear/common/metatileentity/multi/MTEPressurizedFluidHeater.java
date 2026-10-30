@@ -42,7 +42,6 @@ import cpw.mods.fml.common.Optional;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.HeatingCoilLevel;
-import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
@@ -601,14 +600,6 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
     @Override
     public double getMaxOperatingTemperatureCelsius() {
         return getHeaterPipeCasingTier().getMaxOperatingTemperatureCelsius();
-    }
-
-    public boolean matchesLoopMaterial(Materials loopMaterial) {
-        return getHeaterPipeCasingTier().matchesLoopMaterial(loopMaterial);
-    }
-
-    public boolean matchesLoopMaterialName(String materialName) {
-        return getHeaterPipeCasingTier().matchesLoopMaterialName(materialName);
     }
 
     public double getInnerTemperatureCelsius() {

@@ -379,20 +379,8 @@ public class PressurizedFluidHeaterTest {
     }
 
     @Test
-    public void testHeaterPipeCasingTierAndLoopMaterialMatching() {
-        // Verify material matching and limits
-        assertTrue(HeaterPipeCasingTier.TIN.matchesLoopMaterial(Materials.CastIron));
-        assertTrue(HeaterPipeCasingTier.TIN.matchesLoopMaterial(Materials.Iron));
-        assertFalse(HeaterPipeCasingTier.TIN.matchesLoopMaterial(Materials.Steel));
-
-        assertTrue(HeaterPipeCasingTier.BRASS.matchesLoopMaterial(Materials.Steel));
-        assertTrue(HeaterPipeCasingTier.ELECTRUM.matchesLoopMaterial(Materials.StainlessSteel));
-        assertTrue(HeaterPipeCasingTier.PLATINUM.matchesLoopMaterial(Materials.Titanium));
-        assertTrue(HeaterPipeCasingTier.OSMIUM.matchesLoopMaterial(Materials.Osmium));
-        assertTrue(HeaterPipeCasingTier.QUANTIUM.matchesLoopMaterial(Materials.TungstenSteel));
-        assertTrue(HeaterPipeCasingTier.BLACK_PLUTONIUM.matchesLoopMaterial(Materials.Neutronium));
-
-        // Verify LoopGraphCrawler accepts matching heater and rejects mismatched heater
+    public void testHeaterWorksInLoopsOfAnyPipeMaterial() {
+        // The heater's casing tier does not need to match the loop pipe material
         World world = Mockito.mock(World.class);
         boolean[] allowed = new boolean[] { true };
         MTEPressurizedFluidHeater heater = createConfiguredHeater(
@@ -523,8 +511,8 @@ public class PressurizedFluidHeaterTest {
         assertEquals(1, okResult.devices.size());
         assertSame(heater, okResult.devices.get(0));
 
-        // Crawl with mismatched Titanium tank material -> fails
-        LoopGraphCrawler.CrawlResult badResult = crawler.crawl(
+        // An Osmium-cased heater in a Titanium loop crawls the same
+        LoopGraphCrawler.CrawlResult titaniumResult = crawler.crawl(
             0,
             65,
             0,
@@ -536,11 +524,7 @@ public class PressurizedFluidHeaterTest {
             "pump:0:64:0",
             null,
             Materials.Titanium);
-        assertFalse(badResult.isSuccess, "Crawl must fail when heater has Osmium pipe casings in a Titanium loop");
-        assertTrue(
-            badResult.failureReason.toLowerCase()
-                .contains("osmium"),
-            "Error message should mention Osmium casing mismatch: " + badResult.failureReason);
+        assertTrue(titaniumResult.isSuccess, "Crawl must succeed: " + titaniumResult.failureReason);
     }
 
     @Test

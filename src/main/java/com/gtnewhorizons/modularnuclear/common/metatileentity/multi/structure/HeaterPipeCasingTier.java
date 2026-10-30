@@ -17,25 +17,25 @@ import gregtech.common.blocks.BlockCasings11;
  *
  * <p>
  * Each tier maps to its casing material, passage voltage tier (used for heat capacity and convective heat transfer),
- * maximum operating pressure (bar, matching the coolant loop pump/pipes), maximum operating temperature (°C, exceeding
- * which causes a powerfail and loop disconnection), and matching coolant loop pipe/reservoir materials.
+ * maximum operating pressure (bar, rated like a coolant loop pipe of the equivalent material), and maximum operating
+ * temperature (°C, exceeding which causes a powerfail and loop disconnection). Any casing tier works in a loop of any
+ * pipe material: the loop pipes withstand pressure, while the casings set the heater's heat transfer.
  */
 public enum HeaterPipeCasingTier {
 
-    TIN(1, 0, "Tin", Materials.Tin, Materials.CastIron, 1, -1, 1000.0, "tin", "castiron", "iron", "wroughtiron"),
-    BRASS(2, 1, "Brass", Materials.Brass, Materials.Steel, 2, -1, 1100.0, "brass", "steel"),
+    TIN(1, 0, "Tin", Materials.Tin, Materials.CastIron, 1, -1, 1000.0),
+    BRASS(2, 1, "Brass", Materials.Brass, Materials.Steel, 2, -1, 1100.0),
     ELECTRUM(3, 2, "Electrum", Materials.Electrum, Materials.StainlessSteel, 3,
-        NuclearSimulationEngine.PIPE_TIER_ELECTRUM, 1200.0, "electrum", "stainlesssteel"),
+        NuclearSimulationEngine.PIPE_TIER_ELECTRUM, 1200.0),
     PLATINUM(4, 3, "Platinum", Materials.Platinum, Materials.Titanium, 4, NuclearSimulationEngine.PIPE_TIER_PLATINUM,
-        1400.0, "platinum", "titanium", "tungstensteel"),
-    OSMIUM(5, 4, "Osmium", Materials.Osmium, Materials.Osmium, 5, NuclearSimulationEngine.PIPE_TIER_OSMIUM, 1800.0,
-        "osmium"),
+        1400.0),
+    OSMIUM(5, 4, "Osmium", Materials.Osmium, Materials.Osmium, 5, NuclearSimulationEngine.PIPE_TIER_OSMIUM, 1800.0),
     QUANTIUM(6, 5, "Quantium", Materials.Quantium, Materials.Neutronium, 6, NuclearSimulationEngine.PIPE_TIER_QUANTIUM,
-        2200.0, "quantium", "tungstensteel", "neutronium"),
+        2200.0),
     FLUXED_ELECTRUM(7, 6, "Fluxed Electrum", Materials.ElectrumFlux, Materials.Neutronium, 7,
-        NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM, 2600.0, "electrumflux", "fluxedelectrum", "neutronium"),
+        NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM, 2600.0),
     BLACK_PLUTONIUM(8, 7, "Black Plutonium", Materials.BlackPlutonium, Materials.Neutronium, 8,
-        NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM, 3200.0, "blackplutonium", "neutronium");
+        NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM, 3200.0);
 
     private final int casingTier;
     private final int meta;
@@ -45,11 +45,9 @@ public enum HeaterPipeCasingTier {
     private final int passageVoltageTier;
     private final int enginePipeTier;
     private final double fallbackMaxTempC;
-    private final String[] matchingLoopMaterialNames;
 
     HeaterPipeCasingTier(int casingTier, int meta, String displayName, Materials casingMaterial,
-        Materials equivalentLoopMaterial, int passageVoltageTier, int enginePipeTier, double fallbackMaxTempC,
-        String... matchingLoopMaterialNames) {
+        Materials equivalentLoopMaterial, int passageVoltageTier, int enginePipeTier, double fallbackMaxTempC) {
         this.casingTier = casingTier;
         this.meta = meta;
         this.displayName = displayName;
@@ -58,7 +56,6 @@ public enum HeaterPipeCasingTier {
         this.passageVoltageTier = passageVoltageTier;
         this.enginePipeTier = enginePipeTier;
         this.fallbackMaxTempC = fallbackMaxTempC;
-        this.matchingLoopMaterialNames = matchingLoopMaterialNames;
     }
 
     /** 1-based casing tier (1..8) matching {@code GTStructureUtility.chainItemPipeCasings}. */
@@ -88,7 +85,7 @@ public enum HeaterPipeCasingTier {
         return passageVoltageTier;
     }
 
-    /** Maximum operating pressure in bar, determined the same way as the coolant loop pump and pipes. */
+    /** Maximum operating pressure in bar: that of a coolant loop pipe of the equivalent material. */
     public double getMaxPressureBar() {
         return CoolantPipingRegistry.getMaxPressureBar(equivalentLoopMaterial);
     }
@@ -99,35 +96,6 @@ public enum HeaterPipeCasingTier {
             return NuclearSimulationEngine.getMaxOperatingTemperature(enginePipeTier);
         }
         return fallbackMaxTempC;
-    }
-
-    /**
-     * Checks whether this item pipe casing tier matches the given coolant loop pipe/reservoir material.
-     */
-    public boolean matchesLoopMaterial(Materials loopMaterial) {
-        if (loopMaterial == null) return false;
-        if (loopMaterial == casingMaterial || loopMaterial == equivalentLoopMaterial) return true;
-        if (CoolantPipingRegistry.areMaterialsEqual(casingMaterial, loopMaterial)) return true;
-        if (CoolantPipingRegistry.areMaterialsEqual(equivalentLoopMaterial, loopMaterial)) return true;
-        return matchesLoopMaterialName(loopMaterial.mName);
-    }
-
-    /**
-     * Checks whether this item pipe casing tier matches the given coolant loop pipe/reservoir material name.
-     */
-    public boolean matchesLoopMaterialName(String materialName) {
-        if (materialName == null || materialName.isEmpty()) return false;
-        String clean = materialName.trim()
-            .replace(" ", "")
-            .replace("_", "")
-            .replace("-", "")
-            .toLowerCase(java.util.Locale.ROOT);
-        for (String allowed : matchingLoopMaterialNames) {
-            if (allowed.equals(clean)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public ItemStack getItemStack() {
@@ -159,17 +127,6 @@ public enum HeaterPipeCasingTier {
             if (meta >= 0 && meta < values().length) {
                 return getByMeta(meta);
             }
-        }
-        return null;
-    }
-
-    public static HeaterPipeCasingTier getByMaterial(Materials mat) {
-        if (mat == null) return null;
-        for (HeaterPipeCasingTier t : values()) {
-            if (t.casingMaterial == mat) return t;
-        }
-        for (HeaterPipeCasingTier t : values()) {
-            if (t.matchesLoopMaterial(mat)) return t;
         }
         return null;
     }
