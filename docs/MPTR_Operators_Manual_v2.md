@@ -109,7 +109,7 @@ The core is an octagonal (corner-cut) square chamber. Three sizes exist:
 
 The corner cut is defined by $d_x + d_y < \text{depth}$, where $d_x$ and $d_y$ are a cell's distances to the nearest edges; depth is $\lfloor (n-5)/4 \rfloor + 1$. Cut cells do not exist in the simulation; to neutrons and heat they are equivalent to the outside of the core.
 
-In the current build the controller recognizes any of the three sizes with any valid pipe casing tier; chamber size is not gated by casing tier.
+Larger chambers need stronger pipe casings (§2.3): the 11×11 chamber needs Platinum casings or better, and the 15×15 chamber Osmium or better; the 7×7 chamber takes any tier from Electrum. A chamber built with weaker casings does not form, and the controller reports which casing it needs. Building from the structure preview or a construction trigger raises the casing tier to the chamber's minimum.
 
 ### 2.3 Pipe casing tiers
 
@@ -862,7 +862,16 @@ Loop fluids (in the loop engine): water, distilled water, heavy water, IC2 coola
 
 **Holding the loop hot.** A PHE stops exchanging heat while it is disabled (for example by a machine controller cover driven by redstone), and draws no power. Gating the PHEs on a temperature reading, with the pump left running, holds the loop's coolant at a chosen temperature: the PHEs run while the coolant is above the band and stop once it falls below it. The passages keep their full flow, so they still pull heat out of the core quickly, but only the heat that would take the fuel past the band. This lets hot fuels run near their best reactivity instead of being cooled far below it, and a hotter loop makes higher-grade steam. Choose the band well below the casing's maximum temperature: the hotter the loop, the less margin the core has for a surge. The pump's own temperature control (above) serves a different purpose, keeping molten coolants from freezing; the two can be combined, starting a molten loop only once the passages are hot and then holding it with the PHEs. The simulator models both, per circuit: `loop_temp_min`/`loop_temp_max`/`loop_sensor` gate the pump, and `phe_temp_min`/`phe_temp_max`/`phe_sensor` gate the PHEs (reading the hot leg by default).
 
-Each tick a PHE moves heat by convection across its 24 m² tube bundle, $\dot Q = h(v)\,A\,(T_\text{coolant} - T_\text{boil})$, with $h$ rising with the coolant velocity up to 5000 W·m⁻²·K⁻¹ (about 120 kW per °C above the secondary's boiling point, or 47 HU/t per °C). One batch may move at most 2.26 MJ times the PHE's voltage over 32: about 0.9k HU/t at LV, 14k HU/t at HV and 56k HU/t at EV. The PHE draws $\tfrac{15}{16}$ of its voltage every tick it runs. The coolant settles where the reactor's heat equals what the PHEs can move, so fewer PHEs run the loop hotter. Steam leaves at the batch's heat-weighted coolant temperature: supercritical steam at 700 °C and above, superheated steam at 300 °C and above, plain steam below. One HU makes as much steam through a PHE as through a distilled water hatch (about 9 L), so a loop's advantage is the steam grade.
+**PHE size and sheetmetal.** A PHE is 3 blocks wide, 3, 5, 7 or 9 high and 5 to 11 long (overall, from the controller's face to the rear wall). Its controller and its primary and secondary hatches sit on the middle layer, and every interior block of its centre column is sheetmetal (one sheetmetal per height layer between the top and bottom casings, along the inner length), all of one material: a PHE with mixed sheetmetal does not form. Its exchange area is height × (length − 2) m², from 9 m² at 3×5 to 81 m² at 9×11, times its sheetmetal's heat transfer multiplier, and the sheetmetal limits the coolant temperature the PHE withstands:
+
+| Sheetmetal | Copper | Electrum | Platinum | Osmium | Quantium | Fluxed Electrum | Black Plutonium | Neutronium |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Heat transfer | 1× | 2× | 4× | 8× | 16× | 32× | 64× | 128× |
+| Max coolant temp. | 1084 °C | 1584 °C | 2084 °C | 4084 °C | 6584 °C | 9084 °C | 15 000 °C | 1 000 000 °C |
+
+`heatTransferMultiplier` in `devices.yaml` (default 1.0) scales every PHE.
+
+Each tick a PHE moves heat by convection across its effective area $A$ (exchange area × sheetmetal multiplier × `heatTransferMultiplier`), $\dot Q = h(v)\,A\,(T_\text{coolant} - T_\text{boil})$, with $h$ rising with the coolant velocity up to 5000 W·m⁻²·K⁻¹: about 45 kW per °C above the secondary's boiling point (18 HU/t per °C) for the smallest copper PHE, and 128 times that per square metre in neutronium. One batch may move at most 2.26 MJ times the PHE's voltage over 32: about 0.9k HU/t at LV, 14k HU/t at HV and 56k HU/t at EV. The PHE draws $\tfrac{15}{16}$ of its voltage every tick it runs. The coolant settles where the reactor's heat equals what the PHEs can move, so fewer, smaller or lower-tier PHEs run the loop hotter. Steam leaves at the batch's heat-weighted coolant temperature: supercritical steam at 700 °C and above, superheated steam at 300 °C and above, plain steam below. Below ZPM no turbine takes supercritical steam, so a loop that runs that hot there wastes its steam: extract heat faster (more, larger or higher-tier PHEs) to keep it below 700 °C. One HU makes as much steam through a PHE as through a distilled water hatch (about 9 L), so a loop's advantage is the steam grade.
 
 **Radiolysis.** Every 4 neutrons (`coolant_passage_neutrons_per_radiolysis`) absorbed in a passage cell consume 2 L of loop coolant and add 2 L of dissolved gas plus 1 L of dissolved oxygen to the loop: deuterium for water, tritium for heavy water. Other loop fluids do not undergo radiolysis. Dissolved gas increases pump rotor wear (cavitation) by a factor $1 + 10\,f_\text{gas}$, where $f_\text{gas}$ is the dissolved gas volume fraction. A **Pressurized Degasser** extracts dissolved gases from the loop to output hatches.
 
@@ -881,6 +890,41 @@ The reactor's recoverable heat leaves as:
 | Closed loop heat | Pressurized Heat Exchanger → steam |
 
 Conversion efficiency depends on the turbines and exchangers used and is not part of the core simulation. The standalone simulator estimates turbine requirements and output from the steam and coolant flows (§14).
+
+---
+
+### 9.9 Pressurized fluid heater
+
+A **Pressurized Fluid Heater** puts electrical heat into a closed loop: to warm a loop up before a reactor joins it, to keep a molten coolant liquid, or to hold a loop at a set temperature. It is a 3×3 multiblock 3 to 11 long:
+
+| Layer | Contents |
+| :--- | :--- |
+| Front | Heat-Proof Machine Casings; the controller at the bottom centre and a high-pressure input hatch in the centre |
+| Middle (1 to 9 rings) | A ring of eight EBF heating coils around one Item Pipe Casing, repeated along the length |
+| Back | Heat-Proof Machine Casings; a high-pressure output hatch in the centre |
+
+Exactly one maintenance hatch (any type) and exactly one energy hatch (single- or multi-amp; laser hatches are refused) replace front or back casings; at least 13 casings remain. All coils must be one kind and all item pipe casings one tier. The heating coil tier caps the energy hatch's tier: Cupronickel takes up to LV, Kanthal MV, and so on up the EBF's coil order.
+
+**Heating.** While enabled, every tick the heater draws up to $32 \cdot n \cdot 4^{k}$ EU/t from its energy hatch, for $n$ rings and coil tier $k$ (0 for Cupronickel), and takes whatever is there without a powerfail when there is less. That energy becomes heat at the MPTR's own EU-per-HU rate (4 HU per EU), times the coil efficiency (25 % for Cupronickel, rising linearly to 100 % for the highest coil) and the maintenance efficiency, and raises the heater's inner temperature by that heat over its heat capacity. Disabled, it draws nothing and adds no heat.
+
+**Exchange with the loop.** Whether enabled or not, the heater exchanges heat with the coolant flowing through it as a core passage does (§9.7), in either direction: Dittus–Boelter convection over 4 m² per ring (`heater.baseExchangeArea` in `devices.yaml`), scaled by the item pipe casing tier's passage heat transfer factor and by the maintenance efficiency. Its heat capacity is that of a passage of the casing's tier, times the number of rings. With no flow it exchanges nothing.
+
+**Item pipe casings.** The casing tier sets the heater's limits, and must match the loop's pipe material, or the pump's crawl fails:
+
+| Item pipe casing | Matching loop pipes | Max pressure | Max inner temp. | Passage heat capacity per ring |
+| :--- | :--- | :--- | :--- | :--- |
+| Tin | Cast iron | 16 bar | 1000 °C | 32 HU/°C |
+| Brass | Steel | 35 bar | 1100 °C | 64 HU/°C |
+| Electrum | Stainless steel | 70 bar | 1200 °C | 128 HU/°C |
+| Platinum | Titanium, tungstensteel | 140 bar | 1400 °C | 256 HU/°C |
+| Osmium | Osmium | 600 bar | 1800 °C | 512 HU/°C |
+| Quantium | Tungstensteel, neutronium | 3000 bar | 2200 °C | 1024 HU/°C |
+| Fluxed Electrum | Neutronium | 3000 bar | 2600 °C | 2048 HU/°C |
+| Black Plutonium | Neutronium | 3000 bar | 3200 °C | 4096 HU/°C |
+
+Unlike other loop devices, the heater has a pressure limit: its casings'. If its inner temperature passes its limit, the heater powerfails, disconnects from the loop, and the pump treats the loop as broken: a running loop ruptures (§12.8).
+
+**Readouts.** The controller shows its inner temperature against its limit, heat capacity, exchange area, coolant flow, heat moved per tick, and EU drawn. An energy detector cover on the controller outputs the inner temperature as redstone: 0 at ambient, full strength at the cover's threshold (or the heater's limit when no threshold is set), inverted if the cover is. ProjectRed reads a 0–255 level, and bundled cables carry it on every channel or on one chosen channel. OpenComputers can read its state.
 
 ---
 
@@ -1021,13 +1065,14 @@ If GregTech machine explosions are disabled, any explosion or meltdown condition
 
 | Failure | Condition | Result |
 | :--- | :--- | :--- |
-| Burst | Pressure in any segment exceeds its rating | Loop ruptures |
-| Melt | Segment temperature exceeds its rating | Loop ruptures |
+| Burst | Pressure in a pipe, or in a Pressurized Fluid Heater, exceeds its rating (other devices and manifolds have none) | Loop ruptures |
+| Melt | Coolant temperature exceeds a pipe's or device's rating (a PHE's is its sheetmetal's; manifolds have none) | Loop ruptures |
 | Freeze | Segment below the coolant's freezing point | Loop ruptures |
 | Solidification | Molten coolant below its melting point (configured freezing point; defaults to GregTech's) while filled | Loop ruptures; pump refuses to fill if already below |
 | Impeller melting | Pump fluid temperature reaches the rotor's melting point | Pump fails |
 | Rotor wear | Continuous; ×(1 + 10·gas fraction), × thermal factor | Rotor consumed; pump stops |
 | Pump power loss | Insufficient EU | Pump stops; flow coasts down; core loses loop cooling |
+| Heater powerfail | A Pressurized Fluid Heater's inner temperature passes its casing's limit | Heater disconnects; a running loop ruptures |
 
 On rupture, the pump explodes (strength above), 80 % of the reservoir is drained, and, for fluids configured to spill, the coolant is placed in the world at the rupture.
 
