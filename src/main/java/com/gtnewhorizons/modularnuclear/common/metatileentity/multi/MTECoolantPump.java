@@ -794,9 +794,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             sucTE.getYCoord(),
             sucTE.getZCoord(),
             sucTE.getFrontFacing(),
-            te.getXCoord(),
-            te.getYCoord(),
-            te.getZCoord(),
+            new LoopGraphCrawler.BlockPosCoord(te.getXCoord(), te.getYCoord(), te.getZCoord()),
             this,
             mTankMaterial);
 

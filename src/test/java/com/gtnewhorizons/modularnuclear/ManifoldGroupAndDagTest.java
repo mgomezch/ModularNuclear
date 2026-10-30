@@ -195,7 +195,7 @@ public class ManifoldGroupAndDagTest {
 
         LoopGraphCrawler crawler = new LoopGraphCrawler(map.world, 100);
         CrawlResult result = crawler
-            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10");
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10", null, null);
 
         assertFalse(result.isSuccess, "Crawl must fail when branch enters manifold parallel to its plane");
         assertTrue(
@@ -224,7 +224,7 @@ public class ManifoldGroupAndDagTest {
 
         LoopGraphCrawler crawler = new LoopGraphCrawler(map.world, 100);
         CrawlResult result = crawler
-            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10");
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10", null, null);
 
         assertFalse(result.isSuccess, "Crawl must fail when manifold has lateral connections");
         assertTrue(
@@ -264,7 +264,7 @@ public class ManifoldGroupAndDagTest {
 
         LoopGraphCrawler crawler = new LoopGraphCrawler(map.world, 100);
         CrawlResult result = crawler
-            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10");
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10", null, null);
 
         assertFalse(result.isSuccess, "Crawl must fail when manifold is claimed by another active pump");
         assertTrue(
@@ -303,7 +303,7 @@ public class ManifoldGroupAndDagTest {
 
         LoopGraphCrawler crawler = new LoopGraphCrawler(map.world, 100);
         CrawlResult result = crawler
-            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10");
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10", null, null);
 
         assertFalse(result.isSuccess, "Crawl must fail when manifold output loops back to its input without pump");
         assertTrue(
@@ -355,7 +355,7 @@ public class ManifoldGroupAndDagTest {
 
         LoopGraphCrawler crawler = new LoopGraphCrawler(map.world, 100);
         CrawlResult result = crawler
-            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10");
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10", null, null);
 
         assertTrue(
             result.isSuccess,
@@ -420,7 +420,7 @@ public class ManifoldGroupAndDagTest {
 
         LoopGraphCrawler crawler = new LoopGraphCrawler(map.world, 100);
         CrawlResult result = crawler
-            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10");
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10", null, null);
 
         assertTrue(result.isSuccess, "Crawl must succeed: " + result.failureReason);
 
@@ -469,8 +469,18 @@ public class ManifoldGroupAndDagTest {
         map.putPipe(10, 10, 9, ForgeDirection.EAST, ForgeDirection.NORTH);
 
         LoopGraphCrawler crawler = new LoopGraphCrawler(map.world, 100);
-        CrawlSession session = crawler
-            .startSession(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10");
+        CrawlSession session = crawler.startSession(
+            10,
+            10,
+            10,
+            ForgeDirection.EAST,
+            10,
+            10,
+            8,
+            ForgeDirection.NORTH,
+            "pump:10:10:10",
+            null,
+            null);
 
         // Step 1: 3 steps
         boolean done = session.step(3);
@@ -617,7 +627,7 @@ public class ManifoldGroupAndDagTest {
 
         LoopGraphCrawler crawler = new LoopGraphCrawler(map.world, 100);
         CrawlResult result = crawler
-            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10");
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10", null, null);
 
         assertTrue(result.isSuccess, "Crawl must succeed: " + result.failureReason);
 

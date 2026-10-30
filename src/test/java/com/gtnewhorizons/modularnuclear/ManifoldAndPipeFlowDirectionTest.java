@@ -186,7 +186,7 @@ public class ManifoldAndPipeFlowDirectionTest {
 
         LoopGraphCrawler crawler = new LoopGraphCrawler(mockWorld, 100);
         CrawlResult result = crawler
-            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 10, ForgeDirection.NORTH, "test_pump");
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 10, ForgeDirection.NORTH, "test_pump", null, null);
 
         assertTrue(result.isSuccess, "Crawl should succeed for closed pipe loop");
         assertEquals(3, result.pipeConfigs.size());
@@ -222,7 +222,7 @@ public class ManifoldAndPipeFlowDirectionTest {
 
         LoopGraphCrawler crawler = new LoopGraphCrawler(mockWorld, 100);
         CrawlResult result = crawler
-            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 10, ForgeDirection.NORTH, "test_pump");
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 10, ForgeDirection.NORTH, "test_pump", null, null);
         assertFalse(result.isSuccess, "Regular GT fluid pipe must be rejected by crawler");
         assertTrue(
             result.failureReason.contains("not an insulated coolant pipe"),
@@ -267,7 +267,7 @@ public class ManifoldAndPipeFlowDirectionTest {
 
         LoopGraphCrawler crawler = new LoopGraphCrawler(mockWorld, 100);
         CrawlResult result = crawler
-            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 10, ForgeDirection.NORTH, "test_pump");
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 10, ForgeDirection.NORTH, "test_pump", null, null);
         assertFalse(result.isSuccess, "Loop with regular fluid pipe in the middle must fail");
         assertTrue(
             result.failureReason.contains("pipe at (11, 10, 11) is not an insulated coolant pipe"),
