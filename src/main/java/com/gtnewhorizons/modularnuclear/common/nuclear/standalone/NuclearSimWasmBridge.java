@@ -26,6 +26,7 @@ public class NuclearSimWasmBridge {
     static {
         // Same defaults as the game: physics.yaml, fuels.yaml and components.yaml embedded at build time.
         ReactorConfigData.loadDefaults();
+        NuclearSimulationEngine.setConfigProvider(ReactorConfigData.ENGINE_PROVIDER);
     }
 
     @Export(name = "initGrid")

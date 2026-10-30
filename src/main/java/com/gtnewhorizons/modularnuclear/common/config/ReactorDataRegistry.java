@@ -223,30 +223,7 @@ public final class ReactorDataRegistry {
     }
 
     static {
-        NuclearSimulationEngine
-            .setConfigProvider(new com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider() {
-
-                @Override
-                public com.gtnewhorizons.modularnuclear.common.config.data.TierData getTier(int tier) {
-                    return ReactorDataRegistry.getTier(tier);
-                }
-
-                @Override
-                public com.gtnewhorizons.modularnuclear.common.config.data.FuelData findFuel(String name) {
-                    return ReactorDataRegistry.findFuel(name);
-                }
-
-                @Override
-                public com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData findCoolantFluid(
-                    String name) {
-                    return ReactorDataRegistry.findCoolantFluid(name);
-                }
-
-                @Override
-                public boolean matchesFluid(String fluidName, List<String> allowed) {
-                    return ReactorDataRegistry.matchesFluid(fluidName, allowed);
-                }
-            });
+        NuclearSimulationEngine.setConfigProvider(ReactorConfigData.ENGINE_PROVIDER);
         loadDefaults();
     }
 
@@ -542,13 +519,7 @@ public final class ReactorDataRegistry {
     }
 
     public static FuelData findFuel(String fluidName) {
-        if (fluidName == null) return null;
-        for (FuelData fd : ReactorConfigData.fuels) {
-            if (fd.isLiquid && matchesFluid(fluidName, fd.matching)) {
-                return fd;
-            }
-        }
-        return null;
+        return ReactorConfigData.findLiquidFuel(fluidName);
     }
 
     public static ReflectorData findReflector(ItemStack stack) {

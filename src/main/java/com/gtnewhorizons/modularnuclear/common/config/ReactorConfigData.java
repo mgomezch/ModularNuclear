@@ -18,6 +18,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.Moderat
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.RadiovoltaicData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
+import com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider;
 import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -198,6 +199,43 @@ public final class ReactorConfigData {
         }
         return null;
     }
+
+    /** Finds the liquid fuel whose matching patterns cover a fluid name. */
+    public static FuelData findLiquidFuel(String fluidName) {
+        ensureLoaded();
+        if (fluidName == null) return null;
+        for (FuelData fd : fuels) {
+            if (fd.isLiquid && matchesFluid(fluidName, fd.matching)) return fd;
+        }
+        return null;
+    }
+
+    /**
+     * The engine's view of this configuration (tiers, liquid fuels and coolant fluids by name). It needs no Minecraft
+     * classes, so the game and the simulator install the same one and gate core fluids by the same tiers.
+     */
+    public static final INuclearConfigProvider ENGINE_PROVIDER = new INuclearConfigProvider() {
+
+        @Override
+        public TierData getTier(int tier) {
+            return ReactorConfigData.getTier(tier);
+        }
+
+        @Override
+        public FuelData findFuel(String name) {
+            return findLiquidFuel(name);
+        }
+
+        @Override
+        public CoolantFluidData findCoolantFluid(String name) {
+            return ReactorConfigData.findCoolantFluid(name);
+        }
+
+        @Override
+        public boolean matchesFluid(String fluidName, List<String> allowed) {
+            return ReactorConfigData.matchesFluid(fluidName, allowed);
+        }
+    };
 
     public static <T> T findById(List<T> list, Function<T, String> idGetter, String id) {
         if (list == null || id == null) return null;
