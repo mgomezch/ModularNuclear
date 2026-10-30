@@ -1742,77 +1742,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             }
 
             if (mGrid != null && (aTick % tpc == 0)) {
-                for (IGregTechTileEntity te : mNuclearTiles) {
-                    if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearBus bus) {
-                        bus.processMaxDamageFailsafe();
-                    }
-                }
-
-                updateNuclearTilesPipeTier();
-
-                for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
-                    if (rod != null) {
-                        rod.updateMiningPipeHousing();
-                    }
-                }
-                for (int gx = 0; gx < gridSize; gx++) {
-                    for (int gy = 0; gy < gridSize; gy++) {
-                        if (mGrid[gx][gy] instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile ngt
-                            && ngt.getBottomControlRod() != null) {
-                            ngt.getBottomControlRod()
-                                .updateMiningPipeHousing();
-                        }
-                    }
-                }
+                prepareCycle();
 
                 double ambient = getAmbientTemperature();
 
-                // Check coolant boiling against ambient or dry hatch injection (thermal shock)
-                for (IGregTechTileEntity te : mNuclearTiles) {
-                    if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
-                        // Liquid fuel does not boil/evaporate and is exempt from thermal shock
-                        if (isFluidFuel(hatch.mInputFluid)) {
-                            hatch.mWasDry = false;
-                            continue;
-                        }
-                        if (hatch.mInputFluid != null && hatch.mInputFluid.amount > 0) {
-                            String name = hatch.mInputFluid.getFluid()
-                                .getName()
-                                .toLowerCase();
-                            CoreHatchRules.CoolantFeed feed = CoreHatchRules
-                                .checkCoolantFeed(name, hatch.mWasDry, hatch.mTemperature, ambient);
-                            if (feed != CoreHatchRules.CoolantFeed.SAFE) {
-                                triggerThermalShock(
-                                    hatch,
-                                    CoreHatchRules.describe(feed, name, hatch.mTemperature, ambient));
-                                if (mReactorDamage >= 100.0 || !mMachine) return;
-                                continue;
-                            }
-                            hatch.mWasDry = false;
-                        } else {
-                            // Hatch has zero coolant: controller remembers that
-                            hatch.mWasDry = true;
-                        }
-                    }
-                }
+                if (!checkCoolantFeeds(ambient)) return;
 
-                mCycleZeroedCoolantItems = 0;
-                mCycleZeroedFuelItems = 0;
-                mCycleConsumedCoolant = 0;
-                mCycleProducedHotCoolant = 0;
-                mCycleTransmutationLoss = 0;
-                mCycleTransmutationByproducts = 0;
-                mCycleDepletedLiquidFuel = 0;
-
-                if (mGrid != null) {
-                    for (int x = 0; x < gridSize; x++) {
-                        for (int y = 0; y < gridSize; y++) {
-                            if (mGrid[x][y] instanceof NuclearGridTile gt) {
-                                gt.refreshProperties();
-                            }
-                        }
-                    }
-                }
+                beginCycleTotals();
 
                 double maintEff = getMaintenanceEfficiency();
                 NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine
@@ -1825,146 +1761,17 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 mEscapedNeutrons = res.neutronsEscaped;
                 mReactivity = res.averageReactivity;
 
-                // Dynamic Cherenkov radiation intensity metric: active baseline + scaling with flux
-                double flux = Math.max(res.neutronsEscaped, res.totalNeutronsGenerated * 0.15);
-                float cherenkovMetric = (flux > 0) ? (float) Math.min(1.0, 0.40 + 0.60 * (flux / (flux + 400.0)))
-                    : 0.0f;
-                byte metricByte = (byte) Math.round(cherenkovMetric * 100.0f);
-                int tier = getReactorTier();
-                if (metricByte != mLastSentCherenkovMetricByte) {
-                    mLastSentCherenkovMetricByte = metricByte;
-                    if (tier > 0) {
-                        aBaseMetaTileEntity.sendBlockEvent((byte) 100, (byte) tier);
-                    }
-                    aBaseMetaTileEntity.sendBlockEvent((byte) 101, metricByte);
-                } else if (aTick % 100 == 0 && cherenkovMetric > 0) {
-                    if (tier > 0) {
-                        aBaseMetaTileEntity.sendBlockEvent((byte) 100, (byte) tier);
-                    }
-                    aBaseMetaTileEntity.sendBlockEvent((byte) 101, metricByte);
-                }
+                syncCherenkovMetric(res, aBaseMetaTileEntity, aTick);
 
-                // Accumulate escaped neutrons for vessel maintenance wear mechanic
-                mWallNeutronAccumulator += res.neutronsEscaped;
-                mWallMaintenanceTimer += tpc;
+                accumulateWallWear(res, tpc, aBaseMetaTileEntity);
 
-                // Once per minute (1200 ticks = 60s), check maintenance issue probability:
-                // S(N) = N^2 / (N^2 + 1000^2), scaling maintenance wear from 1.0x to 10.0x base rate (0.01 per minute)
-                if (mWallMaintenanceTimer >= 1200) {
-                    mWallMaintenanceTimer = 0;
-                    double avgEscaped = (double) mWallNeutronAccumulator / 60.0;
-                    mWallNeutronAccumulator = 0;
-                    double sFactor = (avgEscaped > 0.0)
-                        ? (avgEscaped * avgEscaped) / (avgEscaped * avgEscaped + 1000.0 * 1000.0)
-                        : 0.0;
-                    double multiplier = 1.0 + 9.0 * sFactor;
-                    double baseProb = 0.01;
-                    double prob = baseProb * multiplier;
-                    if ((aBaseMetaTileEntity.getRandomNumber(1000000) / 1000000.0) < prob) {
-                        causeNewMaintenanceIssue();
-                    }
-                }
+                collectCycleOutputs(maintEff);
 
-                // Sum direct EU from radiovoltaic cells across the grid
-                long directEU = 0;
-                for (int x = 0; x < gridSize; x++) {
-                    for (int y = 0; y < gridSize; y++) {
-                        INuclearTile tile = mGrid[x][y];
-                        if (tile instanceof NuclearGridTile gt && gt.isBus()) {
-                            directEU += gt.getBus().mDirectEUProduced;
-                        }
-                    }
-                }
-                mDirectPowerEUt = (long) Math.round(directEU * maintEff);
+                applyOverheating();
 
-                // Sum output coolant production across all coolant hatches
-                int totalCoolantProduced = 0;
-                String coolantName = "";
-                for (IGregTechTileEntity te : mNuclearTiles) {
-                    if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
-                        if (hatch.mLastProducedAmount > 0) {
-                            totalCoolantProduced += hatch.mLastProducedAmount;
-                            if (coolantName.isEmpty() && hatch.mLastProducedFluidName != null
-                                && !hatch.mLastProducedFluidName.isEmpty()) {
-                                Fluid f = FluidRegistry.getFluid(hatch.mLastProducedFluidName);
-                                if (f != null) {
-                                    coolantName = f.getLocalizedName(new FluidStack(f, 1000));
-                                } else {
-                                    coolantName = hatch.mLastProducedFluidName;
-                                }
-                            }
-                        }
-                    }
-                }
-                mOutputCoolantRate = totalCoolantProduced;
-                mOutputCoolantName = coolantName;
-                super.mEfficiency = (int) Math.round(maintEff * 10000);
+                endCycle(res, maintEff);
 
-                // 4. Check casing-dependent maximum operating temperature:
-                // Overheating hatches increase reactor damage by 1% per overheating hatch.
-                // Overheating non-fuel contents in hatches/buses are voided, but fuel rods and fluids are NOT directly
-                // voided!
-                double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(mPipeTier);
-                int overheatingHatchesCount = 0;
-                for (IGregTechTileEntity te : mNuclearTiles) {
-                    if (te != null) {
-                        if (te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
-                            if (hatch.mTemperature > maxTemp) {
-                                overheatingHatchesCount++;
-                                if (!isFluidFuel(hatch.mInputFluid)) {
-                                    hatch.mInputFluid = null;
-                                    hatch.markTileDirty();
-                                }
-                            }
-                        } else if (te.getMetaTileEntity() instanceof MTEHatchNuclearBus bus) {
-                            if (bus.mTemperature > maxTemp) {
-                                overheatingHatchesCount++;
-                                if (!isItemFuel(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT])) {
-                                    bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
-                                    bus.markTileDirty();
-                                }
-                            }
-                        } else if (te.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure hp) {
-                            if (hp.getTemperature() > maxTemp || hp.mIncomingCoolantTemp > maxTemp) {
-                                overheatingHatchesCount++;
-                            }
-                        }
-                    }
-                }
-                for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
-                    if (rod != null && rod.mTemperature > maxTemp) {
-                        overheatingHatchesCount++;
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
-                        rod.markTileDirty();
-                    }
-                }
-                if (overheatingHatchesCount > 0) {
-                    mReactorDamage = Math.min(
-                        100.0,
-                        mReactorDamage + overheatingHatchesCount * CoreHatchRules.OVERHEAT_DAMAGE_PERCENT_PER_COLUMN);
-                }
-
-                // 5. Update last cycle totals, calculate telemetry, coolant tracking, and nuclear control hatches
-                mZeroedCoolantItemsLastCycle = mCycleZeroedCoolantItems;
-                mZeroedFuelItemsLastCycle = mCycleZeroedFuelItems;
-                mConsumedCoolantLastCycle = mCycleConsumedCoolant;
-                mProducedHotCoolantLastCycle = mCycleProducedHotCoolant;
-                mTransmutationLossLastCycle = mCycleTransmutationLoss;
-                mTransmutationByproductsLastCycle = mCycleTransmutationByproducts;
-                mDepletedLiquidFuelLastCycle = mCycleDepletedLiquidFuel;
-
-                updateCoolantTracking();
-                calculateTelemetry();
-                updateControlHatches();
-
-                mTotalCycles++;
-                if (hasComputerMonitorCover()) {
-                    recordMetricsCycleSnapshot(res, maintEff);
-                } else if (!mMetricsHistory.isEmpty()) {
-                    mMetricsHistory.clear();
-                }
-
-                // 6. Meltdown check: triggers strictly when reactor damage reaches 100%
+                // Meltdown: strictly when reactor damage reaches 100%
                 if (mReactorDamage >= 100.0) {
                     triggerMeltdown();
                     return;
@@ -1986,6 +1793,246 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             }
         } else if (aBaseMetaTileEntity.isClientSide()) {
             ModularNuclear.proxy.updateCherenkov(this, aBaseMetaTileEntity);
+        }
+    }
+
+    /**
+     * Start of a cycle: bus damage failsafes, the casing tier the core cells see, and the rod hatches' mining pipes.
+     */
+    private void prepareCycle() {
+        for (IGregTechTileEntity te : mNuclearTiles) {
+            if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearBus bus) {
+                bus.processMaxDamageFailsafe();
+            }
+        }
+
+        updateNuclearTilesPipeTier();
+
+        for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
+            if (rod != null) {
+                rod.updateMiningPipeHousing();
+            }
+        }
+        for (int gx = 0; gx < gridSize; gx++) {
+            for (int gy = 0; gy < gridSize; gy++) {
+                if (mGrid[gx][gy] instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile ngt
+                    && ngt.getBottomControlRod() != null) {
+                    ngt.getBottomControlRod()
+                        .updateMiningPipeHousing();
+                }
+            }
+        }
+    }
+
+    /** Applies CoreHatchRules to every coolant hatch; false when a thermal shock melted the core down or broke it. */
+    private boolean checkCoolantFeeds(double ambient) {
+        // Check coolant boiling against ambient or dry hatch injection (thermal shock)
+        for (IGregTechTileEntity te : mNuclearTiles) {
+            if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
+                // Liquid fuel does not boil/evaporate and is exempt from thermal shock
+                if (isFluidFuel(hatch.mInputFluid)) {
+                    hatch.mWasDry = false;
+                    continue;
+                }
+                if (hatch.mInputFluid != null && hatch.mInputFluid.amount > 0) {
+                    String name = hatch.mInputFluid.getFluid()
+                        .getName()
+                        .toLowerCase();
+                    CoreHatchRules.CoolantFeed feed = CoreHatchRules
+                        .checkCoolantFeed(name, hatch.mWasDry, hatch.mTemperature, ambient);
+                    if (feed != CoreHatchRules.CoolantFeed.SAFE) {
+                        triggerThermalShock(hatch, CoreHatchRules.describe(feed, name, hatch.mTemperature, ambient));
+                        if (mReactorDamage >= 100.0 || !mMachine) return false;
+                        continue;
+                    }
+                    hatch.mWasDry = false;
+                } else {
+                    // Hatch has zero coolant: controller remembers that
+                    hatch.mWasDry = true;
+                }
+            }
+        }
+        return true;
+    }
+
+    /** Clears this cycle's counters and has every core cell reread its contents. */
+    private void beginCycleTotals() {
+        mCycleZeroedCoolantItems = 0;
+        mCycleZeroedFuelItems = 0;
+        mCycleConsumedCoolant = 0;
+        mCycleProducedHotCoolant = 0;
+        mCycleTransmutationLoss = 0;
+        mCycleTransmutationByproducts = 0;
+        mCycleDepletedLiquidFuel = 0;
+
+        if (mGrid != null) {
+            for (int x = 0; x < gridSize; x++) {
+                for (int y = 0; y < gridSize; y++) {
+                    if (mGrid[x][y] instanceof NuclearGridTile gt) {
+                        gt.refreshProperties();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Sends clients the Cherenkov glow for this cycle's flux when it changes, and every five seconds while it glows.
+     */
+    private void syncCherenkovMetric(NuclearSimulationEngine.SimulationResult res,
+        IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        // Dynamic Cherenkov radiation intensity metric: active baseline + scaling with flux
+        double flux = Math.max(res.neutronsEscaped, res.totalNeutronsGenerated * 0.15);
+        float cherenkovMetric = (flux > 0) ? (float) Math.min(1.0, 0.40 + 0.60 * (flux / (flux + 400.0))) : 0.0f;
+        byte metricByte = (byte) Math.round(cherenkovMetric * 100.0f);
+        int tier = getReactorTier();
+        if (metricByte != mLastSentCherenkovMetricByte) {
+            mLastSentCherenkovMetricByte = metricByte;
+            if (tier > 0) {
+                aBaseMetaTileEntity.sendBlockEvent((byte) 100, (byte) tier);
+            }
+            aBaseMetaTileEntity.sendBlockEvent((byte) 101, metricByte);
+        } else if (aTick % 100 == 0 && cherenkovMetric > 0) {
+            if (tier > 0) {
+                aBaseMetaTileEntity.sendBlockEvent((byte) 100, (byte) tier);
+            }
+            aBaseMetaTileEntity.sendBlockEvent((byte) 101, metricByte);
+        }
+    }
+
+    /**
+     * Neutrons escaping into the vessel wall wear it: once a minute, a chance of a maintenance issue rising with the
+     * flux.
+     */
+    private void accumulateWallWear(NuclearSimulationEngine.SimulationResult res, int tpc,
+        IGregTechTileEntity aBaseMetaTileEntity) {
+        // Accumulate escaped neutrons for vessel maintenance wear mechanic
+        mWallNeutronAccumulator += res.neutronsEscaped;
+        mWallMaintenanceTimer += tpc;
+
+        // Once per minute (1200 ticks = 60s), check maintenance issue probability:
+        // S(N) = N^2 / (N^2 + 1000^2), scaling maintenance wear from 1.0x to 10.0x base rate (0.01 per minute)
+        if (mWallMaintenanceTimer >= 1200) {
+            mWallMaintenanceTimer = 0;
+            double avgEscaped = (double) mWallNeutronAccumulator / 60.0;
+            mWallNeutronAccumulator = 0;
+            double sFactor = (avgEscaped > 0.0)
+                ? (avgEscaped * avgEscaped) / (avgEscaped * avgEscaped + 1000.0 * 1000.0)
+                : 0.0;
+            double multiplier = 1.0 + 9.0 * sFactor;
+            double baseProb = 0.01;
+            double prob = baseProb * multiplier;
+            if ((aBaseMetaTileEntity.getRandomNumber(1000000) / 1000000.0) < prob) {
+                causeNewMaintenanceIssue();
+            }
+        }
+    }
+
+    /** Direct power from radiovoltaics and the hot coolant the hatches produced this cycle. */
+    private void collectCycleOutputs(double maintEff) {
+        // Sum direct EU from radiovoltaic cells across the grid
+        long directEU = 0;
+        for (int x = 0; x < gridSize; x++) {
+            for (int y = 0; y < gridSize; y++) {
+                INuclearTile tile = mGrid[x][y];
+                if (tile instanceof NuclearGridTile gt && gt.isBus()) {
+                    directEU += gt.getBus().mDirectEUProduced;
+                }
+            }
+        }
+        mDirectPowerEUt = (long) Math.round(directEU * maintEff);
+
+        // Sum output coolant production across all coolant hatches
+        int totalCoolantProduced = 0;
+        String coolantName = "";
+        for (IGregTechTileEntity te : mNuclearTiles) {
+            if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
+                if (hatch.mLastProducedAmount > 0) {
+                    totalCoolantProduced += hatch.mLastProducedAmount;
+                    if (coolantName.isEmpty() && hatch.mLastProducedFluidName != null
+                        && !hatch.mLastProducedFluidName.isEmpty()) {
+                        Fluid f = FluidRegistry.getFluid(hatch.mLastProducedFluidName);
+                        if (f != null) {
+                            coolantName = f.getLocalizedName(new FluidStack(f, 1000));
+                        } else {
+                            coolantName = hatch.mLastProducedFluidName;
+                        }
+                    }
+                }
+            }
+        }
+        mOutputCoolantRate = totalCoolantProduced;
+        mOutputCoolantName = coolantName;
+        super.mEfficiency = (int) Math.round(maintEff * 10000);
+    }
+
+    /** Columns past the casing's operating temperature lose their non-fuel contents and add damage (manual 12.3). */
+    private void applyOverheating() {
+        // 4. Check casing-dependent maximum operating temperature:
+        // Overheating hatches increase reactor damage by 1% per overheating hatch.
+        // Overheating non-fuel contents in hatches/buses are voided, but fuel rods and fluids are NOT directly
+        // voided!
+        double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(mPipeTier);
+        int overheatingHatchesCount = 0;
+        for (IGregTechTileEntity te : mNuclearTiles) {
+            if (te != null) {
+                if (te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
+                    if (hatch.mTemperature > maxTemp) {
+                        overheatingHatchesCount++;
+                        if (!isFluidFuel(hatch.mInputFluid)) {
+                            hatch.mInputFluid = null;
+                            hatch.markTileDirty();
+                        }
+                    }
+                } else if (te.getMetaTileEntity() instanceof MTEHatchNuclearBus bus) {
+                    if (bus.mTemperature > maxTemp) {
+                        overheatingHatchesCount++;
+                        if (!isItemFuel(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT])) {
+                            bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                            bus.markTileDirty();
+                        }
+                    }
+                } else if (te.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure hp) {
+                    if (hp.getTemperature() > maxTemp || hp.mIncomingCoolantTemp > maxTemp) {
+                        overheatingHatchesCount++;
+                    }
+                }
+            }
+        }
+        for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
+            if (rod != null && rod.mTemperature > maxTemp) {
+                overheatingHatchesCount++;
+                rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                rod.markTileDirty();
+            }
+        }
+        if (overheatingHatchesCount > 0) {
+            mReactorDamage = Math.min(
+                100.0,
+                mReactorDamage + overheatingHatchesCount * CoreHatchRules.OVERHEAT_DAMAGE_PERCENT_PER_COLUMN);
+        }
+    }
+
+    /** Closes the cycle: last-cycle totals, telemetry, coolant tracking, control hatches and metrics history. */
+    private void endCycle(NuclearSimulationEngine.SimulationResult res, double maintEff) {
+        // 5. Update last cycle totals, calculate telemetry, coolant tracking, and nuclear control hatches
+        mZeroedCoolantItemsLastCycle = mCycleZeroedCoolantItems;
+        mZeroedFuelItemsLastCycle = mCycleZeroedFuelItems;
+        mConsumedCoolantLastCycle = mCycleConsumedCoolant;
+        mProducedHotCoolantLastCycle = mCycleProducedHotCoolant;
+        mTransmutationLossLastCycle = mCycleTransmutationLoss;
+        mTransmutationByproductsLastCycle = mCycleTransmutationByproducts;
+        mDepletedLiquidFuelLastCycle = mCycleDepletedLiquidFuel;
+
+        updateCoolantTracking();
+        calculateTelemetry();
+        updateControlHatches();
+
+        mTotalCycles++;
+        if (hasComputerMonitorCover()) {
+            recordMetricsCycleSnapshot(res, maintEff);
+        } else if (!mMetricsHistory.isEmpty()) {
+            mMetricsHistory.clear();
         }
     }
 
