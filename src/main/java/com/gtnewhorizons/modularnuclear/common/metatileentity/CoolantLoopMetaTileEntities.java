@@ -21,6 +21,7 @@ public class CoolantLoopMetaTileEntities {
     public static com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger pressurizedHeatExchanger;
     public static com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser pressurizedDegasser;
     public static com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath coolantBath;
+    public static com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater pressurizedFluidHeater;
 
     public static final int PUMP_ID = 32120;
     public static final int PRESSURIZED_HATCH_INPUT_ID = 32121;
@@ -35,6 +36,7 @@ public class CoolantLoopMetaTileEntities {
     public static final int PIPE_LARGE_ID = 32146;
     public static final int PIPE_HUGE_ID = 32153;
     public static final int PRESSURIZED_HATCH_OUTPUT_ID = 32160;
+    public static final int PRESSURIZED_FLUID_HEATER_ID = 32175;
 
     public static final Materials[] COOLANT_PIPE_MATERIALS = new Materials[] { Materials.CastIron, Materials.Steel,
         Materials.StainlessSteel, Materials.Titanium, Materials.TungstenSteel, Materials.Osmium, Materials.Neutronium };
@@ -73,6 +75,10 @@ public class CoolantLoopMetaTileEntities {
             COOLANT_BATH_ID,
             "multimachine.coolantbath",
             "Coolant Bath");
+        pressurizedFluidHeater = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater(
+            PRESSURIZED_FLUID_HEATER_ID,
+            "multimachine.pressurizedfluidheater",
+            "Pressurized fluid heater");
 
         for (int s = 0; s < PIPE_THICKNESSES.length; s++) {
             float thick = PIPE_THICKNESSES[s];

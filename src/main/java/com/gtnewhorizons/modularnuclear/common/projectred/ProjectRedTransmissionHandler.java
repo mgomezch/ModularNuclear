@@ -33,7 +33,8 @@ public class ProjectRedTransmissionHandler implements IBundledTileInteraction {
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof IGregTechTileEntity gt) {
             IMetaTileEntity mte = gt.getMetaTileEntity();
-            return mte instanceof MTEHatchNuclearControl || mte instanceof MTEHatchNuclearControlRod;
+            return mte instanceof MTEHatchNuclearControl || mte instanceof MTEHatchNuclearControlRod
+                || mte instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
         }
         return false;
     }
@@ -54,6 +55,10 @@ public class ProjectRedTransmissionHandler implements IBundledTileInteraction {
             if (mte instanceof MTEHatchNuclearControlRod) {
                 return true;
             }
+            if (mte instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater heater) {
+                return heater.hasEnergyDetectorCoverAtSide(ForgeDirection.getOrientation(side))
+                    || heater.hasAnyEnergyDetectorCover();
+            }
         }
         return false;
     }
@@ -72,6 +77,9 @@ public class ProjectRedTransmissionHandler implements IBundledTileInteraction {
                 if (side == front || side == opp) {
                     return hatch.getBundledSignal();
                 }
+            }
+            if (mte instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater heater) {
+                return heater.getBundledSignal(side);
             }
         }
         return null;

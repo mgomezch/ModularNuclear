@@ -41,3 +41,9 @@ reservoir:
     - 300.0
     - 600.0
     - 1000.0
+
+# Pressurized Fluid Heater
+heater:
+  baseExchangeArea: 4.0            # Heat exchange surface area in m^2 per ring layer (multiplied by 1..9 rings)
+  minorLossK: 1.5                  # Minor loss coefficient across heater passage
+

@@ -18,7 +18,8 @@ public enum CoolantStructureChannels implements IStructureChannels {
     TANK_MATERIAL("tank_material", "Railcraft tank material"),
     PHE_HEIGHT("phe_height", "Heat exchanger height (3, 5, 7, 9)"),
     PHE_LENGTH("phe_length", "Heat exchanger length (5 to 11)"),
-    PHE_SHEETMETAL("phe_sheetmetal", "Sheetmetal material");
+    PHE_SHEETMETAL("phe_sheetmetal", "Sheetmetal material"),
+    HEATER_LENGTH("heater_length", "Fluid heater length (3 to 11)");
 
     private final String channel;
     private final String defaultTooltip;
@@ -115,6 +116,15 @@ public enum CoolantStructureChannels implements IStructureChannels {
                 ItemStack stack = tier.getItemStack();
                 if (stack != null && stack.getItem() != null) {
                     PHE_SHEETMETAL.registerAsIndicator(stack.copy(), tier.getTier());
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        // Register indicator items for HEATER_LENGTH (3 to 11)
+        try {
+            if (GregTechAPI.sBlockCasings1 != null) {
+                for (int l = 3; l <= 11; l++) {
+                    HEATER_LENGTH.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings1, l, 11), l);
                 }
             }
         } catch (Throwable ignored) {}

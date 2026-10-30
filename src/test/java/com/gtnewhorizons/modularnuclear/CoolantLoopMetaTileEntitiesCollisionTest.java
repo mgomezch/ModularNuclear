@@ -28,6 +28,7 @@ public class CoolantLoopMetaTileEntitiesCollisionTest {
         coolantLoopIds.add(CoolantLoopMetaTileEntities.HEAT_EXCHANGER_ID);
         coolantLoopIds.add(CoolantLoopMetaTileEntities.DEGASSER_ID);
         coolantLoopIds.add(CoolantLoopMetaTileEntities.COOLANT_BATH_ID);
+        coolantLoopIds.add(CoolantLoopMetaTileEntities.PRESSURIZED_FLUID_HEATER_ID);
 
         int totalPipes = CoolantLoopMetaTileEntities.COOLANT_PIPE_MATERIALS.length
             * CoolantLoopMetaTileEntities.PIPE_THICKNESSES.length;

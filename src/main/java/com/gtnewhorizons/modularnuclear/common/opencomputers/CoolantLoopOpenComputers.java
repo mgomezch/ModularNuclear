@@ -9,6 +9,7 @@ public class CoolantLoopOpenComputers {
         if (Loader.isModLoaded("OpenComputers")) {
             try {
                 Driver.add(new DriverLoopInstrument());
+                Driver.add(new DriverPressurizedFluidHeater());
             } catch (Throwable t) {
                 t.printStackTrace();
             }

@@ -21,6 +21,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPres
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.pipe.MTECoolantPipe;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
@@ -853,6 +854,7 @@ public class LoopGraphCrawler {
 
         private final List<LoopSegment> segments = new ArrayList<>();
         private final List<ICoolantLoopDevice> devices = new ArrayList<>();
+        private final List<MTEPressurizedFluidHeater> visitedHeaters = new ArrayList<>();
         private final Set<BlockPosCoord> visitedPipeAndDevicePositions = new HashSet<>();
         private final List<PipeFlowConfig> pipeConfigs = new ArrayList<>();
         private final Map<BlockPosCoord, ManifoldGroup> coordToManifoldGroup = new HashMap<>();
@@ -1345,6 +1347,20 @@ public class LoopGraphCrawler {
 
                     if (detectedLoopMaterial == null) {
                         detectedLoopMaterial = pipeMat;
+                        for (MTEPressurizedFluidHeater vh : visitedHeaters) {
+                            if (!vh.matchesLoopMaterial(detectedLoopMaterial)) {
+                                finishWithFailure(
+                                    CoolantLocalization.format(
+                                        "coolantloops.crawler.heater_material_mismatch",
+                                        step.x,
+                                        step.y,
+                                        step.z,
+                                        vh.getHeaterPipeCasingTier()
+                                            .getDisplayName(),
+                                        detectedLoopMaterial.mDefaultLocalName));
+                                return true;
+                            }
+                        }
                     } else if (!areMaterialsEqual(pipeMat, detectedLoopMaterial)) {
                         if (expectedTankMaterial != null
                             && areMaterialsEqual(detectedLoopMaterial, expectedTankMaterial)) {
@@ -1506,20 +1522,112 @@ public class LoopGraphCrawler {
                     continue;
                 }
 
-                // 3. GregTech Multiblock Hatches (PHE, Degasser, Bath, Core Passage)
+                // 3. GregTech Multiblock Hatches (Fluid Heater, PHE, Degasser, Bath, Core Passage)
                 if (te instanceof IGregTechTileEntity) {
                     IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
                     if (mte instanceof MTEHatchPressurizedFluid) {
                         MTEHatchPressurizedFluid hatch = (MTEHatchPressurizedFluid) mte;
-                        MTEPressurizedHeatExchanger phe = findAdjacentPHE(world, step.x, step.y, step.z);
-                        MTEPressurizedDegasser degasser = (phe == null)
+                        MTEPressurizedFluidHeater heater = findAdjacentFluidHeater(world, step.x, step.y, step.z);
+                        MTEPressurizedHeatExchanger phe = (heater == null)
+                            ? findAdjacentPHE(world, step.x, step.y, step.z)
+                            : null;
+                        MTEPressurizedDegasser degasser = (heater == null && phe == null)
                             ? findAdjacentDegasser(world, step.x, step.y, step.z)
                             : null;
-                        MTECoolantBath bath = (phe == null && degasser == null)
+                        MTECoolantBath bath = (heater == null && phe == null && degasser == null)
                             ? findAdjacentCoolantBath(world, step.x, step.y, step.z)
                             : null;
 
-                        if (phe != null) {
+                        if (heater != null) {
+                            if ((heater.getPressurizedInputHatch() == null
+                                || heater.getPressurizedOutputHatch() == null)
+                                && heater.getBaseMetaTileEntity() != null) {
+                                heater.checkMachine(heater.getBaseMetaTileEntity(), null);
+                            }
+                            if (heater.isPowerFailed()) {
+                                finishWithFailure(
+                                    CoolantLocalization.format(
+                                        "coolantloops.crawler.heater_powerfailed",
+                                        heater.getInnerTemperatureCelsius(),
+                                        heater.getMaxOperatingTemperatureCelsius()));
+                                return true;
+                            }
+                            if (!heater.mMachine || heater.getPressurizedInputHatch() == null
+                                || heater.getPressurizedOutputHatch() == null) {
+                                finishWithFailure(
+                                    CoolantLocalization
+                                        .format("coolantloops.crawler.heater_unformed", step.x, step.y, step.z));
+                                return true;
+                            }
+                            if (heater.getPressurizedOutputHatch() == hatch || !hatch.isInput()) {
+                                finishWithFailure(
+                                    CoolantLocalization
+                                        .format("coolantloops.crawler.heater_output", step.x, step.y, step.z));
+                                return true;
+                            }
+                            if (detectedLoopMaterial != null && !heater.matchesLoopMaterial(detectedLoopMaterial)) {
+                                finishWithFailure(
+                                    CoolantLocalization.format(
+                                        "coolantloops.crawler.heater_material_mismatch",
+                                        step.x,
+                                        step.y,
+                                        step.z,
+                                        heater.getHeaterPipeCasingTier()
+                                            .getDisplayName(),
+                                        detectedLoopMaterial.mDefaultLocalName));
+                                return true;
+                            }
+                            if (!visitedHeaters.contains(heater)) {
+                                visitedHeaters.add(heater);
+                            }
+                            if (pump != null) {
+                                heater.setLoopPump(pump);
+                            }
+                            if (!devices.contains(heater)) {
+                                devices.add(heater);
+                            }
+                            LoopSegment devSeg = new LoopSegment(
+                                heater.getDeviceId(),
+                                step.x,
+                                step.y,
+                                step.z,
+                                heater.getRingCount(),
+                                0.15,
+                                0.000045,
+                                heater.getMinorLossK(),
+                                heater.getMaxOperatingPressureBar(),
+                                heater.getMaxOperatingTemperatureCelsius(),
+                                heater.getDeviceTemperatureCelsius());
+                            devSeg.setCapacityLiters(heater.getFillVolumeLiters());
+                            segments.add(devSeg);
+
+                            MTEHatchPressurizedFluid outlet = heater.getPressurizedOutputHatch();
+                            if (outlet != null && outlet != hatch) {
+                                IGregTechTileEntity outTE = outlet.getBaseMetaTileEntity();
+                                visitedPipeAndDevicePositions
+                                    .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
+                                ForgeDirection outFacing = outTE.getFrontFacing();
+
+                                addGraphNode(graphNodes, heater.getDeviceId(), NodeType.DEVICE, heater);
+                                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, heater.getDeviceId());
+
+                                frontier.add(
+                                    new FrontierStep(
+                                        heater.getDeviceId(),
+                                        outTE.getXCoord() + outFacing.offsetX,
+                                        outTE.getYCoord() + outFacing.offsetY,
+                                        outTE.getZCoord() + outFacing.offsetZ,
+                                        outFacing.getOpposite(),
+                                        null,
+                                        null));
+                                continue;
+                            } else {
+                                finishWithFailure(
+                                    CoolantLocalization
+                                        .format("coolantloops.crawler.heater_unformed", step.x, step.y, step.z));
+                                return true;
+                            }
+                        } else if (phe != null) {
                             if (phe.getPrimaryOutlet() == null && phe.getBaseMetaTileEntity() != null) {
                                 phe.checkMachine(phe.getBaseMetaTileEntity(), null);
                             }
@@ -2172,35 +2280,66 @@ public class LoopGraphCrawler {
         return session.getResult();
     }
 
-    public static MTEPressurizedHeatExchanger findAdjacentPHE(World world, int x, int y, int z) {
-        TileEntity targetTe = world.getTileEntity(x, y, z);
-        MTEPressurizedHeatExchanger best = null;
-        int bestDistSq = Integer.MAX_VALUE;
-        for (int dy = -4; dy <= 4; dy++) {
+    /**
+     * The Pressurized Fluid Heater whose input or output hatch is the hatch at (x, y, z), among heater controllers
+     * within a heater's reach (11 long), or null. A controller whose hatches are not known yet checks its structure
+     * first. Only the heater that owns the hatch qualifies.
+     */
+    public static MTEPressurizedFluidHeater findAdjacentFluidHeater(World world, int x, int y, int z) {
+        IMetaTileEntity target = metaTileEntityAt(world, x, y, z);
+        if (target == null) return null;
+        for (int dy = -2; dy <= 2; dy++) {
             for (int dx = -11; dx <= 11; dx++) {
                 for (int dz = -11; dz <= 11; dz++) {
-                    TileEntity te = world.getTileEntity(x + dx, y + dy, z + dz);
-                    if (te instanceof IGregTechTileEntity) {
-                        IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
-                        if (mte instanceof MTEPressurizedHeatExchanger) {
-                            MTEPressurizedHeatExchanger phe = (MTEPressurizedHeatExchanger) mte;
-                            if (targetTe instanceof IGregTechTileEntity) {
-                                IMetaTileEntity targetMte = ((IGregTechTileEntity) targetTe).getMetaTileEntity();
-                                if (phe.getPrimaryInlet() == targetMte || phe.getPrimaryOutlet() == targetMte) {
-                                    return phe;
-                                }
-                            }
-                            int distSq = dx * dx + dy * dy + dz * dz;
-                            if (distSq < bestDistSq) {
-                                bestDistSq = distSq;
-                                best = phe;
-                            }
-                        }
+                    if (!(metaTileEntityAt(
+                        world,
+                        x + dx,
+                        y + dy,
+                        z + dz) instanceof MTEPressurizedFluidHeater heater)) {
+                        continue;
+                    }
+                    if ((heater.getPressurizedInputHatch() == null || heater.getPressurizedOutputHatch() == null)
+                        && heater.getBaseMetaTileEntity() != null) {
+                        heater.checkMachine(heater.getBaseMetaTileEntity(), null);
+                    }
+                    if (heater.getPressurizedInputHatch() == target || heater.getPressurizedOutputHatch() == target) {
+                        return heater;
                     }
                 }
             }
         }
-        return best;
+        return null;
+    }
+
+    /**
+     * The PHE whose primary inlet or outlet is the hatch at (x, y, z), among PHE controllers within a PHE's reach
+     * (11 long, 9 high), or null. A controller whose hatches are not known yet checks its structure first. Only the
+     * PHE that owns the hatch qualifies, so a nearby PHE never claims another device's hatch.
+     */
+    public static MTEPressurizedHeatExchanger findAdjacentPHE(World world, int x, int y, int z) {
+        IMetaTileEntity target = metaTileEntityAt(world, x, y, z);
+        if (target == null) return null;
+        for (int dy = -8; dy <= 8; dy++) {
+            for (int dx = -11; dx <= 11; dx++) {
+                for (int dz = -11; dz <= 11; dz++) {
+                    if (!(metaTileEntityAt(world, x + dx, y + dy, z + dz) instanceof MTEPressurizedHeatExchanger phe)) {
+                        continue;
+                    }
+                    if ((phe.getPrimaryInlet() == null || phe.getPrimaryOutlet() == null)
+                        && phe.getBaseMetaTileEntity() != null) {
+                        phe.checkMachine(phe.getBaseMetaTileEntity(), null);
+                    }
+                    if (phe.getPrimaryInlet() == target || phe.getPrimaryOutlet() == target) return phe;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static IMetaTileEntity metaTileEntityAt(World world, int x, int y, int z) {
+        if (world == null) return null;
+        TileEntity te = world.getTileEntity(x, y, z);
+        return te instanceof IGregTechTileEntity gte ? gte.getMetaTileEntity() : null;
     }
 
     public static MTEPressurizedDegasser findAdjacentDegasser(World world, int x, int y, int z) {

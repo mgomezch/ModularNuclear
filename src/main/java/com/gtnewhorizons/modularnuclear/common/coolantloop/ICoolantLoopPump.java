@@ -272,4 +272,9 @@ public interface ICoolantLoopPump {
     default double getRotorSofteningCelsius() {
         return 226.85;
     }
+
+    /**
+     * Notifies the pump that an in-line device has disconnected from the loop (e.g. powerfailed).
+     */
+    default void onDeviceDisconnected(ICoolantLoopDevice device, String reason) {}
 }

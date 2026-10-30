@@ -969,14 +969,19 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     } else if (te instanceof IGregTechTileEntity gte) {
                         IMetaTileEntity mte = gte.getMetaTileEntity();
                         if (mte instanceof MTEHatchPressurizedFluid) {
-                            MTEPressurizedHeatExchanger phe = LoopGraphCrawler.findAdjacentPHE(w, bc.x, bc.y, bc.z);
-                            MTEPressurizedDegasser degasser = (phe == null)
+                            MTEPressurizedFluidHeater heater = LoopGraphCrawler
+                                .findAdjacentFluidHeater(w, bc.x, bc.y, bc.z);
+                            MTEPressurizedHeatExchanger phe = (heater == null)
+                                ? LoopGraphCrawler.findAdjacentPHE(w, bc.x, bc.y, bc.z)
+                                : null;
+                            MTEPressurizedDegasser degasser = (heater == null && phe == null)
                                 ? LoopGraphCrawler.findAdjacentDegasser(w, bc.x, bc.y, bc.z)
                                 : null;
-                            MTECoolantBath bath = (phe == null && degasser == null)
+                            MTECoolantBath bath = (heater == null && phe == null && degasser == null)
                                 ? LoopGraphCrawler.findAdjacentCoolantBath(w, bc.x, bc.y, bc.z)
                                 : null;
-                            if (phe != null) dev = phe;
+                            if (heater != null) dev = heater;
+                            else if (phe != null) dev = phe;
                             else if (degasser != null) dev = degasser;
                             else if (bath != null) dev = bath;
                             else dev = (ICoolantLoopDevice) mte;
@@ -1156,6 +1161,47 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         return false;
     }
 
+    @Override
+    public void onDeviceDisconnected(ICoolantLoopDevice device, String reason) {
+        boolean wasActiveLoop = mLoopFormed && (mCurrentFillLiters > 0L || mLoopState == LoopState.CIRCULATING
+            || mLoopState == LoopState.DECELERATING
+            || (mEngine != null && mEngine.getVolumetricFlowRate() > 1e-5));
+
+        LoopSegment deviceSeg = null;
+        if (device != null && mEngine != null) {
+            String devId = device.getDeviceId();
+            for (LoopSegment s : mEngine.getSegments()) {
+                if (s != null && s.getId()
+                    .equals(devId)) {
+                    deviceSeg = s;
+                    break;
+                }
+            }
+        }
+
+        if (mEngine != null) {
+            mEngine.setPumpPowered(false);
+            mEngine.setPumpMechanicalPowerWatts(0.0);
+            mEngine.setBraking(false);
+        }
+        IGregTechTileEntity baseTE = getBaseMetaTileEntity();
+        if (baseTE != null && baseTE.isActive()) {
+            baseTE.setActive(false);
+        }
+        String msg = (reason != null && !reason.isEmpty()) ? reason
+            : CoolantLocalization.get("coolantloops.crawler.heater_powerfailed_generic");
+        applyCrawlResult(LoopGraphCrawler.CrawlResult.fail(msg));
+
+        if (wasActiveLoop && mEngine != null) {
+            mEngine.setRuptured(true);
+            mEngine.setFailureReason(msg);
+            if (deviceSeg != null) {
+                mEngine.setRupturedSegment(deviceSeg);
+            }
+            triggerCatastrophicExplosion(msg, deviceSeg);
+        }
+    }
+
     public boolean stepCoolantLoop() {
         if (!mLoopFormed || mEngine.getSegments()
             .isEmpty()) {
@@ -1167,6 +1213,15 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 baseTE.setActive(false);
             }
             return true;
+        }
+
+        if (mLoopDevices != null && !mLoopDevices.isEmpty()) {
+            for (ICoolantLoopDevice dev : new ArrayList<>(mLoopDevices)) {
+                if (dev != null && dev.isDeviceDisconnected()) {
+                    onDeviceDisconnected(dev, dev.getDisconnectionReason());
+                    return true;
+                }
+            }
         }
 
         if (mEngine.isRuptured()) {

@@ -60,7 +60,9 @@ public class MultiblockStructureErrorsTest {
         gregtech.api.GregTechAPI.sBlockCasings1 = net.minecraft.init.Blocks.stone;
         gregtech.api.GregTechAPI.sBlockCasings2 = net.minecraft.init.Blocks.stone;
         gregtech.api.GregTechAPI.sBlockCasings4 = net.minecraft.init.Blocks.stone;
+        gregtech.api.GregTechAPI.sBlockCasings5 = net.minecraft.init.Blocks.stone;
         gregtech.api.GregTechAPI.sBlockCasings10 = net.minecraft.init.Blocks.stone;
+        gregtech.api.GregTechAPI.sBlockCasings11 = net.minecraft.init.Blocks.stone;
         gregtech.api.GregTechAPI.sBlockSheetmetalGT = net.minecraft.init.Blocks.stone;
 
         try {
@@ -106,6 +108,23 @@ public class MultiblockStructureErrorsTest {
 
         phe.checkMachine(mockBase, null, errors);
         assertFalse(errors.isEmpty(), "PHE should report structure errors when unformed");
+    }
+
+    @Test
+    void testPressurizedFluidHeaterStructureErrors() {
+        com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater heater = new com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater(
+            "test_heater");
+        List<StructureError> errors = new ArrayList<>();
+        IGregTechTileEntity mockBase = Mockito.mock(IGregTechTileEntity.class);
+        World mockWorld = Mockito.mock(World.class);
+        Mockito.when(mockBase.getWorld())
+            .thenReturn(mockWorld);
+        Mockito.when(mockWorld.blockExists(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt()))
+            .thenReturn(true);
+        heater.setBaseMetaTileEntity(mockBase);
+
+        heater.checkMachine(mockBase, null, errors);
+        assertFalse(errors.isEmpty(), "Pressurized Fluid Heater should report structure errors when unformed");
     }
 
     @Test
@@ -174,7 +193,12 @@ public class MultiblockStructureErrorsTest {
             "coolantloops.structure.error.pump.corner_frame", "coolantloops.structure.error.pump.casing_req",
             "coolantloops.structure.error.pump.invalid_hatch", "coolantloops.structure.error.missing_suction_hatch",
             "coolantloops.structure.error.missing_discharge_hatch",
-            "coolantloops.structure.error.duplicate_pump_hatches" };
+            "coolantloops.structure.error.duplicate_pump_hatches", "coolantloops.structure.error.heater_missing_coils",
+            "coolantloops.structure.error.heater_missing_pipe_casing",
+            "coolantloops.structure.error.heater_mixed_pipe_casing",
+            "coolantloops.structure.error.heater_missing_energy", "coolantloops.structure.error.heater_multiple_energy",
+            "coolantloops.structure.error.heater_no_laser",
+            "coolantloops.structure.error.heater_energy_tier_too_high" };
         for (String key : keys) {
             String val = com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization.get(key);
             assertNotNull(val, "Key should exist in lang file: " + key);

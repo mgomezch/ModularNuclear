@@ -49,4 +49,19 @@ public interface ICoolantLoopDevice {
      * Associates the managing coolant loop pump with this device.
      */
     default void setLoopPump(ICoolantLoopPump pump) {}
+
+    /**
+     * Returns true if this device has entered a disconnected state (e.g. powerfail from over-temperature)
+     * and can no longer maintain a closed loop.
+     */
+    default boolean isDeviceDisconnected() {
+        return false;
+    }
+
+    /**
+     * Human-readable reason why this device disconnected from the loop.
+     */
+    default String getDisconnectionReason() {
+        return null;
+    }
 }

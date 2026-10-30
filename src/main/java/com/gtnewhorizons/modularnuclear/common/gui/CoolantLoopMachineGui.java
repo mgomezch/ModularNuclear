@@ -175,7 +175,69 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
                     .asWidget()
                     .textAlign(Alignment.CenterLeft)
                     .setEnabledIf(w -> showLoopStats.get()));
-        }
+        } else
+            if (multiblock instanceof com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater heater) {
+                DoubleSyncValue innerTempSyncer = new DoubleSyncValue(heater::getInnerTemperatureCelsius);
+                DoubleSyncValue maxTempSyncer = new DoubleSyncValue(heater::getMaxOperatingTemperatureCelsius);
+                DoubleSyncValue heatCapSyncer = new DoubleSyncValue(heater::getHeatCapacityHuPerC);
+                DoubleSyncValue areaSyncer = new DoubleSyncValue(heater::getExchangeAreaM2);
+                DoubleSyncValue flowSyncer = new DoubleSyncValue(heater::getLastCoolantFlowLitersPerSecond);
+                DoubleSyncValue transferRateSyncer = new DoubleSyncValue(heater::getLastHeatTransferHuPerTick);
+                syncManager.syncValue("heaterInnerTemp", innerTempSyncer);
+                syncManager.syncValue("heaterMaxTemp", maxTempSyncer);
+                syncManager.syncValue("heaterHeatCap", heatCapSyncer);
+                syncManager.syncValue("heaterArea", areaSyncer);
+                syncManager.syncValue("heaterFlow", flowSyncer);
+                syncManager.syncValue("heaterTransferRate", transferRateSyncer);
+
+                IntSyncValue errorIDSyncer = syncManager.findSyncHandler("errorID", IntSyncValue.class);
+                Supplier<Boolean> showHeaterStats = () -> (errorIDSyncer == null)
+                    || ((errorIDSyncer.getValue() & 64) == 0);
+
+                list.child(
+                    IKey.dynamic(
+                        () -> String.format(
+                            Locale.US,
+                            "Inner temperature: %.1f / %.1f °C",
+                            innerTempSyncer.getDoubleValue(),
+                            maxTempSyncer.getDoubleValue()))
+                        .color(Color.rgb(255, 85, 85))
+                        .asWidget()
+                        .textAlign(Alignment.CenterLeft)
+                        .setEnabledIf(w -> showHeaterStats.get()));
+
+                list.child(
+                    IKey.dynamic(
+                        () -> String.format(Locale.US, "Heat capacity: %.1f HU/°C", heatCapSyncer.getDoubleValue()))
+                        .color(Color.rgb(255, 255, 85))
+                        .asWidget()
+                        .textAlign(Alignment.CenterLeft)
+                        .setEnabledIf(w -> showHeaterStats.get()));
+
+                list.child(
+                    IKey.dynamic(
+                        () -> String.format(Locale.US, "Heat transfer area: %.1f m²", areaSyncer.getDoubleValue()))
+                        .color(Color.rgb(85, 255, 255))
+                        .asWidget()
+                        .textAlign(Alignment.CenterLeft)
+                        .setEnabledIf(w -> showHeaterStats.get()));
+
+                list.child(
+                    IKey.dynamic(() -> String.format(Locale.US, "Coolant flow: %.1f L/s", flowSyncer.getDoubleValue()))
+                        .color(Color.rgb(85, 255, 85))
+                        .asWidget()
+                        .textAlign(Alignment.CenterLeft)
+                        .setEnabledIf(w -> showHeaterStats.get()));
+
+                list.child(
+                    IKey.dynamic(
+                        () -> String
+                            .format(Locale.US, "Heat transfer rate: %.1f HU/t", transferRateSyncer.getDoubleValue()))
+                        .color(Color.rgb(255, 170, 0))
+                        .asWidget()
+                        .textAlign(Alignment.CenterLeft)
+                        .setEnabledIf(w -> showHeaterStats.get()));
+            }
 
         return list;
     }

@@ -230,6 +230,24 @@ public class CoolantLoopRecipes {
             }
         }
 
+        // 4. Pressurized Fluid Heater Multiblock Controller
+        if (CoolantLoopMetaTileEntities.pressurizedFluidHeater != null) {
+            ItemStack evHull = ItemList.Hull_EV.get(1L);
+            ItemStack evPump = ItemList.Electric_Pump_EV.get(1L);
+            ItemStack cupronickelWire = GTOreDictUnificator.get(OrePrefixes.wireGt02, Materials.Cupronickel, 4L);
+            ItemStack invarPlate = GTOreDictUnificator.get(OrePrefixes.plate, Materials.Invar, 2L);
+            ItemStack circuit = GTOreDictUnificator.get(OrePrefixes.circuit, Materials.EV, 1L);
+
+            if (evHull != null && evPump != null && cupronickelWire != null && invarPlate != null && circuit != null) {
+                GTValues.RA.stdBuilder()
+                    .itemInputs(evHull, evPump, cupronickelWire, invarPlate, circuit)
+                    .itemOutputs(CoolantLoopMetaTileEntities.pressurizedFluidHeater.getStackForm(1L))
+                    .duration(30 * SECONDS)
+                    .eut(1920)
+                    .addTo(assemblerRecipes);
+            }
+        }
+
         registerCoolantPipeAssemblerRecipes();
     }
 

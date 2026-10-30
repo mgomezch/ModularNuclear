@@ -285,3 +285,40 @@ coolantloops.structure.error.missing_suction_hatch=Missing high-pressure suction
 coolantloops.structure.error.missing_discharge_hatch=Missing high-pressure discharge hatch (output mode)
 coolantloops.structure.error.duplicate_pump_hatches=Requires exactly 1 suction and 1 discharge hatch
 
+# Pressurized fluid heater
+gt.blockmachines.multimachine.pressurizedfluidheater.name=Pressurized fluid heater
+channels.coolantloops.heater_length=Fluid heater length (3 to 11)
+gt.multiblock.pressurized_fluid_heater.machine_type=Pressurized fluid heater
+gt.multiblock.pressurized_fluid_heater.desc1=Electrically heats circulating coolant in high-pressure closed loops
+gt.multiblock.pressurized_fluid_heater.desc2=Structure length scales from 3x3x3 (1 coil ring) up to 3x3x11 (9 coil rings)
+gt.multiblock.pressurized_fluid_heater.desc3=Consumes up to 32 * rings * 4^(coilTier - 1) EU/t (1 EU = 4 HU); partial power does not powerfail
+gt.multiblock.pressurized_fluid_heater.desc4=Heat capacity and 4 m²/ring convective exchange area transfer heat bidirectionally with coolant
+gt.multiblock.pressurized_fluid_heater.desc5=Item pipe casing must match loop material; exceeding casing temperature limit causes powerfail and loop disconnect
+gt.multiblock.pressurized_fluid_heater.desc6=Heating coil efficiency scales linearly from 25% (Cupronickel) to 100% (maximum coil tier)
+gt.multiblock.pressurized_fluid_heater.structure.controller=Front bottom center
+gt.multiblock.pressurized_fluid_heater.structure.casings=Heat proof machine casings (front and back 3x3 layers)
+gt.multiblock.pressurized_fluid_heater.structure.coils=Heating coils
+gt.multiblock.pressurized_fluid_heater.structure.coils_pos=Outer 3x3 ring of each middle layer (sets max energy hatch tier starting at LV = Cupronickel)
+gt.multiblock.pressurized_fluid_heater.structure.pipe_casings=Item pipe casings
+gt.multiblock.pressurized_fluid_heater.structure.pipe_casings_pos=Center line between inlet and outlet (uniform tier matching loop material)
+gt.multiblock.pressurized_fluid_heater.structure.hatch_inlet=High-pressure input hatch (front center)
+gt.multiblock.pressurized_fluid_heater.structure.hatch_outlet=High-pressure output hatch (back center)
+gt.multiblock.pressurized_fluid_heater.structure.hp_in=High-pressure input hatch
+gt.multiblock.pressurized_fluid_heater.structure.hp_in_pos=Front center
+gt.multiblock.pressurized_fluid_heater.structure.hp_out=High-pressure output hatch
+gt.multiblock.pressurized_fluid_heater.structure.hp_out_pos=Back center
+gt.multiblock.pressurized_fluid_heater.structure.maintenance=Maintenance hatch (any type, exactly 1 in front or back layer)
+gt.multiblock.pressurized_fluid_heater.structure.energy=Energy hatch (single-amp or multi-amp, no laser, exactly 1 in front or back layer)
+coolantloops.structure.error.heater_missing_coils=Missing heating coil blocks in middle rings
+coolantloops.structure.error.heater_missing_pipe_casing=Missing or inconsistent item pipe casings along center line
+coolantloops.structure.error.heater_mixed_pipe_casing=All item pipe casings along center line must be of the same tier
+coolantloops.structure.error.heater_missing_energy=Requires 1 energy hatch (single-amp or multi-amp, no laser)
+coolantloops.structure.error.heater_multiple_energy=Requires at most 1 energy hatch (single-amp or multi-amp, no laser)
+coolantloops.structure.error.heater_no_laser=Laser energy hatches are not allowed on the pressurized fluid heater
+coolantloops.structure.error.heater_energy_tier_too_high=Energy hatch tier exceeds maximum allowed by heating coils
+coolantloops.crawler.heater_unformed=Pressurized fluid heater at (%d, %d, %d) is unformed or missing a valid outlet hatch
+coolantloops.crawler.heater_unformed_generic=Pressurized fluid heater is unformed or missing a valid outlet hatch
+coolantloops.crawler.heater_output=Coolant loop entered pressurized fluid heater output hatch at (%d, %d, %d) instead of input hatch
+coolantloops.crawler.heater_powerfailed=Pressurized fluid heater is in a powerfailed state (over-temperature trip: %.1f °C > %.1f °C)!
+coolantloops.crawler.heater_powerfailed_generic=Pressurized fluid heater is in a powerfailed state (over-temperature trip)!
+coolantloops.crawler.heater_material_mismatch=Pressurized fluid heater at (%d, %d, %d) has %s item pipe casings, which do not match loop material %s!

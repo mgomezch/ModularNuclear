@@ -354,10 +354,33 @@ public class CoolantDeviceData {
         }
     }
 
+    public static class HeaterData {
+
+        public double baseExchangeArea = 4.0; // Heat exchange surface area in m^2 per ring layer
+        public double minorLossK = 1.5; // Minor loss coefficient across heater passage
+
+        public Map<String, Object> toMap() {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("baseExchangeArea", baseExchangeArea);
+            map.put("minorLossK", minorLossK);
+            return map;
+        }
+
+        public static HeaterData fromMap(Map<String, Object> map) {
+            HeaterData d = new HeaterData();
+            if (map == null) return d;
+            if (map.containsKey("baseExchangeArea"))
+                d.baseExchangeArea = ((Number) map.get("baseExchangeArea")).doubleValue();
+            if (map.containsKey("minorLossK")) d.minorLossK = ((Number) map.get("minorLossK")).doubleValue();
+            return d;
+        }
+    }
+
     private PHEData phe = new PHEData();
     private DegasserData degasser = new DegasserData();
     private ReservoirData reservoir = new ReservoirData();
     private CoolantBathData bath = new CoolantBathData();
+    private HeaterData heater = new HeaterData();
 
     public PHEData getPhe() {
         return phe;
@@ -391,12 +414,21 @@ public class CoolantDeviceData {
         this.bath = bath;
     }
 
+    public HeaterData getHeater() {
+        return heater;
+    }
+
+    public void setHeater(HeaterData heater) {
+        this.heater = heater;
+    }
+
     public Map<String, Object> toMap() {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("phe", phe.toMap());
         map.put("degasser", degasser.toMap());
         map.put("bath", bath.toMap());
         map.put("reservoir", reservoir.toMap());
+        map.put("heater", heater.toMap());
         return map;
     }
 
@@ -415,6 +447,9 @@ public class CoolantDeviceData {
         }
         if (map.containsKey("reservoir") && map.get("reservoir") instanceof Map) {
             data.reservoir = ReservoirData.fromMap((Map<String, Object>) map.get("reservoir"));
+        }
+        if (map.containsKey("heater") && map.get("heater") instanceof Map) {
+            data.heater = HeaterData.fromMap((Map<String, Object>) map.get("heater"));
         }
         return data;
     }
