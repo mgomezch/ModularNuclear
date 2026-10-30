@@ -610,6 +610,47 @@ public class NuclearSimulationEngine {
      * Executes one reactor simulation tick over the 2D grid with full (100%) maintenance efficiency and default ambient
      * temperature.
      */
+    /**
+     * Working arrays for {@link #simulate}, kept per thread and reused from cycle to cycle instead of allocated each
+     * time. None of them outlives a call.
+     */
+    private static final class Scratch {
+
+        static final int INITIAL_TEMP = 0, EFFICIENCY = 1, PENDING_HEAT = 2, THERMAL_A = 3, THERMAL_B = 4,
+            FLUX_FAST = 5, FLUX_THERMAL = 6, ABS_THERMAL = 7, SCATTERING_THERMAL = 8, CAPACITY = 9, DELTA_HEAT = 10;
+        private static final ThreadLocal<Scratch> PER_THREAD = new ThreadLocal<>();
+
+        final double[][][] grids = new double[11][][];
+        int[][] emitted;
+        int sizeX = -1, sizeY = -1;
+
+        static Scratch forSize(int sizeX, int sizeY) {
+            Scratch s = PER_THREAD.get();
+            if (s == null) {
+                s = new Scratch();
+                PER_THREAD.set(s);
+            }
+            if (s.sizeX != sizeX || s.sizeY != sizeY) {
+                for (int i = 0; i < s.grids.length; i++) s.grids[i] = new double[sizeX][sizeY];
+                s.emitted = new int[sizeX][sizeY];
+                s.sizeX = sizeX;
+                s.sizeY = sizeY;
+            }
+            return s;
+        }
+
+        double[][] cleared(int slot) {
+            double[][] g = grids[slot];
+            for (double[] row : g) java.util.Arrays.fill(row, 0.0);
+            return g;
+        }
+
+        int[][] clearedEmitted() {
+            for (int[] row : emitted) java.util.Arrays.fill(row, 0);
+            return emitted;
+        }
+    }
+
     public static SimulationResult simulate(INuclearTile[][] grid, int sizeX, int sizeY) {
         return simulate(grid, sizeX, sizeY, 1.0, ambientTemp);
     }
@@ -637,10 +678,11 @@ public class NuclearSimulationEngine {
         double sumFuelReactivity = 0;
         int fuelTileCount = 0;
 
-        double[][] initialTemp = new double[sizeX][sizeY];
-        int[][] emittedNeutrons = new int[sizeX][sizeY];
-        double[][] efficiency = new double[sizeX][sizeY];
-        double[][] pendingHeat = new double[sizeX][sizeY];
+        Scratch scratch = Scratch.forSize(sizeX, sizeY);
+        double[][] initialTemp = scratch.cleared(Scratch.INITIAL_TEMP);
+        int[][] emittedNeutrons = scratch.clearedEmitted();
+        double[][] efficiency = scratch.cleared(Scratch.EFFICIENCY);
+        double[][] pendingHeat = scratch.cleared(Scratch.PENDING_HEAT);
 
         for (int x = 0; x < sizeX; x++) {
             for (int y = 0; y < sizeY; y++) {
@@ -696,11 +738,11 @@ public class NuclearSimulationEngine {
         final int MAX_FAST_STEPS = (sizeX + sizeY) * 2;
         final int MAX_THERMAL_STEPS = Math.max(12, (sizeX + sizeY) * 2);
 
-        double[][] thermalPool = new double[sizeX][sizeY];
-        double[][] tileFluxFast = new double[sizeX][sizeY];
-        double[][] tileFluxThermal = new double[sizeX][sizeY];
-        double[][] tileAbsThermal = new double[sizeX][sizeY];
-        double[][] tileScatteringThermal = new double[sizeX][sizeY];
+        double[][] thermalPool = scratch.cleared(Scratch.THERMAL_A);
+        double[][] tileFluxFast = scratch.cleared(Scratch.FLUX_FAST);
+        double[][] tileFluxThermal = scratch.cleared(Scratch.FLUX_THERMAL);
+        double[][] tileAbsThermal = scratch.cleared(Scratch.ABS_THERMAL);
+        double[][] tileScatteringThermal = scratch.cleared(Scratch.SCATTERING_THERMAL);
 
         // Part A: Fast Neutron Emission & Monte Carlo Propagation
         for (int i = 0; i < sizeX; i++) {
@@ -821,7 +863,9 @@ public class NuclearSimulationEngine {
             }
             if (totalActive < 0.001) break;
 
-            double[][] nextThermal = new double[sizeX][sizeY];
+            // The two thermal buffers take turns: the next generation goes in whichever is not active
+            double[][] nextThermal = scratch
+                .cleared(activeThermal == scratch.grids[Scratch.THERMAL_A] ? Scratch.THERMAL_B : Scratch.THERMAL_A);
 
             for (int x = 0; x < sizeX; x++) {
                 for (int y = 0; y < sizeY; y++) {
@@ -950,7 +994,7 @@ public class NuclearSimulationEngine {
         // changes temperature more slowly, so only the smallest capacity limits the step.
         double maxCoeff = BASE_HEAT_CONDUCTION;
         double minCapacity = HU_PER_DEGREE;
-        double[][] capacity = new double[sizeX][sizeY];
+        double[][] capacity = scratch.cleared(Scratch.CAPACITY);
         for (int x = 0; x < sizeX; x++) {
             for (int y = 0; y < sizeY; y++) {
                 if (grid[x][y] != null) {
@@ -964,7 +1008,7 @@ public class NuclearSimulationEngine {
             5,
             (int) Math
                 .ceil(8.0 * maxCoeff * dt * Math.max(1.0, gridConductionMultiplier) * HU_PER_DEGREE / minCapacity));
-        double[][] deltaHeat = new double[sizeX][sizeY];
+        double[][] deltaHeat = scratch.cleared(Scratch.DELTA_HEAT);
 
         for (int sub = 0; sub < SUBSTEPS; sub++) {
             // The cycle's nuclear heat is released evenly over its sub-steps, interleaved with conduction and
@@ -1269,8 +1313,9 @@ public class NuclearSimulationEngine {
      * fraction.
      */
     public static void processHeatVents(INuclearTile[][] grid, int sizeX, int sizeY, double ambient) {
-        List<VentPlan> plans = new ArrayList<>();
-        List<INuclearTile> powered = new ArrayList<>();
+        // Runs every tick: nothing is allocated unless a vent has work to do
+        List<VentPlan> plans = null;
+        List<INuclearTile> powered = null;
         double demand = 0.0;
         for (int x = 0; x < sizeX; x++) {
             for (int y = 0; y < sizeY; y++) {
@@ -1278,12 +1323,16 @@ public class NuclearSimulationEngine {
                 if (tile == null || !tile.isHeatVent()) continue;
                 VentPlan plan = planHeatVent(tile, ambient);
                 if (plan == null || tile.getAvailableEnergy() <= 0) continue;
+                if (plans == null) {
+                    plans = new ArrayList<>();
+                    powered = new ArrayList<>();
+                }
                 plans.add(plan);
                 powered.add(tile);
                 demand += plan.euNeeded;
             }
         }
-        if (plans.isEmpty()) return;
+        if (plans == null) return;
 
         double scale = energyScale(demand, sharedAvailableEnergy(powered), plans.size());
         for (VentPlan plan : plans) {
@@ -1398,18 +1447,23 @@ public class NuclearSimulationEngine {
      */
     public static void processHeatExchangers(INuclearTile[][] grid, int sizeX, int sizeY) {
         if (grid == null || sizeX <= 0 || sizeY <= 0) return;
-        double[] snapshot = takeTemperatureSnapshot(grid, sizeX, sizeY);
-        List<ExchangerPlan> plans = new ArrayList<>();
+        // Runs every tick: the snapshot is only taken when the core has an exchanger
+        double[] snapshot = null;
+        List<ExchangerPlan> plans = null;
         for (int x = 0; x < sizeX; x++) {
             for (int y = 0; y < sizeY; y++) {
                 INuclearTile tile = grid[x][y];
                 if (tile != null && tile.isHeatExchanger()) {
+                    if (snapshot == null) snapshot = takeTemperatureSnapshot(grid, sizeX, sizeY);
                     ExchangerPlan plan = planHeatExchanger(grid, x, y, sizeX, sizeY, snapshot);
-                    if (plan != null) plans.add(plan);
+                    if (plan != null) {
+                        if (plans == null) plans = new ArrayList<>();
+                        plans.add(plan);
+                    }
                 }
             }
         }
-        executeExchangerPlans(grid, sizeX, sizeY, snapshot, plans);
+        if (plans != null) executeExchangerPlans(grid, sizeX, sizeY, snapshot, plans);
     }
 
     /**
