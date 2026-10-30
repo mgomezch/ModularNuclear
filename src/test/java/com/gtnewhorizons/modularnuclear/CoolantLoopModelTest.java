@@ -21,10 +21,10 @@ public class CoolantLoopModelTest {
     @BeforeEach
     void setUp() {
         NuclearSimulationEngine.resetDefaultParameters();
-        grid = new StandaloneNuclearGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_OSMIUM);
+        grid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_OSMIUM);
         grid.setTicksPerCycle(20);
         grid.loadLayout(
-            "U4,U4,U4,M4,U4,U4,U4;U4,M4,HD,HD,HD,M4,U4;T4,HD,M4,HD,M4,HD,T4;U4,M2,HD,HD,HD,M2,U4;T4,HD,M4,HD,M4,HD,T4;U4,M4,HD,HD,HD,M4,U4;U4,U4,U4,M4,U4,U4,U4");
+            ".,.,.,.,.,.,.,.,.;.,.,U4,U4,M4,U4,U4,.,.;.,U4,M4,HD,HD,HD,M4,U4,.;.,T4,HD,M4,HD,M4,HD,T4,.;.,U4,M2,HD,HD,HD,M2,U4,.;.,T4,HD,M4,HD,M4,HD,T4,.;.,U4,M4,HD,HD,HD,M4,U4,.;.,.,U4,U4,M4,U4,U4,.,.;.,.,.,.,.,.,.,.,.");
         loop = grid.getCoolantLoop();
     }
 
@@ -35,12 +35,10 @@ public class CoolantLoopModelTest {
         }
     }
 
+    /** Makes the hatches of the center column into loop passages, the only cells a loop runs through. */
     private void attachCenterColumn() {
         grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
-        loop.clearAttachedPoints();
-        loop.attachPoint(3, 2);
-        loop.attachPoint(3, 3);
-        loop.attachPoint(3, 4);
+        for (int y = 3; y <= 5; y++) grid.setTileCode(4, y, "CP");
     }
 
     @Test
@@ -128,8 +126,8 @@ public class CoolantLoopModelTest {
         run(2);
         assertEquals(
             3,
-            loop.getAttachedPoints()
-                .size());
+            loop.getSelectedCircuit()
+                .getPassageCount());
         assertTrue(loop.getCurrentFlowRateLPerSec() > 0);
         // Heat extraction is per passage, at its share of the loop flow (checked through the shared engine state)
         assertTrue(loop.getLastHeatExtractedWatts() > 0);
@@ -270,11 +268,11 @@ public class CoolantLoopModelTest {
     @Test
     void testCircuitsTakeTheirPassagesAndFluids() {
         grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
-        grid.setTileCode(3, 2, "CP");
-        grid.setTileCode(3, 4, "CP2");
+        grid.setTileCode(4, 3, "CP");
+        grid.setTileCode(4, 5, "CP2");
         assertEquals(
             "CP2",
-            grid.getTile(3, 4)
+            grid.getTile(4, 5)
                 .getLayoutCode());
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
         loop.selectCircuit(1)
@@ -293,11 +291,11 @@ public class CoolantLoopModelTest {
                 .getPassageCount());
         assertEquals(
             "heavywater",
-            grid.getTile(3, 2)
+            grid.getTile(4, 3)
                 .getPassageLoopFluid());
         assertEquals(
             "ic2coolant",
-            grid.getTile(3, 4)
+            grid.getTile(4, 5)
                 .getPassageLoopFluid());
         assertTrue(
             grid.toLayoutString()
@@ -308,10 +306,10 @@ public class CoolantLoopModelTest {
     @Test
     void testPassageModeratesAsItsLoopFluid() {
         grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
-        grid.setTileCode(3, 3, "CP");
+        grid.setTileCode(4, 4, "CP");
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
         run(1);
-        double heavy = grid.getTile(3, 3)
+        double heavy = grid.getTile(4, 4)
             .getModerationProbability();
         assertEquals(
             com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage.moderation("heavywater"),
@@ -322,7 +320,7 @@ public class CoolantLoopModelTest {
         loop.setTemperatureBand(5000.0, 6000.0);
         run(1);
         assertTrue(
-            grid.getTile(3, 3)
+            grid.getTile(4, 4)
                 .getModerationProbability() < heavy,
             "lead moderates less than heavy water");
     }
@@ -339,7 +337,7 @@ public class CoolantLoopModelTest {
             loop.getSelectedCircuit()
                 .isFilled(),
             "the controller keeps a cold core's loop empty");
-        for (int y = 2; y <= 4; y++) grid.getTile(3, y)
+        for (int y = 3; y <= 5; y++) grid.getTile(4, y)
             .setTemperature(400.0);
         run(5);
         assertTrue(
@@ -427,8 +425,8 @@ public class CoolantLoopModelTest {
         assertEquals(CoolantLoopModel.CoolingMode.MODULAR, electrumGrid.getCoolingMode());
 
         StandaloneNuclearGrid platinumGrid = new StandaloneNuclearGrid(
-            7,
-            7,
+            9,
+            9,
             NuclearSimulationEngine.PIPE_TIER_PLATINUM);
         assertFalse(platinumGrid.isTier2ConvectiveAllowed());
         assertFalse(
@@ -458,9 +456,9 @@ public class CoolantLoopModelTest {
                 .size());
 
         // Place a PASSAGE_CORE cell
-        grid.setTile(3, 3, SimTile.TileType.PASSAGE_CORE);
+        grid.setTile(4, 4, SimTile.TileType.PASSAGE_CORE);
         assertTrue(
-            grid.getTile(3, 3)
+            grid.getTile(4, 4)
                 .isCoolantPassage());
 
         grid.step();
@@ -469,13 +467,13 @@ public class CoolantLoopModelTest {
             "PASSAGE_CORE tile should automatically be cooled by convective loop");
     }
 
-    /** A 7x7 core cooled only by loop passages (the hatch column of the other tests made into passages). */
+    /** A 9x9 core cooled only by loop passages (the hatch column of the other tests made into passages). */
     private CoolantLoopModel passageCore(double pheBandMin) {
         NuclearSimulationEngine.resetDefaultParameters();
-        grid = new StandaloneNuclearGrid(7, 7, NuclearSimulationEngine.PIPE_TIER_OSMIUM);
+        grid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_OSMIUM);
         grid.setTicksPerCycle(20);
         grid.loadLayout(
-            "U4,U4,U4,M4,U4,U4,U4;U4,M4,CP,CP,CP,M4,U4;T4,CP,M4,CP,M4,CP,T4;U4,M2,CP,CP,CP,M2,U4;T4,CP,M4,CP,M4,CP,T4;U4,M4,CP,CP,CP,M4,U4;U4,U4,U4,M4,U4,U4,U4");
+            ".,.,.,.,.,.,.,.,.;.,.,U4,U4,M4,U4,U4,.,.;.,U4,M4,CP,CP,CP,M4,U4,.;.,T4,CP,M4,CP,M4,CP,T4,.;.,U4,M2,CP,CP,CP,M2,U4,.;.,T4,CP,M4,CP,M4,CP,T4,.;.,U4,M4,CP,CP,CP,M4,U4,.;.,.,U4,U4,M4,U4,U4,.,.;.,.,.,.,.,.,.,.,.");
         grid.setCoolingMode(CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP);
         CoolantLoopModel l = grid.getCoolantLoop();
         l.setMaterial(CoolantLoopModel.LoopMaterial.OSMIUM);

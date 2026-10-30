@@ -1128,6 +1128,8 @@ In addition to the in-game mechanics, the simulator provides:
 - calibration presets (peak configurations found by automated search);
 - a fuel burnup multiplier (`fuelBurnupMultiplier`, default 1.0) for exploring durability balance, which has no in-game counterpart.
 
+The simulator enforces the game's structure rules (shared code, `ReactorStructureRules`): the core is 5×5, 9×9 or 13×13 with its octagonal corners cut, its item pipe casings meet the chamber's minimum tier (§2.3), core hatches hold only fluids the tier accepts (`tiers.yaml` and `required_tier` in `fuels.yaml` and `components.yaml`, read from the same configuration as the game), high-pressure passages appear only at tiers that allow loops, and loops run only through passages. A core that breaks a rule would not form in the game, so it does not run: the web application shows the reasons, and the CLI's JSON lists them in `structureErrors`.
+
 Results from the simulator are subject to the same stochastic processes as the game (random ray directions, stochastic rounding, probabilistic interactions); individual runs differ cycle to cycle, and conclusions should be drawn from averages.
 
 ---

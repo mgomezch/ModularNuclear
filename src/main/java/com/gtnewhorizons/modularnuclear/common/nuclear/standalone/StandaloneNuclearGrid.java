@@ -4,11 +4,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules;
 
 /**
  * Manages an N x M grid of nuclear tiles, casing constraints, safety checks,
@@ -611,10 +614,56 @@ public class StandaloneNuclearGrid {
     }
 
     /**
+     * The game's structure rules this core breaks ({@link ReactorStructureRules}): chamber size and pipe casing tier,
+     * high-pressure passages below the tier that allows loops, core hatches holding fluids the tier does not accept,
+     * and loops attached to cells that are not passages. A core that breaks any does not form in the game, so it does
+     * not run here either.
+     */
+    public List<ReactorStructureRules.Violation> getStructureViolations() {
+        List<ReactorStructureRules.Violation> out = new ArrayList<>();
+        if (width != height) {
+            out.add(ReactorStructureRules.chamber(-1, pipeTier));
+            return out;
+        }
+        ReactorStructureRules.Violation chamber = ReactorStructureRules.chamber(width, pipeTier);
+        if (chamber != null) out.add(chamber);
+        boolean hasPassages = false;
+        Set<String> fluids = new LinkedHashSet<>();
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                SimTile tile = grid[x][y];
+                if (tile == null) continue;
+                if (tile.isCoolantPassage()) hasPassages = true;
+                if (tile.isCoolantHatch() || tile.isLiquidFuelHatch()) {
+                    ReactorStructureRules.Violation f = ReactorStructureRules
+                        .hatchFluid(tile.getInputFluidName(), pipeTier);
+                    if (f != null && fluids.add(tile.getInputFluidName())) out.add(f);
+                }
+            }
+        }
+        if (hasPassages) {
+            ReactorStructureRules.Violation p = ReactorStructureRules.passages(pipeTier);
+            if (p != null) out.add(p);
+        }
+        if (coolingMode != CoolantLoopModel.CoolingMode.CONDUCTIVE && coolantLoop != null) {
+            for (CoolantLoopModel.Circuit c : coolantLoop.getCircuits()) {
+                for (CoolantLoopModel.GridCoord g : c.getAttachedPoints()) {
+                    SimTile tile = g.x >= 0 && g.x < width && g.y >= 0 && g.y < height ? grid[g.x][g.y] : null;
+                    if (tile == null || !tile.isCoolantPassage())
+                        out.add(ReactorStructureRules.loopAttachment(g.x, g.y));
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
      * Executes one simulation tick over the grid.
      */
     public boolean step() {
         if (exploded || powerFailed) return false;
+        // The game does not form a core that breaks a structure rule, so it does not run
+        if (!getStructureViolations().isEmpty()) return false;
         if (stopOnIncidents && haltedByIncident) return false;
 
         double initialDamage = this.reactorDamage;

@@ -113,6 +113,18 @@ function renderUI() {
     alertBox.className = "alert-danger flash";
     alertBox.style.display = "block";
     alertBox.innerHTML = `<strong>💥 MELTDOWN / CATASTROPHIC FAILURE:</strong> ${currentState.explosionReason} <span style="display:block; margin-top:4px; font-size:0.8rem; font-weight:normal;">Simulation automatically halted due to core destruction. Click ↺ Reset to restart.</span>`;
+  } else if (currentState.structureErrors && currentState.structureErrors.length > 0) {
+    if (isWasmMode && wasmSim && wasmSim.running) {
+      wasmSim.setRunning(false);
+    }
+    statusBadge.innerText = "STRUCTURE INVALID - NOT FORMED";
+    statusBadge.style.color = "var(--danger)";
+    playBtn.disabled = true;
+    playBtn.innerText = "▶ Start Simulation";
+    alertBox.className = "alert-danger";
+    alertBox.style.display = "block";
+    const items = currentState.structureErrors.map(e => `<li>${e}</li>`).join("");
+    alertBox.innerHTML = `<strong>🚧 THE GAME WOULD NOT FORM THIS REACTOR:</strong><ul style="margin:4px 0 0 18px; font-weight:normal;">${items}</ul>`;
   } else if (currentState.haltedByIncident) {
     if (isWasmMode && wasmSim && wasmSim.running) {
       wasmSim.setRunning(false);

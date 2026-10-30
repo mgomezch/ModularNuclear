@@ -102,6 +102,10 @@ public final class JsonReport {
                 .fixedArray("maxTempHistory", run.maxTemp, run.ticksReached, 1)
                 .fixedArray("loopTempHistory", run.loopTemp, run.ticksReached, 1);
         }
+        j.array("structureErrors");
+        for (com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules.Violation v : grid
+            .getStructureViolations()) j.value(v.message);
+        j.endArray();
         j.field("exploded", grid.isExploded())
             .field("explosionReason", grid.getExplosionReason())
             .field("powerFailed", grid.isPowerFailed())

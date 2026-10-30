@@ -53,6 +53,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
+import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemCardModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemKitModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration;
@@ -509,9 +510,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public static int getMinRequiredPipeTierForReactorTier(int reactorTier) {
-        if (reactorTier >= 3) return NuclearSimulationEngine.PIPE_TIER_OSMIUM;
-        if (reactorTier == 2) return NuclearSimulationEngine.PIPE_TIER_PLATINUM;
-        return NuclearSimulationEngine.PIPE_TIER_ELECTRUM;
+        return ReactorStructureRules.minPipeTier(reactorTier);
     }
 
     public int getMinRequiredPipeTier() {
@@ -519,17 +518,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public void validatePipeTierForStructureTier(List<StructureError> errors) {
-        int minPipeTier = getMinRequiredPipeTier();
-        if (mPipeTier < minPipeTier) {
-            int reactorTier = getReactorTier();
-            if (reactorTier == 2) {
-                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.invalid_pipe_tier_t2"));
-            } else if (reactorTier >= 3) {
-                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.invalid_pipe_tier_t3"));
-            } else {
-                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.invalid_pipe_tier"));
-            }
-        }
+        ReactorStructureRules.Violation v = ReactorStructureRules.chamber(gridSize, mPipeTier);
+        if (v != null) errors.add(StructureErrors.of(v.langKey));
     }
 
     public static ItemStack prepareConstructTrigger(ItemStack stackSize, int reactorTier) {
@@ -1362,9 +1352,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public void validateHighPressureHatchPairing(IGregTechTileEntity aBaseMetaTileEntity, List<StructureError> errors) {
         if (!mTopHighPressureHatches.isEmpty() || !mBottomHighPressureHatches.isEmpty()) {
-            if (!NuclearSimulationEngine.allowsCoolantLoops(mPipeTier)) {
-                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.hp_hatch_tier"));
-            }
+            ReactorStructureRules.Violation tier = ReactorStructureRules.passages(mPipeTier);
+            if (tier != null) errors.add(StructureErrors.of(tier.langKey));
             if (mTopHighPressureHatches.size() != mBottomHighPressureHatches.size()) {
                 errors.add(StructureErrors.of("GT5U.gui.text.structure_error.hp_hatch_unpaired"));
             } else if (gridSize > 0) {
