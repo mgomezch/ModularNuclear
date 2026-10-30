@@ -20,8 +20,6 @@ public class NuclearSimulationWebServer {
 
     public static void main(String[] args) {
         com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.loadDefaults();
-        NuclearSimulationEngine
-            .setConfigProvider(com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.ENGINE_PROVIDER);
         if (args.length >= 2 && "--export-html".equals(args[0])) {
             try {
                 java.io.File file = new java.io.File(args[1]);

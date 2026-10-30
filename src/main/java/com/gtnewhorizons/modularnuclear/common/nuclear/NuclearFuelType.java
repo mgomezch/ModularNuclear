@@ -159,13 +159,11 @@ public enum NuclearFuelType {
      */
     public static NuclearFuelType fromName(String name) {
         if (name == null || name.isEmpty()) return null;
-        if (NuclearSimulationEngine.configProvider != null) {
-            com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = NuclearSimulationEngine.configProvider
-                .findFuel(name);
-            if (fd != null) {
-                NuclearFuelType nft = fromFuelData(fd);
-                if (nft != null) return nft;
-            }
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = NuclearSimulationEngine.configProvider
+            .findFuel(name);
+        if (fd != null) {
+            NuclearFuelType nft = fromFuelData(fd);
+            if (nft != null) return nft;
         }
         for (NuclearFuelType type : values()) {
             if (type.name()

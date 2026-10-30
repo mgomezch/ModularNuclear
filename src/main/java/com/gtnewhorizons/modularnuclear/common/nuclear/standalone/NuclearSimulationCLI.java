@@ -25,7 +25,6 @@ public class NuclearSimulationCLI {
 
     public static void main(String[] args) {
         ReactorConfigData.loadDefaults();
-        NuclearSimulationEngine.setConfigProvider(ReactorConfigData.ENGINE_PROVIDER);
         RunConfig cfg = RunConfig.commandLine();
         SimOptions.table(false)
             .parseArgs(cfg, args);

@@ -418,6 +418,16 @@ public class NuclearSimulationEngineTest {
         assertEquals(
             NuclearSimulationEngine.PIPE_TIER_PLATINUM,
             MTEHatchNuclearHatch.getRequiredFluidTier("distilledwater"));
+        // Liquid fuels come from fuels.yaml, as in the game: plutonium needs Osmium
+        assertEquals(
+            NuclearSimulationEngine.PIPE_TIER_OSMIUM,
+            NuclearSimulationEngine.getRequiredFluidTier("plutoniumbasedliquidfuel"));
+        assertFalse(
+            NuclearSimulationEngine
+                .isFluidAllowed("plutoniumbasedliquidfuel", NuclearSimulationEngine.PIPE_TIER_PLATINUM));
+        assertTrue(
+            NuclearSimulationEngine
+                .isFluidAllowed("plutoniumbasedliquidfuel", NuclearSimulationEngine.PIPE_TIER_OSMIUM));
         assertFalse(NuclearSimulationEngine.isFluidAllowed("distilledwater", 0));
         assertTrue(NuclearSimulationEngine.isFluidAllowed("distilledwater", 1));
         // Heavy Water is Quantium (3)

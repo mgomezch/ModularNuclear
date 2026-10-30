@@ -54,11 +54,17 @@ public class NuclearSimulationEngine {
     public static final int DEFAULT_TICKS_PER_CYCLE = 5;
 
     public static int ticksPerCycle = DEFAULT_TICKS_PER_CYCLE;
-    public static com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider configProvider;
+    /**
+     * Where tiers, liquid fuels and coolant fluids come from: the shared configuration the game loads, so the game,
+     * the simulator and unit tests all see the same values. There is no hard-coded fallback.
+     */
+    public static com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider configProvider = com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.ENGINE_PROVIDER;
 
+    /** Replaces the configuration source; {@code null} restores the shared configuration. */
     public static void setConfigProvider(
         com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider provider) {
-        configProvider = provider;
+        configProvider = provider != null ? provider
+            : com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.ENGINE_PROVIDER;
     }
 
     public static com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider getConfigProvider() {
@@ -330,25 +336,10 @@ public class NuclearSimulationEngine {
      */
     public static double getCoolantSinkTemperature(String fluidName, double ambientTemp) {
         if (fluidName == null) return ambientTemp;
-        if (configProvider != null) {
-            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = configProvider
-                .findCoolantFluid(fluidName);
-            if (cfd != null) {
-                if (cfd.expansionRatio > 1) {
-                    return Math.max(ambientTemp, cfd.boilingTemperature);
-                }
-                return ambientTemp;
-            }
-        }
-        String name = fluidName.toLowerCase();
-        if (name.contains("coolant")) {
-            return ambientTemp;
-        }
-        if (name.contains("heavywater")) {
-            return Math.max(ambientTemp, 101.4);
-        }
-        if (name.contains("distilledwater")) {
-            return Math.max(ambientTemp, 100.0);
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = configProvider
+            .findCoolantFluid(fluidName);
+        if (cfd != null && cfd.expansionRatio > 1) {
+            return Math.max(ambientTemp, cfd.boilingTemperature);
         }
         return ambientTemp;
     }
@@ -443,10 +434,8 @@ public class NuclearSimulationEngine {
                 return cfg;
             }
         }
-        if (configProvider != null) {
-            com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(tier);
-            if (td != null) return td.maxOperatingTemp;
-        }
+        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(tier);
+        if (td != null) return td.maxOperatingTemp;
         if (tier >= 0
             && tier < com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier.length) {
             return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[tier];
@@ -455,11 +444,8 @@ public class NuclearSimulationEngine {
     }
 
     public static boolean allowsCoolantLoops(int tier) {
-        if (configProvider != null) {
-            com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(tier);
-            if (td != null) return td.allowsCoolantLoops;
-        }
-        return tier >= PIPE_TIER_OSMIUM;
+        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(tier);
+        return td != null && td.allowsCoolantLoops;
     }
 
     /**
@@ -471,55 +457,27 @@ public class NuclearSimulationEngine {
             return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio
                 * getMaxOperatingTemperature(tier);
         }
-        if (configProvider != null) {
-            com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(tier);
-            if (td != null) return td.repairTempThreshold;
-        }
+        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(tier);
+        if (td != null) return td.repairTempThreshold;
         return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio
             * getMaxOperatingTemperature(tier);
     }
 
     public static double getCoolantBoilingThreshold(String fluidName) {
         if (fluidName == null) return Double.POSITIVE_INFINITY;
-        if (configProvider != null) {
-            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = configProvider
-                .findCoolantFluid(fluidName);
-            if (cfd != null) {
-                return cfd.explosionTemperature;
-            }
-        }
-        String name = fluidName.toLowerCase();
-        if (name.contains("coolant")) return Double.POSITIVE_INFINITY;
-        if (name.contains("heavywater")) return 101.4;
-        return 100.0;
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = configProvider
+            .findCoolantFluid(fluidName);
+        return cfd != null ? cfd.explosionTemperature : Double.POSITIVE_INFINITY;
     }
 
+    /** The casing tier a core hatch needs to hold this fluid, or -1 if no core hatch accepts it. */
     public static int getRequiredFluidTier(String fluidName) {
         if (fluidName == null) return -1;
-        if (configProvider != null) {
-            com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = configProvider
-                .findCoolantFluid(fluidName);
-            if (cfd != null) {
-                return cfd.requiredTier;
-            }
-            com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = configProvider.findFuel(fluidName);
-            if (fd != null && fd.isLiquid) {
-                return fd.requiredTier;
-            }
-            return -1;
-        }
-        String name = fluidName.toLowerCase();
-        if (name.equals("water")) return -1;
-        if (name.contains("naquadah")) return -1;
-        if (name.contains("coolant") && !name.contains("hot")) return PIPE_TIER_ELECTRUM;
-        if (name.contains("distilledwater")) return PIPE_TIER_PLATINUM;
-        if (name.contains("heavywater")) return PIPE_TIER_QUANTIUM;
-        if (name.contains("thoriumbasedliquidfuel") || (name.contains("thorium") && name.contains("liquidfuel")))
-            return PIPE_TIER_ELECTRUM;
-        if (name.contains("uraniumbasedliquidfuel") || (name.contains("uranium") && name.contains("liquidfuel")))
-            return PIPE_TIER_PLATINUM;
-        if (name.contains("plutoniumbasedliquidfuel") || (name.contains("plutonium") && name.contains("liquidfuel")))
-            return PIPE_TIER_FLUXED_ELECTRUM;
+        com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.CoolantFluidData cfd = configProvider
+            .findCoolantFluid(fluidName);
+        if (cfd != null) return cfd.requiredTier;
+        com.gtnewhorizons.modularnuclear.common.config.data.FuelData fd = configProvider.findFuel(fluidName);
+        if (fd != null && fd.isLiquid) return fd.requiredTier;
         return -1;
     }
 
@@ -527,12 +485,10 @@ public class NuclearSimulationEngine {
         if (fluidName == null) return false;
         int reqTier = getRequiredFluidTier(fluidName);
         if (reqTier < 0) return false;
-        if (configProvider != null) {
-            com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(pipeTier);
-            if (td != null && !td.allowedCoolants.isEmpty()) {
-                if (td.allowedCoolants.contains("*") || configProvider.matchesFluid(fluidName, td.allowedCoolants)) {
-                    return true;
-                }
+        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(pipeTier);
+        if (td != null && !td.allowedCoolants.isEmpty()) {
+            if (td.allowedCoolants.contains("*") || configProvider.matchesFluid(fluidName, td.allowedCoolants)) {
+                return true;
             }
         }
         return pipeTier < 0 || pipeTier >= reqTier;

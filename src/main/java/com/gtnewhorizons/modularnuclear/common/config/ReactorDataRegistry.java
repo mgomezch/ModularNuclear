@@ -36,7 +36,6 @@ import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
-import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.enums.ItemList;
@@ -223,7 +222,6 @@ public final class ReactorDataRegistry {
     }
 
     static {
-        NuclearSimulationEngine.setConfigProvider(ReactorConfigData.ENGINE_PROVIDER);
         loadDefaults();
     }
 
