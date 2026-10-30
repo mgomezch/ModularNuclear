@@ -1178,7 +1178,7 @@ Configuration files are read from `config/modularnuclear/`. Each file may overri
 | `coolant_passage_neutrons_per_radiolysis` | 4 | Neutrons absorbed per radiolysis event |
 | `coolant_passage_minor_loss_k` | 2.5 | Minor-loss coefficient of a passage in its loop |
 
-**Main mod configuration** (Forge config) additionally sets the cycle length (`ticksPerCycle`, default 5), the per-tier maximum operating temperatures, the repair threshold ratio (0.10), the fallout contamination reduction per pollution removed ($62.5/30000$), item and fluid allow/block lists, and visual effects (Cherenkov glow, fallout overlay).
+**Main mod configuration** (Forge config) additionally sets the cycle length (`ticksPerCycle`, default 5), the fallout contamination reduction per pollution removed ($62.5/30000$), item and fluid allow/block lists, and visual effects (Cherenkov glow, fallout overlay). Tier temperatures (maximum operating temperature, repair threshold) are set only in `tiers.yaml`; the Forge config's former `reactor_tiers` entries are reported in the log and dropped.
 
 **Engine constants (not configurable):** fast-absorption and moderation heat 8 HU per neutron; non-fuel thermal absorption heat 4 HU; fuel thermal absorption heat $1.25 \times$ fission heat; conduction floor 0.01; 5 conduction sub-steps; vent/exchanger cost 0.25 EU/HU (configurable per component); coolant cell 25 HU per heat point; wall-wear base probability 1 %/min.
 

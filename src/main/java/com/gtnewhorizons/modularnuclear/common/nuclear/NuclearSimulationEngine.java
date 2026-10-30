@@ -376,22 +376,9 @@ public class NuclearSimulationEngine {
         };
     }
 
+    /** The tier's maximum operating temperature (°C), from tiers.yaml. */
     public static double getMaxOperatingTemperature(int tier) {
-        if (tier >= 0
-            && tier < com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier.length) {
-            double cfg = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[tier];
-            if (cfg
-                != com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.DEFAULT_MAX_OPERATING_TEMP_TIER[tier]) {
-                return cfg;
-            }
-        }
-        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(tier);
-        if (td != null) return td.maxOperatingTemp;
-        if (tier >= 0
-            && tier < com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier.length) {
-            return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[tier];
-        }
-        return 800.0;
+        return configProvider.getTier(tier).maxOperatingTemp;
     }
 
     public static boolean allowsCoolantLoops(int tier) {
@@ -399,19 +386,9 @@ public class NuclearSimulationEngine {
         return td != null && td.allowsCoolantLoops;
     }
 
-    /**
-     * Calculates the maximum average core temperature under which structural damage repair is permitted.
-     * Uniformly calculated as configured percentage of the casing tier's maximum operating temperature.
-     */
+    /** The average core temperature (°C) at or below which structural damage can be repaired, from tiers.yaml. */
     public static double getRepairTemperatureThreshold(int tier) {
-        if (com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio != 0.10) {
-            return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio
-                * getMaxOperatingTemperature(tier);
-        }
-        com.gtnewhorizons.modularnuclear.common.config.data.TierData td = configProvider.getTier(tier);
-        if (td != null) return td.repairTempThreshold;
-        return com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio
-            * getMaxOperatingTemperature(tier);
+        return configProvider.getTier(tier).repairTempThreshold;
     }
 
     public static double getCoolantBoilingThreshold(String fluidName) {

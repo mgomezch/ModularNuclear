@@ -84,22 +84,6 @@ public final class ModularNuclearConfig {
 
     public static String[] allowedNeutronSources = new String[] { "GoodGenerator:neutronSource", "item.neutronSource" };
 
-    // ==========================================
-    // Reactor Tiers & Material Limits
-    // ==========================================
-    public static final double[] DEFAULT_MAX_OPERATING_TEMP_TIER = new double[] { 1200.0, 1400.0, 1800.0, 2200.0,
-        2600.0, 3200.0 };
-    public static double[] maxOperatingTempTier = new double[] { 1200.0, // Tier 0: Electrum (EV)
-        1400.0, // Tier 1: Platinum (IV)
-        1800.0, // Tier 2: Osmium (LuV)
-        2200.0, // Tier 3: Quantium (ZPM)
-        2600.0, // Tier 4: Fluxed Electrum (UV)
-        3200.0 // Tier 5: Black Plutonium (UHV)
-    };
-    public static double repairTempThresholdRatio = 0.10;
-    public static double coolantBoilingThresholdHeavyWater = 101.4;
-    public static double coolantBoilingThresholdDistilledWater = 100.0;
-
     public static void init(File configFile) {
         Configuration config = new Configuration(configFile);
         try {
@@ -246,45 +230,21 @@ public final class ModularNuclearConfig {
                 allowedNeutronSources,
                 "Items recognized as external beam neutron sources.");
 
-            // Reactor Tiers & Material Limits
+            // Tier temperatures and coolant boiling points moved to tiers.yaml and components.yaml: the YAML
+            // configuration is the only source, so old entries here are reported and dropped rather than read
             final String CAT_TIERS = "reactor_tiers";
-            config.setCategoryComment(
-                CAT_TIERS,
-                "Maximum operating temperatures and safety thresholds per reactor pipe tier.");
-
-            for (int t = 0; t < maxOperatingTempTier.length; t++) {
-                maxOperatingTempTier[t] = config.getFloat(
-                    "maxOperatingTempTier" + t,
-                    CAT_TIERS,
-                    (float) maxOperatingTempTier[t],
-                    100.0f,
-                    10000.0f,
-                    "Maximum operating temperature (K) for pipe tier " + t);
+            if (config.hasCategory(CAT_TIERS)) {
+                for (String key : new java.util.ArrayList<>(
+                    config.getCategory(CAT_TIERS)
+                        .keySet())) {
+                    ModularNuclear.LOG.warn(
+                        "Ignoring {}.{} in the Forge config: set max_operating_temp and repair_temp_threshold in "
+                            + "config/modularnuclear/tiers.yaml (coolant boiling points in components.yaml)",
+                        CAT_TIERS,
+                        key);
+                }
+                config.removeCategory(config.getCategory(CAT_TIERS));
             }
-
-            repairTempThresholdRatio = config.getFloat(
-                "repairTempThresholdRatio",
-                CAT_TIERS,
-                (float) repairTempThresholdRatio,
-                0.01f,
-                0.50f,
-                "Ratio of max operating temperature below which structural damage repairs can proceed (default 0.10 = 10%).");
-
-            coolantBoilingThresholdHeavyWater = config.getFloat(
-                "coolantBoilingThresholdHeavyWater",
-                CAT_TIERS,
-                (float) coolantBoilingThresholdHeavyWater,
-                50.0f,
-                500.0f,
-                "Atmospheric boiling threshold (C) for heavy water coolant.");
-
-            coolantBoilingThresholdDistilledWater = config.getFloat(
-                "coolantBoilingThresholdDistilledWater",
-                CAT_TIERS,
-                (float) coolantBoilingThresholdDistilledWater,
-                50.0f,
-                500.0f,
-                "Atmospheric boiling threshold (C) for distilled water coolant.");
 
             ticksPerCycle = config.getInt(
                 "ticksPerCycle",

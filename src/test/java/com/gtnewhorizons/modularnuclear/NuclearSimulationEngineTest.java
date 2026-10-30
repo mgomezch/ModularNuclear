@@ -6484,13 +6484,14 @@ public class NuclearSimulationEngineTest {
         assertEquals(101.4, NuclearSimulationEngine.getCoolantBoilingThreshold("heavywater"), 1e-4);
         assertEquals(100.0, NuclearSimulationEngine.getCoolantBoilingThreshold("distilledwater"), 1e-4);
 
-        // Modify via config
-        double origT0 = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[0];
-        double origRatio = com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio;
+        // tiers.yaml is the only source of tier temperatures
         try {
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[0] = 1500.0;
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio = 0.20;
-
+            java.util.Map<String, Object> electrum = new java.util.HashMap<>();
+            electrum.put("tier", 0);
+            electrum.put("max_operating_temp", 1500.0);
+            electrum.put("repair_temp_threshold", 300.0);
+            com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData
+                .applyTierOverrides(java.util.List.of(electrum));
             assertEquals(
                 1500.0,
                 NuclearSimulationEngine.getMaxOperatingTemperature(NuclearSimulationEngine.PIPE_TIER_ELECTRUM),
@@ -6500,8 +6501,7 @@ public class NuclearSimulationEngineTest {
                 NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_ELECTRUM),
                 1e-4);
         } finally {
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.maxOperatingTempTier[0] = origT0;
-            com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig.repairTempThresholdRatio = origRatio;
+            com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData.loadDefaults();
         }
     }
 
