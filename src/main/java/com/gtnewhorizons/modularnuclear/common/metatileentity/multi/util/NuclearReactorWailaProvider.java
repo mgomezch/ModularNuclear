@@ -98,7 +98,8 @@ public class NuclearReactorWailaProvider {
         long euOutput = tag.getLong("euOutput");
         int coolantRate = tag.getInteger("coolantRate");
         String coolantName = tag.getString("coolantName");
-        int tpc = tag.hasKey("ticksPerCycle") ? tag.getInteger("ticksPerCycle") : NuclearSimulationEngine.ticksPerCycle;
+        int tpc = tag.hasKey("ticksPerCycle") ? tag.getInteger("ticksPerCycle")
+            : NuclearSimulationEngine.params().ticksPerCycle;
         if (tpc <= 0) tpc = NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE;
         double cyclesPerSec = 20.0 / (double) tpc;
 

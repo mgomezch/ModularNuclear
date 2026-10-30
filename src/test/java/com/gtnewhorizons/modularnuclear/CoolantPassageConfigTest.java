@@ -32,8 +32,8 @@ public class CoolantPassageConfigTest {
         assertEquals(0.05, CoolantPassage.defaultModeration(), 1e-12);
         assertEquals(4, CoolantPassage.neutronsPerRadiolysis());
         assertEquals(2.5, CoolantPassage.minorLossK(), 1e-12);
-        assertEquals(8.12, NuclearSimulationEngine.baseHatchConductance, 1e-12);
-        assertEquals(2.65, NuclearSimulationEngine.hatchConductanceTierRatio, 1e-12);
+        assertEquals(8.12, NuclearSimulationEngine.params().baseHatchConductance, 1e-12);
+        assertEquals(2.65, NuclearSimulationEngine.params().hatchConductanceTierRatio, 1e-12);
     }
 
     @Test

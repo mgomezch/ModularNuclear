@@ -26,7 +26,7 @@ public class NuclearSimulationWebServer {
                 file.getParentFile()
                     .mkdirs();
                 NuclearSimulationEngine.setGlobalThermalFissionMultiplier(0.351);
-                NuclearSimulationEngine.fissionHeatPerNeutron = 80.1;
+                NuclearSimulationEngine.params().fissionHeatPerNeutron = 80.1;
                 grid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
                 grid.loadPreset("BEST_PLATINUM_9X9");
                 String presetsJson = loadCeilingPresetsJson(args);

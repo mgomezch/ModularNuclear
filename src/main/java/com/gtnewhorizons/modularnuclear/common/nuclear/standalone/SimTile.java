@@ -334,7 +334,7 @@ public class SimTile implements INuclearTile {
     public StandaloneNuclearGrid grid;
 
     public int getTicksPerCycle() {
-        return grid != null ? grid.getTicksPerCycle() : NuclearSimulationEngine.ticksPerCycle;
+        return grid != null ? grid.getTicksPerCycle() : NuclearSimulationEngine.params().ticksPerCycle;
     }
 
     public long getDirectEUProduced() {
@@ -505,19 +505,19 @@ public class SimTile implements INuclearTile {
             switch (this.type) {
                 case HATCH_LIQUID_FUEL_URANIUM -> {
                     this.inputFluidName = "uraniumbasedliquidfuel";
-                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "depleteduraniumbasedliquidfuel";
                 }
                 case HATCH_LIQUID_FUEL_THORIUM -> {
                     this.inputFluidName = "thoriumbasedliquidfuel";
-                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "depletedthoriumbasedliquidfuel";
                 }
                 case HATCH_LIQUID_FUEL_PLUTONIUM -> {
                     this.inputFluidName = "plutoniumbasedliquidfuel";
-                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "depletedplutoniumbasedliquidfuel";
                 }
@@ -525,25 +525,25 @@ public class SimTile implements INuclearTile {
                     String element = (this.type == TileType.HATCH_LIQUID_FUEL_URANIUM_EXCITED) ? "uranium"
                         : (this.type == TileType.HATCH_LIQUID_FUEL_THORIUM_EXCITED) ? "thorium" : "plutonium";
                     this.inputFluidName = element + "basedliquidfuelexcited";
-                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "depleted" + element + "basedliquidfuel";
                 }
                 case HATCH_DISTILLED_WATER -> {
                     this.inputFluidName = "distilledwater";
-                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "steam";
                 }
                 case HATCH_HEAVY_WATER -> {
                     this.inputFluidName = "heavywater";
-                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "fluid.heavywatersteam";
                 }
                 case HATCH_IC2_COOLANT -> {
                     this.inputFluidName = "ic2coolant";
-                    this.inputFluidCapacity = NuclearSimulationEngine.hatchCoolantCapacity;
+                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "ic2hotcoolant";
                 }
@@ -709,7 +709,7 @@ public class SimTile implements INuclearTile {
         double dt = (double) getTicksPerCycle() / 20.0;
         if (isNeutronSource()) {
             double packets = neutronSourceBeamEnergy * neutronSourceBeamRate
-                * NuclearSimulationEngine.beamEnergyToFastNeutronMultiplier
+                * NuclearSimulationEngine.params().beamEnergyToFastNeutronMultiplier
                 * dt;
             beamlinePacketAccumulator += packets;
             int packetSize = (int) beamlinePacketAccumulator;
@@ -1079,7 +1079,7 @@ public class SimTile implements INuclearTile {
     public boolean refillCoolant(int maxFeed) {
         if (inputFluidAmount >= inputFluidCapacity) return true;
         if (com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules
-            .checkCoolantFeed(inputFluidName, wasDry, temperature, NuclearSimulationEngine.ambientTemp)
+            .checkCoolantFeed(inputFluidName, wasDry, temperature, NuclearSimulationEngine.params().ambientTemp)
             != com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules.CoolantFeed.SAFE) {
             return false; // Thermal shock
         }
@@ -1447,7 +1447,7 @@ public class SimTile implements INuclearTile {
 
     public void processNeighborComponents(INuclearTile[][] grid, int x, int y, int sizeX, int sizeY) {
         NuclearSimulationEngine
-            .processActiveVentsAndExchangers(grid, sizeX, sizeY, NuclearSimulationEngine.ambientTemp);
+            .processActiveVentsAndExchangers(grid, sizeX, sizeY, NuclearSimulationEngine.params().ambientTemp);
     }
 
     public double storedWignerEnergy = 0.0;

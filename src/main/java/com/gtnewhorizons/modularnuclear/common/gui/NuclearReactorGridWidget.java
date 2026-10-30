@@ -943,7 +943,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         }
 
         // 4. Neutron Telemetry
-        int tpc = sync.ticksPerCycle > 0 ? sync.ticksPerCycle : NuclearSimulationEngine.ticksPerCycle;
+        int tpc = sync.ticksPerCycle > 0 ? sync.ticksPerCycle : NuclearSimulationEngine.params().ticksPerCycle;
         double cyclesPerSec = 20.0 / (double) tpc;
         int totalFlux = cell.fastFlux + cell.thermalFlux;
         if (totalFlux > 0) {

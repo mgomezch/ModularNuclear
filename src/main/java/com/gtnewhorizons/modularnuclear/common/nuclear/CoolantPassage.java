@@ -82,7 +82,7 @@ public final class CoolantPassage {
      * times the tier ratio per tier above.
      */
     public static double heatTransferFactor(int tier) {
-        return NuclearSimulationEngine.coolantPassageHeatTransferMultiplier
+        return NuclearSimulationEngine.params().coolantPassageHeatTransferMultiplier
             * Math.pow(config().coolantPassageHeatTransferTierRatio, Math.max(0, tier) - 2);
     }
 

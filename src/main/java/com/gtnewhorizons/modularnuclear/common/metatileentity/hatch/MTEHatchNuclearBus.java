@@ -55,7 +55,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
     }
 
     public int getTicksPerCycle() {
-        return mReactor != null ? mReactor.getTicksPerCycle() : NuclearSimulationEngine.ticksPerCycle;
+        return mReactor != null ? mReactor.getTicksPerCycle() : NuclearSimulationEngine.params().ticksPerCycle;
     }
 
     public int mFastFlux = 0;

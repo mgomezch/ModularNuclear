@@ -14,7 +14,7 @@ public final class StandaloneConfig {
 
     /** Heat absorbed per litre of distilled and heavy water boiled to steam. */
     public static void setWaterHeatPerLiter(double heatPerLiter) {
-        NuclearSimulationEngine.coolingHeatPerLiter = heatPerLiter;
+        NuclearSimulationEngine.params().coolingHeatPerLiter = heatPerLiter;
         setCoolantHeatPerLiter("coolant_distilled_water", heatPerLiter);
         setCoolantHeatPerLiter("coolant_heavy_water", heatPerLiter);
     }

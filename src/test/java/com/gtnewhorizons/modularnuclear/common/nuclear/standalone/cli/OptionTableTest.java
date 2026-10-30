@@ -81,7 +81,7 @@ public class OptionTableTest {
                 "\\s+");
         assertEquals(50, cfg.ticks);
         assertEquals(NuclearSimulationEngine.PIPE_TIER_QUANTIUM, (int) cfg.tier);
-        assertEquals(1234.0, NuclearSimulationEngine.fissionHeatPerNeutron, 1e-9);
+        assertEquals(1234.0, NuclearSimulationEngine.params().fissionHeatPerNeutron, 1e-9);
         assertEquals("phe_count=8,circuit=2,loop_fluid=SODIUM,", cfg.loopSettings.toString());
         assertEquals(3L, (long) cfg.seed);
         NuclearSimulationEngine.resetDefaultParameters();

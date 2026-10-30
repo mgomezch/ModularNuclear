@@ -143,25 +143,25 @@ public final class ReactorConfigData {
         NuclearSimulationEngine.setGlobalFastFissionMultiplier(physicsData.globalFastFissionMultiplier);
         NuclearSimulationEngine.setFastAbsorptionDamageMultiplier(physicsData.fastAbsorptionDamageMultiplier);
         NuclearSimulationEngine.setThermalAbsorptionDamageMultiplier(physicsData.thermalAbsorptionDamageMultiplier);
-        NuclearSimulationEngine.fissionHeatPerNeutron = physicsData.fissionHeatPerNeutron;
-        NuclearSimulationEngine.wallReflectionChance = physicsData.wallReflectionChance;
+        NuclearSimulationEngine.params().fissionHeatPerNeutron = physicsData.fissionHeatPerNeutron;
+        NuclearSimulationEngine.params().wallReflectionChance = physicsData.wallReflectionChance;
         NuclearSimulationEngine.setBeamEnergyToFastNeutronMultiplier(physicsData.beamEnergyToFastNeutronMultiplier);
         NuclearSimulationEngine.setGridConductionMultiplier(physicsData.gridConductionMultiplier);
         NuclearSimulationEngine.setFuelBurnupMultiplier(physicsData.fuelBurnupMultiplier);
-        NuclearSimulationEngine.neutronYieldMultiplier = Math.max(0.0, physicsData.neutronYieldMultiplier);
-        NuclearSimulationEngine.coolantPassageHeatTransferMultiplier = Math
+        NuclearSimulationEngine.params().neutronYieldMultiplier = Math.max(0.0, physicsData.neutronYieldMultiplier);
+        NuclearSimulationEngine.params().coolantPassageHeatTransferMultiplier = Math
             .max(0.0, physicsData.coolantPassageHeatTransferMultiplier);
         NuclearSimulationEngine.setBaseHatchConductance(physicsData.baseHatchConductance);
         NuclearSimulationEngine.setHatchConductanceTierRatio(physicsData.hatchConductanceTierRatio);
         NuclearSimulationEngine.setCoreHatchHeatCapacity(physicsData.coreHatchHeatCapacity);
-        NuclearSimulationEngine.denseNbaseMultiplier = physicsData.denseNbaseMultiplier;
-        NuclearSimulationEngine.denseFissionMultiplier = physicsData.denseFissionMultiplier;
-        NuclearSimulationEngine.excitedNbaseMultiplier = physicsData.excitedNbaseMultiplier;
-        NuclearSimulationEngine.excitedFissionMultiplier = physicsData.excitedFissionMultiplier;
-        NuclearSimulationEngine.standardNbaseMultiplier = physicsData.standardNbaseMultiplier;
-        NuclearSimulationEngine.standardFissionMultiplier = physicsData.standardFissionMultiplier;
-        NuclearSimulationEngine.breederNbaseMultiplier = physicsData.breederNbaseMultiplier;
-        NuclearSimulationEngine.breederFissionMultiplier = physicsData.breederFissionMultiplier;
+        NuclearSimulationEngine.params().denseNbaseMultiplier = physicsData.denseNbaseMultiplier;
+        NuclearSimulationEngine.params().denseFissionMultiplier = physicsData.denseFissionMultiplier;
+        NuclearSimulationEngine.params().excitedNbaseMultiplier = physicsData.excitedNbaseMultiplier;
+        NuclearSimulationEngine.params().excitedFissionMultiplier = physicsData.excitedFissionMultiplier;
+        NuclearSimulationEngine.params().standardNbaseMultiplier = physicsData.standardNbaseMultiplier;
+        NuclearSimulationEngine.params().standardFissionMultiplier = physicsData.standardFissionMultiplier;
+        NuclearSimulationEngine.params().breederNbaseMultiplier = physicsData.breederNbaseMultiplier;
+        NuclearSimulationEngine.params().breederFissionMultiplier = physicsData.breederFissionMultiplier;
     }
 
     public static PhysicsData getPhysics() {

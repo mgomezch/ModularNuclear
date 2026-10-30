@@ -57,7 +57,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     public com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor mReactor;
 
     public int getTicksPerCycle() {
-        return mReactor != null ? mReactor.getTicksPerCycle() : NuclearSimulationEngine.ticksPerCycle;
+        return mReactor != null ? mReactor.getTicksPerCycle() : NuclearSimulationEngine.params().ticksPerCycle;
     }
 
     public enum ControlRodType {

@@ -29,10 +29,10 @@ public final class TileTick {
     public static double fuelWear(double tempDamagePerSecond, int neutronsGenerated, int fastAbsorbed,
         int thermalAbsorbed, double dt) {
         double wear = Math.max(0.0, neutronsGenerated * 0.25)
-            + fastAbsorbed * NuclearSimulationEngine.fastAbsorptionDamageMultiplier
-            + thermalAbsorbed * NuclearSimulationEngine.thermalAbsorptionDamageMultiplier
+            + fastAbsorbed * NuclearSimulationEngine.params().fastAbsorptionDamageMultiplier
+            + thermalAbsorbed * NuclearSimulationEngine.params().thermalAbsorptionDamageMultiplier
             + tempDamagePerSecond * dt;
-        return wear * NuclearSimulationEngine.fuelBurnupMultiplier;
+        return wear * NuclearSimulationEngine.params().fuelBurnupMultiplier;
     }
 
     /** Temperature damage per second for a fuel without a configuration entry. */
@@ -46,8 +46,8 @@ public final class TileTick {
      */
     public static double moderatorWear(ModeratorData mod, double temp, int fastAbsorbed, int thermalAbsorbed,
         int totalFlux, double dt) {
-        return fastAbsorbed * NuclearSimulationEngine.fastAbsorptionDamageMultiplier
-            + thermalAbsorbed * NuclearSimulationEngine.thermalAbsorptionDamageMultiplier
+        return fastAbsorbed * NuclearSimulationEngine.params().fastAbsorptionDamageMultiplier
+            + thermalAbsorbed * NuclearSimulationEngine.params().thermalAbsorptionDamageMultiplier
             + totalFlux * 0.05
             + mod.calculateTemperatureDamage(temp) * dt;
     }

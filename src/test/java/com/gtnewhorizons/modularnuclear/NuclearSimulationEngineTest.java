@@ -742,7 +742,7 @@ public class NuclearSimulationEngineTest {
 
     private static double[] conductPair(double mult, int ticksPerCycle) {
         int savedTpc = NuclearSimulationEngine.getTicksPerCycle();
-        double savedMult = NuclearSimulationEngine.gridConductionMultiplier;
+        double savedMult = NuclearSimulationEngine.params().gridConductionMultiplier;
         try {
             NuclearSimulationEngine.setTicksPerCycle(ticksPerCycle);
             NuclearSimulationEngine.setGridConductionMultiplier(mult);
@@ -894,7 +894,7 @@ public class NuclearSimulationEngineTest {
         fuelTile.setType(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.FUEL_URANIUM_QUAD);
         fuelTile.setTemperature(3000.0); // Well above 1000°C limit
 
-        NuclearSimulationEngine.coolantFeedRate = 0; // Prevent refilling so hatch actually overheats
+        NuclearSimulationEngine.params().coolantFeedRate = 0; // Prevent refilling so hatch actually overheats
         com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile hatchTile = grid.getTile(0, 1);
         hatchTile
             .setType(com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile.TileType.HATCH_IC2_COOLANT);
@@ -1067,7 +1067,7 @@ public class NuclearSimulationEngineTest {
             NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
 
         // Active fuel and an empty coolant hatch with no fluid feed
-        NuclearSimulationEngine.coolantFeedRate = 0; // Simulate fluid supply failure
+        NuclearSimulationEngine.params().coolantFeedRate = 0; // Simulate fluid supply failure
         grid.setTile(
             1,
             1,
@@ -5079,7 +5079,7 @@ public class NuclearSimulationEngineTest {
             if (tier == 9) assertEquals(0.60, share, 0.005, "UHV share per second");
         }
         assertEquals(
-            NuclearSimulationEngine.baseHatchConductance,
+            NuclearSimulationEngine.params().baseHatchConductance,
             NuclearSimulationEngine.getHatchConductance(2),
             1e-9,
             "MV conductance is the base");
@@ -7089,7 +7089,7 @@ public class NuclearSimulationEngineTest {
             "Active registry physics must have 38.0 Hu/neutron");
         assertEquals(
             38.0,
-            NuclearSimulationEngine.fissionHeatPerNeutron,
+            NuclearSimulationEngine.params().fissionHeatPerNeutron,
             1e-4,
             "NuclearSimulationEngine must use 38.0 Hu/neutron by default");
     }
@@ -7131,7 +7131,7 @@ public class NuclearSimulationEngineTest {
         NuclearSimulationEngine.resetDefaultParameters();
         NuclearSimulationEngine.setTicksPerCycle(20);
         try {
-            assertEquals(1.0, NuclearSimulationEngine.globalFastFissionMultiplier, 1e-4);
+            assertEquals(1.0, NuclearSimulationEngine.params().globalFastFissionMultiplier, 1e-4);
 
             // Uranium fuel tile (baseFastFissionMultiplier = 0.10, baseNeutrons = 4)
             SimTile tile = new SimTile(SimTile.TileType.FUEL_URANIUM_SINGLE);
@@ -7160,11 +7160,11 @@ public class NuclearSimulationEngineTest {
     @Test
     public void testDifferentialFastVsThermalFuelWear() {
         NuclearSimulationEngine.resetDefaultParameters();
-        assertEquals(8.0, NuclearSimulationEngine.fastAbsorptionDamageMultiplier, 1e-4);
-        assertEquals(1.0, NuclearSimulationEngine.thermalAbsorptionDamageMultiplier, 1e-4);
+        assertEquals(8.0, NuclearSimulationEngine.params().fastAbsorptionDamageMultiplier, 1e-4);
+        assertEquals(1.0, NuclearSimulationEngine.params().thermalAbsorptionDamageMultiplier, 1e-4);
 
-        double origBurnup = NuclearSimulationEngine.fuelBurnupMultiplier;
-        NuclearSimulationEngine.fuelBurnupMultiplier = 1.0;
+        double origBurnup = NuclearSimulationEngine.params().fuelBurnupMultiplier;
+        NuclearSimulationEngine.params().fuelBurnupMultiplier = 1.0;
         try {
             // Fast neutron absorption wear
             SimTile tileFast = new SimTile(SimTile.TileType.FUEL_URANIUM_SINGLE);
@@ -7197,7 +7197,7 @@ public class NuclearSimulationEngineTest {
             assertEquals(12.0, roundtrip.fastAbsorptionDamageMultiplier, 1e-4);
             assertEquals(2.0, roundtrip.thermalAbsorptionDamageMultiplier, 1e-4);
         } finally {
-            NuclearSimulationEngine.fuelBurnupMultiplier = origBurnup;
+            NuclearSimulationEngine.params().fuelBurnupMultiplier = origBurnup;
             NuclearSimulationEngine.resetDefaultParameters();
         }
     }
@@ -8315,8 +8315,8 @@ public class NuclearSimulationEngineTest {
         // Hu/neutron).
         // A non-fuel cell also deposits thermal neutron absorption heat at HU_FOR_FAST_NEUTRON * 0.5 (4.0 Hu/neutron).
 
-        double origHeatPerNeutron = NuclearSimulationEngine.fissionHeatPerNeutron;
-        NuclearSimulationEngine.fissionHeatPerNeutron = 4.0; // 4.0 * 1.25 = 5.0 Hu/neutron for fuel
+        double origHeatPerNeutron = NuclearSimulationEngine.params().fissionHeatPerNeutron;
+        NuclearSimulationEngine.params().fissionHeatPerNeutron = 4.0; // 4.0 * 1.25 = 5.0 Hu/neutron for fuel
 
         try {
             NuclearSimulationEngine.setTicksPerCycle(20);
@@ -8383,7 +8383,7 @@ public class NuclearSimulationEngineTest {
                 1e-4,
                 "Fuel cell with 25% control rod must split absorption: 75 * 5.0 + 25 * 4.0 = 475 Hu");
         } finally {
-            NuclearSimulationEngine.fissionHeatPerNeutron = origHeatPerNeutron;
+            NuclearSimulationEngine.params().fissionHeatPerNeutron = origHeatPerNeutron;
             NuclearSimulationEngine.setTicksPerCycle(NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE);
         }
     }

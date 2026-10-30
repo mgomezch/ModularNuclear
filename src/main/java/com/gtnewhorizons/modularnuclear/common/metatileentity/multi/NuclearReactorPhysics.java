@@ -257,7 +257,7 @@ public class NuclearReactorPhysics {
                         }
                         double dt = (double) reactor.getTicksPerCycle() / 20.0;
                         double multiplier = (physics != null) ? physics.beamEnergyToFastNeutronMultiplier
-                            : NuclearSimulationEngine.beamEnergyToFastNeutronMultiplier;
+                            : NuclearSimulationEngine.params().beamEnergyToFastNeutronMultiplier;
                         double packets = beamInfo.getEnergy() * beamInfo.getRate() * multiplier * dt;
                         bus.mBeamlinePacketAccumulator += packets;
                         int packetSize = (int) bus.mBeamlinePacketAccumulator;

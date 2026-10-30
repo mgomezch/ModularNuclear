@@ -31,7 +31,7 @@ public class StandaloneNuclearGrid {
     private int maintenanceIssues = 0;
 
     // Simulation metrics
-    private int ticksPerCycle = NuclearSimulationEngine.ticksPerCycle;
+    private int ticksPerCycle = NuclearSimulationEngine.params().ticksPerCycle;
     private long currentTick = 0;
 
     public int getTicksPerCycle() {
@@ -582,7 +582,7 @@ public class StandaloneNuclearGrid {
             if (grid[x][y].isHatch()) {
                 int hatchTier = Math.max(1, pipeTier + 4);
                 grid[x][y].setTier(hatchTier);
-                int cap = Math.max(NuclearSimulationEngine.hatchCoolantCapacity, 8000 * (1 << hatchTier));
+                int cap = Math.max(NuclearSimulationEngine.params().hatchCoolantCapacity, 8000 * (1 << hatchTier));
                 grid[x][y].setInputFluidCapacity(cap);
                 grid[x][y].setInputFluidAmount(cap);
             }
@@ -643,9 +643,9 @@ public class StandaloneNuclearGrid {
                 } else if (tile.isCoolantHatch() && tile.isAutoRefill()) {
                     int space = tile.getInputFluidCapacity() - tile.getInputFluidAmount();
                     if (space > 0) {
-                        int feed = Math.min(space, NuclearSimulationEngine.coolantFeedRate);
+                        int feed = Math.min(space, NuclearSimulationEngine.params().coolantFeedRate);
                         if (feed > 0) {
-                            double ambient = NuclearSimulationEngine.ambientTemp;
+                            double ambient = NuclearSimulationEngine.params().ambientTemp;
                             CoreHatchRules.CoolantFeed check = CoreHatchRules.checkCoolantFeed(
                                 tile.getInputFluidName(),
                                 tile.isWasDry(),
@@ -943,7 +943,7 @@ public class StandaloneNuclearGrid {
             }
         }
         NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine
-            .simulate(simGrid, width, height, getMaintenanceEfficiency(), NuclearSimulationEngine.ambientTemp);
+            .simulate(simGrid, width, height, getMaintenanceEfficiency(), NuclearSimulationEngine.params().ambientTemp);
 
         coreMaxTemp = res.maxTemperature;
         coreAvgTemp = res.averageTemperature;
@@ -1288,7 +1288,7 @@ public class StandaloneNuclearGrid {
     }
 
     public double getBaseHatchConductance() {
-        return NuclearSimulationEngine.baseHatchConductance;
+        return NuclearSimulationEngine.params().baseHatchConductance;
     }
 
     public void setBaseHatchConductance(double val) {
@@ -1586,7 +1586,7 @@ public class StandaloneNuclearGrid {
                 SimTile tile = grid[x][y];
                 if (tile != null && tile.isHatch()) {
                     tile.setTier(hatchTier);
-                    int cap = Math.max(NuclearSimulationEngine.hatchCoolantCapacity, 8000 * (1 << hatchTier));
+                    int cap = Math.max(NuclearSimulationEngine.params().hatchCoolantCapacity, 8000 * (1 << hatchTier));
                     tile.setInputFluidCapacity(cap);
                     tile.setInputFluidAmount(cap);
                 }

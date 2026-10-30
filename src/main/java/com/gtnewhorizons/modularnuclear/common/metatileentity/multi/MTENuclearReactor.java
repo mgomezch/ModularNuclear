@@ -3043,7 +3043,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public int mTicksPerCycle = -1;
 
     public int getTicksPerCycle() {
-        return mTicksPerCycle > 0 ? mTicksPerCycle : NuclearSimulationEngine.ticksPerCycle;
+        return mTicksPerCycle > 0 ? mTicksPerCycle : NuclearSimulationEngine.params().ticksPerCycle;
     }
 
     public void setTicksPerCycle(int ticks) {

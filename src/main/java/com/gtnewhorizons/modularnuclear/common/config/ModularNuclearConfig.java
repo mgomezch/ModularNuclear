@@ -293,7 +293,8 @@ public final class ModularNuclearConfig {
                 1,
                 100,
                 "Number of ticks per reactor simulation cycle (default 5, i.e. 4 cycles/second).");
-            com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine.ticksPerCycle = ticksPerCycle;
+            com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine
+                .params().ticksPerCycle = ticksPerCycle;
 
         } catch (Exception e) {
             ModularNuclear.LOG.error("Failed to load ModularNuclear config", e);

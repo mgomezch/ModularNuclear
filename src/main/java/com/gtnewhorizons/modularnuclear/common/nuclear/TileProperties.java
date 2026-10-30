@@ -248,8 +248,8 @@ public final class TileProperties {
     public static double chainRate(double previousRate, int lastThermalAbsorbed, int lastFastAbsorbed,
         double thermalFissionMult, double fastFissionMult, double dt) {
         if (dt <= 0.0) return previousRate;
-        double effThermal = thermalFissionMult * NuclearSimulationEngine.globalThermalFissionMultiplier;
-        double effFast = fastFissionMult * NuclearSimulationEngine.globalFastFissionMultiplier;
+        double effThermal = thermalFissionMult * NuclearSimulationEngine.params().globalThermalFissionMultiplier;
+        double effFast = fastFissionMult * NuclearSimulationEngine.params().globalFastFissionMultiplier;
         double target = (lastThermalAbsorbed * effThermal + lastFastAbsorbed * effFast) / dt;
         double alpha = 1.0 - Math.exp(-dt / CHAIN_TIME_CONSTANT);
         return previousRate + alpha * (target - previousRate);

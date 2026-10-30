@@ -40,7 +40,7 @@ class CoreHatchRulesTest {
             .setInputFluidAmount(0);
         grid.getTile(2, 2)
             .setAutoRefill(true);
-        NuclearSimulationEngine.ambientTemp = 120.0;
+        NuclearSimulationEngine.params().ambientTemp = 120.0;
         grid.step();
         assertEquals(CoreHatchRules.THERMAL_SHOCK_DAMAGE_PERCENT, grid.getReactorDamage(), 1e-9);
     }

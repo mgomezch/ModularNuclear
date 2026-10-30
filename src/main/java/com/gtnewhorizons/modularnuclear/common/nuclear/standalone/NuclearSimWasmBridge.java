@@ -527,7 +527,7 @@ public class NuclearSimWasmBridge {
         if ("reset".equalsIgnoreCase(key)) {
             NuclearSimulationEngine.resetDefaultParameters();
             if (grid != null) {
-                grid.updateHatchCapacities(NuclearSimulationEngine.hatchCoolantCapacity);
+                grid.updateHatchCapacities(NuclearSimulationEngine.params().hatchCoolantCapacity);
             }
             return;
         }
@@ -550,7 +550,7 @@ public class NuclearSimWasmBridge {
             return;
         }
         if ("turnoverCurve".equals(key)) {
-            NuclearSimulationEngine.turnoverCurve = NuclearSimulationEngine.TurnoverCurve.fromString(value);
+            NuclearSimulationEngine.params().turnoverCurve = NuclearSimulationEngine.TurnoverCurve.fromString(value);
             return;
         }
         double d = 0;
@@ -577,62 +577,62 @@ public class NuclearSimWasmBridge {
                 grid.setMaintenanceIssues((int) d);
             }
         } else if ("hatchCapacity".equals(key)) {
-            NuclearSimulationEngine.hatchCoolantCapacity = Math.max(100, (int) d);
+            NuclearSimulationEngine.params().hatchCoolantCapacity = Math.max(100, (int) d);
             if (grid != null) {
-                grid.updateHatchCapacities(NuclearSimulationEngine.hatchCoolantCapacity);
+                grid.updateHatchCapacities(NuclearSimulationEngine.params().hatchCoolantCapacity);
             }
         } else if ("turnoverDeltaTMax".equals(key)) {
-            NuclearSimulationEngine.turnoverDeltaTMax = d;
+            NuclearSimulationEngine.params().turnoverDeltaTMax = d;
         } else if ("turnoverExponent".equals(key)) {
-            NuclearSimulationEngine.turnoverExponent = d;
+            NuclearSimulationEngine.params().turnoverExponent = d;
         } else if ("coolantFeedRate".equals(key)) {
-            NuclearSimulationEngine.coolantFeedRate = (int) d;
+            NuclearSimulationEngine.params().coolantFeedRate = (int) d;
         } else if ("coolingHeat".equals(key)) {
             StandaloneConfig.setWaterHeatPerLiter(d);
         } else if ("ambientTemp".equals(key)) {
-            NuclearSimulationEngine.ambientTemp = d;
+            NuclearSimulationEngine.params().ambientTemp = d;
         } else if ("ic2CoolantHeat".equals(key)) {
             StandaloneConfig.setIc2CoolantHeatPerLiter(d);
         } else if ("tempThresholdLow".equals(key)) {
-            NuclearSimulationEngine.tempThresholdLow = d;
+            NuclearSimulationEngine.params().tempThresholdLow = d;
         } else if ("tempThresholdHigh".equals(key)) {
-            NuclearSimulationEngine.tempThresholdHigh = d;
+            NuclearSimulationEngine.params().tempThresholdHigh = d;
         } else if ("reactivityPower".equals(key)) {
-            NuclearSimulationEngine.reactivityPower = d;
+            NuclearSimulationEngine.params().reactivityPower = d;
         } else if ("thermalFissionMultiplier".equals(key) || "fissionMult".equals(key)) {
-            NuclearSimulationEngine.thermalFissionMultiplier = d;
+            NuclearSimulationEngine.params().thermalFissionMultiplier = d;
         } else if ("globalThermalFissionMultiplier".equals(key)) {
-            NuclearSimulationEngine.globalThermalFissionMultiplier = d;
+            NuclearSimulationEngine.params().globalThermalFissionMultiplier = d;
         } else if ("globalFastFissionMultiplier".equals(key) || "fastFissionMult".equals(key)) {
-            NuclearSimulationEngine.globalFastFissionMultiplier = d;
+            NuclearSimulationEngine.params().globalFastFissionMultiplier = d;
         } else if ("fastAbsorptionDamageMultiplier".equals(key) || "fastDamageMult".equals(key)) {
-            NuclearSimulationEngine.fastAbsorptionDamageMultiplier = d;
+            NuclearSimulationEngine.params().fastAbsorptionDamageMultiplier = d;
         } else if ("thermalAbsorptionDamageMultiplier".equals(key) || "thermalDamageMult".equals(key)) {
-            NuclearSimulationEngine.thermalAbsorptionDamageMultiplier = d;
+            NuclearSimulationEngine.params().thermalAbsorptionDamageMultiplier = d;
         } else if ("fissionHeatPerNeutron".equals(key) || "fissionHeat".equals(key)) {
-            NuclearSimulationEngine.fissionHeatPerNeutron = d;
+            NuclearSimulationEngine.params().fissionHeatPerNeutron = d;
         } else if ("hpWaterBoilingPoint".equals(key) || "hpBoil".equals(key)) {
-            NuclearSimulationEngine.hpWaterBoilingPoint = d;
+            NuclearSimulationEngine.params().hpWaterBoilingPoint = d;
         } else if ("gridConductionMultiplier".equals(key) || "gridConductionMult".equals(key)) {
             NuclearSimulationEngine.setGridConductionMultiplier(d);
         } else if ("fuelBurnupMultiplier".equals(key) || "burnupMult".equals(key)) {
             NuclearSimulationEngine.setFuelBurnupMultiplier(d);
         } else if ("denseNbaseMultiplier".equals(key)) {
-            NuclearSimulationEngine.denseNbaseMultiplier = d;
+            NuclearSimulationEngine.params().denseNbaseMultiplier = d;
         } else if ("denseFissionMultiplier".equals(key)) {
-            NuclearSimulationEngine.denseFissionMultiplier = d;
+            NuclearSimulationEngine.params().denseFissionMultiplier = d;
         } else if ("excitedNbaseMultiplier".equals(key)) {
-            NuclearSimulationEngine.excitedNbaseMultiplier = d;
+            NuclearSimulationEngine.params().excitedNbaseMultiplier = d;
         } else if ("excitedFissionMultiplier".equals(key)) {
-            NuclearSimulationEngine.excitedFissionMultiplier = d;
+            NuclearSimulationEngine.params().excitedFissionMultiplier = d;
         } else if ("standardNbaseMultiplier".equals(key)) {
-            NuclearSimulationEngine.standardNbaseMultiplier = d;
+            NuclearSimulationEngine.params().standardNbaseMultiplier = d;
         } else if ("standardFissionMultiplier".equals(key)) {
-            NuclearSimulationEngine.standardFissionMultiplier = d;
+            NuclearSimulationEngine.params().standardFissionMultiplier = d;
         } else if ("breederNbaseMultiplier".equals(key)) {
-            NuclearSimulationEngine.breederNbaseMultiplier = d;
+            NuclearSimulationEngine.params().breederNbaseMultiplier = d;
         } else if ("breederFissionMultiplier".equals(key)) {
-            NuclearSimulationEngine.breederFissionMultiplier = d;
+            NuclearSimulationEngine.params().breederFissionMultiplier = d;
         } else if ("ticksPerCycle".equalsIgnoreCase(key) || "ticks_per_cycle".equalsIgnoreCase(key)) {
             int ticks = Math.max(1, (int) d);
             NuclearSimulationEngine.setTicksPerCycle(ticks);
@@ -1520,103 +1520,103 @@ public class NuclearSimWasmBridge {
 
         sb.append("\"params\":{");
         sb.append("\"ticksPerCycle\":")
-            .append(grid != null ? grid.getTicksPerCycle() : NuclearSimulationEngine.ticksPerCycle)
+            .append(grid != null ? grid.getTicksPerCycle() : NuclearSimulationEngine.params().ticksPerCycle)
             .append(",");
         sb.append("\"huPerDegree\":")
-            .append(fmt1(NuclearSimulationEngine.huPerDegree))
+            .append(fmt1(NuclearSimulationEngine.params().huPerDegree))
             .append(",");
         sb.append("\"hatchCapacity\":")
-            .append(NuclearSimulationEngine.hatchCoolantCapacity)
+            .append(NuclearSimulationEngine.params().hatchCoolantCapacity)
             .append(",");
         sb.append("\"turnoverCurve\":\"")
-            .append(NuclearSimulationEngine.turnoverCurve.name())
+            .append(NuclearSimulationEngine.params().turnoverCurve.name())
             .append("\",");
         sb.append("\"turnoverDeltaTMax\":")
-            .append(fmt1(NuclearSimulationEngine.turnoverDeltaTMax))
+            .append(fmt1(NuclearSimulationEngine.params().turnoverDeltaTMax))
             .append(",");
         sb.append("\"turnoverExponent\":")
-            .append(fmt2(NuclearSimulationEngine.turnoverExponent))
+            .append(fmt2(NuclearSimulationEngine.params().turnoverExponent))
             .append(",");
         sb.append("\"coolantFeedRate\":")
-            .append(NuclearSimulationEngine.coolantFeedRate)
+            .append(NuclearSimulationEngine.params().coolantFeedRate)
             .append(",");
         sb.append("\"coolingHeatPerLiter\":")
-            .append(fmt1(NuclearSimulationEngine.coolingHeatPerLiter))
+            .append(fmt1(NuclearSimulationEngine.params().coolingHeatPerLiter))
             .append(",");
         sb.append("\"ambientTemp\":")
-            .append(fmt1(NuclearSimulationEngine.ambientTemp))
+            .append(fmt1(NuclearSimulationEngine.params().ambientTemp))
             .append(",");
         sb.append("\"ic2CoolantHeatPerLiter\":")
             .append(fmt1(NuclearSimulationEngine.ic2CoolantHeatPerLiter))
             .append(",");
         sb.append("\"tempThresholdLow\":")
-            .append(fmt1(NuclearSimulationEngine.tempThresholdLow))
+            .append(fmt1(NuclearSimulationEngine.params().tempThresholdLow))
             .append(",");
         sb.append("\"tempThresholdHigh\":")
-            .append(fmt1(NuclearSimulationEngine.tempThresholdHigh))
+            .append(fmt1(NuclearSimulationEngine.params().tempThresholdHigh))
             .append(",");
         sb.append("\"reactivityPower\":")
-            .append(fmt2(NuclearSimulationEngine.reactivityPower))
+            .append(fmt2(NuclearSimulationEngine.params().reactivityPower))
             .append(",");
         sb.append("\"thermalFissionMultiplier\":")
-            .append(fmt2(NuclearSimulationEngine.thermalFissionMultiplier))
+            .append(fmt2(NuclearSimulationEngine.params().thermalFissionMultiplier))
             .append(",");
         sb.append("\"globalThermalFissionMultiplier\":")
-            .append(fmt2(NuclearSimulationEngine.globalThermalFissionMultiplier))
+            .append(fmt2(NuclearSimulationEngine.params().globalThermalFissionMultiplier))
             .append(",");
         sb.append("\"globalFastFissionMultiplier\":")
-            .append(fmt2(NuclearSimulationEngine.globalFastFissionMultiplier))
+            .append(fmt2(NuclearSimulationEngine.params().globalFastFissionMultiplier))
             .append(",");
         sb.append("\"fastAbsorptionDamageMultiplier\":")
-            .append(fmt2(NuclearSimulationEngine.fastAbsorptionDamageMultiplier))
+            .append(fmt2(NuclearSimulationEngine.params().fastAbsorptionDamageMultiplier))
             .append(",");
         sb.append("\"thermalAbsorptionDamageMultiplier\":")
-            .append(fmt2(NuclearSimulationEngine.thermalAbsorptionDamageMultiplier))
+            .append(fmt2(NuclearSimulationEngine.params().thermalAbsorptionDamageMultiplier))
             .append(",");
         sb.append("\"fissionHeatPerNeutron\":")
-            .append(fmt1(NuclearSimulationEngine.fissionHeatPerNeutron))
+            .append(fmt1(NuclearSimulationEngine.params().fissionHeatPerNeutron))
             .append(",");
         sb.append("\"hpWaterBoilingPoint\":")
-            .append(fmt1(NuclearSimulationEngine.hpWaterBoilingPoint))
+            .append(fmt1(NuclearSimulationEngine.params().hpWaterBoilingPoint))
             .append(",");
         sb.append("\"baseHatchConductance\":")
-            .append(fmt3(NuclearSimulationEngine.baseHatchConductance))
+            .append(fmt3(NuclearSimulationEngine.params().baseHatchConductance))
             .append(",");
         sb.append("\"hatchConductanceTierRatio\":")
-            .append(fmt3(NuclearSimulationEngine.hatchConductanceTierRatio))
+            .append(fmt3(NuclearSimulationEngine.params().hatchConductanceTierRatio))
             .append(",");
         sb.append("\"coreHatchHeatCapacity\":")
-            .append(fmt1(NuclearSimulationEngine.coreHatchHeatCapacity))
+            .append(fmt1(NuclearSimulationEngine.params().coreHatchHeatCapacity))
             .append(",");
         sb.append("\"gridConductionMultiplier\":")
-            .append(fmt3(NuclearSimulationEngine.gridConductionMultiplier))
+            .append(fmt3(NuclearSimulationEngine.params().gridConductionMultiplier))
             .append(",");
         sb.append("\"fuelBurnupMultiplier\":")
-            .append(fmt3(NuclearSimulationEngine.fuelBurnupMultiplier))
+            .append(fmt3(NuclearSimulationEngine.params().fuelBurnupMultiplier))
             .append(",");
         sb.append("\"denseNbaseMultiplier\":")
-            .append(fmt2(NuclearSimulationEngine.denseNbaseMultiplier))
+            .append(fmt2(NuclearSimulationEngine.params().denseNbaseMultiplier))
             .append(",");
         sb.append("\"denseFissionMultiplier\":")
-            .append(fmt2(NuclearSimulationEngine.denseFissionMultiplier))
+            .append(fmt2(NuclearSimulationEngine.params().denseFissionMultiplier))
             .append(",");
         sb.append("\"excitedNbaseMultiplier\":")
-            .append(fmt2(NuclearSimulationEngine.excitedNbaseMultiplier))
+            .append(fmt2(NuclearSimulationEngine.params().excitedNbaseMultiplier))
             .append(",");
         sb.append("\"excitedFissionMultiplier\":")
-            .append(fmt2(NuclearSimulationEngine.excitedFissionMultiplier))
+            .append(fmt2(NuclearSimulationEngine.params().excitedFissionMultiplier))
             .append(",");
         sb.append("\"standardNbaseMultiplier\":")
-            .append(fmt2(NuclearSimulationEngine.standardNbaseMultiplier))
+            .append(fmt2(NuclearSimulationEngine.params().standardNbaseMultiplier))
             .append(",");
         sb.append("\"standardFissionMultiplier\":")
-            .append(fmt2(NuclearSimulationEngine.standardFissionMultiplier))
+            .append(fmt2(NuclearSimulationEngine.params().standardFissionMultiplier))
             .append(",");
         sb.append("\"breederNbaseMultiplier\":")
-            .append(fmt2(NuclearSimulationEngine.breederNbaseMultiplier))
+            .append(fmt2(NuclearSimulationEngine.params().breederNbaseMultiplier))
             .append(",");
         sb.append("\"breederFissionMultiplier\":")
-            .append(fmt2(NuclearSimulationEngine.breederFissionMultiplier));
+            .append(fmt2(NuclearSimulationEngine.params().breederFissionMultiplier));
         sb.append("},");
 
         // Tiles

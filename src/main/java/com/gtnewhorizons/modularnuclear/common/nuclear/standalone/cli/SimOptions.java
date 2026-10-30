@@ -62,20 +62,20 @@ public final class SimOptions {
             .value(DOUBLE, (c, v) -> c.baseConductance = v, "base_conductance", "conductance");
 
         // Physics
-        engine(t, v -> NuclearSimulationEngine.tempThresholdLow = v, "temp_low");
-        engine(t, v -> NuclearSimulationEngine.tempThresholdHigh = v, "temp_high");
-        engine(t, v -> NuclearSimulationEngine.reactivityPower = v, "reactivity_pow");
-        engine(t, v -> NuclearSimulationEngine.thermalFissionMultiplier = v, "fission_mult");
-        engine(t, v -> NuclearSimulationEngine.globalThermalFissionMultiplier = v, "global_fission_mult");
-        engine(t, v -> NuclearSimulationEngine.globalFastFissionMultiplier = v, "global_fast_fission_mult");
+        engine(t, v -> NuclearSimulationEngine.params().tempThresholdLow = v, "temp_low");
+        engine(t, v -> NuclearSimulationEngine.params().tempThresholdHigh = v, "temp_high");
+        engine(t, v -> NuclearSimulationEngine.params().reactivityPower = v, "reactivity_pow");
+        engine(t, v -> NuclearSimulationEngine.params().thermalFissionMultiplier = v, "fission_mult");
+        engine(t, v -> NuclearSimulationEngine.params().globalThermalFissionMultiplier = v, "global_fission_mult");
+        engine(t, v -> NuclearSimulationEngine.params().globalFastFissionMultiplier = v, "global_fast_fission_mult");
         engine(
             t,
-            v -> NuclearSimulationEngine.fastAbsorptionDamageMultiplier = v,
+            v -> NuclearSimulationEngine.params().fastAbsorptionDamageMultiplier = v,
             "fast_damage_mult",
             "fast_absorption_damage_mult");
         engine(
             t,
-            v -> NuclearSimulationEngine.thermalAbsorptionDamageMultiplier = v,
+            v -> NuclearSimulationEngine.params().thermalAbsorptionDamageMultiplier = v,
             "thermal_damage_mult",
             "thermal_absorption_damage_mult");
         engine(t, NuclearSimulationEngine::setHuPerDegree, "hu_per_degree");
@@ -86,62 +86,66 @@ public final class SimOptions {
             NuclearSimulationEngine::setGridConductionMultiplier,
             "grid_conduction_mult",
             "grid_conduction_multiplier");
-        engine(t, v -> NuclearSimulationEngine.denseNbaseMultiplier = v, "dense_nbase_mult", "dense_nbase_multiplier");
         engine(
             t,
-            v -> NuclearSimulationEngine.denseFissionMultiplier = v,
+            v -> NuclearSimulationEngine.params().denseNbaseMultiplier = v,
+            "dense_nbase_mult",
+            "dense_nbase_multiplier");
+        engine(
+            t,
+            v -> NuclearSimulationEngine.params().denseFissionMultiplier = v,
             "dense_fission_mult",
             "dense_fission_multiplier");
         engine(
             t,
-            v -> NuclearSimulationEngine.excitedNbaseMultiplier = v,
+            v -> NuclearSimulationEngine.params().excitedNbaseMultiplier = v,
             "excited_nbase_mult",
             "excited_nbase_multiplier");
         engine(
             t,
-            v -> NuclearSimulationEngine.excitedFissionMultiplier = v,
+            v -> NuclearSimulationEngine.params().excitedFissionMultiplier = v,
             "excited_fission_mult",
             "excited_fission_multiplier");
         engine(
             t,
-            v -> NuclearSimulationEngine.standardNbaseMultiplier = v,
+            v -> NuclearSimulationEngine.params().standardNbaseMultiplier = v,
             "standard_nbase_mult",
             "standard_nbase_multiplier");
         engine(
             t,
-            v -> NuclearSimulationEngine.standardFissionMultiplier = v,
+            v -> NuclearSimulationEngine.params().standardFissionMultiplier = v,
             "standard_fission_mult",
             "standard_fission_multiplier");
         engine(
             t,
-            v -> NuclearSimulationEngine.breederNbaseMultiplier = v,
+            v -> NuclearSimulationEngine.params().breederNbaseMultiplier = v,
             "breeder_nbase_mult",
             "breeder_nbase_multiplier");
         engine(
             t,
-            v -> NuclearSimulationEngine.breederFissionMultiplier = v,
+            v -> NuclearSimulationEngine.params().breederFissionMultiplier = v,
             "breeder_fission_mult",
             "breeder_fission_multiplier");
-        engine(t, v -> NuclearSimulationEngine.fissionHeatPerNeutron = v, "fission_heat");
-        engine(t, v -> NuclearSimulationEngine.hpWaterBoilingPoint = v, "hp_boil");
-        t.value(INT, (c, v) -> NuclearSimulationEngine.hatchCoolantCapacity = v, "hatch_cap");
+        engine(t, v -> NuclearSimulationEngine.params().fissionHeatPerNeutron = v, "fission_heat");
+        engine(t, v -> NuclearSimulationEngine.params().hpWaterBoilingPoint = v, "hp_boil");
+        t.value(INT, (c, v) -> NuclearSimulationEngine.params().hatchCoolantCapacity = v, "hatch_cap");
         t.value(
             s -> NuclearSimulationEngine.TurnoverCurve.fromString(s),
-            (c, v) -> NuclearSimulationEngine.turnoverCurve = v,
+            (c, v) -> NuclearSimulationEngine.params().turnoverCurve = v,
             "turnover_curve");
-        engine(t, v -> NuclearSimulationEngine.turnoverDeltaTMax = v, "turnover_dt");
-        engine(t, v -> NuclearSimulationEngine.turnoverExponent = v, "turnover_exp", "turnover_pow");
-        t.value(INT, (c, v) -> NuclearSimulationEngine.coolantFeedRate = v, "feed_rate");
+        engine(t, v -> NuclearSimulationEngine.params().turnoverDeltaTMax = v, "turnover_dt");
+        engine(t, v -> NuclearSimulationEngine.params().turnoverExponent = v, "turnover_exp", "turnover_pow");
+        t.value(INT, (c, v) -> NuclearSimulationEngine.params().coolantFeedRate = v, "feed_rate");
         engine(t, StandaloneConfig::setWaterHeatPerLiter, "cooling_heat");
         engine(t, NuclearSimulationEngine::setAmbientTemperature, "ambient_temp", "ambient");
         engine(t, StandaloneConfig::setIc2CoolantHeatPerLiter, "ic2_heat", "ic2_cooling_heat");
-        engine(t, v -> NuclearSimulationEngine.fuelBurnupMultiplier = v, "burnup_mult");
+        engine(t, v -> NuclearSimulationEngine.params().fuelBurnupMultiplier = v, "burnup_mult");
         engine(
             t,
-            v -> NuclearSimulationEngine.neutronYieldMultiplier = Math.max(0.0, v),
+            v -> NuclearSimulationEngine.params().neutronYieldMultiplier = Math.max(0.0, v),
             "neutron_yield_mult",
             "neutron_yield_multiplier");
-        engine(t, v -> NuclearSimulationEngine.coolantPassageHeatTransferMultiplier = v, "passage_htc_mult");
+        engine(t, v -> NuclearSimulationEngine.params().coolantPassageHeatTransferMultiplier = v, "passage_htc_mult");
         engine(
             t,
             v -> CoolantLoopConfigData.getPhysicsData()
