@@ -146,7 +146,7 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
                 .addShape(
                     STRUCTURE_PIECE_MAIN,
                     StructureUtility.transpose(
-                        new String[][] { { "CCC", "C~C", "CCC" }, { "CCC", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
+                        new String[][] { { "CCC", "CCC", "CCC" }, { "C~C", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
                 .addElement(
                     'C',
                     StructureUtility.ofChain(

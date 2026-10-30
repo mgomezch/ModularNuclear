@@ -14,7 +14,7 @@ public class ItemNuclearFluidCell extends Item {
     public ItemNuclearFluidCell(String unlocalizedName, Fluid fluid) {
         this.fluid = fluid;
         setUnlocalizedName(unlocalizedName);
-        setTextureName("modularnuclear:items/" + unlocalizedName);
+        setTextureName("modularnuclear:" + unlocalizedName);
         setMaxStackSize(64);
         setCreativeTab(CreativeTabs.tabMaterials);
     }
