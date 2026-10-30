@@ -1,5 +1,7 @@
 package com.gtnewhorizons.modularnuclear.common.opencomputers;
 
+import com.gtnewhorizons.modularnuclear.ModularNuclear;
+
 import cpw.mods.fml.common.Loader;
 import li.cil.oc.api.Driver;
 
@@ -11,7 +13,7 @@ public class CoolantLoopOpenComputers {
                 Driver.add(new DriverLoopInstrument());
                 Driver.add(new DriverPressurizedFluidHeater());
             } catch (Throwable t) {
-                t.printStackTrace();
+                ModularNuclear.LOG.error("Could not register the OpenComputers drivers for coolant loop devices", t);
             }
         }
     }

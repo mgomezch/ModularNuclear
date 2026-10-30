@@ -3,6 +3,7 @@ package com.gtnewhorizons.modularnuclear.common.projectred;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
+import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
 
 import cpw.mods.fml.common.Loader;
@@ -44,7 +45,7 @@ public class CoolantLoopProjectRed {
                     }
                 });
             } catch (Throwable t) {
-                t.printStackTrace();
+                ModularNuclear.LOG.error("Could not register the ProjectRed bundled cable integration", t);
             }
         }
     }

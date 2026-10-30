@@ -1,5 +1,7 @@
 package com.gtnewhorizons.modularnuclear.common.opencomputers;
 
+import com.gtnewhorizons.modularnuclear.ModularNuclear;
+
 import cpw.mods.fml.common.Loader;
 import li.cil.oc.api.Driver;
 
@@ -15,7 +17,7 @@ public class OpenComputersIntegration {
             Driver.add(new DriverNuclearControlHatch());
             isLoaded = true;
         } catch (Throwable t) {
-            t.printStackTrace();
+            ModularNuclear.LOG.error("Could not register the OpenComputers driver for the nuclear control hatch", t);
         }
     }
 }

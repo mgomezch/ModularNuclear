@@ -2,6 +2,8 @@ package com.gtnewhorizons.modularnuclear.common.nuclearcontrol;
 
 import net.minecraft.item.ItemStack;
 
+import com.gtnewhorizons.modularnuclear.ModularNuclear;
+
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.registry.GameRegistry;
 
@@ -24,7 +26,7 @@ public class NuclearControlIntegration {
 
             isLoaded = true;
         } catch (Throwable t) {
-            t.printStackTrace();
+            ModularNuclear.LOG.error("Could not register the Nuclear Control integration", t);
         }
     }
 
