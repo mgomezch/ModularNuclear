@@ -119,6 +119,11 @@ public interface ICoolantLoopPump {
         return "STOPPED";
     }
 
+    /** Whether coolant is moving through the loop: circulating, or still decelerating to a stop. */
+    default boolean isFlowing() {
+        return false;
+    }
+
     /**
      * Returns true if a closed loop circuit is formed between discharge and suction hatches.
      */

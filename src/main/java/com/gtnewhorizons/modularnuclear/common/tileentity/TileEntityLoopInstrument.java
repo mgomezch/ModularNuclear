@@ -342,8 +342,7 @@ public class TileEntityLoopInstrument extends TileEntity
         super.updateEntity();
         if (worldObj != null && !worldObj.isRemote) {
             if (loopPump != null) {
-                if (!"CIRCULATING".equalsIgnoreCase(loopPump.getLoopStateName())
-                    && !"DECELERATING".equalsIgnoreCase(loopPump.getLoopStateName())) {
+                if (!loopPump.isFlowing()) {
                     if (this.currentFlowRateM3s > 0) {
                         this.currentFlowRateM3s = 0.0;
                         this.currentVelocityMs = 0.0;

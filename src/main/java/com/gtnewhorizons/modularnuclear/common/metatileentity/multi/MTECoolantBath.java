@@ -332,9 +332,15 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
             }
         }
 
-        // 3. Sync slot items and progress to clients
+        // 3. Sync slot items and progress to clients: on changes, once a second while what clients see moves, and
+        // every ten seconds for a bath holding items (for players who arrive later)
         if (mNeedsSync || aTick % 20 == 0) {
-            syncToClients();
+            long signature = clientViewSignature();
+            boolean resend = aTick % 200 == 0 && signature != EMPTY_VIEW;
+            if (mNeedsSync || signature != mLastSentSignature || resend) {
+                syncToClients();
+                mLastSentSignature = signature;
+            }
             mNeedsSync = false;
         }
 
@@ -374,6 +380,33 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
             syncToClients();
             return true;
         }
+        return false;
+    }
+
+    private static final long EMPTY_VIEW = 0L;
+    private long mLastSentSignature = EMPTY_VIEW;
+
+    /** What clients see of the slots, to the precision they show it (whole degrees, whole percent); 0 when empty. */
+    private long clientViewSignature() {
+        if (mSlots == null) return EMPTY_VIEW;
+        long h = EMPTY_VIEW;
+        for (int i = 0; i < mSlots.length; i++) {
+            CoolantBathSlot slot = mSlots[i];
+            if (slot == null || slot.itemStack == null) continue;
+            long v = 31L * net.minecraft.item.Item.getIdFromItem(slot.itemStack.getItem())
+                + slot.itemStack.getItemDamage();
+            v = 31L * v + slot.itemStack.stackSize;
+            v = 31L * v + Math.round(slot.currentTemp);
+            v = 31L * v + Math.round(slot.targetTemp);
+            v = 31L * v + Math.round(slot.getProgressFraction() * 100.0);
+            v = 31L * v + (slot.cooling ? 1 : 0);
+            h = h * 1_000_003L + (v ^ (i + 1));
+        }
+        return h == EMPTY_VIEW && hasAnyItem() ? 1L : h;
+    }
+
+    private boolean hasAnyItem() {
+        for (CoolantBathSlot slot : mSlots) if (slot != null && slot.itemStack != null) return true;
         return false;
     }
 

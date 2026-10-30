@@ -123,7 +123,13 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     protected int[] mFootprint;
     private static final long STRUCTURE_SETTLE_TICKS = 200;
     protected Block[] mFootprintBlocks;
-    protected String mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.waiting");
+    /**
+     * The status line, kept as a localization key and its arguments and only formatted when read: the tick sets it
+     * every tick, mostly to what it already was.
+     */
+    private String mLoopStatusKey = "coolantloops.pump.status.waiting";
+    private Object[] mLoopStatusArgs = new Object[0];
+    private String mLoopStatusText;
     protected Materials mTankMaterial = Materials.Steel;
 
     // Impeller slot
@@ -253,7 +259,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     }
 
     public void setLoopStatus(String loopStatus) {
-        this.mLoopStatus = loopStatus;
+        setLoopStatusText(loopStatus);
     }
 
     public CoolantPumpReservoir getReservoir() {
@@ -403,9 +409,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         // Check Railcraft tank presence above pump
         boolean hasValidTank = verifyRailcraftTankAbove(aBaseMetaTileEntity);
         if (!hasValidTank) {
-            if (mLoopStatus == null || mLoopStatus.isEmpty()
-                || mLoopStatus.equals(CoolantLocalization.get("coolantloops.pump.status.formed"))) {
-                mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.missing_or_mismatched_tank");
+            if ("coolantloops.pump.status.formed".equals(mLoopStatusKey) || getLoopStatus().isEmpty()) {
+                setLoopStatusKey("coolantloops.pump.status.missing_or_mismatched_tank");
             }
             aErrors.add(StructureErrors.of("coolantloops.structure.error.pump.missing_or_mismatched_tank"));
             return;
@@ -435,7 +440,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     Block block = world.getBlock(cx, cy, cz);
                     String matName = mTankMaterial != null ? mTankMaterial.mDefaultLocalName : "Matching";
                     if (!(block instanceof BlockFrameBox)) {
-                        mLoopStatus = CoolantLocalization.format("coolantloops.pump.status.corner_frame", cx, cy, cz);
+                        setLoopStatusKey("coolantloops.pump.status.corner_frame", cx, cy, cz);
                         aErrors.add(
                             new PositionedStructureError(
                                 cx,
@@ -450,7 +455,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     int meta = world.getBlockMetadata(cx, cy, cz);
                     Materials frameMat = BlockFrameBox.getMaterial(meta);
                     if (!CoolantPipingRegistry.areMaterialsEqual(frameMat, mTankMaterial)) {
-                        mLoopStatus = CoolantLocalization.format(
+                        setLoopStatusKey(
                             "coolantloops.pump.status.corner_frame_mat",
                             cx,
                             cy,
@@ -509,8 +514,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                                     mInputBusses.add((MTEHatchInputBus) mte);
                                 }
                             } else {
-                                mLoopStatus = CoolantLocalization
-                                    .format("coolantloops.pump.status.invalid_hatch", bx, by, bz);
+                                setLoopStatusKey("coolantloops.pump.status.invalid_hatch", bx, by, bz);
                                 aErrors.add(
                                     new PositionedStructureError(
                                         bx,
@@ -525,8 +529,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                             Block block = world.getBlock(bx, by, bz);
                             int meta = world.getBlockMetadata(bx, by, bz);
                             if (block != GregTechAPI.sBlockCasings2 || meta != 15) {
-                                mLoopStatus = CoolantLocalization
-                                    .format("coolantloops.pump.status.casing_req", bx, by, bz);
+                                setLoopStatusKey("coolantloops.pump.status.casing_req", bx, by, bz);
                                 aErrors.add(
                                     new PositionedStructureError(
                                         bx,
@@ -547,7 +550,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     if (mDischargeHatch == null) {
                         mDischargeHatch = ph;
                     } else {
-                        mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.req_hatches");
+                        setLoopStatusKey("coolantloops.pump.status.req_hatches");
                         aErrors.add(StructureErrors.of("coolantloops.structure.error.duplicate_pump_hatches"));
                         return;
                     }
@@ -555,7 +558,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     if (mSuctionHatch == null) {
                         mSuctionHatch = ph;
                     } else {
-                        mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.req_hatches");
+                        setLoopStatusKey("coolantloops.pump.status.req_hatches");
                         aErrors.add(StructureErrors.of("coolantloops.structure.error.duplicate_pump_hatches"));
                         return;
                     }
@@ -563,11 +566,11 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             }
 
             if (mDischargeHatch == null) {
-                mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.req_hatches");
+                setLoopStatusKey("coolantloops.pump.status.req_hatches");
                 aErrors.add(StructureErrors.of("coolantloops.structure.error.missing_discharge_hatch"));
             }
             if (mSuctionHatch == null) {
-                mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.req_hatches");
+                setLoopStatusKey("coolantloops.pump.status.req_hatches");
                 aErrors.add(StructureErrors.of("coolantloops.structure.error.missing_suction_hatch"));
             }
 
@@ -633,7 +636,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         if (aBaseMetaTileEntity != null && !aBaseMetaTileEntity.isAllowedToWork()) {
             aBaseMetaTileEntity.enableWorking();
         }
-        mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.formed");
+        setLoopStatusKey("coolantloops.pump.status.formed");
         if (mActiveCrawl != null && !mActiveCrawl.isDone()) {
             return;
         }
@@ -767,7 +770,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             mLoopFormed = false;
             mLoopState = LoopState.EMPTY;
             mCurrentFillLiters = 0L;
-            mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.req_hatches");
+            setLoopStatusKey("coolantloops.pump.status.req_hatches");
             return false;
         }
 
@@ -806,7 +809,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             return applyCrawlResult(result);
         } else {
             mLoopFormed = false;
-            mLoopStatus = CoolantLocalization.format(
+            setLoopStatusKey(
                 "coolantloops.pump.status.crawling",
                 mActiveCrawl.getStepCount(),
                 mActiveCrawl.getTicksElapsed());
@@ -824,7 +827,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             mActiveCrawl = null;
             applyCrawlResult(result);
         } else {
-            mLoopStatus = CoolantLocalization.format(
+            setLoopStatusKey(
                 "coolantloops.pump.status.crawling",
                 mActiveCrawl.getStepCount(),
                 mActiveCrawl.getTicksElapsed());
@@ -841,9 +844,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             String reason = (result != null && result.failureReason != null) ? result.failureReason
                 : CoolantLocalization.get("coolantloops.crawler.no_suction_path");
             if (reason.equals(CoolantLocalization.get("coolantloops.crawler.loop_too_large"))) {
-                mLoopStatus = reason;
+                setLoopStatusText(reason);
             } else {
-                mLoopStatus = CoolantLocalization.format("coolantloops.pump.status.loop_disconnect", reason);
+                setLoopStatusKey("coolantloops.pump.status.loop_disconnect", reason);
             }
             return false;
         }
@@ -884,14 +887,14 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
         if (mCurrentFillLiters < mRequiredFillLiters) {
             mLoopState = LoopState.FILLING;
-            mLoopStatus = CoolantLocalization.format(
+            setLoopStatusKey(
                 "coolantloops.pump.status.filling_loop",
                 mCurrentFillLiters,
                 mRequiredFillLiters,
                 mRequiredFillLiters > 0 ? (mCurrentFillLiters * 100.0 / mRequiredFillLiters) : 100.0);
         } else {
             mLoopState = LoopState.CIRCULATING;
-            mLoopStatus = CoolantLocalization.format(
+            setLoopStatusKey(
                 "coolantloops.pump.status.loop_active",
                 result.segments.size(),
                 result.devices.size(),
@@ -920,7 +923,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 if (loopBreak != null) onDeviceDisconnected(null, loopBreak);
             }
             stepCoolantLoop();
-            if (mLoopFormed && aTick % 20 == 0) {
+            // Saves the loop's changing state; markDirty also updates comparators around the pump, so not every second
+            if (mLoopFormed && aTick % 100 == 0) {
                 aBaseMetaTileEntity.markDirty();
             }
         }
@@ -1097,7 +1101,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         mEngine.setPumpPowered(false);
         mEngine.setPumpMechanicalPowerWatts(0.0);
         mEngine.setBraking(false);
-        mLoopStatus = ShutDownReasonRegistry.POWER_LOSS.getDisplayString();
+        setLoopStatusText(ShutDownReasonRegistry.POWER_LOSS.getDisplayString());
         return stepCoastingAndCheckRupture();
     }
 
@@ -1310,7 +1314,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
 
         if (mLoopDevices != null && !mLoopDevices.isEmpty()) {
-            for (ICoolantLoopDevice dev : new ArrayList<>(mLoopDevices)) {
+            // Indexed: onDeviceDisconnected replaces the list, and returns straight after
+            for (int i = 0, n = mLoopDevices.size(); i < n; i++) {
+                ICoolantLoopDevice dev = mLoopDevices.get(i);
                 if (dev != null && dev.isDeviceDisconnected()) {
                     onDeviceDisconnected(dev, dev.getDisconnectionReason());
                     return true;
@@ -1340,19 +1346,19 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             mEngine.setPumpMechanicalPowerWatts(0.0);
             mEngine.setBraking(false);
             if (isPowerFailed()) {
-                mLoopStatus = ShutDownReasonRegistry.POWER_LOSS.getDisplayString();
+                setLoopStatusText(ShutDownReasonRegistry.POWER_LOSS.getDisplayString());
             } else if (baseTE != null && baseTE.wasShutdown() && baseTE.getLastShutDownReason() != null) {
-                mLoopStatus = baseTE.getLastShutDownReason()
-                    .getDisplayString();
+                setLoopStatusText(
+                    baseTE.getLastShutDownReason()
+                        .getDisplayString());
             } else if (mLoopState == LoopState.FILLING) {
-                mLoopStatus = CoolantLocalization
-                    .format("coolantloops.pump.status.filling_paused", mCurrentFillLiters, mRequiredFillLiters);
+                setLoopStatusKey("coolantloops.pump.status.filling_paused", mCurrentFillLiters, mRequiredFillLiters);
             } else if (mLoopState == LoopState.DECELERATING || mLoopState == LoopState.DRAINING) {
-                mLoopStatus = CoolantLocalization
-                    .format("coolantloops.pump.status.stopping_paused", mCurrentFillLiters, mRequiredFillLiters);
+                setLoopStatusKey("coolantloops.pump.status.stopping_paused", mCurrentFillLiters, mRequiredFillLiters);
             } else {
-                mLoopStatus = CoolantLocalization
-                    .format("coolantloops.pump.status.disabled_coasting", mEngine.getVolumetricFlowRate() * 1000.0);
+                setLoopStatusKey(
+                    "coolantloops.pump.status.disabled_coasting",
+                    mEngine.getVolumetricFlowRate() * 1000.0);
             }
             return stepCoastingAndCheckRupture();
         }
@@ -1371,7 +1377,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 mEngine.setPumpPowered(false);
                 mEngine.setPumpMechanicalPowerWatts(0.0);
                 mEngine.setBraking(false);
-                mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.refuse_water");
+                setLoopStatusKey("coolantloops.pump.status.refuse_water");
                 return true;
             }
             if (isGaseousFluid(reservoirFluid)) {
@@ -1379,7 +1385,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 mEngine.setPumpPowered(false);
                 mEngine.setPumpMechanicalPowerWatts(0.0);
                 mEngine.setBraking(false);
-                mLoopStatus = CoolantLocalization.format(
+                setLoopStatusKey(
                     "coolantloops.pump.status.refuse_gas",
                     reservoirFluid.getFluid()
                         .getName());
@@ -1392,7 +1398,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     mEngine.setPumpPowered(false);
                     mEngine.setPumpMechanicalPowerWatts(0.0);
                     mEngine.setBraking(false);
-                    mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.refuse_lava");
+                    setLoopStatusKey("coolantloops.pump.status.refuse_lava");
                     return true;
                 }
             }
@@ -1411,7 +1417,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 mEngine.setPumpPowered(false);
                 mEngine.setPumpMechanicalPowerWatts(0.0);
                 mEngine.setBraking(false);
-                mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.refuse_water");
+                setLoopStatusKey("coolantloops.pump.status.refuse_water");
                 return true;
             }
             if (mEngine.getFluid()
@@ -1422,7 +1428,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     mEngine.setPumpPowered(false);
                     mEngine.setPumpMechanicalPowerWatts(0.0);
                     mEngine.setBraking(false);
-                    mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.refuse_lava");
+                    setLoopStatusKey("coolantloops.pump.status.refuse_lava");
                     return true;
                 }
             }
@@ -1481,7 +1487,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     mEngine.setPumpPowered(false);
                     mEngine.setPumpMechanicalPowerWatts(0.0);
                     mEngine.setBraking(false);
-                    mLoopStatus = CoolantLocalization.format(
+                    setLoopStatusKey(
                         "coolantloops.pump.status.refuse_solidify",
                         resTemp,
                         declaredMelting,
@@ -1495,7 +1501,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                             mEngine.setPumpPowered(false);
                             mEngine.setPumpMechanicalPowerWatts(0.0);
                             mEngine.setBraking(false);
-                            mLoopStatus = CoolantLocalization.format(
+                            setLoopStatusKey(
                                 "coolantloops.pump.status.refuse_solidify_coolant",
                                 minLoopTemp,
                                 declaredMelting,
@@ -1512,7 +1518,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             mEngine.setPumpPowered(false);
             mEngine.setPumpMechanicalPowerWatts(0.0);
             mEngine.setBraking(false);
-            mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.missing_rotor");
+            setLoopStatusKey("coolantloops.pump.status.missing_rotor");
             return stepCoastingAndCheckRupture();
         }
 
@@ -1566,11 +1572,10 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     mEngine.setBraking(false);
                 }
 
-                mLoopStatus = "Actively decelerating flow: "
-                    + (Math.round(mEngine.getFlowRateLitersPerSecond() * 10.0) / 10.0)
-                    + " L/s -> 0.0 L/s (power: "
-                    + (Math.round(mechanicalWatts / 100.0) / 10.0)
-                    + " kW)";
+                setLoopStatusKey(
+                    "coolantloops.pump.status.braking",
+                    Math.round(mEngine.getFlowRateLitersPerSecond() * 10.0) / 10.0,
+                    Math.round(mechanicalWatts / 100.0) / 10.0);
 
                 // Thermal exchange during deceleration
                 double decelFlowRate = mEngine.getVolumetricFlowRate();
@@ -1595,8 +1600,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 if (mCurrentFillLiters > 0) {
                     if (isReservoirFull()) {
                         mLoopState = LoopState.STOPPED;
-                        mLoopStatus = CoolantLocalization
-                            .format("coolantloops.pump.status.draining_paused", mCurrentFillLiters);
+                        setLoopStatusKey("coolantloops.pump.status.draining_paused", mCurrentFillLiters);
                     } else {
                         mLoopState = LoopState.DRAINING;
                         long neededReturn = mCurrentFillLiters;
@@ -1609,13 +1613,12 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                         if (mCurrentFillLiters <= 0) {
                             mCurrentFillLiters = 0;
                             mLoopState = LoopState.EMPTY;
-                            mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.drained_complete");
+                            setLoopStatusKey("coolantloops.pump.status.drained_complete");
                         } else if (isReservoirFull()) {
                             mLoopState = LoopState.STOPPED;
-                            mLoopStatus = CoolantLocalization
-                                .format("coolantloops.pump.status.draining_paused", mCurrentFillLiters);
+                            setLoopStatusKey("coolantloops.pump.status.draining_paused", mCurrentFillLiters);
                         } else {
-                            mLoopStatus = CoolantLocalization.format(
+                            setLoopStatusKey(
                                 "coolantloops.pump.status.draining_loop",
                                 mCurrentFillLiters,
                                 mRequiredFillLiters);
@@ -1623,7 +1626,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     }
                 } else {
                     mLoopState = LoopState.EMPTY;
-                    mLoopStatus = CoolantLocalization.get("coolantloops.pump.status.flow_stopped_empty");
+                    setLoopStatusKey("coolantloops.pump.status.flow_stopped_empty");
                 }
                 return true;
             }
@@ -1670,10 +1673,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 if (mCurrentFillLiters >= mRequiredFillLiters) {
                     mCurrentFillLiters = mRequiredFillLiters;
                     mLoopState = LoopState.CIRCULATING;
-                    mLoopStatus = CoolantLocalization
-                        .format("coolantloops.pump.status.filled_circulating", mCurrentFillLiters);
+                    setLoopStatusKey("coolantloops.pump.status.filled_circulating", mCurrentFillLiters);
                 } else {
-                    mLoopStatus = CoolantLocalization.format(
+                    setLoopStatusKey(
                         "coolantloops.pump.status.filling_loop",
                         mCurrentFillLiters,
                         mRequiredFillLiters,
@@ -1683,8 +1685,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 // Reservoir ran out of fluid before loop filled!
                 // Safe fail condition: stop cleanly WITHOUT EXPLOSION
                 mLoopState = LoopState.FAILED;
-                mLoopStatus = CoolantLocalization
-                    .format("coolantloops.pump.status.filling_failed", mCurrentFillLiters, mRequiredFillLiters);
+                setLoopStatusKey("coolantloops.pump.status.filling_failed", mCurrentFillLiters, mRequiredFillLiters);
             }
             return true;
         }
@@ -1803,7 +1804,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         mEngine.setPumpPowered(false);
         mEngine.setPumpMechanicalPowerWatts(0.0);
         mEngine.setBraking(false);
-        mLoopStatus = reason;
+        setLoopStatusText(reason);
     }
 
     protected void spillCoolantFluid(World world, LoopSegment rupturedSegment) {
@@ -2131,7 +2132,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         mEngine.setBraking(false);
         // Do NOT abruptly zero flow rate! Fluid continues circulating through inertia and slowing with drag.
         String name = fluidName != null ? fluidName : "liquid nuclear fuel";
-        mLoopStatus = CoolantLocalization.format("coolantloops.pump.status.catastrophic_fuel", name);
+        setLoopStatusKey("coolantloops.pump.status.catastrophic_fuel", name);
     }
 
     public void failOnImpellerMelting(double fluidTemp, Materials mat) {
@@ -2143,8 +2144,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         // Do NOT abruptly zero flow rate! Fluid continues circulating through inertia and slowing with drag.
         String matName = mat != null ? RotorThermalHelper.getMaterialLocalizedName(mat) : "impeller";
         double meltC = RotorThermalHelper.getMeltingPointCelsius(mat);
-        mLoopStatus = CoolantLocalization
-            .format("coolantloops.pump.status.catastrophic_melt", fluidTemp, meltC, matName);
+        setLoopStatusKey("coolantloops.pump.status.catastrophic_melt", fluidTemp, meltC, matName);
     }
 
     public void destroyImpeller() {
@@ -2249,7 +2249,23 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     }
 
     public String getLoopStatus() {
-        return mLoopStatus;
+        if (mLoopStatusText == null) mLoopStatusText = CoolantLocalization.format(mLoopStatusKey, mLoopStatusArgs);
+        return mLoopStatusText;
+    }
+
+    /** Sets the status to a localized line; formatting waits until it is read, and an unchanged line costs nothing. */
+    public void setLoopStatusKey(String key, Object... args) {
+        if (key.equals(mLoopStatusKey) && java.util.Arrays.equals(args, mLoopStatusArgs)) return;
+        mLoopStatusKey = key;
+        mLoopStatusArgs = args;
+        mLoopStatusText = null;
+    }
+
+    /** Sets the status to text that is already formatted (a failure reason, a saved status). */
+    protected void setLoopStatusText(String text) {
+        mLoopStatusKey = null;
+        mLoopStatusArgs = null;
+        mLoopStatusText = text != null ? text : "";
     }
 
     public LoopState getLoopState() {
@@ -2291,6 +2307,11 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     @Override
     public String getLoopStateName() {
         return mLoopState != null ? mLoopState.name() : "STOPPED";
+    }
+
+    @Override
+    public boolean isFlowing() {
+        return mLoopState == LoopState.CIRCULATING || mLoopState == LoopState.DECELERATING;
     }
 
     @Override
@@ -2563,7 +2584,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     .size(),
                 mLoopDevices.size())
             : com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
-                .format("gt.scanner.coolant_pump.loop_incomplete", mLoopStatus);
+                .format("gt.scanner.coolant_pump.loop_incomplete", getLoopStatus());
 
         return new String[] {
             com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization
@@ -2594,8 +2615,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             super.getWailaNBTData(player, tile, tag, world, x, y, z);
         }
         tag.setBoolean("loopFormed", mLoopFormed);
-        if (mLoopStatus != null) {
-            tag.setString("loopStatus", mLoopStatus);
+        if (getLoopStatus() != null) {
+            tag.setString("loopStatus", getLoopStatus());
         }
     }
 
@@ -2625,7 +2646,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         mReservoir.saveNBTData(aNBT);
         aNBT.setBoolean("mLoopFormed", mLoopFormed);
         aNBT.setString("mLoopState", mLoopState.name());
-        aNBT.setString("mLoopStatus", mLoopStatus != null ? mLoopStatus : "");
+        aNBT.setString("mLoopStatus", getLoopStatus() != null ? getLoopStatus() : "");
         aNBT.setLong("mCurrentFillLiters", mCurrentFillLiters);
         aNBT.setLong("mRequiredFillLiters", mRequiredFillLiters);
         aNBT.setDouble("mRotorDamageAccumulator", mRotorDamageAccumulator);
@@ -2726,7 +2747,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             mHasEverBeenEnabled = aNBT.getBoolean("mHasEverBeenEnabled");
         }
         if (aNBT.hasKey("mLoopStatus")) {
-            mLoopStatus = aNBT.getString("mLoopStatus");
+            setLoopStatusText(aNBT.getString("mLoopStatus"));
         }
         if (aNBT.hasKey("mTankMaterial")) {
             Materials mat = Materials.get(aNBT.getString("mTankMaterial"));
