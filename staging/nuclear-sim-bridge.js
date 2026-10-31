@@ -125,6 +125,14 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    /** Builds the grid from a simulator option line (the CLI's batch format), as a saved design ran. */
+    loadRunOptions(line, notify = true) {
+        if (!this.inst.exports.loadRunOptions) return false;
+        this.inst.exports.loadRunOptions(this.createJavaString(line));
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+        return true;
+    }
+
     getLayoutString() {
         if (this.inst.exports.getLayoutString) {
             return this.readJavaString(this.inst.exports.getLayoutString());
