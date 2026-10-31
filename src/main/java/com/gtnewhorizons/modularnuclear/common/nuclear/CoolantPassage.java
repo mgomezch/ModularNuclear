@@ -74,7 +74,7 @@ public final class CoolantPassage {
 
     /** Heat capacity (HU/°C) of a passage of the given voltage tier: 2^tier times the configured base. */
     public static double heatCapacity(int tier) {
-        return config().coolantPassageHeatCapacity * Math.pow(2.0, Math.max(0, tier));
+        return config().coolantPassageHeatCapacity * TierScale.pow2(tier);
     }
 
     /**
@@ -82,8 +82,9 @@ public final class CoolantPassage {
      * times the tier ratio per tier above.
      */
     public static double heatTransferFactor(int tier) {
-        return NuclearSimulationEngine.params().coolantPassageHeatTransferMultiplier
-            * Math.pow(NuclearSimulationEngine.params().coolantPassageHeatTransferTierRatio, Math.max(0, tier) - 2);
+        EngineParameters p = NuclearSimulationEngine.params();
+        return p.passageHeatTransferByTier
+            .get(p.coolantPassageHeatTransferMultiplier, p.coolantPassageHeatTransferTierRatio, tier);
     }
 
     public static double length() {

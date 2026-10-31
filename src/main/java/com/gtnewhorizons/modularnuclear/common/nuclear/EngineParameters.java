@@ -62,6 +62,11 @@ public final class EngineParameters {
     /** The engine's random number source (neutron directions, stochastic interactions). */
     public Random random = new Random();
 
+    /** Hatch conductance per tier (base × ratio^(tier − MV)), see NuclearSimulationEngine.getHatchConductance. */
+    public final TierScale hatchConductanceByTier = new TierScale(2);
+    /** Passage heat transfer factor per tier, see CoolantPassage.heatTransferFactor. */
+    public final TierScale passageHeatTransferByTier = new TierScale(2);
+
     /** An independent copy: changing it leaves this one (and its random sequence) as it was. */
     public EngineParameters copy() {
         EngineParameters c = new EngineParameters();

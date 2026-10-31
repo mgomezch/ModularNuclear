@@ -294,7 +294,7 @@ public class NuclearSimulationEngine {
 
     /** Heat capacity (HU/°C) of a nuclear core hatch of the given tier (LV=1 ... UHV=9), whatever it holds. */
     public static double getCoreHatchHeatCapacity(int tier) {
-        return params().coreHatchHeatCapacity * Math.pow(2.0, Math.max(0, tier));
+        return params().coreHatchHeatCapacity * TierScale.pow2(tier);
     }
 
     /**
@@ -303,7 +303,8 @@ public class NuclearSimulationEngine {
      * hatch 60%.
      */
     public static double getHatchConductance(int tier) {
-        return params().baseHatchConductance * Math.pow(params().hatchConductanceTierRatio, Math.max(0, tier) - 2);
+        EngineParameters p = params();
+        return p.hatchConductanceByTier.get(p.baseHatchConductance, p.hatchConductanceTierRatio, tier);
     }
 
     /**
