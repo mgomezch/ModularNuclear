@@ -1073,7 +1073,7 @@ If GregTech machine explosions are disabled, any explosion or meltdown condition
 | Rotor wear | Continuous; ×(1 + 10·gas fraction), × thermal factor | Rotor consumed; pump stops |
 | Pump power loss | Insufficient EU | Pump stops; flow coasts down; core loses loop cooling |
 | Heater powerfail | A Pressurized Fluid Heater's inner temperature passes its casing's limit | Heater disconnects; a running loop ruptures |
-| Loop broken | A pipe or device block of a formed loop is removed or replaced, a device unforms, or the pump's structure breaks (checked once a second, in loaded chunks) | Loop unforms; a running loop ruptures |
+| Loop broken | A pipe or device block of a formed loop is removed or replaced, a device unforms, or the pump's structure breaks (checked every 5 seconds, in loaded chunks) | Loop unforms; a running loop ruptures |
 
 On rupture, the pump explodes (strength above), 80 % of the reservoir is drained, and, for fluids configured to spill, the coolant is placed in the world at the rupture.
 

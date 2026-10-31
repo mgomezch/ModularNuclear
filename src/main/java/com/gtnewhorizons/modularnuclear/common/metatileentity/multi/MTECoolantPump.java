@@ -123,6 +123,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
      */
     protected int[] mFootprint;
     private static final long STRUCTURE_SETTLE_TICKS = 200;
+    /** How often (ticks) a formed loop checks that its blocks are still there; the check walks the whole footprint. */
+    private static final int LOOP_CHECK_INTERVAL_TICKS = 100;
     protected Block[] mFootprintBlocks;
     /**
      * The status line, kept as a localization key and its arguments and only formatted when read: the tick sets it
@@ -917,7 +919,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             } else if (!mLoopFormed && mMachine && aTick % 100 == 0) {
                 crawlLoopGraph();
             }
-            if (mLoopFormed && aTick % 20 == 0) {
+            if (mLoopFormed && aTick % LOOP_CHECK_INTERVAL_TICKS == 0) {
                 String loopBreak = findLoopBreak(aBaseMetaTileEntity.getWorld());
                 if (loopBreak != null) onDeviceDisconnected(null, loopBreak);
             }
