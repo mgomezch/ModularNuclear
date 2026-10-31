@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -25,6 +26,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantLoopMachineGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
+import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
 import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
 
@@ -425,6 +427,11 @@ public class MTEPressurizedDegasser extends MTEEnhancedMultiBlockBase<MTEPressur
     @Override
     public boolean isStructureReady() {
         return mMachine;
+    }
+
+    @Override
+    public void collectStructureChunks(Set<Long> chunks) {
+        StructureChunks.collect(this, "degasser_3x3x7", 1, 6, 0, chunks);
     }
 
     public boolean triggerPowerfail() {

@@ -29,6 +29,7 @@ import com.gtnewhorizons.modularnuclear.common.gui.CoolantBathGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantBathSlot;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantBathRegistry;
+import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularnuclear.network.PacketSyncCoolantBath;
 
 import cpw.mods.fml.common.network.NetworkRegistry.TargetPoint;
@@ -552,6 +553,16 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
     @Override
     public boolean isStructureReady() {
         return mMachine;
+    }
+
+    @Override
+    public void collectStructureChunks(Set<Long> chunks) {
+        switch (mStructureTier) {
+            case 3 -> StructureChunks.collect(this, "bath_9x11x3", 4, 2, 0, chunks);
+            case 2 -> StructureChunks.collect(this, "bath_7x9x3", 3, 2, 0, chunks);
+            case 1 -> StructureChunks.collect(this, "bath_5x7x3", 2, 2, 0, chunks);
+            default -> StructureChunks.collect(this, null, 0, 0, 0, chunks);
+        }
     }
 
     @Override

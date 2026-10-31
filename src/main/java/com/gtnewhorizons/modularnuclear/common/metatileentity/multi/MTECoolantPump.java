@@ -22,6 +22,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
+import net.minecraftforge.common.ForgeChunkManager;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -37,6 +38,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipingRegistry;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopChunkLoader;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantLoopMachineGui;
@@ -49,6 +51,7 @@ import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 import com.gtnewhorizons.modularnuclear.common.util.LoopStateNbt;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
+import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
 import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
@@ -181,6 +184,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     private boolean mRecrawlKeepsState = false;
     /** Until this tick, right after resuming from a load, a power shortfall lets the loop coast. */
     private long mPowerGraceUntilTick = 0L;
+    /** Chunk tickets keeping the formed loop's chunks loaded. */
+    private List<ForgeChunkManager.Ticket> mChunkTickets = new ArrayList<>();
     protected int[] mSavedDischargeCoord = null;
     protected int[] mSavedSuctionCoord = null;
 
@@ -782,6 +787,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         if (mDischargeHatch == null || mSuctionHatch == null) {
             mActiveCrawl = null;
             mRecrawlKeepsState = false;
+            releaseLoopChunks();
             mLoopFormed = false;
             mLoopState = LoopState.EMPTY;
             mCurrentFillLiters = 0L;
@@ -852,6 +858,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         boolean keepState = mRecrawlKeepsState;
         mRecrawlKeepsState = false;
         if (result == null || !result.isSuccess) {
+            releaseLoopChunks();
             mLastCrawlResult = result;
             mLoopFormed = false;
             mLoopState = LoopState.EMPTY;
@@ -887,6 +894,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         mRequiredFillLiters = requiredFill;
         mLoopFormed = true;
         mFootprint = null;
+        updateLoopChunks();
         mHasEverBeenEnabled = true;
 
         if (getBaseMetaTileEntity() != null && !getBaseMetaTileEntity().isAllowedToWork()) {
@@ -1250,12 +1258,14 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     @Override
     public void onRemoval() {
         releaseLoopDevices();
+        releaseLoopChunks();
         super.onRemoval();
     }
 
     @Override
     public void onUnload() {
         releaseLoopDevices();
+        // The chunk tickets stay: they are saved with the world and bring the loop back loaded
         super.onUnload();
     }
 
@@ -1298,6 +1308,53 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             }
         }
         return null;
+    }
+
+    /**
+     * Keeps loaded every chunk the formed loop occupies: the pump, its pipes and the whole structure of each device.
+     */
+    private void updateLoopChunks() {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        World world = base != null ? base.getWorld() : null;
+        if (world == null || world.isRemote) return;
+        int x = base.getXCoord(), y = base.getYCoord(), z = base.getZCoord();
+        Set<Long> chunks = new HashSet<>();
+        ForgeDirection front = base.getFrontFacing();
+        boolean faced = front != null && front != ForgeDirection.UNKNOWN;
+        ForgeDirection back = faced ? front.getOpposite() : ForgeDirection.SOUTH;
+        ForgeDirection right = faced ? front.getRotation(ForgeDirection.UP) : ForgeDirection.WEST;
+        int r = mWidth / 2;
+        for (int side : new int[] { -r, r }) {
+            for (int depth : new int[] { 0, mWidth - 1 }) {
+                StructureChunks.addBlock(
+                    x + right.offsetX * side + back.offsetX * depth,
+                    z + right.offsetZ * side + back.offsetZ * depth,
+                    chunks);
+            }
+        }
+        if (mLastCrawlResult != null && mLastCrawlResult.pipePositions != null) {
+            for (LoopGraphCrawler.BlockPosCoord p : mLastCrawlResult.pipePositions) {
+                StructureChunks.addBlock(p.x, p.z, chunks);
+            }
+        }
+        if (mLastCrawlResult != null && mLastCrawlResult.graphNodes != null) {
+            for (LoopGraphCrawler.FlowNode node : mLastCrawlResult.graphNodes.values()) {
+                if (node.data instanceof LoopGraphCrawler.BlockPosCoord p) StructureChunks.addBlock(p.x, p.z, chunks);
+            }
+        }
+        for (ICoolantLoopDevice dev : mLoopDevices) {
+            dev.collectStructureChunks(chunks);
+        }
+        mChunkTickets = LoopChunkLoader.update(mChunkTickets, world, x, y, z, chunks);
+    }
+
+    private void releaseLoopChunks() {
+        LoopChunkLoader.release(mChunkTickets);
+        mChunkTickets = new ArrayList<>();
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base != null && base.getWorld() != null && !base.getWorld().isRemote) {
+            LoopChunkLoader.releaseRestored(base.getWorld(), base.getXCoord(), base.getYCoord(), base.getZCoord());
+        }
     }
 
     private void captureFootprint(World world) {

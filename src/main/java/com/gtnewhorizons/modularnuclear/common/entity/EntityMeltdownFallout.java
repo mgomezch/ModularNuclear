@@ -18,6 +18,7 @@ import net.minecraftforge.common.ForgeChunkManager;
 
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopChunkLoader;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.Loader;
@@ -106,6 +107,8 @@ public class EntityMeltdownFallout extends Entity {
             for (ForgeChunkManager.Ticket ticket : tickets) {
                 if (ticket != null && ticket.getEntity() instanceof EntityMeltdownFallout fallout) {
                     fallout.initChunkLoading(ticket);
+                } else if (LoopChunkLoader.isLoopTicket(ticket)) {
+                    LoopChunkLoader.restore(ticket, world);
                 }
             }
         }

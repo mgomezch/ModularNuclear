@@ -1,5 +1,7 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.hatch;
 
+import java.util.Set;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -689,5 +691,10 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
     @Override
     public boolean isStructureReady() {
         return mReactor != null && mReactor.mMachine;
+    }
+
+    @Override
+    public void collectStructureChunks(Set<Long> chunks) {
+        if (mReactor != null) mReactor.collectStructureChunks(chunks);
     }
 }

@@ -2,6 +2,7 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -27,6 +28,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureCh
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PheSheetmetalTier;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PressurizedHeatExchangerStructure;
+import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
 import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
 
@@ -381,6 +383,12 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     @Override
     public boolean isStructureReady() {
         return mMachine;
+    }
+
+    @Override
+    public void collectStructureChunks(Set<Long> chunks) {
+        String piece = PressurizedHeatExchangerStructure.getPieceName(mStructureHeight, mStructureLength);
+        StructureChunks.collect(this, piece, 1, mStructureHeight / 2, 0, chunks);
     }
 
     public static boolean isSingleAmpEnergyHatch(MTEHatchEnergy hatch) {

@@ -64,6 +64,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemKitModularNucl
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
+import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import appeng.helpers.ICustomNameObject;
@@ -503,6 +504,16 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             return new ITexture[] { casingTex };
         }
         return new ITexture[] { casingTex };
+    }
+
+    /** Adds the chunks the reactor's whole structure occupies, for the coolant pumps running loops through it. */
+    public void collectStructureChunks(Set<Long> chunks) {
+        switch (gridSize) {
+            case 13 -> StructureChunks.collect(this, STRUCTURE_TIER_3, 7, 3, 0, chunks);
+            case 9 -> StructureChunks.collect(this, STRUCTURE_TIER_2, 5, 3, 0, chunks);
+            case 5 -> StructureChunks.collect(this, STRUCTURE_TIER_1, 3, 3, 0, chunks);
+            default -> StructureChunks.collect(this, null, 0, 0, 0, chunks);
+        }
     }
 
     @Override

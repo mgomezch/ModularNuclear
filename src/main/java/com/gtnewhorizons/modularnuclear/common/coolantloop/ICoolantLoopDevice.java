@@ -1,5 +1,7 @@
 package com.gtnewhorizons.modularnuclear.common.coolantloop;
 
+import java.util.Set;
+
 /**
  * Interface implemented by in-line blocks and MetaTileEntities that interface
  * with a pressurized coolant loop (Pumps, Exchangers, Reservoirs, Manifolds, Instruments).
@@ -73,4 +75,9 @@ public interface ICoolantLoopDevice {
         return true;
     }
 
+    /**
+     * Adds the chunks this device's whole structure occupies (as {@code ChunkCoordIntPair.chunkXZ2Int} keys), so the
+     * pump can keep them loaded while the loop runs through it.
+     */
+    default void collectStructureChunks(Set<Long> chunks) {}
 }

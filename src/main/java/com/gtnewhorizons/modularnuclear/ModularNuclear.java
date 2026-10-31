@@ -11,6 +11,7 @@ import com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopChunkLoader;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 import com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
@@ -76,6 +77,9 @@ public class ModularNuclear {
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new CoriumPlacementHandler());
         net.minecraftforge.common.ForgeChunkManager
             .setForcedChunkLoadingCallback(this, new EntityMeltdownFallout.MeltdownChunkLoadingCallback());
+        cpw.mods.fml.common.FMLCommonHandler.instance()
+            .bus()
+            .register(new LoopChunkLoader.Sweeper());
 
         cpw.mods.fml.common.registry.EntityRegistry.registerModEntity(
             EntityMeltdownFallout.class,
