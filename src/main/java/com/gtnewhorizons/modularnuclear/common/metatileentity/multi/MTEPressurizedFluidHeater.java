@@ -36,6 +36,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.Pr
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
+import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
 import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
@@ -856,8 +857,9 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
     }
 
     @Override
-    public boolean isStructureReady() {
-        return mMachine;
+    public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
+        super.onFirstTick(aBaseMetaTileEntity);
+        MultiblockStartup.formNow(this);
     }
 
     @Override

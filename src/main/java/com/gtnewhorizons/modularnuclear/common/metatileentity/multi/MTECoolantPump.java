@@ -21,7 +21,9 @@ import net.minecraft.nbt.NBTTagString;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.ForgeChunkManager;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
@@ -50,6 +52,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.Coolant
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 import com.gtnewhorizons.modularnuclear.common.util.LoopStateNbt;
+import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
@@ -126,12 +129,10 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
      */
     protected int[] mFootprint;
     private static final long STRUCTURE_SETTLE_TICKS = 200;
-    /** How long (ticks) a loaded loop waits for the pump and its devices to re-form before re-crawling anyway. */
-    private static final long RESUME_TIMEOUT_TICKS = 600;
-    /** How long (ticks) after resuming a power shortfall lets the loop coast instead of powerfailing. */
-    private static final long RESUME_POWER_GRACE_TICKS = 200;
     /** How often (ticks) a formed loop checks that its blocks are still there; the check walks the whole footprint. */
     private static final int LOOP_CHECK_INTERVAL_TICKS = 100;
+    /** The widest pump, matching the widest Railcraft tank interior. */
+    private static final int MAX_PUMP_WIDTH = 9;
     protected Block[] mFootprintBlocks;
     /**
      * The status line, kept as a localization key and its arguments and only formatted when read: the tick sets it
@@ -178,14 +179,12 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     protected long mLastCrawlCompleteTime = -1L;
     protected LoopGraphCrawler.CrawlSession mActiveCrawl = null;
     protected boolean mNeedsPostLoadRebind = false;
-    /** Set by a load while the loop was formed: the loop holds still until the pump and its devices have re-formed. */
-    protected boolean mResumingAfterLoad = false;
     /** The next crawl is of a loop that was formed, so the loop keeps its state if the crawl finds it unchanged. */
     private boolean mRecrawlKeepsState = false;
-    /** Until this tick, right after resuming from a load, a power shortfall lets the loop coast. */
-    private long mPowerGraceUntilTick = 0L;
     /** Chunk tickets keeping the formed loop's chunks loaded. */
     private List<ForgeChunkManager.Ticket> mChunkTickets = new ArrayList<>();
+    /** The chunks the formed loop occupies, as chunkXZ2Int keys; saved, so a load can load them all at once. */
+    private Set<Long> mLoopChunks = new HashSet<>();
     protected int[] mSavedDischargeCoord = null;
     protected int[] mSavedSuctionCoord = null;
 
@@ -655,7 +654,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             aBaseMetaTileEntity.enableWorking();
         }
         setLoopStatusKey("coolantloops.pump.status.formed");
-        if (mActiveCrawl != null && !mActiveCrawl.isDone() || mResumingAfterLoad) {
+        // A saved loop is restored by rebindRestoredLoop, which re-crawls only if it changed
+        if (mActiveCrawl != null && !mActiveCrawl.isDone() || mNeedsPostLoadRebind) {
             return;
         }
         crawlLoopGraph();
@@ -826,12 +826,14 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             LoopGraphCrawler.CrawlResult result = mActiveCrawl.getResult();
             mActiveCrawl = null;
             return applyCrawlResult(result);
-        } else {
-            mLoopFormed = false;
+        } else if (!mLoopFormed) {
             setLoopStatusKey(
                 "coolantloops.pump.status.crawling",
                 mActiveCrawl.getStepCount(),
                 mActiveCrawl.getTicksElapsed());
+            return false;
+        } else {
+            // A formed loop keeps circulating while it is re-crawled
             return false;
         }
     }
@@ -845,7 +847,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             LoopGraphCrawler.CrawlResult result = mActiveCrawl.getResult();
             mActiveCrawl = null;
             applyCrawlResult(result);
-        } else {
+        } else if (!mLoopFormed) {
             setLoopStatusKey(
                 "coolantloops.pump.status.crawling",
                 mActiveCrawl.getStepCount(),
@@ -874,7 +876,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
 
         mLastCrawlResult = result;
-        mEngine.replaceSegments(result.segments, keepState);
+        boolean sameLoop = mEngine.replaceSegments(result.segments, keepState);
         if (result.maxPumpPipeCapacityLPerSec > 0 && result.maxPumpPipeCapacityLPerSec != Double.MAX_VALUE) {
             mEngine.setMaxVolumetricFlowRate(result.maxPumpPipeCapacityLPerSec / 1000.0);
         }
@@ -907,7 +909,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             }
         }
 
-        if (mCurrentFillLiters < mRequiredFillLiters) {
+        if (sameLoop && mLoopState != LoopState.STOPPED && mLoopState != LoopState.EMPTY) {
+            // A re-crawl of an unchanged running loop leaves it doing whatever it was doing
+        } else if (mCurrentFillLiters < mRequiredFillLiters) {
             mLoopState = LoopState.FILLING;
             setLoopStatusKey(
                 "coolantloops.pump.status.filling_loop",
@@ -932,7 +936,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             if (mNeedsPostLoadRebind) {
                 rebindRestoredLoop(aBaseMetaTileEntity);
             }
-            if (mResumingAfterLoad && !resumeLoop(aBaseMetaTileEntity)) return;
             if (!hasRotor()) {
                 checkAndLoadImpellerFromInputBus();
             }
@@ -953,33 +956,35 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
     }
 
-    /**
-     * After a load the loop holds still, neither flowing nor drawing power, until the pump and every device have
-     * re-formed (multiblocks report unformed until their first structure check). It is then re-crawled, keeping its
-     * state if it is unchanged, and for a short while a power shortfall only lets it coast, as its power source may
-     * still be starting up. Returns whether the loop runs this tick.
-     */
-    private boolean resumeLoop(IGregTechTileEntity base) {
-        boolean timedOut = base.getTimer() > RESUME_TIMEOUT_TICKS;
-        if (!timedOut && (mNeedsPostLoadRebind || !mMachine || !loopDevicesReady())) {
-            setLoopStatusKey("coolantloops.pump.status.resuming");
-            return false;
-        }
-        mResumingAfterLoad = false;
-        mNeedsPostLoadRebind = false;
-        mPowerGraceUntilTick = base.getTimer() + RESUME_POWER_GRACE_TICKS;
-        if (mActiveCrawl == null) {
-            mRecrawlKeepsState = true;
-            crawlLoopGraph();
-        }
-        return true;
+    @Override
+    public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
+        super.onFirstTick(aBaseMetaTileEntity);
+        if (!aBaseMetaTileEntity.isServerSide()) return;
+        if (mNeedsPostLoadRebind) loadLoopChunks(aBaseMetaTileEntity.getWorld());
+        MultiblockStartup.formNow(this);
+        if (mNeedsPostLoadRebind) rebindRestoredLoop(aBaseMetaTileEntity);
     }
 
-    private boolean loopDevicesReady() {
-        for (ICoolantLoopDevice dev : mLoopDevices) {
-            if (!dev.isStructureReady()) return false;
+    /**
+     * Loads every chunk a saved loop occupies, so the loop can be restored on the pump's first tick instead of
+     * waiting for its chunks. It runs in a tick, never while a chunk is loading, so it cannot recurse into loads.
+     * Chunk tickets normally have them loaded already; this covers a loop saved without them.
+     */
+    private void loadLoopChunks(World world) {
+        if (!(world instanceof WorldServer ws)) return;
+        Set<Long> chunks = new HashSet<>(mLoopChunks);
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        // The pump's width is not known before its structure check, so this covers the widest pump and tank
+        if (base != null) collectPumpChunks(base, MAX_PUMP_WIDTH, chunks);
+        if (mLastCrawlResult != null && mLastCrawlResult.pipePositions != null) {
+            for (LoopGraphCrawler.BlockPosCoord p : mLastCrawlResult.pipePositions) {
+                StructureChunks.addBlock(p.x, p.z, chunks);
+            }
         }
-        return true;
+        for (long chunk : chunks) {
+            int cx = (int) chunk, cz = (int) (chunk >>> 32);
+            if (!ws.theChunkProviderServer.chunkExists(cx, cz)) ws.theChunkProviderServer.loadChunk(cx, cz);
+        }
     }
 
     protected void rebindRestoredLoop(IGregTechTileEntity aBaseMetaTileEntity) {
@@ -1026,6 +1031,11 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
         if (mLastCrawlResult != null && mLastCrawlResult.graphNodes != null) {
             for (LoopGraphCrawler.FlowNode node : mLastCrawlResult.graphNodes.values()) {
+                if (node.type == LoopGraphCrawler.NodeType.DEVICE && node.data == null) {
+                    // Saved before devices kept their positions
+                    missingOrChanged = true;
+                    break;
+                }
                 if (node.type == LoopGraphCrawler.NodeType.DEVICE
                     && node.data instanceof LoopGraphCrawler.BlockPosCoord bc) {
                     if (!w.blockExists(bc.x, bc.y, bc.z)) return;
@@ -1064,6 +1074,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                         missingOrChanged = true;
                         break;
                     }
+                    if (dev instanceof MTEMultiBlockBase multiblock) MultiblockStartup.formNow(multiblock);
                     if (seenDeviceIds.add(dev.getDeviceId())) {
                         dev.setLoopPump(this);
                         mLoopDevices.add(dev);
@@ -1085,16 +1096,18 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
         if (missingOrChanged) {
             mNeedsPostLoadRebind = false;
-            // Re-crawled once the pump and its devices have re-formed
-            if (mResumingAfterLoad) return;
             mLoopFormed = false;
             releaseLoopDevices();
+            // Re-crawled at once, keeping the loop's state if it is unchanged after all, so it does not stop meanwhile
+            mRecrawlKeepsState = true;
             crawlLoopGraph();
+            while (mActiveCrawl != null) stepActiveCrawl();
             return;
         }
 
         mNeedsPostLoadRebind = false;
         rebuildDeviceBindings();
+        updateLoopChunks();
         if (mLastCrawlResult != null) {
             mLastCrawlResult = LoopGraphCrawler.CrawlResult.success(
                 mEngine.getSegments(),
@@ -1142,18 +1155,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
         maxTier = Math.max(0, Math.min(maxTier, GTValues.V.length - 1));
         return 4L * GTValues.V[maxTier];
-    }
-
-    /** Not enough power for this tick: the pump powerfails, unless it has only just resumed after a load. */
-    private boolean onPowerShortfall() {
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base == null || base.getTimer() >= mPowerGraceUntilTick) return triggerPowerfail();
-        if (base.isActive()) base.setActive(false);
-        mEngine.setPumpPowered(false);
-        mEngine.setPumpMechanicalPowerWatts(0.0);
-        mEngine.setBraking(false);
-        setLoopStatusKey("coolantloops.pump.status.awaiting_power");
-        return stepCoastingAndCheckRupture();
     }
 
     public boolean triggerPowerfail() {
@@ -1275,7 +1276,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
      */
     public String findLoopBreak(World world) {
         IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (mNeedsPostLoadRebind || mResumingAfterLoad) return null;
+        if (mNeedsPostLoadRebind) return null;
         // Multiblocks report unformed until their first structure check after a load
         boolean settled = base != null && base.getTimer() > STRUCTURE_SETTLE_TICKS;
         if (!mMachine && settled) {
@@ -1319,19 +1320,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         if (world == null || world.isRemote) return;
         int x = base.getXCoord(), y = base.getYCoord(), z = base.getZCoord();
         Set<Long> chunks = new HashSet<>();
-        ForgeDirection front = base.getFrontFacing();
-        boolean faced = front != null && front != ForgeDirection.UNKNOWN;
-        ForgeDirection back = faced ? front.getOpposite() : ForgeDirection.SOUTH;
-        ForgeDirection right = faced ? front.getRotation(ForgeDirection.UP) : ForgeDirection.WEST;
-        int r = mWidth / 2;
-        for (int side : new int[] { -r, r }) {
-            for (int depth : new int[] { 0, mWidth - 1 }) {
-                StructureChunks.addBlock(
-                    x + right.offsetX * side + back.offsetX * depth,
-                    z + right.offsetZ * side + back.offsetZ * depth,
-                    chunks);
-            }
-        }
+        collectPumpChunks(base, mWidth, chunks);
         if (mLastCrawlResult != null && mLastCrawlResult.pipePositions != null) {
             for (LoopGraphCrawler.BlockPosCoord p : mLastCrawlResult.pipePositions) {
                 StructureChunks.addBlock(p.x, p.z, chunks);
@@ -1345,16 +1334,52 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         for (ICoolantLoopDevice dev : mLoopDevices) {
             dev.collectStructureChunks(chunks);
         }
+        mLoopChunks = chunks;
         mChunkTickets = LoopChunkLoader.update(mChunkTickets, world, x, y, z, chunks);
+    }
+
+    /**
+     * The chunks of the pump and the Railcraft tank on it. The tank is one block wider than the pump on every side
+     * (its walls), and Railcraft checks one more block around it, so its structure can reach into the next chunk.
+     */
+    private static void collectPumpChunks(IGregTechTileEntity base, int width, Set<Long> chunks) {
+        ForgeDirection front = base.getFrontFacing();
+        boolean faced = front != null && front != ForgeDirection.UNKNOWN;
+        ForgeDirection back = faced ? front.getOpposite() : ForgeDirection.SOUTH;
+        ForgeDirection right = faced ? front.getRotation(ForgeDirection.UP) : ForgeDirection.WEST;
+        int reach = width / 2 + 2;
+        for (int side : new int[] { -reach, reach }) {
+            for (int depth : new int[] { -2, width + 1 }) {
+                StructureChunks.addBlock(
+                    base.getXCoord() + right.offsetX * side + back.offsetX * depth,
+                    base.getZCoord() + right.offsetZ * side + back.offsetZ * depth,
+                    chunks);
+            }
+        }
     }
 
     private void releaseLoopChunks() {
         LoopChunkLoader.release(mChunkTickets);
         mChunkTickets = new ArrayList<>();
+        mLoopChunks = new HashSet<>();
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base != null && base.getWorld() != null && !base.getWorld().isRemote) {
             LoopChunkLoader.releaseRestored(base.getWorld(), base.getXCoord(), base.getYCoord(), base.getZCoord());
         }
+    }
+
+    /**
+     * Where a graph node's block is, so a load can find the node again: devices are recorded as the device itself,
+     * which is saved as the position of its block (a multiblock's controller, or a hatch).
+     */
+    private static int[] nodePosition(Object data) {
+        if (data instanceof LoopGraphCrawler.BlockPosCoord bc) return new int[] { bc.x, bc.y, bc.z };
+        if (data instanceof IMetaTileEntity mte && mte.getBaseMetaTileEntity() != null) {
+            IGregTechTileEntity base = mte.getBaseMetaTileEntity();
+            return new int[] { base.getXCoord(), base.getYCoord(), base.getZCoord() };
+        }
+        if (data instanceof TileEntity te) return new int[] { te.xCoord, te.yCoord, te.zCoord };
+        return null;
     }
 
     private void captureFootprint(World world) {
@@ -1376,6 +1401,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
     @Override
     public void onDeviceDisconnected(ICoolantLoopDevice device, String reason) {
+        mActiveCrawl = null;
+        mRecrawlKeepsState = false;
         boolean wasActiveLoop = mLoopFormed && (mCurrentFillLiters > 0L || mLoopState == LoopState.CIRCULATING
             || mLoopState == LoopState.DECELERATING
             || (mEngine != null && mEngine.getVolumetricFlowRate() > 1e-5));
@@ -1538,7 +1565,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         long requiredEU = getRequiredPowerDrawEU();
         boolean hasPower = drainEnergy(requiredEU);
         if (!hasPower) {
-            return onPowerShortfall();
+            return triggerPowerfail();
         }
         if (baseTE != null) {
             baseTE.setActive(true);
@@ -1777,7 +1804,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 long requiredEU = getRequiredPowerDrawEU();
                 boolean powered = drainEnergy(requiredEU);
                 if (!powered) {
-                    return onPowerShortfall();
+                    return triggerPowerfail();
                 }
                 if (baseTE != null) {
                     baseTE.setActive(true);
@@ -1879,7 +1906,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             || mCurrentFillLiters < mRequiredFillLiters) {
             long requiredEU = getRequiredPowerDrawEU();
             if (!drainEnergy(requiredEU)) {
-                return onPowerShortfall();
+                return triggerPowerfail();
             }
             if (baseTE != null) {
                 baseTE.setActive(true);
@@ -2783,6 +2810,15 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
+        if (!mLoopChunks.isEmpty()) {
+            int[] chunks = new int[2 * mLoopChunks.size()];
+            int i = 0;
+            for (long chunk : mLoopChunks) {
+                chunks[i++] = (int) chunk;
+                chunks[i++] = (int) (chunk >>> 32);
+            }
+            aNBT.setIntArray("mLoopChunks", chunks);
+        }
         mReservoir.saveNBTData(aNBT);
         aNBT.setBoolean("mLoopFormed", mLoopFormed);
         aNBT.setString("mLoopState", mLoopState.name());
@@ -2835,9 +2871,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     NBTTagCompound nTag = new NBTTagCompound();
                     nTag.setString("id", fn.id);
                     nTag.setString("type", fn.type.name());
-                    if (fn.data instanceof LoopGraphCrawler.BlockPosCoord bc) {
-                        nTag.setIntArray("coord", new int[] { bc.x, bc.y, bc.z });
-                    }
+                    int[] coord = nodePosition(fn.data);
+                    if (coord != null) nTag.setIntArray("coord", coord);
                     nodeList.appendTag(nTag);
                 }
                 crawlTag.setTag("graphNodes", nodeList);
@@ -2863,6 +2898,11 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
+        mLoopChunks = new HashSet<>();
+        int[] loopChunks = aNBT.getIntArray("mLoopChunks");
+        for (int i = 0; i + 1 < loopChunks.length; i += 2) {
+            mLoopChunks.add(ChunkCoordIntPair.chunkXZ2Int(loopChunks[i], loopChunks[i + 1]));
+        }
         mReservoir.loadNBTData(aNBT);
         if (aNBT.hasKey("mLoopState")) {
             try {
@@ -2973,7 +3013,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
         if (mLoopFormed) {
             mNeedsPostLoadRebind = true;
-            mResumingAfterLoad = true;
         }
     }
 

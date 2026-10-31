@@ -68,14 +68,6 @@ public interface ICoolantLoopDevice {
     }
 
     /**
-     * Whether this device's structure has been checked and found formed, so the loop can run through it. Right after
-     * a load a multiblock reports unformed until its first structure check.
-     */
-    default boolean isStructureReady() {
-        return true;
-    }
-
-    /**
      * Adds the chunks this device's whole structure occupies (as {@code ChunkCoordIntPair.chunkXZ2Int} keys), so the
      * pump can keep them loaded while the loop runs through it.
      */

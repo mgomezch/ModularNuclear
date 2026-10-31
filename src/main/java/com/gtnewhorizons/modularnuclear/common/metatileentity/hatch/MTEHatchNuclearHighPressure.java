@@ -689,11 +689,6 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
     }
 
     @Override
-    public boolean isStructureReady() {
-        return mReactor != null && mReactor.mMachine;
-    }
-
-    @Override
     public void collectStructureChunks(Set<Long> chunks) {
         if (mReactor != null) mReactor.collectStructureChunks(chunks);
     }

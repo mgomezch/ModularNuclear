@@ -29,6 +29,7 @@ import com.gtnewhorizons.modularnuclear.common.gui.CoolantBathGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantBathSlot;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantBathRegistry;
+import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularnuclear.network.PacketSyncCoolantBath;
 
@@ -551,8 +552,9 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
     private static IStructureDefinition<MTECoolantBath> STRUCTURE_DEFINITION = null;
 
     @Override
-    public boolean isStructureReady() {
-        return mMachine;
+    public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
+        super.onFirstTick(aBaseMetaTileEntity);
+        MultiblockStartup.formNow(this);
     }
 
     @Override

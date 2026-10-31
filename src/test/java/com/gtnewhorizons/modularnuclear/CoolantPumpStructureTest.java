@@ -27,6 +27,7 @@ import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
+import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.data.MaterialRotorDatabaseExporter;
 
 import gregtech.api.enums.Materials;
@@ -1151,49 +1152,69 @@ public class CoolantPumpStructureTest {
     }
 
     @Test
-    public void testLoadedLoopHoldsUntilThePumpReforms() {
+    public void testMultiblocksFormOnTheirFirstTick() {
+        gregtech.api.metatileentity.implementations.MTEMultiBlockBase machine = Mockito
+            .mock(gregtech.api.metatileentity.implementations.MTEMultiBlockBase.class);
+        IGregTechTileEntity base = Mockito.mock(IGregTechTileEntity.class);
+        Mockito.when(base.isServerSide())
+            .thenReturn(true);
+        Mockito.when(machine.getBaseMetaTileEntity())
+            .thenReturn(base);
+        machine.mStartUpCheck = 100;
+        boolean[] forms = { false };
+        Mockito.when(machine.checkStructure(true, base))
+            .thenAnswer(inv -> machine.mMachine = forms[0]);
+
+        assertFalse(MultiblockStartup.formNow(machine));
+        assertEquals(100, machine.mStartUpCheck, "an incomplete structure keeps GregTech's own startup check");
+
+        forms[0] = true;
+        assertTrue(MultiblockStartup.formNow(machine));
+        assertEquals(0, machine.mStartUpCheck, "a formed structure runs at once, without GregTech's delayed check");
+    }
+
+    @Test
+    public void testSavedLoopKeepsItsDevicePositions() {
         MTECoolantPump pump = createOperatingPumpWithBase(new boolean[] { true });
+        Mockito.when(
+            pump.getBaseMetaTileEntity()
+                .getFrontFacing())
+            .thenReturn(net.minecraftforge.common.util.ForgeDirection.NORTH);
         LoopSegment seg = new LoopSegment("pipe_test", 10.0, 0.1, 0.00005, 0.5, 100.0, 1000.0, 20.0);
+        gregtech.api.interfaces.metatileentity.IMetaTileEntity device = Mockito
+            .mock(gregtech.api.interfaces.metatileentity.IMetaTileEntity.class);
+        IGregTechTileEntity deviceBase = Mockito.mock(IGregTechTileEntity.class);
+        Mockito.when(device.getBaseMetaTileEntity())
+            .thenReturn(deviceBase);
+        Mockito.when(deviceBase.getXCoord())
+            .thenReturn(12);
+        Mockito.when(deviceBase.getYCoord())
+            .thenReturn((short) 70);
+        Mockito.when(deviceBase.getZCoord())
+            .thenReturn(-3);
+        java.util.Map<String, LoopGraphCrawler.FlowNode> nodes = new java.util.LinkedHashMap<>();
+        nodes.put("phe", new LoopGraphCrawler.FlowNode("phe", LoopGraphCrawler.NodeType.DEVICE, device));
         assertTrue(
             pump.applyCrawlResult(
                 CrawlResult.success(
                     Collections.singletonList(seg),
-                    Collections.emptyList(),
+                    new ArrayList<>(),
                     Collections.emptySet(),
                     500.0,
                     Materials.Steel,
-                    Collections.emptyList())));
-        pump.getEngine()
-            .setVolumetricFlowRate(0.05);
+                    null,
+                    nodes,
+                    new java.util.LinkedHashMap<>())));
+
         NBTTagCompound nbt = new NBTTagCompound();
         pump.saveNBTData(nbt);
-
-        boolean[] allowed = new boolean[] { true };
-        MTECoolantPump loaded = createOperatingPumpWithBase(allowed);
-        Mockito.when(
-            loaded.getBaseMetaTileEntity()
-                .getFrontFacing())
-            .thenReturn(net.minecraftforge.common.util.ForgeDirection.NORTH);
-        loaded.loadNBTData(nbt);
-        loaded.mMachine = false;
-        IGregTechTileEntity base = loaded.getBaseMetaTileEntity();
-        Mockito.when(base.getTimer())
-            .thenReturn(10L);
-        Mockito.when(base.getWorld())
-            .thenReturn(Mockito.mock(net.minecraft.world.World.class));
-        for (long tick = 1; tick <= 40; tick++) {
-            loaded.onPostTick(base, tick);
-        }
-        assertFalse(loaded.isPowerFailed(), "a loop does not powerfail while its pump re-forms after a load");
-        assertTrue(allowed[0]);
-        assertEquals(
-            0.05,
-            loaded.getEngine()
-                .getVolumetricFlowRate(),
-            1e-12,
-            "the loop holds still");
-        assertTrue(loaded.isLoopFormed());
-        assertNull(loaded.findLoopBreak(null), "nor is it broken");
+        NBTTagCompound node = nbt.getCompoundTag("mLastCrawlResult")
+            .getTagList("graphNodes", 10)
+            .getCompoundTagAt(0);
+        assertArrayEquals(
+            new int[] { 12, 70, -3 },
+            node.getIntArray("coord"),
+            "a device is saved at its block, so a load can bind it again without re-crawling");
     }
 
     @Test
