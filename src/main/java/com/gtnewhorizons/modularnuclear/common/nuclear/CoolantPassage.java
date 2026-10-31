@@ -83,7 +83,7 @@ public final class CoolantPassage {
      */
     public static double heatTransferFactor(int tier) {
         return NuclearSimulationEngine.params().coolantPassageHeatTransferMultiplier
-            * Math.pow(config().coolantPassageHeatTransferTierRatio, Math.max(0, tier) - 2);
+            * Math.pow(NuclearSimulationEngine.params().coolantPassageHeatTransferTierRatio, Math.max(0, tier) - 2);
     }
 
     public static double length() {

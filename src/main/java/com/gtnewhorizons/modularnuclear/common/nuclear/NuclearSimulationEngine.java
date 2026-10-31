@@ -83,6 +83,7 @@ public class NuclearSimulationEngine {
      * remove about three times the heat a core hatch of the same tier conducts into its own coolant.
      */
     public static final double DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT = 0.11;
+    public static final double DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_TIER_RATIO = 2.65;
 
     // Fuel Archetype / Class Multipliers (Global Calibration Parameters)
     public static final double DEFAULT_DENSE_NBASE_MULT = 0.50;
@@ -217,6 +218,7 @@ public class NuclearSimulationEngine {
         params().fuelBurnupMultiplier = DEFAULT_FUEL_BURNUP_MULTIPLIER;
         params().neutronYieldMultiplier = DEFAULT_NEUTRON_YIELD_MULT;
         params().coolantPassageHeatTransferMultiplier = DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT;
+        params().coolantPassageHeatTransferTierRatio = DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_TIER_RATIO;
         params().denseNbaseMultiplier = DEFAULT_DENSE_NBASE_MULT;
         params().denseFissionMultiplier = DEFAULT_DENSE_FISSION_MULT;
         params().excitedNbaseMultiplier = DEFAULT_EXCITED_NBASE_MULT;

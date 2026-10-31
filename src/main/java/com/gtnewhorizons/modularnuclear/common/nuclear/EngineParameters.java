@@ -32,6 +32,8 @@ public final class EngineParameters {
     /** Scales every fuel's base neutron emission, on top of its archetype's multiplier. */
     public double neutronYieldMultiplier = NuclearSimulationEngine.DEFAULT_NEUTRON_YIELD_MULT;
     public double coolantPassageHeatTransferMultiplier = NuclearSimulationEngine.DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT;
+    /** Factor on passage heat transfer per voltage tier above MV. */
+    public double coolantPassageHeatTransferTierRatio = NuclearSimulationEngine.DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_TIER_RATIO;
     public double denseNbaseMultiplier = NuclearSimulationEngine.DEFAULT_DENSE_NBASE_MULT;
     public double denseFissionMultiplier = NuclearSimulationEngine.DEFAULT_DENSE_FISSION_MULT;
     public double excitedNbaseMultiplier = NuclearSimulationEngine.DEFAULT_EXCITED_NBASE_MULT;
@@ -85,6 +87,7 @@ public final class EngineParameters {
         c.fuelBurnupMultiplier = fuelBurnupMultiplier;
         c.neutronYieldMultiplier = neutronYieldMultiplier;
         c.coolantPassageHeatTransferMultiplier = coolantPassageHeatTransferMultiplier;
+        c.coolantPassageHeatTransferTierRatio = coolantPassageHeatTransferTierRatio;
         c.denseNbaseMultiplier = denseNbaseMultiplier;
         c.denseFissionMultiplier = denseFissionMultiplier;
         c.excitedNbaseMultiplier = excitedNbaseMultiplier;

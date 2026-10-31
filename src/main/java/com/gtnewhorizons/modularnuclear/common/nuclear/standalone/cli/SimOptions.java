@@ -148,6 +148,10 @@ public final class SimOptions {
         engine(t, v -> NuclearSimulationEngine.params().coolantPassageHeatTransferMultiplier = v, "passage_htc_mult");
         engine(
             t,
+            v -> NuclearSimulationEngine.params().coolantPassageHeatTransferTierRatio = v,
+            "passage_htc_tier_ratio");
+        engine(
+            t,
             v -> CoolantLoopConfigData.getPhysicsData()
                 .setPumpMechanicalPowerPerEU(v),
             "pump_w_per_eu");
