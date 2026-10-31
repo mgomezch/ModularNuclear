@@ -883,6 +883,8 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testOverheatingVoidsNonFuelComponentsAndControlRods() {
+        // Calibrated grid conduction can spread a lone hot cell's heat below the limit within the step
+        BaselinePhysics.apply();
         StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
         SimTile moderator = grid.getTile(2, 2);
         moderator.setType(SimTile.TileType.MODERATOR_GRAPHITE);

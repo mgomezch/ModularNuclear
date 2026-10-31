@@ -53,8 +53,9 @@ public class PassageTierTest {
 
     @Test
     void testPassageOutCoolsACoreHatchOfItsTier() {
-        // 75 L/s of water: a passage out-cools a core hatch of the same tier, by the same factor at every tier (the
-        // factor itself follows the calibrated coolant_passage_heat_transfer_multiplier)
+        // 75 L/s of water: a passage out-cools a core hatch of the same tier, by the same factor at every tier. With
+        // the baseline physics: the calibrated multiplier sets the factor, and the calibrated tier ratio tilts it
+        BaselinePhysics.apply();
         double first = 0.0;
         for (int m = 0; m < CoolantPipeSpec.MATERIAL_NAMES.length; m++) {
             int tier = CoolantPipeSpec.VOLTAGE_TIERS[m];

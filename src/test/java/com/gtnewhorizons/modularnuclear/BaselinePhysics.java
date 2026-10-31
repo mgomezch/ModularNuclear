@@ -24,10 +24,14 @@ final class BaselinePhysics {
         m.put("neutron_yield_multiplier", 1.0);
         m.put("fuel_burnup_multiplier", 1.0);
         m.put("coolant_passage_heat_transfer_multiplier", 0.11);
+        m.put("coolant_passage_heat_transfer_tier_ratio", 2.65);
+        m.put("spontaneous_heat_fraction", 1.0);
         m.put("standard_nbase_multiplier", 1.0);
         m.put("standard_fission_multiplier", 1.0);
         m.put("excited_nbase_multiplier", 2.0);
         m.put("excited_fission_multiplier", 0.7);
+        m.put("dense_nbase_multiplier", 0.5);
+        m.put("dense_fission_multiplier", 1.2);
         ReactorConfigData.applyPhysicsOverrides(m);
         CoolantLoopConfigData.getDeviceData()
             .getPhe().heatTransferMultiplier = 1.0;
