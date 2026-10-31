@@ -13,6 +13,8 @@ function setText(el, text) {
   if (typeof el === "string") el = document.getElementById(el);
   if (!el) return;
   const s = text == null ? "" : String(text);
+  // A value cut off with an ellipsis can still be read in full on hover.
+  if (el.classList.contains("stat-val") && el.title !== s) el.title = s;
   const node = el.firstChild;
   if (node && node.nodeType === Node.TEXT_NODE && !node.nextSibling) {
     if (node.nodeValue !== s) node.nodeValue = s;
