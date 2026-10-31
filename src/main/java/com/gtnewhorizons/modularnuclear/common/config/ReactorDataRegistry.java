@@ -109,6 +109,16 @@ public final class ReactorDataRegistry {
         return (((long) id) << 32) | (damage & 0xFFFFFFFFL);
     }
 
+    /**
+     * Whether the stack is the given GregTech item (any wear, for a damageable item). {@link ItemList#isStackEqual}
+     * compares ore dictionary unifications instead, under which a fuel rod can equal its own depleted rod.
+     */
+    public static boolean isItemListStack(ItemList item, ItemStack stack) {
+        if (item == null || stack == null || !item.hasBeenSet()) return false;
+        long key = getItemKey(stack);
+        return key != 0L && key == getItemKey(item.get(1L));
+    }
+
     public static synchronized void clearCaches() {
         fuelCache.clear();
         moderatorCache.clear();
@@ -951,7 +961,7 @@ public final class ReactorDataRegistry {
             if (pattern.startsWith("ItemList.")) {
                 try {
                     ItemList il = ItemList.valueOf(pattern.substring("ItemList.".length()));
-                    if (il != null && il.hasBeenSet() && il.isStackEqual(stack, false, true)) {
+                    if (isItemListStack(il, stack)) {
                         return true;
                     }
                 } catch (Throwable swallowed) {
@@ -960,7 +970,7 @@ public final class ReactorDataRegistry {
             } else if (!pattern.contains(":") && !pattern.contains(".") && !pattern.contains("*")) {
                 try {
                     ItemList il = ItemList.valueOf(pattern);
-                    if (il != null && il.hasBeenSet() && il.isStackEqual(stack, false, true)) {
+                    if (isItemListStack(il, stack)) {
                         return true;
                     }
                 } catch (Throwable swallowed) {

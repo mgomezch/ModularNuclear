@@ -248,13 +248,12 @@ public final class NuclearFuelClassification {
         if (ModItems.rodCustomDepletedFuel4 != null && stack.getItem() == ModItems.rodCustomDepletedFuel4) return true;
 
         if (Ic2Items.fuelRod != null && GTUtility.areStacksEqual(stack, Ic2Items.fuelRod, true)) return true;
-        if (ItemList.IC2_Fuel_Rod_Empty != null && ItemList.IC2_Fuel_Rod_Empty.hasBeenSet()
-            && ItemList.IC2_Fuel_Rod_Empty.isStackEqual(stack, false, true)) return true;
+        if (ReactorDataRegistry.isItemListStack(ItemList.IC2_Fuel_Rod_Empty, stack)) return true;
 
         if (isIC2DepletedFuelCell(stack)) return true;
 
         for (ItemList item : DEPLETED_FUEL_RODS) {
-            if (item != null && item.hasBeenSet() && item.isStackEqual(stack, false, true)) {
+            if (ReactorDataRegistry.isItemListStack(item, stack)) {
                 return true;
             }
         }
@@ -302,7 +301,7 @@ public final class NuclearFuelClassification {
 
         if (stack.isItemStackDamageable() && stack.getItemDamage() >= stack.getMaxDamage()) {
             for (ItemList item : ACTIVE_FUEL_RODS) {
-                if (item != null && item.hasBeenSet() && item.isStackEqual(stack, false, true)) {
+                if (ReactorDataRegistry.isItemListStack(item, stack)) {
                     return true;
                 }
             }
@@ -370,7 +369,7 @@ public final class NuclearFuelClassification {
 
         // GT registered active fuel rods
         for (ItemList item : ACTIVE_FUEL_RODS) {
-            if (item != null && item.hasBeenSet() && item.isStackEqual(stack, false, true)) {
+            if (ReactorDataRegistry.isItemListStack(item, stack)) {
                 return true;
             }
         }
@@ -452,7 +451,7 @@ public final class NuclearFuelClassification {
         if (stack.getItem() instanceof ItemCoolantCell) return true;
         if (stack.getItem() instanceof ItemReactorHeatStorage) return true;
         for (ItemList item : GT_COOLANT_CELLS) {
-            if (item != null && item.hasBeenSet() && item.isStackEqual(stack, false, true)) {
+            if (ReactorDataRegistry.isItemListStack(item, stack)) {
                 return true;
             }
         }
@@ -670,7 +669,7 @@ public final class NuclearFuelClassification {
         for (int i = 0; i < ACTIVE_FUEL_RODS.length && i < DEPLETED_FUEL_RODS.length; i++) {
             ItemList active = ACTIVE_FUEL_RODS[i];
             ItemList depleted = DEPLETED_FUEL_RODS[i];
-            if (active != null && active.hasBeenSet() && active.isStackEqual(fuel, false, true)) {
+            if (ReactorDataRegistry.isItemListStack(active, fuel)) {
                 if (depleted != null && depleted.hasBeenSet()) {
                     return depleted.get(1L);
                 }

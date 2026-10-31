@@ -18,6 +18,7 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
@@ -254,7 +255,7 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
     public static boolean isEmptyFuelRod(ItemStack stack) {
         if (stack == null) return false;
         try {
-            if (ItemList.IC2_Fuel_Rod_Empty != null && ItemList.IC2_Fuel_Rod_Empty.isStackEqual(stack, false, true)) {
+            if (ReactorDataRegistry.isItemListStack(ItemList.IC2_Fuel_Rod_Empty, stack)) {
                 return true;
             }
         } catch (Throwable swallowed) {
