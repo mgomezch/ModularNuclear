@@ -47,6 +47,13 @@ public final class SteadyStateDetector {
         }
     }
 
+    /** Mean power over the samples in the window. */
+    public double meanPower() {
+        double sum = 0.0;
+        for (int i = 0; i < count; i++) sum += powerHistory[i];
+        return count > 0 ? sum / count : 0.0;
+    }
+
     public boolean isSteadyState() {
         if (count < windowSize) {
             return false;

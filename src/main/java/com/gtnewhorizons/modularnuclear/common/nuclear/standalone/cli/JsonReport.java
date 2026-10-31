@@ -22,6 +22,8 @@ public final class JsonReport {
         /** Energy and game tick at the half-way point, for the second-half (steady-state) average power. */
         double halfEnergy;
         long halfTick = -1;
+        /** Mean power over the window that showed the steady state, when the run stopped there. */
+        double steadyPower;
     }
 
     public static void run(RunConfig cfg) {
@@ -67,6 +69,7 @@ public final class JsonReport {
                 if (t >= cfg.steadyWindow && detector.isSteadyState()) {
                     run.steadyStateReached = true;
                     run.steadyStateTick = t;
+                    run.steadyPower = detector.meanPower();
                     break;
                 }
             }
@@ -82,7 +85,10 @@ public final class JsonReport {
         double avgDirectPower = grid.getAverageDirectPowerEUt();
         double power = avgPower > 0.0 ? avgPower : instantPower;
         double directPower = avgDirectPower > 0.0 ? avgDirectPower : instantDirectPower;
-        double tailPower = (run.halfTick >= 0 && grid.getCurrentTick() > run.halfTick)
+        // A run that settled before its half-way point has no second half: its steady power is the settled window's,
+        // not the whole-run average, which includes the warm-up
+        double tailPower = run.steadyStateReached ? run.steadyPower
+            : (run.halfTick >= 0 && grid.getCurrentTick() > run.halfTick)
             ? (grid.getTotalEnergyEU() - run.halfEnergy) / (double) (grid.getCurrentTick() - run.halfTick)
             : power;
         int tier = grid.getPipeTier();
