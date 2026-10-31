@@ -6,6 +6,89 @@ let isWasmMode = true;
 let wasmSim = null;
 let byproductUnit = "min";
 
+// DOM writes go through these helpers while the simulation runs: they touch an element only when its content
+// actually changes, and patchHTML updates the existing nodes in place instead of replacing them, so a button or
+// <select> under the pointer stays the same element from one frame to the next.
+function setText(el, text) {
+  if (typeof el === "string") el = document.getElementById(el);
+  if (!el) return;
+  const s = text == null ? "" : String(text);
+  const node = el.firstChild;
+  if (node && node.nodeType === Node.TEXT_NODE && !node.nextSibling) {
+    if (node.nodeValue !== s) node.nodeValue = s;
+  } else if (el.textContent !== s) {
+    el.textContent = s;
+  }
+}
+
+function setClass(el, cls) {
+  if (el && el.className !== cls) el.className = cls;
+}
+
+// Hides an element but keeps its space, so the layout does not move when it comes and goes.
+function setShown(el, shown) {
+  if (!el) return;
+  const v = shown ? "" : "hidden";
+  if (el.style.visibility !== v) el.style.visibility = v;
+}
+
+const patchTemplate = document.createElement("template");
+function patchHTML(el, html) {
+  if (!el || el.__patchedHtml === html) return;
+  el.__patchedHtml = html;
+  patchTemplate.innerHTML = html;
+  patchChildren(el, patchTemplate.content);
+}
+
+function patchChildren(parent, src) {
+  const cur = parent.childNodes;
+  const want = src.childNodes;
+  for (let i = 0; i < want.length; i++) {
+    const w = want[i];
+    const c = cur[i];
+    if (!c) {
+      parent.appendChild(w.cloneNode(true));
+    } else if (c.nodeType !== w.nodeType || c.nodeName !== w.nodeName) {
+      parent.replaceChild(w.cloneNode(true), c);
+    } else if (c.nodeType === Node.ELEMENT_NODE) {
+      patchElement(c, w);
+    } else if (c.nodeValue !== w.nodeValue) {
+      c.nodeValue = w.nodeValue;
+    }
+  }
+  while (cur.length > want.length) parent.removeChild(parent.lastChild);
+}
+
+function patchElement(el, src) {
+  const active = document.activeElement;
+  // A control the user is working with (an open <select>, a slider being dragged) is left alone, and so is a label
+  // that follows it (data-follows names the control's id).
+  if (el === active) return;
+  const follows = src.getAttribute("data-follows");
+  if (follows && active && active.id === follows) return;
+  for (let i = el.attributes.length - 1; i >= 0; i--) {
+    const name = el.attributes[i].name;
+    if (!src.hasAttribute(name)) el.removeAttribute(name);
+  }
+  for (let i = 0; i < src.attributes.length; i++) {
+    const a = src.attributes[i];
+    if (el.getAttribute(a.name) !== a.value) el.setAttribute(a.name, a.value);
+  }
+  patchChildren(el, src);
+  // Attributes only set a control's default value; its current value is synced separately.
+  if (el.tagName === "SELECT") {
+    const opt = src.querySelector("option[selected]") || src.querySelector("option");
+    if (opt && el.value !== opt.value) el.value = opt.value;
+  } else if (el.tagName === "INPUT") {
+    if (el.type === "checkbox" || el.type === "radio") {
+      const checked = src.hasAttribute("checked");
+      if (el.checked !== checked) el.checked = checked;
+    } else if (src.hasAttribute("value") && el.value !== src.getAttribute("value")) {
+      el.value = src.getAttribute("value");
+    }
+  }
+}
+
 function getIconUrl(type) {
   return `icons/${type}.png`;
 }

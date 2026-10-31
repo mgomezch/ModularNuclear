@@ -66,7 +66,8 @@ function renderInspector(t) {
   let fluxHtml = "";
   const tpc = currentState.ticksPerCycle || 5;
   const cps = 20 / tpc;
-  if (t.code !== "NL" && ((t.totalFlux && t.totalFlux > 0) || (t.fastFlux && t.fastFlux > 0) || (t.thermalFlux && t.thermalFlux > 0) || (t.fastAbsorbed && t.fastAbsorbed > 0) || (t.thermalAbsorbed && t.thermalAbsorbed > 0) || t.directEU)) {
+  // Rows depend on the tile's kind, never on live values, so the inspector keeps its shape while the reactor runs.
+  if (t.code !== "NL") {
     fluxHtml = `
       <div style="background:#10141d; border:1px solid #373737; border-radius:3px; padding:6px 8px; margin-top:8px;">
         <div style="font-weight:700; font-size:0.75rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px;">Neutron kinetics</div>
@@ -75,7 +76,7 @@ function renderInspector(t) {
         <div class="stat-row" style="margin-bottom:2px;"><span>Thermal flux:</span><span class="stat-val" style="color:#4ade80;">${Math.round((t.thermalFlux || 0) * cps).toLocaleString()} n/s (${(t.thermalFlux || 0).toLocaleString()} /cycle)</span></div>
         <div class="stat-row" style="margin-bottom:2px;"><span>Fast absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${Math.round((t.fastAbsorbed || 0) * cps).toLocaleString()} n/s (${(t.fastAbsorbed || 0).toLocaleString()} /cycle)</span></div>
         <div class="stat-row" style="margin-bottom:2px;"><span>Thermal absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${Math.round((t.thermalAbsorbed || 0) * cps).toLocaleString()} n/s (${(t.thermalAbsorbed || 0).toLocaleString()} /cycle)</span></div>
-        ${t.directEU ? `<div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #373737;"><span>Radiovoltaic output:</span><span class="stat-val" style="color:#38bdf8;">${t.directEU.toLocaleString()} EU/t</span></div>` : ''}
+        ${(t.directEU || (t.type && t.type.startsWith("RADIOVOLTAIC_"))) ? `<div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #373737;"><span>Radiovoltaic output:</span><span class="stat-val" style="color:#38bdf8;">${(t.directEU || 0).toLocaleString()} EU/t</span></div>` : ''}
       </div>
     `;
   }
@@ -145,9 +146,9 @@ function renderInspector(t) {
           <div style="margin-bottom:6px;">
             <div style="display:flex; justify-content:space-between; font-size:0.72rem; margin-bottom:2px;">
               <span>Insertion:</span>
-              <span id="lbl-rod-ins-${t.x}-${t.y}" style="font-weight:700; color:#00e5ff;">${ins}%</span>
+              <span id="lbl-rod-ins-${t.x}-${t.y}" data-follows="rng-rod-ins-${t.x}-${t.y}" style="font-weight:700; color:#00e5ff;">${ins}%</span>
             </div>
-            <input type="range" min="0" max="100" value="${ins}"
+            <input type="range" id="rng-rod-ins-${t.x}-${t.y}" min="0" max="100" value="${ins}"
               oninput="document.getElementById('lbl-rod-ins-${t.x}-${t.y}').innerText = this.value + '%'"
               onchange="updateTileControlRodInsertion(${t.x}, ${t.y}, parseInt(this.value))"
               style="width:100%; cursor:pointer; accent-color:#00e5ff;" />
@@ -157,18 +158,17 @@ function renderInspector(t) {
               <button type="button" onclick="updateTileControlRodInsertion(${t.x}, ${t.y}, 100)" style="flex:1; padding:2px; font-size:0.68rem; min-height:24px; background:#b91c1c; border-color:#dc2626;">100% (SCRAM)</button>
             </div>
           </div>
-          ${(fastAbs > 0 || thermAbs > 0) ? `
-            <div style="border-top:1px dashed #373737; padding-top:4px; margin-top:4px; font-size:0.72rem;">
-              <div class="stat-row" style="margin-bottom:1px;"><span>Rod fast absorbed:</span><span class="stat-val" style="color:#fbbf24;">${Math.round(fastAbs * cps).toLocaleString()} n/s (${fastAbs.toLocaleString()} /cycle)</span></div>
-              <div class="stat-row" style="margin-bottom:1px;"><span>Rod thermal absorbed:</span><span class="stat-val" style="color:#4ade80;">${Math.round(thermAbs * cps).toLocaleString()} n/s (${thermAbs.toLocaleString()} /cycle)</span></div>
-            </div>
-          ` : ''}
+          <div style="border-top:1px dashed #373737; padding-top:4px; margin-top:4px; font-size:0.72rem;">
+            <div class="stat-row" style="margin-bottom:1px;"><span>Rod fast absorbed:</span><span class="stat-val" style="color:#fbbf24;">${Math.round(fastAbs * cps).toLocaleString()} n/s (${fastAbs.toLocaleString()} /cycle)</span></div>
+            <div class="stat-row" style="margin-bottom:1px;"><span>Rod thermal absorbed:</span><span class="stat-val" style="color:#4ade80;">${Math.round(thermAbs * cps).toLocaleString()} n/s (${thermAbs.toLocaleString()} /cycle)</span></div>
+          </div>
         </div>
       `;
     }
   }
 
-  el.innerHTML = `
+  // Patched in place: the tile <select> and the rod controls stay the same elements while the values update.
+  patchHTML(el, `
     <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
       ${iconHtml}
       <div style="flex:1;">
@@ -182,12 +182,12 @@ function renderInspector(t) {
       </div>
     </div>
     <div class="stat-row"><span>Temperature:</span><span class="stat-val">${t.temp} °C</span></div>
-    ${t.heatOutput != null && t.heatOutput > 0 ? `<div class="stat-row"><span>Heat output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${(t.heatOutput * cps).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/s (${t.heatOutput.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/cycle)</span></div>` : ''}
+    ${t.code !== "NL" ? `<div class="stat-row"><span>Heat output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${((t.heatOutput || 0) * cps).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/s (${(t.heatOutput || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/cycle)</span></div>` : ''}
     ${coolingMethodHtml}
     ${controlRodHtml}
     ${extraHtml}
     ${fluxHtml}
-  `;
+  `);
 }
 
 function syncParamsToUI(p) {
