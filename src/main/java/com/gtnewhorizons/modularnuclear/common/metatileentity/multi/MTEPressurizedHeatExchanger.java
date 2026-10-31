@@ -401,33 +401,40 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         return hatch.maxWorkingAmperesIn() <= 2L && hatch.maxAmperesIn() <= 2L;
     }
 
+    private static boolean isUsableEnergyHatch(MTEHatchEnergy hatch) {
+        return hatch != null && (hatch.isValid() || hatch.getBaseMetaTileEntity() != null)
+            && isSingleAmpEnergyHatch(hatch);
+    }
+
     public List<MTEHatchEnergy> getValidEnergyHatches() {
         List<MTEHatchEnergy> list = new ArrayList<>();
         if (mEnergyHatches != null) {
             for (MTEHatchEnergy hatch : mEnergyHatches) {
-                if (hatch != null && (hatch.isValid() || hatch.getBaseMetaTileEntity() != null)
-                    && isSingleAmpEnergyHatch(hatch)) {
-                    list.add(hatch);
-                }
+                if (isUsableEnergyHatch(hatch)) list.add(hatch);
             }
         }
         return list;
     }
 
+    /** Asked several times a tick, so it walks the hatches instead of building getValidEnergyHatches. */
     public long getTargetVoltage() {
-        List<MTEHatchEnergy> hatches = getValidEnergyHatches();
-        if (hatches.isEmpty()) {
+        int count = 0;
+        int maxTier = 1;
+        int onlyTier = 0;
+        if (mEnergyHatches != null) {
+            for (int i = 0, n = mEnergyHatches.size(); i < n; i++) {
+                MTEHatchEnergy h = mEnergyHatches.get(i);
+                if (!isUsableEnergyHatch(h)) continue;
+                if (count++ == 0) onlyTier = h.mTier;
+                if (h.mTier > maxTier) maxTier = h.mTier;
+            }
+        }
+        if (count == 0) {
             return 32L;
         }
-        if (hatches.size() == 1) {
-            int tier = Math.max(1, Math.min(hatches.get(0).mTier, GTValues.V.length - 1));
+        if (count == 1) {
+            int tier = Math.max(1, Math.min(onlyTier, GTValues.V.length - 1));
             return GTValues.V[tier];
-        }
-        int maxTier = 1;
-        for (MTEHatchEnergy h : hatches) {
-            if (h.mTier > maxTier) {
-                maxTier = h.mTier;
-            }
         }
         maxTier = Math.max(1, Math.min(maxTier, GTValues.V.length - 1));
         return 4L * GTValues.V[maxTier];
@@ -475,22 +482,28 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     public boolean drainEnergy(long aEU) {
         if (aEU <= 0) return true;
 
-        List<MTEHatchEnergy> hatches = getValidEnergyHatches();
-        if (!hatches.isEmpty()) {
-            long totalStored = 0L;
-            for (MTEHatchEnergy h : hatches) {
+        boolean anyHatch = false;
+        long totalStored = 0L;
+        if (mEnergyHatches != null) {
+            for (int i = 0, n = mEnergyHatches.size(); i < n; i++) {
+                MTEHatchEnergy h = mEnergyHatches.get(i);
+                if (!isUsableEnergyHatch(h)) continue;
+                anyHatch = true;
                 IGregTechTileEntity bte = h.getBaseMetaTileEntity();
                 if (bte != null) {
                     totalStored += bte.getStoredEU();
                 }
             }
-
+        }
+        if (anyHatch) {
             if (totalStored < aEU) {
                 return false;
             }
 
             long remaining = aEU;
-            for (MTEHatchEnergy h : hatches) {
+            for (int i = 0, n = mEnergyHatches.size(); i < n; i++) {
+                MTEHatchEnergy h = mEnergyHatches.get(i);
+                if (!isUsableEnergyHatch(h)) continue;
                 IGregTechTileEntity bte = h.getBaseMetaTileEntity();
                 if (bte != null) {
                     long stored = bte.getStoredEU();
