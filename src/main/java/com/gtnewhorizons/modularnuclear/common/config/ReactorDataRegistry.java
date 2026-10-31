@@ -38,6 +38,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
 import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
+import com.gtnewhorizons.modularnuclear.common.util.LongKeyMap;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -54,17 +55,17 @@ public final class ReactorDataRegistry {
     private static File configDirectory;
 
     // Fast item-level lookup caches for WAILA and client tick responsiveness
-    private static final Map<Long, FuelData> fuelCache = new ConcurrentHashMap<>();
-    private static final Map<Long, ModeratorData> moderatorCache = new ConcurrentHashMap<>();
-    private static final Map<Long, ReflectorData> reflectorCache = new ConcurrentHashMap<>();
-    private static final Map<Long, ControlRodData> controlRodCache = new ConcurrentHashMap<>();
-    private static final Map<Long, InsulatorData> insulatorCache = new ConcurrentHashMap<>();
-    private static final Map<Long, HeatVentData> heatVentCache = new ConcurrentHashMap<>();
-    private static final Map<Long, HeatExchangerData> heatExchangerCache = new ConcurrentHashMap<>();
-    private static final Map<Long, RadiovoltaicData> radiovoltaicCache = new ConcurrentHashMap<>();
-    private static final Map<Long, CoolantItemData> coolantItemCache = new ConcurrentHashMap<>();
-    private static final Map<Long, CoolantFluidData> coolantFluidItemCache = new ConcurrentHashMap<>();
-    private static final Map<Long, Boolean> spentProductCache = new ConcurrentHashMap<>();
+    private static final LongKeyMap<FuelData> fuelCache = new LongKeyMap<>();
+    private static final LongKeyMap<ModeratorData> moderatorCache = new LongKeyMap<>();
+    private static final LongKeyMap<ReflectorData> reflectorCache = new LongKeyMap<>();
+    private static final LongKeyMap<ControlRodData> controlRodCache = new LongKeyMap<>();
+    private static final LongKeyMap<InsulatorData> insulatorCache = new LongKeyMap<>();
+    private static final LongKeyMap<HeatVentData> heatVentCache = new LongKeyMap<>();
+    private static final LongKeyMap<HeatExchangerData> heatExchangerCache = new LongKeyMap<>();
+    private static final LongKeyMap<RadiovoltaicData> radiovoltaicCache = new LongKeyMap<>();
+    private static final LongKeyMap<CoolantItemData> coolantItemCache = new LongKeyMap<>();
+    private static final LongKeyMap<CoolantFluidData> coolantFluidItemCache = new LongKeyMap<>();
+    private static final LongKeyMap<Boolean> spentProductCache = new LongKeyMap<>();
     /** Fluid lookups match names against every entry's patterns, so they are kept per fluid like item lookups. */
     private static final Map<net.minecraftforge.fluids.Fluid, Object> liquidFuelByFluid = new ConcurrentHashMap<>();
     private static final Map<net.minecraftforge.fluids.Fluid, Object> coolantFluidByFluid = new ConcurrentHashMap<>();
