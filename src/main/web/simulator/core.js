@@ -37,16 +37,22 @@ async function createSimulator(wasmPath) {
 }
 
 // New states are drawn at most once per animation frame; the worker is then asked for the next one, so it never
-// serializes states faster than the page draws them.
+// serializes states faster than the page draws them. A timer backs up the frame callback, which browsers stop
+// delivering to pages that are not on screen.
 let renderScheduled = false;
 function scheduleRender() {
   if (renderScheduled) return;
   renderScheduled = true;
-  requestAnimationFrame(() => {
+  let timer = null;
+  const draw = () => {
+    if (!renderScheduled) return;
     renderScheduled = false;
+    clearTimeout(timer);
     renderUI();
     if (wasmSim && wasmSim.requestState) wasmSim.requestState();
-  });
+  };
+  requestAnimationFrame(draw);
+  timer = setTimeout(draw, 250);
 }
 
 async function initEngine() {
