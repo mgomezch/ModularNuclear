@@ -147,10 +147,9 @@ async function initEngine() {
       isWasmMode = true;
       const eb = document.getElementById("engine-badge");
       if (eb) {
-        eb.innerText = wasmSim.worker ? "⚡ Client WASM (worker)" : "⚡ Client WASM (0ms)";
-        eb.style.background = "#065f46";
-        eb.style.borderColor = "#059669";
-        eb.style.color = "#34d399";
+        eb.innerText = wasmSim.worker ? "⚡ WASM worker" : "⚡ WASM";
+        eb.title = wasmSim.worker ? "Simulation running client-side via WebAssembly in a Web Worker" : "Simulation running client-side via WebAssembly on the page";
+        eb.className = "pill pill-ok";
       }
       wasmSim.onStateChange = (state) => {
         currentState = state;
@@ -198,9 +197,7 @@ async function initEngine() {
       const eb = document.getElementById("engine-badge");
       if (eb) {
         eb.innerText = "❌ WASM Error";
-        eb.style.background = "#7f1d1d";
-        eb.style.borderColor = "#b91c1c";
-        eb.style.color = "#f87171";
+        eb.className = "pill pill-alarm";
       }
       return false;
     }
@@ -505,13 +502,8 @@ function toggleLoopAttachMode() {
   isLoopAttachMode = !isLoopAttachMode;
   const btn = document.getElementById("btn-loop-attach-mode");
   if (btn) {
-    if (isLoopAttachMode) {
-      btn.innerText = "🛑 Exit Attach Mode";
-      btn.style.background = "#e11d48";
-    } else {
-      btn.innerText = "🔗 Attach Points Mode";
-      btn.style.background = "#0284c7";
-    }
+    btn.innerText = isLoopAttachMode ? "🛑 Exit Attach Mode" : "🔗 Attach Points Mode";
+    btn.classList.toggle("is-on", isLoopAttachMode);
   }
 }
 
@@ -571,7 +563,7 @@ function setInteractionMode(mode) {
     const loopBtn = document.getElementById("btn-loop-attach-mode");
     if (loopBtn) {
       loopBtn.innerText = "🔗 Attach Points Mode";
-      loopBtn.style.background = "#0284c7";
+      loopBtn.classList.remove("is-on");
     }
   }
   const btnInspect = document.getElementById("btn-mode-inspect");
@@ -606,6 +598,7 @@ function initPalette() {
     const btn = document.createElement("button");
     btn.className = "palette-btn" + (interactionMode === "PAINT" && p.type === activePaletteType ? " active" : "");
     btn.dataset.type = p.type;
+    btn.title = p.name;
     btn.style.borderLeft = "4px solid " + p.color;
     const iconHtml = p.isControlRod
       ? `<div class="palette-icon" style="display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:bold; color:${p.color};">${p.remove ? '❌' : '🕹️'}</div>`

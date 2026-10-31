@@ -1,5 +1,5 @@
 let currentZoom = 1.0;
-let isFitMode = false;
+let isFitMode = true;
 let lastGridWidth = 0;
 let hoveredCell = null;
 
@@ -27,19 +27,47 @@ function fitGridToScreen() {
   recalculateFitZoom();
 }
 
+// Fits the grid into its box: both ways on the desktop layout, where the grid has a box of its own, and by width
+// alone on phones, where the page scrolls. Fitting may enlarge small grids up to FIT_MAX_ZOOM.
+const FIT_MAX_ZOOM = 1.5;
 function recalculateFitZoom() {
   const gridElem = document.getElementById("reactor-grid");
   const wrapper = gridElem ? gridElem.parentElement : null;
   if (!gridElem || !wrapper || !currentState) return;
 
-  const availableWidth = wrapper.clientWidth - 24;
   const width = currentState.width;
+  const height = currentState.height || width;
+  // The wrapper's padding (2 x 6 px), the grid's padding and border (2 x 6 px) and 2 px gaps between cells.
+  const chrome = 24;
+  const gap = 2;
+  const availableWidth = wrapper.clientWidth - chrome;
   if (width <= 0 || availableWidth <= 60) return;
-
-  const ratio = width + (width - 1) * (2.0 / 56.0);
-  const targetCellSize = Math.max(16, (availableWidth - 12) / ratio);
-  const targetScale = Math.min(1.0, targetCellSize / 56.0);
+  let targetCellSize = (availableWidth - (width - 1) * gap) / width;
+  const byHeight = !(typeof dockMobile !== "undefined" && dockMobile);
+  if (byHeight) {
+    const availableHeight = wrapper.clientHeight - chrome;
+    if (availableHeight > 60) {
+      targetCellSize = Math.min(targetCellSize, (availableHeight - (height - 1) * gap) / height);
+    }
+  }
+  targetCellSize = Math.max(16, Math.floor(targetCellSize));
+  const targetScale = Math.min(FIT_MAX_ZOOM, targetCellSize / 56.0);
   applyZoom(targetScale);
+}
+
+// Keeps a fitted grid fitted while its box changes size (window resize, splitters, dock width).
+let fitObserverQueued = false;
+function watchGridBox() {
+  const wrapper = document.getElementById("grid-wrapper");
+  if (!wrapper || typeof ResizeObserver === "undefined") return;
+  new ResizeObserver(() => {
+    if (!isFitMode || fitObserverQueued) return;
+    fitObserverQueued = true;
+    requestAnimationFrame(() => {
+      fitObserverQueued = false;
+      if (isFitMode) recalculateFitZoom();
+    });
+  }).observe(wrapper);
 }
 
 function applyZoom(scale) {

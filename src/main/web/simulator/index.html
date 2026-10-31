@@ -11,31 +11,20 @@
 <script src="nuclear-sim-worker.js"></script>
 </head>
 <body>
-<header>
-  <h1><span>⚛</span> Modular Pressure Tube Reactor (MPTR) Standalone Simulator</h1>
-  <div style="display:flex; gap:10px; align-items:center;">
-    <span class="badge" id="engine-badge" style="background:#065f46; border-color:#059669; color:#34d399;" title="Simulation running client-side via WebAssembly">⚡ Client WASM (0ms)</span>
-    <a href="/monitor/" class="badge" style="text-decoration:none; background:#1e1b4b; border-color:#6366f1; color:#a5b4fc;" title="Open real-time simulator telemetry & calibration dashboard">📊 Live Monitor</a>
-    <span class="badge" id="casing-badge">Electrum Casing (1000°C max)</span>
-    <span class="badge" id="damage-badge" style="visibility:hidden; color:var(--danger); border-color:var(--danger);" title="Cumulative reactor structural damage">Damage: 0.0%</span>
-    <span class="badge" id="maint-badge" style="color:var(--success);" title="Maintenance health (efficiency penalty)">Maint: 100%</span>
-    <button id="btn-quick-repair" onclick="quickRepair()" style="visibility:hidden; padding:2px 8px; font-size:0.75rem; background:#1e293b; border-color:var(--warning); color:var(--warning);" title="Repair structural damage and clear maintenance issues">🔧 Repair</button>
-    <span class="badge" id="status-badge" style="color:var(--success);">STATUS: STANDBY</span>
-  </div>
-</header>
-
-<div class="container">
-  <!-- Reactor Grid View -->
-  <div class="panel grid-panel">
-    <div id="alert-box"></div>
-    <div class="toolbar">
-      <button class="primary" id="btn-play" onclick="togglePlay()">▶ Start Simulation</button>
-      <button onclick="stepSim(1)">Step +1</button>
-      <button onclick="stepSim(10)">Step +10</button>
-      <button onclick="stepSim(100)">Step +100</button>
-      <button class="danger" onclick="quickScram()" title="Emergency SCRAM: Insert all control rods to 100% [Key: s]">🚨 SCRAM</button>
-      <button class="danger" onclick="resetSim()">↺ Reset</button>
-      <select id="preset-select" onchange="loadPreset(this.value)">
+<div id="topbar" class="topbar">
+  <!-- Command bar: run controls and the reactor configuration, always on screen -->
+  <header id="cmdbar" class="cmdbar">
+    <div class="brand" title="Modular Pressure Tube Reactor (MPTR) Standalone Simulator"><span class="brand-icon">⚛</span><b>MPTR</b><span class="brand-sub">Sim</span></div>
+    <div class="cmd-group cmd-run">
+      <button class="primary" id="btn-play" onclick="togglePlay()" title="Run / pause the simulation [Space]">▶ Run</button>
+      <button class="cmd-step" onclick="stepSim(1)" title="Step 1 tick">+1</button>
+      <button class="cmd-step" onclick="stepSim(10)" title="Step 10 ticks">+10</button>
+      <button class="cmd-step" onclick="stepSim(100)" title="Step 100 ticks">+100</button>
+      <button class="danger" id="btn-scram" onclick="quickScram()" title="Emergency SCRAM: Insert all control rods to 100% [Key: s]">🚨 SCRAM</button>
+      <button class="cmd-reset" onclick="resetSim()" title="Reset the simulation to tick 0">↺<span class="btn-txt"> Reset</span></button>
+    </div>
+    <div class="cmd-group cmd-config">
+      <select id="preset-select" onchange="loadPreset(this.value)" title="Load a reactor design">
         <optgroup label="⚡ Calibrated 60A Baseline Designs">
           <option value="60A_ELECTRUM_5X5">EV 60A: Electrum 5x5 (123k EU/t · 60.0A)</option>
           <option value="60A_PLATINUM_9X9">IV 60A: Platinum 9x9 Breeder (492k EU/t · 60.0A)</option>
@@ -61,674 +50,552 @@
         <option value="4">Fluxed Electrum (2600°C)</option>
         <option value="5">Black Plutonium (3200°C)</option>
       </select>
-      <div style="display:inline-flex; align-items:center; gap:4px;">
-        <label for="voltage-tier-select" style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Voltage:</label>
-        <select id="voltage-tier-select" onchange="onVoltageTierChange(this.value)" title="Voltage tier for live amperage conversion">
-          <option value="ULV">ULV (8 V)</option>
-          <option value="LV">LV (32 V)</option>
-          <option value="MV">MV (128 V)</option>
-          <option value="HV">HV (512 V)</option>
-          <option value="EV">EV (2,048 V)</option>
-          <option value="IV" selected>IV (8,192 V)</option>
-          <option value="LuV">LuV (32,768 V)</option>
-          <option value="ZPM">ZPM (131,072 V)</option>
-          <option value="UV">UV (524,288 V)</option>
-          <option value="UHV">UHV (2,097,152 V)</option>
-          <option value="UEV">UEV (8,388,608 V)</option>
-          <option value="UIV">UIV (33,554,432 V)</option>
-          <option value="UMV">UMV (134,217,728 V)</option>
-          <option value="UXV">UXV (536,870,912 V)</option>
-          <option value="MAX">MAX (2,147,483,647 V)</option>
-        </select>
-      </div>
+      <label class="cmd-label" for="voltage-tier-select" title="Voltage tier for live amperage conversion">V</label>
+      <select id="voltage-tier-select" onchange="onVoltageTierChange(this.value)" title="Voltage tier for live amperage conversion">
+        <option value="ULV">ULV (8 V)</option>
+        <option value="LV">LV (32 V)</option>
+        <option value="MV">MV (128 V)</option>
+        <option value="HV">HV (512 V)</option>
+        <option value="EV">EV (2,048 V)</option>
+        <option value="IV" selected>IV (8,192 V)</option>
+        <option value="LuV">LuV (32,768 V)</option>
+        <option value="ZPM">ZPM (131,072 V)</option>
+        <option value="UV">UV (524,288 V)</option>
+        <option value="UHV">UHV (2,097,152 V)</option>
+        <option value="UEV">UEV (8,388,608 V)</option>
+        <option value="UIV">UIV (33,554,432 V)</option>
+        <option value="UMV">UMV (134,217,728 V)</option>
+        <option value="UXV">UXV (536,870,912 V)</option>
+        <option value="MAX">MAX (2,147,483,647 V)</option>
+      </select>
     </div>
-
-    <div class="sim-options-bar">
-      <span class="sim-options-label">Simulation Options:</span>
-      <label class="sim-toggle-label" title="Automatically pause simulation whenever an incident occurs (overheated cell, dry thermal shock, or reactor damage)">
-        <input type="checkbox" id="chk-stop-incidents" onchange="toggleStopOnIncidents(this.checked)" style="cursor:pointer; accent-color:var(--warning);">
-        <span>🛑 Stop on Incidents</span>
-        <span id="lbl-stop-incidents" style="font-size:0.7rem; color:var(--text-muted); font-weight:normal;">(Off)</span>
-      </label>
-      <label class="sim-toggle-label" title="Continuously supplies fresh 100%-durability fuel rods when spent or burned, and auto-replenishes liquid fuel hatches to maximum">
-        <input type="checkbox" id="chk-auto-supply-fuel" checked onchange="toggleAutoSupplyFuel(this.checked)" style="cursor:pointer; accent-color:#34d399;">
-        <span>🔄 Auto-Supply Fuel</span>
-        <span id="lbl-auto-supply-fuel" style="font-size:0.7rem; color:#34d399; font-weight:600;">(Enabled)</span>
-      </label>
-      <div class="sim-damage-control" style="display:inline-flex; align-items:center; gap:8px; margin-left:auto; background:#1e293b; border:1px solid #334155; border-radius:6px; padding:3px 10px;">
-        <span style="font-size:0.75rem; color:#f87171; font-weight:600;" title="Manual Core Structural Damage Slider">💥 Damage:</span>
-        <input type="range" id="rng-reactor-damage" min="0" max="100" step="0.5" value="0"
-          oninput="onDamageSliderInput(this.value)"
-          onchange="onDamageSliderChange(this.value)"
-          style="width:90px; cursor:pointer; accent-color:#ef4444;" title="Slide to adjust reactor structural damage (0% to 100%)">
-        <span id="lbl-reactor-damage-val" style="font-size:0.75rem; color:#f87171; font-weight:bold; min-width:40px;">0.0%</span>
-        <button type="button" onclick="setDamagePercent(0)" style="font-size:0.7rem; padding:1px 5px; background:#065f46; color:#34d399; border:1px solid #059669; border-radius:3px; cursor:pointer;" title="Reset damage to 0% (clean repair)">0%</button>
-        <button type="button" onclick="setDamagePercent(50)" style="font-size:0.7rem; padding:1px 5px; background:#78350f; color:#fde047; border:1px solid #d97706; border-radius:3px; cursor:pointer;" title="Set damage to 50%">50%</button>
-        <button type="button" onclick="setDamagePercent(95)" style="font-size:0.7rem; padding:1px 5px; background:#7f1d1d; color:#fca5a5; border:1px solid #dc2626; border-radius:3px; cursor:pointer;" title="Set damage to 95% (near meltdown)">95%</button>
-      </div>
+    <div class="cmd-group cmd-aux">
+      <span class="pill pill-ok" id="engine-badge" title="Simulation running client-side via WebAssembly">⚡ WASM</span>
+      <a href="/monitor/" class="pill pill-link" title="Open real-time simulator telemetry &amp; calibration dashboard">📊 Monitor</a>
+      <button type="button" id="btn-layout" class="cmd-layout" onclick="openLayoutMenu(this)" aria-haspopup="menu" aria-expanded="false" title="Layout: show or hide tabs, split the dock, reset">⚙<span class="btn-txt"> Layout</span></button>
     </div>
+  </header>
 
-    <div class="grid-toolbar">
-      <div class="grid-toolbar-title">
-        <span id="grid-dim-label">Chamber Grid (9×9)</span>
-      </div>
-
-      <div class="display-mode-selector">
-        <span class="mode-label">Mode:</span>
-        <div class="segmented-control">
-          <button type="button" class="seg-btn" id="btn-mode-comp" onclick="setGridDisplayMode('COMPONENTS')" title="Show Component Icons [Key: 1]">📦 Components</button>
-          <button type="button" class="seg-btn active" id="btn-mode-temp" onclick="setGridDisplayMode('TEMP')" title="Show Cell Temperature (°C) [Key: 2]">🌡️ Temp</button>
-          <button type="button" class="seg-btn" id="btn-mode-heat-output" onclick="setGridDisplayMode('HEAT_OUTPUT')" title="Show Heat Output (Hu/s) [Key: 3]"><img src="icons/HOT_COOLANT_CELL.png" style="width:14px;height:14px;vertical-align:-2px;image-rendering:pixelated;margin-right:4px;" alt="" onerror="this.style.display='none'">Heat Output</button>
-          <button type="button" class="seg-btn" id="btn-mode-flux" onclick="setGridDisplayMode('TOTAL_FLUX')" title="Show Total Neutron Flux [Key: 4]">⚛️ Flux</button>
-          <button type="button" class="seg-btn" id="btn-mode-absorb" onclick="setGridDisplayMode('ABSORPTION')" title="Show Neutron Absorption [Key: 5]">🛡️ Absorption</button>
-          <button type="button" class="seg-btn" id="btn-mode-rods" onclick="setGridDisplayMode('CONTROL_RODS')" title="Show Control Rod Hatches [Key: 6]">🕹️ Control Rods</button>
-        </div>
-      </div>
-
-      <div class="zoom-controls">
-        <span class="zoom-label">Zoom:</span>
-        <button type="button" class="zoom-btn" onclick="zoomGrid(-1)" title="Zoom Out (− or Key: -)">🔍−</button>
-        <button type="button" class="zoom-btn" id="zoom-level-btn" onclick="resetZoom()" title="Reset to 100% (Key: 0)">100%</button>
-        <button type="button" class="zoom-btn" onclick="zoomGrid(1)" title="Zoom In (+ or Key: +)">🔍+</button>
-        <button type="button" class="zoom-btn fit-btn" onclick="fitGridToScreen()" title="Auto-Fit Grid to Screen (Key: f)">📐 Fit</button>
-      </div>
-    </div>
-
-    <div class="grid-container-wrapper">
-      <div id="reactor-grid"></div>
-    </div>
-
-    <!-- Incident & Event Log Panel -->
-    <div class="incident-log-container" id="incident-log-container">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <h3 style="font-size:0.85rem; color:#f59e0b; margin:0;">📋 Incident &amp; Event Log</h3>
-          <span class="badge" id="incident-count-badge" style="font-size:0.7rem; color:#f59e0b; border-color:#f59e0b;">0 events</span>
-        </div>
-        <div style="display:flex; gap:6px;">
-          <button type="button" onclick="quickRepair()" style="padding:2px 8px; font-size:0.72rem; background:#1e293b; border-color:var(--warning); color:var(--warning);" title="Repair structural damage and clear maintenance issues">🔧 Quick Repair</button>
-          <button type="button" onclick="clearIncidentLog()" style="padding:2px 8px; font-size:0.72rem;" title="Clear incident history">Clear Log</button>
-        </div>
-      </div>
-      <div id="incident-log-list" style="height:130px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;">
-        <div style="font-style:italic; font-size:0.75rem; color:#64748b; padding:4px 6px;">No incidents recorded. Chamber operating nominally.</div>
-      </div>
-    </div>
+  <!-- Status strip: the headline numbers, fixed widths -->
+  <div id="status-strip" class="status-strip" role="status" aria-live="off">
+    <span class="st-state" id="status-badge">STANDBY</span>
+    <span class="st-item st-tick" title="Simulation tick"><span class="st-k">t</span><span class="st-v" id="st-tick">0</span></span>
+    <span class="st-item st-power" title="Net power output"><span class="st-k">Power</span><span class="st-v" id="st-power">0 EU/t</span></span>
+    <span class="st-item st-maxt" title="Core peak temperature / casing limit"><span class="st-k">Core max</span><span class="st-v" id="st-maxt">20 °C</span></span>
+    <span class="st-item st-avgt" title="Core average temperature"><span class="st-k">Avg</span><span class="st-v" id="st-avgt">20 °C</span></span>
+    <span class="st-item st-rods" title="Mean control rod insertion"><span class="st-k">Rods</span><span class="st-v" id="st-rods">0%</span></span>
+    <span class="st-item st-loop" title="Coolant loop status"><span class="st-k">Loop</span><span class="st-v" id="st-loop">—</span></span>
+    <span class="st-item st-damage" id="damage-badge" title="Cumulative reactor structural damage">Damage: 0.0%</span>
+    <span class="st-item st-maint" id="maint-badge" title="Maintenance health (efficiency penalty)">Maint: 100%</span>
+    <span class="st-item st-casing" id="casing-badge" title="Casing tier and its temperature limit">Electrum Casing (1000°C max)</span>
   </div>
 
-  <!-- Palette & Inspector -->
-  <div class="panel side-panel">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <h3>Interaction Mode</h3>
-      <span class="badge" id="mode-badge" style="color:var(--accent);">INSPECT ONLY</span>
-    </div>
-    <div style="display:flex; gap:8px; margin-bottom:12px;">
-      <button id="btn-mode-inspect" class="primary" onclick="setInteractionMode('INSPECT')" style="flex:1;" title="Click cells to view live details without modifying (Shortcut: 'i' or Esc)">🔍 Inspect Only</button>
-      <button id="btn-mode-paint" onclick="setInteractionMode('PAINT')" style="flex:1;" title="Click cells to place selected component (Shortcut: 'p')">🖌️ Paint / Place</button>
-    </div>
-
-    <h3>Tile Palette</h3>
-    <p id="palette-hint" style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">Select a component below to enter Paint Mode, or use Inspect Mode to safely check hatches.</p>
-    <div class="palette" id="palette-container"></div>
-
-    <hr style="border:0; border-top:1px solid var(--border-color); margin:12px 0;">
-
-    <h3>Selected Tile Inspector</h3>
-    <div id="tile-inspector" style="font-size:0.85rem; color:var(--text-muted);">
-      Click any grid cell to inspect its live telemetry and coolant levels.
-    </div>
-
-    <hr style="border:0; border-top:1px solid var(--border-color); margin:12px 0;">
-
-    <div style="background:#131a24; border:1px solid var(--border-color); border-radius:6px; padding:12px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <h3 style="font-size:0.95rem; color:var(--warning);">⚙️ Simulation Tuning</h3>
-        <button onclick="resetSimParams()" style="padding:2px 8px; font-size:0.75rem;" title="Reset parameters to defaults">↺ Reset</button>
-      </div>
-      <div style="margin-bottom:8px;">
-        <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:2px;">Tuning Profile:</label>
-        <select id="sim-profile-select" onchange="applyProfilePreset(this.value)" style="width:100%;">
-          <option value="BALANCED" selected>Balanced / default</option>
-          <option value="DANGER">Meltdown hazard (high danger)</option>
-          <option value="FLASH_BOIL">Flash boiling (low capacity / fast turnover)</option>
-          <option value="SAFE">Conservative / low heat</option>
-        </select>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Hu per Degree (°C):</label>
-          <input id="p-hu-per-degree" type="number" step="1.0" value="32.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Base Conductance:</label>
-          <input id="p-base-conductance" type="number" step="0.5" value="2.0" onchange="submitSimParams()" title="Base hatch conductance in Hu/(s·°C)" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Fission Heat (Hu/n):</label>
-          <input id="p-fission-heat" type="number" step="0.1" value="77.2" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Global Fission Mult (k):</label>
-          <input id="p-fiss-mult" type="number" step="0.005" value="0.348" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Ambient Temp (°C):</label>
-          <input id="p-ambient-temp" type="number" step="1.0" value="20.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Ticks per cycle (t):</label>
-          <input id="p-ticks-per-cycle" type="number" min="1" step="1" value="5" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Hatch Capacity (L):</label>
-          <input id="p-hatch-cap" type="number" step="1000" value="8000" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Feed Rate (L/t):</label>
-          <select id="p-feed-rate" onchange="submitSimParams()" style="width:100%;">
-            <option value="500">500 L/t</option>
-            <option value="1000">1,000 L/t</option>
-            <option value="2000">2,000 L/t</option>
-            <option value="4000">4,000 L/t</option>
-            <option value="8000">8,000 L/t</option>
-            <option value="999999" selected>Instant Max</option>
-          </select>
-        </div>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Turnover Curve:</label>
-          <select id="p-turn-curve" onchange="submitSimParams()" style="width:100%;">
-            <option value="SIGMOID" selected>Sigmoid (S-Curve)</option>
-            <option value="EXPONENTIAL">Exponential</option>
-            <option value="LINEAR">Linear</option>
-            <option value="STEP">Step-Based</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Turnover &Delta;T Max:</label>
-          <input id="p-turn-dt" type="number" step="10" value="100" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Turnover Exponent:</label>
-          <input id="p-turn-exp" type="number" step="0.1" value="1.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">HP Boil Point (°C):</label>
-          <input id="p-hp-boil" type="number" step="10" value="180" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:6px;">
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Water Heat (Hu/L):</label>
-          <input id="p-cooling-heat" type="number" step="0.5" value="5.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">IC2 Heat (Hu/L):</label>
-          <input id="p-ic2-cooling-heat" type="number" step="1.0" value="20.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-      </div>
-      <div style="border-top:1px dashed var(--border-color); padding-top:8px; margin-top:8px;">
-        <div style="font-size:0.75rem; font-weight:700; color:#38bdf8; margin-bottom:6px;">☢️ Fuel Archetypes &amp; Burnup</div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-          <div>
-            <label style="font-size:0.7rem; color:var(--text-muted);">Fuel Burnup Mult:</label>
-            <input id="p-burnup-mult" type="number" step="0.05" value="1.0" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-          </div>
-          <div>
-            <label style="font-size:0.7rem; color:var(--text-muted);">Dense Nbase Mult:</label>
-            <input id="p-dense-nbase-mult" type="number" step="0.05" value="0.50" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-          </div>
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-          <div>
-            <label style="font-size:0.7rem; color:var(--text-muted);">Dense Fission Mult:</label>
-            <input id="p-dense-fiss-mult" type="number" step="0.05" value="1.20" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-          </div>
-          <div>
-            <label style="font-size:0.7rem; color:var(--text-muted);">Excited Nbase Mult:</label>
-            <input id="p-excited-nbase-mult" type="number" step="0.05" value="1.40" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-          </div>
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-          <div>
-            <label style="font-size:0.7rem; color:var(--text-muted);">Excited Fission Mult:</label>
-            <input id="p-excited-fiss-mult" type="number" step="0.05" value="0.80" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-          </div>
-          <div>
-            <label style="font-size:0.7rem; color:var(--text-muted);">Standard Nbase Mult:</label>
-            <input id="p-std-nbase-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-          </div>
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-          <div>
-            <label style="font-size:0.7rem; color:var(--text-muted);">Standard Fission Mult:</label>
-            <input id="p-std-fiss-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-          </div>
-          <div>
-            <label style="font-size:0.7rem; color:var(--text-muted);">Breeder Nbase Mult:</label>
-            <input id="p-brd-nbase-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-          </div>
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
-          <div>
-            <label style="font-size:0.7rem; color:var(--text-muted);">Breeder Fission Mult:</label>
-            <input id="p-brd-fiss-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Telemetry & Live Graphs -->
-  <div class="panel telemetry-panel">
-    <!-- Coolant Loop (Tier 2+ Convective Subsystem) -->
-    <div id="coolant-loop-card" style="background:#131a24; border:1px solid #00d2ff; border-radius:6px; padding:12px; margin-bottom:12px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-        <h3 style="font-size:0.95rem; color:#00d2ff; margin:0;">🔄 Coolant Loop Subsystem</h3>
-        <span class="badge" id="loop-status-badge" style="font-weight:bold; color:var(--success);">NORMAL</span>
-      </div>
-      <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">
-        Per-cell convective cooling for <b style="color:#00d2ff;">Coolant Passage</b> tiles or attached cells.
-      </div>
-      <div id="loop-tier-warning" style="display:none; font-size:0.72rem; color:#fbbf24; background:rgba(251,191,36,0.15); border:1px solid #fbbf24; border-radius:4px; padding:6px; margin-bottom:8px;">
-        ⚠️ Convective loops require Osmium or higher item pipe casings (LuV+). Available on all reactor sizes (5×5, 9×9, 13×13).
-      </div>
-      <div style="display:flex; gap:6px; margin-bottom:6px; align-items:flex-end;">
-        <div style="flex:1;">
-          <label style="font-size:0.7rem; color:var(--text-muted);">Loop Circuit (passages CP, CP2, CP3 ...):</label>
-          <select id="loop-circuit-select" onchange="onCoolantCircuitSelect()" style="width:100%;"><option value="0">Circuit 1 (CP)</option></select>
-        </div>
-        <button onclick="addCoolantCircuit()" style="font-size:0.75rem; padding:5px 8px;">＋ Circuit</button>
-        <button onclick="removeCoolantCircuit()" style="font-size:0.75rem; padding:5px 8px; background:#475569;">－</button>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Loop Material:</label>
-          <select id="loop-material-select" onchange="onCoolantLoopConfigChange()" style="width:100%;"></select>
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Pipe Size:</label>
-          <select id="loop-size-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
-            <option value="TINY">Tiny (0.25x)</option>
-            <option value="SMALL">Small (0.5x)</option>
-            <option value="NORMAL" selected>Normal (1.0x)</option>
-            <option value="LARGE">Large (2.0x)</option>
-            <option value="HUGE">Huge (4.0x)</option>
-          </select>
-        </div>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Working Fluid:</label>
-          <select id="loop-fluid-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
-            <option value="DISTILLED_WATER" selected>Distilled Water</option>
-            <option value="HEAVY_WATER">Heavy Water</option>
-            <option value="IC2_COOLANT">IC2 Coolant</option>
-            <option value="SODIUM">Sodium</option>
-            <option value="MOLTEN_LEAD">Molten Lead</option>
-            <option value="MOLTEN_CHEESE">🧀 Molten Cheese</option>
-            <option value="LAVA">🌋 Nether Lava</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Pump Energy Hatch:</label>
-          <select id="loop-hatch-tier-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
-            <option value="LV">LV (32 EU/t)</option>
-            <option value="MV">MV (128 EU/t)</option>
-            <option value="HV">HV (512 EU/t)</option>
-            <option value="EV" selected>EV (2,048 EU/t)</option>
-            <option value="IV">IV (8,192 EU/t)</option>
-            <option value="LUV">LuV (32,768 EU/t)</option>
-            <option value="ZPM">ZPM (131,072 EU/t)</option>
-            <option value="UV">UV (524,288 EU/t)</option>
-            <option value="UHV">UHV (2,097,152 EU/t)</option>
-          </select>
-        </div>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Pump Energy Hatches:</label>
-          <select id="loop-pump-hatches-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
-            <option value="1" selected>1 (1x voltage)</option>
-            <option value="2">2+ (4x voltage)</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Pump Rotor:</label>
-          <select id="loop-rotor-select" onchange="onCoolantLoopConfigChange()" style="width:100%;"></select>
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Rotor Size:</label>
-          <select id="loop-rotor-size-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
-            <option value="SMALL">Small</option>
-            <option value="NORMAL">Normal</option>
-            <option value="LARGE">Large</option>
-            <option value="HUGE" selected>Huge</option>
-          </select>
-        </div>
-      </div>
-      <div style="margin-bottom:6px;">
-        <label style="font-size:0.7rem; color:var(--text-muted);">PHE Secondary Coolant:</label>
-        <select id="loop-secondary-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
-          <option value="ic2distilledwater" selected>ic2distilledwater (boils at 100°C → steam)</option>
-        </select>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Loops (pumps):</label>
-          <input id="loop-count-input" type="number" min="1" max="16" step="1" value="1" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">PHEs per loop:</label>
-          <input id="loop-phe-count-input" type="number" min="1" max="16" step="1" value="1" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">PHE Energy Hatch:</label>
-          <select id="loop-phe-hatch-tier-select" onchange="onCoolantLoopConfigChange()" style="width:100%;"><option value="LV">LV</option><option value="MV">MV</option><option value="HV">HV</option><option value="EV" selected>EV</option><option value="IV">IV</option><option value="LUV">LuV</option><option value="ZPM">ZPM</option><option value="UV">UV</option><option value="UHV">UHV</option></select>
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">PHE Hatches:</label>
-          <select id="loop-phe-hatches-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
-            <option value="1" selected>1 (1x voltage)</option>
-            <option value="2">2+ (4x voltage)</option>
-          </select>
-        </div>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Pump Duty Cycle (%):</label>
-          <input id="loop-duty-cycle-input" type="number" min="0" max="100" step="5" value="100" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Flow Cap (L/s):</label>
-          <input id="loop-max-flow-input" type="number" min="0" step="10" placeholder="No cap" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Pressure Cap (bar):</label>
-          <input id="loop-max-pressure-input" type="number" min="0" step="5" placeholder="No cap" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-      </div>
-      <div style="display:grid; grid-template-columns: auto 1fr 1fr 1.3fr; gap:6px; margin-bottom:6px; align-items:end;">
-        <label style="font-size:0.72rem; color:#fde047; display:flex; align-items:center; gap:4px; padding-bottom:6px; cursor:pointer;">
-          <input id="loop-band-check" type="checkbox" onchange="onCoolantLoopConfigChange()" style="accent-color:#f59e0b;"> Temp band
-        </label>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Pump off below (°C):</label>
-          <input id="loop-band-min-input" type="number" step="10" value="500" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Pump on above (°C):</label>
-          <input id="loop-band-max-input" type="number" step="10" value="600" onchange="onCoolantLoopConfigChange()" style="width:100%; background:#233044; border:1px solid var(--border-color); color:#fff; padding:6px; border-radius:6px; font-size:0.8rem;">
-        </div>
-        <div>
-          <label style="font-size:0.7rem; color:var(--text-muted);">Sensor:</label>
-          <select id="loop-band-sensor-select" onchange="onCoolantLoopConfigChange()" style="width:100%;">
-            <option value="PASSAGE" selected>Hottest passage</option>
-            <option value="HOT_LEG">Hot leg coolant</option>
-          </select>
-        </div>
-      </div>
-      <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:6px;">
-        Pump control stands for a machine controller cover driven by redstone: the pump only runs (and draws EU) on the ticks it is switched on.
-      </div>
-      <div style="display:flex; gap:6px; margin-bottom:8px;">
-        <button id="btn-loop-attach-mode" onclick="toggleLoopAttachMode()" style="flex:1; font-size:0.75rem; padding:4px 8px; background:#0284c7;">🔗 Attach Points Mode</button>
-        <button onclick="clearLoopAttachments()" style="font-size:0.75rem; padding:4px 8px; background:#475569;">✕ Clear Points</button>
-      </div>
-      <div class="stat-row"><span>Circulation Flow:</span><span class="stat-val" id="loop-flow-val">0 L/s</span></div>
-      <div class="stat-row"><span>Pressure:</span><span class="stat-val" id="loop-pressure-val">1.0 / 70.0 bar</span></div>
-      <div style="width:100%; background:#0f172a; border-radius:3px; height:6px; margin:4px 0 6px 0; overflow:hidden;">
-        <div id="loop-pressure-bar" style="width:5%; height:100%; background:#22c55e; transition:width 0.2s, background 0.2s;"></div>
-      </div>
-      <div class="stat-row"><span>Loop Fluid Temp:</span><span class="stat-val" id="loop-temp-val">20.0 °C</span></div>
-      <div class="stat-row"><span>Convective Heat Extracted:</span><span class="stat-val" id="loop-heat-val" style="color:#38bdf8;">0 Hu/s (0.0 MWth)</span></div>
-      <div class="stat-row"><span>Secondary PHE Steam:</span><span class="stat-val wrap2" id="loop-steam-val">0 L/t (1:160)</span></div>
-      <div class="stat-row"><span>Pump Power (Parasitic):</span><span class="stat-val wrap3" id="loop-pump-val" style="color:#fbbf24;">0 EU/t</span></div>
-      <div class="stat-row"><span>Attached Core Points:</span><span class="stat-val" id="loop-points-val">0 cells</span></div>
-      <div id="loop-circuits-table" style="font-size:0.72rem; margin-top:6px;"></div>
-      <div class="stat-row"><span>Byproduct (Transmutation):</span><span class="stat-val wrap2" id="loop-byproduct-val" style="color:#a855f7;">0 L</span></div>
-    </div>
-
-    <!-- Control Rods Subsystem -->
-    <div style="background:#131a24; border:1px solid var(--border-color); border-radius:6px; padding:12px; margin-bottom:12px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-        <h3 style="font-size:0.95rem; color:#00e5ff; margin:0;">🕹️ Control Rods</h3>
-        <span class="badge" id="rods-count-badge" style="font-weight:bold; color:#00e5ff;">0 Hatches</span>
-      </div>
-      <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">
-        Non-outer-wall hatches providing vertical neutron absorption shielding.
-      </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; margin-bottom:4px;">
-        <span>Global Insertion:</span>
-        <span id="lbl-global-rod-ins" style="font-weight:700; color:#00e5ff;">0%</span>
-      </div>
-      <input type="range" id="rng-global-rod-ins" min="0" max="100" value="0"
-        oninput="document.getElementById('lbl-global-rod-ins').innerText = this.value + '%'"
-        onchange="setAllControlRodsInsertion(parseInt(this.value))"
-        style="width:100%; cursor:pointer; accent-color:#00e5ff; margin-bottom:6px;" />
-      <div style="display:flex; gap:6px; margin-bottom:8px;">
-        <button type="button" onclick="setAllControlRodsInsertion(0)" style="flex:1; font-size:0.75rem; padding:4px 6px;">Retract (0%)</button>
-        <button type="button" onclick="setAllControlRodsInsertion(50)" style="flex:1; font-size:0.75rem; padding:4px 6px;">Insert 50%</button>
-        <button type="button" class="danger" onclick="quickScram()" style="flex:1; font-size:0.75rem; padding:4px 6px; background:#b91c1c; border-color:#dc2626;" title="Emergency SCRAM [Key: s]">🚨 SCRAM (100%)</button>
-      </div>
-      <div class="stat-row"><span>Total Rod Absorption:</span><span class="stat-val" id="rods-total-abs-val" style="color:#00e5ff;">0 n/t</span></div>
-    </div>
-
-    <div style="background:#131a24; border:1px solid var(--border-color); border-radius:6px; padding:12px; margin-bottom:12px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <h3 style="font-size:0.95rem; color:var(--accent);">⚡ Turbine Power (XLST & EHE)</h3>
-        <span class="badge" id="stat-power-tier" style="font-weight:bold; color:var(--success);">0 EU/t (OFF)</span>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-        <select id="turbine-mat" onchange="onTurbineConfigChange()" title="Turbine Rotor Material"></select>
-        <select id="turbine-size" onchange="onTurbineConfigChange()" title="Turbine Rotor Size">
-          <option value="SMALL">Small (0.33x)</option>
-          <option value="NORMAL">Normal (0.67x)</option>
-          <option value="LARGE" selected>Large (1.00x)</option>
-          <option value="HUGE">Huge (1.33x)</option>
-        </select>
-      </div>
-      <div style="margin-bottom:8px;">
-        <select id="turbine-fitting" onchange="onTurbineConfigChange()" style="width:100%;" title="Housing Fitting Mode">
-          <option value="TIGHT" selected>Fitting: Tight (Optimal)</option>
-          <option value="LOOSE">Fitting: Loose</option>
-        </select>
-      </div>
-      <div class="stat-row"><span>Rotor Efficiency:</span><span class="stat-val" id="turb-eff">100 %</span></div>
-      <div class="stat-row"><span>Opt Flow / Turbine:</span><span class="stat-val" id="turb-opt-flow">0 L/t</span></div>
-      <hr style="border:0; border-top:1px solid var(--border-color); margin:6px 0;">
-      <div class="stat-row"><span>XLST-SC (supercritical):</span><span class="stat-val" id="turb-sc-pwr">0 EU/t</span></div>
-      <div class="stat-row"><span>XLST-HP (superheated/HW):</span><span class="stat-val" id="turb-hp-pwr">0 EU/t</span></div>
-      <div class="stat-row"><span>XLST (regular steam):</span><span class="stat-val" id="turb-reg-pwr">0 EU/t</span></div>
-      <div class="stat-row" id="ehe-row"><span>EHE Mode / DW:</span><span class="stat-val wrap2" id="turb-ehe-info" style="color:#38bdf8;">None</span></div>
-      <hr style="border:0; border-top:1px solid var(--border-color); margin:6px 0;">
-      <div class="stat-row" style="font-size:0.75rem;"><span>Live Flows (L/t):</span><span class="stat-val" id="turb-flows" style="font-size:0.75rem;">Reg: 0 | SH: 0 | SC: 0</span></div>
-      <!-- Operational scenarios (tier defaults) -->
-      <div style="background:#0f172a; border:1px solid #334155; border-radius:6px; padding:8px; margin-top:8px;">
-        <div style="font-size:0.8rem; font-weight:bold; color:var(--accent); margin-bottom:6px;">⚖️ Operational scenarios (tier defaults)</div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
-          <div style="background:#1e293b; border:1px solid rgba(56,189,248,0.3); border-radius:4px; padding:6px;">
-            <div style="font-size:0.72rem; font-weight:bold; color:#38bdf8;">Scenario A [Tight]</div>
-            <div id="scen-a-desc" class="proc-line" style="font-size:0.68rem; color:var(--text-muted); margin-bottom:3px;">-</div>
-            <div class="scen-line" style="font-size:0.72rem;"><span style="color:var(--text-muted);">Power: </span><span id="scen-a-pwr" style="font-weight:bold; color:#4ade80;">-</span></div>
-            <div class="scen-line" style="font-size:0.72rem;"><span style="color:var(--text-muted);">Turbines: </span><span id="scen-a-turb" style="font-weight:bold;">-</span></div>
-            <div class="scen-line" style="font-size:0.72rem;"><span style="color:var(--text-muted);">Coolant: </span><span id="scen-a-mach">-</span></div>
-            <button class="btn btn-sm" onclick="applyScenarioPreset('TIGHT')" style="margin-top:4px; width:100%; font-size:0.68rem; padding:2px 4px; background:#0284c7;">Apply Tight</button>
-          </div>
-          <div style="background:#1e293b; border:1px solid rgba(251,191,36,0.3); border-radius:4px; padding:6px;">
-            <div style="font-size:0.72rem; font-weight:bold; color:#fbbf24;">Scenario B [Loose]</div>
-            <div id="scen-b-desc" class="proc-line" style="font-size:0.68rem; color:var(--text-muted); margin-bottom:3px;">-</div>
-            <div class="scen-line" style="font-size:0.72rem;"><span style="color:var(--text-muted);">Power: </span><span id="scen-b-pwr" style="font-weight:bold; color:#4ade80;">-</span></div>
-            <div class="scen-line" style="font-size:0.72rem;"><span style="color:var(--text-muted);">Turbines: </span><span id="scen-b-turb" style="font-weight:bold;">-</span></div>
-            <div class="scen-line" style="font-size:0.72rem;"><span style="color:var(--text-muted);">Coolant: </span><span id="scen-b-mach">-</span></div>
-            <button class="btn btn-sm" onclick="applyScenarioPreset('LOOSE')" style="margin-top:4px; width:100%; font-size:0.68rem; padding:2px 4px; background:#d97706;">Apply Loose</button>
-          </div>
-        </div>
-        <div id="scen-compare-text" style="font-size:0.7rem; color:#94a3b8; margin-top:5px; text-align:center;">-</div>
-      </div>
-    </div>
-
-    <!-- Full View of Energy Conversion Processes -->
-    <div style="background:#131a24; border:1px solid var(--border-color); border-radius:6px; padding:12px; margin-bottom:12px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <h3 style="font-size:0.95rem; color:#38bdf8; margin:0;">🔄 Machine Process Pipeline</h3>
-        <span class="badge" id="proc-tier-badge" style="font-size:0.72rem; font-weight:bold; color:#fbbf24; border:1px solid #475569;">IV Pipeline</span>
-      </div>
-      <div id="proc-tier-desc" style="font-size:0.72rem; color:var(--text-muted); margin-bottom:10px; line-height:1.35; padding:6px 8px; background:#0f172a; border-radius:4px; border:1px solid #1e293b;">
-        Loading tier process description...
-      </div>
-
-      <!-- Stage 0: Radiovoltaic Direct Power -->
-      <div id="proc-stage-pv" style="margin-bottom:6px; padding:6px 8px; background:#0f172a; border-left:3px solid #f59e0b; border-radius:4px;">
-        <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:#f59e0b;">
-          <span>☀️ Stage 0: Direct Radiovoltaics</span>
-          <span id="proc-pv-val">0 EU/t</span>
-        </div>
-        <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;" class="proc-line" id="proc-pv-sub">Chamber cells direct EU output</div>
-      </div>
-
-      <!-- Stage 1: Hot Coolant Heat Exchanger -->
-      <div id="proc-stage-coolant" style="margin-bottom:6px; padding:6px 8px; background:#0f172a; border-left:3px solid #06b6d4; border-radius:4px;">
-        <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:#06b6d4;">
-          <span id="proc-coolant-title">🔄 Stage 1: Coolant Exchanger</span>
-          <span id="proc-coolant-count" style="color:#e2e8f0; font-weight:bold;">0x Machine</span>
-        </div>
-        <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" class="proc-line" id="proc-coolant-detail">Input: 0 L/t Hot Coolant → Output: 0 L/t Steam</div>
-        <div style="font-size:0.67rem; color:var(--text-muted); margin-top:1px;" class="proc-line1" id="proc-coolant-water">Water: 0 L/t</div>
-      </div>
-
-      <!-- Stage 2: Supercritical Steam (XLST-SC) -->
-      <div id="proc-stage-sc" style="margin-bottom:6px; padding:6px 8px; background:#0f172a; border-left:3px solid #8b5cf6; border-radius:4px;">
-        <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:#a78bfa;">
-          <span id="proc-sc-title">⚡ Stage 2: XLST-SC (Supercritical)</span>
-          <span id="proc-sc-pwr">0 EU/t</span>
-        </div>
-        <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" class="proc-line" id="proc-sc-detail">0 L/t SC steam · 0.00 turbines</div>
-        <div style="font-size:0.67rem; color:#94a3b8; margin-top:1px;" class="proc-line1" id="proc-sc-cascade">Cascades 1:1 into Superheated Steam</div>
-      </div>
-
-      <!-- Stage 3: Superheated Steam (XLST-HP) -->
-      <div id="proc-stage-hp" style="margin-bottom:6px; padding:6px 8px; background:#0f172a; border-left:3px solid #ec4899; border-radius:4px;">
-        <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:#f472b6;">
-          <span id="proc-hp-title">⚡ Stage 3: XLST-HP (superheated)</span>
-          <span id="proc-hp-pwr">0 EU/t</span>
-        </div>
-        <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" class="proc-line" id="proc-hp-detail">0 L/t SH steam · 0.00 turbines</div>
-        <div style="font-size:0.67rem; color:#94a3b8; margin-top:1px;" class="proc-line1" id="proc-hp-cascade">Cascades 1:1 into Regular Steam</div>
-      </div>
-
-      <!-- Stage 4: Regular Steam Turbine (LST or XLST) -->
-      <div id="proc-stage-reg" style="margin-bottom:6px; padding:6px 8px; background:#0f172a; border-left:3px solid #10b981; border-radius:4px;">
-        <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:#34d399;">
-          <span id="proc-reg-title">⚡ Stage 4: XLST (regular steam)</span>
-          <span id="proc-reg-pwr">0 EU/t</span>
-        </div>
-        <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" class="proc-line" id="proc-reg-detail">0 L/t steam · 0.00 turbines</div>
-        <div style="font-size:0.67rem; color:#94a3b8; margin-top:1px;" class="proc-line1" id="proc-reg-eff">Base 0.5 EU/L × Rotor Eff</div>
-      </div>
-
-      <!-- Process Total Summary -->
-      <div style="border-top:1px solid var(--border-color); padding-top:6px; margin-top:6px; display:flex; justify-content:space-between; align-items:center; gap:8px; white-space:nowrap; font-size:0.78rem;">
-        <span style="font-weight:700; color:var(--text-light);">Net Generation:</span>
-        <span id="proc-net-pwr" style="min-width:0; overflow:hidden; text-overflow:ellipsis; font-weight:bold; color:var(--success);">0 EU/t (0.00 A)</span>
-      </div>
-    </div>
-
-    <h3>Reactor Telemetry</h3>
-    <div class="stat-row"><span>Simulation Tick:</span><span class="stat-val" id="stat-tick">0</span></div>
-    <div class="stat-row"><span>Core Peak Temp:</span><span class="stat-val" id="stat-max-temp">20.0 °C</span></div>
-    <div class="stat-row"><span>Core Average Temp:</span><span class="stat-val" id="stat-avg-temp">20.0 °C</span></div>
-    <div class="stat-row"><span>Reactivity Efficiency:</span><span class="stat-val" id="stat-eff">100 %</span></div>
-    <div class="stat-row"><span>Neutron Output:</span><span class="stat-val" id="stat-neutrons">0 / tick</span></div>
-    <div class="stat-row"><span>Thermal Absorbed:</span><span class="stat-val" id="stat-thermal">0 / tick</span></div>
-    <div class="stat-row"><span>Fast Absorbed:</span><span class="stat-val" id="stat-fast">0 / tick</span></div>
-    <div class="stat-row"><span>Steam Produced:</span><span class="stat-val" id="stat-steam">0 L</span></div>
-    <div class="stat-row"><span>Deuterium Bred:</span><span class="stat-val" id="stat-deuterium" style="color:var(--accent);">0 L</span></div>
-    <div class="stat-row"><span>Tritium Bred:</span><span class="stat-val" id="stat-tritium" style="color:#d946ef;">0 L</span></div>
-    <div class="stat-row"><span>Oxygen Generated:</span><span class="stat-val" id="stat-oxygen" style="color:#38bdf8;">0 L</span></div>
-    <div class="stat-row"><span>Power Generation:</span><span class="stat-val safe wrap2" id="stat-power">0 EU/t</span></div>
-
-    <!-- Fuel & Coolant Byproducts Subsystem -->
-    <div id="fuel-byproducts-card" style="background:#131a24; border:1px solid #10b981; border-radius:6px; padding:12px; margin-top:12px; margin-bottom:12px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <h3 style="font-size:0.95rem; color:#10b981; margin:0;">♻️ Fuel &amp; Byproduct Logistics</h3>
-          <span class="badge" id="byproduct-rate-badge" style="font-size:0.7rem; color:#34d399; border-color:#059669;">0 items / min</span>
-        </div>
-        <div class="segmented-control" style="font-size:0.7rem;">
-          <button type="button" class="seg-btn active" id="btn-byproduct-min" onclick="setByproductUnit('min')" title="Display byproduct rates per minute">/min</button>
-          <button type="button" class="seg-btn" id="btn-byproduct-hour" onclick="setByproductUnit('hour')" title="Display byproduct rates per hour">/h</button>
-        </div>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; background:#0f172a; border:1px solid #1e293b; border-radius:4px; padding:6px 8px; margin-bottom:8px;">
-        <span style="font-size:0.75rem; color:var(--text-primary); display:flex; align-items:center; gap:4px;">
-          <span>🔄 Auto-supply fuel (continuous cycling):</span>
-        </span>
-        <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:0.75rem; color:var(--text-muted); user-select:none;">
-          <input type="checkbox" id="chk-auto-refuel" checked onchange="toggleAutoSupplyFuel(this.checked)" style="cursor:pointer;">
-          <span id="lbl-auto-refuel" style="color:#34d399; font-weight:600;">Enabled</span>
-        </label>
-      </div>
-
-      <div id="byproducts-content" style="font-size:0.75rem;">
-        <div style="margin-bottom:6px;">
-          <div style="font-weight:700; font-size:0.72rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px; display:flex; justify-content:space-between;">
-            <span>Depleted Fuel Rods</span>
-            <span id="byproduct-solid-total" style="color:#34d399; font-weight:bold;">0 / min</span>
-          </div>
-          <div id="byproduct-solid-list" style="display:flex; flex-direction:column; gap:4px;">
-            <div style="font-style:italic; color:#64748b; padding:2px 0;">No active fuel rods burning.</div>
-          </div>
-        </div>
-
-        <div id="byproduct-liquid-section" style="margin-bottom:6px;">
-          <div style="font-weight:700; font-size:0.72rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px; display:flex; justify-content:space-between;">
-            <span>Depleted Fluid Fuels</span>
-            <span id="byproduct-liquid-total" style="color:#38bdf8; font-weight:bold;">0 L/min</span>
-          </div>
-          <div id="byproduct-liquid-list" style="display:flex; flex-direction:column; gap:4px;"></div>
-        </div>
-
-        <div id="byproduct-isotope-section" style="margin-bottom:2px;">
-          <div style="font-weight:700; font-size:0.72rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px; display:flex; justify-content:space-between;">
-            <span>Transmuted Isotopes</span>
-            <span id="byproduct-isotope-total" style="color:#d946ef; font-weight:bold;">0 L/min</span>
-          </div>
-          <div id="byproduct-isotope-list" style="display:flex; flex-direction:column; gap:4px;"></div>
-        </div>
-
-        <div id="byproduct-raw-section" style="margin-top:8px; border-top:1px solid #1e293b; padding-top:8px;">
-          <div style="font-weight:700; font-size:0.72rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px; display:flex; justify-content:space-between;">
-            <span>📦 Raw Materials Net Forecast</span>
-            <span id="byproduct-raw-summary" style="color:#f59e0b; font-weight:bold;">Logistics</span>
-          </div>
-          <div id="byproduct-raw-list" style="display:flex; flex-direction:column; gap:4px;">
-            <div style="font-style:italic; color:#64748b; padding:2px 0;">No active raw material burn forecast.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <h3 style="margin-top:12px;">Temperature Trend</h3>
-    <canvas id="chartCanvas" width="300" height="150"></canvas>
+  <!-- Alert line: fixed height; the full text is in its tooltip -->
+  <div class="alert-row">
+    <div id="alert-box" class="alert-ok"></div>
+    <button type="button" id="btn-quick-repair" class="btn-warn" onclick="quickRepair()" title="Repair structural damage and clear maintenance issues">🔧 Repair Now</button>
   </div>
 </div>
+
+<main id="shell" class="shell">
+  <!-- Core column: reactor grid and trend plot, always on screen -->
+  <section id="core-col" class="core-col">
+    <div class="panel grid-panel">
+      <div class="grid-toolbar">
+        <div class="grid-toolbar-title"><span id="grid-dim-label">Chamber Grid (9×9)</span></div>
+        <div class="display-mode-selector">
+          <div class="segmented-control" role="group" aria-label="Grid view">
+            <button type="button" class="seg-btn" id="btn-mode-comp" onclick="setGridDisplayMode('COMPONENTS')" title="Show Component Icons [Key: 1]">📦 <span class="seg-txt">Comp</span></button>
+            <button type="button" class="seg-btn active" id="btn-mode-temp" onclick="setGridDisplayMode('TEMP')" title="Show Cell Temperature (°C) [Key: 2]">🌡️ <span class="seg-txt">Temp</span></button>
+            <button type="button" class="seg-btn" id="btn-mode-heat-output" onclick="setGridDisplayMode('HEAT_OUTPUT')" title="Show Heat Output (Hu/s) [Key: 3]"><img class="seg-icon" src="icons/HOT_COOLANT_CELL.png" alt="" onerror="this.style.display='none'"><span class="seg-txt">Heat</span></button>
+            <button type="button" class="seg-btn" id="btn-mode-flux" onclick="setGridDisplayMode('TOTAL_FLUX')" title="Show Total Neutron Flux [Key: 4]">⚛️ <span class="seg-txt">Flux</span></button>
+            <button type="button" class="seg-btn" id="btn-mode-absorb" onclick="setGridDisplayMode('ABSORPTION')" title="Show Neutron Absorption [Key: 5]">🛡️ <span class="seg-txt">Abs</span></button>
+            <button type="button" class="seg-btn" id="btn-mode-rods" onclick="setGridDisplayMode('CONTROL_RODS')" title="Show Control Rod Hatches [Key: 6]">🕹️ <span class="seg-txt">Rods</span></button>
+          </div>
+        </div>
+        <div class="zoom-controls">
+          <button type="button" class="zoom-btn" onclick="zoomGrid(-1)" title="Zoom Out (Key: -)">−</button>
+          <button type="button" class="zoom-btn" id="zoom-level-btn" onclick="resetZoom()" title="Reset to 100% (Key: 0)">100%</button>
+          <button type="button" class="zoom-btn" onclick="zoomGrid(1)" title="Zoom In (Key: +)">+</button>
+          <button type="button" class="zoom-btn fit-btn" onclick="fitGridToScreen()" title="Fit the grid to its box (Key: f)">Fit</button>
+        </div>
+      </div>
+      <div class="grid-container-wrapper" id="grid-wrapper">
+        <div id="reactor-grid"></div>
+      </div>
+    </div>
+
+    <div class="splitter splitter-h" id="split-core" role="separator" aria-orientation="horizontal" aria-label="Resize grid and trend" tabindex="0" title="Drag to resize; double-click to reset"></div>
+
+    <div class="panel trend-panel">
+      <div class="trend-head">
+        <span class="trend-title">Trend</span>
+        <span class="lg lg-max"><i></i>Core max <b id="tr-max">—</b></span>
+        <span class="lg lg-avg"><i></i>Avg <b id="tr-avg">—</b></span>
+        <span class="lg lg-pwr"><i></i>Power <b id="tr-pwr">—</b></span>
+        <span class="lg lg-rods"><i></i>Rods <b id="tr-rods">—</b></span>
+        <div class="segmented-control trend-window" role="group" aria-label="Trend window">
+          <button type="button" class="seg-btn" data-window="200" onclick="setTrendWindow(200)" title="Last 200 ticks">200</button>
+          <button type="button" class="seg-btn" data-window="2000" onclick="setTrendWindow(2000)" title="Last 2,000 ticks">2k</button>
+          <button type="button" class="seg-btn active" data-window="0" onclick="setTrendWindow(0)" title="Whole run">All</button>
+        </div>
+      </div>
+      <div class="trend-box" id="trend-box"><canvas id="chartCanvas" width="300" height="150"></canvas></div>
+    </div>
+  </section>
+
+  <div class="splitter splitter-v" id="split-dock" role="separator" aria-orientation="vertical" aria-label="Resize dock" tabindex="0" title="Drag to resize; double-click to reset"></div>
+
+  <!-- Dock: subsystem panes in up to two tab groups -->
+  <aside id="dock" class="dock">
+    <div class="dock-group" id="dock-group-A" data-group="A">
+      <div class="dock-tabs-row">
+        <div class="dock-tabs" role="tablist" aria-label="Panes"></div>
+        <button type="button" class="dock-more" title="Tab actions: move, hide" aria-haspopup="menu" aria-expanded="false">⋯</button>
+      </div>
+      <div class="dock-body">
+
+        <!-- Build: interaction mode and tile palette -->
+        <section class="dock-pane" id="pane-build" data-tab="build" data-label="Build" data-icon="🧱" data-title="Build: interaction mode and tile palette">
+          <div class="pane-head">
+            <h3>Interaction mode</h3>
+            <span class="badge" id="mode-badge">INSPECT ONLY</span>
+          </div>
+          <div class="btn-row">
+            <button id="btn-mode-inspect" class="primary" onclick="setInteractionMode('INSPECT')" title="Click cells to view live details without modifying (Shortcut: 'i' or Esc)">🔍 Inspect</button>
+            <button id="btn-mode-paint" onclick="setInteractionMode('PAINT')" title="Click cells to place selected component (Shortcut: 'p')">🖌️ Paint / Place</button>
+          </div>
+          <div class="pane-head"><h3>Tile palette</h3></div>
+          <p id="palette-hint" class="hint">Pick a component to paint it onto the grid; Shift-click a cell to inspect while painting.</p>
+          <div class="palette" id="palette-container"></div>
+        </section>
+
+        <!-- Inspect: selected tile -->
+        <section class="dock-pane" id="pane-inspect" data-tab="inspect" data-badge data-label="Inspect" data-icon="🔍" data-title="Selected tile inspector">
+          <div id="tile-inspector" class="hint">Click any grid cell to inspect its live telemetry and coolant levels.</div>
+        </section>
+
+        <!-- Rods: control rods -->
+        <section class="dock-pane" id="pane-rods" data-tab="rods" data-badge data-label="Rods" data-icon="🕹️" data-title="Control rods">
+          <div class="pane-head">
+            <h3 class="c-rods">🕹️ Control rods</h3>
+            <span class="badge" id="rods-count-badge">0 Hatches</span>
+          </div>
+          <p class="hint">Non-outer-wall hatches providing vertical neutron absorption shielding.</p>
+          <div class="kv-line"><span>Global insertion</span><b id="lbl-global-rod-ins" class="c-rods">0%</b></div>
+          <input type="range" id="rng-global-rod-ins" class="range-rods" min="0" max="100" value="0"
+            oninput="document.getElementById('lbl-global-rod-ins').innerText = this.value + '%'"
+            onchange="setAllControlRodsInsertion(parseInt(this.value))" aria-label="Global rod insertion">
+          <div class="btn-row">
+            <button type="button" onclick="setAllControlRodsInsertion(0)">Retract (0%)</button>
+            <button type="button" onclick="setAllControlRodsInsertion(50)">Insert 50%</button>
+            <button type="button" class="danger" onclick="quickScram()" title="Emergency SCRAM [Key: s]">🚨 SCRAM (100%)</button>
+          </div>
+          <div class="stat-row"><span>Total Rod Absorption:</span><span class="stat-val c-rods" id="rods-total-abs-val">0 n/t</span></div>
+          <div class="sub-title">Hatches <span class="muted">(cell · rod · insertion · absorbed)</span></div>
+          <div id="rods-hatch-list" class="rods-list"><div class="empty-line">No control rod hatches in this layout.</div></div>
+        </section>
+
+        <!-- Loop: coolant loop subsystem -->
+        <section class="dock-pane" id="pane-loop" data-tab="loop" data-badge data-label="Loop" data-icon="🔄" data-title="Coolant loop subsystem">
+          <div id="coolant-loop-card">
+            <div class="pane-head">
+              <h3 class="c-coolant">🔄 Coolant loop</h3>
+              <span class="badge" id="loop-status-badge">NORMAL</span>
+            </div>
+            <p class="hint">Per-cell convective cooling for <b class="c-coolant">Coolant Passage</b> tiles or attached cells.</p>
+            <div id="loop-tier-warning" class="note-warn" style="display:none;">
+              ⚠️ Convective loops require Osmium or higher item pipe casings (LuV+). Available on all reactor sizes (5×5, 9×9, 13×13).
+            </div>
+            <div class="frow">
+              <div class="f grow">
+                <label for="loop-circuit-select">Loop circuit (passages CP, CP2, CP3 …)</label>
+                <select id="loop-circuit-select" onchange="onCoolantCircuitSelect()"><option value="0">Circuit 1 (CP)</option></select>
+              </div>
+              <button onclick="addCoolantCircuit()" title="Add a circuit">＋ Circuit</button>
+              <button class="btn-muted" onclick="removeCoolantCircuit()" title="Remove the selected circuit">－</button>
+            </div>
+            <div class="fgrid c2">
+              <div class="f"><label for="loop-material-select">Loop material</label><select id="loop-material-select" onchange="onCoolantLoopConfigChange()"></select></div>
+              <div class="f"><label for="loop-size-select">Pipe size</label>
+                <select id="loop-size-select" onchange="onCoolantLoopConfigChange()">
+                  <option value="TINY">Tiny (0.25x)</option>
+                  <option value="SMALL">Small (0.5x)</option>
+                  <option value="NORMAL" selected>Normal (1.0x)</option>
+                  <option value="LARGE">Large (2.0x)</option>
+                  <option value="HUGE">Huge (4.0x)</option>
+                </select>
+              </div>
+              <div class="f"><label for="loop-fluid-select">Working fluid</label>
+                <select id="loop-fluid-select" onchange="onCoolantLoopConfigChange()">
+                  <option value="DISTILLED_WATER" selected>Distilled Water</option>
+                  <option value="HEAVY_WATER">Heavy Water</option>
+                  <option value="IC2_COOLANT">IC2 Coolant</option>
+                  <option value="SODIUM">Sodium</option>
+                  <option value="MOLTEN_LEAD">Molten Lead</option>
+                  <option value="MOLTEN_CHEESE">🧀 Molten Cheese</option>
+                  <option value="LAVA">🌋 Nether Lava</option>
+                </select>
+              </div>
+              <div class="f"><label for="loop-hatch-tier-select">Pump energy hatch</label>
+                <select id="loop-hatch-tier-select" onchange="onCoolantLoopConfigChange()">
+                  <option value="LV">LV (32 EU/t)</option>
+                  <option value="MV">MV (128 EU/t)</option>
+                  <option value="HV">HV (512 EU/t)</option>
+                  <option value="EV" selected>EV (2,048 EU/t)</option>
+                  <option value="IV">IV (8,192 EU/t)</option>
+                  <option value="LUV">LuV (32,768 EU/t)</option>
+                  <option value="ZPM">ZPM (131,072 EU/t)</option>
+                  <option value="UV">UV (524,288 EU/t)</option>
+                  <option value="UHV">UHV (2,097,152 EU/t)</option>
+                </select>
+              </div>
+            </div>
+            <div class="fgrid c3">
+              <div class="f"><label for="loop-pump-hatches-select">Pump hatches</label>
+                <select id="loop-pump-hatches-select" onchange="onCoolantLoopConfigChange()">
+                  <option value="1" selected>1 (1x voltage)</option>
+                  <option value="2">2+ (4x voltage)</option>
+                </select>
+              </div>
+              <div class="f"><label for="loop-rotor-select">Pump rotor</label><select id="loop-rotor-select" onchange="onCoolantLoopConfigChange()"></select></div>
+              <div class="f"><label for="loop-rotor-size-select">Rotor size</label>
+                <select id="loop-rotor-size-select" onchange="onCoolantLoopConfigChange()">
+                  <option value="SMALL">Small</option>
+                  <option value="NORMAL">Normal</option>
+                  <option value="LARGE">Large</option>
+                  <option value="HUGE" selected>Huge</option>
+                </select>
+              </div>
+            </div>
+            <div class="f">
+              <label for="loop-secondary-select">PHE secondary coolant</label>
+              <select id="loop-secondary-select" onchange="onCoolantLoopConfigChange()">
+                <option value="ic2distilledwater" selected>ic2distilledwater (boils at 100°C → steam)</option>
+              </select>
+            </div>
+            <div class="fgrid c4">
+              <div class="f"><label for="loop-count-input">Loops (pumps)</label><input id="loop-count-input" type="number" min="1" max="16" step="1" value="1" onchange="onCoolantLoopConfigChange()"></div>
+              <div class="f"><label for="loop-phe-count-input">PHEs / loop</label><input id="loop-phe-count-input" type="number" min="1" max="16" step="1" value="1" onchange="onCoolantLoopConfigChange()"></div>
+              <div class="f"><label for="loop-phe-hatch-tier-select">PHE hatch</label>
+                <select id="loop-phe-hatch-tier-select" onchange="onCoolantLoopConfigChange()"><option value="LV">LV</option><option value="MV">MV</option><option value="HV">HV</option><option value="EV" selected>EV</option><option value="IV">IV</option><option value="LUV">LuV</option><option value="ZPM">ZPM</option><option value="UV">UV</option><option value="UHV">UHV</option></select>
+              </div>
+              <div class="f"><label for="loop-phe-hatches-select">PHE hatches</label>
+                <select id="loop-phe-hatches-select" onchange="onCoolantLoopConfigChange()">
+                  <option value="1" selected>1 (1x voltage)</option>
+                  <option value="2">2+ (4x voltage)</option>
+                </select>
+              </div>
+            </div>
+            <div class="fgrid c3">
+              <div class="f"><label for="loop-duty-cycle-input">Pump duty (%)</label><input id="loop-duty-cycle-input" type="number" min="0" max="100" step="5" value="100" onchange="onCoolantLoopConfigChange()"></div>
+              <div class="f"><label for="loop-max-flow-input">Flow cap (L/s)</label><input id="loop-max-flow-input" type="number" min="0" step="10" placeholder="No cap" onchange="onCoolantLoopConfigChange()"></div>
+              <div class="f"><label for="loop-max-pressure-input">Pressure cap (bar)</label><input id="loop-max-pressure-input" type="number" min="0" step="5" placeholder="No cap" onchange="onCoolantLoopConfigChange()"></div>
+            </div>
+            <div class="fgrid band-grid">
+              <label class="check-label c-warn"><input id="loop-band-check" type="checkbox" onchange="onCoolantLoopConfigChange()"> Temp band</label>
+              <div class="f"><label for="loop-band-min-input">Pump off below (°C)</label><input id="loop-band-min-input" type="number" step="10" value="500" onchange="onCoolantLoopConfigChange()"></div>
+              <div class="f"><label for="loop-band-max-input">Pump on above (°C)</label><input id="loop-band-max-input" type="number" step="10" value="600" onchange="onCoolantLoopConfigChange()"></div>
+              <div class="f"><label for="loop-band-sensor-select">Sensor</label>
+                <select id="loop-band-sensor-select" onchange="onCoolantLoopConfigChange()">
+                  <option value="PASSAGE" selected>Hottest passage</option>
+                  <option value="HOT_LEG">Hot leg coolant</option>
+                </select>
+              </div>
+            </div>
+            <p class="hint">Pump control stands for a machine controller cover driven by redstone: the pump only runs (and draws EU) on the ticks it is switched on.</p>
+            <div class="btn-row">
+              <button id="btn-loop-attach-mode" class="btn-coolant" onclick="toggleLoopAttachMode()" title="Click grid cells to attach or detach them from the loop">🔗 Attach Points Mode</button>
+              <button class="btn-muted" onclick="clearLoopAttachments()">✕ Clear Points</button>
+            </div>
+            <div class="stat-row"><span>Circulation Flow:</span><span class="stat-val" id="loop-flow-val">0 L/s</span></div>
+            <div class="stat-row"><span>Pressure:</span><span class="stat-val" id="loop-pressure-val">1.0 / 70.0 bar</span></div>
+            <div class="bar"><div id="loop-pressure-bar" class="bar-fill" style="width:5%;"></div></div>
+            <div class="stat-row"><span>Loop Fluid Temp:</span><span class="stat-val" id="loop-temp-val">20.0 °C</span></div>
+            <div class="stat-row"><span>Convective Heat Extracted:</span><span class="stat-val c-coolant" id="loop-heat-val">0 Hu/s (0.0 MWth)</span></div>
+            <div class="stat-row"><span>Secondary PHE Steam:</span><span class="stat-val wrap2" id="loop-steam-val">0 L/t (1:160)</span></div>
+            <div class="stat-row"><span>Pump Power (Parasitic):</span><span class="stat-val wrap3 c-warn" id="loop-pump-val">0 EU/t</span></div>
+            <div class="stat-row"><span>Attached Core Points:</span><span class="stat-val" id="loop-points-val">0 cells</span></div>
+            <div id="loop-circuits-table"></div>
+            <div class="stat-row"><span>Byproduct (Transmutation):</span><span class="stat-val wrap2 c-iso" id="loop-byproduct-val">0 L</span></div>
+          </div>
+        </section>
+
+        <!-- Power: turbines, scenarios and the machine process pipeline -->
+        <section class="dock-pane" id="pane-power" data-tab="power" data-label="Power" data-icon="⚡" data-title="Turbines, scenarios and machine process pipeline">
+          <div class="pane-head">
+            <h3>⚡ Turbines (XLST &amp; EHE)</h3>
+            <span class="badge" id="stat-power-tier">0 EU/t (OFF)</span>
+          </div>
+          <div class="fgrid c3">
+            <select id="turbine-mat" onchange="onTurbineConfigChange()" title="Turbine Rotor Material"></select>
+            <select id="turbine-size" onchange="onTurbineConfigChange()" title="Turbine Rotor Size">
+              <option value="SMALL">Small (0.33x)</option>
+              <option value="NORMAL">Normal (0.67x)</option>
+              <option value="LARGE" selected>Large (1.00x)</option>
+              <option value="HUGE">Huge (1.33x)</option>
+            </select>
+            <select id="turbine-fitting" onchange="onTurbineConfigChange()" title="Housing Fitting Mode">
+              <option value="TIGHT" selected>Tight (optimal)</option>
+              <option value="LOOSE">Loose</option>
+            </select>
+          </div>
+          <div class="stat-row"><span>Rotor Efficiency:</span><span class="stat-val" id="turb-eff">100 %</span></div>
+          <div class="stat-row"><span>Opt Flow / Turbine:</span><span class="stat-val" id="turb-opt-flow">0 L/t</span></div>
+          <div class="stat-row"><span>XLST-SC (supercritical):</span><span class="stat-val" id="turb-sc-pwr">0 EU/t</span></div>
+          <div class="stat-row"><span>XLST-HP (superheated/HW):</span><span class="stat-val" id="turb-hp-pwr">0 EU/t</span></div>
+          <div class="stat-row"><span>XLST (regular steam):</span><span class="stat-val" id="turb-reg-pwr">0 EU/t</span></div>
+          <div class="stat-row" id="ehe-row"><span>EHE Mode / DW:</span><span class="stat-val wrap2 c-coolant" id="turb-ehe-info">None</span></div>
+          <div class="stat-row"><span>Live Flows (L/t):</span><span class="stat-val" id="turb-flows">Reg: 0 | SH: 0 | SC: 0</span></div>
+
+          <div class="sub-card">
+            <div class="sub-title">⚖️ Operational scenarios (tier defaults)</div>
+            <div class="fgrid c2">
+              <div class="scen scen-a">
+                <div class="scen-name">Scenario A [Tight]</div>
+                <div id="scen-a-desc" class="proc-line scen-desc">-</div>
+                <div class="scen-line"><span class="muted">Power: </span><span id="scen-a-pwr" class="c-ok b">-</span></div>
+                <div class="scen-line"><span class="muted">Turbines: </span><span id="scen-a-turb" class="b">-</span></div>
+                <div class="scen-line"><span class="muted">Coolant: </span><span id="scen-a-mach">-</span></div>
+                <button class="btn-sm btn-coolant" onclick="applyScenarioPreset('TIGHT')">Apply Tight</button>
+              </div>
+              <div class="scen scen-b">
+                <div class="scen-name">Scenario B [Loose]</div>
+                <div id="scen-b-desc" class="proc-line scen-desc">-</div>
+                <div class="scen-line"><span class="muted">Power: </span><span id="scen-b-pwr" class="c-ok b">-</span></div>
+                <div class="scen-line"><span class="muted">Turbines: </span><span id="scen-b-turb" class="b">-</span></div>
+                <div class="scen-line"><span class="muted">Coolant: </span><span id="scen-b-mach">-</span></div>
+                <button class="btn-sm btn-amber" onclick="applyScenarioPreset('LOOSE')">Apply Loose</button>
+              </div>
+            </div>
+            <div id="scen-compare-text" class="scen-compare">-</div>
+          </div>
+
+          <div class="pane-head">
+            <h3 class="c-coolant">🔄 Machine process pipeline</h3>
+            <span class="badge" id="proc-tier-badge">IV Pipeline</span>
+          </div>
+          <div id="proc-tier-desc" class="proc-desc">Loading tier process description...</div>
+          <div id="proc-stage-pv" class="proc-stage st-pv">
+            <div class="proc-head"><span>☀️ Stage 0: Direct Radiovoltaics</span><span id="proc-pv-val">0 EU/t</span></div>
+            <div class="proc-line proc-sub" id="proc-pv-sub">Chamber cells direct EU output</div>
+          </div>
+          <div id="proc-stage-coolant" class="proc-stage st-cool">
+            <div class="proc-head"><span id="proc-coolant-title">🔄 Stage 1: Coolant Exchanger</span><span id="proc-coolant-count" class="proc-count">0x Machine</span></div>
+            <div class="proc-line proc-detail" id="proc-coolant-detail">Input: 0 L/t Hot Coolant → Output: 0 L/t Steam</div>
+            <div class="proc-line1 proc-sub" id="proc-coolant-water">Water: 0 L/t</div>
+          </div>
+          <div id="proc-stage-sc" class="proc-stage st-sc">
+            <div class="proc-head"><span id="proc-sc-title">⚡ Stage 2: XLST-SC (Supercritical)</span><span id="proc-sc-pwr">0 EU/t</span></div>
+            <div class="proc-line proc-detail" id="proc-sc-detail">0 L/t SC steam · 0.00 turbines</div>
+            <div class="proc-line1 proc-sub" id="proc-sc-cascade">Cascades 1:1 into Superheated Steam</div>
+          </div>
+          <div id="proc-stage-hp" class="proc-stage st-hp">
+            <div class="proc-head"><span id="proc-hp-title">⚡ Stage 3: XLST-HP (superheated)</span><span id="proc-hp-pwr">0 EU/t</span></div>
+            <div class="proc-line proc-detail" id="proc-hp-detail">0 L/t SH steam · 0.00 turbines</div>
+            <div class="proc-line1 proc-sub" id="proc-hp-cascade">Cascades 1:1 into Regular Steam</div>
+          </div>
+          <div id="proc-stage-reg" class="proc-stage st-reg">
+            <div class="proc-head"><span id="proc-reg-title">⚡ Stage 4: XLST (regular steam)</span><span id="proc-reg-pwr">0 EU/t</span></div>
+            <div class="proc-line proc-detail" id="proc-reg-detail">0 L/t steam · 0.00 turbines</div>
+            <div class="proc-line1 proc-sub" id="proc-reg-eff">Base 0.5 EU/L × Rotor Eff</div>
+          </div>
+          <div class="proc-total">
+            <span>Net Generation:</span>
+            <span id="proc-net-pwr" class="c-ok">0 EU/t (0.00 A)</span>
+          </div>
+        </section>
+
+        <!-- Telemetry: reactor stat rows -->
+        <section class="dock-pane" id="pane-telemetry" data-tab="telemetry" data-label="Telemetry" data-icon="📈" data-title="Reactor telemetry">
+          <div class="pane-head"><h3>Reactor telemetry</h3></div>
+          <div class="stat-row"><span>Simulation Tick:</span><span class="stat-val" id="stat-tick">0</span></div>
+          <div class="stat-row"><span>Core Peak Temp:</span><span class="stat-val" id="stat-max-temp">20.0 °C</span></div>
+          <div class="stat-row"><span>Core Average Temp:</span><span class="stat-val" id="stat-avg-temp">20.0 °C</span></div>
+          <div class="stat-row"><span>Reactivity Efficiency:</span><span class="stat-val" id="stat-eff">100 %</span></div>
+          <div class="stat-row"><span>Neutron Output:</span><span class="stat-val" id="stat-neutrons">0 / tick</span></div>
+          <div class="stat-row"><span>Thermal Absorbed:</span><span class="stat-val" id="stat-thermal">0 / tick</span></div>
+          <div class="stat-row"><span>Fast Absorbed:</span><span class="stat-val" id="stat-fast">0 / tick</span></div>
+          <div class="stat-row"><span>Steam Produced:</span><span class="stat-val" id="stat-steam">0 L</span></div>
+          <div class="stat-row"><span>Deuterium Bred:</span><span class="stat-val c-accent" id="stat-deuterium">0 L</span></div>
+          <div class="stat-row"><span>Tritium Bred:</span><span class="stat-val c-iso" id="stat-tritium">0 L</span></div>
+          <div class="stat-row"><span>Oxygen Generated:</span><span class="stat-val c-coolant" id="stat-oxygen">0 L</span></div>
+          <div class="stat-row"><span>Power Generation:</span><span class="stat-val safe wrap2" id="stat-power">0 EU/t</span></div>
+        </section>
+
+        <!-- Fuel: fuel and byproduct logistics -->
+        <section class="dock-pane pane-fill" id="pane-fuel" data-tab="fuel" data-label="Fuel" data-icon="♻️" data-title="Fuel and byproduct logistics">
+          <div id="fuel-byproducts-card" class="fill-col">
+            <div class="pane-head">
+              <h3 class="c-fuel">♻️ Fuel &amp; byproducts</h3>
+              <span class="badge" id="byproduct-rate-badge">0 items / min</span>
+              <div class="segmented-control">
+                <button type="button" class="seg-btn active" id="btn-byproduct-min" onclick="setByproductUnit('min')" title="Display byproduct rates per minute">/min</button>
+                <button type="button" class="seg-btn" id="btn-byproduct-hour" onclick="setByproductUnit('hour')" title="Display byproduct rates per hour">/h</button>
+              </div>
+            </div>
+            <div class="opt-line">
+              <span>🔄 Auto-supply fuel (continuous cycling)</span>
+              <label class="check-label">
+                <input type="checkbox" id="chk-auto-refuel" checked onchange="toggleAutoSupplyFuel(this.checked)">
+                <span id="lbl-auto-refuel" class="c-ok b">Enabled</span>
+              </label>
+            </div>
+            <div id="byproducts-content">
+              <div class="bp-section">
+                <div class="bp-head"><span>Depleted Fuel Rods</span><span id="byproduct-solid-total" class="c-ok">0 / min</span></div>
+                <div id="byproduct-solid-list" class="bp-list">
+                  <div class="empty-line">No active fuel rods burning.</div>
+                </div>
+              </div>
+              <div id="byproduct-liquid-section" class="bp-section">
+                <div class="bp-head"><span>Depleted Fluid Fuels</span><span id="byproduct-liquid-total" class="c-coolant">0 L/min</span></div>
+                <div id="byproduct-liquid-list" class="bp-list"></div>
+              </div>
+              <div id="byproduct-isotope-section" class="bp-section">
+                <div class="bp-head"><span>Transmuted Isotopes</span><span id="byproduct-isotope-total" class="c-iso">0 L/min</span></div>
+                <div id="byproduct-isotope-list" class="bp-list"></div>
+              </div>
+              <div id="byproduct-raw-section" class="bp-section bp-raw">
+                <div class="bp-head"><span>📦 Raw Materials Net Forecast</span><span id="byproduct-raw-summary" class="c-warn">Logistics</span></div>
+                <div id="byproduct-raw-list" class="bp-list">
+                  <div class="empty-line">No active raw material burn forecast.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Sim: options, damage control and tuning parameters -->
+        <section class="dock-pane" id="pane-sim" data-tab="sim" data-label="Sim" data-icon="⚙️" data-title="Simulation options, damage control and tuning">
+          <div class="pane-head"><h3>Simulation options</h3></div>
+          <div class="sim-options-bar">
+            <label class="sim-toggle-label" title="Automatically pause simulation whenever an incident occurs (overheated cell, dry thermal shock, or reactor damage)">
+              <input type="checkbox" id="chk-stop-incidents" onchange="toggleStopOnIncidents(this.checked)">
+              <span>🛑 Stop on incidents</span>
+              <span id="lbl-stop-incidents" class="opt-state">(Off)</span>
+            </label>
+            <label class="sim-toggle-label" title="Continuously supplies fresh 100%-durability fuel rods when spent or burned, and auto-replenishes liquid fuel hatches to maximum">
+              <input type="checkbox" id="chk-auto-supply-fuel" checked onchange="toggleAutoSupplyFuel(this.checked)">
+              <span>🔄 Auto-supply fuel</span>
+              <span id="lbl-auto-supply-fuel" class="opt-state">(Enabled)</span>
+            </label>
+          </div>
+          <div class="sim-damage-control">
+            <span class="c-alarm b" title="Manual Core Structural Damage Slider">💥 Damage</span>
+            <input type="range" id="rng-reactor-damage" min="0" max="100" step="0.5" value="0"
+              oninput="onDamageSliderInput(this.value)"
+              onchange="onDamageSliderChange(this.value)"
+              title="Slide to adjust reactor structural damage (0% to 100%)" aria-label="Reactor damage">
+            <span id="lbl-reactor-damage-val" class="c-alarm b">0.0%</span>
+            <button type="button" class="btn-xs btn-ok" onclick="setDamagePercent(0)" title="Reset damage to 0% (clean repair)">0%</button>
+            <button type="button" class="btn-xs btn-amber" onclick="setDamagePercent(50)" title="Set damage to 50%">50%</button>
+            <button type="button" class="btn-xs btn-alarm" onclick="setDamagePercent(95)" title="Set damage to 95% (near meltdown)">95%</button>
+          </div>
+
+          <div class="pane-head">
+            <h3 class="c-warn">⚙️ Simulation tuning</h3>
+            <button class="btn-sm" onclick="resetSimParams()" title="Reset parameters to defaults">↺ Reset</button>
+          </div>
+          <div class="f">
+            <label for="sim-profile-select">Tuning profile</label>
+            <select id="sim-profile-select" onchange="applyProfilePreset(this.value)">
+              <option value="BALANCED" selected>Balanced / default</option>
+              <option value="DANGER">Meltdown hazard (high danger)</option>
+              <option value="FLASH_BOIL">Flash boiling (low capacity / fast turnover)</option>
+              <option value="SAFE">Conservative / low heat</option>
+            </select>
+          </div>
+          <div class="fgrid c2">
+            <div class="f"><label for="p-hu-per-degree">Hu per degree (°C)</label><input id="p-hu-per-degree" type="number" step="1.0" value="32.0" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-base-conductance">Base conductance</label><input id="p-base-conductance" type="number" step="0.5" value="2.0" onchange="submitSimParams()" title="Base hatch conductance in Hu/(s·°C)"></div>
+            <div class="f"><label for="p-fission-heat">Fission heat (Hu/n)</label><input id="p-fission-heat" type="number" step="0.1" value="77.2" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-fiss-mult">Global fission mult (k)</label><input id="p-fiss-mult" type="number" step="0.005" value="0.348" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-ambient-temp">Ambient temp (°C)</label><input id="p-ambient-temp" type="number" step="1.0" value="20.0" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-ticks-per-cycle">Ticks per cycle (t)</label><input id="p-ticks-per-cycle" type="number" min="1" step="1" value="5" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-hatch-cap">Hatch capacity (L)</label><input id="p-hatch-cap" type="number" step="1000" value="8000" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-feed-rate">Feed rate (L/t)</label>
+              <select id="p-feed-rate" onchange="submitSimParams()">
+                <option value="500">500 L/t</option>
+                <option value="1000">1,000 L/t</option>
+                <option value="2000">2,000 L/t</option>
+                <option value="4000">4,000 L/t</option>
+                <option value="8000">8,000 L/t</option>
+                <option value="999999" selected>Instant Max</option>
+              </select>
+            </div>
+            <div class="f"><label for="p-turn-curve">Turnover curve</label>
+              <select id="p-turn-curve" onchange="submitSimParams()">
+                <option value="SIGMOID" selected>Sigmoid (S-Curve)</option>
+                <option value="EXPONENTIAL">Exponential</option>
+                <option value="LINEAR">Linear</option>
+                <option value="STEP">Step-Based</option>
+              </select>
+            </div>
+            <div class="f"><label for="p-turn-dt">Turnover &Delta;T max</label><input id="p-turn-dt" type="number" step="10" value="100" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-turn-exp">Turnover exponent</label><input id="p-turn-exp" type="number" step="0.1" value="1.0" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-hp-boil">HP boil point (°C)</label><input id="p-hp-boil" type="number" step="10" value="180" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-cooling-heat">Water heat (Hu/L)</label><input id="p-cooling-heat" type="number" step="0.5" value="5.0" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-ic2-cooling-heat">IC2 heat (Hu/L)</label><input id="p-ic2-cooling-heat" type="number" step="1.0" value="20.0" onchange="submitSimParams()"></div>
+          </div>
+          <div class="sub-title c-coolant">☢️ Fuel archetypes &amp; burnup</div>
+          <div class="fgrid c2">
+            <div class="f"><label for="p-burnup-mult">Fuel burnup mult</label><input id="p-burnup-mult" type="number" step="0.05" value="1.0" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-dense-nbase-mult">Dense Nbase mult</label><input id="p-dense-nbase-mult" type="number" step="0.05" value="0.50" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-dense-fiss-mult">Dense fission mult</label><input id="p-dense-fiss-mult" type="number" step="0.05" value="1.20" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-excited-nbase-mult">Excited Nbase mult</label><input id="p-excited-nbase-mult" type="number" step="0.05" value="1.40" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-excited-fiss-mult">Excited fission mult</label><input id="p-excited-fiss-mult" type="number" step="0.05" value="0.80" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-std-nbase-mult">Standard Nbase mult</label><input id="p-std-nbase-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-std-fiss-mult">Standard fission mult</label><input id="p-std-fiss-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-brd-nbase-mult">Breeder Nbase mult</label><input id="p-brd-nbase-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()"></div>
+            <div class="f"><label for="p-brd-fiss-mult">Breeder fission mult</label><input id="p-brd-fiss-mult" type="number" step="0.05" value="1.00" onchange="submitSimParams()"></div>
+          </div>
+        </section>
+
+        <!-- Log: incidents and events -->
+        <section class="dock-pane pane-fill" id="pane-log" data-tab="log" data-badge data-label="Log" data-icon="📋" data-title="Incident and event log">
+          <div class="incident-log-container fill-col" id="incident-log-container">
+            <div class="pane-head">
+              <h3 class="c-warn">📋 Incident &amp; event log</h3>
+              <span class="badge" id="incident-count-badge">0 events</span>
+              <button type="button" class="btn-sm btn-warn" onclick="quickRepair()" title="Repair structural damage and clear maintenance issues">🔧 Repair</button>
+              <button type="button" class="btn-sm" onclick="clearIncidentLog()" title="Clear incident history">Clear</button>
+            </div>
+            <div id="incident-log-list">
+              <div class="empty-line">No incidents recorded. Chamber operating nominally.</div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <div class="splitter splitter-h" id="split-dock-ab" role="separator" aria-orientation="horizontal" aria-label="Resize dock groups" tabindex="0" title="Drag to resize; double-click to reset" hidden></div>
+
+    <div class="dock-group" id="dock-group-B" data-group="B" hidden>
+      <div class="dock-tabs-row">
+        <div class="dock-tabs" role="tablist" aria-label="Panes (bottom group)"></div>
+        <button type="button" class="dock-more" title="Tab actions: move, hide" aria-haspopup="menu" aria-expanded="false">⋯</button>
+      </div>
+      <div class="dock-body"></div>
+    </div>
+
+    <div class="dock-dropzone" id="dock-dropzone">Drop here to split the dock</div>
+  </aside>
+</main>
+
+<div id="dock-menu" class="menu" role="menu" hidden></div>
+<div id="dock-drop-marker" class="dock-drop-marker" hidden></div>
+<div id="dock-drag-ghost" class="dock-drag-ghost" hidden></div>
+
 <script>
 <!-- include: core.js -->
 <!-- include: render.js -->
 <!-- include: grid.js -->
 <!-- include: controls.js -->
+<!-- include: trend.js -->
 <!-- include: pipeline.js -->
+<!-- include: dock.js -->
 <!-- include: main.js -->
 </script>
 </body>

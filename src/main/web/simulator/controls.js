@@ -368,54 +368,6 @@ function applyProfilePreset(profile) {
   submitSimParams();
 }
 
-let lastChartTick = -1;
-function renderChart() {
-  const canvas = document.getElementById("chartCanvas");
-  if (!canvas) return;
-  if (!currentState || !currentState.history || currentState.history.length === 0) return;
-  if (currentState.currentTick === lastChartTick) return;
-  lastChartTick = currentState.currentTick;
-
-  const ctx = canvas.getContext("2d");
-  const w = canvas.width;
-  const h = canvas.height;
-  ctx.clearRect(0, 0, w, h);
-
-  const hist = currentState.history;
-  const maxT = Math.max(100, ...hist.map(p => p.maxT));
-
-  ctx.strokeStyle = "rgba(255,255,255,0.1)";
-  ctx.beginPath();
-  ctx.moveTo(0, h * 0.25); ctx.lineTo(w, h * 0.25);
-  ctx.moveTo(0, h * 0.50); ctx.lineTo(w, h * 0.50);
-  ctx.moveTo(0, h * 0.75); ctx.lineTo(w, h * 0.75);
-  ctx.stroke();
-
-  // Peak Temp curve (red)
-  ctx.strokeStyle = "#ff4757";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  hist.forEach((p, idx) => {
-    const x = (idx / (hist.length - 1)) * w;
-    const y = h - (p.maxT / maxT) * (h - 20) - 10;
-    if (idx === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-
-  // Average Temp curve (cyan)
-  ctx.strokeStyle = "#00d2ff";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  hist.forEach((p, idx) => {
-    const x = (idx / (hist.length - 1)) * w;
-    const y = h - (p.avgT / maxT) * (h - 20) - 10;
-    if (idx === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-}
-
 async function togglePlay() {
   if (currentState && currentState.exploded) {
     return;
@@ -453,7 +405,7 @@ async function stepSim(count) {
 }
 
 async function resetSim() {
-  lastChartTick = -1;
+  trendClear();
   if (isWasmMode && wasmSim) {
     wasmSim.reset();
     currentState = wasmSim.getState();
@@ -539,10 +491,9 @@ function applyTierCoolingDefaults(tierNum, p = null) {
 
 function loadPresetFromData(p) {
   if (!p || !p.layout) return;
-  lastChartTick = -1;
-  if (window.innerWidth <= 800) {
-    isFitMode = true;
-  }
+  trendClear();
+  // A new design refits the grid to its box.
+  isFitMode = true;
   const tierMap = { "EV": 0, "IV": 1, "LuV": 2, "ZPM": 3, "UV": 4, "UHV": 5 };
   const pipeTier = (p.tier && tierMap[p.tier] !== undefined) ? tierMap[p.tier] : 1;
   if (p.tier) {
@@ -607,10 +558,9 @@ function initCeilingPresets() {
 }
 
 async function loadPreset(name) {
-  lastChartTick = -1;
-  if (window.innerWidth <= 800) {
-    isFitMode = true;
-  }
+  trendClear();
+  // A new design refits the grid to its box.
+  isFitMode = true;
   if (window.__CEILING_PRESETS_MAP__ && window.__CEILING_PRESETS_MAP__[name]) {
     loadPresetFromData(window.__CEILING_PRESETS_MAP__[name]);
     return;

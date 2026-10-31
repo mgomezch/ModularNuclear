@@ -39,6 +39,9 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
+dockInit();
+trendInit();
+watchGridBox();
 initTurbineSelects();
 initSecondaryCoolantSelect();
 initPalette();
@@ -68,10 +71,6 @@ initCeilingPresets();
 if (window.__INITIAL_STATE__) {
   currentState = window.__INITIAL_STATE__;
   renderUI();
-}
-
-if (window.innerWidth <= 800) {
-  isFitMode = true;
 }
 
 initEngine().then((wasmLoaded) => {
