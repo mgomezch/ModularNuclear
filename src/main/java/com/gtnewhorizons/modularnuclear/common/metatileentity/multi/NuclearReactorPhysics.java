@@ -43,7 +43,7 @@ import ic2.core.item.reactor.ItemReactorUranium;
 
 public class NuclearReactorPhysics {
 
-    private static final java.util.Random RAND = new java.util.Random();
+    private static final java.util.Random RAND = new com.gtnewhorizons.modularnuclear.common.nuclear.FastRandom();
 
     public static double getTileTemperature(MTENuclearReactor reactor, NuclearGridTile tile) {
         if (tile.isBus()) return tile.getBus().mTemperature;

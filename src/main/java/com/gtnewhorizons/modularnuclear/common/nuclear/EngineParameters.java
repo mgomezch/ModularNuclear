@@ -60,7 +60,7 @@ public final class EngineParameters {
     public double coreHatchHeatCapacity = NuclearSimulationEngine.DEFAULT_CORE_HATCH_HEAT_CAPACITY;
 
     /** The engine's random number source (neutron directions, stochastic interactions). */
-    public Random random = new Random();
+    public Random random = new FastRandom();
 
     /** Hatch conductance per tier (base × ratio^(tier − MV)), see NuclearSimulationEngine.getHatchConductance. */
     public final TierScale hatchConductanceByTier = new TierScale(2);
@@ -107,7 +107,7 @@ public final class EngineParameters {
         c.baseHatchConductance = baseHatchConductance;
         c.hatchConductanceTierRatio = hatchConductanceTierRatio;
         c.coreHatchHeatCapacity = coreHatchHeatCapacity;
-        c.random = new Random();
+        c.random = new FastRandom();
         return c;
     }
 }
