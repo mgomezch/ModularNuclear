@@ -12,6 +12,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules;
+import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
 
 /**
  * Manages an N x M grid of nuclear tiles, casing constraints, safety checks,
@@ -363,8 +364,7 @@ public class StandaloneNuclearGrid {
         this.incidentLog.add(new IncidentEvent(this.currentTick, type, message, damage));
         if (this.stopOnIncidents && damage > 0.0 && !this.haltedByIncident) {
             this.haltedByIncident = true;
-            this.lastHaltIncidentReason = String
-                .format(java.util.Locale.US, "[%s] %s (+%.1f%% damage)", type, message, damage);
+            this.lastHaltIncidentReason = WasmStrings.format("[%s] %s (+%.1f%% damage)", type, message, damage);
             this.incidentLog.add(
                 new IncidentEvent(
                     this.currentTick,
@@ -773,7 +773,9 @@ public class StandaloneNuclearGrid {
                             String.format(
                                 java.util.Locale.US,
                                 "%s at (%d,%d) voided by casing overheat (%.1f °C > %.1f °C)",
-                                tile.getType(),
+                                // A String: TeaVM's formatter traps on other objects
+                                tile.getType()
+                                    .name(),
                                 x,
                                 y,
                                 tile.getTemperature(),
@@ -790,8 +792,7 @@ public class StandaloneNuclearGrid {
         if (overheatingCount > 0) {
             double addedDamage = overheatingCount * CoreHatchRules.OVERHEAT_DAMAGE_PERCENT_PER_COLUMN;
             reactorDamage = Math.min(100.0, reactorDamage + addedDamage);
-            String overheatMsg = String.format(
-                java.util.Locale.US,
+            String overheatMsg = WasmStrings.format(
                 "%d tiles overheated casing max (%.1f°C). Reactor Damage +%.1f%% (now %.1f%%)",
                 overheatingCount,
                 maxTempAllowed,
@@ -812,16 +813,14 @@ public class StandaloneNuclearGrid {
                 if (this.stopOnIncidents && !this.haltedByIncident) {
                     this.reactorDamage = 99.9;
                     this.haltedByIncident = true;
-                    this.lastHaltIncidentReason = String.format(
-                        java.util.Locale.US,
+                    this.lastHaltIncidentReason = WasmStrings.format(
                         "Pending Incident: Reactor structural damage at 100%% from %d overheating tile(s). Simulation stopped to prevent meltdown.",
                         overheatingCount);
                     logIncident("PENDING_INCIDENT", this.lastHaltIncidentReason, 0.0);
                     return false;
                 }
                 triggerExplosion(
-                    String.format(
-                        java.util.Locale.US,
+                    WasmStrings.format(
                         "Meltdown: Reactor structural damage reached 100%% from casing overheating! (%d overheated tiles at >%.1f°C)",
                         overheatingCount,
                         maxTempAllowed));
@@ -1112,11 +1111,8 @@ public class StandaloneNuclearGrid {
 
         if (this.stopOnIncidents && !this.haltedByIncident && this.reactorDamage > initialDamage) {
             this.haltedByIncident = true;
-            this.lastHaltIncidentReason = String.format(
-                java.util.Locale.US,
-                "Reactor structural damage increased from %.1f%% to %.1f%%",
-                initialDamage,
-                this.reactorDamage);
+            this.lastHaltIncidentReason = WasmStrings
+                .format("Reactor structural damage increased from %.1f%% to %.1f%%", initialDamage, this.reactorDamage);
             this.incidentLog.add(
                 new IncidentEvent(
                     this.currentTick,
@@ -1186,12 +1182,8 @@ public class StandaloneNuclearGrid {
         logIncident("THERMAL_SHOCK", reason, 2.0);
         recordTraceSnapshot(
             "THERMAL_SHOCK",
-            String.format(
-                java.util.Locale.US,
-                "%s [Reactor Damage: %.1f%%, Maint Issues: %d/6]",
-                reason,
-                reactorDamage,
-                maintenanceIssues));
+            WasmStrings
+                .format("%s [Reactor Damage: %.1f%%, Maint Issues: %d/6]", reason, reactorDamage, maintenanceIssues));
         if (strictMode) {
             triggerPowerFail("Calibration Disqualification: Thermal Shock occurred (" + reason + ")");
             return;

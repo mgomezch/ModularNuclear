@@ -34,6 +34,18 @@ public final class WasmStrings {
     }
 
     /**
+     * {@code String.format(Locale.US, format, args)} that also handles {@code %%}. TeaVM 0.10.2's formatter throws on
+     * {@code %%} (an unknown conversion), which traps in WebAssembly.
+     */
+    public static String format(String format, Object... args) {
+        String escaped = replace(format, "%%", PERCENT_PLACEHOLDER);
+        return replace(String.format(Locale.US, escaped, args), PERCENT_PLACEHOLDER, "%");
+    }
+
+    /** A private-use character standing in for a literal percent sign while formatting. */
+    private static final String PERCENT_PLACEHOLDER = "\uE000";
+
+    /**
      * Normalizes a user-supplied enum token: trims, upper-cases (locale-independent), and replaces every character in
      * {@code separators} with {@code '_'}. For example {@code normalizeToken(" cast-iron ", " -")} is
      * {@code "CAST_IRON"}.

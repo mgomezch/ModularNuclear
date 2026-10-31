@@ -722,7 +722,9 @@ public class ComponentData {
             if (weightedAbsorbedPerSecond <= 0.0) return 0.0;
             double full = fullOutputAbsorbedPerSecond > 0.0 ? fullOutputAbsorbedPerSecond
                 : DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
-            return Math.tanh(ATANH_FULL_OUTPUT * weightedAbsorbedPerSecond / full);
+            double x = ATANH_FULL_OUTPUT * weightedAbsorbedPerSecond / full;
+            // tanh is exactly 1.0 in double precision from 20 up; TeaVM's tanh overflows to NaN for large arguments
+            return x >= 20.0 ? 1.0 : Math.tanh(x);
         }
 
         /**

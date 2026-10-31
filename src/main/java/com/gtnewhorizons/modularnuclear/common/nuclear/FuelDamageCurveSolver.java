@@ -69,8 +69,7 @@ public class FuelDamageCurveSolver {
 
         @Override
         public String toString() {
-            return String.format(
-                Locale.US,
+            return WasmStrings.format(
                 "%-17s | T_pk=%6.1f°C | T_10=%6.1f°C | k=%9.6f | A=%8.4f | D(T_pk)=%4.2f | D(T_10)=%4.2f | ratio=%5.2f%% | D(T_fl)=%5.2f",
                 fuel.name(),
                 tPeak,
