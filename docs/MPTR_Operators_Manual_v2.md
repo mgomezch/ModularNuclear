@@ -117,12 +117,12 @@ The tier of the reactor is the tier of the Item Pipe Casings in layer 2 (all mus
 
 | Tier | Pipe casing | Nominal voltage | Max operating temp. | Repair threshold | Coolant loops | Accepted coolants (whitelist) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 0 | Electrum | EV | 1200 °C | 120 °C | No | IC2 coolant |
-| 1 | Platinum | IV | 1400 °C | 140 °C | No | + distilled water |
-| 2 | Osmium | LuV | 1800 °C | 180 °C | Yes | + molten sodium |
-| 3 | Quantium | ZPM | 2200 °C | 220 °C | Yes | + heavy water, molten lead |
-| 4 | Fluxed Electrum | UV | 2600 °C | 260 °C | Yes | all |
-| 5 | Black Plutonium | UHV | 3200 °C | 320 °C | Yes | all |
+| 0 | Electrum | EV | 1200 °C | 240 °C | No | IC2 coolant |
+| 1 | Platinum | IV | 1400 °C | 280 °C | No | + distilled water |
+| 2 | Osmium | LuV | 1800 °C | 360 °C | Yes | + molten sodium |
+| 3 | Quantium | ZPM | 2200 °C | 440 °C | Yes | + heavy water, molten lead |
+| 4 | Fluxed Electrum | UV | 2600 °C | 520 °C | Yes | all |
+| 5 | Black Plutonium | UHV | 3200 °C | 640 °C | Yes | all |
 
 A fluid is accepted into a core hatch if it appears on the tier's whitelist, or if the reactor's tier is at least the fluid's `required_tier`. Liquid fuels carry their own `required_tier` (§6.2).
 
@@ -980,7 +980,7 @@ While $D_s > 0$, the reactor always reports at least one maintenance issue, so $
 
 ### 11.3 Repair
 
-Structural damage is repaired through maintenance. Each maintenance issue fixed reduces $D_s$ by 2 %, **but only while the average core temperature is at or below the tier's repair threshold** (10 % of max operating temperature: 120 °C for Electrum through 320 °C for Black Plutonium). Because damage forces an issue to remain open, repeated repair is possible: fix the issue, it reopens, fix it again.
+Structural damage is repaired through maintenance. Each maintenance issue fixed reduces $D_s$ by 2 %, **but only while the average core temperature is at or below the tier's repair threshold** (20 % of max operating temperature: 240 °C for Electrum through 640 °C for Black Plutonium). Because damage forces an issue to remain open, repeated repair is possible: fix the issue, it reopens, fix it again.
 
 Repair therefore requires the operator to cool the core well below operating temperature: in practice, to SCRAM and wait, or to keep the core cold enough throughout operation.
 
