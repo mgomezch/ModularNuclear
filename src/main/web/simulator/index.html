@@ -17,9 +17,9 @@
     <span class="badge" id="engine-badge" style="background:#065f46; border-color:#059669; color:#34d399;" title="Simulation running client-side via WebAssembly">⚡ Client WASM (0ms)</span>
     <a href="/monitor/" class="badge" style="text-decoration:none; background:#1e1b4b; border-color:#6366f1; color:#a5b4fc;" title="Open real-time simulator telemetry & calibration dashboard">📊 Live Monitor</a>
     <span class="badge" id="casing-badge">Electrum Casing (1000°C max)</span>
-    <span class="badge" id="damage-badge" style="display:none; color:var(--danger); border-color:var(--danger);" title="Cumulative reactor structural damage">Damage: 0.0%</span>
+    <span class="badge" id="damage-badge" style="visibility:hidden; color:var(--danger); border-color:var(--danger);" title="Cumulative reactor structural damage">Damage: 0.0%</span>
     <span class="badge" id="maint-badge" style="color:var(--success);" title="Maintenance health (efficiency penalty)">Maint: 100%</span>
-    <button id="btn-quick-repair" onclick="quickRepair()" style="display:none; padding:2px 8px; font-size:0.75rem; background:#1e293b; border-color:var(--warning); color:var(--warning);" title="Repair structural damage and clear maintenance issues">🔧 Repair</button>
+    <button id="btn-quick-repair" onclick="quickRepair()" style="visibility:hidden; padding:2px 8px; font-size:0.75rem; background:#1e293b; border-color:var(--warning); color:var(--warning);" title="Repair structural damage and clear maintenance issues">🔧 Repair</button>
     <span class="badge" id="status-badge" style="color:var(--success);">STATUS: STANDBY</span>
   </div>
 </header>
@@ -549,7 +549,7 @@
       <div class="stat-row"><span>XLST-SC (supercritical):</span><span class="stat-val" id="turb-sc-pwr">0 EU/t</span></div>
       <div class="stat-row"><span>XLST-HP (superheated/HW):</span><span class="stat-val" id="turb-hp-pwr">0 EU/t</span></div>
       <div class="stat-row"><span>XLST (regular steam):</span><span class="stat-val" id="turb-reg-pwr">0 EU/t</span></div>
-      <div class="stat-row" id="ehe-row" style="display:none;"><span>EHE Mode / DW:</span><span class="stat-val" id="turb-ehe-info" style="color:#38bdf8;">None</span></div>
+      <div class="stat-row" id="ehe-row"><span>EHE Mode / DW:</span><span class="stat-val" id="turb-ehe-info" style="color:#38bdf8;">None</span></div>
       <hr style="border:0; border-top:1px solid var(--border-color); margin:6px 0;">
       <div class="stat-row" style="font-size:0.75rem;"><span>Live Flows (L/t):</span><span class="stat-val" id="turb-flows" style="font-size:0.75rem;">Reg: 0 | SH: 0 | SC: 0</span></div>
       <!-- Operational scenarios (tier defaults) -->
@@ -691,7 +691,7 @@
           </div>
         </div>
 
-        <div id="byproduct-liquid-section" style="margin-bottom:6px; display:none;">
+        <div id="byproduct-liquid-section" style="margin-bottom:6px;">
           <div style="font-weight:700; font-size:0.72rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px; display:flex; justify-content:space-between;">
             <span>Depleted Fluid Fuels</span>
             <span id="byproduct-liquid-total" style="color:#38bdf8; font-weight:bold;">0 L/min</span>
@@ -699,7 +699,7 @@
           <div id="byproduct-liquid-list" style="display:flex; flex-direction:column; gap:4px;"></div>
         </div>
 
-        <div id="byproduct-isotope-section" style="margin-bottom:2px; display:none;">
+        <div id="byproduct-isotope-section" style="margin-bottom:2px;">
           <div style="font-weight:700; font-size:0.72rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px; display:flex; justify-content:space-between;">
             <span>Transmuted Isotopes</span>
             <span id="byproduct-isotope-total" style="color:#d946ef; font-weight:bold;">0 L/min</span>

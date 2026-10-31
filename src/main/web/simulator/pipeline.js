@@ -12,179 +12,179 @@ function renderProcessPipeline() {
   const stageReg = document.getElementById("proc-stage-reg");
 
   // Stage 0: Radiovoltaics
-  document.getElementById("proc-pv-val").innerText = formatPowerAndAmps(pe.directPowerEUt, true);
-  document.getElementById("proc-pv-sub").innerText = pe.directPowerEUt > 0
+  setText("proc-pv-val", formatPowerAndAmps(pe.directPowerEUt, true));
+  setText("proc-pv-sub", pe.directPowerEUt > 0
     ? `${Math.round(pe.directPowerEUt).toLocaleString()} EU/t direct power from radiovoltaic cells`
-    : "No radiovoltaic cells generating direct power";
+    : "No radiovoltaic cells generating direct power");
 
   // Tier Policies
   if (tier <= 0) {
     // EV
-    tierBadge.innerText = "EV Pipeline";
+    setText(tierBadge, "EV Pipeline");
     tierBadge.style.color = "#38bdf8";
-    tierDesc.innerHTML = "<strong>EV Mode:</strong> Large Heat Exchanger (1L Hot Coolant → 400L Regular Steam) + Large Steam Turbines (LST, 0.5 EU/L) + Direct Radiovoltaics. <em>XLST and Superheated/Supercritical processing unavailable at EV.</em>";
+    patchHTML(tierDesc, "<strong>EV Mode:</strong> Large Heat Exchanger (1L Hot Coolant → 400L Regular Steam) + Large Steam Turbines (LST, 0.5 EU/L) + Direct Radiovoltaics. <em>XLST and Superheated/Supercritical processing unavailable at EV.</em>");
 
     // Stage 1: LHE
-    document.getElementById("proc-coolant-title").innerText = "🔄 Stage 1: Large Heat Exchanger (LHE)";
+    setText("proc-coolant-title", "🔄 Stage 1: Large Heat Exchanger (LHE)");
     const hasCoolant = (currentState.flowHotCoolant || 0) > 0;
-    document.getElementById("proc-coolant-count").innerText = hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x LHE") : "0x LHE";
-    document.getElementById("proc-coolant-detail").innerText = hasCoolant
+    setText("proc-coolant-count", hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x LHE") : "0x LHE");
+    setText("proc-coolant-detail", hasCoolant
       ? `Input: ${Math.round(currentState.flowHotCoolant).toLocaleString()} L/t Hot Coolant → Output: ${Math.round(pe.coolantSteamProduced).toLocaleString()} L/t Regular Steam (1:400)`
-      : "Chamber produces no IC2 Hot Coolant";
-    document.getElementById("proc-coolant-water").innerText = hasCoolant
+      : "Chamber produces no IC2 Hot Coolant");
+    setText("proc-coolant-water", hasCoolant
       ? `Distilled Water consumed: ${Math.round(pe.coolantWaterConsumed).toLocaleString()} L/t`
-      : "";
+      : "");
 
     // Stage 2: Locked
     stageSc.style.opacity = "0.45";
-    document.getElementById("proc-sc-title").innerText = "🔒 Stage 2: XLST-SC (Supercritical)";
-    document.getElementById("proc-sc-pwr").innerText = "Locked (ZPM+)";
-    document.getElementById("proc-sc-detail").innerText = "Requires ZPM or higher. Supercritical steam cannot be turbine-processed at EV.";
-    document.getElementById("proc-sc-cascade").innerText = "";
+    setText("proc-sc-title", "🔒 Stage 2: XLST-SC (Supercritical)");
+    setText("proc-sc-pwr", "Locked (ZPM+)");
+    setText("proc-sc-detail", "Requires ZPM or higher. Supercritical steam cannot be turbine-processed at EV.");
+    setText("proc-sc-cascade", "");
 
     // Stage 3: Locked
     stageHp.style.opacity = "0.45";
-    document.getElementById("proc-hp-title").innerText = "🔒 Stage 3: XLST-HP (Superheated)";
-    document.getElementById("proc-hp-pwr").innerText = "Locked (IV+)";
-    document.getElementById("proc-hp-detail").innerText = "Requires IV or higher. Superheated steam cannot be turbine-processed at EV.";
-    document.getElementById("proc-hp-cascade").innerText = "";
+    setText("proc-hp-title", "🔒 Stage 3: XLST-HP (Superheated)");
+    setText("proc-hp-pwr", "Locked (IV+)");
+    setText("proc-hp-detail", "Requires IV or higher. Superheated steam cannot be turbine-processed at EV.");
+    setText("proc-hp-cascade", "");
 
     // Stage 4: LST
     stageReg.style.opacity = "1.0";
-    document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: Large Steam Turbine (LST)";
-    document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.lstPowerEUt, true);
+    setText("proc-reg-title", "⚡ Stage 4: Large Steam Turbine (LST)");
+    setText("proc-reg-pwr", formatPowerAndAmps(pe.lstPowerEUt, true));
     const regFlow = Math.round((currentState.flowRegularSteam || 0) + pe.coolantSteamProduced);
-    document.getElementById("proc-reg-detail").innerText = `${regFlow.toLocaleString()} L/t steam · ${pe.lstTurbinesNeeded.toFixed(2)} LST units (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
-    document.getElementById("proc-reg-eff").innerText = `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff (${pe.lstPowerEUt > 0 ? (pe.lstPowerEUt / Math.max(1, regFlow)).toFixed(3) : 0} EU/L)`;
+    setText("proc-reg-detail", `${regFlow.toLocaleString()} L/t steam · ${pe.lstTurbinesNeeded.toFixed(2)} LST units (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`);
+    setText("proc-reg-eff", `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff (${pe.lstPowerEUt > 0 ? (pe.lstPowerEUt / Math.max(1, regFlow)).toFixed(3) : 0} EU/L)`);
 
   } else if (tier === 1) {
     // IV
-    tierBadge.innerText = "IV Pipeline";
+    setText(tierBadge, "IV Pipeline");
     tierBadge.style.color = "#a3e635";
-    tierDesc.innerHTML = "<strong>IV Mode:</strong> Thermal Boiler (1L Hot Coolant → 200L SH Steam) + XLST-HP (1.0 EU/L, cascades 1:1) + XLST (0.5 EU/L). <em>EHE and XLST-SC unavailable at IV.</em>";
+    patchHTML(tierDesc, "<strong>IV Mode:</strong> Thermal Boiler (1L Hot Coolant → 200L SH Steam) + XLST-HP (1.0 EU/L, cascades 1:1) + XLST (0.5 EU/L). <em>EHE and XLST-SC unavailable at IV.</em>");
 
     // Stage 1: Thermal Boiler
-    document.getElementById("proc-coolant-title").innerText = "🔄 Stage 1: Thermal Boiler";
+    setText("proc-coolant-title", "🔄 Stage 1: Thermal Boiler");
     const hasCoolant = (currentState.flowHotCoolant || 0) > 0;
-    document.getElementById("proc-coolant-count").innerText = hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x Thermal Boiler") : "0x Thermal Boiler";
-    document.getElementById("proc-coolant-detail").innerText = hasCoolant
+    setText("proc-coolant-count", hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x Thermal Boiler") : "0x Thermal Boiler");
+    setText("proc-coolant-detail", hasCoolant
       ? `Input: ${Math.round(currentState.flowHotCoolant).toLocaleString()} L/t Hot Coolant → Output: ${Math.round(pe.coolantSteamProduced).toLocaleString()} L/t SH Steam (1:200)`
-      : "Chamber produces no IC2 Hot Coolant";
-    document.getElementById("proc-coolant-water").innerText = hasCoolant
+      : "Chamber produces no IC2 Hot Coolant");
+    setText("proc-coolant-water", hasCoolant
       ? `Water consumed: ${Math.round(pe.coolantWaterConsumed).toLocaleString()} L/t`
-      : "";
+      : "");
 
     // Stage 2: Locked
     stageSc.style.opacity = "0.45";
-    document.getElementById("proc-sc-title").innerText = "🔒 Stage 2: XLST-SC (Supercritical)";
-    document.getElementById("proc-sc-pwr").innerText = "Locked (ZPM+)";
-    document.getElementById("proc-sc-detail").innerText = "Requires ZPM or higher. Supercritical steam cannot be turbine-processed at IV.";
-    document.getElementById("proc-sc-cascade").innerText = "";
+    setText("proc-sc-title", "🔒 Stage 2: XLST-SC (Supercritical)");
+    setText("proc-sc-pwr", "Locked (ZPM+)");
+    setText("proc-sc-detail", "Requires ZPM or higher. Supercritical steam cannot be turbine-processed at IV.");
+    setText("proc-sc-cascade", "");
 
     // Stage 3: XLST-HP
     stageHp.style.opacity = "1.0";
-    document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (superheated steam)";
-    document.getElementById("proc-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true);
+    setText("proc-hp-title", "⚡ Stage 3: XLST-HP (superheated steam)");
+    setText("proc-hp-pwr", formatPowerAndAmps(pe.xlstHpPowerEUt, true));
     const hpFlow = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + pe.coolantSteamProduced);
-    document.getElementById("proc-hp-detail").innerText = `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
-    document.getElementById("proc-hp-cascade").innerText = "Cascades 1:1 into Regular Steam for Stage 4";
+    setText("proc-hp-detail", `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`);
+    setText("proc-hp-cascade", "Cascades 1:1 into Regular Steam for Stage 4");
 
     // Stage 4: XLST Regular
     stageReg.style.opacity = "1.0";
-    document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (regular steam)";
-    document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true);
+    setText("proc-reg-title", "⚡ Stage 4: XLST (regular steam)");
+    setText("proc-reg-pwr", formatPowerAndAmps(pe.xlstPowerEUt, true));
     const regFlow = Math.round((currentState.flowRegularSteam || 0) + hpFlow);
-    document.getElementById("proc-reg-detail").innerText = `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`;
-    document.getElementById("proc-reg-eff").innerText = `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff (${pe.xlstPowerEUt > 0 ? (pe.xlstPowerEUt / Math.max(1, regFlow)).toFixed(3) : 0} EU/L)`;
+    setText("proc-reg-detail", `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`);
+    setText("proc-reg-eff", `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff (${pe.xlstPowerEUt > 0 ? (pe.xlstPowerEUt / Math.max(1, regFlow)).toFixed(3) : 0} EU/L)`);
 
   } else if (tier === 2) {
     // LuV
-    tierBadge.innerText = "LuV Pipeline";
+    setText(tierBadge, "LuV Pipeline");
     tierBadge.style.color = "#f59e0b";
-    tierDesc.innerHTML = "<strong>LuV Mode:</strong> Extreme Heat Exchanger (1L Hot Coolant → 200L SH Steam) + XLST-HP (1.0 EU/L, cascades 1:1) + XLST (0.5 EU/L). <em>XLST-SC unlocks at ZPM.</em>";
+    patchHTML(tierDesc, "<strong>LuV Mode:</strong> Extreme Heat Exchanger (1L Hot Coolant → 200L SH Steam) + XLST-HP (1.0 EU/L, cascades 1:1) + XLST (0.5 EU/L). <em>XLST-SC unlocks at ZPM.</em>");
 
     // Stage 1: EHE
-    document.getElementById("proc-coolant-title").innerText = "🔄 Stage 1: Extreme Heat Exchanger (EHE)";
+    setText("proc-coolant-title", "🔄 Stage 1: Extreme Heat Exchanger (EHE)");
     const hasCoolant = (currentState.flowHotCoolant || 0) > 0;
-    document.getElementById("proc-coolant-count").innerText = hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x EHE") : "0x EHE";
-    document.getElementById("proc-coolant-detail").innerText = hasCoolant
+    setText("proc-coolant-count", hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x EHE") : "0x EHE");
+    setText("proc-coolant-detail", hasCoolant
       ? `Input: ${Math.round(currentState.flowHotCoolant).toLocaleString()} L/t Hot Coolant → Output: ${Math.round(pe.coolantSteamProduced).toLocaleString()} L/t SH Steam (1:200)`
-      : "Chamber produces no IC2 Hot Coolant";
-    document.getElementById("proc-coolant-water").innerText = hasCoolant
+      : "Chamber produces no IC2 Hot Coolant");
+    setText("proc-coolant-water", hasCoolant
       ? `Distilled Water consumed: ${Math.round(pe.coolantWaterConsumed).toLocaleString()} L/t`
-      : "";
+      : "");
 
     // Stage 2: Locked
     stageSc.style.opacity = "0.45";
-    document.getElementById("proc-sc-title").innerText = "🔒 Stage 2: XLST-SC (supercritical)";
-    document.getElementById("proc-sc-pwr").innerText = "Locked (ZPM+)";
-    document.getElementById("proc-sc-detail").innerText = "Requires ZPM or higher for XLST-SC.";
-    document.getElementById("proc-sc-cascade").innerText = "";
+    setText("proc-sc-title", "🔒 Stage 2: XLST-SC (supercritical)");
+    setText("proc-sc-pwr", "Locked (ZPM+)");
+    setText("proc-sc-detail", "Requires ZPM or higher for XLST-SC.");
+    setText("proc-sc-cascade", "");
 
     // Stage 3: XLST-HP
     stageHp.style.opacity = "1.0";
-    document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (superheated steam)";
-    document.getElementById("proc-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true);
+    setText("proc-hp-title", "⚡ Stage 3: XLST-HP (superheated steam)");
+    setText("proc-hp-pwr", formatPowerAndAmps(pe.xlstHpPowerEUt, true));
     const hpFlow = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + pe.coolantSteamProduced);
-    document.getElementById("proc-hp-detail").innerText = `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
-    document.getElementById("proc-hp-cascade").innerText = "Cascades 1:1 into Regular Steam for Stage 4";
+    setText("proc-hp-detail", `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`);
+    setText("proc-hp-cascade", "Cascades 1:1 into Regular Steam for Stage 4");
 
     // Stage 4: XLST Regular
     stageReg.style.opacity = "1.0";
-    document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (regular steam)";
-    document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true);
+    setText("proc-reg-title", "⚡ Stage 4: XLST (regular steam)");
+    setText("proc-reg-pwr", formatPowerAndAmps(pe.xlstPowerEUt, true));
     const regFlow = Math.round((currentState.flowRegularSteam || 0) + hpFlow);
-    document.getElementById("proc-reg-detail").innerText = `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`;
-    document.getElementById("proc-reg-eff").innerText = `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff`;
+    setText("proc-reg-detail", `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`);
+    setText("proc-reg-eff", `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff`);
 
   } else {
     // ZPM+
     const tierName = (tier === 3) ? "ZPM" : (tier === 4) ? "UV" : "UHV";
-    tierBadge.innerText = `${tierName} Full 3-Stage Cascade`;
+    setText(tierBadge, `${tierName} Full 3-Stage Cascade`);
     tierBadge.style.color = "#ec4899";
-    tierDesc.innerHTML = "<strong>ZPM+ Mode:</strong> EHE (Supercritical if ≥8,000 L/s coolant, else SH) + Full 3-Stage Cascade: XLST-SC (1.0 EU/L) → XLST-HP (1.0 EU/L) → XLST (0.5 EU/L).";
+    patchHTML(tierDesc, "<strong>ZPM+ Mode:</strong> EHE (Supercritical if ≥8,000 L/s coolant, else SH) + Full 3-Stage Cascade: XLST-SC (1.0 EU/L) → XLST-HP (1.0 EU/L) → XLST (0.5 EU/L).");
 
     // Stage 1: EHE
     const isSC = pe.coolantMachineMode && pe.coolantMachineMode.includes("Supercritical");
-    document.getElementById("proc-coolant-title").innerText = `🔄 Stage 1: Extreme Heat Exchanger (EHE) [${isSC ? "Supercritical" : "Superheated"}]`;
+    setText("proc-coolant-title", `🔄 Stage 1: Extreme Heat Exchanger (EHE) [${isSC ? "Supercritical" : "Superheated"}]`);
     const hasCoolant = (currentState.flowHotCoolant || 0) > 0;
-    document.getElementById("proc-coolant-count").innerText = hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x EHE") : "0x EHE";
-    document.getElementById("proc-coolant-detail").innerText = hasCoolant
+    setText("proc-coolant-count", hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x EHE") : "0x EHE");
+    setText("proc-coolant-detail", hasCoolant
       ? `Input: ${Math.round(currentState.flowHotCoolant).toLocaleString()} L/t (${Math.round(currentState.flowHotCoolant * 20).toLocaleString()} L/s) → Output: ${Math.round(pe.coolantSteamProduced).toLocaleString()} L/t ${isSC ? "SC" : "SH"} Steam`
-      : "Chamber produces no IC2 Hot Coolant";
-    document.getElementById("proc-coolant-water").innerText = hasCoolant
+      : "Chamber produces no IC2 Hot Coolant");
+    setText("proc-coolant-water", hasCoolant
       ? `Distilled Water consumed: ${Math.round(pe.coolantWaterConsumed).toLocaleString()} L/t`
-      : "";
+      : "");
 
     // Stage 2: XLST-SC
     stageSc.style.opacity = "1.0";
-    document.getElementById("proc-sc-title").innerText = "⚡ Stage 2: XLST-SC (supercritical steam)";
-    document.getElementById("proc-sc-pwr").innerText = formatPowerAndAmps(pe.xlstScPowerEUt, true);
+    setText("proc-sc-title", "⚡ Stage 2: XLST-SC (supercritical steam)");
+    setText("proc-sc-pwr", formatPowerAndAmps(pe.xlstScPowerEUt, true));
     const scFlow = Math.round((currentState.flowSupercriticalSteam || 0) + (isSC ? pe.coolantSteamProduced : 0));
-    document.getElementById("proc-sc-detail").innerText = `${scFlow.toLocaleString()} L/t SC steam · ${pe.xlstScTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
-    document.getElementById("proc-sc-cascade").innerText = "Cascades 1:1 into Superheated Steam for Stage 3";
+    setText("proc-sc-detail", `${scFlow.toLocaleString()} L/t SC steam · ${pe.xlstScTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`);
+    setText("proc-sc-cascade", "Cascades 1:1 into Superheated Steam for Stage 3");
 
     // Stage 3: XLST-HP
     stageHp.style.opacity = "1.0";
-    document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (superheated steam)";
-    document.getElementById("proc-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true);
+    setText("proc-hp-title", "⚡ Stage 3: XLST-HP (superheated steam)");
+    setText("proc-hp-pwr", formatPowerAndAmps(pe.xlstHpPowerEUt, true));
     const hpDirect = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + (!isSC ? pe.coolantSteamProduced : 0));
     const hpTotal = hpDirect + scFlow;
-    document.getElementById("proc-hp-detail").innerText = `${hpTotal.toLocaleString()} L/t SH steam (${scFlow.toLocaleString()} from SC cascade) · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines`;
-    document.getElementById("proc-hp-cascade").innerText = "Cascades 1:1 into Regular Steam for Stage 4";
+    setText("proc-hp-detail", `${hpTotal.toLocaleString()} L/t SH steam (${scFlow.toLocaleString()} from SC cascade) · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines`);
+    setText("proc-hp-cascade", "Cascades 1:1 into Regular Steam for Stage 4");
 
     // Stage 4: XLST Regular
     stageReg.style.opacity = "1.0";
-    document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (regular steam)";
-    document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true);
+    setText("proc-reg-title", "⚡ Stage 4: XLST (regular steam)");
+    setText("proc-reg-pwr", formatPowerAndAmps(pe.xlstPowerEUt, true));
     const regDirect = Math.round(currentState.flowRegularSteam || 0);
     const regTotal = regDirect + hpTotal;
-    document.getElementById("proc-reg-detail").innerText = `${regTotal.toLocaleString()} L/t steam (${hpTotal.toLocaleString()} from HP cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`;
-    document.getElementById("proc-reg-eff").innerText = `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff`;
+    setText("proc-reg-detail", `${regTotal.toLocaleString()} L/t steam (${hpTotal.toLocaleString()} from HP cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`);
+    setText("proc-reg-eff", `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff`);
   }
 
   // Net Generation
-  document.getElementById("proc-net-pwr").innerText = formatPowerAndAmps(pe.totalPowerEUt, false);
+  setText("proc-net-pwr", formatPowerAndAmps(pe.totalPowerEUt, false));
 }
 
 function setByproductUnit(unit) {
@@ -198,7 +198,7 @@ function setByproductUnit(unit) {
 
 function onDamageSliderInput(val) {
   const lbl = document.getElementById("lbl-reactor-damage-val");
-  if (lbl) lbl.innerText = parseFloat(val).toFixed(1) + "%";
+  if (lbl) setText(lbl, parseFloat(val).toFixed(1) + "%");
 }
 
 async function onDamageSliderChange(val) {
@@ -217,14 +217,14 @@ async function setDamagePercent(pct) {
   const rng = document.getElementById("rng-reactor-damage");
   if (rng) rng.value = pct;
   const lbl = document.getElementById("lbl-reactor-damage-val");
-  if (lbl) lbl.innerText = pct.toFixed(1) + "%";
+  if (lbl) setText(lbl, pct.toFixed(1) + "%");
   await onDamageSliderChange(pct);
 }
 
 function toggleStopOnIncidents(checked) {
   const lbl = document.getElementById("lbl-stop-incidents");
   if (lbl) {
-    lbl.innerText = checked ? "(Enabled)" : "(Off)";
+    setText(lbl, checked ? "(Enabled)" : "(Off)");
     lbl.style.color = checked ? "var(--warning)" : "var(--text-muted)";
     lbl.style.fontWeight = checked ? "600" : "normal";
   }
@@ -240,13 +240,13 @@ function toggleStopOnIncidents(checked) {
 function toggleAutoSupplyFuel(checked) {
   const lblSupply = document.getElementById("lbl-auto-supply-fuel");
   if (lblSupply) {
-    lblSupply.innerText = checked ? "(Enabled)" : "(Off)";
+    setText(lblSupply, checked ? "(Enabled)" : "(Off)");
     lblSupply.style.color = checked ? "#34d399" : "var(--text-muted)";
     lblSupply.style.fontWeight = checked ? "600" : "normal";
   }
   const lblRefuel = document.getElementById("lbl-auto-refuel");
   if (lblRefuel) {
-    lblRefuel.innerText = checked ? "Enabled" : "Disabled";
+    setText(lblRefuel, checked ? "Enabled" : "Disabled");
     lblRefuel.style.color = checked ? "#34d399" : "var(--text-muted)";
   }
   const chkSupply = document.getElementById("chk-auto-supply-fuel");
@@ -281,7 +281,7 @@ function renderByproducts() {
   if (autoChk && bp.autoReplaceFuel !== undefined && autoChk !== document.activeElement) {
     autoChk.checked = bp.autoReplaceFuel;
     if (autoLbl) {
-      autoLbl.innerText = bp.autoReplaceFuel ? "Enabled" : "Disabled";
+      setText(autoLbl, bp.autoReplaceFuel ? "Enabled" : "Disabled");
       autoLbl.style.color = bp.autoReplaceFuel ? "#34d399" : "var(--text-muted)";
     }
   }
@@ -289,17 +289,17 @@ function renderByproducts() {
   const rateBadge = document.getElementById("byproduct-rate-badge");
   if (rateBadge) {
     const totalSolidRate = isHour ? bp.totalSolidItemsPerHour : bp.totalSolidItemsPerMin;
-    rateBadge.innerText = `${(totalSolidRate || 0).toFixed(isHour ? 1 : 2)} items ${unitLabel}`;
+    setText(rateBadge, `${(totalSolidRate || 0).toFixed(isHour ? 1 : 2)} items ${unitLabel}`);
   }
 
   const solidTotalEl = document.getElementById("byproduct-solid-total");
   const solidListEl = document.getElementById("byproduct-solid-list");
   if (solidTotalEl && solidListEl) {
     const totalSolidRate = isHour ? bp.totalSolidItemsPerHour : bp.totalSolidItemsPerMin;
-    solidTotalEl.innerText = `${(totalSolidRate || 0).toFixed(isHour ? 1 : 2)} ${unitLabel}`;
+    setText(solidTotalEl, `${(totalSolidRate || 0).toFixed(isHour ? 1 : 2)} ${unitLabel}`);
 
     if (!bp.solidRods || bp.solidRods.length === 0) {
-      solidListEl.innerHTML = `<div style="font-style:italic; color:#64748b; padding:2px 0;">No active fuel rods burning.</div>`;
+      patchHTML(solidListEl, `<div style="font-style:italic; color:#64748b; padding:2px 0;">No active fuel rods burning.</div>`);
     } else {
       let html = "";
       bp.solidRods.forEach(s => {
@@ -322,7 +322,7 @@ function renderByproducts() {
           </div>
         `;
       });
-      solidListEl.innerHTML = html;
+      patchHTML(solidListEl, html);
     }
   }
 
@@ -330,12 +330,13 @@ function renderByproducts() {
   const liquidTotalEl = document.getElementById("byproduct-liquid-total");
   const liquidListEl = document.getElementById("byproduct-liquid-list");
   if (liquidSec && liquidTotalEl && liquidListEl) {
+    // The section stays in place when empty, so the card does not change size as fuels come and go.
     if (!bp.liquidFuels || bp.liquidFuels.length === 0) {
-      liquidSec.style.display = "none";
+      setText(liquidTotalEl, `0 ${fluidUnitLabel}`);
+      patchHTML(liquidListEl, `<div style="font-style:italic; color:#64748b; padding:2px 0;">No liquid fuel hatches burning.</div>`);
     } else {
-      liquidSec.style.display = "block";
       const totalLiqRate = isHour ? bp.totalLiquidLitersPerHour : bp.totalLiquidLitersPerMin;
-      liquidTotalEl.innerText = `${Math.round(totalLiqRate || 0).toLocaleString()} ${fluidUnitLabel}`;
+      setText(liquidTotalEl, `${Math.round(totalLiqRate || 0).toLocaleString()} ${fluidUnitLabel}`);
 
       let html = "";
       bp.liquidFuels.forEach(l => {
@@ -355,7 +356,7 @@ function renderByproducts() {
           </div>
         `;
       });
-      liquidListEl.innerHTML = html;
+      patchHTML(liquidListEl, html);
     }
   }
 
@@ -365,9 +366,9 @@ function renderByproducts() {
   if (isoSec && isoTotalEl && isoListEl) {
     const hasIsotopes = bp.isotopes && bp.isotopes.some(iso => iso.totalLiters > 0 || iso.litersPerMin > 0);
     if (!hasIsotopes) {
-      isoSec.style.display = "none";
+      setText(isoTotalEl, `0 ${fluidUnitLabel}`);
+      patchHTML(isoListEl, `<div style="font-style:italic; color:#64748b; padding:2px 0;">No isotopes bred yet.</div>`);
     } else {
-      isoSec.style.display = "block";
       let totalIsoRate = 0;
       let html = "";
       bp.isotopes.forEach(iso => {
@@ -388,8 +389,8 @@ function renderByproducts() {
           </div>
         `;
       });
-      isoTotalEl.innerText = `${totalIsoRate.toFixed(isHour ? 1 : 2)} ${fluidUnitLabel}`;
-      isoListEl.innerHTML = html;
+      setText(isoTotalEl, `${totalIsoRate.toFixed(isHour ? 1 : 2)} ${fluidUnitLabel}`);
+      patchHTML(isoListEl, html);
     }
   }
 
@@ -397,7 +398,7 @@ function renderByproducts() {
   const rawListEl = document.getElementById("byproduct-raw-list");
   if (rawSec && rawListEl) {
     if (!bp.rawMaterials || bp.rawMaterials.length === 0) {
-      rawListEl.innerHTML = `<div style="font-style:italic; color:#64748b; padding:2px 0;">No active raw material burn forecast.</div>`;
+      patchHTML(rawListEl, `<div style="font-style:italic; color:#64748b; padding:2px 0;">No active raw material burn forecast.</div>`);
     } else {
       let html = "";
       bp.rawMaterials.forEach(r => {
@@ -426,7 +427,7 @@ function renderByproducts() {
           </div>
         `;
       });
-      rawListEl.innerHTML = html;
+      patchHTML(rawListEl, html);
     }
   }
 }
