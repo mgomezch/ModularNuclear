@@ -422,6 +422,11 @@ public class MTEPressurizedDegasser extends MTEEnhancedMultiBlockBase<MTEPressur
         return (double) getTargetVoltage() / 32.0;
     }
 
+    @Override
+    public boolean isStructureReady() {
+        return mMachine;
+    }
+
     public boolean triggerPowerfail() {
         mLastDrainedEU = 0L;
         stopMachine(ShutDownReasonRegistry.POWER_LOSS);

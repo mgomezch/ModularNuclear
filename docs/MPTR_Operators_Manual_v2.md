@@ -875,6 +875,8 @@ Each tick a PHE moves heat by convection across its effective area $A$ (exchange
 
 **Radiolysis.** Every 4 neutrons (`coolant_passage_neutrons_per_radiolysis`) absorbed in a passage cell consume 2 L of loop coolant and add 2 L of dissolved gas plus 1 L of dissolved oxygen to the loop: deuterium for water, tritium for heavy water. Other loop fluids do not undergo radiolysis. Dissolved gas increases pump rotor wear (cavitation) by a factor $1 + 10\,f_\text{gas}$, where $f_\text{gas}$ is the dissolved gas volume fraction. A **Pressurized Degasser** extracts dissolved gases from the loop to output hatches.
 
+**Restarts.** After a load, a formed loop holds still, neither flowing nor drawing power, until the pump and every device on the loop have re-formed (a multiblock is unformed until its first structure check, about 5 seconds after it loads), or for at most 30 seconds. The pump's status reads "Resuming the loop" meanwhile. The pump then checks the loop again; if nothing changed, the loop carries on with the flow, temperatures and dissolved gas it had when it was saved. For 10 seconds after resuming, a lack of power lets the loop coast instead of powerfailing the pump, so that the pump's generator has time to start up.
+
 Loop failure modes are listed in §12.8.
 
 ### 9.8 Power conversion

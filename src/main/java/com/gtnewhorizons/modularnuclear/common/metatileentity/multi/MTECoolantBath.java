@@ -550,6 +550,11 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
     private static IStructureDefinition<MTECoolantBath> STRUCTURE_DEFINITION = null;
 
     @Override
+    public boolean isStructureReady() {
+        return mMachine;
+    }
+
+    @Override
     public IStructureDefinition<MTECoolantBath> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
             STRUCTURE_DEFINITION = StructureDefinition.<MTECoolantBath>builder()

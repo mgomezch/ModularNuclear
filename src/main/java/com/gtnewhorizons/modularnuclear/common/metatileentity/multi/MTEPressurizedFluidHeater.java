@@ -854,6 +854,11 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
     }
 
     @Override
+    public boolean isStructureReady() {
+        return mMachine;
+    }
+
+    @Override
     public boolean isDeviceDisconnected() {
         return mPowerFailed || !mMachine;
     }

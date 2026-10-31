@@ -685,4 +685,9 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
                     .setDefaultColor(Color.rgb(150, 180, 255))
                     .setPos(10, 81));
     }
+
+    @Override
+    public boolean isStructureReady() {
+        return mReactor != null && mReactor.mMachine;
+    }
 }

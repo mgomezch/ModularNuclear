@@ -438,6 +438,18 @@ public class LoopSegment {
         return (fluid.getDensity() * velocity * diameter) / fluid.getDynamicViscosity();
     }
 
+    /** Takes over the changing state (temperatures, pressures, dissolved gas) of the segment this one replaces. */
+    public void copyStateFrom(LoopSegment other) {
+        if (other == null) return;
+        currentTemperatureCelsius = other.currentTemperatureCelsius;
+        incomingTemperatureCelsius = other.incomingTemperatureCelsius;
+        inletPressureBar = other.inletPressureBar;
+        outletPressureBar = other.outletPressureBar;
+        dissolvedGases.clear();
+        dissolvedGases.putAll(other.dissolvedGases);
+        fallbackGasFraction = other.fallbackGasFraction;
+    }
+
     /**
      * Snapshot of this segment's state as plain values (Integer, Long, Double, Boolean, String, List of String), for
      * persistence. Keys match the game's saved NBT.

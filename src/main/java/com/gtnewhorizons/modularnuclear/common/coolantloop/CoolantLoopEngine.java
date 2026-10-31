@@ -2,6 +2,7 @@ package com.gtnewhorizons.modularnuclear.common.coolantloop;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -207,6 +208,38 @@ public class CoolantLoopEngine {
             throw new IllegalArgumentException("Segment cannot be null");
         }
         segments.add(segment);
+    }
+
+    /**
+     * Replaces the loop's segments. When keepState is set and the new segments are the same loop as the current ones
+     * (the same segment ids), each takes over the state of the segment it replaces and the flow carries on, so
+     * re-crawling a running loop does not reset it; otherwise the loop starts from rest. Returns whether state was
+     * kept.
+     */
+    public boolean replaceSegments(List<LoopSegment> next, boolean keepState) {
+        Map<String, LoopSegment> previous = new HashMap<>();
+        for (LoopSegment s : segments) previous.put(s.getId(), s);
+        boolean sameLoop = keepState && !isRuptured && previous.size() == next.size();
+        if (sameLoop) {
+            for (LoopSegment s : next) {
+                if (!previous.containsKey(s.getId())) {
+                    sameLoop = false;
+                    break;
+                }
+            }
+        }
+        if (sameLoop) {
+            segments.clear();
+            for (LoopSegment s : next) {
+                s.copyStateFrom(previous.get(s.getId()));
+                addSegment(s);
+            }
+            maxVolumetricFlowRate = Double.MAX_VALUE;
+            return true;
+        }
+        clearSegments();
+        for (LoopSegment s : next) addSegment(s);
+        return false;
     }
 
     public void clearSegments() {

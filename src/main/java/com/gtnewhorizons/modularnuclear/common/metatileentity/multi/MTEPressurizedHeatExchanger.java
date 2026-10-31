@@ -378,6 +378,11 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         }
     }
 
+    @Override
+    public boolean isStructureReady() {
+        return mMachine;
+    }
+
     public static boolean isSingleAmpEnergyHatch(MTEHatchEnergy hatch) {
         if (hatch == null) return false;
         return hatch.maxWorkingAmperesIn() <= 2L && hatch.maxAmperesIn() <= 2L;

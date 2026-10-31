@@ -1128,6 +1128,75 @@ public class CoolantPumpStructureTest {
     }
 
     @Test
+    public void testRecrawlOfTheSameLoopKeepsItsState() {
+        CoolantLoopEngine engine = new CoolantLoopEngine();
+        LoopSegment hot = new LoopSegment("pipe_a", 10.0, 0.1, 0.00005, 0.5, 100.0, 1000.0, 20.0);
+        engine.addSegment(hot);
+        hot.setCurrentTemperatureCelsius(300.0);
+        engine.setVolumetricFlowRate(0.05);
+
+        LoopSegment fresh = new LoopSegment("pipe_a", 10.0, 0.1, 0.00005, 0.5, 100.0, 1000.0, 20.0);
+        assertTrue(engine.replaceSegments(Collections.singletonList(fresh), true));
+        assertEquals(300.0, fresh.getCurrentTemperatureCelsius(), 1e-9, "the segment keeps its temperature");
+        assertEquals(0.05, engine.getVolumetricFlowRate(), 1e-12, "the flow carries on");
+
+        LoopSegment other = new LoopSegment("pipe_b", 10.0, 0.1, 0.00005, 0.5, 100.0, 1000.0, 20.0);
+        assertFalse(engine.replaceSegments(Collections.singletonList(other), true), "a different loop starts over");
+        assertEquals(0.0, engine.getVolumetricFlowRate(), 1e-12);
+
+        LoopSegment again = new LoopSegment("pipe_b", 10.0, 0.1, 0.00005, 0.5, 100.0, 1000.0, 20.0);
+        other.setCurrentTemperatureCelsius(500.0);
+        assertFalse(engine.replaceSegments(Collections.singletonList(again), false), "a new loop starts over");
+        assertEquals(20.0, again.getCurrentTemperatureCelsius(), 1e-9);
+    }
+
+    @Test
+    public void testLoadedLoopHoldsUntilThePumpReforms() {
+        MTECoolantPump pump = createOperatingPumpWithBase(new boolean[] { true });
+        LoopSegment seg = new LoopSegment("pipe_test", 10.0, 0.1, 0.00005, 0.5, 100.0, 1000.0, 20.0);
+        assertTrue(
+            pump.applyCrawlResult(
+                CrawlResult.success(
+                    Collections.singletonList(seg),
+                    Collections.emptyList(),
+                    Collections.emptySet(),
+                    500.0,
+                    Materials.Steel,
+                    Collections.emptyList())));
+        pump.getEngine()
+            .setVolumetricFlowRate(0.05);
+        NBTTagCompound nbt = new NBTTagCompound();
+        pump.saveNBTData(nbt);
+
+        boolean[] allowed = new boolean[] { true };
+        MTECoolantPump loaded = createOperatingPumpWithBase(allowed);
+        Mockito.when(
+            loaded.getBaseMetaTileEntity()
+                .getFrontFacing())
+            .thenReturn(net.minecraftforge.common.util.ForgeDirection.NORTH);
+        loaded.loadNBTData(nbt);
+        loaded.mMachine = false;
+        IGregTechTileEntity base = loaded.getBaseMetaTileEntity();
+        Mockito.when(base.getTimer())
+            .thenReturn(10L);
+        Mockito.when(base.getWorld())
+            .thenReturn(Mockito.mock(net.minecraft.world.World.class));
+        for (long tick = 1; tick <= 40; tick++) {
+            loaded.onPostTick(base, tick);
+        }
+        assertFalse(loaded.isPowerFailed(), "a loop does not powerfail while its pump re-forms after a load");
+        assertTrue(allowed[0]);
+        assertEquals(
+            0.05,
+            loaded.getEngine()
+                .getVolumetricFlowRate(),
+            1e-12,
+            "the loop holds still");
+        assertTrue(loaded.isLoopFormed());
+        assertNull(loaded.findLoopBreak(null), "nor is it broken");
+    }
+
+    @Test
     public void testPumpLoopTooLargeStatusMessage() {
         boolean[] pumpAllowed = new boolean[] { true };
         MTECoolantPump pump = createOperatingPumpWithBase(pumpAllowed);

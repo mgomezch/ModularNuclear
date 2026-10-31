@@ -358,6 +358,8 @@ gt.scanner.coolant_pump.impeller_thermal.softening=, thermal softening active
 # Pump Loop Status & Failure Messages
 coolantloops.pump.status.waiting=Waiting for loop formation...
 coolantloops.pump.status.braking=Actively decelerating flow: %.1f L/s -> 0.0 L/s (power: %.1f kW)
+coolantloops.pump.status.resuming=Resuming the loop: waiting for the pump and its devices to re-form
+coolantloops.pump.status.awaiting_power=Resumed: waiting for power, coasting
 coolantloops.pump.status.formed=Pump structure formed successfully
 coolantloops.pump.status.unpowered=Pump unpowered (no EU in energy hatch)
 coolantloops.pump.status.missing_tank=Missing Railcraft tank above pump!

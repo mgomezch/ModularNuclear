@@ -64,4 +64,13 @@ public interface ICoolantLoopDevice {
     default String getDisconnectionReason() {
         return null;
     }
+
+    /**
+     * Whether this device's structure has been checked and found formed, so the loop can run through it. Right after
+     * a load a multiblock reports unformed until its first structure check.
+     */
+    default boolean isStructureReady() {
+        return true;
+    }
+
 }
