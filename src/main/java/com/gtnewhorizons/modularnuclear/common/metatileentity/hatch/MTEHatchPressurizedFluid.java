@@ -93,6 +93,12 @@ public class MTEHatchPressurizedFluid extends MTEHatch implements ICoolantLoopDe
     private double currentTemperatureCelsius = 20.0;
     private double minorLossK = 0.2; // Minor fitting loss
     private boolean mWorks = true;
+    /**
+     * Loaded from a save made before the hatch kept its enable state under its own NBT key: that state had overwritten
+     * GregTech's own (stored inverted), so GregTech loaded the hatch with its enable state flipped. The hatch reports
+     * its own state until its first tick puts GregTech's back.
+     */
+    private boolean mRestoreBaseWorks = false;
 
     protected IGregTechTileEntity mOppositeHatch = null;
     protected ICoolantLoopPump mConnectedPump = null;
@@ -289,7 +295,7 @@ public class MTEHatchPressurizedFluid extends MTEHatch implements ICoolantLoopDe
 
     public boolean isAllowedToWork() {
         IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base != null) {
+        if (base != null && !mRestoreBaseWorks) {
             return base.isAllowedToWork();
         }
         return mWorks;
@@ -326,7 +332,8 @@ public class MTEHatchPressurizedFluid extends MTEHatch implements ICoolantLoopDe
         super.saveNBTData(aNBT);
         aNBT.setInteger("mode", mode.ordinal());
         aNBT.setDouble("temp", currentTemperatureCelsius);
-        aNBT.setBoolean("mWorks", mWorks);
+        // GregTech saves its own enable state as "mWorks" in the same compound
+        aNBT.setBoolean("mHatchWorks", mWorks);
     }
 
     @Override
@@ -341,8 +348,21 @@ public class MTEHatchPressurizedFluid extends MTEHatch implements ICoolantLoopDe
         if (aNBT.hasKey("temp")) {
             this.currentTemperatureCelsius = aNBT.getDouble("temp");
         }
-        if (aNBT.hasKey("mWorks")) {
+        if (aNBT.hasKey("mHatchWorks")) {
+            this.mWorks = aNBT.getBoolean("mHatchWorks");
+        } else if (aNBT.hasKey("mWorks")) {
             this.mWorks = aNBT.getBoolean("mWorks");
+            mRestoreBaseWorks = true;
+        }
+    }
+
+    @Override
+    public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
+        super.onFirstTick(aBaseMetaTileEntity);
+        if (mRestoreBaseWorks) {
+            mRestoreBaseWorks = false;
+            if (mWorks) aBaseMetaTileEntity.enableWorking();
+            else aBaseMetaTileEntity.disableWorking();
         }
     }
 

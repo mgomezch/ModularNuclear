@@ -160,11 +160,22 @@ public class CoolantLoopFlowStopTest {
         NBTTagCompound nbt = new NBTTagCompound();
         dischargeHatch.disableWorking();
         dischargeHatch.saveNBTData(nbt);
-        assertFalse(nbt.getBoolean("mWorks"));
+        assertTrue(nbt.hasKey("mHatchWorks"));
+        assertFalse(nbt.getBoolean("mHatchWorks"));
+        assertFalse(
+            nbt.hasKey("mWorks"),
+            "GregTech saves its own enable state as mWorks; the hatch must not overwrite it");
 
         MTEHatchPressurizedFluid loaded = new MTEHatchPressurizedFluid("loaded", 1, new String[0], null);
         loaded.loadNBTData(nbt);
         assertFalse(loaded.isAllowedToWork());
+
+        // A save from before the hatch had its own key: its "mWorks" is the hatch's state
+        NBTTagCompound legacy = new NBTTagCompound();
+        legacy.setBoolean("mWorks", true);
+        MTEHatchPressurizedFluid legacyHatch = new MTEHatchPressurizedFluid("legacy", 1, new String[0], null);
+        legacyHatch.loadNBTData(legacy);
+        assertTrue(legacyHatch.isAllowedToWork(), "an enabled hatch from an old save loads enabled");
     }
 
     @Test
