@@ -8,6 +8,9 @@ physics:
   grid_conduction_multiplier: 26.9597
   fuel_burnup_multiplier: 0.0372738
   neutron_yield_multiplier: 26.8285
+  # Share of fission_heat_per_neutron that a fuel's spontaneous emission deposits as prompt heat; its chain-reaction
+  # emission deposits all of it. Lower values make the chain reaction, which control rods can stop, carry the heat.
+  spontaneous_heat_fraction: 1.0
   # Convective heat transfer of an MV (tier 2) high-pressure passage into its loop coolant, times
   # coolant_passage_heat_transfer_tier_ratio per voltage tier above. A passage's tier is its pipe material's (cast iron
   # LV, steel MV, stainless steel HV, titanium EV, tungstensteel IV, osmium LuV, neutronium ZPM). With 75 L/s of water

@@ -309,6 +309,7 @@ public class NuclearReactorPhysics {
                 baseFastFissMult,
                 dt);
             int produced = TileProperties.fuelNeutrons(baseNeutrons, bus.mChainRate, efficiency, dt);
+            tile.promptHeatWeight = TileProperties.promptHeatWeight(baseNeutrons, bus.mChainRate);
             bus.mLastNeutronsGenerated = produced;
             return produced;
         } else if (tile.isHatch()) {
@@ -340,6 +341,7 @@ public class NuclearReactorPhysics {
                 baseFastFissMult,
                 dt);
             int produced = TileProperties.fuelNeutrons(baseNeutrons, hatch.mChainRate, efficiency, dt);
+            tile.promptHeatWeight = TileProperties.promptHeatWeight(baseNeutrons, hatch.mChainRate);
             hatch.mLastNeutronsGenerated = produced;
             return produced;
         }

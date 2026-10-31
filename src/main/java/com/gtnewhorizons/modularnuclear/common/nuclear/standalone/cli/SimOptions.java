@@ -152,6 +152,11 @@ public final class SimOptions {
             "passage_htc_tier_ratio");
         engine(
             t,
+            v -> NuclearSimulationEngine.params().spontaneousHeatFraction = Math.max(0.0, Math.min(1.0, v)),
+            "spontaneous_heat",
+            "spontaneous_heat_fraction");
+        engine(
+            t,
             v -> CoolantLoopConfigData.getPhysicsData()
                 .setPumpMechanicalPowerPerEU(v),
             "pump_w_per_eu");

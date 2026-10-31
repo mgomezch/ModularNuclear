@@ -165,6 +165,7 @@ public final class JsonReport {
             .field("reactivityPower", NuclearSimulationEngine.params().reactivityPower)
             .field("thermalFissionMultiplier", NuclearSimulationEngine.params().thermalFissionMultiplier)
             .field("fissionHeatPerNeutron", NuclearSimulationEngine.params().fissionHeatPerNeutron)
+            .field("spontaneousHeatFraction", NuclearSimulationEngine.params().spontaneousHeatFraction)
             .field("hatchCoolantCapacity", NuclearSimulationEngine.params().hatchCoolantCapacity)
             .field("turnoverCurve", NuclearSimulationEngine.params().turnoverCurve.name())
             .field("turnoverDeltaTMax", NuclearSimulationEngine.params().turnoverDeltaTMax)

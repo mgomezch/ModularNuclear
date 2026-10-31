@@ -635,6 +635,8 @@ public class NuclearSimWasmBridge {
             NuclearSimulationEngine.params().thermalAbsorptionDamageMultiplier = d;
         } else if ("fissionHeatPerNeutron".equals(key) || "fissionHeat".equals(key)) {
             NuclearSimulationEngine.params().fissionHeatPerNeutron = d;
+        } else if ("spontaneousHeatFraction".equals(key) || "spontaneousHeat".equals(key)) {
+            NuclearSimulationEngine.params().spontaneousHeatFraction = Math.max(0.0, Math.min(1.0, d));
         } else if ("hpWaterBoilingPoint".equals(key) || "hpBoil".equals(key)) {
             NuclearSimulationEngine.params().hpWaterBoilingPoint = d;
         } else if ("gridConductionMultiplier".equals(key) || "gridConductionMult".equals(key)) {

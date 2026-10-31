@@ -149,6 +149,7 @@ public final class ReactorConfigData {
         NuclearSimulationEngine.setGridConductionMultiplier(physicsData.gridConductionMultiplier);
         NuclearSimulationEngine.setFuelBurnupMultiplier(physicsData.fuelBurnupMultiplier);
         NuclearSimulationEngine.params().neutronYieldMultiplier = Math.max(0.0, physicsData.neutronYieldMultiplier);
+        NuclearSimulationEngine.params().spontaneousHeatFraction = physicsData.spontaneousHeatFraction;
         NuclearSimulationEngine.params().coolantPassageHeatTransferMultiplier = Math
             .max(0.0, physicsData.coolantPassageHeatTransferMultiplier);
         NuclearSimulationEngine.params().coolantPassageHeatTransferTierRatio = physicsData.coolantPassageHeatTransferTierRatio;

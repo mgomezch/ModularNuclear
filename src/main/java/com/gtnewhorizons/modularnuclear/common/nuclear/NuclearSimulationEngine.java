@@ -84,6 +84,12 @@ public class NuclearSimulationEngine {
      */
     public static final double DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT = 0.11;
     public static final double DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_TIER_RATIO = 2.65;
+    /**
+     * Share of the fission heat per neutron that a fuel's spontaneous emission deposits as prompt heat; its chain
+     * emission always deposits the full amount. Below 1, more of a core's heat comes from the chain reaction, which
+     * control rods can stop.
+     */
+    public static final double DEFAULT_SPONTANEOUS_HEAT_FRACTION = 1.0;
 
     // Fuel Archetype / Class Multipliers (Global Calibration Parameters)
     public static final double DEFAULT_DENSE_NBASE_MULT = 0.50;
@@ -239,6 +245,7 @@ public class NuclearSimulationEngine {
         params().neutronYieldMultiplier = DEFAULT_NEUTRON_YIELD_MULT;
         params().coolantPassageHeatTransferMultiplier = DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT;
         params().coolantPassageHeatTransferTierRatio = DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_TIER_RATIO;
+        params().spontaneousHeatFraction = DEFAULT_SPONTANEOUS_HEAT_FRACTION;
         params().denseNbaseMultiplier = DEFAULT_DENSE_NBASE_MULT;
         params().denseFissionMultiplier = DEFAULT_DENSE_FISSION_MULT;
         params().excitedNbaseMultiplier = DEFAULT_EXCITED_NBASE_MULT;
@@ -683,7 +690,7 @@ public class NuclearSimulationEngine {
                             emittedNeutrons[x][y] = produced;
                             result.totalNeutronsGenerated += produced;
                             // Prompt fission heat queued for atomic deposit in Pass 3
-                            pendingHeat[x][y] += produced * p.fissionHeatPerNeutron;
+                            pendingHeat[x][y] += produced * p.fissionHeatPerNeutron * tile.getPromptHeatWeight();
                         }
                     } else if (tile.isNeutronSource()) {
                         efficiency[x][y] = Math.max(0.0, Math.min(1.0, maintenanceEfficiency));

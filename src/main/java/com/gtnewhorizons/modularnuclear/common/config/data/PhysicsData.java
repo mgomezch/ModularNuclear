@@ -17,6 +17,7 @@ public class PhysicsData {
     public double fuelBurnupMultiplier = NuclearSimulationEngine.DEFAULT_FUEL_BURNUP_MULTIPLIER;
     /** Scales every fuel's base neutron emission, on top of its archetype's multiplier. */
     public double neutronYieldMultiplier = NuclearSimulationEngine.DEFAULT_NEUTRON_YIELD_MULT;
+    public double spontaneousHeatFraction = NuclearSimulationEngine.DEFAULT_SPONTANEOUS_HEAT_FRACTION;
     public double coolantPassageHeatTransferMultiplier = NuclearSimulationEngine.DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT;
     public double boundaryHeatLoss = 0.02;
     public double radiationDecayFactor = 0.95;
@@ -103,6 +104,8 @@ public class PhysicsData {
         d.gridConductionMultiplier = getDouble(map, "grid_conduction_multiplier", d.gridConductionMultiplier);
         d.fuelBurnupMultiplier = getDouble(map, "fuel_burnup_multiplier", d.fuelBurnupMultiplier);
         d.neutronYieldMultiplier = Math.max(0.0, getDouble(map, "neutron_yield_multiplier", d.neutronYieldMultiplier));
+        d.spontaneousHeatFraction = Math
+            .max(0.0, Math.min(1.0, getDouble(map, "spontaneous_heat_fraction", d.spontaneousHeatFraction)));
         d.coolantPassageHeatTransferMultiplier = getDouble(
             map,
             "coolant_passage_heat_transfer_multiplier",
@@ -171,6 +174,7 @@ public class PhysicsData {
         m.put("grid_conduction_multiplier", gridConductionMultiplier);
         m.put("fuel_burnup_multiplier", fuelBurnupMultiplier);
         m.put("neutron_yield_multiplier", neutronYieldMultiplier);
+        m.put("spontaneous_heat_fraction", spontaneousHeatFraction);
         m.put("coolant_passage_heat_transfer_multiplier", coolantPassageHeatTransferMultiplier);
         m.put("base_hatch_conductance", baseHatchConductance);
         m.put("hatch_conductance_tier_ratio", hatchConductanceTierRatio);

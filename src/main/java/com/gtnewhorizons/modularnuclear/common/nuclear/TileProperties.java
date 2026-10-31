@@ -263,6 +263,17 @@ public final class TileProperties {
         return TileTick.stochasticRound((baseNeutronsPerSecond + Math.max(0.0, chainRate)) * dt * efficiency);
     }
 
+    /**
+     * Share of the full fission heat per neutron that a fuel's emission deposits as prompt heat: its chain emission
+     * deposits all of it, its spontaneous emission the spontaneous_heat_fraction.
+     */
+    public static double promptHeatWeight(int baseNeutronsPerSecond, double chainRate) {
+        double chain = Math.max(0.0, chainRate);
+        double total = baseNeutronsPerSecond + chain;
+        if (total <= 0.0) return 1.0;
+        return (baseNeutronsPerSecond * NuclearSimulationEngine.params().spontaneousHeatFraction + chain) / total;
+    }
+
     /** Base neutrons per second after the archetype multiplier. */
     public static int effectiveBaseNeutrons(FuelData fd) {
         double mult = NuclearSimulationEngine.getArchetypeNbaseMultiplier(fd.archetype);

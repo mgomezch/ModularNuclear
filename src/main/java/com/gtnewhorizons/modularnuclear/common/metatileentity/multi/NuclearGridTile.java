@@ -286,6 +286,14 @@ public class NuclearGridTile implements INuclearTile {
         return (reactor != null) ? reactor.generateTileNeutrons(this, efficiency) : 0;
     }
 
+    /** Set by NuclearReactorPhysics.generateTileNeutrons for the cycle's emission. */
+    double promptHeatWeight = 1.0;
+
+    @Override
+    public double getPromptHeatWeight() {
+        return promptHeatWeight;
+    }
+
     @Override
     public int getNeutronEmissionCount() {
         return neutronEmissionCount;

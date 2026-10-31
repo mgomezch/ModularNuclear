@@ -34,6 +34,8 @@ public final class EngineParameters {
     public double coolantPassageHeatTransferMultiplier = NuclearSimulationEngine.DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT;
     /** Factor on passage heat transfer per voltage tier above MV. */
     public double coolantPassageHeatTransferTierRatio = NuclearSimulationEngine.DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_TIER_RATIO;
+    /** Share of the fission heat per neutron a fuel's spontaneous emission deposits (its chain emission: all). */
+    public double spontaneousHeatFraction = NuclearSimulationEngine.DEFAULT_SPONTANEOUS_HEAT_FRACTION;
     public double denseNbaseMultiplier = NuclearSimulationEngine.DEFAULT_DENSE_NBASE_MULT;
     public double denseFissionMultiplier = NuclearSimulationEngine.DEFAULT_DENSE_FISSION_MULT;
     public double excitedNbaseMultiplier = NuclearSimulationEngine.DEFAULT_EXCITED_NBASE_MULT;
@@ -93,6 +95,7 @@ public final class EngineParameters {
         c.neutronYieldMultiplier = neutronYieldMultiplier;
         c.coolantPassageHeatTransferMultiplier = coolantPassageHeatTransferMultiplier;
         c.coolantPassageHeatTransferTierRatio = coolantPassageHeatTransferTierRatio;
+        c.spontaneousHeatFraction = spontaneousHeatFraction;
         c.denseNbaseMultiplier = denseNbaseMultiplier;
         c.denseFissionMultiplier = denseFissionMultiplier;
         c.excitedNbaseMultiplier = excitedNbaseMultiplier;

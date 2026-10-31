@@ -330,6 +330,7 @@ public class SimTile implements INuclearTile {
     private double radiovoltaicRate = 0.0;
     private double pendingCoolantHeat = 0.0;
     private double chainRate = 0.0;
+    private double promptHeatWeight = 1.0;
     private double totalDurabilityLoss = 0.0;
     private long wearCycles = 0;
 
@@ -735,9 +736,16 @@ public class SimTile implements INuclearTile {
             TileProperties.effectiveThermalFissionMultiplier(fd),
             TileProperties.effectiveFastFissionMultiplier(fd),
             dt);
-        int produced = TileProperties.fuelNeutrons(TileProperties.effectiveBaseNeutrons(fd), chainRate, efficiency, dt);
+        int base = TileProperties.effectiveBaseNeutrons(fd);
+        int produced = TileProperties.fuelNeutrons(base, chainRate, efficiency, dt);
+        promptHeatWeight = TileProperties.promptHeatWeight(base, chainRate);
         lastNeutronsGenerated = produced;
         return produced;
+    }
+
+    @Override
+    public double getPromptHeatWeight() {
+        return promptHeatWeight;
     }
 
     @Override

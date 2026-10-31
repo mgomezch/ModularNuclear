@@ -51,6 +51,14 @@ public interface INuclearTile {
     int generateNeutrons(double efficiency);
 
     /**
+     * Share of the full fission heat per neutron that this cycle's emission deposits as prompt heat (see
+     * {@link TileProperties#promptHeatWeight}); 1 for tiles that track no chain reaction.
+     */
+    default double getPromptHeatWeight() {
+        return 1.0;
+    }
+
+    /**
      * Probability [0.0, 1.0] of absorbing a neutron of the given type.
      */
     double getAbsorptionProbability(NeutronType type);
