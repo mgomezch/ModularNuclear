@@ -369,12 +369,9 @@ async function handleCellClick(x, y, e) {
   }
   const tile = currentState && currentState.tiles.find(t => t.x === x && t.y === y);
   if (!tile) return;
-  if (tile.code === "NL") {
+  if (tile.code === "NL" || interactionMode === "INSPECT" || (e && e.shiftKey)) {
     selectCell(x, y);
-    return;
-  }
-  if (interactionMode === "INSPECT" || (e && e.shiftKey)) {
-    selectCell(x, y);
+    if (typeof dockReveal === "function") dockReveal("inspect");
   } else {
     const palItem = PALETTE.find(p => p.type === activePaletteType);
     if (palItem && palItem.isControlRod) {

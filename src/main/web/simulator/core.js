@@ -500,6 +500,7 @@ function removeCoolantCircuit() {
 
 function toggleLoopAttachMode() {
   isLoopAttachMode = !isLoopAttachMode;
+  if (isLoopAttachMode && typeof dockReveal === "function") dockReveal("loop");
   const btn = document.getElementById("btn-loop-attach-mode");
   if (btn) {
     btn.innerText = isLoopAttachMode ? "🛑 Exit Attach Mode" : "🔗 Attach Points Mode";
@@ -577,6 +578,7 @@ function setInteractionMode(mode) {
     badge.style.color = "var(--accent)";
     document.querySelectorAll(".palette-btn").forEach(b => b.classList.remove("active"));
   } else {
+    if (typeof dockReveal === "function") dockReveal("build");
     btnInspect.className = "";
     btnPaint.className = "primary";
     badge.innerText = "PAINT MODE";
