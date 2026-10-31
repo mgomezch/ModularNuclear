@@ -1,6 +1,7 @@
 let currentZoom = 1.0;
 let isFitMode = false;
 let lastGridWidth = 0;
+let hoveredCell = null;
 
 const ZOOM_LEVELS = [0.35, 0.45, 0.55, 0.70, 0.85, 1.0, 1.15, 1.30, 1.50];
 
@@ -80,6 +81,13 @@ function applyZoom(scale) {
     temps[i].style.display = hideTemp ? "none" : "";
   }
 }
+// Remembers the last background written, since the browser reports colors back normalized and never equal to ours.
+function setOverlay(el, bg) {
+  if (!el || el.__bg === bg) return;
+  el.__bg = bg;
+  el.style.background = bg;
+}
+
 function updateGridDOM() {
   const gridElem = document.getElementById("reactor-grid");
   const width = currentState.width;
@@ -88,7 +96,7 @@ function updateGridDOM() {
 
   const dimLabel = document.getElementById("grid-dim-label");
   if (dimLabel) {
-    dimLabel.textContent = `Chamber Grid (${width}×${height})`;
+    setText(dimLabel, `Chamber Grid (${width}×${height})`);
   }
 
   if (lastGridWidth !== width) {
@@ -117,7 +125,7 @@ function updateGridDOM() {
           <span class="cell-code" style="display:none;"></span>
           <div class="cell-overlay"></div>
           <span class="cell-metric"${hideTemp ? ' style="display:none;"' : ''}></span>
-          <div class="cell-durability" style="display:none;"><div class="cell-durability-fill"></div></div>
+          <div class="cell-durability" style="visibility:hidden;"><div class="cell-durability-fill"></div></div>
           <span class="loop-badge">⟳</span>
           <span class="rod-badge">🕹️</span>
         `;
@@ -135,6 +143,8 @@ function updateGridDOM() {
           triggerAction(e);
         });
         cell.addEventListener("pointerenter", (e) => {
+          hoveredCell = cell;
+          if (cell.__tip && cell.title !== cell.__tip) cell.title = cell.__tip;
           if (interactionMode === "PAINT" && e.buttons === 1) {
             triggerAction(e);
           }
@@ -150,8 +160,8 @@ function updateGridDOM() {
   currentState.tiles.forEach((t, i) => {
     const cell = gridElem.children[i];
     if (!cell) return;
-    cell.dataset.x = t.x;
-    cell.dataset.y = t.y;
+    if (cell.dataset.x !== String(t.x)) cell.dataset.x = t.x;
+    if (cell.dataset.y !== String(t.y)) cell.dataset.y = t.y;
 
     const isSelected = selectedTilePos && selectedTilePos.x === t.x && selectedTilePos.y === t.y;
     const imgEl = cell.children[0];
@@ -162,12 +172,12 @@ function updateGridDOM() {
     const durFillEl = durEl ? durEl.children[0] : null;
 
     if (t.code === "NL") {
-      cell.className = "cell wall-cell" + (isSelected ? " selected" : "");
+      setClass(cell, "cell wall-cell" + (isSelected ? " selected" : ""));
       if (imgEl) imgEl.style.display = "none";
       if (codeEl) codeEl.style.display = "none";
-      if (overlayEl) overlayEl.style.backgroundColor = "transparent";
-      if (metricEl) metricEl.style.display = "none";
-      if (durEl) durEl.style.display = "none";
+      setOverlay(overlayEl, "transparent");
+      if (metricEl && metricEl.style.display !== "none") metricEl.style.display = "none";
+      setShown(durEl, false);
     } else {
       const isAttached = (currentState.coolantLoop && currentState.coolantLoop.attachedPoints && currentState.coolantLoop.attachedPoints.includes(t.x + "," + t.y)) || t.type === "PASSAGE_CORE";
       let rodClass = "";
@@ -179,7 +189,9 @@ function updateGridDOM() {
       } else if (gridDisplayMode === "CONTROL_RODS") {
         rodClass = " rod-mode-dimmed";
       }
-      const desiredClass = "cell" + (isSelected ? " selected" : "") + (isAttached ? " loop-attached" : "") + rodClass;
+      // Overheating cells blink through a CSS animation, so the blink needs no redraws.
+      const isOverheat = gridDisplayMode !== "COMPONENTS" && gridDisplayMode !== "CONTROL_RODS" && t.temp > (currentState.maxSafeTemp || 3250) * 0.85;
+      const desiredClass = "cell" + (isSelected ? " selected" : "") + (isAttached ? " loop-attached" : "") + rodClass + (isOverheat ? " overheat" : "");
       if (cell.className !== desiredClass) {
         cell.className = desiredClass;
       }
@@ -249,23 +261,19 @@ function updateGridDOM() {
         tipText = `Temperature: ${t.temp.toFixed(1)}°C (max safe: ${currentState.maxSafeTemp}°C)`;
       }
 
-      if (gridDisplayMode !== "COMPONENTS" && gridDisplayMode !== "CONTROL_RODS" && t.temp > (currentState.maxSafeTemp || 3250) * 0.85) {
-        if (Math.floor(Date.now() / 400) % 2 === 0) {
-          overlayBg = "rgba(255, 0, 0, 0.45)";
-        }
-      }
-
-      if (overlayEl && overlayEl.style.backgroundColor !== overlayBg) {
-        overlayEl.style.backgroundColor = overlayBg;
-      }
+      setOverlay(overlayEl, overlayBg);
 
       if (t.type && t.type !== "EMPTY") {
-        const iconSrc = getIconUrl(t.type);
-        if (imgEl.getAttribute("src") !== iconSrc) {
-          imgEl.src = iconSrc;
+        // Keyed on the tile type, not the src, which the fallback below rewrites.
+        if (imgEl.__type !== t.type) {
+          imgEl.__type = t.type;
+          imgEl.__failed = false;
+          imgEl.src = getIconUrl(t.type);
           imgEl.onerror = () => {
             imgEl.src = '/api/icon/' + t.type;
             imgEl.onerror = () => {
+              // No icon anywhere: the cell shows the tile code instead, on this and later frames.
+              imgEl.__failed = true;
               imgEl.style.display = "none";
               if (codeEl) {
                 codeEl.textContent = t.code;
@@ -275,12 +283,16 @@ function updateGridDOM() {
           };
         }
         const isHeatmap = gridDisplayMode !== "COMPONENTS" && gridDisplayMode !== "CONTROL_RODS";
-        imgEl.style.filter = isHeatmap ? "grayscale(100%)" : "none";
-        if (imgEl.style.display !== "block") {
-          imgEl.style.display = "block";
+        const filter = isHeatmap ? "grayscale(100%)" : "none";
+        if (imgEl.style.filter !== filter) imgEl.style.filter = filter;
+        const imgDisp = imgEl.__failed ? "none" : "block";
+        if (imgEl.style.display !== imgDisp) {
+          imgEl.style.display = imgDisp;
         }
-        if (codeEl.style.display !== "none") {
-          codeEl.style.display = "none";
+        if (imgEl.__failed) setText(codeEl, t.code);
+        const codeDisp = imgEl.__failed ? "block" : "none";
+        if (codeEl.style.display !== codeDisp) {
+          codeEl.style.display = codeDisp;
         }
       } else {
         if (imgEl.style.display !== "none") {
@@ -291,27 +303,32 @@ function updateGridDOM() {
         }
       }
 
-      if (metricEl.textContent !== metricStr) {
-        metricEl.textContent = metricStr;
-      }
+      setText(metricEl, metricStr);
       if (!hideTemp && metricEl.style.display === "none") {
         metricEl.style.display = "block";
       } else if (hideTemp && metricEl.style.display !== "none") {
         metricEl.style.display = "none";
       }
 
-      cell.title = `${t.name} (${t.x}, ${t.y})
+      // Tooltips are only written to the cell under the pointer; the others keep theirs until hovered.
+      cell.__tip = `${t.name} (${t.x}, ${t.y})
 ${tipText}`;
+      if (cell === hoveredCell && cell.title !== cell.__tip) cell.title = cell.__tip;
 
       if (t.isFuel && t.durabilityPct < 99.9) {
         if (durEl) {
-          durEl.style.display = "block";
+          setShown(durEl, true);
           const pct = Math.max(0, Math.min(100, t.durabilityPct));
-          durFillEl.style.width = pct + "%";
-          durFillEl.style.backgroundColor = pct > 50 ? "#22c55e" : (pct > 20 ? "#eab308" : "#ef4444");
+          const w = pct + "%";
+          if (durFillEl.style.width !== w) durFillEl.style.width = w;
+          const col = pct > 50 ? "#22c55e" : (pct > 20 ? "#eab308" : "#ef4444");
+          if (durFillEl.__color !== col) {
+            durFillEl.__color = col;
+            durFillEl.style.backgroundColor = col;
+          }
         }
-      } else if (durEl) {
-        durEl.style.display = "none";
+      } else {
+        setShown(durEl, false);
       }
     }
   });
