@@ -2,7 +2,7 @@ function renderUI() {
   if (!currentState) return;
 
   // Header badges
-  setText("casing-badge", currentState.pipeTierName + " (Max " + currentState.maxSafeTemp + "°C)");
+  setText("casing-badge", currentState.pipeTierName + " · max " + currentState.maxSafeTemp + "°C");
   const statusBadge = document.getElementById("status-badge");
   const playBtn = document.getElementById("btn-play");
   const alertBox = document.getElementById("alert-box");
@@ -23,13 +23,13 @@ function renderUI() {
 
   if (dmgBadge) {
     setShown(dmgBadge, currentDmg > 0.001);
-    setText(dmgBadge, "Damage: " + currentDmg.toFixed(1) + "%");
+    setText(dmgBadge, "Damage " + currentDmg.toFixed(1) + "%");
   }
   if (maintBadge) {
     const effPct = (currentState.maintenanceEfficiency != null ? (currentState.maintenanceEfficiency * 100).toFixed(0) : "100");
     const issues = currentState.maintenanceIssues || 0;
-    setText(maintBadge, `Maint: ${effPct}% (${issues} issues)`);
-    maintBadge.style.color = (issues === 0 && currentDmg < 0.001) ? "var(--success)" : "var(--warning)";
+    setText(maintBadge, `Maint ${effPct}% · ${issues} issue${issues === 1 ? "" : "s"}`);
+    setClass(maintBadge, "st-item st-maint " + ((issues === 0 && currentDmg < 0.001) ? "tone-ok" : "tone-warn"));
   }
   if (repairBtn) {
     const hasDmg = currentDmg > 0.001 || (currentState.maintenanceIssues && currentState.maintenanceIssues > 0);
@@ -94,38 +94,40 @@ function renderUI() {
   const rodsAbsVal = document.getElementById("rods-total-abs-val");
   if (rodsAbsVal) setText(rodsAbsVal, `${totalRodAbsorbed.toLocaleString()} n/s`);
 
+  // Run state: status label, play button and the one-line alert (its full text is in the tooltip).
+  let stateText, stateTone, alertCls, alertHtml;
   if (currentState.exploded) {
     if (isWasmMode && wasmSim && wasmSim.running) {
       wasmSim.setRunning(false);
     }
-    setText(statusBadge, "MELTDOWN / EXPLODED - STOPPED");
-    statusBadge.style.color = "var(--danger)";
-    setText(playBtn, "▶ Start Simulation");
+    stateText = "MELTDOWN · STOPPED";
+    stateTone = "alarm";
+    setText(playBtn, "▶ Run");
     playBtn.disabled = true;
-    setClass(alertBox, "alert-danger flash");
-    patchHTML(alertBox, `<strong>💥 MELTDOWN / CATASTROPHIC FAILURE:</strong> ${currentState.explosionReason} <span style="display:block; margin-top:4px; font-size:0.8rem; font-weight:normal;">Simulation automatically halted due to core destruction. Click ↺ Reset to restart.</span>`);
+    alertCls = "alert-danger flash";
+    alertHtml = `<strong>💥 MELTDOWN / CATASTROPHIC FAILURE:</strong> ${currentState.explosionReason} <span class="alert-more">Simulation automatically halted due to core destruction. Click ↺ Reset to restart.</span>`;
   } else if (currentState.structureErrors && currentState.structureErrors.length > 0) {
     if (isWasmMode && wasmSim && wasmSim.running) {
       wasmSim.setRunning(false);
     }
-    setText(statusBadge, "STRUCTURE INVALID - NOT FORMED");
-    statusBadge.style.color = "var(--danger)";
+    stateText = "STRUCTURE INVALID";
+    stateTone = "alarm";
     playBtn.disabled = true;
-    setText(playBtn, "▶ Start Simulation");
-    setClass(alertBox, "alert-danger");
+    setText(playBtn, "▶ Run");
+    alertCls = "alert-danger";
     const items = currentState.structureErrors.map(e => `<li>${e}</li>`).join("");
-    patchHTML(alertBox, `<strong>🚧 THE GAME WOULD NOT FORM THIS REACTOR:</strong><ul style="margin:4px 0 0 18px; font-weight:normal;">${items}</ul>`);
+    alertHtml = `<strong>🚧 THE GAME WOULD NOT FORM THIS REACTOR:</strong><ul>${items}</ul>`;
   } else if (currentState.haltedByIncident) {
     if (isWasmMode && wasmSim && wasmSim.running) {
       wasmSim.setRunning(false);
     }
-    setText(statusBadge, "INCIDENT PAUSE");
-    statusBadge.style.color = "var(--warning)";
+    stateText = "INCIDENT PAUSE";
+    stateTone = "warn";
     playBtn.disabled = false;
-    setText(playBtn, "▶ Resume Simulation");
-    setClass(alertBox, "alert-warning flash");
+    setText(playBtn, "▶ Resume");
+    alertCls = "alert-warning flash";
     const reason = currentState.lastHaltIncidentReason || "Bad reactor condition detected";
-    patchHTML(alertBox, `<strong>🛑 SIMULATION PAUSED ON PENDING INCIDENT:</strong> ${reason} <span style="display:block; margin-top:4px; font-size:0.8rem; font-weight:normal;">Halted by "Stop on Incidents" option. Click <strong>▶ Resume Simulation</strong> to continue, <strong>Step +1</strong> to advance tick-by-tick, or use the <strong>Damage Slider / 🔧 Repair</strong> to restore the core.</span>`);
+    alertHtml = `<strong>🛑 PAUSED ON INCIDENT:</strong> ${reason} <span class="alert-more">Halted by "Stop on incidents" (Sim tab). <strong>▶ Resume</strong> to continue, <strong>+1</strong> to step, or repair the core.</span>`;
   } else if (currentState.reactorDamage && currentState.reactorDamage > 0) {
     // Active structural damage warning: flashes alert banner, but fission continues
     const latestInc = (currentState.incidentLog && currentState.incidentLog.length > 0)
@@ -134,47 +136,55 @@ function renderUI() {
     const incidentMsg = latestInc ? ` [Tick ${latestInc.tick}: ${latestInc.message}]` : "";
     const isNewAlert = (window.__lastAlertTick !== currentState.lastIncidentTick);
     window.__lastAlertTick = currentState.lastIncidentTick;
-    setClass(alertBox, "alert-warning" + (isNewAlert ? " flash" : ""));
+    alertCls = "alert-warning" + (isNewAlert ? " flash" : "");
     const effPct = (currentState.maintenanceEfficiency != null ? (currentState.maintenanceEfficiency * 100).toFixed(0) : "100");
-    patchHTML(alertBox, `<strong>⚠️ REACTOR DAMAGE DETECTED (${currentState.reactorDamage.toFixed(1)}% Structural Damage, Maint: ${effPct}%):</strong> Operating with maintenance penalties.${incidentMsg} <button type="button" onclick="quickRepair()" style="margin-left:8px; padding:2px 8px; font-size:0.75rem; background:#1e293b; border:1px solid var(--warning); color:var(--warning); cursor:pointer; border-radius:4px;">🔧 Repair Now</button>`);
-
+    alertHtml = `<strong>⚠️ REACTOR DAMAGE ${currentState.reactorDamage.toFixed(1)}% (maint ${effPct}%):</strong> Operating with maintenance penalties.${incidentMsg}`;
     playBtn.disabled = false;
+    stateTone = "warn";
     if (currentState.isRunning) {
-      setText(statusBadge, `DAMAGED (${currentState.reactorDamage.toFixed(1)}%) - RUNNING`);
-      statusBadge.style.color = "var(--warning)";
-      setText(playBtn, "⏸ Pause Simulation");
+      stateText = `DAMAGED ${currentState.reactorDamage.toFixed(1)}% · RUNNING`;
+      setText(playBtn, "⏸ Pause");
     } else {
-      setText(statusBadge, `DAMAGED (${currentState.reactorDamage.toFixed(1)}%) - PAUSED`);
-      statusBadge.style.color = "var(--warning)";
-      setText(playBtn, "▶ Resume Simulation");
+      stateText = `DAMAGED ${currentState.reactorDamage.toFixed(1)}% · PAUSED`;
+      setText(playBtn, "▶ Resume");
     }
   } else {
-    setClass(alertBox, "alert-ok");
-    patchHTML(alertBox, `<strong>✅ No active alerts.</strong> The chamber is formed and undamaged.`);
+    alertCls = "alert-ok";
+    alertHtml = `<strong>✅ No active alerts.</strong> The chamber is formed and undamaged.`;
     playBtn.disabled = false;
     if (currentState.isRunning) {
-      setText(statusBadge, "SIMULATION RUNNING");
-      statusBadge.style.color = "var(--accent)";
-      setText(playBtn, "⏸ Pause Simulation");
+      stateText = "RUNNING";
+      stateTone = "run";
+      setText(playBtn, "⏸ Pause");
     } else {
-      setText(statusBadge, "SIMULATION PAUSED");
-      statusBadge.style.color = "var(--success)";
-      setText(playBtn, "▶ Resume Simulation");
+      stateText = currentState.currentTick > 0 ? "PAUSED" : "STANDBY";
+      stateTone = "ok";
+      setText(playBtn, currentState.currentTick > 0 ? "▶ Resume" : "▶ Run");
     }
   }
+  setText(statusBadge, stateText);
+  setClass(statusBadge, "st-state tone-" + stateTone);
+  setClass(playBtn, currentState.isRunning ? "primary is-running" : "primary");
+  setClass(alertBox, alertCls);
+  patchHTML(alertBox, alertHtml);
+  const alertTip = alertBox.textContent.replace(/\s+/g, " ").trim();
+  if (alertBox.title !== alertTip) alertBox.title = alertTip;
 
   // Render Incident & Event Log
   const incidentListEl = document.getElementById("incident-log-list");
   const incidentBadgeEl = document.getElementById("incident-count-badge");
   if (incidentListEl && currentState.incidentLog) {
     const count = currentState.incidentLog.length;
+    if (typeof dockUpdateLogBadge === "function") {
+      const last = count ? currentState.incidentLog[count - 1].type : "";
+      dockUpdateLogBadge(count, last === "MELTDOWN" || last === "CASING_OVERHEAT" || last === "FUEL_BURNED");
+    }
     if (incidentBadgeEl) {
       setText(incidentBadgeEl, `${count} event${count === 1 ? "" : "s"}`);
-      incidentBadgeEl.style.color = count > 0 ? "var(--warning)" : "var(--text-muted)";
-      incidentBadgeEl.style.borderColor = count > 0 ? "var(--warning)" : "var(--border-color)";
+      setClass(incidentBadgeEl, "badge " + (count > 0 ? "tone-warn" : "tone-muted"));
     }
     if (count === 0) {
-      patchHTML(incidentListEl, `<div style="font-style:italic; font-size:0.75rem; color:#64748b; padding:4px 6px;">No incidents recorded. Chamber operating nominally.</div>`);
+      patchHTML(incidentListEl, `<div class="empty-line">No incidents recorded. Chamber operating nominally.</div>`);
     } else {
       let html = "";
       for (let i = count - 1; i >= 0; i--) {
@@ -293,6 +303,8 @@ function renderUI() {
   }
 
   const cl = currentState.coolantLoop;
+  let loopText = "—";
+  let loopTone = "";
   if (cl) {
     const matSelect = document.getElementById("loop-material-select");
     if (matSelect && cl.allowedMaterials) {
@@ -398,25 +410,27 @@ function renderUI() {
     syncSel("loop-phe-hatch-tier-select", cl.pheHatchTier);
     syncSel("loop-phe-hatches-select", cl.pheHatchCount >= 2 ? 2 : 1);
 
-    // Status Badge
-    const statusBadge = document.getElementById("loop-status-badge");
-    if (statusBadge) {
-      if (cl.ruptured) {
-        setText(statusBadge, "💥 RUPTURED");
-        statusBadge.style.color = "var(--danger)";
-      } else if (cl.currentCoolantTempCelsius > cl.maxTempC) {
-        setText(statusBadge, "🔥 MELTED");
-        statusBadge.style.color = "var(--danger)";
-      } else if (cl.maxFlowLPerSec > 0 && cl.currentFlowRateLPerSec >= cl.maxFlowLPerSec * 0.999) {
-        setText(statusBadge, "⚙️ PIPE CAPACITY");
-        statusBadge.style.color = "#38bdf8";
-      } else if (cl.currentPressureBar > cl.maxPressureBar * 0.85) {
-        setText(statusBadge, "⚠️ HIGH PRESSURE");
-        statusBadge.style.color = "var(--warning)";
-      } else {
-        setText(statusBadge, "NORMAL");
-        statusBadge.style.color = "var(--success)";
-      }
+    // Loop status: shown on its card, in the status strip and as the Loop tab's dot.
+    if (cl.ruptured) {
+      loopText = "💥 RUPTURED";
+      loopTone = "alarm";
+    } else if (cl.currentCoolantTempCelsius > cl.maxTempC) {
+      loopText = "🔥 MELTED";
+      loopTone = "alarm";
+    } else if (cl.maxFlowLPerSec > 0 && cl.currentFlowRateLPerSec >= cl.maxFlowLPerSec * 0.999) {
+      loopText = "⚙️ PIPE CAPACITY";
+      loopTone = "coolant";
+    } else if (cl.currentPressureBar > cl.maxPressureBar * 0.85) {
+      loopText = "⚠️ HIGH PRESSURE";
+      loopTone = "warn";
+    } else {
+      loopText = "NORMAL";
+      loopTone = "ok";
+    }
+    const loopBadge = document.getElementById("loop-status-badge");
+    if (loopBadge) {
+      setText(loopBadge, loopText);
+      setClass(loopBadge, "badge tone-" + loopTone);
     }
 
     const flowEl = document.getElementById("loop-flow-val");
@@ -552,6 +566,65 @@ function renderUI() {
     syncParamsToUI(currentState.params);
   }
 
-  renderChart();
+  renderStatusStrip(avgRodIns, controlRodHatchesCount, loopText, loopTone);
+  renderRodsList(20 / (currentState.ticksPerCycle || 5));
+
+  renderChart(avgRodIns);
 }
+
+// Status strip, trend legend and tab badges: headline numbers in fixed-width slots.
+function renderStatusStrip(avgRodIns, hatches, loopText, loopTone) {
+  const st = currentState;
+  setText("st-tick", (st.currentTick || 0).toLocaleString());
+  const pe = st.powerEstimate;
+  const power = pe ? pe.totalPowerEUt : ((st.history && st.history.length) ? st.history[st.history.length - 1].power : 0);
+  const volts = VOLTAGE_TIERS[selectedVoltageTier] || 8192;
+  const amps = (power || 0) / volts;
+  setText("st-power", formatEuCompact(power) + " · " + (amps >= 100 ? Math.round(amps).toLocaleString() : amps.toFixed(1)) + " A");
+  setText("tr-pwr", formatEuCompact(power));
+  const limit = st.maxSafeTemp || 0;
+  const maxT = st.coreMaxTemp || 0;
+  setText("st-maxt", Math.round(maxT).toLocaleString() + (limit ? " / " + Math.round(limit).toLocaleString() : "") + " °C");
+  const ratio = limit > 0 ? maxT / limit : 0;
+  setClass(document.getElementById("st-maxt"), "st-v tone-" + (ratio >= 1 ? "alarm" : ratio >= 0.85 ? "warn" : "ok"));
+  setText("st-avgt", Math.round(st.coreAvgTemp || 0).toLocaleString() + " °C");
+  setText("tr-max", Math.round(maxT).toLocaleString() + " °C");
+  setText("tr-avg", Math.round(st.coreAvgTemp || 0).toLocaleString() + " °C");
+  setText("st-rods", hatches > 0 ? avgRodIns + "%" : "none");
+  setText("tr-rods", hatches > 0 ? avgRodIns + "%" : "—");
+  setText("st-loop", loopText);
+  setClass(document.getElementById("st-loop"), "st-v" + (loopTone ? " tone-" + loopTone : ""));
+
+  if (typeof dockSetBadge === "function") {
+    dockSetBadge("rods", hatches > 0 ? avgRodIns + "%" : "", avgRodIns >= 100 ? "alarm" : avgRodIns > 0 ? "rods" : "");
+    dockSetBadge("loop", loopTone === "alarm" || loopTone === "warn" ? "●" : "", loopTone);
+    dockSetBadge("inspect", selectedTilePos ? selectedTilePos.x + "," + selectedTilePos.y : "", "");
+  }
+}
+
+// Per-hatch rod list in the Rods tab. Its rows follow the layout (which cells have hatches), not the running values.
+function renderRodsList(cps) {
+  const el = document.getElementById("rods-hatch-list");
+  if (!el || !currentState.tiles) return;
+  const rods = currentState.tiles.filter(t => t.hasControlRod);
+  if (!rods.length) {
+    patchHTML(el, `<div class="empty-line">No control rod hatches in this layout.</div>`);
+    return;
+  }
+  patchHTML(el, rods.map(t => {
+    const ins = Math.round(t.controlRodInsertion || 0);
+    const type = t.controlRodType && t.controlRodType !== "NONE" ? (t.controlRodTypeName || t.controlRodType) : "empty";
+    const abs = Math.round(((t.controlRodFastAbsorbed || 0) + (t.controlRodThermalAbsorbed || 0)) * cps);
+    return `<div class="rod-row">` +
+      `<button type="button" class="rod-xy" onclick="selectCell(${t.x}, ${t.y}); dockReveal('inspect')" title="Inspect this hatch">${t.x},${t.y}</button>` +
+      `<span class="rod-type" title="${type}">${type}</span>` +
+      `<span class="rod-ins"><span class="rod-ins-bar" style="width:${ins}%"></span><span class="rod-ins-txt">${ins}%</span></span>` +
+      `<span class="rod-abs" title="Absorbed by this rod">${abs.toLocaleString()} n/s</span>` +
+      `<button type="button" class="btn-xs" onclick="updateTileControlRodInsertion(${t.x}, ${t.y}, 0)" title="Retract">0</button>` +
+      `<button type="button" class="btn-xs" onclick="updateTileControlRodInsertion(${t.x}, ${t.y}, 50)" title="Insert 50%">50</button>` +
+      `<button type="button" class="btn-xs btn-alarm" onclick="updateTileControlRodInsertion(${t.x}, ${t.y}, 100)" title="Insert fully">100</button>` +
+      `</div>`;
+  }).join(""));
+}
+
 
