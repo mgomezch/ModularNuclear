@@ -125,6 +125,22 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    /** Builds the grid from a simulator option line (the CLI's batch format), as a saved design ran. */
+    loadRunOptions(line, notify = true) {
+        if (!this.inst.exports.loadRunOptions) return false;
+        this.inst.exports.loadRunOptions(this.createJavaString(line));
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+        return true;
+    }
+
+    getLayoutString() {
+        if (this.inst.exports.getLayoutString) {
+            return this.readJavaString(this.inst.exports.getLayoutString());
+        }
+        const st = this.getState();
+        return st ? st.layout || "" : "";
+    }
+
     setTile(x, y, type, notify = true) {
         this.inst.exports.setTile(x, y, this.createJavaString(type));
         if (notify && this.onStateChange) this.onStateChange(this.getState());
@@ -141,6 +157,22 @@ class NuclearSimWasm {
             this.createJavaString(size),
             this.createJavaString(fitting)
         );
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    setMachineLimits(maxThermalBoilers = -1, maxLhe = -1, maxEhe = -1, maxLst = -1, maxXlst = -1, maxXlstHp = -1, maxXlstSc = -1, maxTurbines = -1, notify = true) {
+        if (this.inst.exports.setMachineLimits) {
+            this.inst.exports.setMachineLimits(maxThermalBoilers, maxLhe, maxEhe, maxLst, maxXlst, maxXlstHp, maxXlstSc, maxTurbines);
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    setTicksPerCycle(ticks, notify = true) {
+        if (this.inst.exports.setTicksPerCycle) {
+            this.inst.exports.setTicksPerCycle(ticks);
+        } else {
+            this.setParam("ticksPerCycle", ticks, false);
+        }
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
@@ -172,9 +204,9 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
-    setCoolantLoopPumpPower(powerEUt, notify = true) {
-        if (this.inst.exports.setCoolantLoopPumpPower) {
-            this.inst.exports.setCoolantLoopPumpPower(powerEUt);
+    setCoolantLoopSecondaryCoolant(secondary, notify = true) {
+        if (this.inst.exports.setCoolantLoopSecondaryCoolant) {
+            this.inst.exports.setCoolantLoopSecondaryCoolant(this.createJavaString(secondary));
         }
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
@@ -186,56 +218,84 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
-    setCoolantLoopDutyCycle(dutyPercent, notify = true) {
+    // Energy hatches on the pump: one draws the tier's voltage, two or more draw four times it.
+    setCoolantLoopPumpHatches(count, notify = true) {
+        if (this.inst.exports.setCoolantLoopPumpHatches) {
+            this.inst.exports.setCoolantLoopPumpHatches(count | 0);
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    setCoolantLoopRotor(material, size, notify = true) {
+        if (this.inst.exports.setCoolantLoopRotor) {
+            this.inst.exports.setCoolantLoopRotor(this.createJavaString(material || ""), this.createJavaString(size || ""));
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    // Selects the loop circuit (0-based) the coolant loop setters act on; its passages are CP, CP2, CP3 ...
+    selectCoolantCircuit(index, notify = true) {
+        if (this.inst.exports.selectCoolantCircuit) {
+            this.inst.exports.selectCoolantCircuit(index | 0);
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    removeCoolantCircuit(notify = true) {
+        if (this.inst.exports.removeCoolantCircuit) {
+            this.inst.exports.removeCoolantCircuit();
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    // Pump control on the selected circuit: duty cycle (%), flow cap (L/s) and pressure cap (bar); 0 caps are off.
+    setCoolantLoopControl(dutyPercent, maxFlow, maxPressure, notify = true) {
         if (this.inst.exports.setCoolantLoopDutyCycle) {
             this.inst.exports.setCoolantLoopDutyCycle(dutyPercent);
+            this.inst.exports.setCoolantLoopMaxFlow(maxFlow || 0);
+            this.inst.exports.setCoolantLoopMaxPressure(maxPressure || 0);
         }
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
-    setCoolantLoopMaxFlow(maxFlow, notify = true) {
-        if (this.inst.exports.setCoolantLoopMaxFlow) {
-            this.inst.exports.setCoolantLoopMaxFlow(maxFlow);
+    // Temperature band on the selected circuit: the pump runs above max and stops below min.
+    setCoolantLoopTempBand(enabled, minC, maxC, sensor, notify = true) {
+        if (this.inst.exports.setCoolantLoopTempBand) {
+            this.inst.exports.setCoolantLoopTempBand(enabled ? 1 : 0, minC || 0, maxC || 0, this.createJavaString(sensor || "PASSAGE"));
         }
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
-    setCoolantLoopMaxPressure(maxPressure, notify = true) {
-        if (this.inst.exports.setCoolantLoopMaxPressure) {
-            this.inst.exports.setCoolantLoopMaxPressure(maxPressure);
+    // PHE temperature band on the selected circuit: the PHEs run above max and stop below min while the pump keeps
+    // running, so the loop holds the core hot and takes only the heat above the band.
+    setCoolantLoopPheTempBand(enabled, minC, maxC, sensor, notify = true) {
+        if (this.inst.exports.setCoolantLoopPheTempBand) {
+            this.inst.exports.setCoolantLoopPheTempBand(enabled ? 1 : 0, minC || 0, maxC || 0, this.createJavaString(sensor || "HOT_LEG"));
         }
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
-    setCoolantLoopControl(hatchTier, dutyPercent, maxFlow, maxPressure, notify = true) {
-        if (this.inst.exports.setCoolantLoopControl) {
-            this.inst.exports.setCoolantLoopControl(
-                this.createJavaString(hatchTier),
-                dutyPercent,
-                maxFlow,
-                maxPressure
-            );
+    // PHE design on the selected circuit: sheetmetal tier (0 copper ... 7 neutronium), height (3-9, odd) and overall
+    // length (5-11).
+    setCoolantLoopPheDesign(sheetmetalTier, height, length, notify = true) {
+        if (this.inst.exports.setCoolantLoopPheDesign) {
+            this.inst.exports.setCoolantLoopPheDesign(sheetmetalTier | 0, height | 0, length | 0);
         }
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
-    setCoolantLoopOverclocked(isOverclocked, notify = true) {
-        if (this.inst.exports.setCoolantLoopOverclocked) {
-            this.inst.exports.setCoolantLoopOverclocked(isOverclocked ? 1 : 0);
+    // Independent loops, each with its own pump and PHEs, that the passages are split among.
+    setCoolantLoopCount(count, notify = true) {
+        if (this.inst.exports.setCoolantLoopCount) {
+            this.inst.exports.setCoolantLoopCount(count | 0);
         }
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
-    setCoolantLoopImpeller(material, notify = true) {
-        if (this.inst.exports.setCoolantLoopImpeller) {
-            this.inst.exports.setCoolantLoopImpeller(this.createJavaString(material));
-        }
-        if (notify && this.onStateChange) this.onStateChange(this.getState());
-    }
-
-    setCoolantLoopFlowRate(flowRateLPerSec, notify = true) {
-        if (this.inst.exports.setCoolantLoopFlowRate) {
-            this.inst.exports.setCoolantLoopFlowRate(flowRateLPerSec);
+    // Heat exchangers in parallel on the loop, and the tier and number of energy hatches on each.
+    setCoolantLoopPhe(count, hatchTier, hatchCount, notify = true) {
+        if (this.inst.exports.setCoolantLoopPhe) {
+            this.inst.exports.setCoolantLoopPhe(count | 0, this.createJavaString(hatchTier || ""), hatchCount | 0);
         }
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
