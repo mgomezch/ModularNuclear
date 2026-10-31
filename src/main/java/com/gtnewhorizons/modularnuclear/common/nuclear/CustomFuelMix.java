@@ -9,6 +9,8 @@ import java.util.Map;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
+import com.gtnewhorizons.modularnuclear.common.util.CustomFuelMixCache;
+
 import gregtech.api.enums.Materials;
 
 /**
@@ -24,6 +26,9 @@ import gregtech.api.enums.Materials;
  * Physical properties (peak reactivity temperature, floor temperature, thermal/fast fission multipliers,
  * base neutron yield, durability, and exponential damage coefficients) are calculated dynamically
  * from this composition.
+ * <p>
+ * Immutable. Rods' mixes come from {@link #fromStack}, which hands out one shared instance per composition
+ * ({@link CustomFuelMixCache}).
  */
 public class CustomFuelMix {
 
@@ -279,22 +284,9 @@ public class CustomFuelMix {
         nbt.setTag(NBT_TAG_ROOT, root);
     }
 
+    /** The mix an item's NBT carries, or null; the shared instance for its composition. */
     public static CustomFuelMix readFromNBT(NBTTagCompound nbt) {
-        if (nbt == null || !nbt.hasKey(NBT_TAG_ROOT)) {
-            return null;
-        }
-        NBTTagCompound root = nbt.getCompoundTag(NBT_TAG_ROOT);
-        NBTTagCompound unitsTag = root.getCompoundTag("Units");
-        Map<ActinideIsotope, Integer> units = new LinkedHashMap<>();
-        for (ActinideIsotope iso : ActinideIsotope.values()) {
-            if (unitsTag.hasKey(iso.name())) {
-                units.put(iso, unitsTag.getInteger(iso.name()));
-            }
-        }
-        if (units.isEmpty()) {
-            return null;
-        }
-        return new CustomFuelMix(units);
+        return CustomFuelMixCache.of(nbt);
     }
 
     public static boolean hasCustomMix(ItemStack stack) {
