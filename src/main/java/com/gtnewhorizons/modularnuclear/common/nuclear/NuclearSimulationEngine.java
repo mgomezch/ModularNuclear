@@ -95,24 +95,44 @@ public class NuclearSimulationEngine {
     public static final double DEFAULT_BREEDER_NBASE_MULT = 1.00;
     public static final double DEFAULT_BREEDER_FISSION_MULT = 1.00;
 
+    private static final int ARCHETYPE_STANDARD = 0, ARCHETYPE_DENSE = 1, ARCHETYPE_EXCITED = 2, ARCHETYPE_BREEDER = 3;
+
+    /**
+     * A fuel archetype name's family. Called per fuel cell every cycle: configured names are lower case and match
+     * directly; only an unrecognised one is lower-cased and tried again.
+     */
+    private static int archetypeOf(String archetype) {
+        if (archetype == null) return ARCHETYPE_STANDARD;
+        int a = archetypeExact(archetype);
+        return a >= 0 ? a : Math.max(ARCHETYPE_STANDARD, archetypeExact(archetype.toLowerCase(java.util.Locale.ROOT)));
+    }
+
+    private static int archetypeExact(String archetype) {
+        return switch (archetype) {
+            case "standard" -> ARCHETYPE_STANDARD;
+            case "dense", "subcritical", "naquadah" -> ARCHETYPE_DENSE;
+            case "excited", "driver" -> ARCHETYPE_EXCITED;
+            case "breeder" -> ARCHETYPE_BREEDER;
+            default -> -1;
+        };
+    }
+
     /** Base neutron multiplier of a fuel archetype, including the global neutron yield multiplier. */
     public static double getArchetypeNbaseMultiplier(String archetype) {
-        double mult = archetype == null ? params().standardNbaseMultiplier
-            : switch (archetype.toLowerCase(java.util.Locale.ROOT)) {
-            case "dense", "subcritical", "naquadah" -> params().denseNbaseMultiplier;
-            case "excited", "driver" -> params().excitedNbaseMultiplier;
-            case "breeder" -> params().breederNbaseMultiplier;
+        double mult = switch (archetypeOf(archetype)) {
+            case ARCHETYPE_DENSE -> params().denseNbaseMultiplier;
+            case ARCHETYPE_EXCITED -> params().excitedNbaseMultiplier;
+            case ARCHETYPE_BREEDER -> params().breederNbaseMultiplier;
             default -> params().standardNbaseMultiplier;
-            };
+        };
         return mult * params().neutronYieldMultiplier;
     }
 
     public static double getArchetypeFissionMultiplier(String archetype) {
-        if (archetype == null) return params().standardFissionMultiplier;
-        return switch (archetype.toLowerCase(java.util.Locale.ROOT)) {
-            case "dense", "subcritical", "naquadah" -> params().denseFissionMultiplier;
-            case "excited", "driver" -> params().excitedFissionMultiplier;
-            case "breeder" -> params().breederFissionMultiplier;
+        return switch (archetypeOf(archetype)) {
+            case ARCHETYPE_DENSE -> params().denseFissionMultiplier;
+            case ARCHETYPE_EXCITED -> params().excitedFissionMultiplier;
+            case ARCHETYPE_BREEDER -> params().breederFissionMultiplier;
             default -> params().standardFissionMultiplier;
         };
     }
