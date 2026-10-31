@@ -9,6 +9,8 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridT
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.ReactorDummy;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
+import com.gtnewhorizons.modularnuclear.common.util.FluidRoles;
+import com.gtnewhorizons.modularnuclear.common.util.ItemRoles;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
 import gregtech.api.items.ItemRadioactiveCell;
@@ -102,9 +104,7 @@ public final class NuclearReactorTelemetry {
                                     if (dur > maxFuelDur) maxFuelDur = dur;
                                     sumFuelDur += dur;
                                     fuelItemCount++;
-                                } else if (NuclearFuelClassification.isItemCoolant(stack)
-                                    || NuclearFuelClassification.isItemHeatVent(stack)
-                                    || NuclearFuelClassification.isItemHeatExchanger(stack)
+                                } else if (isCoolingItem(NuclearFuelClassification.roles(stack))
                                     || (stack.getItem() instanceof IReactorComponent)) {
                                         isCoolant = true;
                                         totalCoolantItems += stack.stackSize;
@@ -137,10 +137,10 @@ public final class NuclearReactorTelemetry {
                             MTEHatchNuclearHatch hatch = gt.getHatch();
                             boolean isCoolant = hatch.mUsedForCooling;
                             if (hatch.mInputFluid != null && hatch.mInputFluid.amount > 0) {
-                                if (NuclearFuelClassification.isCoolantFluid(hatch.mInputFluid)
-                                    && !NuclearFuelClassification.isFluidFuel(hatch.mInputFluid)) {
+                                FluidRoles roles = FluidRoles.of(hatch.mInputFluid);
+                                if (roles.isCoolant() && !roles.isFuel()) {
                                     isCoolant = true;
-                                } else if (NuclearFuelClassification.isFluidFuel(hatch.mInputFluid)) {
+                                } else if (roles.isFuel()) {
                                     isCoolant = false;
                                 }
                             }
@@ -202,5 +202,9 @@ public final class NuclearReactorTelemetry {
 
         reactor.mCoolantHatchCount = totalCoolantCoreHatches;
         reactor.mFuelHatchCount = totalFuelCoreHatches;
+    }
+
+    private static boolean isCoolingItem(ItemRoles roles) {
+        return roles.isCoolant() || roles.isHeatVent() || roles.isHeatExchanger();
     }
 }
