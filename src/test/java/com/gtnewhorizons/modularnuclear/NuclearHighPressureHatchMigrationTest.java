@@ -14,6 +14,7 @@ import org.mockito.Mockito;
 
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
@@ -123,6 +124,40 @@ public class NuclearHighPressureHatchMigrationTest {
 
         assertEquals(750.5, loadedHatch.getTemperature(), 1e-4);
         assertEquals(123456L, loadedHatch.mCumulativeFluence);
+    }
+
+    @Test
+    void testPassageRemembersItsLoopAcrossALoad() {
+        MTEHatchNuclearHighPressure hatch = new MTEHatchNuclearHighPressure(
+            "test_hatch",
+            5,
+            new String[0],
+            new ITexture[0][0][0]);
+        ICoolantLoopPump pump = Mockito.mock(ICoolantLoopPump.class);
+        hatch.setLoopPump(pump);
+        assertSame(pump, hatch.getConnectedPump(), "binding a passage as a loop device connects its pump");
+        NBTTagCompound nbt = new NBTTagCompound();
+        hatch.saveNBTData(nbt);
+
+        MTEHatchNuclearHighPressure loaded = new MTEHatchNuclearHighPressure(
+            "loaded_hatch",
+            5,
+            new String[0],
+            new ITexture[0][0][0]);
+        loaded.loadNBTData(nbt);
+        assertTrue(loaded.isAwaitingLoopPump(), "a passage saved in a loop waits for its pump after loading");
+        loaded.setLoopPump(pump);
+        assertFalse(loaded.isAwaitingLoopPump(), "and stops waiting once the pump binds it again");
+
+        MTEHatchNuclearHighPressure idle = new MTEHatchNuclearHighPressure(
+            "idle_hatch",
+            5,
+            new String[0],
+            new ITexture[0][0][0]);
+        NBTTagCompound idleNbt = new NBTTagCompound();
+        idle.saveNBTData(idleNbt);
+        idle.loadNBTData(idleNbt);
+        assertFalse(idle.isAwaitingLoopPump(), "a passage in no loop waits for nothing");
     }
 
     @Test

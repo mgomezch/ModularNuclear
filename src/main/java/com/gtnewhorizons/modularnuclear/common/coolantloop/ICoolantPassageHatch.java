@@ -29,6 +29,22 @@ public interface ICoolantPassageHatch extends ICoolantLoopDevice {
     void setConnectedPump(ICoolantLoopPump pump);
 
     /**
+     * Whether the passage was in a loop when saved and its pump has not bound it again since loading; the reactor
+     * holds its first cycles briefly for that (see MTENuclearReactor).
+     */
+    default boolean isAwaitingLoopPump() {
+        return false;
+    }
+
+    default void stopAwaitingLoopPump() {}
+
+    /** A passage's pump is its connected pump, so binding or releasing it as a loop device reaches the passage. */
+    @Override
+    default void setLoopPump(ICoolantLoopPump pump) {
+        setConnectedPump(pump);
+    }
+
+    /**
      * Gets the active loop pump associated with this passage, or null if loop is disconnected.
      */
     ICoolantLoopPump getConnectedPump();

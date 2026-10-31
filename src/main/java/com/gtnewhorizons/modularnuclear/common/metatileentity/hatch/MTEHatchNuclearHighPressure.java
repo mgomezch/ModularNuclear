@@ -70,6 +70,8 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
     protected IGregTechTileEntity mOppositeHatch = null;
     protected int[] mOppositeCoord = null;
     protected ICoolantLoopPump mConnectedPump = null;
+    /** Was in a loop when saved, and its pump has not bound it again since loading. */
+    protected boolean mAwaitingLoopPump = false;
     protected int mNeutronAccumulator = 0;
 
     public int mFastFlux = 0;
@@ -376,16 +378,31 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
     @Override
     public void setConnectedPump(ICoolantLoopPump pump) {
         this.mConnectedPump = pump;
-        if (mOppositeHatch != null && mOppositeHatch.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
+        if (pump != null) mAwaitingLoopPump = false;
+        // Resolved from the saved coordinates if need be: right after a load the pump binds a passage before the
+        // reactor's structure check has linked its two ends
+        IGregTechTileEntity opposite = getOppositeHatchTile();
+        if (opposite != null && opposite.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure other) {
             if (other.mConnectedPump != pump) {
                 other.mConnectedPump = pump;
             }
+            if (pump != null) other.mAwaitingLoopPump = false;
         }
     }
 
     @Override
     public ICoolantLoopPump getConnectedPump() {
         return mConnectedPump;
+    }
+
+    @Override
+    public boolean isAwaitingLoopPump() {
+        return mAwaitingLoopPump;
+    }
+
+    @Override
+    public void stopAwaitingLoopPump() {
+        mAwaitingLoopPump = false;
     }
 
     // --- ICoolantLoopDevice Implementation ---
@@ -577,6 +594,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setBoolean("mIsInlet", mIsInlet);
         aNBT.setDouble("mIncomingCoolantTemp", mIncomingCoolantTemp);
+        aNBT.setBoolean("mInLoop", mConnectedPump != null || mAwaitingLoopPump);
         if (mOppositeHatch != null) {
             aNBT.setIntArray(
                 "oppositeCoord",
@@ -604,6 +622,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         if (aNBT.hasKey("mIncomingCoolantTemp")) {
             mIncomingCoolantTemp = aNBT.getDouble("mIncomingCoolantTemp");
         }
+        mAwaitingLoopPump = aNBT.getBoolean("mInLoop");
         if (aNBT.hasKey("oppositeCoord")) {
             mOppositeCoord = aNBT.getIntArray("oppositeCoord");
         }

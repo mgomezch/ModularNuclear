@@ -63,6 +63,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemCardModularNuc
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemKitModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
+import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
@@ -210,6 +211,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public double mReactorDamage = 0.0;
     public boolean mScram = false;
     public int mNeutronsProduced = 0;
+    /** Most ticks a reactor holds its first cycle after a load for the pumps of the loops through its passages. */
+    private static final int PASSAGE_PUMP_WAIT_TICKS = 5;
+    private int mPassagePumpWaitTicks = 0;
+    /** A cycle came due while held, so it runs as soon as the hold ends instead of a whole cycle later. */
+    private boolean mCycleDeferred = false;
     /** Why nothing burns, for the GUI (a lang key, or empty while it runs); see {@link #updateIdleReason}. */
     public String mIdleReasonKey = "";
     public int mIdleCount = 0;
@@ -350,6 +356,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             mSolderingTool = false;
             mCrowbar = false;
         }
+        MultiblockStartup.formNow(this);
     }
 
     public boolean addNuclearControlHatchToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
@@ -1756,11 +1763,15 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             }
 
             int tpc = getTicksPerCycle();
-            if (mGrid != null && (aTick % tpc != 0)) {
+            boolean cycleDue = aTick % tpc == 0 || mCycleDeferred;
+            if (mGrid != null && !cycleDue) {
                 NuclearSimulationEngine.processActiveVentsAndExchangers(mGrid, gridSize, gridSize, mCachedAmbientTemp);
             }
 
-            if (mGrid != null && (aTick % tpc == 0)) {
+            if (mGrid != null && cycleDue && holdForPassagePumps()) {
+                mCycleDeferred = true;
+            } else if (mGrid != null && cycleDue) {
+                mCycleDeferred = false;
                 prepareCycle();
 
                 double ambient = getAmbientTemperature();
@@ -2033,6 +2044,24 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     /** Closes the cycle: last-cycle totals, telemetry, coolant tracking, control hatches and metrics history. */
+    /**
+     * Right after a load, holds the cycle while a passage that was in a loop when saved has not been bound to its pump
+     * again, so the core never heats without its cooling. Only for a few ticks: a reactor that stops unexpectedly can
+     * starve whatever it powers.
+     */
+    private boolean holdForPassagePumps() {
+        boolean awaiting = false;
+        for (ICoolantPassageHatch hp : mBottomHighPressureHatches) {
+            if (hp != null && hp.isAwaitingLoopPump()) awaiting = true;
+        }
+        if (!awaiting) return false;
+        if (++mPassagePumpWaitTicks <= PASSAGE_PUMP_WAIT_TICKS) return true;
+        for (ICoolantPassageHatch hp : mBottomHighPressureHatches) {
+            if (hp != null) hp.stopAwaitingLoopPump();
+        }
+        return false;
+    }
+
     /**
      * When the core produced no neutrons, works out why for the GUI: no fuel at all, or items that look like fuel
      * (depleted or empty rods, spent products, items the config blocks) that the core refuses.
