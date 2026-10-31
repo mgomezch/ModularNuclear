@@ -305,6 +305,40 @@ public class CoolantPumpReservoir {
         }
     }
 
+    /**
+     * After a load, a Railcraft tank links its blocks to its master block only when that master next updates (which
+     * of its blocks is the master is saved), so a pump checking its structure on its first tick would find no tank.
+     * Finds the tank's master above the pump and has it check the tank now. Returns whether it found one.
+     */
+
+    private static boolean testTankMasterAbove(World world, int x0, int y, int z0, ForgeDirection right,
+        ForgeDirection back) {
+        // Tanks are up to 8 high and 11 wide (a 9-wide interior and its walls), and sit over the pump's footprint
+        for (int dy = 0; dy < 10; dy++) {
+            for (int side = -6; side <= 6; side++) {
+                for (int depth = -2; depth <= 11; depth++) {
+                    int x = x0 + right.offsetX * side + back.offsetX * depth;
+                    int z = z0 + right.offsetZ * side + back.offsetZ * depth;
+                    if (!world.blockExists(x, y + dy, z)) continue;
+                    if (world.getTileEntity(x, y + dy, z) instanceof TileMultiBlock tmb && tmb.isMaster()) {
+                        if (!tmb.isStructureValid()) {
+                            try {
+                                java.lang.reflect.Method mTest = TileMultiBlock.class
+                                    .getDeclaredMethod("testIfMasterBlock");
+                                mTest.setAccessible(true);
+                                mTest.invoke(tmb);
+                            } catch (Throwable swallowed) {
+                                Swallowed.note(swallowed);
+                            }
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public boolean verifyRailcraftTankAbove(IGregTechTileEntity aBaseMetaTileEntity) {
         if (aBaseMetaTileEntity == null) return false;
         World world = aBaseMetaTileEntity.getWorld();
@@ -340,6 +374,11 @@ public class CoolantPumpReservoir {
                 }
             }
             masterBlock = tmbCenter.getMasterBlock();
+        }
+
+        if (masterBlock == null && testTankMasterAbove(world, x0, y, z0, right, back)) {
+            TileEntity te = world.getTileEntity(probeX, y, probeZ);
+            if (te instanceof TileMultiBlock tmb) masterBlock = tmb.getMasterBlock();
         }
 
         if (masterBlock == null) {
