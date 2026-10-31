@@ -13,11 +13,11 @@ import net.minecraftforge.fluids.FluidTankInfo;
 
 import com.cleanroommc.modularui.utils.fluid.FluidStackTank;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
-import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearHatchGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.util.FluidRoles;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
@@ -161,9 +161,8 @@ public class MTEHatchNuclearHatch extends MTEHatch {
             Swallowed.note(swallowed);
         }
         if (fluid == null) return 0;
-        String name = fluid.getName()
-            .toLowerCase();
-        if (!isFluidAllowed(name)) {
+        if (!FluidRoles.of(fluid)
+            .allowedAtTier(mReactorPipeTier)) {
             return 0;
         }
 
@@ -200,9 +199,8 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     @Override
     public boolean canFill(ForgeDirection side, Fluid fluid) {
         if (fluid == null) return false;
-        String name = fluid.getName()
-            .toLowerCase();
-        if (!isFluidAllowed(name)) {
+        if (!FluidRoles.of(fluid)
+            .allowedAtTier(mReactorPipeTier)) {
             return false;
         }
         return mInputFluid == null || (mInputFluid.getFluid() == fluid && mInputFluid.amount < mCapacity);
@@ -262,7 +260,8 @@ public class MTEHatchNuclearHatch extends MTEHatch {
 
     public boolean hasWaterCoolant() {
         if (mInputFluid != null && mInputFluid.getFluid() != null) {
-            ComponentData.CoolantFluidData cfd = ReactorDataRegistry.findCoolantFluid(mInputFluid);
+            ComponentData.CoolantFluidData cfd = FluidRoles.of(mInputFluid)
+                .coolantData();
             return cfd != null && cfd.freezingTemperature >= 0.0;
         }
         return false;
@@ -323,16 +322,14 @@ public class MTEHatchNuclearHatch extends MTEHatch {
 
     public boolean isFluidTierValid() {
         if (mInputFluid == null || mInputFluid.getFluid() == null) return true;
-        return isFluidAllowed(
-            mInputFluid.getFluid()
-                .getName());
+        return FluidRoles.of(mInputFluid)
+            .allowedAtTier(mReactorPipeTier);
     }
 
     public boolean isFluidInputAllowed(FluidStack aFluid) {
         if (aFluid == null || aFluid.getFluid() == null) return false;
-        return isFluidAllowed(
-            aFluid.getFluid()
-                .getName());
+        return FluidRoles.of(aFluid)
+            .allowedAtTier(mReactorPipeTier);
     }
 
     public com.cleanroommc.modularui.utils.fluid.FluidStackTank getInputTank() {

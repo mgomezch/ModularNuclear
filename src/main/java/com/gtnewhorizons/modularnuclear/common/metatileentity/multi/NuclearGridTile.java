@@ -54,6 +54,7 @@ public class NuclearGridTile implements INuclearTile {
     private double controlRodAbsorptionFractionThermal = 0.0;
 
     // Change-tracking state
+    private ItemStack lastStack;
     private long lastItemKey = Long.MIN_VALUE;
     private int lastItemDamage = -1;
     private Object lastFluid = null;
@@ -408,7 +409,9 @@ public class NuclearGridTile implements INuclearTile {
         int pipes = (bottomControlRod != null) ? bottomControlRod.getMiningPipeCount() : -1;
         boolean scram = (bottomControlRod != null) && bottomControlRod.mScram;
 
-        if (!dirty && itemKey == lastItemKey
+        // A different stack object can carry different NBT (a custom rod's fuel mix) under the same item key
+        if (!dirty && stack == lastStack
+            && itemKey == lastItemKey
             && (damageable || damage == lastItemDamage)
             && currentFluid == lastFluid
             && (currentAmount > 0) == (lastAmount > 0)
@@ -417,6 +420,7 @@ public class NuclearGridTile implements INuclearTile {
             return;
         }
 
+        lastStack = stack;
         lastItemKey = itemKey;
         lastItemDamage = damage;
         lastFluid = currentFluid;

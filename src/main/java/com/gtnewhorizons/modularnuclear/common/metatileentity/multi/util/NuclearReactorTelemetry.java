@@ -85,7 +85,7 @@ public final class NuclearReactorTelemetry {
                                     double dur;
                                     if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
                                         int max = radCell.getMaxDamageEx();
-                                        CustomFuelMix customMix = CustomFuelMix.fromStack(stack);
+                                        CustomFuelMix customMix = gt.getCustomFuelMix();
                                         if (customMix != null) {
                                             max = customMix.defaultDurability;
                                         }

@@ -2,7 +2,6 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
@@ -28,9 +27,10 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.TileContent;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileTick;
 import com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry;
+import com.gtnewhorizons.modularnuclear.common.util.FluidRoles;
+import com.gtnewhorizons.modularnuclear.common.util.ItemRoles;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
-import gregtech.api.enums.Materials;
 import gregtech.api.items.ItemRadioactiveCell;
 import gregtech.api.items.ItemRadioactiveCellIC;
 import gregtech.api.util.GTRecipe;
@@ -227,9 +227,10 @@ public class NuclearReactorPhysics {
     }
 
     public static int generateTileNeutrons(MTENuclearReactor reactor, NuclearGridTile tile, double efficiency) {
-        CustomFuelMix customMix = getTileCustomFuelMix(tile);
-        FuelData tileFuelData = getTileFuelData(tile);
-        NuclearFuelType fuel = getTileFuelType(tile);
+        // What the tile holds was resolved when its contents last changed (NuclearGridTile.refreshProperties)
+        CustomFuelMix customMix = tile.getCustomFuelMix();
+        FuelData tileFuelData = tile.getFuelData();
+        NuclearFuelType fuel = tile.getFuelType();
         PhysicsData physics = ReactorDataRegistry.getPhysics();
         double baseFissMult = (customMix != null) ? customMix.baseThermalFissionMultiplier
             : (tileFuelData != null) ? tileFuelData.getEffectiveFissionMultiplier(physics)
@@ -271,13 +272,13 @@ public class NuclearReactorPhysics {
                 bus.mLastNeutronsGenerated = 0;
                 return 0;
             }
-            if (!reactor.isItemFuel(stack)) {
+            if (stack == null || !tile.isFuel()) {
                 bus.mLastNeutronsGenerated = 0;
                 bus.mChainRate = 0.0;
                 return 0;
             }
             int baseNeutrons = 4;
-            FuelData fd = (tileFuelData != null) ? tileFuelData : ReactorDataRegistry.findFuel(stack);
+            FuelData fd = tileFuelData;
             if (customMix != null) {
                 int rodSize = (stack.getItem() instanceof ItemCustomFuelRod customRod) ? customRod.rodSize : 4;
                 baseNeutrons = customMix.getBaseNeutrons(rodSize);
@@ -313,13 +314,13 @@ public class NuclearReactorPhysics {
         } else if (tile.isHatch()) {
             MTEHatchNuclearHatch hatch = tile.getHatch();
             FluidStack fluid = hatch.mInputFluid;
-            if (!MTENuclearReactor.isFluidFuel(fluid) || fluid == null || fluid.amount <= 0) {
+            if (fluid == null || fluid.amount <= 0 || !tile.isFuel()) {
                 hatch.mLastNeutronsGenerated = 0;
                 hatch.mChainRate = 0.0;
                 return 0;
             }
             int baseNeutrons = 8;
-            FuelData fd = (tileFuelData != null) ? tileFuelData : ReactorDataRegistry.findFuel(fluid);
+            FuelData fd = tileFuelData;
             if (fd != null) {
                 baseNeutrons = TileProperties.effectiveBaseNeutrons(fd);
                 baseFissMult = TileProperties.effectiveThermalFissionMultiplier(fd);
@@ -487,37 +488,20 @@ public class NuclearReactorPhysics {
             else hatch.mThermalAbsorbed += count;
 
             if (type == NeutronType.FAST && hatch.mInputFluid != null && hatch.mInputFluid.amount >= 2) {
-                CoolantFluidData cfd = ReactorDataRegistry.findCoolantFluid(hatch.mInputFluid);
+                FluidRoles roles = FluidRoles.of(hatch.mInputFluid);
+                CoolantFluidData cfd = roles.coolantData();
                 if (cfd != null && cfd.transmutationProduct != null && cfd.transmutationChancePerNeutron > 0.0) {
                     if (TileTick.transmutes(cfd, count, reactor.getRandomNumber(10000))) {
                         hatch.mInputFluid.amount -= 2;
                         if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
                         reactor.mCycleTransmutationLoss += 2;
-                        Fluid prod = FluidRegistry.getFluid(cfd.transmutationProduct);
-                        if (prod == null && !cfd.transmutationProduct.startsWith("fluid.")) {
-                            prod = FluidRegistry.getFluid("fluid." + cfd.transmutationProduct);
-                        }
-                        if (prod == null) {
-                            if ("deuterium".equalsIgnoreCase(cfd.transmutationProduct) && Materials.Deuterium != null) {
-                                prod = Materials.Deuterium.mGas != null ? Materials.Deuterium.mGas
-                                    : Materials.Deuterium.mFluid;
-                            } else
-                                if ("tritium".equalsIgnoreCase(cfd.transmutationProduct) && Materials.Tritium != null) {
-                                    prod = Materials.Tritium.mGas != null ? Materials.Tritium.mGas
-                                        : Materials.Tritium.mFluid;
-                                }
-                        }
+                        Fluid prod = roles.transmutationFluid();
                         if (prod != null) {
                             reactor.addOutputPartial(new FluidStack(prod, 2));
                             reactor.mCycleTransmutationByproducts += 2;
                         }
-                        if ("deuterium".equalsIgnoreCase(cfd.transmutationProduct)
-                            || "tritium".equalsIgnoreCase(cfd.transmutationProduct)) {
-                            Fluid ox = (Materials.Oxygen != null)
-                                ? (Materials.Oxygen.mGas != null ? Materials.Oxygen.mGas : Materials.Oxygen.mFluid)
-                                : null;
-                            if (ox == null) ox = FluidRegistry.getFluid("oxygen");
-                            if (ox == null) ox = FluidRegistry.getFluid("fluid.oxygen");
+                        if (roles.transmutationMakesOxygen()) {
+                            Fluid ox = FluidRoles.oxygen();
                             if (ox != null) {
                                 reactor.addOutputPartial(new FluidStack(ox, 1));
                                 reactor.mCycleTransmutationByproducts += 1;
@@ -538,8 +522,9 @@ public class NuclearReactorPhysics {
         if (tile.isBus()) {
             MTEHatchNuclearBus bus = tile.getBus();
             ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-            if (stack != null && NuclearFuelClassification.isItemReflector(stack)) {
-                ReflectorData refl = ReactorDataRegistry.findReflector(stack);
+            ItemRoles roles = NuclearFuelClassification.roles(stack);
+            if (stack != null && roles.isReflector()) {
+                ReflectorData refl = roles.reflectorData();
                 int maxDur = refl != null ? refl.durability
                     : (stack.isItemStackDamageable() ? stack.getMaxDamage() : 0);
                 if (maxDur > 0 && reactor.getRandomNumber(20) == 0) {
@@ -627,7 +612,7 @@ public class NuclearReactorPhysics {
         double efficiency) {
         bus.mLastHeatOutput = 0.0;
         ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-        if (stack == null || NuclearFuelClassification.isItemNeutronSource(stack)) {
+        if (stack == null || tile.isNeutronSource()) {
             bus.mLastFastFlux = bus.mFastFlux;
             bus.mLastThermalFlux = bus.mThermalFlux;
             bus.mLastFastAbsorbed = bus.mFastAbsorbed;
@@ -642,11 +627,12 @@ public class NuclearReactorPhysics {
 
         // 1. FUEL DEPLETION (Driven by 3 physical processes: emitting fast neutrons, absorbing any neutron, and
         // temperature above ambient)
-        if (reactor.isItemFuel(stack)) {
+        ItemRoles roles = NuclearFuelClassification.roles(stack);
+        if (tile.isFuel()) {
             bus.mDirectEUProduced = 0;
-            CustomFuelMix customMix = CustomFuelMix.fromStack(stack);
-            FuelData fd = ReactorDataRegistry.findFuel(stack);
-            NuclearFuelType fuelType = getTileFuelType(tile);
+            CustomFuelMix customMix = tile.getCustomFuelMix();
+            FuelData fd = tile.getFuelData();
+            NuclearFuelType fuelType = tile.getFuelType();
             double dt = (double) reactor.getTicksPerCycle() / 20.0;
             double rawTempDmg = (customMix != null) ? customMix.calculateTemperatureDamage(bus.mTemperature)
                 : (fd != null) ? fd.calculateTemperatureDamage(bus.mTemperature)
@@ -727,9 +713,9 @@ public class NuclearReactorPhysics {
             }
         }
         // 2. MODERATOR WEAR & DEPLETION
-        else if (NuclearFuelClassification.isItemModerator(stack)) {
+        else if (roles.isModerator()) {
             bus.mDirectEUProduced = 0;
-            ModeratorData mod = ReactorDataRegistry.findModerator(stack);
+            ModeratorData mod = roles.moderatorData();
             if (mod != null) {
                 double dt = (double) reactor.getTicksPerCycle() / 20.0;
                 double totalDmg = TileTick.moderatorWear(
@@ -776,7 +762,7 @@ public class NuclearReactorPhysics {
         }
         // 3. RADIOVOLTAIC DIRECT EU GENERATION
         else if (reactor.isItemRadiovoltaic(stack)) {
-            RadiovoltaicData rv = ReactorDataRegistry.findRadiovoltaic(stack);
+            RadiovoltaicData rv = roles.radiovoltaicData();
             if (rv == null) {
                 rv = new RadiovoltaicData();
                 rv.tier = reactor.getRadiovoltaicTier(stack);
@@ -792,14 +778,14 @@ public class NuclearReactorPhysics {
             }
         }
         // 4. ACTIVE HEAT VENTS & HEAT EXCHANGERS (Processed actively each tick via processActiveVentsAndExchangers)
-        else if (MTENuclearReactor.isItemHeatVent(stack) || MTENuclearReactor.isItemHeatExchanger(stack)) {
+        else if (roles.isHeatVent() || roles.isHeatExchanger()) {
             bus.mDirectEUProduced = 0;
             double maxTemp = 0.0;
-            if (MTENuclearReactor.isItemHeatVent(stack)) {
-                HeatVentData vent = ReactorDataRegistry.findHeatVent(stack);
+            if (roles.isHeatVent()) {
+                HeatVentData vent = roles.heatVentData();
                 if (vent != null) maxTemp = vent.maxTemperature;
             } else {
-                HeatExchangerData hex = ReactorDataRegistry.findHeatExchanger(stack);
+                HeatExchangerData hex = roles.heatExchangerData();
                 if (hex != null) maxTemp = hex.maxTemperature;
             }
             if (maxTemp > 0.0 && bus.mTemperature > maxTemp) {
@@ -818,7 +804,7 @@ public class NuclearReactorPhysics {
                 int curHeat = comp.getCurrentHeat(reactor.getReactorDummy(), stack, 0, 0);
                 double ambient = reactor.getAmbientTemperature();
                 if (maxHeat > 0 && bus.mTemperature > ambient) {
-                    CoolantItemData cItem = ReactorDataRegistry.findCoolantItem(stack);
+                    CoolantItemData cItem = roles.coolantItemData();
                     double huPerDurability = (cItem != null) ? cItem.getHuPerDurability() : 25.0;
                     double dt = (double) reactor.getTicksPerCycle() / 20.0;
                     int heatToTake = TileTick.coolantCellUptake(
@@ -934,8 +920,9 @@ public class NuclearReactorPhysics {
      */
     private static CoolantFluidData activeCoolant(MTENuclearReactor reactor, MTEHatchNuclearHatch hatch) {
         if (hatch.mInputFluid == null || hatch.mInputFluid.amount <= 0) return null;
-        if (MTENuclearReactor.isFluidFuel(hatch.mInputFluid)) return null;
-        CoolantFluidData cfd = ReactorDataRegistry.findCoolantFluid(hatch.mInputFluid);
+        FluidRoles roles = FluidRoles.of(hatch.mInputFluid);
+        if (roles.isFuel()) return null;
+        CoolantFluidData cfd = roles.coolantData();
         if (cfd == null || cfd.hotFluidName == null) return null;
         if (reactor.mPipeTier >= 0 && reactor.mPipeTier < cfd.requiredTier) return null;
         return cfd;
@@ -970,10 +957,11 @@ public class NuclearReactorPhysics {
         if (hatch.mInputFluid == null || hatch.mInputFluid.amount <= 0) return;
 
         // 1. LIQUID NUCLEAR FUEL PROCESSING (Turns into spent liquid fuel, emits neutrons)
-        if (MTENuclearReactor.isFluidFuel(hatch.mInputFluid)) {
+        FluidRoles fluidRoles = FluidRoles.of(hatch.mInputFluid);
+        if (fluidRoles.isFuel()) {
             FluidStack fluid = hatch.mInputFluid;
-            Fluid spentFluid = MTENuclearReactor.getSpentFluid(fluid);
-            FuelData fuelData = ReactorDataRegistry.findFuel(fluid);
+            Fluid spentFluid = fluidRoles.spentFluid();
+            FuelData fuelData = fluidRoles.fuelData();
             double dt = (double) reactor.getTicksPerCycle() / 20.0;
             double rawTempDmg = (fuelData != null) ? fuelData.calculateTemperatureDamage(hatch.mTemperature)
                 : TileTick.genericFuelTemperatureDamage(hatch.mTemperature);
@@ -1025,16 +1013,7 @@ public class NuclearReactorPhysics {
                     hatch.mWasDry = true;
                 }
 
-                Fluid outFluid = FluidRegistry.getFluid(outputFluidName);
-                if (outFluid == null && outputFluidName.startsWith("fluid.")) {
-                    outFluid = FluidRegistry.getFluid(outputFluidName.substring(6));
-                }
-                if (outFluid == null && !outputFluidName.startsWith("fluid.")) {
-                    outFluid = FluidRegistry.getFluid("fluid." + outputFluidName);
-                }
-                if (outFluid == null) {
-                    outFluid = FluidRegistry.getFluid("steam");
-                }
+                Fluid outFluid = fluidRoles.hotFluid();
                 if (outFluid != null && outAmount > 0) {
                     reactor.addOutputPartial(new FluidStack(outFluid, outAmount));
                 }
