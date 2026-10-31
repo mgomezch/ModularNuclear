@@ -44,7 +44,9 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
+import gregtech.api.metatileentity.implementations.MTEHatchInputDebug;
 import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
+import gregtech.api.metatileentity.implementations.MTEHatchMultiInput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
@@ -52,6 +54,7 @@ import gregtech.api.structure.error.StructureErrors;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
+import gregtech.common.tileentities.machines.MTEHatchInputME;
 
 /**
  * Pressurized Heat Exchanger Multiblock.
@@ -514,20 +517,10 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         if (mBatch.heatJoules > 0.0) {
             mLastHeatTransferredWatts = mBatch.heatJoules / (getBatchTicks() * 0.05);
             CoolantDeviceData.PHEData.SecondaryCoolantEntry matchedCoolant = mBatch.coolant;
-            CoolantDeviceData.PHEData pheConfig = (CoolantLoopDataRegistry.getDeviceData() != null)
-                ? CoolantLoopDataRegistry.getDeviceData()
-                    .getPhe()
-                : new CoolantDeviceData.PHEData();
+            CoolantDeviceData.PHEData pheConfig = pheConfig();
             if (matchedCoolant == null) {
-                ArrayList<FluidStack> inputFluids = getStoredFluids();
-                for (FluidStack fs : inputFluids) {
-                    if (fs != null && fs.getFluid() != null && fs.amount > 0) {
-                        matchedCoolant = pheConfig.findSecondaryCoolant(
-                            fs.getFluid()
-                                .getName());
-                        if (matchedCoolant != null) break;
-                    }
-                }
+                scanSecondaryInput(pheConfig);
+                matchedCoolant = mScanCoolant;
             }
 
             if (matchedCoolant != null) {
@@ -537,11 +530,10 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
                     int actualFluidDrained = 0;
                     for (MTEHatchInput hatch : mInputHatches) {
                         if (hatch != null && hatch.getFluid() != null) {
-                            String fName = hatch.getFluid()
-                                .getFluid()
-                                .getName();
-                            if (pheConfig.findSecondaryCoolant(fName) == matchedCoolant
-                                || fName.equalsIgnoreCase(matchedCoolant.inputFluidName)) {
+                            Fluid f = hatch.getFluid()
+                                .getFluid();
+                            if (secondaryCoolantFor(pheConfig, f) == matchedCoolant
+                                || isNamedInput(f, matchedCoolant)) {
                                 int needed = fluidToBoil - actualFluidDrained;
                                 FluidStack drained = hatch.drain(needed, true);
                                 if (drained != null && drained.amount > 0) {
@@ -558,33 +550,12 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
                         int expansion = matchedCoolant.expansionRatio > 0 ? matchedCoolant.expansionRatio : 1;
                         int gasProduced = actualFluidDrained * expansion;
 
-                        if (matchedCoolant.isSteam) {
-                            String steamName = PheExchange
-                                .steamGrade(mBatch.effectiveTemperature(mCurrentCoolantTemp), pheConfig);
-                            Fluid steamFluid = FluidRegistry.getFluid(steamName);
-                            if (steamFluid == null && steamName.equals("supercriticalsteam")) {
-                                steamFluid = FluidRegistry.getFluid("supercriticalSteam");
-                            }
-                            if (steamFluid == null) {
-                                steamFluid = FluidRegistry.getFluid("steam");
-                            }
-                            if (steamFluid != null) {
-                                FluidStack steamStack = new FluidStack(steamFluid, gasProduced);
-                                addOutput(steamStack);
-                            }
-                        } else {
-                            String gasName = matchedCoolant.outputGasName;
-                            Fluid gasFluid = FluidRegistry.getFluid(gasName);
-                            if (gasFluid == null) {
-                                gasFluid = FluidRegistry.getFluid(gasName.toLowerCase());
-                            }
-                            if (gasFluid == null) {
-                                gasFluid = FluidRegistry.getFluid(gasName.toUpperCase());
-                            }
-                            if (gasFluid != null) {
-                                FluidStack gasStack = new FluidStack(gasFluid, gasProduced);
-                                addOutput(gasStack);
-                            }
+                        Fluid outputFluid = matchedCoolant.isSteam
+                            ? steamFluid(
+                                PheExchange.steamGrade(mBatch.effectiveTemperature(mCurrentCoolantTemp), pheConfig))
+                            : gasFluid(matchedCoolant);
+                        if (outputFluid != null) {
+                            addOutput(new FluidStack(outputFluid, gasProduced));
                         }
                     }
                 }
@@ -592,6 +563,120 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         }
 
         mBatch.reset();
+    }
+
+    private static final CoolantDeviceData.PHEData DEFAULT_PHE_CONFIG = new CoolantDeviceData.PHEData();
+
+    private static CoolantDeviceData.PHEData pheConfig() {
+        CoolantDeviceData data = CoolantLoopDataRegistry.getDeviceData();
+        return data != null ? data.getPhe() : DEFAULT_PHE_CONFIG;
+    }
+
+    /** The last fluid matched against the secondary coolants, its entry (or null), and the config it was matched in. */
+    private Fluid mMatchedFluid;
+    private CoolantDeviceData.PHEData.SecondaryCoolantEntry mMatchedCoolant;
+    private CoolantDeviceData.PHEData mMatchedConfig;
+
+    /**
+     * The secondary coolant a fluid boils as, or null. An exchanger is fed one coolant, so the last answer is kept and
+     * the name lookup runs only when the fluid (or the config) changes.
+     */
+    private CoolantDeviceData.PHEData.SecondaryCoolantEntry secondaryCoolantFor(CoolantDeviceData.PHEData cfg,
+        Fluid fluid) {
+        if (fluid == null) return null;
+        if (fluid != mMatchedFluid || cfg != mMatchedConfig) {
+            mMatchedCoolant = cfg.findSecondaryCoolant(fluid.getName());
+            mMatchedFluid = fluid;
+            mMatchedConfig = cfg;
+        }
+        return mMatchedCoolant;
+    }
+
+    /** Whether the fluid is the coolant's configured input by name (only checked when it matched no entry). */
+    private static boolean isNamedInput(Fluid fluid, CoolantDeviceData.PHEData.SecondaryCoolantEntry coolant) {
+        return fluid != null && fluid.getName()
+            .equalsIgnoreCase(coolant.inputFluidName);
+    }
+
+    /** What the last scanSecondaryInput found: the first input fluid that boils as a secondary coolant. */
+    private CoolantDeviceData.PHEData.SecondaryCoolantEntry mScanCoolant;
+    private int mScanAmount;
+
+    /**
+     * Finds the first input fluid that boils as a secondary coolant, in the order GregTech's getStoredFluids lists
+     * them (ME hatches last), without building that list (and its map, and the ME query when another hatch has
+     * coolant) every tick. Sets mScanCoolant and mScanAmount.
+     */
+    private void scanSecondaryInput(CoolantDeviceData.PHEData cfg) {
+        mScanCoolant = null;
+        mScanAmount = 0;
+        boolean anyME = false;
+        for (int i = 0, n = mInputHatches.size(); i < n; i++) {
+            MTEHatchInput hatch = mInputHatches.get(i);
+            if (hatch == null || !hatch.isValid()) continue;
+            if (hatch instanceof MTEHatchInputME) {
+                anyME = true;
+            } else if (hatch instanceof MTEHatchMultiInput multi) {
+                for (FluidStack fs : multi.getStoredFluid()) {
+                    if (fs != null && offerSecondary(cfg, fs.getFluid(), fs.amount)) return;
+                }
+            } else if (hatch instanceof MTEHatchInputDebug debug) {
+                for (FluidStack fs : debug.getFluidList()) {
+                    if (fs != null && offerSecondary(cfg, fs.getFluid(), Integer.MAX_VALUE)) return;
+                }
+            } else {
+                FluidStack fs = hatch.getFillableStack();
+                if (fs != null && offerSecondary(cfg, fs.getFluid(), fs.amount)) return;
+            }
+        }
+        if (!anyME) return;
+        for (int i = 0, n = mInputHatches.size(); i < n; i++) {
+            if (mInputHatches.get(i) instanceof MTEHatchInputME me && me.isValid()) {
+                for (FluidStack fs : me.getStoredFluids()) {
+                    if (fs != null && offerSecondary(cfg, fs.getFluid(), fs.amount)) return;
+                }
+            }
+        }
+    }
+
+    private boolean offerSecondary(CoolantDeviceData.PHEData cfg, Fluid fluid, int amount) {
+        if (fluid == null || amount <= 0) return false;
+        CoolantDeviceData.PHEData.SecondaryCoolantEntry coolant = secondaryCoolantFor(cfg, fluid);
+        if (coolant == null) return false;
+        mScanCoolant = coolant;
+        mScanAmount = amount;
+        return true;
+    }
+
+    /** Output fluids by name, resolved once (steam grades are a few fixed names; a gas is per coolant entry). */
+    private String mSteamName;
+    private Fluid mSteamFluid;
+    private CoolantDeviceData.PHEData.SecondaryCoolantEntry mGasCoolant;
+    private Fluid mGasFluid;
+
+    private Fluid steamFluid(String steamName) {
+        if (!steamName.equals(mSteamName) || mSteamFluid == null) {
+            Fluid steam = FluidRegistry.getFluid(steamName);
+            if (steam == null && steamName.equals("supercriticalsteam")) {
+                steam = FluidRegistry.getFluid("supercriticalSteam");
+            }
+            if (steam == null) steam = FluidRegistry.getFluid("steam");
+            mSteamName = steamName;
+            mSteamFluid = steam;
+        }
+        return mSteamFluid;
+    }
+
+    private Fluid gasFluid(CoolantDeviceData.PHEData.SecondaryCoolantEntry coolant) {
+        if (coolant != mGasCoolant || mGasFluid == null) {
+            String gasName = coolant.outputGasName;
+            Fluid gas = FluidRegistry.getFluid(gasName);
+            if (gas == null) gas = FluidRegistry.getFluid(gasName.toLowerCase());
+            if (gas == null) gas = FluidRegistry.getFluid(gasName.toUpperCase());
+            mGasCoolant = coolant;
+            mGasFluid = gas;
+        }
+        return mGasFluid;
     }
 
     public boolean stepHeatExchange() {
@@ -628,25 +713,9 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
             getBaseMetaTileEntity().setActive(true);
         }
 
-        ArrayList<FluidStack> inputFluids = getStoredFluids();
-        FluidStack secondaryInput = null;
-        CoolantDeviceData.PHEData.SecondaryCoolantEntry matchedCoolant = null;
-        CoolantDeviceData.PHEData pheConfig = (CoolantLoopDataRegistry.getDeviceData() != null)
-            ? CoolantLoopDataRegistry.getDeviceData()
-                .getPhe()
-            : new CoolantDeviceData.PHEData();
-        for (FluidStack fs : inputFluids) {
-            if (fs != null && fs.getFluid() != null && fs.amount > 0) {
-                String fluidName = fs.getFluid()
-                    .getName();
-                CoolantDeviceData.PHEData.SecondaryCoolantEntry entry = pheConfig.findSecondaryCoolant(fluidName);
-                if (entry != null) {
-                    secondaryInput = fs;
-                    matchedCoolant = entry;
-                    break;
-                }
-            }
-        }
+        CoolantDeviceData.PHEData pheConfig = pheConfig();
+        scanSecondaryInput(pheConfig);
+        CoolantDeviceData.PHEData.SecondaryCoolantEntry matchedCoolant = mScanCoolant;
 
         double dt = 0.05; // 1 tick = 0.05 seconds
         double effectiveArea = mExchangeArea * mHeatTransferMultiplier * pheConfig.heatTransferMultiplier;
@@ -654,7 +723,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
             mBatch,
             pheConfig,
             matchedCoolant,
-            secondaryInput != null ? secondaryInput.amount : 0,
+            mScanAmount,
             mLastCoolantFlowRateM3s,
             mBoundSegment,
             mLoopFluid,
