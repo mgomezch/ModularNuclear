@@ -6107,6 +6107,7 @@ public class NuclearSimulationEngineTest {
 
             // Server operator adds custom fuel pattern to config:
             ModularNuclearConfig.allowedFuelItems = new String[] { "*super_fuel_rod*" };
+            ModularNuclearConfig.changed();
             assertTrue(ModularNuclearConfig.isItemFuel(fuelStack));
             assertTrue(NuclearFuelClassification.isItemFuel(fuelStack));
 
@@ -6118,6 +6119,7 @@ public class NuclearSimulationEngineTest {
 
             assertFalse(NuclearFuelClassification.isDepletedOrEmptyRod(wasteStack));
             ModularNuclearConfig.blockedItems = new String[] { "*radioactive_waste*" };
+            ModularNuclearConfig.changed();
             assertTrue(NuclearFuelClassification.isDepletedOrEmptyRod(wasteStack));
             assertFalse(NuclearFuelClassification.isItemAllowedInBus(wasteStack, null));
 
@@ -6130,6 +6132,7 @@ public class NuclearSimulationEngineTest {
 
             assertFalse(NuclearFuelClassification.isCoolantFluid(heliumStack));
             ModularNuclearConfig.allowedCoolantFluids = new String[] { "liquid_helium" };
+            ModularNuclearConfig.changed();
             assertTrue(NuclearFuelClassification.isCoolantFluid(heliumStack));
 
             // 6. Dynamic custom control rod mapping
@@ -6143,6 +6146,7 @@ public class NuclearSimulationEngineTest {
                 MTEHatchNuclearControlRod.getRodType(rodStack)
                     .name());
             ModularNuclearConfig.allowedControlRods = new String[] { "*lead_bismuth_rod*=CADMIUM" };
+            ModularNuclearConfig.changed();
             assertEquals(
                 "CADMIUM",
                 MTEHatchNuclearControlRod.getRodType(rodStack)
@@ -6156,15 +6160,21 @@ public class NuclearSimulationEngineTest {
 
             assertEquals(0.0, NuclearFuelClassification.getInsulationDampening(foilStack), 1e-6);
             ModularNuclearConfig.allowedInsulators = new String[] { "*aerogel_foil*=0.85" };
+            ModularNuclearConfig.changed();
             assertEquals(0.85, NuclearFuelClassification.getInsulationDampening(foilStack), 1e-6);
 
         } finally {
             // Restore original config arrays
             ModularNuclearConfig.blockedItems = origBlocked;
+            ModularNuclearConfig.changed();
             ModularNuclearConfig.allowedFuelItems = origFuels;
+            ModularNuclearConfig.changed();
             ModularNuclearConfig.allowedCoolantFluids = origCoolants;
+            ModularNuclearConfig.changed();
             ModularNuclearConfig.allowedControlRods = origRods;
+            ModularNuclearConfig.changed();
             ModularNuclearConfig.allowedInsulators = origInsulators;
+            ModularNuclearConfig.changed();
         }
     }
 

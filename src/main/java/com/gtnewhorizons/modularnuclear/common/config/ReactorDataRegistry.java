@@ -534,8 +534,12 @@ public final class ReactorDataRegistry {
     }
 
     public static FuelData findFuel(FluidStack fluid) {
-        if (fluid == null || fluid.getFluid() == null) return null;
-        Object hit = liquidFuelByFluid.get(fluid.getFluid());
+        return fluid == null ? null : findFuel(fluid.getFluid());
+    }
+
+    public static FuelData findFuel(Fluid fluid) {
+        if (fluid == null) return null;
+        Object hit = liquidFuelByFluid.get(fluid);
         if (hit == null) {
             hit = NO_FLUID_MATCH;
             for (FuelData fd : ReactorConfigData.fuels) {
@@ -544,7 +548,7 @@ public final class ReactorDataRegistry {
                     break;
                 }
             }
-            liquidFuelByFluid.put(fluid.getFluid(), hit);
+            liquidFuelByFluid.put(fluid, hit);
         }
         return hit == NO_FLUID_MATCH ? null : (FuelData) hit;
     }
@@ -713,8 +717,12 @@ public final class ReactorDataRegistry {
     }
 
     public static CoolantFluidData findCoolantFluid(FluidStack fluid) {
-        if (fluid == null || fluid.getFluid() == null) return null;
-        Object hit = coolantFluidByFluid.get(fluid.getFluid());
+        return fluid == null ? null : findCoolantFluid(fluid.getFluid());
+    }
+
+    public static CoolantFluidData findCoolantFluid(Fluid fluid) {
+        if (fluid == null) return null;
+        Object hit = coolantFluidByFluid.get(fluid);
         if (hit == null) {
             hit = NO_FLUID_MATCH;
             for (CoolantFluidData d : ReactorConfigData.componentData.coolantFluids) {
@@ -723,7 +731,7 @@ public final class ReactorDataRegistry {
                     break;
                 }
             }
-            coolantFluidByFluid.put(fluid.getFluid(), hit);
+            coolantFluidByFluid.put(fluid, hit);
         }
         return hit == NO_FLUID_MATCH ? null : (CoolantFluidData) hit;
     }
@@ -1105,11 +1113,13 @@ public final class ReactorDataRegistry {
     }
 
     public static boolean matchesFluid(FluidStack fluid, List<String> patterns) {
-        if (fluid == null || fluid.getFluid() == null || patterns == null || patterns.isEmpty()) return false;
-        String name = fluid.getFluid()
-            .getName();
-        String unloc = fluid.getFluid()
-            .getUnlocalizedName();
+        return fluid != null && matchesFluid(fluid.getFluid(), patterns);
+    }
+
+    public static boolean matchesFluid(Fluid fluid, List<String> patterns) {
+        if (fluid == null || patterns == null || patterns.isEmpty()) return false;
+        String name = fluid.getName();
+        String unloc = fluid.getUnlocalizedName();
         String normName = normalizeFluidString(name);
         String normUnloc = normalizeFluidString(unloc);
         for (String pattern : patterns) {
