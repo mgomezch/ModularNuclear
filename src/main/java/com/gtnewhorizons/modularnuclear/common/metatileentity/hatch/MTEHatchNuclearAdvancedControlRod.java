@@ -23,7 +23,7 @@ import gregtech.api.util.GTSplit;
 /**
  * Advanced Nuclear Core Control Rod Hatch.
  * Dual-slot variant holding both a control rod and a moderator displacer.
- * Slot 0 holds a control rod (silver, boron, cadmium, indium, hafnium).
+ * Slot 0 holds a control rod (silver, boron, cadmium, indium, hafnium, neutronium).
  * Slot 1 holds a moderator item (graphite, beryllium, etc.).
  * The moderator displaces the control rod: insertion level is 1 - x where x is control rod insertion.
  */

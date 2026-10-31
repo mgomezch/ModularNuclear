@@ -204,6 +204,20 @@ control_rods:
   scattering_fast: 0.05
   scattering_thermal: 0.05
   heat_transfer_coeff: 0.16
+- id: rod_neutronium
+  name: Neutronium Control Rod
+  matching:
+  - stickLongNeutronium
+  - ore:stickLongNeutronium
+  - stickNeutronium
+  - ore:stickNeutronium
+  - rodNeutronium
+  - ore:rodNeutronium
+  max_thermal_absorption: 1.0
+  max_fast_absorption: 1.0
+  scattering_fast: 0.0
+  scattering_thermal: 0.0
+  heat_transfer_coeff: 0.2
 heat_vents:
 - id: vent_standard
   name: Heat Vent

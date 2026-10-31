@@ -51,7 +51,7 @@ import gregtech.api.util.GTUtility;
 /**
  * Nuclear Control Rod Hatch.
  * Placed on the top layer of the Nuclear Reactor alongside nuclear buses and hatches.
- * Holds exactly 1 Long Rod of Silver, Boron, Cadmium, Indium, or Hafnium.
+ * Holds exactly 1 Long Rod of Silver, Boron, Cadmium, Indium, Hafnium or Neutronium.
  * Incoming redstone signal (0..15) determines how far the control rod is inserted (0% to 100%).
  * Absorbs neutrons and converts them into heat in the reactor core.
  */
@@ -72,7 +72,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         BORON("Boron", 0.70, 0.35, 0.08),
         CADMIUM("Cadmium", 0.85, 0.50, 0.12),
         INDIUM("Indium", 0.95, 0.65, 0.14),
-        HAFNIUM("Hafnium", 0.99, 0.80, 0.16);
+        HAFNIUM("Hafnium", 0.99, 0.80, 0.16),
+        NEUTRONIUM("Neutronium", 1.0, 1.0, 0.20);
 
         public final String displayName;
         public final double maxThermalAbsorption;
@@ -160,6 +161,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 if ("rod_cadmium".equals(crd.id)) return ControlRodType.CADMIUM;
                 if ("rod_indium".equals(crd.id)) return ControlRodType.INDIUM;
                 if ("rod_hafnium".equals(crd.id)) return ControlRodType.HAFNIUM;
+                if ("rod_neutronium".equals(crd.id)) return ControlRodType.NEUTRONIUM;
             }
         } catch (Throwable swallowed) {
             Swallowed.note(swallowed);
@@ -185,6 +187,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 if (mat == Materials.Cadmium) return ControlRodType.CADMIUM;
                 if (mat == Materials.Indium) return ControlRodType.INDIUM;
                 if (mat != null && "Hafnium".equalsIgnoreCase(mat.mName)) return ControlRodType.HAFNIUM;
+                if (mat == Materials.Neutronium) return ControlRodType.NEUTRONIUM;
             }
         } catch (Throwable swallowed) {
             Swallowed.note(swallowed);
@@ -199,6 +202,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 if ("stickLongCadmium".equals(name)) return ControlRodType.CADMIUM;
                 if ("stickLongIndium".equals(name)) return ControlRodType.INDIUM;
                 if ("stickLongHafnium".equals(name)) return ControlRodType.HAFNIUM;
+                if ("stickLongNeutronium".equals(name)) return ControlRodType.NEUTRONIUM;
             }
         } catch (Throwable swallowed) {
             Swallowed.note(swallowed);
@@ -213,6 +217,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 if ("stickLongCadmium".equalsIgnoreCase(clean)) return ControlRodType.CADMIUM;
                 if ("stickLongIndium".equalsIgnoreCase(clean)) return ControlRodType.INDIUM;
                 if ("stickLongHafnium".equalsIgnoreCase(clean)) return ControlRodType.HAFNIUM;
+                if ("stickLongNeutronium".equalsIgnoreCase(clean)) return ControlRodType.NEUTRONIUM;
             }
         } catch (Throwable swallowed) {
             Swallowed.note(swallowed);

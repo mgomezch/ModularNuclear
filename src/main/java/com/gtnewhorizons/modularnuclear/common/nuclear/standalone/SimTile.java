@@ -157,7 +157,8 @@ public class SimTile implements INuclearTile {
         BORON("Boron", 0.70, 0.35, 0.08),
         CADMIUM("Cadmium", 0.85, 0.50, 0.12),
         INDIUM("Indium", 0.95, 0.65, 0.14),
-        HAFNIUM("Hafnium", 0.99, 0.80, 0.16);
+        HAFNIUM("Hafnium", 0.99, 0.80, 0.16),
+        NEUTRONIUM("Neutronium", 1.0, 1.0, 0.20);
 
         /** Id of the rod's entry in components.yaml control_rods, which supplies its physics in the simulator. */
         public final String configId = "rod_" + name().toLowerCase(java.util.Locale.ROOT);

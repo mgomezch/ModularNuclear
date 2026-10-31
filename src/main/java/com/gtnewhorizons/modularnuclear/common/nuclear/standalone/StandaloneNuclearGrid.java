@@ -1567,6 +1567,7 @@ public class StandaloneNuclearGrid {
                                 case "CADMIUM", "CD" -> SimTile.ControlRodType.CADMIUM;
                                 case "INDIUM", "IN" -> SimTile.ControlRodType.INDIUM;
                                 case "HAFNIUM", "HF" -> SimTile.ControlRodType.HAFNIUM;
+                                case "NEUTRONIUM", "NT" -> SimTile.ControlRodType.NEUTRONIUM;
                                 case "SILVER", "AG" -> SimTile.ControlRodType.SILVER;
                                 default -> rodType;
                             };

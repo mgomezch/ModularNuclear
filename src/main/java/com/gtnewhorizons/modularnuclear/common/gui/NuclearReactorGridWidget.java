@@ -533,6 +533,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                                 case 3 -> 0xFF5588AA; // Cadmium
                                 case 4 -> 0xFF3366BB; // Indium
                                 case 5 -> 0xFFAA3333; // Hafnium
+                                case 6 -> 0xFFE8E8F0; // Neutronium
                                 default -> 0x88666666; // None
                             };
 

@@ -64,7 +64,8 @@ public final class ModularNuclearConfig {
         "lead", "molten.sodium", "molten.lead" };
 
     public static String[] allowedControlRods = new String[] { "stickLongSilver=SILVER", "stickLongBoron=BORON",
-        "stickLongCadmium=CADMIUM", "stickLongIndium=INDIUM", "stickLongHafnium=HAFNIUM" };
+        "stickLongCadmium=CADMIUM", "stickLongIndium=INDIUM", "stickLongHafnium=HAFNIUM",
+        "stickLongNeutronium=NEUTRONIUM" };
 
     public static String[] allowedReflectors = new String[] { "plateGold", "plateStainlessSteel",
         "plateTungstenCarbide", "IC2:reactorReflector", "IC2:reactorReflectorThick", "gregtech:gt.neutronReflector" };

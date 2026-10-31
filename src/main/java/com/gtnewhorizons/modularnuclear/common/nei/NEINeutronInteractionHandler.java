@@ -601,6 +601,17 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.16,
             100_000_000L,
             "Extreme absorber | 99% thermal capture, high fast capture");
+        addControlRod(
+            Materials.Neutronium,
+            "Neutronium",
+            "Neutronium Control Rod",
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            0.20,
+            100_000_000L,
+            "Total absorber | captures every fast and thermal neutron when fully inserted");
 
         // 4. RADIOVOLTAIC PLATES - 40% (HV) / 60% (EV) absorption, generates direct EU from absorbed neutron flux
         ComponentData.RadiovoltaicData rvHv = null;

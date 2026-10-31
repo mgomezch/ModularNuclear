@@ -124,7 +124,7 @@ gt.blockmachines.hatch.nuclearhighpressure.output.desc=Core pass-through bottom 
 gt.blockmachines.hatch.nuclearhighpressure.material=Material: %s (%s)
 gt.blockmachines.hatch.nuclearhighpressure.capacity=Passage heat capacity: %d HU/°C
 gt.blockmachines.hatch.nuclearcontrol.desc=Emits redstone signals based on nuclear reactor conditions\nRight-click with screwdriver to cycle metric (sneak+right-click for bundled mode)\nRight-click with soldering iron to cycle statistic\nOutputs 0-15 vanilla redstone or 0-255 ProjectRed bundled signals from front side\nSupports 16-channel ProjectRed bundled cables and OpenComputers interface
-gt.blockmachines.hatch.nuclearcontrolrod.desc=Nuclear core control rod\nHolds long rods of silver, boron, cadmium, indium, or hafnium\nControlled by external redstone (0..15) or ProjectRed bundled cable (0..255)\nRight-click with screwdriver to cycle bundled input channel\nController SCRAM state overrides insertion to 100%!
+gt.blockmachines.hatch.nuclearcontrolrod.desc=Nuclear core control rod\nHolds long rods of silver, boron, cadmium, indium, hafnium or neutronium\nControlled by external redstone (0..15) or ProjectRed bundled cable (0..255)\nRight-click with screwdriver to cycle bundled input channel\nController SCRAM state overrides insertion to 100%!
 gt.blockmachines.hatch.nuclearadvancedcontrolrod.desc=Dual-slot nuclear core control rod with moderator displacer\nSlot 0 holds a control rod; Slot 1 holds a moderator\nWithdrawing the control rod displaces the moderator into the core\nControlled by external redstone (0..15) or ProjectRed bundled cable (0..255)\nRight-click with screwdriver to cycle bundled input channel\nController SCRAM state overrides insertion to 100%!
 
 # Item Tooltips
