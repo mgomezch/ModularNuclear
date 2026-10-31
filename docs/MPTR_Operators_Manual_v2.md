@@ -210,7 +210,11 @@ where:
 
 The effective base yield and fission multipliers include the **archetype multipliers** (§6.3). For example, a Quad Uranium Fuel Rod has a base yield of 16 n/s (standard archetype, multiplier 1.0), so $\tilde N_0 = 4$ per cycle; at $R = 1$ and with 20 thermal neutrons absorbed in the previous cycle it emits $4 + \operatorname{round}(20 \times 1.25) = 29$ neutrons.
 
-Every emitted neutron deposits **38 HU** of prompt fission heat (`fission_heat_per_neutron`) in the emitting cell.
+Every emitted neutron deposits prompt fission heat in the emitting cell: **38 HU** (`fission_heat_per_neutron`) for each chain-reaction neutron, and that times `spontaneous_heat_fraction` (default 1.0) for each spontaneous one. With the fraction $s$, the prompt heat is
+
+$$Q = 38 \cdot N \cdot \frac{s\,\tilde N_0 + C}{\tilde N_0 + C}$$
+
+where $C = \operatorname{round}(\phi_t A_t' + \phi_f A_f')$ is the chain-reaction part. Control rods cut $C$ but not $\tilde N_0$, so the lower $s$ is, the more of a core's heat a full insertion removes.
 
 **Ray count.** The $N$ neutrons are divided as evenly as possible among a number of rays:
 
@@ -1159,6 +1163,7 @@ Configuration files are read from `config/modularnuclear/`. Each file may overri
 | `hu_per_degree` | 32 | Heat capacity of a column other than a core hatch (HU/°C) |
 | `core_hatch_heat_capacity` | 16 | Heat capacity of a tier-0 core hatch (HU/°C); a tier-$t$ hatch holds $2^t$ times this |
 | `fission_heat_per_neutron` | 38 | Prompt heat per emitted neutron (HU) |
+| `spontaneous_heat_fraction` | 1.0 | Share of that heat a spontaneously emitted neutron deposits (§4.2) |
 | `global_thermal_fission_multiplier` | 1.0 | Scales all $\phi_t$ |
 | `global_fast_fission_multiplier` | 1.0 | Scales all $\phi_f$ |
 | `fast_absorption_damage_multiplier` | 8.0 | Fuel/moderator wear per fast absorption |
