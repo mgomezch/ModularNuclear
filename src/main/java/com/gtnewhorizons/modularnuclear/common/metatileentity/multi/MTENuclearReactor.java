@@ -210,6 +210,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public double mReactorDamage = 0.0;
     public boolean mScram = false;
     public int mNeutronsProduced = 0;
+    /** Why nothing burns, for the GUI (a lang key, or empty while it runs); see {@link #updateIdleReason}. */
+    public String mIdleReasonKey = "";
+    public int mIdleCount = 0;
+    public String mIdleDetailKey = "";
     public long mCumulativeNeutrons = 0L;
     public int mFastAbsorbed = 0;
     public int mThermalAbsorbed = 0;
@@ -1775,6 +1779,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 mThermalAbsorbed = res.thermalNeutronsAbsorbed;
                 mEscapedNeutrons = res.neutronsEscaped;
                 mReactivity = res.averageReactivity;
+                updateIdleReason();
 
                 syncCherenkovMetric(res, aBaseMetaTileEntity, aTick);
 
@@ -2028,6 +2033,44 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     /** Closes the cycle: last-cycle totals, telemetry, coolant tracking, control hatches and metrics history. */
+    /**
+     * When the core produced no neutrons, works out why for the GUI: no fuel at all, or items that look like fuel
+     * (depleted or empty rods, spent products, items the config blocks) that the core refuses.
+     */
+    private void updateIdleReason() {
+        mIdleReasonKey = "";
+        mIdleCount = 0;
+        mIdleDetailKey = "";
+        if (mNeutronsProduced > 0 || mGrid == null) return;
+        int burning = 0, refused = 0;
+        NuclearFuelClassification.NotFuelReason firstReason = null;
+        for (int x = 0; x < gridSize; x++) {
+            for (int y = 0; y < gridSize; y++) {
+                if (!(mGrid[x][y] instanceof NuclearGridTile gt)) continue;
+                if (gt.isFuel() || gt.isNeutronSource()) {
+                    burning++;
+                } else if (gt.isBus()) {
+                    ItemStack in = gt.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
+                    NuclearFuelClassification.NotFuelReason reason = (in != null)
+                        ? NuclearFuelClassification.unexpectedNotFuel(in)
+                        : null;
+                    if (reason != null) {
+                        refused++;
+                        if (firstReason == null) firstReason = reason;
+                    }
+                }
+            }
+        }
+        if (burning > 0) return;
+        if (refused > 0) {
+            mIdleReasonKey = "modularnuclear.gui.idle.refused";
+            mIdleCount = refused;
+            mIdleDetailKey = firstReason.langKey();
+        } else {
+            mIdleReasonKey = "modularnuclear.gui.idle.no_fuel";
+        }
+    }
+
     private void endCycle(NuclearSimulationEngine.SimulationResult res, double maintEff) {
         // 5. Update last cycle totals, calculate telemetry, coolant tracking, and nuclear control hatches
         mZeroedCoolantItemsLastCycle = mCycleZeroedCoolantItems;
@@ -2353,6 +2396,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             cell.thermalAbsorbed = bus.mLastThermalAbsorbed;
                             cell.directEU = bus.mDirectEUProduced;
                             cell.heatOutput = (float) bus.mLastHeatOutput;
+                            NuclearFuelClassification.NotFuelReason refused = (in != null && !gt.isFuel())
+                                ? NuclearFuelClassification.unexpectedNotFuel(in)
+                                : null;
+                            cell.notFuelReason = refused != null ? (byte) (refused.ordinal() + 1) : 0;
                         } else if (gt.isHatch()) {
                             MTEHatchNuclearHatch hatch = gt.getHatch();
                             cell.isFluid = true;

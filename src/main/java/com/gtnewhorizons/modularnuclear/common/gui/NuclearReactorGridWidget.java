@@ -13,6 +13,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.server.S2FPacketSetSlot;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidContainerItem;
@@ -48,6 +49,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
+import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
 import gregtech.api.util.GTUtility;
 
@@ -660,6 +662,13 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
             if (cell.itemStack.stackSize > 1) {
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + "Stack size: " + EnumChatFormatting.WHITE + cell.itemStack.stackSize);
+            }
+            NuclearFuelClassification.NotFuelReason[] reasons = NuclearFuelClassification.NotFuelReason.values();
+            if (cell.notFuelReason > 0 && cell.notFuelReason <= reasons.length) {
+                tooltip.addLine(
+                    EnumChatFormatting.RED + StatCollector.translateToLocalFormatted(
+                        "modularnuclear.gui.cell.not_burning",
+                        StatCollector.translateToLocal(reasons[cell.notFuelReason - 1].langKey())));
             }
 
             // Component Physics Registry Lookups

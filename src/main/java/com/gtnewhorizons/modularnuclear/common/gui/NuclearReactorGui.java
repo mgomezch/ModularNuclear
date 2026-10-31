@@ -89,6 +89,14 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
             "moltenDown",
             new BooleanSyncValue(() -> multiblock.mMoltenDown, v -> multiblock.mMoltenDown = v));
         syncManager.syncValue(
+            "idleReason",
+            new StringSyncValue(() -> multiblock.mIdleReasonKey, v -> multiblock.mIdleReasonKey = v));
+        syncManager
+            .syncValue("idleCount", new IntSyncValue(() -> multiblock.mIdleCount, v -> multiblock.mIdleCount = v));
+        syncManager.syncValue(
+            "idleDetail",
+            new StringSyncValue(() -> multiblock.mIdleDetailKey, v -> multiblock.mIdleDetailKey = v));
+        syncManager.syncValue(
             "customName",
             new StringSyncValue(
                 () -> multiblock.getCustomName() != null ? multiblock.getCustomName() : "",
@@ -237,6 +245,19 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
                 .textAlign(Alignment.CenterLeft)
                 .setEnabledIf(
                     w -> (damageSyncer != null ? damageSyncer.getDoubleValue() : multiblock.mReactorDamage) > 0.0));
+
+        // Why the core is not burning (only shown while idle)
+        list.child(
+            IKey.dynamic(
+                () -> multiblock.mIdleReasonKey.isEmpty() ? ""
+                    : StatCollector.translateToLocalFormatted(
+                        multiblock.mIdleReasonKey,
+                        multiblock.mIdleCount,
+                        StatCollector.translateToLocal(multiblock.mIdleDetailKey)))
+                .color(Color.rgb(255, 170, 60))
+                .asWidget()
+                .textAlign(Alignment.CenterLeft)
+                .setEnabledIf(w -> !multiblock.mIdleReasonKey.isEmpty()));
 
         // SCRAM Alert (if active)
         list.child(

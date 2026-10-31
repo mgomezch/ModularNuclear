@@ -1,5 +1,7 @@
 package com.gtnewhorizons.modularnuclear.common.util;
 
+import java.util.Locale;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fluids.Fluid;
@@ -223,46 +225,90 @@ public final class NuclearFuelClassification {
     }
 
     public static boolean isDepletedOrEmptyRod(ItemStack stack) {
-        if (stack == null) return false;
+        return depletedReason(stack) != null;
+    }
+
+    /** Why a core bus would not take the item as fuel, for the reactor GUI; null if nothing rules it out. */
+    public enum NotFuelReason {
+
+        /** A depleted rod or cell (GregTech, IC2 or custom). */
+        DEPLETED,
+        /** Listed in the config's blockedItems. */
+        BLOCKED_BY_CONFIG,
+        /** An empty fuel rod, or a custom rod with no fuel mix. */
+        EMPTY_ROD,
+        /** Configured as the spent product of a fuel in fuels.yaml. */
+        SPENT_PRODUCT,
+        /** No fuel definition matches it. */
+        NOT_A_FUEL;
+
+        public String langKey() {
+            return "modularnuclear.gui.not_fuel." + name().toLowerCase(Locale.ROOT);
+        }
+    }
+
+    /**
+     * Why an item in a core bus is not burning when a player would expect it to (a depleted or empty rod, a spent
+     * product, an item the config blocks), or null for fuel and for components never meant to burn.
+     */
+    public static NotFuelReason unexpectedNotFuel(ItemStack stack) {
+        NotFuelReason reason = whyNotFuel(stack);
+        return reason == NotFuelReason.NOT_A_FUEL ? null : reason;
+    }
+
+    /** Why the item is not fuel, or null if it is. */
+    public static NotFuelReason whyNotFuel(ItemStack stack) {
+        if (stack == null) return NotFuelReason.NOT_A_FUEL;
+        NotFuelReason depleted = depletedReason(stack);
+        if (depleted != null) return depleted;
+        return isItemFuel(stack) ? null : NotFuelReason.NOT_A_FUEL;
+    }
+
+    private static NotFuelReason depletedReason(ItemStack stack) {
+        if (stack == null) return null;
 
         initKeys();
         long key = ReactorDataRegistry.getItemKey(stack);
         if (key != 0L && (DEPLETED_ROD_KEYS.contains(key) || IC2_DEPLETED_KEYS.contains(key))) {
-            return true;
+            return NotFuelReason.DEPLETED;
         }
 
         if (ModularNuclearConfig.isItemBlocked(stack)) {
-            return true;
+            return NotFuelReason.BLOCKED_BY_CONFIG;
         }
 
         if (stack.getItem() instanceof ItemCustomFuelRod
             || (ModItems.rodCustomFuel1 != null && stack.getItem() == ModItems.rodCustomFuel1)
             || (ModItems.rodCustomFuel2 != null && stack.getItem() == ModItems.rodCustomFuel2)
             || (ModItems.rodCustomFuel4 != null && stack.getItem() == ModItems.rodCustomFuel4)) {
-            if (!CustomFuelMix.hasCustomMix(stack)) return true;
+            if (!CustomFuelMix.hasCustomMix(stack)) return NotFuelReason.EMPTY_ROD;
         }
 
-        if (stack.getItem() instanceof ItemCustomDepletedFuelRod) return true;
-        if (ModItems.rodCustomDepletedFuel1 != null && stack.getItem() == ModItems.rodCustomDepletedFuel1) return true;
-        if (ModItems.rodCustomDepletedFuel2 != null && stack.getItem() == ModItems.rodCustomDepletedFuel2) return true;
-        if (ModItems.rodCustomDepletedFuel4 != null && stack.getItem() == ModItems.rodCustomDepletedFuel4) return true;
+        if (stack.getItem() instanceof ItemCustomDepletedFuelRod) return NotFuelReason.DEPLETED;
+        if (ModItems.rodCustomDepletedFuel1 != null && stack.getItem() == ModItems.rodCustomDepletedFuel1)
+            return NotFuelReason.DEPLETED;
+        if (ModItems.rodCustomDepletedFuel2 != null && stack.getItem() == ModItems.rodCustomDepletedFuel2)
+            return NotFuelReason.DEPLETED;
+        if (ModItems.rodCustomDepletedFuel4 != null && stack.getItem() == ModItems.rodCustomDepletedFuel4)
+            return NotFuelReason.DEPLETED;
 
-        if (Ic2Items.fuelRod != null && GTUtility.areStacksEqual(stack, Ic2Items.fuelRod, true)) return true;
-        if (ReactorDataRegistry.isItemListStack(ItemList.IC2_Fuel_Rod_Empty, stack)) return true;
+        if (Ic2Items.fuelRod != null && GTUtility.areStacksEqual(stack, Ic2Items.fuelRod, true))
+            return NotFuelReason.EMPTY_ROD;
+        if (ReactorDataRegistry.isItemListStack(ItemList.IC2_Fuel_Rod_Empty, stack)) return NotFuelReason.EMPTY_ROD;
 
-        if (isIC2DepletedFuelCell(stack)) return true;
+        if (isIC2DepletedFuelCell(stack)) return NotFuelReason.DEPLETED;
 
         for (ItemList item : DEPLETED_FUEL_RODS) {
             if (ReactorDataRegistry.isItemListStack(item, stack)) {
-                return true;
+                return NotFuelReason.DEPLETED;
             }
         }
 
         if (ReactorDataRegistry.isSpentProduct(stack)) {
-            return true;
+            return NotFuelReason.SPENT_PRODUCT;
         }
 
-        return false;
+        return null;
     }
 
     public static boolean isFuelAtMaxDamage(ItemStack stack) {
