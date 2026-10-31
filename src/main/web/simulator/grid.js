@@ -356,10 +356,7 @@ function selectCell(x, y) {
     for (let i = 0; i < gridElem.children.length; i++) {
       const c = gridElem.children[i];
       const isSel = parseInt(c.dataset.x) === x && parseInt(c.dataset.y) === y;
-      const isWall = c.classList.contains("wall-cell");
-      const isAttached = c.classList.contains("loop-attached");
-      const desired = "cell" + (isWall ? " wall-cell" : "") + (isSel ? " selected" : "") + (isAttached ? " loop-attached" : "");
-      if (c.className !== desired) c.className = desired;
+      if (c.classList.contains("selected") !== isSel) c.classList.toggle("selected", isSel);
     }
   }
 }

@@ -106,7 +106,7 @@ val generateWasm by tasks.registering(JavaExec::class) {
         copy {
             from(resourceDir)
             into(distDir)
-            include("nuclear-sim-bridge.js", "README.md")
+            include("nuclear-sim-bridge.js", "nuclear-sim-worker.js", "README.md")
         }
         copy {
             from(iconsSourceDir)

@@ -23,23 +23,47 @@ function iconFallback(img, type) {
 }
 window.iconFallback = iconFallback;
 
+// The simulator runs in a Web Worker so stepping never blocks clicks; pages the worker cannot load in (for example
+// opened from file://) run it on the page instead.
+async function createSimulator(wasmPath) {
+  if (typeof NuclearSimWorkerClient !== "undefined" && typeof Worker !== "undefined") {
+    try {
+      return await new NuclearSimWorkerClient().init(wasmPath);
+    } catch (err) {
+      console.warn("Simulation worker unavailable, running the simulator on the page:", err);
+    }
+  }
+  return await new NuclearSimWasm().init(wasmPath);
+}
+
+// New states are drawn at most once per animation frame; the worker is then asked for the next one, so it never
+// serializes states faster than the page draws them.
+let renderScheduled = false;
+function scheduleRender() {
+  if (renderScheduled) return;
+  renderScheduled = true;
+  requestAnimationFrame(() => {
+    renderScheduled = false;
+    renderUI();
+    if (wasmSim && wasmSim.requestState) wasmSim.requestState();
+  });
+}
+
 async function initEngine() {
   if (typeof NuclearSimWasm !== "undefined") {
     try {
-      wasmSim = new NuclearSimWasm();
-      const wasmPath = "nuclear-sim.wasm";
-      await wasmSim.init(wasmPath);
+      wasmSim = await createSimulator("nuclear-sim.wasm");
       isWasmMode = true;
       const eb = document.getElementById("engine-badge");
       if (eb) {
-        eb.innerText = "⚡ Client WASM (0ms)";
+        eb.innerText = wasmSim.worker ? "⚡ Client WASM (worker)" : "⚡ Client WASM (0ms)";
         eb.style.background = "#065f46";
         eb.style.borderColor = "#059669";
         eb.style.color = "#34d399";
       }
       wasmSim.onStateChange = (state) => {
         currentState = state;
-        renderUI();
+        scheduleRender();
       };
       if (window.__INITIAL_STATE__ && window.__INITIAL_STATE__.tiles) {
         wasmSim.initGrid(window.__INITIAL_STATE__.width, window.__INITIAL_STATE__.height, window.__INITIAL_STATE__.pipeTier);
@@ -73,6 +97,7 @@ async function initEngine() {
         wasmSim.loadPreset("BEST_PLATINUM_9X9");
         applyTierCoolingDefaults(1);
       }
+      if (wasmSim.sync) await wasmSim.sync();
       currentState = wasmSim.getState();
       renderUI();
       console.log("⚡ Modular Nuclear Simulator running via WebAssembly (WASM)!");
