@@ -4,7 +4,7 @@ tiers:
   casing_material: Electrum Casing
   voltage_eu: 2048
   max_operating_temp: 1200.0
-  repair_temp_threshold: 120.0
+  repair_temp_threshold: 240.0
   allows_coolant_loops: false
   allowed_coolants:
   - ic2coolant
@@ -13,7 +13,7 @@ tiers:
   casing_material: Platinum Casing
   voltage_eu: 8192
   max_operating_temp: 1400.0
-  repair_temp_threshold: 140.0
+  repair_temp_threshold: 280.0
   allows_coolant_loops: false
   allowed_coolants:
   - ic2coolant
@@ -23,7 +23,7 @@ tiers:
   casing_material: Osmium Casing
   voltage_eu: 32768
   max_operating_temp: 1800.0
-  repair_temp_threshold: 180.0
+  repair_temp_threshold: 360.0
   allows_coolant_loops: true
   allowed_coolants:
   - ic2coolant
@@ -35,7 +35,7 @@ tiers:
   casing_material: Quantium Casing
   voltage_eu: 131072
   max_operating_temp: 2200.0
-  repair_temp_threshold: 220.0
+  repair_temp_threshold: 440.0
   allows_coolant_loops: true
   allowed_coolants:
   - ic2coolant
@@ -50,7 +50,7 @@ tiers:
   casing_material: Fluxed Electrum Casing
   voltage_eu: 524288
   max_operating_temp: 2600.0
-  repair_temp_threshold: 260.0
+  repair_temp_threshold: 520.0
   allows_coolant_loops: true
   allowed_coolants:
   - '*'
@@ -59,7 +59,7 @@ tiers:
   casing_material: Black Plutonium Casing
   voltage_eu: 2097152
   max_operating_temp: 3200.0
-  repair_temp_threshold: 320.0
+  repair_temp_threshold: 640.0
   allows_coolant_loops: true
   allowed_coolants:
   - '*'

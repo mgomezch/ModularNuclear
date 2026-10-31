@@ -44,7 +44,7 @@ public class TierData {
         else td.voltageEu = 2048L;
 
         td.maxOperatingTemp = PhysicsData.getDouble(map, "max_operating_temp", 1200.0);
-        td.repairTempThreshold = PhysicsData.getDouble(map, "repair_temp_threshold", 0.10 * td.maxOperatingTemp);
+        td.repairTempThreshold = PhysicsData.getDouble(map, "repair_temp_threshold", 0.20 * td.maxOperatingTemp);
         td.allowsCoolantLoops = PhysicsData.getBoolean(map, "allows_coolant_loops", td.tier >= 2);
 
         Object coolants = map.get("allowed_coolants");

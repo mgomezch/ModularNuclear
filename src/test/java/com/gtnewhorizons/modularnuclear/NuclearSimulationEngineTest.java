@@ -5687,29 +5687,29 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testRepairTemperatureThresholdScalingAndGating() {
-        // Verify formula: max(120.0, 10% of max operating temperature)
+        // Verify formula: 20% of max operating temperature
         assertEquals(
-            120.0,
+            240.0,
             NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_ELECTRUM),
             1e-6);
         assertEquals(
-            140.0,
+            280.0,
             NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_PLATINUM),
             1e-6);
         assertEquals(
-            180.0,
+            360.0,
             NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_OSMIUM),
             1e-6);
         assertEquals(
-            220.0,
+            440.0,
             NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_QUANTIUM),
             1e-6);
         assertEquals(
-            260.0,
+            520.0,
             NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM),
             1e-6);
         assertEquals(
-            320.0,
+            640.0,
             NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM),
             1e-6);
 
@@ -5718,21 +5718,21 @@ public class NuclearSimulationEngineTest {
         grid.setReactorDamage(25.0);
         grid.setMaintenanceIssues(1);
 
-        // At ambient temp (20°C <= 140°C), repair succeeds
+        // At ambient temp (20°C <= 280°C), repair succeeds
         assertTrue(grid.canRepair(), "Must be eligible for repair at ambient temperature");
         boolean repOk = grid.repair();
         assertTrue(repOk, "Repair must succeed when core is cool");
         assertEquals(0.0, grid.getReactorDamage(), 1e-6);
         assertEquals(0, grid.getMaintenanceIssues());
 
-        // Heat the core above threshold (150°C > 140°C threshold)
+        // Heat the core above threshold (300°C > 280°C threshold)
         grid.setReactorDamage(30.0);
         grid.setMaintenanceIssues(1);
         for (int x = 0; x < 5; x++) {
             for (int y = 0; y < 5; y++) {
                 if (grid.getTile(x, y) != null) {
                     grid.getTile(x, y)
-                        .setTemperature(150.0);
+                        .setTemperature(300.0);
                 }
             }
         }
@@ -5884,7 +5884,7 @@ public class NuclearSimulationEngineTest {
         String[] damagedInfo = reactor.getInfoData();
         String damagedCombined = String.join("\n", damagedInfo);
         assertTrue(damagedCombined.contains("25.0%"));
-        assertTrue(damagedCombined.contains("repair threshold: 180 °C")); // 10% of 1800 °C
+        assertTrue(damagedCombined.contains("repair threshold: 360 °C")); // 20% of 1800 °C
 
         // 5. Test Meltdown Imminent state
         reactor.mReactorDamage = 95.0;
@@ -6291,13 +6291,13 @@ public class NuclearSimulationEngineTest {
             NuclearSimulationEngine.getMaxOperatingTemperature(NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM),
             1e-4);
 
-        // Repair threshold is 10% of max operating temp
+        // Repair threshold is 20% of max operating temp
         assertEquals(
-            120.0,
+            240.0,
             NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_ELECTRUM),
             1e-4);
         assertEquals(
-            320.0,
+            640.0,
             NuclearSimulationEngine.getRepairTemperatureThreshold(NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM),
             1e-4);
 

@@ -176,7 +176,7 @@ public final class ReactorConfigData {
         TierData td = tierDataMap.get(tier);
         if (td != null) return td;
         return tierDataMap
-            .getOrDefault(0, new TierData(tier, "Tier " + tier, "Casing", 2048L, 1200.0, 120.0, tier >= 2));
+            .getOrDefault(0, new TierData(tier, "Tier " + tier, "Casing", 2048L, 1200.0, 240.0, tier >= 2));
     }
 
     public static boolean hasTier(int tier) {
