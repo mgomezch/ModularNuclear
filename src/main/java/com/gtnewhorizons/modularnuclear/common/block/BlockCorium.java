@@ -1,6 +1,8 @@
 package com.gtnewhorizons.modularnuclear.common.block;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.UUID;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.MapColor;
@@ -13,6 +15,7 @@ import net.minecraft.entity.item.EntityFallingBlock;
 import net.minecraft.init.Blocks;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.IBlockAccess;
@@ -27,6 +30,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.hazards.HazardProtection;
+import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.util.GTUtility;
 import ic2.core.IC2Potion;
 
@@ -225,8 +229,23 @@ public class BlockCorium extends BlockFluidClassic {
             return false;
         }
 
+        claimOwnerlessGtMachine(world, x, y, z);
         world.setBlockToAir(x, y, z);
         return true;
+    }
+
+    /**
+     * Gives an ownerless GT machine at (x, y, z) an owner, so removing it doesn't crash. GT's multiblock onRemoval
+     * looks up the owner's team for the powerfail tracker and throws on a null owner UUID, which machines placed by
+     * tools rather than by a player have. The owner is the offline-mode UUID of the machine's owner name ("Player"
+     * when unset).
+     */
+    public static void claimOwnerlessGtMachine(World world, int x, int y, int z) {
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof IGregTechTileEntity igte && igte.getOwnerUuid() == null) {
+            igte.setOwnerUuid(
+                UUID.nameUUIDFromBytes(("OfflinePlayer:" + igte.getOwnerName()).getBytes(StandardCharsets.UTF_8)));
+        }
     }
 
     @Override

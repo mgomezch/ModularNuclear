@@ -30,6 +30,7 @@ import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
+import com.gtnewhorizons.modularnuclear.common.block.BlockCorium;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
@@ -958,6 +959,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 double dy = coord.posY - sphereCenter.posY;
                 double dz = coord.posZ - sphereCenter.posZ;
                 if (dx * dx + dy * dy + dz * dz <= radiusSq) {
+                    BlockCorium.claimOwnerlessGtMachine(world, coord.posX, coord.posY, coord.posZ);
                     world.setBlock(coord.posX, coord.posY, coord.posZ, ModBlocks.blockCorium, 0, 3);
                     coriumPlaced.add(coord);
                 }
@@ -974,6 +976,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             int extraCount = Math.min(4, remaining.size());
             for (int i = 0; i < extraCount; i++) {
                 ChunkCoordinates coord = remaining.get(i);
+                BlockCorium.claimOwnerlessGtMachine(world, coord.posX, coord.posY, coord.posZ);
                 world.setBlock(coord.posX, coord.posY, coord.posZ, ModBlocks.blockCorium, 0, 3);
             }
         }
