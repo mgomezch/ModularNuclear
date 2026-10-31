@@ -5,6 +5,7 @@ import java.util.Map;
 
 import net.minecraft.item.ItemStack;
 
+import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantBathSlot;
 
 import gregtech.api.enums.Materials;
@@ -291,8 +292,21 @@ public class CoolantBathRegistry {
     /**
      * Checks whether an item stack can be processed in the Coolant Bath.
      */
+    /** isCompatibleItem's answers per item kind: the bath asks for every input bus slot every tick. */
+    private static final LongKeyMap<Boolean> COMPATIBLE = new LongKeyMap<>();
+
     public static boolean isCompatibleItem(ItemStack stack) {
         if (stack == null) return false;
+        long key = ReactorDataRegistry.getItemKey(stack);
+        Boolean hit = COMPATIBLE.get(key);
+        if (hit == null) {
+            hit = scanIsCompatibleItem(stack);
+            COMPATIBLE.put(key, hit);
+        }
+        return hit;
+    }
+
+    private static boolean scanIsCompatibleItem(ItemStack stack) {
         ensureInitialized();
 
         if (isCryoCell(stack)) {

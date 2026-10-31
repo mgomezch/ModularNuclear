@@ -38,6 +38,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
 import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
+import com.gtnewhorizons.modularnuclear.common.util.LongKeyMap;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -54,17 +55,17 @@ public final class ReactorDataRegistry {
     private static File configDirectory;
 
     // Fast item-level lookup caches for WAILA and client tick responsiveness
-    private static final Map<Long, FuelData> fuelCache = new ConcurrentHashMap<>();
-    private static final Map<Long, ModeratorData> moderatorCache = new ConcurrentHashMap<>();
-    private static final Map<Long, ReflectorData> reflectorCache = new ConcurrentHashMap<>();
-    private static final Map<Long, ControlRodData> controlRodCache = new ConcurrentHashMap<>();
-    private static final Map<Long, InsulatorData> insulatorCache = new ConcurrentHashMap<>();
-    private static final Map<Long, HeatVentData> heatVentCache = new ConcurrentHashMap<>();
-    private static final Map<Long, HeatExchangerData> heatExchangerCache = new ConcurrentHashMap<>();
-    private static final Map<Long, RadiovoltaicData> radiovoltaicCache = new ConcurrentHashMap<>();
-    private static final Map<Long, CoolantItemData> coolantItemCache = new ConcurrentHashMap<>();
-    private static final Map<Long, CoolantFluidData> coolantFluidItemCache = new ConcurrentHashMap<>();
-    private static final Map<Long, Boolean> spentProductCache = new ConcurrentHashMap<>();
+    private static final LongKeyMap<FuelData> fuelCache = new LongKeyMap<>();
+    private static final LongKeyMap<ModeratorData> moderatorCache = new LongKeyMap<>();
+    private static final LongKeyMap<ReflectorData> reflectorCache = new LongKeyMap<>();
+    private static final LongKeyMap<ControlRodData> controlRodCache = new LongKeyMap<>();
+    private static final LongKeyMap<InsulatorData> insulatorCache = new LongKeyMap<>();
+    private static final LongKeyMap<HeatVentData> heatVentCache = new LongKeyMap<>();
+    private static final LongKeyMap<HeatExchangerData> heatExchangerCache = new LongKeyMap<>();
+    private static final LongKeyMap<RadiovoltaicData> radiovoltaicCache = new LongKeyMap<>();
+    private static final LongKeyMap<CoolantItemData> coolantItemCache = new LongKeyMap<>();
+    private static final LongKeyMap<CoolantFluidData> coolantFluidItemCache = new LongKeyMap<>();
+    private static final LongKeyMap<Boolean> spentProductCache = new LongKeyMap<>();
     /** Fluid lookups match names against every entry's patterns, so they are kept per fluid like item lookups. */
     private static final Map<net.minecraftforge.fluids.Fluid, Object> liquidFuelByFluid = new ConcurrentHashMap<>();
     private static final Map<net.minecraftforge.fluids.Fluid, Object> coolantFluidByFluid = new ConcurrentHashMap<>();
@@ -472,23 +473,7 @@ public final class ReactorDataRegistry {
                 if (stack.getItem() instanceof ItemCustomFuelRod customRod) {
                     rodSize = customRod.rodSize;
                 }
-                FuelData fd = new FuelData();
-                fd.id = "custom_fuel_mix_" + rodSize;
-                fd.name = (rodSize == 1 ? "Custom Fuel Rod"
-                    : rodSize == 2 ? "Dual Custom Fuel Rod" : "Quad Custom Fuel Rod");
-                fd.packetCount = rodSize;
-                fd.baseNeutrons = mix.getBaseNeutrons(rodSize);
-                fd.thermalFissionMultiplier = mix.baseThermalFissionMultiplier;
-                fd.fastFissionMultiplier = mix.baseFastFissionMultiplier;
-                fd.absorptionThermal = 0.80;
-                fd.absorptionFast = 0.25;
-                fd.scatteringThermal = 0.10;
-                fd.scatteringFast = 0.15;
-                fd.moderation = 0.10;
-                fd.heatTransferCoeff = 0.05;
-                fd.defaultDurability = mix.defaultDurability;
-                fd.spentProduct = "modularnuclear:rodCustomDepletedFuel" + rodSize;
-                return fd;
+                return mix.asFuelData(rodSize);
             }
         }
 
@@ -533,8 +518,12 @@ public final class ReactorDataRegistry {
     }
 
     public static FuelData findFuel(FluidStack fluid) {
-        if (fluid == null || fluid.getFluid() == null) return null;
-        Object hit = liquidFuelByFluid.get(fluid.getFluid());
+        return fluid == null ? null : findFuel(fluid.getFluid());
+    }
+
+    public static FuelData findFuel(Fluid fluid) {
+        if (fluid == null) return null;
+        Object hit = liquidFuelByFluid.get(fluid);
         if (hit == null) {
             hit = NO_FLUID_MATCH;
             for (FuelData fd : ReactorConfigData.fuels) {
@@ -543,7 +532,7 @@ public final class ReactorDataRegistry {
                     break;
                 }
             }
-            liquidFuelByFluid.put(fluid.getFluid(), hit);
+            liquidFuelByFluid.put(fluid, hit);
         }
         return hit == NO_FLUID_MATCH ? null : (FuelData) hit;
     }
@@ -712,8 +701,12 @@ public final class ReactorDataRegistry {
     }
 
     public static CoolantFluidData findCoolantFluid(FluidStack fluid) {
-        if (fluid == null || fluid.getFluid() == null) return null;
-        Object hit = coolantFluidByFluid.get(fluid.getFluid());
+        return fluid == null ? null : findCoolantFluid(fluid.getFluid());
+    }
+
+    public static CoolantFluidData findCoolantFluid(Fluid fluid) {
+        if (fluid == null) return null;
+        Object hit = coolantFluidByFluid.get(fluid);
         if (hit == null) {
             hit = NO_FLUID_MATCH;
             for (CoolantFluidData d : ReactorConfigData.componentData.coolantFluids) {
@@ -722,7 +715,7 @@ public final class ReactorDataRegistry {
                     break;
                 }
             }
-            coolantFluidByFluid.put(fluid.getFluid(), hit);
+            coolantFluidByFluid.put(fluid, hit);
         }
         return hit == NO_FLUID_MATCH ? null : (CoolantFluidData) hit;
     }
@@ -1104,11 +1097,13 @@ public final class ReactorDataRegistry {
     }
 
     public static boolean matchesFluid(FluidStack fluid, List<String> patterns) {
-        if (fluid == null || fluid.getFluid() == null || patterns == null || patterns.isEmpty()) return false;
-        String name = fluid.getFluid()
-            .getName();
-        String unloc = fluid.getFluid()
-            .getUnlocalizedName();
+        return fluid != null && matchesFluid(fluid.getFluid(), patterns);
+    }
+
+    public static boolean matchesFluid(Fluid fluid, List<String> patterns) {
+        if (fluid == null || patterns == null || patterns.isEmpty()) return false;
+        String name = fluid.getName();
+        String unloc = fluid.getUnlocalizedName();
         String normName = normalizeFluidString(name);
         String normUnloc = normalizeFluidString(unloc);
         for (String pattern : patterns) {

@@ -64,6 +64,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemCardModularNuc
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemKitModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
+import com.gtnewhorizons.modularnuclear.common.util.FluidRoles;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
@@ -1863,14 +1864,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         for (IGregTechTileEntity te : mNuclearTiles) {
             if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
                 // Liquid fuel does not boil/evaporate and is exempt from thermal shock
-                if (isFluidFuel(hatch.mInputFluid)) {
+                FluidRoles roles = FluidRoles.of(hatch.mInputFluid);
+                if (roles.isFuel()) {
                     hatch.mWasDry = false;
                     continue;
                 }
                 if (hatch.mInputFluid != null && hatch.mInputFluid.amount > 0) {
-                    String name = hatch.mInputFluid.getFluid()
-                        .getName()
-                        .toLowerCase();
+                    String name = roles.lowerName();
                     CoreHatchRules.CoolantFeed feed = CoreHatchRules
                         .checkCoolantFeed(name, hatch.mWasDry, hatch.mTemperature, ambient);
                     if (feed != CoreHatchRules.CoolantFeed.SAFE) {
@@ -1984,12 +1984,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     totalCoolantProduced += hatch.mLastProducedAmount;
                     if (coolantName.isEmpty() && hatch.mLastProducedFluidName != null
                         && !hatch.mLastProducedFluidName.isEmpty()) {
-                        Fluid f = FluidRegistry.getFluid(hatch.mLastProducedFluidName);
-                        if (f != null) {
-                            coolantName = f.getLocalizedName(new FluidStack(f, 1000));
-                        } else {
-                            coolantName = hatch.mLastProducedFluidName;
-                        }
+                        coolantName = outputCoolantDisplayName(hatch.mLastProducedFluidName);
                     }
                 }
             }
@@ -1997,6 +1992,19 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         mOutputCoolantRate = totalCoolantProduced;
         mOutputCoolantName = coolantName;
         super.mEfficiency = (int) Math.round(maintEff * 10000);
+    }
+
+    private String mOutputCoolantSourceName = "";
+    private String mOutputCoolantSourceDisplayName = "";
+
+    /** A produced fluid's display name, looked up again only when the fluid changes. */
+    private String outputCoolantDisplayName(String fluidName) {
+        if (!fluidName.equals(mOutputCoolantSourceName)) {
+            Fluid f = FluidRegistry.getFluid(fluidName);
+            mOutputCoolantSourceDisplayName = f != null ? f.getLocalizedName(new FluidStack(f, 1000)) : fluidName;
+            mOutputCoolantSourceName = fluidName;
+        }
+        return mOutputCoolantSourceDisplayName;
     }
 
     /** Columns past the casing's operating temperature lose their non-fuel contents and add damage (manual 12.3). */

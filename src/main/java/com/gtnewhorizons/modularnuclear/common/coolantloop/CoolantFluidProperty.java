@@ -77,6 +77,7 @@ public class CoolantFluidProperty {
     }
 
     public static void register(CoolantFluidProperty property) {
+        BY_RAW_NAME.clear();
         if (property != null && property.getFluidName() != null) {
             REGISTRY.put(
                 property.getFluidName()
@@ -86,18 +87,29 @@ public class CoolantFluidProperty {
     }
 
     public static void registerAlias(String alias, CoolantFluidProperty property) {
+        BY_RAW_NAME.clear();
         if (alias != null && property != null) {
             REGISTRY.put(alias.toLowerCase(), property);
         }
     }
 
+    /** get's answers by the name as given (fluid registry names, every tick), until the registry changes. */
+    private static final Map<String, Object> BY_RAW_NAME = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Object NOT_REGISTERED = new Object();
+
     public static CoolantFluidProperty get(String name) {
         if (name == null) {
             return null;
         }
-        String clean = name.trim()
-            .toLowerCase();
-        return REGISTRY.get(clean);
+        Object hit = BY_RAW_NAME.get(name);
+        if (hit == null) {
+            CoolantFluidProperty found = REGISTRY.get(
+                name.trim()
+                    .toLowerCase());
+            hit = found != null ? found : NOT_REGISTERED;
+            BY_RAW_NAME.put(name, hit);
+        }
+        return hit == NOT_REGISTERED ? null : (CoolantFluidProperty) hit;
     }
 
     public static Map<String, CoolantFluidProperty> getRegistry() {

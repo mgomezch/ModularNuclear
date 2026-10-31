@@ -131,8 +131,26 @@ public class CoolantDeviceData {
             return sb.toString();
         }
 
+        /** findSecondaryCoolant's answers by fluid name; the configuration is fixed once loaded. */
+        private final Map<String, Object> secondaryByName = new java.util.concurrent.ConcurrentHashMap<>();
+        private static final Object NO_SECONDARY = new Object();
+
+        /**
+         * The secondary coolant entry a fluid boils as, or null. Exchangers ask every tick, and matching normalizes
+         * names (and builds the fallback entries), so answers are kept per name: a name gets the same entry each time.
+         */
         public SecondaryCoolantEntry findSecondaryCoolant(String fluidName) {
             if (fluidName == null) return null;
+            Object hit = secondaryByName.get(fluidName);
+            if (hit == null) {
+                SecondaryCoolantEntry found = scanSecondaryCoolant(fluidName);
+                hit = found != null ? found : NO_SECONDARY;
+                secondaryByName.put(fluidName, hit);
+            }
+            return hit == NO_SECONDARY ? null : (SecondaryCoolantEntry) hit;
+        }
+
+        private SecondaryCoolantEntry scanSecondaryCoolant(String fluidName) {
             String clean = fluidName.trim()
                 .toLowerCase();
             String norm = stripSeparators(clean);

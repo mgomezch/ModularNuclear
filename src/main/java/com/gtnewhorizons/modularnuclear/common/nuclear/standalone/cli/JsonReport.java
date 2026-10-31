@@ -89,8 +89,8 @@ public final class JsonReport {
         // not the whole-run average, which includes the warm-up
         double tailPower = run.steadyStateReached ? run.steadyPower
             : (run.halfTick >= 0 && grid.getCurrentTick() > run.halfTick)
-            ? (grid.getTotalEnergyEU() - run.halfEnergy) / (double) (grid.getCurrentTick() - run.halfTick)
-            : power;
+                ? (grid.getTotalEnergyEU() - run.halfEnergy) / (double) (grid.getCurrentTick() - run.halfTick)
+                : power;
         int tier = grid.getPipeTier();
         long tierVoltage = NuclearSimulationEngine.getPipeTierVoltage(tier);
 

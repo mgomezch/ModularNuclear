@@ -131,34 +131,54 @@ public class BlockCorium extends BlockFluidClassic {
                 .getFlowingIcon();
     }
 
+    /** How a block kind resists corium, by name (see wardedKind); worked out once per block. */
+    private static final int NOT_WARDED = 0, WARDED = 1, WARDED_AT_META_2 = 2;
+    private static final java.util.Map<Block, Integer> WARDED_KIND = new java.util.concurrent.ConcurrentHashMap<>();
+
     public static boolean isImmuneToCorium(Block block, IBlockAccess world, int x, int y, int z) {
         if (block == null || block == Blocks.air) {
             return false;
         }
         // Bedrock, solid corium, and unbreakable blocks
-        if (block == Blocks.bedrock || block == ModBlocks.blockCoriumSolid
-            || block.getBlockHardness(null, 0, 0, 0) < 0) {
+        if (block == Blocks.bedrock || block == ModBlocks.blockCoriumSolid || isUnbreakable(block, world, x, y, z)) {
             return true;
         }
 
         // Warded blocks (e.g. Thaumcraft Warded Glass)
+        Integer kind = WARDED_KIND.get(block);
+        if (kind == null) {
+            kind = wardedKind(block);
+            WARDED_KIND.put(block, kind);
+        }
+        if (kind == WARDED) return true;
+        return kind == WARDED_AT_META_2 && world != null && world.getBlockMetadata(x, y, z) == 2;
+    }
+
+    /**
+     * Whether the block at the position cannot be broken. Hardness can depend on the block's tile entity (Railcraft
+     * machines read it from the world), so it is asked of the real world and position; a block that cannot answer
+     * counts as breakable.
+     */
+    private static boolean isUnbreakable(Block block, IBlockAccess world, int x, int y, int z) {
+        try {
+            return block.getBlockHardness(world instanceof World w ? w : null, x, y, z) < 0;
+        } catch (RuntimeException e) {
+            Swallowed.note(e);
+            return false;
+        }
+    }
+
+    /** Thaumcraft's warded blocks, by registry or unlocalized name. */
+    private static int wardedKind(Block block) {
         try {
             GameRegistry.UniqueIdentifier uid = GameRegistry.findUniqueIdentifierFor(block);
-            if (uid != null) {
-                String modId = uid.modId.toLowerCase(Locale.ENGLISH);
+            if (uid != null && uid.modId.toLowerCase(Locale.ENGLISH)
+                .equals("thaumcraft")) {
                 String name = uid.name.toLowerCase(Locale.ENGLISH);
-                if (modId.equals("thaumcraft")) {
-                    if (name.equals("blockwarded") || name.equals("blockwardedglass")
-                        || name.equals("blockwardedstone")) {
-                        return true;
-                    }
-                    if (name.equals("blockcosmeticopaque")) {
-                        int meta = world != null ? world.getBlockMetadata(x, y, z) : 0;
-                        if (meta == 2) {
-                            return true;
-                        }
-                    }
+                if (name.equals("blockwarded") || name.equals("blockwardedglass") || name.equals("blockwardedstone")) {
+                    return WARDED;
                 }
+                if (name.equals("blockcosmeticopaque")) return WARDED_AT_META_2;
             }
         } catch (Throwable swallowed) {
             Swallowed.note(swallowed);
@@ -170,17 +190,11 @@ public class BlockCorium extends BlockFluidClassic {
             if (lower.equals("tile.blockwarded") || lower.equals("tile.blockwardedglass")
                 || lower.equals("tile.wardedglass")
                 || lower.equals("tile.thaumcraft:blockwarded")) {
-                return true;
+                return WARDED;
             }
-            if (lower.equals("tile.blockcosmeticopaque")) {
-                int meta = world != null ? world.getBlockMetadata(x, y, z) : 0;
-                if (meta == 2) {
-                    return true;
-                }
-            }
+            if (lower.equals("tile.blockcosmeticopaque")) return WARDED_AT_META_2;
         }
-
-        return false;
+        return NOT_WARDED;
     }
 
     @Override

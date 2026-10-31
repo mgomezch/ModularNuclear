@@ -5,6 +5,7 @@ import java.io.File;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
@@ -85,6 +86,20 @@ public final class ModularNuclearConfig {
         "item.modularnuclear.radiovoltaic.plate.ev" };
 
     public static String[] allowedNeutronSources = new String[] { "GoodGenerator:neutronSource", "item.neutronSource" };
+
+    private static volatile int generation;
+
+    /**
+     * Counts configuration changes: what reactors work out from this configuration once (item and fluid roles) is
+     * kept until it changes. Code that edits the lists above at runtime must call {@link #changed()}.
+     */
+    public static int generation() {
+        return generation;
+    }
+
+    public static void changed() {
+        generation++;
+    }
 
     public static void init(File configFile) {
         Configuration config = new Configuration(configFile);
@@ -263,6 +278,7 @@ public final class ModularNuclearConfig {
             if (config.hasChanged()) {
                 config.save();
             }
+            changed();
         }
     }
 
@@ -354,11 +370,13 @@ public final class ModularNuclearConfig {
     }
 
     public static boolean matchesFluid(FluidStack fluid, String[] list) {
-        if (fluid == null || fluid.getFluid() == null || list == null || list.length == 0) return false;
-        String name = fluid.getFluid()
-            .getName();
-        String unloc = fluid.getFluid()
-            .getUnlocalizedName();
+        return fluid != null && matchesFluid(fluid.getFluid(), list);
+    }
+
+    public static boolean matchesFluid(Fluid fluid, String[] list) {
+        if (fluid == null || list == null || list.length == 0) return false;
+        String name = fluid.getName();
+        String unloc = fluid.getUnlocalizedName();
 
         for (String entry : list) {
             if (entry == null || entry.isEmpty()) continue;
@@ -376,9 +394,18 @@ public final class ModularNuclearConfig {
         return matchesItem(stack, allowedFuelItems);
     }
 
+    public static boolean isFluidFuel(Fluid fluid) {
+        if (matchesFluid(fluid, blockedFuelFluids)) return false;
+        return matchesFluid(fluid, allowedFuelFluids);
+    }
+
     public static boolean isFluidFuel(FluidStack fluid) {
         if (matchesFluid(fluid, blockedFuelFluids)) return false;
         return matchesFluid(fluid, allowedFuelFluids);
+    }
+
+    public static boolean isFluidBlocked(Fluid fluid) {
+        return matchesFluid(fluid, blockedFuelFluids);
     }
 
     public static boolean isFluidBlocked(FluidStack fluid) {
@@ -387,6 +414,10 @@ public final class ModularNuclearConfig {
 
     public static boolean isItemCoolant(ItemStack stack) {
         return matchesItem(stack, allowedCoolantItems);
+    }
+
+    public static boolean isCoolantFluid(Fluid fluid) {
+        return matchesFluid(fluid, allowedCoolantFluids);
     }
 
     public static boolean isCoolantFluid(FluidStack fluid) {
