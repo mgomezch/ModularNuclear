@@ -9,6 +9,7 @@ import java.util.Map;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
+import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.util.CustomFuelMixCache;
 
 import gregtech.api.enums.Materials;
@@ -173,6 +174,8 @@ public class CustomFuelMix {
     public final double damageA;
     public final double temp10Percent;
     public final double damageRatio;
+    /** {@link #asFuelData} per rod size (index 1, 2 and 4), built on first use. Guarded by the array. */
+    private final FuelData[] fuelDataBySize = new FuelData[5];
 
     public CustomFuelMix(Map<ActinideIsotope, Integer> units) {
         int total = 0;
@@ -237,6 +240,38 @@ public class CustomFuelMix {
             return Math.max(1, (int) Math.round(this.baseNeutrons * 0.50));
         }
         return this.baseNeutrons;
+    }
+
+    /** This mix as the fuel record of a custom rod of {@code rodSize} packets (1, 2 or 4); built once per size. */
+    public FuelData asFuelData(int rodSize) {
+        if (rodSize < 0 || rodSize >= fuelDataBySize.length) return buildFuelData(rodSize);
+        synchronized (fuelDataBySize) {
+            FuelData fd = fuelDataBySize[rodSize];
+            if (fd == null) {
+                fd = buildFuelData(rodSize);
+                fuelDataBySize[rodSize] = fd;
+            }
+            return fd;
+        }
+    }
+
+    private FuelData buildFuelData(int rodSize) {
+        FuelData fd = new FuelData();
+        fd.id = "custom_fuel_mix_" + rodSize;
+        fd.name = (rodSize == 1 ? "Custom Fuel Rod" : rodSize == 2 ? "Dual Custom Fuel Rod" : "Quad Custom Fuel Rod");
+        fd.packetCount = rodSize;
+        fd.baseNeutrons = getBaseNeutrons(rodSize);
+        fd.thermalFissionMultiplier = baseThermalFissionMultiplier;
+        fd.fastFissionMultiplier = baseFastFissionMultiplier;
+        fd.absorptionThermal = 0.80;
+        fd.absorptionFast = 0.25;
+        fd.scatteringThermal = 0.10;
+        fd.scatteringFast = 0.15;
+        fd.moderation = 0.10;
+        fd.heatTransferCoeff = 0.05;
+        fd.defaultDurability = defaultDurability;
+        fd.spentProduct = "modularnuclear:rodCustomDepletedFuel" + rodSize;
+        return fd;
     }
 
     public double calculateReactivity(double temp) {

@@ -46,6 +46,10 @@ public class CustomFuelMixCacheTest {
         assertSame(mixA, CustomFuelMix.readFromNBT(b));
         assertNotSame(mixA, CustomFuelMix.readFromNBT(rodNbt(288, 72)));
         assertEquals(2, CustomFuelMixCache.size());
+
+        assertSame(mixA.asFuelData(4), mixA.asFuelData(4));
+        assertEquals(4, mixA.asFuelData(4).packetCount);
+        assertEquals(mixA.getBaseNeutrons(1), mixA.asFuelData(1).baseNeutrons);
     }
 
     @Test

@@ -473,23 +473,7 @@ public final class ReactorDataRegistry {
                 if (stack.getItem() instanceof ItemCustomFuelRod customRod) {
                     rodSize = customRod.rodSize;
                 }
-                FuelData fd = new FuelData();
-                fd.id = "custom_fuel_mix_" + rodSize;
-                fd.name = (rodSize == 1 ? "Custom Fuel Rod"
-                    : rodSize == 2 ? "Dual Custom Fuel Rod" : "Quad Custom Fuel Rod");
-                fd.packetCount = rodSize;
-                fd.baseNeutrons = mix.getBaseNeutrons(rodSize);
-                fd.thermalFissionMultiplier = mix.baseThermalFissionMultiplier;
-                fd.fastFissionMultiplier = mix.baseFastFissionMultiplier;
-                fd.absorptionThermal = 0.80;
-                fd.absorptionFast = 0.25;
-                fd.scatteringThermal = 0.10;
-                fd.scatteringFast = 0.15;
-                fd.moderation = 0.10;
-                fd.heatTransferCoeff = 0.05;
-                fd.defaultDurability = mix.defaultDurability;
-                fd.spentProduct = "modularnuclear:rodCustomDepletedFuel" + rodSize;
-                return fd;
+                return mix.asFuelData(rodSize);
             }
         }
 
