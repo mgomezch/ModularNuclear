@@ -548,6 +548,14 @@ function loadPresetFromData(p) {
   if (p.tier) {
     setVoltageTier(p.tier);
   }
+  // A design saved with its simulator options loads exactly as the calibration ran it: casing, turbine, cooling and
+  // every coolant loop circuit
+  if (isWasmMode && wasmSim && p.sim_options && wasmSim.loadRunOptions && wasmSim.loadRunOptions(p.sim_options, false)) {
+    currentState = wasmSim.getState();
+    if (isFitMode) recalculateFitZoom();
+    renderUI();
+    return;
+  }
   if (isWasmMode && wasmSim) {
     const rows = p.layout.trim().split(";");
     const h = rows.length;

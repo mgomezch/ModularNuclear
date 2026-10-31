@@ -62,6 +62,31 @@ if (!failed) {
   }
 }
 
+// Every calibrated design embedded in the page loads from its simulator options and runs. Calibrated designs run
+// hot and flux-heavy, which reaches code (overheating, radiovoltaics) the small reactor above never does.
+if (!failed) {
+  const html = readFileSync(join(dist, "index.html"), "utf8");
+  const m = html.match(/window\.__CEILING_PRESETS__\s*=\s*(\[[\s\S]*?\]);\s*\n/);
+  const presets = m ? JSON.parse(m[1]) : [];
+  for (const p of presets) {
+    if (!p.sim_options) continue;
+    try {
+      sim.loadRunOptions(p.sim_options, false);
+      sim.stepTicks(300);
+      const st = sim.getState();
+      if (st.exploded || !(st.grossPowerEUt > 0)) {
+        failed++;
+        console.log(`FAIL preset ${p.tier}: power ${st.grossPowerEUt}, exploded ${st.exploded}, ${st.powerFailReason || ""}`);
+      } else {
+        console.log(`ok   preset ${p.tier} (${Math.round(st.grossPowerEUt)} EU/t)`);
+      }
+    } catch (err) {
+      failed++;
+      console.log(`FAIL preset ${p.tier}: ${String(err).split("\n")[0]}`);
+    }
+  }
+}
+
 // A convective loop on an LuV (Osmium) grid runs the shared coolant loop engine
 if (!failed) {
   try {

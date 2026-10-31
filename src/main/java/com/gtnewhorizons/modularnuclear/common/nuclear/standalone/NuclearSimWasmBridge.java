@@ -4,11 +4,14 @@ import java.util.List;
 
 import org.teavm.interop.Export;
 
+import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData.PHEData.SecondaryCoolantEntry;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules;
+import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.cli.RunConfig;
+import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.cli.SimOptions;
 
 /**
  * WebAssembly and standalone bridge exposing the nuclear simulation engine
@@ -79,6 +82,26 @@ public class NuclearSimWasmBridge {
         if (grid != null && presetName != null) {
             grid.loadPreset(presetName);
         }
+    }
+
+    /**
+     * Builds the grid from a simulator option line, the one the CLI's batch mode reads (layout, casing tier, turbine,
+     * cooling, coolant loop circuits, machine limits), so a saved design loads exactly as the calibration ran it.
+     * Parameters the line does not set start from the shipped configuration.
+     */
+    @Export(name = "loadRunOptions")
+    public static void loadRunOptions(String line) {
+        if (line == null || line.trim()
+            .isEmpty()) return;
+        NuclearSimulationEngine.resetDefaultParameters();
+        CoolantLoopConfigData.loadDefaults();
+        RunConfig cfg = RunConfig.batchLine();
+        // As in the game, an overheating cell damages the reactor rather than disqualifying the run
+        cfg.strict = false;
+        SimOptions.table(true)
+            .parseTokens(cfg, line.trim(), "\\s+");
+        isRunning = false;
+        grid = cfg.buildGrid(false);
     }
 
     @Export(name = "loadLayout")
