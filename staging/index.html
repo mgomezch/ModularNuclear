@@ -312,6 +312,16 @@
     z-index: 2;
     transition: background-color 0.1s ease;
   }
+  .cell.overheat .cell-overlay::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255, 0, 0, 0.45);
+    animation: overheat-blink 0.8s step-end infinite;
+  }
+  @keyframes overheat-blink {
+    50% { opacity: 0; }
+  }
   .cell .cell-icon {
     width: calc(var(--cell-size) * 0.72);
     height: calc(var(--cell-size) * 0.72);
@@ -402,9 +412,12 @@
     0% { background-color: rgba(255, 71, 87, 0.5); transform: scale(1.008); }
     100% { background-color: rgba(255, 165, 2, 0.15); transform: scale(1); }
   }
+  /* Always shown at a fixed height, so alerts coming and going never move the grid below it. */
   #alert-box {
-    display: none;
-    padding: 12px 16px;
+    display: block;
+    height: 4.6rem;
+    overflow-y: auto;
+    padding: 10px 14px;
     border-radius: 6px;
     margin-bottom: 12px;
     width: 100%;
@@ -426,6 +439,12 @@
   #alert-box.flash {
     animation: warning-flash 0.4s ease-out;
   }
+  #alert-box.alert-ok {
+    background: #131a24;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+  }
+  .loop-limit-line { color: #fde047; margin-top: 4px; min-height: 1.3em; }
 
   /* Incident Log Card & Entries */
   .incident-log-container {
@@ -531,6 +550,11 @@
       align-items: stretch;
       gap: 6px;
     }
+    /* Narrow screens wrap the header badges and the mode buttons instead of widening the page. */
+    header > div { flex-wrap: wrap; }
+    .toolbar select, .side-panel select, .telemetry-panel select { min-width: 0; max-width: 100%; }
+    .display-mode-selector { flex-wrap: wrap; }
+    .segmented-control { flex-wrap: wrap; }
     .zoom-controls {
       width: 100%;
       justify-content: space-between;
@@ -545,8 +569,29 @@
       margin: 6px auto;
     }
   }
+
+  /* Fixed sizes for everything the running simulation updates: live values change text, never the layout. */
+  #status-badge { min-width: 17.5em; text-align: center; }
+  #damage-badge { min-width: 8.5em; text-align: center; }
+  #maint-badge { min-width: 11em; text-align: center; }
+  #btn-play { min-width: 11.5em; }
+  #tile-inspector { height: 30rem; overflow-y: auto; contain: strict; }
+  #incident-log-list { contain: strict; }
+  #byproducts-content { height: 22rem; overflow-y: auto; contain: strict; }
+  #reactor-grid .cell { contain: strict; }
+  /* Live values stay on one line (the full text is in the tooltip); the few long ones get a fixed two or three. */
+  .stat-row { gap: 8px; }
+  .stat-row > span:first-child { flex-shrink: 0; white-space: nowrap; }
+  .stat-val { min-width: 0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat-val.wrap2, .stat-val.wrap3 { white-space: normal; line-height: 1.25; overflow: hidden; }
+  .stat-val.wrap2 { height: calc(2 * 1.25em); }
+  .stat-val.wrap3 { height: calc(3 * 1.25em); }
+  .proc-line { height: calc(2 * 1.3em); line-height: 1.3; overflow: hidden; }
+  .proc-line1 { height: 1.3em; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .scen-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
 <script src="nuclear-sim-bridge.js"></script>
+<script src="nuclear-sim-worker.js"></script>
 </head>
 <body>
 <header>
@@ -555,9 +600,9 @@
     <span class="badge" id="engine-badge" style="background:#065f46; border-color:#059669; color:#34d399;" title="Simulation running client-side via WebAssembly">⚡ Client WASM (0ms)</span>
     <a href="/monitor/" class="badge" style="text-decoration:none; background:#1e1b4b; border-color:#6366f1; color:#a5b4fc;" title="Open real-time simulator telemetry & calibration dashboard">📊 Live Monitor</a>
     <span class="badge" id="casing-badge">Electrum Casing (1000°C max)</span>
-    <span class="badge" id="damage-badge" style="display:none; color:var(--danger); border-color:var(--danger);" title="Cumulative reactor structural damage">Damage: 0.0%</span>
+    <span class="badge" id="damage-badge" style="visibility:hidden; color:var(--danger); border-color:var(--danger);" title="Cumulative reactor structural damage">Damage: 0.0%</span>
     <span class="badge" id="maint-badge" style="color:var(--success);" title="Maintenance health (efficiency penalty)">Maint: 100%</span>
-    <button id="btn-quick-repair" onclick="quickRepair()" style="display:none; padding:2px 8px; font-size:0.75rem; background:#1e293b; border-color:var(--warning); color:var(--warning);" title="Repair structural damage and clear maintenance issues">🔧 Repair</button>
+    <button id="btn-quick-repair" onclick="quickRepair()" style="visibility:hidden; padding:2px 8px; font-size:0.75rem; background:#1e293b; border-color:var(--warning); color:var(--warning);" title="Repair structural damage and clear maintenance issues">🔧 Repair</button>
     <span class="badge" id="status-badge" style="color:var(--success);">STATUS: STANDBY</span>
   </div>
 </header>
@@ -688,7 +733,7 @@
           <button type="button" onclick="clearIncidentLog()" style="padding:2px 8px; font-size:0.72rem;" title="Clear incident history">Clear Log</button>
         </div>
       </div>
-      <div id="incident-log-list" style="max-height:130px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;">
+      <div id="incident-log-list" style="height:130px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;">
         <div style="font-style:italic; font-size:0.75rem; color:#64748b; padding:4px 6px;">No incidents recorded. Chamber operating nominally.</div>
       </div>
     </div>
@@ -1029,11 +1074,11 @@
       </div>
       <div class="stat-row"><span>Loop Fluid Temp:</span><span class="stat-val" id="loop-temp-val">20.0 °C</span></div>
       <div class="stat-row"><span>Convective Heat Extracted:</span><span class="stat-val" id="loop-heat-val" style="color:#38bdf8;">0 Hu/s (0.0 MWth)</span></div>
-      <div class="stat-row"><span>Secondary PHE Steam:</span><span class="stat-val" id="loop-steam-val">0 L/t (1:160)</span></div>
-      <div class="stat-row"><span>Pump Power (Parasitic):</span><span class="stat-val" id="loop-pump-val" style="color:#fbbf24;">0 EU/t</span></div>
+      <div class="stat-row"><span>Secondary PHE Steam:</span><span class="stat-val wrap2" id="loop-steam-val">0 L/t (1:160)</span></div>
+      <div class="stat-row"><span>Pump Power (Parasitic):</span><span class="stat-val wrap3" id="loop-pump-val" style="color:#fbbf24;">0 EU/t</span></div>
       <div class="stat-row"><span>Attached Core Points:</span><span class="stat-val" id="loop-points-val">0 cells</span></div>
       <div id="loop-circuits-table" style="font-size:0.72rem; margin-top:6px;"></div>
-      <div class="stat-row"><span>Byproduct (Transmutation):</span><span class="stat-val" id="loop-byproduct-val" style="color:#a855f7;">0 L</span></div>
+      <div class="stat-row"><span>Byproduct (Transmutation):</span><span class="stat-val wrap2" id="loop-byproduct-val" style="color:#a855f7;">0 L</span></div>
     </div>
 
     <!-- Control Rods Subsystem -->
@@ -1087,7 +1132,7 @@
       <div class="stat-row"><span>XLST-SC (supercritical):</span><span class="stat-val" id="turb-sc-pwr">0 EU/t</span></div>
       <div class="stat-row"><span>XLST-HP (superheated/HW):</span><span class="stat-val" id="turb-hp-pwr">0 EU/t</span></div>
       <div class="stat-row"><span>XLST (regular steam):</span><span class="stat-val" id="turb-reg-pwr">0 EU/t</span></div>
-      <div class="stat-row" id="ehe-row" style="display:none;"><span>EHE Mode / DW:</span><span class="stat-val" id="turb-ehe-info" style="color:#38bdf8;">None</span></div>
+      <div class="stat-row" id="ehe-row"><span>EHE Mode / DW:</span><span class="stat-val wrap2" id="turb-ehe-info" style="color:#38bdf8;">None</span></div>
       <hr style="border:0; border-top:1px solid var(--border-color); margin:6px 0;">
       <div class="stat-row" style="font-size:0.75rem;"><span>Live Flows (L/t):</span><span class="stat-val" id="turb-flows" style="font-size:0.75rem;">Reg: 0 | SH: 0 | SC: 0</span></div>
       <!-- Operational scenarios (tier defaults) -->
@@ -1096,18 +1141,18 @@
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
           <div style="background:#1e293b; border:1px solid rgba(56,189,248,0.3); border-radius:4px; padding:6px;">
             <div style="font-size:0.72rem; font-weight:bold; color:#38bdf8;">Scenario A [Tight]</div>
-            <div id="scen-a-desc" style="font-size:0.68rem; color:var(--text-muted); margin-bottom:3px;">-</div>
-            <div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Power: </span><span id="scen-a-pwr" style="font-weight:bold; color:#4ade80;">-</span></div>
-            <div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Turbines: </span><span id="scen-a-turb" style="font-weight:bold;">-</span></div>
-            <div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Coolant: </span><span id="scen-a-mach">-</span></div>
+            <div id="scen-a-desc" class="proc-line" style="font-size:0.68rem; color:var(--text-muted); margin-bottom:3px;">-</div>
+            <div class="scen-line" style="font-size:0.72rem;"><span style="color:var(--text-muted);">Power: </span><span id="scen-a-pwr" style="font-weight:bold; color:#4ade80;">-</span></div>
+            <div class="scen-line" style="font-size:0.72rem;"><span style="color:var(--text-muted);">Turbines: </span><span id="scen-a-turb" style="font-weight:bold;">-</span></div>
+            <div class="scen-line" style="font-size:0.72rem;"><span style="color:var(--text-muted);">Coolant: </span><span id="scen-a-mach">-</span></div>
             <button class="btn btn-sm" onclick="applyScenarioPreset('TIGHT')" style="margin-top:4px; width:100%; font-size:0.68rem; padding:2px 4px; background:#0284c7;">Apply Tight</button>
           </div>
           <div style="background:#1e293b; border:1px solid rgba(251,191,36,0.3); border-radius:4px; padding:6px;">
             <div style="font-size:0.72rem; font-weight:bold; color:#fbbf24;">Scenario B [Loose]</div>
-            <div id="scen-b-desc" style="font-size:0.68rem; color:var(--text-muted); margin-bottom:3px;">-</div>
-            <div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Power: </span><span id="scen-b-pwr" style="font-weight:bold; color:#4ade80;">-</span></div>
-            <div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Turbines: </span><span id="scen-b-turb" style="font-weight:bold;">-</span></div>
-            <div style="font-size:0.72rem;"><span style="color:var(--text-muted);">Coolant: </span><span id="scen-b-mach">-</span></div>
+            <div id="scen-b-desc" class="proc-line" style="font-size:0.68rem; color:var(--text-muted); margin-bottom:3px;">-</div>
+            <div class="scen-line" style="font-size:0.72rem;"><span style="color:var(--text-muted);">Power: </span><span id="scen-b-pwr" style="font-weight:bold; color:#4ade80;">-</span></div>
+            <div class="scen-line" style="font-size:0.72rem;"><span style="color:var(--text-muted);">Turbines: </span><span id="scen-b-turb" style="font-weight:bold;">-</span></div>
+            <div class="scen-line" style="font-size:0.72rem;"><span style="color:var(--text-muted);">Coolant: </span><span id="scen-b-mach">-</span></div>
             <button class="btn btn-sm" onclick="applyScenarioPreset('LOOSE')" style="margin-top:4px; width:100%; font-size:0.68rem; padding:2px 4px; background:#d97706;">Apply Loose</button>
           </div>
         </div>
@@ -1131,7 +1176,7 @@
           <span>☀️ Stage 0: Direct Radiovoltaics</span>
           <span id="proc-pv-val">0 EU/t</span>
         </div>
-        <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;" id="proc-pv-sub">Chamber cells direct EU output</div>
+        <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;" class="proc-line" id="proc-pv-sub">Chamber cells direct EU output</div>
       </div>
 
       <!-- Stage 1: Hot Coolant Heat Exchanger -->
@@ -1140,8 +1185,8 @@
           <span id="proc-coolant-title">🔄 Stage 1: Coolant Exchanger</span>
           <span id="proc-coolant-count" style="color:#e2e8f0; font-weight:bold;">0x Machine</span>
         </div>
-        <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" id="proc-coolant-detail">Input: 0 L/t Hot Coolant → Output: 0 L/t Steam</div>
-        <div style="font-size:0.67rem; color:var(--text-muted); margin-top:1px;" id="proc-coolant-water">Water: 0 L/t</div>
+        <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" class="proc-line" id="proc-coolant-detail">Input: 0 L/t Hot Coolant → Output: 0 L/t Steam</div>
+        <div style="font-size:0.67rem; color:var(--text-muted); margin-top:1px;" class="proc-line1" id="proc-coolant-water">Water: 0 L/t</div>
       </div>
 
       <!-- Stage 2: Supercritical Steam (XLST-SC) -->
@@ -1150,8 +1195,8 @@
           <span id="proc-sc-title">⚡ Stage 2: XLST-SC (Supercritical)</span>
           <span id="proc-sc-pwr">0 EU/t</span>
         </div>
-        <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" id="proc-sc-detail">0 L/t SC steam · 0.00 turbines</div>
-        <div style="font-size:0.67rem; color:#94a3b8; margin-top:1px;" id="proc-sc-cascade">Cascades 1:1 into Superheated Steam</div>
+        <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" class="proc-line" id="proc-sc-detail">0 L/t SC steam · 0.00 turbines</div>
+        <div style="font-size:0.67rem; color:#94a3b8; margin-top:1px;" class="proc-line1" id="proc-sc-cascade">Cascades 1:1 into Superheated Steam</div>
       </div>
 
       <!-- Stage 3: Superheated Steam (XLST-HP) -->
@@ -1160,8 +1205,8 @@
           <span id="proc-hp-title">⚡ Stage 3: XLST-HP (superheated)</span>
           <span id="proc-hp-pwr">0 EU/t</span>
         </div>
-        <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" id="proc-hp-detail">0 L/t SH steam · 0.00 turbines</div>
-        <div style="font-size:0.67rem; color:#94a3b8; margin-top:1px;" id="proc-hp-cascade">Cascades 1:1 into Regular Steam</div>
+        <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" class="proc-line" id="proc-hp-detail">0 L/t SH steam · 0.00 turbines</div>
+        <div style="font-size:0.67rem; color:#94a3b8; margin-top:1px;" class="proc-line1" id="proc-hp-cascade">Cascades 1:1 into Regular Steam</div>
       </div>
 
       <!-- Stage 4: Regular Steam Turbine (LST or XLST) -->
@@ -1170,14 +1215,14 @@
           <span id="proc-reg-title">⚡ Stage 4: XLST (regular steam)</span>
           <span id="proc-reg-pwr">0 EU/t</span>
         </div>
-        <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" id="proc-reg-detail">0 L/t steam · 0.00 turbines</div>
-        <div style="font-size:0.67rem; color:#94a3b8; margin-top:1px;" id="proc-reg-eff">Base 0.5 EU/L × Rotor Eff</div>
+        <div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;" class="proc-line" id="proc-reg-detail">0 L/t steam · 0.00 turbines</div>
+        <div style="font-size:0.67rem; color:#94a3b8; margin-top:1px;" class="proc-line1" id="proc-reg-eff">Base 0.5 EU/L × Rotor Eff</div>
       </div>
 
       <!-- Process Total Summary -->
-      <div style="border-top:1px solid var(--border-color); padding-top:6px; margin-top:6px; display:flex; justify-content:space-between; align-items:center; font-size:0.78rem;">
+      <div style="border-top:1px solid var(--border-color); padding-top:6px; margin-top:6px; display:flex; justify-content:space-between; align-items:center; gap:8px; white-space:nowrap; font-size:0.78rem;">
         <span style="font-weight:700; color:var(--text-light);">Net Generation:</span>
-        <span id="proc-net-pwr" style="font-weight:bold; color:var(--success);">0 EU/t (0.00 A)</span>
+        <span id="proc-net-pwr" style="min-width:0; overflow:hidden; text-overflow:ellipsis; font-weight:bold; color:var(--success);">0 EU/t (0.00 A)</span>
       </div>
     </div>
 
@@ -1193,7 +1238,7 @@
     <div class="stat-row"><span>Deuterium Bred:</span><span class="stat-val" id="stat-deuterium" style="color:var(--accent);">0 L</span></div>
     <div class="stat-row"><span>Tritium Bred:</span><span class="stat-val" id="stat-tritium" style="color:#d946ef;">0 L</span></div>
     <div class="stat-row"><span>Oxygen Generated:</span><span class="stat-val" id="stat-oxygen" style="color:#38bdf8;">0 L</span></div>
-    <div class="stat-row"><span>Power Generation:</span><span class="stat-val safe" id="stat-power">0 EU/t</span></div>
+    <div class="stat-row"><span>Power Generation:</span><span class="stat-val safe wrap2" id="stat-power">0 EU/t</span></div>
 
     <!-- Fuel & Coolant Byproducts Subsystem -->
     <div id="fuel-byproducts-card" style="background:#131a24; border:1px solid #10b981; border-radius:6px; padding:12px; margin-top:12px; margin-bottom:12px;">
@@ -1229,7 +1274,7 @@
           </div>
         </div>
 
-        <div id="byproduct-liquid-section" style="margin-bottom:6px; display:none;">
+        <div id="byproduct-liquid-section" style="margin-bottom:6px;">
           <div style="font-weight:700; font-size:0.72rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px; display:flex; justify-content:space-between;">
             <span>Depleted Fluid Fuels</span>
             <span id="byproduct-liquid-total" style="color:#38bdf8; font-weight:bold;">0 L/min</span>
@@ -1237,7 +1282,7 @@
           <div id="byproduct-liquid-list" style="display:flex; flex-direction:column; gap:4px;"></div>
         </div>
 
-        <div id="byproduct-isotope-section" style="margin-bottom:2px; display:none;">
+        <div id="byproduct-isotope-section" style="margin-bottom:2px;">
           <div style="font-weight:700; font-size:0.72rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px; display:flex; justify-content:space-between;">
             <span>Transmuted Isotopes</span>
             <span id="byproduct-isotope-total" style="color:#d946ef; font-weight:bold;">0 L/min</span>
@@ -1270,6 +1315,91 @@ let isWasmMode = true;
 let wasmSim = null;
 let byproductUnit = "min";
 
+// DOM writes go through these helpers while the simulation runs: they touch an element only when its content
+// actually changes, and patchHTML updates the existing nodes in place instead of replacing them, so a button or
+// <select> under the pointer stays the same element from one frame to the next.
+function setText(el, text) {
+  if (typeof el === "string") el = document.getElementById(el);
+  if (!el) return;
+  const s = text == null ? "" : String(text);
+  // A value cut off with an ellipsis can still be read in full on hover.
+  if (el.classList.contains("stat-val") && el.title !== s) el.title = s;
+  const node = el.firstChild;
+  if (node && node.nodeType === Node.TEXT_NODE && !node.nextSibling) {
+    if (node.nodeValue !== s) node.nodeValue = s;
+  } else if (el.textContent !== s) {
+    el.textContent = s;
+  }
+}
+
+function setClass(el, cls) {
+  if (el && el.className !== cls) el.className = cls;
+}
+
+// Hides an element but keeps its space, so the layout does not move when it comes and goes.
+function setShown(el, shown) {
+  if (!el) return;
+  const v = shown ? "" : "hidden";
+  if (el.style.visibility !== v) el.style.visibility = v;
+}
+
+const patchTemplate = document.createElement("template");
+function patchHTML(el, html) {
+  if (!el || el.__patchedHtml === html) return;
+  el.__patchedHtml = html;
+  patchTemplate.innerHTML = html;
+  patchChildren(el, patchTemplate.content);
+}
+
+function patchChildren(parent, src) {
+  const cur = parent.childNodes;
+  const want = src.childNodes;
+  for (let i = 0; i < want.length; i++) {
+    const w = want[i];
+    const c = cur[i];
+    if (!c) {
+      parent.appendChild(w.cloneNode(true));
+    } else if (c.nodeType !== w.nodeType || c.nodeName !== w.nodeName) {
+      parent.replaceChild(w.cloneNode(true), c);
+    } else if (c.nodeType === Node.ELEMENT_NODE) {
+      patchElement(c, w);
+    } else if (c.nodeValue !== w.nodeValue) {
+      c.nodeValue = w.nodeValue;
+    }
+  }
+  while (cur.length > want.length) parent.removeChild(parent.lastChild);
+}
+
+function patchElement(el, src) {
+  const active = document.activeElement;
+  // A control the user is working with (an open <select>, a slider being dragged) is left alone, and so is a label
+  // that follows it (data-follows names the control's id).
+  if (el === active) return;
+  const follows = src.getAttribute("data-follows");
+  if (follows && active && active.id === follows) return;
+  for (let i = el.attributes.length - 1; i >= 0; i--) {
+    const name = el.attributes[i].name;
+    if (!src.hasAttribute(name)) el.removeAttribute(name);
+  }
+  for (let i = 0; i < src.attributes.length; i++) {
+    const a = src.attributes[i];
+    if (el.getAttribute(a.name) !== a.value) el.setAttribute(a.name, a.value);
+  }
+  patchChildren(el, src);
+  // Attributes only set a control's default value; its current value is synced separately.
+  if (el.tagName === "SELECT") {
+    const opt = src.querySelector("option[selected]") || src.querySelector("option");
+    if (opt && el.value !== opt.value) el.value = opt.value;
+  } else if (el.tagName === "INPUT") {
+    if (el.type === "checkbox" || el.type === "radio") {
+      const checked = src.hasAttribute("checked");
+      if (el.checked !== checked) el.checked = checked;
+    } else if (src.hasAttribute("value") && el.value !== src.getAttribute("value")) {
+      el.value = src.getAttribute("value");
+    }
+  }
+}
+
 function getIconUrl(type) {
   return `icons/${type}.png`;
 }
@@ -1287,23 +1417,53 @@ function iconFallback(img, type) {
 }
 window.iconFallback = iconFallback;
 
+// The simulator runs in a Web Worker so stepping never blocks clicks; pages the worker cannot load in (for example
+// opened from file://) run it on the page instead.
+async function createSimulator(wasmPath) {
+  if (typeof NuclearSimWorkerClient !== "undefined" && typeof Worker !== "undefined") {
+    try {
+      return await new NuclearSimWorkerClient().init(wasmPath);
+    } catch (err) {
+      console.warn("Simulation worker unavailable, running the simulator on the page:", err);
+    }
+  }
+  return await new NuclearSimWasm().init(wasmPath);
+}
+
+// New states are drawn at most once per animation frame; the worker is then asked for the next one, so it never
+// serializes states faster than the page draws them. A timer backs up the frame callback, which browsers stop
+// delivering to pages that are not on screen.
+let renderScheduled = false;
+function scheduleRender() {
+  if (renderScheduled) return;
+  renderScheduled = true;
+  let timer = null;
+  const draw = () => {
+    if (!renderScheduled) return;
+    renderScheduled = false;
+    clearTimeout(timer);
+    renderUI();
+    if (wasmSim && wasmSim.requestState) wasmSim.requestState();
+  };
+  requestAnimationFrame(draw);
+  timer = setTimeout(draw, 250);
+}
+
 async function initEngine() {
   if (typeof NuclearSimWasm !== "undefined") {
     try {
-      wasmSim = new NuclearSimWasm();
-      const wasmPath = "nuclear-sim.wasm";
-      await wasmSim.init(wasmPath);
+      wasmSim = await createSimulator("nuclear-sim.wasm");
       isWasmMode = true;
       const eb = document.getElementById("engine-badge");
       if (eb) {
-        eb.innerText = "⚡ Client WASM (0ms)";
+        eb.innerText = wasmSim.worker ? "⚡ Client WASM (worker)" : "⚡ Client WASM (0ms)";
         eb.style.background = "#065f46";
         eb.style.borderColor = "#059669";
         eb.style.color = "#34d399";
       }
       wasmSim.onStateChange = (state) => {
         currentState = state;
-        renderUI();
+        scheduleRender();
       };
       if (window.__INITIAL_STATE__ && window.__INITIAL_STATE__.tiles) {
         wasmSim.initGrid(window.__INITIAL_STATE__.width, window.__INITIAL_STATE__.height, window.__INITIAL_STATE__.pipeTier);
@@ -1337,6 +1497,7 @@ async function initEngine() {
         wasmSim.loadPreset("BEST_PLATINUM_9X9");
         applyTierCoolingDefaults(1);
       }
+      if (wasmSim.sync) await wasmSim.sync();
       currentState = wasmSim.getState();
       renderUI();
       console.log("⚡ Modular Nuclear Simulator running via WebAssembly (WASM)!");
@@ -1966,7 +2127,7 @@ function renderUI() {
   if (!currentState) return;
 
   // Header badges
-  document.getElementById("casing-badge").innerText = currentState.pipeTierName + " (Max " + currentState.maxSafeTemp + "°C)";
+  setText("casing-badge", currentState.pipeTierName + " (Max " + currentState.maxSafeTemp + "°C)");
   const statusBadge = document.getElementById("status-badge");
   const playBtn = document.getElementById("btn-play");
   const alertBox = document.getElementById("alert-box");
@@ -1982,30 +2143,22 @@ function renderUI() {
     rngDmg.value = currentDmg;
   }
   if (lblDmg && document.activeElement !== rngDmg) {
-    lblDmg.innerText = currentDmg.toFixed(1) + "%";
+    setText(lblDmg, currentDmg.toFixed(1) + "%");
   }
 
   if (dmgBadge) {
-    if (currentDmg > 0.001) {
-      dmgBadge.style.display = "inline-block";
-      dmgBadge.innerText = "Damage: " + currentDmg.toFixed(1) + "%";
-    } else {
-      dmgBadge.style.display = "none";
-    }
+    setShown(dmgBadge, currentDmg > 0.001);
+    setText(dmgBadge, "Damage: " + currentDmg.toFixed(1) + "%");
   }
   if (maintBadge) {
     const effPct = (currentState.maintenanceEfficiency != null ? (currentState.maintenanceEfficiency * 100).toFixed(0) : "100");
     const issues = currentState.maintenanceIssues || 0;
-    maintBadge.innerText = `Maint: ${effPct}% (${issues} issues)`;
+    setText(maintBadge, `Maint: ${effPct}% (${issues} issues)`);
     maintBadge.style.color = (issues === 0 && currentDmg < 0.001) ? "var(--success)" : "var(--warning)";
   }
   if (repairBtn) {
     const hasDmg = currentDmg > 0.001 || (currentState.maintenanceIssues && currentState.maintenanceIssues > 0);
-    repairBtn.style.display = hasDmg ? "inline-block" : "none";
-    repairBtn.disabled = false;
-    repairBtn.style.opacity = "1.0";
-    repairBtn.style.cursor = "pointer";
-    repairBtn.title = "Repair structural damage and clear maintenance issues (Reset damage to 0%)";
+    setShown(repairBtn, hasDmg);
   }
 
   // Sync Simulation Options toggles
@@ -2014,7 +2167,7 @@ function renderUI() {
   if (chkStopInc && currentState.stopOnIncidents !== undefined) {
     chkStopInc.checked = Boolean(currentState.stopOnIncidents);
     if (lblStopInc) {
-      lblStopInc.innerText = chkStopInc.checked ? "(Enabled)" : "(Off)";
+      setText(lblStopInc, chkStopInc.checked ? "(Enabled)" : "(Off)");
       lblStopInc.style.color = chkStopInc.checked ? "var(--warning)" : "var(--text-muted)";
       lblStopInc.style.fontWeight = chkStopInc.checked ? "600" : "normal";
     }
@@ -2028,7 +2181,7 @@ function renderUI() {
   if (chkAutoSupply) {
     chkAutoSupply.checked = autoSupplyVal;
     if (lblAutoSupply) {
-      lblAutoSupply.innerText = autoSupplyVal ? "(Enabled)" : "(Off)";
+      setText(lblAutoSupply, autoSupplyVal ? "(Enabled)" : "(Off)");
       lblAutoSupply.style.color = autoSupplyVal ? "#34d399" : "var(--text-muted)";
       lblAutoSupply.style.fontWeight = autoSupplyVal ? "600" : "normal";
     }
@@ -2036,7 +2189,7 @@ function renderUI() {
   if (chkAutoRefuel) {
     chkAutoRefuel.checked = autoSupplyVal;
     if (lblAutoRefuel) {
-      lblAutoRefuel.innerText = autoSupplyVal ? "Enabled" : "Disabled";
+      setText(lblAutoRefuel, autoSupplyVal ? "Enabled" : "Disabled");
       lblAutoRefuel.style.color = autoSupplyVal ? "#34d399" : "var(--text-muted)";
     }
   }
@@ -2058,49 +2211,46 @@ function renderUI() {
   }
   const avgRodIns = controlRodHatchesCount > 0 ? Math.round(totalRodInsertion / controlRodHatchesCount) : 0;
   const rodsBadge = document.getElementById("rods-count-badge");
-  if (rodsBadge) rodsBadge.innerText = `${controlRodHatchesCount} Hatches`;
+  if (rodsBadge) setText(rodsBadge, `${controlRodHatchesCount} Hatches`);
   const lblGlobalRod = document.getElementById("lbl-global-rod-ins");
-  if (lblGlobalRod) lblGlobalRod.innerText = `${avgRodIns}%`;
+  if (lblGlobalRod) setText(lblGlobalRod, `${avgRodIns}%`);
   const rngGlobalRod = document.getElementById("rng-global-rod-ins");
   if (rngGlobalRod && document.activeElement !== rngGlobalRod) rngGlobalRod.value = avgRodIns;
   const rodsAbsVal = document.getElementById("rods-total-abs-val");
-  if (rodsAbsVal) rodsAbsVal.innerText = `${totalRodAbsorbed.toLocaleString()} n/s`;
+  if (rodsAbsVal) setText(rodsAbsVal, `${totalRodAbsorbed.toLocaleString()} n/s`);
 
   if (currentState.exploded) {
     if (isWasmMode && wasmSim && wasmSim.running) {
       wasmSim.setRunning(false);
     }
-    statusBadge.innerText = "MELTDOWN / EXPLODED - STOPPED";
+    setText(statusBadge, "MELTDOWN / EXPLODED - STOPPED");
     statusBadge.style.color = "var(--danger)";
-    playBtn.innerText = "▶ Start Simulation";
+    setText(playBtn, "▶ Start Simulation");
     playBtn.disabled = true;
-    alertBox.className = "alert-danger flash";
-    alertBox.style.display = "block";
-    alertBox.innerHTML = `<strong>💥 MELTDOWN / CATASTROPHIC FAILURE:</strong> ${currentState.explosionReason} <span style="display:block; margin-top:4px; font-size:0.8rem; font-weight:normal;">Simulation automatically halted due to core destruction. Click ↺ Reset to restart.</span>`;
+    setClass(alertBox, "alert-danger flash");
+    patchHTML(alertBox, `<strong>💥 MELTDOWN / CATASTROPHIC FAILURE:</strong> ${currentState.explosionReason} <span style="display:block; margin-top:4px; font-size:0.8rem; font-weight:normal;">Simulation automatically halted due to core destruction. Click ↺ Reset to restart.</span>`);
   } else if (currentState.structureErrors && currentState.structureErrors.length > 0) {
     if (isWasmMode && wasmSim && wasmSim.running) {
       wasmSim.setRunning(false);
     }
-    statusBadge.innerText = "STRUCTURE INVALID - NOT FORMED";
+    setText(statusBadge, "STRUCTURE INVALID - NOT FORMED");
     statusBadge.style.color = "var(--danger)";
     playBtn.disabled = true;
-    playBtn.innerText = "▶ Start Simulation";
-    alertBox.className = "alert-danger";
-    alertBox.style.display = "block";
+    setText(playBtn, "▶ Start Simulation");
+    setClass(alertBox, "alert-danger");
     const items = currentState.structureErrors.map(e => `<li>${e}</li>`).join("");
-    alertBox.innerHTML = `<strong>🚧 THE GAME WOULD NOT FORM THIS REACTOR:</strong><ul style="margin:4px 0 0 18px; font-weight:normal;">${items}</ul>`;
+    patchHTML(alertBox, `<strong>🚧 THE GAME WOULD NOT FORM THIS REACTOR:</strong><ul style="margin:4px 0 0 18px; font-weight:normal;">${items}</ul>`);
   } else if (currentState.haltedByIncident) {
     if (isWasmMode && wasmSim && wasmSim.running) {
       wasmSim.setRunning(false);
     }
-    statusBadge.innerText = "INCIDENT PAUSE";
+    setText(statusBadge, "INCIDENT PAUSE");
     statusBadge.style.color = "var(--warning)";
     playBtn.disabled = false;
-    playBtn.innerText = "▶ Resume Simulation";
-    alertBox.className = "alert-warning flash";
-    alertBox.style.display = "block";
+    setText(playBtn, "▶ Resume Simulation");
+    setClass(alertBox, "alert-warning flash");
     const reason = currentState.lastHaltIncidentReason || "Bad reactor condition detected";
-    alertBox.innerHTML = `<strong>🛑 SIMULATION PAUSED ON PENDING INCIDENT:</strong> ${reason} <span style="display:block; margin-top:4px; font-size:0.8rem; font-weight:normal;">Halted by "Stop on Incidents" option. Click <strong>▶ Resume Simulation</strong> to continue, <strong>Step +1</strong> to advance tick-by-tick, or use the <strong>Damage Slider / 🔧 Repair</strong> to restore the core.</span>`;
+    patchHTML(alertBox, `<strong>🛑 SIMULATION PAUSED ON PENDING INCIDENT:</strong> ${reason} <span style="display:block; margin-top:4px; font-size:0.8rem; font-weight:normal;">Halted by "Stop on Incidents" option. Click <strong>▶ Resume Simulation</strong> to continue, <strong>Step +1</strong> to advance tick-by-tick, or use the <strong>Damage Slider / 🔧 Repair</strong> to restore the core.</span>`);
   } else if (currentState.reactorDamage && currentState.reactorDamage > 0) {
     // Active structural damage warning: flashes alert banner, but fission continues
     const latestInc = (currentState.incidentLog && currentState.incidentLog.length > 0)
@@ -2109,33 +2259,32 @@ function renderUI() {
     const incidentMsg = latestInc ? ` [Tick ${latestInc.tick}: ${latestInc.message}]` : "";
     const isNewAlert = (window.__lastAlertTick !== currentState.lastIncidentTick);
     window.__lastAlertTick = currentState.lastIncidentTick;
-    alertBox.className = "alert-warning" + (isNewAlert ? " flash" : "");
-    alertBox.style.display = "block";
+    setClass(alertBox, "alert-warning" + (isNewAlert ? " flash" : ""));
     const effPct = (currentState.maintenanceEfficiency != null ? (currentState.maintenanceEfficiency * 100).toFixed(0) : "100");
-    alertBox.innerHTML = `<strong>⚠️ REACTOR DAMAGE DETECTED (${currentState.reactorDamage.toFixed(1)}% Structural Damage, Maint: ${effPct}%):</strong> Operating with maintenance penalties.${incidentMsg} <button type="button" onclick="quickRepair()" style="margin-left:8px; padding:2px 8px; font-size:0.75rem; background:#1e293b; border:1px solid var(--warning); color:var(--warning); cursor:pointer; border-radius:4px;">🔧 Repair Now</button>`;
+    patchHTML(alertBox, `<strong>⚠️ REACTOR DAMAGE DETECTED (${currentState.reactorDamage.toFixed(1)}% Structural Damage, Maint: ${effPct}%):</strong> Operating with maintenance penalties.${incidentMsg} <button type="button" onclick="quickRepair()" style="margin-left:8px; padding:2px 8px; font-size:0.75rem; background:#1e293b; border:1px solid var(--warning); color:var(--warning); cursor:pointer; border-radius:4px;">🔧 Repair Now</button>`);
 
     playBtn.disabled = false;
     if (currentState.isRunning) {
-      statusBadge.innerText = `DAMAGED (${currentState.reactorDamage.toFixed(1)}%) - RUNNING`;
+      setText(statusBadge, `DAMAGED (${currentState.reactorDamage.toFixed(1)}%) - RUNNING`);
       statusBadge.style.color = "var(--warning)";
-      playBtn.innerText = "⏸ Pause Simulation";
+      setText(playBtn, "⏸ Pause Simulation");
     } else {
-      statusBadge.innerText = `DAMAGED (${currentState.reactorDamage.toFixed(1)}%) - PAUSED`;
+      setText(statusBadge, `DAMAGED (${currentState.reactorDamage.toFixed(1)}%) - PAUSED`);
       statusBadge.style.color = "var(--warning)";
-      playBtn.innerText = "▶ Resume Simulation";
+      setText(playBtn, "▶ Resume Simulation");
     }
   } else {
-    alertBox.className = "";
-    alertBox.style.display = "none";
+    setClass(alertBox, "alert-ok");
+    patchHTML(alertBox, `<strong>✅ No active alerts.</strong> The chamber is formed and undamaged.`);
     playBtn.disabled = false;
     if (currentState.isRunning) {
-      statusBadge.innerText = "SIMULATION RUNNING";
+      setText(statusBadge, "SIMULATION RUNNING");
       statusBadge.style.color = "var(--accent)";
-      playBtn.innerText = "⏸ Pause Simulation";
+      setText(playBtn, "⏸ Pause Simulation");
     } else {
-      statusBadge.innerText = "SIMULATION PAUSED";
+      setText(statusBadge, "SIMULATION PAUSED");
       statusBadge.style.color = "var(--success)";
-      playBtn.innerText = "▶ Resume Simulation";
+      setText(playBtn, "▶ Resume Simulation");
     }
   }
 
@@ -2145,12 +2294,12 @@ function renderUI() {
   if (incidentListEl && currentState.incidentLog) {
     const count = currentState.incidentLog.length;
     if (incidentBadgeEl) {
-      incidentBadgeEl.innerText = `${count} event${count === 1 ? "" : "s"}`;
+      setText(incidentBadgeEl, `${count} event${count === 1 ? "" : "s"}`);
       incidentBadgeEl.style.color = count > 0 ? "var(--warning)" : "var(--text-muted)";
       incidentBadgeEl.style.borderColor = count > 0 ? "var(--warning)" : "var(--border-color)";
     }
     if (count === 0) {
-      incidentListEl.innerHTML = `<div style="font-style:italic; font-size:0.75rem; color:#64748b; padding:4px 6px;">No incidents recorded. Chamber operating nominally.</div>`;
+      patchHTML(incidentListEl, `<div style="font-style:italic; font-size:0.75rem; color:#64748b; padding:4px 6px;">No incidents recorded. Chamber operating nominally.</div>`);
     } else {
       let html = "";
       for (let i = count - 1; i >= 0; i--) {
@@ -2204,23 +2353,23 @@ function renderUI() {
           ${ev.damage > 0 ? `<span style="color:#f87171; font-weight:bold;">+${ev.damage.toFixed(1)}% dmg</span>` : ""}
         </div>`;
       }
-      incidentListEl.innerHTML = html;
+      patchHTML(incidentListEl, html);
     }
   }
 
   // Telemetry
-  document.getElementById("stat-tick").innerText = currentState.currentTick;
-  document.getElementById("stat-max-temp").innerText = currentState.coreMaxTemp + " °C";
-  document.getElementById("stat-avg-temp").innerText = currentState.coreAvgTemp + " °C";
-  document.getElementById("stat-eff").innerText = (currentState.efficiency * 100).toFixed(1) + " %";
-  document.getElementById("stat-neutrons").innerText = currentState.lastNeutrons + " / tick";
-  document.getElementById("stat-thermal").innerText = currentState.thermalAbsorbed + " / tick";
-  document.getElementById("stat-fast").innerText = currentState.fastAbsorbed + " / tick";
-  document.getElementById("stat-steam").innerText = currentState.totalSteam.toLocaleString() + " L";
-  document.getElementById("stat-deuterium").innerText = currentState.totalDeuterium.toLocaleString() + " L";
-  document.getElementById("stat-tritium").innerText = currentState.totalTritium.toLocaleString() + " L";
+  setText("stat-tick", currentState.currentTick);
+  setText("stat-max-temp", currentState.coreMaxTemp + " °C");
+  setText("stat-avg-temp", currentState.coreAvgTemp + " °C");
+  setText("stat-eff", (currentState.efficiency * 100).toFixed(1) + " %");
+  setText("stat-neutrons", currentState.lastNeutrons + " / tick");
+  setText("stat-thermal", currentState.thermalAbsorbed + " / tick");
+  setText("stat-fast", currentState.fastAbsorbed + " / tick");
+  setText("stat-steam", currentState.totalSteam.toLocaleString() + " L");
+  setText("stat-deuterium", currentState.totalDeuterium.toLocaleString() + " L");
+  setText("stat-tritium", currentState.totalTritium.toLocaleString() + " L");
   const oxEl = document.getElementById("stat-oxygen");
-  if (oxEl) oxEl.innerText = (currentState.totalOxygen ? currentState.totalOxygen.toLocaleString() : "0") + " L";
+  if (oxEl) setText(oxEl, (currentState.totalOxygen ? currentState.totalOxygen.toLocaleString() : "0") + " L");
 
   // Turbine config sync
   const activeEl = document.activeElement;
@@ -2234,7 +2383,7 @@ function renderUI() {
       currentState.turbineMaterials.forEach(m => {
         const opt = document.createElement("option");
         opt.value = m.id;
-        opt.innerText = m.name;
+        setText(opt, m.name);
         turbMat.appendChild(opt);
       });
       if (cur) turbMat.value = cur;
@@ -2261,13 +2410,11 @@ function renderUI() {
   }
 
   // Coolant loop subsystem synchronization
-  const loopCard = document.getElementById("coolant-loop-card");
-  if (loopCard) {
-    loopCard.style.display = "block";
-  }
+  // The tier warning follows the casing tier, a setting, not the running simulation.
   const tierWarn = document.getElementById("loop-tier-warning");
   if (tierWarn) {
-    tierWarn.style.display = currentState.isTier2ConvectiveAllowed ? "none" : "block";
+    const disp = currentState.isTier2ConvectiveAllowed ? "none" : "block";
+    if (tierWarn.style.display !== disp) tierWarn.style.display = disp;
   }
 
   const cl = currentState.coolantLoop;
@@ -2281,7 +2428,7 @@ function renderUI() {
         cl.allowedMaterials.forEach(m => {
           const opt = document.createElement("option");
           opt.value = m.id;
-          opt.innerText = `${m.name} (${m.tier}, max ${m.maxPressure} bar)`;
+          setText(opt, `${m.name} (${m.tier}, max ${m.maxPressure} bar)`);
           matSelect.appendChild(opt);
         });
       }
@@ -2304,7 +2451,7 @@ function renderUI() {
         cl.secondaryCoolants.forEach(sc => {
           const opt = document.createElement("option");
           opt.value = sc.id;
-          opt.innerText = sc.name;
+          setText(opt, sc.name);
           secSel.appendChild(opt);
         });
         if (cur) secSel.value = cur;
@@ -2330,7 +2477,7 @@ function renderUI() {
         cl.rotorMaterials.forEach(m => {
           const opt = document.createElement("option");
           opt.value = m.id;
-          opt.innerText = `${m.name} (${(m.efficiency * 100).toFixed(0)}% eff)`;
+          setText(opt, `${m.name} (${(m.efficiency * 100).toFixed(0)}% eff)`);
           rotorSel.appendChild(opt);
         });
       }
@@ -2359,7 +2506,7 @@ function renderUI() {
         cl.circuits.forEach(c => {
           const opt = document.createElement("option");
           opt.value = c.index;
-          opt.innerText = `Circuit ${c.index + 1} (${c.code}) · ${c.fluid}`;
+          setText(opt, `Circuit ${c.index + 1} (${c.code}) · ${c.fluid}`);
           circSel.appendChild(opt);
         });
       }
@@ -2367,10 +2514,11 @@ function renderUI() {
     }
     const circTable = document.getElementById("loop-circuits-table");
     if (circTable && cl.circuits) {
-      circTable.innerHTML = cl.circuits.length < 2 && !cl.limitReason ? "" :
+      // The pump limit line keeps its space whether or not a limit is switching the pump off.
+      patchHTML(circTable, (cl.circuits.length < 2 ? "" :
         `<table style="width:100%; border-collapse:collapse;"><tr style="color:var(--text-muted);"><td>Circuit</td><td>Cells</td><td>Flow</td><td>Cold → Hot</td><td>Heat</td><td>Pump on</td></tr>` +
         cl.circuits.map(c => `<tr${c.index === cl.selectedCircuit ? ' style="color:#00d2ff;"' : ''}><td>${c.code} ${c.fluid}</td><td>${c.passages}</td><td>${Math.round(c.flowLPerSec)} L/s</td><td>${Math.round(c.coldLegC)} → ${Math.round(c.hotLegC)} °C</td><td>${Math.round(c.heatHut).toLocaleString()} HU/t</td><td>${Math.round(c.pumpOn * 100)}%</td></tr>`).join("") +
-        `</table>` + (cl.limitReason ? `<div style="color:#fde047; margin-top:4px;">⚙️ Pump switched off by ${cl.limitReason} (${Math.round(cl.pumpOnFraction * 100)}% of ticks on)</div>` : "");
+        `</table>`) + `<div class="loop-limit-line">${cl.limitReason ? `⚙️ Pump switched off by ${cl.limitReason} (${Math.round(cl.pumpOnFraction * 100)}% of ticks on)` : ""}</div>`);
     }
     syncSel("loop-phe-hatch-tier-select", cl.pheHatchTier);
     syncSel("loop-phe-hatches-select", cl.pheHatchCount >= 2 ? 2 : 1);
@@ -2379,19 +2527,19 @@ function renderUI() {
     const statusBadge = document.getElementById("loop-status-badge");
     if (statusBadge) {
       if (cl.ruptured) {
-        statusBadge.innerText = "💥 RUPTURED";
+        setText(statusBadge, "💥 RUPTURED");
         statusBadge.style.color = "var(--danger)";
       } else if (cl.currentCoolantTempCelsius > cl.maxTempC) {
-        statusBadge.innerText = "🔥 MELTED";
+        setText(statusBadge, "🔥 MELTED");
         statusBadge.style.color = "var(--danger)";
       } else if (cl.maxFlowLPerSec > 0 && cl.currentFlowRateLPerSec >= cl.maxFlowLPerSec * 0.999) {
-        statusBadge.innerText = "⚙️ PIPE CAPACITY";
+        setText(statusBadge, "⚙️ PIPE CAPACITY");
         statusBadge.style.color = "#38bdf8";
       } else if (cl.currentPressureBar > cl.maxPressureBar * 0.85) {
-        statusBadge.innerText = "⚠️ HIGH PRESSURE";
+        setText(statusBadge, "⚠️ HIGH PRESSURE");
         statusBadge.style.color = "var(--warning)";
       } else {
-        statusBadge.innerText = "NORMAL";
+        setText(statusBadge, "NORMAL");
         statusBadge.style.color = "var(--success)";
       }
     }
@@ -2399,12 +2547,12 @@ function renderUI() {
     const flowEl = document.getElementById("loop-flow-val");
     if (flowEl) {
       let flowTxt = `${cl.currentFlowRateLPerSec.toFixed(1)} / ${Math.round(cl.maxFlowLPerSec).toLocaleString()} L/s`;
-      flowEl.innerText = flowTxt;
+      setText(flowEl, flowTxt);
     }
 
     const pressEl = document.getElementById("loop-pressure-val");
     const pressRatio = cl.maxPressureBar > 0 ? (cl.currentPressureBar / cl.maxPressureBar) : 0;
-    if (pressEl) pressEl.innerText = `${cl.currentPressureBar.toFixed(1)} / ${cl.maxPressureBar.toFixed(1)} bar (${(pressRatio * 100).toFixed(0)}%)`;
+    if (pressEl) setText(pressEl, `${cl.currentPressureBar.toFixed(1)} / ${cl.maxPressureBar.toFixed(1)} bar (${(pressRatio * 100).toFixed(0)}%)`);
 
     const pressBar = document.getElementById("loop-pressure-bar");
     if (pressBar) {
@@ -2414,13 +2562,13 @@ function renderUI() {
     }
 
     const tempEl = document.getElementById("loop-temp-val");
-    if (tempEl) tempEl.innerText = `${cl.coldLegTempCelsius.toFixed(1)} → ${cl.currentCoolantTempCelsius.toFixed(1)} °C (Max: ${cl.maxTempC.toFixed(0)} °C)`;
+    if (tempEl) setText(tempEl, `${cl.coldLegTempCelsius.toFixed(1)} → ${cl.currentCoolantTempCelsius.toFixed(1)} °C (Max: ${cl.maxTempC.toFixed(0)} °C)`);
 
     const heatEl = document.getElementById("loop-heat-val");
     if (heatEl) {
       const mw = (cl.lastHeatExtractedWatts || 0) / 1000000;
       const hut = cl.lastHeatExtractedHut || 0;
-      heatEl.innerText = `${Math.round(hut).toLocaleString()} Hu/s (${mw.toFixed(2)} MWth)`;
+      setText(heatEl, `${Math.round(hut).toLocaleString()} Hu/s (${mw.toFixed(2)} MWth)`);
     }
 
     const steamEl = document.getElementById("loop-steam-val");
@@ -2429,36 +2577,32 @@ function renderUI() {
       if (cl.lastSteamLt > 0) grades.push(`steam ${Math.round(cl.lastSteamLt).toLocaleString()}`);
       if (cl.lastSuperheatedSteamLt > 0) grades.push(`superheated ${Math.round(cl.lastSuperheatedSteamLt).toLocaleString()}`);
       if (cl.lastSupercriticalSteamLt > 0) grades.push(`supercritical ${Math.round(cl.lastSupercriticalSteamLt).toLocaleString()}`);
-      steamEl.innerText = `${Math.round(cl.lastSecondarySteamProducedLt).toLocaleString()} L/t` + (grades.length ? ` (${grades.join(", ")})` : "");
+      setText(steamEl, `${Math.round(cl.lastSecondarySteamProducedLt).toLocaleString()} L/t` + (grades.length ? ` (${grades.join(", ")})` : ""));
     }
 
     const pumpEl = document.getElementById("loop-pump-val");
     if (pumpEl) {
       let pText = `-${Math.round(cl.lastPumpPowerEUt).toLocaleString()} EU/t pumps, -${Math.round(cl.lastPhePowerEUt).toLocaleString()} EU/t PHEs`;
       pText += ` (${(cl.pumpMechanicalPowerW / 1000).toFixed(0)} kW into the coolant · rotor ${Math.round((cl.rotorEfficiency || 1.0) * 100)}%)`;
-      pumpEl.innerText = pText;
+      setText(pumpEl, pText);
     }
 
     const ptsEl = document.getElementById("loop-points-val");
-    if (ptsEl) ptsEl.innerText = `${cl.attachedPoints ? cl.attachedPoints.length : 0} cell(s) connected`;
+    if (ptsEl) setText(ptsEl, `${cl.attachedPoints ? cl.attachedPoints.length : 0} cell(s) connected`);
 
     const bypEl = document.getElementById("loop-byproduct-val");
     if (bypEl) {
       if (cl.fluid !== "DISTILLED_WATER" && cl.fluid !== "HEAVY_WATER") {
-        bypEl.innerText = "None (no radiolysis)";
+        setText(bypEl, "None (no radiolysis)");
       } else {
         let bypStr = `${cl.totalDeuteriumProduced.toLocaleString()} L D₂ | ${cl.totalTritiumProduced.toLocaleString()} L T₂`;
         if (cl.totalOxygenProduced && cl.totalOxygenProduced > 0) {
           bypStr += ` | ${cl.totalOxygenProduced.toLocaleString()} L O₂`;
         }
-        bypEl.innerText = bypStr;
+        setText(bypEl, bypStr);
       }
     }
 
-    const warnEl = document.getElementById("loop-tier-warning");
-    if (warnEl) {
-      warnEl.style.display = (!currentState.isTier2ConvectiveAllowed) ? "block" : "none";
-    }
   }
 
   // Turbine telemetry
@@ -2468,51 +2612,50 @@ function renderUI() {
     if (currentState.pumpPowerEUt && currentState.pumpPowerEUt > 0) {
       pwrDisplay += ` [Gross: ${Math.round(currentState.grossPowerEUt).toLocaleString()} - Pump: ${Math.round(currentState.pumpPowerEUt).toLocaleString()}]`;
     }
-    document.getElementById("stat-power-tier").innerText = formatPowerAndAmps(pe.totalPowerEUt, false);
-    document.getElementById("stat-power").innerText = pwrDisplay;
-    document.getElementById("turb-eff").innerText = (pe.efficiency * 100).toFixed(1) + " %";
-    document.getElementById("turb-opt-flow").innerText = Math.round(pe.optFlowPerTurbine).toLocaleString() + " L/t";
-    document.getElementById("turb-sc-pwr").innerText = formatPowerAndAmps(pe.xlstScPowerEUt, true) + " (" + pe.xlstScTurbinesNeeded.toFixed(2) + " units)";
-    document.getElementById("turb-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true) + " (" + pe.xlstHpTurbinesNeeded.toFixed(2) + " units)";
-    document.getElementById("turb-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true) + " (" + (pe.isLST ? pe.lstTurbinesNeeded : pe.xlstTurbinesNeeded).toFixed(2) + " units)";
+    setText("stat-power-tier", formatPowerAndAmps(pe.totalPowerEUt, false));
+    setText("stat-power", pwrDisplay);
+    setText("turb-eff", (pe.efficiency * 100).toFixed(1) + " %");
+    setText("turb-opt-flow", Math.round(pe.optFlowPerTurbine).toLocaleString() + " L/t");
+    setText("turb-sc-pwr", formatPowerAndAmps(pe.xlstScPowerEUt, true) + " (" + pe.xlstScTurbinesNeeded.toFixed(2) + " units)");
+    setText("turb-hp-pwr", formatPowerAndAmps(pe.xlstHpPowerEUt, true) + " (" + pe.xlstHpTurbinesNeeded.toFixed(2) + " units)");
+    setText("turb-reg-pwr", formatPowerAndAmps(pe.xlstPowerEUt, true) + " (" + (pe.isLST ? pe.lstTurbinesNeeded : pe.xlstTurbinesNeeded).toFixed(2) + " units)");
 
     const eheRow = document.getElementById("ehe-row");
     if (pe.coolantMachine && pe.coolantMachine !== "None" && pe.coolantMachineMode && pe.coolantMachineMode !== "NONE") {
-      eheRow.style.display = "flex";
-      document.getElementById("turb-ehe-info").innerText = pe.coolantMachine + " [" + pe.coolantMachineMode + "] (" + Math.round(pe.coolantSteamProduced).toLocaleString() + " L/t stm, " + Math.round(pe.coolantWaterConsumed).toLocaleString() + " L/t water)";
+      setText("turb-ehe-info", pe.coolantMachine + " [" + pe.coolantMachineMode + "] (" + Math.round(pe.coolantSteamProduced).toLocaleString() + " L/t stm, " + Math.round(pe.coolantWaterConsumed).toLocaleString() + " L/t water)");
     } else {
-      eheRow.style.display = "none";
+      setText("turb-ehe-info", "None");
     }
 
-    document.getElementById("turb-flows").innerText =
-      `Reg: ${Math.round(currentState.flowRegularSteam || 0)} | SH: ${Math.round(currentState.flowSuperheatedSteam || 0)} | SC: ${Math.round(currentState.flowSupercriticalSteam || 0)} | HW: ${Math.round(currentState.flowHeavyWaterSteam || 0)}`;
+    setText("turb-flows",
+      `Reg: ${Math.round(currentState.flowRegularSteam || 0)} | SH: ${Math.round(currentState.flowSuperheatedSteam || 0)} | SC: ${Math.round(currentState.flowSupercriticalSteam || 0)} | HW: ${Math.round(currentState.flowHeavyWaterSteam || 0)}`);
   } else {
     const power = (currentState.history && currentState.history.length > 0)
       ? currentState.history[currentState.history.length - 1].power
       : 0;
-    document.getElementById("stat-power-tier").innerText = formatPowerAndAmps(power, false);
-    document.getElementById("stat-power").innerText = formatPowerAndAmps(power, false);
+    setText("stat-power-tier", formatPowerAndAmps(power, false));
+    setText("stat-power", formatPowerAndAmps(power, false));
   }
 
   // Update Scenario comparison card
   if (currentState.scenarios) {
     const sc = currentState.scenarios;
     if (sc.tight) {
-      document.getElementById("scen-a-desc").innerText = sc.tight.description || ((sc.tight.sizeName || sc.tight.size) + " " + (sc.tight.materialName || sc.tight.material));
-      document.getElementById("scen-a-pwr").innerText = formatPowerAndAmps(sc.tight.powerEUt, true);
-      document.getElementById("scen-a-turb").innerText = sc.tight.totalTurbinesNeeded.toFixed(2) + " units";
-      document.getElementById("scen-a-mach").innerText = sc.tight.coolantMachine !== "None" ? (sc.tight.coolantMachineCount.toFixed(0) + "x " + sc.tight.coolantMachine) : "None";
+      setText("scen-a-desc", sc.tight.description || ((sc.tight.sizeName || sc.tight.size) + " " + (sc.tight.materialName || sc.tight.material)));
+      setText("scen-a-pwr", formatPowerAndAmps(sc.tight.powerEUt, true));
+      setText("scen-a-turb", sc.tight.totalTurbinesNeeded.toFixed(2) + " units");
+      setText("scen-a-mach", sc.tight.coolantMachine !== "None" ? (sc.tight.coolantMachineCount.toFixed(0) + "x " + sc.tight.coolantMachine) : "None");
     }
     if (sc.loose) {
-      document.getElementById("scen-b-desc").innerText = sc.loose.description || ((sc.loose.sizeName || sc.loose.size) + " " + (sc.loose.materialName || sc.loose.material));
-      document.getElementById("scen-b-pwr").innerText = formatPowerAndAmps(sc.loose.powerEUt, true);
-      document.getElementById("scen-b-turb").innerText = sc.loose.totalTurbinesNeeded.toFixed(2) + " units";
-      document.getElementById("scen-b-mach").innerText = sc.loose.coolantMachine !== "None" ? (sc.loose.coolantMachineCount.toFixed(0) + "x " + sc.loose.coolantMachine) : "None";
+      setText("scen-b-desc", sc.loose.description || ((sc.loose.sizeName || sc.loose.size) + " " + (sc.loose.materialName || sc.loose.material)));
+      setText("scen-b-pwr", formatPowerAndAmps(sc.loose.powerEUt, true));
+      setText("scen-b-turb", sc.loose.totalTurbinesNeeded.toFixed(2) + " units");
+      setText("scen-b-mach", sc.loose.coolantMachine !== "None" ? (sc.loose.coolantMachineCount.toFixed(0) + "x " + sc.loose.coolantMachine) : "None");
     }
     if (sc.tight && sc.loose) {
       const ratio = sc.loose.totalTurbinesNeeded > 0 ? (sc.tight.totalTurbinesNeeded / sc.loose.totalTurbinesNeeded).toFixed(1) : "1.0";
       const pwrPct = sc.tight.powerEUt > 0 ? ((sc.loose.powerEUt / sc.tight.powerEUt) * 100).toFixed(1) : "100.0";
-      document.getElementById("scen-compare-text").innerText = `Loose mode uses ${ratio}x fewer turbines for ${pwrPct}% of Tight power output.`;
+      setText("scen-compare-text", `Loose mode uses ${ratio}x fewer turbines for ${pwrPct}% of Tight power output.`);
     }
   }
 
@@ -2540,6 +2683,7 @@ function renderUI() {
 let currentZoom = 1.0;
 let isFitMode = false;
 let lastGridWidth = 0;
+let hoveredCell = null;
 
 const ZOOM_LEVELS = [0.35, 0.45, 0.55, 0.70, 0.85, 1.0, 1.15, 1.30, 1.50];
 
@@ -2619,6 +2763,13 @@ function applyZoom(scale) {
     temps[i].style.display = hideTemp ? "none" : "";
   }
 }
+// Remembers the last background written, since the browser reports colors back normalized and never equal to ours.
+function setOverlay(el, bg) {
+  if (!el || el.__bg === bg) return;
+  el.__bg = bg;
+  el.style.background = bg;
+}
+
 function updateGridDOM() {
   const gridElem = document.getElementById("reactor-grid");
   const width = currentState.width;
@@ -2627,7 +2778,7 @@ function updateGridDOM() {
 
   const dimLabel = document.getElementById("grid-dim-label");
   if (dimLabel) {
-    dimLabel.textContent = `Chamber Grid (${width}×${height})`;
+    setText(dimLabel, `Chamber Grid (${width}×${height})`);
   }
 
   if (lastGridWidth !== width) {
@@ -2656,7 +2807,7 @@ function updateGridDOM() {
           <span class="cell-code" style="display:none;"></span>
           <div class="cell-overlay"></div>
           <span class="cell-metric"${hideTemp ? ' style="display:none;"' : ''}></span>
-          <div class="cell-durability" style="display:none;"><div class="cell-durability-fill"></div></div>
+          <div class="cell-durability" style="visibility:hidden;"><div class="cell-durability-fill"></div></div>
           <span class="loop-badge">⟳</span>
           <span class="rod-badge">🕹️</span>
         `;
@@ -2674,6 +2825,8 @@ function updateGridDOM() {
           triggerAction(e);
         });
         cell.addEventListener("pointerenter", (e) => {
+          hoveredCell = cell;
+          if (cell.__tip && cell.title !== cell.__tip) cell.title = cell.__tip;
           if (interactionMode === "PAINT" && e.buttons === 1) {
             triggerAction(e);
           }
@@ -2689,8 +2842,8 @@ function updateGridDOM() {
   currentState.tiles.forEach((t, i) => {
     const cell = gridElem.children[i];
     if (!cell) return;
-    cell.dataset.x = t.x;
-    cell.dataset.y = t.y;
+    if (cell.dataset.x !== String(t.x)) cell.dataset.x = t.x;
+    if (cell.dataset.y !== String(t.y)) cell.dataset.y = t.y;
 
     const isSelected = selectedTilePos && selectedTilePos.x === t.x && selectedTilePos.y === t.y;
     const imgEl = cell.children[0];
@@ -2701,12 +2854,12 @@ function updateGridDOM() {
     const durFillEl = durEl ? durEl.children[0] : null;
 
     if (t.code === "NL") {
-      cell.className = "cell wall-cell" + (isSelected ? " selected" : "");
+      setClass(cell, "cell wall-cell" + (isSelected ? " selected" : ""));
       if (imgEl) imgEl.style.display = "none";
       if (codeEl) codeEl.style.display = "none";
-      if (overlayEl) overlayEl.style.backgroundColor = "transparent";
-      if (metricEl) metricEl.style.display = "none";
-      if (durEl) durEl.style.display = "none";
+      setOverlay(overlayEl, "transparent");
+      if (metricEl && metricEl.style.display !== "none") metricEl.style.display = "none";
+      setShown(durEl, false);
     } else {
       const isAttached = (currentState.coolantLoop && currentState.coolantLoop.attachedPoints && currentState.coolantLoop.attachedPoints.includes(t.x + "," + t.y)) || t.type === "PASSAGE_CORE";
       let rodClass = "";
@@ -2718,7 +2871,9 @@ function updateGridDOM() {
       } else if (gridDisplayMode === "CONTROL_RODS") {
         rodClass = " rod-mode-dimmed";
       }
-      const desiredClass = "cell" + (isSelected ? " selected" : "") + (isAttached ? " loop-attached" : "") + rodClass;
+      // Overheating cells blink through a CSS animation, so the blink needs no redraws.
+      const isOverheat = gridDisplayMode !== "COMPONENTS" && gridDisplayMode !== "CONTROL_RODS" && t.temp > (currentState.maxSafeTemp || 3250) * 0.85;
+      const desiredClass = "cell" + (isSelected ? " selected" : "") + (isAttached ? " loop-attached" : "") + rodClass + (isOverheat ? " overheat" : "");
       if (cell.className !== desiredClass) {
         cell.className = desiredClass;
       }
@@ -2788,23 +2943,19 @@ function updateGridDOM() {
         tipText = `Temperature: ${t.temp.toFixed(1)}°C (max safe: ${currentState.maxSafeTemp}°C)`;
       }
 
-      if (gridDisplayMode !== "COMPONENTS" && gridDisplayMode !== "CONTROL_RODS" && t.temp > (currentState.maxSafeTemp || 3250) * 0.85) {
-        if (Math.floor(Date.now() / 400) % 2 === 0) {
-          overlayBg = "rgba(255, 0, 0, 0.45)";
-        }
-      }
-
-      if (overlayEl && overlayEl.style.backgroundColor !== overlayBg) {
-        overlayEl.style.backgroundColor = overlayBg;
-      }
+      setOverlay(overlayEl, overlayBg);
 
       if (t.type && t.type !== "EMPTY") {
-        const iconSrc = getIconUrl(t.type);
-        if (imgEl.getAttribute("src") !== iconSrc) {
-          imgEl.src = iconSrc;
+        // Keyed on the tile type, not the src, which the fallback below rewrites.
+        if (imgEl.__type !== t.type) {
+          imgEl.__type = t.type;
+          imgEl.__failed = false;
+          imgEl.src = getIconUrl(t.type);
           imgEl.onerror = () => {
             imgEl.src = '/api/icon/' + t.type;
             imgEl.onerror = () => {
+              // No icon anywhere: the cell shows the tile code instead, on this and later frames.
+              imgEl.__failed = true;
               imgEl.style.display = "none";
               if (codeEl) {
                 codeEl.textContent = t.code;
@@ -2814,12 +2965,16 @@ function updateGridDOM() {
           };
         }
         const isHeatmap = gridDisplayMode !== "COMPONENTS" && gridDisplayMode !== "CONTROL_RODS";
-        imgEl.style.filter = isHeatmap ? "grayscale(100%)" : "none";
-        if (imgEl.style.display !== "block") {
-          imgEl.style.display = "block";
+        const filter = isHeatmap ? "grayscale(100%)" : "none";
+        if (imgEl.style.filter !== filter) imgEl.style.filter = filter;
+        const imgDisp = imgEl.__failed ? "none" : "block";
+        if (imgEl.style.display !== imgDisp) {
+          imgEl.style.display = imgDisp;
         }
-        if (codeEl.style.display !== "none") {
-          codeEl.style.display = "none";
+        if (imgEl.__failed) setText(codeEl, t.code);
+        const codeDisp = imgEl.__failed ? "block" : "none";
+        if (codeEl.style.display !== codeDisp) {
+          codeEl.style.display = codeDisp;
         }
       } else {
         if (imgEl.style.display !== "none") {
@@ -2830,27 +2985,32 @@ function updateGridDOM() {
         }
       }
 
-      if (metricEl.textContent !== metricStr) {
-        metricEl.textContent = metricStr;
-      }
+      setText(metricEl, metricStr);
       if (!hideTemp && metricEl.style.display === "none") {
         metricEl.style.display = "block";
       } else if (hideTemp && metricEl.style.display !== "none") {
         metricEl.style.display = "none";
       }
 
-      cell.title = `${t.name} (${t.x}, ${t.y})
+      // Tooltips are only written to the cell under the pointer; the others keep theirs until hovered.
+      cell.__tip = `${t.name} (${t.x}, ${t.y})
 ${tipText}`;
+      if (cell === hoveredCell && cell.title !== cell.__tip) cell.title = cell.__tip;
 
       if (t.isFuel && t.durabilityPct < 99.9) {
         if (durEl) {
-          durEl.style.display = "block";
+          setShown(durEl, true);
           const pct = Math.max(0, Math.min(100, t.durabilityPct));
-          durFillEl.style.width = pct + "%";
-          durFillEl.style.backgroundColor = pct > 50 ? "#22c55e" : (pct > 20 ? "#eab308" : "#ef4444");
+          const w = pct + "%";
+          if (durFillEl.style.width !== w) durFillEl.style.width = w;
+          const col = pct > 50 ? "#22c55e" : (pct > 20 ? "#eab308" : "#ef4444");
+          if (durFillEl.__color !== col) {
+            durFillEl.__color = col;
+            durFillEl.style.backgroundColor = col;
+          }
         }
-      } else if (durEl) {
-        durEl.style.display = "none";
+      } else {
+        setShown(durEl, false);
       }
     }
   });
@@ -2895,10 +3055,7 @@ function selectCell(x, y) {
     for (let i = 0; i < gridElem.children.length; i++) {
       const c = gridElem.children[i];
       const isSel = parseInt(c.dataset.x) === x && parseInt(c.dataset.y) === y;
-      const isWall = c.classList.contains("wall-cell");
-      const isAttached = c.classList.contains("loop-attached");
-      const desired = "cell" + (isWall ? " wall-cell" : "") + (isSel ? " selected" : "") + (isAttached ? " loop-attached" : "");
-      if (c.className !== desired) c.className = desired;
+      if (c.classList.contains("selected") !== isSel) c.classList.toggle("selected", isSel);
     }
   }
 }
@@ -2971,7 +3128,8 @@ function renderInspector(t) {
   let fluxHtml = "";
   const tpc = currentState.ticksPerCycle || 5;
   const cps = 20 / tpc;
-  if (t.code !== "NL" && ((t.totalFlux && t.totalFlux > 0) || (t.fastFlux && t.fastFlux > 0) || (t.thermalFlux && t.thermalFlux > 0) || (t.fastAbsorbed && t.fastAbsorbed > 0) || (t.thermalAbsorbed && t.thermalAbsorbed > 0) || t.directEU)) {
+  // Rows depend on the tile's kind, never on live values, so the inspector keeps its shape while the reactor runs.
+  if (t.code !== "NL") {
     fluxHtml = `
       <div style="background:#10141d; border:1px solid #373737; border-radius:3px; padding:6px 8px; margin-top:8px;">
         <div style="font-weight:700; font-size:0.75rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px;">Neutron kinetics</div>
@@ -2980,7 +3138,7 @@ function renderInspector(t) {
         <div class="stat-row" style="margin-bottom:2px;"><span>Thermal flux:</span><span class="stat-val" style="color:#4ade80;">${Math.round((t.thermalFlux || 0) * cps).toLocaleString()} n/s (${(t.thermalFlux || 0).toLocaleString()} /cycle)</span></div>
         <div class="stat-row" style="margin-bottom:2px;"><span>Fast absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${Math.round((t.fastAbsorbed || 0) * cps).toLocaleString()} n/s (${(t.fastAbsorbed || 0).toLocaleString()} /cycle)</span></div>
         <div class="stat-row" style="margin-bottom:2px;"><span>Thermal absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${Math.round((t.thermalAbsorbed || 0) * cps).toLocaleString()} n/s (${(t.thermalAbsorbed || 0).toLocaleString()} /cycle)</span></div>
-        ${t.directEU ? `<div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #373737;"><span>Radiovoltaic output:</span><span class="stat-val" style="color:#38bdf8;">${t.directEU.toLocaleString()} EU/t</span></div>` : ''}
+        ${(t.directEU || (t.type && t.type.startsWith("RADIOVOLTAIC_"))) ? `<div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #373737;"><span>Radiovoltaic output:</span><span class="stat-val" style="color:#38bdf8;">${(t.directEU || 0).toLocaleString()} EU/t</span></div>` : ''}
       </div>
     `;
   }
@@ -3050,9 +3208,9 @@ function renderInspector(t) {
           <div style="margin-bottom:6px;">
             <div style="display:flex; justify-content:space-between; font-size:0.72rem; margin-bottom:2px;">
               <span>Insertion:</span>
-              <span id="lbl-rod-ins-${t.x}-${t.y}" style="font-weight:700; color:#00e5ff;">${ins}%</span>
+              <span id="lbl-rod-ins-${t.x}-${t.y}" data-follows="rng-rod-ins-${t.x}-${t.y}" style="font-weight:700; color:#00e5ff;">${ins}%</span>
             </div>
-            <input type="range" min="0" max="100" value="${ins}"
+            <input type="range" id="rng-rod-ins-${t.x}-${t.y}" min="0" max="100" value="${ins}"
               oninput="document.getElementById('lbl-rod-ins-${t.x}-${t.y}').innerText = this.value + '%'"
               onchange="updateTileControlRodInsertion(${t.x}, ${t.y}, parseInt(this.value))"
               style="width:100%; cursor:pointer; accent-color:#00e5ff;" />
@@ -3062,18 +3220,17 @@ function renderInspector(t) {
               <button type="button" onclick="updateTileControlRodInsertion(${t.x}, ${t.y}, 100)" style="flex:1; padding:2px; font-size:0.68rem; min-height:24px; background:#b91c1c; border-color:#dc2626;">100% (SCRAM)</button>
             </div>
           </div>
-          ${(fastAbs > 0 || thermAbs > 0) ? `
-            <div style="border-top:1px dashed #373737; padding-top:4px; margin-top:4px; font-size:0.72rem;">
-              <div class="stat-row" style="margin-bottom:1px;"><span>Rod fast absorbed:</span><span class="stat-val" style="color:#fbbf24;">${Math.round(fastAbs * cps).toLocaleString()} n/s (${fastAbs.toLocaleString()} /cycle)</span></div>
-              <div class="stat-row" style="margin-bottom:1px;"><span>Rod thermal absorbed:</span><span class="stat-val" style="color:#4ade80;">${Math.round(thermAbs * cps).toLocaleString()} n/s (${thermAbs.toLocaleString()} /cycle)</span></div>
-            </div>
-          ` : ''}
+          <div style="border-top:1px dashed #373737; padding-top:4px; margin-top:4px; font-size:0.72rem;">
+            <div class="stat-row" style="margin-bottom:1px;"><span>Rod fast absorbed:</span><span class="stat-val" style="color:#fbbf24;">${Math.round(fastAbs * cps).toLocaleString()} n/s (${fastAbs.toLocaleString()} /cycle)</span></div>
+            <div class="stat-row" style="margin-bottom:1px;"><span>Rod thermal absorbed:</span><span class="stat-val" style="color:#4ade80;">${Math.round(thermAbs * cps).toLocaleString()} n/s (${thermAbs.toLocaleString()} /cycle)</span></div>
+          </div>
         </div>
       `;
     }
   }
 
-  el.innerHTML = `
+  // Patched in place: the tile <select> and the rod controls stay the same elements while the values update.
+  patchHTML(el, `
     <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
       ${iconHtml}
       <div style="flex:1;">
@@ -3087,12 +3244,12 @@ function renderInspector(t) {
       </div>
     </div>
     <div class="stat-row"><span>Temperature:</span><span class="stat-val">${t.temp} °C</span></div>
-    ${t.heatOutput != null && t.heatOutput > 0 ? `<div class="stat-row"><span>Heat output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${(t.heatOutput * cps).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/s (${t.heatOutput.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/cycle)</span></div>` : ''}
+    ${t.code !== "NL" ? `<div class="stat-row"><span>Heat output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${((t.heatOutput || 0) * cps).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/s (${(t.heatOutput || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/cycle)</span></div>` : ''}
     ${coolingMethodHtml}
     ${controlRodHtml}
     ${extraHtml}
     ${fluxHtml}
-  `;
+  `);
 }
 
 function syncParamsToUI(p) {
@@ -3660,179 +3817,179 @@ function renderProcessPipeline() {
   const stageReg = document.getElementById("proc-stage-reg");
 
   // Stage 0: Radiovoltaics
-  document.getElementById("proc-pv-val").innerText = formatPowerAndAmps(pe.directPowerEUt, true);
-  document.getElementById("proc-pv-sub").innerText = pe.directPowerEUt > 0
+  setText("proc-pv-val", formatPowerAndAmps(pe.directPowerEUt, true));
+  setText("proc-pv-sub", pe.directPowerEUt > 0
     ? `${Math.round(pe.directPowerEUt).toLocaleString()} EU/t direct power from radiovoltaic cells`
-    : "No radiovoltaic cells generating direct power";
+    : "No radiovoltaic cells generating direct power");
 
   // Tier Policies
   if (tier <= 0) {
     // EV
-    tierBadge.innerText = "EV Pipeline";
+    setText(tierBadge, "EV Pipeline");
     tierBadge.style.color = "#38bdf8";
-    tierDesc.innerHTML = "<strong>EV Mode:</strong> Large Heat Exchanger (1L Hot Coolant → 400L Regular Steam) + Large Steam Turbines (LST, 0.5 EU/L) + Direct Radiovoltaics. <em>XLST and Superheated/Supercritical processing unavailable at EV.</em>";
+    patchHTML(tierDesc, "<strong>EV Mode:</strong> Large Heat Exchanger (1L Hot Coolant → 400L Regular Steam) + Large Steam Turbines (LST, 0.5 EU/L) + Direct Radiovoltaics. <em>XLST and Superheated/Supercritical processing unavailable at EV.</em>");
 
     // Stage 1: LHE
-    document.getElementById("proc-coolant-title").innerText = "🔄 Stage 1: Large Heat Exchanger (LHE)";
+    setText("proc-coolant-title", "🔄 Stage 1: Large Heat Exchanger (LHE)");
     const hasCoolant = (currentState.flowHotCoolant || 0) > 0;
-    document.getElementById("proc-coolant-count").innerText = hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x LHE") : "0x LHE";
-    document.getElementById("proc-coolant-detail").innerText = hasCoolant
+    setText("proc-coolant-count", hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x LHE") : "0x LHE");
+    setText("proc-coolant-detail", hasCoolant
       ? `Input: ${Math.round(currentState.flowHotCoolant).toLocaleString()} L/t Hot Coolant → Output: ${Math.round(pe.coolantSteamProduced).toLocaleString()} L/t Regular Steam (1:400)`
-      : "Chamber produces no IC2 Hot Coolant";
-    document.getElementById("proc-coolant-water").innerText = hasCoolant
+      : "Chamber produces no IC2 Hot Coolant");
+    setText("proc-coolant-water", hasCoolant
       ? `Distilled Water consumed: ${Math.round(pe.coolantWaterConsumed).toLocaleString()} L/t`
-      : "";
+      : "");
 
     // Stage 2: Locked
     stageSc.style.opacity = "0.45";
-    document.getElementById("proc-sc-title").innerText = "🔒 Stage 2: XLST-SC (Supercritical)";
-    document.getElementById("proc-sc-pwr").innerText = "Locked (ZPM+)";
-    document.getElementById("proc-sc-detail").innerText = "Requires ZPM or higher. Supercritical steam cannot be turbine-processed at EV.";
-    document.getElementById("proc-sc-cascade").innerText = "";
+    setText("proc-sc-title", "🔒 Stage 2: XLST-SC (Supercritical)");
+    setText("proc-sc-pwr", "Locked (ZPM+)");
+    setText("proc-sc-detail", "Requires ZPM or higher. Supercritical steam cannot be turbine-processed at EV.");
+    setText("proc-sc-cascade", "");
 
     // Stage 3: Locked
     stageHp.style.opacity = "0.45";
-    document.getElementById("proc-hp-title").innerText = "🔒 Stage 3: XLST-HP (Superheated)";
-    document.getElementById("proc-hp-pwr").innerText = "Locked (IV+)";
-    document.getElementById("proc-hp-detail").innerText = "Requires IV or higher. Superheated steam cannot be turbine-processed at EV.";
-    document.getElementById("proc-hp-cascade").innerText = "";
+    setText("proc-hp-title", "🔒 Stage 3: XLST-HP (Superheated)");
+    setText("proc-hp-pwr", "Locked (IV+)");
+    setText("proc-hp-detail", "Requires IV or higher. Superheated steam cannot be turbine-processed at EV.");
+    setText("proc-hp-cascade", "");
 
     // Stage 4: LST
     stageReg.style.opacity = "1.0";
-    document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: Large Steam Turbine (LST)";
-    document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.lstPowerEUt, true);
+    setText("proc-reg-title", "⚡ Stage 4: Large Steam Turbine (LST)");
+    setText("proc-reg-pwr", formatPowerAndAmps(pe.lstPowerEUt, true));
     const regFlow = Math.round((currentState.flowRegularSteam || 0) + pe.coolantSteamProduced);
-    document.getElementById("proc-reg-detail").innerText = `${regFlow.toLocaleString()} L/t steam · ${pe.lstTurbinesNeeded.toFixed(2)} LST units (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
-    document.getElementById("proc-reg-eff").innerText = `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff (${pe.lstPowerEUt > 0 ? (pe.lstPowerEUt / Math.max(1, regFlow)).toFixed(3) : 0} EU/L)`;
+    setText("proc-reg-detail", `${regFlow.toLocaleString()} L/t steam · ${pe.lstTurbinesNeeded.toFixed(2)} LST units (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`);
+    setText("proc-reg-eff", `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff (${pe.lstPowerEUt > 0 ? (pe.lstPowerEUt / Math.max(1, regFlow)).toFixed(3) : 0} EU/L)`);
 
   } else if (tier === 1) {
     // IV
-    tierBadge.innerText = "IV Pipeline";
+    setText(tierBadge, "IV Pipeline");
     tierBadge.style.color = "#a3e635";
-    tierDesc.innerHTML = "<strong>IV Mode:</strong> Thermal Boiler (1L Hot Coolant → 200L SH Steam) + XLST-HP (1.0 EU/L, cascades 1:1) + XLST (0.5 EU/L). <em>EHE and XLST-SC unavailable at IV.</em>";
+    patchHTML(tierDesc, "<strong>IV Mode:</strong> Thermal Boiler (1L Hot Coolant → 200L SH Steam) + XLST-HP (1.0 EU/L, cascades 1:1) + XLST (0.5 EU/L). <em>EHE and XLST-SC unavailable at IV.</em>");
 
     // Stage 1: Thermal Boiler
-    document.getElementById("proc-coolant-title").innerText = "🔄 Stage 1: Thermal Boiler";
+    setText("proc-coolant-title", "🔄 Stage 1: Thermal Boiler");
     const hasCoolant = (currentState.flowHotCoolant || 0) > 0;
-    document.getElementById("proc-coolant-count").innerText = hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x Thermal Boiler") : "0x Thermal Boiler";
-    document.getElementById("proc-coolant-detail").innerText = hasCoolant
+    setText("proc-coolant-count", hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x Thermal Boiler") : "0x Thermal Boiler");
+    setText("proc-coolant-detail", hasCoolant
       ? `Input: ${Math.round(currentState.flowHotCoolant).toLocaleString()} L/t Hot Coolant → Output: ${Math.round(pe.coolantSteamProduced).toLocaleString()} L/t SH Steam (1:200)`
-      : "Chamber produces no IC2 Hot Coolant";
-    document.getElementById("proc-coolant-water").innerText = hasCoolant
+      : "Chamber produces no IC2 Hot Coolant");
+    setText("proc-coolant-water", hasCoolant
       ? `Water consumed: ${Math.round(pe.coolantWaterConsumed).toLocaleString()} L/t`
-      : "";
+      : "");
 
     // Stage 2: Locked
     stageSc.style.opacity = "0.45";
-    document.getElementById("proc-sc-title").innerText = "🔒 Stage 2: XLST-SC (Supercritical)";
-    document.getElementById("proc-sc-pwr").innerText = "Locked (ZPM+)";
-    document.getElementById("proc-sc-detail").innerText = "Requires ZPM or higher. Supercritical steam cannot be turbine-processed at IV.";
-    document.getElementById("proc-sc-cascade").innerText = "";
+    setText("proc-sc-title", "🔒 Stage 2: XLST-SC (Supercritical)");
+    setText("proc-sc-pwr", "Locked (ZPM+)");
+    setText("proc-sc-detail", "Requires ZPM or higher. Supercritical steam cannot be turbine-processed at IV.");
+    setText("proc-sc-cascade", "");
 
     // Stage 3: XLST-HP
     stageHp.style.opacity = "1.0";
-    document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (superheated steam)";
-    document.getElementById("proc-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true);
+    setText("proc-hp-title", "⚡ Stage 3: XLST-HP (superheated steam)");
+    setText("proc-hp-pwr", formatPowerAndAmps(pe.xlstHpPowerEUt, true));
     const hpFlow = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + pe.coolantSteamProduced);
-    document.getElementById("proc-hp-detail").innerText = `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
-    document.getElementById("proc-hp-cascade").innerText = "Cascades 1:1 into Regular Steam for Stage 4";
+    setText("proc-hp-detail", `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`);
+    setText("proc-hp-cascade", "Cascades 1:1 into Regular Steam for Stage 4");
 
     // Stage 4: XLST Regular
     stageReg.style.opacity = "1.0";
-    document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (regular steam)";
-    document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true);
+    setText("proc-reg-title", "⚡ Stage 4: XLST (regular steam)");
+    setText("proc-reg-pwr", formatPowerAndAmps(pe.xlstPowerEUt, true));
     const regFlow = Math.round((currentState.flowRegularSteam || 0) + hpFlow);
-    document.getElementById("proc-reg-detail").innerText = `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`;
-    document.getElementById("proc-reg-eff").innerText = `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff (${pe.xlstPowerEUt > 0 ? (pe.xlstPowerEUt / Math.max(1, regFlow)).toFixed(3) : 0} EU/L)`;
+    setText("proc-reg-detail", `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`);
+    setText("proc-reg-eff", `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff (${pe.xlstPowerEUt > 0 ? (pe.xlstPowerEUt / Math.max(1, regFlow)).toFixed(3) : 0} EU/L)`);
 
   } else if (tier === 2) {
     // LuV
-    tierBadge.innerText = "LuV Pipeline";
+    setText(tierBadge, "LuV Pipeline");
     tierBadge.style.color = "#f59e0b";
-    tierDesc.innerHTML = "<strong>LuV Mode:</strong> Extreme Heat Exchanger (1L Hot Coolant → 200L SH Steam) + XLST-HP (1.0 EU/L, cascades 1:1) + XLST (0.5 EU/L). <em>XLST-SC unlocks at ZPM.</em>";
+    patchHTML(tierDesc, "<strong>LuV Mode:</strong> Extreme Heat Exchanger (1L Hot Coolant → 200L SH Steam) + XLST-HP (1.0 EU/L, cascades 1:1) + XLST (0.5 EU/L). <em>XLST-SC unlocks at ZPM.</em>");
 
     // Stage 1: EHE
-    document.getElementById("proc-coolant-title").innerText = "🔄 Stage 1: Extreme Heat Exchanger (EHE)";
+    setText("proc-coolant-title", "🔄 Stage 1: Extreme Heat Exchanger (EHE)");
     const hasCoolant = (currentState.flowHotCoolant || 0) > 0;
-    document.getElementById("proc-coolant-count").innerText = hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x EHE") : "0x EHE";
-    document.getElementById("proc-coolant-detail").innerText = hasCoolant
+    setText("proc-coolant-count", hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x EHE") : "0x EHE");
+    setText("proc-coolant-detail", hasCoolant
       ? `Input: ${Math.round(currentState.flowHotCoolant).toLocaleString()} L/t Hot Coolant → Output: ${Math.round(pe.coolantSteamProduced).toLocaleString()} L/t SH Steam (1:200)`
-      : "Chamber produces no IC2 Hot Coolant";
-    document.getElementById("proc-coolant-water").innerText = hasCoolant
+      : "Chamber produces no IC2 Hot Coolant");
+    setText("proc-coolant-water", hasCoolant
       ? `Distilled Water consumed: ${Math.round(pe.coolantWaterConsumed).toLocaleString()} L/t`
-      : "";
+      : "");
 
     // Stage 2: Locked
     stageSc.style.opacity = "0.45";
-    document.getElementById("proc-sc-title").innerText = "🔒 Stage 2: XLST-SC (supercritical)";
-    document.getElementById("proc-sc-pwr").innerText = "Locked (ZPM+)";
-    document.getElementById("proc-sc-detail").innerText = "Requires ZPM or higher for XLST-SC.";
-    document.getElementById("proc-sc-cascade").innerText = "";
+    setText("proc-sc-title", "🔒 Stage 2: XLST-SC (supercritical)");
+    setText("proc-sc-pwr", "Locked (ZPM+)");
+    setText("proc-sc-detail", "Requires ZPM or higher for XLST-SC.");
+    setText("proc-sc-cascade", "");
 
     // Stage 3: XLST-HP
     stageHp.style.opacity = "1.0";
-    document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (superheated steam)";
-    document.getElementById("proc-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true);
+    setText("proc-hp-title", "⚡ Stage 3: XLST-HP (superheated steam)");
+    setText("proc-hp-pwr", formatPowerAndAmps(pe.xlstHpPowerEUt, true));
     const hpFlow = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + pe.coolantSteamProduced);
-    document.getElementById("proc-hp-detail").innerText = `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
-    document.getElementById("proc-hp-cascade").innerText = "Cascades 1:1 into Regular Steam for Stage 4";
+    setText("proc-hp-detail", `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`);
+    setText("proc-hp-cascade", "Cascades 1:1 into Regular Steam for Stage 4");
 
     // Stage 4: XLST Regular
     stageReg.style.opacity = "1.0";
-    document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (regular steam)";
-    document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true);
+    setText("proc-reg-title", "⚡ Stage 4: XLST (regular steam)");
+    setText("proc-reg-pwr", formatPowerAndAmps(pe.xlstPowerEUt, true));
     const regFlow = Math.round((currentState.flowRegularSteam || 0) + hpFlow);
-    document.getElementById("proc-reg-detail").innerText = `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`;
-    document.getElementById("proc-reg-eff").innerText = `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff`;
+    setText("proc-reg-detail", `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`);
+    setText("proc-reg-eff", `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff`);
 
   } else {
     // ZPM+
     const tierName = (tier === 3) ? "ZPM" : (tier === 4) ? "UV" : "UHV";
-    tierBadge.innerText = `${tierName} Full 3-Stage Cascade`;
+    setText(tierBadge, `${tierName} Full 3-Stage Cascade`);
     tierBadge.style.color = "#ec4899";
-    tierDesc.innerHTML = "<strong>ZPM+ Mode:</strong> EHE (Supercritical if ≥8,000 L/s coolant, else SH) + Full 3-Stage Cascade: XLST-SC (1.0 EU/L) → XLST-HP (1.0 EU/L) → XLST (0.5 EU/L).";
+    patchHTML(tierDesc, "<strong>ZPM+ Mode:</strong> EHE (Supercritical if ≥8,000 L/s coolant, else SH) + Full 3-Stage Cascade: XLST-SC (1.0 EU/L) → XLST-HP (1.0 EU/L) → XLST (0.5 EU/L).");
 
     // Stage 1: EHE
     const isSC = pe.coolantMachineMode && pe.coolantMachineMode.includes("Supercritical");
-    document.getElementById("proc-coolant-title").innerText = `🔄 Stage 1: Extreme Heat Exchanger (EHE) [${isSC ? "Supercritical" : "Superheated"}]`;
+    setText("proc-coolant-title", `🔄 Stage 1: Extreme Heat Exchanger (EHE) [${isSC ? "Supercritical" : "Superheated"}]`);
     const hasCoolant = (currentState.flowHotCoolant || 0) > 0;
-    document.getElementById("proc-coolant-count").innerText = hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x EHE") : "0x EHE";
-    document.getElementById("proc-coolant-detail").innerText = hasCoolant
+    setText("proc-coolant-count", hasCoolant ? (pe.coolantMachineCount.toFixed(0) + "x EHE") : "0x EHE");
+    setText("proc-coolant-detail", hasCoolant
       ? `Input: ${Math.round(currentState.flowHotCoolant).toLocaleString()} L/t (${Math.round(currentState.flowHotCoolant * 20).toLocaleString()} L/s) → Output: ${Math.round(pe.coolantSteamProduced).toLocaleString()} L/t ${isSC ? "SC" : "SH"} Steam`
-      : "Chamber produces no IC2 Hot Coolant";
-    document.getElementById("proc-coolant-water").innerText = hasCoolant
+      : "Chamber produces no IC2 Hot Coolant");
+    setText("proc-coolant-water", hasCoolant
       ? `Distilled Water consumed: ${Math.round(pe.coolantWaterConsumed).toLocaleString()} L/t`
-      : "";
+      : "");
 
     // Stage 2: XLST-SC
     stageSc.style.opacity = "1.0";
-    document.getElementById("proc-sc-title").innerText = "⚡ Stage 2: XLST-SC (supercritical steam)";
-    document.getElementById("proc-sc-pwr").innerText = formatPowerAndAmps(pe.xlstScPowerEUt, true);
+    setText("proc-sc-title", "⚡ Stage 2: XLST-SC (supercritical steam)");
+    setText("proc-sc-pwr", formatPowerAndAmps(pe.xlstScPowerEUt, true));
     const scFlow = Math.round((currentState.flowSupercriticalSteam || 0) + (isSC ? pe.coolantSteamProduced : 0));
-    document.getElementById("proc-sc-detail").innerText = `${scFlow.toLocaleString()} L/t SC steam · ${pe.xlstScTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`;
-    document.getElementById("proc-sc-cascade").innerText = "Cascades 1:1 into Superheated Steam for Stage 3";
+    setText("proc-sc-detail", `${scFlow.toLocaleString()} L/t SC steam · ${pe.xlstScTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`);
+    setText("proc-sc-cascade", "Cascades 1:1 into Superheated Steam for Stage 3");
 
     // Stage 3: XLST-HP
     stageHp.style.opacity = "1.0";
-    document.getElementById("proc-hp-title").innerText = "⚡ Stage 3: XLST-HP (superheated steam)";
-    document.getElementById("proc-hp-pwr").innerText = formatPowerAndAmps(pe.xlstHpPowerEUt, true);
+    setText("proc-hp-title", "⚡ Stage 3: XLST-HP (superheated steam)");
+    setText("proc-hp-pwr", formatPowerAndAmps(pe.xlstHpPowerEUt, true));
     const hpDirect = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + (!isSC ? pe.coolantSteamProduced : 0));
     const hpTotal = hpDirect + scFlow;
-    document.getElementById("proc-hp-detail").innerText = `${hpTotal.toLocaleString()} L/t SH steam (${scFlow.toLocaleString()} from SC cascade) · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines`;
-    document.getElementById("proc-hp-cascade").innerText = "Cascades 1:1 into Regular Steam for Stage 4";
+    setText("proc-hp-detail", `${hpTotal.toLocaleString()} L/t SH steam (${scFlow.toLocaleString()} from SC cascade) · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines`);
+    setText("proc-hp-cascade", "Cascades 1:1 into Regular Steam for Stage 4");
 
     // Stage 4: XLST Regular
     stageReg.style.opacity = "1.0";
-    document.getElementById("proc-reg-title").innerText = "⚡ Stage 4: XLST (regular steam)";
-    document.getElementById("proc-reg-pwr").innerText = formatPowerAndAmps(pe.xlstPowerEUt, true);
+    setText("proc-reg-title", "⚡ Stage 4: XLST (regular steam)");
+    setText("proc-reg-pwr", formatPowerAndAmps(pe.xlstPowerEUt, true));
     const regDirect = Math.round(currentState.flowRegularSteam || 0);
     const regTotal = regDirect + hpTotal;
-    document.getElementById("proc-reg-detail").innerText = `${regTotal.toLocaleString()} L/t steam (${hpTotal.toLocaleString()} from HP cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`;
-    document.getElementById("proc-reg-eff").innerText = `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff`;
+    setText("proc-reg-detail", `${regTotal.toLocaleString()} L/t steam (${hpTotal.toLocaleString()} from HP cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`);
+    setText("proc-reg-eff", `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff`);
   }
 
   // Net Generation
-  document.getElementById("proc-net-pwr").innerText = formatPowerAndAmps(pe.totalPowerEUt, false);
+  setText("proc-net-pwr", formatPowerAndAmps(pe.totalPowerEUt, false));
 }
 
 function setByproductUnit(unit) {
@@ -3846,7 +4003,7 @@ function setByproductUnit(unit) {
 
 function onDamageSliderInput(val) {
   const lbl = document.getElementById("lbl-reactor-damage-val");
-  if (lbl) lbl.innerText = parseFloat(val).toFixed(1) + "%";
+  if (lbl) setText(lbl, parseFloat(val).toFixed(1) + "%");
 }
 
 async function onDamageSliderChange(val) {
@@ -3865,14 +4022,14 @@ async function setDamagePercent(pct) {
   const rng = document.getElementById("rng-reactor-damage");
   if (rng) rng.value = pct;
   const lbl = document.getElementById("lbl-reactor-damage-val");
-  if (lbl) lbl.innerText = pct.toFixed(1) + "%";
+  if (lbl) setText(lbl, pct.toFixed(1) + "%");
   await onDamageSliderChange(pct);
 }
 
 function toggleStopOnIncidents(checked) {
   const lbl = document.getElementById("lbl-stop-incidents");
   if (lbl) {
-    lbl.innerText = checked ? "(Enabled)" : "(Off)";
+    setText(lbl, checked ? "(Enabled)" : "(Off)");
     lbl.style.color = checked ? "var(--warning)" : "var(--text-muted)";
     lbl.style.fontWeight = checked ? "600" : "normal";
   }
@@ -3888,13 +4045,13 @@ function toggleStopOnIncidents(checked) {
 function toggleAutoSupplyFuel(checked) {
   const lblSupply = document.getElementById("lbl-auto-supply-fuel");
   if (lblSupply) {
-    lblSupply.innerText = checked ? "(Enabled)" : "(Off)";
+    setText(lblSupply, checked ? "(Enabled)" : "(Off)");
     lblSupply.style.color = checked ? "#34d399" : "var(--text-muted)";
     lblSupply.style.fontWeight = checked ? "600" : "normal";
   }
   const lblRefuel = document.getElementById("lbl-auto-refuel");
   if (lblRefuel) {
-    lblRefuel.innerText = checked ? "Enabled" : "Disabled";
+    setText(lblRefuel, checked ? "Enabled" : "Disabled");
     lblRefuel.style.color = checked ? "#34d399" : "var(--text-muted)";
   }
   const chkSupply = document.getElementById("chk-auto-supply-fuel");
@@ -3929,7 +4086,7 @@ function renderByproducts() {
   if (autoChk && bp.autoReplaceFuel !== undefined && autoChk !== document.activeElement) {
     autoChk.checked = bp.autoReplaceFuel;
     if (autoLbl) {
-      autoLbl.innerText = bp.autoReplaceFuel ? "Enabled" : "Disabled";
+      setText(autoLbl, bp.autoReplaceFuel ? "Enabled" : "Disabled");
       autoLbl.style.color = bp.autoReplaceFuel ? "#34d399" : "var(--text-muted)";
     }
   }
@@ -3937,17 +4094,17 @@ function renderByproducts() {
   const rateBadge = document.getElementById("byproduct-rate-badge");
   if (rateBadge) {
     const totalSolidRate = isHour ? bp.totalSolidItemsPerHour : bp.totalSolidItemsPerMin;
-    rateBadge.innerText = `${(totalSolidRate || 0).toFixed(isHour ? 1 : 2)} items ${unitLabel}`;
+    setText(rateBadge, `${(totalSolidRate || 0).toFixed(isHour ? 1 : 2)} items ${unitLabel}`);
   }
 
   const solidTotalEl = document.getElementById("byproduct-solid-total");
   const solidListEl = document.getElementById("byproduct-solid-list");
   if (solidTotalEl && solidListEl) {
     const totalSolidRate = isHour ? bp.totalSolidItemsPerHour : bp.totalSolidItemsPerMin;
-    solidTotalEl.innerText = `${(totalSolidRate || 0).toFixed(isHour ? 1 : 2)} ${unitLabel}`;
+    setText(solidTotalEl, `${(totalSolidRate || 0).toFixed(isHour ? 1 : 2)} ${unitLabel}`);
 
     if (!bp.solidRods || bp.solidRods.length === 0) {
-      solidListEl.innerHTML = `<div style="font-style:italic; color:#64748b; padding:2px 0;">No active fuel rods burning.</div>`;
+      patchHTML(solidListEl, `<div style="font-style:italic; color:#64748b; padding:2px 0;">No active fuel rods burning.</div>`);
     } else {
       let html = "";
       bp.solidRods.forEach(s => {
@@ -3970,7 +4127,7 @@ function renderByproducts() {
           </div>
         `;
       });
-      solidListEl.innerHTML = html;
+      patchHTML(solidListEl, html);
     }
   }
 
@@ -3978,12 +4135,13 @@ function renderByproducts() {
   const liquidTotalEl = document.getElementById("byproduct-liquid-total");
   const liquidListEl = document.getElementById("byproduct-liquid-list");
   if (liquidSec && liquidTotalEl && liquidListEl) {
+    // The section stays in place when empty, so the card does not change size as fuels come and go.
     if (!bp.liquidFuels || bp.liquidFuels.length === 0) {
-      liquidSec.style.display = "none";
+      setText(liquidTotalEl, `0 ${fluidUnitLabel}`);
+      patchHTML(liquidListEl, `<div style="font-style:italic; color:#64748b; padding:2px 0;">No liquid fuel hatches burning.</div>`);
     } else {
-      liquidSec.style.display = "block";
       const totalLiqRate = isHour ? bp.totalLiquidLitersPerHour : bp.totalLiquidLitersPerMin;
-      liquidTotalEl.innerText = `${Math.round(totalLiqRate || 0).toLocaleString()} ${fluidUnitLabel}`;
+      setText(liquidTotalEl, `${Math.round(totalLiqRate || 0).toLocaleString()} ${fluidUnitLabel}`);
 
       let html = "";
       bp.liquidFuels.forEach(l => {
@@ -4003,7 +4161,7 @@ function renderByproducts() {
           </div>
         `;
       });
-      liquidListEl.innerHTML = html;
+      patchHTML(liquidListEl, html);
     }
   }
 
@@ -4013,9 +4171,9 @@ function renderByproducts() {
   if (isoSec && isoTotalEl && isoListEl) {
     const hasIsotopes = bp.isotopes && bp.isotopes.some(iso => iso.totalLiters > 0 || iso.litersPerMin > 0);
     if (!hasIsotopes) {
-      isoSec.style.display = "none";
+      setText(isoTotalEl, `0 ${fluidUnitLabel}`);
+      patchHTML(isoListEl, `<div style="font-style:italic; color:#64748b; padding:2px 0;">No isotopes bred yet.</div>`);
     } else {
-      isoSec.style.display = "block";
       let totalIsoRate = 0;
       let html = "";
       bp.isotopes.forEach(iso => {
@@ -4036,8 +4194,8 @@ function renderByproducts() {
           </div>
         `;
       });
-      isoTotalEl.innerText = `${totalIsoRate.toFixed(isHour ? 1 : 2)} ${fluidUnitLabel}`;
-      isoListEl.innerHTML = html;
+      setText(isoTotalEl, `${totalIsoRate.toFixed(isHour ? 1 : 2)} ${fluidUnitLabel}`);
+      patchHTML(isoListEl, html);
     }
   }
 
@@ -4045,7 +4203,7 @@ function renderByproducts() {
   const rawListEl = document.getElementById("byproduct-raw-list");
   if (rawSec && rawListEl) {
     if (!bp.rawMaterials || bp.rawMaterials.length === 0) {
-      rawListEl.innerHTML = `<div style="font-style:italic; color:#64748b; padding:2px 0;">No active raw material burn forecast.</div>`;
+      patchHTML(rawListEl, `<div style="font-style:italic; color:#64748b; padding:2px 0;">No active raw material burn forecast.</div>`);
     } else {
       let html = "";
       bp.rawMaterials.forEach(r => {
@@ -4074,7 +4232,7 @@ function renderByproducts() {
           </div>
         `;
       });
-      rawListEl.innerHTML = html;
+      patchHTML(rawListEl, html);
     }
   }
 }
