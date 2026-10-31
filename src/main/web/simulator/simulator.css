@@ -248,9 +248,24 @@
   #reactor-grid .cell { contain: strict; }
 
   /* ===== Trend panel ================================================================================================ */
-  .trend-head { flex: none; height: 26px; display: flex; align-items: center; gap: 12px; padding: 0 8px; font-size: 11.5px; white-space: nowrap; overflow: hidden; border-bottom: 1px solid var(--line-soft); }
-  .trend-title { font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px; }
-  .lg { color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; flex: 0 1 auto; }
+  .trend-head { flex: none; height: 26px; display: flex; align-items: center; gap: 10px; padding: 0 8px; font-size: 11.5px; white-space: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; border-bottom: 1px solid var(--line-soft); }
+  .trend-head::-webkit-scrollbar { display: none; }
+  .trend-head .seg-btn { min-height: 18px; padding: 0 6px; font-size: 10.5px; }
+  .trend-views, .flux-kind, .flux-log { flex: none; }
+  .lg-group { display: inline-flex; align-items: center; gap: 10px; min-width: 0; flex: 0 1 auto; }
+  .trend-head[data-view="thermal"] .lg-flux, .trend-head[data-view="flux"] .lg-thermal { display: none; }
+  /* Both plots: thermal legend on the first row, flux controls and legend on the second */
+  .trend-head[data-view="both"] { height: 50px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: 22px 22px; align-items: center; column-gap: 10px; row-gap: 2px; overflow: hidden; }
+  .trend-head[data-view="both"] .lg-thermal { grid-row: 1; grid-column: 2; overflow: hidden; }
+  .trend-head[data-view="both"] .trend-window { grid-row: 1; grid-column: 3; }
+  .trend-head[data-view="both"] .lg-flux { grid-row: 2; grid-column: 1 / -1; overflow: hidden; }
+  /* Two stacked plots need the height: the grid above gives some up (and refits) */
+  .trend-panel.trend-both { min-height: min(340px, 45%); }
+  .lg { color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; flex: 0 1 auto; background: none; border: 0; padding: 0; font: inherit; cursor: pointer; min-height: 0; }
+  .lg:hover { color: var(--text-light); background: none; }
+  .lg, .lg:hover { font-weight: 400; }
+  .lg.off { opacity: 0.4; }
+  .lg.off b { text-decoration: line-through; }
   .lg i { display: inline-block; width: 12px; height: 2px; border-radius: 1px; }
   .lg b { color: var(--text-light); font-variant-numeric: tabular-nums; display: inline-block; min-width: 6.2em; }
   .lg-max i { background: #f87171; height: 3px; }
@@ -258,8 +273,11 @@
   .lg-pwr i { background: #4ade80; }
   .lg-rods i { background: repeating-linear-gradient(90deg, #22d3ee 0 2px, transparent 2px 4px); }
   .lg-rods b { min-width: 3em; }
+  .lg-fmed i { background: #ddd6fe; }
+  .lg-fiqr i { background: rgba(167,139,250,0.6); height: 8px; }
+  .lg-frange i { background: rgba(167,139,250,0.25); height: 10px; }
+  .lg-fiqr b, .lg-frange b { min-width: 7.5em; }
   .trend-window { margin-left: auto; flex: none; }
-  .trend-window .seg-btn { min-height: 18px; padding: 0 6px; font-size: 10.5px; }
   .trend-box { flex: 1; min-height: 0; position: relative; overflow: hidden; background: #080c12; border-radius: 0 0 4px 4px; }
   canvas#chartCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 

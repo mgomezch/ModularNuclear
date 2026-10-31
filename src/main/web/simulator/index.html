@@ -128,12 +128,29 @@
     <div class="splitter splitter-h" id="split-core" role="separator" aria-orientation="horizontal" aria-label="Resize grid and trend" tabindex="0" title="Drag to resize; double-click to reset"></div>
 
     <div class="panel trend-panel">
-      <div class="trend-head">
-        <span class="trend-title">Trend</span>
-        <span class="lg lg-max"><i></i>Core max <b id="tr-max">—</b></span>
-        <span class="lg lg-avg"><i></i>Avg <b id="tr-avg">—</b></span>
-        <span class="lg lg-pwr"><i></i>Power <b id="tr-pwr">—</b></span>
-        <span class="lg lg-rods"><i></i>Rods <b id="tr-rods">—</b></span>
+      <div class="trend-head" data-view="thermal">
+        <div class="segmented-control trend-views" role="group" aria-label="Plot">
+          <button type="button" class="seg-btn active" data-trend-view="thermal" onclick="setTrendView('thermal')" title="Temperatures, power and rods">Thermal</button>
+          <button type="button" class="seg-btn" data-trend-view="flux" onclick="setTrendView('flux')" title="Neutron flux spread over the core's cells">Flux</button>
+          <button type="button" class="seg-btn" data-trend-view="both" onclick="setTrendView('both')" title="Both plots, stacked on one time axis">Both</button>
+        </div>
+        <span class="lg-group lg-thermal">
+          <button type="button" class="lg lg-max" data-series="max" onclick="toggleTrendSeries('max')" title="Show or hide"><i></i>Core max <b id="tr-max">—</b></button>
+          <button type="button" class="lg lg-avg" data-series="avg" onclick="toggleTrendSeries('avg')" title="Show or hide"><i></i>Avg <b id="tr-avg">—</b></button>
+          <button type="button" class="lg lg-pwr" data-series="pwr" onclick="toggleTrendSeries('pwr')" title="Show or hide"><i></i>Power <b id="tr-pwr">—</b></button>
+          <button type="button" class="lg lg-rods" data-series="rods" onclick="toggleTrendSeries('rods')" title="Show or hide"><i></i>Rods <b id="tr-rods">—</b></button>
+        </span>
+        <span class="lg-group lg-flux">
+          <div class="segmented-control flux-kind" role="group" aria-label="Flux kind">
+            <button type="button" class="seg-btn active" data-flux-kind="total" onclick="setFluxKind('total')" title="Fast plus thermal neutrons">Tot</button>
+            <button type="button" class="seg-btn" data-flux-kind="fast" onclick="setFluxKind('fast')" title="Fast neutrons">Fast</button>
+            <button type="button" class="seg-btn" data-flux-kind="thermal" onclick="setFluxKind('thermal')" title="Thermal neutrons">Th</button>
+          </div>
+          <button type="button" class="seg-btn flux-log active" id="btn-flux-log" onclick="toggleFluxLog()" title="Logarithmic or linear flux axis">log</button>
+          <button type="button" class="lg lg-fmed" data-series="fmed" onclick="toggleTrendSeries('fmed')" title="Median cell's flux; click to show or hide"><i></i>Median <b id="tr-fmed">—</b></button>
+          <button type="button" class="lg lg-fiqr" data-series="fiqr" onclick="toggleTrendSeries('fiqr')" title="Middle half of the cells (lower to upper quartile); click to show or hide"><i></i>IQR <b id="tr-fiqr">—</b></button>
+          <button type="button" class="lg lg-frange" data-series="frange" onclick="toggleTrendSeries('frange')" title="Lowest to highest cell; click to show or hide"><i></i>Range <b id="tr-frange">—</b></button>
+        </span>
         <div class="segmented-control trend-window" role="group" aria-label="Trend window">
           <button type="button" class="seg-btn" data-window="200" onclick="setTrendWindow(200)" title="Last 200 ticks">200</button>
           <button type="button" class="seg-btn" data-window="2000" onclick="setTrendWindow(2000)" title="Last 2,000 ticks">2k</button>
