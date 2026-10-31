@@ -100,6 +100,11 @@ public class StandaloneNuclearGrid {
         public final double reactorDamage;
         public final int maintenanceIssues;
         public final double maintenanceEfficiency;
+        /**
+         * Neutron flux over the core's cells this cycle (neutrons per cycle): minimum, lower quartile, median, upper
+         * quartile and maximum of the total, then of the fast and of the thermal flux. Null when not recorded.
+         */
+        public final double[] flux;
 
         public TickTelemetry(long tick, double maxTemp, double avgTemp, double efficiency, int neutrons,
             double powerEUt, boolean safe) {
@@ -108,6 +113,23 @@ public class StandaloneNuclearGrid {
 
         public TickTelemetry(long tick, double maxTemp, double avgTemp, double efficiency, int neutrons,
             double powerEUt, boolean safe, double reactorDamage, int maintenanceIssues, double maintenanceEfficiency) {
+            this(
+                tick,
+                maxTemp,
+                avgTemp,
+                efficiency,
+                neutrons,
+                powerEUt,
+                safe,
+                reactorDamage,
+                maintenanceIssues,
+                maintenanceEfficiency,
+                null);
+        }
+
+        public TickTelemetry(long tick, double maxTemp, double avgTemp, double efficiency, int neutrons,
+            double powerEUt, boolean safe, double reactorDamage, int maintenanceIssues, double maintenanceEfficiency,
+            double[] flux) {
             this.tick = tick;
             this.maxTemp = maxTemp;
             this.avgTemp = avgTemp;
@@ -118,6 +140,7 @@ public class StandaloneNuclearGrid {
             this.reactorDamage = reactorDamage;
             this.maintenanceIssues = maintenanceIssues;
             this.maintenanceEfficiency = maintenanceEfficiency;
+            this.flux = flux;
         }
 
         public long tick() {
@@ -158,6 +181,10 @@ public class StandaloneNuclearGrid {
 
         public double maintenanceEfficiency() {
             return maintenanceEfficiency;
+        }
+
+        public double[] flux() {
+            return flux;
         }
     }
 
@@ -1107,7 +1134,8 @@ public class StandaloneNuclearGrid {
                 true,
                 reactorDamage,
                 maintenanceIssues,
-                getMaintenanceEfficiency()));
+                getMaintenanceEfficiency(),
+                fluxQuartiles()));
 
         if (this.stopOnIncidents && !this.haltedByIncident && this.reactorDamage > initialDamage) {
             this.haltedByIncident = true;
@@ -1131,6 +1159,46 @@ public class StandaloneNuclearGrid {
         return true;
     }
 
+    /** The five-number summaries of the core cells' total, fast and thermal flux (see TickTelemetry.flux). */
+    private double[] fluxQuartiles() {
+        int n = 0;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                if (grid[x][y] != null) n++;
+            }
+        }
+        double[] out = new double[15];
+        if (n == 0) return out;
+        double[] total = new double[n], fast = new double[n], thermal = new double[n];
+        int i = 0;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                SimTile t = grid[x][y];
+                if (t == null) continue;
+                fast[i] = t.getLastFastFlux();
+                thermal[i] = t.getLastThermalFlux();
+                total[i] = t.getLastTotalFlux();
+                i++;
+            }
+        }
+        fiveNumbers(total, out, 0);
+        fiveNumbers(fast, out, 5);
+        fiveNumbers(thermal, out, 10);
+        return out;
+    }
+
+    /** Sorts values and writes their minimum, quartiles (linear interpolation) and maximum into out from offset. */
+    private static void fiveNumbers(double[] values, double[] out, int offset) {
+        java.util.Arrays.sort(values);
+        int n = values.length;
+        for (int k = 0; k < 5; k++) {
+            double pos = (n - 1) * k / 4.0;
+            int lo = (int) Math.floor(pos);
+            int hi = Math.min(n - 1, lo + 1);
+            out[offset + k] = values[lo] + (values[hi] - values[lo]) * (pos - lo);
+        }
+    }
+
     public void triggerExplosion(String reason) {
         this.exploded = true;
         this.explosionReason = reason;
@@ -1150,7 +1218,8 @@ public class StandaloneNuclearGrid {
                     false,
                     100.0,
                     last.maintenanceIssues,
-                    0.0));
+                    0.0,
+                    last.flux));
         }
     }
 
@@ -1172,7 +1241,8 @@ public class StandaloneNuclearGrid {
                     false,
                     last.reactorDamage,
                     last.maintenanceIssues,
-                    last.maintenanceEfficiency));
+                    last.maintenanceEfficiency,
+                    last.flux));
         }
     }
 

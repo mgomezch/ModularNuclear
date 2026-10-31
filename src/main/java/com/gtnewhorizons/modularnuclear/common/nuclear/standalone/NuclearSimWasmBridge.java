@@ -1784,6 +1784,15 @@ public class NuclearSimWasmBridge {
                 .append(",");
             sb.append("\"safe\":")
                 .append(entry.safe());
+            double[] flux = entry.flux();
+            if (flux != null) {
+                sb.append(",\"flux\":[");
+                for (int k = 0; k < flux.length; k++) {
+                    if (k > 0) sb.append(",");
+                    sb.append(fmt1(flux[k]));
+                }
+                sb.append("]");
+            }
             sb.append("}");
         }
         sb.append("],");
