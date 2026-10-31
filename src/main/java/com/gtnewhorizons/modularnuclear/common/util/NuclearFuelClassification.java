@@ -2,14 +2,15 @@ package com.gtnewhorizons.modularnuclear.common.util;
 
 import java.util.Locale;
 
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
+import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
@@ -69,7 +70,9 @@ public final class NuclearFuelClassification {
         ItemList.Reactor_Coolant_NaK_3, ItemList.Reactor_Coolant_NaK_6, ItemList.Reactor_Coolant_Sp_1,
         ItemList.Reactor_Coolant_Sp_2, ItemList.Reactor_Coolant_Sp_3, ItemList.Reactor_Coolant_Sp_6 };
 
-    private static final java.util.Map<Long, Boolean> BUS_ITEM_ALLOWED_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Each item kind's roles (see ItemRoles), until the configuration reloads (see roles). */
+    private static final LongKeyMap<ItemRoles> ROLES = new LongKeyMap<>();
+    private static volatile long rolesGeneration = -1;
     private static final java.util.Set<Long> ACTIVE_ROD_KEYS = new java.util.HashSet<>();
     private static final java.util.Set<Long> DEPLETED_ROD_KEYS = new java.util.HashSet<>();
     private static final java.util.Set<Long> GT_COOLANT_KEYS = new java.util.HashSet<>();
@@ -81,7 +84,8 @@ public final class NuclearFuelClassification {
     private static volatile boolean neutronSourceInitialized = false;
 
     public static synchronized void clearCaches() {
-        BUS_ITEM_ALLOWED_CACHE.clear();
+        ROLES.clear();
+        FluidRoles.clearCache();
         ACTIVE_ROD_KEYS.clear();
         DEPLETED_ROD_KEYS.clear();
         GT_COOLANT_KEYS.clear();
@@ -182,7 +186,7 @@ public final class NuclearFuelClassification {
         return false;
     }
 
-    public static boolean isIC2ActiveFuelCell(ItemStack stack) {
+    private static boolean scanIsIC2ActiveFuelCell(ItemStack stack) {
         if (stack == null) return false;
         initKeys();
         long key = ReactorDataRegistry.getItemKey(stack);
@@ -204,7 +208,7 @@ public final class NuclearFuelClassification {
         return false;
     }
 
-    public static boolean isIC2DepletedFuelCell(ItemStack stack) {
+    private static boolean scanIsIC2DepletedFuelCell(ItemStack stack) {
         if (stack == null) return false;
         initKeys();
         long key = ReactorDataRegistry.getItemKey(stack);
@@ -266,7 +270,18 @@ public final class NuclearFuelClassification {
 
     private static NotFuelReason depletedReason(ItemStack stack) {
         if (stack == null) return null;
+        return notFuel(roles(stack), stack);
+    }
 
+    /** Why the stack is not fuel, from its kind's roles plus the one per-stack check (a custom rod's fuel mix). */
+    private static NotFuelReason notFuel(ItemRoles r, ItemStack stack) {
+        if (r.notFuelBeforeMix != null) return r.notFuelBeforeMix;
+        if (r.customRod && !CustomFuelMix.hasCustomMix(stack)) return NotFuelReason.EMPTY_ROD;
+        return r.notFuelAfterMix;
+    }
+
+    /** The depleted / blocked checks that come before a custom rod's mix check. */
+    private static NotFuelReason scanNotFuelBeforeMix(ItemStack stack) {
         initKeys();
         long key = ReactorDataRegistry.getItemKey(stack);
         if (key != 0L && (DEPLETED_ROD_KEYS.contains(key) || IC2_DEPLETED_KEYS.contains(key))) {
@@ -276,14 +291,11 @@ public final class NuclearFuelClassification {
         if (ModularNuclearConfig.isItemBlocked(stack)) {
             return NotFuelReason.BLOCKED_BY_CONFIG;
         }
+        return null;
+    }
 
-        if (stack.getItem() instanceof ItemCustomFuelRod
-            || (ModItems.rodCustomFuel1 != null && stack.getItem() == ModItems.rodCustomFuel1)
-            || (ModItems.rodCustomFuel2 != null && stack.getItem() == ModItems.rodCustomFuel2)
-            || (ModItems.rodCustomFuel4 != null && stack.getItem() == ModItems.rodCustomFuel4)) {
-            if (!CustomFuelMix.hasCustomMix(stack)) return NotFuelReason.EMPTY_ROD;
-        }
-
+    /** The depleted / empty / spent checks that come after a custom rod's mix check. */
+    private static NotFuelReason scanNotFuelAfterMix(ItemStack stack) {
         if (stack.getItem() instanceof ItemCustomDepletedFuelRod) return NotFuelReason.DEPLETED;
         if (ModItems.rodCustomDepletedFuel1 != null && stack.getItem() == ModItems.rodCustomDepletedFuel1)
             return NotFuelReason.DEPLETED;
@@ -296,7 +308,7 @@ public final class NuclearFuelClassification {
             return NotFuelReason.EMPTY_ROD;
         if (ReactorDataRegistry.isItemListStack(ItemList.IC2_Fuel_Rod_Empty, stack)) return NotFuelReason.EMPTY_ROD;
 
-        if (isIC2DepletedFuelCell(stack)) return NotFuelReason.DEPLETED;
+        if (scanIsIC2DepletedFuelCell(stack)) return NotFuelReason.DEPLETED;
 
         for (ItemList item : DEPLETED_FUEL_RODS) {
             if (ReactorDataRegistry.isItemListStack(item, stack)) {
@@ -311,8 +323,103 @@ public final class NuclearFuelClassification {
         return null;
     }
 
+    private static boolean isCustomFuelRodItem(Item item) {
+        return item instanceof ItemCustomFuelRod || (ModItems.rodCustomFuel1 != null && item == ModItems.rodCustomFuel1)
+            || (ModItems.rodCustomFuel2 != null && item == ModItems.rodCustomFuel2)
+            || (ModItems.rodCustomFuel4 != null && item == ModItems.rodCustomFuel4);
+    }
+
+    // ---- Item roles: worked out once per item kind, read every cycle ----
+
+    /**
+     * What the stack's kind of item is to a reactor core (see {@link ItemRoles}). Worked out the first time the kind is
+     * seen and kept until the configuration reloads, so this is a table lookup.
+     */
+    public static ItemRoles roles(ItemStack stack) {
+        if (stack == null) return ItemRoles.NONE;
+        long gen = configGeneration();
+        if (gen != rolesGeneration) {
+            ROLES.clear();
+            rolesGeneration = gen;
+        }
+        long key = ReactorDataRegistry.getItemKey(stack);
+        // An item with no registry id (never in the game) has no key to cache under
+        if (key == 0L) return scanRoles(stack);
+        ItemRoles r = ROLES.get(key);
+        if (r == null) {
+            r = scanRoles(stack);
+            ROLES.put(key, r);
+        }
+        return r;
+    }
+
+    /** Changes whenever either configuration does (the YAML files, or the Forge config's item and fluid lists). */
+    static long configGeneration() {
+        return ((long) ReactorConfigData.generation() << 32) | (ModularNuclearConfig.generation() & 0xFFFFFFFFL);
+    }
+
+    /** The slow part: ore dictionary, registry names and the configuration's pattern lists, once per item kind. */
+    private static ItemRoles scanRoles(ItemStack stack) {
+        initKeys();
+        ItemRoles r = new ItemRoles();
+        Item item = stack.getItem();
+        long key = ReactorDataRegistry.getItemKey(stack);
+
+        r.customRod = isCustomFuelRodItem(item);
+        r.notFuelBeforeMix = scanNotFuelBeforeMix(stack);
+        r.notFuelAfterMix = scanNotFuelAfterMix(stack);
+        r.gtActiveRod = key != 0L && ACTIVE_ROD_KEYS.contains(key);
+
+        // Custom rods build their fuel record from the stack's fuel mix (ReactorDataRegistry.findFuel)
+        r.fuelData = r.customRod ? null : ReactorDataRegistry.findFuel(stack);
+        if (r.customRod) {
+            r.fuelForm = ItemRoles.FuelForm.CUSTOM_ROD;
+        } else if (r.gtActiveRod || (key != 0L && IC2_ACTIVE_KEYS.contains(key))
+            || r.fuelData != null
+            || ModularNuclearConfig.isItemFuel(stack)
+            || scanIsIC2ActiveFuelCell(stack)) {
+                r.fuelForm = ItemRoles.FuelForm.FUEL;
+            } else if (item instanceof ItemRadioactiveCell) {
+                r.fuelForm = NuclearFuelType.fromName(stack.getUnlocalizedName()) != null ? ItemRoles.FuelForm.WORN_CELL
+                    : ItemRoles.FuelForm.NONE;
+            } else if (item instanceof ItemReactorUranium) {
+                r.fuelForm = ItemRoles.FuelForm.IC2_URANIUM;
+            }
+        r.fuelType = r.fuelData != null ? NuclearFuelType.fromFuelData(r.fuelData)
+            : NuclearFuelType.fromName(stack.getUnlocalizedName());
+
+        r.hullOnly = scanIsHullOnlyComponent(stack);
+        r.coolantItemData = ReactorDataRegistry.findCoolantItem(stack);
+        r.coolant = !r.hullOnly && scanIsItemCoolant(stack, key);
+        r.heatVentData = ReactorDataRegistry.findHeatVent(stack);
+        r.heatVent = !r.hullOnly && (r.heatVentData != null || ModularNuclearConfig.isItemHeatVent(stack));
+        r.heatExchangerData = ReactorDataRegistry.findHeatExchanger(stack);
+        r.heatExchanger = !r.hullOnly
+            && (r.heatExchangerData != null || ModularNuclearConfig.isItemHeatExchanger(stack));
+        r.reflectorData = ReactorDataRegistry.findReflector(stack);
+        r.reflector = !r.hullOnly && (r.reflectorData != null || ModularNuclearConfig.isItemReflector(stack));
+        r.moderatorData = ReactorDataRegistry.findModerator(stack);
+        r.moderator = !r.hullOnly && (r.moderatorData != null || ModularNuclearConfig.isItemModerator(stack));
+        r.radiovoltaicData = ReactorDataRegistry.findRadiovoltaic(stack);
+        r.radiovoltaic = !r.hullOnly && (r.radiovoltaicData != null || ModularNuclearConfig.isItemRadiovoltaic(stack));
+        if (!r.hullOnly) {
+            ComponentData.InsulatorData ins = ReactorDataRegistry.findInsulator(stack);
+            r.insulationDampening = ins != null ? ins.dampening : ModularNuclearConfig.getInsulatorDampening(stack);
+        }
+        r.neutronSource = scanIsItemNeutronSource(stack);
+        r.controlRodData = ReactorDataRegistry.findControlRod(stack);
+        r.controlRod = MTEHatchNuclearControlRod.isControlRod(stack);
+        r.allowedInBus = !r.customRod && scanIsItemAllowedInBus(r, stack);
+        return r;
+    }
+
     public static boolean isFuelAtMaxDamage(ItemStack stack) {
-        if (stack == null || stack.getItem() == null || isDepletedOrEmptyRod(stack)) return false;
+        if (stack == null || stack.getItem() == null) return false;
+        return isFuelAtMaxDamage(roles(stack), stack);
+    }
+
+    private static boolean isFuelAtMaxDamage(ItemRoles r, ItemStack stack) {
+        if (notFuel(r, stack) != null) return false;
 
         if (stack.getItem() instanceof ItemCustomFuelRod customRod) {
             if (!CustomFuelMix.hasCustomMix(stack)) return false;
@@ -339,18 +446,14 @@ public final class NuclearFuelClassification {
             return stack.getItemDamage() >= stack.getMaxDamage();
         }
 
-        FuelData fd = ReactorDataRegistry.findFuel(stack);
+        FuelData fd = r.fuelData;
         if (fd != null) {
             int maxDur = fd.defaultDurability > 0 ? fd.defaultDurability : stack.getMaxDamage();
             return stack.isItemStackDamageable() && stack.getItemDamage() >= maxDur;
         }
 
         if (stack.isItemStackDamageable() && stack.getItemDamage() >= stack.getMaxDamage()) {
-            for (ItemList item : ACTIVE_FUEL_RODS) {
-                if (ReactorDataRegistry.isItemListStack(item, stack)) {
-                    return true;
-                }
-            }
+            return r.gtActiveRod;
         }
 
         return false;
@@ -358,7 +461,7 @@ public final class NuclearFuelClassification {
 
     public static boolean isModeratorAtMaxDamage(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return false;
-        ComponentData.ModeratorData mod = ReactorDataRegistry.findModerator(stack);
+        ComponentData.ModeratorData mod = roles(stack).moderatorData;
         if (mod != null && stack.stackTagCompound != null && stack.stackTagCompound.hasKey("advDmg")) {
             return stack.stackTagCompound.getInteger("advDmg") >= mod.durability;
         }
@@ -367,7 +470,7 @@ public final class NuclearFuelClassification {
 
     public static boolean isReflectorAtMaxDamage(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return false;
-        ComponentData.ReflectorData refl = ReactorDataRegistry.findReflector(stack);
+        ComponentData.ReflectorData refl = roles(stack).reflectorData;
         if (refl != null && refl.durability > 0
             && stack.stackTagCompound != null
             && stack.stackTagCompound.hasKey("advDmg")) {
@@ -387,90 +490,53 @@ public final class NuclearFuelClassification {
 
     public static boolean isItemFuel(ItemStack stack) {
         if (stack == null) return false;
-        if (isDepletedOrEmptyRod(stack)) return false;
+        return isItemFuel(roles(stack), stack);
+    }
 
-        initKeys();
-        long key = ReactorDataRegistry.getItemKey(stack);
-        if (key != 0L && (ACTIVE_ROD_KEYS.contains(key) || IC2_ACTIVE_KEYS.contains(key))) {
-            return true;
-        }
-
-        if (ReactorDataRegistry.findFuel(stack) != null) {
-            return true;
-        }
-        if (ModularNuclearConfig.isItemFuel(stack)) {
-            return true;
-        }
-
-        // Custom fuel rods
-        if (stack.getItem() instanceof ItemCustomFuelRod
-            || (ModItems.rodCustomFuel1 != null && stack.getItem() == ModItems.rodCustomFuel1)
-            || (ModItems.rodCustomFuel2 != null && stack.getItem() == ModItems.rodCustomFuel2)
-            || (ModItems.rodCustomFuel4 != null && stack.getItem() == ModItems.rodCustomFuel4)) {
-            if (!CustomFuelMix.hasCustomMix(stack)) return false;
-            CustomFuelMix mix = CustomFuelMix.fromStack(stack);
-            int maxDur = (mix != null) ? mix.defaultDurability : 160000;
-            return stack.getItemDamage() < maxDur;
-        }
-
-        // GT registered active fuel rods
-        for (ItemList item : ACTIVE_FUEL_RODS) {
-            if (ReactorDataRegistry.isItemListStack(item, stack)) {
+    private static boolean isItemFuel(ItemRoles r, ItemStack stack) {
+        if (notFuel(r, stack) != null) return false;
+        switch (r.fuelForm) {
+            case FUEL:
                 return true;
+            case CUSTOM_ROD: {
+                // A custom rod with a readable mix is fuel (ReactorDataRegistry.findFuel builds its record); one whose
+                // mix cannot be read burns until the default custom rod life
+                return CustomFuelMix.fromStack(stack) != null || stack.getItemDamage() < 160000;
             }
+            case WORN_CELL: {
+                ItemRadioactiveCell radCell = (ItemRadioactiveCell) stack.getItem();
+                return radCell.getDamageOfStack(stack) < radCell.getMaxDamageEx();
+            }
+            case IC2_URANIUM:
+                return stack.getItemDamage() < stack.getMaxDamage();
+            default:
+                return false;
         }
-
-        // IC2 registered active fuel cells
-        if (isIC2ActiveFuelCell(stack)) {
-            return true;
-        }
-
-        // Radioactive cell check (concrete class in GT)
-        if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
-            int maxDur = radCell.getMaxDamageEx();
-            if (radCell.getDamageOfStack(stack) >= maxDur) return false;
-            return NuclearFuelType.fromName(stack.getUnlocalizedName()) != null;
-        }
-
-        // IC2 Uranium / MOX item
-        if (stack.getItem() instanceof ItemReactorUranium) {
-            return stack.getItemDamage() < stack.getMaxDamage();
-        }
-
-        return false;
     }
 
     public static boolean isFluidFuel(FluidStack fluid) {
         if (fluid == null || fluid.getFluid() == null) return false;
-        if (ModularNuclearConfig.isFluidBlocked(fluid)) return false;
-        FuelData fd = ReactorDataRegistry.findFuel(fluid);
-        if (fd != null && fd.isLiquid) return true;
-        if (ModularNuclearConfig.isFluidFuel(fluid)) return true;
-        return false;
+        return FluidRoles.of(fluid.getFluid())
+            .isFuel();
     }
 
     public static Fluid getSpentFluid(FluidStack fuel) {
         if (fuel == null || fuel.getFluid() == null) return null;
-        FuelData fd = ReactorDataRegistry.findFuel(fuel);
-        if (fd != null && fd.spentProduct != null) {
-            Fluid f = FluidRegistry.getFluid(fd.spentProduct);
-            if (f == null && !fd.spentProduct.startsWith("fluid.")) {
-                f = FluidRegistry.getFluid("fluid." + fd.spentProduct);
-            }
-            if (f != null) return f;
-        }
-        return null;
+        return FluidRoles.of(fuel.getFluid())
+            .spentFluid();
     }
 
     public static boolean isCoolantFluid(FluidStack fluid) {
         if (fluid == null || fluid.getFluid() == null) return false;
-        if (ReactorDataRegistry.findCoolantFluid(fluid) != null) return true;
-        if (ModularNuclearConfig.isCoolantFluid(fluid)) return true;
-        return false;
+        return FluidRoles.of(fluid.getFluid())
+            .isCoolant();
     }
 
     public static boolean isHullOnlyComponent(ItemStack stack) {
-        if (stack == null) return false;
+        return stack != null && roles(stack).hullOnly;
+    }
+
+    private static boolean scanIsHullOnlyComponent(ItemStack stack) {
         initKeys();
         long key = ReactorDataRegistry.getItemKey(stack);
         if (key != 0L && HULL_ONLY_KEYS.contains(key)) return true;
@@ -488,9 +554,10 @@ public final class NuclearFuelClassification {
     }
 
     public static boolean isItemCoolant(ItemStack stack) {
-        if (stack == null || isHullOnlyComponent(stack)) return false;
-        initKeys();
-        long key = ReactorDataRegistry.getItemKey(stack);
+        return stack != null && roles(stack).coolant;
+    }
+
+    private static boolean scanIsItemCoolant(ItemStack stack, long key) {
         if (key != 0L && GT_COOLANT_KEYS.contains(key)) return true;
         if (ReactorDataRegistry.findCoolantItem(stack) != null) return true;
         if (ModularNuclearConfig.isItemCoolant(stack)) return true;
@@ -525,40 +592,27 @@ public final class NuclearFuelClassification {
     }
 
     public static boolean isItemHeatVent(ItemStack stack) {
-        if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (ReactorDataRegistry.findHeatVent(stack) != null) return true;
-        return ModularNuclearConfig.isItemHeatVent(stack);
+        return stack != null && roles(stack).heatVent;
     }
 
     public static boolean isItemHeatExchanger(ItemStack stack) {
-        if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (ReactorDataRegistry.findHeatExchanger(stack) != null) return true;
-        return ModularNuclearConfig.isItemHeatExchanger(stack);
+        return stack != null && roles(stack).heatExchanger;
     }
 
     public static boolean isItemReflector(ItemStack stack) {
-        if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (ReactorDataRegistry.findReflector(stack) != null) return true;
-        return ModularNuclearConfig.isItemReflector(stack);
+        return stack != null && roles(stack).reflector;
     }
 
     public static boolean isItemModerator(ItemStack stack) {
-        if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (ReactorDataRegistry.findModerator(stack) != null) return true;
-        return ModularNuclearConfig.isItemModerator(stack);
+        return stack != null && roles(stack).moderator;
     }
 
     public static boolean isItemRadiovoltaic(ItemStack stack) {
-        if (stack == null || isHullOnlyComponent(stack)) return false;
-        if (ReactorDataRegistry.findRadiovoltaic(stack) != null) return true;
-        return ModularNuclearConfig.isItemRadiovoltaic(stack);
+        return stack != null && roles(stack).radiovoltaic;
     }
 
     public static double getInsulationDampening(ItemStack stack) {
-        if (stack == null || isHullOnlyComponent(stack)) return 0.0;
-        ComponentData.InsulatorData ins = ReactorDataRegistry.findInsulator(stack);
-        if (ins != null) return ins.dampening;
-        return ModularNuclearConfig.getInsulatorDampening(stack);
+        return stack != null ? roles(stack).insulationDampening : 0.0;
     }
 
     public static boolean isItemAllowedInBus(ItemStack stack) {
@@ -567,74 +621,48 @@ public final class NuclearFuelClassification {
 
     public static boolean isItemAllowedInBus(ItemStack stack, MTEHatchNuclearBus bus) {
         if (stack == null) return false;
+        ItemRoles r = roles(stack);
 
         // Custom fuel rods require valid NBT mix
-        if (stack.getItem() != null && (stack.getItem() instanceof ItemCustomFuelRod
-            || (ModItems.rodCustomFuel1 != null && stack.getItem() == ModItems.rodCustomFuel1)
-            || (ModItems.rodCustomFuel2 != null && stack.getItem() == ModItems.rodCustomFuel2)
-            || (ModItems.rodCustomFuel4 != null && stack.getItem() == ModItems.rodCustomFuel4))) {
-            return CustomFuelMix.hasCustomMix(stack);
-        }
+        if (r.customRod) return CustomFuelMix.hasCustomMix(stack);
 
         // Subclasses or buses with cheese extraction recipe
         if (bus != null && bus.findCheeseExtractionRecipe(stack) != null) {
             return true;
         }
-
-        long key = ReactorDataRegistry.getItemKey(stack);
-        if (key != 0L) {
-            Boolean cached = BUS_ITEM_ALLOWED_CACHE.get(key);
-            if (cached != null) {
-                return cached.booleanValue();
-            }
-        }
-
-        boolean allowed = computeIsItemAllowedInBus(stack, bus);
-        if (key != 0L) {
-            BUS_ITEM_ALLOWED_CACHE.put(key, Boolean.valueOf(allowed));
-        }
-        return allowed;
+        return r.allowedInBus;
     }
 
-    private static boolean computeIsItemAllowedInBus(ItemStack stack, MTEHatchNuclearBus bus) {
+    /** Whether a plain core bus takes the item kind, from the roles worked out so far (see scanRoles). */
+    private static boolean scanIsItemAllowedInBus(ItemRoles r, ItemStack stack) {
         // 1. Dynamic cheese extraction Easter egg inputs:
         if (CheeseRecipeRegistry.getInstance()
             .isCheeseInput(stack)) {
             return true;
         }
-        if (bus != null && bus.getClass() != MTEHatchNuclearBus.class
-            && bus.findCheeseExtractionRecipe(stack) != null) {
-            return true;
-        }
-
         // 2. Control rods can ONLY go into control rod hatches!
-        if (MTEHatchNuclearControlRod.isControlRod(stack)) return false;
+        if (r.controlRod) return false;
 
         // 3. Depleted rods and empty fuel rods are strictly forbidden from reactor core hatches!
-        if (isDepletedOrEmptyRod(stack)) return false;
+        if (notFuel(r, stack) != null) return false;
 
         // 4. Hull-only components (interact with nonexistent reactor hull heat) are strictly forbidden!
-        if (isHullOnlyComponent(stack)) return false;
+        if (r.hullOnly) return false;
 
         // 5. Explicitly allowlisted reactor core items:
-        if (isItemFuel(stack)) return true;
-        if (isFuelAtMaxDamage(stack)) return true;
-        if (isItemCoolant(stack)) return true;
-        if (isItemHeatVent(stack)) return true;
-        if (isItemHeatExchanger(stack)) return true;
-        if (isItemReflector(stack)) return true;
-        if (isReflectorAtMaxDamage(stack)) return true;
-        if (isItemModerator(stack)) return true;
-        if (isModeratorAtMaxDamage(stack)) return true;
-        if (getInsulationDampening(stack) > 0.0) return true;
-        if (isItemRadiovoltaic(stack)) return true;
-        if (isItemNeutronSource(stack)) return true;
+        if (isItemFuel(r, stack)) return true;
+        if (isFuelAtMaxDamage(r, stack)) return true;
+        if (r.coolant || r.heatVent || r.heatExchanger || r.reflector || r.moderator) return true;
+        if (r.insulationDampening > 0.0 || r.radiovoltaic || r.neutronSource) return true;
 
         return false;
     }
 
     public static boolean isItemNeutronSource(ItemStack stack) {
-        if (stack == null || stack.getItem() == null) return false;
+        return stack != null && roles(stack).neutronSource;
+    }
+
+    private static boolean scanIsItemNeutronSource(ItemStack stack) {
         if (!neutronSourceInitialized) {
             try {
                 if (goodgenerator.loader.Loaders.neutronSource != null) {
@@ -703,7 +731,7 @@ public final class NuclearFuelClassification {
         }
 
         // 1. Check YAML FuelData spentProduct
-        FuelData fd = ReactorDataRegistry.findFuel(fuel);
+        FuelData fd = roles(fuel).fuelData;
         if (fd != null && fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
             ItemStack spent = ReactorDataRegistry.resolveItemStack(fd.spentProduct);
             if (spent != null) {
