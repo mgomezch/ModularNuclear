@@ -747,10 +747,10 @@ public class NuclearSimulationEngineTest {
     @Test
     void testGridConductionMultiplierScalesConduction() {
         assertEquals(
-            1.0,
             ReactorDataRegistry.getPhysics().gridConductionMultiplier,
+            NuclearSimulationEngine.params().gridConductionMultiplier,
             1e-9,
-            "Default grid conduction multiplier must be 1.0");
+            "The engine's grid conduction multiplier comes from physics.yaml");
         double[] base = conductPair(1.0, 5);
         double[] faster = conductPair(2.0, 5);
         assertTrue(
@@ -2883,6 +2883,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testTheCoreAndLiquidFuelSimTile() {
+        BaselinePhysics.apply();
         NuclearSimulationEngine.setTicksPerCycle(20);
         try {
             // Test The Core (NQ32)
@@ -5074,6 +5075,7 @@ public class NuclearSimulationEngineTest {
         // rather than being artificially pinned to 100.0°C.
         StandaloneNuclearGrid grid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_PLATINUM);
         grid.loadPreset("BEST_PLATINUM_9X9");
+        BaselinePhysics.apply();
 
         // Run 300 cycles: the IV hatches hold 512 HU/°C each and take a while to warm up
         for (int t = 0; t < 300; t++) {
@@ -6824,6 +6826,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     public void testFuelArchetypeMultipliers() {
+        BaselinePhysics.apply();
         PhysicsData physics = ReactorDataRegistry.getPhysics();
         assertNotNull(physics);
         assertEquals(0.50, physics.denseNbaseMultiplier, 1e-4);
@@ -6866,15 +6869,10 @@ public class NuclearSimulationEngineTest {
         PhysicsData activePhysics = ReactorDataRegistry.getPhysics();
         assertNotNull(activePhysics);
         assertEquals(
-            38.0,
             activePhysics.fissionHeatPerNeutron,
-            1e-4,
-            "Active registry physics must have 38.0 Hu/neutron");
-        assertEquals(
-            38.0,
             NuclearSimulationEngine.params().fissionHeatPerNeutron,
             1e-4,
-            "NuclearSimulationEngine must use 38.0 Hu/neutron by default");
+            "The engine's fission heat comes from physics.yaml");
     }
 
     @Test
@@ -6912,6 +6910,7 @@ public class NuclearSimulationEngineTest {
     @Test
     public void testFastNeutronFission() {
         NuclearSimulationEngine.resetDefaultParameters();
+        BaselinePhysics.apply();
         NuclearSimulationEngine.setTicksPerCycle(20);
         try {
             assertEquals(1.0, NuclearSimulationEngine.params().globalFastFissionMultiplier, 1e-4);

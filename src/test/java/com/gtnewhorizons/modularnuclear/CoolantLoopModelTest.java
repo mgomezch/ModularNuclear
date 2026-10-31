@@ -22,6 +22,9 @@ public class CoolantLoopModelTest {
     @BeforeEach
     void setUp() {
         NuclearSimulationEngine.resetDefaultParameters();
+        // Fresh loop configuration and fluids, as the CLI starts every run: other test classes load custom ones
+        CoolantLoopConfigData.loadDefaults();
+        BaselinePhysics.apply();
         grid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_OSMIUM);
         grid.setTicksPerCycle(20);
         grid.loadLayout(
@@ -468,6 +471,9 @@ public class CoolantLoopModelTest {
     /** A 9x9 core cooled only by loop passages (the hatch column of the other tests made into passages). */
     private CoolantLoopModel passageCore(double pheBandMin) {
         NuclearSimulationEngine.resetDefaultParameters();
+        // Fresh loop configuration and fluids, as the CLI starts every run: other test classes load custom ones
+        CoolantLoopConfigData.loadDefaults();
+        BaselinePhysics.apply();
         grid = new StandaloneNuclearGrid(9, 9, NuclearSimulationEngine.PIPE_TIER_OSMIUM);
         grid.setTicksPerCycle(20);
         grid.loadLayout(

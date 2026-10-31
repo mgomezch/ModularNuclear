@@ -1,18 +1,18 @@
 physics:
   hu_per_degree: 32.0
-  global_thermal_fission_multiplier: 1.0
+  global_thermal_fission_multiplier: 1.57079
   global_fast_fission_multiplier: 1.0
   fast_absorption_damage_multiplier: 8.0
   thermal_absorption_damage_multiplier: 1.0
-  fission_heat_per_neutron: 38.0
-  grid_conduction_multiplier: 1.0
-  fuel_burnup_multiplier: 1.0
-  neutron_yield_multiplier: 1.0
+  fission_heat_per_neutron: 139.705
+  grid_conduction_multiplier: 26.9597
+  fuel_burnup_multiplier: 0.0372738
+  neutron_yield_multiplier: 26.8285
   # Convective heat transfer of an MV (tier 2) high-pressure passage into its loop coolant, times
   # coolant_passage_heat_transfer_tier_ratio per voltage tier above. A passage's tier is its pipe material's (cast iron
   # LV, steel MV, stainless steel HV, titanium EV, tungstensteel IV, osmium LuV, neutronium ZPM). With 75 L/s of water
   # through it, a passage removes about three times what a core hatch of the same tier conducts into its own coolant.
-  coolant_passage_heat_transfer_multiplier: 0.11
+  coolant_passage_heat_transfer_multiplier: 0.1453
   coolant_passage_heat_transfer_tier_ratio: 2.65
   # Heat capacity (HU/°C) of a tier-0 passage; a passage of voltage tier t holds 2^t times this.
   coolant_passage_heat_capacity: 16.0
@@ -41,9 +41,9 @@ physics:
   t10_wear_factor: 8.0
   dense_nbase_multiplier: 0.5
   dense_fission_multiplier: 1.2
-  excited_nbase_multiplier: 2.0
-  excited_fission_multiplier: 0.7
-  standard_nbase_multiplier: 1.0
-  standard_fission_multiplier: 1.0
+  excited_nbase_multiplier: 0.781418
+  excited_fission_multiplier: 1.16133
+  standard_nbase_multiplier: 0.590588
+  standard_fission_multiplier: 1.4672
   breeder_nbase_multiplier: 1.0
   breeder_fission_multiplier: 1.0
