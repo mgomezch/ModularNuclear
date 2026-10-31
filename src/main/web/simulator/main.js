@@ -4,9 +4,33 @@ window.addEventListener("resize", () => {
   }
 });
 
+// Shortcuts never fire while typing in a field, and plain keys never fire with Ctrl/Cmd (browser shortcuts).
+function isTypingTarget(t) {
+  if (!t) return false;
+  const tag = t.tagName;
+  return tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || t.isContentEditable;
+}
+
 window.addEventListener("keydown", (e) => {
-  if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "SELECT")) return;
-  if (e.key === "Escape" || e.key === "i" || e.key === "I") {
+  if (e.defaultPrevented || isTypingTarget(e.target)) return;
+  if (e.ctrlKey || e.metaKey) return;
+  // Alt+1..9: select dock tabs by position (group A, then group B).
+  if (e.altKey) {
+    const m = /^Digit([1-9])$/.exec(e.code || "");
+    if (m && typeof dockSelectByPosition === "function") {
+      e.preventDefault();
+      dockSelectByPosition(parseInt(m[1], 10));
+    }
+    return;
+  }
+  if (e.key === " " || e.code === "Space") {
+    // Space on a focused button presses that button instead.
+    if (e.target && (e.target.tagName === "BUTTON" || e.target.tagName === "A")) return;
+    e.preventDefault();
+    togglePlay();
+  } else if (e.key === "[" || e.key === "]") {
+    if (typeof dockCycle === "function") dockCycle(e.key === "]" ? 1 : -1);
+  } else if (e.key === "Escape" || e.key === "i" || e.key === "I") {
     setInteractionMode("INSPECT");
   } else if (e.key === "p" || e.key === "P") {
     setInteractionMode("PAINT");
