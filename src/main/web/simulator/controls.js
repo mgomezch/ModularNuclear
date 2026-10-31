@@ -136,11 +136,12 @@ function renderInspector(t) {
             <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:2px;">Rod Material:</div>
             <select onchange="changeTileControlRodMaterial(${t.x}, ${t.y}, this.value)" style="width:100%; font-size:0.75rem; padding:3px 6px; height:auto; min-height:28px;">
               <option value="NONE" ${rodType === 'NONE' ? 'selected' : ''}>Empty (No rod inserted)</option>
-              <option value="SILVER" ${rodType === 'SILVER' ? 'selected' : ''}>Silver-Indium-Cadmium (85% F / 80% Th)</option>
-              <option value="BORON" ${rodType === 'BORON' ? 'selected' : ''}>Boron Carbide (70% F / 90% Th)</option>
-              <option value="CADMIUM" ${rodType === 'CADMIUM' ? 'selected' : ''}>Cadmium (50% F / 95% Th)</option>
-              <option value="INDIUM" ${rodType === 'INDIUM' ? 'selected' : ''}>Indium (60% F / 85% Th)</option>
-              <option value="HAFNIUM" ${rodType === 'HAFNIUM' ? 'selected' : ''}>Hafnium (80% F / 75% Th)</option>
+              <option value="SILVER" ${rodType === 'SILVER' ? 'selected' : ''}>Silver (20% F / 50% Th)</option>
+              <option value="BORON" ${rodType === 'BORON' ? 'selected' : ''}>Boron (35% F / 70% Th)</option>
+              <option value="CADMIUM" ${rodType === 'CADMIUM' ? 'selected' : ''}>Cadmium (50% F / 85% Th)</option>
+              <option value="INDIUM" ${rodType === 'INDIUM' ? 'selected' : ''}>Indium (65% F / 95% Th)</option>
+              <option value="HAFNIUM" ${rodType === 'HAFNIUM' ? 'selected' : ''}>Hafnium (80% F / 99% Th)</option>
+              <option value="NEUTRONIUM" ${rodType === 'NEUTRONIUM' ? 'selected' : ''}>Neutronium (100% F / 100% Th)</option>
             </select>
           </div>
           <div style="margin-bottom:6px;">

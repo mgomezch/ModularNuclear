@@ -270,6 +270,7 @@ const PALETTE = [
   { type: "CR_CADMIUM", name: "Control Rod: Cadmium", code: "CR:CD", color: "#06b6d4", isControlRod: true, material: "CADMIUM" },
   { type: "CR_SILVER", name: "Control Rod: Silver", code: "CR:AG", color: "#94a3b8", isControlRod: true, material: "SILVER" },
   { type: "CR_INDIUM", name: "Control Rod: Indium", code: "CR:IN", color: "#a855f7", isControlRod: true, material: "INDIUM" },
+  { type: "CR_NEUTRONIUM", name: "Control Rod: Neutronium", code: "CR:NT", color: "#e2e8f0", isControlRod: true, material: "NEUTRONIUM" },
   { type: "CR_EMPTY", name: "Control Rod: Empty Hatch", code: "CR:0", color: "#64748b", isControlRod: true, material: "NONE" },
   { type: "CR_REMOVE", name: "Remove Control Rod", code: "-CR", color: "#ef4444", isControlRod: true, remove: true }
 ];
@@ -677,6 +678,7 @@ function getControlRodColor(type) {
     case "CADMIUM": return "#06b6d4";
     case "INDIUM": return "#a855f7";
     case "HAFNIUM": return "#f97316";
+    case "NEUTRONIUM": return "#e2e8f0";
     default: return "#64748b";
   }
 }
