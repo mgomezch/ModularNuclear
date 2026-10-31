@@ -123,6 +123,17 @@ public class ModularNuclear {
         NuclearFuelClassification.preIndexKeys();
     }
 
+    /**
+     * A world brings its own item ID map, so every lookup cached by item ID (fuels, depleted rods, components) is
+     * rebuilt; otherwise an item can be taken for whatever held its ID before, such as a fuel rod for a depleted rod.
+     */
+    @Mod.EventHandler
+    public void onIdMapping(cpw.mods.fml.common.event.FMLModIdMappingEvent event) {
+        ReactorDataRegistry.clearCaches();
+        ReactorDataRegistry.preIndexKnownItems();
+        NuclearFuelClassification.preIndexKeys();
+    }
+
     @Mod.EventHandler
     public void onMissingMappings(cpw.mods.fml.common.event.FMLMissingMappingsEvent event) {
         for (cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping mapping : event.getAll()) {
