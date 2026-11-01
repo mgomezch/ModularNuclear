@@ -8,19 +8,19 @@ public final class CoolantPipeSpec {
 
     /** GregTech material names, in registration order. */
     public static final String[] MATERIAL_NAMES = { "CastIron", "Steel", "StainlessSteel", "Titanium", "TungstenSteel",
-        "Osmium", "Neutronium" };
+        "Osmium", "Neutronium", "DraconiumAwakened", "Infinity" };
 
     /** Base capacity (L/t) of a medium pipe of each material. */
-    public static final int[] BASE_CAPACITIES = { 180, 240, 360, 480, 600, 1200, 16800 };
+    public static final int[] BASE_CAPACITIES = { 180, 240, 360, 480, 600, 1200, 16800, 45000, 60000 };
 
     /** GregTech pipe heat resistance (K) of each material. */
-    public static final int[] HEAT_RESISTANCES = { 2250, 2500, 3000, 5000, 7500, 10000, 1000000 };
+    public static final int[] HEAT_RESISTANCES = { 2250, 2500, 3000, 5000, 7500, 10000, 1000000, 10000000, 10000000 };
 
     /**
-     * GregTech voltage tier of each material (LV 1 ... ZPM 7): the tier of the GregTech hatch a high-pressure passage
+     * GregTech voltage tier of each material (LV 1 ... UHV 9): the tier of the GregTech hatch a high-pressure passage
      * hatch of that material is crafted from, and the tier that sets its heat capacity and heat transfer.
      */
-    public static final int[] VOLTAGE_TIERS = { 1, 2, 3, 4, 5, 6, 7 };
+    public static final int[] VOLTAGE_TIERS = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
     public static final String[] SIZE_NAMES = { "Tiny", "Small", "Medium", "Large", "Huge" };
 

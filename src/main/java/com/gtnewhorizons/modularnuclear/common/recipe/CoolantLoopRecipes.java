@@ -78,7 +78,9 @@ public class CoolantLoopRecipes {
         if (mat == Materials.Titanium) return 3;
         if (mat == Materials.TungstenSteel) return 4;
         if (mat == Materials.Osmium) return 5;
-        return 6; // Neutronium / tier > 5 repeats tier 2 (Mica)
+        if (mat == Materials.DraconiumAwakened) return 7;
+        if (mat == Materials.Infinity) return 8;
+        return 6; // Neutronium; tiers above 5 repeat tier 2's insulation (Mica)
     }
 
     private static ItemStack getNHItem(String name) {
@@ -275,7 +277,8 @@ public class CoolantLoopRecipes {
                 ItemStack coolantPipe = CoolantLoopMetaTileEntities.coolantPipeItems[m][s];
 
                 if (originalPipe != null && insulation != null && coolantPipe != null) {
-                    long eut = tier <= 5 ? GTValues.VP[tier] : GTValues.VP[6];
+                    // A tier below the pipe material's: Osmium at IV, Neutronium at LuV ... Infinity at UV
+                    long eut = GTValues.VP[tier];
                     GTValues.RA.stdBuilder()
                         .itemInputs(
                             gregtech.api.util.GTUtility.copyAmount(3, originalPipe),

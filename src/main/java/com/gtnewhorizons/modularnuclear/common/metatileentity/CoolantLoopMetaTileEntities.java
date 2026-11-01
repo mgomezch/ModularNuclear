@@ -41,9 +41,17 @@ public class CoolantLoopMetaTileEntities {
     public static final int PIPE_HUGE_ID = 32153;
     public static final int PRESSURIZED_HATCH_OUTPUT_ID = 32160;
     public static final int PRESSURIZED_FLUID_HEATER_ID = 32175;
+    /**
+     * Pipes of the materials added after the first PACKED_PIPE_MATERIALS, which have no room in the block above (it
+     * holds the pipes size by size): 32176..32185, material by material, in size order.
+     */
+    public static final int EXTRA_PIPE_START_ID = 32176;
+    /** How many materials the pipe block from COOLANT_PIPE_START_ID holds per size. */
+    public static final int PACKED_PIPE_MATERIALS = 7;
 
     public static final Materials[] COOLANT_PIPE_MATERIALS = new Materials[] { Materials.CastIron, Materials.Steel,
-        Materials.StainlessSteel, Materials.Titanium, Materials.TungstenSteel, Materials.Osmium, Materials.Neutronium };
+        Materials.StainlessSteel, Materials.Titanium, Materials.TungstenSteel, Materials.Osmium, Materials.Neutronium,
+        Materials.DraconiumAwakened, Materials.Infinity };
 
     public static final float[] PIPE_THICKNESSES = CoolantPipeSpec.THICKNESSES;
 
@@ -84,13 +92,12 @@ public class CoolantLoopMetaTileEntities {
         for (int s = 0; s < PIPE_THICKNESSES.length; s++) {
             float thick = PIPE_THICKNESSES[s];
             String sizeName = SIZE_NAMES[s];
-            int sizeBaseId = COOLANT_PIPE_START_ID + s * COOLANT_PIPE_MATERIALS.length;
             for (int m = 0; m < COOLANT_PIPE_MATERIALS.length; m++) {
                 Materials mat = COOLANT_PIPE_MATERIALS[m];
                 int heatRes = CoolantPipeSpec.HEAT_RESISTANCES[m];
                 int cap = CoolantPipeSpec.capacityPerTick(m, s);
 
-                int id = sizeBaseId + m;
+                int id = getPipeId(m, s);
                 String internalName = "coolantpipe." + sizeName.toLowerCase() + "." + mat.mName.toLowerCase();
                 MTECoolantPipe pipe = new MTECoolantPipe(
                     id,
@@ -107,11 +114,12 @@ public class CoolantLoopMetaTileEntities {
         }
     }
 
-    public static int getPipeSizeBaseId(int sizeIndex) {
-        if (sizeIndex >= 0 && sizeIndex < PIPE_THICKNESSES.length) {
-            return COOLANT_PIPE_START_ID + sizeIndex * COOLANT_PIPE_MATERIALS.length;
+    /** Metatile entity ID of the pipe of a material and size (indices into the arrays above). */
+    public static int getPipeId(int materialIndex, int sizeIndex) {
+        if (materialIndex < PACKED_PIPE_MATERIALS) {
+            return COOLANT_PIPE_START_ID + sizeIndex * PACKED_PIPE_MATERIALS + materialIndex;
         }
-        return -1;
+        return EXTRA_PIPE_START_ID + (materialIndex - PACKED_PIPE_MATERIALS) * PIPE_THICKNESSES.length + sizeIndex;
     }
 
     public static int getMaterialIndex(Materials mat) {

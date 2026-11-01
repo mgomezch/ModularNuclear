@@ -31,6 +31,10 @@ public class ModMetaTileEntities {
     /** Material-tiered high-pressure hatches, one per coolant pipe material: inputs first, then outputs. */
     public static final int ID_NUCLEAR_HIGH_PRESSURE_INPUT_BASE = 32161; // 32161..32167
     public static final int ID_NUCLEAR_HIGH_PRESSURE_OUTPUT_BASE = 32168; // 32168..32174
+    /** How many materials the hatch blocks above hold; later materials' hatches follow the extra coolant pipes. */
+    public static final int PACKED_HIGH_PRESSURE_MATERIALS = 7;
+    public static final int ID_NUCLEAR_HIGH_PRESSURE_INPUT_EXTRA_BASE = 32186; // 32186..32187
+    public static final int ID_NUCLEAR_HIGH_PRESSURE_OUTPUT_EXTRA_BASE = 32188; // 32188..32189
 
     public static ItemStack reactor;
     public static ItemStack actinideCompounder;
@@ -101,7 +105,7 @@ public class ModMetaTileEntities {
         for (int m = 0; m < CoolantPipeSpec.MATERIAL_NAMES.length; m++) {
             String material = CoolantPipeSpec.MATERIAL_NAMES[m];
             nuclearHighPressureInputHatches[m] = new MTEHatchNuclearHighPressureInput(
-                ID_NUCLEAR_HIGH_PRESSURE_INPUT_BASE + m,
+                highPressureInputId(m),
                 "hatch.nuclearhighpressure.input." + material.toLowerCase(),
                 "Nuclear core high-pressure input hatch ("
                     + CoolantLoopMetaTileEntities.COOLANT_PIPE_MATERIALS[m].mDefaultLocalName
@@ -113,7 +117,7 @@ public class ModMetaTileEntities {
         for (int m = 0; m < CoolantPipeSpec.MATERIAL_NAMES.length; m++) {
             String material = CoolantPipeSpec.MATERIAL_NAMES[m];
             nuclearHighPressureOutputHatches[m] = new MTEHatchNuclearHighPressureOutput(
-                ID_NUCLEAR_HIGH_PRESSURE_OUTPUT_BASE + m,
+                highPressureOutputId(m),
                 "hatch.nuclearhighpressure.output." + material.toLowerCase(),
                 "Nuclear core high-pressure output hatch ("
                     + CoolantLoopMetaTileEntities.COOLANT_PIPE_MATERIALS[m].mDefaultLocalName
@@ -131,5 +135,17 @@ public class ModMetaTileEntities {
             ID_ACTINIDE_COMPOUNDER,
             "multimachine.actinidecompounder",
             "Actinide Fuel Compounder").getStackForm(1L);
+    }
+
+    /** Metatile entity ID of the high-pressure input hatch of a coolant pipe material index. */
+    public static int highPressureInputId(int materialIndex) {
+        return materialIndex < PACKED_HIGH_PRESSURE_MATERIALS ? ID_NUCLEAR_HIGH_PRESSURE_INPUT_BASE + materialIndex
+            : ID_NUCLEAR_HIGH_PRESSURE_INPUT_EXTRA_BASE + materialIndex - PACKED_HIGH_PRESSURE_MATERIALS;
+    }
+
+    /** Metatile entity ID of the high-pressure output hatch of a coolant pipe material index. */
+    public static int highPressureOutputId(int materialIndex) {
+        return materialIndex < PACKED_HIGH_PRESSURE_MATERIALS ? ID_NUCLEAR_HIGH_PRESSURE_OUTPUT_BASE + materialIndex
+            : ID_NUCLEAR_HIGH_PRESSURE_OUTPUT_EXTRA_BASE + materialIndex - PACKED_HIGH_PRESSURE_MATERIALS;
     }
 }
