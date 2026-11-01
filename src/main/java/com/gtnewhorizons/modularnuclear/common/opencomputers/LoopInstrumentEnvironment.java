@@ -337,6 +337,32 @@ public class LoopInstrumentEnvironment extends ManagedEnvironment implements Nam
         return new Object[] { false, "Expected string or integer argument" };
     }
 
+    @Callback(
+        doc = "function():boolean, number, number, boolean, boolean -- Returns whether threshold mode is on, the upper and lower setpoints, whether the output is inverted, and whether the threshold has latched on.",
+        direct = true)
+    public Object[] getThreshold(Context context, Arguments args) {
+        return new Object[] { instrument.isThresholdMode(), instrument.getThresholdHigh(), instrument.getThresholdLow(),
+            instrument.isThresholdInverted(), instrument.isThresholdOn() };
+    }
+
+    @Callback(
+        doc = "function(high:number[, low:number[, inverted:boolean]]):boolean -- Switches to threshold mode: full output once the metric rises above high, zero once it falls below low (default high).",
+        direct = true)
+    public Object[] setThreshold(Context context, Arguments args) {
+        double high = args.checkDouble(0);
+        double low = args.optDouble(1, high);
+        instrument.setThreshold(high, low, args.optBoolean(2, false));
+        return new Object[] { true };
+    }
+
+    @Callback(
+        doc = "function(threshold:boolean):boolean -- Switches between threshold and proportional output.",
+        direct = true)
+    public Object[] setThresholdMode(Context context, Arguments args) {
+        instrument.setThresholdMode(args.checkBoolean(0));
+        return new Object[] { true };
+    }
+
     @Callback(doc = "function():string -- Returns block facing direction.", direct = true)
     public Object[] getFacing(Context context, Arguments args) {
         return new Object[] { instrument.getFacing()
