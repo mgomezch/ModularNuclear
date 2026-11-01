@@ -768,8 +768,9 @@ public class SimTile implements INuclearTile {
 
     public double getControlRodAbsorptionProbability(NeutronType nType) {
         if (!hasControlRod) return 0.0;
+        // A housing with no rod in it does nothing
         if (controlRodType == ControlRodType.NONE || controlRodType == null) {
-            return 0.01;
+            return 0.0;
         }
         return TileTick.rodAbsorption(getControlRodData(), getEffectiveControlRodInsertion() / 100.0, nType);
     }
@@ -814,7 +815,7 @@ public class SimTile implements INuclearTile {
             ComponentData.ControlRodData rod = getControlRodData();
             double pRodScattering = rod != null
                 ? TileTick.rodScattering(rod, getEffectiveControlRodInsertion() / 100.0, nType)
-                : 0.02;
+                : 0.0;
             return TileTick
                 .combinedScattering(pBase, getControlRodAbsorptionProbability(nType), 0.0, pRodScattering, 0.0);
         }

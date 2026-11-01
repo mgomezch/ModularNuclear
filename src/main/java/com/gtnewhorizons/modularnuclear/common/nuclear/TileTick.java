@@ -118,16 +118,23 @@ public final class TileTick {
 
     // ---- Control rods -------------------------------------------------------------------------------------------
 
-    /** Absorption probability of a control rod at the given insertion (0..1). */
+    /**
+     * Absorption probability of a control rod at the given insertion (0..1). Like its scattering, it is proportional to
+     * insertion: a fully withdrawn rod does nothing, exactly as if the column had no rod.
+     */
     public static double rodAbsorption(ControlRodData rod, double insertion, NeutronType type) {
         double max = type == NeutronType.THERMAL ? rod.maxThermalAbsorption : rod.maxFastAbsorption;
-        return Math.max(0.01, insertion * max);
+        return clampInsertion(insertion) * max;
     }
 
-    /** Scattering probability of a control rod at the given insertion (0..1). */
+    /** Scattering probability of a control rod at the given insertion (0..1), proportional to insertion. */
     public static double rodScattering(ControlRodData rod, double insertion, NeutronType type) {
         double scattering = type == NeutronType.THERMAL ? rod.scatteringThermal : rod.scatteringFast;
-        return Math.max(0.01, scattering * (1.0 - insertion));
+        return clampInsertion(insertion) * scattering;
+    }
+
+    private static double clampInsertion(double insertion) {
+        return Math.max(0.0, Math.min(1.0, insertion));
     }
 
     /**
