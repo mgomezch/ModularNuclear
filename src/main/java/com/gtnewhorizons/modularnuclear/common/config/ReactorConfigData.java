@@ -152,7 +152,8 @@ public final class ReactorConfigData {
         NuclearSimulationEngine.params().spontaneousHeatFraction = physicsData.spontaneousHeatFraction;
         NuclearSimulationEngine.params().coolantPassageHeatTransferMultiplier = Math
             .max(0.0, physicsData.coolantPassageHeatTransferMultiplier);
-        NuclearSimulationEngine.params().coolantPassageHeatTransferTierRatio = physicsData.coolantPassageHeatTransferTierRatio;
+        NuclearSimulationEngine
+            .params().coolantPassageHeatTransferTierRatio = physicsData.coolantPassageHeatTransferTierRatio;
         NuclearSimulationEngine.setBaseHatchConductance(physicsData.baseHatchConductance);
         NuclearSimulationEngine.setHatchConductanceTierRatio(physicsData.hatchConductanceTierRatio);
         NuclearSimulationEngine.setCoreHatchHeatCapacity(physicsData.coreHatchHeatCapacity);
