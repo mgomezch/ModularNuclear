@@ -27,7 +27,7 @@ public final class PheExchange {
             coolant = null;
         }
 
-        /** Heat-weighted mean coolant temperature over the batch, or fallback if no heat moved. */
+        /** Heat-weighted mean temperature of the coolant entering the PHE over the batch, or fallback if none moved. */
         public double effectiveTemperature(double fallback) {
             return heatJoules > 0 ? weightedTempSum / heatJoules : fallback;
         }
@@ -89,7 +89,10 @@ public final class PheExchange {
         }
         b.lastTickHeatJoules = heat;
         b.heatJoules += heat;
-        b.weightedTempSum += newTemp * heat;
+        // The steam takes the grade of the coolant entering the PHE, as it leaves a counterflow exchanger near that
+        // temperature. Grading by the coolant leaving would grade by how far the PHE cools it: a PHE strong enough to
+        // cool it to the approach temperature would make plain steam from any loop, and a weaker one better steam
+        b.weightedTempSum += coolantTemp * heat;
         b.coolant = coolant;
         return newTemp;
     }
