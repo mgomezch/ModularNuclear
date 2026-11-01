@@ -136,7 +136,7 @@ The **maximum operating temperature** is not a soft limit. Any core column above
 | :--- | :--- | :--- |
 | Nuclear core bus | One item (stack size 1) | Fuel rod, coolant cell, reflector, moderator, insulator, heat vent, heat exchanger, radiovoltaic plate, or neutron source. |
 | Nuclear core hatch (LV–UHV) | One fluid | Liquid fuel or liquid coolant. Capacity $8000 \cdot 2^{\text{tier}}$ L (LV 16 000 L … UHV 4 096 000 L). The hatch tier also sets its heat-transfer conductance (§9.2). |
-| Nuclear core high-pressure input hatch (cast iron … neutronium) | Nothing (fluid passage) | Inlet of a closed coolant loop. Must be paired with an output hatch of the same material at the bottom of the same column. The material sets the passage's heat capacity and heat transfer (§9.7). |
+| Nuclear core high-pressure input hatch (cast iron … infinity) | Nothing (fluid passage) | Inlet of a closed coolant loop. Must be paired with an output hatch of the same material at the bottom of the same column. The material sets the passage's heat capacity and heat transfer (§9.7). |
 
 **Bottom elements** (layer 5) act on the column:
 
@@ -145,7 +145,7 @@ The **maximum operating temperature** is not a soft limit. Any core column above
 | Nuclear Casing | None. |
 | Nuclear core control rod hatch | Holds one control rod; redstone-controlled insertion (§7). |
 | Advanced nuclear core control rod hatch | Holds a control rod and a moderator follower (§7.5). |
-| Nuclear core high-pressure output hatch (cast iron … neutronium) | Outlet of the closed coolant loop entering at the top of the same column; same material as its input hatch. |
+| Nuclear core high-pressure output hatch (cast iron … infinity) | Outlet of the closed coolant loop entering at the top of the same column; same material as its input hatch. |
 | Beamline input hatch | Feeds a neutron beam into a neutron source held in the nuclear core bus at the top of the same column. Must be under a bus (§8.5). |
 
 A control rod shares the column's temperature: the rod hatch and the top element are a single thermal node.
@@ -823,13 +823,15 @@ From Osmium tier upward, a column may be a **pressure-tube passage**: a high-pre
 
 **Passage materials.** There is one input and one output hatch for each coolant pipe material, and both ends of a passage must be the same material. Each is crafted from the GregTech input (or output) hatch of the material's voltage tier, a huge coolant pipe of the material and a Clean Stainless Steel Casing; a screwdriver turns an input into the output of the same material and back. The material's voltage tier $t$ sets the passage's heat capacity and heat transfer:
 
-| Material | Cast iron | Steel | Stainless steel | Titanium | Tungstensteel | Osmium | Neutronium |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Voltage tier $t$ | LV | MV | HV | EV | IV | LuV | ZPM |
-| Heat capacity $C = 16 \cdot 2^t$ (HU/°C) | 32 | 64 | 128 | 256 | 512 | 1024 | 2048 |
-| Heat transfer at 75 L/s of water (HU·s⁻¹·°C⁻¹) | 9.3 | 25 | 66 | 174 | 461 | 1221 | 3236 |
+| Material | Cast iron | Steel | Stainless steel | Titanium | Tungstensteel | Osmium | Neutronium | Awakened Draconium | Infinity |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Voltage tier $t$ | LV | MV | HV | EV | IV | LuV | ZPM | UV | UHV |
+| Heat capacity $C = 16 \cdot 2^t$ (HU/°C) | 32 | 64 | 128 | 256 | 512 | 1024 | 2048 | 4096 | 8192 |
+| Heat transfer at 75 L/s of water (HU·s⁻¹·°C⁻¹) | 9.3 | 25 | 66 | 174 | 461 | 1221 | 3236 | 8580 | 22700 |
 
-At 75 L/s of water a passage removes about three times what a core hatch of the same tier conducts into its own coolant (§9.2), and more with more flow. The untiered high-pressure hatches of earlier versions are no longer accepted by the structure.
+At 75 L/s of water a passage removes about three times what a core hatch of the same tier conducts into its own coolant (§9.2), and more with more flow.
+
+**Pump tanks.** A loop's pipes must all be of one material, and the pump's Railcraft tank of that same material. Railcraft has no awakened draconium or infinity tanks, so loops of those pipes take a neutronium tank (`tankMaterials` in `pipes.yaml`); the pipes withstand 6000 and 12000 bar. The untiered high-pressure hatches of earlier versions are no longer accepted by the structure.
 
 **Passage as a cell.** The passage cell has $p_a = 0.02$ (fast) / $0.05$ (thermal), $p_s = 0.80$, $c = 0.90$, and a moderation probability equal to the loop coolant's $p_m$ (0.05 if unknown). Its high conductivity makes it a strong conductive sink for adjacent fuel. All of these are set in `physics.yaml`: `coolant_passage_fast_absorption`, `coolant_passage_thermal_absorption`, `coolant_passage_scattering`, `coolant_passage_conduction` and `coolant_passage_default_moderation`.
 
