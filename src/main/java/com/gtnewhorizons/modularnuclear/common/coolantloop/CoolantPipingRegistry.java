@@ -42,6 +42,8 @@ public class CoolantPipingRegistry {
         MATERIAL_PRESSURE_RATINGS_BAR.put("tungstensteel", 280.0);
         MATERIAL_PRESSURE_RATINGS_BAR.put("osmium", 600.0);
         MATERIAL_PRESSURE_RATINGS_BAR.put("neutronium", 3000.0);
+        MATERIAL_PRESSURE_RATINGS_BAR.put("draconiumawakened", 6000.0);
+        MATERIAL_PRESSURE_RATINGS_BAR.put("infinity", 12000.0);
     }
 
     /**
@@ -135,8 +137,9 @@ public class CoolantPipingRegistry {
 
     /**
      * Checks if a material is allowed for coolant loop piping and tanks.
-     * Only materials that have BOTH GregTech fluid pipes and Railcraft tanks are allowed:
-     * Steel, Iron/Cast Iron/Wrought Iron, Stainless Steel, Titanium, TungstenSteel, Neutronium.
+     * Only materials with GregTech fluid pipes and a Railcraft tank a pump can use for them are allowed (pipes.yaml):
+     * Iron/Cast Iron/Wrought Iron, Steel, Stainless Steel, Titanium, TungstenSteel, Osmium, Neutronium, and Awakened
+     * Draconium and Infinity on neutronium tanks.
      */
     public static boolean isAllowedCoolantPipeMaterial(String materialName) {
         if (materialName == null) return false;
@@ -146,6 +149,16 @@ public class CoolantPipingRegistry {
     public static boolean isAllowedCoolantPipeMaterial(Materials mat) {
         if (mat == null) return false;
         return isAllowedCoolantPipeMaterial(mat.mName);
+    }
+
+    /**
+     * Whether a pump with a Railcraft tank of tankMaterial can drive a loop of pipeMaterial pipes: a tank of the
+     * pipes' own material, or for pipe materials Railcraft has no tank of, the tank pipes.yaml gives them.
+     */
+    public static boolean takesTank(Materials pipeMaterial, Materials tankMaterial) {
+        if (pipeMaterial == null || tankMaterial == null) return false;
+        return CoolantLoopDataRegistry.getPipeData()
+            .takesTank(pipeMaterial.mName, tankMaterial.mName);
     }
 
     /**

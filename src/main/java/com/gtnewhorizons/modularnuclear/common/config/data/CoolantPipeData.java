@@ -17,6 +17,8 @@ public class CoolantPipeData {
     private Map<String, Double> thicknessDiameters = new LinkedHashMap<>();
     private List<String> allowedMaterials = new ArrayList<>();
     private Map<String, List<String>> materialFamilies = new LinkedHashMap<>();
+    /** Railcraft tank material a pump needs for loops of each pipe material that has no tank of its own. */
+    private Map<String, String> tankMaterials = new LinkedHashMap<>();
     private double defaultRoughness = 0.000045; // Commercial metal pipe roughness in meters
 
     public CoolantPipeData() {
@@ -34,6 +36,8 @@ public class CoolantPipeData {
         materialPressureRatingsBar.put("tungstensteel", 280.0);
         materialPressureRatingsBar.put("osmium", 600.0);
         materialPressureRatingsBar.put("neutronium", 3000.0);
+        materialPressureRatingsBar.put("draconiumawakened", 6000.0);
+        materialPressureRatingsBar.put("infinity", 12000.0);
 
         // Explicit temperature limits (deg C) overrides strictly for allowed coolant pipe materials
         materialTemperatureLimitsCelsius.put("castiron", 1538.0);
@@ -45,6 +49,8 @@ public class CoolantPipeData {
         materialTemperatureLimitsCelsius.put("tungstensteel", 3000.0);
         materialTemperatureLimitsCelsius.put("osmium", 3033.0);
         materialTemperatureLimitsCelsius.put("neutronium", 10000.0);
+        materialTemperatureLimitsCelsius.put("draconiumawakened", 10000.0);
+        materialTemperatureLimitsCelsius.put("infinity", 10000.0);
 
         // Pipe thickness to flow diameter mappings (meters)
         thicknessDiameters.put("tiny", 0.05);
@@ -63,9 +69,15 @@ public class CoolantPipeData {
         allowedMaterials.add("tungstensteel");
         allowedMaterials.add("osmium");
         allowedMaterials.add("neutronium");
+        allowedMaterials.add("draconiumawakened");
+        allowedMaterials.add("infinity");
 
         // Material compatibility families
         materialFamilies.put("iron", new ArrayList<>(java.util.Arrays.asList("iron", "castiron", "wroughtiron")));
+
+        // Railcraft has no awakened draconium or infinity tanks: their loops' pumps take neutronium tanks
+        tankMaterials.put("draconiumawakened", "neutronium");
+        tankMaterials.put("infinity", "neutronium");
     }
 
     public Map<String, Object> toMap() {
@@ -75,6 +87,7 @@ public class CoolantPipeData {
         map.put("thicknessDiameters", thicknessDiameters);
         map.put("allowedMaterials", allowedMaterials);
         map.put("materialFamilies", materialFamilies);
+        map.put("tankMaterials", tankMaterials);
         map.put("defaultRoughness", defaultRoughness);
         return map;
     }
@@ -137,6 +150,18 @@ public class CoolantPipeData {
             }
         }
 
+        if (map.containsKey("tankMaterials") && map.get("tankMaterials") instanceof Map) {
+            data.tankMaterials.clear();
+            Map<String, Object> tMap = (Map<String, Object>) map.get("tankMaterials");
+            for (Map.Entry<String, Object> e : tMap.entrySet()) {
+                if (e.getValue() != null) data.tankMaterials.put(
+                    cleanKey(e.getKey()),
+                    cleanKey(
+                        e.getValue()
+                            .toString()));
+            }
+        }
+
         if (map.containsKey("defaultRoughness")) {
             data.defaultRoughness = ((Number) map.get("defaultRoughness")).doubleValue();
         }
@@ -155,6 +180,13 @@ public class CoolantPipeData {
             }
         }
         return false;
+    }
+
+    /** Whether a pump with a tank of tankMaterial can drive a loop of pipeMaterial pipes. */
+    public boolean takesTank(String pipeMaterial, String tankMaterial) {
+        if (pipeMaterial == null || tankMaterial == null) return false;
+        String tank = tankMaterials.get(cleanKey(pipeMaterial));
+        return areMaterialsEqual(tank != null ? tank : pipeMaterial, tankMaterial);
     }
 
     private static String cleanKey(String key) {

@@ -579,6 +579,8 @@ public class LoopGraphCrawler {
         private final Map<String, List<String>> reverseGraphEdges = new LinkedHashMap<>();
 
         private Materials detectedLoopMaterial;
+        /** Whether detectedLoopMaterial comes from a pipe yet, rather than from the pump's tank. */
+        private boolean loopMaterialFromPipe = false;
         private double dischargePipeCapacityLPerSec = -1.0;
         private double suctionPipeCapacityLPerSec = -1.0;
         private MTEFluidPipe lastPipe = null;
@@ -1104,6 +1106,9 @@ public class LoopGraphCrawler {
 
                 if (detectedLoopMaterial == null) {
                     detectedLoopMaterial = pipeMat;
+                } else if (!loopMaterialFromPipe && CoolantPipingRegistry.takesTank(pipeMat, detectedLoopMaterial)) {
+                    // A pipe material with no Railcraft tank of its own, on the tank it takes (pipes.yaml)
+                    detectedLoopMaterial = pipeMat;
                 } else if (!areMaterialsEqual(pipeMat, detectedLoopMaterial)) {
                     if (expectedTankMaterial != null && areMaterialsEqual(detectedLoopMaterial, expectedTankMaterial)) {
                         finishWithFailure(
@@ -1126,6 +1131,7 @@ public class LoopGraphCrawler {
                     }
                     return Visit.STOP;
                 }
+                loopMaterialFromPipe = true;
 
                 Float currThickness = step.segmentThickness;
                 Integer currAmount = step.segmentPipeAmount;

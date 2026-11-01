@@ -13,6 +13,8 @@ materialPressureRatingsBar:
   tungstensteel: 280.0
   osmium: 600.0
   neutronium: 3000.0
+  draconiumawakened: 6000.0
+  infinity: 12000.0
 
 # Maximum operating temperature limits in degrees Celsius
 materialTemperatureLimitsCelsius:
@@ -25,6 +27,8 @@ materialTemperatureLimitsCelsius:
   tungstensteel: 3000.0
   osmium: 3033.0
   neutronium: 10000.0
+  draconiumawakened: 10000.0
+  infinity: 10000.0
 
 # Inner flow diameter (meters) by GregTech pipe thickness
 thicknessDiameters:
@@ -34,7 +38,7 @@ thicknessDiameters:
   large: 0.15
   huge: 0.20
 
-# Materials permitted for closed coolant loops (must match Railcraft tank compatibility)
+# Materials permitted for closed coolant loops (each needs a Railcraft tank: its own material's, or per tankMaterials)
 allowedMaterials:
   - "steel"
   - "iron"
@@ -45,6 +49,14 @@ allowedMaterials:
   - "tungstensteel"
   - "osmium"
   - "neutronium"
+  - "draconiumawakened"
+  - "infinity"
+
+# Railcraft tank a loop's pump needs, for pipe materials Railcraft has no tank of (others need a tank of their own
+# material)
+tankMaterials:
+  draconiumawakened: "neutronium"
+  infinity: "neutronium"
 
 # Material equivalence families for loop continuity validation
 materialFamilies:
