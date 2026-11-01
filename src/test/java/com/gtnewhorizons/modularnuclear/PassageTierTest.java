@@ -46,7 +46,7 @@ public class PassageTierTest {
 
     @Test
     void testHeatCapacityDoublesPerTier() {
-        for (int tier = 0; tier <= 7; tier++) {
+        for (int tier = 0; tier <= 9; tier++) {
             assertEquals(16.0 * Math.pow(2.0, tier), CoolantPassage.heatCapacity(tier), 1e-9, "tier " + tier);
         }
     }
@@ -76,6 +76,8 @@ public class PassageTierTest {
         }
         assertEquals(4, CoolantLoopModel.LoopMaterial.TITANIUM.voltageTier());
         assertEquals(7, CoolantLoopModel.LoopMaterial.NEUTRONIUM.voltageTier());
+        assertEquals(8, CoolantLoopModel.LoopMaterial.DRACONIUM_AWAKENED.voltageTier());
+        assertEquals(9, CoolantLoopModel.LoopMaterial.INFINITY.voltageTier());
     }
 
     @Test

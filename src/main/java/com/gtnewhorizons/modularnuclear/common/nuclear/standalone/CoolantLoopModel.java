@@ -185,7 +185,10 @@ public class CoolantLoopModel {
         TITANIUM("Titanium", "Titanium", "EV"),
         TUNGSTENSTEEL("Tungstensteel", "TungstenSteel", "IV"),
         OSMIUM("Osmium", "Osmium", "LuV"),
-        NEUTRONIUM("Neutronium", "Neutronium", "ZPM");
+        NEUTRONIUM("Neutronium", "Neutronium", "ZPM"),
+        // Railcraft has no tanks of these: their pumps take neutronium tanks (pipes.yaml tankMaterials)
+        DRACONIUM_AWAKENED("Awakened Draconium", "DraconiumAwakened", "UV"),
+        INFINITY("Infinity", "Infinity", "UHV");
 
         public final String displayName;
         public final String materialName;
@@ -225,11 +228,8 @@ public class CoolantLoopModel {
             if (reactorTier < NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
                 return false;
             }
-            if (reactorTier <= NuclearSimulationEngine.PIPE_TIER_OSMIUM) {
-                // Progression filter: exclude Neutronium from automated LuV search space
-                return this != NEUTRONIUM;
-            }
-            return true;
+            // Progression filter: no pipes of a later tier than the casing's (Osmium is LuV, voltage tier 6)
+            return voltageTier() <= reactorTier - NuclearSimulationEngine.PIPE_TIER_OSMIUM + 6;
         }
 
         public static LoopMaterial fromMaterialName(String name) {
@@ -258,6 +258,10 @@ public class CoolantLoopModel {
                     return OSMIUM;
                 case "NEUTRONIUM", "NEUTRON":
                     return NEUTRONIUM;
+                case "DRACONIUM_AWAKENED", "DRACONIUMAWAKENED", "AWAKENED_DRACONIUM", "DRACONIUM":
+                    return DRACONIUM_AWAKENED;
+                case "INFINITY":
+                    return INFINITY;
             }
             for (LoopMaterial mat : values()) {
                 if (mat.name()

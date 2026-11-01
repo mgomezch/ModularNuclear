@@ -1780,7 +1780,7 @@ public class StandaloneNuclearGrid {
                 coolantLoop.setRotorMaterial("DURANIUM");
             }
             case NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM -> {
-                coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.NEUTRONIUM);
+                coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.DRACONIUM_AWAKENED);
                 coolantLoop.setPipeSize(CoolantLoopModel.LoopPipeSize.HUGE);
                 coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
                 coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.UV);
@@ -1788,7 +1788,7 @@ public class StandaloneNuclearGrid {
                 coolantLoop.setRotorMaterial("DURANIUM");
             }
             case NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM -> {
-                coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.NEUTRONIUM);
+                coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.INFINITY);
                 coolantLoop.setPipeSize(CoolantLoopModel.LoopPipeSize.HUGE);
                 coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
                 coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.UHV);
