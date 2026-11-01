@@ -177,6 +177,8 @@ public final class SimOptions {
                 c.steadyState = true;
             }, "steady_window")
             .toggle((c, v) -> c.trackHistory = v, "history", "track_history")
+            .value(STRING, (c, v) -> c.rodPid = v, "rod_pid", "rod_controllers")
+            .toggle((c, v) -> c.cellStats = v, "cell_stats")
             .optionalValue(INT, c -> c.trace = true, (c, v) -> c.traceSteps = v, "trace");
 
         // Machine limits (-1 = unlimited)

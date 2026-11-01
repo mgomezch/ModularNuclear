@@ -1,8 +1,11 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear.standalone.cli;
 
+import java.util.Arrays;
+
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.CoolantLoopModel;
+import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.TurbineCalculator;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.TurbineCalculator.PowerEstimationResult;
@@ -24,6 +27,9 @@ public final class JsonReport {
         long halfTick = -1;
         /** Mean power over the window that showed the steady state, when the run stopped there. */
         double steadyPower;
+        RodControllers controllers;
+        /** Each cell's peak temperature over the run (indexed [x][y]), when cell stats are asked for. */
+        double[][] cellPeak;
     }
 
     public static void run(RunConfig cfg) {
@@ -35,6 +41,12 @@ public final class JsonReport {
     private static Run simulate(StandaloneNuclearGrid grid, RunConfig cfg) {
         Run run = new Run();
         int ticks = cfg.ticks;
+        run.controllers = RodControllers.parse(cfg.rodPid);
+        run.controllers.bind(grid);
+        if (cfg.cellStats) {
+            run.cellPeak = new double[grid.getWidth()][grid.getHeight()];
+            for (double[] col : run.cellPeak) Arrays.fill(col, -Double.MAX_VALUE);
+        }
         SteadyStateDetector detector = cfg.steadyState ? new SteadyStateDetector(cfg.steadyWindow) : null;
         if (cfg.trackHistory) {
             run.power = new double[ticks];
@@ -44,7 +56,9 @@ public final class JsonReport {
         }
         for (int t = 1; t <= ticks; t++) {
             run.ticksReached = t;
+            run.controllers.update(grid, t);
             if (!grid.step()) break;
+            if (run.cellPeak != null) recordCellPeaks(grid, run.cellPeak);
             if (t == (ticks + 1) / 2) {
                 run.halfEnergy = grid.getTotalEnergyEU();
                 run.halfTick = grid.getCurrentTick();
@@ -75,6 +89,31 @@ public final class JsonReport {
             }
         }
         return run;
+    }
+
+    private static void recordCellPeaks(StandaloneNuclearGrid grid, double[][] peak) {
+        for (int x = 0; x < grid.getWidth(); x++) {
+            for (int y = 0; y < grid.getHeight(); y++) {
+                SimTile tile = grid.getTile(x, y);
+                if (tile != null) peak[x][y] = Math.max(peak[x][y], tile.getTemperature());
+            }
+        }
+    }
+
+    /** Each cell's peak and final temperature, row by row (y, then x); cells with no tile report 0. */
+    private static void cellStats(JsonWriter j, StandaloneNuclearGrid grid, double[][] peak) {
+        int w = grid.getWidth(), h = grid.getHeight();
+        double[] peaks = new double[w * h], last = new double[w * h];
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                SimTile tile = grid.getTile(x, y);
+                boolean real = tile != null && tile.getType() != SimTile.TileType.NULL_WALL;
+                peaks[y * w + x] = real && peak[x][y] > -Double.MAX_VALUE ? peak[x][y] : 0.0;
+                last[y * w + x] = real ? tile.getTemperature() : 0.0;
+            }
+        }
+        j.fixedArray("cellPeakTemp", peaks, peaks.length, 1)
+            .fixedArray("cellTemp", last, last.length, 1);
     }
 
     private static String toJson(StandaloneNuclearGrid grid, RunConfig cfg, Run run) {
@@ -189,6 +228,8 @@ public final class JsonReport {
             .fixed("pumpPowerEUt", grid.getPumpPowerEUt(), 1);
         coolantLoop(j, grid);
         byproducts(j, grid);
+        if (!run.controllers.isEmpty()) run.controllers.writeJson(j);
+        if (run.cellPeak != null) cellStats(j, grid, run.cellPeak);
         return j.endObject()
             .toString();
     }
