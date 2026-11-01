@@ -505,11 +505,12 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         if (crData != null) {
             return TileTick.rodAbsorption(crData, getInsertionRatio(), type);
         }
+        // No rod item (or one without a config record): an empty hatch, which does nothing
         ControlRodType rod = getRodType(mInventory[SLOT_ROD]);
-        if (rod == ControlRodType.NONE) return 0.01;
+        if (rod == ControlRodType.NONE) return 0.0;
         double ratio = getInsertionRatio();
         double max = (type == NeutronType.THERMAL) ? rod.maxThermalAbsorption : rod.maxFastAbsorption;
-        return Math.max(0.01, ratio * max);
+        return ratio * max;
     }
 
     public double getScatteringProbability(NeutronType type) {
@@ -518,9 +519,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
             return TileTick.rodScattering(crData, getInsertionRatio(), type);
         }
         ControlRodType rod = getRodType(mInventory[SLOT_ROD]);
-        if (rod == ControlRodType.NONE) return 0.02;
-        double ratio = getInsertionRatio();
-        return Math.max(0.01, 0.05 * (1.0 - ratio));
+        if (rod == ControlRodType.NONE) return 0.0;
+        return 0.05 * getInsertionRatio();
     }
 
     public double getHeatTransferCoeff() {

@@ -2213,10 +2213,10 @@ public class NuclearSimulationEngineTest {
         hatch.setBaseMetaTileEntity(mockBase);
         hatch.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = stackHafnium;
 
-        // RS = 0 -> minimum baseline absorption (0.01)
+        // RS = 0 -> fully withdrawn: no absorption at all, as if there were no rod
         org.mockito.Mockito.when(mockBase.getStrongestRedstone())
             .thenReturn((byte) 0);
-        assertEquals(0.01, hatch.getAbsorptionProbability(NeutronType.THERMAL), 0.001);
+        assertEquals(0.0, hatch.getAbsorptionProbability(NeutronType.THERMAL), 0.001);
 
         // RS = 15 -> 100% of Hafnium max (0.99)
         org.mockito.Mockito.when(mockBase.getStrongestRedstone())

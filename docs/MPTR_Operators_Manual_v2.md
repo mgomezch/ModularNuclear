@@ -516,9 +516,9 @@ Mixing allows the operator to place $T_\text{pk}$ anywhere between 580 °C and 1
 
 ### 7.1 Control rod materials
 
-A control rod is a long rod of one of five materials, placed in a control rod hatch at the bottom of a column. Its absorption scales with insertion; its scattering scales with withdrawal.
+A control rod is a long rod of one of five materials, placed in a control rod hatch at the bottom of a column. Both its absorption and its scattering scale with insertion: a fully withdrawn rod has no effect at all, exactly as if the column had no rod.
 
-| Rod | Max thermal absorption | Max fast absorption | Scattering (withdrawn) | $c$ |
+| Rod | Max thermal absorption | Max fast absorption | Scattering (inserted) | $c$ |
 | :--- | :--- | :--- | :--- | :--- |
 | Silver | 0.50 | 0.20 | 0.05 | 0.20 |
 | Boron | 0.70 | 0.35 | 0.05 | 0.08 |
@@ -544,7 +544,7 @@ With no pipes installed the rod is always fully inserted; with five pipes it cov
 
 The rod's own probabilities are then
 
-$$p_{a}^\text{rod} = \max(0.01,\ x\cdot a_\text{max}), \qquad p_{s}^\text{rod} = \max(0.01,\ s_\text{rod}\,(1 - x))$$
+$$p_{a}^\text{rod} = x\cdot a_\text{max}, \qquad p_{s}^\text{rod} = x\cdot s_\text{rod}$$
 
 for each neutron type, with $a_\text{max}$ the material's maximum absorption for that type.
 
