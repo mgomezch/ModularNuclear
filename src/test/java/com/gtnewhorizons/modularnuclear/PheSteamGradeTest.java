@@ -35,6 +35,7 @@ public class PheSteamGradeTest {
     /** Grade of one tick's steam from coolant entering at the given temperature, across the given exchange area. */
     private String grade(double coolantTemp, double exchangeArea) {
         LoopSegment segment = new LoopSegment("phe", 5.0, 0.10, 0.000045, 1.2, 500.0, 3200.0, coolantTemp);
+        segment.setIncomingTemperatureCelsius(coolantTemp);
         PheExchange.Batch batch = new PheExchange.Batch();
         PheExchange.tick(
             batch,
@@ -67,5 +68,27 @@ public class PheSteamGradeTest {
         for (double temp : new double[] { 250.0, 400.0, 800.0, 1500.0, 2000.0 }) {
             assertEquals(grade(temp, 1.0), grade(temp, 1e6), "at " + temp + " °C");
         }
+    }
+
+    @Test
+    void testTheGradeIsTheEnteringCoolants() {
+        // A segment mostly holding coolant the PHE already cooled, with hot coolant flowing in
+        LoopSegment segment = new LoopSegment("phe", 5.0, 0.10, 0.000045, 1.2, 500.0, 3200.0, 150.0);
+        segment.setIncomingTemperatureCelsius(900.0);
+        PheExchange.Batch batch = new PheExchange.Batch();
+        PheExchange.tick(
+            batch,
+            cfg,
+            WATER,
+            Double.MAX_VALUE,
+            0.05,
+            segment,
+            CoolantFluidProperty.WATER,
+            150.0,
+            1e6,
+            CoolantLoopConfigData.getConvectiveModel(),
+            1.0,
+            Double.MAX_VALUE);
+        assertEquals("supercriticalsteam", PheExchange.steamGrade(batch.effectiveTemperature(150.0), cfg));
     }
 }

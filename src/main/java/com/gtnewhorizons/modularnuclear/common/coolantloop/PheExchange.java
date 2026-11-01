@@ -91,8 +91,11 @@ public final class PheExchange {
         b.heatJoules += heat;
         // The steam takes the grade of the coolant entering the PHE, as it leaves a counterflow exchanger near that
         // temperature. Grading by the coolant leaving would grade by how far the PHE cools it: a PHE strong enough to
-        // cool it to the approach temperature would make plain steam from any loop, and a weaker one better steam
-        b.weightedTempSum += coolantTemp * heat;
+        // cool it to the approach temperature would make plain steam from any loop, and a weaker one better steam.
+        // The segment's own temperature is no better, as it is mostly coolant the PHE has already cooled
+        double entering = segment.getIncomingTemperatureCelsius() > 0.0 ? segment.getIncomingTemperatureCelsius()
+            : coolantTemp;
+        b.weightedTempSum += entering * heat;
         b.coolant = coolant;
         return newTemp;
     }

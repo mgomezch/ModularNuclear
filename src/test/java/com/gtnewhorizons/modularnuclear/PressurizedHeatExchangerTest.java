@@ -425,6 +425,7 @@ public class PressurizedHeatExchangerTest {
         // Case 2: Coolant at 800 C -> supercritical steam
         outputHatch.drain(outputHatch.getFluid().amount, true);
         seg.setCurrentTemperatureCelsius(800.0);
+        seg.setIncomingTemperatureCelsius(800.0);
         runBatch(phe, 0.05, 0.05, fluid, seg);
         assertNotNull(outputHatch.getFluid());
         assertTrue(
