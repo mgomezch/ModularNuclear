@@ -1127,6 +1127,7 @@ Telemetry signals are commonly wired to control rod hatches to form feedback loo
 - **OpenComputers.** The controller exposes an OpenComputers environment for reading reactor state.
 - **IC2 Nuclear Control.** A sensor card can be linked to the reactor (by using it on the controller or a rod hatch).
 - **WAILA.** Shows column state on look-at.
+- **Loop instruments.** A loop instrument outputs one coolant loop metric (temperature, flow, pressure, …) as proportional redstone, or in threshold mode as full or zero redstone with an upper and a lower setpoint, which can switch a pump or PHE through a machine controller cover.
 
 ---
 
