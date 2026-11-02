@@ -492,7 +492,8 @@ public class CoolantLoopModel {
     /** Pipe blocks in each of the cold leg, hot leg and return run of the canonical loop. */
     public static final int PIPE_RUN_BLOCKS = 4;
     /** Minor loss of the distribution and collection manifolds (the crawler's minimum per manifold group). */
-    private static final double MANIFOLD_MINOR_LOSS_K = 0.5;
+    /** Blocks between neighbouring PHEs' starts along a loop's PHE manifolds (the design testcase builder's pitch). */
+    public static final int PHE_PITCH_BLOCKS = 5;
     /** Most independent loop circuits a reactor's passages can be split among (layout codes CP, CP2 ... CP9). */
     public static final int MAX_CIRCUITS = 9;
 
@@ -1001,6 +1002,8 @@ public class CoolantLoopModel {
     }
 
     private final List<Circuit> circuits = new ArrayList<>();
+    /** Blocks the passage manifolds span: the core and its casing walls, as the design testcase builder lays them. */
+    private int coreSpanBlocks = 1;
     private int selected = 0;
 
     // Last cycle, all circuits
@@ -1108,7 +1111,7 @@ public class CoolantLoopModel {
             c.pipeSize.diameterMeters(),
             CoolantLoopConfigData.getPipeData()
                 .getDefaultRoughness(),
-            0.05,
+            LoopSegment.PIPE_BLOCK_MINOR_LOSS_K,
             c.material.maxPressureBar(),
             c.material.maxTemperatureCelsius(),
             temp);
@@ -1116,17 +1119,26 @@ public class CoolantLoopModel {
         return s;
     }
 
-    private static LoopSegment manifold(Circuit c, String id, double temp) {
+    /**
+     * A manifold group spanning extentBlocks: it loses what that many blocks of the loop's pipe do, as the game's
+     * crawler counts a manifold group.
+     */
+    private static LoopSegment manifold(Circuit c, String id, double temp, int extentBlocks) {
+        int extent = Math.max(1, extentBlocks);
         LoopSegment m = new LoopSegment(
             id,
-            1.0,
+            extent,
             c.pipeSize.diameterMeters(),
-            0.000045,
-            MANIFOLD_MINOR_LOSS_K,
+            CoolantLoopConfigData.getPipeData()
+                .getDefaultRoughness(),
+            LoopSegment.PIPE_BLOCK_MINOR_LOSS_K * extent,
             LoopSegment.NO_LIMIT,
             LoopSegment.NO_LIMIT,
             temp);
         m.setManifold(true);
+        m.setFrictionMultiplier(c.material.frictionMultiplier());
+        // It holds a block of coolant per block of its extent
+        m.setCustomVolumeM3(Math.PI * c.pipeSize.diameterMeters() * c.pipeSize.diameterMeters() / 4.0 * extent);
         return m;
     }
 
@@ -1139,7 +1151,7 @@ public class CoolantLoopModel {
      * discharge, cold leg pipes, distribution manifold, the passages, collection manifold, hot leg pipes, the PHEs (in
      * parallel between two more manifolds when there are several), and the return run to the pump suction.
      */
-    private static Loop buildLoop(Circuit c, int passageCount, double startTemp) {
+    private static Loop buildLoop(Circuit c, int passageCount, double startTemp, int coreSpanBlocks) {
         Loop loop = new Loop();
         CoolantLoopEngine engine = new CoolantLoopEngine(c.fluidType.property());
         loop.engine = engine;
@@ -1156,11 +1168,11 @@ public class CoolantLoopModel {
         }
         loop.coldLegSegment = prev;
 
-        LoopSegment distribution = manifold(c, "manifold_in", startTemp);
+        LoopSegment distribution = manifold(c, "manifold_in", startTemp, coreSpanBlocks);
         chain(prev, distribution);
         segs.add(distribution);
 
-        LoopSegment collection = manifold(c, "manifold_out", startTemp);
+        LoopSegment collection = manifold(c, "manifold_out", startTemp, coreSpanBlocks);
         for (int i = 0; i < passageCount; i++) {
             LoopSegment p = new LoopSegment(
                 "passage_" + i,
@@ -1192,10 +1204,10 @@ public class CoolantLoopModel {
         LoopSegment pheSplit = null;
         LoopSegment pheJoin = null;
         if (c.pheCount > 1) {
-            pheSplit = manifold(c, "phe_manifold_in", startTemp);
+            pheSplit = manifold(c, "phe_manifold_in", startTemp, PHE_PITCH_BLOCKS * (c.pheCount - 1) + 1);
             chain(prev, pheSplit);
             segs.add(pheSplit);
-            pheJoin = manifold(c, "phe_manifold_out", startTemp);
+            pheJoin = manifold(c, "phe_manifold_out", startTemp, PHE_PITCH_BLOCKS * (c.pheCount - 1) + 1);
         }
         for (int j = 0; j < c.pheCount; j++) {
             LoopSegment phe = new LoopSegment(
@@ -1241,7 +1253,7 @@ public class CoolantLoopModel {
      * Splits a circuit's passages among its copies (round robin) and builds each copy. A rebuild keeps the coolant's
      * temperature unless the fluid changed, in which case the new fluid enters at its fill temperature.
      */
-    private static void buildCircuit(Circuit c, List<SimTile> passageTiles) {
+    private static void buildCircuit(Circuit c, List<SimTile> passageTiles, int coreSpanBlocks) {
         double startTemp = c.fillTemperatureCelsius();
         // A controller with a temperature band starts with the pump off and the loop empty, as a player fills it only
         // once the core is hot enough
@@ -1257,7 +1269,7 @@ public class CoolantLoopModel {
         for (int k = 0; k < n; k++) {
             List<SimTile> mine = new ArrayList<>();
             for (int i = k; i < passageTiles.size(); i += n) mine.add(passageTiles.get(i));
-            Loop loop = buildLoop(c, mine.size(), startTemp);
+            Loop loop = buildLoop(c, mine.size(), startTemp, coreSpanBlocks);
             loop.passageTiles.addAll(mine);
             loop.filled = filled;
             loop.bandOn = filled;
@@ -1297,6 +1309,11 @@ public class CoolantLoopModel {
     public boolean step(StandaloneNuclearGrid grid, SimTile[][] tiles, int width, int height, int ticks) {
         if (ruptured) {
             return false;
+        }
+        int span = Math.max(width, height) + 2;
+        if (span != coreSpanBlocks) {
+            coreSpanBlocks = span;
+            for (Circuit c : circuits) c.markDirty();
         }
         int subTicks = Math.max(1, ticks);
 
@@ -1377,7 +1394,7 @@ public class CoolantLoopModel {
             return true;
         }
         if (c.dirty || c.loops.isEmpty() || !sameTiles(c, passageTiles)) {
-            buildCircuit(c, passageTiles);
+            buildCircuit(c, passageTiles, coreSpanBlocks);
         }
 
         for (Loop loop : c.loops) {

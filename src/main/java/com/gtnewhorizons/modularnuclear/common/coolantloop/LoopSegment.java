@@ -17,6 +17,9 @@ public class LoopSegment {
     private final double diameter; // Inner diameter (m)
     private final double area; // Cross-sectional area (m^2)
     private final double roughness; // Absolute pipe wall roughness (m)
+    /** Minor loss of a pipe block (its fitting to the next). */
+    public static final double PIPE_BLOCK_MINOR_LOSS_K = 0.05;
+
     private double minorLossK; // Loss coefficient K (dimensionless)
     /** Scales the segment's whole pressure drop: pipe materials (pipes.yaml) make long loops cost less flow. */
     private double frictionMultiplier = 1.0;
