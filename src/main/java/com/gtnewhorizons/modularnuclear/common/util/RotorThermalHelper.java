@@ -68,6 +68,9 @@ public final class RotorThermalHelper {
         if (mat == null) {
             return 726.85; // 1000 K standard GT default
         }
+        // A configured melting point overrides GregTech's: GTNH gives a molten fluid it has no temperature for 1000 K
+        double configured = configuredMeltingPointKelvin(mat);
+        if (configured > 0) return configured - 273.15;
         try {
             FluidStack molten = mat.getMolten(1);
             if (molten != null && molten.getFluid() != null
@@ -85,8 +88,7 @@ public final class RotorThermalHelper {
         if (mat.mBlastFurnaceTemp > 0) {
             return mat.mBlastFurnaceTemp - 273.15;
         }
-        double configured = configuredMeltingPointKelvin(mat);
-        return configured > 0 ? configured - 273.15 : 726.85;
+        return 726.85;
     }
 
     /** Resolved once per material and config: the pump checks its impeller every tick. */

@@ -29,7 +29,10 @@ public class CoolantPhysicsData {
     private double rotorThermalAlpha = 4.0; // Thermal softening and creep wear acceleration exponent
     private double cavitationWearMultiplier = 10.0; // Cavitation wear multiplier when dissolved gas is present
     private double coastDownDecay = 0.98; // Viscous coast-down decay factor per tick when unpowered
-    /** Melting point (K) of rotor materials GregTech gives none (no molten fluid, melting or blast temperature). */
+    /**
+     * Melting point (K) of rotor materials, over GregTech's: for those it has no temperature for, whose molten fluid
+     * GTNH gives 1000 K.
+     */
     private Map<String, Double> rotorMeltingPointsKelvin = new LinkedHashMap<>();
 
     public CoolantPhysicsData() {

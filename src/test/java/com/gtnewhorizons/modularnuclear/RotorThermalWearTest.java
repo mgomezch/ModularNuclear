@@ -36,7 +36,7 @@ public class RotorThermalWearTest {
 
     @Test
     public void testDuraniumHasAConfiguredMeltingPoint() {
-        // GregTech gives Duranium no molten fluid, melting or blast temperature; physics.yaml gives it one
+        // GTNH gives molten Duranium 1000 K, having no temperature for it; physics.yaml overrides it
         assertEquals(9000.0 - 273.15, RotorThermalHelper.getMeltingPointCelsius(Materials.Duranium), 1e-6);
         assertFalse(
             RotorThermalHelper.isMelted(RotorThermalHelper.calculateHomologousTemperature(800.0, Materials.Duranium)),
