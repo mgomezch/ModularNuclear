@@ -1,6 +1,7 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -168,6 +169,11 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         ? CoolantLoopDataRegistry.getPhysicsData()
             .getFillRateLitersPerTick()
         : 1000L;
+    /**
+     * Running total of the fill volume of the loop's pipes (in crawl order) then devices, so filling can go part by
+     * part; null until the loop is crawled.
+     */
+    protected long[] mFillOrderCumulative = null;
 
     // Reservoir management
     protected final CoolantPumpReservoir mReservoir = new CoolantPumpReservoir(this);
@@ -881,17 +887,22 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             mEngine.setMaxVolumetricFlowRate(result.maxPumpPipeCapacityLPerSec / 1000.0);
         }
         long requiredFill = 0L;
+        List<Long> fillOrder = new ArrayList<>();
         for (LoopSegment s : result.segments) {
             if (s.getId()
                 .startsWith("pipe_")) {
                 requiredFill += s.getCapacityLiters();
+                fillOrder.add(requiredFill);
             }
         }
         mLoopDevices = result.devices;
         for (ICoolantLoopDevice dev : mLoopDevices) {
             dev.setLoopPump(this);
             requiredFill += dev.getFillVolumeLiters();
+            fillOrder.add(requiredFill);
         }
+        mFillOrderCumulative = new long[fillOrder.size()];
+        for (int i = 0; i < mFillOrderCumulative.length; i++) mFillOrderCumulative[i] = fillOrder.get(i);
         rebuildDeviceBindings();
         mRequiredFillLiters = requiredFill;
         mLoopFormed = true;
@@ -1866,7 +1877,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     } else {
                         mLoopState = LoopState.DRAINING;
                         long neededReturn = mCurrentFillLiters;
-                        int toReturn = (int) Math.min(mFillRateLitersPerTick, neededReturn);
+                        int toReturn = (int) Math.min(currentFillRateLitersPerTick(), neededReturn);
                         int returned = fillIntoReservoir(toReturn);
                         if (returned > 0) {
                             mCurrentFillLiters -= returned;
@@ -1897,6 +1908,24 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     }
 
     /**
+     * Litres per tick the loop fills from (or drains back into) the reservoir: the configured fill rate, but never
+     * slower than one pipe (or device) per second, taking them in crawl order. Filling is not limited by the loop's
+     * flow: a loop of large high-tier pipes, each of which takes its whole capacity, would otherwise take hours.
+     */
+    long currentFillRateLitersPerTick() {
+        long rate = mFillRateLitersPerTick;
+        long[] cumulative = mFillOrderCumulative;
+        if (cumulative != null && cumulative.length > 0) {
+            int i = Arrays.binarySearch(cumulative, mCurrentFillLiters + 1);
+            if (i < 0) i = -i - 1;
+            i = Math.min(i, cumulative.length - 1);
+            long part = cumulative[i] - (i > 0 ? cumulative[i - 1] : 0L);
+            rate = Math.max(rate, (part + 19) / 20);
+        }
+        return Math.min(rate, Integer.MAX_VALUE);
+    }
+
+    /**
      * Fills the loop from the reservoir until it holds what its pipes and devices need. Returns the step's result, or
      * null to carry on.
      */
@@ -1919,7 +1948,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             mEngine.setPumpMechanicalPowerWatts(0.0);
 
             long needed = mRequiredFillLiters - mCurrentFillLiters;
-            int toDraw = (int) Math.min(mFillRateLitersPerTick, needed);
+            int toDraw = (int) Math.min(currentFillRateLitersPerTick(), needed);
             int drained = drainFromReservoir(toDraw);
 
             if (drained > 0) {
