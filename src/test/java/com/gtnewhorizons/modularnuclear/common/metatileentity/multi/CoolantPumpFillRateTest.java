@@ -34,10 +34,10 @@ class CoolantPumpFillRateTest {
     }
 
     @Test
-    void largePipesFillAtLeastOnePerSecond() {
-        // Infinity huge pipes hold 240 000 L each: 12 000 L/t fills one a second
+    void largePipesFillAtLeastFourPerSecond() {
+        // Infinity huge pipes hold 240 000 L each: 48 000 L/t fills four a second
         MTECoolantPump pump = pump(1000L, 240_000L, 240_000L, 1000L);
-        assertEquals(12_000L, pump.currentFillRateLitersPerTick());
+        assertEquals(48_000L, pump.currentFillRateLitersPerTick());
     }
 
     @Test
@@ -46,7 +46,7 @@ class CoolantPumpFillRateTest {
         pump.mCurrentFillLiters = 0L;
         assertEquals(1000L, pump.currentFillRateLitersPerTick(), "First part: a small pipe");
         pump.mCurrentFillLiters = 2400L;
-        assertEquals(12_000L, pump.currentFillRateLitersPerTick(), "Second part: a huge pipe");
+        assertEquals(48_000L, pump.currentFillRateLitersPerTick(), "Second part: a huge pipe");
         pump.mCurrentFillLiters = 242_400L;
         assertEquals(1000L, pump.currentFillRateLitersPerTick(), "Last part: a device");
     }

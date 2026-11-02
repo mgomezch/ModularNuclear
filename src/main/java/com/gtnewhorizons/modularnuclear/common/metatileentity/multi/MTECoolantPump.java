@@ -1907,9 +1907,12 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         return null;
     }
 
+    /** Pipes or devices the pump fills per second at least, however large they are. */
+    static final long FILL_PARTS_PER_SECOND = 4L;
+
     /**
      * Litres per tick the loop fills from (or drains back into) the reservoir: the configured fill rate, but never
-     * slower than one pipe (or device) per second, taking them in crawl order. Filling is not limited by the loop's
+     * slower than four pipes (or devices) per second, taking them in crawl order. Filling is not limited by the loop's
      * flow: a loop of large high-tier pipes, each of which takes its whole capacity, would otherwise take hours.
      */
     long currentFillRateLitersPerTick() {
@@ -1920,7 +1923,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             if (i < 0) i = -i - 1;
             i = Math.min(i, cumulative.length - 1);
             long part = cumulative[i] - (i > 0 ? cumulative[i - 1] : 0L);
-            rate = Math.max(rate, (part + 19) / 20);
+            rate = Math.max(rate, (part * FILL_PARTS_PER_SECOND + 19) / 20);
         }
         return Math.min(rate, Integer.MAX_VALUE);
     }
