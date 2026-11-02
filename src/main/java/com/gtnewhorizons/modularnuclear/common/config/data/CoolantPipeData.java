@@ -20,6 +20,8 @@ public class CoolantPipeData {
     /** Railcraft tank material a pump needs for loops of each pipe material that has no tank of its own. */
     private Map<String, String> tankMaterials = new LinkedHashMap<>();
     private double defaultRoughness = 0.000045; // Commercial metal pipe roughness in meters
+    /** Multiplier on a pipe block's pressure drop by its material; 1 for materials not listed. */
+    private Map<String, Double> materialFrictionMultipliers = new LinkedHashMap<>();
 
     public CoolantPipeData() {
         populateDefaults();
@@ -51,6 +53,19 @@ public class CoolantPipeData {
         materialTemperatureLimitsCelsius.put("neutronium", 10000.0);
         materialTemperatureLimitsCelsius.put("draconiumawakened", 10000.0);
         materialTemperatureLimitsCelsius.put("infinity", 10000.0);
+
+        // Better pipes lose less pressure per block, so a high-tier loop can be laid out further from its reactor
+        materialFrictionMultipliers.put("castiron", 0.5);
+        materialFrictionMultipliers.put("iron", 0.5);
+        materialFrictionMultipliers.put("wroughtiron", 0.5);
+        materialFrictionMultipliers.put("steel", 0.4);
+        materialFrictionMultipliers.put("stainlesssteel", 0.3);
+        materialFrictionMultipliers.put("titanium", 0.25);
+        materialFrictionMultipliers.put("tungstensteel", 0.2);
+        materialFrictionMultipliers.put("osmium", 0.15);
+        materialFrictionMultipliers.put("neutronium", 0.1);
+        materialFrictionMultipliers.put("draconiumawakened", 0.07);
+        materialFrictionMultipliers.put("infinity", 0.05);
 
         // Pipe thickness to flow diameter mappings (meters)
         thicknessDiameters.put("tiny", 0.05);
@@ -89,6 +104,7 @@ public class CoolantPipeData {
         map.put("materialFamilies", materialFamilies);
         map.put("tankMaterials", tankMaterials);
         map.put("defaultRoughness", defaultRoughness);
+        map.put("materialFrictionMultipliers", materialFrictionMultipliers);
         return map;
     }
 
@@ -162,6 +178,17 @@ public class CoolantPipeData {
             }
         }
 
+        if (map.containsKey("materialFrictionMultipliers") && map.get("materialFrictionMultipliers") instanceof Map) {
+            data.materialFrictionMultipliers.clear();
+            Map<String, Object> fMap = (Map<String, Object>) map.get("materialFrictionMultipliers");
+            for (Map.Entry<String, Object> e : fMap.entrySet()) {
+                if (e.getValue() instanceof Number) {
+                    data.materialFrictionMultipliers
+                        .put(cleanKey(e.getKey()), Math.max(0.0, ((Number) e.getValue()).doubleValue()));
+                }
+            }
+        }
+
         if (map.containsKey("defaultRoughness")) {
             data.defaultRoughness = ((Number) map.get("defaultRoughness")).doubleValue();
         }
@@ -212,6 +239,17 @@ public class CoolantPipeData {
 
     public Map<String, List<String>> getMaterialFamilies() {
         return materialFamilies;
+    }
+
+    public Map<String, Double> getMaterialFrictionMultipliers() {
+        return materialFrictionMultipliers;
+    }
+
+    /** The pressure drop multiplier of a pipe material's blocks; 1 for a material not listed. */
+    public double getFrictionMultiplier(String materialName) {
+        if (materialName == null) return 1.0;
+        Double m = materialFrictionMultipliers.get(cleanKey(materialName));
+        return m != null ? m : 1.0;
     }
 
     public double getDefaultRoughness() {

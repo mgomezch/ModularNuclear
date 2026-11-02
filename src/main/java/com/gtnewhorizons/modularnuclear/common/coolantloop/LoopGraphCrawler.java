@@ -1213,6 +1213,7 @@ public class LoopGraphCrawler {
                 if (pipe.mCapacity > 0) {
                     seg.setCapacityLiters(pipe.mCapacity);
                 }
+                seg.setFrictionMultiplier(props.frictionMultiplier);
                 seg.setFlowSizeWeight(getPipeSizeWeight(pipe.mThickNess) * Math.max(1, pipe.mPipeAmount));
                 segments.add(seg);
 

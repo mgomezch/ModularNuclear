@@ -210,6 +210,12 @@ public class CoolantLoopModel {
             return CoolantLoopConfigData.getPipePressureRating(materialName);
         }
 
+        /** Pressure drop multiplier of the material's pipe blocks, from the coolant loop pipe config. */
+        public double frictionMultiplier() {
+            return CoolantLoopConfigData.getPipeData()
+                .getFrictionMultiplier(materialName);
+        }
+
         /** Highest coolant temperature the pipe takes, from the coolant loop pipe config. */
         public double maxTemperatureCelsius() {
             return CoolantLoopConfigData.getPipeTemperatureLimit(materialName);
@@ -1096,7 +1102,7 @@ public class CoolantLoopModel {
     // ---- Loop construction ------------------------------------------------------------------------------------------
 
     private static LoopSegment pipe(Circuit c, String id, double temp) {
-        return new LoopSegment(
+        LoopSegment s = new LoopSegment(
             id,
             1.0,
             c.pipeSize.diameterMeters(),
@@ -1106,6 +1112,8 @@ public class CoolantLoopModel {
             c.material.maxPressureBar(),
             c.material.maxTemperatureCelsius(),
             temp);
+        s.setFrictionMultiplier(c.material.frictionMultiplier());
+        return s;
     }
 
     private static LoopSegment manifold(Circuit c, String id, double temp) {

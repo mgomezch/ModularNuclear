@@ -18,6 +18,8 @@ public class LoopSegment {
     private final double area; // Cross-sectional area (m^2)
     private final double roughness; // Absolute pipe wall roughness (m)
     private double minorLossK; // Loss coefficient K (dimensionless)
+    /** Scales the segment's whole pressure drop: pipe materials (pipes.yaml) make long loops cost less flow. */
+    private double frictionMultiplier = 1.0;
     private final Double maxPressureBar; // Bursting limit in bar, or NO_LIMIT
     private final Double maxTemperatureCelsius; // Maximum safe operating temperature in deg C, or NO_LIMIT
 
@@ -154,6 +156,14 @@ public class LoopSegment {
 
     public void setMinorLossK(double minorLossK) {
         this.minorLossK = Math.max(0.0, minorLossK);
+    }
+
+    public double getFrictionMultiplier() {
+        return frictionMultiplier;
+    }
+
+    public void setFrictionMultiplier(double frictionMultiplier) {
+        this.frictionMultiplier = Math.max(0.0, frictionMultiplier);
     }
 
     /**
@@ -420,7 +430,7 @@ public class LoopSegment {
         // Minor loss: Delta P_minor = K * (rho * v^2 / 2)
         double deltaPMinor = minorLossK * (fluid.getDensity() * velocity * velocity / 2.0);
 
-        return deltaPMajor + deltaPMinor;
+        return (deltaPMajor + deltaPMinor) * frictionMultiplier;
     }
 
     /**
@@ -464,6 +474,7 @@ public class LoopSegment {
         m.put("diam", diameter);
         m.put("rough", roughness);
         m.put("k", minorLossK);
+        m.put("fm", frictionMultiplier);
         m.put("pMax", limitState(maxPressureBar));
         m.put("tMax", limitState(maxTemperatureCelsius));
         m.put("curTemp", currentTemperatureCelsius);
@@ -507,6 +518,7 @@ public class LoopSegment {
             limitFromState(m.get("tMax")),
             StateValues.dbl(m, "curTemp", 0.0));
         seg.setIncomingTemperatureCelsius(StateValues.dbl(m, "inTemp", 0.0));
+        if (m.containsKey("fm")) seg.setFrictionMultiplier(StateValues.dbl(m, "fm", 1.0));
         if (m.containsKey("inP")) seg.setInletPressureBar(StateValues.dbl(m, "inP", 0.0));
         if (m.containsKey("outP")) seg.setOutletPressureBar(StateValues.dbl(m, "outP", 0.0));
         if (m.containsKey("flowFrac")) seg.setFlowFraction(StateValues.dbl(m, "flowFrac", 0.0));
