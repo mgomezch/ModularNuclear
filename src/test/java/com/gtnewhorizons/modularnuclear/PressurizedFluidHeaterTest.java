@@ -529,6 +529,31 @@ public class PressurizedFluidHeaterTest {
     }
 
     @Test
+    public void testEnergyHatchRatingCapsHeatingPower() {
+        boolean[] allowed = new boolean[] { true };
+        // Length 11 -> 9 rings, Nichrome (HV) coils -> 32 * 9 * 4^2 = 4608 EU/t
+        MTEPressurizedFluidHeater heater = createConfiguredHeater(
+            11,
+            HeatingCoilLevel.HV,
+            HeaterPipeCasingTier.PLATINUM,
+            allowed);
+        assertEquals(4608L, heater.getMaxEuPerTick(), "No hatch bound: the coils alone set the limit");
+
+        // A 2A MV hatch takes in 2 x 128 = 256 EU/t: a full buffer still only feeds that much per tick
+        MTEHatchEnergy mv = createMockEnergyHatch(2, 1_000_000L);
+        heater.addEnergyOrMultiAmpToMachineList(mv.getBaseMetaTileEntity(), 11);
+        assertEquals(256L, heater.getMaxEuPerTick());
+        heater.onPostTick(heater.getBaseMetaTileEntity(), 1L);
+        assertEquals(256L, heater.getLastConsumedEuPerTick());
+
+        // A 16A HV hatch takes in 8192 EU/t, more than the coils use
+        heater.mEnergyHatches.clear();
+        MTEHatchEnergyMulti hv16 = createMockMultiAmpEnergyHatch(3, 16, 1_000_000L);
+        heater.addEnergyOrMultiAmpToMachineList(hv16.getBaseMetaTileEntity(), 11);
+        assertEquals(4608L, heater.getMaxEuPerTick());
+    }
+
+    @Test
     public void testElectricalHeatingFullAndPartialEuWithoutPowerfail() {
         boolean[] allowed = new boolean[] { true };
         // Length 5 -> 3 rings, Cupronickel (LV) -> max EU/t = 32 * 3 * 4^0 = 96 EU/t
@@ -545,8 +570,8 @@ public class PressurizedFluidHeaterTest {
         assertEquals(expectedCapacity, heater.getHeatCapacityHuPerC(), 1e-6);
         assertEquals(12.0, heater.getExchangeAreaM2(), 1e-6);
 
-        // Attach energy hatch with 150 EU (enough for 1 full tick of 96 EU, and 1 partial tick of 54 EU)
-        MTEHatchEnergy energyHatch = createMockEnergyHatch(1, 150L);
+        // Attach a 4A LV hatch (128 EU/t in, above the coils' 96) with 150 EU: 1 full tick of 96 EU, then 54 EU
+        MTEHatchEnergyMulti energyHatch = createMockMultiAmpEnergyHatch(1, 4, 150L);
         heater.addEnergyOrMultiAmpToMachineList(energyHatch.getBaseMetaTileEntity(), 11);
 
         double euPerHu = MTEPressurizedFluidHeater.getEuPerHu(); // 0.25 -> 4 HU per EU at 100% efficiency
