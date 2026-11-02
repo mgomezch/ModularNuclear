@@ -414,6 +414,12 @@ public class LoopGraphCrawler {
         }
     }
 
+    /** Bore of the pipe a crawl step came through, or fallback (m) if it did not come through a pipe. */
+    static double inlineBore(FrontierStep step, double fallback) {
+        return step.segmentThickness != null ? CoolantPipingRegistry.getDiameterForThickness(step.segmentThickness)
+            : fallback;
+    }
+
     public static class FrontierStep {
 
         public final String fromNodeId;
@@ -1003,6 +1009,10 @@ public class LoopGraphCrawler {
                                 .getMinorLossK());
                     int numTiles = Math.max(1, groupTiles.size());
                     double perTileK = totalManifoldK / numTiles;
+                    // The flow spreads along the group to its outlets: the whole group loses what one block of pipe
+                    // does, not one block per tile, and each tile still holds a block's worth of coolant
+                    double perTileLength = 1.0 / numTiles;
+                    double tileVolumeM3 = Math.PI * pipeDiam * pipeDiam / 4.0;
 
                     for (TileEntityManifold tile : groupTiles) {
                         tile.setInputSide(groupInputSide);
@@ -1015,7 +1025,7 @@ public class LoopGraphCrawler {
                             tile.xCoord,
                             tile.yCoord,
                             tile.zCoord,
-                            1.0,
+                            perTileLength,
                             pipeDiam,
                             0.000045,
                             perTileK,
@@ -1023,6 +1033,7 @@ public class LoopGraphCrawler {
                             LoopSegment.NO_LIMIT,
                             tile.getDeviceTemperatureCelsius());
                         manSeg.setManifold(true);
+                        manSeg.setCustomVolumeM3(tileVolumeM3);
                         segments.add(manSeg);
                     }
                     allManifoldGroups.add(mg);
@@ -1341,18 +1352,20 @@ public class LoopGraphCrawler {
             if (!devices.contains(heater)) {
                 devices.add(heater);
             }
+            // The coolant runs through the heater at the bore of the loop's pipes, so a heater does not choke the loop
             LoopSegment devSeg = new LoopSegment(
                 heater.getDeviceId(),
                 step.x,
                 step.y,
                 step.z,
                 heater.getRingCount(),
-                0.15,
+                inlineBore(step, 0.15),
                 0.000045,
                 heater.getMinorLossK(),
                 heater.getMaxOperatingPressureBar(),
                 heater.getMaxOperatingTemperatureCelsius(),
                 heater.getDeviceTemperatureCelsius());
+            devSeg.setCustomVolumeM3(Math.PI * 0.15 * 0.15 / 4.0 * heater.getRingCount());
             devSeg.setCapacityLiters(heater.getFillVolumeLiters());
             segments.add(devSeg);
 
@@ -1698,18 +1711,20 @@ public class LoopGraphCrawler {
                     devices.add(device);
                 }
 
+                // An in-line device sits in the pipe run and takes its bore
                 LoopSegment devSeg = new LoopSegment(
                     device.getDeviceId(),
                     step.x,
                     step.y,
                     step.z,
                     1.0,
-                    0.10,
+                    inlineBore(step, 0.10),
                     0.000045,
                     device.getMinorLossK(),
                     LoopSegment.NO_LIMIT,
                     2000.0,
                     device.getDeviceTemperatureCelsius());
+                devSeg.setCustomVolumeM3(Math.PI * 0.10 * 0.10 / 4.0);
                 segments.add(devSeg);
 
                 addGraphNode(graphNodes, device.getDeviceId(), NodeType.DEVICE, device);
