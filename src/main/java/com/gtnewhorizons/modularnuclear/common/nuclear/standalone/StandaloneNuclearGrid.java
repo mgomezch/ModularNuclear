@@ -1753,7 +1753,6 @@ public class StandaloneNuclearGrid {
                 coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
                 coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.EV);
                 coolantLoop.setPheHatchTier(CoolantLoopModel.EnergyHatchTier.EV);
-                coolantLoop.setRotorMaterial("ORIHARUKON");
             }
             case NuclearSimulationEngine.PIPE_TIER_PLATINUM -> {
                 coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.TUNGSTENSTEEL);
@@ -1761,7 +1760,6 @@ public class StandaloneNuclearGrid {
                 coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
                 coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.IV);
                 coolantLoop.setPheHatchTier(CoolantLoopModel.EnergyHatchTier.IV);
-                coolantLoop.setRotorMaterial("ICHORIUM");
             }
             case NuclearSimulationEngine.PIPE_TIER_OSMIUM -> {
                 coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.OSMIUM);
@@ -1769,7 +1767,6 @@ public class StandaloneNuclearGrid {
                 coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
                 coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.LUV);
                 coolantLoop.setPheHatchTier(CoolantLoopModel.EnergyHatchTier.LUV);
-                coolantLoop.setRotorMaterial("DURANIUM");
             }
             case NuclearSimulationEngine.PIPE_TIER_QUANTIUM -> {
                 coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.NEUTRONIUM);
@@ -1777,7 +1774,6 @@ public class StandaloneNuclearGrid {
                 coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
                 coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.ZPM);
                 coolantLoop.setPheHatchTier(CoolantLoopModel.EnergyHatchTier.ZPM);
-                coolantLoop.setRotorMaterial("DURANIUM");
             }
             case NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM -> {
                 coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.DRACONIUM_AWAKENED);
@@ -1785,7 +1781,6 @@ public class StandaloneNuclearGrid {
                 coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
                 coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.UV);
                 coolantLoop.setPheHatchTier(CoolantLoopModel.EnergyHatchTier.UV);
-                coolantLoop.setRotorMaterial("DURANIUM");
             }
             case NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM -> {
                 coolantLoop.setMaterial(CoolantLoopModel.LoopMaterial.INFINITY);
@@ -1793,7 +1788,6 @@ public class StandaloneNuclearGrid {
                 coolantLoop.setFluidType(CoolantLoopModel.CoolantFluidType.HEAVY_WATER);
                 coolantLoop.setHatchTier(CoolantLoopModel.EnergyHatchTier.UHV);
                 coolantLoop.setPheHatchTier(CoolantLoopModel.EnergyHatchTier.UHV);
-                coolantLoop.setRotorMaterial("INFINITY");
             }
         }
         if (isTier2ConvectiveAllowed()) {

@@ -428,6 +428,8 @@ public class CoolantLoopModel {
         NAQUADAH("Naquadah", 4),
         NAQUADAH_ALLOY("Naquadah Alloy", 5),
         ORIHARUKON("Oriharukon", 5),
+        MANYULLYN("Manyullyn", 5),
+        TERRASTEEL("Terrasteel", 5),
         NEUTRONIUM("Neutronium", 6),
         TRITANIUM("Tritanium", 6),
         HSS_E("HSS-E", 7),
@@ -468,6 +470,29 @@ public class CoolantLoopModel {
      * Efficiency of a pump rotor: GregTech's turbine base efficiency, 0.5 + (0.5 + rotor damage) / 10, where the
      * damage is the rotor tool's base damage plus its material's tool quality.
      */
+    /**
+     * The turbine rotor a pump of an energy hatch tier takes when its circuit does not name one: the best tight-fit
+     * rotor of the Large Steam Turbine's recommended progression at that tier (GTNH wiki), Huge Duranium from ZPM up.
+     */
+    public static RotorMaterial recommendedRotorMaterial(EnergyHatchTier tier) {
+        return switch (tier) {
+            case LV, MV, HV -> RotorMaterial.MANYULLYN;
+            case EV -> RotorMaterial.TERRASTEEL;
+            case IV -> RotorMaterial.ICHORIUM;
+            default -> RotorMaterial.DURANIUM;
+        };
+    }
+
+    /** The size of {@link #recommendedRotorMaterial}'s rotor. */
+    public static RotorSize recommendedRotorSize(EnergyHatchTier tier) {
+        return switch (tier) {
+            case LV, MV, HV -> RotorSize.SMALL;
+            case EV -> RotorSize.NORMAL;
+            case IV, LUV -> RotorSize.LARGE;
+            default -> RotorSize.HUGE;
+        };
+    }
+
     public static double rotorEfficiency(RotorMaterial material, RotorSize size) {
         return 0.5 + (0.5 + size.baseDamage + material.toolQuality) * 0.1;
     }
@@ -541,8 +566,9 @@ public class CoolantLoopModel {
         private String secondaryFluidName = "ic2distilledwater";
         private EnergyHatchTier hatchTier = EnergyHatchTier.EV;
         private int pumpHatchCount = 1;
-        private RotorMaterial rotorMaterial = RotorMaterial.TUNGSTENSTEEL;
-        private RotorSize rotorSize = RotorSize.HUGE;
+        /** The pump's rotor; null for the pump hatch tier's recommended one. */
+        private RotorMaterial rotorMaterial = null;
+        private RotorSize rotorSize = null;
         private int pheCount = 1;
         /** Every PHE's sheetmetal tier and size (see PheGeometry); the game's smallest copper PHE by default. */
         private int pheSheetmetalTier = 0;
@@ -604,7 +630,7 @@ public class CoolantLoopModel {
         }
 
         public double getRotorEfficiency() {
-            return rotorEfficiency(rotorMaterial, rotorSize);
+            return rotorEfficiency(getRotorMaterial(), getRotorSize());
         }
 
         /** Mechanical power a running pump puts into the coolant, in W. */
@@ -717,7 +743,7 @@ public class CoolantLoopModel {
         }
 
         public RotorMaterial getRotorMaterial() {
-            return rotorMaterial;
+            return rotorMaterial != null ? rotorMaterial : recommendedRotorMaterial(hatchTier);
         }
 
         public void setRotorMaterial(RotorMaterial m) {
@@ -725,7 +751,7 @@ public class CoolantLoopModel {
         }
 
         public RotorSize getRotorSize() {
-            return rotorSize;
+            return rotorSize != null ? rotorSize : recommendedRotorSize(hatchTier);
         }
 
         public void setRotorSize(RotorSize s) {
