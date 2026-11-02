@@ -35,6 +35,11 @@ defaultAmbientTemp: 20.0
 # Thermal softening and creep wear acceleration exponent (default 4.0)
 rotorThermalAlpha: 4.0
 
+# Melting point (K) of turbine rotor materials GregTech gives none (no molten fluid, melting point or blast
+# furnace temperature); an impeller of a material with none of these melts at 1000 K
+rotorMeltingPointsKelvin:
+  duranium: 9000.0
+
 # Cavitation wear multiplier when dissolved gas is present (default 10.0)
 cavitationWearMultiplier: 10.0
 

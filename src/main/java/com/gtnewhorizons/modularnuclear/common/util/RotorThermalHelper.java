@@ -1,11 +1,15 @@
 package com.gtnewhorizons.modularnuclear.common.util;
 
+import java.util.IdentityHashMap;
+import java.util.Map;
+
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.CoolantPhysicsData;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.items.MetaGeneratedTool;
@@ -81,7 +85,27 @@ public final class RotorThermalHelper {
         if (mat.mBlastFurnaceTemp > 0) {
             return mat.mBlastFurnaceTemp - 273.15;
         }
-        return 726.85;
+        double configured = configuredMeltingPointKelvin(mat);
+        return configured > 0 ? configured - 273.15 : 726.85;
+    }
+
+    /** Resolved once per material and config: the pump checks its impeller every tick. */
+    private static final Map<Materials, Double> CONFIGURED_MELTING = new IdentityHashMap<>();
+    private static Object configuredFor;
+
+    private static synchronized double configuredMeltingPointKelvin(Materials mat) {
+        CoolantPhysicsData physics = CoolantLoopDataRegistry.getPhysicsData();
+        if (physics == null) return 0.0;
+        if (configuredFor != physics) {
+            CONFIGURED_MELTING.clear();
+            configuredFor = physics;
+        }
+        Double k = CONFIGURED_MELTING.get(mat);
+        if (k == null) {
+            k = physics.getRotorMeltingPointKelvin(mat.mName);
+            CONFIGURED_MELTING.put(mat, k);
+        }
+        return k;
     }
 
     public static double getMeltingPointKelvin(Materials mat) {

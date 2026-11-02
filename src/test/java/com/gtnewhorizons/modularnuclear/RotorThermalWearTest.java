@@ -34,6 +34,15 @@ public class RotorThermalWearTest {
     }
 
     @Test
+    public void testDuraniumHasAConfiguredMeltingPoint() {
+        // GregTech gives Duranium no molten fluid, melting or blast temperature; physics.yaml gives it one
+        assertEquals(9000.0 - 273.15, RotorThermalHelper.getMeltingPointCelsius(Materials.Duranium), 1e-6);
+        assertFalse(
+            RotorThermalHelper.isMelted(RotorThermalHelper.calculateHomologousTemperature(800.0, Materials.Duranium)),
+            "a Duranium impeller survives a loop a UV reactor runs at");
+    }
+
+    @Test
     public void testThermalHelperFormulasAndAlpha4() {
         // Test homologous temperature
         // Titanium: melting point in GT is around 1668 C = 1941.15 K
