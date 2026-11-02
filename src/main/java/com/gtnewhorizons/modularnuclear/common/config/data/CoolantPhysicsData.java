@@ -34,7 +34,7 @@ public class CoolantPhysicsData {
 
     public CoolantPhysicsData() {
         // Between its tool-quality neighbours Terrasteel (5400 K) and Ichorium (9000 K), at Ichorium's
-        rotorMeltingPointsKelvin.put("duranium", 9000.0);
+        rotorMeltingPointsKelvin.put(materialKey("duranium"), 9000.0);
     }
 
     // Geometry defaults

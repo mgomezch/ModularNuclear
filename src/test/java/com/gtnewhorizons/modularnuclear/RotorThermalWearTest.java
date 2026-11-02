@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.client.tooltip.RotorTooltipEventHandler;
+import com.gtnewhorizons.modularnuclear.common.config.data.CoolantPhysicsData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.opencomputers.LoopInstrumentEnvironment;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
@@ -40,6 +41,17 @@ public class RotorThermalWearTest {
         assertFalse(
             RotorThermalHelper.isMelted(RotorThermalHelper.calculateHomologousTemperature(800.0, Materials.Duranium)),
             "a Duranium impeller survives a loop a UV reactor runs at");
+    }
+
+    @Test
+    public void testBuiltInRotorMeltingPointsWithoutAConfigFile() {
+        // A config file from before rotorMeltingPointsKelvin existed keeps the built-in entries
+        assertEquals(9000.0, new CoolantPhysicsData().getRotorMeltingPointKelvin("Duranium"), 1e-9);
+        assertEquals(
+            9000.0,
+            CoolantPhysicsData.fromMap(new java.util.HashMap<>())
+                .getRotorMeltingPointKelvin("Duranium"),
+            1e-9);
     }
 
     @Test
