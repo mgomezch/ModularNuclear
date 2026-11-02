@@ -132,6 +132,11 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     private static final long STRUCTURE_SETTLE_TICKS = 200;
     /** How often (ticks) a formed loop checks that its blocks are still there; the check walks the whole footprint. */
     private static final int LOOP_CHECK_INTERVAL_TICKS = 100;
+    /**
+     * How often (ticks) a formed loop is crawled again. The loop check sees blocks change, not a device dropping its
+     * binding to the pump (a reactor's passages, say), which only a crawl restores.
+     */
+    private static final int LOOP_RECRAWL_INTERVAL_TICKS = 200;
     /** The widest pump, matching the widest Railcraft tank interior. */
     private static final int MAX_PUMP_WIDTH = 9;
     protected Block[] mFootprintBlocks;
@@ -862,10 +867,10 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     }
 
     public boolean applyCrawlResult(LoopGraphCrawler.CrawlResult result) {
-        releaseLoopDevices();
         boolean keepState = mRecrawlKeepsState;
         mRecrawlKeepsState = false;
         if (result == null || !result.isSuccess) {
+            releaseLoopDevices();
             releaseLoopChunks();
             mLastCrawlResult = result;
             mLoopFormed = false;
@@ -895,6 +900,10 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 fillOrder.add(requiredFill);
             }
         }
+        // Devices still in the loop stay bound throughout, so a periodic re-crawl does not flicker them
+        for (ICoolantLoopDevice dev : mLoopDevices) {
+            if (dev != null && !result.devices.contains(dev)) dev.setLoopPump(null);
+        }
         mLoopDevices = result.devices;
         for (ICoolantLoopDevice dev : mLoopDevices) {
             dev.setLoopPump(this);
@@ -910,13 +919,16 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         updateLoopChunks();
         mHasEverBeenEnabled = true;
 
-        if (getBaseMetaTileEntity() != null && !getBaseMetaTileEntity().isAllowedToWork()) {
-            getBaseMetaTileEntity().enableWorking();
-        }
-        if (mDischargeHatch != null) {
-            IGregTechTileEntity bte = mDischargeHatch.getBaseMetaTileEntity();
-            if (bte != null && !bte.isAllowedToWork()) {
-                bte.enableWorking();
+        // A loop that forms switches its pump on; re-crawling a formed one leaves it as the player set it
+        if (!keepState) {
+            if (getBaseMetaTileEntity() != null && !getBaseMetaTileEntity().isAllowedToWork()) {
+                getBaseMetaTileEntity().enableWorking();
+            }
+            if (mDischargeHatch != null) {
+                IGregTechTileEntity bte = mDischargeHatch.getBaseMetaTileEntity();
+                if (bte != null && !bte.isAllowedToWork()) {
+                    bte.enableWorking();
+                }
             }
         }
 
@@ -958,6 +970,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             if (mLoopFormed && aTick % LOOP_CHECK_INTERVAL_TICKS == 0) {
                 String loopBreak = findLoopBreak(aBaseMetaTileEntity.getWorld());
                 if (loopBreak != null) onDeviceDisconnected(null, loopBreak);
+            }
+            if (mLoopFormed && mActiveCrawl == null && aTick % LOOP_RECRAWL_INTERVAL_TICKS == 0) {
+                crawlLoopGraph();
             }
             stepCoolantLoop();
             // Saves the loop's changing state; markDirty also updates comparators around the pump, so not every second

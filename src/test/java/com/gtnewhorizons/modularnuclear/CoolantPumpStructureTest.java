@@ -1074,6 +1074,43 @@ public class CoolantPumpStructureTest {
     }
 
     @Test
+    public void testRecrawlKeepsDevicesStillInTheLoopBound() {
+        MTECoolantPump pump = createOperatingPumpWithBase(new boolean[] { true });
+        ICoolantLoopDevice kept = Mockito.mock(ICoolantLoopDevice.class);
+        ICoolantLoopDevice dropped = Mockito.mock(ICoolantLoopDevice.class);
+        Mockito.when(kept.getDeviceId())
+            .thenReturn("kept");
+        Mockito.when(dropped.getDeviceId())
+            .thenReturn("dropped");
+        LoopSegment seg = new LoopSegment("pipe_test", 10.0, 0.1, 0.00005, 0.5, 100.0, 1000.0, 20.0);
+        pump.applyCrawlResult(
+            CrawlResult.success(
+                Collections.singletonList(seg),
+                new ArrayList<>(java.util.Arrays.asList(kept, dropped)),
+                Collections.emptySet(),
+                500.0,
+                Materials.Steel,
+                Collections.emptyList()));
+
+        pump.applyCrawlResult(
+            CrawlResult.success(
+                Collections.singletonList(seg),
+                new ArrayList<>(Collections.singletonList(kept)),
+                Collections.emptySet(),
+                500.0,
+                Materials.Steel,
+                Collections.emptyList()));
+
+        Mockito.verify(kept, Mockito.never())
+            .setLoopPump(null);
+        Mockito.verify(kept, Mockito.times(2))
+            .setLoopPump(pump);
+        Mockito.verify(dropped)
+            .setLoopPump(null);
+        assertEquals(Collections.singletonList(kept), pump.getLoopDevices());
+    }
+
+    @Test
     public void testFormedLoopNoticesAChangedBlock() {
         MTECoolantPump pump = createOperatingPumpWithBase(new boolean[] { true });
         pump.mMachine = true;
