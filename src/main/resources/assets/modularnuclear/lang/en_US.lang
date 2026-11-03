@@ -423,7 +423,6 @@ coolantloops.pump.status.filled_circulating=Loop filled (%d L). Beginning circul
 coolantloops.pump.status.accelerating=Accelerating: %.1f L/s (consuming %d EU/t, target %.1f L/s)
 coolantloops.pump.status.circulating=Circulating: %.1f L/s (consuming %d EU/t, target %.1f L/s)
 coolantloops.pump.status.loop_active=Loop active: %d pipe segments, %d devices (filled %d L)
-coolantloops.pump.status.refuse_solidify_coolant=Pump refused to start: Coolant temperature (%.1f °C) is below declared GregTech melting point (%.1f °C) for %s! Fluid would solidify.
 
 coolantloops.pump.status.catastrophic_fuel=Catastrophic pump failure: %s is a liquid nuclear fuel, not a coolant! Impeller disintegrated!
 coolantloops.pump.status.catastrophic_solidification=Catastrophic coolant solidification: Coolant temperature (%.1f °C) dropped below declared GregTech melting point (%.1f °C) for %s! Solidified plug ruptured loop.

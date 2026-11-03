@@ -329,7 +329,8 @@ public class CoolantPumpStructureTest {
             MTECoolantPump.getDeclaredGregTechFluidTemperatureCelsius(moltenCheese, null, null),
             0.01);
 
-        // 1. Pump refuses to start / accelerate if reservoir is cold (< 46.85 °C)
+        // 1. Unfilled pipe has no temperature: a cold, empty loop does not stop a molten fill, which goes on to
+        // the pump's power check (none here)
         MTECoolantPump pump = new MTECoolantPump("test_pump_molten");
         gregtech.api.interfaces.tileentity.IGregTechTileEntity mockPumpBase = Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
@@ -346,21 +347,9 @@ public class CoolantPumpStructureTest {
         pump.getEngine()
             .setFluid(CoolantFluidProperty.MOLTEN_CHEESE);
         pump.getReservoir()
-            .setReservoirTemperatureCelsius(20.0); // reservoir cooled down below 46.85 °C
+            .setSimulatedCoolantLiters(1000L);
 
-        assertTrue(pump.stepCoolantLoop());
-        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.getLoopState());
-        assertTrue(
-            pump.getLoopStatus()
-                .contains("below declared GregTech melting point"));
-
-        // 2. When reservoir is at or above melting point (e.g. 55 °C > 46.85 °C), pump is allowed to start/circulate
-        pump.getReservoir()
-            .setReservoirTemperatureCelsius(55.0);
-        pump.setSimulatedBiomeTemperatureCelsius(55.0);
-        coldSeg.setCurrentTemperatureCelsius(55.0);
-        assertTrue(pump.stepCoolantLoop());
-        // Temperature check passes! Pump advances all the way to circulation power check
+        pump.stepCoolantLoop();
         assertFalse(
             pump.getLoopStatus()
                 .contains("below declared GregTech melting point"));
@@ -368,7 +357,23 @@ public class CoolantPumpStructureTest {
             gregtech.api.util.shutdown.ShutDownReasonRegistry.POWER_LOSS.getDisplayString(),
             pump.getLoopStatus());
 
-        // 3. Circulating molten coolant below melting point causes catastrophic explosion / rupture!
+        // 2. A reservoir that has cooled below the melting point does stop the fill
+        pump.getReservoir()
+            .setReservoirTemperatureCelsius(20.0);
+        assertTrue(pump.stepCoolantLoop());
+        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.getLoopState());
+        assertTrue(
+            pump.getLoopStatus()
+                .contains("below declared GregTech melting point"));
+
+        // 3. An unfilled loop's pipe has no temperature: its cold segments never solidify or rupture
+        CoolantLoopEngine emptyEngine = new CoolantLoopEngine(CoolantFluidProperty.MOLTEN_CHEESE);
+        emptyEngine.addSegment(new LoopSegment("empty_seg", 10.0, 0.2, 0.0001, 1.0, 100.0, 1000.0, 20.0));
+        emptyEngine.setHoldsCoolant(false);
+        emptyEngine.step(0.05);
+        assertFalse(emptyEngine.isRuptured());
+
+        // 4. Circulating molten coolant below melting point causes catastrophic explosion / rupture!
         CoolantLoopEngine engine = new CoolantLoopEngine(CoolantFluidProperty.MOLTEN_CHEESE);
         LoopSegment frozenSeg = new LoopSegment("frozen_seg", 10.0, 0.2, 0.0001, 1.0, 100.0, 1000.0, 30.0); // 30 °C <
                                                                                                             // 46.85 °C

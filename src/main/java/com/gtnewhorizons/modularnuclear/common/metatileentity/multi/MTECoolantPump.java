@@ -1503,6 +1503,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
 
         mReservoir.updateReservoirState();
+        mEngine.setHoldsCoolant(mCurrentFillLiters > 0);
 
         // Draw electrical power if allowed to work (soft hammer / redstone control)
         boolean isWorking = isAllowedToWork();
@@ -1775,7 +1776,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     return false;
                 }
             } else {
-                // Loop is empty (before initial fill): refuse to fill if reservoir or segments are below melting point
+                // Loop is empty (before initial fill): refuse to fill if the reservoir is below the melting point.
+                // Unfilled pipe has no temperature, so it never stops a fill: it takes the coolant's as it fills
                 double resTemp = mReservoir.getReservoirTemperatureCelsius();
                 if (Double.isNaN(resTemp)) {
                     resTemp = CoolantFluidHelper.getBaselineInletTemperatureCelsius(
@@ -1795,22 +1797,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                         declaredMelting,
                         currentProp != null ? currentProp.getFluidName() : "molten fluid");
                     return true;
-                } else if (!mEngine.getSegments()
-                    .isEmpty()) {
-                        double minLoopTemp = mEngine.getMinLoopTempCelsius();
-                        if (minLoopTemp < declaredMelting - CoolantLoopEngine.FREEZE_TOLERANCE_CELSIUS) {
-                            mLoopState = LoopState.STOPPED;
-                            mEngine.setPumpPowered(false);
-                            mEngine.setPumpMechanicalPowerWatts(0.0);
-                            mEngine.setBraking(false);
-                            setLoopStatusKey(
-                                "coolantloops.pump.status.refuse_solidify_coolant",
-                                minLoopTemp,
-                                declaredMelting,
-                                currentProp != null ? currentProp.getFluidName() : "molten fluid");
-                            return true;
-                        }
-                    }
+                }
             }
         }
         return null;
