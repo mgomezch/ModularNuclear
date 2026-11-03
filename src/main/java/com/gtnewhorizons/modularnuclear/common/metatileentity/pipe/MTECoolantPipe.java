@@ -34,6 +34,7 @@ import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.Dyes;
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
@@ -233,7 +234,7 @@ public class MTECoolantPipe extends MTEFluidPipe {
     public ITexture[] getTexture(IGregTechTileEntity base, ForgeDirection side, int connections, int colorIndex,
         boolean connected, boolean redstoneLevel) {
         ITexture[] baseTextures = super.getTexture(base, side, connections, colorIndex, connected, redstoneLevel);
-        ITexture insulation = getInsulationOverlay();
+        ITexture insulation = getInsulationOverlay(colorIndex);
         if (insulation != null && baseTextures != null && baseTextures.length > 0) {
             ITexture[] result = new ITexture[baseTextures.length + 1];
             result[0] = baseTextures[0];
@@ -244,10 +245,15 @@ public class MTECoolantPipe extends MTEFluidPipe {
         return baseTextures;
     }
 
-    protected ITexture getInsulationOverlay() {
+    /**
+     * The insulation drawn over the pipe, tinted like the pipe itself (its material's color, or its paint) so it does
+     * not wash every material out to the same pale grey.
+     */
+    @SuppressWarnings("deprecation")
+    protected ITexture getInsulationOverlay(int colorIndex) {
         try {
             if (INSULATION_OVERLAY_ICON == null) return null;
-            return TextureFactory.of(INSULATION_OVERLAY_ICON);
+            return TextureFactory.of(INSULATION_OVERLAY_ICON, Dyes.getModulation(colorIndex, getPipeMaterialRgba()));
         } catch (Throwable t) {
             return null;
         }
