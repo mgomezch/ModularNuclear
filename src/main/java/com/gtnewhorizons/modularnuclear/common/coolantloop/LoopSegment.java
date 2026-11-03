@@ -19,6 +19,8 @@ public class LoopSegment {
     private final double roughness; // Absolute pipe wall roughness (m)
     /** Minor loss of a pipe block (its fitting to the next). */
     public static final double PIPE_BLOCK_MINOR_LOSS_K = 0.05;
+    /** Minor loss of a loop instrument in a pipe run. */
+    public static final double INSTRUMENT_MINOR_LOSS_K = 0.05;
 
     private double minorLossK; // Loss coefficient K (dimensionless)
     /** Scales the segment's whole pressure drop: pipe materials (pipes.yaml) make long loops cost less flow. */

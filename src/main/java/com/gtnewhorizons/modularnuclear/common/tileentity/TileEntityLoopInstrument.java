@@ -105,7 +105,7 @@ public class TileEntityLoopInstrument extends TileEntity
     private double currentPressureBar = 1.0;
     private double currentGasFraction = 0.0;
     private double currentVelocityMs = 0.0;
-    private double minorLossK = 0.05;
+    private double minorLossK = LoopSegment.INSTRUMENT_MINOR_LOSS_K;
 
     public TileEntityLoopInstrument() {}
 
