@@ -16,8 +16,8 @@ physics:
   # LV, steel MV, stainless steel HV, titanium EV, tungstensteel IV, osmium LuV, neutronium ZPM). With 75 L/s of water
   # through it, a passage removes about 1.5 times (rising slowly with tier) what a core hatch of the same tier
   # conducts into its own coolant.
-  coolant_passage_heat_transfer_multiplier: 0.0685259
-  coolant_passage_heat_transfer_tier_ratio: 1.52425
+  coolant_passage_heat_transfer_multiplier: 0.0699418
+  coolant_passage_heat_transfer_tier_ratio: 1.63332
   # Heat capacity (HU/°C) of a tier-0 passage; a passage of voltage tier t holds 2^t times this.
   coolant_passage_heat_capacity: 16.0
   # Conductance (HU/(s·°C)) from a nuclear core hatch into its coolant: base_hatch_conductance at MV, times
@@ -43,11 +43,11 @@ physics:
   default_ambient_temp: 293.15
   beam_energy_to_fast_neutron_multiplier: 0.001
   t10_wear_factor: 8.0
-  dense_nbase_multiplier: 0.714544
-  dense_fission_multiplier: 1.55731
-  excited_nbase_multiplier: 0.990294
-  excited_fission_multiplier: 0.379786
-  standard_nbase_multiplier: 0.551364
-  standard_fission_multiplier: 1.23966
+  dense_nbase_multiplier: 0.763954
+  dense_fission_multiplier: 1.45261
+  excited_nbase_multiplier: 1.02841
+  excited_fission_multiplier: 0.48254
+  standard_nbase_multiplier: 0.550079
+  standard_fission_multiplier: 1.25132
   breeder_nbase_multiplier: 1.0
   breeder_fission_multiplier: 1.0
