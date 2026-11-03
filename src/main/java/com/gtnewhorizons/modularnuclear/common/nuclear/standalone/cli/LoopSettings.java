@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear.standalone.cli;
 
+import com.gtnewhorizons.modularnuclear.common.coolantloop.HeaterCasing;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.CoolantLoopModel;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.CoolantLoopModel.EnergyHatchTier;
@@ -115,6 +116,11 @@ public final class LoopSettings {
             (t, v) -> t.circuit()
                 .setHeaterRings(v),
             "loop_heater_rings")
+        .value(s -> HeaterCasing.fromString(s), (t, v) -> {
+            if (v == null) System.err.println("WARNING: unknown heater casing");
+            else t.circuit()
+                .setHeaterCasing(v);
+        }, "loop_heater_casing")
         .value(
             OptionTable.INT,
             (t, v) -> t.circuit()

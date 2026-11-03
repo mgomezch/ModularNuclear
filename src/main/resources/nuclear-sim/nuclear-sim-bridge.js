@@ -294,6 +294,14 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    // The heater's pipe casing on the selected circuit (TIN ... BLACK_PLUTONIUM), or "" for the loop pipe's best.
+    setCoolantLoopHeaterCasing(casing, notify = true) {
+        if (this.inst.exports.setCoolantLoopHeaterCasing) {
+            this.inst.exports.setCoolantLoopHeaterCasing(this.createJavaString(casing || ""));
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     // Independent loops, each with its own pump and PHEs, that the passages are split among.
     setCoolantLoopCount(count, notify = true) {
         if (this.inst.exports.setCoolantLoopCount) {

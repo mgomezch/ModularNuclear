@@ -182,6 +182,7 @@ async function initEngine() {
             wasmSim.setCoolantLoopGeometry(cl.coldLegBlocks, cl.hotLegBlocks, cl.returnBlocks, cl.heaterRings || 0,
               cl.instrumentCount || 0, cl.passageBranchBlocks || 0, cl.pheBranchBlocks || 0, false);
           }
+          if (cl.heaterCasingSet) wasmSim.setCoolantLoopHeaterCasing(cl.heaterCasing, false);
           if (cl.pheCount !== undefined) wasmSim.setCoolantLoopPhe(cl.pheCount, cl.pheHatchTier, cl.pheHatchCount !== undefined ? cl.pheHatchCount : 1, false);
         } else if (window.__INITIAL_STATE__.pipeTier >= 1) {
           applyTierCoolingDefaults(window.__INITIAL_STATE__.pipeTier);
@@ -469,9 +470,10 @@ async function onCoolantLoopConfigChange() {
     wasmSim.setCoolantLoopRotor(rotor, rotorSize, false);
     wasmSim.setCoolantLoopPhe(pheCount, pheHatch, pheHatches, false);
     wasmSim.setCoolantLoopCount(loopCount, false);
-    wasmSim.setCoolantLoopGeometry(blocks("loop-cold-blocks-input", 4), blocks("loop-hot-blocks-input", 4),
-      blocks("loop-return-blocks-input", 4), blocks("loop-heater-rings-input", 0), blocks("loop-instruments-input", 0),
-      blocks("loop-passage-branch-input", 0), blocks("loop-phe-branch-input", 0), false);
+    wasmSim.setCoolantLoopGeometry(blocks("loop-cold-blocks-input", 80), blocks("loop-hot-blocks-input", 80),
+      blocks("loop-return-blocks-input", 80), blocks("loop-heater-rings-input", 9), blocks("loop-instruments-input", 1),
+      blocks("loop-passage-branch-input", 4), blocks("loop-phe-branch-input", 6), false);
+    wasmSim.setCoolantLoopHeaterCasing(val("loop-heater-casing-select", ""), false);
     wasmSim.setCoolantLoopControl(isNaN(duty) ? 100 : duty, maxFlow, maxPress, false);
     wasmSim.setCoolantLoopTempBand(bandOn, bandMin, bandMax, sensor, false);
     currentState = wasmSim.getState();

@@ -12,6 +12,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData.PHE
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.HeaterCasing;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheExchange;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
@@ -514,8 +515,16 @@ public class CoolantLoopModel {
             .getPhe();
     }
 
-    /** Pipe blocks in each of the cold leg, hot leg and return run of a loop unless its design says otherwise. */
-    public static final int PIPE_RUN_BLOCKS = 4;
+    /**
+     * Pipe blocks in each of the cold leg, hot leg and return run of a loop unless its design says otherwise: 240 in
+     * all, about what a loop takes to reach a reactor from its pumps and PHEs laid out beside it.
+     */
+    public static final int PIPE_RUN_BLOCKS = 80;
+    /** A loop's heater rings, loop instruments and branch pipe blocks unless its design says otherwise. */
+    public static final int DEFAULT_HEATER_RINGS = 9;
+    public static final int DEFAULT_INSTRUMENTS = 1;
+    public static final int DEFAULT_PASSAGE_BRANCH_BLOCKS = 4;
+    public static final int DEFAULT_PHE_BRANCH_BLOCKS = 6;
     /** Most rings a Pressurized Fluid Heater has (PressurizedFluidHeaterStructure: lengths 3 to 11, two end layers). */
     public static final int MAX_HEATER_RINGS = 9;
     /** Blocks between neighbouring PHEs' starts along a loop's PHE manifolds (the design testcase builder's pitch). */
@@ -586,10 +595,12 @@ public class CoolantLoopModel {
         private int coldLegBlocks = PIPE_RUN_BLOCKS;
         private int hotLegBlocks = PIPE_RUN_BLOCKS;
         private int returnBlocks = PIPE_RUN_BLOCKS;
-        private int heaterRings = 0;
-        private int instrumentCount = 0;
-        private int passageBranchBlocks = 0;
-        private int pheBranchBlocks = 0;
+        private int heaterRings = DEFAULT_HEATER_RINGS;
+        /** The heater's pipe casing; null for the best one the loop's pipe material allows. */
+        private HeaterCasing heaterCasing = null;
+        private int instrumentCount = DEFAULT_INSTRUMENTS;
+        private int passageBranchBlocks = DEFAULT_PASSAGE_BRANCH_BLOCKS;
+        private int pheBranchBlocks = DEFAULT_PHE_BRANCH_BLOCKS;
         private int copies = 1;
         private double dutyCyclePercent = 100.0;
         private double maxFlowLPerSec = 0.0; // 0 = no cap
@@ -849,6 +860,23 @@ public class CoolantLoopModel {
 
         public int getHeaterRings() {
             return heaterRings;
+        }
+
+        public HeaterCasing getHeaterCasing() {
+            return heaterCasing != null ? heaterCasing : HeaterCasing.forLoopMaterial(material.materialName);
+        }
+
+        /** Whether the heater's casing was chosen, rather than following the loop's pipe material. */
+        public boolean isHeaterCasingSet() {
+            return heaterCasing != null;
+        }
+
+        /** The heater's pipe casing (its pressure drop and limits), or null for the loop pipe material's best. */
+        public void setHeaterCasing(HeaterCasing casing) {
+            if (casing != heaterCasing) {
+                heaterCasing = casing;
+                markDirty();
+            }
         }
 
         public int getInstrumentCount() {
@@ -1287,9 +1315,10 @@ public class CoolantLoopModel {
 
     /**
      * The hot leg's Pressurized Fluid Heater, unpowered, as the game's crawler adds one: a ring per meter at the bore
-     * of the pipe it comes in through, the heater config's minor loss.
+     * of the pipe it comes in through, the heater config's minor loss, its casing's pressure drop and limits.
      */
     private static LoopSegment heater(Circuit c, double temp) {
+        HeaterCasing casing = c.getHeaterCasing();
         LoopSegment h = new LoopSegment(
             "heater",
             c.heaterRings,
@@ -1297,9 +1326,10 @@ public class CoolantLoopModel {
             0.000045,
             CoolantLoopConfigData.getDeviceData()
                 .getHeater().minorLossK,
-            LoopSegment.NO_LIMIT,
-            LoopSegment.NO_LIMIT,
+            casing.maxPressureBar(),
+            casing.maxTemperatureCelsius(),
             temp);
+        h.setFrictionMultiplier(casing.frictionMultiplier());
         h.setCustomVolumeM3(Math.PI * 0.15 * 0.15 / 4.0 * c.heaterRings);
         h.setCapacityLiters(1000L * c.heaterRings);
         return h;

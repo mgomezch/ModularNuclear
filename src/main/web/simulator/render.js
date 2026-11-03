@@ -381,6 +381,7 @@ function renderUI() {
     syncSel("loop-instruments-input", cl.instrumentCount);
     syncSel("loop-passage-branch-input", cl.passageBranchBlocks);
     syncSel("loop-phe-branch-input", cl.pheBranchBlocks);
+    syncSel("loop-heater-casing-select", cl.heaterCasingSet ? cl.heaterCasing : "");
     syncSel("loop-duty-cycle-input", Math.round(cl.dutyCyclePercent));
     syncSel("loop-max-flow-input", cl.maxFlowRateLimit > 0 ? cl.maxFlowRateLimit : "");
     syncSel("loop-max-pressure-input", cl.maxPressureLimit > 0 ? cl.maxPressureLimit : "");

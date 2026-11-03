@@ -7,6 +7,7 @@ import org.teavm.interop.Export;
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData.PHEData.SecondaryCoolantEntry;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.HeaterCasing;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules;
@@ -382,6 +383,17 @@ public class NuclearSimWasmBridge {
             c.setHeaterRings(heaterRings);
             c.setInstrumentCount(instruments);
             c.setBranchBlocks(passageBranch, pheBranch);
+            grid.updatePowerResultNet();
+        }
+    }
+
+    /** The selected circuit's heater casing (TIN ... BLACK_PLUTONIUM), or blank for the loop pipe material's best. */
+    @Export(name = "setCoolantLoopHeaterCasing")
+    public static void setCoolantLoopHeaterCasing(String casing) {
+        if (grid != null) {
+            grid.getCoolantLoop()
+                .getSelectedCircuit()
+                .setHeaterCasing(HeaterCasing.fromString(casing));
             grid.updatePowerResultNet();
         }
     }
@@ -1092,6 +1104,14 @@ public class NuclearSimWasmBridge {
             .append(",");
         sb.append("\"heaterRings\":")
             .append(sel.getHeaterRings())
+            .append(",");
+        sb.append("\"heaterCasing\":\"")
+            .append(
+                sel.getHeaterCasing()
+                    .name())
+            .append("\",");
+        sb.append("\"heaterCasingSet\":")
+            .append(sel.isHeaterCasingSet())
             .append(",");
         sb.append("\"instrumentCount\":")
             .append(sel.getInstrumentCount())
