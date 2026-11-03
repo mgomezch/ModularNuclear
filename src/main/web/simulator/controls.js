@@ -485,6 +485,9 @@ function applyTierCoolingDefaults(tierNum, p = null) {
     wasmSim.setCoolantLoopRotor(opt("loop_rotor", def.rotor), opt("loop_rotor_size", "HUGE"), false);
     wasmSim.setCoolantLoopPhe(opt("phe_count", 1), opt("phe_hatch", ht), opt("phe_hatches", 1), false);
     wasmSim.setCoolantLoopCount(opt("loop_count", 1), false);
+    wasmSim.setCoolantLoopGeometry(opt("loop_cold_blocks", 4), opt("loop_hot_blocks", 4), opt("loop_return_blocks", 4),
+      opt("loop_heater_rings", 0), opt("loop_instruments", 0), opt("loop_passage_branch", 0), opt("loop_phe_branch", 0),
+      false);
     wasmSim.setCoolantLoopControl(opt("loop_duty", 100), opt("loop_max_flow", 0), opt("loop_max_pressure", 0), false);
     if (p && p.loop_secondary) wasmSim.setCoolantLoopSecondaryCoolant(p.loop_secondary, false);
   }
