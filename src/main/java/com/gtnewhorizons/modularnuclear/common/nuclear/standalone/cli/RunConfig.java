@@ -52,6 +52,10 @@ public final class RunConfig {
     public boolean trackHistory = false;
     public boolean trace = false;
     public int traceSteps = 50;
+    /** Zoned PID control rod controllers (see {@link RodControllers}); null runs without any. */
+    public String rodPid;
+    /** Reports each cell's peak and final temperature. */
+    public boolean cellStats = false;
     /** Seed for the simulation's random source; null leaves it unseeded. */
     public Long seed;
 

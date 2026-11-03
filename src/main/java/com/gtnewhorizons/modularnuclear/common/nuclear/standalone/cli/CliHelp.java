@@ -66,6 +66,11 @@ public final class CliHelp {
             "  --loop-points <pts>   Semicolon-separated core coordinates to attach to loop (e.g. \"2,2;2,3;2,4\")");
         System.out.println(
             "  --trace [N]           Enable intermediate step snapshot ring buffer (up to N steps, default 500)");
+        System.out.println(
+            "  --rod-pid <zones>     PID control rod controllers per zone, as an OpenComputers program would run them");
+        System.out.println(
+            "                        (e.g. \"rods:2.2+6.6/sp:900/kp:0.004/ki:0.0005|rods:all/sp:1000/kp:0.002\"; see RodControllers)");
+        System.out.println("  --cell-stats          Report each cell's peak and final temperature (JSON)");
         System.out.println("  --json                Output compact JSON summary for automated test scripts");
         System.out.println("  --web [port]          Launch standalone Web GUI on specified port (default 8085)");
         System.out.println("  --help, -h            Display this help message");
