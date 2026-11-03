@@ -223,6 +223,41 @@ public class CoolantLoopModelTest {
     }
 
     @Test
+    void testLongerLoopsAndHeatersCostFlow() {
+        attachCenterColumn();
+        run(20);
+        double canonical = loop.getCurrentFlowRateLPerSec();
+        setUp();
+        attachCenterColumn();
+        loop.getSelectedCircuit()
+            .setPipeRunBlocks(240);
+        run(20);
+        double longLoop = loop.getCurrentFlowRateLPerSec();
+        assertTrue(longLoop < canonical, "a longer loop should move less coolant on the same pump");
+        setUp();
+        attachCenterColumn();
+        CoolantLoopModel.Circuit c = loop.getSelectedCircuit();
+        c.setPipeRunBlocks(240);
+        c.setHeaterRings(9);
+        c.setInstrumentCount(1);
+        run(20);
+        assertTrue(loop.getCurrentFlowRateLPerSec() < longLoop, "a heater in the loop should cost more flow");
+    }
+
+    @Test
+    void testPipeRunBlocksSplitOverTheRuns() {
+        CoolantLoopModel.Circuit c = loop.getSelectedCircuit();
+        assertEquals(3 * CoolantLoopModel.PIPE_RUN_BLOCKS, c.getPipeRunBlocks(), "the canonical loop by default");
+        c.setPipeRunBlocks(200);
+        assertEquals(200, c.getPipeRunBlocks());
+        assertEquals(67, c.getColdLegBlocks());
+        assertEquals(67, c.getHotLegBlocks());
+        assertEquals(66, c.getReturnBlocks());
+        c.setHeaterRings(42);
+        assertEquals(CoolantLoopModel.MAX_HEATER_RINGS, c.getHeaterRings());
+    }
+
+    @Test
     void testFlowCapHoldsFlowNearCap() {
         attachCenterColumn();
         run(20);
