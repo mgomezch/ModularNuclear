@@ -5,7 +5,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipingRegistry;
-import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.HeaterCasing;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -23,19 +23,14 @@ import gregtech.common.blocks.BlockCasings11;
  */
 public enum HeaterPipeCasingTier {
 
-    TIN(1, 0, "Tin", Materials.Tin, Materials.CastIron, 1, -1, 1000.0),
-    BRASS(2, 1, "Brass", Materials.Brass, Materials.Steel, 2, -1, 1100.0),
-    ELECTRUM(3, 2, "Electrum", Materials.Electrum, Materials.StainlessSteel, 3,
-        NuclearSimulationEngine.PIPE_TIER_ELECTRUM, 1200.0),
-    PLATINUM(4, 3, "Platinum", Materials.Platinum, Materials.Titanium, 4, NuclearSimulationEngine.PIPE_TIER_PLATINUM,
-        1400.0),
-    OSMIUM(5, 4, "Osmium", Materials.Osmium, Materials.Osmium, 5, NuclearSimulationEngine.PIPE_TIER_OSMIUM, 1800.0),
-    QUANTIUM(6, 5, "Quantium", Materials.Quantium, Materials.Neutronium, 6, NuclearSimulationEngine.PIPE_TIER_QUANTIUM,
-        2200.0),
-    FLUXED_ELECTRUM(7, 6, "Fluxed Electrum", Materials.ElectrumFlux, Materials.Neutronium, 7,
-        NuclearSimulationEngine.PIPE_TIER_FLUXED_ELECTRUM, 2600.0),
-    BLACK_PLUTONIUM(8, 7, "Black Plutonium", Materials.BlackPlutonium, Materials.Neutronium, 8,
-        NuclearSimulationEngine.PIPE_TIER_BLACK_PLUTONIUM, 3200.0);
+    TIN(1, 0, "Tin", Materials.Tin, Materials.CastIron, 1),
+    BRASS(2, 1, "Brass", Materials.Brass, Materials.Steel, 2),
+    ELECTRUM(3, 2, "Electrum", Materials.Electrum, Materials.StainlessSteel, 3),
+    PLATINUM(4, 3, "Platinum", Materials.Platinum, Materials.Titanium, 4),
+    OSMIUM(5, 4, "Osmium", Materials.Osmium, Materials.Osmium, 5),
+    QUANTIUM(6, 5, "Quantium", Materials.Quantium, Materials.Neutronium, 6),
+    FLUXED_ELECTRUM(7, 6, "Fluxed Electrum", Materials.ElectrumFlux, Materials.Neutronium, 7),
+    BLACK_PLUTONIUM(8, 7, "Black Plutonium", Materials.BlackPlutonium, Materials.Neutronium, 8);
 
     private final int casingTier;
     private final int meta;
@@ -43,19 +38,15 @@ public enum HeaterPipeCasingTier {
     private final Materials casingMaterial;
     private final Materials equivalentLoopMaterial;
     private final int passageVoltageTier;
-    private final int enginePipeTier;
-    private final double fallbackMaxTempC;
 
     HeaterPipeCasingTier(int casingTier, int meta, String displayName, Materials casingMaterial,
-        Materials equivalentLoopMaterial, int passageVoltageTier, int enginePipeTier, double fallbackMaxTempC) {
+        Materials equivalentLoopMaterial, int passageVoltageTier) {
         this.casingTier = casingTier;
         this.meta = meta;
         this.displayName = displayName;
         this.casingMaterial = casingMaterial;
         this.equivalentLoopMaterial = equivalentLoopMaterial;
         this.passageVoltageTier = passageVoltageTier;
-        this.enginePipeTier = enginePipeTier;
-        this.fallbackMaxTempC = fallbackMaxTempC;
     }
 
     /** 1-based casing tier (1..8) matching {@code GTStructureUtility.chainItemPipeCasings}. */
@@ -92,10 +83,17 @@ public enum HeaterPipeCasingTier {
 
     /** Maximum inner operating temperature in °C before the fluid heater powerfails. */
     public double getMaxOperatingTemperatureCelsius() {
-        if (enginePipeTier >= 0) {
-            return NuclearSimulationEngine.getMaxOperatingTemperature(enginePipeTier);
-        }
-        return fallbackMaxTempC;
+        return heaterCasing().maxTemperatureCelsius();
+    }
+
+    /** Pressure drop multiplier of the coolant passing through: that of the loop pipe material it rates as. */
+    public double getFrictionMultiplier() {
+        return heaterCasing().frictionMultiplier();
+    }
+
+    /** The casing as the game and the simulator share it (its limits and pressure drop). */
+    public HeaterCasing heaterCasing() {
+        return HeaterCasing.byCasingTier(casingTier);
     }
 
     public ItemStack getItemStack() {

@@ -1402,6 +1402,10 @@ public class LoopGraphCrawler {
                 heater.getDeviceTemperatureCelsius());
             devSeg.setCustomVolumeM3(Math.PI * 0.15 * 0.15 / 4.0 * heater.getRingCount());
             devSeg.setCapacityLiters(heater.getFillVolumeLiters());
+            // Better casings lose less, as a loop pipe of the material they rate as does
+            devSeg.setFrictionMultiplier(
+                heater.getHeaterPipeCasingTier()
+                    .getFrictionMultiplier());
             segments.add(devSeg);
 
             MTEHatchPressurizedFluid outlet = heater.getPressurizedOutputHatch();
