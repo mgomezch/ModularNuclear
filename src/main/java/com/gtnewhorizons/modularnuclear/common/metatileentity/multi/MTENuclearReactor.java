@@ -393,13 +393,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public void clearHatches() {
         super.clearHatches();
         mControlHatches.clear();
+        // A passage's pump belongs to its loop, not to the reactor: only the pump's crawl binds or drops it. GT re-runs
+        // this on every block update next to the reactor, and the pump would not bind the passages again.
         for (ICoolantPassageHatch hp : mTopHighPressureHatches) {
             hp.setOppositeHatch(null);
-            hp.setConnectedPump(null);
         }
         for (ICoolantPassageHatch hp : mBottomHighPressureHatches) {
             hp.setOppositeHatch(null);
-            hp.setConnectedPump(null);
         }
         mTopHighPressureHatches.clear();
         mBottomHighPressureHatches.clear();

@@ -284,6 +284,24 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    // Loop geometry on the selected circuit: full-flow pipe blocks of the cold leg, hot leg and return run, heater
+    // rings (0 for none) and loop instruments on the hot leg, pipe blocks of each passage's and each PHE's branch.
+    setCoolantLoopGeometry(coldLeg, hotLeg, returnRun, heaterRings, instruments, passageBranch, pheBranch, notify = true) {
+        if (this.inst.exports.setCoolantLoopGeometry) {
+            this.inst.exports.setCoolantLoopGeometry(coldLeg | 0, hotLeg | 0, returnRun | 0, heaterRings | 0,
+                instruments | 0, passageBranch | 0, pheBranch | 0);
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    // The heater's pipe casing on the selected circuit (TIN ... BLACK_PLUTONIUM), or "" for the loop pipe's best.
+    setCoolantLoopHeaterCasing(casing, notify = true) {
+        if (this.inst.exports.setCoolantLoopHeaterCasing) {
+            this.inst.exports.setCoolantLoopHeaterCasing(this.createJavaString(casing || ""));
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     // Independent loops, each with its own pump and PHEs, that the passages are split among.
     setCoolantLoopCount(count, notify = true) {
         if (this.inst.exports.setCoolantLoopCount) {

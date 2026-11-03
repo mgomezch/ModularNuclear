@@ -20,12 +20,19 @@ public class CoolantPipingRegistry {
         public final double roughness; // Wall roughness (m)
         public final double maxPressureBar; // Bursting pressure limit (bar)
         public final double maxTemperatureCelsius;// Maximum safe operating temperature (deg C)
+        public final double frictionMultiplier; // Pressure drop multiplier of the pipe material (pipes.yaml)
 
         public PipeProperties(double diameter, double roughness, double maxPressureBar, double maxTemperatureCelsius) {
+            this(diameter, roughness, maxPressureBar, maxTemperatureCelsius, 1.0);
+        }
+
+        public PipeProperties(double diameter, double roughness, double maxPressureBar, double maxTemperatureCelsius,
+            double frictionMultiplier) {
             this.diameter = diameter;
             this.roughness = roughness;
             this.maxPressureBar = maxPressureBar;
             this.maxTemperatureCelsius = maxTemperatureCelsius;
+            this.frictionMultiplier = frictionMultiplier;
         }
     }
 
@@ -132,7 +139,9 @@ public class CoolantPipingRegistry {
         double maxTemp = getMaxTemperatureCelsius(pipe);
         double roughness = CoolantLoopDataRegistry.getPipeData()
             .getDefaultRoughness();
-        return new PipeProperties(diameter, roughness, maxPressure, maxTemp);
+        double friction = CoolantLoopDataRegistry.getPipeData()
+            .getFrictionMultiplier(pipe.mMaterial != null ? pipe.mMaterial.mName : null);
+        return new PipeProperties(diameter, roughness, maxPressure, maxTemp, friction);
     }
 
     /**

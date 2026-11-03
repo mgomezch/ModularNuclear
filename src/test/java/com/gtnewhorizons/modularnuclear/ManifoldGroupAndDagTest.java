@@ -632,6 +632,15 @@ public class ManifoldGroupAndDagTest {
 
         assertTrue(result.isSuccess, "Crawl must succeed: " + result.failureReason);
 
+        // Each manifold group is a pipe of its longest extent (2 blocks) at the bore of its thickest pipe (large)
+        double splitterLength = 0.0;
+        for (LoopSegment seg : result.segments) {
+            if (!seg.isManifold() || seg.getBlockX() != 12) continue;
+            splitterLength += seg.getLength();
+            assertEquals(0.15, seg.getDiameter(), 1e-9, "the splitter takes the bore of its large branch");
+        }
+        assertEquals(2.0, splitterLength, 1e-9, "the splitter's tiles together are as long as its extent");
+
         CoolantLoopEngine engine = new CoolantLoopEngine(CoolantFluidProperty.WATER);
         for (LoopSegment seg : result.segments) {
             engine.addSegment(seg);
@@ -731,6 +740,7 @@ public class ManifoldGroupAndDagTest {
         assertTrue(
             splitNode.extraStats.containsKey("Loss coefficient"),
             "Splitter extra stats must report Loss coefficient");
-        assertEquals("K = 0.50", splitNode.extraStats.get("Loss coefficient"));
+        // A manifold group loses what a pipe of its longest extent (2 blocks here) does: 0.05 per block
+        assertEquals("K = 0.10", splitNode.extraStats.get("Loss coefficient"));
     }
 }

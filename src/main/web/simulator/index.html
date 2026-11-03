@@ -304,6 +304,19 @@
                 </select>
               </div>
             </div>
+            <div class="fgrid c4">
+              <div class="f"><label for="loop-cold-blocks-input">Cold leg pipes</label><input id="loop-cold-blocks-input" type="number" min="0" max="999" step="1" value="80" title="Pipe blocks from the pump to the core's distribution manifold" onchange="onCoolantLoopConfigChange()"></div>
+              <div class="f"><label for="loop-hot-blocks-input">Hot leg pipes</label><input id="loop-hot-blocks-input" type="number" min="0" max="999" step="1" value="80" title="Pipe blocks from the core's collection manifold to the PHEs, not counting the heater and instruments" onchange="onCoolantLoopConfigChange()"></div>
+              <div class="f"><label for="loop-return-blocks-input">Return pipes</label><input id="loop-return-blocks-input" type="number" min="0" max="999" step="1" value="80" title="Pipe blocks from the PHEs back to the pump" onchange="onCoolantLoopConfigChange()"></div>
+              <div class="f"><label for="loop-heater-rings-input">Heater rings</label><input id="loop-heater-rings-input" type="number" min="0" max="9" step="1" value="9" title="Rings of a Pressurized Fluid Heater on the hot leg (its length minus 2); 0 for none" onchange="onCoolantLoopConfigChange()"></div>
+            </div>
+            <div class="fgrid c4">
+              <div class="f"><label for="loop-heater-casing-select">Heater casing</label><select id="loop-heater-casing-select" title="The heater's pipe casing: better casings lose less pressure, like the loop pipe they rate as" onchange="onCoolantLoopConfigChange()"><option value="" selected>Loop's tier</option><option value="TIN">Tin</option><option value="BRASS">Brass</option><option value="ELECTRUM">Electrum</option><option value="PLATINUM">Platinum</option><option value="OSMIUM">Osmium</option><option value="QUANTIUM">Quantium</option><option value="FLUXED_ELECTRUM">Fluxed Electrum</option><option value="BLACK_PLUTONIUM">Black Plutonium</option></select></div>
+              <div class="f"><label for="loop-instruments-input">Instruments</label><input id="loop-instruments-input" type="number" min="0" max="16" step="1" value="1" title="Loop instruments in the hot leg" onchange="onCoolantLoopConfigChange()"></div>
+              <div class="f"><label for="loop-passage-branch-input">Pipes / passage</label><input id="loop-passage-branch-input" type="number" min="0" max="64" step="1" value="4" title="Pipe blocks on each passage's branch off the manifolds (inlet and outlet together)" onchange="onCoolantLoopConfigChange()"></div>
+              <div class="f"><label for="loop-phe-branch-input">Pipes / PHE</label><input id="loop-phe-branch-input" type="number" min="0" max="64" step="1" value="6" title="Pipe blocks on each PHE's branch off its manifolds (inlet and outlet together)" onchange="onCoolantLoopConfigChange()"></div>
+            </div>
+            <p class="hint">Loop layout: every block the coolant runs through costs head, so a longer loop (and a heater left in it) moves less coolant on the same pump. Count your loop's pipes to see what your build will do.</p>
             <div class="fgrid c3">
               <div class="f"><label for="loop-duty-cycle-input">Pump duty (%)</label><input id="loop-duty-cycle-input" type="number" min="0" max="100" step="5" value="100" onchange="onCoolantLoopConfigChange()"></div>
               <div class="f"><label for="loop-max-flow-input">Flow cap (L/s)</label><input id="loop-max-flow-input" type="number" min="0" step="10" placeholder="No cap" onchange="onCoolantLoopConfigChange()"></div>

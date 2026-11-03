@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopConfigData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.HeaterCasing;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -37,6 +38,14 @@ public class CoolantLoopModelTest {
         for (int i = 0; i < cycles; i++) {
             assertTrue(grid.step(), "grid step " + i + " failed: " + loop.getRuptureReason());
         }
+    }
+
+    /** A short loop without a heater, which warms up within a test's run. */
+    private static void compactLoop(CoolantLoopModel.Circuit c) {
+        c.setPipeRunBlocks(12);
+        c.setHeaterRings(0);
+        c.setInstrumentCount(0);
+        c.setBranchBlocks(0, 0);
     }
 
     /** Makes the hatches of the center column into loop passages, the only cells a loop runs through. */
@@ -107,6 +116,7 @@ public class CoolantLoopModelTest {
         loop.setPipeSize(CoolantLoopModel.LoopPipeSize.NORMAL);
         loop.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
         loop.setHatchTier(CoolantLoopModel.EnergyHatchTier.EV);
+        compactLoop(loop.getSelectedCircuit());
         // The loop has to heat up past the secondary's boiling point (plus the PHE approach) before it boils anything,
         // and its passages are LuV hatches, each holding 1024 HU/°C and also cooled by their own boiling water, which
         // holds them barely above 100 °C
@@ -220,6 +230,63 @@ public class CoolantLoopModelTest {
                 .getLastPumpOnFraction(),
             loop.getLastPumpPowerEUt(),
             1e-6);
+    }
+
+    @Test
+    void testLongerLoopsAndHeatersCostFlow() {
+        attachCenterColumn();
+        CoolantLoopModel.Circuit c = loop.getSelectedCircuit();
+        c.setPipeRunBlocks(12);
+        c.setHeaterRings(0);
+        run(20);
+        double shortLoop = loop.getCurrentFlowRateLPerSec();
+        setUp();
+        attachCenterColumn();
+        c = loop.getSelectedCircuit();
+        c.setPipeRunBlocks(240);
+        c.setHeaterRings(0);
+        run(20);
+        double longLoop = loop.getCurrentFlowRateLPerSec();
+        assertTrue(longLoop < shortLoop, "a longer loop should move less coolant on the same pump");
+        setUp();
+        attachCenterColumn();
+        c = loop.getSelectedCircuit();
+        c.setPipeRunBlocks(240);
+        c.setHeaterRings(9);
+        c.setHeaterCasing(HeaterCasing.PLATINUM);
+        run(20);
+        double platinumHeater = loop.getCurrentFlowRateLPerSec();
+        assertTrue(platinumHeater < longLoop, "a heater in the loop should cost more flow");
+        setUp();
+        attachCenterColumn();
+        c = loop.getSelectedCircuit();
+        c.setPipeRunBlocks(240);
+        c.setHeaterRings(9);
+        c.setHeaterCasing(HeaterCasing.BLACK_PLUTONIUM);
+        run(20);
+        assertTrue(loop.getCurrentFlowRateLPerSec() > platinumHeater, "a better heater casing should lose less");
+    }
+
+    @Test
+    void testHeaterCasingFollowsLoopMaterial() {
+        assertEquals(HeaterCasing.OSMIUM, HeaterCasing.forLoopMaterial("Osmium"));
+        assertEquals(HeaterCasing.PLATINUM, HeaterCasing.forLoopMaterial("TungstenSteel"));
+        assertEquals(HeaterCasing.BLACK_PLUTONIUM, HeaterCasing.forLoopMaterial("Infinity"));
+        assertEquals(HeaterCasing.TIN, HeaterCasing.forLoopMaterial("CastIron"));
+        assertEquals(HeaterCasing.FLUXED_ELECTRUM, HeaterCasing.fromString("fluxed electrum"));
+    }
+
+    @Test
+    void testPipeRunBlocksSplitOverTheRuns() {
+        CoolantLoopModel.Circuit c = loop.getSelectedCircuit();
+        assertEquals(3 * CoolantLoopModel.PIPE_RUN_BLOCKS, c.getPipeRunBlocks(), "the canonical loop by default");
+        c.setPipeRunBlocks(200);
+        assertEquals(200, c.getPipeRunBlocks());
+        assertEquals(67, c.getColdLegBlocks());
+        assertEquals(67, c.getHotLegBlocks());
+        assertEquals(66, c.getReturnBlocks());
+        c.setHeaterRings(42);
+        assertEquals(CoolantLoopModel.MAX_HEATER_RINGS, c.getHeaterRings());
     }
 
     @Test
@@ -485,6 +552,7 @@ public class CoolantLoopModelTest {
         l.setFluidType(CoolantLoopModel.CoolantFluidType.DISTILLED_WATER);
         l.setHatchTier(CoolantLoopModel.EnergyHatchTier.EV);
         if (!Double.isNaN(pheBandMin)) l.setPheTemperatureBand(pheBandMin, pheBandMin + 20.0);
+        compactLoop(l.getSelectedCircuit());
         loop = l;
         return l;
     }

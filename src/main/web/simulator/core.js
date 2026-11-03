@@ -178,6 +178,11 @@ async function initEngine() {
           if (cl.pumpHatchCount !== undefined) wasmSim.setCoolantLoopPumpHatches(cl.pumpHatchCount, false);
           if (cl.rotorMaterial || cl.rotorSize) wasmSim.setCoolantLoopRotor(cl.rotorMaterial, cl.rotorSize, false);
           if (cl.loopCount !== undefined) wasmSim.setCoolantLoopCount(cl.loopCount, false);
+          if (cl.coldLegBlocks !== undefined) {
+            wasmSim.setCoolantLoopGeometry(cl.coldLegBlocks, cl.hotLegBlocks, cl.returnBlocks, cl.heaterRings || 0,
+              cl.instrumentCount || 0, cl.passageBranchBlocks || 0, cl.pheBranchBlocks || 0, false);
+          }
+          if (cl.heaterCasingSet) wasmSim.setCoolantLoopHeaterCasing(cl.heaterCasing, false);
           if (cl.pheCount !== undefined) wasmSim.setCoolantLoopPhe(cl.pheCount, cl.pheHatchTier, cl.pheHatchCount !== undefined ? cl.pheHatchCount : 1, false);
         } else if (window.__INITIAL_STATE__.pipeTier >= 1) {
           applyTierCoolingDefaults(window.__INITIAL_STATE__.pipeTier);
@@ -450,6 +455,7 @@ async function onCoolantLoopConfigChange() {
   const sensor = val("loop-band-sensor-select", "PASSAGE");
   const pheHatch = val("loop-phe-hatch-tier-select", hatch);
   const pheHatches = parseInt(val("loop-phe-hatches-select", "1"), 10) || 1;
+  const blocks = (id, dflt) => Math.max(0, parseInt(val(id, String(dflt)), 10) || 0);
 
   if (isWasmMode && wasmSim) {
     if (currentState && currentState.pipeTier >= 1) {
@@ -464,6 +470,10 @@ async function onCoolantLoopConfigChange() {
     wasmSim.setCoolantLoopRotor(rotor, rotorSize, false);
     wasmSim.setCoolantLoopPhe(pheCount, pheHatch, pheHatches, false);
     wasmSim.setCoolantLoopCount(loopCount, false);
+    wasmSim.setCoolantLoopGeometry(blocks("loop-cold-blocks-input", 80), blocks("loop-hot-blocks-input", 80),
+      blocks("loop-return-blocks-input", 80), blocks("loop-heater-rings-input", 9), blocks("loop-instruments-input", 1),
+      blocks("loop-passage-branch-input", 4), blocks("loop-phe-branch-input", 6), false);
+    wasmSim.setCoolantLoopHeaterCasing(val("loop-heater-casing-select", ""), false);
     wasmSim.setCoolantLoopControl(isNaN(duty) ? 100 : duty, maxFlow, maxPress, false);
     wasmSim.setCoolantLoopTempBand(bandOn, bandMin, bandMax, sensor, false);
     currentState = wasmSim.getState();

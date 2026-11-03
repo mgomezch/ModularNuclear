@@ -1645,6 +1645,8 @@ A **Loop Instrument** placed in the loop reports one of:
 
 Output options are vanilla redstone (0–15), fine (0–255) or ProjectRed bundled. The value is refreshed every 10 ticks.
 
+In **threshold mode** (set in its GUI) the output is instead full (15, or 255) or zero: it switches on once the metric rises above the upper setpoint and off once it falls below the lower one, and keeps its state while the metric is between them. Equal setpoints make a plain threshold; a gap between them keeps the output from chattering around one value. The output can be inverted. A thermometer in threshold mode can drive a machine controller cover directly, for example to run a loop's PHEs only while the hot leg is above a temperature, without comparator chains (and it is not limited to the proportional scale's 1 000 °C).
+
 > [!NOTE]
 > **Implementation note.** The instrument's *pressure* metric is the **local pressure drop across its own segment**, not the loop pressure. Use the OpenComputers `peakPressureBar` field for overpressure monitoring.
 

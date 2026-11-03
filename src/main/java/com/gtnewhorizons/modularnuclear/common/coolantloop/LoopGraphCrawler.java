@@ -2,6 +2,7 @@ package com.gtnewhorizons.modularnuclear.common.coolantloop;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -412,6 +413,42 @@ public class LoopGraphCrawler {
             }
             return cachedGroupId;
         }
+    }
+
+    /** Longest side, in blocks, of the bounding box of a manifold group. */
+    static int longestExtent(Collection<BlockPosCoord> coords) {
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        for (BlockPosCoord c : coords) {
+            minX = Math.min(minX, c.x);
+            minY = Math.min(minY, c.y);
+            minZ = Math.min(minZ, c.z);
+            maxX = Math.max(maxX, c.x);
+            maxY = Math.max(maxY, c.y);
+            maxZ = Math.max(maxZ, c.z);
+        }
+        if (coords.isEmpty()) return 1;
+        return Math.max(maxX - minX, Math.max(maxY - minY, maxZ - minZ)) + 1;
+    }
+
+    /** The pipe properties of the thickest pipe on a manifold group's ports, or null if no pipe is on them. */
+    static CoolantPipingRegistry.PipeProperties thickestPortPipe(World world, ManifoldGroup mg) {
+        MTEFluidPipe thickest = null;
+        List<BlockPosCoord> ports = new ArrayList<>(mg.inputPorts);
+        ports.addAll(mg.outputPorts);
+        for (BlockPosCoord p : ports) {
+            TileEntity te = world.getTileEntity(p.x, p.y, p.z);
+            if (te instanceof BaseMetaPipeEntity bmpe && bmpe.getMetaTileEntity() instanceof MTEFluidPipe pipe) {
+                if (thickest == null || pipe.mThickNess > thickest.mThickNess) thickest = pipe;
+            }
+        }
+        return thickest != null ? CoolantPipingRegistry.getProperties(thickest) : null;
+    }
+
+    /** Bore of the pipe a crawl step came through, or fallback (m) if it did not come through a pipe. */
+    static double inlineBore(FrontierStep step, double fallback) {
+        return step.segmentThickness != null ? CoolantPipingRegistry.getDiameterForThickness(step.segmentThickness)
+            : fallback;
     }
 
     public static class FrontierStep {
@@ -993,16 +1030,23 @@ public class LoopGraphCrawler {
                         coordToManifoldGroup.put(c, mg);
                         visitedPipeAndDevicePositions.add(c);
                     }
-                    double pipeDiam = step.segmentThickness != null
-                        ? CoolantPipingRegistry.getDiameterForThickness(step.segmentThickness)
-                        : 0.05;
-                    double totalManifoldK = groupTiles.isEmpty() ? 0.50
-                        : Math.max(
-                            0.50,
-                            groupTiles.get(0)
-                                .getMinorLossK());
+                    // A manifold group loses what a pipe would along its longest extent: the material and bore of
+                    // the thickest pipe connected to it, so reshaping a manifold never beats laying pipe
+                    CoolantPipingRegistry.PipeProperties pipeProps = thickestPortPipe(world, mg);
+                    if (pipeProps == null) {
+                        double bore = step.segmentThickness != null
+                            ? CoolantPipingRegistry.getDiameterForThickness(step.segmentThickness)
+                            : 0.05;
+                        pipeProps = lastPipe != null ? CoolantPipingRegistry.getProperties(lastPipe)
+                            : new CoolantPipingRegistry.PipeProperties(bore, 0.000045, 15.0, 200.0);
+                    }
+                    double pipeDiam = pipeProps.diameter;
                     int numTiles = Math.max(1, groupTiles.size());
-                    double perTileK = totalManifoldK / numTiles;
+                    double groupLength = longestExtent(groupCoords);
+                    double perTileLength = groupLength / numTiles;
+                    double perTileK = LoopSegment.PIPE_BLOCK_MINOR_LOSS_K * groupLength / numTiles;
+                    // Each tile still holds a block's worth of coolant
+                    double tileVolumeM3 = Math.PI * pipeDiam * pipeDiam / 4.0;
 
                     for (TileEntityManifold tile : groupTiles) {
                         tile.setInputSide(groupInputSide);
@@ -1015,14 +1059,16 @@ public class LoopGraphCrawler {
                             tile.xCoord,
                             tile.yCoord,
                             tile.zCoord,
-                            1.0,
+                            perTileLength,
                             pipeDiam,
-                            0.000045,
+                            pipeProps.roughness,
                             perTileK,
                             LoopSegment.NO_LIMIT,
                             LoopSegment.NO_LIMIT,
                             tile.getDeviceTemperatureCelsius());
                         manSeg.setManifold(true);
+                        manSeg.setFrictionMultiplier(pipeProps.frictionMultiplier);
+                        manSeg.setCustomVolumeM3(tileVolumeM3);
                         segments.add(manSeg);
                     }
                     allManifoldGroups.add(mg);
@@ -1206,13 +1252,14 @@ public class LoopGraphCrawler {
                     1.0,
                     props.diameter,
                     props.roughness,
-                    0.05,
+                    LoopSegment.PIPE_BLOCK_MINOR_LOSS_K,
                     props.maxPressureBar,
                     props.maxTemperatureCelsius,
                     20.0);
                 if (pipe.mCapacity > 0) {
                     seg.setCapacityLiters(pipe.mCapacity);
                 }
+                seg.setFrictionMultiplier(props.frictionMultiplier);
                 seg.setFlowSizeWeight(getPipeSizeWeight(pipe.mThickNess) * Math.max(1, pipe.mPipeAmount));
                 segments.add(seg);
 
@@ -1340,19 +1387,25 @@ public class LoopGraphCrawler {
             if (!devices.contains(heater)) {
                 devices.add(heater);
             }
+            // The coolant runs through the heater at the bore of the loop's pipes, so a heater does not choke the loop
             LoopSegment devSeg = new LoopSegment(
                 heater.getDeviceId(),
                 step.x,
                 step.y,
                 step.z,
                 heater.getRingCount(),
-                0.15,
+                inlineBore(step, 0.15),
                 0.000045,
                 heater.getMinorLossK(),
                 heater.getMaxOperatingPressureBar(),
                 heater.getMaxOperatingTemperatureCelsius(),
                 heater.getDeviceTemperatureCelsius());
+            devSeg.setCustomVolumeM3(Math.PI * 0.15 * 0.15 / 4.0 * heater.getRingCount());
             devSeg.setCapacityLiters(heater.getFillVolumeLiters());
+            // Better casings lose less, as a loop pipe of the material they rate as does
+            devSeg.setFrictionMultiplier(
+                heater.getHeaterPipeCasingTier()
+                    .getFrictionMultiplier());
             segments.add(devSeg);
 
             MTEHatchPressurizedFluid outlet = heater.getPressurizedOutputHatch();
@@ -1697,18 +1750,20 @@ public class LoopGraphCrawler {
                     devices.add(device);
                 }
 
+                // An in-line device sits in the pipe run and takes its bore
                 LoopSegment devSeg = new LoopSegment(
                     device.getDeviceId(),
                     step.x,
                     step.y,
                     step.z,
                     1.0,
-                    0.10,
+                    inlineBore(step, 0.10),
                     0.000045,
                     device.getMinorLossK(),
                     LoopSegment.NO_LIMIT,
                     2000.0,
                     device.getDeviceTemperatureCelsius());
+                devSeg.setCustomVolumeM3(Math.PI * 0.10 * 0.10 / 4.0);
                 segments.add(devSeg);
 
                 addGraphNode(graphNodes, device.getDeviceId(), NodeType.DEVICE, device);

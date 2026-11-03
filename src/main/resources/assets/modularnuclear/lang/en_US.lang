@@ -299,6 +299,16 @@ coolantloops.gui.instrument.output=Output: %d / 15 (fine: %d / 255)
 coolantloops.gui.instrument.btn.prev_bundled=Previous bundled mode
 coolantloops.gui.instrument.btn.next_bundled=Next bundled mode
 coolantloops.gui.instrument.pr=PR: %s
+coolantloops.gui.instrument.btn.mode=Switch between a proportional output and a threshold (full or zero) output
+coolantloops.gui.instrument.mode.proportional=Proportional
+coolantloops.gui.instrument.mode.threshold=Threshold
+coolantloops.gui.instrument.btn.invert=Invert the threshold output
+coolantloops.gui.instrument.normal=Normal
+coolantloops.gui.instrument.inverted=Inverted
+coolantloops.gui.instrument.on_above=On above (%s):
+coolantloops.gui.instrument.off_below=Off below (%s):
+coolantloops.gui.instrument.input.on_above=The output switches on once the metric rises above this
+coolantloops.gui.instrument.input.off_below=The output switches off once the metric falls below this (at most the upper setpoint)
 
 coolantloops.metric.flow_rate=Flow rate
 coolantloops.metric.temperature=Temperature

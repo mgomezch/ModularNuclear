@@ -3,6 +3,8 @@ package com.gtnewhorizons.modularnuclear.common.config.data;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
+
 /**
  * Global hydrodynamic and thermodynamic physics parameters for Coolant Loops.
  */
@@ -27,6 +29,16 @@ public class CoolantPhysicsData {
     private double rotorThermalAlpha = 4.0; // Thermal softening and creep wear acceleration exponent
     private double cavitationWearMultiplier = 10.0; // Cavitation wear multiplier when dissolved gas is present
     private double coastDownDecay = 0.98; // Viscous coast-down decay factor per tick when unpowered
+    /**
+     * Melting point (K) of rotor materials, over GregTech's: for those it has no temperature for, whose molten fluid
+     * GTNH gives 1000 K.
+     */
+    private Map<String, Double> rotorMeltingPointsKelvin = new LinkedHashMap<>();
+
+    public CoolantPhysicsData() {
+        // Between its tool-quality neighbours Terrasteel (5400 K) and Ichorium (9000 K), at Ichorium's
+        rotorMeltingPointsKelvin.put(materialKey("duranium"), 9000.0);
+    }
 
     // Geometry defaults
     private double standardPassageLength = 5.0; // Length of standard core passage (m)
@@ -50,6 +62,7 @@ public class CoolantPhysicsData {
         map.put("rotorThermalAlpha", rotorThermalAlpha);
         map.put("cavitationWearMultiplier", cavitationWearMultiplier);
         map.put("coastDownDecay", coastDownDecay);
+        map.put("rotorMeltingPointsKelvin", rotorMeltingPointsKelvin);
 
         map.put("standardPassageLength", standardPassageLength);
         map.put("standardPassageDiameter", standardPassageDiameter);
@@ -84,6 +97,18 @@ public class CoolantPhysicsData {
         if (map.containsKey("cavitationWearMultiplier"))
             data.cavitationWearMultiplier = ((Number) map.get("cavitationWearMultiplier")).doubleValue();
         if (map.containsKey("coastDownDecay")) data.coastDownDecay = ((Number) map.get("coastDownDecay")).doubleValue();
+        if (map.get("rotorMeltingPointsKelvin") instanceof Map<?, ?>melt) {
+            data.rotorMeltingPointsKelvin.clear();
+            for (Map.Entry<?, ?> e : melt.entrySet()) {
+                if (e.getKey() != null && e.getValue() instanceof Number n) {
+                    data.rotorMeltingPointsKelvin.put(
+                        materialKey(
+                            e.getKey()
+                                .toString()),
+                        n.doubleValue());
+                }
+            }
+        }
 
         if (map.containsKey("standardPassageLength"))
             data.standardPassageLength = ((Number) map.get("standardPassageLength")).doubleValue();
@@ -197,6 +222,18 @@ public class CoolantPhysicsData {
 
     public void setDefaultPipeRoughness(double defaultPipeRoughness) {
         this.defaultPipeRoughness = defaultPipeRoughness;
+    }
+
+    /** Configured melting point (K) of a rotor material GregTech gives none, or 0 if not configured. */
+    public double getRotorMeltingPointKelvin(String materialName) {
+        if (materialName == null) return 0.0;
+        Double k = rotorMeltingPointsKelvin.get(materialKey(materialName));
+        return k != null ? k : 0.0;
+    }
+
+    private static String materialKey(String name) {
+        // "Black Steel", "black_steel" and "black-steel" alike; no String.replace, which TeaVM cannot compile
+        return WasmStrings.replace(WasmStrings.normalizeToken(name, " -"), "_", "");
     }
 
     public double getRotorThermalAlpha() {

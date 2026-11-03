@@ -65,5 +65,20 @@ materialFamilies:
     - "castiron"
     - "wroughtiron"
 
+# Multiplier on each pipe block's pressure drop (Darcy friction and its fittings' minor loss), by material; 1 for a
+# material not listed. Long loops still cost flow, but better pipes let a loop reach its PHEs and pump further away.
+materialFrictionMultipliers:
+  castiron: 0.5
+  iron: 0.5
+  wroughtiron: 0.5
+  steel: 0.4
+  stainlesssteel: 0.3
+  titanium: 0.25
+  tungstensteel: 0.2
+  osmium: 0.15
+  neutronium: 0.1
+  draconiumawakened: 0.07
+  infinity: 0.05
+
 # Standard commercial metal pipe surface roughness (meters)
 defaultRoughness: 0.000045

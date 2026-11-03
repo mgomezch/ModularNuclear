@@ -363,8 +363,33 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
         return PressurizedFluidHeaterStructure.getMaxAllowedEnergyHatchTier(mCoilLevel);
     }
 
+    /**
+     * EU/t the heater draws at most: its coils' limit, or what its energy hatches take in per tick if that is less.
+     * The hatch tier sets the heating rate, so a lower-tier hatch heats a loop more gently with the same coils.
+     */
     public long getMaxEuPerTick() {
-        return PressurizedFluidHeaterStructure.getMaxEuPerTick(mRingCount, mCoilLevel);
+        return Math
+            .min(PressurizedFluidHeaterStructure.getMaxEuPerTick(mRingCount, mCoilLevel), getHatchInputEuPerTick());
+    }
+
+    /**
+     * Sum of the energy hatches' rated input (voltage x amperes) per tick; unbounded with no hatches bound, as in
+     * tests, so draining a hatch's buffer (or a debug-charged one) never outruns what the hatch could take in.
+     */
+    public long getHatchInputEuPerTick() {
+        long total = 0L;
+        boolean any = false;
+        for (MTEHatchEnergy eh : mEnergyHatches) {
+            if (eh == null) continue;
+            total += eh.maxEUInput() * eh.maxAmperesIn();
+            any = true;
+        }
+        for (MTEHatch eh : mExoticEnergyHatches) {
+            if (eh == null) continue;
+            total += eh.maxEUInput() * eh.maxAmperesIn();
+            any = true;
+        }
+        return any ? total : Long.MAX_VALUE;
     }
 
     public MTEHatchPressurizedFluid getPressurizedInputHatch() {

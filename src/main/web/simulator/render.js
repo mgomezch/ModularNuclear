@@ -374,6 +374,14 @@ function renderUI() {
     syncSel("loop-pump-hatches-select", cl.pumpHatchCount >= 2 ? 2 : 1);
     syncSel("loop-phe-count-input", cl.pheCount);
     syncSel("loop-count-input", cl.loopCount);
+    syncSel("loop-cold-blocks-input", cl.coldLegBlocks);
+    syncSel("loop-hot-blocks-input", cl.hotLegBlocks);
+    syncSel("loop-return-blocks-input", cl.returnBlocks);
+    syncSel("loop-heater-rings-input", cl.heaterRings);
+    syncSel("loop-instruments-input", cl.instrumentCount);
+    syncSel("loop-passage-branch-input", cl.passageBranchBlocks);
+    syncSel("loop-phe-branch-input", cl.pheBranchBlocks);
+    syncSel("loop-heater-casing-select", cl.heaterCasingSet ? cl.heaterCasing : "");
     syncSel("loop-duty-cycle-input", Math.round(cl.dutyCyclePercent));
     syncSel("loop-max-flow-input", cl.maxFlowRateLimit > 0 ? cl.maxFlowRateLimit : "");
     syncSel("loop-max-pressure-input", cl.maxPressureLimit > 0 ? cl.maxPressureLimit : "");

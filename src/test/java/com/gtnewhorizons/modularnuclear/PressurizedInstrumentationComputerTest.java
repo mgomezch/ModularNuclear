@@ -154,6 +154,8 @@ class PressurizedInstrumentationComputerTest {
 
     @Test
     void testModularUIWindowCreation() {
+        // The threshold setpoint fields are numeric widgets, which need FML's loader
+        TestEnvironmentHelper.init();
         TileEntityLoopInstrument te = new TileEntityLoopInstrument();
         EntityPlayer mockPlayer = Mockito.mock(EntityPlayer.class);
         UIBuildContext ctx = new UIBuildContext(mockPlayer);
@@ -161,7 +163,7 @@ class PressurizedInstrumentationComputerTest {
 
         assertNotNull(window, "ModularWindow must not be null");
         assertEquals(176, window.getSize().width);
-        assertEquals(105, window.getSize().height);
+        assertEquals(165, window.getSize().height);
         assertFalse(
             window.getChildren()
                 .isEmpty(),

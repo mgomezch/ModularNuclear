@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear.standalone.cli;
 
+import com.gtnewhorizons.modularnuclear.common.coolantloop.HeaterCasing;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.CoolantLoopModel;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.CoolantLoopModel.EnergyHatchTier;
@@ -93,6 +94,46 @@ public final class LoopSettings {
             t.loop.setPheDesign(c.getPheSheetmetalTier(), c.getPheHeight(), v);
         }, "phe_length")
         .value(OptionTable.INT, (t, v) -> t.loop.setLoopCount(v), "loop_count")
+        .value(
+            OptionTable.INT,
+            (t, v) -> t.circuit()
+                .setPipeRunBlocks(v),
+            "loop_pipe_blocks")
+        .value(OptionTable.INT, (t, v) -> {
+            CoolantLoopModel.Circuit c = t.circuit();
+            c.setPipeRuns(v, c.getHotLegBlocks(), c.getReturnBlocks());
+        }, "loop_cold_blocks")
+        .value(OptionTable.INT, (t, v) -> {
+            CoolantLoopModel.Circuit c = t.circuit();
+            c.setPipeRuns(c.getColdLegBlocks(), v, c.getReturnBlocks());
+        }, "loop_hot_blocks")
+        .value(OptionTable.INT, (t, v) -> {
+            CoolantLoopModel.Circuit c = t.circuit();
+            c.setPipeRuns(c.getColdLegBlocks(), c.getHotLegBlocks(), v);
+        }, "loop_return_blocks")
+        .value(
+            OptionTable.INT,
+            (t, v) -> t.circuit()
+                .setHeaterRings(v),
+            "loop_heater_rings")
+        .value(s -> HeaterCasing.fromString(s), (t, v) -> {
+            if (v == null) System.err.println("WARNING: unknown heater casing");
+            else t.circuit()
+                .setHeaterCasing(v);
+        }, "loop_heater_casing")
+        .value(
+            OptionTable.INT,
+            (t, v) -> t.circuit()
+                .setInstrumentCount(v),
+            "loop_instruments")
+        .value(OptionTable.INT, (t, v) -> {
+            CoolantLoopModel.Circuit c = t.circuit();
+            c.setBranchBlocks(v, c.getPheBranchBlocks());
+        }, "loop_passage_branch")
+        .value(OptionTable.INT, (t, v) -> {
+            CoolantLoopModel.Circuit c = t.circuit();
+            c.setBranchBlocks(c.getPassageBranchBlocks(), v);
+        }, "loop_phe_branch")
         .value(s -> EnergyHatchTier.fromString(s), (t, v) -> t.loop.setPheHatchTier(v), "phe_hatch")
         .value(OptionTable.INT, (t, v) -> t.loop.setPheHatchCount(v), "phe_hatches")
         .onUnknown(name -> System.err.println("WARNING: unknown loop option " + name));

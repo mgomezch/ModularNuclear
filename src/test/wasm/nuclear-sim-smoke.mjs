@@ -32,6 +32,7 @@ const checks = [
   ["setCoolantLoopRotor", () => sim.setCoolantLoopRotor("Tungstensteel", "HUGE", false)],
   ["setCoolantLoopPumpHatches", () => sim.setCoolantLoopPumpHatches(2, false)],
   ["setCoolantLoopPhe", () => sim.setCoolantLoopPhe(2, "LuV", 1, false)],
+  ["setCoolantLoopGeometry", () => sim.setCoolantLoopGeometry(20, 20, 20, 9, 1, 4, 6, false)],
   ["setTurbine", () => sim.setTurbine("Oriharukon", "NORMAL", "TIGHT", false)],
   ["loadLayout", () => sim.loadLayout("NL,RS,M4,RS,NL;RS,M4,HC,M4,RS;M4,HC,M4,HC,M4;RS,M4,HC,M4,RS;NL,RS,M4,RS,NL", false)],
   ["stepTicks", () => sim.stepTicks(100)],

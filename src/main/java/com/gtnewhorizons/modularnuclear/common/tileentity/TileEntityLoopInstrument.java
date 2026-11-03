@@ -3,6 +3,8 @@ package com.gtnewhorizons.modularnuclear.common.tileentity;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.DoubleConsumer;
+import java.util.function.DoubleSupplier;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -28,6 +30,7 @@ import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
 import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
 import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
+import com.gtnewhorizons.modularui.common.widget.textfield.NumericWidget;
 
 import cpw.mods.fml.common.Optional;
 import gregtech.api.gui.modularui.GTUITextures;
@@ -37,7 +40,9 @@ import mrtjp.projectred.api.IBundledTile;
  * Pressurized Instrumentation Computer.
  * Monitors fluid state variables (flow rate, temperature, pressure, dissolved gas)
  * and produces a proportional Redstone output (0 to 15) and 8-bit ProjectRed bundled output (0 to 255)
- * strictly from its facing direction.
+ * strictly from its facing direction. In threshold mode the output is instead full or zero: it switches on once the
+ * metric rises above the upper setpoint and off once it falls below the lower one (equal setpoints make a plain
+ * threshold), optionally inverted.
  */
 @Optional.Interface(iface = "mrtjp.projectred.api.IBundledTile", modid = "ProjRed|Transmission")
 public class TileEntityLoopInstrument extends TileEntity
@@ -80,6 +85,16 @@ public class TileEntityLoopInstrument extends TileEntity
     private final byte[] bundledSignal = new byte[16];
     private double clientMeasuredValue = 0.0;
 
+    private boolean thresholdMode = false;
+    private double thresholdHigh = 0.0;
+    private double thresholdLow = 0.0;
+    private boolean thresholdInverted = false;
+    /**
+     * Whether the threshold has latched on (the metric rose above the upper setpoint and has not fallen below the
+     * lower).
+     */
+    private boolean thresholdOn = false;
+
     private ICoolantLoopPump loopPump = null;
     private double currentImpellerWearPercent = 0.0;
     private double currentFillPercent = 0.0;
@@ -90,7 +105,7 @@ public class TileEntityLoopInstrument extends TileEntity
     private double currentPressureBar = 1.0;
     private double currentGasFraction = 0.0;
     private double currentVelocityMs = 0.0;
-    private double minorLossK = 0.05;
+    private double minorLossK = LoopSegment.INSTRUMENT_MINOR_LOSS_K;
 
     public TileEntityLoopInstrument() {}
 
@@ -146,6 +161,67 @@ public class TileEntityLoopInstrument extends TileEntity
 
     public void cycleBundledMode(int dir) {
         setBundledMode(bundledMode + dir);
+    }
+
+    public boolean isThresholdMode() {
+        return thresholdMode;
+    }
+
+    public void setThresholdMode(boolean enabled) {
+        this.thresholdMode = enabled;
+        updateOutputs();
+        markDirty();
+    }
+
+    public double getThresholdHigh() {
+        return thresholdHigh;
+    }
+
+    public double getThresholdLow() {
+        return thresholdLow;
+    }
+
+    public boolean isThresholdInverted() {
+        return thresholdInverted;
+    }
+
+    public boolean isThresholdOn() {
+        return thresholdOn;
+    }
+
+    /** Sets the upper setpoint, lowering the lower one with it if it would end up above. */
+    public void setThresholdHigh(double high) {
+        if (Double.isNaN(high) || Double.isInfinite(high)) return;
+        this.thresholdHigh = high;
+        if (thresholdLow > high) thresholdLow = high;
+        updateOutputs();
+        markDirty();
+    }
+
+    /** Sets the lower setpoint, raising the upper one with it if it would end up below. */
+    public void setThresholdLow(double low) {
+        if (Double.isNaN(low) || Double.isInfinite(low)) return;
+        this.thresholdLow = low;
+        if (thresholdHigh < low) thresholdHigh = low;
+        updateOutputs();
+        markDirty();
+    }
+
+    public void setThresholdInverted(boolean inverted) {
+        this.thresholdInverted = inverted;
+        updateOutputs();
+        markDirty();
+    }
+
+    /** Switches to threshold mode with these setpoints (low above high is taken as high). */
+    public void setThreshold(double high, double low, boolean inverted) {
+        if (Double.isNaN(high) || Double.isInfinite(high) || Double.isNaN(low) || Double.isInfinite(low)) return;
+        this.thresholdHigh = high;
+        this.thresholdLow = Math.min(low, high);
+        this.thresholdInverted = inverted;
+        this.thresholdMode = true;
+        updateOutputs();
+        markDirty();
     }
 
     public static String getBundledModeName(int mode) {
@@ -358,7 +434,14 @@ public class TileEntityLoopInstrument extends TileEntity
         int coarse = 0;
         int fine = 0;
 
-        switch (trackedMetric) {
+        if (thresholdMode) {
+            double value = getCurrentValue();
+            if (value > thresholdHigh) thresholdOn = true;
+            else if (value < thresholdLow) thresholdOn = false;
+            boolean active = thresholdOn != thresholdInverted;
+            coarse = active ? 15 : 0;
+            fine = active ? 255 : 0;
+        } else switch (trackedMetric) {
             case FLOW_RATE:
                 // Velocity 0 to 10 m/s, or flow rate 0 to 1000 L/s
                 double normFlow = (currentVelocityMs > 0) ? Math.max(0.0, Math.min(1.0, currentVelocityMs / 10.0))
@@ -455,7 +538,7 @@ public class TileEntityLoopInstrument extends TileEntity
 
     @Override
     public ModularWindow createWindow(UIBuildContext buildContext) {
-        ModularWindow.Builder builder = ModularWindow.builder(176, 105);
+        ModularWindow.Builder builder = ModularWindow.builder(176, 165);
         builder.setBackground(GTUITextures.BACKGROUND_SINGLEBLOCK_DEFAULT);
 
         // Terminal Screen background
@@ -539,7 +622,59 @@ public class TileEntityLoopInstrument extends TileEntity
                 .setPos(153, 72)
                 .setSize(12, 10));
 
+        // Row 5: Output mode (proportional or threshold) and inversion
+        builder.widget(
+            new ButtonWidget().setOnClick((clickData, widget) -> setThresholdMode(!thresholdMode))
+                .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
+                .addTooltip(CoolantLocalization.get("coolantloops.gui.instrument.btn.mode"))
+                .setPos(7, 100)
+                .setSize(100, 14));
+        builder.widget(
+            new TextWidget()
+                .setStringSupplier(
+                    () -> CoolantLocalization.get(
+                        thresholdMode ? "coolantloops.gui.instrument.mode.threshold"
+                            : "coolantloops.gui.instrument.mode.proportional"))
+                .setTextAlignment(Alignment.Center)
+                .setPos(7, 103)
+                .setSize(100, 10));
+        builder.widget(
+            new ButtonWidget().setOnClick((clickData, widget) -> setThresholdInverted(!thresholdInverted))
+                .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
+                .addTooltip(CoolantLocalization.get("coolantloops.gui.instrument.btn.invert"))
+                .setPos(111, 100)
+                .setSize(58, 14));
+        builder.widget(
+            new TextWidget().setStringSupplier(
+                () -> CoolantLocalization.get(
+                    thresholdInverted ? "coolantloops.gui.instrument.inverted" : "coolantloops.gui.instrument.normal"))
+                .setTextAlignment(Alignment.Center)
+                .setPos(111, 103)
+                .setSize(58, 10));
+
+        // Rows 6 and 7: Threshold setpoints, in the tracked metric's unit
+        builder.widget(
+            new TextWidget()
+                .setStringSupplier(
+                    () -> CoolantLocalization.format("coolantloops.gui.instrument.on_above", trackedMetric.unit))
+                .setPos(9, 123));
+        builder.widget(
+            setpointInput(this::getThresholdHigh, this::setThresholdHigh, "coolantloops.gui.instrument.input.on_above")
+                .setPos(95, 120)
+                .setSize(74, 14));
+        builder.widget(
+            new TextWidget()
+                .setStringSupplier(
+                    () -> CoolantLocalization.format("coolantloops.gui.instrument.off_below", trackedMetric.unit))
+                .setPos(9, 143));
+        builder.widget(
+            setpointInput(this::getThresholdLow, this::setThresholdLow, "coolantloops.gui.instrument.input.off_below")
+                .setPos(95, 140)
+                .setSize(74, 14));
+
         // Syncers
+        builder.widget(new FakeSyncWidget.BooleanSyncer(() -> thresholdMode, val -> this.thresholdMode = val));
+        builder.widget(new FakeSyncWidget.BooleanSyncer(() -> thresholdInverted, val -> this.thresholdInverted = val));
         builder.widget(new FakeSyncWidget.IntegerSyncer(() -> trackedMetric.ordinal(), idx -> {
             TrackedMetric[] vals = TrackedMetric.values();
             if (idx >= 0 && idx < vals.length) this.trackedMetric = vals[idx];
@@ -555,6 +690,22 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(new FakeSyncWidget.DoubleSyncer(() -> getCurrentValue(), val -> this.clientMeasuredValue = val));
 
         return builder.build();
+    }
+
+    private static NumericWidget setpointInput(DoubleSupplier getter, DoubleConsumer setter, String tooltipKey) {
+        NumericWidget input = new NumericWidget();
+        input.setGetter(getter)
+            .setSetter(setter)
+            .setMinValue(-1.0e9)
+            .setMaxValue(1.0e9)
+            .setDefaultValue(0.0)
+            .setScrollValues(10.0, 1.0, 100.0)
+            .setIntegerOnly(false)
+            .setTextAlignment(Alignment.Center)
+            .setTextColor(Color.WHITE.normal)
+            .setBackground(GTUITextures.BACKGROUND_TEXT_FIELD.withOffset(-1, -1, 2, 2))
+            .addTooltip(CoolantLocalization.get(tooltipKey));
+        return input;
     }
 
     // --- NBT Serialization ---
@@ -594,6 +745,11 @@ public class TileEntityLoopInstrument extends TileEntity
             }
             this.bundledMode = m;
         }
+        this.thresholdMode = nbt.getBoolean("thresholdMode");
+        this.thresholdHigh = nbt.getDouble("thresholdHigh");
+        this.thresholdLow = Math.min(nbt.getDouble("thresholdLow"), thresholdHigh);
+        this.thresholdInverted = nbt.getBoolean("thresholdInverted");
+        this.thresholdOn = nbt.getBoolean("thresholdOn");
         if (nbt.hasKey("temp")) {
             this.currentTemperatureCelsius = nbt.getDouble("temp");
         }
@@ -627,6 +783,11 @@ public class TileEntityLoopInstrument extends TileEntity
         nbt.setInteger("fineRedstone", fineOutputStrength);
         nbt.setInteger("bundledMode", bundledMode);
         nbt.setBoolean("bundledV2", true);
+        nbt.setBoolean("thresholdMode", thresholdMode);
+        nbt.setDouble("thresholdHigh", thresholdHigh);
+        nbt.setDouble("thresholdLow", thresholdLow);
+        nbt.setBoolean("thresholdInverted", thresholdInverted);
+        nbt.setBoolean("thresholdOn", thresholdOn);
         nbt.setDouble("temp", currentTemperatureCelsius);
         nbt.setDouble("flow", currentFlowRateM3s);
         nbt.setDouble("pressure", currentPressureBar);
