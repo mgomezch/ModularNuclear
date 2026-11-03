@@ -93,6 +93,41 @@ public final class LoopSettings {
             t.loop.setPheDesign(c.getPheSheetmetalTier(), c.getPheHeight(), v);
         }, "phe_length")
         .value(OptionTable.INT, (t, v) -> t.loop.setLoopCount(v), "loop_count")
+        .value(
+            OptionTable.INT,
+            (t, v) -> t.circuit()
+                .setPipeRunBlocks(v),
+            "loop_pipe_blocks")
+        .value(OptionTable.INT, (t, v) -> {
+            CoolantLoopModel.Circuit c = t.circuit();
+            c.setPipeRuns(v, c.getHotLegBlocks(), c.getReturnBlocks());
+        }, "loop_cold_blocks")
+        .value(OptionTable.INT, (t, v) -> {
+            CoolantLoopModel.Circuit c = t.circuit();
+            c.setPipeRuns(c.getColdLegBlocks(), v, c.getReturnBlocks());
+        }, "loop_hot_blocks")
+        .value(OptionTable.INT, (t, v) -> {
+            CoolantLoopModel.Circuit c = t.circuit();
+            c.setPipeRuns(c.getColdLegBlocks(), c.getHotLegBlocks(), v);
+        }, "loop_return_blocks")
+        .value(
+            OptionTable.INT,
+            (t, v) -> t.circuit()
+                .setHeaterRings(v),
+            "loop_heater_rings")
+        .value(
+            OptionTable.INT,
+            (t, v) -> t.circuit()
+                .setInstrumentCount(v),
+            "loop_instruments")
+        .value(OptionTable.INT, (t, v) -> {
+            CoolantLoopModel.Circuit c = t.circuit();
+            c.setBranchBlocks(v, c.getPheBranchBlocks());
+        }, "loop_passage_branch")
+        .value(OptionTable.INT, (t, v) -> {
+            CoolantLoopModel.Circuit c = t.circuit();
+            c.setBranchBlocks(c.getPassageBranchBlocks(), v);
+        }, "loop_phe_branch")
         .value(s -> EnergyHatchTier.fromString(s), (t, v) -> t.loop.setPheHatchTier(v), "phe_hatch")
         .value(OptionTable.INT, (t, v) -> t.loop.setPheHatchCount(v), "phe_hatches")
         .onUnknown(name -> System.err.println("WARNING: unknown loop option " + name));

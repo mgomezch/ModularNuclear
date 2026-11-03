@@ -514,9 +514,10 @@ public class CoolantLoopModel {
             .getPhe();
     }
 
-    /** Pipe blocks in each of the cold leg, hot leg and return run of the canonical loop. */
+    /** Pipe blocks in each of the cold leg, hot leg and return run of a loop unless its design says otherwise. */
     public static final int PIPE_RUN_BLOCKS = 4;
-    /** Minor loss of the distribution and collection manifolds (the crawler's minimum per manifold group). */
+    /** Most rings a Pressurized Fluid Heater has (PressurizedFluidHeaterStructure: lengths 3 to 11, two end layers). */
+    public static final int MAX_HEATER_RINGS = 9;
     /** Blocks between neighbouring PHEs' starts along a loop's PHE manifolds (the design testcase builder's pitch). */
     public static final int PHE_PITCH_BLOCKS = 5;
     /** Most independent loop circuits a reactor's passages can be split among (layout codes CP, CP2 ... CP9). */
@@ -576,6 +577,19 @@ public class CoolantLoopModel {
         private int pheLength = PheGeometry.MIN_LENGTH;
         private EnergyHatchTier pheHatchTier = EnergyHatchTier.EV;
         private int pheHatchCount = 1;
+        /**
+         * The loop's geometry as the player builds it, which sets how much flow the pump drives and how much coolant
+         * the loop holds: the pipe blocks of the cold leg (pump to the core), hot leg (core to the PHEs) and return
+         * run (PHEs to the pump) at full flow; a Pressurized Fluid Heater (its rings, 0 for none) and loop instruments
+         * on the hot leg; and the pipe blocks of each passage's and each PHE's branch off its manifolds.
+         */
+        private int coldLegBlocks = PIPE_RUN_BLOCKS;
+        private int hotLegBlocks = PIPE_RUN_BLOCKS;
+        private int returnBlocks = PIPE_RUN_BLOCKS;
+        private int heaterRings = 0;
+        private int instrumentCount = 0;
+        private int passageBranchBlocks = 0;
+        private int pheBranchBlocks = 0;
         private int copies = 1;
         private double dutyCyclePercent = 100.0;
         private double maxFlowLPerSec = 0.0; // 0 = no cap
@@ -812,6 +826,85 @@ public class CoolantLoopModel {
 
         public int getCopies() {
             return copies;
+        }
+
+        // ---- Loop geometry ----
+
+        public int getColdLegBlocks() {
+            return coldLegBlocks;
+        }
+
+        public int getHotLegBlocks() {
+            return hotLegBlocks;
+        }
+
+        public int getReturnBlocks() {
+            return returnBlocks;
+        }
+
+        /** Full-flow pipe blocks of the loop: its cold leg, hot leg and return run. */
+        public int getPipeRunBlocks() {
+            return coldLegBlocks + hotLegBlocks + returnBlocks;
+        }
+
+        public int getHeaterRings() {
+            return heaterRings;
+        }
+
+        public int getInstrumentCount() {
+            return instrumentCount;
+        }
+
+        public int getPassageBranchBlocks() {
+            return passageBranchBlocks;
+        }
+
+        public int getPheBranchBlocks() {
+            return pheBranchBlocks;
+        }
+
+        /** Pipe blocks of the cold leg, hot leg and return run at full flow. */
+        public void setPipeRuns(int coldLeg, int hotLeg, int returnRun) {
+            int c = Math.max(0, coldLeg), h = Math.max(0, hotLeg), r = Math.max(0, returnRun);
+            if (c != coldLegBlocks || h != hotLegBlocks || r != returnBlocks) {
+                coldLegBlocks = c;
+                hotLegBlocks = h;
+                returnBlocks = r;
+                markDirty();
+            }
+        }
+
+        /** The full-flow pipe blocks split evenly among the cold leg, hot leg and return run. */
+        public void setPipeRunBlocks(int total) {
+            int t = Math.max(0, total);
+            setPipeRuns(t / 3 + (t % 3 > 0 ? 1 : 0), t / 3 + (t % 3 > 1 ? 1 : 0), t / 3);
+        }
+
+        /** Rings of the hot leg's Pressurized Fluid Heater (1 to 9), or 0 for a loop without one. */
+        public void setHeaterRings(int rings) {
+            int r = Math.max(0, Math.min(MAX_HEATER_RINGS, rings));
+            if (r != heaterRings) {
+                heaterRings = r;
+                markDirty();
+            }
+        }
+
+        public void setInstrumentCount(int count) {
+            int n = Math.max(0, count);
+            if (n != instrumentCount) {
+                instrumentCount = n;
+                markDirty();
+            }
+        }
+
+        /** Pipe blocks of each passage's branch (inlet and outlet together) and of each PHE's. */
+        public void setBranchBlocks(int perPassage, int perPhe) {
+            int p = Math.max(0, perPassage), e = Math.max(0, perPhe);
+            if (p != passageBranchBlocks || e != pheBranchBlocks) {
+                passageBranchBlocks = p;
+                pheBranchBlocks = e;
+                markDirty();
+            }
         }
 
         /** Identical copies of this loop (each with its own pump and PHEs) the circuit's passages are split among. */
@@ -1173,8 +1266,81 @@ public class CoolantLoopModel {
     }
 
     /**
-     * Builds the canonical loop the game's crawler would produce for a pump feeding its passages in parallel: pump
-     * discharge, cold leg pipes, distribution manifold, the passages, collection manifold, hot leg pipes, the PHEs (in
+     * A branch of the loop's pipe to one of several parallel devices: blocks pipe blocks carrying fraction of the
+     * loop's flow, as one segment (in parallel at a share of the flow, they lose next to nothing; they hold coolant).
+     */
+    private static LoopSegment branch(Circuit c, String id, double temp, int blocks, double fraction) {
+        LoopSegment s = new LoopSegment(
+            id,
+            blocks,
+            c.pipeSize.diameterMeters(),
+            CoolantLoopConfigData.getPipeData()
+                .getDefaultRoughness(),
+            LoopSegment.PIPE_BLOCK_MINOR_LOSS_K * blocks,
+            c.material.maxPressureBar(),
+            c.material.maxTemperatureCelsius(),
+            temp);
+        s.setFrictionMultiplier(c.material.frictionMultiplier());
+        s.setFlowFraction(fraction);
+        return s;
+    }
+
+    /**
+     * The hot leg's Pressurized Fluid Heater, unpowered, as the game's crawler adds one: a ring per meter at the bore
+     * of the pipe it comes in through, the heater config's minor loss.
+     */
+    private static LoopSegment heater(Circuit c, double temp) {
+        LoopSegment h = new LoopSegment(
+            "heater",
+            c.heaterRings,
+            c.pipeSize.diameterMeters(),
+            0.000045,
+            CoolantLoopConfigData.getDeviceData()
+                .getHeater().minorLossK,
+            LoopSegment.NO_LIMIT,
+            LoopSegment.NO_LIMIT,
+            temp);
+        h.setCustomVolumeM3(Math.PI * 0.15 * 0.15 / 4.0 * c.heaterRings);
+        h.setCapacityLiters(1000L * c.heaterRings);
+        return h;
+    }
+
+    /** A loop instrument in the hot leg, as the game's crawler adds an in-line device: a meter at the pipe's bore. */
+    private static LoopSegment instrument(Circuit c, String id, double temp) {
+        LoopSegment s = new LoopSegment(
+            id,
+            1.0,
+            c.pipeSize.diameterMeters(),
+            0.000045,
+            LoopSegment.INSTRUMENT_MINOR_LOSS_K,
+            LoopSegment.NO_LIMIT,
+            2000.0,
+            temp);
+        s.setCustomVolumeM3(Math.PI * 0.10 * 0.10 / 4.0);
+        return s;
+    }
+
+    /** Appends a segment to a series run, chained after the last one. */
+    private static final class Run {
+
+        final List<LoopSegment> segs = new ArrayList<>();
+        LoopSegment last;
+
+        void add(LoopSegment s) {
+            if (last != null) chain(last, s);
+            segs.add(s);
+            last = s;
+        }
+
+        void pipes(Circuit c, String id, int blocks, double temp) {
+            for (int i = 0; i < blocks; i++) add(pipe(c, id + "_" + i, temp));
+        }
+    }
+
+    /**
+     * Builds the loop the game's crawler would produce for a pump feeding its passages in parallel, laid out as the
+     * circuit's geometry says: pump discharge, the cold leg's pipes, distribution manifold, the passages (each on its
+     * branch), collection manifold, the hot leg's pipes, heater and instruments, the PHEs (on their branches, in
      * parallel between two more manifolds when there are several), and the return run to the pump suction.
      */
     private static Loop buildLoop(Circuit c, int passageCount, double startTemp, int coreSpanBlocks) {
@@ -1184,21 +1350,16 @@ public class CoolantLoopModel {
         engine.setMaxVolumetricFlowRate(c.maxFlowLitersPerSecond() / 1000.0);
         loop.radiolysisAccumulators = new int[passageCount];
 
-        List<LoopSegment> segs = new ArrayList<>();
-        LoopSegment prev = null;
-        for (int i = 0; i < PIPE_RUN_BLOCKS; i++) {
-            LoopSegment s = pipe(c, "cold_" + i, startTemp);
-            if (prev != null) chain(prev, s);
-            segs.add(s);
-            prev = s;
-        }
-        loop.coldLegSegment = prev;
-
-        LoopSegment distribution = manifold(c, "manifold_in", startTemp, coreSpanBlocks);
-        chain(prev, distribution);
-        segs.add(distribution);
+        Run run = new Run();
+        run.pipes(c, "cold", c.coldLegBlocks, startTemp);
+        loop.coldLegSegment = run.last;
+        run.add(manifold(c, "manifold_in", startTemp, coreSpanBlocks));
+        LoopSegment distribution = run.last;
+        if (loop.coldLegSegment == null) loop.coldLegSegment = distribution;
 
         LoopSegment collection = manifold(c, "manifold_out", startTemp, coreSpanBlocks);
+        double passageShare = 1.0 / passageCount;
+        int passageIn = (c.passageBranchBlocks + 1) / 2, passageOut = c.passageBranchBlocks / 2;
         for (int i = 0; i < passageCount; i++) {
             LoopSegment p = new LoopSegment(
                 "passage_" + i,
@@ -1209,32 +1370,45 @@ public class CoolantLoopModel {
                 LoopSegment.NO_LIMIT,
                 3200.0,
                 startTemp);
-            p.setFlowFraction(1.0 / passageCount);
-            chain(distribution, p);
-            chain(p, collection);
-            segs.add(p);
+            p.setFlowFraction(passageShare);
+            LoopSegment from = distribution;
+            if (passageIn > 0) {
+                LoopSegment b = branch(c, "passage_in_" + i, startTemp, passageIn, passageShare);
+                chain(from, b);
+                run.segs.add(b);
+                from = b;
+            }
+            chain(from, p);
+            run.segs.add(p);
             loop.passageSegments.add(p);
+            LoopSegment to = p;
+            if (passageOut > 0) {
+                LoopSegment b = branch(c, "passage_out_" + i, startTemp, passageOut, passageShare);
+                chain(p, b);
+                run.segs.add(b);
+                to = b;
+            }
+            chain(to, collection);
         }
-        segs.add(collection);
-        prev = collection;
+        run.segs.add(collection);
+        run.last = collection;
 
-        for (int i = 0; i < PIPE_RUN_BLOCKS; i++) {
-            LoopSegment s = pipe(c, "hot_" + i, startTemp);
-            chain(prev, s);
-            segs.add(s);
-            prev = s;
-        }
-        loop.hotLegSegment = prev;
+        run.pipes(c, "hot", c.hotLegBlocks, startTemp);
+        if (c.heaterRings > 0) run.add(heater(c, startTemp));
+        for (int i = 0; i < c.instrumentCount; i++) run.add(instrument(c, "instrument_" + i, startTemp));
+        loop.hotLegSegment = run.last;
 
         PHEData cfg = pheConfig();
         LoopSegment pheSplit = null;
         LoopSegment pheJoin = null;
         if (c.pheCount > 1) {
-            pheSplit = manifold(c, "phe_manifold_in", startTemp, PHE_PITCH_BLOCKS * (c.pheCount - 1) + 1);
-            chain(prev, pheSplit);
-            segs.add(pheSplit);
+            run.add(manifold(c, "phe_manifold_in", startTemp, PHE_PITCH_BLOCKS * (c.pheCount - 1) + 1));
+            pheSplit = run.last;
             pheJoin = manifold(c, "phe_manifold_out", startTemp, PHE_PITCH_BLOCKS * (c.pheCount - 1) + 1);
         }
+        double pheShare = 1.0 / c.pheCount;
+        int pheIn = (c.pheBranchBlocks + 1) / 2, pheOut = c.pheBranchBlocks / 2;
+        LoopSegment pheEnd = null;
         for (int j = 0; j < c.pheCount; j++) {
             LoopSegment phe = new LoopSegment(
                 "phe_" + j,
@@ -1245,29 +1419,37 @@ public class CoolantLoopModel {
                 LoopSegment.NO_LIMIT,
                 PheGeometry.maxTemperatureCelsius(c.pheSheetmetalTier),
                 startTemp);
-            phe.setFlowFraction(1.0 / c.pheCount);
-            chain(pheSplit != null ? pheSplit : prev, phe);
-            if (pheJoin != null) chain(phe, pheJoin);
-            segs.add(phe);
+            phe.setFlowFraction(pheShare);
+            LoopSegment from = pheSplit != null ? pheSplit : run.last;
+            if (pheIn > 0) {
+                LoopSegment b = branch(c, "phe_in_" + j, startTemp, pheIn, pheShare);
+                chain(from, b);
+                run.segs.add(b);
+                from = b;
+            }
+            chain(from, phe);
+            run.segs.add(phe);
             loop.pheSegments.add(phe);
             loop.pheBatches.add(new PheExchange.Batch());
+            pheEnd = phe;
+            if (pheOut > 0) {
+                LoopSegment b = branch(c, "phe_out_" + j, startTemp, pheOut, pheShare);
+                chain(phe, b);
+                run.segs.add(b);
+                pheEnd = b;
+            }
+            if (pheJoin != null) chain(pheEnd, pheJoin);
         }
         if (pheJoin != null) {
-            segs.add(pheJoin);
-            prev = pheJoin;
-        } else {
-            prev = loop.pheSegments.get(0);
+            run.segs.add(pheJoin);
+            pheEnd = pheJoin;
         }
+        run.last = pheEnd;
 
-        for (int i = 0; i < PIPE_RUN_BLOCKS; i++) {
-            LoopSegment s = pipe(c, "return_" + i, startTemp);
-            chain(prev, s);
-            segs.add(s);
-            prev = s;
-        }
-        chain(prev, segs.get(0));
+        run.pipes(c, "return", c.returnBlocks, startTemp);
+        chain(run.last, run.segs.get(0));
 
-        for (LoopSegment s : segs) {
+        for (LoopSegment s : run.segs) {
             s.setCurrentTemperatureCelsius(startTemp);
             s.setIncomingTemperatureCelsius(startTemp);
             engine.addSegment(s);
