@@ -225,7 +225,9 @@ public class CoolantFluidProperty {
             return DISTILLED_WATER;
         if (clean.equals("heavywater") || clean.equals("water.heavy")) return HEAVY_WATER;
         if (clean.equals("ic2coolant") || clean.equals("coolant")) return IC2_COOLANT;
-        if (clean.equals("sodium") || clean.equals("fluid.sodium") || clean.equals("liquid.sodium")) return SODIUM;
+        if (clean.equals("sodium") || clean.equals("fluid.sodium")
+            || clean.equals("liquid.sodium")
+            || clean.equals("liquidsodium")) return SODIUM;
         if (clean.equals("molten.cheese") || clean.equals("cheese") || clean.equals("moltencheese"))
             return MOLTEN_CHEESE;
         if (clean.equals("lava") || clean.equals("fluid.lava") || clean.equals("minecraft:lava")) return LAVA;
