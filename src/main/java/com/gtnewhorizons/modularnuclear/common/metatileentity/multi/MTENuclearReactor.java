@@ -904,6 +904,14 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null || !base.isServerSide()) return;
 
+        try {
+            GTLog.writeExplosionLog(
+                this,
+                String.format("MELTDOWN: reactor damage %.1f%%, core %.0f °C", mReactorDamage, mCoreTemp));
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
+
         if (!GregTechAPI.sMachineExplosions) {
             ModularNuclear.LOG.warn(
                 "Meltdown condition reached, but machine explosions are disabled! Voiding all contents and shutting down safely.");

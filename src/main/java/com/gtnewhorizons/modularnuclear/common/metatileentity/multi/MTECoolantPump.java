@@ -80,6 +80,7 @@ import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.PositionedStructureError;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrors;
+import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.TurbineStatCalculator;
@@ -1998,6 +1999,18 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     }
 
     protected void triggerCatastrophicExplosion(String reason, LoopSegment rupturedSegment) {
+        try {
+            GTLog.writeExplosionLog(
+                this,
+                "COOLANT LOOP FAILURE: " + reason
+                    + (rupturedSegment != null ? " (segment " + rupturedSegment.getId() + ")" : "")
+                    + String.format(
+                        ", peak %.1f bar, flow %.1f L/s",
+                        mEngine.getPeakLoopPressureBar(),
+                        mEngine.getVolumetricFlowRate() * 1000.0));
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
         // Drain 80% of fluid from tank above
         drainFromReservoir((int) (getTotalCoolantLiters() * 0.80));
 
