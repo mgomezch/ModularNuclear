@@ -30,8 +30,8 @@ public class CoolantLoopGraphPanel {
 
         CoolantLoopGraphWidget graphWidget = new CoolantLoopGraphWidget();
 
-        // Server-client network sync of loop graph data JSON
-        StringSyncValue graphDataSyncer = new StringSyncValue(pump::getLoopGraphDataJson, json -> {
+        // Server-client network sync of loop graph data JSON (a large loop's passes a packet string's 32 KB)
+        StringSyncValue graphDataSyncer = new LargeStringSyncValue(pump::getLoopGraphDataJson, json -> {
             CoolantLoopGraphData data = CoolantLoopGraphData.fromJson(json);
             graphWidget.setGraphData(data);
         });
