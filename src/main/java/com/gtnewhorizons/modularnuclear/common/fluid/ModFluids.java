@@ -27,12 +27,19 @@ public class ModFluids {
 
     public static Fluid fluidHeavyWater;
     public static Fluid fluidHeavyWaterSteam;
+    /** Heavy-water steam's higher grades, as superheated and supercritical steam are plain steam's. */
+    public static Fluid fluidSuperheatedHeavyWaterSteam;
+    public static Fluid fluidSupercriticalHeavyWaterSteam;
     public static Fluid fluidCorium;
 
     public static void init() {
         fluidHeavyWater = registerOrGet("heavywater", 1100, 1100, 300);
         fluidHeavyWaterSteam = registerOrGet("heavywatersteam", -100, 100, 375);
         fluidHeavyWaterSteam.setGaseous(true);
+        fluidSuperheatedHeavyWaterSteam = registerOrGet("superheatedheavywatersteam", -100, 100, 600);
+        fluidSuperheatedHeavyWaterSteam.setGaseous(true);
+        fluidSupercriticalHeavyWaterSteam = registerOrGet("supercriticalheavywatersteam", -100, 100, 1000);
+        fluidSupercriticalHeavyWaterSteam.setGaseous(true);
 
         fluidCorium = registerOrGet("corium", 8000, 36000, 3000);
         fluidCorium.setLuminosity(15);
@@ -55,18 +62,32 @@ public class ModFluids {
         }
     }
 
+    /**
+     * Heavy-water steam joins GregTech's steam, and its superheated grade GregTech's superheated steam, so the turbines
+     * that take those take them too (the turbine mixins turn their exhaust back into heavy water).
+     */
     public static void registerWithGregTech() {
         if (fluidHeavyWaterSteam != null && GTModHandler.sAnySteamFluidIDs != null) {
-            int id = fluidHeavyWaterSteam.getID();
-            if (!GTModHandler.sAnySteamFluidIDs.contains(id)) {
-                try {
-                    GTModHandler.sAnySteamFluidIDs.add(id);
-                } catch (UnsupportedOperationException e) {
-                    java.util.List<Integer> copy = new java.util.ArrayList<>(GTModHandler.sAnySteamFluidIDs);
-                    copy.add(id);
-                    GTModHandler.sAnySteamFluidIDs = copy;
-                }
-            }
+            GTModHandler.sAnySteamFluidIDs = withFluid(GTModHandler.sAnySteamFluidIDs, fluidHeavyWaterSteam);
+        }
+        if (fluidSuperheatedHeavyWaterSteam != null && GTModHandler.sSuperHeatedSteamFluidIDs != null) {
+            GTModHandler.sSuperHeatedSteamFluidIDs = withFluid(
+                GTModHandler.sSuperHeatedSteamFluidIDs,
+                fluidSuperheatedHeavyWaterSteam);
+        }
+    }
+
+    /** The list with the fluid's id in it (a copy if the list cannot be added to). */
+    private static java.util.List<Integer> withFluid(java.util.List<Integer> ids, Fluid fluid) {
+        int id = fluid.getID();
+        if (ids.contains(id)) return ids;
+        try {
+            ids.add(id);
+            return ids;
+        } catch (UnsupportedOperationException e) {
+            java.util.List<Integer> copy = new java.util.ArrayList<>(ids);
+            copy.add(id);
+            return copy;
         }
     }
 
@@ -74,6 +95,8 @@ public class ModFluids {
         registerFluidContainers(fluidHeavyWater, ModItems.cellHeavyWater);
         if (Loader.isModLoaded("IC2")) {
             registerUniversalFluidCell(fluidHeavyWaterSteam);
+            registerUniversalFluidCell(fluidSuperheatedHeavyWaterSteam);
+            registerUniversalFluidCell(fluidSupercriticalHeavyWaterSteam);
         }
     }
 
@@ -135,11 +158,10 @@ public class ModFluids {
                     fluidHeavyWater,
                     "modularnuclear:fluids/heavywater_still",
                     "modularnuclear:fluids/heavywater_flow");
-                registerIcons(
-                    event.map,
-                    fluidHeavyWaterSteam,
-                    "gregtech:fluids/fluid.steam",
-                    "gregtech:fluids/fluid.steam");
+                for (Fluid steam : new Fluid[] { fluidHeavyWaterSteam, fluidSuperheatedHeavyWaterSteam,
+                    fluidSupercriticalHeavyWaterSteam }) {
+                    registerIcons(event.map, steam, "gregtech:fluids/fluid.steam", "gregtech:fluids/fluid.steam");
+                }
                 registerIcons(
                     event.map,
                     fluidCorium,

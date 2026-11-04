@@ -21,6 +21,10 @@ public class ModularNuclearLateMixins implements ILateMixinLoader {
         if (loadedMods.contains("gregtech")) {
             mixins.add("MixinMTELargeTurbineSteam");
             mixins.add("MixinMTEXLTurbineSteam");
+            mixins.add("MixinMTELargeTurbineHPSteam");
+            mixins.add("MixinMTEXLTurbineHPSteam");
+            mixins.add("MixinMTELargeTurbineSCSteam");
+            mixins.add("MixinMTEXLTurbineSCSteam");
             mixins.add("MixinMTECoolantTower");
             mixins.add("MixinGTPostLoad");
             mixins.add("MixinPollution");

@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.PheExchange;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.TurbineCalculator;
@@ -52,8 +54,14 @@ public class HeavyWaterSteamTest {
             Fluid st = new Fluid("steam");
             FluidRegistry.registerFluid(st);
         }
+        for (String name : new String[] { "ic2superheatedsteam", "superheatedheavywatersteam",
+            "supercriticalheavywatersteam" }) {
+            if (FluidRegistry.getFluid(name) == null) FluidRegistry.registerFluid(new Fluid(name).setGaseous(true));
+        }
         ModFluids.fluidHeavyWater = FluidRegistry.getFluid("heavywater");
         ModFluids.fluidHeavyWaterSteam = FluidRegistry.getFluid("heavywatersteam");
+        ModFluids.fluidSuperheatedHeavyWaterSteam = FluidRegistry.getFluid("superheatedheavywatersteam");
+        ModFluids.fluidSupercriticalHeavyWaterSteam = FluidRegistry.getFluid("supercriticalheavywatersteam");
     }
 
     @Test
@@ -185,6 +193,54 @@ public class HeavyWaterSteamTest {
     void testCoolantHeavyWaterHotFluidName() {
         ComponentData.CoolantFluidData data = ReactorDataRegistry.findCoolantFluid("heavywater");
         assertNotNull(data);
-        assertEquals("heavywatersteam", data.hotFluidName);
+        // A core hatch makes the superheated grade, as distilled water's makes superheated steam
+        assertEquals("superheatedheavywatersteam", data.hotFluidName);
+    }
+
+    @Test
+    void testPheBoilsHeavyWaterToHeavySteamGrades() {
+        CoolantDeviceData.PHEData cfg = new CoolantDeviceData.PHEData();
+        CoolantDeviceData.PHEData.SecondaryCoolantEntry heavy = cfg.findSecondaryCoolant("heavywater");
+        assertNotNull(heavy);
+        assertTrue(heavy.isSteam);
+        assertEquals("supercriticalheavywatersteam", PheExchange.steamOfFamily("supercriticalsteam", heavy));
+        assertEquals("superheatedheavywatersteam", PheExchange.steamOfFamily("ic2superheatedsteam", heavy));
+        assertEquals("heavywatersteam", PheExchange.steamOfFamily("steam", heavy));
+        // Distilled water keeps plain steam's grades
+        CoolantDeviceData.PHEData.SecondaryCoolantEntry distilled = cfg.findSecondaryCoolant("ic2distilledwater");
+        assertEquals("supercriticalsteam", PheExchange.steamOfFamily("supercriticalsteam", distilled));
+        assertEquals("steam", PheExchange.steamOfFamily("steam", distilled));
+    }
+
+    @Test
+    void testTurbineExhaustKeepsToHeavyWater() {
+        List<FluidStack> outputs = new ArrayList<>();
+        // A high-pressure turbine fed a quarter superheated heavy-water steam exhausts a quarter heavy-water steam
+        HeavyWaterSteamTurbineHelper.splitExhaust(outputs::add, new FluidStack(regularSteam(), 1000), 250, 750);
+        assertEquals(2, outputs.size());
+        assertEquals(750, amountOf(outputs, "steam"));
+        assertEquals(250, amountOf(outputs, "heavywatersteam"));
+        // A supercritical turbine's superheated exhaust becomes superheated heavy-water steam
+        outputs.clear();
+        HeavyWaterSteamTurbineHelper
+            .splitExhaust(outputs::add, new FluidStack(FluidRegistry.getFluid("ic2superheatedsteam"), 1000), 1, 0);
+        assertEquals(1000, amountOf(outputs, "superheatedheavywatersteam"));
+        // With no heavy steam fed, the exhaust is left as it is
+        outputs.clear();
+        HeavyWaterSteamTurbineHelper.splitExhaust(outputs::add, new FluidStack(regularSteam(), 1000), 0, 500);
+        assertEquals(1000, amountOf(outputs, "steam"));
+    }
+
+    private static Fluid regularSteam() {
+        return FluidRegistry.getFluid("steam");
+    }
+
+    private static int amountOf(List<FluidStack> stacks, String fluid) {
+        int sum = 0;
+        for (FluidStack st : stacks) if (fluid.equals(
+            st.getFluid()
+                .getName()))
+            sum += st.amount;
+        return sum;
     }
 }

@@ -68,6 +68,8 @@ channels.modularnuclear.master.nuclear_hatch=Nuclear hatch tier
 
 fluid.heavywater=Heavy water
 fluid.heavywatersteam=Heavy-water steam
+fluid.superheatedheavywatersteam=Superheated heavy-water steam
+fluid.supercriticalheavywatersteam=Supercritical heavy-water steam
 fluid.corium=Molten corium
 
 tile.modularnuclear.corium.name=Molten corium
