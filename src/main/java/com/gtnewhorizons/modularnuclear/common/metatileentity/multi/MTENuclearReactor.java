@@ -102,6 +102,7 @@ import gregtech.api.structure.error.StructureErrors;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
 import gregtech.common.pollution.Pollution;
@@ -1570,6 +1571,15 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             // The reactor should always report at least one maintenance issue while damage is greater than 0
             if (getRepairStatus() == getIdealStatus()) {
                 mWrench = false;
+            }
+        } else {
+            if (mMachine && getRepairStatus() == getIdealStatus()) {
+                IGregTechTileEntity base = getBaseMetaTileEntity();
+                if (base != null && base.getLastShutDownReason() == ShutDownReasonRegistry.NO_REPAIR) {
+                    base.setShutdownStatus(false);
+                    base.setShutDownReason(ShutDownReasonRegistry.NONE);
+                    base.enableWorking();
+                }
             }
         }
     }
