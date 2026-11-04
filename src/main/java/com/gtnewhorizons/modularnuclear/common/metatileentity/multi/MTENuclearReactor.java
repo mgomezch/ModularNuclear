@@ -1566,12 +1566,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         int repairAfter = getRepairStatus();
         int repaired = Math.max(0, repairAfter - repairBefore);
 
-        if (repaired > 0 && mReactorDamage > 0.0) {
-            double avgTemp = Math.max(mAvgTemp, mAvgTileTemp);
-            double repairThreshold = NuclearSimulationEngine.getRepairTemperatureThreshold(mPipeTier);
-            if (avgTemp <= repairThreshold) {
-                mReactorDamage = Math.max(0.0, mReactorDamage - 2.0 * repaired);
-            }
+        if (repaired > 0 && mReactorDamage > 0.0 && isInLowPowerState()) {
+            mReactorDamage = Math.max(0.0, mReactorDamage - 2.0 * repaired);
         }
 
         if (mReactorDamage > 0.0) {
@@ -1700,35 +1696,17 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
     }
 
-    public boolean isAnyTemperatureAbove100() {
-        if (mCoreTemp > 100.0 || mAvgTemp > 100.0) {
-            return true;
-        }
-        for (IGregTechTileEntity te : mLastFormedNuclearTiles) {
-            if (te != null && !te.isDead()) {
-                IMetaTileEntity mte = te.getMetaTileEntity();
-                if (mte instanceof MTEHatchNuclearBus bus) {
-                    if (bus.mTemperature > 100.0) return true;
-                } else if (mte instanceof MTEHatchNuclearHatch hatch) {
-                    if (hatch.mTemperature > 100.0) return true;
-                } else if (mte instanceof MTEHatchNuclearControlRod rod) {
-                    if (rod.mTemperature > 100.0) return true;
-                } else if (mte instanceof MTEHatchNuclearHighPressure hp) {
-                    if (hp.getTemperature() > 100.0) return true;
-                }
-            }
-        }
-        for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
-            if (rod != null && rod.mTemperature > 100.0) return true;
-        }
-        for (ICoolantPassageHatch hp : mBottomHighPressureHatches) {
-            if (hp instanceof MTEHatchNuclearHighPressure nhp && nhp.getTemperature() > 100.0) return true;
-        }
-        return false;
+    /**
+     * Whether the core is cool enough (average below the tier's repair threshold) to repair its hull, or to change its
+     * structure without losing the fuel inside.
+     */
+    public boolean isInLowPowerState() {
+        return Math.max(mAvgTemp, mAvgTileTemp) <= NuclearSimulationEngine.getRepairTemperatureThreshold(mPipeTier);
     }
 
+    /** A structure that breaks above the low-power state voids the fuel in its buses and core hatches. */
     public void handleStructureBreak() {
-        if (isAnyTemperatureAbove100()) {
+        if (!isInLowPowerState()) {
             for (IGregTechTileEntity te : mLastFormedNuclearTiles) {
                 if (te != null && !te.isDead()) {
                     IMetaTileEntity mte = te.getMetaTileEntity();
@@ -1736,7 +1714,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                         boolean modified = false;
                         for (int i = 0; i < bus.mInventory.length; i++) {
                             ItemStack stack = bus.mInventory[i];
-                            if (stack != null && NuclearFuelClassification.isVoidedOnStructureBreak(stack)) {
+                            if (stack != null && NuclearFuelClassification.isItemFuel(stack)) {
                                 bus.mInventory[i] = null;
                                 modified = true;
                             }
@@ -1749,7 +1727,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                             }
                         }
                     } else if (mte instanceof MTEHatchNuclearHatch hatch) {
-                        if (hatch.mInputFluid != null) {
+                        if (NuclearFuelClassification.isFluidFuel(hatch.mInputFluid)) {
                             hatch.mInputFluid = null;
                             hatch.markDirty();
                             if (hatch.getBaseMetaTileEntity() != null) {
@@ -2788,10 +2766,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     public static boolean isConfigurationItem(ItemStack stack) {
         return NuclearFuelClassification.isConfigurationItem(stack);
-    }
-
-    public static boolean isVoidedOnStructureBreak(ItemStack stack) {
-        return NuclearFuelClassification.isVoidedOnStructureBreak(stack);
     }
 
     public static double getInsulationDampening(ItemStack stack) {

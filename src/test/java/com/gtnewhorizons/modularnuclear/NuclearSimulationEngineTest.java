@@ -2261,7 +2261,7 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
-    void testNuclearReactorStructureBreakVoidsFuelAndCoolantWhenOver100() {
+    void testNuclearReactorStructureBreakVoidsOnlyFuelAboveRepairThreshold() {
         MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.test");
 
         // 1. Bus with fuel item (must be voided)
@@ -2273,7 +2273,7 @@ public class NuclearSimulationEngineTest {
         busFuel.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyFuel;
         busFuel.mTemperature = 150.0;
 
-        // 2. Bus with coolant item (must be voided)
+        // 2. Bus with coolant item (must be preserved: only fuel is voided)
         MTEHatchNuclearBus busCoolant = new MTEHatchNuclearBus("test.bus.coolant", 4, new String[0], null);
         net.minecraft.item.Item coolantItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
         org.mockito.Mockito.when(coolantItem.getUnlocalizedName(org.mockito.Mockito.any()))
@@ -2282,12 +2282,20 @@ public class NuclearSimulationEngineTest {
         busCoolant.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyCoolant;
         busCoolant.mTemperature = 150.0;
 
-        // 3. Hatch with fluid (must be voided)
+        // 3. Hatch with coolant fluid (must be preserved), and one with liquid fuel (must be voided)
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 4, 16000, new String[0], null);
         net.minecraftforge.fluids.FluidStack coolantIn = org.mockito.Mockito
             .mock(net.minecraftforge.fluids.FluidStack.class);
         hatch.mInputFluid = coolantIn;
         hatch.mTemperature = 120.0;
+        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("thoriumbasedliquidfuel")) {
+            net.minecraftforge.fluids.FluidRegistry
+                .registerFluid(new net.minecraftforge.fluids.Fluid("thoriumbasedliquidfuel"));
+        }
+        MTEHatchNuclearHatch fuelHatch = new MTEHatchNuclearHatch("test.hatch.fuel", 4, 16000, new String[0], null);
+        fuelHatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(
+            net.minecraftforge.fluids.FluidRegistry.getFluid("thoriumbasedliquidfuel"),
+            1000);
 
         // 4. Bus with reflector item (must be preserved)
         MTEHatchNuclearBus busReflector = new MTEHatchNuclearBus("test.bus.reflector", 4, new String[0], null);
@@ -2344,34 +2352,48 @@ public class NuclearSimulationEngineTest {
         org.mockito.Mockito.when(teHatch.isDead())
             .thenReturn(false);
         reactor.mLastFormedNuclearTiles.add(teHatch);
+        gregtech.api.interfaces.tileentity.IGregTechTileEntity teFuelHatch = org.mockito.Mockito
+            .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+        org.mockito.Mockito.when(teFuelHatch.getMetaTileEntity())
+            .thenReturn(fuelHatch);
+        reactor.mLastFormedNuclearTiles.add(teFuelHatch);
 
-        assertTrue(reactor.isAnyTemperatureAbove100(), "Reactor should detect temperature > 100°C");
+        // Hatches above 100 °C do not matter: only the core's average against the repair threshold does
+        reactor.mAvgTemp = NuclearSimulationEngine.getRepairTemperatureThreshold(reactor.mPipeTier) - 1.0;
+        assertTrue(reactor.isInLowPowerState(), "Below the repair threshold the reactor is in its low-power state");
+        reactor.handleStructureBreak();
+        assertNotNull(busFuel.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Fuel is kept in the low-power state");
+        assertNotNull(fuelHatch.mInputFluid, "Liquid fuel is kept in the low-power state");
+
+        reactor.mAvgTemp = NuclearSimulationEngine.getRepairTemperatureThreshold(reactor.mPipeTier) + 1.0;
+        assertFalse(
+            reactor.isInLowPowerState(),
+            "Above the repair threshold the reactor is not in its low-power state");
 
         // Trigger structure break
         reactor.handleStructureBreak();
 
-        // Fuel and coolant items/fluids must be voided:
+        // Fuel items and fluids must be voided; coolant is kept:
         assertNull(
             busFuel.mInventory[MTEHatchNuclearBus.SLOT_INPUT],
-            "Fuel in bus must be voided on break above 100°C");
-        assertNull(
+            "Fuel in bus must be voided on break above the repair threshold");
+        assertNull(fuelHatch.mInputFluid, "Liquid fuel in hatch must be voided on break above the repair threshold");
+        assertNotNull(
             busCoolant.mInventory[MTEHatchNuclearBus.SLOT_INPUT],
-            "Coolant item in bus must be voided on break above 100°C");
-        assertNull(hatch.mInputFluid, "Coolant in hatch must be voided on break above 100°C");
+            "Coolant item in bus must be preserved on break");
+        assertNotNull(hatch.mInputFluid, "Coolant in hatch must be preserved on break");
 
         // Spatial configuration items must be preserved:
         assertNotNull(
             busReflector.mInventory[MTEHatchNuclearBus.SLOT_INPUT],
-            "Reflector in bus must be preserved on break above 100°C");
+            "Reflector in bus must be preserved on break");
         assertNotNull(
             busModerator.mInventory[MTEHatchNuclearBus.SLOT_INPUT],
-            "Moderator in bus must be preserved on break above 100°C");
-        assertNotNull(
-            busVent.mInventory[MTEHatchNuclearBus.SLOT_INPUT],
-            "Heat vent in bus must be preserved on break above 100°C");
+            "Moderator in bus must be preserved on break");
+        assertNotNull(busVent.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Heat vent in bus must be preserved on break");
         assertNotNull(
             busExchanger.mInventory[MTEHatchNuclearBus.SLOT_INPUT],
-            "Heat exchanger in bus must be preserved on break above 100°C");
+            "Heat exchanger in bus must be preserved on break");
     }
 
     @Test
@@ -2408,7 +2430,7 @@ public class NuclearSimulationEngineTest {
         reactor.mCoreTemp = 25.0;
         reactor.mAvgTemp = 25.0;
 
-        assertFalse(reactor.isAnyTemperatureAbove100(), "Reactor is cold, should not detect > 100°C");
+        assertTrue(reactor.isInLowPowerState(), "A cold reactor is in its low-power state");
 
         reactor.handleStructureBreak();
 
@@ -7950,19 +7972,11 @@ public class NuclearSimulationEngineTest {
             1e-6,
             "Incoming coolant above max operating temp must increase damage by 1%");
 
-        // 3. Structure break temperature check (> 100 °C)
-        reactor.mLastFormedNuclearTiles.clear();
-        reactor.mBottomHighPressureHatches.clear();
-        topHp.setTemperature(50.0);
-        reactor.mLastFormedNuclearTiles.add(mockTopTe);
-        assertFalse(reactor.isAnyTemperatureAbove100(), "Below 100°C must not trigger structure break warning");
-
-        topHp.setTemperature(150.0);
-        assertTrue(reactor.isAnyTemperatureAbove100(), "Top HP hatch > 100°C must trigger structure break warning");
-
-        reactor.mLastFormedNuclearTiles.clear();
-        reactor.mBottomHighPressureHatches.add(botHp);
-        assertTrue(reactor.isAnyTemperatureAbove100(), "Bottom HP hatch > 100°C must trigger structure break warning");
+        // 3. Structure break penalties follow the core average, not a hot passage hatch
+        reactor.mAvgTemp = 25.0;
+        reactor.mAvgTileTemp = 25.0;
+        topHp.setTemperature(1000.0);
+        assertTrue(reactor.isInLowPowerState(), "A hot passage hatch alone must not leave the low-power state");
     }
 
     @Test

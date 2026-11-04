@@ -583,14 +583,6 @@ public final class NuclearFuelClassification {
             || isItemNeutronSource(stack);
     }
 
-    public static boolean isVoidedOnStructureBreak(ItemStack stack) {
-        if (stack == null) return false;
-        if (isConfigurationItem(stack)) {
-            return false;
-        }
-        return isItemFuel(stack) || isFuelAtMaxDamage(stack) || isDepletedOrEmptyRod(stack) || isItemCoolant(stack);
-    }
-
     public static boolean isItemHeatVent(ItemStack stack) {
         return stack != null && roles(stack).heatVent;
     }

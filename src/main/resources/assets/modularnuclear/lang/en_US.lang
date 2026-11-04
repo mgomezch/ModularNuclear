@@ -104,7 +104,7 @@ gt.multiblock.nuclearreactor.desc16=Inserting coolant into dry hatches above boi
 gt.multiblock.nuclearreactor.desc17=Overheating hatches voids contents and adds hull damage; 100% causes meltdown!
 gt.multiblock.nuclearreactor.desc18=Nuclear control hatches expose reactor state to redstone logic and OpenComputers.
 gt.multiblock.nuclearreactor.desc19=Radiovoltaic cells convert neutron flux to EU (up to 2A each) in multiamp dynamos.
-gt.multiblock.nuclearreactor.desc20=Hull damage repair requires maintenance with average temperature below 10% of max.
+gt.multiblock.nuclearreactor.desc20=Hull damage repair requires maintenance with average temperature below 20% of max.
 gt.multiblock.nuclearreactor.finisher=GregTech nuclear power
 
 gt.multiblock.nuclearreactor.structure.wallshare=This multiblock cannot share walls TODO: yes it can
