@@ -238,10 +238,18 @@ public final class CoolantFluidHelper {
         return getDeclaredGregTechFluidTemperatureCelsius(fluid, stack, prop);
     }
 
+    /**
+     * Temperature fresh coolant enters a loop at: the ambient, or for a molten coolant the temperature GregTech
+     * declares for its fluid (Liquid Sodium 495 K), never below its melting point.
+     */
     public static double getBaselineInletTemperatureCelsius(Fluid fluid, FluidStack stack, CoolantFluidProperty prop,
         double ambientTemp) {
         if (isMoltenFluid(fluid, stack, prop)) {
-            return Math.max(ambientTemp, getMeltingPointCelsius(fluid, stack, prop));
+            return Math.max(
+                ambientTemp,
+                Math.max(
+                    getMeltingPointCelsius(fluid, stack, prop),
+                    getDeclaredGregTechFluidTemperatureCelsius(fluid, stack, prop)));
         }
         return ambientTemp;
     }
