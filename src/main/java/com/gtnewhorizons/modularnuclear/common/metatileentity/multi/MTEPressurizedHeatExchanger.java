@@ -184,16 +184,6 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     }
 
     @Override
-    protected void onStructureCheckFinished(IGregTechTileEntity aBaseMetaTileEntity) {
-        super.onStructureCheckFinished(aBaseMetaTileEntity);
-        if (mMachine) {
-            if (aBaseMetaTileEntity != null && !aBaseMetaTileEntity.isAllowedToWork()) {
-                aBaseMetaTileEntity.enableWorking();
-            }
-        }
-    }
-
-    @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEPressurizedHeatExchanger(mName);
     }
@@ -365,10 +355,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
             for (MTEHatchEnergy eh : mEnergyHatches) eh.updateCraftingIcon(icon);
         }
 
+        // A PHE switched off (soft mallet, machine controller cover) stays off when its structure is checked
         checkMaintenance();
-        if (aBaseMetaTileEntity != null && !aBaseMetaTileEntity.isAllowedToWork()) {
-            aBaseMetaTileEntity.enableWorking();
-        }
     }
 
     @Override
