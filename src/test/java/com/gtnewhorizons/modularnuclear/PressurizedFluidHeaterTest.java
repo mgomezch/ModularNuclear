@@ -266,8 +266,17 @@ public class PressurizedFluidHeaterTest {
         MTEHatchPressurizedOutput outlet = new MTEHatchPressurizedOutput("outlet", 4, new String[0], null);
         heater.addPressurizedInputToMachineList(createMockHatchBase(inlet), 11);
         heater.addPressurizedOutputToMachineList(createMockHatchBase(outlet), 11);
+        heater.setLoopPump(flowingPump());
 
         return heater;
+    }
+
+    /** A loop pump whose coolant flows: a heater heats only then. */
+    private static ICoolantLoopPump flowingPump() {
+        ICoolantLoopPump pump = Mockito.mock(ICoolantLoopPump.class);
+        Mockito.when(pump.isCoolantFlowing())
+            .thenReturn(true);
+        return pump;
     }
 
     @Test
@@ -554,6 +563,34 @@ public class PressurizedFluidHeaterTest {
     }
 
     @Test
+    public void testHeaterStaysOffWithoutFlowingCoolant() {
+        boolean[] allowed = new boolean[] { true };
+        MTEPressurizedFluidHeater heater = createConfiguredHeater(
+            5,
+            HeatingCoilLevel.LV,
+            HeaterPipeCasingTier.TIN,
+            allowed);
+        heater.addEnergyOrMultiAmpToMachineList(createMockEnergyHatch(1, 1_000_000L).getBaseMetaTileEntity(), 11);
+        double before = heater.getInnerTemperatureCelsius();
+
+        // An empty or stopped loop: allowed to work and powered, the heater draws nothing and stays as it was
+        ICoolantLoopPump stopped = Mockito.mock(ICoolantLoopPump.class);
+        heater.setLoopPump(stopped);
+        heater.onPostTick(heater.getBaseMetaTileEntity(), 1L);
+        assertEquals(0L, heater.getLastConsumedEuPerTick());
+        assertEquals(before, heater.getInnerTemperatureCelsius(), 1e-9);
+
+        heater.setLoopPump(null);
+        heater.onPostTick(heater.getBaseMetaTileEntity(), 2L);
+        assertEquals(0L, heater.getLastConsumedEuPerTick());
+
+        // Coolant flowing: it heats on what the LV hatch takes in (2 A x 32 EU/t)
+        heater.setLoopPump(flowingPump());
+        heater.onPostTick(heater.getBaseMetaTileEntity(), 3L);
+        assertEquals(64L, heater.getLastConsumedEuPerTick());
+    }
+
+    @Test
     public void testElectricalHeatingFullAndPartialEuWithoutPowerfail() {
         boolean[] allowed = new boolean[] { true };
         // Length 5 -> 3 rings, Cupronickel (LV) -> max EU/t = 32 * 3 * 4^0 = 96 EU/t
@@ -736,7 +773,7 @@ public class PressurizedFluidHeaterTest {
         double maxTemp = heater.getMaxOperatingTemperatureCelsius();
         assertEquals(1000.0, maxTemp, 1e-6);
 
-        ICoolantLoopPump mockPump = Mockito.mock(ICoolantLoopPump.class);
+        ICoolantLoopPump mockPump = flowingPump();
         heater.setLoopPump(mockPump);
 
         // Set inner temperature right below limit (995 °C) and give it EV power to push it over 1000 °C

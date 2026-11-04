@@ -796,7 +796,9 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
 
         checkMaintenance();
 
-        if (!isAllowedToWork()) {
+        // Allowed to work or not, a heater heats only coolant flowing through it: with none it stays off, rather than
+        // heat its own mass past the casing's limit
+        if (!isAllowedToWork() || mConnectedPump == null || !mConnectedPump.isCoolantFlowing()) {
             mLastConsumedEuPerTick = 0L;
             mLastHeatingHuPerTick = 0.0;
             IGregTechTileEntity base = getBaseMetaTileEntity();

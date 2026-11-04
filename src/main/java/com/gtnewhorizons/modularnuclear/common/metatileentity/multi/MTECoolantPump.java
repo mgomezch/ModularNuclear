@@ -2499,6 +2499,11 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         mLoopStatusText = text != null ? text : "";
     }
 
+    @Override
+    public boolean isCoolantFlowing() {
+        return mLoopState == LoopState.CIRCULATING && mEngine.getVolumetricFlowRate() > 1e-9;
+    }
+
     public LoopState getLoopState() {
         return mLoopState;
     }
