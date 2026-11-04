@@ -188,9 +188,6 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         }
 
         checkMaintenance();
-        if (aBaseMetaTileEntity != null && !aBaseMetaTileEntity.isAllowedToWork()) {
-            aBaseMetaTileEntity.enableWorking();
-        }
     }
 
     @Override

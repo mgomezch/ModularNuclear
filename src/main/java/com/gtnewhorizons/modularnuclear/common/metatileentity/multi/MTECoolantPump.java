@@ -183,7 +183,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
     // Reservoir management
     protected final CoolantPumpReservoir mReservoir = new CoolantPumpReservoir(this);
-    protected boolean mHasEverBeenEnabled = false;
     protected boolean mPowerFailed = false;
 
     // Multi-tick loop crawling state
@@ -383,23 +382,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         if (eff < 0) eff = 0;
         if (eff > 10000) eff = 10000;
         return eff / 10000.0;
-    }
-
-    @Override
-    protected void onStructureCheckFinished(IGregTechTileEntity aBaseMetaTileEntity) {
-        super.onStructureCheckFinished(aBaseMetaTileEntity);
-        if (mMachine) {
-            if (aBaseMetaTileEntity != null && !aBaseMetaTileEntity.isAllowedToWork() && !mHasEverBeenEnabled) {
-                aBaseMetaTileEntity.enableWorking();
-            }
-            if (mDischargeHatch != null && !mHasEverBeenEnabled) {
-                IGregTechTileEntity bte = mDischargeHatch.getBaseMetaTileEntity();
-                if (bte != null && !bte.isAllowedToWork()) {
-                    bte.enableWorking();
-                }
-            }
-            mHasEverBeenEnabled = true;
-        }
     }
 
     @Override
@@ -662,9 +644,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
 
         checkMaintenance();
-        if (aBaseMetaTileEntity != null && !aBaseMetaTileEntity.isAllowedToWork()) {
-            aBaseMetaTileEntity.enableWorking();
-        }
         setLoopStatusKey("coolantloops.pump.status.formed");
         // A saved loop is restored by rebindRestoredLoop, which re-crawls only if it changed
         if (mActiveCrawl != null && !mActiveCrawl.isDone() || mNeedsPostLoadRebind) {
@@ -918,20 +897,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         mLoopFormed = true;
         mFootprint = null;
         updateLoopChunks();
-        mHasEverBeenEnabled = true;
-
-        // A loop that forms switches its pump on; re-crawling a formed one leaves it as the player set it
-        if (!keepState) {
-            if (getBaseMetaTileEntity() != null && !getBaseMetaTileEntity().isAllowedToWork()) {
-                getBaseMetaTileEntity().enableWorking();
-            }
-            if (mDischargeHatch != null) {
-                IGregTechTileEntity bte = mDischargeHatch.getBaseMetaTileEntity();
-                if (bte != null && !bte.isAllowedToWork()) {
-                    bte.enableWorking();
-                }
-            }
-        }
 
         if (sameLoop && mLoopState != LoopState.STOPPED && mLoopState != LoopState.EMPTY) {
             // A re-crawl of an unchanged running loop leaves it doing whatever it was doing
@@ -2888,7 +2853,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         aNBT.setLong("mRequiredFillLiters", mRequiredFillLiters);
         aNBT.setDouble("mRotorDamageAccumulator", mRotorDamageAccumulator);
         aNBT.setBoolean("mPowerFailed", mPowerFailed);
-        aNBT.setBoolean("mHasEverBeenEnabled", mHasEverBeenEnabled);
         if (mTankMaterial != null && mTankMaterial.mName != null) {
             aNBT.setString("mTankMaterial", mTankMaterial.mName);
         }
@@ -2983,9 +2947,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
         if (aNBT.hasKey("mPowerFailed")) {
             mPowerFailed = aNBT.getBoolean("mPowerFailed");
-        }
-        if (aNBT.hasKey("mHasEverBeenEnabled")) {
-            mHasEverBeenEnabled = aNBT.getBoolean("mHasEverBeenEnabled");
         }
         if (aNBT.hasKey("mLoopStatus")) {
             setLoopStatusText(aNBT.getString("mLoopStatus"));

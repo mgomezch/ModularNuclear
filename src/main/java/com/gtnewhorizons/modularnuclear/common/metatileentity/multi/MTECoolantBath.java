@@ -746,9 +746,6 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
         }
 
         checkMaintenance();
-        if (aBaseMetaTileEntity != null && !aBaseMetaTileEntity.isAllowedToWork()) {
-            aBaseMetaTileEntity.enableWorking();
-        }
     }
 
     @Override

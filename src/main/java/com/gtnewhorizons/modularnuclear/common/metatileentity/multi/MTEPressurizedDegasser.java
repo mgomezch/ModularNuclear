@@ -103,16 +103,6 @@ public class MTEPressurizedDegasser extends MTEEnhancedMultiBlockBase<MTEPressur
     }
 
     @Override
-    protected void onStructureCheckFinished(IGregTechTileEntity aBaseMetaTileEntity) {
-        super.onStructureCheckFinished(aBaseMetaTileEntity);
-        if (mMachine) {
-            if (aBaseMetaTileEntity != null && !aBaseMetaTileEntity.isAllowedToWork()) {
-                aBaseMetaTileEntity.enableWorking();
-            }
-        }
-    }
-
-    @Override
     public MetaTileEntity newMetaEntity(IGregTechTileEntity aTileEntity) {
         return new MTEPressurizedDegasser(mName);
     }
@@ -226,9 +216,6 @@ public class MTEPressurizedDegasser extends MTEEnhancedMultiBlockBase<MTEPressur
         }
 
         checkMaintenance();
-        if (aBaseMetaTileEntity != null && !aBaseMetaTileEntity.isAllowedToWork()) {
-            aBaseMetaTileEntity.enableWorking();
-        }
     }
 
     @Override
