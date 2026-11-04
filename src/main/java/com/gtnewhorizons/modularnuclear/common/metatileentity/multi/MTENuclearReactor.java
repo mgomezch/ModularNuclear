@@ -8,6 +8,8 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Items;
@@ -16,6 +18,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
@@ -102,7 +105,7 @@ import gregtech.api.structure.error.StructureErrors;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
-import gregtech.api.util.shutdown.ShutDownReasonRegistry;
+import gregtech.api.util.shutdown.ShutDownReason;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
 import gregtech.common.pollution.Pollution;
@@ -350,6 +353,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     @Override
     public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
         super.onFirstTick(aBaseMetaTileEntity);
+        // A reactor saved switched off (before it had no on/off state) is on again
+        if (aBaseMetaTileEntity.isServerSide() && !aBaseMetaTileEntity.isAllowedToWork()) {
+            aBaseMetaTileEntity.enableWorking();
+        }
         if (!mWorldSaved) {
             mWrench = false;
             mScrewdriver = false;
@@ -1572,16 +1579,43 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (getRepairStatus() == getIdealStatus()) {
                 mWrench = false;
             }
-        } else {
-            if (mMachine && getRepairStatus() == getIdealStatus()) {
-                IGregTechTileEntity base = getBaseMetaTileEntity();
-                if (base != null && base.getLastShutDownReason() == ShutDownReasonRegistry.NO_REPAIR) {
-                    base.setShutdownStatus(false);
-                    base.setShutDownReason(ShutDownReasonRegistry.NONE);
-                    base.enableWorking();
-                }
-            }
         }
+    }
+
+    // The MPTR has no on/off state: it runs whenever its structure is formed, and its control rods run it. GregTech's
+    // stops, soft mallet and covers never switch it off or record a shutdown.
+
+    @Override
+    public void stopMachine(@Nonnull ShutDownReason reason) {
+        mOutputItems = null;
+        mOutputFluids = null;
+        mEUt = 0;
+        mEfficiency = 0;
+        mProgresstime = 0;
+        mMaxProgresstime = 0;
+        mEfficiencyIncrease = 0;
+    }
+
+    @Override
+    public void onDisableWorking() {
+        super.onDisableWorking();
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base != null) base.enableWorking();
+    }
+
+    @Override
+    public boolean shouldDisplayShutDownReason() {
+        return false;
+    }
+
+    @Override
+    public boolean hasAlternativeModeText() {
+        return true;
+    }
+
+    @Override
+    public String getAlternativeModeText() {
+        return StatCollector.translateToLocal("gt.multiblock.nuclearreactor.no_power_switch");
     }
 
     @Override

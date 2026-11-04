@@ -18,6 +18,7 @@ import com.gtnewhorizon.structurelib.StructureLib;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEActinideCompounder;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
@@ -277,5 +278,45 @@ public class MultiblockStructureErrorsTest {
         assertTrue(machine.checkStructure(true, base), machine.mName + " structure check must pass");
         assertFalse(works[0], machine.mName + " must stay off after its structure is fixed");
         assertEquals(ShutDownReasonRegistry.STRUCTURE_INCOMPLETE, reason[0], machine.mName + " shutdown reason");
+    }
+
+    /**
+     * The MPTR has no on/off state: GregTech stops (an incomplete structure, maintenance) record no shutdown, and a
+     * soft mallet or cover cannot switch it off. Whether it runs is up to its structure alone.
+     */
+    @Test
+    void testReactorHasNoOnOffState() {
+        MTENuclearReactor reactor = new MTENuclearReactor("test_reactor");
+        boolean[] works = { true };
+        boolean[] shutdown = { false };
+        IGregTechTileEntity base = Mockito.mock(IGregTechTileEntity.class);
+        Mockito.when(base.isServerSide())
+            .thenReturn(true);
+        Mockito.when(base.getMetaTileEntity())
+            .thenReturn(reactor);
+        Mockito.when(base.isAllowedToWork())
+            .thenAnswer(inv -> works[0]);
+        Mockito.doAnswer(inv -> {
+            works[0] = false;
+            reactor.onDisableWorking();
+            return null;
+        })
+            .when(base)
+            .disableWorking();
+        Mockito.doAnswer(inv -> works[0] = true)
+            .when(base)
+            .enableWorking();
+        Mockito.doAnswer(inv -> shutdown[0] = inv.getArgument(0))
+            .when(base)
+            .setShutdownStatus(Mockito.anyBoolean());
+        reactor.setBaseMetaTileEntity(base);
+
+        reactor.stopMachine(ShutDownReasonRegistry.STRUCTURE_INCOMPLETE);
+        assertTrue(works[0], "An incomplete structure must not switch the reactor off");
+        assertFalse(shutdown[0], "An incomplete structure must not record a shutdown");
+
+        base.disableWorking();
+        assertTrue(works[0], "A soft mallet or cover must not switch the reactor off");
+        assertFalse(reactor.shouldDisplayShutDownReason(), "The reactor GUI shows no shutdown reason");
     }
 }
