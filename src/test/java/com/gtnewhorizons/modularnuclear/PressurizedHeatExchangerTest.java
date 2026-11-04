@@ -541,7 +541,7 @@ public class PressurizedHeatExchangerTest {
     }
 
     @Test
-    public void testZeroCoolantFlowNoHeatExchangeWhileEnergyConsumed() {
+    public void testZeroCoolantFlowNoHeatExchangeAndNoPowerDraw() {
         boolean[] allowed = new boolean[] { true };
         MTEPressurizedHeatExchanger phe = new MTEPressurizedHeatExchanger("phe_zero_flow");
         IGregTechTileEntity mockBase = createMockBaseMetaTileEntity(allowed);
@@ -577,12 +577,12 @@ public class PressurizedHeatExchangerTest {
         assertEquals(300.0, seg.getCurrentTemperatureCelsius(), "Primary coolant did not cool when flow is zero");
         assertEquals(0.0, phe.getLastHeatTransferredWatts());
 
-        // BUT secondary side pump must still consume power each tick!
+        // No flow, no exchange: the PHE idles without drawing power, so it cannot powerfail on a still loop
         assertEquals(
-            1_000_000L - (20 * 1920L),
+            1_000_000L,
             energyHatch.getBaseMetaTileEntity()
                 .getStoredEU(),
-            "PHE secondary pumps must consume EU every tick even with zero loop flow");
+            "A PHE on a still loop draws no EU");
     }
 
     @Test

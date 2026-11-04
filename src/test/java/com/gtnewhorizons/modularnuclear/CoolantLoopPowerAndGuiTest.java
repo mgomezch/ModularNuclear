@@ -329,6 +329,9 @@ public class CoolantLoopPowerAndGuiTest {
         MTEHatchEnergy evHatch = createMockEnergyHatch(4, hatch1EU);
         phe.mEnergyHatches.add(evHatch);
         assertEquals(1920L, phe.getRequiredPowerDrawEU());
+        // A PHE works (and draws power) only on a loop whose coolant flows
+        phe.setBoundSegment(new LoopSegment("phe_seg", 1.0, 0.10, 0.000045, 1.2, 500.0, 2000.0, 300.0));
+        phe.setLastCoolantFlowRateM3s(0.01);
 
         // Step heat exchange with sufficient power
         assertTrue(phe.stepHeatExchange());

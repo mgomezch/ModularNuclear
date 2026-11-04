@@ -89,6 +89,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     protected CoolantFluidProperty mLoopFluid = null;
     protected double mLastCoolantFlowRateM3s = 0.0;
     protected long mLastStepTick = -1;
+    /** World tick of the pump's last report of the loop's flow; once it stops reporting, the coolant is still. */
+    protected long mLastFlowReportTick = -1;
     protected final PheExchange.Batch mBatch = new PheExchange.Batch();
 
     public MTEPressurizedHeatExchanger(int aID, String aName, String aNameRegional) {
@@ -368,6 +370,10 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide()) {
+            // A pump that stopped (or a loop that broke) no longer reports its flow: the coolant here is still
+            if (aBaseMetaTileEntity.getTimer() - mLastFlowReportTick > 2) {
+                mLastCoolantFlowRateM3s = 0.0;
+            }
             stepHeatExchange();
         }
     }
@@ -699,6 +705,15 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
             return true;
         }
 
+        // No flow, no exchange: a PHE on a still or empty loop idles and draws nothing
+        if (mBoundSegment == null || Math.abs(mLastCoolantFlowRateM3s) <= 1e-9) {
+            mLastHeatTransferredWatts = 0.0;
+            if (getBaseMetaTileEntity() != null) {
+                getBaseMetaTileEntity().setActive(false);
+            }
+            return true;
+        }
+
         double effFactor = getEfficiencyFactor();
         if (effFactor <= 0.0) {
             mLastHeatTransferredWatts = 0.0;
@@ -783,6 +798,10 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         this.mBoundSegment = segment;
         this.mLoopFluid = fluid;
         this.mLastCoolantFlowRateM3s = coolantFlowRateM3s;
+        IGregTechTileEntity te = getBaseMetaTileEntity();
+        if (te != null) {
+            mLastFlowReportTick = te.getTimer();
+        }
         if (segment != null) {
             this.mCurrentCoolantTemp = segment.getCurrentTemperatureCelsius();
         }

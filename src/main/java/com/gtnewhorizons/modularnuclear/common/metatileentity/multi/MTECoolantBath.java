@@ -237,7 +237,8 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
         segment.setMinorLossK(getMinorLossK());
 
         int activeCount = getActiveItemCount();
-        if (activeCount <= 0) return;
+        // No flow, no exchange: items in a bath on a still loop keep their temperature
+        if (activeCount <= 0 || coolantFlowRateM3s <= 1e-9) return;
 
         double velocity = segment.getArea() > 0 ? (coolantFlowRateM3s / segment.getArea()) : 0.0;
         ConvectiveHeatTransferModel conv = getConvectiveModel();

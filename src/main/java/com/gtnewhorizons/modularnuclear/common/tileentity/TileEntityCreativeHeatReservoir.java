@@ -126,7 +126,8 @@ public class TileEntityCreativeHeatReservoir extends TileEntity
     @Override
     public void processThermalExchange(double coolantFlowRateM3s, double dt, CoolantFluidProperty fluid,
         LoopSegment segment) {
-        if (segment == null || fluid == null) {
+        // No flow, no exchange
+        if (segment == null || fluid == null || coolantFlowRateM3s <= 1e-9 || segment.getArea() <= 0.0) {
             return;
         }
 
