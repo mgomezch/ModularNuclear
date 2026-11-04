@@ -119,12 +119,12 @@ The tier of the reactor is the tier of the Item Pipe Casings in layer 2 (all mus
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 0 | Electrum | EV | 1200 °C | 240 °C | No | IC2 coolant |
 | 1 | Platinum | IV | 1400 °C | 280 °C | No | + distilled water |
-| 2 | Osmium | LuV | 1800 °C | 360 °C | Yes | + molten sodium |
-| 3 | Quantium | ZPM | 2200 °C | 440 °C | Yes | + heavy water, molten lead |
+| 2 | Osmium | LuV | 1800 °C | 360 °C | Yes | as Platinum |
+| 3 | Quantium | ZPM | 2200 °C | 440 °C | Yes | + heavy water |
 | 4 | Fluxed Electrum | UV | 2600 °C | 520 °C | Yes | all |
 | 5 | Black Plutonium | UHV | 3200 °C | 640 °C | Yes | all |
 
-A fluid is accepted into a core hatch if it appears on the tier's whitelist, or if the reactor's tier is at least the fluid's `required_tier`. Liquid fuels carry their own `required_tier` (§6.2).
+A fluid is accepted into a core hatch if it appears on the tier's whitelist, or if the reactor's tier is at least the fluid's `required_tier`. Liquid fuels carry their own `required_tier` (§6.2). Molten sodium and lead are loop coolants only (§9.7): a core hatch turns its coolant into something hotter, and a liquid metal has nothing hotter to become, so no core hatch accepts them at any tier.
 
 The **maximum operating temperature** is not a soft limit. Any core column above it at the end of a cycle inflicts structural damage and loses its non-fuel contents (§12.3).
 
@@ -353,7 +353,6 @@ Representative coefficients:
 | Material | $c$ |
 | :--- | :--- |
 | High-pressure passage | 0.90 |
-| Molten lead / sodium | 0.75 / 0.70 |
 | Component heat vent / exchanger | 0.50 |
 | IC2 coolant (fluid) | 0.50 |
 | Heat vents, coolant cells | 0.40–0.60 |
@@ -740,11 +739,9 @@ The cooling law has two consequences. First, the hatch cools only its own cell: 
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | IC2 coolant | Electrum | ambient | 20 HU | Hot coolant | 1:1 | 0.50 | 0.03 / 0.12 | 0.45 / 0.45 | 0.05 | none |
 | Distilled water | Platinum | 100 °C | 17.66 HU | Superheated steam | 1:160 | 0.30 | 0.05 / 0.10 | 0.70 / 0.70 | 0.25 | 100 °C |
-| Molten sodium | Osmium | ambient | 480 HU | Molten sodium | 1:1 | 0.70 | 0.01 / 0.05 | 0.20 / 0.20 | 0.05 | 883 °C |
 | Heavy water | Quantium | 101.4 °C | 17.66 HU | Heavy water steam | 1:160 | 0.30 | 0.005 / 0.01 | 0.85 / 0.85 | 0.90 | 101.4 °C |
-| Molten lead | Quantium | ambient | 560 HU | Molten lead | 1:1 | 0.75 | 0.005 / 0.02 | 0.15 / 0.15 | 0.02 | 1749 °C |
 
-Coolants are also neutronic materials. Water is a moderate moderator with significant thermal absorption; heavy water is an excellent moderator ($p_m = 0.9$) with negligible absorption; liquid metals are nearly transparent and barely moderate, so they cool a fast-spectrum core without thermalizing it. A coolant whose required tier exceeds the reactor's tier is not accepted.
+Coolants are also neutronic materials. Water is a moderate moderator with significant thermal absorption; heavy water is an excellent moderator ($p_m = 0.9$) with negligible absorption. Liquid metals (sodium, lead) cool only through loops: in a passage they are nearly transparent and barely moderate, so they cool a fast-spectrum core without thermalizing it. A coolant whose required tier exceeds the reactor's tier is not accepted.
 
 The **explosion temperature** of a coolant is the temperature above which coolant flashes on contact with a dry hatch; see thermal shock (§12.2).
 
@@ -900,7 +897,6 @@ The reactor's recoverable heat leaves as:
 | Superheated steam (from distilled water) | High-pressure steam turbines |
 | Heavy water steam | Turbines (with heavy water recovery) |
 | Hot IC2 coolant | Heat exchangers (to steam) |
-| Molten sodium / lead | External heat exchange |
 | Closed loop heat | Pressurized Heat Exchanger → steam |
 
 Conversion efficiency depends on the turbines and exchangers used and is not part of the core simulation. The standalone simulator estimates turbine requirements and output from the steam and coolant flows (§14).
@@ -1019,7 +1015,7 @@ Thermal shock models coolant flashing on contact with a superheated hatch. It is
 
 A thermal shock voids all coolant in that hatch, adds 2 % structural damage, opens one maintenance issue, and raises a GregTech power-failure notification. The reactor keeps running.
 
-Explosion temperatures are 100 °C for distilled water, 101.4 °C for heavy water, 883 °C for sodium, 1749 °C for lead, and none for IC2 coolant. Because boiling coolants operate at or above their boiling point, **every water-cooled hatch is above its explosion temperature during normal operation.** Letting such a hatch run dry and refilling it while hot always causes a shock. The cell must be cooled below 100 °C before refilling, or the supply must never be interrupted.
+Explosion temperatures are 100 °C for distilled water, 101.4 °C for heavy water, and none for IC2 coolant. Because boiling coolants operate at or above their boiling point, **every water-cooled hatch is above its explosion temperature during normal operation.** Letting such a hatch run dry and refilling it while hot always causes a shock. The cell must be cooled below 100 °C before refilling, or the supply must never be interrupted.
 
 The shock repeats every cycle while the condition persists; continuous injection into a hot dry hatch accumulates 2 % damage per cycle (8 % per second).
 

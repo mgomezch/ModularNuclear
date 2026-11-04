@@ -28,8 +28,6 @@ tiers:
   allowed_coolants:
   - ic2coolant
   - distilledwater
-  - sodium
-  - molten.sodium
 - tier: 3
   name: Tier 3 (ZPM - Quantium)
   casing_material: Quantium Casing
@@ -41,10 +39,6 @@ tiers:
   - ic2coolant
   - distilledwater
   - heavywater
-  - sodium
-  - molten.sodium
-  - lead
-  - molten.lead
 - tier: 4
   name: Tier 4 (UV - Fluxed)
   casing_material: Fluxed Electrum Casing

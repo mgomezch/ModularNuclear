@@ -468,7 +468,6 @@ coolant_fluids:
   scattering_fast: 0.2
   scattering_thermal: 0.2
   moderation: 0.05
-  hot_fluid_name: molten.sodium
   required_tier: 2
   expansion_ratio: 1
   heat_per_liter: 480.0
@@ -489,7 +488,6 @@ coolant_fluids:
   scattering_fast: 0.15
   scattering_thermal: 0.15
   moderation: 0.02
-  hot_fluid_name: molten.lead
   required_tier: 3
   expansion_ratio: 1
   heat_per_liter: 560.0

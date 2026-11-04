@@ -54,6 +54,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridT
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearReactorPhysics;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.NuclearReactorStructure;
 import com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver;
@@ -452,6 +453,20 @@ public class NuclearSimulationEngineTest {
             MTEHatchNuclearHatch.getRequiredFluidTier("fluid.heavywater"));
         assertFalse(NuclearSimulationEngine.isFluidAllowed("fluid.heavywater", 2));
         assertTrue(NuclearSimulationEngine.isFluidAllowed("fluid.heavywater", 3));
+    }
+
+    @Test
+    void testLiquidMetalsCoolLoopsOnly() {
+        // Molten sodium and lead have nothing hotter to turn into, so no core hatch takes them, at any tier
+        for (String metal : new String[] { "sodium", "molten.sodium", "lead", "molten.lead" }) {
+            assertEquals(-1, MTEHatchNuclearHatch.getRequiredFluidTier(metal), metal);
+            for (int tier = 0; tier <= 5; tier++) {
+                assertFalse(NuclearSimulationEngine.isFluidAllowed(metal, tier), metal + " at tier " + tier);
+            }
+        }
+        // A passage carrying them still has their moderation
+        assertEquals(0.05, CoolantPassage.moderation("sodium"), 1e-9);
+        assertEquals(0.02, CoolantPassage.moderation("molten.lead"), 1e-9);
     }
 
     @Test

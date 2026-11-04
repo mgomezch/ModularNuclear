@@ -782,36 +782,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             null,
             0L,
             "Non-boiling high-capacity coolant | Cycles to Hot Coolant");
-        addFluidCoolant(
-            "molten.sodium",
-            "Molten Sodium",
-            0.20,
-            0.01,
-            0.05,
-            0.20,
-            0.05,
-            0.70,
-            883.0,
-            1.280,
-            false,
-            null,
-            0L,
-            "Liquid metal coolant (melts at 96.85 °C, boils at 883 °C) | k = 0.70");
-        addFluidCoolant(
-            "molten.lead",
-            "Molten Lead",
-            0.15,
-            0.005,
-            0.02,
-            0.15,
-            0.02,
-            0.75,
-            1749.0,
-            0.160,
-            false,
-            null,
-            0L,
-            "High-temperature heavy liquid metal | k = 0.75 conduction");
 
         // 8. IC2 HEAT VENTS & HEAT EXCHANGERS
         addHeatVent("reactorVent", "Heat Vent", 6.0, 0.0, 0.40, 128L, 512L, "Self-cooling: 6 Hu/t | 128 EU/t");

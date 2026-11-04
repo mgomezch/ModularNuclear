@@ -430,11 +430,14 @@ public class NuclearSimulationEngine {
         return cfd != null ? cfd.explosionTemperature : Double.POSITIVE_INFINITY;
     }
 
-    /** The casing tier a core hatch needs to hold this fluid, or -1 if no core hatch accepts it. */
+    /**
+     * The casing tier a core hatch needs to hold this fluid, or -1 if no core hatch accepts it. A coolant with no hot
+     * fluid to turn into (molten sodium, lead: loop coolants only) cools no core hatch.
+     */
     public static int getRequiredFluidTier(String fluidName) {
         if (fluidName == null) return -1;
         ComponentData.CoolantFluidData cfd = configProvider.findCoolantFluid(fluidName);
-        if (cfd != null) return cfd.requiredTier;
+        if (cfd != null) return cfd.hotFluidName != null ? cfd.requiredTier : -1;
         FuelData fd = configProvider.findFuel(fluidName);
         if (fd != null && fd.isLiquid) return fd.requiredTier;
         return -1;

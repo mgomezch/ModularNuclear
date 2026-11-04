@@ -61,8 +61,7 @@ public final class ModularNuclearConfig {
     public static String[] allowedCoolantItems = new String[] { "IC2:reactorCoolantSimple", "IC2:reactorCoolantTriple",
         "IC2:reactorCoolantSix", "gregtech:gt.reactorCoolant*" };
 
-    public static String[] allowedCoolantFluids = new String[] { "ic2coolant", "heavywater", "distilledwater", "sodium",
-        "lead", "molten.sodium", "liquid_sodium", "molten.lead" };
+    public static String[] allowedCoolantFluids = new String[] { "ic2coolant", "heavywater", "distilledwater" };
 
     public static String[] allowedControlRods = new String[] { "stickLongSilver=SILVER", "stickLongBoron=BORON",
         "stickLongCadmium=CADMIUM", "stickLongIndium=INDIUM", "stickLongHafnium=HAFNIUM",
