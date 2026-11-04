@@ -189,7 +189,7 @@ coolantloops.pump.status.not_tank_block=Block at (%d, %d, %d) is %s, not a Railc
 coolantloops.pump.status.mismatched_tank_block=Railcraft tank block at (%d, %d, %d) belongs to a different multiblock tank!
 coolantloops.pump.status.tank_not_valid=Railcraft tank above pump is not fully formed/structurally valid!
 coolantloops.pump.status.multiple_tanks=Mismatched Railcraft tank: multiple distinct tank multiblocks detected above pump!
-coolantloops.pump.status.tank_empty=Railcraft tank is empty! Coolant fluid required before pump can operate.
+coolantloops.pump.status.tank_empty=Reservoir is empty: fill the Railcraft tank with coolant to start the pump.
 
 coolantloops.pump.status.req_hatches=Requires 1 discharge and 1 suction high-pressure hatch
 coolantloops.pump.status.req_maintenance=Requires 1 Maintenance Hatch

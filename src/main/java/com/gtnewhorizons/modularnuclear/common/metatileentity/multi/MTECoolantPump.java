@@ -1677,6 +1677,15 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
      * step's result, or null to carry on.
      */
     private Boolean refuseUnsuitableFluid(FluidStack reservoirFluid) {
+        if (mCurrentFillLiters <= 0 && getTotalCoolantLiters() <= 0) {
+            // Nothing in the tank or the loop: the pump waits for coolant
+            mLoopState = LoopState.STOPPED;
+            mEngine.setPumpPowered(false);
+            mEngine.setPumpMechanicalPowerWatts(0.0);
+            mEngine.setBraking(false);
+            setLoopStatusKey("coolantloops.pump.status.tank_empty");
+            return true;
+        }
         if (reservoirFluid != null && reservoirFluid.getFluid() != null) {
             if (isLiquidNuclearFuel(reservoirFluid)) {
                 failOnLiquidNuclearFuel(

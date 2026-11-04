@@ -466,8 +466,9 @@ public class CoolantPumpReservoir {
 
         FluidStack availableFluid = getReservoirFluid();
         if (availableFluid == null || availableFluid.amount <= 0 || availableFluid.getFluid() == null) {
+            // The tank is built: an empty one keeps the pump from starting, not from forming
             pump.setLoopStatusKey("coolantloops.pump.status.tank_empty");
-            return false;
+            return true;
         }
 
         if (CoolantFluidHelper.isLiquidNuclearFuel(availableFluid)) {
