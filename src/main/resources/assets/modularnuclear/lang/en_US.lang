@@ -98,12 +98,13 @@ gt.multiblock.nuclearreactor.desc11= - Fluxed electrum: %s | excited thorium
 gt.multiblock.nuclearreactor.desc12= - Black plutonium: %s | excited plutonium
 gt.multiblock.nuclearreactor.desc13=Match high-pressure hatches in bottom control-rod layer to return coolant to loop.
 gt.multiblock.nuclearreactor.desc14=Control rods absorb neutrons via redstone level; controller SCRAM overrides to 100%.
+gt.multiblock.nuclearreactor.no_power_switch=Nothing happens.
 gt.multiblock.nuclearreactor.desc15=Outputs depleted fuels / byproducts to output buses/hatches.
 gt.multiblock.nuclearreactor.desc16=Inserting coolant into dry hatches above boiling point causes hull damage!
 gt.multiblock.nuclearreactor.desc17=Overheating hatches voids contents and adds hull damage; 100% causes meltdown!
 gt.multiblock.nuclearreactor.desc18=Nuclear control hatches expose reactor state to redstone logic and OpenComputers.
 gt.multiblock.nuclearreactor.desc19=Radiovoltaic cells convert neutron flux to EU (up to 2A each) in multiamp dynamos.
-gt.multiblock.nuclearreactor.desc20=Hull damage repair requires maintenance with average temperature below 10% of max.
+gt.multiblock.nuclearreactor.desc20=Hull damage repair requires maintenance with average temperature below 20% of max.
 gt.multiblock.nuclearreactor.finisher=GregTech nuclear power
 
 gt.multiblock.nuclearreactor.structure.wallshare=This multiblock cannot share walls TODO: yes it can
@@ -386,7 +387,7 @@ coolantloops.pump.status.not_tank_block=Block at (%d, %d, %d) is %s, not a Railc
 coolantloops.pump.status.mismatched_tank_block=Railcraft tank block at (%d, %d, %d) belongs to a different multiblock tank!
 coolantloops.pump.status.tank_not_valid=Railcraft tank above pump is not fully formed/structurally valid!
 coolantloops.pump.status.multiple_tanks=Mismatched Railcraft tank: multiple distinct tank multiblocks detected above pump!
-coolantloops.pump.status.tank_empty=Railcraft tank is empty! Coolant fluid required before pump can operate.
+coolantloops.pump.status.tank_empty=Reservoir is empty: fill the Railcraft tank with coolant to start the pump.
 
 coolantloops.pump.status.req_hatches=Requires 1 discharge and 1 suction high-pressure hatch
 coolantloops.pump.status.req_maintenance=Requires 1 Maintenance Hatch
@@ -423,7 +424,6 @@ coolantloops.pump.status.filled_circulating=Loop filled (%d L). Beginning circul
 coolantloops.pump.status.accelerating=Accelerating: %.1f L/s (consuming %d EU/t, target %.1f L/s)
 coolantloops.pump.status.circulating=Circulating: %.1f L/s (consuming %d EU/t, target %.1f L/s)
 coolantloops.pump.status.loop_active=Loop active: %d pipe segments, %d devices (filled %d L)
-coolantloops.pump.status.refuse_solidify_coolant=Pump refused to start: Coolant temperature (%.1f °C) is below declared GregTech melting point (%.1f °C) for %s! Fluid would solidify.
 
 coolantloops.pump.status.catastrophic_fuel=Catastrophic pump failure: %s is a liquid nuclear fuel, not a coolant! Impeller disintegrated!
 coolantloops.pump.status.catastrophic_solidification=Catastrophic coolant solidification: Coolant temperature (%.1f °C) dropped below declared GregTech melting point (%.1f °C) for %s! Solidified plug ruptured loop.

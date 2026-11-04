@@ -282,4 +282,9 @@ public interface ICoolantLoopPump {
      * Notifies the pump that an in-line device has disconnected from the loop (e.g. powerfailed).
      */
     default void onDeviceDisconnected(ICoolantLoopDevice device, String reason) {}
+
+    /** Whether the loop is full and its coolant flowing, so devices on it have coolant to work on. */
+    default boolean isCoolantFlowing() {
+        return false;
+    }
 }

@@ -125,9 +125,8 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
                 applyTextMaxWidth(widget, textMaxWidth);
                 columns.child(widget);
             }
-            return columns.setEnabledIf(
-                widget -> multiblock.shouldDisplayShutDownReason() && !baseMetaTileEntity.isActive()
-                    && !baseMetaTileEntity.isAllowedToWork());
+            // The reactor is never switched off: its structure errors show whenever it is unformed
+            return columns;
         })
             .allowC2S();
 

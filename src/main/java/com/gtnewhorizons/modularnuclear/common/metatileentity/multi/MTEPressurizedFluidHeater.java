@@ -118,7 +118,6 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
 
     protected boolean mPowerFailed = false;
     protected boolean mWorks = true;
-    protected boolean mHasEverBeenEnabled = false;
     protected ICoolantLoopPump mConnectedPump = null;
     protected LoopSegment mBoundSegment = null;
     protected CoolantFluidProperty mLoopFluid = null;
@@ -405,17 +404,6 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
         return PressurizedFluidHeaterStructure.getStructureDefinition();
     }
 
-    @Override
-    protected void onStructureCheckFinished(IGregTechTileEntity aBaseMetaTileEntity) {
-        super.onStructureCheckFinished(aBaseMetaTileEntity);
-        if (mMachine) {
-            if (aBaseMetaTileEntity != null && !aBaseMetaTileEntity.isAllowedToWork() && !mHasEverBeenEnabled) {
-                aBaseMetaTileEntity.enableWorking();
-            }
-            mHasEverBeenEnabled = true;
-        }
-    }
-
     private void resetStructureCounters() {
         mCasingAmount = 0;
         mCoilLevel = HeatingCoilLevel.None;
@@ -533,10 +521,6 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
         }
 
         checkMaintenance();
-        if (aBaseMetaTileEntity != null && !aBaseMetaTileEntity.isAllowedToWork() && !mHasEverBeenEnabled) {
-            aBaseMetaTileEntity.enableWorking();
-            mHasEverBeenEnabled = true;
-        }
     }
 
     @Override
@@ -796,7 +780,9 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
 
         checkMaintenance();
 
-        if (!isAllowedToWork()) {
+        // Allowed to work or not, a heater heats only coolant flowing through it: with none it stays off, rather than
+        // heat its own mass past the casing's limit
+        if (!isAllowedToWork() || mConnectedPump == null || !mConnectedPump.isCoolantFlowing()) {
             mLastConsumedEuPerTick = 0L;
             mLastHeatingHuPerTick = 0.0;
             IGregTechTileEntity base = getBaseMetaTileEntity();
@@ -1278,7 +1264,6 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
         aNBT.setDouble("mLastHeatTransferWatts", mLastHeatTransferWatts);
         aNBT.setDouble("mLastCoolantFlowLitersPerSecond", mLastCoolantFlowLitersPerSecond);
         aNBT.setBoolean("mPowerFailed", mPowerFailed);
-        aNBT.setBoolean("mHasEverBeenEnabled", mHasEverBeenEnabled);
         aNBT.setByte("mRedstoneOutput", mRedstoneOutput);
         aNBT.setInteger("mFineOutputStrength", mFineOutputStrength);
         aNBT.setInteger("mBundledChannelMode", mBundledChannelMode);
@@ -1323,9 +1308,6 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
         }
         if (aNBT.hasKey("mPowerFailed")) {
             mPowerFailed = aNBT.getBoolean("mPowerFailed");
-        }
-        if (aNBT.hasKey("mHasEverBeenEnabled")) {
-            mHasEverBeenEnabled = aNBT.getBoolean("mHasEverBeenEnabled");
         }
         if (aNBT.hasKey("mRedstoneOutput")) {
             mRedstoneOutput = aNBT.getByte("mRedstoneOutput");

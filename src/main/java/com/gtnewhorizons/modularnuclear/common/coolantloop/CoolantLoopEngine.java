@@ -33,6 +33,11 @@ public class CoolantLoopEngine {
     private double unpoweredImpellerK = 8.0; // High minor loss coefficient when motor is disengaged
     private double maxPumpHeadPressurePa = Double.POSITIVE_INFINITY; // Maximum stall head (uncapped by default)
     private double coastDownDecay = 0.98; // Viscous coast-down decay factor per tick when unpowered
+    /**
+     * Whether the loop holds coolant. Unfilled pipe has no temperature: until the loop fills, no temperature limit
+     * (melting, freezing) applies to its segments.
+     */
+    private boolean holdsCoolant = true;
 
     /**
      * How far below its freezing point coolant may read before it counts as frozen: molten coolants fill at exactly
@@ -254,6 +259,14 @@ public class CoolantLoopEngine {
 
     public List<LoopSegment> getSegments() {
         return Collections.unmodifiableList(segments);
+    }
+
+    public boolean holdsCoolant() {
+        return holdsCoolant;
+    }
+
+    public void setHoldsCoolant(boolean holdsCoolant) {
+        this.holdsCoolant = holdsCoolant;
     }
 
     public CoolantFluidProperty getFluid() {
@@ -521,6 +534,9 @@ public class CoolantLoopEngine {
                     segment.getMaxPressureBar());
                 return;
             }
+
+            // Temperature limits apply only to coolant: an unfilled loop's pipe has no temperature
+            if (!holdsCoolant) continue;
 
             // Thermal limit check
             if (segment.hasTemperatureLimit()
