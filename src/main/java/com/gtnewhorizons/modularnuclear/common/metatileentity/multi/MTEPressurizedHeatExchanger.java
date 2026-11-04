@@ -557,9 +557,10 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
                         int expansion = matchedCoolant.expansionRatio > 0 ? matchedCoolant.expansionRatio : 1;
                         int gasProduced = actualFluidDrained * expansion;
 
-                        Fluid outputFluid = matchedCoolant.isSteam
-                            ? steamFluid(
-                                PheExchange.steamGrade(mBatch.effectiveTemperature(mCurrentCoolantTemp), pheConfig))
+                        Fluid outputFluid = matchedCoolant.isSteam ? steamFluid(
+                            PheExchange.steamOfFamily(
+                                PheExchange.steamGrade(mBatch.effectiveTemperature(mCurrentCoolantTemp), pheConfig),
+                                matchedCoolant))
                             : gasFluid(matchedCoolant);
                         if (outputFluid != null) {
                             addOutput(new FluidStack(outputFluid, gasProduced));

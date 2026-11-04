@@ -111,6 +111,18 @@ public final class PheExchange {
         return latentPerMl > 0 ? (int) (heatJoules / latentPerMl) : 0;
     }
 
+    /**
+     * The steam of a grade (steamGrade) in the secondary coolant's family: heavy water boils to heavy-water steam of
+     * the
+     * same grade, everything else to plain steam's.
+     */
+    public static String steamOfFamily(String grade, SecondaryCoolantEntry coolant) {
+        if (coolant == null || !"heavywatersteam".equals(coolant.outputGasName)) return grade;
+        if ("supercriticalsteam".equals(grade)) return "supercriticalheavywatersteam";
+        if ("ic2superheatedsteam".equals(grade)) return "superheatedheavywatersteam";
+        return "heavywatersteam";
+    }
+
     /** Steam grade produced at a heat-weighted coolant temperature: supercritical, superheated or plain steam. */
     public static String steamGrade(double effectiveTemp, PHEData cfg) {
         if (effectiveTemp >= cfg.supercriticalTempThreshold) return "supercriticalsteam";

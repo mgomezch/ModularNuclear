@@ -53,7 +53,8 @@ function renderProcessPipeline() {
     stageReg.style.opacity = "1.0";
     setText("proc-reg-title", "⚡ Stage 4: Large Steam Turbine (LST)");
     setText("proc-reg-pwr", formatPowerAndAmps(pe.lstPowerEUt, true));
-    const regFlow = Math.round((currentState.flowRegularSteam || 0) + pe.coolantSteamProduced);
+    // Heavy-water steam below superheated grade runs the plain steam turbines
+    const regFlow = Math.round((currentState.flowRegularSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + pe.coolantSteamProduced);
     setText("proc-reg-detail", `${regFlow.toLocaleString()} L/t steam · ${pe.lstTurbinesNeeded.toFixed(2)} LST units (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`);
     setText("proc-reg-eff", `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff (${pe.lstPowerEUt > 0 ? (pe.lstPowerEUt / Math.max(1, regFlow)).toFixed(3) : 0} EU/L)`);
 
@@ -85,7 +86,7 @@ function renderProcessPipeline() {
     stageHp.style.opacity = "1.0";
     setText("proc-hp-title", "⚡ Stage 3: XLST-HP (superheated steam)");
     setText("proc-hp-pwr", formatPowerAndAmps(pe.xlstHpPowerEUt, true));
-    const hpFlow = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + pe.coolantSteamProduced);
+    const hpFlow = Math.round((currentState.flowSuperheatedSteam || 0) + pe.coolantSteamProduced);
     setText("proc-hp-detail", `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`);
     setText("proc-hp-cascade", "Cascades 1:1 into Regular Steam for Stage 4");
 
@@ -93,7 +94,7 @@ function renderProcessPipeline() {
     stageReg.style.opacity = "1.0";
     setText("proc-reg-title", "⚡ Stage 4: XLST (regular steam)");
     setText("proc-reg-pwr", formatPowerAndAmps(pe.xlstPowerEUt, true));
-    const regFlow = Math.round((currentState.flowRegularSteam || 0) + hpFlow);
+    const regFlow = Math.round((currentState.flowRegularSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + hpFlow);
     setText("proc-reg-detail", `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`);
     setText("proc-reg-eff", `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff (${pe.xlstPowerEUt > 0 ? (pe.xlstPowerEUt / Math.max(1, regFlow)).toFixed(3) : 0} EU/L)`);
 
@@ -125,7 +126,7 @@ function renderProcessPipeline() {
     stageHp.style.opacity = "1.0";
     setText("proc-hp-title", "⚡ Stage 3: XLST-HP (superheated steam)");
     setText("proc-hp-pwr", formatPowerAndAmps(pe.xlstHpPowerEUt, true));
-    const hpFlow = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + pe.coolantSteamProduced);
+    const hpFlow = Math.round((currentState.flowSuperheatedSteam || 0) + pe.coolantSteamProduced);
     setText("proc-hp-detail", `${hpFlow.toLocaleString()} L/t SH steam · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines (opt ${Math.round(pe.optFlowPerTurbine).toLocaleString()} L/t)`);
     setText("proc-hp-cascade", "Cascades 1:1 into Regular Steam for Stage 4");
 
@@ -133,7 +134,7 @@ function renderProcessPipeline() {
     stageReg.style.opacity = "1.0";
     setText("proc-reg-title", "⚡ Stage 4: XLST (regular steam)");
     setText("proc-reg-pwr", formatPowerAndAmps(pe.xlstPowerEUt, true));
-    const regFlow = Math.round((currentState.flowRegularSteam || 0) + hpFlow);
+    const regFlow = Math.round((currentState.flowRegularSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + hpFlow);
     setText("proc-reg-detail", `${regFlow.toLocaleString()} L/t steam (including cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`);
     setText("proc-reg-eff", `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff`);
 
@@ -168,7 +169,7 @@ function renderProcessPipeline() {
     stageHp.style.opacity = "1.0";
     setText("proc-hp-title", "⚡ Stage 3: XLST-HP (superheated steam)");
     setText("proc-hp-pwr", formatPowerAndAmps(pe.xlstHpPowerEUt, true));
-    const hpDirect = Math.round((currentState.flowSuperheatedSteam || 0) + (currentState.flowHeavyWaterSteam || 0) + (!isSC ? pe.coolantSteamProduced : 0));
+    const hpDirect = Math.round((currentState.flowSuperheatedSteam || 0) + (!isSC ? pe.coolantSteamProduced : 0));
     const hpTotal = hpDirect + scFlow;
     setText("proc-hp-detail", `${hpTotal.toLocaleString()} L/t SH steam (${scFlow.toLocaleString()} from SC cascade) · ${pe.xlstHpTurbinesNeeded.toFixed(2)} turbines`);
     setText("proc-hp-cascade", "Cascades 1:1 into Regular Steam for Stage 4");
@@ -177,7 +178,7 @@ function renderProcessPipeline() {
     stageReg.style.opacity = "1.0";
     setText("proc-reg-title", "⚡ Stage 4: XLST (regular steam)");
     setText("proc-reg-pwr", formatPowerAndAmps(pe.xlstPowerEUt, true));
-    const regDirect = Math.round(currentState.flowRegularSteam || 0);
+    const regDirect = Math.round((currentState.flowRegularSteam || 0) + (currentState.flowHeavyWaterSteam || 0));
     const regTotal = regDirect + hpTotal;
     setText("proc-reg-detail", `${regTotal.toLocaleString()} L/t steam (${hpTotal.toLocaleString()} from HP cascade) · ${pe.xlstTurbinesNeeded.toFixed(2)} turbines`);
     setText("proc-reg-eff", `Base 0.5 EU/L × ${(pe.efficiency * 100).toFixed(1)}% Eff`);

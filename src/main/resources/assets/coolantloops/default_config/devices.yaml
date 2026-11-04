@@ -19,6 +19,7 @@ phe:
     - "distilledwater"
     - "distilled_water"
     - "water.distilled"
+    - "heavywater"
 
 # Pressurized Degasser
 degasser:

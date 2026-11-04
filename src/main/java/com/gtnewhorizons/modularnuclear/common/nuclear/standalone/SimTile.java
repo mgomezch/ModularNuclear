@@ -542,7 +542,7 @@ public class SimTile implements INuclearTile {
                     this.inputFluidName = "heavywater";
                     this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
-                    this.outputFluidName = "fluid.heavywatersteam";
+                    this.outputFluidName = "superheatedheavywatersteam";
                 }
                 case HATCH_IC2_COOLANT -> {
                     this.inputFluidName = "ic2coolant";

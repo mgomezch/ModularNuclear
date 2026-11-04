@@ -424,7 +424,7 @@ coolant_fluids:
   scattering_fast: 0.85
   scattering_thermal: 0.85
   moderation: 0.9
-  hot_fluid_name: heavywatersteam
+  hot_fluid_name: superheatedheavywatersteam
   required_tier: 3
   expansion_ratio: 160
   heat_per_liter: 17.65625

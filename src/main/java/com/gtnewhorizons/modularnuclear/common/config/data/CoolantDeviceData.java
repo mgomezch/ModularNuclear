@@ -96,6 +96,8 @@ public class CoolantDeviceData {
                 new SecondaryCoolantEntry("distilledwater", 100.0, "steam", 2260000.0, 160, true),
                 new SecondaryCoolantEntry("distilled_water", 100.0, "steam", 2260000.0, 160, true),
                 new SecondaryCoolantEntry("water.distilled", 100.0, "steam", 2260000.0, 160, true),
+                // Heavy water boils to heavy-water steam of the same grades (PheExchange.steamOfFamily)
+                new SecondaryCoolantEntry("heavywater", 101.4, "heavywatersteam", 2300000.0, 160, true),
                 new SecondaryCoolantEntry("liquidnitrogen", -196.0, "nitrogen", 160000.0, 1, false),
                 new SecondaryCoolantEntry("liquid_nitrogen", -196.0, "nitrogen", 160000.0, 1, false),
                 new SecondaryCoolantEntry("liquidoxygen", -183.0, "oxygen", 243000.0, 1, false),

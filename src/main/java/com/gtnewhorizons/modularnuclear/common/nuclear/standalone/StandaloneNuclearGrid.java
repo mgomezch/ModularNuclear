@@ -1058,7 +1058,14 @@ public class StandaloneNuclearGrid {
                                 flowRegularSteam += ratePerTick;
                             }
                         }
-                        case HATCH_HEAVY_WATER -> flowHeavyWaterSteam += ratePerTick;
+                        // Heavy-water steam is worth what plain steam of its grade is in a turbine
+                        case HATCH_HEAVY_WATER -> {
+                            if (tile.getTemperature() >= 300.0) {
+                                flowSuperheatedSteam += ratePerTick;
+                            } else {
+                                flowHeavyWaterSteam += ratePerTick;
+                            }
+                        }
                         case HATCH_IC2_COOLANT -> flowHotCoolant += ratePerTick;
                         default -> {}
                     }
