@@ -584,6 +584,7 @@ public class CoolantLoopEngine {
         if (volumetricFlowRate <= 1e-7 || segments.size() < 2) {
             for (LoopSegment seg : segments) {
                 seg.setIncomingTemperatureCelsius(seg.getCurrentTemperatureCelsius());
+                seg.markAdvected();
             }
             return;
         }

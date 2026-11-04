@@ -151,6 +151,51 @@ public class LoopAdvectionTest {
             "implicit steady state too far from the fine solution: " + implicitError);
     }
 
+    @Test
+    void testDeviceOutletIsWhatTheNextSegmentSettlesAt() {
+        // A serial loop with a heater that heats its own volume once a tick (as a creative heat reservoir does) and a
+        // cooler that cools its own (as a PHE does), one acting after the loop's advection step and one before (the
+        // world ticks them in either order): each peaks right after it acts, and passes on coolant nearer its inflow.
+        // In the steady loop, the outlet temperature each reports is what the pipe after it holds, and the heater's
+        // rise matches the cooler's fall.
+        List<LoopSegment> segs = new ArrayList<>();
+        for (int i = 0; i < 12; i++) segs.add(seg(i == 3 ? "heater" : i == 8 ? "cooler" : "pipe_" + i, 300.0));
+        segs.get(3)
+            .setCustomVolumeM3(0.0079);
+        segs.get(8)
+            .setCustomVolumeM3(0.0226);
+        double flow = 0.0533;
+        double rhoCp = 1000.0 * 4184.0;
+        for (int tick = 0; tick < 4000; tick++) {
+            LoopSegment heater = segs.get(3), cooler = segs.get(8);
+            cooler.setCurrentTemperatureCelsius(
+                cooler.getCurrentTemperatureCelsius() - 0.2 * (cooler.getCurrentTemperatureCelsius() - 300.0));
+            LoopAdvection.step(segs, flow, TICK);
+            heater.setCurrentTemperatureCelsius(
+                heater.getCurrentTemperatureCelsius() + 2.0e5 * TICK / (heater.getVolume() * rhoCp));
+        }
+        double rise = 0.0;
+        for (int i : new int[] { 3, 8 }) {
+            LoopSegment s = segs.get(i);
+            double out = s.getOutletTemperatureCelsius(flow * 1000.0, TICK);
+            double change = out - s.getIncomingTemperatureCelsius();
+            assertEquals(
+                segs.get(i + 1)
+                    .getCurrentTemperatureCelsius(),
+                out,
+                0.01 * Math.abs(change),
+                s.getId());
+            if (i == 3) {
+                // The heater acted after the advection step: it still holds the step's heat, above its outflow
+                assertTrue(
+                    s.getCurrentTemperatureCelsius() - s.getIncomingTemperatureCelsius() > 1.05 * change,
+                    "the heater peaks above its outflow");
+            }
+            rise += change;
+        }
+        assertEquals(0.0, rise, 0.01, "heat in equals heat out");
+    }
+
     private static double max(double[] t) {
         double m = -Double.MAX_VALUE;
         for (double v : t) m = Math.max(m, v);

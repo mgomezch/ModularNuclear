@@ -68,8 +68,9 @@ public final class LoopAdvection {
         double max = -Double.MAX_VALUE;
         for (int i = 0; i < n; i++) {
             LoopSegment s = segments.get(i);
-            s.setCurrentTemperatureCelsius(next[i]);
+            s.setAdvectedTemperatureCelsius(next[i]);
             s.setIncomingTemperatureCelsius(g.upstreams[i].length == 0 ? next[i] : g.mix(i, next));
+            s.markAdvected();
             max = Math.max(max, next[i]);
         }
         return max;

@@ -212,12 +212,45 @@ public class LoopSegment {
         return currentTemperatureCelsius;
     }
 
+    /** Sets the temperature as a device does (an exchange: see getOutletTemperatureCelsius). */
     public void setCurrentTemperatureCelsius(double temp) {
+        pendingExchangeCelsius += temp - currentTemperatureCelsius;
+        this.currentTemperatureCelsius = temp;
+    }
+
+    /** Sets the temperature advection gives the segment, which is no exchange (LoopAdvection). */
+    public void setAdvectedTemperatureCelsius(double temp) {
         this.currentTemperatureCelsius = temp;
     }
 
     public double getIncomingTemperatureCelsius() {
         return incomingTemperatureCelsius;
+    }
+
+    /** What devices changed the temperature by since the last advection step, and over the step before it. */
+    private double pendingExchangeCelsius = 0.0;
+    private double lastExchangeCelsius = 0.0;
+
+    /**
+     * Closes an advection step (LoopAdvection, once per step): the devices' changes since the last one are the step's
+     * exchange, whether a device acted before or after the advection in the tick.
+     */
+    public void markAdvected() {
+        this.lastExchangeCelsius = pendingExchangeCelsius;
+        this.pendingExchangeCelsius = 0.0;
+    }
+
+    /**
+     * Temperature of the coolant this segment passes on, at flowLitersPerSecond through the loop and steps of dt
+     * seconds: its inflow plus what devices did to it over the last step, spread over the coolant that went through in
+     * that step. A device holds its step's heat in its own volume until the flow carries it on, so its
+     * current temperature swings each step; this is the temperature its outflow averages, the one the next segment
+     * settles at in a steady loop.
+     */
+    public double getOutletTemperatureCelsius(double flowLitersPerSecond, double dt) {
+        double through = flowLitersPerSecond * flowFraction * dt;
+        if (through <= 1e-9) return currentTemperatureCelsius;
+        return incomingTemperatureCelsius + lastExchangeCelsius * getVolumeLiters() / through;
     }
 
     public void setIncomingTemperatureCelsius(double incomingTemperatureCelsius) {

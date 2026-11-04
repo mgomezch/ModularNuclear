@@ -591,7 +591,9 @@ public class CoolantLoopGraphData {
         if (matchedSeg != null && fn.type != NodeType.MANIFOLD_GROUP) {
             flow = engine.getFlowRateLitersPerSecond() * matchedSeg.getFlowFraction();
             tempIn = matchedSeg.getIncomingTemperatureCelsius();
-            tempOut = matchedSeg.getCurrentTemperatureCelsius();
+            // What the device passes on, not its own temperature, which swings each step (the pump steps the loop
+            // once a tick)
+            tempOut = matchedSeg.getOutletTemperatureCelsius(engine.getFlowRateLitersPerSecond(), 0.05);
             pressureIn = matchedSeg.getInletPressureBar();
             pressureOut = matchedSeg.getOutletPressureBar();
         }
