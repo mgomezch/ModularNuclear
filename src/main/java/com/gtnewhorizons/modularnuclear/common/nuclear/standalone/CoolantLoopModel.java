@@ -522,7 +522,7 @@ public class CoolantLoopModel {
     public static final int PIPE_RUN_BLOCKS = 80;
     /** A loop's heater rings, loop instruments and branch pipe blocks unless its design says otherwise. */
     public static final int DEFAULT_HEATER_RINGS = 9;
-    public static final int DEFAULT_INSTRUMENTS = 1;
+    public static final int DEFAULT_INSTRUMENTS = 2;
     public static final int DEFAULT_PASSAGE_BRANCH_BLOCKS = 4;
     public static final int DEFAULT_PHE_BRANCH_BLOCKS = 6;
     /** Most rings a Pressurized Fluid Heater has (PressurizedFluidHeaterStructure: lengths 3 to 11, two end layers). */

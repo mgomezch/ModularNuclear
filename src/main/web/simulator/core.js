@@ -471,7 +471,7 @@ async function onCoolantLoopConfigChange() {
     wasmSim.setCoolantLoopPhe(pheCount, pheHatch, pheHatches, false);
     wasmSim.setCoolantLoopCount(loopCount, false);
     wasmSim.setCoolantLoopGeometry(blocks("loop-cold-blocks-input", 80), blocks("loop-hot-blocks-input", 80),
-      blocks("loop-return-blocks-input", 80), blocks("loop-heater-rings-input", 9), blocks("loop-instruments-input", 1),
+      blocks("loop-return-blocks-input", 80), blocks("loop-heater-rings-input", 9), blocks("loop-instruments-input", 2),
       blocks("loop-passage-branch-input", 4), blocks("loop-phe-branch-input", 6), false);
     wasmSim.setCoolantLoopHeaterCasing(val("loop-heater-casing-select", ""), false);
     wasmSim.setCoolantLoopControl(isNaN(duty) ? 100 : duty, maxFlow, maxPress, false);
