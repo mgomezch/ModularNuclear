@@ -111,6 +111,9 @@ public class ModularNuclear {
             .registerEntityRenderingHandler(EntityMeltdownFallout.class, new RenderEmpty());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new CherenkovClientHandler());
         FalloutVisualEffectRenderer.init();
+        if (com.gtnewhorizons.modularnuclear.common.item.ModItems.steamCell != null) {
+            com.gtnewhorizons.modularnuclear.common.item.ModItems.steamCell.registerRenderer();
+        }
     }
 
     @Mod.EventHandler

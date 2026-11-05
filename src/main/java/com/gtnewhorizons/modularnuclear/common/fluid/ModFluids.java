@@ -93,6 +93,7 @@ public class ModFluids {
 
     public static void registerContainers() {
         registerFluidContainers(fluidHeavyWater, ModItems.cellHeavyWater);
+        if (ModItems.steamCell != null) ModItems.steamCell.registerContainers();
         if (Loader.isModLoaded("IC2")) {
             registerUniversalFluidCell(fluidHeavyWaterSteam);
             registerUniversalFluidCell(fluidSuperheatedHeavyWaterSteam);

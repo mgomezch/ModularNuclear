@@ -14,6 +14,7 @@ public class ModItems {
     public static ItemStack radiovoltaicPlateEV;
 
     public static ItemNuclearFluidCell cellHeavyWater;
+    public static ItemSteamCell steamCell;
 
     public static ItemCustomFuelRod rodCustomFuel1;
     public static ItemCustomDepletedFuelRod rodCustomDepletedFuel1;
@@ -45,6 +46,9 @@ public class ModItems {
         cellHeavyWater = new ItemNuclearFluidCell("cellHeavyWater", ModFluids.fluidHeavyWater);
         GameRegistry.registerItem(cellHeavyWater, "cellHeavyWater");
         OreDictionary.registerOre("cellHeavyWater", new ItemStack(cellHeavyWater));
+
+        steamCell = new ItemSteamCell();
+        GameRegistry.registerItem(steamCell, "steam_cell");
 
         itemCoriumDust = new ItemCoriumDust();
         GameRegistry.registerItem(itemCoriumDust, "corium_dust");
