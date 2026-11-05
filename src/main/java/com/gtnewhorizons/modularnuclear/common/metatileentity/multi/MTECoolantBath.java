@@ -308,9 +308,10 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
         if (!aBaseMetaTileEntity.isServerSide()) return;
         if (!mMachine) return;
 
-        // 1. Immediately intake compatible items from input buses into empty slots
+        // 1. Immediately intake compatible items from input buses into empty slots, unless switched off
         if (mSlots != null) {
-            for (int i = 0; i < mSlots.length; i++) {
+            boolean intake = aBaseMetaTileEntity.isAllowedToWork();
+            for (int i = 0; intake && i < mSlots.length; i++) {
                 if (mSlots[i] == null) {
                     for (MTEHatchInputBus bus : mInputBusses) {
                         for (int s = 0; s < bus.getSizeInventory(); s++) {
