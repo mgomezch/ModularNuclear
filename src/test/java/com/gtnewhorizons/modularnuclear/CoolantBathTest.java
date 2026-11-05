@@ -704,4 +704,81 @@ public class CoolantBathTest {
             1e-4,
             "Slot temperature must match heat transfer calculated with configured convective model");
     }
+
+    /** Newton cooling in coolant held at coolantTemp for the given seconds, as the bath steps it. */
+    private static void soak(CoolantBathSlot slot, double coolantTemp, double seconds) {
+        ConvectiveHeatTransferModel conv = ConvectiveHeatTransferModel.DEFAULT;
+        for (int tick = 0; tick < seconds * 20; tick++) {
+            double q = conv.computeHeatTransferRate(2.0, slot.surfaceArea, slot.currentTemp, coolantTemp);
+            slot.currentTemp -= q * 0.05 / slot.heatCapacity;
+            slot.updateItemDamage();
+        }
+    }
+
+    private static CoolantBathSlot hotIngot(double cooledTemp) {
+        return new CoolantBathSlot(
+            new ItemStack(Items.gold_ingot),
+            1500.0,
+            cooledTemp,
+            0,
+            1000,
+            1000.0,
+            0.15,
+            false,
+            true,
+            true,
+            new ItemStack(Items.iron_ingot));
+    }
+
+    @Test
+    void testHotIngotCoolsIntoItsIngotInAWarmLoop() {
+        // Cooled at 100 C: a 60 C loop gets it there, though it never gets below 60
+        CoolantBathSlot slot = hotIngot(100.0);
+        assertFalse(slot.isAutoEjectReady(60.0, 1.0));
+        soak(slot, 60.0, 600);
+        assertTrue(slot.currentTemp > 60.0 && slot.currentTemp < 102.0, "cooled to " + slot.currentTemp);
+        assertTrue(slot.isAutoEjectReady(60.0, 1.0));
+        ItemStack out = slot.getCompletedOutput();
+        assertEquals(Items.iron_ingot, out.getItem());
+        assertFalse(out.hasTagCompound(), "no bath tags on what leaves");
+    }
+
+    @Test
+    void testIngotThatSettlesTooHotLeavesStillHot() {
+        // A 300 C loop: the ingot settles at 300, as cool as it gets there, and leaves as it is
+        CoolantBathSlot slot = hotIngot(100.0);
+        soak(slot, 300.0, 60);
+        assertFalse(slot.isAutoEjectReady(300.0, 1.0), "still cooling at " + slot.currentTemp);
+        soak(slot, 300.0, 1200);
+        assertTrue(slot.isAutoEjectReady(300.0, 1.0), "settled at " + slot.currentTemp);
+        ItemStack out = slot.getCompletedOutput();
+        assertEquals(Items.gold_ingot, out.getItem(), "not cooled: still the hot ingot");
+        assertFalse(out.hasTagCompound(), "no bath tags on what leaves");
+    }
+
+    @Test
+    void testHotCellSettlesWithTheLoopsHeat() {
+        // A 10k cell at 90% heat (about 900 C) in a 40 C loop: it leaves at 40 C, holding about 2% of its heat
+        ItemStack cell = new ItemStack(Items.iron_sword);
+        int max = cell.getMaxDamage();
+        cell.setItemDamage(max * 9 / 10);
+        double temp = 20.0 + (double) (cell.getItemDamage() - 1) / (max - 1) * 980.0;
+        CoolantBathSlot slot = new CoolantBathSlot(
+            cell,
+            temp,
+            20.0,
+            cell.getItemDamage(),
+            max,
+            max,
+            0.25,
+            true,
+            false,
+            true,
+            null);
+        soak(slot, 40.0, 1200);
+        assertTrue(slot.isAutoEjectReady(40.0, 1.0), "settled at " + slot.currentTemp);
+        int left = slot.getCompletedOutput()
+            .getItemDamage();
+        assertTrue(left > 1 && left < max * 4 / 100, "heat left " + left + " of " + max);
+    }
 }

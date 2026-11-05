@@ -352,12 +352,16 @@ public class CoolantDeviceData {
         public long fillVolumePerSlotLiters = 1000L; // Coolant fill volume per slot in Liters
         public double baseMinorLossK = 1.0; // Base minor loss coefficient of empty bath
         public double itemMinorLossK = 1.0; // Additional minor loss K per active item in bath
+        public double settleMarginC = 1.0; // An item this close to the coolant's temperature is done with
+        public double ingotCooledTempC = 100.0; // A hot ingot at or below this has cooled into its ingot
 
         public Map<String, Object> toMap() {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("fillVolumePerSlotLiters", fillVolumePerSlotLiters);
             map.put("baseMinorLossK", baseMinorLossK);
             map.put("itemMinorLossK", itemMinorLossK);
+            map.put("settleMarginC", settleMarginC);
+            map.put("ingotCooledTempC", ingotCooledTempC);
             return map;
         }
 
@@ -370,6 +374,9 @@ public class CoolantDeviceData {
                 d.baseMinorLossK = ((Number) map.get("baseMinorLossK")).doubleValue();
             if (map.containsKey("itemMinorLossK"))
                 d.itemMinorLossK = ((Number) map.get("itemMinorLossK")).doubleValue();
+            if (map.containsKey("settleMarginC")) d.settleMarginC = ((Number) map.get("settleMarginC")).doubleValue();
+            if (map.containsKey("ingotCooledTempC"))
+                d.ingotCooledTempC = ((Number) map.get("ingotCooledTempC")).doubleValue();
             return d;
         }
     }

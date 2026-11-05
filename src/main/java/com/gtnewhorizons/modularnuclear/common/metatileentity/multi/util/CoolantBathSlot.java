@@ -72,7 +72,17 @@ public class CoolantBathSlot {
     }
 
     /**
-     * Checks if the slot item has reached its transformation or auto-ejection criteria.
+     * Whether the item is done in a bath at coolantTemp: it has reached its goal, or it has come as close to it as
+     * that coolant allows (it has settled within settleMargin of the coolant's temperature, and can only follow it from
+     * there). Cryogenic cells are done once boiled off.
+     */
+    public boolean isAutoEjectReady(double coolantTemp, double settleMargin) {
+        if (isAutoEjectReady()) return true;
+        return itemStack != null && !isCryoCell && Math.abs(currentTemp - coolantTemp) <= settleMargin;
+    }
+
+    /**
+     * Checks if the slot item has reached its goal: its transformation, or a coolant cell's full or empty state.
      *
      * Rules:
      * - Coolant cells auto-eject when reaching max or min durability, EXCEPT if present state
@@ -113,14 +123,32 @@ public class CoolantBathSlot {
         return false;
     }
 
+    /** What leaves the bath: the transformed item if the goal was reached, else the item as it now is. */
     public ItemStack getCompletedOutput() {
-        if (transformedOutput != null) {
+        if (transformedOutput != null && isAutoEjectReady()) {
             ItemStack res = transformedOutput.copy();
             res.stackSize = 1;
             return res;
         }
-        return itemStack;
+        return getCurrentStateOutput();
     }
+
+    /** The item as it now is (a coolant cell's damage at its temperature), without the bath's progress tags. */
+    public ItemStack getCurrentStateOutput() {
+        if (itemStack == null) return null;
+        updateItemDamage();
+        ItemStack res = itemStack.copy();
+        res.stackSize = 1;
+        if (res.hasTagCompound()) {
+            NBTTagCompound tag = res.getTagCompound();
+            for (String key : BATH_TAGS) tag.removeTag(key);
+            if (tag.hasNoTags()) res.setTagCompound(null);
+        }
+        return res;
+    }
+
+    /** The tags updateItemDamage keeps an item's bath progress in, off it once it leaves. */
+    private static final String[] BATH_TAGS = { "bathDamage", "bathProgress", "absorbedHeat", "bathTemperature" };
 
     public double getProgressFraction() {
         if (itemStack == null) return 0.0;

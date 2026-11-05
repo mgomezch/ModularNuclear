@@ -365,6 +365,12 @@ public class CoolantBathRegistry {
     /**
      * Creates a new CoolantBathSlot for an accepted item stack based on current loop coolant temperature.
      */
+    /** The temperature a hot ingot has cooled into its ingot at (devices.yaml bath.ingotCooledTempC). */
+    public static double ingotCooledTemperatureCelsius() {
+        CoolantDeviceData devData = CoolantLoopDataRegistry.getDeviceData();
+        return devData != null && devData.getBath() != null ? devData.getBath().ingotCooledTempC : 100.0;
+    }
+
     public static CoolantBathSlot createSlot(ItemStack inputStack, double currentCoolantTemp) {
         if (inputStack == null) return null;
         ensureInitialized();
@@ -435,7 +441,7 @@ public class CoolantBathRegistry {
                 : (mat != null ? GTOreDictUnificator.get(OrePrefixes.ingot, mat, 1L) : null);
 
             double initialTemp = hotTemp;
-            double targetTemp = 20.0;
+            double targetTemp = ingotCooledTemperatureCelsius();
             int maxDmg = 1000;
             int initialDmg = 0;
             double mass = mat != null ? Math.max(1.0, mat.getMass()) : 10.0;
