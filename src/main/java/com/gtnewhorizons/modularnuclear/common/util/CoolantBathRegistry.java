@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.FluidContainerRegistry;
+import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
@@ -52,6 +54,7 @@ public class CoolantBathRegistry {
         public final ItemStack liquidCell;
         public final ItemStack gasCell;
         public final double boilingPointCelsius;
+        /** Its latent heat of vaporization per liter, if the PHE has no entry for it. */
         public final double latentHeatJoules;
 
         public CryoCellPair(String name, ItemStack liquidCell, ItemStack gasCell, double boilingPointCelsius,
@@ -371,6 +374,12 @@ public class CoolantBathRegistry {
         return devData != null && devData.getBath() != null ? devData.getBath().ingotCooledTempC : 100.0;
     }
 
+    /** The liters of fluid a cell holds: what the fluid container registry says it holds, else a cell's 1000. */
+    static int cellLiters(ItemStack cell) {
+        FluidStack fluid = FluidContainerRegistry.getFluidForFilledItem(cell);
+        return fluid != null && fluid.amount > 0 ? fluid.amount : FluidContainerRegistry.BUCKET_VOLUME;
+    }
+
     public static CoolantBathSlot createSlot(ItemStack inputStack, double currentCoolantTemp) {
         if (inputStack == null) return null;
         ensureInitialized();
@@ -380,11 +389,20 @@ public class CoolantBathRegistry {
 
         CryoCellPair cryo = getCryoCellPair(stack);
         if (cryo != null) {
-            double cellTemp = cryo.boilingPointCelsius;
-            double targetTemp = cryo.boilingPointCelsius;
+            // It boils off at its boiling point, taking in the heat that boils the liquid it holds: the PHE's boiling
+            // point and latent heat for that fluid (devices.yaml phe.secondaryCoolants), per liter of the cell
+            CoolantDeviceData devData = CoolantLoopDataRegistry.getDeviceData();
+            CoolantDeviceData.PHEData.SecondaryCoolantEntry boil = devData != null && devData.getPhe() != null
+                ? devData.getPhe()
+                    .findSecondaryCoolant(cryo.name)
+                : null;
+            double boilingPoint = boil != null ? boil.boilingPointCelsius : cryo.boilingPointCelsius;
+            double latentPerLiter = boil != null ? boil.latentHeatJoulePerLiter : cryo.latentHeatJoules;
+            double cellTemp = boilingPoint;
+            double targetTemp = boilingPoint;
             int maxDmg = 1000;
             int initialDmg = 0;
-            double heatCap = Math.max(1000.0, cryo.latentHeatJoules); // Latent heat of vaporization in Joules
+            double heatCap = Math.max(1000.0, cellLiters(stack) * latentPerLiter); // Latent heat of vaporization, J
             double area = 0.25; // m^2 surface area
             ItemStack gasOutput = cryo.gasCell != null ? cryo.gasCell.copy() : null;
 
