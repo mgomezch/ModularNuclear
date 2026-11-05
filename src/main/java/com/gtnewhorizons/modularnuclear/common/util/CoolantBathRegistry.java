@@ -15,10 +15,12 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.Coolant
 
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
+import gregtech.api.enums.TierEU;
 import gregtech.api.objects.ItemData;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTRecipe;
+import gregtech.api.util.GTUtility;
 
 /**
  * Registry and physics helper for Coolant Bath compatible items.
@@ -375,10 +377,43 @@ public class CoolantBathRegistry {
             : CoolantDeviceData.CoolantBathData.TOUCH_SAFE_TEMP_C;
     }
 
-    /** The liters of fluid a cell holds: what the fluid container registry says it holds, else a cell's 1000. */
-    static int cellLiters(ItemStack cell) {
-        FluidStack fluid = FluidContainerRegistry.getFluidForFilledItem(cell);
-        return fluid != null && fluid.amount > 0 ? fluid.amount : FluidContainerRegistry.BUCKET_VOLUME;
+    /** The fluid a cell holds, as GregTech and the fluid container registry know it. */
+    private static FluidStack heldFluid(ItemStack cell) {
+        try {
+            FluidStack fluid = GTUtility.getFluidForFilledItem(cell, true);
+            if (fluid != null) return fluid;
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
+        }
+        return FluidContainerRegistry.getFluidForFilledItem(cell);
+    }
+
+    /** The share of a freezer's electricity for a change of state an item holds (bath.recoverableEnergyFraction). */
+    public static double recoverableEnergyFraction() {
+        CoolantDeviceData devData = CoolantLoopDataRegistry.getDeviceData();
+        return devData != null && devData.getBath() != null
+            ? Math.max(0.0, Math.min(1.0, devData.getBath().recoverableEnergyFraction))
+            : 1.0;
+    }
+
+    /**
+     * An ingot's thermal mass, J/K: between its hot ingot's temperature and the temperature it counts as cooled at it
+     * holds the heat a vacuum freezer's electricity for cooling it is worth (PHEData.joulesPerEU), times the bath's
+     * recoverable share. A material the freezer has no recipe for is counted as the freezer's own rule for hot ingots
+     * would have it: three ticks per unit of material mass at MV.
+     */
+    static double ingotHeatCapacity(ItemStack hotStack, ItemStack coldStack, Materials mat, double hotTemp) {
+        double eu = FreezerRecipeEnergy.euToFreeze(hotStack);
+        if (eu <= 0.0) eu = FreezerRecipeEnergy.euToMake(coldStack);
+        if (eu <= 0.0) {
+            double mass = mat != null ? Math.max(1.0, mat.getMass()) : 1.0;
+            eu = mass * 3.0 * TierEU.RECIPE_MV;
+        }
+        CoolantDeviceData devData = CoolantLoopDataRegistry.getDeviceData();
+        double joulesPerEU = devData != null && devData.getPhe() != null ? devData.getPhe()
+            .joulesPerEU() : new CoolantDeviceData.PHEData().joulesPerEU();
+        double span = Math.max(1.0, hotTemp - ingotCooledTemperatureCelsius());
+        return eu * joulesPerEU * recoverableEnergyFraction() / span;
     }
 
     public static CoolantBathSlot createSlot(ItemStack inputStack, double currentCoolantTemp) {
@@ -390,20 +425,25 @@ public class CoolantBathRegistry {
 
         CryoCellPair cryo = getCryoCellPair(stack);
         if (cryo != null) {
-            // It boils off at its boiling point, taking in the heat that boils the liquid it holds: the PHE's boiling
-            // point and latent heat for that fluid (devices.yaml phe.secondaryCoolants), per liter of the cell
+            // It boils off at its boiling point, taking up what a liter of it takes up boiling in a PHE (the
+            // electricity a vacuum freezer spends making that liter, as heat), for each liter the cell holds
             CoolantDeviceData devData = CoolantLoopDataRegistry.getDeviceData();
-            CoolantDeviceData.PHEData.SecondaryCoolantEntry boil = devData != null && devData.getPhe() != null
-                ? devData.getPhe()
-                    .findSecondaryCoolant(cryo.name)
+            CoolantDeviceData.PHEData phe = devData != null ? devData.getPhe() : null;
+            FluidStack held = heldFluid(stack);
+            String fluidName = held != null && held.getFluid() != null ? held.getFluid()
+                .getName() : cryo.name;
+            CoolantDeviceData.PHEData.SecondaryCoolantEntry boil = phe != null ? phe.findSecondaryCoolant(fluidName)
                 : null;
+            if (boil == null && phe != null) boil = phe.findSecondaryCoolant(cryo.name);
+            FreezerRecipeEnergy.applyTo(boil, fluidName, phe);
             double boilingPoint = boil != null ? boil.boilingPointCelsius : cryo.boilingPointCelsius;
-            double latentPerLiter = boil != null ? boil.latentHeatJoulePerLiter : cryo.latentHeatJoules;
+            double latentPerLiter = boil != null ? boil.latentHeat() : cryo.latentHeatJoules;
             double cellTemp = boilingPoint;
             double targetTemp = boilingPoint;
             int maxDmg = 1000;
             int initialDmg = 0;
-            double heatCap = Math.max(1000.0, cellLiters(stack) * latentPerLiter); // Latent heat of vaporization, J
+            double liters = held != null && held.amount > 0 ? held.amount : FluidContainerRegistry.BUCKET_VOLUME;
+            double heatCap = Math.max(1000.0, liters * latentPerLiter * recoverableEnergyFraction());
             double area = 0.25; // m^2 surface area
             ItemStack gasOutput = cryo.gasCell != null ? cryo.gasCell.copy() : null;
 
@@ -463,8 +503,7 @@ public class CoolantBathRegistry {
             double targetTemp = ingotCooledTemperatureCelsius();
             int maxDmg = 1000;
             int initialDmg = 0;
-            double mass = mat != null ? Math.max(1.0, mat.getMass()) : 10.0;
-            double heatCap = mass * 50.0; // e.g. 500 - 5000 J/K
+            double heatCap = ingotHeatCapacity(stack, coldOutput, mat, hotTemp);
             double area = 0.15; // m^2
 
             return new CoolantBathSlot(
@@ -492,8 +531,7 @@ public class CoolantBathRegistry {
             double targetTemp = hotTemp;
             int maxDmg = 1000;
             int initialDmg = 0;
-            double mass = mat != null ? Math.max(1.0, mat.getMass()) : 10.0;
-            double heatCap = mass * 50.0;
+            double heatCap = ingotHeatCapacity(hotOutput, stack, mat, hotTemp);
             double area = 0.15;
 
             return new CoolantBathSlot(

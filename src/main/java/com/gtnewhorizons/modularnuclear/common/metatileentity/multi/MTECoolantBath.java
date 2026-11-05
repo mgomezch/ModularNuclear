@@ -204,6 +204,17 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
         return (long) getTotalSlotCount() * perSlot;
     }
 
+    /**
+     * The share of the heat its items give off that reaches the coolant: set by the glass tier (devices.yaml
+     * bath.glassEfficiencyBase and glassEfficiencyPerTier), and always between 50% and 90%.
+     */
+    public double getHeatEfficiency() {
+        CoolantDeviceData devData = CoolantLoopDataRegistry.getDeviceData();
+        CoolantDeviceData.CoolantBathData bath = devData != null && devData.getBath() != null ? devData.getBath()
+            : new CoolantDeviceData.CoolantBathData();
+        return bath.efficiency(mGlassTier);
+    }
+
     @Override
     public double getDeviceTemperatureCelsius() {
         return mCurrentCoolantTemp;
@@ -243,6 +254,7 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
         double velocity = segment.getArea() > 0 ? (coolantFlowRateM3s / segment.getArea()) : 0.0;
         ConvectiveHeatTransferModel conv = getConvectiveModel();
 
+        double efficiency = getHeatEfficiency();
         double totalHeatToCoolantJoules = 0.0;
         for (int i = 0; i < mSlots.length; i++) {
             CoolantBathSlot slot = mSlots[i];
@@ -263,7 +275,8 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
                     double actualHeatAbsorbed = Math.min(heatAbsorbed, remainingCapacity);
                     slot.absorbedHeatJoules += actualHeatAbsorbed;
                     slot.updateItemDamage();
-                    totalHeatToCoolantJoules -= actualHeatAbsorbed;
+                    // Only the bath's share of the cold it spends boiling reaches the coolant
+                    totalHeatToCoolantJoules -= actualHeatAbsorbed * efficiency;
                 }
             } else {
                 // Newton's law: Q_dot = h(v) * A * (T_item - T_coolant)
@@ -276,7 +289,9 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
                 slot.currentTemp += deltaItemTemp;
                 slot.updateItemDamage();
 
-                totalHeatToCoolantJoules += deltaEJoules;
+                // The bath's share of the heat an item gives off reaches the coolant, and an item taking heat up costs
+                // the coolant that much more than it gains: a round trip through baths always loses
+                totalHeatToCoolantJoules += deltaEJoules > 0 ? deltaEJoules * efficiency : deltaEJoules / efficiency;
             }
         }
 
@@ -803,6 +818,8 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
             .addInfo("3 blocks tall, variable footprint (5x7 EV, 7x9 IV, 9x11 LuV)")
             .addInfo("Transfers heat between loop coolant and items in parallel virtual slots")
             .addInfo("No electricity use, no recipes: operates purely by Newton's law of cooling")
+            .addInfo("An item holds the heat a Vacuum Freezer's EU for the same job is worth as steam")
+            .addInfo("Glass sets the share that reaches the coolant: 50% under EV, +5% per tier, up to 90%")
             .addSeparator()
             .beginStructureBlock(5, 3, 7, false)
             .addController("Front bottom center")

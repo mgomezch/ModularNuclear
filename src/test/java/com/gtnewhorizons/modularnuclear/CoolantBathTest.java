@@ -792,4 +792,110 @@ public class CoolantBathTest {
         soak(slot, 0.0, 1200);
         assertTrue(slot.isAutoEjectReady(), "at " + slot.currentTemp);
     }
+
+    @Test
+    void testAnEuIsWorthTheHeatItsSteamTook() {
+        // 2.26 MJ boils a liter of water into 160 L of steam, 80 EU in a turbine at 100%
+        assertEquals(28250.0, new CoolantDeviceData.PHEData().joulesPerEU(), 1e-6);
+    }
+
+    @Test
+    void testGlassEfficiencyStaysBetweenHalfAndNineTenths() {
+        CoolantDeviceData.CoolantBathData bath = new CoolantDeviceData.CoolantBathData();
+        assertEquals(0.5, bath.efficiency(4), 1e-9, "EV");
+        assertEquals(0.55, bath.efficiency(5), 1e-9, "IV");
+        assertEquals(0.6, bath.efficiency(6), 1e-9, "LuV");
+        assertEquals(0.9, bath.efficiency(12), 1e-9, "UMV");
+        assertEquals(0.9, bath.efficiency(20), 1e-9, "no higher than 90%");
+        assertEquals(0.5, bath.efficiency(-1), 1e-9, "no lower than 50%");
+        bath.glassEfficiencyBase = 2.0;
+        assertEquals(0.9, bath.efficiency(4), 1e-9, "whatever the configuration");
+        bath.glassEfficiencyBase = 0.0;
+        bath.glassEfficiencyPerTier = 0.0;
+        assertEquals(0.5, bath.efficiency(12), 1e-9, "whatever the configuration");
+    }
+
+    /** A bath under glass of a tier holding one item, stepped once in a 100 C loop; returns the coolant's heat gain. */
+    private static double coolantGain(int glassTier, CoolantBathSlot slot) {
+        MTECoolantBath bath = new MTECoolantBath("test.bath.eff" + glassTier);
+        bath.mGlassTier = glassTier;
+        bath.mSlots = new CoolantBathSlot[15];
+        bath.mSlots[0] = slot;
+        LoopSegment seg = new LoopSegment("test_eff_seg", 1.0, 0.05, 10.0, 0.0, 20.0, 100.0, 100.0);
+        seg.setCurrentTemperatureCelsius(100.0);
+        CoolantFluidProperty water = CoolantFluidProperty.WATER;
+        bath.processThermalExchange(0.05, 1.0, water, seg);
+        return (seg.getCurrentTemperatureCelsius() - 100.0) * seg.getVolume()
+            * water.getDensity()
+            * water.getSpecificHeat();
+    }
+
+    @Test
+    void testOnlyTheGlassTiersShareOfAnItemsHeatReachesTheCoolant() {
+        for (int tier : new int[] { 4, 8, 12 }) {
+            double eff = new CoolantDeviceData.CoolantBathData().efficiency(tier);
+            // Cooling: the coolant gains the share of what the item gave off
+            CoolantBathSlot hot = hotIngot(45.0);
+            double gain = coolantGain(tier, hot);
+            double gaveOff = (1500.0 - hot.currentTemp) * hot.heatCapacity;
+            assertTrue(gaveOff > 0);
+            assertEquals(gaveOff * eff, gain, gaveOff * 1e-6, "cooling under glass tier " + tier);
+
+            // Heating: the coolant loses that much more than the item took up
+            CoolantBathSlot cold = new CoolantBathSlot(
+                new ItemStack(Items.iron_ingot),
+                20.0,
+                1500.0,
+                0,
+                1000,
+                1000.0,
+                0.15,
+                false,
+                true,
+                false,
+                new ItemStack(Items.gold_ingot));
+            gain = coolantGain(tier, cold);
+            double tookUp = (cold.currentTemp - 20.0) * cold.heatCapacity;
+            assertTrue(tookUp > 0);
+            assertEquals(-tookUp / eff, gain, tookUp * 1e-6, "heating under glass tier " + tier);
+
+            // A cryogenic cell: the coolant loses the share of the cold the cell spent
+            CoolantBathSlot cryo = new CoolantBathSlot(
+                new ItemStack(Items.bucket),
+                -196.0,
+                -196.0,
+                0,
+                1000,
+                1.0e9,
+                0.25,
+                false,
+                false,
+                false,
+                null,
+                true);
+            gain = coolantGain(tier, cryo);
+            assertTrue(cryo.absorbedHeatJoules > 0);
+            assertEquals(-cryo.absorbedHeatJoules * eff, gain, cryo.absorbedHeatJoules * 1e-6, "boiling, tier " + tier);
+        }
+    }
+
+    @Test
+    void testACoolantTheFreezerMakesTakesUpTheFreezersEnergy() {
+        CoolantDeviceData.PHEData.SecondaryCoolantEntry e = new CoolantDeviceData.PHEData.SecondaryCoolantEntry(
+            "liquidnitrogen",
+            -196.0,
+            "nitrogen",
+            1234.0,
+            1,
+            false);
+        assertEquals(1234.0, e.latentHeat(), 0.0, "as configured where the freezer has no recipe");
+        e.recipeLatentHeatJoulePerLiter = 576.0 * 28250.0;
+        assertEquals(16272000.0, e.latentHeat(), 0.0, "480 EU/t for a minute per 1000 L");
+        // The stock values agree with it outside the game
+        assertEquals(
+            16272000.0,
+            new CoolantDeviceData.PHEData().findSecondaryCoolant("liquidnitrogen")
+                .latentHeat(),
+            0.0);
+    }
 }
