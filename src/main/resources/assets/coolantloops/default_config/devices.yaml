@@ -10,6 +10,7 @@ phe:
   minorLossK: 1.2                  # Minor loss coefficient across bundle
   latentHeatJoulePerLiter: 2260000.0 # Latent heat of vaporization for water (J/L)
   steamExpansionRatio: 160          # 1 Liter water -> 160 Liters steam
+  steamLitersPerEU: 2.0             # Steam a turbine at 100% efficiency takes per EU: with the two above, 28250 J per EU
   superheatedTempThreshold: 300.0   # Coolant temp for superheated steam (deg C)
   supercriticalTempThreshold: 700.0 # Coolant temp for supercritical steam (deg C)
   approachMinDeltaT: 5.0            # Minimum pinch point approach temperature difference (deg C)
@@ -33,6 +34,13 @@ bath:
   baseMinorLossK: 1.0            # Base minor loss coefficient of empty bath
   itemMinorLossK: 1.0            # Additional minor loss K per active item in bath
   ingotCooledTempC: 45.0         # A hot ingot cooled to this or below leaves as its ingot: safe to touch (NASA's 45 C touch limit)
+  # An item's heat is what a GregTech vacuum freezer's electricity for the same change of state is worth as steam
+  # (its recipe's EU/t x duration, at the heat a PHE spends per EU of steam: phe.latentHeatJoulePerLiter /
+  # steamExpansionRatio x steamLitersPerEU): a hot ingot gives off what freezing it costs, a liquid nitrogen cell
+  # takes up what liquefying it costs. No loop between a freezer and a bath comes out ahead.
+  recoverableEnergyFraction: 1.0 # The share of that electricity an item holds
+  glassEfficiencyBase: 0.5       # The share of an item's heat that reaches the coolant under EV glass (the lowest a bath takes)
+  glassEfficiencyPerTier: 0.05   # Added per glass tier above EV; the result is kept between 0.5 and 0.9
 
 # Creative Heat Reservoir
 reservoir:

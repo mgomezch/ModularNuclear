@@ -28,6 +28,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureCh
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PheSheetmetalTier;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PressurizedHeatExchangerStructure;
+import com.gtnewhorizons.modularnuclear.common.util.FreezerRecipeEnergy;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
@@ -594,6 +595,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         if (fluid == null) return null;
         if (fluid != mMatchedFluid || cfg != mMatchedConfig) {
             mMatchedCoolant = cfg.findSecondaryCoolant(fluid.getName());
+            // A coolant a vacuum freezer makes takes up the heat the freezer spent making it
+            FreezerRecipeEnergy.applyTo(mMatchedCoolant, fluid.getName(), cfg);
             mMatchedFluid = fluid;
             mMatchedConfig = cfg;
         }

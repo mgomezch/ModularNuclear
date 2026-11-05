@@ -22,6 +22,18 @@ public class CoolantDeviceData {
             public int expansionRatio;
             public boolean isSteam;
 
+            /**
+             * The heat a liter takes up boiling, set in game from the electricity a vacuum freezer spends making that
+             * liter (FreezerRecipeEnergy); 0 where the freezer does not make this fluid, or outside the game.
+             */
+            public transient double recipeLatentHeatJoulePerLiter;
+            public transient boolean recipeLatentHeatResolved;
+
+            /** The heat a liter takes up boiling: the freezer's energy for it where it makes it, else as configured. */
+            public double latentHeat() {
+                return recipeLatentHeatJoulePerLiter > 0.0 ? recipeLatentHeatJoulePerLiter : latentHeatJoulePerLiter;
+            }
+
             public SecondaryCoolantEntry() {}
 
             public SecondaryCoolantEntry(String inputFluidName, double boilingPointCelsius, String outputGasName,
@@ -66,6 +78,16 @@ public class CoolantDeviceData {
         public double minorLossK = 1.2; // Heat exchanger core resistance
         public double latentHeatJoulePerLiter = 2260000.0; // Latent heat of vaporization for water
         public int steamExpansionRatio = 160; // 1 L water -> 160 L steam
+        public double steamLitersPerEU = 2.0; // Steam a turbine at 100% efficiency takes per EU
+
+        /**
+         * The heat one EU is worth: what a PHE spends boiling the water whose steam a turbine at 100% efficiency turns
+         * into that EU (2.26 MJ per liter of water, 160 L of steam, 2 L of steam per EU: 28250 J).
+         */
+        public double joulesPerEU() {
+            return latentHeatJoulePerLiter / Math.max(1, steamExpansionRatio) * steamLitersPerEU;
+        }
+
         public double superheatedTempThreshold = 300.0; // deg C for superheated steam
         public double supercriticalTempThreshold = 700.0; // deg C for supercritical steam
         public double approachMinDeltaT = 5.0; // Minimum approach temperature difference (pinch point) in deg C
@@ -98,12 +120,15 @@ public class CoolantDeviceData {
                 new SecondaryCoolantEntry("water.distilled", 100.0, "steam", 2260000.0, 160, true),
                 // Heavy water boils to heavy-water steam of the same grades (PheExchange.steamOfFamily)
                 new SecondaryCoolantEntry("heavywater", 101.4, "heavywatersteam", 2300000.0, 160, true),
-                new SecondaryCoolantEntry("liquidnitrogen", -196.0, "nitrogen", 160000.0, 1, false),
-                new SecondaryCoolantEntry("liquid_nitrogen", -196.0, "nitrogen", 160000.0, 1, false),
-                new SecondaryCoolantEntry("liquidoxygen", -183.0, "oxygen", 243000.0, 1, false),
-                new SecondaryCoolantEntry("liquid_oxygen", -183.0, "oxygen", 243000.0, 1, false),
-                new SecondaryCoolantEntry("liquidair", -194.0, "air", 174000.0, 1, false),
-                new SecondaryCoolantEntry("liquid_air", -194.0, "air", 174000.0, 1, false),
+                // Cryogens take up the heat a vacuum freezer's electricity for making them is worth (joulesPerEU):
+                // in game from its recipes (FreezerRecipeEnergy), and here as GregTech's stock recipes have it
+                // (nitrogen and oxygen 576 EU/L, air 13.44 EU/L). The freezer makes no liquid helium
+                new SecondaryCoolantEntry("liquidnitrogen", -196.0, "nitrogen", 16272000.0, 1, false),
+                new SecondaryCoolantEntry("liquid_nitrogen", -196.0, "nitrogen", 16272000.0, 1, false),
+                new SecondaryCoolantEntry("liquidoxygen", -183.0, "oxygen", 16272000.0, 1, false),
+                new SecondaryCoolantEntry("liquid_oxygen", -183.0, "oxygen", 16272000.0, 1, false),
+                new SecondaryCoolantEntry("liquidair", -194.0, "air", 379680.0, 1, false),
+                new SecondaryCoolantEntry("liquid_air", -194.0, "air", 379680.0, 1, false),
                 new SecondaryCoolantEntry("liquid_helium", -269.0, "helium", 20700.0, 1, false),
                 new SecondaryCoolantEntry("liquidhelium", -269.0, "helium", 20700.0, 1, false),
                 new SecondaryCoolantEntry("liquid helium", -269.0, "helium", 20700.0, 1, false),
@@ -197,13 +222,13 @@ public class CoolantDeviceData {
                     true);
             }
             if (norm.equals("liquidnitrogen") || norm.equals("nitrogenliquid")) {
-                return new SecondaryCoolantEntry("liquidnitrogen", -196.0, "nitrogen", 160000.0, 160, false);
+                return new SecondaryCoolantEntry("liquidnitrogen", -196.0, "nitrogen", 16272000.0, 160, false);
             }
             if (norm.equals("liquidoxygen") || norm.equals("oxygenliquid")) {
-                return new SecondaryCoolantEntry("liquidoxygen", -183.0, "oxygen", 243000.0, 160, false);
+                return new SecondaryCoolantEntry("liquidoxygen", -183.0, "oxygen", 16272000.0, 160, false);
             }
             if (norm.equals("liquidair") || norm.equals("airliquid")) {
-                return new SecondaryCoolantEntry("liquidair", -194.0, "air", 174000.0, 160, false);
+                return new SecondaryCoolantEntry("liquidair", -194.0, "air", 379680.0, 160, false);
             }
             if (norm.equals("liquidhelium") || norm.equals("heliumliquid") || norm.equals("bwmliquidhelium")) {
                 return new SecondaryCoolantEntry("liquid_helium", -269.0, "helium", 20700.0, 160, false);
@@ -227,6 +252,7 @@ public class CoolantDeviceData {
             map.put("minorLossK", minorLossK);
             map.put("latentHeatJoulePerLiter", latentHeatJoulePerLiter);
             map.put("steamExpansionRatio", steamExpansionRatio);
+            map.put("steamLitersPerEU", steamLitersPerEU);
             map.put("superheatedTempThreshold", superheatedTempThreshold);
             map.put("supercriticalTempThreshold", supercriticalTempThreshold);
             map.put("approachMinDeltaT", approachMinDeltaT);
@@ -251,6 +277,8 @@ public class CoolantDeviceData {
                 d.latentHeatJoulePerLiter = ((Number) map.get("latentHeatJoulePerLiter")).doubleValue();
             if (map.containsKey("steamExpansionRatio"))
                 d.steamExpansionRatio = ((Number) map.get("steamExpansionRatio")).intValue();
+            if (map.containsKey("steamLitersPerEU"))
+                d.steamLitersPerEU = ((Number) map.get("steamLitersPerEU")).doubleValue();
             if (map.containsKey("superheatedTempThreshold"))
                 d.superheatedTempThreshold = ((Number) map.get("superheatedTempThreshold")).doubleValue();
             if (map.containsKey("supercriticalTempThreshold"))
@@ -365,12 +393,37 @@ public class CoolantDeviceData {
         /** A hot ingot at or below this has cooled into its ingot: one safe to hold in a bare hand. */
         public double ingotCooledTempC = TOUCH_SAFE_TEMP_C;
 
+        /**
+         * The share of a GregTech machine's electricity for a change of state (a vacuum freezer's, cooling a hot ingot
+         * or liquefying a gas) that an item in a bath holds as heat to give off, or cold to take heat up with.
+         */
+        public double recoverableEnergyFraction = 1.0;
+        /** The share of the heat leaving an item that reaches the coolant, under the lowest glass a bath takes (EV). */
+        public double glassEfficiencyBase = 0.5;
+        /** What each glass tier above that adds to it. */
+        public double glassEfficiencyPerTier = 0.05;
+
+        /** The bounds a bath's efficiency stays within, whatever its glass and configuration. */
+        public static final double MIN_EFFICIENCY = 0.5;
+        public static final double MAX_EFFICIENCY = 0.9;
+        /** The lowest glass tier a bath takes: EV. */
+        public static final int BASE_GLASS_TIER = 4;
+
+        /** The share of the heat an item gives off that reaches the coolant, in a bath under glass of this tier. */
+        public double efficiency(int glassTier) {
+            double e = glassEfficiencyBase + glassEfficiencyPerTier * (glassTier - BASE_GLASS_TIER);
+            return Math.max(MIN_EFFICIENCY, Math.min(MAX_EFFICIENCY, e));
+        }
+
         public Map<String, Object> toMap() {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("fillVolumePerSlotLiters", fillVolumePerSlotLiters);
             map.put("baseMinorLossK", baseMinorLossK);
             map.put("itemMinorLossK", itemMinorLossK);
             map.put("ingotCooledTempC", ingotCooledTempC);
+            map.put("recoverableEnergyFraction", recoverableEnergyFraction);
+            map.put("glassEfficiencyBase", glassEfficiencyBase);
+            map.put("glassEfficiencyPerTier", glassEfficiencyPerTier);
             return map;
         }
 
@@ -385,6 +438,12 @@ public class CoolantDeviceData {
                 d.itemMinorLossK = ((Number) map.get("itemMinorLossK")).doubleValue();
             if (map.containsKey("ingotCooledTempC"))
                 d.ingotCooledTempC = ((Number) map.get("ingotCooledTempC")).doubleValue();
+            if (map.containsKey("recoverableEnergyFraction"))
+                d.recoverableEnergyFraction = ((Number) map.get("recoverableEnergyFraction")).doubleValue();
+            if (map.containsKey("glassEfficiencyBase"))
+                d.glassEfficiencyBase = ((Number) map.get("glassEfficiencyBase")).doubleValue();
+            if (map.containsKey("glassEfficiencyPerTier"))
+                d.glassEfficiencyPerTier = ((Number) map.get("glassEfficiencyPerTier")).doubleValue();
             return d;
         }
     }

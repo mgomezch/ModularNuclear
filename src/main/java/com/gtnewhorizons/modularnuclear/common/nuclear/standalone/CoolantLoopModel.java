@@ -1648,7 +1648,7 @@ public class CoolantLoopModel {
         double exchangeArea = PheGeometry.effectiveExchangeArea(c.pheHeight, c.pheLength, c.pheSheetmetalTier)
             * cfg.heatTransferMultiplier;
         double mechanicalWatts = c.pumpMechanicalPowerWatts();
-        double latentPerMl = secondary != null ? secondary.latentHeatJoulePerLiter / 1000.0 : 0.0;
+        double latentPerMl = secondary != null ? secondary.latentHeat() / 1000.0 : 0.0;
         int expansion = secondary != null && secondary.expansionRatio > 0 ? secondary.expansionRatio : 1;
 
         double extractedJoules = 0.0, boiledMl = 0.0;

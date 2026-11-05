@@ -74,7 +74,7 @@ public final class PheExchange {
             : 0.0;
 
         int batchTicks = Math.max(1, cfg.batchTicks);
-        double latentPerMl = coolant.latentHeatJoulePerLiter / 1000.0;
+        double latentPerMl = coolant.latentHeat() / 1000.0;
         double heat = Math.min(qWatts * dt, maxSensible);
         heat = Math.min(heat, maxBatchHeatJoules / batchTicks);
         heat = Math.min(heat, Math.max(0.0, maxBatchHeatJoules - b.heatJoules));
@@ -107,7 +107,7 @@ public final class PheExchange {
 
     /** Millilitres of secondary fluid the batch's heat boils. */
     public static int fluidToBoilMl(double heatJoules, SecondaryCoolantEntry coolant) {
-        double latentPerMl = coolant.latentHeatJoulePerLiter / 1000.0;
+        double latentPerMl = coolant.latentHeat() / 1000.0;
         return latentPerMl > 0 ? (int) (heatJoules / latentPerMl) : 0;
     }
 
