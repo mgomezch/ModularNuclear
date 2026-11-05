@@ -15,6 +15,7 @@ import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.sizer.Area;
 import com.gtnewhorizons.modularnuclear.CoolantLoops;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CellHeat;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantBathSlot;
 import com.gtnewhorizons.modularnuclear.network.PacketEjectCoolantBathSlot;
 import com.gtnewhorizons.modularnuclear.network.PacketSyncCoolantBath;
@@ -224,10 +225,10 @@ public class CoolantBathGridWidget extends Widget<CoolantBathGridWidget> impleme
         if (isCell) {
             list.add(
                 EnumChatFormatting.DARK_AQUA + "Coolant Cell: "
-                    + (stack.getMaxDamage() - stack.getItemDamage())
+                    + CellHeat.get(stack)
                     + " / "
-                    + stack.getMaxDamage()
-                    + " durability");
+                    + CellHeat.max(stack)
+                    + " heat");
         }
 
         list.add("");

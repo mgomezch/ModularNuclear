@@ -89,11 +89,11 @@ public class CoolantBathSlot {
         }
 
         if (isCoolantCell) {
-            int currentDmg = itemStack.getItemDamage();
+            int currentDmg = CellHeat.get(itemStack);
             if (currentDmg == initialDamage) {
                 return false;
             }
-            int minDmg = 1;
+            int minDmg = CellHeat.cold(itemStack);
             int maxDmg = maxDamage > 1 ? maxDamage : 10000;
             if (initialDamage >= maxDmg) {
                 return currentDmg <= minDmg;
@@ -130,9 +130,9 @@ public class CoolantBathSlot {
         }
 
         if (isCoolantCell) {
-            int minDmg = 1;
+            int minDmg = CellHeat.cold(itemStack);
             int maxDmg = maxDamage > 1 ? maxDamage : 10000;
-            int curDmg = itemStack.getItemDamage();
+            int curDmg = CellHeat.get(itemStack);
             if (cooling) {
                 return Math
                     .max(0.0, Math.min(1.0, (double) (initialDamage - curDmg) / Math.max(1, initialDamage - minDmg)));
@@ -172,12 +172,10 @@ public class CoolantBathSlot {
             tag.setDouble("bathTemperature", currentTemp);
             itemStack.setTagCompound(tag);
         } else if (isCoolantCell) {
-            int minDmg = 1;
+            int minDmg = CellHeat.cold(itemStack);
             int maxDmg = maxDamage > 1 ? maxDamage : 10000;
             double frac = Math.max(0.0, Math.min(1.0, (currentTemp - 20.0) / (1000.0 - 20.0)));
-            int dmg = minDmg + (int) Math.round(frac * (maxDmg - minDmg));
-            dmg = Math.max(minDmg, Math.min(maxDmg, dmg));
-            itemStack.setItemDamage(dmg);
+            CellHeat.set(itemStack, minDmg + (int) Math.round(frac * (maxDmg - minDmg)));
         } else if (isIngot) {
             double frac = getProgressFraction();
             int maxDmg = 1000;

@@ -5,7 +5,10 @@ import java.util.Map;
 
 import net.minecraft.item.ItemStack;
 
+import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
+import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CellHeat;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantBathSlot;
 
 import gregtech.api.enums.Materials;
@@ -395,10 +398,11 @@ public class CoolantBathRegistry {
         }
 
         if (isCoolantCell(stack)) {
-            int maxDmg = stack.getMaxDamage() > 0 ? stack.getMaxDamage() : 10000;
-            int curDmg = stack.getItemDamage();
-            // Temperature mapping: damage 1 -> 20 C, maxDamage -> 1000 C
-            double cellTemp = 20.0 + ((double) Math.max(0, curDmg - 1) / Math.max(1, maxDmg - 1)) * 980.0;
+            // Its stored heat (IC2 and GregTech cells keep it their own ways: CellHeat), cold 20 C to full 1000 C
+            int maxDmg = CellHeat.max(stack);
+            int curDmg = CellHeat.get(stack);
+            int cold = CellHeat.cold(stack);
+            double cellTemp = 20.0 + ((double) Math.max(0, curDmg - cold) / Math.max(1, maxDmg - cold)) * 980.0;
 
             boolean cooling = cellTemp > currentCoolantTemp;
             double targetTemp = cooling ? 20.0 : 1000.0;
