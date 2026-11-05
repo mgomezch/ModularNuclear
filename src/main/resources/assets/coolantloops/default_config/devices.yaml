@@ -38,7 +38,14 @@ bath:
   # (its recipe's EU/t x duration, at the heat a PHE spends per EU of steam: phe.latentHeatJoulePerLiter /
   # steamExpansionRatio x steamLitersPerEU): a hot ingot gives off what freezing it costs, a liquid nitrogen cell
   # takes up what liquefying it costs. No loop between a freezer and a bath comes out ahead.
-  recoverableEnergyFraction: 1.0 # The share of that electricity an item holds
+  # An item also keeps the freezer's pace: in a bath at full flow it settles toward the coolant's temperature with the
+  # recipe's duration as its time constant (a cryogenic cell boils off in that time in 20 C coolant), slower in less flow.
+  recoverableEnergyFraction: 0.2 # The share of that electricity an item holds: the rest is the freezer's own losses
+  # An item's own heat and pace in place of its freezer recipe's, by "modid:name" or "modid:name:meta"; either may be left out:
+  #   - item: "gregtech:gt.metaitem.01:11316"
+  #     heatJoules: 250000000.0
+  #     seconds: 30.0
+  itemOverrides: []
   glassEfficiencyBase: 0.5       # The share of an item's heat that reaches the coolant under EV glass (the lowest a bath takes)
   glassEfficiencyPerTier: 0.05   # Added per glass tier above EV; the result is kept between 0.5 and 0.9
 

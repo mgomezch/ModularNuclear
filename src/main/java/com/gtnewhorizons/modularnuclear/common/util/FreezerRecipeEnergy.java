@@ -26,6 +26,9 @@ public final class FreezerRecipeEnergy {
     /** EU per item, by what the freezer takes (a hot ingot) and by what it makes (a cell of liquid nitrogen). */
     private static final Map<ItemDamageKey, Double> EU_BY_INPUT = new HashMap<>();
     private static final Map<ItemDamageKey, Double> EU_BY_OUTPUT = new HashMap<>();
+    /** The seconds the freezer takes over one item, by the same. */
+    private static final Map<ItemDamageKey, Double> SECONDS_BY_INPUT = new HashMap<>();
+    private static final Map<ItemDamageKey, Double> SECONDS_BY_OUTPUT = new HashMap<>();
     /** EU per liter of a fluid the freezer makes, as a fluid or in a cell. */
     private static final Map<String, Double> EU_PER_LITER = new HashMap<>();
     private static boolean scanned = false;
@@ -42,8 +45,11 @@ public final class FreezerRecipeEnergy {
                 ItemStack out = single(recipe.mOutputs);
                 boolean noFluids = isEmpty(recipe.mFluidInputs) && isEmpty(recipe.mFluidOutputs);
                 if (in != null && out != null && noFluids) {
-                    keepLeast(EU_BY_INPUT, ItemDamageKey.of(in), eu / in.stackSize);
-                    keepLeast(EU_BY_OUTPUT, ItemDamageKey.of(out), eu / out.stackSize);
+                    double seconds = recipe.mDuration / 20.0;
+                    if (keepLeast(EU_BY_INPUT, ItemDamageKey.of(in), eu / in.stackSize))
+                        SECONDS_BY_INPUT.put(ItemDamageKey.of(in), seconds / in.stackSize);
+                    if (keepLeast(EU_BY_OUTPUT, ItemDamageKey.of(out), eu / out.stackSize))
+                        SECONDS_BY_OUTPUT.put(ItemDamageKey.of(out), seconds / out.stackSize);
                     FluidStack held = GTUtility.getFluidForFilledItem(out, true);
                     if (held != null && held.amount > 0 && held.getFluid() != null) {
                         keepLeast(
@@ -87,10 +93,26 @@ public final class FreezerRecipeEnergy {
     }
 
     /** Where recipes differ on a change of state, the cheapest is what a loop could be run against. */
-    private static <K> void keepLeast(Map<K, Double> map, K key, double eu) {
-        if (key == null) return;
+    private static <K> boolean keepLeast(Map<K, Double> map, K key, double eu) {
+        if (key == null) return false;
         Double had = map.get(key);
-        if (had == null || eu < had) map.put(key, eu);
+        if (had != null && eu >= had) return false;
+        map.put(key, eu);
+        return true;
+    }
+
+    /** Seconds a freezer takes over one of this item (a hot ingot), or -1 if it has no recipe for it. */
+    public static double secondsToFreeze(ItemStack input) {
+        ensureScanned();
+        Double t = input != null ? SECONDS_BY_INPUT.get(ItemDamageKey.of(input)) : null;
+        return t != null ? t : -1.0;
+    }
+
+    /** Seconds a freezer takes making one of this item, or -1 if it has no recipe for it. */
+    public static double secondsToMake(ItemStack output) {
+        ensureScanned();
+        Double t = output != null ? SECONDS_BY_OUTPUT.get(ItemDamageKey.of(output)) : null;
+        return t != null ? t : -1.0;
     }
 
     /** EU a freezer spends on one of this item (a hot ingot), or -1 if it has no recipe for it. */

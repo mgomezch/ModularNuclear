@@ -394,10 +394,44 @@ public class CoolantDeviceData {
         public double ingotCooledTempC = TOUCH_SAFE_TEMP_C;
 
         /**
-         * The share of a GregTech machine's electricity for a change of state (a vacuum freezer's, cooling a hot ingot
-         * or liquefying a gas) that an item in a bath holds as heat to give off, or cold to take heat up with.
+         * The share of a vacuum freezer's electricity for a change of state (cooling a hot ingot, liquefying a gas)
+         * that an item in a bath holds as heat to give off, or cold to take heat up with: most of what the freezer
+         * draws is lost in the machine, not taken out of the item.
          */
-        public double recoverableEnergyFraction = 1.0;
+        public double recoverableEnergyFraction = 0.2;
+
+        /**
+         * An item's own heat and pace, in place of what the vacuum freezer's recipe for it gives: by item
+         * ("modid:name" or "modid:name:meta"), the heat it holds in joules (heatJoules) and the seconds it takes over
+         * it (seconds, see CoolantBathRegistry.exchangeArea). Either may be left out.
+         */
+        public static class ItemOverride {
+
+            public String item;
+            public double heatJoules = -1.0;
+            public double seconds = -1.0;
+
+            public Map<String, Object> toMap() {
+                Map<String, Object> map = new LinkedHashMap<>();
+                map.put("item", item);
+                if (heatJoules > 0.0) map.put("heatJoules", heatJoules);
+                if (seconds > 0.0) map.put("seconds", seconds);
+                return map;
+            }
+
+            public static ItemOverride fromMap(Map<String, Object> map) {
+                ItemOverride o = new ItemOverride();
+                if (map == null) return o;
+                if (map.get("item") != null) o.item = String.valueOf(map.get("item"));
+                if (map.get("heatJoules") instanceof Number)
+                    o.heatJoules = ((Number) map.get("heatJoules")).doubleValue();
+                if (map.get("seconds") instanceof Number) o.seconds = ((Number) map.get("seconds")).doubleValue();
+                return o;
+            }
+        }
+
+        public List<ItemOverride> itemOverrides = new ArrayList<>();
+
         /** The share of the heat leaving an item that reaches the coolant, under the lowest glass a bath takes (EV). */
         public double glassEfficiencyBase = 0.5;
         /** What each glass tier above that adds to it. */
@@ -422,6 +456,9 @@ public class CoolantDeviceData {
             map.put("itemMinorLossK", itemMinorLossK);
             map.put("ingotCooledTempC", ingotCooledTempC);
             map.put("recoverableEnergyFraction", recoverableEnergyFraction);
+            List<Map<String, Object>> overrides = new ArrayList<>();
+            for (ItemOverride o : itemOverrides) if (o != null) overrides.add(o.toMap());
+            map.put("itemOverrides", overrides);
             map.put("glassEfficiencyBase", glassEfficiencyBase);
             map.put("glassEfficiencyPerTier", glassEfficiencyPerTier);
             return map;
@@ -440,6 +477,15 @@ public class CoolantDeviceData {
                 d.ingotCooledTempC = ((Number) map.get("ingotCooledTempC")).doubleValue();
             if (map.containsKey("recoverableEnergyFraction"))
                 d.recoverableEnergyFraction = ((Number) map.get("recoverableEnergyFraction")).doubleValue();
+            if (map.get("itemOverrides") instanceof List) {
+                for (Object o : (List<?>) map.get("itemOverrides")) {
+                    if (o instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> m = (Map<String, Object>) o;
+                        d.itemOverrides.add(ItemOverride.fromMap(m));
+                    }
+                }
+            }
             if (map.containsKey("glassEfficiencyBase"))
                 d.glassEfficiencyBase = ((Number) map.get("glassEfficiencyBase")).doubleValue();
             if (map.containsKey("glassEfficiencyPerTier"))

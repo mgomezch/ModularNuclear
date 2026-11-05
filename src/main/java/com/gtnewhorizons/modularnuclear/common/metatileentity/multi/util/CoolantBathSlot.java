@@ -58,7 +58,7 @@ public class CoolantBathSlot {
         this.initialDamage = initialDamage;
         this.maxDamage = Math.max(1, maxDamage);
         this.heatCapacity = Math.max(10.0, heatCapacity);
-        this.surfaceArea = Math.max(0.01, surfaceArea);
+        this.surfaceArea = Math.max(1e-9, surfaceArea);
         this.isCoolantCell = isCoolantCell;
         this.isIngot = isIngot;
         this.cooling = cooling;
@@ -250,7 +250,7 @@ public class CoolantBathSlot {
         slot.initialDamage = tag.getInteger("initialDamage");
         slot.maxDamage = Math.max(1, tag.getInteger("maxDamage"));
         slot.heatCapacity = Math.max(10.0, tag.getDouble("heatCapacity"));
-        slot.surfaceArea = Math.max(0.01, tag.getDouble("surfaceArea"));
+        slot.surfaceArea = Math.max(1e-9, tag.getDouble("surfaceArea"));
         slot.isCoolantCell = tag.getBoolean("isCoolantCell");
         slot.isIngot = tag.getBoolean("isIngot");
         slot.isCryoCell = tag.getBoolean("isCryoCell");

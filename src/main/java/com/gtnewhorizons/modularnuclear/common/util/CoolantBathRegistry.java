@@ -3,6 +3,7 @@ package com.gtnewhorizons.modularnuclear.common.util;
 import java.util.HashMap;
 import java.util.Map;
 
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -10,9 +11,11 @@ import net.minecraftforge.fluids.FluidStack;
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ConvectiveHeatTransferModel;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CellHeat;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantBathSlot;
 
+import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TierEU;
@@ -393,28 +396,87 @@ public class CoolantBathRegistry {
         CoolantDeviceData devData = CoolantLoopDataRegistry.getDeviceData();
         return devData != null && devData.getBath() != null
             ? Math.max(0.0, Math.min(1.0, devData.getBath().recoverableEnergyFraction))
-            : 1.0;
+            : 0.2;
+    }
+
+    /** The heat one EU is worth (PHEData.joulesPerEU). */
+    private static double joulesPerEU() {
+        CoolantDeviceData devData = CoolantLoopDataRegistry.getDeviceData();
+        return devData != null && devData.getPhe() != null ? devData.getPhe()
+            .joulesPerEU() : new CoolantDeviceData.PHEData().joulesPerEU();
+    }
+
+    /** bath.itemOverrides by item, resolved once per configuration. */
+    private static Map<ItemDamageKey, CoolantDeviceData.CoolantBathData.ItemOverride> overrides;
+    private static CoolantDeviceData.CoolantBathData overridesOf;
+
+    private static CoolantDeviceData.CoolantBathData.ItemOverride overrideFor(ItemStack stack) {
+        CoolantDeviceData devData = CoolantLoopDataRegistry.getDeviceData();
+        CoolantDeviceData.CoolantBathData bath = devData != null ? devData.getBath() : null;
+        if (bath == null || stack == null) return null;
+        if (overrides == null || overridesOf != bath) {
+            Map<ItemDamageKey, CoolantDeviceData.CoolantBathData.ItemOverride> resolved = new HashMap<>();
+            for (CoolantDeviceData.CoolantBathData.ItemOverride o : bath.itemOverrides) {
+                if (o == null || o.item == null) continue;
+                String[] parts = o.item.trim()
+                    .split(":");
+                if (parts.length < 2) continue;
+                try {
+                    Item item = GameRegistry.findItem(parts[0], parts[1]);
+                    int meta = parts.length > 2 ? Integer.parseInt(parts[2]) : 0;
+                    if (item != null) resolved.put(ItemDamageKey.of(item, meta), o);
+                } catch (Throwable swallowed) {
+                    Swallowed.note(swallowed);
+                }
+            }
+            overrides = resolved;
+            overridesOf = bath;
+        }
+        return overrides.isEmpty() ? null : overrides.get(ItemDamageKey.of(stack));
     }
 
     /**
-     * An ingot's thermal mass, J/K: between its hot ingot's temperature and the temperature it counts as cooled at it
-     * holds the heat a vacuum freezer's electricity for cooling it is worth (PHEData.joulesPerEU), times the bath's
-     * recoverable share. A material the freezer has no recipe for is counted as the freezer's own rule for hot ingots
-     * would have it: three ticks per unit of material mass at MV.
+     * The heat an ingot holds between its hot ingot's temperature and the temperature it counts as cooled at, J: what
+     * a vacuum freezer's electricity for cooling it is worth as heat, times the bath's recoverable share, unless the
+     * configuration gives the item its own. A material the freezer has no recipe for is counted as the freezer's rule
+     * for hot ingots would have it: three ticks per unit of material mass at MV.
      */
-    static double ingotHeatCapacity(ItemStack hotStack, ItemStack coldStack, Materials mat, double hotTemp) {
+    static double ingotHeat(ItemStack inBath, ItemStack hotStack, ItemStack coldStack, Materials mat) {
+        CoolantDeviceData.CoolantBathData.ItemOverride o = overrideFor(inBath);
+        if (o != null && o.heatJoules > 0.0) return o.heatJoules;
         double eu = FreezerRecipeEnergy.euToFreeze(hotStack);
         if (eu <= 0.0) eu = FreezerRecipeEnergy.euToMake(coldStack);
-        if (eu <= 0.0) {
-            double mass = mat != null ? Math.max(1.0, mat.getMass()) : 1.0;
-            eu = mass * 3.0 * TierEU.RECIPE_MV;
-        }
-        CoolantDeviceData devData = CoolantLoopDataRegistry.getDeviceData();
-        double joulesPerEU = devData != null && devData.getPhe() != null ? devData.getPhe()
-            .joulesPerEU() : new CoolantDeviceData.PHEData().joulesPerEU();
-        double span = Math.max(1.0, hotTemp - ingotCooledTemperatureCelsius());
-        return eu * joulesPerEU * recoverableEnergyFraction() / span;
+        if (eu <= 0.0) eu = unitMass(mat) * 3.0 * TierEU.RECIPE_MV;
+        return eu * joulesPerEU() * recoverableEnergyFraction();
     }
+
+    /** The seconds the freezer takes over an ingot (see exchangeArea), unless the configuration gives its own. */
+    static double ingotSeconds(ItemStack inBath, ItemStack hotStack, ItemStack coldStack, Materials mat) {
+        CoolantDeviceData.CoolantBathData.ItemOverride o = overrideFor(inBath);
+        if (o != null && o.seconds > 0.0) return o.seconds;
+        double seconds = FreezerRecipeEnergy.secondsToFreeze(hotStack);
+        if (seconds <= 0.0) seconds = FreezerRecipeEnergy.secondsToMake(coldStack);
+        if (seconds <= 0.0) seconds = unitMass(mat) * 3.0 / 20.0;
+        return seconds;
+    }
+
+    private static double unitMass(Materials mat) {
+        return mat != null ? Math.max(1.0, mat.getMass()) : 1.0;
+    }
+
+    /**
+     * The exchange area that gives an item the vacuum freezer's pace: with it, in a bath at full flow (the convective
+     * model's greatest coefficient), the item settles toward the coolant's temperature with the freezer recipe's
+     * duration as its time constant (thermal mass / (coefficient x area)). Less flow is slower in proportion.
+     */
+    public static double exchangeArea(double heatCapacity, double seconds) {
+        ConvectiveHeatTransferModel conv = CoolantLoopDataRegistry.getConvectiveModel();
+        if (conv == null) conv = ConvectiveHeatTransferModel.DEFAULT;
+        return heatCapacity / (Math.max(1.0, conv.getHMax()) * Math.max(0.05, seconds));
+    }
+
+    /** The temperature a cryogenic cell's pace is set for: it boils off in the freezer's time in coolant this warm. */
+    private static final double AMBIENT_CELSIUS = 20.0;
 
     public static CoolantBathSlot createSlot(ItemStack inputStack, double currentCoolantTemp) {
         if (inputStack == null) return null;
@@ -443,8 +505,14 @@ public class CoolantBathRegistry {
             int maxDmg = 1000;
             int initialDmg = 0;
             double liters = held != null && held.amount > 0 ? held.amount : FluidContainerRegistry.BUCKET_VOLUME;
-            double heatCap = Math.max(1000.0, liters * latentPerLiter * recoverableEnergyFraction());
-            double area = 0.25; // m^2 surface area
+            CoolantDeviceData.CoolantBathData.ItemOverride own = overrideFor(stack);
+            double heatCap = own != null && own.heatJoules > 0.0 ? own.heatJoules
+                : Math.max(1000.0, liters * latentPerLiter * recoverableEnergyFraction());
+            // At the freezer's pace: boiled off in the time the freezer takes making it, in ambient coolant at full
+            // flow (where the freezer does not make it, a minute, as it takes over nitrogen and oxygen)
+            double seconds = own != null && own.seconds > 0.0 ? own.seconds : FreezerRecipeEnergy.secondsToMake(stack);
+            if (seconds <= 0.0) seconds = 60.0;
+            double area = exchangeArea(heatCap / Math.max(1.0, AMBIENT_CELSIUS - boilingPoint), seconds);
             ItemStack gasOutput = cryo.gasCell != null ? cryo.gasCell.copy() : null;
 
             return new CoolantBathSlot(
@@ -503,8 +571,8 @@ public class CoolantBathRegistry {
             double targetTemp = ingotCooledTemperatureCelsius();
             int maxDmg = 1000;
             int initialDmg = 0;
-            double heatCap = ingotHeatCapacity(stack, coldOutput, mat, hotTemp);
-            double area = 0.15; // m^2
+            double heatCap = ingotHeat(stack, stack, coldOutput, mat) / Math.max(1.0, hotTemp - targetTemp);
+            double area = exchangeArea(heatCap, ingotSeconds(stack, stack, coldOutput, mat));
 
             return new CoolantBathSlot(
                 stack,
@@ -531,8 +599,9 @@ public class CoolantBathRegistry {
             double targetTemp = hotTemp;
             int maxDmg = 1000;
             int initialDmg = 0;
-            double heatCap = ingotHeatCapacity(hotOutput, stack, mat, hotTemp);
-            double area = 0.15;
+            double heatCap = ingotHeat(stack, hotOutput, stack, mat)
+                / Math.max(1.0, hotTemp - ingotCooledTemperatureCelsius());
+            double area = exchangeArea(heatCap, ingotSeconds(stack, hotOutput, stack, mat));
 
             return new CoolantBathSlot(
                 stack,

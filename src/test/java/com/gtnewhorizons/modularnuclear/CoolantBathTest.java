@@ -898,4 +898,53 @@ public class CoolantBathTest {
                 .latentHeat(),
             0.0);
     }
+
+    @Test
+    void testAnItemHoldsAFifthOfTheFreezersEnergyByDefault() {
+        assertEquals(0.2, new CoolantDeviceData.CoolantBathData().recoverableEnergyFraction, 0.0);
+    }
+
+    @Test
+    void testAnItemKeepsTheFreezersPaceAtFullFlow() {
+        // A 400 kJ/K item whose freezer recipe takes 18 s: at the model's greatest coefficient its time constant is 18
+        // s
+        ConvectiveHeatTransferModel conv = ConvectiveHeatTransferModel.DEFAULT;
+        double heatCapacity = 400000.0;
+        double area = com.gtnewhorizons.modularnuclear.common.util.CoolantBathRegistry.exchangeArea(heatCapacity, 18.0);
+        assertEquals(18.0, heatCapacity / (conv.getHMax() * area), 1e-9);
+        // So after 18 s in 20 C coolant at full flow it has covered 1 - 1/e of the way there
+        CoolantBathSlot slot = new CoolantBathSlot(
+            new ItemStack(Items.gold_ingot),
+            1020.0,
+            45.0,
+            0,
+            1000,
+            heatCapacity,
+            area,
+            false,
+            true,
+            true,
+            null);
+        for (int tick = 0; tick < 18 * 20; tick++) {
+            double q = conv.computeHeatTransferRate(1000.0, slot.surfaceArea, slot.currentTemp, 20.0);
+            slot.currentTemp -= q * 0.05 / slot.heatCapacity;
+        }
+        assertEquals(20.0 + 1000.0 / Math.E, slot.currentTemp, 2.0);
+    }
+
+    @Test
+    void testItemOverridesRoundTrip() {
+        java.util.Map<String, Object> over = new java.util.LinkedHashMap<>();
+        over.put("item", "gregtech:gt.metaitem.01:11316");
+        over.put("heatJoules", 2.5e8);
+        java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+        map.put("itemOverrides", java.util.Collections.singletonList(over));
+        CoolantDeviceData.CoolantBathData bath = CoolantDeviceData.CoolantBathData.fromMap(map);
+        assertEquals(1, bath.itemOverrides.size());
+        assertEquals("gregtech:gt.metaitem.01:11316", bath.itemOverrides.get(0).item);
+        assertEquals(2.5e8, bath.itemOverrides.get(0).heatJoules, 0.0);
+        assertTrue(bath.itemOverrides.get(0).seconds < 0.0, "left out: the freezer's");
+        CoolantDeviceData.CoolantBathData again = CoolantDeviceData.CoolantBathData.fromMap(bath.toMap());
+        assertEquals(2.5e8, again.itemOverrides.get(0).heatJoules, 0.0);
+    }
 }
