@@ -76,11 +76,10 @@ Material.heavywater=Heavy water
 Material.heavywatersteam=Heavy-water steam
 Material.superheatedheavywatersteam=Superheated heavy-water steam
 Material.supercriticalheavywatersteam=Supercritical heavy-water steam
+Material.corium=Corium
 
 tile.modularnuclear.corium.name=Molten corium
 tile.modularnuclear.corium_solid.name=Corium
-item.modularnuclear.corium_dust.name=Corium dust
-item.modularnuclear.corium_rod.name=Corium rod
 
 item.modularnuclear.empty_core_tile.name=Empty core tile
 item.modularnuclear.empty_core_tile.desc=Empty grid space in the MPTR core. Neutrons stream through unimpeded without scattering or absorption.

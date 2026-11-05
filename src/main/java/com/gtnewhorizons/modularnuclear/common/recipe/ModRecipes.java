@@ -15,12 +15,14 @@ import net.minecraftforge.fluids.FluidStack;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
-import com.gtnewhorizons.modularnuclear.common.item.ModItems;
+import com.gtnewhorizons.modularnuclear.common.fluid.ModWerkstoffs;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 
+import bartworks.system.material.Werkstoff;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
+import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TierEU;
 import gregtech.api.enums.ToolDictNames;
 import gregtech.api.util.GTModHandler;
@@ -78,35 +80,38 @@ public class ModRecipes {
     }
 
     private static void registerCoriumRecipes() {
-        if (ModBlocks.blockCoriumSolid != null && ModItems.itemCoriumDust != null) {
+        Werkstoff corium = ModWerkstoffs.corium;
+        if (corium == null) return;
+        ItemStack dust = corium.get(OrePrefixes.dust, 1);
+        ItemStack rod = corium.get(OrePrefixes.stick, 1);
+
+        if (ModBlocks.blockCoriumSolid != null) {
             // Macerator: Corium Block -> Corium Dust (120 seconds at 7680 EU/t)
             GTValues.RA.stdBuilder()
                 .itemInputs(new ItemStack(ModBlocks.blockCoriumSolid, 1))
-                .itemOutputs(new ItemStack(ModItems.itemCoriumDust, 1))
+                .itemOutputs(dust.copy())
                 .duration(120 * SECONDS)
                 .eut(7680)
                 .addTo(maceratorRecipes);
         }
 
-        if (ModItems.itemCoriumDust != null && ModItems.itemCoriumRod != null) {
-            // Extruder: Corium Dust + Shape (Rod) -> Corium Rod
-            if (ItemList.Shape_Extruder_Rod.hasBeenSet()) {
-                GTValues.RA.stdBuilder()
-                    .itemInputs(new ItemStack(ModItems.itemCoriumDust, 1), ItemList.Shape_Extruder_Rod.get(0L))
-                    .itemOutputs(new ItemStack(ModItems.itemCoriumRod, 1))
-                    .duration(20 * SECONDS)
-                    .eut(TierEU.RECIPE_HV)
-                    .addTo(extruderRecipes);
-            }
-
-            // RTG Fuel: Corium Rod (432 days, twice as long as AM241 at 216 days)
+        // Extruder: Corium Dust + Shape (Rod) -> Corium Rod
+        if (ItemList.Shape_Extruder_Rod.hasBeenSet()) {
             GTValues.RA.stdBuilder()
-                .itemInputs(new ItemStack(ModItems.itemCoriumRod, 1))
-                .duration(0)
-                .eut(TierEU.RECIPE_LV)
-                .metadata(RTG_DURATION_IN_DAYS, 432)
-                .addTo(rtgFuels);
+                .itemInputs(dust.copy(), ItemList.Shape_Extruder_Rod.get(0L))
+                .itemOutputs(rod.copy())
+                .duration(20 * SECONDS)
+                .eut(TierEU.RECIPE_HV)
+                .addTo(extruderRecipes);
         }
+
+        // RTG Fuel: Corium Rod (432 days, twice as long as AM241 at 216 days)
+        GTValues.RA.stdBuilder()
+            .itemInputs(rod.copy())
+            .duration(0)
+            .eut(TierEU.RECIPE_LV)
+            .metadata(RTG_DURATION_IN_DAYS, 432)
+            .addTo(rtgFuels);
     }
 
     private static void registerFluidHeaterRecipes() {

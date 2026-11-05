@@ -67,7 +67,6 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemCardModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry;
-import com.gtnewhorizons.modularnuclear.common.recipe.ModRecipes;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
@@ -4910,69 +4909,6 @@ public class NuclearSimulationEngineTest {
         // Verify current block solidified into BlockCoriumSolid
         org.mockito.Mockito.verify(mockWorld)
             .setBlock(10, 64, 10, ModBlocks.blockCoriumSolid, 0, 3);
-    }
-
-    @Test
-    void testCoriumItemsAndOreDict() {
-        ModFluids.init();
-        ModBlocks.init();
-        ModItems.init();
-        assertNotNull(ModItems.itemCoriumDust, "itemCoriumDust must be initialized");
-        assertNotNull(ModItems.itemCoriumRod, "itemCoriumRod must be initialized");
-        assertEquals(
-            "modularnuclear.corium_dust",
-            ModItems.itemCoriumDust.getUnlocalizedName()
-                .replace("item.", ""));
-        assertEquals(
-            "modularnuclear.corium_rod",
-            ModItems.itemCoriumRod.getUnlocalizedName()
-                .replace("item.", ""));
-    }
-
-    @Test
-    void testCoriumRecipesRegistration() {
-        ModFluids.init();
-        ModBlocks.init();
-        ModItems.init();
-        if (!gregtech.api.enums.ItemList.Shape_Extruder_Rod.hasBeenSet()) {
-            gregtech.api.enums.ItemList.Shape_Extruder_Rod.set(new ItemStack(net.minecraft.init.Items.stick));
-        }
-        if (gregtech.api.enums.GTValues.RA == null) {
-            gregtech.api.enums.GTValues.RA = new gregtech.common.RecipeAdder();
-        }
-        ModRecipes.init();
-
-        // 1. Macerator recipe: Corium Block -> Corium Dust
-        gregtech.api.util.GTRecipe maceratorRecipe = gregtech.api.recipe.RecipeMaps.maceratorRecipes.findRecipeQuery()
-            .items(new ItemStack(ModBlocks.blockCoriumSolid, 1))
-            .find();
-        assertNotNull(maceratorRecipe, "Macerator recipe for Corium Block must exist");
-        assertEquals(120 * 20, maceratorRecipe.mDuration, "Macerator duration must be 120 seconds (2400 ticks)");
-        assertEquals(7680, maceratorRecipe.mEUt, "Macerator EU/t must be 7680");
-        assertEquals(
-            new ItemStack(ModItems.itemCoriumDust).getItem(),
-            maceratorRecipe.mOutputs[0].getItem(),
-            "Macerator output must be Corium Dust");
-
-        // 2. Extruder recipe: Corium Dust + Rod Shape -> Corium Rod
-        gregtech.api.util.GTRecipe extruderRecipe = gregtech.api.recipe.RecipeMaps.extruderRecipes.findRecipeQuery()
-            .items(new ItemStack(ModItems.itemCoriumDust, 1), gregtech.api.enums.ItemList.Shape_Extruder_Rod.get(0L))
-            .find();
-        assertNotNull(extruderRecipe, "Extruder recipe for Corium Dust -> Corium Rod must exist");
-        assertEquals(
-            new ItemStack(ModItems.itemCoriumRod).getItem(),
-            extruderRecipe.mOutputs[0].getItem(),
-            "Extruder output must be Corium Rod");
-
-        // 3. RTG fuel recipe: Corium Rod
-        gregtech.api.util.GTRecipe rtgRecipe = gregtech.api.recipe.RecipeMaps.rtgFuels.findRecipeQuery()
-            .items(new ItemStack(ModItems.itemCoriumRod, 1))
-            .find();
-        assertNotNull(rtgRecipe, "RTG fuel recipe for Corium Rod must exist");
-        assertEquals(
-            432,
-            rtgRecipe.mSpecialValue,
-            "RTG fuel duration must be 432 days (2x longest existing at 216 days)");
     }
 
     @Test

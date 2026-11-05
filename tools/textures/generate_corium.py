@@ -240,86 +240,6 @@ def generate_solid_corium(textures_dir):
     write_png(out_file, w, h, pixels)
 
 
-def generate_corium_dust_and_rod(textures_dir):
-    """
-    Generates Corium Dust and Corium Rod textures using the standard GregTech
-    nuclear material icon templates tinted with the Corium color palette (#BC00FD).
-    """
-    import shutil
-    import subprocess
-
-    gt_icons = (
-        textures_dir.parents[6]
-        / "GT5-Unofficial/src/main/resources/assets/gregtech/textures/items/materialicons"
-    )
-    if not gt_icons.exists():
-        return
-
-    magick_bin = shutil.which("magick") or shutil.which("convert")
-    if not magick_bin:
-        return
-
-    dust_out = textures_dir / "items" / "corium_dust.png"
-    rod_out = textures_dir / "items" / "corium_rod.png"
-    dust_out.parent.mkdir(parents=True, exist_ok=True)
-
-    # 1. Corium Dust: NUCLEAR/dust.png tinted with #BC00FD + dust_OVERLAY.png
-    cmd_dust = [
-        magick_bin,
-        str(gt_icons / "NUCLEAR/dust.png"),
-        "-colorspace",
-        "RGB",
-        "(",
-        "+clone",
-        "-fill",
-        "#BC00FD",
-        "-colorize",
-        "100%",
-        ")",
-        "-compose",
-        "Multiply",
-        "-composite",
-        str(gt_icons / "NUCLEAR/dust_OVERLAY.png"),
-        "-compose",
-        "Over",
-        "-composite",
-        # No date chunks, so a rebuild writes the same bytes
-        "-define",
-        "png:exclude-chunks=date,time",
-        str(dust_out),
-    ]
-    subprocess.run(cmd_dust, check=True)
-    print(f"  [✓] Wrote {dust_out} (16x16)")
-
-    # 2. Corium Rod: NUCLEAR/stick.png tinted with #BC00FD + stick_OVERLAY.png
-    cmd_rod = [
-        magick_bin,
-        str(gt_icons / "NUCLEAR/stick.png"),
-        "-colorspace",
-        "RGB",
-        "(",
-        "+clone",
-        "-fill",
-        "#BC00FD",
-        "-colorize",
-        "100%",
-        ")",
-        "-compose",
-        "Multiply",
-        "-composite",
-        str(gt_icons / "NUCLEAR/stick_OVERLAY.png"),
-        "-compose",
-        "Over",
-        "-composite",
-        # No date chunks, so a rebuild writes the same bytes
-        "-define",
-        "png:exclude-chunks=date,time",
-        str(rod_out),
-    ]
-    subprocess.run(cmd_rod, check=True)
-    print(f"  [✓] Wrote {rod_out} (16x16)")
-
-
 def main(output_dir=None):
     if output_dir is None:
         textures_dir = (
@@ -359,9 +279,6 @@ def main(output_dir=None):
 
     # 4. Solid Corium Block Texture
     generate_solid_corium(textures_dir)
-
-    # 5. Corium Dust & Corium Rod Item Textures
-    generate_corium_dust_and_rod(textures_dir)
 
 
 if __name__ == "__main__":

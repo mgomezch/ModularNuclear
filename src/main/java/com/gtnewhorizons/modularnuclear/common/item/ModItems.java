@@ -20,9 +20,6 @@ public class ModItems {
     public static ItemCustomFuelRod rodCustomFuel4;
     public static ItemCustomDepletedFuelRod rodCustomDepletedFuel4;
 
-    public static ItemCoriumDust itemCoriumDust;
-    public static ItemCoriumRod itemCoriumRod;
-
     public static ItemEmptyCoreTile emptyCoreTile;
 
     private static boolean initialized = false;
@@ -37,14 +34,6 @@ public class ModItems {
         GameRegistry.registerItem(radiovoltaicPlate, "radiovoltaic_plate");
         radiovoltaicPlateHV = new ItemStack(radiovoltaicPlate, 1, 0);
         radiovoltaicPlateEV = new ItemStack(radiovoltaicPlate, 1, 1);
-
-        itemCoriumDust = new ItemCoriumDust();
-        GameRegistry.registerItem(itemCoriumDust, "corium_dust");
-        OreDictionary.registerOre("dustCorium", new ItemStack(itemCoriumDust));
-
-        itemCoriumRod = new ItemCoriumRod();
-        GameRegistry.registerItem(itemCoriumRod, "corium_rod");
-        OreDictionary.registerOre("stickCorium", new ItemStack(itemCoriumRod));
 
         rodCustomFuel1 = new ItemCustomFuelRod(1);
         OreDictionary.registerOre("fuelRodCustom1", new ItemStack(rodCustomFuel1));

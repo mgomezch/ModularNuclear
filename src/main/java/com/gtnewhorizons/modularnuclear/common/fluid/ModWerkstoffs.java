@@ -2,11 +2,13 @@ package com.gtnewhorizons.modularnuclear.common.fluid;
 
 import bartworks.API.WerkstoffAdderRegistry;
 import bartworks.system.material.Werkstoff;
+import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TextureSet;
 
 /**
- * The mod's fluids as BartWorks materials, as GTNH's addons make theirs (GoodGenerator, GTNH Lanthanides): BartWorks
- * gives each the standard GregTech cell (oredict cell&lt;Name&gt;, its container registration and canner recipes).
+ * The mod's materials as BartWorks materials, as GTNH's addons make theirs (GoodGenerator, GTNH Lanthanides), so they
+ * get GregTech's standard items and show in its material handlers. The fluids get only the standard GregTech cell
+ * (oredict cell&lt;Name&gt;, its container registration and canner recipes); corium gets its dusts and rod.
  *
  * <p>
  * A material's fluid is the one named as the material without spaces, lowercased; ModFluids registers those first,
@@ -24,11 +26,14 @@ public final class ModWerkstoffs implements Runnable {
     public static final int HEAVY_WATER_STEAM_ID = 12_501;
     public static final int SUPERHEATED_HEAVY_WATER_STEAM_ID = 12_502;
     public static final int SUPERCRITICAL_HEAVY_WATER_STEAM_ID = 12_503;
+    public static final int CORIUM_ID = 12_504;
 
     public static Werkstoff heavyWater;
     public static Werkstoff heavyWaterSteam;
     public static Werkstoff superheatedHeavyWaterSteam;
     public static Werkstoff supercriticalHeavyWaterSteam;
+    /** Solidified corium as a material: its dust and rod (the molten corium of a meltdown is a fluid of its own). */
+    public static Werkstoff corium;
 
     private ModWerkstoffs() {}
 
@@ -51,9 +56,21 @@ public final class ModWerkstoffs implements Runnable {
             "SupercriticalHeavyWaterSteam",
             new short[] { 235, 200, 190 },
             true);
+        checkFree(CORIUM_ID, "Corium");
+        corium = new Werkstoff(
+            new short[] { 0xBC, 0x00, 0xFD },
+            "Corium",
+            "",
+            new Werkstoff.Stats().setRadioactive(true),
+            Werkstoff.Types.MIXTURE,
+            new Werkstoff.GenerationFeatures().disable()
+                .onlyDust()
+                .addPrefix(OrePrefixes.stick),
+            CORIUM_ID,
+            TextureSet.SET_NUCLEAR);
     }
 
-    private static Werkstoff cellsOnly(int id, String name, short[] rgb, boolean gas) {
+    private static void checkFree(int id, String name) {
         Werkstoff existing = Werkstoff.werkstoffHashMap.get((short) id);
         if (existing != null) {
             throw new IllegalStateException(
@@ -64,6 +81,10 @@ public final class ModWerkstoffs implements Runnable {
                     + existing.getDefaultName()
                     + " already has");
         }
+    }
+
+    private static Werkstoff cellsOnly(int id, String name, short[] rgb, boolean gas) {
+        checkFree(id, name);
         return new Werkstoff(
             rgb,
             name,
@@ -82,6 +103,7 @@ public final class ModWerkstoffs implements Runnable {
         check(HEAVY_WATER_STEAM_ID, heavyWaterSteam);
         check(SUPERHEATED_HEAVY_WATER_STEAM_ID, superheatedHeavyWaterSteam);
         check(SUPERCRITICAL_HEAVY_WATER_STEAM_ID, supercriticalHeavyWaterSteam);
+        check(CORIUM_ID, corium);
     }
 
     private static void check(int id, Werkstoff ours) {
