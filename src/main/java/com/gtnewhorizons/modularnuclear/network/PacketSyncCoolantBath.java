@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 
+import com.gtnewhorizons.modularnuclear.client.renderer.CoolantBathRenderer;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
@@ -98,6 +99,7 @@ public class PacketSyncCoolantBath implements IMessage {
                 if (gte.getMetaTileEntity() instanceof MTECoolantBath) {
                     MTECoolantBath bath = (MTECoolantBath) gte.getMetaTileEntity();
                     bath.receiveClientSync(msg.structureTier, msg.slots);
+                    CoolantBathRenderer.ensureEffect(bath);
                 }
             }
             return null;
