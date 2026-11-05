@@ -33,10 +33,18 @@ public class CoolantBathGridWidget extends Widget<CoolantBathGridWidget> impleme
 
     public CoolantBathGridWidget(MTECoolantBath multiblock) {
         this.multiblock = multiblock;
-        size(180, 130);
+        size(180, gridHeight(multiblock));
         tooltipDynamic(this::buildHoveredTooltip);
         tooltipAutoUpdate(true);
         tooltipShowUpTimer(0);
+    }
+
+    /**
+     * The widget's height: the bath's rows, which the client has as the GUI opens (the bath sends its slots then), and
+     * no fewer than the smallest bath's.
+     */
+    public static int gridHeight(MTECoolantBath bath) {
+        return Math.max(5, bath.mInteriorLength) * CELL_SIZE + 4;
     }
 
     public int getGridCols() {
@@ -50,8 +58,8 @@ public class CoolantBathGridWidget extends Widget<CoolantBathGridWidget> impleme
     public int getSlotIndexUnderCursor() {
         ModularGuiContext context = getContext();
         if (context == null) return -1;
-        int mouseX = context.getMouseX();
-        int mouseY = context.getMouseY();
+        int mouseX = context.getAbsMouseX();
+        int mouseY = context.getAbsMouseY();
         Area area = getArea();
         if (area == null || !area.isInside(mouseX, mouseY)) return -1;
 
@@ -59,8 +67,9 @@ public class CoolantBathGridWidget extends Widget<CoolantBathGridWidget> impleme
         int rows = getGridRows();
         int totalWidth = cols * CELL_SIZE;
         int totalHeight = rows * CELL_SIZE;
-        int startX = area.x() + (area.w() - totalWidth) / 2;
-        int startY = area.y() + (area.h() - totalHeight) / 2;
+        // The grid's corner on screen (area.x/y: the widget's own)
+        int startX = area.x + (area.w() - totalWidth) / 2;
+        int startY = area.y + (area.h() - totalHeight) / 2;
 
         int relX = mouseX - startX;
         int relY = mouseY - startY;
@@ -98,8 +107,9 @@ public class CoolantBathGridWidget extends Widget<CoolantBathGridWidget> impleme
         int rows = getGridRows();
         int totalWidth = cols * CELL_SIZE;
         int totalHeight = rows * CELL_SIZE;
-        int startX = area.x() + (area.w() - totalWidth) / 2;
-        int startY = area.y() + (area.h() - totalHeight) / 2;
+        // Drawing is in the widget's own coordinates: (0, 0) is its corner
+        int startX = (area.w() - totalWidth) / 2;
+        int startY = (area.h() - totalHeight) / 2;
 
         // Draw background container panel
         GuiDraw.drawRect(startX - 2, startY - 2, totalWidth + 4, totalHeight + 4, 0xFF22262B);

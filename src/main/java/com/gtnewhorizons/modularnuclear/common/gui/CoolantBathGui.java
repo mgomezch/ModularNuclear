@@ -18,19 +18,23 @@ public class CoolantBathGui extends CoolantLoopMachineGui<MTECoolantBath> {
 
     @Override
     protected int getBasePanelWidth() {
-        return multiblock.mMachine ? 200 : super.getBasePanelWidth();
+        return multiblock.isFormedForGui() ? 200 : super.getBasePanelWidth();
     }
 
     @Override
     protected int getBasePanelHeight() {
-        return multiblock.mMachine ? 235 : super.getBasePanelHeight();
+        return multiblock.isFormedForGui() ? 105 + CoolantBathGridWidget.gridHeight(multiblock)
+            : super.getBasePanelHeight();
     }
 
     @Override
     public Flow createMainColumn(ModularPanel panel, PanelSyncManager syncManager) {
-        if (!multiblock.mMachine) {
+        if (!multiblock.isFormedForGui()) {
             return super.createMainColumn(panel, syncManager);
         }
+        // The slots as they are now for the player opening it (a no-op on the client): the bath otherwise only
+        // resends them every ten seconds
+        multiblock.syncToClients();
         return Flow.column()
             .padding(4)
             .child(new CoolantBathGridWidget(multiblock))

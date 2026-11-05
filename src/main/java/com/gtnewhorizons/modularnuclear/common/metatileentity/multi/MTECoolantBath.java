@@ -471,6 +471,14 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
         super.onUnload();
     }
 
+    /**
+     * Whether the GUI shows the bath's slots: formed, as the server says (its slots arrive as the GUI opens). A client
+     * that watched the bath being built block by block may never have seen its structure complete itself.
+     */
+    public boolean isFormedForGui() {
+        return mMachine || clientStructureTier > 0;
+    }
+
     public void receiveClientSync(int structureTier, PacketSyncCoolantBath.SlotSyncData[] slots) {
         this.clientStructureTier = structureTier;
         this.clientSlots = slots;
