@@ -6,7 +6,6 @@
 | `textures/blocks/OVERLAY_FRONT_FISSION_REACTOR.png`<br>`textures/blocks/OVERLAY_FRONT_FISSION_REACTOR_ACTIVE.png` | `generate_reactor_overlays.py` |
 | `textures/blocks/fluids/corium_still.png`<br>`textures/blocks/fluids/corium_flow.png` | `generate_corium.py` |
 | `textures/blocks/fluids/heavywater_*` | `generate_water_fluids.py` |
-| `textures/items/cellHeavyWater.png`<br>`textures/items/cellHighPressureDistilledWater.png`<br>`textures/items/cellHighPressureHeavyWater.png` | `generate_cells.py` |
 | `textures/blocks/MACHINE_CASING_NUCLEAR.png` | `generate_casing.py` |
 | `textures/items/gt.radiovoltaic.plate.hv.png`<br>`textures/items/gt.radiovoltaic.plate.ev.png` | `generate_radiovoltaic_plates.py` |
 

@@ -1,6 +1,5 @@
 package com.gtnewhorizons.modularnuclear.common.recipe;
 
-import static gregtech.api.recipe.RecipeMaps.cannerRecipes;
 import static gregtech.api.recipe.RecipeMaps.centrifugeRecipes;
 import static gregtech.api.recipe.RecipeMaps.extruderRecipes;
 import static gregtech.api.recipe.RecipeMaps.fluidHeaterRecipes;
@@ -10,9 +9,7 @@ import static gregtech.api.util.GTRecipeBuilder.SECONDS;
 import static gregtech.api.util.GTRecipeBuilder.TICKS;
 import static gregtech.api.util.GTRecipeConstants.RTG_DURATION_IN_DAYS;
 
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
@@ -22,13 +19,11 @@ import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 
-import cpw.mods.fml.common.Loader;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.TierEU;
 import gregtech.api.enums.ToolDictNames;
 import gregtech.api.util.GTModHandler;
-import ic2.core.item.ItemFluidCell;
 
 public class ModRecipes {
 
@@ -39,7 +34,6 @@ public class ModRecipes {
         initialized = true;
         ModFluids.registerWithGregTech();
         registerCentrifugeRecipes();
-        registerCannerRecipes();
         registerFluidHeaterRecipes();
         registerCoriumRecipes();
         registerHighPressureHatchRecipes();
@@ -138,78 +132,6 @@ public class ModRecipes {
                 .eut(7680)
                 .duration(20 * SECONDS)
                 .addTo(centrifugeRecipes);
-        }
-    }
-
-    private static void registerCannerRecipes() {
-        registerFluidCanning(ModFluids.fluidHeavyWater, ModItems.cellHeavyWater);
-        if (isModLoaded("IC2") && ModFluids.fluidHeavyWaterSteam != null) {
-            registerUniversalCellCanning(ModFluids.fluidHeavyWaterSteam);
-        }
-    }
-
-    private static void registerFluidCanning(Fluid fluid, Item cellItem) {
-        if (fluid == null) return;
-        if (!ItemList.Cell_Empty.hasBeenSet()) return;
-
-        ItemStack emptyCell = ItemList.Cell_Empty.get(1);
-        if (emptyCell != null && cellItem != null) {
-            ItemStack fullCell = new ItemStack(cellItem);
-
-            // Filling: Empty Cell + 1000 L Fluid -> Full Cell
-            GTValues.RA.stdBuilder()
-                .itemInputs(emptyCell.copy())
-                .itemOutputs(fullCell.copy())
-                .fluidInputs(new FluidStack(fluid, 1000))
-                .duration(16 * TICKS)
-                .eut(1)
-                .addTo(cannerRecipes);
-
-            // Emptying: Full Cell -> Empty Cell + 1000 L Fluid
-            GTValues.RA.stdBuilder()
-                .itemInputs(fullCell.copy())
-                .itemOutputs(emptyCell.copy())
-                .fluidOutputs(new FluidStack(fluid, 1000))
-                .duration(16 * TICKS)
-                .eut(1)
-                .addTo(cannerRecipes);
-        }
-
-        if (isModLoaded("IC2")) {
-            registerUniversalCellCanning(fluid);
-        }
-    }
-
-    private static boolean isModLoaded(String modname) {
-        try {
-            return Loader.isModLoaded(modname);
-        } catch (Throwable t) {
-            return false;
-        }
-    }
-
-    private static void registerUniversalCellCanning(Fluid fluid) {
-        if (!ItemList.Cell_Universal_Fluid.hasBeenSet()) return;
-        ItemStack emptyUniv = ItemList.Cell_Universal_Fluid.get(1);
-        ItemStack filledUniv = ItemFluidCell.getUniversalFluidCell(new FluidStack(fluid, 1000));
-        if (emptyUniv != null && filledUniv != null) {
-            // Filling: Empty Universal Cell + 1000 L Fluid -> Full Universal Cell
-            GTValues.RA.stdBuilder()
-                .itemInputs(emptyUniv.copy())
-                .itemOutputs(filledUniv.copy())
-                .fluidInputs(new FluidStack(fluid, 1000))
-                .duration(16 * TICKS)
-                .eut(1)
-                .addTo(cannerRecipes);
-
-            // Emptying: Full Universal Cell -> Empty Universal Cell + 1000 L Fluid
-            GTValues.RA.stdBuilder()
-                .itemInputs(filledUniv.copy())
-                .itemOutputs(emptyUniv.copy())
-                .fluidOutputs(new FluidStack(fluid, 1000))
-                .duration(16 * TICKS)
-                .eut(1)
-                .addTo(cannerRecipes);
         }
     }
 }

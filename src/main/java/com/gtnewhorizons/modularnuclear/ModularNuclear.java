@@ -15,6 +15,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopChunkLoader;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 import com.gtnewhorizons.modularnuclear.common.event.CoriumPlacementHandler;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
+import com.gtnewhorizons.modularnuclear.common.fluid.ModWerkstoffs;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.item.NuclearFuelTooltipHandler;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
@@ -59,6 +60,7 @@ public class ModularNuclear {
         ReactorDataRegistry.init(event.getModConfigurationDirectory());
         ModularNuclearTextures.init();
         ModFluids.init();
+        ModWerkstoffs.register();
         ModBlocks.init();
         ModItems.init();
         CoolantLoops.preInit(event);
@@ -111,15 +113,13 @@ public class ModularNuclear {
             .registerEntityRenderingHandler(EntityMeltdownFallout.class, new RenderEmpty());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new CherenkovClientHandler());
         FalloutVisualEffectRenderer.init();
-        if (com.gtnewhorizons.modularnuclear.common.item.ModItems.steamCell != null) {
-            com.gtnewhorizons.modularnuclear.common.item.ModItems.steamCell.registerRenderer();
-        }
     }
 
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
         ModRecipes.init();
         CoolantLoops.postInit(event);
+        ModWerkstoffs.checkIds();
         CheeseRecipeRegistry.getInstance()
             .loadRecipes();
         ReactorDataRegistry.preIndexKnownItems();

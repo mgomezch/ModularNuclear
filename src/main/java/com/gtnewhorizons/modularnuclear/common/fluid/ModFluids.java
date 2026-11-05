@@ -1,7 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.fluid;
 
 import net.minecraft.client.renderer.texture.TextureMap;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.IIcon;
 import net.minecraftforge.client.event.TextureStitchEvent;
@@ -11,7 +10,6 @@ import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
-import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -91,34 +89,20 @@ public class ModFluids {
         }
     }
 
+    /**
+     * IC2's universal fluid cells of the mod's fluids. Their GregTech cells come from their BartWorks materials
+     * (ModWerkstoffs), and GregTech makes the canner recipes of both from the fluid container registry.
+     */
     public static void registerContainers() {
-        registerFluidContainers(fluidHeavyWater, ModItems.cellHeavyWater);
-        if (ModItems.steamCell != null) ModItems.steamCell.registerContainers();
-        if (Loader.isModLoaded("IC2")) {
-            registerUniversalFluidCell(fluidHeavyWaterSteam);
-            registerUniversalFluidCell(fluidSuperheatedHeavyWaterSteam);
-            registerUniversalFluidCell(fluidSupercriticalHeavyWaterSteam);
-        }
-    }
-
-    private static void registerFluidContainers(Fluid fluid, Item cellItem) {
-        if (fluid == null) return;
-
-        ItemStack emptyCell = ItemList.Cell_Empty.get(1);
-        if (emptyCell != null && cellItem != null) {
-            FluidContainerRegistry.registerFluidContainer(
-                new FluidContainerRegistry.FluidContainerData(
-                    new FluidStack(fluid, 1000),
-                    new ItemStack(cellItem),
-                    emptyCell));
-        }
-
-        if (Loader.isModLoaded("IC2")) {
+        if (!Loader.isModLoaded("IC2")) return;
+        for (Fluid fluid : new Fluid[] { fluidHeavyWater, fluidHeavyWaterSteam, fluidSuperheatedHeavyWaterSteam,
+            fluidSupercriticalHeavyWaterSteam }) {
             registerUniversalFluidCell(fluid);
         }
     }
 
     private static void registerUniversalFluidCell(Fluid fluid) {
+        if (fluid == null) return;
         ItemStack emptyUniversalCell = ItemList.Cell_Universal_Fluid.get(1);
         ItemStack filledUniversalCell = ItemFluidCell.getUniversalFluidCell(new FluidStack(fluid, 1000));
         if (emptyUniversalCell != null && filledUniversalCell != null) {

@@ -367,7 +367,7 @@ public class ActinideCompounderTest {
         assertNull(MTEActinideCompounder.getCircuitConfiguration(null));
         assertFalse(MTEActinideCompounder.isProgrammedCircuit(null));
 
-        ItemStack dummy = new ItemStack(ModItems.cellHeavyWater);
+        ItemStack dummy = new ItemStack(ModItems.itemCoriumDust);
         assertNull(MTEActinideCompounder.getCircuitConfiguration(dummy));
         assertFalse(MTEActinideCompounder.isProgrammedCircuit(dummy));
 
@@ -400,7 +400,7 @@ public class ActinideCompounderTest {
 
         // Inputs without any programmed circuit must return 0
         List<ItemStack> noCircuitInputs = new ArrayList<>();
-        noCircuitInputs.add(new ItemStack(ModItems.cellHeavyWater));
+        noCircuitInputs.add(new ItemStack(ModItems.itemCoriumDust));
         assertEquals(0, MTEActinideCompounder.resolveTargetRodSize(noCircuitInputs));
 
         try {

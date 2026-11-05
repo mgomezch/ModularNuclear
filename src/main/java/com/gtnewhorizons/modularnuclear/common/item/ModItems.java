@@ -3,8 +3,6 @@ package com.gtnewhorizons.modularnuclear.common.item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.oredict.OreDictionary;
 
-import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
-
 import cpw.mods.fml.common.registry.GameRegistry;
 
 public class ModItems {
@@ -12,9 +10,6 @@ public class ModItems {
     public static ItemRadiovoltaicPlate radiovoltaicPlate;
     public static ItemStack radiovoltaicPlateHV;
     public static ItemStack radiovoltaicPlateEV;
-
-    public static ItemNuclearFluidCell cellHeavyWater;
-    public static ItemSteamCell steamCell;
 
     public static ItemCustomFuelRod rodCustomFuel1;
     public static ItemCustomDepletedFuelRod rodCustomDepletedFuel1;
@@ -42,13 +37,6 @@ public class ModItems {
         GameRegistry.registerItem(radiovoltaicPlate, "radiovoltaic_plate");
         radiovoltaicPlateHV = new ItemStack(radiovoltaicPlate, 1, 0);
         radiovoltaicPlateEV = new ItemStack(radiovoltaicPlate, 1, 1);
-
-        cellHeavyWater = new ItemNuclearFluidCell("cellHeavyWater", ModFluids.fluidHeavyWater);
-        GameRegistry.registerItem(cellHeavyWater, "cellHeavyWater");
-        OreDictionary.registerOre("cellHeavyWater", new ItemStack(cellHeavyWater));
-
-        steamCell = new ItemSteamCell();
-        GameRegistry.registerItem(steamCell, "steam_cell");
 
         itemCoriumDust = new ItemCoriumDust();
         GameRegistry.registerItem(itemCoriumDust, "corium_dust");

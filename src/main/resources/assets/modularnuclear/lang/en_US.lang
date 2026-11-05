@@ -71,13 +71,17 @@ fluid.heavywatersteam=Heavy-water steam
 fluid.superheatedheavywatersteam=Superheated heavy-water steam
 fluid.supercriticalheavywatersteam=Supercritical heavy-water steam
 fluid.corium=Molten corium
+# The fluids' BartWorks materials (ModWerkstoffs): these names override BartWorks' defaults, which are fluid ids
+Material.heavywater=Heavy water
+Material.heavywatersteam=Heavy-water steam
+Material.superheatedheavywatersteam=Superheated heavy-water steam
+Material.supercriticalheavywatersteam=Supercritical heavy-water steam
 
 tile.modularnuclear.corium.name=Molten corium
 tile.modularnuclear.corium_solid.name=Corium
 item.modularnuclear.corium_dust.name=Corium dust
 item.modularnuclear.corium_rod.name=Corium rod
 
-item.cellHeavyWater.name=Heavy water cell
 item.modularnuclear.empty_core_tile.name=Empty core tile
 item.modularnuclear.empty_core_tile.desc=Empty grid space in the MPTR core. Neutrons stream through unimpeded without scattering or absorption.
 

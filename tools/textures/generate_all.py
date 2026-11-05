@@ -48,13 +48,10 @@ def main():
     # 4. Water Fluids (Heavy Water) via harmonic wave math
     run_generator(tools_dir / "generate_water_fluids.py")
 
-    # 5. Fluid Cells (Pure procedural canisters & liquid columns)
-    run_generator(tools_dir / "generate_cells.py")
-
-    # 6. Nuclear Machine Casing (Pure procedural lead-shielded casing)
+    # 5. Nuclear Machine Casing (Pure procedural lead-shielded casing)
     run_generator(tools_dir / "generate_casing.py")
 
-    # 7. Radiovoltaic Plates (Pure procedural Si-Ge and SiC-Graphene wafers)
+    # 6. Radiovoltaic Plates (Pure procedural Si-Ge and SiC-Graphene wafers)
     run_generator(tools_dir / "generate_radiovoltaic_plates.py")
 
     dt = time.time() - t0
