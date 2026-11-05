@@ -132,11 +132,11 @@ public class ModFluids {
     private static Fluid registerOrGet(String name, int density, int viscosity, int temperature) {
         Fluid fluid = FluidRegistry.getFluid(name);
         if (fluid == null) {
+            // Forge prefixes "fluid." to the unlocalized name, which defaults to the fluid's name
             fluid = new Fluid(name);
             fluid.setDensity(density)
                 .setViscosity(viscosity)
-                .setTemperature(temperature)
-                .setUnlocalizedName("fluid." + name);
+                .setTemperature(temperature);
             FluidRegistry.registerFluid(fluid);
         }
         return fluid;

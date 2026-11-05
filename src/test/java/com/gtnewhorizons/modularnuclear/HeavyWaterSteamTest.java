@@ -42,8 +42,7 @@ public class HeavyWaterSteamTest {
             hws.setDensity(-100)
                 .setViscosity(100)
                 .setTemperature(375)
-                .setGaseous(true)
-                .setUnlocalizedName("fluid.heavywatersteam");
+                .setGaseous(true);
             FluidRegistry.registerFluid(hws);
         }
         if (FluidRegistry.getFluid("ic2distilledwater") == null) {
