@@ -32,8 +32,7 @@ bath:
   fillVolumePerSlotLiters: 1000   # Coolant fill volume per item slot in Liters
   baseMinorLossK: 1.0            # Base minor loss coefficient of empty bath
   itemMinorLossK: 1.0            # Additional minor loss K per active item in bath
-  settleMarginC: 1.0             # An item within this of the coolant's temperature leaves: it can get no closer to its goal
-  ingotCooledTempC: 100.0        # A hot ingot cooled to this or below leaves as its ingot (one that settles hotter leaves hot)
+  ingotCooledTempC: 45.0         # A hot ingot cooled to this or below leaves as its ingot: safe to touch (NASA's 45 C touch limit)
 
 # Creative Heat Reservoir
 reservoir:

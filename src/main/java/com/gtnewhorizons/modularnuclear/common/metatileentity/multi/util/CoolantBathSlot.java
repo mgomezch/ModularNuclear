@@ -72,23 +72,14 @@ public class CoolantBathSlot {
     }
 
     /**
-     * Whether the item is done in a bath at coolantTemp: it has reached its goal, or it has come as close to it as
-     * that coolant allows (it has settled within settleMargin of the coolant's temperature, and can only follow it from
-     * there). Cryogenic cells are done once boiled off.
-     */
-    public boolean isAutoEjectReady(double coolantTemp, double settleMargin) {
-        if (isAutoEjectReady()) return true;
-        return itemStack != null && !isCryoCell && Math.abs(currentTemp - coolantTemp) <= settleMargin;
-    }
-
-    /**
      * Checks if the slot item has reached its goal: its transformation, or a coolant cell's full or empty state.
      *
      * Rules:
      * - Coolant cells auto-eject when reaching max or min durability, EXCEPT if present state
      * equals insertion state (fully-hot ejects only when fully-cold; fully-cold ejects only
      * when fully-hot; intermediate ejects at either extreme).
-     * - Ingots auto-eject when they have reached the target temperature and transformed.
+     * - Ingots auto-eject once they have given off (or taken in) all the heat between their start and target
+     * temperatures, that is, reached the target: an ingot the coolant cannot take there stays in the bath.
      * - Cryogenic cells auto-eject when they have absorbed their full latent heat of vaporization.
      */
     public boolean isAutoEjectReady() {
@@ -114,9 +105,9 @@ public class CoolantBathSlot {
             }
         } else if (isIngot) {
             if (cooling) {
-                return currentTemp <= (targetTemp + 2.0);
+                return currentTemp <= targetTemp;
             } else {
-                return currentTemp >= (targetTemp - 2.0);
+                return currentTemp >= targetTemp;
             }
         }
 

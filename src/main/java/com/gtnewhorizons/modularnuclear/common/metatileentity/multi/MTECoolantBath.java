@@ -204,12 +204,6 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
         return (long) getTotalSlotCount() * perSlot;
     }
 
-    /** How close to the coolant's temperature an item counts as settled, done with as far as this coolant goes. */
-    public static double settleMarginCelsius() {
-        CoolantDeviceData devData = CoolantLoopDataRegistry.getDeviceData();
-        return devData != null && devData.getBath() != null ? devData.getBath().settleMarginC : 1.0;
-    }
-
     @Override
     public double getDeviceTemperatureCelsius() {
         return mCurrentCoolantTemp;
@@ -334,7 +328,7 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
             // 2. Auto-eject completed items to output buses
             for (int i = 0; i < mSlots.length; i++) {
                 CoolantBathSlot slot = mSlots[i];
-                if (slot != null && slot.isAutoEjectReady(mCurrentCoolantTemp, settleMarginCelsius())) {
+                if (slot != null && slot.isAutoEjectReady()) {
                     if (ejectSlotToOutputBus(i)) {
                         mNeedsSync = true;
                     }

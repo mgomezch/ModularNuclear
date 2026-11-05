@@ -371,7 +371,8 @@ public class CoolantBathRegistry {
     /** The temperature a hot ingot has cooled into its ingot at (devices.yaml bath.ingotCooledTempC). */
     public static double ingotCooledTemperatureCelsius() {
         CoolantDeviceData devData = CoolantLoopDataRegistry.getDeviceData();
-        return devData != null && devData.getBath() != null ? devData.getBath().ingotCooledTempC : 100.0;
+        return devData != null && devData.getBath() != null ? devData.getBath().ingotCooledTempC
+            : CoolantDeviceData.CoolantBathData.TOUCH_SAFE_TEMP_C;
     }
 
     /** The liters of fluid a cell holds: what the fluid container registry says it holds, else a cell's 1000. */

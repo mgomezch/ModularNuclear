@@ -352,15 +352,24 @@ public class CoolantDeviceData {
         public long fillVolumePerSlotLiters = 1000L; // Coolant fill volume per slot in Liters
         public double baseMinorLossK = 1.0; // Base minor loss coefficient of empty bath
         public double itemMinorLossK = 1.0; // Additional minor loss K per active item in bath
-        public double settleMarginC = 1.0; // An item this close to the coolant's temperature is done with
-        public double ingotCooledTempC = 100.0; // A hot ingot at or below this has cooled into its ingot
+        /**
+         * The hottest an object may be for bare skin to touch it for any length of time: NASA's touch temperature limit
+         * for all materials and contact times until 1995, from pain onset on heated aluminum plates, and still the
+         * screening temperature below which any common material is safe to touch. E. Ungar and K. Stroud, "A New
+         * Approach to Defining Human Touch Temperature Standards", 40th International Conference on Environmental
+         * Systems (AIAA), Barcelona, 2010, NASA JSC-CN-20089, pp. 1 and 6:
+         * https://ntrs.nasa.gov/api/citations/20100020960/downloads/20100020960.pdf
+         */
+        public static final double TOUCH_SAFE_TEMP_C = 45.0;
+
+        /** A hot ingot at or below this has cooled into its ingot: one safe to hold in a bare hand. */
+        public double ingotCooledTempC = TOUCH_SAFE_TEMP_C;
 
         public Map<String, Object> toMap() {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("fillVolumePerSlotLiters", fillVolumePerSlotLiters);
             map.put("baseMinorLossK", baseMinorLossK);
             map.put("itemMinorLossK", itemMinorLossK);
-            map.put("settleMarginC", settleMarginC);
             map.put("ingotCooledTempC", ingotCooledTempC);
             return map;
         }
@@ -374,7 +383,6 @@ public class CoolantDeviceData {
                 d.baseMinorLossK = ((Number) map.get("baseMinorLossK")).doubleValue();
             if (map.containsKey("itemMinorLossK"))
                 d.itemMinorLossK = ((Number) map.get("itemMinorLossK")).doubleValue();
-            if (map.containsKey("settleMarginC")) d.settleMarginC = ((Number) map.get("settleMarginC")).doubleValue();
             if (map.containsKey("ingotCooledTempC"))
                 d.ingotCooledTempC = ((Number) map.get("ingotCooledTempC")).doubleValue();
             return d;

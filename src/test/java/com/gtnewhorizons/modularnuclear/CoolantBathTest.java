@@ -201,8 +201,11 @@ public class CoolantBathTest {
         assertTrue(slot.currentTemp < initialHotTemp, "Temperature must have decreased");
         assertTrue(slot.getProgressFraction() > 0.0, "Progress must have increased");
 
-        // Force cool to room temperature (<= 22 C)
+        // Just above its target it has not given off all its heat yet; at it, it has
         slot.currentTemp = 21.0;
+        slot.updateItemDamage();
+        assertFalse(slot.isAutoEjectReady(), "a degree short of its target");
+        slot.currentTemp = targetColdTemp;
         slot.updateItemDamage();
         assertTrue(slot.isAutoEjectReady(), "Must be ready to auto-eject once cooled down to target temperature");
         assertEquals(
@@ -238,8 +241,11 @@ public class CoolantBathTest {
         assertEquals(0.0, slot.getProgressFraction(), 1e-4);
         assertFalse(slot.isAutoEjectReady());
 
-        // Heat up to near target
+        // A degree short of its target it has not taken in all its heat yet; at it, it has
         slot.currentTemp = targetHotTemp - 1.0;
+        slot.updateItemDamage();
+        assertFalse(slot.isAutoEjectReady(), "a degree short of its target");
+        slot.currentTemp = targetHotTemp;
         slot.updateItemDamage();
         assertTrue(slot.isAutoEjectReady(), "Must auto-eject once heated up to target blast furnace temperature");
         assertEquals(
@@ -731,34 +737,40 @@ public class CoolantBathTest {
     }
 
     @Test
-    void testHotIngotCoolsIntoItsIngotInAWarmLoop() {
-        // Cooled at 100 C: a 60 C loop gets it there, though it never gets below 60
-        CoolantBathSlot slot = hotIngot(100.0);
-        assertFalse(slot.isAutoEjectReady(60.0, 1.0));
-        soak(slot, 60.0, 600);
-        assertTrue(slot.currentTemp > 60.0 && slot.currentTemp < 102.0, "cooled to " + slot.currentTemp);
-        assertTrue(slot.isAutoEjectReady(60.0, 1.0));
+    void testHotIngotCoolsIntoItsIngotOnceSafeToTouch() {
+        assertEquals(45.0, CoolantDeviceData.CoolantBathData.TOUCH_SAFE_TEMP_C, 0.0);
+        assertEquals(
+            CoolantDeviceData.CoolantBathData.TOUCH_SAFE_TEMP_C,
+            new CoolantDeviceData.CoolantBathData().ingotCooledTempC,
+            0.0);
+        // A 30 C loop takes it below 45 C: it leaves as its ingot
+        CoolantBathSlot slot = hotIngot(45.0);
+        assertFalse(slot.isAutoEjectReady());
+        soak(slot, 30.0, 1200);
+        assertTrue(slot.currentTemp <= 45.0, "cooled to " + slot.currentTemp);
+        assertTrue(slot.isAutoEjectReady());
         ItemStack out = slot.getCompletedOutput();
         assertEquals(Items.iron_ingot, out.getItem());
         assertFalse(out.hasTagCompound(), "no bath tags on what leaves");
     }
 
     @Test
-    void testIngotThatSettlesTooHotLeavesStillHot() {
-        // A 300 C loop: the ingot settles at 300, as cool as it gets there, and leaves as it is
-        CoolantBathSlot slot = hotIngot(100.0);
-        soak(slot, 300.0, 60);
-        assertFalse(slot.isAutoEjectReady(300.0, 1.0), "still cooling at " + slot.currentTemp);
-        soak(slot, 300.0, 1200);
-        assertTrue(slot.isAutoEjectReady(300.0, 1.0), "settled at " + slot.currentTemp);
+    void testIngotInATooWarmLoopStaysInTheBath() {
+        // A 60 C loop: the ingot settles at 60, never giving off the heat between there and 45, and stays
+        CoolantBathSlot slot = hotIngot(45.0);
+        soak(slot, 60.0, 2400);
+        assertTrue(Math.abs(slot.currentTemp - 60.0) < 0.5, "settled at " + slot.currentTemp);
+        assertFalse(slot.isAutoEjectReady(), "settled, but not cooled");
+        // Taken out by hand, it is still the hot ingot
         ItemStack out = slot.getCompletedOutput();
         assertEquals(Items.gold_ingot, out.getItem(), "not cooled: still the hot ingot");
         assertFalse(out.hasTagCompound(), "no bath tags on what leaves");
     }
 
     @Test
-    void testHotCellSettlesWithTheLoopsHeat() {
-        // A 10k cell at 90% heat (about 900 C) in a 40 C loop: it leaves at 40 C, holding about 2% of its heat
+    void testHotCellStaysUntilItHasGivenOffAllItsHeat() {
+        // A 10k cell at 90% heat (about 900 C): a 40 C loop leaves it holding some heat, so it stays; below 20 C it
+        // gives off the rest and leaves empty
         ItemStack cell = new ItemStack(Items.iron_sword);
         int max = cell.getMaxDamage();
         cell.setItemDamage(max * 9 / 10);
@@ -776,9 +788,8 @@ public class CoolantBathTest {
             true,
             null);
         soak(slot, 40.0, 1200);
-        assertTrue(slot.isAutoEjectReady(40.0, 1.0), "settled at " + slot.currentTemp);
-        int left = slot.getCompletedOutput()
-            .getItemDamage();
-        assertTrue(left > 1 && left < max * 4 / 100, "heat left " + left + " of " + max);
+        assertFalse(slot.isAutoEjectReady(), "settled at " + slot.currentTemp + " with heat left");
+        soak(slot, 0.0, 1200);
+        assertTrue(slot.isAutoEjectReady(), "at " + slot.currentTemp);
     }
 }
