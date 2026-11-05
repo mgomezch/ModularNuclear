@@ -10,6 +10,7 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.gui.LockIconWidget;
 import com.gtnewhorizons.modularnuclear.common.gui.PanelDragHandle;
 import com.gtnewhorizons.modularnuclear.common.gui.ResizeableFloatingPanel;
@@ -30,11 +31,12 @@ public class CoolantLoopGraphPanel {
 
         CoolantLoopGraphWidget graphWidget = new CoolantLoopGraphWidget();
 
-        // Server-client network sync of loop graph data JSON (a large loop's passes a packet string's 32 KB)
+        // Server-client network sync of loop graph data JSON (a large loop's passes a packet string's 32 KB), as often
+        // as the config allows
         StringSyncValue graphDataSyncer = new LargeStringSyncValue(pump::getLoopGraphDataJson, json -> {
             CoolantLoopGraphData data = CoolantLoopGraphData.fromJson(json);
             graphWidget.setGraphData(data);
-        });
+        }, ModularNuclearConfig.loopGraphSyncIntervalTicks());
         syncManager.syncValue("loopGraphJson", graphDataSyncer);
 
         // Initial setup on opening

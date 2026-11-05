@@ -41,4 +41,26 @@ public class LargeStringSyncValueTest {
         assertEquals("", roundTrip(""));
         assertNull(roundTrip(null));
     }
+
+    @Test
+    void testSourceIsReadOnceEachInterval() {
+        // A loop whose graph has not changed (the cache's null): the server only builds it every 20 ticks
+        int[] reads = { 0 };
+        LargeStringSyncValue sync = new LargeStringSyncValue(() -> {
+            reads[0]++;
+            return null;
+        }, v -> {}, 20);
+        reads[0] = 0; // the constructor's own read, filling its cache
+        for (int tick = 0; tick < 60; tick++) sync.detectAndSendChanges(false);
+        assertEquals(3, reads[0]);
+
+        int[] everyTick = { 0 };
+        LargeStringSyncValue fast = new LargeStringSyncValue(() -> {
+            everyTick[0]++;
+            return null;
+        }, v -> {});
+        everyTick[0] = 0;
+        for (int tick = 0; tick < 60; tick++) fast.detectAndSendChanges(false);
+        assertEquals(60, everyTick[0]);
+    }
 }

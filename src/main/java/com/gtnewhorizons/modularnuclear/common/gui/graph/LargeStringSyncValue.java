@@ -15,15 +15,31 @@ import com.cleanroommc.modularui.value.sync.StringSyncValue;
 
 /**
  * A string synced whole, however long: ModularUI's StringSyncValue cuts a string at 32 KB (a packet string's limit),
- * which a large loop's graph JSON passes. The string goes deflated, as a length and its bytes.
+ * which a large loop's graph JSON passes. The string goes deflated, as a length and its bytes. The server reads the
+ * source at most once every minIntervalTicks (a large loop's graph is costly to build and send), and on opening.
  */
 public class LargeStringSyncValue extends StringSyncValue {
 
     /** Longest string accepted back, against a corrupt length. */
     private static final int MAX_BYTES = 16 * 1024 * 1024;
 
+    private final int minIntervalTicks;
+    private int ticksSinceCheck;
+
     public LargeStringSyncValue(Supplier<String> getter, Consumer<String> setter) {
+        this(getter, setter, 1);
+    }
+
+    public LargeStringSyncValue(Supplier<String> getter, Consumer<String> setter, int minIntervalTicks) {
         super(getter, setter);
+        this.minIntervalTicks = Math.max(1, minIntervalTicks);
+    }
+
+    @Override
+    public void detectAndSendChanges(boolean init) {
+        if (!init && ++ticksSinceCheck < minIntervalTicks) return;
+        ticksSinceCheck = 0;
+        super.detectAndSendChanges(init);
     }
 
     @Override

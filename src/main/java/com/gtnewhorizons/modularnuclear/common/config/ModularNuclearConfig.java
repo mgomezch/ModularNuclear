@@ -4,6 +4,7 @@ import java.io.File;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
@@ -40,6 +41,13 @@ public final class ModularNuclearConfig {
     // ==========================================
     public static final String CAT_SIMULATION = "simulation";
     public static int ticksPerCycle = 5;
+
+    // ==========================================
+    // GUI sync
+    // ==========================================
+    public static final String CAT_GUI = "gui";
+    public static int loopGraphSyncIntervalDedicated = 20;
+    public static int loopGraphSyncIntervalIntegrated = 1;
 
     // ==========================================
     // Allowlists & Blocklists (Core Components)
@@ -271,6 +279,22 @@ public final class ModularNuclearConfig {
                 "Number of ticks per reactor simulation cycle (default 5, i.e. 4 cycles/second).");
             NuclearSimulationEngine.params().ticksPerCycle = ticksPerCycle;
 
+            config.setCategoryComment(CAT_GUI, "How often machine GUIs send their data to the players viewing them.");
+            loopGraphSyncIntervalDedicated = config.getInt(
+                "loopGraphSyncIntervalDedicated",
+                CAT_GUI,
+                loopGraphSyncIntervalDedicated,
+                1,
+                1200,
+                "Minimum ticks between coolant loop graph updates to each player viewing one, on a dedicated server (default 20, once a second). A large loop's graph is tens of KB, rebuilt for each update.");
+            loopGraphSyncIntervalIntegrated = config.getInt(
+                "loopGraphSyncIntervalIntegrated",
+                CAT_GUI,
+                loopGraphSyncIntervalIntegrated,
+                1,
+                1200,
+                "Minimum ticks between coolant loop graph updates in singleplayer and LAN games (the integrated server; default 1, every tick).");
+
         } catch (Exception e) {
             ModularNuclear.LOG.error("Failed to load ModularNuclear config", e);
         } finally {
@@ -279,6 +303,13 @@ public final class ModularNuclearConfig {
             }
             changed();
         }
+    }
+
+    /** Minimum ticks between coolant loop graph updates on the server running now. */
+    public static int loopGraphSyncIntervalTicks() {
+        MinecraftServer server = MinecraftServer.getServer();
+        return server != null && server.isDedicatedServer() ? loopGraphSyncIntervalDedicated
+            : loopGraphSyncIntervalIntegrated;
     }
 
     // ==========================================
