@@ -168,13 +168,20 @@ public class ReactorMetricsDashboardTest {
 
     @Test
     void testComputerMonitorCoverGating() {
-        MTENuclearReactor reactor = new MTENuclearReactor("mptr_test");
+        boolean[] cover = { false };
+        MTENuclearReactor reactor = new MTENuclearReactor("mptr_test") {
 
-        // Initially no cover
-        assertFalse(reactor.hasComputerMonitorCover());
+            @Override
+            public boolean hasComputerMonitorCover() {
+                return cover[0];
+            }
+        };
+
+        // Without a world there is no cover
+        assertFalse(new MTENuclearReactor("mptr_test_plain").hasComputerMonitorCover());
 
         // Simulate cover attached
-        reactor.mSimulateComputerMonitorCover = true;
+        cover[0] = true;
         assertTrue(reactor.hasComputerMonitorCover());
 
         // Simulate cycle
@@ -197,7 +204,7 @@ public class ReactorMetricsDashboardTest {
         assertEquals(200, s.escapedNeutrons);
 
         // When cover is removed, history is cleared
-        reactor.mSimulateComputerMonitorCover = false;
+        cover[0] = false;
         assertFalse(reactor.hasComputerMonitorCover());
 
         if (!reactor.hasComputerMonitorCover() && !reactor.getMetricsHistory()
@@ -213,8 +220,13 @@ public class ReactorMetricsDashboardTest {
 
     @Test
     void testNonPersistenceOfMetricsHistory() {
-        MTENuclearReactor reactor = new MTENuclearReactor("mptr_test_nbt");
-        reactor.mSimulateComputerMonitorCover = true;
+        MTENuclearReactor reactor = new MTENuclearReactor("mptr_test_nbt") {
+
+            @Override
+            public boolean hasComputerMonitorCover() {
+                return true;
+            }
+        };
 
         NuclearSimulationEngine.SimulationResult res = new NuclearSimulationEngine.SimulationResult();
         res.totalNeutronsGenerated = 1000;

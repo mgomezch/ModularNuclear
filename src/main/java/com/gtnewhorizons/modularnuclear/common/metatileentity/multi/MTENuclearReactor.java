@@ -13,7 +13,6 @@ import javax.annotation.Nonnull;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Items;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -69,6 +68,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemKitModularNucl
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 import com.gtnewhorizons.modularnuclear.common.util.FluidRoles;
+import com.gtnewhorizons.modularnuclear.common.util.MonitorCover;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
@@ -247,7 +247,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public ReactorGridSyncData mClientGridData = null;
 
     // Metrics dashboard state (in-memory, not persisted to NBT)
-    public boolean mSimulateComputerMonitorCover = false;
     private final ReactorMetricsHistory mMetricsHistory = new ReactorMetricsHistory();
     public ReactorMetricsHistory mClientMetricsHistory = null;
     public long mTotalCycles = 0L;
@@ -2506,35 +2505,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public boolean hasComputerMonitorCover() {
-        if (mSimulateComputerMonitorCover) return true;
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base == null) return false;
-        if (screenCoverItem == null) {
-            if (!ItemList.Cover_Screen.hasBeenSet()) return false;
-            ItemStack screenStack = ItemList.Cover_Screen.get(1L);
-            if (screenStack == null) return false;
-            screenCoverMeta = screenStack.getItemDamage();
-            screenCoverItem = screenStack.getItem();
-        }
-        for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
-            ItemStack cover = base.getCoverItemAtSide(side);
-            if (cover != null && cover.getItem() == screenCoverItem && cover.getItemDamage() == screenCoverMeta) {
-                return true;
-            }
-        }
-        return false;
+        return MonitorCover.isOn(getBaseMetaTileEntity());
     }
-
-    /** The computer monitor cover's item, resolved once instead of making a stack each cycle. */
-    private static Item screenCoverItem;
-    private static int screenCoverMeta;
 
     @Override
     public boolean allowCoverOnSide(ForgeDirection side, ItemStack coverItem) {
-        if (ItemList.Cover_Screen.hasBeenSet()
-            && GTUtility.areStacksEqual(coverItem, ItemList.Cover_Screen.get(1L), true)) {
-            return true;
-        }
+        if (MonitorCover.is(coverItem)) return true;
         return super.allowCoverOnSide(side, coverItem);
     }
 

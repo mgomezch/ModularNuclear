@@ -341,14 +341,7 @@ public class CoolantLoopGraphTest {
     public void testCoolantPumpMonitorCoverDetection() {
         MTECoolantPump pump = new MTECoolantPump("test_monitor_pump");
 
-        // By default without cover or tile entity base, returns false
-        assertFalse(pump.hasComputerMonitorCover());
-
-        // Simulated cover flag enables monitor cover for headless testing / GUI inspection
-        pump.setSimulatedComputerMonitorCover(true);
-        assertTrue(pump.hasComputerMonitorCover());
-
-        pump.setSimulatedComputerMonitorCover(false);
+        // Without a tile entity base there is no cover
         assertFalse(pump.hasComputerMonitorCover());
     }
 

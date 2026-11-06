@@ -53,6 +53,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.Coolant
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 import com.gtnewhorizons.modularnuclear.common.util.LoopStateNbt;
+import com.gtnewhorizons.modularnuclear.common.util.MonitorCover;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
@@ -63,7 +64,6 @@ import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.HatchElement;
-import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
@@ -81,7 +81,6 @@ import gregtech.api.structure.error.PositionedStructureError;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrors;
 import gregtech.api.util.GTLog;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.TurbineStatCalculator;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
@@ -213,38 +212,18 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
     // Loop Graph Visualization & Cover Detection
     protected LoopGraphCrawler.CrawlResult mLastCrawlResult = null;
-    protected boolean mSimulateComputerMonitorCover = false;
 
     public LoopGraphCrawler.CrawlResult getLastCrawlResult() {
         return mLastCrawlResult;
     }
 
-    public void setSimulatedComputerMonitorCover(boolean simulate) {
-        this.mSimulateComputerMonitorCover = simulate;
-    }
-
     public boolean hasComputerMonitorCover() {
-        if (mSimulateComputerMonitorCover) return true;
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base == null) return false;
-        if (!ItemList.Cover_Screen.hasBeenSet()) return false;
-        ItemStack screenStack = ItemList.Cover_Screen.get(1L);
-        if (screenStack == null) return false;
-        for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
-            ItemStack cover = base.getCoverItemAtSide(side);
-            if (cover != null && GTUtility.areStacksEqual(cover, screenStack, true)) {
-                return true;
-            }
-        }
-        return false;
+        return MonitorCover.isOn(getBaseMetaTileEntity());
     }
 
     @Override
     public boolean allowCoverOnSide(ForgeDirection side, ItemStack coverItem) {
-        if (ItemList.Cover_Screen.hasBeenSet()
-            && GTUtility.areStacksEqual(coverItem, ItemList.Cover_Screen.get(1L), true)) {
-            return true;
-        }
+        if (MonitorCover.is(coverItem)) return true;
         return super.allowCoverOnSide(side, coverItem);
     }
 
