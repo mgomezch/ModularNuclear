@@ -105,7 +105,8 @@ public class CoolantPumpStructureTest {
         assertEquals(Materials.StainlessSteel, MTECoolantPump.getMaterialForTier(2));
         assertEquals(Materials.Titanium, MTECoolantPump.getMaterialForTier(3));
         assertEquals(Materials.TungstenSteel, MTECoolantPump.getMaterialForTier(4));
-        assertEquals(Materials.Neutronium, MTECoolantPump.getMaterialForTier(5));
+        assertEquals(Materials.Osmium, MTECoolantPump.getMaterialForTier(5));
+        assertEquals(Materials.Neutronium, MTECoolantPump.getMaterialForTier(6));
 
         // Fallbacks
         assertEquals(Materials.Iron, MTECoolantPump.getMaterialForTier(-1));

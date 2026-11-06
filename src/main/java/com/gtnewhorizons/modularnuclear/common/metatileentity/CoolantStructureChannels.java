@@ -90,9 +90,10 @@ public enum CoolantStructureChannels implements IStructureChannels {
             Swallowed.note(swallowed);
         }
 
-        // Register indicator items for TANK_MATERIAL (Iron, Steel, Stainless, Titanium, Tungstensteel, Neutronium)
+        // Register indicator items for TANK_MATERIAL (Iron, Steel, Stainless, Titanium, Tungstensteel, Osmium,
+        // Neutronium)
         try {
-            for (int tier = 0; tier <= 5; tier++) {
+            for (int tier = 0; tier <= 6; tier++) {
                 Materials mat = CoolantPumpStructure.getMaterialForTier(tier);
                 ItemStack stack = CoolantPumpStructure.getTankWallItem(mat);
                 if (stack != null && stack.getItem() != null) {

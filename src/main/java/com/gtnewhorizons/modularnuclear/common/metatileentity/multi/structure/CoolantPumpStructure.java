@@ -23,12 +23,15 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipingRegistry
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
+import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
 import gregtech.api.util.GTStructureUtility;
+import mods.railcraft.common.blocks.machine.IEnumMachine;
 import mods.railcraft.common.blocks.machine.TileMultiBlock;
 import mods.railcraft.common.blocks.machine.beta.EnumMachineBeta;
+import mods.railcraft.common.blocks.machine.tank.GenericMultiTankBase;
 import mods.railcraft.common.modules.ModuleAdvancedTanks;
 
 public final class CoolantPumpStructure {
@@ -50,6 +53,8 @@ public final class CoolantPumpStructure {
             case 4:
                 return Materials.TungstenSteel;
             case 5:
+                return Materials.Osmium;
+            case 6:
                 return Materials.Neutronium;
             default:
                 if (tier < 0) return Materials.Iron;
@@ -62,7 +67,7 @@ public final class CoolantPumpStructure {
         int tier;
         try {
             if (ChannelDataAccessor.hasSubChannel(trigger, CoolantStructureChannels.TANK_MATERIAL.get())) {
-                tier = CoolantStructureChannels.TANK_MATERIAL.getValueClamped(trigger, 0, 5);
+                tier = CoolantStructureChannels.TANK_MATERIAL.getValueClamped(trigger, 0, 6);
             } else if (ChannelDataAccessor.hasSubChannel(trigger, "tier")) {
                 tier = ChannelDataAccessor.getChannelData(trigger, "tier");
             } else {
@@ -123,115 +128,62 @@ public final class CoolantPumpStructure {
         }
     }
 
-    public static ItemStack getTankWallItem(Materials mat) {
+    /** Railcraft's advanced tank of a material (stainless steel to neutronium), or null. */
+    private static GenericMultiTankBase advancedTank(Materials mat) {
+        if (mat == Materials.StainlessSteel) return ModuleAdvancedTanks.STAINLESS;
+        if (mat == Materials.Titanium) return ModuleAdvancedTanks.TITANIUM;
+        if (mat == Materials.TungstenSteel) return ModuleAdvancedTanks.TUNGSTENSTEEL;
+        if (mat == Materials.Osmium) return ModuleAdvancedTanks.OSMIUM;
+        if (mat == Materials.Neutronium) return ModuleAdvancedTanks.NEUTRONIUM;
+        return null;
+    }
+
+    private enum TankPart {
+        WALL,
+        VALVE,
+        GAUGE
+    }
+
+    /** A part of the tank of a material, or the steel one (or a stick, without Railcraft) for any other material. */
+    private static ItemStack tankItem(Materials mat, TankPart part) {
+        // Railcraft's classes are only touched in here, so a missing Railcraft falls back to the stick
         try {
-            if (mat == Materials.Iron && EnumMachineBeta.TANK_IRON_WALL != null) {
-                return EnumMachineBeta.TANK_IRON_WALL.getItem();
-            }
-            if (mat == Materials.Steel && EnumMachineBeta.TANK_STEEL_WALL != null) {
-                return EnumMachineBeta.TANK_STEEL_WALL.getItem();
-            }
-            if (mat == Materials.StainlessSteel && ModuleAdvancedTanks.STAINLESS != null
-                && ModuleAdvancedTanks.STAINLESS.TANK_WALL != null) {
-                return ModuleAdvancedTanks.STAINLESS.TANK_WALL.getItem();
-            }
-            if (mat == Materials.Titanium && ModuleAdvancedTanks.TITANIUM != null
-                && ModuleAdvancedTanks.TITANIUM.TANK_WALL != null) {
-                return ModuleAdvancedTanks.TITANIUM.TANK_WALL.getItem();
-            }
-            if (mat == Materials.TungstenSteel && ModuleAdvancedTanks.TUNGSTENSTEEL != null
-                && ModuleAdvancedTanks.TUNGSTENSTEEL.TANK_WALL != null) {
-                return ModuleAdvancedTanks.TUNGSTENSTEEL.TANK_WALL.getItem();
-            }
-            if (mat == Materials.Neutronium && ModuleAdvancedTanks.NEUTRONIUM != null
-                && ModuleAdvancedTanks.NEUTRONIUM.TANK_WALL != null) {
-                return ModuleAdvancedTanks.NEUTRONIUM.TANK_WALL.getItem();
-            }
-            if (mat == Materials.Aluminium && ModuleAdvancedTanks.ALUMINIUM != null
-                && ModuleAdvancedTanks.ALUMINIUM.TANK_WALL != null) {
-                return ModuleAdvancedTanks.ALUMINIUM.TANK_WALL.getItem();
-            }
-            if (EnumMachineBeta.TANK_STEEL_WALL != null) {
-                return EnumMachineBeta.TANK_STEEL_WALL.getItem();
-            }
-            return new ItemStack(net.minecraft.init.Items.stick, 1);
-        } catch (Throwable t) {
-            return new ItemStack(net.minecraft.init.Items.stick, 1);
+            IEnumMachine iron = switch (part) {
+                case WALL -> EnumMachineBeta.TANK_IRON_WALL;
+                case VALVE -> EnumMachineBeta.TANK_IRON_VALVE;
+                case GAUGE -> EnumMachineBeta.TANK_IRON_GAUGE;
+            };
+            IEnumMachine steel = switch (part) {
+                case WALL -> EnumMachineBeta.TANK_STEEL_WALL;
+                case VALVE -> EnumMachineBeta.TANK_STEEL_VALVE;
+                case GAUGE -> EnumMachineBeta.TANK_STEEL_GAUGE;
+            };
+            GenericMultiTankBase tank = advancedTank(mat);
+            IEnumMachine advanced = tank == null ? null : switch (part) {
+                case WALL -> tank.TANK_WALL;
+                case VALVE -> tank.TANK_VALVE;
+                case GAUGE -> tank.TANK_GAUGE;
+            };
+            if (mat == Materials.Iron && iron != null) return iron.getItem();
+            if (mat == Materials.Steel && steel != null) return steel.getItem();
+            if (advanced != null) return advanced.getItem();
+            if (steel != null) return steel.getItem();
+        } catch (Throwable swallowed) {
+            Swallowed.note(swallowed);
         }
+        return new ItemStack(net.minecraft.init.Items.stick, 1);
+    }
+
+    public static ItemStack getTankWallItem(Materials mat) {
+        return tankItem(mat, TankPart.WALL);
     }
 
     public static ItemStack getTankValveItem(Materials mat) {
-        try {
-            if (mat == Materials.Iron && EnumMachineBeta.TANK_IRON_VALVE != null) {
-                return EnumMachineBeta.TANK_IRON_VALVE.getItem();
-            }
-            if (mat == Materials.Steel && EnumMachineBeta.TANK_STEEL_VALVE != null) {
-                return EnumMachineBeta.TANK_STEEL_VALVE.getItem();
-            }
-            if (mat == Materials.StainlessSteel && ModuleAdvancedTanks.STAINLESS != null
-                && ModuleAdvancedTanks.STAINLESS.TANK_VALVE != null) {
-                return ModuleAdvancedTanks.STAINLESS.TANK_VALVE.getItem();
-            }
-            if (mat == Materials.Titanium && ModuleAdvancedTanks.TITANIUM != null
-                && ModuleAdvancedTanks.TITANIUM.TANK_VALVE != null) {
-                return ModuleAdvancedTanks.TITANIUM.TANK_VALVE.getItem();
-            }
-            if (mat == Materials.TungstenSteel && ModuleAdvancedTanks.TUNGSTENSTEEL != null
-                && ModuleAdvancedTanks.TUNGSTENSTEEL.TANK_VALVE != null) {
-                return ModuleAdvancedTanks.TUNGSTENSTEEL.TANK_VALVE.getItem();
-            }
-            if (mat == Materials.Neutronium && ModuleAdvancedTanks.NEUTRONIUM != null
-                && ModuleAdvancedTanks.NEUTRONIUM.TANK_VALVE != null) {
-                return ModuleAdvancedTanks.NEUTRONIUM.TANK_VALVE.getItem();
-            }
-            if (mat == Materials.Aluminium && ModuleAdvancedTanks.ALUMINIUM != null
-                && ModuleAdvancedTanks.ALUMINIUM.TANK_VALVE != null) {
-                return ModuleAdvancedTanks.ALUMINIUM.TANK_VALVE.getItem();
-            }
-            if (EnumMachineBeta.TANK_STEEL_VALVE != null) {
-                return EnumMachineBeta.TANK_STEEL_VALVE.getItem();
-            }
-            return new ItemStack(net.minecraft.init.Items.stick, 1);
-        } catch (Throwable t) {
-            return new ItemStack(net.minecraft.init.Items.stick, 1);
-        }
+        return tankItem(mat, TankPart.VALVE);
     }
 
     public static ItemStack getTankGaugeItem(Materials mat) {
-        try {
-            if (mat == Materials.Iron && EnumMachineBeta.TANK_IRON_GAUGE != null) {
-                return EnumMachineBeta.TANK_IRON_GAUGE.getItem();
-            }
-            if (mat == Materials.Steel && EnumMachineBeta.TANK_STEEL_GAUGE != null) {
-                return EnumMachineBeta.TANK_STEEL_GAUGE.getItem();
-            }
-            if (mat == Materials.StainlessSteel && ModuleAdvancedTanks.STAINLESS != null
-                && ModuleAdvancedTanks.STAINLESS.TANK_GAUGE != null) {
-                return ModuleAdvancedTanks.STAINLESS.TANK_GAUGE.getItem();
-            }
-            if (mat == Materials.Titanium && ModuleAdvancedTanks.TITANIUM != null
-                && ModuleAdvancedTanks.TITANIUM.TANK_GAUGE != null) {
-                return ModuleAdvancedTanks.TITANIUM.TANK_GAUGE.getItem();
-            }
-            if (mat == Materials.TungstenSteel && ModuleAdvancedTanks.TUNGSTENSTEEL != null
-                && ModuleAdvancedTanks.TUNGSTENSTEEL.TANK_GAUGE != null) {
-                return ModuleAdvancedTanks.TUNGSTENSTEEL.TANK_GAUGE.getItem();
-            }
-            if (mat == Materials.Neutronium && ModuleAdvancedTanks.NEUTRONIUM != null
-                && ModuleAdvancedTanks.NEUTRONIUM.TANK_GAUGE != null) {
-                return ModuleAdvancedTanks.NEUTRONIUM.TANK_GAUGE.getItem();
-            }
-            if (mat == Materials.Aluminium && ModuleAdvancedTanks.ALUMINIUM != null
-                && ModuleAdvancedTanks.ALUMINIUM.TANK_GAUGE != null) {
-                return ModuleAdvancedTanks.ALUMINIUM.TANK_GAUGE.getItem();
-            }
-            if (EnumMachineBeta.TANK_STEEL_GAUGE != null) {
-                return EnumMachineBeta.TANK_STEEL_GAUGE.getItem();
-            }
-            return new ItemStack(net.minecraft.init.Items.stick, 1);
-        } catch (Throwable t) {
-            return new ItemStack(net.minecraft.init.Items.stick, 1);
-        }
+        return tankItem(mat, TankPart.GAUGE);
     }
 
     public static IStructureElement<MTECoolantPump> ofCornerFrame() {
