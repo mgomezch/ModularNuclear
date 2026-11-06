@@ -311,33 +311,21 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
 
     // --- Machine Tick Logic ---
 
+    /** How long the bath waits after an intake pass that found nothing to take. */
+    private static final int INTAKE_IDLE_INTERVAL_TICKS = 20;
+    private long mNextIntakeScanTick;
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
         if (!mMachine) return;
 
-        // 1. Immediately intake compatible items from input buses into empty slots, unless switched off
+        // 1. Intake compatible items from input buses into empty slots, unless switched off. One pass over the buses
+        // fills every empty slot it can; a pass that finds nothing to take waits a second before the next one.
         if (mSlots != null) {
-            boolean intake = aBaseMetaTileEntity.isAllowedToWork();
-            for (int i = 0; intake && i < mSlots.length; i++) {
-                if (mSlots[i] == null) {
-                    for (MTEHatchInputBus bus : mInputBusses) {
-                        for (int s = 0; s < bus.getSizeInventory(); s++) {
-                            ItemStack st = bus.getStackInSlot(s);
-                            if (st != null && CoolantBathRegistry.isCompatibleItem(st)) {
-                                ItemStack extracted = bus.decrStackSize(s, 1);
-                                if (extracted != null && extracted.stackSize > 0) {
-                                    mSlots[i] = CoolantBathRegistry.createSlot(extracted, mCurrentCoolantTemp);
-                                    markDirty();
-                                    mNeedsSync = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if (mSlots[i] != null) break;
-                    }
-                }
+            if (aBaseMetaTileEntity.isAllowedToWork() && aTick >= mNextIntakeScanTick && intakeFromBuses() == 0) {
+                mNextIntakeScanTick = aTick + INTAKE_IDLE_INTERVAL_TICKS;
             }
 
             // 2. Auto-eject completed items to output buses
@@ -346,6 +334,7 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
                 if (slot != null && slot.isAutoEjectReady()) {
                     if (ejectSlotToOutputBus(i)) {
                         mNeedsSync = true;
+                        mNextIntakeScanTick = 0;
                     }
                 }
             }
@@ -366,6 +355,38 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
         if (getBaseMetaTileEntity() != null) {
             getBaseMetaTileEntity().setActive(getActiveItemCount() > 0);
         }
+    }
+
+    /** Moves compatible items from the input buses into empty slots, in slot order. Returns how many it moved. */
+    private int intakeFromBuses() {
+        int slot = nextEmptySlot(0);
+        int taken = 0;
+        for (MTEHatchInputBus bus : mInputBusses) {
+            for (int s = 0; slot >= 0 && s < bus.getSizeInventory(); s++) {
+                ItemStack st = bus.getStackInSlot(s);
+                while (slot >= 0 && st != null && st.stackSize > 0 && CoolantBathRegistry.isCompatibleItem(st)) {
+                    ItemStack extracted = bus.decrStackSize(s, 1);
+                    if (extracted == null || extracted.stackSize <= 0) break;
+                    mSlots[slot] = CoolantBathRegistry.createSlot(extracted, mCurrentCoolantTemp);
+                    taken++;
+                    slot = nextEmptySlot(slot + 1);
+                    st = bus.getStackInSlot(s);
+                }
+            }
+            if (slot < 0) break;
+        }
+        if (taken > 0) {
+            markDirty();
+            mNeedsSync = true;
+        }
+        return taken;
+    }
+
+    private int nextEmptySlot(int from) {
+        for (int i = from; i < mSlots.length; i++) {
+            if (mSlots[i] == null) return i;
+        }
+        return -1;
     }
 
     public boolean ejectSlotToOutputBus(int slotIndex) {
@@ -395,6 +416,7 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
             mSlots[slotIndex] = null;
             markDirty();
             mNeedsSync = true;
+            mNextIntakeScanTick = 0;
             syncToClients();
             return true;
         }
