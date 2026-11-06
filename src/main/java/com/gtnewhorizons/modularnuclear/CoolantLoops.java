@@ -16,7 +16,6 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureCh
 import com.gtnewhorizons.modularnuclear.common.opencomputers.CoolantLoopOpenComputers;
 import com.gtnewhorizons.modularnuclear.common.projectred.CoolantLoopProjectRed;
 import com.gtnewhorizons.modularnuclear.common.recipe.CoolantLoopRecipes;
-import com.gtnewhorizons.modularnuclear.network.PacketEjectCoolantBathSlot;
 import com.gtnewhorizons.modularnuclear.network.PacketSyncCoolantBath;
 
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -46,11 +45,6 @@ public class CoolantLoops {
             PacketSyncCoolantBath.class,
             0,
             cpw.mods.fml.relauncher.Side.CLIENT);
-        network.registerMessage(
-            PacketEjectCoolantBathSlot.Handler.class,
-            PacketEjectCoolantBathSlot.class,
-            1,
-            cpw.mods.fml.relauncher.Side.SERVER);
     }
 
     public static void init(FMLInitializationEvent event) {

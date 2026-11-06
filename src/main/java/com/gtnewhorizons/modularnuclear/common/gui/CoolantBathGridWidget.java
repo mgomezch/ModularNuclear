@@ -11,16 +11,13 @@ import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.screen.RichTooltip;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.sizer.Area;
-import com.gtnewhorizons.modularnuclear.CoolantLoops;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CellHeat;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantBathSlot;
-import com.gtnewhorizons.modularnuclear.network.PacketEjectCoolantBathSlot;
 import com.gtnewhorizons.modularnuclear.network.PacketSyncCoolantBath;
-
-import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 
 /**
  * Grid widget displaying the 2D layout of items transforming inside the Coolant Bath.
@@ -28,11 +25,16 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
  */
 public class CoolantBathGridWidget extends Widget<CoolantBathGridWidget> implements Interactable {
 
+    /** The synced action that ejects a slot (CoolantBathGui registers it), its index as an int. */
+    public static final String EJECT_ACTION = "ejectSlot";
+
     private final MTECoolantBath multiblock;
+    private final PanelSyncManager syncManager;
     private static final int CELL_SIZE = 18;
 
-    public CoolantBathGridWidget(MTECoolantBath multiblock) {
+    public CoolantBathGridWidget(MTECoolantBath multiblock, PanelSyncManager syncManager) {
         this.multiblock = multiblock;
+        this.syncManager = syncManager;
         size(180, gridHeight(multiblock));
         tooltipDynamic(this::buildHoveredTooltip);
         tooltipAutoUpdate(true);
@@ -85,13 +87,9 @@ public class CoolantBathGridWidget extends Widget<CoolantBathGridWidget> impleme
     public Interactable.Result onMousePressed(int mouseButton) {
         int slotIndex = getSlotIndexUnderCursor();
         if (slotIndex >= 0) {
-            IGregTechTileEntity bte = multiblock.getBaseMetaTileEntity();
-            if (bte != null) {
-                CoolantLoops.network.sendToServer(
-                    new PacketEjectCoolantBathSlot(bte.getXCoord(), bte.getYCoord(), bte.getZCoord(), slotIndex));
-                Interactable.playButtonClickSound();
-                return Interactable.Result.SUCCESS;
-            }
+            syncManager.callSyncedAction(EJECT_ACTION, buf -> buf.writeInt(slotIndex));
+            Interactable.playButtonClickSound();
+            return Interactable.Result.SUCCESS;
         }
         return Interactable.Result.IGNORE;
     }

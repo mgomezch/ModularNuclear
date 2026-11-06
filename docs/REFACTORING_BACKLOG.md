@@ -13,7 +13,9 @@ Decisions already made apply to every item:
 
 ## Bugs and stability
 
-### B1 (P0): The coolant bath eject packet runs off-thread and is unchecked
+### B1 (P0): The coolant bath eject packet runs off-thread and is unchecked (done)
+
+**Done:** the eject is now the ModularUI 2 synced action `CoolantBathGridWidget.EJECT_ACTION`, registered in `CoolantBathGui`. The packet is gone. Verified in game: click-to-eject moves the item to the output bus and the grid updates. The bath's server-to-client slot sync, `PacketSyncCoolantBath`, is the only custom packet left. It feeds the in-world item renderer as well as the GUI, so it stays for now.
 
 `network/PacketEjectCoolantBathSlot` calls `MTECoolantBath.ejectSlot` from `onMessage`, which in 1.7.10 runs on the Netty thread. It therefore mutates `mSlots` and the output bus while the server thread ticks the same bath, which can duplicate or lose items or crash.
 

@@ -29,6 +29,13 @@ public class CoolantBathGui extends CoolantLoopMachineGui<MTECoolantBath> {
 
     @Override
     public Flow createMainColumn(ModularPanel panel, PanelSyncManager syncManager) {
+        // Registered on both sides whatever each side thinks of the structure, so a click always finds it. It runs on
+        // the server thread, and only for the player who has this GUI open.
+        syncManager.registerSyncedAction(
+            CoolantBathGridWidget.EJECT_ACTION,
+            false,
+            true,
+            buf -> multiblock.ejectSlot(buf.readInt()));
         if (!multiblock.isFormedForGui()) {
             return super.createMainColumn(panel, syncManager);
         }
@@ -37,7 +44,7 @@ public class CoolantBathGui extends CoolantLoopMachineGui<MTECoolantBath> {
         multiblock.syncToClients();
         return Flow.column()
             .padding(4)
-            .child(new CoolantBathGridWidget(multiblock))
+            .child(new CoolantBathGridWidget(multiblock, syncManager))
             .child(createPanelGap(panel, syncManager))
             .childIf(multiblock.supportsInventoryRow(), () -> createInventoryRow(panel, syncManager));
     }
