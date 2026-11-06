@@ -370,7 +370,7 @@ public final class ReactorConfigData {
                 try {
                     tier = Integer.parseInt(String.valueOf(entry.getKey()));
                 } catch (NumberFormatException e) {
-                    continue;
+                    throw new ConfigException("tier " + entry.getKey() + ": expected a tier number");
                 }
                 Object val = entry.getValue();
                 if (val == null) {

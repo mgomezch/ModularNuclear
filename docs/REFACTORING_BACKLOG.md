@@ -46,7 +46,10 @@ It also does not check that the player is near the bath or has its GUI open. Any
 - Save keys and arguments to NBT, not text.
 - Remove the `StatCollector` reflection.
 
-### B3 (P1): Broken YAML config is silently ignored
+### B3 (P1): Broken YAML config is silently ignored (done)
+
+**Done:** a config file that does not parse, is not a map, or holds a value of the wrong kind now throws `ConfigException` naming the file (and, for syntax errors, the line). That stops the game at startup. Config files are read and written as UTF-8. Covered by `ConfigStrictnessTest`. No leniency flag was added.
+
 
 `config/ReactorDataRegistry.loadFromDir` (and the coolant loop equivalent) logs a parse error and falls back to the defaults for that file. A typo in `fuels.yaml` quietly changes balance.
 

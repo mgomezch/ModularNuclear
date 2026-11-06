@@ -7,6 +7,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,12 +39,11 @@ public class CoolantLoopDataRegistry {
             configFolder.mkdirs();
         }
 
-        // Start from the shipped defaults so a file that fails to load keeps them.
         CoolantLoopConfigData.loadDefaults();
-        CoolantLoopConfigData.setPhysics(loadFile("physics.yaml", null));
-        CoolantLoopConfigData.setFluids(loadFile("fluids.yaml", "coolants.yaml"));
-        CoolantLoopConfigData.setPipes(loadFile("pipes.yaml", null));
-        CoolantLoopConfigData.setDevices(loadFile("devices.yaml", null));
+        loadFile("physics.yaml", null, CoolantLoopConfigData::setPhysics);
+        loadFile("fluids.yaml", "coolants.yaml", CoolantLoopConfigData::setFluids);
+        loadFile("pipes.yaml", null, CoolantLoopConfigData::setPipes);
+        loadFile("devices.yaml", null, CoolantLoopConfigData::setDevices);
         CoolantLoopConfigData.finishLoading();
         LOG.info("CoolantLoops YAML Data Registry initialized successfully.");
     }
@@ -56,10 +57,10 @@ public class CoolantLoopDataRegistry {
     }
 
     /**
-     * Loads one config document, writing the shipped default first if the file is missing. Returns null (keeping the
-     * defaults) if it cannot be read.
+     * Loads one config document as UTF-8 and applies it, writing the shipped default first if the file is missing. A
+     * file that cannot be read or applied stops loading.
      */
-    private static Object loadFile(String name, String legacyName) {
+    private static void loadFile(String name, String legacyName, Consumer<Object> applier) {
         File file = new File(configFolder, name);
         if (!file.exists() && legacyName != null) {
             File alt = new File(configFolder, legacyName);
@@ -69,10 +70,13 @@ public class CoolantLoopDataRegistry {
             writeDefault(name, file);
         }
         try (InputStreamReader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
-            return createYaml().load(reader);
+            Object doc = createYaml().load(reader);
+            if (doc != null && !(doc instanceof Map)) {
+                throw new ConfigException("expected a map of settings, got " + doc);
+            }
+            applier.accept(doc);
         } catch (Exception e) {
-            LOG.error("Failed to load " + file.getName() + ", keeping defaults", e);
-            return null;
+            throw ConfigException.inFile(file, e);
         }
     }
 

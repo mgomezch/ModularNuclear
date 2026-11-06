@@ -1,15 +1,21 @@
 package com.gtnewhorizons.modularnuclear.common.config;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -283,7 +289,7 @@ public final class ReactorDataRegistry {
 
     private static void writeReadme(File readmeFile) {
         if (readmeFile.exists()) return;
-        try (FileWriter w = new FileWriter(readmeFile)) {
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(readmeFile), StandardCharsets.UTF_8)) {
             w.write("Modular Nuclear Reactor - Configuration Directory\n");
             w.write("==================================================\n\n");
             w.write("All default configurations for physics, tiers, fuels, and components are\n");
@@ -316,55 +322,38 @@ public final class ReactorDataRegistry {
 
         Yaml yaml = createYaml();
 
-        // 1. Physics overrides
-        File physicsFile = new File(dir, "physics.yaml");
-        if (physicsFile.exists()) {
-            try (FileReader r = new FileReader(physicsFile)) {
-                Object obj = yaml.load(r);
-                if (obj instanceof Map<?, ?>m) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> map = (Map<String, Object>) m;
-                    ReactorConfigData.applyPhysicsOverrides(map);
-                }
-            } catch (Exception e) {
-                ModularNuclear.LOG.error("Failed to load physics.yaml overrides", e);
-            }
-        }
-
-        // 2. Tiers overrides
-        File tiersFile = new File(dir, "tiers.yaml");
-        if (tiersFile.exists()) {
-            try (FileReader r = new FileReader(tiersFile)) {
-                Object obj = yaml.load(r);
-                ReactorConfigData.applyTierOverrides(obj);
-            } catch (Exception e) {
-                ModularNuclear.LOG.error("Failed to load tiers.yaml overrides", e);
-            }
-        }
-
-        // 3. Fuels overrides
-        File fuelsFile = new File(dir, "fuels.yaml");
-        if (fuelsFile.exists()) {
-            try (FileReader r = new FileReader(fuelsFile)) {
-                Object obj = yaml.load(r);
-                ReactorConfigData.applyFuelOverrides(obj);
-            } catch (Exception e) {
-                ModularNuclear.LOG.error("Failed to load fuels.yaml overrides", e);
-            }
-        }
-
-        // 4. Components overrides
-        File compFile = new File(dir, "components.yaml");
-        if (compFile.exists()) {
-            try (FileReader r = new FileReader(compFile)) {
-                Object obj = yaml.load(r);
-                ReactorConfigData.applyComponentOverrides(obj);
-            } catch (Exception e) {
-                ModularNuclear.LOG.error("Failed to load components.yaml overrides", e);
-            }
-        }
+        apply(yaml, new File(dir, "physics.yaml"), doc -> ReactorConfigData.applyPhysicsOverrides(asMap(doc)));
+        apply(yaml, new File(dir, "tiers.yaml"), ReactorConfigData::applyTierOverrides);
+        apply(yaml, new File(dir, "fuels.yaml"), ReactorConfigData::applyFuelOverrides);
+        apply(yaml, new File(dir, "components.yaml"), ReactorConfigData::applyComponentOverrides);
 
         clearCaches();
+    }
+
+    /** Reads one override file as UTF-8, or null if it does not exist. Any problem stops loading. */
+    private static Object load(Yaml yaml, File file) {
+        if (!file.exists()) return null;
+        try (Reader r = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
+            return yaml.load(r);
+        } catch (Exception e) {
+            throw ConfigException.inFile(file, e);
+        }
+    }
+
+    private static void apply(Yaml yaml, File file, Consumer<Object> applier) {
+        Object doc = load(yaml, file);
+        if (doc == null) return;
+        try {
+            applier.accept(doc);
+        } catch (RuntimeException e) {
+            throw ConfigException.inFile(file, e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> asMap(Object doc) {
+        if (doc instanceof Map<?, ?>m) return (Map<String, Object>) m;
+        throw new ConfigException("expected a map of settings, got " + doc);
     }
 
     public static synchronized void saveToDir(File dir) {
@@ -386,7 +375,7 @@ public final class ReactorDataRegistry {
     }
 
     private static void savePhysicsFile(File file, Yaml yaml) {
-        try (FileWriter w = new FileWriter(file)) {
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
             Map<String, Object> root = new LinkedHashMap<>();
             root.put("physics", ReactorConfigData.physicsData.toMap());
             yaml.dump(root, w);
@@ -396,7 +385,7 @@ public final class ReactorDataRegistry {
     }
 
     private static void saveTiersFile(File file, Yaml yaml) {
-        try (FileWriter w = new FileWriter(file)) {
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
             List<Map<String, Object>> list = new ArrayList<>();
             for (TierData td : ReactorConfigData.tierDataMap.values()) {
                 list.add(td.toMap());
@@ -410,7 +399,7 @@ public final class ReactorDataRegistry {
     }
 
     private static void saveFuelsFile(File file, Yaml yaml) {
-        try (FileWriter w = new FileWriter(file)) {
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
             List<Map<String, Object>> list = new ArrayList<>();
             for (FuelData fd : ReactorConfigData.fuels) {
                 list.add(fd.toMap());
@@ -424,7 +413,7 @@ public final class ReactorDataRegistry {
     }
 
     private static void saveComponentsFile(File file, Yaml yaml) {
-        try (FileWriter w = new FileWriter(file)) {
+        try (Writer w = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
             yaml.dump(ReactorConfigData.componentData.toMap(), w);
         } catch (Exception e) {
             ModularNuclear.LOG.error("Failed to save default components.yaml", e);

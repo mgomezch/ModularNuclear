@@ -3,6 +3,7 @@ package com.gtnewhorizons.modularnuclear.common.config.data;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.gtnewhorizons.modularnuclear.common.config.ConfigException;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 public class PhysicsData {
@@ -214,8 +215,11 @@ public class PhysicsData {
         if (val instanceof String s) {
             try {
                 return Double.parseDouble(s);
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException e) {
+                throw notA("number", key, val);
+            }
         }
+        if (val != null) throw notA("number", key, val);
         return def;
     }
 
@@ -225,8 +229,11 @@ public class PhysicsData {
         if (val instanceof String s) {
             try {
                 return Integer.parseInt(s);
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException e) {
+                throw notA("whole number", key, val);
+            }
         }
+        if (val != null) throw notA("whole number", key, val);
         return def;
     }
 
@@ -240,9 +247,13 @@ public class PhysicsData {
     public static boolean getBoolean(Map<String, Object> map, String key, boolean def) {
         Object val = map.get(key);
         if (val instanceof Boolean b) return b;
-        if (val instanceof String s) {
-            return Boolean.parseBoolean(s);
-        }
+        if ("true".equals(val)) return true;
+        if ("false".equals(val)) return false;
+        if (val != null) throw notA("true or false", key, val);
         return def;
+    }
+
+    private static ConfigException notA(String kind, String key, Object val) {
+        return new ConfigException(key + ": expected " + kind + ", got " + val);
     }
 }

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.gtnewhorizons.modularnuclear.common.config.ConfigException;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 
 /**
@@ -142,7 +143,8 @@ public class CoolantFluidData {
                         try {
                             entry.boilingPointCelsius = Double.parseDouble(str);
                         } catch (NumberFormatException e) {
-                            entry.boilingPointCelsius = Double.POSITIVE_INFINITY;
+                            throw new ConfigException(
+                                entryKey + ".boilingPointCelsius: expected a temperature, got " + b);
                         }
                     }
                 }
@@ -163,7 +165,8 @@ public class CoolantFluidData {
                         try {
                             entry.freezingPointCelsius = Double.parseDouble(str);
                         } catch (NumberFormatException e) {
-                            entry.freezingPointCelsius = Double.NEGATIVE_INFINITY;
+                            throw new ConfigException(
+                                entryKey + ".freezingPointCelsius: expected a temperature, got " + f);
                         }
                     }
                 }
