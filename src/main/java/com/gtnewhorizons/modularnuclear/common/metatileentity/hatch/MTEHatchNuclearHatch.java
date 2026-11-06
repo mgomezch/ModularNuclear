@@ -141,14 +141,6 @@ public class MTEHatchNuclearHatch extends MTEHatch {
         return false;
     }
 
-    @Override
-    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide() && aTick >= 20) {
-            aBaseMetaTileEntity.tryDisableTicking();
-        }
-    }
-
     // --- Input-Only Fluid Hatch ---
 
     @Override
