@@ -45,6 +45,8 @@ import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
+import gregtech.api.recipe.check.CheckRecipeResult;
+import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrors;
@@ -113,9 +115,15 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
         return true;
     }
 
+    /**
+     * The bath's "recipe check" is its intake: GregTech runs it when an input bus's contents change, when the bath is
+     * switched on, and on its other recipe-check events, inside the bus's recipe processing (so stocking buses work).
+     * The bath has no recipe to run, so the check always reports success.
+     */
     @Override
-    public boolean checkRecipe(ItemStack aStack) {
-        return true;
+    public CheckRecipeResult checkProcessing() {
+        if (mSlots != null) intakeFromBuses();
+        return CheckRecipeResultRegistry.SUCCESSFUL;
     }
 
     @Override
@@ -312,30 +320,22 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
 
     // --- Machine Tick Logic ---
 
-    /** How long the bath waits after an intake pass that found nothing to take. */
-    private static final int INTAKE_IDLE_INTERVAL_TICKS = 20;
-    private long mNextIntakeScanTick;
-
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (!aBaseMetaTileEntity.isServerSide()) return;
         if (!mMachine) return;
 
-        // 1. Intake compatible items from input buses into empty slots, unless switched off. One pass over the buses
-        // fills every empty slot it can; a pass that finds nothing to take waits a second before the next one.
+        // 1. Intake runs as the recipe check (checkProcessing), on GregTech's events
         if (mSlots != null) {
-            if (aBaseMetaTileEntity.isAllowedToWork() && aTick >= mNextIntakeScanTick && intakeFromBuses() == 0) {
-                mNextIntakeScanTick = aTick + INTAKE_IDLE_INTERVAL_TICKS;
-            }
-
             // 2. Auto-eject completed items to output buses
             for (int i = 0; i < mSlots.length; i++) {
                 CoolantBathSlot slot = mSlots[i];
                 if (slot != null && slot.isAutoEjectReady()) {
                     if (ejectSlotToOutputBus(i)) {
                         mNeedsSync = true;
-                        mNextIntakeScanTick = 0;
+                        // A slot is free: take the next item now
+                        scheduleRecipeCheckImmediate();
                     }
                 }
             }
@@ -359,7 +359,7 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
         }
     }
 
-    /** Moves compatible items from the input buses into empty slots, in slot order. Returns how many it moved. */
+    /** Moves compatible items from the input buses into empty slots, in slot order, in one pass. Returns how many. */
     private int intakeFromBuses() {
         int slot = nextEmptySlot(0);
         int taken = 0;
@@ -418,7 +418,7 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
             mSlots[slotIndex] = null;
             markDirty();
             mNeedsSync = true;
-            mNextIntakeScanTick = 0;
+            scheduleRecipeCheckImmediate();
             syncToClients();
             return true;
         }

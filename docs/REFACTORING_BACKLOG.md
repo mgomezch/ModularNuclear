@@ -166,7 +166,7 @@ The background for the plan below:
 
 ### P4 (P2): Bath intake scans every tick (done)
 
-**Done:** one pass over the buses fills every empty slot it can. A pass that takes nothing waits 20 ticks before the next one, and any eject resets the wait. Verified in game: a filled bus still loads all 20 slots.
+**Done:** the intake is the bath's GregTech recipe check (`checkProcessing`). GregTech runs it when an input bus's contents change (the buses push the event to their controller), when the bath is switched on, and when an eject frees a slot, inside the buses' recipe processing. Nothing polls. Verified in game: switched off, it takes nothing; switched on, it takes all 20 items at once; items added while running go in within a second.
 
 
 `MTECoolantBath.onPostTick` scans every input bus slot for every empty bath slot, every tick.
