@@ -16,9 +16,7 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagIntArray;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.nbt.NBTTagString;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
@@ -1063,17 +1061,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             }
         }
 
-        if (mLastCrawlResult != null && mLastCrawlResult.pipePositions != null) {
-            for (LoopGraphCrawler.BlockPosCoord p : mLastCrawlResult.pipePositions) {
-                if (!w.blockExists(p.x, p.y, p.z)) return;
-                TileEntity te = w.getTileEntity(p.x, p.y, p.z);
-                if (te == null) {
-                    missingOrChanged = true;
-                    break;
-                }
-            }
-        }
-
+        // The pipes are not saved: the loop runs on its saved segments until the next scheduled crawl, which finds
+        // any pipe that changed while it was unloaded, as a multiblock runs until its next structure check
         if (missingOrChanged) {
             mNeedsPostLoadRebind = false;
             mLoopFormed = false;
@@ -1282,6 +1271,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
         if (world == null || mLastCrawlResult == null) return null;
         if (mFootprint == null) captureFootprint(world);
+        if (mFootprint == null) return null;
         for (int i = 0, n = mFootprintBlocks.length; i < n; i++) {
             int x = mFootprint[3 * i], y = mFootprint[3 * i + 1], z = mFootprint[3 * i + 2];
             if (world.blockExists(x, y, z) && world.getBlock(x, y, z) != mFootprintBlocks[i]) {
@@ -1362,8 +1352,10 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         return null;
     }
 
+    /** Records the loop's pipe blocks; none after a load, until the first crawl finds them again. */
     private void captureFootprint(World world) {
         Set<LoopGraphCrawler.BlockPosCoord> positions = mLastCrawlResult.pipePositions;
+        if (positions == null || positions.isEmpty()) return;
         int[] coords = new int[3 * positions.size()];
         Block[] blocks = new Block[positions.size()];
         int i = 0;
@@ -2881,38 +2873,21 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             if (mLastCrawlResult.loopMaterial != null) {
                 crawlTag.setString("loopMaterial", mLastCrawlResult.loopMaterial.mName);
             }
-            if (mLastCrawlResult.pipePositions != null) {
-                NBTTagList pipeList = new NBTTagList();
-                for (LoopGraphCrawler.BlockPosCoord p : mLastCrawlResult.pipePositions) {
-                    pipeList.appendTag(new NBTTagIntArray(new int[] { p.x, p.y, p.z }));
-                }
-                crawlTag.setTag("pipePositions", pipeList);
-            }
+            // Only the devices, by position, to bind them again after a load. The pipes and the graph's edges are
+            // found again by the first crawl after the load
             if (mLastCrawlResult.graphNodes != null) {
                 NBTTagList nodeList = new NBTTagList();
                 for (LoopGraphCrawler.FlowNode fn : mLastCrawlResult.graphNodes.values()) {
+                    if (fn.type != LoopGraphCrawler.NodeType.DEVICE) continue;
+                    int[] coord = nodePosition(fn.data);
+                    if (coord == null) continue;
                     NBTTagCompound nTag = new NBTTagCompound();
                     nTag.setString("id", fn.id);
                     nTag.setString("type", fn.type.name());
-                    int[] coord = nodePosition(fn.data);
-                    if (coord != null) nTag.setIntArray("coord", coord);
+                    nTag.setIntArray("coord", coord);
                     nodeList.appendTag(nTag);
                 }
                 crawlTag.setTag("graphNodes", nodeList);
-            }
-            if (mLastCrawlResult.graphEdges != null) {
-                NBTTagList edgeList = new NBTTagList();
-                for (Map.Entry<String, List<String>> e : mLastCrawlResult.graphEdges.entrySet()) {
-                    NBTTagCompound eTag = new NBTTagCompound();
-                    eTag.setString("from", e.getKey());
-                    NBTTagList toList = new NBTTagList();
-                    for (String to : e.getValue()) {
-                        toList.appendTag(new NBTTagString(to));
-                    }
-                    eTag.setTag("to", toList);
-                    edgeList.appendTag(eTag);
-                }
-                crawlTag.setTag("graphEdges", edgeList);
             }
             aNBT.setTag("mLastCrawlResult", crawlTag);
         }
