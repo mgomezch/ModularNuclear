@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util;
 
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Map;
 
@@ -304,12 +305,33 @@ public class CoolantPumpReservoir {
         }
     }
 
+    /** Railcraft's private TileMultiBlock.testIfMasterBlock, looked up once. */
+    private static final Method TEST_IF_MASTER_BLOCK = findTestIfMasterBlock();
+
+    private static Method findTestIfMasterBlock() {
+        try {
+            Method m = TileMultiBlock.class.getDeclaredMethod("testIfMasterBlock");
+            m.setAccessible(true);
+            return m;
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException("Railcraft's TileMultiBlock has no testIfMasterBlock", e);
+        }
+    }
+
+    /** Has a Railcraft multiblock check its structure now instead of on its next update. */
+    private static void testIfMasterBlock(TileMultiBlock tmb) {
+        try {
+            TEST_IF_MASTER_BLOCK.invoke(tmb);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Could not have a Railcraft tank check its structure", e);
+        }
+    }
+
     /**
      * After a load, a Railcraft tank links its blocks to its master block only when that master next updates (which
      * of its blocks is the master is saved), so a pump checking its structure on its first tick would find no tank.
      * Finds the tank's master above the pump and has it check the tank now. Returns whether it found one.
      */
-
     private static boolean testTankMasterAbove(World world, int x0, int y, int z0, ForgeDirection right,
         ForgeDirection back) {
         // Tanks are up to 8 high and 11 wide (a 9-wide interior and its walls), and sit over the pump's footprint
@@ -321,14 +343,7 @@ public class CoolantPumpReservoir {
                     if (!world.blockExists(x, y + dy, z)) continue;
                     if (world.getTileEntity(x, y + dy, z) instanceof TileMultiBlock tmb && tmb.isMaster()) {
                         if (!tmb.isStructureValid()) {
-                            try {
-                                java.lang.reflect.Method mTest = TileMultiBlock.class
-                                    .getDeclaredMethod("testIfMasterBlock");
-                                mTest.setAccessible(true);
-                                mTest.invoke(tmb);
-                            } catch (Throwable swallowed) {
-                                Swallowed.note(swallowed);
-                            }
+                            testIfMasterBlock(tmb);
                         }
                         return true;
                     }
@@ -364,13 +379,7 @@ public class CoolantPumpReservoir {
         if (centerTe instanceof TileMultiBlock) {
             TileMultiBlock tmbCenter = (TileMultiBlock) centerTe;
             if (!tmbCenter.isStructureValid()) {
-                try {
-                    java.lang.reflect.Method mTest = TileMultiBlock.class.getDeclaredMethod("testIfMasterBlock");
-                    mTest.setAccessible(true);
-                    mTest.invoke(tmbCenter);
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
-                }
+                testIfMasterBlock(tmbCenter);
             }
             masterBlock = tmbCenter.getMasterBlock();
         }
@@ -387,14 +396,7 @@ public class CoolantPumpReservoir {
                 if (te instanceof TileMultiBlock) {
                     TileMultiBlock tmb = (TileMultiBlock) te;
                     if (!tmb.isStructureValid()) {
-                        try {
-                            java.lang.reflect.Method mTest = TileMultiBlock.class
-                                .getDeclaredMethod("testIfMasterBlock");
-                            mTest.setAccessible(true);
-                            mTest.invoke(tmb);
-                        } catch (Throwable swallowed) {
-                            Swallowed.note(swallowed);
-                        }
+                        testIfMasterBlock(tmb);
                     }
                     masterBlock = tmb.getMasterBlock();
                     if (masterBlock != null) break;
