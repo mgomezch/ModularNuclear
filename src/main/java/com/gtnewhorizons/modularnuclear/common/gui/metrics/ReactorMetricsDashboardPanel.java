@@ -5,7 +5,6 @@ import java.util.function.Supplier;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
-import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
@@ -32,13 +31,8 @@ public class ReactorMetricsDashboardPanel {
             .widgetTheme(gregtech.api.modularui2.GTWidgetThemes.BACKGROUND_POPUP)
             .resizeableOnDrag(true);
 
-        // Network synchronization of 100-cycle telemetry history
-        GenericSyncValue<ReactorMetricsHistory, ?> metricsSyncer = new GenericSyncValue<>(
-            reactor::collectMetricsHistory,
-            reactor::applyMetricsHistory,
-            ReactorMetricsHistory::readFromBuffer,
-            ReactorMetricsHistory::writeToBuffer);
-        syncManager.syncValue("metricsHistory", metricsSyncer);
+        // Network synchronization of the 100-cycle telemetry history: the window on open, then only new cycles
+        syncManager.syncValue("metricsHistory", new MetricsHistorySyncHandler(reactor));
 
         // Header bar with drag handle (no title) and close button
         Flow headerRow = Flow.row()

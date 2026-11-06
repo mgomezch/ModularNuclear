@@ -97,6 +97,51 @@ public class ReactorMetricsDashboardTest {
     }
 
     @Test
+    void testHistorySnapshotsSinceForDeltaSync() {
+        ReactorMetricsHistory history = new ReactorMetricsHistory();
+        for (int i = 0; i < 30; i++) {
+            ReactorCycleSnapshot s = new ReactorCycleSnapshot();
+            s.cycleIndex = i;
+            history.addSnapshot(s);
+        }
+        int epoch = history.getEpoch();
+        long seen = history.getAdded();
+        assertEquals(30, seen);
+        assertEquals(
+            0,
+            history.snapshotsSince(epoch, seen)
+                .size(),
+            "Nothing new since the last send");
+
+        for (int i = 30; i < 35; i++) {
+            ReactorCycleSnapshot s = new ReactorCycleSnapshot();
+            s.cycleIndex = i;
+            history.addSnapshot(s);
+        }
+        List<ReactorCycleSnapshot> newer = history.snapshotsSince(epoch, seen);
+        assertEquals(5, newer.size());
+        assertEquals(30, newer.get(0).cycleIndex);
+        assertEquals(34, newer.get(4).cycleIndex);
+
+        // Fell out of the window: the viewer needs the whole window again
+        for (int i = 35; i < 140; i++) {
+            ReactorCycleSnapshot s = new ReactorCycleSnapshot();
+            s.cycleIndex = i;
+            history.addSnapshot(s);
+        }
+        assertNull(history.snapshotsSince(epoch, seen));
+
+        // Cleared: a new epoch, so the old count means nothing
+        long beforeClear = history.getAdded();
+        history.clear();
+        assertNull(history.snapshotsSince(epoch, beforeClear));
+        assertEquals(
+            0,
+            history.snapshotsSince(history.getEpoch(), 0)
+                .size());
+    }
+
+    @Test
     void testSnapshotPacketBufferSerialization() {
         ReactorCycleSnapshot original = ReactorCycleSnapshot.create(
             42L,

@@ -7,67 +7,95 @@ import java.util.List;
 import net.minecraft.network.PacketBuffer;
 
 /**
- * In-memory sliding window of the last 100 reactor cycle snapshots.
- * Used for network synchronization and live-updating telemetry charts.
- * Not persisted to NBT.
+ * In-memory sliding window of the last 100 reactor cycle snapshots, in a ring buffer. Used for network synchronization
+ * and live-updating telemetry charts. Not persisted to NBT.
+ *
+ * <p>
+ * It counts the snapshots ever added and the times it was cleared, so a viewer that has seen some of them can be sent
+ * only the newer ones ({@link #snapshotsSince}).
  */
 public class ReactorMetricsHistory {
 
     public static final int MAX_HISTORY_SIZE = 100;
 
-    private final List<ReactorCycleSnapshot> snapshots = new ArrayList<>();
-    private long version = 0;
+    private final ReactorCycleSnapshot[] ring = new ReactorCycleSnapshot[MAX_HISTORY_SIZE];
+    /** Index of the oldest snapshot. */
+    private int head;
+    private int size;
+    /** Snapshots added since the last clear. */
+    private long added;
+    /** Times cleared. */
+    private int epoch;
 
     public ReactorMetricsHistory() {}
 
     public synchronized void addSnapshot(ReactorCycleSnapshot snapshot) {
         if (snapshot == null) return;
-        snapshots.add(snapshot);
-        while (snapshots.size() > MAX_HISTORY_SIZE) {
-            snapshots.remove(0);
+        if (size < MAX_HISTORY_SIZE) {
+            ring[(head + size++) % MAX_HISTORY_SIZE] = snapshot;
+        } else {
+            ring[head] = snapshot;
+            head = (head + 1) % MAX_HISTORY_SIZE;
         }
-        version++;
+        added++;
     }
 
+    /** The snapshots, oldest first. */
     public synchronized List<ReactorCycleSnapshot> getSnapshots() {
-        return Collections.unmodifiableList(new ArrayList<>(snapshots));
+        List<ReactorCycleSnapshot> out = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) out.add(ring[(head + i) % MAX_HISTORY_SIZE]);
+        return Collections.unmodifiableList(out);
+    }
+
+    /**
+     * The snapshots added after the first {@code seen} of this epoch, oldest first; null if some of them have already
+     * been dropped from the window (or the epoch changed), so the caller must resend the whole window.
+     */
+    public synchronized List<ReactorCycleSnapshot> snapshotsSince(int seenEpoch, long seen) {
+        if (seenEpoch != epoch || seen > added || added - seen > size) return null;
+        int n = (int) (added - seen);
+        List<ReactorCycleSnapshot> out = new ArrayList<>(n);
+        for (int i = size - n; i < size; i++) out.add(ring[(head + i) % MAX_HISTORY_SIZE]);
+        return out;
     }
 
     public synchronized int size() {
-        return snapshots.size();
+        return size;
     }
 
     public synchronized boolean isEmpty() {
-        return snapshots.isEmpty();
+        return size == 0;
     }
 
     public synchronized void clear() {
-        snapshots.clear();
-        version++;
+        java.util.Arrays.fill(ring, null);
+        head = 0;
+        size = 0;
+        added = 0;
+        epoch++;
     }
 
+    public synchronized long getAdded() {
+        return added;
+    }
+
+    public synchronized int getEpoch() {
+        return epoch;
+    }
+
+    /** Changes whenever a snapshot is added or the history is cleared. */
     public synchronized long getVersion() {
-        return version;
+        return ((long) epoch << 40) ^ added;
     }
 
     public synchronized ReactorMetricsHistory copy() {
         ReactorMetricsHistory copy = new ReactorMetricsHistory();
-        copy.snapshots.addAll(this.snapshots);
-        copy.version = this.version;
+        System.arraycopy(ring, 0, copy.ring, 0, MAX_HISTORY_SIZE);
+        copy.head = head;
+        copy.size = size;
+        copy.added = added;
+        copy.epoch = epoch;
         return copy;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ReactorMetricsHistory that = (ReactorMetricsHistory) o;
-        return this.version == that.version && this.snapshots.size() == that.snapshots.size();
-    }
-
-    @Override
-    public int hashCode() {
-        return (int) (version ^ (version >>> 32));
     }
 
     public static void writeToBuffer(PacketBuffer buf, ReactorMetricsHistory history) {
@@ -86,7 +114,7 @@ public class ReactorMetricsHistory {
         ReactorMetricsHistory history = new ReactorMetricsHistory();
         int count = buf.readVarIntFromBuffer();
         for (int i = 0; i < count; i++) {
-            history.snapshots.add(ReactorCycleSnapshot.readFromBuffer(buf));
+            history.addSnapshot(ReactorCycleSnapshot.readFromBuffer(buf));
         }
         return history;
     }

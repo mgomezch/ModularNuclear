@@ -2557,10 +2557,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         return mClientMetricsHistory;
     }
 
-    public ReactorMetricsHistory collectMetricsHistory() {
-        return mMetricsHistory.copy();
-    }
-
     public void applyMetricsHistory(ReactorMetricsHistory data) {
         this.mClientMetricsHistory = data;
     }
