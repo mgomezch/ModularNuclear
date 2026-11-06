@@ -49,7 +49,7 @@ public final class ModularNuclearConfig {
     // Allowlists & Blocklists (Core Components)
     // ==========================================
     // Entries are exact: "modid:name" (any meta), "modid:name:meta" or "ore:oreName" for items, and registry names
-    // for fluids. Bump CONFIG_VERSION when these defaults change, so saved copies of old defaults are replaced.
+    // for fluids.
     public static String[] blockedItems = new String[] { "gregtech:gt.depletedRodLithium",
         "gregtech:gt.depletedRodGlowstone", "gregtech:gt.depletedRodExcitedUranium",
         "gregtech:gt.depletedRodExcitedUranium2", "gregtech:gt.depletedRodExcitedUranium4",
@@ -110,12 +110,6 @@ public final class ModularNuclearConfig {
 
     public static String[] allowedNeutronSources = new String[] { "GoodGenerator:neutronSource" };
 
-    /**
-     * The version of this file's defaults. A file saved with an older one has its allowlists replaced by the current
-     * defaults: the old ones held wildcard and fuzzy patterns, which no longer match anything.
-     */
-    public static final String CONFIG_VERSION = "2";
-
     private static volatile int generation;
 
     /**
@@ -131,16 +125,9 @@ public final class ModularNuclearConfig {
     }
 
     public static void init(File configFile) {
-        Configuration config = new Configuration(configFile, CONFIG_VERSION);
+        Configuration config = new Configuration(configFile);
         try {
             config.load();
-            if (!CONFIG_VERSION.equals(config.getLoadedConfigVersion()) && config.hasCategory("allowlists")) {
-                ModularNuclear.LOG.warn(
-                    "Replacing the [allowlists] section of {} with the current defaults: its entries are from an "
-                        + "older version, whose patterns no longer match",
-                    configFile.getName());
-                config.removeCategory(config.getCategory("allowlists"));
-            }
 
             // Client Visuals
             enableCherenkovRadiation = config.getBoolean(
@@ -282,22 +269,6 @@ public final class ModularNuclearConfig {
                 CAT_ALLOWLISTS,
                 allowedNeutronSources,
                 "Items recognized as external beam neutron sources.");
-
-            // Tier temperatures and coolant boiling points moved to tiers.yaml and components.yaml: the YAML
-            // configuration is the only source, so old entries here are reported and dropped rather than read
-            final String CAT_TIERS = "reactor_tiers";
-            if (config.hasCategory(CAT_TIERS)) {
-                for (String key : new java.util.ArrayList<>(
-                    config.getCategory(CAT_TIERS)
-                        .keySet())) {
-                    ModularNuclear.LOG.warn(
-                        "Ignoring {}.{} in the Forge config: set max_operating_temp and repair_temp_threshold in "
-                            + "config/modularnuclear/tiers.yaml (coolant boiling points in components.yaml)",
-                        CAT_TIERS,
-                        key);
-                }
-                config.removeCategory(config.getCategory(CAT_TIERS));
-            }
 
             ticksPerCycle = config.getInt(
                 "ticksPerCycle",
