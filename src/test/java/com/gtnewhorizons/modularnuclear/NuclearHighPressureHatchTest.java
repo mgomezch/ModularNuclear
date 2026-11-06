@@ -16,17 +16,15 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput;
 import com.gtnewhorizons.modularnuclear.common.util.LoopStateNbt;
 
-import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 
-public class NuclearHighPressureHatchMigrationTest {
+public class NuclearHighPressureHatchTest {
 
     @BeforeAll
     static void initEnvironment() {
@@ -59,17 +57,6 @@ public class NuclearHighPressureHatchMigrationTest {
                 gregtech.GTMod.proxy = Mockito.mock(gregtech.common.GTProxy.class);
             }
         } catch (Throwable ignored) {}
-
-        GregTechAPI.METATILEENTITIES[ModMetaTileEntities.ID_NUCLEAR_HIGH_PRESSURE_INPUT] = new MTEHatchNuclearHighPressureInput(
-            "test_in",
-            5,
-            new String[0],
-            null);
-        GregTechAPI.METATILEENTITIES[ModMetaTileEntities.ID_NUCLEAR_HIGH_PRESSURE_OUTPUT] = new MTEHatchNuclearHighPressureOutput(
-            "test_out",
-            5,
-            new String[0],
-            null);
     }
 
     @Test
@@ -77,6 +64,7 @@ public class NuclearHighPressureHatchMigrationTest {
         MTEHatchNuclearHighPressureInput inputHatch = new MTEHatchNuclearHighPressureInput(
             "test_inlet",
             5,
+            0,
             new String[0],
             new ITexture[0][0][0]);
         assertTrue(inputHatch.isPassageInlet(), "Input hatch must strictly report being a passage inlet");
@@ -84,6 +72,7 @@ public class NuclearHighPressureHatchMigrationTest {
         MTEHatchNuclearHighPressureOutput outputHatch = new MTEHatchNuclearHighPressureOutput(
             "test_outlet",
             5,
+            0,
             new String[0],
             new ITexture[0][0][0]);
         assertFalse(outputHatch.isPassageInlet(), "Output hatch must strictly report NOT being a passage inlet");
@@ -94,6 +83,7 @@ public class NuclearHighPressureHatchMigrationTest {
         MTEHatchNuclearHighPressure hatch = new MTEHatchNuclearHighPressure(
             "test_hatch",
             5,
+            0,
             new String[0],
             new ITexture[0][0][0]);
         hatch.mTemperature = 750.5;
@@ -118,6 +108,7 @@ public class NuclearHighPressureHatchMigrationTest {
         MTEHatchNuclearHighPressure loadedHatch = new MTEHatchNuclearHighPressure(
             "loaded_hatch",
             5,
+            0,
             new String[0],
             new ITexture[0][0][0]);
         loadedHatch.loadNBTData(nbt);
@@ -131,6 +122,7 @@ public class NuclearHighPressureHatchMigrationTest {
         MTEHatchNuclearHighPressure hatch = new MTEHatchNuclearHighPressure(
             "test_hatch",
             5,
+            0,
             new String[0],
             new ITexture[0][0][0]);
         ICoolantLoopPump pump = Mockito.mock(ICoolantLoopPump.class);
@@ -142,6 +134,7 @@ public class NuclearHighPressureHatchMigrationTest {
         MTEHatchNuclearHighPressure loaded = new MTEHatchNuclearHighPressure(
             "loaded_hatch",
             5,
+            0,
             new String[0],
             new ITexture[0][0][0]);
         loaded.loadNBTData(nbt);
@@ -152,60 +145,13 @@ public class NuclearHighPressureHatchMigrationTest {
         MTEHatchNuclearHighPressure idle = new MTEHatchNuclearHighPressure(
             "idle_hatch",
             5,
+            0,
             new String[0],
             new ITexture[0][0][0]);
         NBTTagCompound idleNbt = new NBTTagCompound();
         idle.saveNBTData(idleNbt);
         idle.loadNBTData(idleNbt);
         assertFalse(idle.isAwaitingLoopPump(), "a passage in no loop waits for nothing");
-    }
-
-    @Test
-    void testInPlaceDirectionalConversion() {
-        gregtech.api.metatileentity.BaseMetaTileEntity mockTe = Mockito
-            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
-        MTEHatchNuclearHighPressure legacyHatch = new MTEHatchNuclearHighPressure(
-            "legacy",
-            5,
-            new String[0],
-            new ITexture[0][0][0]);
-        legacyHatch.mTemperature = 650.0;
-        legacyHatch.mCumulativeFluence = 98765L;
-
-        final Object[] currentMteHolder = new Object[] { legacyHatch };
-        Mockito.doAnswer(inv -> currentMteHolder[0])
-            .when(mockTe)
-            .getMetaTileEntity();
-        Mockito.doAnswer(inv -> {
-            currentMteHolder[0] = inv.getArgument(0);
-            return null;
-        })
-            .when(mockTe)
-            .setMetaTileEntity(Mockito.any());
-
-        // Convert to input
-        MTEHatchNuclearHighPressure resultInput = MTEHatchNuclearHighPressure.convertToDirectionalHatch(mockTe, true);
-        assertNotNull(resultInput);
-        assertTrue(
-            resultInput instanceof MTEHatchNuclearHighPressureInput,
-            "Must convert to MTEHatchNuclearHighPressureInput");
-        assertTrue(resultInput.isPassageInlet());
-        assertEquals(650.0, resultInput.getTemperature(), 1e-4);
-        assertEquals(98765L, resultInput.mCumulativeFluence);
-        Mockito.verify(mockTe)
-            .setMetaTileID((short) ModMetaTileEntities.ID_NUCLEAR_HIGH_PRESSURE_INPUT);
-
-        // Convert to output
-        MTEHatchNuclearHighPressure resultOutput = MTEHatchNuclearHighPressure.convertToDirectionalHatch(mockTe, false);
-        assertNotNull(resultOutput);
-        assertTrue(
-            resultOutput instanceof MTEHatchNuclearHighPressureOutput,
-            "Must convert to MTEHatchNuclearHighPressureOutput");
-        assertFalse(resultOutput.isPassageInlet());
-        assertEquals(650.0, resultOutput.getTemperature(), 1e-4);
-        assertEquals(98765L, resultOutput.mCumulativeFluence);
-        Mockito.verify(mockTe)
-            .setMetaTileID((short) ModMetaTileEntities.ID_NUCLEAR_HIGH_PRESSURE_OUTPUT);
     }
 
     @Test
@@ -237,6 +183,7 @@ public class NuclearHighPressureHatchMigrationTest {
         MTEHatchNuclearHighPressureOutput botHatch = new MTEHatchNuclearHighPressureOutput(
             "bot",
             5,
+            0,
             new String[0],
             new ITexture[0][0][0]);
         Mockito.when(botTe.getMetaTileEntity())
@@ -248,6 +195,7 @@ public class NuclearHighPressureHatchMigrationTest {
         MTEHatchNuclearHighPressureInput topHatch = new MTEHatchNuclearHighPressureInput(
             "top",
             5,
+            0,
             new String[0],
             new ITexture[0][0][0]);
         topHatch.setBaseMetaTileEntity(topTe);

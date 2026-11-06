@@ -1639,7 +1639,7 @@ public class NuclearSimulationEngineTest {
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 4, 32000, new String[0], null);
         MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test.rod", 4, new String[0], null);
         MTEHatchNuclearControl control = new MTEHatchNuclearControl("test.control", 4, new String[0], null);
-        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 4, new String[0], null);
+        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 4, 0, new String[0], null);
 
         // All 6 ForgeDirections must be valid for all nuclear hatches
         for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
@@ -4471,19 +4471,6 @@ public class NuclearSimulationEngineTest {
             bottomElement.check(reactor, mockWorld, 10, 64, 15),
             "HP hatch facing UP must fail BottomCoreElement");
 
-        // An untiered legacy output hatch, even facing DOWN, is rejected
-        MTEHatchNuclearHighPressure legacyBot = new MTEHatchNuclearHighPressureOutput(
-            "test.legacy_bot_hp",
-            5,
-            new String[0],
-            null);
-        org.mockito.Mockito.when(mockBotTe.getFrontFacing())
-            .thenReturn(ForgeDirection.DOWN);
-        org.mockito.Mockito.when(mockBotTe.getMetaTileEntity())
-            .thenReturn(legacyBot);
-        assertFalse(
-            bottomElement.check(reactor, mockWorld, 10, 64, 15),
-            "An untiered high-pressure hatch must fail BottomCoreElement");
         org.mockito.Mockito.when(mockBotTe.getMetaTileEntity())
             .thenReturn(botHp);
         org.mockito.Mockito.when(mockBotTe.getFrontFacing())
@@ -4585,7 +4572,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testHighPressureHatchThermalAndTransmutation() {
-        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 4, new String[0], null);
+        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 4, 0, new String[0], null);
         hp.setTemperature(500.0);
 
         // Convective thermal exchange: 500 °C core cooling with 50 °C water
@@ -5985,7 +5972,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(0.90, hwTile.getModerationProbability(), 1e-4, "Heavy water moderation must be 0.90");
 
         // 2. High-pressure passage moderation probabilities
-        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 4, new String[0], null);
+        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 4, 0, new String[0], null);
         ICoolantLoopPump mockPump = org.mockito.Mockito.mock(ICoolantLoopPump.class);
         hp.setConnectedPump(mockPump);
 
@@ -7186,7 +7173,7 @@ public class NuclearSimulationEngineTest {
         SimTile passageTile = new SimTile(SimTile.TileType.PASSAGE_CORE);
         assertEquals(0.05, passageTile.getModerationProbability(), 1e-4);
 
-        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp.mod", 4, new String[0], null);
+        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp.mod", 4, 0, new String[0], null);
         ICoolantLoopPump mockPump = org.mockito.Mockito.mock(ICoolantLoopPump.class);
         hp.setConnectedPump(mockPump);
         org.mockito.Mockito.when(mockPump.getCoolantFluidProperty())
@@ -7740,8 +7727,8 @@ public class NuclearSimulationEngineTest {
             .thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
         reactor.setBaseMetaTileEntity(baseTe);
 
-        MTEHatchNuclearHighPressure topHp = new MTEHatchNuclearHighPressure("test.top_hp", 4, new String[0], null);
-        MTEHatchNuclearHighPressure botHp = new MTEHatchNuclearHighPressure("test.bot_hp", 4, new String[0], null);
+        MTEHatchNuclearHighPressure topHp = new MTEHatchNuclearHighPressure("test.top_hp", 4, 0, new String[0], null);
+        MTEHatchNuclearHighPressure botHp = new MTEHatchNuclearHighPressure("test.bot_hp", 4, 0, new String[0], null);
         topHp.setIsInlet(true);
         botHp.setIsInlet(false);
 
@@ -8330,7 +8317,7 @@ public class NuclearSimulationEngineTest {
         MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.bus", 4, new String[0], null);
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 4, 16000, new String[0], null);
         MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test.rod", 4, new String[0], null);
-        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 4, new String[0], null);
+        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 4, 0, new String[0], null);
 
         // Before tick 20: must NOT call tryDisableTicking so mTickTimer can exceed 5
         bus.onPostTick(mockTe, 1);

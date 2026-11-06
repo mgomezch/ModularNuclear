@@ -51,6 +51,7 @@ public class NuclearHighPressureHatchEnergyConservationTest {
         MTEHatchNuclearHighPressure hatch = new MTEHatchNuclearHighPressure(
             "test_passage",
             4,
+            0,
             new String[0],
             new ITexture[0][0][0]);
         hatch.setTemperature(800.0); // 800 °C core
@@ -106,6 +107,7 @@ public class NuclearHighPressureHatchEnergyConservationTest {
         MTEHatchNuclearHighPressure hatch = new MTEHatchNuclearHighPressure(
             "test_passage_eq",
             4,
+            0,
             new String[0],
             new ITexture[0][0][0]);
         hatch.setTemperature(300.0);

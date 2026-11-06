@@ -1647,10 +1647,6 @@ public class LoopGraphCrawler {
          */
         private Visit visitCorePassage(FrontierStep step, TileEntity te, IMetaTileEntity mte) {
             ICoolantPassageHatch passage = (ICoolantPassageHatch) mte;
-            passage.convertToDirectionalVariant(true);
-            if (te instanceof IGregTechTileEntity gte && gte.getMetaTileEntity() instanceof ICoolantPassageHatch p) {
-                passage = p;
-            }
             if (!passage.isPassageInlet()) {
                 finishWithFailure(
                     CoolantLocalization.format("coolantloops.crawler.passage_outlet", step.x, step.y, step.z));
@@ -1673,9 +1669,6 @@ public class LoopGraphCrawler {
                 finishWithFailure(
                     CoolantLocalization.format("coolantloops.crawler.passage_no_pair", step.x, step.y, step.z));
                 return Visit.STOP;
-            }
-            if (outTE.getMetaTileEntity() instanceof ICoolantPassageHatch outPassage) {
-                outPassage.convertToDirectionalVariant(false);
             }
             if (pump != null) {
                 passage.setConnectedPump(pump);

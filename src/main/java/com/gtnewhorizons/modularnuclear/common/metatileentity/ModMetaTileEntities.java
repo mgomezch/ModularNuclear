@@ -8,7 +8,6 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControl;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureInput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressureOutput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEActinideCompounder;
@@ -22,9 +21,6 @@ public class ModMetaTileEntities {
     public static final int ID_NUCLEAR_HATCH_BASE = 32101; // 32101..32109 (LV through UHV)
     public static final int ID_NUCLEAR_CONTROL = 32110;
     public static final int ID_NUCLEAR_CONTROL_ROD = 32111;
-    public static final int ID_NUCLEAR_HIGH_PRESSURE = 32112;
-    public static final int ID_NUCLEAR_HIGH_PRESSURE_INPUT = 32113;
-    public static final int ID_NUCLEAR_HIGH_PRESSURE_OUTPUT = 32114;
     public static final int ID_NUCLEAR_REACTOR = 32115;
     public static final int ID_ACTINIDE_COMPOUNDER = 32116;
     public static final int ID_NUCLEAR_ADVANCED_CONTROL_ROD = 32117;
@@ -43,9 +39,6 @@ public class ModMetaTileEntities {
     public static ItemStack nuclearControlHatch;
     public static ItemStack nuclearControlRodHatch;
     public static ItemStack nuclearAdvancedControlRodHatch;
-    public static ItemStack nuclearHighPressureHatch;
-    public static ItemStack nuclearHighPressureInputHatch;
-    public static ItemStack nuclearHighPressureOutputHatch;
     /** Tiered high-pressure hatches by coolant pipe material index ({@link CoolantPipeSpec#MATERIAL_NAMES}). */
     public static final ItemStack[] nuclearHighPressureInputHatches = new ItemStack[CoolantPipeSpec.MATERIAL_NAMES.length];
     public static final ItemStack[] nuclearHighPressureOutputHatches = new ItemStack[CoolantPipeSpec.MATERIAL_NAMES.length];
@@ -81,24 +74,6 @@ public class ModMetaTileEntities {
             ID_NUCLEAR_ADVANCED_CONTROL_ROD,
             "hatch.nuclearadvancedcontrolrod",
             "Advanced nuclear core control rod",
-            5).getStackForm(1L);
-
-        nuclearHighPressureHatch = new MTEHatchNuclearHighPressure(
-            ID_NUCLEAR_HIGH_PRESSURE,
-            "hatch.nuclearhighpressure",
-            "Nuclear core high-pressure hatch (Legacy)",
-            5).getStackForm(1L);
-
-        nuclearHighPressureInputHatch = new MTEHatchNuclearHighPressureInput(
-            ID_NUCLEAR_HIGH_PRESSURE_INPUT,
-            "hatch.nuclearhighpressure.input",
-            "Nuclear core high-pressure input hatch (legacy)",
-            5).getStackForm(1L);
-
-        nuclearHighPressureOutputHatch = new MTEHatchNuclearHighPressureOutput(
-            ID_NUCLEAR_HIGH_PRESSURE_OUTPUT,
-            "hatch.nuclearhighpressure.output",
-            "Nuclear core high-pressure output hatch (legacy)",
             5).getStackForm(1L);
 
         // All the inputs, then all the outputs, so each kind lists together

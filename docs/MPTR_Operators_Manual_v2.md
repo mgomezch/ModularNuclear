@@ -828,7 +828,7 @@ From Osmium tier upward, a column may be a **pressure-tube passage**: a high-pre
 
 At 75 L/s of water a passage removes about three times what a core hatch of the same tier conducts into its own coolant (§9.2), and more with more flow.
 
-**Pump tanks.** A loop's pipes must all be of one material, and the pump's Railcraft tank of that same material. Railcraft has no awakened draconium or infinity tanks, so loops of those pipes take a neutronium tank (`tankMaterials` in `pipes.yaml`); the pipes withstand 6000 and 12000 bar. The untiered high-pressure hatches of earlier versions are no longer accepted by the structure.
+**Pump tanks.** A loop's pipes must all be of one material, and the pump's Railcraft tank of that same material. Railcraft has no awakened draconium or infinity tanks, so loops of those pipes take a neutronium tank (`tankMaterials` in `pipes.yaml`); the pipes withstand 6000 and 12000 bar.
 
 **Passage as a cell.** The passage cell has $p_a = 0.02$ (fast) / $0.05$ (thermal), $p_s = 0.80$, $c = 0.90$, and a moderation probability equal to the loop coolant's $p_m$ (0.05 if unknown). Its high conductivity makes it a strong conductive sink for adjacent fuel. All of these are set in `physics.yaml`: `coolant_passage_fast_absorption`, `coolant_passage_thermal_absorption`, `coolant_passage_scattering`, `coolant_passage_conduction` and `coolant_passage_default_moderation`.
 

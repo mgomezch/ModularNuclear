@@ -157,7 +157,7 @@ public class NuclearCoreHatchesGuiTest {
 
     @Test
     void testNuclearHighPressureBuildUI() {
-        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 1, new String[0], null);
+        MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 1, 0, new String[0], null);
         BaseMetaTileEntity te = createMockTileEntity();
         hp.setBaseMetaTileEntity(te);
 
@@ -185,6 +185,7 @@ public class NuclearCoreHatchesGuiTest {
         MTEHatchNuclearHighPressureInput hpIn = new MTEHatchNuclearHighPressureInput(
             "test.hp.in",
             1,
+            0,
             new String[0],
             null);
         BaseMetaTileEntity te = createMockTileEntity();
@@ -214,6 +215,7 @@ public class NuclearCoreHatchesGuiTest {
         MTEHatchNuclearHighPressureOutput hpOut = new MTEHatchNuclearHighPressureOutput(
             "test.hp.out",
             1,
+            0,
             new String[0],
             null);
         BaseMetaTileEntity te = createMockTileEntity();

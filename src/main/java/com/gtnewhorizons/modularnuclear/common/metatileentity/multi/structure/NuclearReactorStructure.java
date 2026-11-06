@@ -164,12 +164,12 @@ public class NuclearReactorStructure {
 
     /** A material-tiered high-pressure input hatch: the only passage inlet the MPTR's top layer takes. */
     public static boolean isTieredInput(IMetaTileEntity mte) {
-        return mte instanceof MTEHatchNuclearHighPressureInput hp && hp.isTiered();
+        return mte instanceof MTEHatchNuclearHighPressureInput;
     }
 
     /** A material-tiered high-pressure output hatch: the only passage outlet the MPTR's bottom layer takes. */
     public static boolean isTieredOutput(IMetaTileEntity mte) {
-        return mte instanceof MTEHatchNuclearHighPressureOutput hp && hp.isTiered();
+        return mte instanceof MTEHatchNuclearHighPressureOutput;
     }
 
     public static class NuclearHatchElement implements IStructureElement<MTENuclearReactor> {

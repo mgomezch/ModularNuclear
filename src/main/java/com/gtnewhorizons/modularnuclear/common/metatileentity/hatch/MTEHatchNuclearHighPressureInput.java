@@ -16,19 +16,11 @@ import gregtech.api.render.TextureFactory;
  */
 public class MTEHatchNuclearHighPressureInput extends MTEHatchNuclearHighPressure {
 
-    public MTEHatchNuclearHighPressureInput(int aID, String aName, String aNameRegional, int aTier) {
-        this(aID, aName, aNameRegional, aTier, -1);
-    }
-
     /** A material-tiered hatch: aMaterialIndex indexes the coolant pipe materials, aTier is that material's tier. */
     public MTEHatchNuclearHighPressureInput(int aID, String aName, String aNameRegional, int aTier,
         int aMaterialIndex) {
         super(aID, aName, aNameRegional, aTier, aMaterialIndex);
         this.mIsInlet = true;
-    }
-
-    public MTEHatchNuclearHighPressureInput(String aName, int aTier, String[] aDescription, ITexture[][][] aTextures) {
-        this(aName, aTier, -1, aDescription, aTextures);
     }
 
     public MTEHatchNuclearHighPressureInput(String aName, int aTier, int aMaterialIndex, String[] aDescription,
