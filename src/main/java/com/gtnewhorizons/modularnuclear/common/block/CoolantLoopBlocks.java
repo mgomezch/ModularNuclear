@@ -17,18 +17,15 @@ public class CoolantLoopBlocks {
     public static void init() {
         creativeHeatReservoir = new BlockCreativeHeatReservoir();
         GameRegistry.registerBlock(creativeHeatReservoir, "creative_heat_reservoir");
-        GameRegistry.registerTileEntity(TileEntityCreativeHeatReservoir.class, "coolantloops.creative_heat_reservoir");
         GameRegistry
             .registerTileEntity(TileEntityCreativeHeatReservoir.class, "modularnuclear.creative_heat_reservoir");
 
         manifold = new BlockManifold();
         GameRegistry.registerBlock(manifold, "manifold");
-        GameRegistry.registerTileEntity(TileEntityManifold.class, "coolantloops.manifold");
         GameRegistry.registerTileEntity(TileEntityManifold.class, "modularnuclear.manifold");
 
         loopInstrument = new BlockLoopInstrument();
         GameRegistry.registerBlock(loopInstrument, "loop_instrument");
-        GameRegistry.registerTileEntity(TileEntityLoopInstrument.class, "coolantloops.loop_instrument");
         GameRegistry.registerTileEntity(TileEntityLoopInstrument.class, "modularnuclear.loop_instrument");
     }
 }

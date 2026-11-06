@@ -7,7 +7,6 @@ import com.gtnewhorizons.modularnuclear.client.CherenkovClientHandler;
 import com.gtnewhorizons.modularnuclear.client.renderer.FalloutVisualEffectRenderer;
 import com.gtnewhorizons.modularnuclear.client.renderer.RenderEmpty;
 import com.gtnewhorizons.modularnuclear.common.CommonProxy;
-import com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.config.ConfigNameCheck;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
@@ -137,30 +136,5 @@ public class ModularNuclear {
         ReactorDataRegistry.clearCaches();
         ReactorDataRegistry.preIndexKnownItems();
         NuclearFuelClassification.preIndexKeys();
-    }
-
-    @Mod.EventHandler
-    public void onMissingMappings(cpw.mods.fml.common.event.FMLMissingMappingsEvent event) {
-        for (cpw.mods.fml.common.event.FMLMissingMappingsEvent.MissingMapping mapping : event.getAll()) {
-            if ("coolantloops:manifold".equals(mapping.name)) {
-                if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.BLOCK) {
-                    mapping.remap(CoolantLoopBlocks.manifold);
-                } else if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.ITEM) {
-                    mapping.remap(net.minecraft.item.Item.getItemFromBlock(CoolantLoopBlocks.manifold));
-                }
-            } else if ("coolantloops:creative_heat_reservoir".equals(mapping.name)) {
-                if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.BLOCK) {
-                    mapping.remap(CoolantLoopBlocks.creativeHeatReservoir);
-                } else if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.ITEM) {
-                    mapping.remap(net.minecraft.item.Item.getItemFromBlock(CoolantLoopBlocks.creativeHeatReservoir));
-                }
-            } else if ("coolantloops:loop_instrument".equals(mapping.name)) {
-                if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.BLOCK) {
-                    mapping.remap(CoolantLoopBlocks.loopInstrument);
-                } else if (mapping.type == cpw.mods.fml.common.registry.GameRegistry.Type.ITEM) {
-                    mapping.remap(net.minecraft.item.Item.getItemFromBlock(CoolantLoopBlocks.loopInstrument));
-                }
-            }
-        }
     }
 }
