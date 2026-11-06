@@ -58,6 +58,7 @@ import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
+import com.gtnewhorizons.modularnuclear.common.util.TickPhase;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
 import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
 
@@ -894,10 +895,21 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         return true;
     }
 
+    /** This pump's offset for its periodic checks, so pumps loaded together do not crawl on the same tick. */
+    private int mSchedulePhase = -1;
+
+    private int schedulePhase() {
+        if (mSchedulePhase < 0 && getBaseMetaTileEntity() != null) {
+            mSchedulePhase = TickPhase.of(getBaseMetaTileEntity());
+        }
+        return Math.max(mSchedulePhase, 0);
+    }
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
         if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide()) {
+            int phase = schedulePhase();
             if (mNeedsPostLoadRebind) {
                 rebindRestoredLoop(aBaseMetaTileEntity);
             }
@@ -906,19 +918,19 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             }
             if (mActiveCrawl != null) {
                 stepActiveCrawl();
-            } else if (!mLoopFormed && mMachine && aTick % 100 == 0) {
+            } else if (!mLoopFormed && mMachine && TickPhase.due(aTick, phase, 100)) {
                 crawlLoopGraph();
             }
-            if (mLoopFormed && aTick % LOOP_CHECK_INTERVAL_TICKS == 0) {
+            if (mLoopFormed && TickPhase.due(aTick, phase, LOOP_CHECK_INTERVAL_TICKS)) {
                 String loopBreak = findLoopBreak(aBaseMetaTileEntity.getWorld());
                 if (loopBreak != null) onDeviceDisconnected(null, loopBreak);
             }
-            if (mLoopFormed && mActiveCrawl == null && aTick % LOOP_RECRAWL_INTERVAL_TICKS == 0) {
+            if (mLoopFormed && mActiveCrawl == null && TickPhase.due(aTick, phase, LOOP_RECRAWL_INTERVAL_TICKS)) {
                 crawlLoopGraph();
             }
             stepCoolantLoop();
             // Saves the loop's changing state; markDirty also updates comparators around the pump, so not every second
-            if (mLoopFormed && aTick % 100 == 0) {
+            if (mLoopFormed && TickPhase.due(aTick, phase, 100)) {
                 aBaseMetaTileEntity.markDirty();
             }
         }
@@ -2382,7 +2394,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             return;
         }
 
-        boolean shouldTick = (getBaseMetaTileEntity() == null) || (getBaseMetaTileEntity().getTimer() % 100 == 0);
+        boolean shouldTick = (getBaseMetaTileEntity() == null)
+            || TickPhase.due(getBaseMetaTileEntity().getTimer(), schedulePhase(), 100);
         if (shouldTick) {
             double gasFrac = getDissolvedGasFraction();
             double cavMultiplier = (CoolantLoopDataRegistry.getPhysicsData() != null)

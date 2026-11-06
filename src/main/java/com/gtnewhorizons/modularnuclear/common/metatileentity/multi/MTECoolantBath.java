@@ -31,6 +31,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.Coolant
 import com.gtnewhorizons.modularnuclear.common.util.CoolantBathRegistry;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
+import com.gtnewhorizons.modularnuclear.common.util.TickPhase;
 import com.gtnewhorizons.modularnuclear.network.PacketSyncCoolantBath;
 
 import cpw.mods.fml.common.network.NetworkRegistry.TargetPoint;
@@ -342,9 +343,10 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
 
         // 3. Sync slot items and progress to clients: on changes, once a second while what clients see moves, and
         // every ten seconds for a bath holding items (for players who arrive later)
-        if (mNeedsSync || aTick % 20 == 0) {
+        int phase = TickPhase.of(aBaseMetaTileEntity);
+        if (mNeedsSync || TickPhase.due(aTick, phase, 20)) {
             long signature = clientViewSignature();
-            boolean resend = aTick % 200 == 0 && signature != EMPTY_VIEW;
+            boolean resend = TickPhase.due(aTick, phase, 200) && signature != EMPTY_VIEW;
             if (mNeedsSync || signature != mLastSentSignature || resend) {
                 syncToClients();
                 mLastSentSignature = signature;

@@ -73,6 +73,7 @@ import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
+import com.gtnewhorizons.modularnuclear.common.util.TickPhase;
 
 import appeng.helpers.ICustomNameObject;
 import cpw.mods.fml.common.Loader;
@@ -1783,7 +1784,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 addEnergyOutputMultipleDynamos(mDirectPowerEUt, true);
             }
 
-            if (aTick % 100 == 0) {
+            if (TickPhase.due(aTick, schedulePhase(), 100)) {
                 refreshAmbientTemperature();
             }
 
@@ -1946,7 +1947,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 aBaseMetaTileEntity.sendBlockEvent((byte) 100, (byte) tier);
             }
             aBaseMetaTileEntity.sendBlockEvent((byte) 101, metricByte);
-        } else if (aTick % 100 == 0 && cherenkovMetric > 0) {
+        } else if (TickPhase.due(aTick, schedulePhase(), 100) && cherenkovMetric > 0) {
             if (tier > 0) {
                 aBaseMetaTileEntity.sendBlockEvent((byte) 100, (byte) tier);
             }
@@ -2687,6 +2688,16 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             }
         }
         return NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
+    }
+
+    /** This reactor's offset for its periodic work, so reactors loaded together do not all do it on one tick. */
+    private int mSchedulePhase = -1;
+
+    private int schedulePhase() {
+        if (mSchedulePhase < 0 && getBaseMetaTileEntity() != null) {
+            mSchedulePhase = TickPhase.of(getBaseMetaTileEntity());
+        }
+        return Math.max(mSchedulePhase, 0);
     }
 
     /** The biome's temperature, read once and then refreshed every 100 ticks and on each structure check. */
