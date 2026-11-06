@@ -131,7 +131,15 @@ The registry scan around `ReactorDataRegistry` line 1050 does the same for name-
 - Use primitive arrays for the per-cycle temperature and reactivity data.
 - Check the pump's metrics history for the same pattern.
 
-### P3 (P1): Pump loop crawling, identifiers and NBT
+### P3 (P1): Pump loop crawling, identifiers and NBT (partly done)
+
+**Done:**
+- **Staggered schedules.** `TickPhase` offsets periodic work by a hash of the machine's position: the pump's crawl, footprint check, save and cavitation wear, the reactor's ambient refresh and Cherenkov resend, and the bath's client sync. The reactor's cycle itself is still on `aTick % ticksPerCycle`.
+- **Smaller NBT.** The pump saves only its loop's devices (by position), not every pipe position, graph node and edge. After a load the loop runs on its saved segments, and the next scheduled crawl finds the pipes again. Verified in game across leaving and rejoining a world.
+- **The one-tick post-load crawl** happens only when a saved hatch or device is missing or changed. That is rare, so it was left as is.
+
+**Still to do:** typed identifiers. Each crawl still makes a `LoopSegment` per pipe with a `"pipe_x_y_z"` id. Segment and node ids key the engine, its NBT, the GUI graph sync and the devices' `getDeviceId`, so this is one cross-cutting change. The engine's state is also still a generic `Map<String,Object>` in NBT.
+
 
 The background for the plan below:
 
