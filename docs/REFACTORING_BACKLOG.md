@@ -142,13 +142,19 @@ The background for the plan below:
 - **Shrink the NBT.** Stop saving every pipe position and graph node (`saveNBTData`'s `pipePositions` and `graphNodes`). Save the loop abstractly: segments with their hydraulic and thermal state, device bindings by position, and what the footprint check needs (or rebuild the footprint on the first scheduled check). The goal stays the same: after a reload the loop runs immediately, without waiting for a crawl.
 - **Make the engine state a typed NBT schema.** It is currently saved as a generic `Map<String,Object>` (`exportState` / `LoopStateNbt`).
 
-### P4 (P2): Bath intake scans every tick
+### P4 (P2): Bath intake scans every tick (done)
+
+**Done:** one pass over the buses fills every empty slot it can. A pass that takes nothing waits 20 ticks before the next one, and any eject resets the wait. Verified in game: a filled bus still loads all 20 slots.
+
 
 `MTECoolantBath.onPostTick` scans every input bus slot for every empty bath slot, every tick.
 
 **Do:** scan only when a bus's contents changed (or on an interval), and stop at the first empty slot filled per pass.
 
-### P5 (P3): Small per-cycle waste
+### P5 (P3): Small per-cycle waste (done)
+
+**Done:** the reactor reads the biome temperature on its 100-tick schedule and on structure checks; `getAmbientTemperature` returns the cached value. The monitor-cover check compares item and meta, resolved once, in a shared `MonitorCover`. The pump's `CoolantFluidProperty.get(name)` was left as is: it is already one cached map lookup.
+
 
 - `MTENuclearReactor.hasComputerMonitorCover` allocates `ItemList.Cover_Screen.get(1L)` every cycle and scans covers. Cache the result and update it on cover change.
 - `onPostTick` calls `getAmbientTemperature()` every cycle, although `mCachedAmbientTemp` exists.
@@ -202,7 +208,10 @@ Recognizing a loop device is an if-chain repeated in the crawler, in `rebindRest
 
 **Do:** pass `EngineParameters` explicitly (or through a context object) to `simulate` and the helpers. Have the game build its instance from config, and give each test its own.
 
-### A6 (P2): Remove test hooks from game code
+### A6 (P2): Remove test hooks from game code (done)
+
+**Done:** the monitor-cover flags are gone (tests override `hasComputerMonitorCover`). The reservoir's simulated tank is used only while the pump has no world, and it is no longer saved. That fixed a real bug: in a world, an empty Railcraft tank fell back to the simulated 100000 L, and a full one took any amount. `mSimulatedFluidTempCelsius` and `mSimulatedBiomeTempCelsius` remain: only tests set them, and they are not saved.
+
 
 - `mSimulateComputerMonitorCover` is on both `MTENuclearReactor` and `MTECoolantPump`.
 - `CoolantPumpReservoir.simulatedCoolantLiters` defaults to 100000, is returned when `world == null`, and is saved to NBT.
@@ -215,7 +224,10 @@ About 115 classes under `nuclear/standalone` (the CLI, `NuclearSimulationWebServ
 
 **Do:** move the standalone simulator into its own source set or subproject that depends on the shared engine. Keep the shared engine as plain Java that both sides use. The HTML template could become a resource file.
 
-### A8 (P3): Small cleanups
+### A8 (P3): Small cleanups (done)
+
+**Done:** all five. The stacked Javadocs are moved or dropped. The step helpers return a `Step` enum. The cheese facades are gone. Railcraft's `testIfMasterBlock` is looked up once. The registry aliases are gone: the missing-mappings handler already remaps old worlds, and the nh-dev scripts now use the `modularnuclear:` names.
+
 
 - 9 places where an old Javadoc block was left stuck above a newer one (e.g. above `MTENuclearReactor.holdForPassagePumps`, and in `MTECoolantPump` above `triggerCatastrophicExplosion`).
 - Tri-state `Boolean ...Result` returns in `MTECoolantPump.stepCoolantLoop`: replace them with a small result enum.
