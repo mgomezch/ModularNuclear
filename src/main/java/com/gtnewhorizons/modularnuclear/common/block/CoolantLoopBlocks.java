@@ -5,7 +5,6 @@ import net.minecraft.block.Block;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityCreativeHeatReservoir;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
@@ -31,49 +30,5 @@ public class CoolantLoopBlocks {
         GameRegistry.registerBlock(loopInstrument, "loop_instrument");
         GameRegistry.registerTileEntity(TileEntityLoopInstrument.class, "coolantloops.loop_instrument");
         GameRegistry.registerTileEntity(TileEntityLoopInstrument.class, "modularnuclear.loop_instrument");
-
-        registerAliases();
-    }
-
-    private static void registerAliases() {
-        addAlias("coolantloops:creative_heat_reservoir", "modularnuclear:creative_heat_reservoir");
-        addAlias("coolantloops:manifold", "modularnuclear:manifold");
-        addAlias("coolantloops:loop_instrument", "modularnuclear:loop_instrument");
-    }
-
-    private static void addAlias(String from, String to) {
-        addAliasToRegistry(cpw.mods.fml.common.registry.GameData.getBlockRegistry(), from, to);
-        addAliasToRegistry(net.minecraft.block.Block.blockRegistry, from, to);
-        addAliasToRegistry(cpw.mods.fml.common.registry.GameData.getItemRegistry(), from, to);
-        addAliasToRegistry(net.minecraft.item.Item.itemRegistry, from, to);
-    }
-
-    private static void addAliasToRegistry(Object registry, String from, String to) {
-        if (registry == null) return;
-        Class<?> cur = registry.getClass();
-        while (cur != null && cur != Object.class) {
-            try {
-                java.lang.reflect.Method m = cur.getDeclaredMethod("addAlias", String.class, String.class);
-                m.setAccessible(true);
-                m.invoke(registry, from, to);
-                return;
-            } catch (NoSuchMethodException e) {
-                cur = cur.getSuperclass();
-            } catch (Throwable t) {
-                break;
-            }
-        }
-        try {
-            java.lang.reflect.Field f = cpw.mods.fml.common.registry.FMLControlledNamespacedRegistry.class
-                .getDeclaredField("aliases");
-            f.setAccessible(true);
-            @SuppressWarnings("unchecked")
-            java.util.Map<String, String> map = (java.util.Map<String, String>) f.get(registry);
-            if (map != null) {
-                map.put(from, to);
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
     }
 }
