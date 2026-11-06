@@ -7,7 +7,6 @@ import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_IN;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
@@ -15,7 +14,6 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearBusGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
-import com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
@@ -31,7 +29,6 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.render.TextureFactory;
-import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTSplit;
 
 /**
@@ -377,42 +374,6 @@ public class MTEHatchNuclearBus extends MTEHatch {
                 aBaseMetaTileEntity.tryDisableTicking();
             }
         }
-    }
-
-    public static boolean isMoltenCheese(FluidStack fluid) {
-        return CheeseRecipeRegistry.isMoltenCheese(fluid);
-    }
-
-    public static void loadCheeseRecipes() {
-        CheeseRecipeRegistry.getInstance()
-            .loadRecipes();
-    }
-
-    public static void clearCheeseRecipeCache() {
-        CheeseRecipeRegistry.getInstance()
-            .clear();
-    }
-
-    public static void registerCheeseRecipe(GTRecipe recipe) {
-        CheeseRecipeRegistry.getInstance()
-            .registerRecipe(recipe);
-    }
-
-    public static class RecipeCacheKey extends CheeseRecipeRegistry.RecipeCacheKey {
-
-        public RecipeCacheKey(ItemStack stack) {
-            super(stack);
-        }
-    }
-
-    public GTRecipe findCheeseExtractionRecipe(ItemStack stack) {
-        return CheeseRecipeRegistry.getInstance()
-            .findRecipe(stack);
-    }
-
-    public static boolean isCheeseRecipeInput(ItemStack stack) {
-        return CheeseRecipeRegistry.getInstance()
-            .isCheeseInput(stack);
     }
 
     @Override

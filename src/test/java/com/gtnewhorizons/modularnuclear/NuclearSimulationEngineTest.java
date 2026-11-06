@@ -2623,7 +2623,7 @@ public class NuclearSimulationEngineTest {
 
         net.minecraftforge.fluids.FluidStack cheeseOut = mockFluidStack(cheeseFluid, 144);
 
-        net.minecraft.item.Item dummyItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
+        net.minecraft.item.Item dummyItem = new net.minecraft.item.Item().setUnlocalizedName("cheese.easter_egg");
         ItemStack cheeseStack = new ItemStack(dummyItem, 1, 0);
 
         gregtech.api.util.GTRecipe cheeseRecipe = org.mockito.Mockito.mock(gregtech.api.util.GTRecipe.class);
@@ -2633,16 +2633,11 @@ public class NuclearSimulationEngineTest {
         cheeseRecipe.mDuration = 128;
         cheeseRecipe.mEUt = 4;
 
-        MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.nuclear.bus", 4, new String[0], null) {
-
-            @Override
-            public gregtech.api.util.GTRecipe findCheeseExtractionRecipe(ItemStack stack) {
-                if (stack != null) {
-                    return cheeseRecipe;
-                }
-                return null;
-            }
-        };
+        CheeseRecipeRegistry.getInstance()
+            .clear();
+        CheeseRecipeRegistry.getInstance()
+            .registerRecipe(cheeseRecipe);
+        MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.nuclear.bus", 4, new String[0], null);
 
         // 1. Tank and Stack Limit Properties (Input-only bus)
         assertEquals(0, bus.getCapacity(), "Nuclear bus internal tank capacity must be 0");
@@ -2715,7 +2710,8 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testCheeseRecipeCache() {
-        MTEHatchNuclearBus.clearCheeseRecipeCache();
+        CheeseRecipeRegistry.getInstance()
+            .clear();
 
         net.minecraft.item.Item dummyItem = new net.minecraft.item.Item().setUnlocalizedName("cheese.dummy");
         ItemStack stackA = new ItemStack(dummyItem, 1, 0);
@@ -2724,10 +2720,16 @@ public class NuclearSimulationEngineTest {
         MTEHatchNuclearBus bus = new MTEHatchNuclearBus("test.nuclear.bus", 4, new String[0], null);
 
         // Initially no cheese recipes are registered
-        assertNull(bus.findCheeseExtractionRecipe(null));
-        assertNull(bus.findCheeseExtractionRecipe(stackA));
+        assertNull(
+            CheeseRecipeRegistry.getInstance()
+                .findRecipe(null));
+        assertNull(
+            CheeseRecipeRegistry.getInstance()
+                .findRecipe(stackA));
         // Second call should hit the negative cache
-        assertNull(bus.findCheeseExtractionRecipe(stackA));
+        assertNull(
+            CheeseRecipeRegistry.getInstance()
+                .findRecipe(stackA));
 
         // Register a mocked cheese recipe
         gregtech.api.util.GTRecipe mockCheeseRecipe = org.mockito.Mockito.mock(gregtech.api.util.GTRecipe.class);
@@ -2740,43 +2742,61 @@ public class NuclearSimulationEngineTest {
                     org.mockito.Mockito.eq(stackA)))
             .thenReturn(true);
 
-        MTEHatchNuclearBus.registerCheeseRecipe(mockCheeseRecipe);
+        CheeseRecipeRegistry.getInstance()
+            .registerRecipe(mockCheeseRecipe);
 
         // stackA matches the cheese recipe
-        assertSame(mockCheeseRecipe, bus.findCheeseExtractionRecipe(stackA));
+        assertSame(
+            mockCheeseRecipe,
+            CheeseRecipeRegistry.getInstance()
+                .findRecipe(stackA));
         // Repeated call hits memoized cache
-        assertSame(mockCheeseRecipe, bus.findCheeseExtractionRecipe(stackA));
-        assertTrue(MTEHatchNuclearBus.isCheeseRecipeInput(stackA));
+        assertSame(
+            mockCheeseRecipe,
+            CheeseRecipeRegistry.getInstance()
+                .findRecipe(stackA));
+        assertTrue(
+            CheeseRecipeRegistry.getInstance()
+                .isCheeseInput(stackA));
         assertTrue(
             CheeseRecipeRegistry.getInstance()
                 .isCheeseInput(stackA));
         assertTrue(NuclearFuelClassification.isItemAllowedInBus(stackA));
 
         // stackB does not match and is negatively cached
-        assertNull(bus.findCheeseExtractionRecipe(stackB));
-        assertNull(bus.findCheeseExtractionRecipe(stackB));
-        assertFalse(MTEHatchNuclearBus.isCheeseRecipeInput(stackB));
+        assertNull(
+            CheeseRecipeRegistry.getInstance()
+                .findRecipe(stackB));
+        assertNull(
+            CheeseRecipeRegistry.getInstance()
+                .findRecipe(stackB));
+        assertFalse(
+            CheeseRecipeRegistry.getInstance()
+                .isCheeseInput(stackB));
         assertFalse(
             CheeseRecipeRegistry.getInstance()
                 .isCheeseInput(stackB));
 
         // Key equality and hashCode check
-        MTEHatchNuclearBus.RecipeCacheKey key1 = new MTEHatchNuclearBus.RecipeCacheKey(stackA);
-        MTEHatchNuclearBus.RecipeCacheKey key2 = new MTEHatchNuclearBus.RecipeCacheKey(new ItemStack(dummyItem, 64, 0));
-        MTEHatchNuclearBus.RecipeCacheKey key3 = new MTEHatchNuclearBus.RecipeCacheKey(stackB);
+        CheeseRecipeRegistry.RecipeCacheKey key1 = new CheeseRecipeRegistry.RecipeCacheKey(stackA);
+        CheeseRecipeRegistry.RecipeCacheKey key2 = new CheeseRecipeRegistry.RecipeCacheKey(
+            new ItemStack(dummyItem, 64, 0));
+        CheeseRecipeRegistry.RecipeCacheKey key3 = new CheeseRecipeRegistry.RecipeCacheKey(stackB);
 
         assertEquals(key1, key2, "Cache keys with same item and damage must be equal regardless of stack size");
         assertEquals(key1.hashCode(), key2.hashCode(), "Cache keys hash codes must match for equal keys");
         assertNotEquals(key1, key3, "Cache keys with different damage must not be equal");
 
         // Test singleton behavior with concrete inputs and fast O(1) item set filtering
-        MTEHatchNuclearBus.clearCheeseRecipeCache();
+        CheeseRecipeRegistry.getInstance()
+            .clear();
         assertFalse(
             CheeseRecipeRegistry.getInstance()
                 .hasDynamicOrUnknownInputs());
         gregtech.api.util.GTRecipe recipeWithInputs = org.mockito.Mockito.mock(gregtech.api.util.GTRecipe.class);
         recipeWithInputs.mInputs = new ItemStack[] { stackA };
-        MTEHatchNuclearBus.registerCheeseRecipe(recipeWithInputs);
+        CheeseRecipeRegistry.getInstance()
+            .registerRecipe(recipeWithInputs);
         assertFalse(
             CheeseRecipeRegistry.getInstance()
                 .hasDynamicOrUnknownInputs());
@@ -2793,7 +2813,8 @@ public class NuclearSimulationEngineTest {
             CheeseRecipeRegistry.getInstance()
                 .isCheeseInput(otherStack));
 
-        MTEHatchNuclearBus.clearCheeseRecipeCache();
+        CheeseRecipeRegistry.getInstance()
+            .clear();
     }
 
     @Test

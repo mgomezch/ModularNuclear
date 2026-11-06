@@ -618,8 +618,9 @@ public final class NuclearFuelClassification {
         // Custom fuel rods require valid NBT mix
         if (r.customRod) return CustomFuelMix.hasCustomMix(stack);
 
-        // Subclasses or buses with cheese extraction recipe
-        if (bus != null && bus.findCheeseExtractionRecipe(stack) != null) {
+        // Cheese, for the molten cheese extraction
+        if (bus != null && CheeseRecipeRegistry.getInstance()
+            .findRecipe(stack) != null) {
             return true;
         }
         return r.allowedInBus;

@@ -840,9 +840,8 @@ public class NuclearReactorPhysics {
             }
         }
         // 5. EASTER EGG: MOLTEN CHEESE EXTRACTION ABOVE 65°C
-        else if (bus.mTemperature > 65.0 && (CheeseRecipeRegistry.getInstance()
-            .isCheeseInput(stack)
-            || (bus.getClass() != MTEHatchNuclearBus.class && bus.findCheeseExtractionRecipe(stack) != null))) {
+        else if (bus.mTemperature > 65.0 && CheeseRecipeRegistry.getInstance()
+            .isCheeseInput(stack)) {
                 bus.mDirectEUProduced = 0;
                 if (reactor.getBaseMetaTileEntity() != null) {
                     long aTick = reactor.getBaseMetaTileEntity()
@@ -874,13 +873,14 @@ public class NuclearReactorPhysics {
         ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
         if (stack == null || stack.stackSize <= 0) return false;
 
-        GTRecipe recipe = bus.findCheeseExtractionRecipe(stack);
+        GTRecipe recipe = CheeseRecipeRegistry.getInstance()
+            .findRecipe(stack);
         if (recipe == null) return false;
 
         FluidStack cheeseOutput = null;
         if (recipe.mFluidOutputs != null) {
             for (FluidStack out : recipe.mFluidOutputs) {
-                if (out != null && MTEHatchNuclearBus.isMoltenCheese(out)) {
+                if (out != null && CheeseRecipeRegistry.isMoltenCheese(out)) {
                     cheeseOutput = out.copy();
                     break;
                 }
