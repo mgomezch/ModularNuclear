@@ -32,8 +32,17 @@ public class CoolantPumpReservoir {
     private final Map<String, Long> dissolvedGases = new java.util.LinkedHashMap<>();
     private final Map<String, Long> unmodifiableDissolvedGases = Collections.unmodifiableMap(dissolvedGases);
     private long dissolvedGasesVersion = 0L;
+    /**
+     * A stand-in for the Railcraft tank, used only while the pump has no world (unit tests). It is never used in a
+     * world, where an empty tank yields nothing and a full one takes nothing, and it is not saved.
+     */
     private long simulatedCoolantLiters = 100000L;
     private long simulatedTankCapacityLiters = 0L;
+
+    private boolean inWorld() {
+        IGregTechTileEntity te = pump.getBaseMetaTileEntity();
+        return te != null && te.getWorld() != null;
+    }
 
     public CoolantPumpReservoir(MTECoolantPump pump) {
         this.pump = pump;
@@ -67,7 +76,7 @@ public class CoolantPumpReservoir {
                     .getBaselineInletTemperatureCelsius(f.getFluid(), f, prop, pump.getBiomeTemperatureCelsius());
                 return reservoirTemperatureCelsius;
             }
-            if (simulatedCoolantLiters > 0) {
+            if (!inWorld() && simulatedCoolantLiters > 0) {
                 CoolantFluidProperty prop = pump.getEngine() != null ? pump.getEngine()
                     .getFluid() : null;
                 reservoirTemperatureCelsius = CoolantFluidHelper
@@ -647,7 +656,7 @@ public class CoolantPumpReservoir {
             }
         }
 
-        if (simulatedCoolantLiters > 0) {
+        if (!inWorld() && simulatedCoolantLiters > 0) {
             int drained = (int) Math.min(liters, simulatedCoolantLiters);
             simulatedCoolantLiters -= drained;
             return drained;
@@ -742,6 +751,7 @@ public class CoolantPumpReservoir {
             }
         }
 
+        if (inWorld()) return 0;
         if (simulatedTankCapacityLiters > 0) {
             long space = Math.max(0, simulatedTankCapacityLiters - simulatedCoolantLiters);
             int filled = (int) Math.min(liters, space);
@@ -797,6 +807,7 @@ public class CoolantPumpReservoir {
             }
         }
 
+        if (inWorld()) return true;
         if (simulatedTankCapacityLiters > 0) {
             return simulatedCoolantLiters >= simulatedTankCapacityLiters;
         }
@@ -917,6 +928,7 @@ public class CoolantPumpReservoir {
                     }
                 }
             }
+            return 0;
         }
         return simulatedCoolantLiters;
     }
@@ -927,8 +939,6 @@ public class CoolantPumpReservoir {
             gasesTag.setLong(entry.getKey(), entry.getValue());
         }
         aNBT.setTag("mDissolvedGases", gasesTag);
-        aNBT.setLong("mSimulatedCoolantLiters", simulatedCoolantLiters);
-        aNBT.setLong("mSimulatedTankCapacityLiters", simulatedTankCapacityLiters);
         if (!Double.isNaN(reservoirTemperatureCelsius)) {
             aNBT.setDouble("mReservoirTemperatureCelsius", reservoirTemperatureCelsius);
         }
@@ -944,12 +954,6 @@ public class CoolantPumpReservoir {
                 String key = (String) keyObj;
                 dissolvedGases.put(key, gasesTag.getLong(key));
             }
-        }
-        if (aNBT.hasKey("mSimulatedCoolantLiters")) {
-            simulatedCoolantLiters = aNBT.getLong("mSimulatedCoolantLiters");
-        }
-        if (aNBT.hasKey("mSimulatedTankCapacityLiters")) {
-            simulatedTankCapacityLiters = aNBT.getLong("mSimulatedTankCapacityLiters");
         }
         if (aNBT.hasKey("mReservoirTemperatureCelsius")) {
             reservoirTemperatureCelsius = aNBT.getDouble("mReservoirTemperatureCelsius");

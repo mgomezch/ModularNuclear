@@ -717,6 +717,9 @@ public class CoolantPumpStructureTest {
             fail("Failed to set World.provider: " + t);
         }
         assertTrue(CoolantFluidHelper.isNetherWorld(nether));
+        // Both worlds have a tank of lava above the pump
+        giveFluidTank(overworld, lavaStack);
+        giveFluidTank(nether, lavaStack);
 
         // 3. Pump in Overworld rejects lava
         MTECoolantPump pumpOverworld = new MTECoolantPump("test_pump_lava_overworld");
@@ -777,6 +780,25 @@ public class CoolantPumpStructureTest {
         assertFalse(
             pumpNether.getLoopStatus()
                 .contains("below declared GregTech melting point"));
+    }
+
+    /** Every tile entity in the world is a fluid handler holding the fluid, so the pump finds its tank. */
+    private static void giveFluidTank(net.minecraft.world.World world, net.minecraftforge.fluids.FluidStack fluid) {
+        net.minecraft.tileentity.TileEntity tank = Mockito.mock(
+            net.minecraft.tileentity.TileEntity.class,
+            Mockito.withSettings()
+                .extraInterfaces(net.minecraftforge.fluids.IFluidHandler.class));
+        net.minecraftforge.fluids.IFluidHandler handler = (net.minecraftforge.fluids.IFluidHandler) tank;
+        Mockito.when(handler.drain(Mockito.any(), Mockito.anyInt(), Mockito.anyBoolean()))
+            .thenAnswer(
+                inv -> new net.minecraftforge.fluids.FluidStack(fluid.getFluid(), (Integer) inv.getArguments()[1]));
+        Mockito.when(handler.getTankInfo(Mockito.any()))
+            .thenReturn(
+                new net.minecraftforge.fluids.FluidTankInfo[] { new net.minecraftforge.fluids.FluidTankInfo(
+                    new net.minecraftforge.fluids.FluidStack(fluid.getFluid(), 100000),
+                    200000) });
+        Mockito.when(world.getTileEntity(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt()))
+            .thenReturn(tank);
     }
 
     private MTEHatchEnergy createMockEnergyHatch(int tier, long[] storedEUHolder) {
