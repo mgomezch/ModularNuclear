@@ -20,14 +20,14 @@ class CoreHatchRulesTest {
 
     @Test
     void coolantFeedFollowsBoilingPointAndDryness() {
-        assertEquals(CoolantFeed.SAFE, CoreHatchRules.checkCoolantFeed("distilledwater", false, 500.0, 20.0));
-        assertEquals(CoolantFeed.SAFE, CoreHatchRules.checkCoolantFeed("distilledwater", true, 90.0, 20.0));
+        assertEquals(CoolantFeed.SAFE, CoreHatchRules.checkCoolantFeed("ic2distilledwater", false, 500.0, 20.0));
+        assertEquals(CoolantFeed.SAFE, CoreHatchRules.checkCoolantFeed("ic2distilledwater", true, 90.0, 20.0));
         assertEquals(
             CoolantFeed.INTO_DRY_HOT_HATCH,
-            CoreHatchRules.checkCoolantFeed("distilledwater", true, 150.0, 20.0));
+            CoreHatchRules.checkCoolantFeed("ic2distilledwater", true, 150.0, 20.0));
         assertEquals(
             CoolantFeed.BOILS_AT_AMBIENT,
-            CoreHatchRules.checkCoolantFeed("distilledwater", false, 20.0, 120.0));
+            CoreHatchRules.checkCoolantFeed("ic2distilledwater", false, 20.0, 120.0));
         // IC2 coolant never boils
         assertEquals(CoolantFeed.SAFE, CoreHatchRules.checkCoolantFeed("ic2coolant", true, 3000.0, 500.0));
     }

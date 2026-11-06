@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 
@@ -32,14 +31,7 @@ public class NuclearFuelTooltipHandlerTest {
         NuclearFuelTooltipHandler handler = new NuclearFuelTooltipHandler();
 
         // Create a custom item stack and register a matching test fuel in ReactorDataRegistry
-        Item testItem = new Item() {
-
-            @Override
-            public String getUnlocalizedName(ItemStack stack) {
-                return "item.testRodUranium";
-            }
-        };
-        ItemStack stack = new ItemStack(testItem, 1, 0);
+        ItemStack stack = TestItems.stack("modularnuclear:testRodUranium");
 
         FuelData testFuel = new FuelData();
         testFuel.id = "test_uranium";
@@ -51,7 +43,7 @@ public class NuclearFuelTooltipHandlerTest {
         testFuel.defaultDurability = 160000;
         testFuel.peakReactivityTemp = 770.0;
         testFuel.floorTemp = 2300.0;
-        testFuel.matching.add("item.testRodUranium");
+        testFuel.matching.add("modularnuclear:testRodUranium");
 
         ReactorDataRegistry.getAllFuels(); // Ensure loaded
         // Add to fuels list via save/load or findFuel check
@@ -70,14 +62,7 @@ public class NuclearFuelTooltipHandlerTest {
         assertEquals(2300.0, defaultUranium.floorTemp);
 
         // Test with item that matches default uranium matching pattern
-        Item uItem = new Item() {
-
-            @Override
-            public String getUnlocalizedName(ItemStack s) {
-                return "gt.rodUranium";
-            }
-        };
-        ItemStack uStack = new ItemStack(uItem, 1, 0);
+        ItemStack uStack = TestItems.stack("gregtech:gt.rodUranium");
 
         List<String> tip = new ArrayList<>();
         tip.add("Durability: 10,000 / 10,000");
@@ -128,14 +113,7 @@ public class NuclearFuelTooltipHandlerTest {
             .orElse(null);
         assertNotNull(graphite);
 
-        Item gItem = new Item() {
-
-            @Override
-            public String getUnlocalizedName(ItemStack s) {
-                return "stickLongGraphite";
-            }
-        };
-        ItemStack gStack = new ItemStack(gItem, 1, 0);
+        ItemStack gStack = TestItems.ore("stickLongGraphite");
 
         List<String> tip = new ArrayList<>();
         ItemTooltipEvent event = new ItemTooltipEvent(gStack, null, tip, false);
@@ -165,14 +143,7 @@ public class NuclearFuelTooltipHandlerTest {
             .orElse(null);
         assertNotNull(tc);
 
-        Item bItem = new Item() {
-
-            @Override
-            public String getUnlocalizedName(ItemStack s) {
-                return "plateTungstenCarbide";
-            }
-        };
-        ItemStack bStack = new ItemStack(bItem, 1, 0);
+        ItemStack bStack = TestItems.ore("plateTungstenCarbide");
 
         List<String> tip = new ArrayList<>();
         ItemTooltipEvent event = new ItemTooltipEvent(bStack, null, tip, false);
@@ -198,14 +169,7 @@ public class NuclearFuelTooltipHandlerTest {
             .orElse(null);
         assertNotNull(cd);
 
-        Item cItem = new Item() {
-
-            @Override
-            public String getUnlocalizedName(ItemStack s) {
-                return "rodCadmium";
-            }
-        };
-        ItemStack cStack = new ItemStack(cItem, 1, 0);
+        ItemStack cStack = TestItems.ore("stickCadmium");
 
         List<String> tip = new ArrayList<>();
         ItemTooltipEvent event = new ItemTooltipEvent(cStack, null, tip, false);

@@ -2,7 +2,6 @@ reflectors:
 - id: reflector_gold
   name: Gold Plate Reflector
   matching:
-  - plateGold
   - ore:plateGold
   absorption_fast: 0.15
   absorption_thermal: 0.1
@@ -14,7 +13,6 @@ reflectors:
 - id: reflector_stainless_steel
   name: Stainless Steel Plate Reflector
   matching:
-  - plateStainlessSteel
   - ore:plateStainlessSteel
   absorption_fast: 0.1
   absorption_thermal: 0.05
@@ -26,7 +24,6 @@ reflectors:
 - id: reflector_tungsten_carbide
   name: Tungsten Carbide Plate Reflector
   matching:
-  - plateTungstenCarbide
   - ore:plateTungstenCarbide
   absorption_fast: 0.07
   absorption_thermal: 0.02
@@ -39,8 +36,7 @@ reflectors:
   name: Neutron Reflector
   matching:
   - IC2:reactorReflector
-  - ItemList.Neutron_Reflector
-  - gregtech:gt.neutronReflector
+  - gregtech:gt.neutronreflector
   absorption_fast: 0.01
   absorption_thermal: 0.02
   scattering_fast: 0.95
@@ -52,7 +48,6 @@ reflectors:
   name: Thick Neutron Reflector
   matching:
   - IC2:reactorReflectorThick
-  - ItemList.Neutron_Reflector_Thick
   absorption_fast: 0.005
   absorption_thermal: 0.01
   scattering_fast: 0.98
@@ -64,7 +59,6 @@ moderators:
 - id: moderator_graphite
   name: Graphite Moderator
   matching:
-  - stickLongGraphite
   - ore:stickLongGraphite
   absorption_fast: 0.002
   absorption_thermal: 0.009
@@ -88,7 +82,6 @@ moderators:
 - id: moderator_carbon
   name: Carbon Moderator
   matching:
-  - stickLongCarbon
   - ore:stickLongCarbon
   absorption_fast: 0.003
   absorption_thermal: 0.012
@@ -112,7 +105,6 @@ moderators:
 - id: moderator_beryllium
   name: Beryllium Moderator
   matching:
-  - stickLongBeryllium
   - ore:stickLongBeryllium
   absorption_fast: 0.001
   absorption_thermal: 0.004
@@ -137,12 +129,8 @@ control_rods:
 - id: rod_silver
   name: Silver Control Rod
   matching:
-  - stickLongSilver
   - ore:stickLongSilver
-  - stickSilver
   - ore:stickSilver
-  - rodSilver
-  - ore:rodSilver
   max_thermal_absorption: 0.5
   max_fast_absorption: 0.2
   scattering_fast: 0.05
@@ -151,12 +139,8 @@ control_rods:
 - id: rod_boron
   name: Boron Control Rod
   matching:
-  - stickLongBoron
   - ore:stickLongBoron
-  - stickBoron
   - ore:stickBoron
-  - rodBoron
-  - ore:rodBoron
   max_thermal_absorption: 0.7
   max_fast_absorption: 0.35
   scattering_fast: 0.05
@@ -165,12 +149,8 @@ control_rods:
 - id: rod_cadmium
   name: Cadmium Control Rod
   matching:
-  - stickLongCadmium
   - ore:stickLongCadmium
-  - stickCadmium
   - ore:stickCadmium
-  - rodCadmium
-  - ore:rodCadmium
   max_thermal_absorption: 0.85
   max_fast_absorption: 0.5
   scattering_fast: 0.05
@@ -179,12 +159,8 @@ control_rods:
 - id: rod_indium
   name: Indium Control Rod
   matching:
-  - stickLongIndium
   - ore:stickLongIndium
-  - stickIndium
   - ore:stickIndium
-  - rodIndium
-  - ore:rodIndium
   max_thermal_absorption: 0.95
   max_fast_absorption: 0.65
   scattering_fast: 0.05
@@ -193,12 +169,8 @@ control_rods:
 - id: rod_hafnium
   name: Hafnium Control Rod
   matching:
-  - stickLongHafnium
   - ore:stickLongHafnium
-  - stickHafnium
   - ore:stickHafnium
-  - rodHafnium
-  - ore:rodHafnium
   max_thermal_absorption: 0.99
   max_fast_absorption: 0.8
   scattering_fast: 0.05
@@ -207,12 +179,8 @@ control_rods:
 - id: rod_neutronium
   name: Neutronium Control Rod
   matching:
-  - stickLongNeutronium
   - ore:stickLongNeutronium
-  - stickNeutronium
   - ore:stickNeutronium
-  - rodNeutronium
-  - ore:rodNeutronium
   max_thermal_absorption: 1.0
   max_fast_absorption: 1.0
   scattering_fast: 0.0
@@ -301,10 +269,7 @@ insulators:
 - id: insulator_naquarite
   name: Naquarite Universal Insulator Foil
   matching:
-  - ItemList.Naquarite_Universal_Insulator_Foil
-  - Naquarite_Universal_Insulator_Foil
-  - gregtech:gt.naquariteUniversalInsulatorFoil
-  - ore:foilNaquarite
+  - gregtech:gt.metaitem.03:32251
   dampening: 1.0
   heat_transfer_coeff: 0.005
   absorption_fast: 1.0
@@ -315,10 +280,6 @@ insulators:
   name: Mica Insulator Foil
   matching:
   - dreamcraft:MicaInsulatorFoil
-  - MicaInsulatorFoil
-  - item.MicaInsulatorFoil
-  - ore:foilMica
-  - foilMica
   dampening: 0.6
   heat_transfer_coeff: 0.01
   absorption_fast: 0.01
@@ -329,7 +290,6 @@ insulators:
   name: Thermal Cloth T2
   matching:
   - GalaxySpace:item.ThermalClothT2
-  - item.ThermalClothT2
   dampening: 0.4
   heat_transfer_coeff: 0.01
   absorption_fast: 0.01
@@ -340,9 +300,6 @@ insulators:
   name: Thermal Cloth
   matching:
   - GalacticraftMars:item.itemBasicAsteroids:7
-  - itemBasicAsteroids:7
-  - item.ThermalCloth
-  - itemThermalCloth
   dampening: 0.2
   heat_transfer_coeff: 0.01
   absorption_fast: 0.01
@@ -353,9 +310,6 @@ insulators:
   name: Alumino-Silicate Wool
   matching:
   - dreamcraft:AluminoSilicateWool
-  - AluminoSilicateWool
-  - item.AluminoSilicateWool
-  - woolAluminoSilicate
   dampening: 0.3
   heat_transfer_coeff: 0.015
   absorption_fast: 0.01
@@ -367,7 +321,6 @@ radiovoltaics:
   name: HV Radiovoltaic Plate
   matching:
   - modularnuclear:radiovoltaic_plate:0
-  - item.modularnuclear.radiovoltaic.plate.hv
   tier: 1
   eu_conversion_efficiency: 1.0
   max_eu_t: 1024
@@ -379,7 +332,6 @@ radiovoltaics:
   name: EV Radiovoltaic Plate
   matching:
   - modularnuclear:radiovoltaic_plate:1
-  - item.modularnuclear.radiovoltaic.plate.ev
   tier: 2
   eu_conversion_efficiency: 1.0
   max_eu_t: 4096
@@ -391,10 +343,7 @@ coolant_fluids:
 - id: coolant_distilled_water
   name: Distilled Water
   matching:
-  - distilledwater
-  - fluid.distilledwater
   - ic2distilledwater
-  - fluid.ic2distilledwater
   boiling_temperature: 100.0
   heat_transfer_coeff: 0.3
   heat_capacity: 4.184
@@ -415,7 +364,6 @@ coolant_fluids:
   name: Heavy Water
   matching:
   - heavywater
-  - fluid.heavywater
   boiling_temperature: 101.4
   heat_transfer_coeff: 0.3
   heat_capacity: 4.22
@@ -435,10 +383,7 @@ coolant_fluids:
 - id: coolant_ic2
   name: IC2 Coolant
   matching:
-  - coolant
-  - fluid.coolant
   - ic2coolant
-  - fluid.ic2coolant
   boiling_temperature: 300.0
   heat_transfer_coeff: 0.5
   heat_capacity: 8.0
@@ -456,10 +401,7 @@ coolant_fluids:
 - id: coolant_sodium
   name: Molten Sodium
   matching:
-  - sodium
-  - fluid.sodium
   - molten.sodium
-  - fluid.molten.sodium
   boiling_temperature: 883.0
   heat_transfer_coeff: 0.7
   heat_capacity: 1.28
@@ -476,10 +418,7 @@ coolant_fluids:
 - id: coolant_lead
   name: Molten Lead
   matching:
-  - lead
-  - fluid.lead
   - molten.lead
-  - fluid.molten.lead
   boiling_temperature: 1749.0
   heat_transfer_coeff: 0.75
   heat_capacity: 0.16
@@ -500,9 +439,6 @@ coolant_items:
   - IC2:reactorCoolantSimple
   - IC2:reactorCoolantTriple
   - IC2:reactorCoolantSix
-  - ItemList.Reactor_Coolant_Simple
-  - ItemList.Reactor_Coolant_Triple
-  - ItemList.Reactor_Coolant_Six
   heat_capacity: 250000.0
   heat_transfer_coeff: 0.4
   absorption_fast: 0.02
@@ -513,12 +449,9 @@ coolant_items:
 - id: coolant_cell_he
   name: Helium Coolant Cell
   matching:
-  - ItemList.Reactor_Coolant_He_1
-  - ItemList.Reactor_Coolant_He_3
-  - ItemList.Reactor_Coolant_He_6
-  - gregtech:gt.reactorCoolantHe1
-  - gregtech:gt.reactorCoolantHe3
-  - gregtech:gt.reactorCoolantHe6
+  - gregtech:gt.60k_Helium_Coolantcell
+  - gregtech:gt.180k_Helium_Coolantcell
+  - gregtech:gt.360k_Helium_Coolantcell
   heat_capacity: 1500000.0
   heat_transfer_coeff: 0.4
   absorption_fast: 0.02
@@ -529,12 +462,9 @@ coolant_items:
 - id: coolant_cell_nak
   name: NaK Coolant Cell
   matching:
-  - ItemList.Reactor_Coolant_NaK_1
-  - ItemList.Reactor_Coolant_NaK_3
-  - ItemList.Reactor_Coolant_NaK_6
-  - gregtech:gt.reactorCoolantNaK1
-  - gregtech:gt.reactorCoolantNaK3
-  - gregtech:gt.reactorCoolantNaK6
+  - gregtech:gt.60k_NaK_Coolantcell
+  - gregtech:gt.180k_NaK_Coolantcell
+  - gregtech:gt.360k_NaK_Coolantcell
   heat_capacity: 4500000.0
   heat_transfer_coeff: 0.5
   absorption_fast: 0.02
@@ -545,14 +475,10 @@ coolant_items:
 - id: coolant_cell_sp
   name: Sp Coolant Cell
   matching:
-  - ItemList.Reactor_Coolant_Sp_1
-  - ItemList.Reactor_Coolant_Sp_2
-  - ItemList.Reactor_Coolant_Sp_3
-  - ItemList.Reactor_Coolant_Sp_6
-  - gregtech:gt.reactorCoolantSp1
-  - gregtech:gt.reactorCoolantSp2
-  - gregtech:gt.reactorCoolantSp3
-  - gregtech:gt.reactorCoolantSp6
+  - gregtech:gt.180k_Space_Coolantcell
+  - gregtech:gt.360k_Space_Coolantcell
+  - gregtech:gt.540k_Space_Coolantcell
+  - gregtech:gt.1080k_Space_Coolantcell
   heat_capacity: 9000000.0
   heat_transfer_coeff: 0.6
   absorption_fast: 0.01
@@ -565,8 +491,6 @@ coolant_items:
   matching:
   - IC2:reactorCondensator
   - IC2:reactorCondensatorLap
-  - ItemList.Reactor_Condensator
-  - ItemList.Reactor_Condensator_Lap
   heat_capacity: 2500000.0
   heat_transfer_coeff: 0.45
   absorption_fast: 0.03

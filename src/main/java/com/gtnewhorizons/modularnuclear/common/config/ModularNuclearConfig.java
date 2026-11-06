@@ -2,20 +2,16 @@ package com.gtnewhorizons.modularnuclear.common.config;
 
 import java.io.File;
 
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.oredict.OreDictionary;
 
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
-
-import cpw.mods.fml.common.registry.GameRegistry;
 
 public final class ModularNuclearConfig {
 
@@ -52,47 +48,73 @@ public final class ModularNuclearConfig {
     // ==========================================
     // Allowlists & Blocklists (Core Components)
     // ==========================================
-    public static String[] blockedItems = new String[] { "*depleted*", "*fuelrodempty*", "IC2:itemFuelRod",
-        "modularnuclear:rodCustomDepletedFuel1", "modularnuclear:rodCustomDepletedFuel2",
-        "modularnuclear:rodCustomDepletedFuel4" };
+    // Entries are exact: "modid:name" (any meta), "modid:name:meta" or "ore:oreName" for items, and registry names
+    // for fluids. Bump CONFIG_VERSION when these defaults change, so saved copies of old defaults are replaced.
+    public static String[] blockedItems = new String[] { "gregtech:gt.depletedRodLithium",
+        "gregtech:gt.depletedRodGlowstone", "gregtech:gt.depletedRodExcitedUranium",
+        "gregtech:gt.depletedRodExcitedUranium2", "gregtech:gt.depletedRodExcitedUranium4",
+        "gregtech:gt.depletedRodExcitedPlutonium", "gregtech:gt.depletedRodExcitedPlutonium2",
+        "gregtech:gt.depletedRodExcitedPlutonium4", "gregtech:gt.depletedRodHighDensityUranium",
+        "gregtech:gt.depletedRodHighDensityUranium2", "gregtech:gt.depletedRodHighDensityUranium4",
+        "gregtech:gt.depletedRodHighDensityPlutonium", "gregtech:gt.depletedRodHighDensityPlutonium2",
+        "gregtech:gt.depletedRodHighDensityPlutonium4", "gregtech:gt.depletedRodNaquadria",
+        "gregtech:gt.depletedRodNaquadria2", "gregtech:gt.depletedRodNaquadria4", "gregtech:gt.depletedRodNaquadah",
+        "gregtech:gt.depletedRodNaquadah2", "gregtech:gt.depletedRodNaquadah4", "gregtech:gt.depletedRodMOX",
+        "gregtech:gt.depletedRodMOX2", "gregtech:gt.depletedRodMOX4", "gregtech:gt.depletedRodThorium",
+        "gregtech:gt.depletedRodThorium2", "gregtech:gt.depletedRodThorium4", "gregtech:gt.depletedRodUranium",
+        "gregtech:gt.depletedRodUranium2", "gregtech:gt.depletedRodUranium4", "gregtech:gt.depletedRodTiberium",
+        "gregtech:gt.depletedRodTiberium2", "gregtech:gt.depletedRodTiberium4", "gregtech:gt.depletedRodNaquadah32",
+        "modularnuclear:gt.modularnuclear.fuelrod.depleted.custom1",
+        "modularnuclear:gt.modularnuclear.fuelrod.depleted.custom2",
+        "modularnuclear:gt.modularnuclear.fuelrod.depleted.custom4", "miscutils:itemCellUraniumDepletedMoltenSaltUSalt",
+        "miscutils:itemCellThoriumDepletedMoltenSaltTSalt",
+        "miscutils:itemCellThoriumBerylliumDepletedMoltenSaltTBSalt", "IC2:itemFuelRod" };
 
     public static String[] allowedFuelItems = new String[] { "IC2:reactorUraniumSimple", "IC2:reactorMOXSimple",
-        "IC2:reactorLithiumCell", "gregtech:gt.reactorUranium*", "gregtech:gt.reactorMOX*",
-        "gregtech:gt.reactorThorium*", "gregtech:gt.reactorNaquadah*", "modularnuclear:rodCustomFuel1",
-        "modularnuclear:rodCustomFuel2", "modularnuclear:rodCustomFuel4" };
+        "modularnuclear:gt.modularnuclear.fuelrod.custom1", "modularnuclear:gt.modularnuclear.fuelrod.custom2",
+        "modularnuclear:gt.modularnuclear.fuelrod.custom4" };
 
-    public static String[] allowedFuelFluids = new String[] { "uraniumbasedliquidfuel", "thoriumbasedliquidfuel",
-        "plutoniumbasedliquidfuel", "uraniumhexafluoride" };
+    public static String[] allowedFuelFluids = new String[] { "uranium based liquid fuel", "thorium based liquid fuel",
+        "plutonium based liquid fuel", "molten.uraniumhexafluoride" };
 
-    public static String[] blockedFuelFluids = new String[] { "naquadah" };
+    public static String[] blockedFuelFluids = new String[] { "molten.naquadah" };
 
     public static String[] allowedCoolantItems = new String[] { "IC2:reactorCoolantSimple", "IC2:reactorCoolantTriple",
-        "IC2:reactorCoolantSix", "gregtech:gt.reactorCoolant*" };
+        "IC2:reactorCoolantSix" };
 
-    public static String[] allowedCoolantFluids = new String[] { "ic2coolant", "heavywater", "distilledwater" };
+    public static String[] allowedCoolantFluids = new String[] { "ic2coolant", "heavywater", "ic2distilledwater" };
 
-    public static String[] allowedControlRods = new String[] { "stickLongSilver=SILVER", "stickLongBoron=BORON",
-        "stickLongCadmium=CADMIUM", "stickLongIndium=INDIUM", "stickLongHafnium=HAFNIUM",
-        "stickLongNeutronium=NEUTRONIUM" };
+    public static String[] allowedControlRods = new String[] { "ore:stickLongSilver=SILVER", "ore:stickLongBoron=BORON",
+        "ore:stickLongCadmium=CADMIUM", "ore:stickLongIndium=INDIUM", "ore:stickLongHafnium=HAFNIUM",
+        "ore:stickLongNeutronium=NEUTRONIUM" };
 
-    public static String[] allowedReflectors = new String[] { "plateGold", "plateStainlessSteel",
-        "plateTungstenCarbide", "IC2:reactorReflector", "IC2:reactorReflectorThick", "gregtech:gt.neutronReflector" };
+    public static String[] allowedReflectors = new String[] { "ore:plateGold", "ore:plateStainlessSteel",
+        "ore:plateTungstenCarbide", "IC2:reactorReflector", "IC2:reactorReflectorThick",
+        "gregtech:gt.neutronreflector" };
 
-    public static String[] allowedModerators = new String[] { "stickLongGraphite", "stickLongCarbon",
-        "stickLongBeryllium" };
+    public static String[] allowedModerators = new String[] { "ore:stickLongGraphite", "ore:stickLongCarbon",
+        "ore:stickLongBeryllium" };
 
-    public static String[] allowedHeatVents = new String[] { "IC2:reactorVent*" };
+    public static String[] allowedHeatVents = new String[] { "IC2:reactorVent", "IC2:reactorVentCore",
+        "IC2:reactorVentGold", "IC2:reactorVentSpread", "IC2:reactorVentDiamond" };
 
-    public static String[] allowedHeatExchangers = new String[] { "IC2:reactorHeatSwitch*" };
+    public static String[] allowedHeatExchangers = new String[] { "IC2:reactorHeatSwitch", "IC2:reactorHeatSwitchCore",
+        "IC2:reactorHeatSwitchSpread", "IC2:reactorHeatSwitchDiamond" };
 
-    public static String[] allowedInsulators = new String[] { "Naquarite_Universal_Insulator_Foil=1.0",
-        "MicaInsulatorFoil=0.60", "ThermalClothT2=0.40", "ThermalCloth=0.20", "itemBasicAsteroids:7=0.20" };
+    public static String[] allowedInsulators = new String[] { "gregtech:gt.metaitem.03:32251=1.0",
+        "dreamcraft:MicaInsulatorFoil=0.60", "GalaxySpace:item.ThermalClothT2=0.40",
+        "GalacticraftMars:item.itemBasicAsteroids:7=0.20" };
 
     public static String[] allowedRadiovoltaics = new String[] { "modularnuclear:radiovoltaic_plate:0",
-        "modularnuclear:radiovoltaic_plate:1", "item.modularnuclear.radiovoltaic.plate.hv",
-        "item.modularnuclear.radiovoltaic.plate.ev" };
+        "modularnuclear:radiovoltaic_plate:1" };
 
-    public static String[] allowedNeutronSources = new String[] { "GoodGenerator:neutronSource", "item.neutronSource" };
+    public static String[] allowedNeutronSources = new String[] { "GoodGenerator:neutronSource" };
+
+    /**
+     * The version of this file's defaults. A file saved with an older one has its allowlists replaced by the current
+     * defaults: the old ones held wildcard and fuzzy patterns, which no longer match anything.
+     */
+    public static final String CONFIG_VERSION = "2";
 
     private static volatile int generation;
 
@@ -109,9 +131,16 @@ public final class ModularNuclearConfig {
     }
 
     public static void init(File configFile) {
-        Configuration config = new Configuration(configFile);
+        Configuration config = new Configuration(configFile, CONFIG_VERSION);
         try {
             config.load();
+            if (!CONFIG_VERSION.equals(config.getLoadedConfigVersion()) && config.hasCategory("allowlists")) {
+                ModularNuclear.LOG.warn(
+                    "Replacing the [allowlists] section of {} with the current defaults: its entries are from an "
+                        + "older version, whose patterns no longer match",
+                    configFile.getName());
+                config.removeCategory(config.getCategory("allowlists"));
+            }
 
             // Client Visuals
             enableCherenkovRadiation = config.getBoolean(
@@ -177,55 +206,55 @@ public final class ModularNuclearConfig {
                 "blockedItems",
                 CAT_ALLOWLISTS,
                 blockedItems,
-                "Items and wildcard patterns strictly blocked from insertion into reactor core hatches (depleted rods, empty rods, etc.).");
+                "Items blocked from insertion into reactor core hatches (depleted rods, empty rods, etc.): exact modid:name, modid:name:meta or ore:oreName.");
 
             allowedFuelItems = config.getStringList(
                 "allowedFuelItems",
                 CAT_ALLOWLISTS,
                 allowedFuelItems,
-                "Items and wildcard patterns recognized as active nuclear fuel in reactor core hatches.");
+                "Items recognized as active nuclear fuel in reactor core hatches: exact modid:name, modid:name:meta or ore:oreName.");
 
             allowedFuelFluids = config.getStringList(
                 "allowedFuelFluids",
                 CAT_ALLOWLISTS,
                 allowedFuelFluids,
-                "Fluid names recognized as nuclear fuels for fluid-cooled reactor cores.");
+                "Fluid registry names recognized as nuclear fuels for fluid-cooled reactor cores.");
 
             blockedFuelFluids = config.getStringList(
                 "blockedFuelFluids",
                 CAT_ALLOWLISTS,
                 blockedFuelFluids,
-                "Fluid names explicitly blocked from reactor fuel hatches (e.g. naquadah).");
+                "Fluid registry names blocked from reactor fuel hatches (e.g. molten.naquadah).");
 
             allowedCoolantItems = config.getStringList(
                 "allowedCoolantItems",
                 CAT_ALLOWLISTS,
                 allowedCoolantItems,
-                "Items and wildcard patterns recognized as coolant cells in reactor core hatches.");
+                "Items recognized as coolant cells in reactor core hatches: exact modid:name, modid:name:meta or ore:oreName.");
 
             allowedCoolantFluids = config.getStringList(
                 "allowedCoolantFluids",
                 CAT_ALLOWLISTS,
                 allowedCoolantFluids,
-                "Fluid names recognized as valid reactor coolants.");
+                "Fluid registry names recognized as valid reactor coolants.");
 
             allowedControlRods = config.getStringList(
                 "allowedControlRods",
                 CAT_ALLOWLISTS,
                 allowedControlRods,
-                "Items and oreDict entries mapped to control rod types (item=TYPE).");
+                "Items mapped to control rod types (item=TYPE), item as modid:name, modid:name:meta or ore:oreName.");
 
             allowedReflectors = config.getStringList(
                 "allowedReflectors",
                 CAT_ALLOWLISTS,
                 allowedReflectors,
-                "Items and oreDict entries recognized as neutron reflectors.");
+                "Items recognized as neutron reflectors: modid:name, modid:name:meta or ore:oreName.");
 
             allowedModerators = config.getStringList(
                 "allowedModerators",
                 CAT_ALLOWLISTS,
                 allowedModerators,
-                "Items and oreDict entries recognized as neutron moderators.");
+                "Items recognized as neutron moderators: modid:name, modid:name:meta or ore:oreName.");
 
             allowedHeatVents = config
                 .getStringList("allowedHeatVents", CAT_ALLOWLISTS, allowedHeatVents, "Items recognized as heat vents.");
@@ -240,7 +269,7 @@ public final class ModularNuclearConfig {
                 "allowedInsulators",
                 CAT_ALLOWLISTS,
                 allowedInsulators,
-                "Items and oreDict entries mapped to insulation dampening factor (item=fraction).");
+                "Items mapped to insulation dampening factor (item=fraction), item as modid:name, modid:name:meta or ore:oreName.");
 
             allowedRadiovoltaics = config.getStringList(
                 "allowedRadiovoltaics",
@@ -316,86 +345,12 @@ public final class ModularNuclearConfig {
     // Matching and Registry Lookup Helpers
     // ==========================================
 
-    public static boolean matchesPattern(String text, String pattern) {
-        if (text == null || pattern == null) return false;
-        String t = text.trim()
-            .toLowerCase();
-        String p = pattern.trim()
-            .toLowerCase();
-        if (p.equals("*") || p.equals(t)) return true;
-
-        if (p.startsWith("*") && p.endsWith("*")) {
-            String sub = p.substring(1, p.length() - 1);
-            return t.contains(sub);
-        }
-        if (p.startsWith("*")) {
-            return t.endsWith(p.substring(1));
-        }
-        if (p.endsWith("*")) {
-            return t.startsWith(p.substring(0, p.length() - 1));
-        }
-        return p.equals(t);
-    }
-
+    /** Whether one of the entries names the stack exactly (see {@link ReactorDataRegistry#matchesItem}). */
     public static boolean matchesItem(ItemStack stack, String[] list) {
-        if (stack == null || list == null || list.length == 0) return false;
-
-        Item item = stack.getItem();
-        String unloc = null;
-        try {
-            unloc = stack.getUnlocalizedName();
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
-
-        String regName = null;
-        try {
-            if (item != null) {
-                GameRegistry.UniqueIdentifier uid = GameRegistry.findUniqueIdentifierFor(item);
-                if (uid != null) {
-                    regName = uid.modId + ":" + uid.name;
-                }
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
-
-        int[] oreIDs = null;
-        try {
-            oreIDs = OreDictionary.getOreIDs(stack);
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
-
+        if (stack == null || list == null) return false;
         for (String entry : list) {
-            if (entry == null || entry.isEmpty()) continue;
-            String pattern = entry.trim();
-
-            // 1. OreDict prefix check (e.g. "ore:blockGraphite" or direct "blockGraphite")
-            String oreTarget = pattern.startsWith("ore:") ? pattern.substring(4) : pattern;
-            if (oreIDs != null && oreIDs.length > 0) {
-                for (int id : oreIDs) {
-                    String oreName = OreDictionary.getOreName(id);
-                    if (oreName != null && oreName.equalsIgnoreCase(oreTarget)) {
-                        return true;
-                    }
-                }
-            }
-
-            // 2. Registry name check ("modid:item_name" or "modid:item_name:damage")
-            if (regName != null) {
-                if (matchesPattern(regName, pattern)) return true;
-                if (matchesPattern(regName + ":" + stack.getItemDamage(), pattern)) return true;
-            }
-
-            // 3. Unlocalized name wildcard check
-            if (unloc != null) {
-                if (matchesPattern(unloc, pattern)) return true;
-                if (unloc.startsWith("item.") && matchesPattern(unloc.substring(5), pattern)) return true;
-                if (unloc.startsWith("tile.") && matchesPattern(unloc.substring(5), pattern)) return true;
-            }
+            if (ReactorDataRegistry.matchesItem(stack, entry)) return true;
         }
-
         return false;
     }
 
@@ -403,15 +358,12 @@ public final class ModularNuclearConfig {
         return fluid != null && matchesFluid(fluid.getFluid(), list);
     }
 
+    /** Whether one of the entries is exactly the fluid's registry name. */
     public static boolean matchesFluid(Fluid fluid, String[] list) {
-        if (fluid == null || list == null || list.length == 0) return false;
+        if (fluid == null || list == null) return false;
         String name = fluid.getName();
-        String unloc = fluid.getUnlocalizedName();
-
         for (String entry : list) {
-            if (entry == null || entry.isEmpty()) continue;
-            if (matchesPattern(name, entry)) return true;
-            if (unloc != null && matchesPattern(unloc, entry)) return true;
+            if (name.equals(entry)) return true;
         }
         return false;
     }
@@ -487,7 +439,7 @@ public final class ModularNuclearConfig {
             String itemPattern = parts[0].trim();
             try {
                 double val = Double.parseDouble(parts[1].trim());
-                if (matchesItem(stack, new String[] { itemPattern })) {
+                if (ReactorDataRegistry.matchesItem(stack, itemPattern)) {
                     return val;
                 }
             } catch (Exception swallowed) {
@@ -504,7 +456,7 @@ public final class ModularNuclearConfig {
             String[] parts = entry.split("=", 2);
             String itemPattern = parts[0].trim();
             String rodType = parts[1].trim();
-            if (matchesItem(stack, new String[] { itemPattern })) {
+            if (ReactorDataRegistry.matchesItem(stack, itemPattern)) {
                 return rodType;
             }
         }

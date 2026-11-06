@@ -3,13 +3,7 @@ fuels:
   name: Lithium Fuel Rod
   archetype: breeder
   matching:
-  - ItemList.RodLithium
-  - RodLithium
   - gregtech:gt.rodLithium
-  - gt.rodLithium
-  - gt.reactorLithium
-  - gt.reactorRodLithium
-  - IC2:reactorLithiumCell
   is_liquid: false
   required_tier: 0
   packet_count: 1
@@ -26,7 +20,7 @@ fuels:
   default_durability: 80000
   peak_reactivity_temp: 390.0
   floor_temp: 2100.0
-  spent_product: ItemList.DepletedRodLithium
+  spent_product: gregtech:gt.depletedRodLithium
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -36,12 +30,7 @@ fuels:
   name: Glowstone Fuel Rod
   archetype: breeder
   matching:
-  - ItemList.RodGlowstone
-  - RodGlowstone
   - gregtech:gt.rodGlowstone
-  - gt.rodGlowstone
-  - gt.reactorGlowstone
-  - gt.reactorRodGlowstone
   is_liquid: false
   required_tier: 0
   packet_count: 1
@@ -58,7 +47,7 @@ fuels:
   default_durability: 80000
   peak_reactivity_temp: 200.0
   floor_temp: 2000.0
-  spent_product: ItemList.DepletedRodGlowstone
+  spent_product: gregtech:gt.depletedRodGlowstone
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -68,12 +57,7 @@ fuels:
   name: Quad Excited Uranium Fuel Rod
   archetype: excited
   matching:
-  - ItemList.RodExcitedUranium4
-  - RodExcitedUranium4
   - gregtech:gt.rodExcitedUranium4
-  - gt.rodExcitedUranium4
-  - gt.reactorRodExcitedUranium4
-  - gt.reactorExcitedUranium4
   is_liquid: false
   required_tier: 0
   packet_count: 4
@@ -90,7 +74,7 @@ fuels:
   default_durability: 48000
   peak_reactivity_temp: 1540.0
   floor_temp: 2700.0
-  spent_product: ItemList.DepletedRodExcitedUranium4
+  spent_product: gregtech:gt.depletedRodExcitedUranium4
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -100,12 +84,7 @@ fuels:
   name: Dual Excited Uranium Fuel Rod
   archetype: excited
   matching:
-  - ItemList.RodExcitedUranium2
-  - RodExcitedUranium2
   - gregtech:gt.rodExcitedUranium2
-  - gt.rodExcitedUranium2
-  - gt.reactorRodExcitedUranium2
-  - gt.reactorExcitedUranium2
   is_liquid: false
   required_tier: 0
   packet_count: 2
@@ -122,7 +101,7 @@ fuels:
   default_durability: 48000
   peak_reactivity_temp: 1540.0
   floor_temp: 2700.0
-  spent_product: ItemList.DepletedRodExcitedUranium2
+  spent_product: gregtech:gt.depletedRodExcitedUranium2
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -132,12 +111,7 @@ fuels:
   name: Excited Uranium Fuel Rod
   archetype: excited
   matching:
-  - ItemList.RodExcitedUranium
-  - RodExcitedUranium
   - gregtech:gt.rodExcitedUranium
-  - gt.rodExcitedUranium
-  - gt.reactorRodExcitedUranium
-  - gt.reactorExcitedUranium
   is_liquid: false
   required_tier: 0
   packet_count: 1
@@ -154,7 +128,7 @@ fuels:
   default_durability: 48000
   peak_reactivity_temp: 1540.0
   floor_temp: 2700.0
-  spent_product: ItemList.DepletedRodExcitedUranium
+  spent_product: gregtech:gt.depletedRodExcitedUranium
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -164,12 +138,7 @@ fuels:
   name: Quad Excited Plutonium Fuel Rod
   archetype: excited
   matching:
-  - ItemList.RodExcitedPlutonium4
-  - RodExcitedPlutonium4
   - gregtech:gt.rodExcitedPlutonium4
-  - gt.rodExcitedPlutonium4
-  - gt.reactorRodExcitedPlutonium4
-  - gt.reactorExcitedPlutonium4
   is_liquid: false
   required_tier: 0
   packet_count: 4
@@ -186,7 +155,7 @@ fuels:
   default_durability: 80000
   peak_reactivity_temp: 1730.0
   floor_temp: 2800.0
-  spent_product: ItemList.DepletedRodExcitedPlutonium4
+  spent_product: gregtech:gt.depletedRodExcitedPlutonium4
   damage_curve:
     peak_reactivity_mult: 1.2
     peak_damage_fraction: 0.3
@@ -196,12 +165,7 @@ fuels:
   name: Dual Excited Plutonium Fuel Rod
   archetype: excited
   matching:
-  - ItemList.RodExcitedPlutonium2
-  - RodExcitedPlutonium2
   - gregtech:gt.rodExcitedPlutonium2
-  - gt.rodExcitedPlutonium2
-  - gt.reactorRodExcitedPlutonium2
-  - gt.reactorExcitedPlutonium2
   is_liquid: false
   required_tier: 0
   packet_count: 2
@@ -218,7 +182,7 @@ fuels:
   default_durability: 80000
   peak_reactivity_temp: 1730.0
   floor_temp: 2800.0
-  spent_product: ItemList.DepletedRodExcitedPlutonium2
+  spent_product: gregtech:gt.depletedRodExcitedPlutonium2
   damage_curve:
     peak_reactivity_mult: 1.2
     peak_damage_fraction: 0.3
@@ -228,12 +192,7 @@ fuels:
   name: Excited Plutonium Fuel Rod
   archetype: excited
   matching:
-  - ItemList.RodExcitedPlutonium
-  - RodExcitedPlutonium
   - gregtech:gt.rodExcitedPlutonium
-  - gt.rodExcitedPlutonium
-  - gt.reactorRodExcitedPlutonium
-  - gt.reactorExcitedPlutonium
   is_liquid: false
   required_tier: 0
   packet_count: 1
@@ -250,7 +209,7 @@ fuels:
   default_durability: 80000
   peak_reactivity_temp: 1730.0
   floor_temp: 2800.0
-  spent_product: ItemList.DepletedRodExcitedPlutonium
+  spent_product: gregtech:gt.depletedRodExcitedPlutonium
   damage_curve:
     peak_reactivity_mult: 1.2
     peak_damage_fraction: 0.3
@@ -260,12 +219,7 @@ fuels:
   name: Quad High Density Uranium Fuel Rod
   archetype: dense
   matching:
-  - ItemList.RodHighDensityUranium4
-  - RodHighDensityUranium4
   - gregtech:gt.rodHighDensityUranium4
-  - gt.rodHighDensityUranium4
-  - gt.reactorRodHighDensityUranium4
-  - gt.reactorHighDensityUranium4
   is_liquid: false
   required_tier: 0
   packet_count: 4
@@ -282,7 +236,7 @@ fuels:
   default_durability: 560000
   peak_reactivity_temp: 1150.0
   floor_temp: 2500.0
-  spent_product: ItemList.DepletedRodHighDensityUranium4
+  spent_product: gregtech:gt.depletedRodHighDensityUranium4
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -292,12 +246,7 @@ fuels:
   name: Dual High Density Uranium Fuel Rod
   archetype: dense
   matching:
-  - ItemList.RodHighDensityUranium2
-  - RodHighDensityUranium2
   - gregtech:gt.rodHighDensityUranium2
-  - gt.rodHighDensityUranium2
-  - gt.reactorRodHighDensityUranium2
-  - gt.reactorHighDensityUranium2
   is_liquid: false
   required_tier: 0
   packet_count: 2
@@ -314,7 +263,7 @@ fuels:
   default_durability: 560000
   peak_reactivity_temp: 1150.0
   floor_temp: 2500.0
-  spent_product: ItemList.DepletedRodHighDensityUranium2
+  spent_product: gregtech:gt.depletedRodHighDensityUranium2
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -324,12 +273,7 @@ fuels:
   name: High Density Uranium Fuel Rod
   archetype: dense
   matching:
-  - ItemList.RodHighDensityUranium
-  - RodHighDensityUranium
   - gregtech:gt.rodHighDensityUranium
-  - gt.rodHighDensityUranium
-  - gt.reactorRodHighDensityUranium
-  - gt.reactorHighDensityUranium
   is_liquid: false
   required_tier: 0
   packet_count: 1
@@ -346,7 +290,7 @@ fuels:
   default_durability: 560000
   peak_reactivity_temp: 1150.0
   floor_temp: 2500.0
-  spent_product: ItemList.DepletedRodHighDensityUranium
+  spent_product: gregtech:gt.depletedRodHighDensityUranium
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -356,12 +300,7 @@ fuels:
   name: Quad High Density Plutonium Fuel Rod
   archetype: dense
   matching:
-  - ItemList.RodHighDensityPlutonium4
-  - RodHighDensityPlutonium4
   - gregtech:gt.rodHighDensityPlutonium4
-  - gt.rodHighDensityPlutonium4
-  - gt.reactorRodHighDensityPlutonium4
-  - gt.reactorHighDensityPlutonium4
   is_liquid: false
   required_tier: 0
   packet_count: 4
@@ -378,7 +317,7 @@ fuels:
   default_durability: 560000
   peak_reactivity_temp: 1350.0
   floor_temp: 2600.0
-  spent_product: ItemList.DepletedRodHighDensityPlutonium4
+  spent_product: gregtech:gt.depletedRodHighDensityPlutonium4
   damage_curve:
     peak_reactivity_mult: 1.2
     peak_damage_fraction: 0.3
@@ -388,12 +327,7 @@ fuels:
   name: Dual High Density Plutonium Fuel Rod
   archetype: dense
   matching:
-  - ItemList.RodHighDensityPlutonium2
-  - RodHighDensityPlutonium2
   - gregtech:gt.rodHighDensityPlutonium2
-  - gt.rodHighDensityPlutonium2
-  - gt.reactorRodHighDensityPlutonium2
-  - gt.reactorHighDensityPlutonium2
   is_liquid: false
   required_tier: 0
   packet_count: 2
@@ -410,7 +344,7 @@ fuels:
   default_durability: 560000
   peak_reactivity_temp: 1350.0
   floor_temp: 2600.0
-  spent_product: ItemList.DepletedRodHighDensityPlutonium2
+  spent_product: gregtech:gt.depletedRodHighDensityPlutonium2
   damage_curve:
     peak_reactivity_mult: 1.2
     peak_damage_fraction: 0.3
@@ -420,12 +354,7 @@ fuels:
   name: High Density Plutonium Fuel Rod
   archetype: dense
   matching:
-  - ItemList.RodHighDensityPlutonium
-  - RodHighDensityPlutonium
   - gregtech:gt.rodHighDensityPlutonium
-  - gt.rodHighDensityPlutonium
-  - gt.reactorRodHighDensityPlutonium
-  - gt.reactorHighDensityPlutonium
   is_liquid: false
   required_tier: 0
   packet_count: 1
@@ -442,7 +371,7 @@ fuels:
   default_durability: 560000
   peak_reactivity_temp: 1350.0
   floor_temp: 2600.0
-  spent_product: ItemList.DepletedRodHighDensityPlutonium
+  spent_product: gregtech:gt.depletedRodHighDensityPlutonium
   damage_curve:
     peak_reactivity_mult: 1.2
     peak_damage_fraction: 0.3
@@ -452,12 +381,7 @@ fuels:
   name: The Core (Naquadah-32)
   archetype: dense
   matching:
-  - ItemList.RodNaquadah32
-  - RodNaquadah32
   - gregtech:gt.rodNaquadah32
-  - gt.rodNaquadah32
-  - gt.reactorNaquadah32
-  - gt.reactorRodNaquadah32
   is_liquid: false
   required_tier: 0
   packet_count: 16
@@ -474,7 +398,7 @@ fuels:
   default_durability: 2560000
   peak_reactivity_temp: 2500.0
   floor_temp: 3200.0
-  spent_product: ItemList.DepletedRodNaquadah32
+  spent_product: gregtech:gt.depletedRodNaquadah32
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -484,12 +408,7 @@ fuels:
   name: Quad Naquadria Fuel Rod
   archetype: dense
   matching:
-  - ItemList.RodNaquadria4
-  - RodNaquadria4
   - gregtech:gt.rodNaquadria4
-  - gt.rodNaquadria4
-  - gt.reactorRodNaquadria4
-  - gt.reactorNaquadria4
   is_liquid: false
   required_tier: 0
   packet_count: 4
@@ -506,7 +425,7 @@ fuels:
   default_durability: 800000
   peak_reactivity_temp: 2110.0
   floor_temp: 3000.0
-  spent_product: ItemList.DepletedRodNaquadria4
+  spent_product: gregtech:gt.depletedRodNaquadria4
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -516,12 +435,7 @@ fuels:
   name: Dual Naquadria Fuel Rod
   archetype: dense
   matching:
-  - ItemList.RodNaquadria2
-  - RodNaquadria2
   - gregtech:gt.rodNaquadria2
-  - gt.rodNaquadria2
-  - gt.reactorRodNaquadria2
-  - gt.reactorNaquadria2
   is_liquid: false
   required_tier: 0
   packet_count: 2
@@ -538,7 +452,7 @@ fuels:
   default_durability: 800000
   peak_reactivity_temp: 2110.0
   floor_temp: 3000.0
-  spent_product: ItemList.DepletedRodNaquadria2
+  spent_product: gregtech:gt.depletedRodNaquadria2
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -548,12 +462,7 @@ fuels:
   name: Naquadria Fuel Rod
   archetype: dense
   matching:
-  - ItemList.RodNaquadria
-  - RodNaquadria
   - gregtech:gt.rodNaquadria
-  - gt.rodNaquadria
-  - gt.reactorRodNaquadria
-  - gt.reactorNaquadria
   is_liquid: false
   required_tier: 0
   packet_count: 1
@@ -570,7 +479,7 @@ fuels:
   default_durability: 800000
   peak_reactivity_temp: 2110.0
   floor_temp: 3000.0
-  spent_product: ItemList.DepletedRodNaquadria
+  spent_product: gregtech:gt.depletedRodNaquadria
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -580,12 +489,7 @@ fuels:
   name: Quad Naquadah Fuel Rod
   archetype: dense
   matching:
-  - ItemList.RodNaquadah4
-  - RodNaquadah4
   - gregtech:gt.rodNaquadah4
-  - gt.rodNaquadah4
-  - gt.reactorRodNaquadah4
-  - gt.reactorNaquadah4
   is_liquid: false
   required_tier: 0
   packet_count: 4
@@ -602,7 +506,7 @@ fuels:
   default_durability: 800000
   peak_reactivity_temp: 1920.0
   floor_temp: 2900.0
-  spent_product: ItemList.DepletedRodNaquadah4
+  spent_product: gregtech:gt.depletedRodNaquadah4
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -612,12 +516,7 @@ fuels:
   name: Dual Naquadah Fuel Rod
   archetype: dense
   matching:
-  - ItemList.RodNaquadah2
-  - RodNaquadah2
   - gregtech:gt.rodNaquadah2
-  - gt.rodNaquadah2
-  - gt.reactorRodNaquadah2
-  - gt.reactorNaquadah2
   is_liquid: false
   required_tier: 0
   packet_count: 2
@@ -634,7 +533,7 @@ fuels:
   default_durability: 800000
   peak_reactivity_temp: 1920.0
   floor_temp: 2900.0
-  spent_product: ItemList.DepletedRodNaquadah2
+  spent_product: gregtech:gt.depletedRodNaquadah2
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -644,12 +543,7 @@ fuels:
   name: Naquadah Fuel Rod
   archetype: dense
   matching:
-  - ItemList.RodNaquadah
-  - RodNaquadah
   - gregtech:gt.rodNaquadah
-  - gt.rodNaquadah
-  - gt.reactorRodNaquadah
-  - gt.reactorNaquadah
   is_liquid: false
   required_tier: 0
   packet_count: 1
@@ -666,7 +560,7 @@ fuels:
   default_durability: 800000
   peak_reactivity_temp: 1920.0
   floor_temp: 2900.0
-  spent_product: ItemList.DepletedRodNaquadah
+  spent_product: gregtech:gt.depletedRodNaquadah
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -676,12 +570,7 @@ fuels:
   name: Quad MOX Fuel Rod
   archetype: standard
   matching:
-  - ItemList.RodMOX4
-  - RodMOX4
   - gregtech:gt.rodMOX4
-  - gt.rodMOX4
-  - gt.reactorRodMOX4
-  - gt.reactorMOX4
   - IC2:reactorMOXQuad
   is_liquid: false
   required_tier: 0
@@ -699,7 +588,7 @@ fuels:
   default_durability: 80000
   peak_reactivity_temp: 960.0
   floor_temp: 2400.0
-  spent_product: ItemList.DepletedRodMOX4
+  spent_product: gregtech:gt.depletedRodMOX4
   damage_curve:
     peak_reactivity_mult: 2.0
     peak_damage_fraction: 0.5
@@ -709,12 +598,7 @@ fuels:
   name: Dual MOX Fuel Rod
   archetype: standard
   matching:
-  - ItemList.RodMOX2
-  - RodMOX2
   - gregtech:gt.rodMOX2
-  - gt.rodMOX2
-  - gt.reactorRodMOX2
-  - gt.reactorMOX2
   - IC2:reactorMOXDual
   is_liquid: false
   required_tier: 0
@@ -732,7 +616,7 @@ fuels:
   default_durability: 80000
   peak_reactivity_temp: 960.0
   floor_temp: 2400.0
-  spent_product: ItemList.DepletedRodMOX2
+  spent_product: gregtech:gt.depletedRodMOX2
   damage_curve:
     peak_reactivity_mult: 2.0
     peak_damage_fraction: 0.5
@@ -742,12 +626,7 @@ fuels:
   name: MOX Fuel Rod
   archetype: standard
   matching:
-  - ItemList.RodMOX
-  - RodMOX
   - gregtech:gt.rodMOX
-  - gt.rodMOX
-  - gt.reactorRodMOX
-  - gt.reactorMOX
   - IC2:reactorMOXSimple
   is_liquid: false
   required_tier: 0
@@ -765,7 +644,7 @@ fuels:
   default_durability: 80000
   peak_reactivity_temp: 960.0
   floor_temp: 2400.0
-  spent_product: ItemList.DepletedRodMOX
+  spent_product: gregtech:gt.depletedRodMOX
   damage_curve:
     peak_reactivity_mult: 2.0
     peak_damage_fraction: 0.5
@@ -775,12 +654,7 @@ fuels:
   name: Quad Thorium Fuel Rod
   archetype: standard
   matching:
-  - ItemList.RodThorium4
-  - RodThorium4
   - gregtech:gt.rodThorium4
-  - gt.rodThorium4
-  - gt.reactorRodThorium4
-  - gt.reactorThorium4
   is_liquid: false
   required_tier: 0
   packet_count: 4
@@ -797,7 +671,7 @@ fuels:
   default_durability: 400000
   peak_reactivity_temp: 580.0
   floor_temp: 2200.0
-  spent_product: ItemList.DepletedRodThorium4
+  spent_product: gregtech:gt.depletedRodThorium4
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -807,12 +681,7 @@ fuels:
   name: Dual Thorium Fuel Rod
   archetype: standard
   matching:
-  - ItemList.RodThorium2
-  - RodThorium2
   - gregtech:gt.rodThorium2
-  - gt.rodThorium2
-  - gt.reactorRodThorium2
-  - gt.reactorThorium2
   is_liquid: false
   required_tier: 0
   packet_count: 2
@@ -829,7 +698,7 @@ fuels:
   default_durability: 400000
   peak_reactivity_temp: 580.0
   floor_temp: 2200.0
-  spent_product: ItemList.DepletedRodThorium2
+  spent_product: gregtech:gt.depletedRodThorium2
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -839,12 +708,7 @@ fuels:
   name: Thorium Fuel Rod
   archetype: standard
   matching:
-  - ItemList.RodThorium
-  - RodThorium
   - gregtech:gt.rodThorium
-  - gt.rodThorium
-  - gt.reactorRodThorium
-  - gt.reactorThorium
   is_liquid: false
   required_tier: 0
   packet_count: 1
@@ -861,7 +725,7 @@ fuels:
   default_durability: 400000
   peak_reactivity_temp: 580.0
   floor_temp: 2200.0
-  spent_product: ItemList.DepletedRodThorium
+  spent_product: gregtech:gt.depletedRodThorium
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -871,12 +735,7 @@ fuels:
   name: Quad Uranium Fuel Rod
   archetype: standard
   matching:
-  - ItemList.RodUranium4
-  - RodUranium4
   - gregtech:gt.rodUranium4
-  - gt.rodUranium4
-  - gt.reactorRodUranium4
-  - gt.reactorUranium4
   - IC2:reactorUraniumQuad
   is_liquid: false
   required_tier: 0
@@ -894,7 +753,7 @@ fuels:
   default_durability: 160000
   peak_reactivity_temp: 770.0
   floor_temp: 2300.0
-  spent_product: ItemList.DepletedRodUranium4
+  spent_product: gregtech:gt.depletedRodUranium4
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -904,12 +763,7 @@ fuels:
   name: Dual Uranium Fuel Rod
   archetype: standard
   matching:
-  - ItemList.RodUranium2
-  - RodUranium2
   - gregtech:gt.rodUranium2
-  - gt.rodUranium2
-  - gt.reactorRodUranium2
-  - gt.reactorUranium2
   - IC2:reactorUraniumDual
   is_liquid: false
   required_tier: 0
@@ -927,7 +781,7 @@ fuels:
   default_durability: 160000
   peak_reactivity_temp: 770.0
   floor_temp: 2300.0
-  spent_product: ItemList.DepletedRodUranium2
+  spent_product: gregtech:gt.depletedRodUranium2
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -937,12 +791,7 @@ fuels:
   name: Uranium Fuel Rod
   archetype: standard
   matching:
-  - ItemList.RodUranium
-  - RodUranium
   - gregtech:gt.rodUranium
-  - gt.rodUranium
-  - gt.reactorRodUranium
-  - gt.reactorUranium
   - IC2:reactorUraniumSimple
   is_liquid: false
   required_tier: 0
@@ -960,7 +809,7 @@ fuels:
   default_durability: 160000
   peak_reactivity_temp: 770.0
   floor_temp: 2300.0
-  spent_product: ItemList.DepletedRodUranium
+  spent_product: gregtech:gt.depletedRodUranium
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -970,12 +819,7 @@ fuels:
   name: Quad Tiberium Fuel Rod
   archetype: standard
   matching:
-  - ItemList.RodTiberium4
-  - RodTiberium4
   - gregtech:gt.rodTiberium4
-  - gt.rodTiberium4
-  - gt.reactorRodTiberium4
-  - gt.reactorTiberium4
   is_liquid: false
   required_tier: 0
   packet_count: 4
@@ -992,7 +836,7 @@ fuels:
   default_durability: 400000
   peak_reactivity_temp: 2300.0
   floor_temp: 3100.0
-  spent_product: ItemList.DepletedRodTiberium4
+  spent_product: gregtech:gt.depletedRodTiberium4
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -1002,12 +846,7 @@ fuels:
   name: Dual Tiberium Fuel Rod
   archetype: standard
   matching:
-  - ItemList.RodTiberium2
-  - RodTiberium2
   - gregtech:gt.rodTiberium2
-  - gt.rodTiberium2
-  - gt.reactorRodTiberium2
-  - gt.reactorTiberium2
   is_liquid: false
   required_tier: 0
   packet_count: 2
@@ -1024,7 +863,7 @@ fuels:
   default_durability: 400000
   peak_reactivity_temp: 2300.0
   floor_temp: 3100.0
-  spent_product: ItemList.DepletedRodTiberium2
+  spent_product: gregtech:gt.depletedRodTiberium2
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -1034,12 +873,7 @@ fuels:
   name: Tiberium Fuel Rod
   archetype: standard
   matching:
-  - ItemList.RodTiberium
-  - RodTiberium
   - gregtech:gt.rodTiberium
-  - gt.rodTiberium
-  - gt.reactorRodTiberium
-  - gt.reactorTiberium
   is_liquid: false
   required_tier: 0
   packet_count: 1
@@ -1056,7 +890,7 @@ fuels:
   default_durability: 400000
   peak_reactivity_temp: 2300.0
   floor_temp: 3100.0
-  spent_product: ItemList.DepletedRodTiberium
+  spent_product: gregtech:gt.depletedRodTiberium
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -1066,8 +900,7 @@ fuels:
   name: Custom Fuel Rod
   archetype: standard
   matching:
-  - modularnuclear:rodCustomFuel1
-  - fuelRodCustom1
+  - modularnuclear:gt.modularnuclear.fuelrod.custom1
   is_liquid: false
   required_tier: 0
   packet_count: 1
@@ -1084,7 +917,7 @@ fuels:
   default_durability: 160000
   peak_reactivity_temp: 770.0
   floor_temp: 2300.0
-  spent_product: modularnuclear:rodCustomDepletedFuel1
+  spent_product: modularnuclear:gt.modularnuclear.fuelrod.depleted.custom1
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -1094,8 +927,7 @@ fuels:
   name: Dual Custom Fuel Rod
   archetype: standard
   matching:
-  - modularnuclear:rodCustomFuel2
-  - fuelRodCustom2
+  - modularnuclear:gt.modularnuclear.fuelrod.custom2
   is_liquid: false
   required_tier: 0
   packet_count: 2
@@ -1112,7 +944,7 @@ fuels:
   default_durability: 160000
   peak_reactivity_temp: 770.0
   floor_temp: 2300.0
-  spent_product: modularnuclear:rodCustomDepletedFuel2
+  spent_product: modularnuclear:gt.modularnuclear.fuelrod.depleted.custom2
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -1122,8 +954,7 @@ fuels:
   name: Quad Custom Fuel Rod
   archetype: standard
   matching:
-  - modularnuclear:rodCustomFuel4
-  - fuelRodCustom4
+  - modularnuclear:gt.modularnuclear.fuelrod.custom4
   is_liquid: false
   required_tier: 0
   packet_count: 4
@@ -1140,7 +971,7 @@ fuels:
   default_durability: 160000
   peak_reactivity_temp: 770.0
   floor_temp: 2300.0
-  spent_product: modularnuclear:rodCustomDepletedFuel4
+  spent_product: modularnuclear:gt.modularnuclear.fuelrod.depleted.custom4
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -1150,13 +981,7 @@ fuels:
   name: Thorium Based Liquid Fuel (Excited State)
   archetype: excited
   matching:
-  - "Thorium Based Liquid Fuel (Excited State)"
   - "thorium based liquid fuel (excited state)"
-  - "fluid.thorium based liquid fuel (excited state)"
-  - thoriumbasedliquidfuelexcited
-  - fluid.thoriumbasedliquidfuelexcited
-  - thoriumbasedliquidfuelexcitedstate
-  - fluid.thoriumbasedliquidfuelexcitedstate
   is_liquid: true
   required_tier: 4
   packet_count: 4
@@ -1173,7 +998,7 @@ fuels:
   default_durability: 35000
   peak_reactivity_temp: 580.0
   floor_temp: 2200.0
-  spent_product: "Thorium Based Liquid Fuel (Depleted)"
+  spent_product: "thorium based liquid fuel (depleted)"
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -1183,11 +1008,7 @@ fuels:
   name: Thorium Based Liquid Fuel
   archetype: standard
   matching:
-  - "Thorium Based Liquid Fuel"
   - "thorium based liquid fuel"
-  - "fluid.thorium based liquid fuel"
-  - thoriumbasedliquidfuel
-  - fluid.thoriumbasedliquidfuel
   is_liquid: true
   required_tier: 0
   packet_count: 4
@@ -1204,7 +1025,7 @@ fuels:
   default_durability: 50000
   peak_reactivity_temp: 580.0
   floor_temp: 2200.0
-  spent_product: "Thorium Based Liquid Fuel (Depleted)"
+  spent_product: "thorium based liquid fuel (depleted)"
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -1214,13 +1035,7 @@ fuels:
   name: Uranium Based Liquid Fuel (Excited State)
   archetype: excited
   matching:
-  - "Uranium Based Liquid Fuel (Excited State)"
   - "uranium based liquid fuel (excited state)"
-  - "fluid.uranium based liquid fuel (excited state)"
-  - uraniumbasedliquidfuelexcited
-  - fluid.uraniumbasedliquidfuelexcited
-  - uraniumbasedliquidfuelexcitedstate
-  - fluid.uraniumbasedliquidfuelexcitedstate
   is_liquid: true
   required_tier: 3
   packet_count: 4
@@ -1237,7 +1052,7 @@ fuels:
   default_durability: 15000
   peak_reactivity_temp: 1540.0
   floor_temp: 2700.0
-  spent_product: "Uranium Based Liquid Fuel (Depleted)"
+  spent_product: "uranium based liquid fuel (depleted)"
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -1247,11 +1062,7 @@ fuels:
   name: Uranium Based Liquid Fuel
   archetype: standard
   matching:
-  - "Uranium Based Liquid Fuel"
   - "uranium based liquid fuel"
-  - "fluid.uranium based liquid fuel"
-  - uraniumbasedliquidfuel
-  - fluid.uraniumbasedliquidfuel
   is_liquid: true
   required_tier: 1
   packet_count: 4
@@ -1268,7 +1079,7 @@ fuels:
   default_durability: 20000
   peak_reactivity_temp: 770.0
   floor_temp: 2300.0
-  spent_product: "Uranium Based Liquid Fuel (Depleted)"
+  spent_product: "uranium based liquid fuel (depleted)"
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -1278,13 +1089,7 @@ fuels:
   name: Plutonium Based Liquid Fuel (Excited State)
   archetype: excited
   matching:
-  - "Plutonium Based Liquid Fuel (Excited State)"
   - "plutonium based liquid fuel (excited state)"
-  - "fluid.plutonium based liquid fuel (excited state)"
-  - plutoniumbasedliquidfuelexcited
-  - fluid.plutoniumbasedliquidfuelexcited
-  - plutoniumbasedliquidfuelexcitedstate
-  - fluid.plutoniumbasedliquidfuelexcitedstate
   is_liquid: true
   required_tier: 4
   packet_count: 4
@@ -1301,7 +1106,7 @@ fuels:
   default_durability: 15000
   peak_reactivity_temp: 1730.0
   floor_temp: 2800.0
-  spent_product: "Plutonium Based Liquid Fuel (Depleted)"
+  spent_product: "plutonium based liquid fuel (depleted)"
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -1311,11 +1116,7 @@ fuels:
   name: Plutonium Based Liquid Fuel
   archetype: standard
   matching:
-  - "Plutonium Based Liquid Fuel"
   - "plutonium based liquid fuel"
-  - "fluid.plutonium based liquid fuel"
-  - plutoniumbasedliquidfuel
-  - fluid.plutoniumbasedliquidfuel
   is_liquid: true
   required_tier: 2
   packet_count: 4
@@ -1332,7 +1133,7 @@ fuels:
   default_durability: 20000
   peak_reactivity_temp: 1350.0
   floor_temp: 2600.0
-  spent_product: "Plutonium Based Liquid Fuel (Depleted)"
+  spent_product: "plutonium based liquid fuel (depleted)"
   damage_curve:
     peak_reactivity_mult: 1.0
     peak_damage_fraction: 0.0
@@ -1342,10 +1143,7 @@ fuels:
   name: Uranium Hexafluoride
   archetype: standard
   matching:
-  - "molten.uraniumhexafluoride"
-  - "uraniumhexafluoride"
-  - "fluid.uraniumhexafluoride"
-  - "Uranium Hexafluoride"
+  - molten.uraniumhexafluoride
   is_liquid: true
   required_tier: 2
   packet_count: 4

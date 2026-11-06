@@ -433,25 +433,25 @@ public class NuclearSimulationEngineTest {
         // Distilled Water is Platinum (1)
         assertEquals(
             NuclearSimulationEngine.PIPE_TIER_PLATINUM,
-            MTEHatchNuclearHatch.getRequiredFluidTier("distilledwater"));
+            MTEHatchNuclearHatch.getRequiredFluidTier("ic2distilledwater"));
         // Liquid fuels come from fuels.yaml, as in the game: plutonium needs Osmium
         assertEquals(
             NuclearSimulationEngine.PIPE_TIER_OSMIUM,
-            NuclearSimulationEngine.getRequiredFluidTier("plutoniumbasedliquidfuel"));
+            NuclearSimulationEngine.getRequiredFluidTier("plutonium based liquid fuel"));
         assertFalse(
             NuclearSimulationEngine
-                .isFluidAllowed("plutoniumbasedliquidfuel", NuclearSimulationEngine.PIPE_TIER_PLATINUM));
+                .isFluidAllowed("plutonium based liquid fuel", NuclearSimulationEngine.PIPE_TIER_PLATINUM));
         assertTrue(
             NuclearSimulationEngine
-                .isFluidAllowed("plutoniumbasedliquidfuel", NuclearSimulationEngine.PIPE_TIER_OSMIUM));
-        assertFalse(NuclearSimulationEngine.isFluidAllowed("distilledwater", 0));
-        assertTrue(NuclearSimulationEngine.isFluidAllowed("distilledwater", 1));
+                .isFluidAllowed("plutonium based liquid fuel", NuclearSimulationEngine.PIPE_TIER_OSMIUM));
+        assertFalse(NuclearSimulationEngine.isFluidAllowed("ic2distilledwater", 0));
+        assertTrue(NuclearSimulationEngine.isFluidAllowed("ic2distilledwater", 1));
         // Heavy Water is Quantium (3)
         assertEquals(
             NuclearSimulationEngine.PIPE_TIER_QUANTIUM,
-            MTEHatchNuclearHatch.getRequiredFluidTier("fluid.heavywater"));
-        assertFalse(NuclearSimulationEngine.isFluidAllowed("fluid.heavywater", 2));
-        assertTrue(NuclearSimulationEngine.isFluidAllowed("fluid.heavywater", 3));
+            MTEHatchNuclearHatch.getRequiredFluidTier("heavywater"));
+        assertFalse(NuclearSimulationEngine.isFluidAllowed("heavywater", 2));
+        assertTrue(NuclearSimulationEngine.isFluidAllowed("heavywater", 3));
     }
 
     @Test
@@ -464,7 +464,7 @@ public class NuclearSimulationEngineTest {
             }
         }
         // A passage carrying them still has their moderation
-        assertEquals(0.05, CoolantPassage.moderation("sodium"), 1e-9);
+        assertEquals(0.05, CoolantPassage.moderation("molten.sodium"), 1e-9);
         assertEquals(0.02, CoolantPassage.moderation("molten.lead"), 1e-9);
     }
 
@@ -491,7 +491,7 @@ public class NuclearSimulationEngineTest {
     @Test
     void testCoolantBoilingThresholds() {
         assertEquals(Double.POSITIVE_INFINITY, NuclearSimulationEngine.getCoolantBoilingThreshold("ic2coolant"));
-        assertEquals(100.0, NuclearSimulationEngine.getCoolantBoilingThreshold("distilledwater"));
+        assertEquals(100.0, NuclearSimulationEngine.getCoolantBoilingThreshold("ic2distilledwater"));
         assertEquals(101.4, NuclearSimulationEngine.getCoolantBoilingThreshold("heavywater"));
     }
 
@@ -627,14 +627,14 @@ public class NuclearSimulationEngineTest {
     @Test
     void testCoolantSinkTemperatures() {
         assertEquals(24.0, NuclearSimulationEngine.getCoolantSinkTemperature("ic2coolant", 24.0));
-        assertEquals(100.0, NuclearSimulationEngine.getCoolantSinkTemperature("distilledwater", 24.0));
+        assertEquals(100.0, NuclearSimulationEngine.getCoolantSinkTemperature("ic2distilledwater", 24.0));
         assertEquals(101.4, NuclearSimulationEngine.getCoolantSinkTemperature("heavywater", 24.0));
         assertEquals(24.0, NuclearSimulationEngine.getCoolantSinkTemperature(null, 24.0));
         assertEquals(24.0, NuclearSimulationEngine.getCoolantSinkTemperature("unknown_liquid", 24.0));
 
         // High ambient temperature clamped
         assertEquals(120.0, NuclearSimulationEngine.getCoolantSinkTemperature("ic2coolant", 120.0));
-        assertEquals(120.0, NuclearSimulationEngine.getCoolantSinkTemperature("distilledwater", 120.0));
+        assertEquals(120.0, NuclearSimulationEngine.getCoolantSinkTemperature("ic2distilledwater", 120.0));
         assertEquals(120.0, NuclearSimulationEngine.getCoolantSinkTemperature("heavywater", 120.0));
     }
 
@@ -1518,7 +1518,7 @@ public class NuclearSimulationEngineTest {
         net.minecraftforge.fluids.Fluid distilledFluid = org.mockito.Mockito
             .mock(net.minecraftforge.fluids.Fluid.class);
         org.mockito.Mockito.when(distilledFluid.getName())
-            .thenReturn("distilledwater");
+            .thenReturn("ic2distilledwater");
         assertFalse(freshHatch.canFill(ForgeDirection.UP, distilledFluid));
         assertEquals(0, freshHatch.fill(ForgeDirection.UP, mockFluidStack(distilledFluid, 1000), true));
 
@@ -2182,42 +2182,20 @@ public class NuclearSimulationEngineTest {
         assertTrue(cadmium.maxFastAbsorption < indium.maxFastAbsorption, "Indium must absorb more fast than Cadmium");
         assertTrue(indium.maxFastAbsorption < hafnium.maxFastAbsorption, "Hafnium must absorb more fast than Indium");
 
-        // Test rod detection via mock items
-        net.minecraft.item.Item dummyItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        net.minecraft.item.ItemStack stackSilver = org.mockito.Mockito.mock(net.minecraft.item.ItemStack.class);
-        stackSilver.getItem(); // trigger non-null check
-        org.mockito.Mockito.when(stackSilver.getItem())
-            .thenReturn(dummyItem);
-        org.mockito.Mockito.when(stackSilver.getUnlocalizedName())
-            .thenReturn("item.stickLongSilver");
+        // Test rod detection by ore dictionary name
+        net.minecraft.item.ItemStack stackSilver = TestItems.ore("stickLongSilver");
         assertEquals(silver, MTEHatchNuclearControlRod.getRodType(stackSilver));
 
-        net.minecraft.item.ItemStack stackBoron = org.mockito.Mockito.mock(net.minecraft.item.ItemStack.class);
-        org.mockito.Mockito.when(stackBoron.getItem())
-            .thenReturn(dummyItem);
-        org.mockito.Mockito.when(stackBoron.getUnlocalizedName())
-            .thenReturn("item.stickLongBoron");
+        net.minecraft.item.ItemStack stackBoron = TestItems.ore("stickLongBoron");
         assertEquals(boron, MTEHatchNuclearControlRod.getRodType(stackBoron));
 
-        net.minecraft.item.ItemStack stackCadmium = org.mockito.Mockito.mock(net.minecraft.item.ItemStack.class);
-        org.mockito.Mockito.when(stackCadmium.getItem())
-            .thenReturn(dummyItem);
-        org.mockito.Mockito.when(stackCadmium.getUnlocalizedName())
-            .thenReturn("item.stickLongCadmium");
+        net.minecraft.item.ItemStack stackCadmium = TestItems.ore("stickLongCadmium");
         assertEquals(cadmium, MTEHatchNuclearControlRod.getRodType(stackCadmium));
 
-        net.minecraft.item.ItemStack stackIndium = org.mockito.Mockito.mock(net.minecraft.item.ItemStack.class);
-        org.mockito.Mockito.when(stackIndium.getItem())
-            .thenReturn(dummyItem);
-        org.mockito.Mockito.when(stackIndium.getUnlocalizedName())
-            .thenReturn("item.stickLongIndium");
+        net.minecraft.item.ItemStack stackIndium = TestItems.ore("stickLongIndium");
         assertEquals(indium, MTEHatchNuclearControlRod.getRodType(stackIndium));
 
-        net.minecraft.item.ItemStack stackHafnium = org.mockito.Mockito.mock(net.minecraft.item.ItemStack.class);
-        org.mockito.Mockito.when(stackHafnium.getItem())
-            .thenReturn(dummyItem);
-        org.mockito.Mockito.when(stackHafnium.getUnlocalizedName())
-            .thenReturn("item.stickLongHafnium");
+        net.minecraft.item.ItemStack stackHafnium = TestItems.ore("stickLongHafnium");
         assertEquals(hafnium, MTEHatchNuclearControlRod.getRodType(stackHafnium));
 
         // Test absorption scaling with redstone on hatch
@@ -2280,19 +2258,13 @@ public class NuclearSimulationEngineTest {
 
         // 1. Bus with fuel item (must be voided)
         MTEHatchNuclearBus busFuel = new MTEHatchNuclearBus("test.bus.fuel", 4, new String[0], null);
-        net.minecraft.item.Item fuelItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(fuelItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("gt.rodUranium");
-        net.minecraft.item.ItemStack dummyFuel = new net.minecraft.item.ItemStack(fuelItem, 1, 0);
+        net.minecraft.item.ItemStack dummyFuel = TestItems.stack("gregtech:gt.rodUranium");
         busFuel.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyFuel;
         busFuel.mTemperature = 150.0;
 
         // 2. Bus with coolant item (must be preserved: only fuel is voided)
         MTEHatchNuclearBus busCoolant = new MTEHatchNuclearBus("test.bus.coolant", 4, new String[0], null);
-        net.minecraft.item.Item coolantItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(coolantItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("IC2:reactorCoolantSimple");
-        net.minecraft.item.ItemStack dummyCoolant = new net.minecraft.item.ItemStack(coolantItem, 1, 0);
+        net.minecraft.item.ItemStack dummyCoolant = TestItems.stack("IC2:reactorCoolantSimple");
         busCoolant.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyCoolant;
         busCoolant.mTemperature = 150.0;
 
@@ -2302,48 +2274,36 @@ public class NuclearSimulationEngineTest {
             .mock(net.minecraftforge.fluids.FluidStack.class);
         hatch.mInputFluid = coolantIn;
         hatch.mTemperature = 120.0;
-        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("thoriumbasedliquidfuel")) {
+        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("thorium based liquid fuel")) {
             net.minecraftforge.fluids.FluidRegistry
-                .registerFluid(new net.minecraftforge.fluids.Fluid("thoriumbasedliquidfuel"));
+                .registerFluid(new net.minecraftforge.fluids.Fluid("thorium based liquid fuel"));
         }
         MTEHatchNuclearHatch fuelHatch = new MTEHatchNuclearHatch("test.hatch.fuel", 4, 16000, new String[0], null);
         fuelHatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(
-            net.minecraftforge.fluids.FluidRegistry.getFluid("thoriumbasedliquidfuel"),
+            net.minecraftforge.fluids.FluidRegistry.getFluid("thorium based liquid fuel"),
             1000);
 
         // 4. Bus with reflector item (must be preserved)
         MTEHatchNuclearBus busReflector = new MTEHatchNuclearBus("test.bus.reflector", 4, new String[0], null);
-        net.minecraft.item.Item reflectorItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(reflectorItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("IC2:reactorReflector");
-        net.minecraft.item.ItemStack dummyReflector = new net.minecraft.item.ItemStack(reflectorItem, 1, 0);
+        net.minecraft.item.ItemStack dummyReflector = TestItems.stack("IC2:reactorReflector");
         busReflector.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyReflector;
         busReflector.mTemperature = 150.0;
 
         // 5. Bus with moderator item (must be preserved)
         MTEHatchNuclearBus busModerator = new MTEHatchNuclearBus("test.bus.moderator", 4, new String[0], null);
-        net.minecraft.item.Item moderatorItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(moderatorItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("stickLongGraphite");
-        net.minecraft.item.ItemStack dummyModerator = new net.minecraft.item.ItemStack(moderatorItem, 1, 0);
+        net.minecraft.item.ItemStack dummyModerator = TestItems.ore("stickLongGraphite");
         busModerator.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyModerator;
         busModerator.mTemperature = 150.0;
 
         // 6. Bus with heat vent item (must be preserved)
         MTEHatchNuclearBus busVent = new MTEHatchNuclearBus("test.bus.vent", 4, new String[0], null);
-        net.minecraft.item.Item ventItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(ventItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("IC2:reactorVent");
-        net.minecraft.item.ItemStack dummyVent = new net.minecraft.item.ItemStack(ventItem, 1, 0);
+        net.minecraft.item.ItemStack dummyVent = TestItems.stack("IC2:reactorVent");
         busVent.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyVent;
         busVent.mTemperature = 150.0;
 
         // 7. Bus with heat exchanger item (must be preserved)
         MTEHatchNuclearBus busExchanger = new MTEHatchNuclearBus("test.bus.exchanger", 4, new String[0], null);
-        net.minecraft.item.Item exchangerItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(exchangerItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("IC2:reactorHeatSwitch");
-        net.minecraft.item.ItemStack dummyExchanger = new net.minecraft.item.ItemStack(exchangerItem, 1, 0);
+        net.minecraft.item.ItemStack dummyExchanger = TestItems.stack("IC2:reactorHeatSwitch");
         busExchanger.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = dummyExchanger;
         busExchanger.mTemperature = 150.0;
 
@@ -2988,23 +2948,23 @@ public class NuclearSimulationEngineTest {
     void testLiquidFuelPipingTiers() {
         assertEquals(
             NuclearSimulationEngine.PIPE_TIER_ELECTRUM,
-            NuclearSimulationEngine.getRequiredFluidTier("thoriumbasedliquidfuel"));
+            NuclearSimulationEngine.getRequiredFluidTier("thorium based liquid fuel"));
         assertEquals(
             NuclearSimulationEngine.PIPE_TIER_PLATINUM,
-            NuclearSimulationEngine.getRequiredFluidTier("uraniumbasedliquidfuel"));
+            NuclearSimulationEngine.getRequiredFluidTier("uranium based liquid fuel"));
         assertEquals(
             NuclearSimulationEngine.PIPE_TIER_OSMIUM,
-            NuclearSimulationEngine.getRequiredFluidTier("plutoniumbasedliquidfuel"));
+            NuclearSimulationEngine.getRequiredFluidTier("plutonium based liquid fuel"));
         assertEquals(
             NuclearSimulationEngine.PIPE_TIER_OSMIUM,
-            NuclearSimulationEngine.getRequiredFluidTier("uraniumhexafluoride"));
+            NuclearSimulationEngine.getRequiredFluidTier("molten.uraniumhexafluoride"));
         // Arbitrary unhandled fluids return -1
         assertEquals(-1, NuclearSimulationEngine.getRequiredFluidTier("some_random_fluid"));
         assertFalse(NuclearSimulationEngine.isFluidAllowed("some_random_fluid", 5));
         // Naquadah liquid fuel is unrecognized / disallowed
         assertEquals(-1, NuclearSimulationEngine.getRequiredFluidTier("liquid_naquadah_fuel"));
-        assertEquals(-1, NuclearSimulationEngine.getRequiredFluidTier("naquadahbasedliquidfuel"));
-        assertFalse(NuclearSimulationEngine.isFluidAllowed("naquadahbasedliquidfuel", 5));
+        assertEquals(-1, NuclearSimulationEngine.getRequiredFluidTier("naquadah based liquid fuel"));
+        assertFalse(NuclearSimulationEngine.isFluidAllowed("naquadah based liquid fuel", 5));
     }
 
     @Test
@@ -5168,15 +5128,15 @@ public class NuclearSimulationEngineTest {
         reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
         reactor.mEfficiency = 10000;
 
-        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("distilledwater")) {
+        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("ic2distilledwater")) {
             net.minecraftforge.fluids.FluidRegistry
-                .registerFluid(new net.minecraftforge.fluids.Fluid("distilledwater"));
+                .registerFluid(new net.minecraftforge.fluids.Fluid("ic2distilledwater"));
         }
         if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("steam")) {
             net.minecraftforge.fluids.FluidRegistry.registerFluid(new net.minecraftforge.fluids.Fluid("steam"));
         }
         net.minecraftforge.fluids.Fluid distilledWater = net.minecraftforge.fluids.FluidRegistry
-            .getFluid("distilledwater");
+            .getFluid("ic2distilledwater");
 
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 3, 32000, new String[0], null);
         hatch.mTemperature = 150.0; // Above 100°C boiling point
@@ -5214,15 +5174,15 @@ public class NuclearSimulationEngineTest {
             .thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
         reactor.setBaseMetaTileEntity(teMock);
 
-        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("distilledwater")) {
+        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("ic2distilledwater")) {
             net.minecraftforge.fluids.FluidRegistry
-                .registerFluid(new net.minecraftforge.fluids.Fluid("distilledwater"));
+                .registerFluid(new net.minecraftforge.fluids.Fluid("ic2distilledwater"));
         }
         if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("steam")) {
             net.minecraftforge.fluids.FluidRegistry.registerFluid(new net.minecraftforge.fluids.Fluid("steam"));
         }
         net.minecraftforge.fluids.Fluid distilledWater = net.minecraftforge.fluids.FluidRegistry
-            .getFluid("distilledwater");
+            .getFluid("ic2distilledwater");
 
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch.starve", 3, 32000, new String[0], null);
         hatch.mTemperature = 200.0;
@@ -5415,7 +5375,7 @@ public class NuclearSimulationEngineTest {
         assertFalse(liquidList.isEmpty(), "Should have liquid fuel byproduct entries");
         StandaloneNuclearGrid.LiquidFuelByproduct l = liquidList.get(0);
         assertEquals(SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM, l.type);
-        assertEquals("depleteduraniumbasedliquidfuel", l.fluidName);
+        assertEquals("uranium based liquid fuel (depleted)", l.fluidName);
         assertEquals(1, l.activeHatches);
         assertTrue(l.litersPerMinute > 0.0, "Liters per minute should be positive");
         assertEquals(l.litersPerMinute * 60.0, l.litersPerHour, 1e-4, "Liters per hour should equal perMin * 60");
@@ -5976,12 +5936,12 @@ public class NuclearSimulationEngineTest {
         reactor.mGrid[1][1] = fuelTile;
 
         // Register distilled water if needed
-        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("distilledwater")) {
+        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("ic2distilledwater")) {
             net.minecraftforge.fluids.FluidRegistry
-                .registerFluid(new net.minecraftforge.fluids.Fluid("distilledwater"));
+                .registerFluid(new net.minecraftforge.fluids.Fluid("ic2distilledwater"));
         }
         net.minecraftforge.fluids.Fluid distilledWater = net.minecraftforge.fluids.FluidRegistry
-            .getFluid("distilledwater");
+            .getFluid("ic2distilledwater");
 
         // Add a coolant hatch that is dry and superheated (>100°C) with cold coolant injected
         MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch.shock", 3, 32000, new String[0], null);
@@ -6086,40 +6046,33 @@ public class NuclearSimulationEngineTest {
         String[] origInsulators = ModularNuclearConfig.allowedInsulators.clone();
 
         try {
-            // 2. Pattern matching helper tests
-            assertTrue(ModularNuclearConfig.matchesPattern("ic2.reactorDepletedUraniumSimple", "*depleted*"));
-            assertTrue(
-                ModularNuclearConfig.matchesPattern("gregtech:gt.reactorUranium4", "gregtech:gt.reactorUranium*"));
-            assertFalse(ModularNuclearConfig.matchesPattern("minecraft:dirt", "*fuel*"));
+            // 2. Entries are exact registry names: no wildcards, no unlocalized names, case-sensitive
+            ItemStack fuelStack = new ItemStack(net.minecraft.init.Items.blaze_rod, 1, 0);
+            assertTrue(ReactorDataRegistry.matchesItem(fuelStack, "minecraft:blaze_rod"));
+            assertTrue(ReactorDataRegistry.matchesItem(fuelStack, "minecraft:blaze_rod:0"));
+            assertFalse(ReactorDataRegistry.matchesItem(fuelStack, "minecraft:blaze_rod:1"));
+            assertFalse(ReactorDataRegistry.matchesItem(fuelStack, "*blaze*"));
+            assertFalse(ReactorDataRegistry.matchesItem(fuelStack, "minecraft:blaze"));
+            assertFalse(ReactorDataRegistry.matchesItem(fuelStack, "minecraft:Blaze_Rod"));
+            assertFalse(ReactorDataRegistry.matchesItem(fuelStack, "item.blazeRod"));
+            assertFalse(ReactorDataRegistry.matchesItem(fuelStack, "blazeRod"));
 
             // 3. Dynamic custom fuel item addition
-            net.minecraft.item.Item customFuel = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-            org.mockito.Mockito.when(customFuel.getUnlocalizedName(org.mockito.Mockito.any()))
-                .thenReturn("custommod.super_fuel_rod");
-            ItemStack fuelStack = new ItemStack(customFuel, 1, 0);
-
-            // Initially not allowed
             assertFalse(NuclearFuelClassification.isItemFuel(fuelStack));
-
-            // Server operator adds custom fuel pattern to config:
-            ModularNuclearConfig.allowedFuelItems = new String[] { "*super_fuel_rod*" };
+            ModularNuclearConfig.allowedFuelItems = new String[] { "minecraft:blaze_rod" };
             ModularNuclearConfig.changed();
             assertTrue(ModularNuclearConfig.isItemFuel(fuelStack));
             assertTrue(NuclearFuelClassification.isItemFuel(fuelStack));
 
             // 4. Dynamic custom blocked item addition
-            net.minecraft.item.Item customDangerous = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-            org.mockito.Mockito.when(customDangerous.getUnlocalizedName(org.mockito.Mockito.any()))
-                .thenReturn("somemod.radioactive_waste");
-            ItemStack wasteStack = new ItemStack(customDangerous, 1, 0);
-
+            ItemStack wasteStack = new ItemStack(net.minecraft.init.Items.rotten_flesh, 1, 0);
             assertFalse(NuclearFuelClassification.isDepletedOrEmptyRod(wasteStack));
-            ModularNuclearConfig.blockedItems = new String[] { "*radioactive_waste*" };
+            ModularNuclearConfig.blockedItems = new String[] { "minecraft:rotten_flesh" };
             ModularNuclearConfig.changed();
             assertTrue(NuclearFuelClassification.isDepletedOrEmptyRod(wasteStack));
             assertFalse(NuclearFuelClassification.isItemAllowedInBus(wasteStack, null));
 
-            // 5. Dynamic custom coolant fluid addition
+            // 5. Dynamic custom coolant fluid addition, by exact fluid name
             net.minecraftforge.fluids.Fluid liquidHelium = org.mockito.Mockito
                 .mock(net.minecraftforge.fluids.Fluid.class);
             org.mockito.Mockito.when(liquidHelium.getName())
@@ -6127,37 +6080,37 @@ public class NuclearSimulationEngineTest {
             net.minecraftforge.fluids.FluidStack heliumStack = mockFluidStack(liquidHelium, 1000);
 
             assertFalse(NuclearFuelClassification.isCoolantFluid(heliumStack));
+            ModularNuclearConfig.allowedCoolantFluids = new String[] { "liquid helium", "Liquid_Helium" };
+            ModularNuclearConfig.changed();
+            assertFalse(NuclearFuelClassification.isCoolantFluid(heliumStack));
             ModularNuclearConfig.allowedCoolantFluids = new String[] { "liquid_helium" };
             ModularNuclearConfig.changed();
             assertTrue(NuclearFuelClassification.isCoolantFluid(heliumStack));
 
-            // 6. Dynamic custom control rod mapping
-            net.minecraft.item.Item customRodItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-            org.mockito.Mockito.when(customRodItem.getUnlocalizedName(org.mockito.Mockito.any()))
-                .thenReturn("custommod.lead_bismuth_rod");
-            ItemStack rodStack = new ItemStack(customRodItem, 1, 0);
-
+            // 6. Dynamic custom control rod mapping, by ore dictionary name
+            ItemStack rodStack = new ItemStack(net.minecraft.init.Items.bone, 1, 0);
+            net.minecraftforge.oredict.OreDictionary.registerOre("stickLongLeadBismuth", rodStack.copy());
             assertEquals(
                 "NONE",
                 MTEHatchNuclearControlRod.getRodType(rodStack)
                     .name());
-            ModularNuclearConfig.allowedControlRods = new String[] { "*lead_bismuth_rod*=CADMIUM" };
+            ModularNuclearConfig.allowedControlRods = new String[] { "ore:stickLongLeadBismuth=CADMIUM" };
             ModularNuclearConfig.changed();
             assertEquals(
                 "CADMIUM",
                 MTEHatchNuclearControlRod.getRodType(rodStack)
                     .name());
 
-            // 7. Dynamic custom insulator mapping
-            net.minecraft.item.Item customFoil = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-            org.mockito.Mockito.when(customFoil.getUnlocalizedName(org.mockito.Mockito.any()))
-                .thenReturn("aerospace.aerogel_foil");
-            ItemStack foilStack = new ItemStack(customFoil, 1, 0);
-
+            // 7. Dynamic custom insulator mapping, by item and meta
+            ItemStack foilStack = new ItemStack(net.minecraft.init.Blocks.wool, 1, 3);
             assertEquals(0.0, NuclearFuelClassification.getInsulationDampening(foilStack), 1e-6);
-            ModularNuclearConfig.allowedInsulators = new String[] { "*aerogel_foil*=0.85" };
+            ModularNuclearConfig.allowedInsulators = new String[] { "minecraft:wool:3=0.85" };
             ModularNuclearConfig.changed();
             assertEquals(0.85, NuclearFuelClassification.getInsulationDampening(foilStack), 1e-6);
+            assertEquals(
+                0.0,
+                NuclearFuelClassification.getInsulationDampening(new ItemStack(net.minecraft.init.Blocks.wool, 1, 4)),
+                1e-6);
 
         } finally {
             // Restore original config arrays
@@ -6180,10 +6133,7 @@ public class NuclearSimulationEngineTest {
         MTEHatchNuclearControlRod rodHatch = new MTEHatchNuclearControlRod("test.control.rod", 4, new String[0], null);
 
         // 1. Depleted rod rejection
-        net.minecraft.item.Item depletedItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(depletedItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("ic2.reactorDepletedUraniumSimple");
-        ItemStack depletedStack = new ItemStack(depletedItem, 1, 0);
+        ItemStack depletedStack = TestItems.stack("gregtech:gt.depletedRodUranium");
 
         assertTrue(NuclearFuelClassification.isDepletedOrEmptyRod(depletedStack));
         assertFalse(
@@ -6193,10 +6143,7 @@ public class NuclearSimulationEngineTest {
         assertFalse(bus.isItemValidForSlot(MTEHatchNuclearBus.SLOT_INPUT, depletedStack));
 
         // 2. Control rod segregation
-        net.minecraft.item.Item silverRodItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(silverRodItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("stickLongSilver");
-        ItemStack silverRodStack = new ItemStack(silverRodItem, 1, 0);
+        ItemStack silverRodStack = TestItems.ore("stickLongSilver");
 
         assertTrue(MTEHatchNuclearControlRod.isControlRod(silverRodStack));
         // Control rods must NOT be allowed into core buses:
@@ -6208,10 +6155,7 @@ public class NuclearSimulationEngineTest {
             rodHatch.allowPutStack(null, MTEHatchNuclearControlRod.SLOT_ROD, ForgeDirection.UNKNOWN, silverRodStack));
 
         // 3. Normal unrelated items (e.g. cobblestone/dirt) rejected from BOTH hatches
-        net.minecraft.item.Item dirtItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(dirtItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("tile.dirt");
-        ItemStack dirtStack = new ItemStack(dirtItem, 1, 0);
+        ItemStack dirtStack = new ItemStack(Blocks.dirt);
 
         assertFalse(bus.isItemAllowed(dirtStack), "Dirt cannot be placed in nuclear core bus");
         assertFalse(bus.allowPutStack(null, MTEHatchNuclearBus.SLOT_INPUT, ForgeDirection.UNKNOWN, dirtStack));
@@ -6231,13 +6175,9 @@ public class NuclearSimulationEngineTest {
         };
         MTEHatchNuclearControlRod rodHatch = new MTEHatchNuclearControlRod("test.control.rod", 4, new String[0], null);
 
-        net.minecraft.item.Item silverRodItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(silverRodItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("stickLongSilver");
-        ItemStack silverRodStack = new ItemStack(silverRodItem, 1, 0);
+        ItemStack silverRodStack = TestItems.ore("stickLongSilver");
 
-        net.minecraft.item.Item dummyItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        ItemStack validStack = new ItemStack(dummyItem, 1, 0);
+        ItemStack validStack = TestItems.stack("gregtech:gt.rodUranium");
 
         // 1. When bus is empty: accepts valid item
         assertTrue(bus.isItemValidForSlot(MTEHatchNuclearBus.SLOT_INPUT, validStack));
@@ -6300,7 +6240,7 @@ public class NuclearSimulationEngineTest {
         // Boiling points
         assertEquals(Double.POSITIVE_INFINITY, NuclearSimulationEngine.getCoolantBoilingThreshold("ic2coolant"));
         assertEquals(101.4, NuclearSimulationEngine.getCoolantBoilingThreshold("heavywater"), 1e-4);
-        assertEquals(100.0, NuclearSimulationEngine.getCoolantBoilingThreshold("distilledwater"), 1e-4);
+        assertEquals(100.0, NuclearSimulationEngine.getCoolantBoilingThreshold("ic2distilledwater"), 1e-4);
 
         // tiers.yaml is the only source of tier temperatures
         try {
@@ -6337,7 +6277,7 @@ public class NuclearSimulationEngineTest {
             assertTrue(
                 ReactorDataRegistry.getAllFuels()
                     .size() >= 20);
-            assertNotNull(ReactorDataRegistry.findFuel("thoriumbasedliquidfuel"));
+            assertNotNull(ReactorDataRegistry.findFuel("thorium based liquid fuel"));
             assertNotNull(ReactorDataRegistry.getPhysics());
             assertEquals(
                 6,
@@ -6361,7 +6301,7 @@ public class NuclearSimulationEngineTest {
             assertTrue(
                 ReactorDataRegistry.getAllFuels()
                     .size() >= 20);
-            assertNotNull(ReactorDataRegistry.findFuel("thoriumbasedliquidfuel"));
+            assertNotNull(ReactorDataRegistry.findFuel("thorium based liquid fuel"));
             assertNotNull(ReactorDataRegistry.getPhysics());
             assertEquals(
                 6,
@@ -6403,14 +6343,14 @@ public class NuclearSimulationEngineTest {
             ReactorDataRegistry.loadFromDir(configFolder);
 
             // Verify partial override kept default fields but updated overridden field
-            FuelData thorium = ReactorDataRegistry.findFuel("thoriumbasedliquidfuel");
+            FuelData thorium = ReactorDataRegistry.findFuel("thorium based liquid fuel");
             assertNotNull(thorium);
             assertEquals(999, thorium.baseNeutrons);
             assertTrue(thorium.isLiquid);
             assertTrue(thorium.thermalFissionMultiplier > 0);
 
             // Verify removed fuel is gone
-            assertNull(ReactorDataRegistry.findFuel("uraniumbasedliquidfuel"));
+            assertNull(ReactorDataRegistry.findFuel("uranium based liquid fuel"));
 
             // Verify disabled reflector is gone from reflectors list
             assertFalse(
@@ -6445,7 +6385,7 @@ public class NuclearSimulationEngineTest {
             String fuelsYamlContent = "fuels:\n" + "  - id: \"super_uranium_custom\"\n"
                 + "    name: \"Super Uranium Custom Rod\"\n"
                 + "    matching:\n"
-                + "      - \"item.super_uranium_custom\"\n"
+                + "      - \"modularnuclear:super_uranium_custom\"\n"
                 + "    is_liquid: false\n"
                 + "    base_neutrons: 88\n"
                 + "    thermal_fission_multiplier: 3.5\n"
@@ -6458,7 +6398,7 @@ public class NuclearSimulationEngineTest {
             String compYamlContent = "reflectors:\n" + "  - id: \"custom_beryllium_mirror\"\n"
                 + "    name: \"Custom Beryllium Mirror\"\n"
                 + "    matching:\n"
-                + "      - \"item.custom_beryllium_mirror\"\n"
+                + "      - \"modularnuclear:custom_beryllium_mirror\"\n"
                 + "    absorption_thermal: 0.001\n"
                 + "    scattering_thermal: 0.999\n"
                 + "    moderation: 0.35\n"
@@ -6467,7 +6407,7 @@ public class NuclearSimulationEngineTest {
                 + "  - id: \"custom_super_rod\"\n"
                 + "    name: \"Custom Super Control Rod\"\n"
                 + "    matching:\n"
-                + "      - \"item.custom_super_rod\"\n"
+                + "      - \"modularnuclear:custom_super_rod\"\n"
                 + "    max_thermal_absorption: 0.995\n"
                 + "    max_fast_absorption: 0.85\n"
                 + "    heat_transfer_coeff: 0.50\n"
@@ -6475,18 +6415,15 @@ public class NuclearSimulationEngineTest {
                 + "  - id: \"custom_heavy_graphite\"\n"
                 + "    name: \"Custom Heavy Graphite\"\n"
                 + "    matching:\n"
-                + "      - \"item.custom_heavy_graphite\"\n"
+                + "      - \"modularnuclear:custom_heavy_graphite\"\n"
                 + "    moderation: 0.88\n";
             java.nio.file.Files.write(new File(configFolder, "components.yaml").toPath(), compYamlContent.getBytes());
 
             // 3. Load from dir
             ReactorDataRegistry.loadFromDir(configFolder);
 
-            // 4. Verify mock items match and have custom properties
-            net.minecraft.item.Item fuelItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-            org.mockito.Mockito.when(fuelItem.getUnlocalizedName(org.mockito.Mockito.any()))
-                .thenReturn("item.super_uranium_custom");
-            ItemStack fuelStack = new ItemStack(fuelItem, 1, 0);
+            // 4. Verify registered items match and have custom properties
+            ItemStack fuelStack = TestItems.stack("modularnuclear:super_uranium_custom");
 
             FuelData fd = ReactorDataRegistry.findFuel(fuelStack);
             assertNotNull(fd, "Custom fuel must be found by matching pattern");
@@ -6496,20 +6433,14 @@ public class NuclearSimulationEngineTest {
             assertEquals(0.18, fd.heatTransferCoeff, 1e-4);
             assertEquals(0.92, fd.absorptionThermal, 1e-4);
 
-            net.minecraft.item.Item reflItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-            org.mockito.Mockito.when(reflItem.getUnlocalizedName(org.mockito.Mockito.any()))
-                .thenReturn("item.custom_beryllium_mirror");
-            ItemStack reflStack = new ItemStack(reflItem, 1, 0);
+            ItemStack reflStack = TestItems.stack("modularnuclear:custom_beryllium_mirror");
 
             ComponentData.ReflectorData rd = ReactorDataRegistry.findReflector(reflStack);
             assertNotNull(rd, "Custom reflector must be found");
             assertEquals(0.999, rd.scatteringThermal, 1e-4);
             assertEquals(0.35, rd.moderation, 1e-4);
 
-            net.minecraft.item.Item rodItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-            org.mockito.Mockito.when(rodItem.getUnlocalizedName(org.mockito.Mockito.any()))
-                .thenReturn("item.custom_super_rod");
-            ItemStack rodStack = new ItemStack(rodItem, 1, 0);
+            ItemStack rodStack = TestItems.stack("modularnuclear:custom_super_rod");
 
             ComponentData.ControlRodData crd = ReactorDataRegistry.findControlRod(rodStack);
             assertNotNull(crd, "Custom control rod must be found");
@@ -6517,10 +6448,7 @@ public class NuclearSimulationEngineTest {
             assertEquals(0.50, crd.heatTransferCoeff, 1e-4);
             assertTrue(MTEHatchNuclearControlRod.isControlRod(rodStack));
 
-            net.minecraft.item.Item modItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-            org.mockito.Mockito.when(modItem.getUnlocalizedName(org.mockito.Mockito.any()))
-                .thenReturn("item.custom_heavy_graphite");
-            ItemStack modStack = new ItemStack(modItem, 1, 0);
+            ItemStack modStack = TestItems.stack("modularnuclear:custom_heavy_graphite");
 
             ComponentData.ModeratorData md = ReactorDataRegistry.findModerator(modStack);
             assertNotNull(md, "Custom moderator must be found");
@@ -6753,28 +6681,28 @@ public class NuclearSimulationEngineTest {
         assertEquals(1, lithium.baseNeutrons);
         assertEquals(390.0, lithium.peakReactivityTemp, 1e-3);
         assertEquals(2100.0, lithium.floorTemp, 1e-3);
-        assertEquals("ItemList.DepletedRodLithium", lithium.spentProduct);
+        assertEquals("gregtech:gt.depletedRodLithium", lithium.spentProduct);
 
         assertNotNull(glowstone, "fuel_glowstone must be registered");
         assertEquals(1, glowstone.packetCount);
         assertEquals(1, glowstone.baseNeutrons);
         assertEquals(200.0, glowstone.peakReactivityTemp, 1e-3);
         assertEquals(2000.0, glowstone.floorTemp, 1e-3);
-        assertEquals("ItemList.DepletedRodGlowstone", glowstone.spentProduct);
+        assertEquals("gregtech:gt.depletedRodGlowstone", glowstone.spentProduct);
 
         assertNotNull(quadUranium, "fuel_uranium_4 must be registered");
         assertEquals(4, quadUranium.packetCount);
         assertEquals(16, quadUranium.baseNeutrons);
         assertEquals(770.0, quadUranium.peakReactivityTemp, 1e-3);
         assertEquals(2300.0, quadUranium.floorTemp, 1e-3);
-        assertEquals("ItemList.DepletedRodUranium4", quadUranium.spentProduct);
+        assertEquals("gregtech:gt.depletedRodUranium4", quadUranium.spentProduct);
 
         assertNotNull(theCore, "fuel_naquadah_32 must be registered");
         assertEquals(16, theCore.packetCount);
         assertEquals(512, theCore.baseNeutrons);
         assertEquals(2500.0, theCore.peakReactivityTemp, 1e-3);
         assertEquals(3200.0, theCore.floorTemp, 1e-3);
-        assertEquals("ItemList.DepletedRodNaquadah32", theCore.spentProduct);
+        assertEquals("gregtech:gt.depletedRodNaquadah32", theCore.spentProduct);
 
         // Test reactivity curve and damage calculations on FuelData
         assertEquals(0.50, quadUranium.calculateReactivity(0.0), 1e-3);
@@ -6795,24 +6723,30 @@ public class NuclearSimulationEngineTest {
     @Test
     void testBreederTargetDepletedProducts() {
         if (!gregtech.api.enums.ItemList.DepletedRodLithium.hasBeenSet()) {
-            gregtech.api.enums.ItemList.DepletedRodLithium.set(new ItemStack(Blocks.iron_block));
+            gregtech.api.enums.ItemList.DepletedRodLithium.set(TestItems.stack("gregtech:gt.depletedRodLithium"));
         }
         if (!gregtech.api.enums.ItemList.DepletedRodGlowstone.hasBeenSet()) {
-            gregtech.api.enums.ItemList.DepletedRodGlowstone.set(new ItemStack(Blocks.gold_block));
+            gregtech.api.enums.ItemList.DepletedRodGlowstone.set(TestItems.stack("gregtech:gt.depletedRodGlowstone"));
         }
         if (!gregtech.api.enums.ItemList.RodLithium.hasBeenSet()) {
-            gregtech.api.enums.ItemList.RodLithium.set(new ItemStack(Blocks.lapis_block));
+            gregtech.api.enums.ItemList.RodLithium.set(TestItems.stack("gregtech:gt.rodLithium"));
         }
         if (!gregtech.api.enums.ItemList.RodGlowstone.hasBeenSet()) {
-            gregtech.api.enums.ItemList.RodGlowstone.set(new ItemStack(Blocks.redstone_block));
+            gregtech.api.enums.ItemList.RodGlowstone.set(TestItems.stack("gregtech:gt.rodGlowstone"));
         }
 
-        // Test resolving ItemList names via ReactorDataRegistry
-        ItemStack depLithium = ReactorDataRegistry.resolveItemStack("ItemList.DepletedRodLithium");
-        assertNotNull(depLithium, "ItemList.DepletedRodLithium must resolve");
+        // Test resolving the spent products' registry names via ReactorDataRegistry
+        ItemStack depLithium = ReactorDataRegistry.resolveItemStack("gregtech:gt.depletedRodLithium");
+        assertNotNull(depLithium, "gregtech:gt.depletedRodLithium must resolve");
+        assertTrue(gregtech.api.enums.ItemList.DepletedRodLithium.isStackEqual(depLithium, false, true));
 
-        ItemStack depGlowstone = ReactorDataRegistry.resolveItemStack("ItemList.DepletedRodGlowstone");
-        assertNotNull(depGlowstone, "ItemList.DepletedRodGlowstone must resolve");
+        ItemStack depGlowstone = ReactorDataRegistry.resolveItemStack("gregtech:gt.depletedRodGlowstone");
+        assertNotNull(depGlowstone, "gregtech:gt.depletedRodGlowstone must resolve");
+        assertTrue(gregtech.api.enums.ItemList.DepletedRodGlowstone.isStackEqual(depGlowstone, false, true));
+
+        // ItemList enum names are not config identifiers
+        assertNull(ReactorDataRegistry.resolveItemStack("ItemList.DepletedRodLithium"));
+        assertNull(ReactorDataRegistry.resolveItemStack("DepletedRodLithium"));
 
         // Test getItemDepletedForm for Lithium and Glowstone rods
         ItemStack activeLithium = gregtech.api.enums.ItemList.RodLithium.get(1L);
@@ -7096,10 +7030,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(0.0, bus.getStoredWignerEnergy(), 1e-4);
 
         // Insert graphite long rod
-        net.minecraft.item.Item mockGraphiteRodItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockGraphiteRodItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("item.stickLongGraphite");
-        ItemStack graphiteRod = new ItemStack(mockGraphiteRodItem, 1, 0);
+        ItemStack graphiteRod = TestItems.ore("stickLongGraphite");
         bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = graphiteRod;
 
         bus.addWignerEnergy(7000.0);
@@ -7130,10 +7061,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(9000.0, graphiteRod.stackTagCompound.getDouble("wignerEnergy"), 1e-4);
 
         // Beryllium rod in bus does not store Wigner energy
-        net.minecraft.item.Item mockBerylliumRodItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockBerylliumRodItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("item.stickLongBeryllium");
-        ItemStack berylliumRod = new ItemStack(mockBerylliumRodItem, 1, 0);
+        ItemStack berylliumRod = TestItems.ore("stickLongBeryllium");
         bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = berylliumRod;
         bus.addWignerEnergy(5000.0);
         assertEquals(0.0, bus.getStoredWignerEnergy(), 1e-4);
@@ -7300,10 +7228,7 @@ public class NuclearSimulationEngineTest {
         ReactorDataRegistry.loadDefaults();
 
         // 1. High Density Uranium quad rod must match fuel_hd_uranium_4, NOT generic fuel_uranium_1 or fuel_uranium_4
-        net.minecraft.item.Item hdUraniumItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(hdUraniumItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("gt.rodHighDensityUranium4");
-        ItemStack hdUraniumStack = new ItemStack(hdUraniumItem, 1, 0);
+        ItemStack hdUraniumStack = TestItems.stack("gregtech:gt.rodHighDensityUranium4");
 
         FuelData hdUraniumData = ReactorDataRegistry.findFuel(hdUraniumStack);
         assertNotNull(hdUraniumData, "High Density Uranium must be recognized as fuel");
@@ -7315,10 +7240,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(1.80, hdUraniumData.thermalFissionMultiplier, 1e-4);
 
         // 2. Excited Uranium single rod must match fuel_excited_uranium_1, NOT fuel_uranium_1
-        net.minecraft.item.Item excitedUraniumItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(excitedUraniumItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("gt.rodExcitedUranium");
-        ItemStack excitedUraniumStack = new ItemStack(excitedUraniumItem, 1, 0);
+        ItemStack excitedUraniumStack = TestItems.stack("gregtech:gt.rodExcitedUranium");
 
         FuelData excitedUraniumData = ReactorDataRegistry.findFuel(excitedUraniumStack);
         assertNotNull(excitedUraniumData, "Excited Uranium must be recognized as fuel");
@@ -7330,10 +7252,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(2.50, excitedUraniumData.thermalFissionMultiplier, 1e-4);
 
         // 3. The Core (Naquadah-32) must match fuel_naquadah_32, NOT fuel_naquadah_1
-        net.minecraft.item.Item naq32Item = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(naq32Item.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("gt.rodNaquadah32");
-        ItemStack naq32Stack = new ItemStack(naq32Item, 1, 0);
+        ItemStack naq32Stack = TestItems.stack("gregtech:gt.rodNaquadah32");
 
         FuelData naq32Data = ReactorDataRegistry.findFuel(naq32Stack);
         assertNotNull(naq32Data, "The Core must be recognized as fuel");
@@ -7345,10 +7264,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(5.50, naq32Data.thermalFissionMultiplier, 1e-4);
 
         // 4. Plain Uranium rod must match fuel_uranium_1
-        net.minecraft.item.Item plainUraniumItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(plainUraniumItem.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("gt.rodUranium");
-        ItemStack plainUraniumStack = new ItemStack(plainUraniumItem, 1, 0);
+        ItemStack plainUraniumStack = TestItems.stack("gregtech:gt.rodUranium");
 
         FuelData plainUraniumData = ReactorDataRegistry.findFuel(plainUraniumStack);
         assertNotNull(plainUraniumData, "Plain Uranium must be recognized as fuel");
@@ -7374,9 +7290,7 @@ public class NuclearSimulationEngineTest {
             .mock(net.minecraftforge.fluids.FluidStack.class);
         net.minecraftforge.fluids.Fluid mockFluid = org.mockito.Mockito.mock(net.minecraftforge.fluids.Fluid.class);
         org.mockito.Mockito.when(mockFluid.getName())
-            .thenReturn("thoriumbasedliquidfueldepleted");
-        org.mockito.Mockito.when(mockFluid.getUnlocalizedName())
-            .thenReturn("fluid.thoriumbasedliquidfueldepleted");
+            .thenReturn("thorium based liquid fuel (depleted)");
         org.mockito.Mockito.when(depletedFluidStack.getFluid())
             .thenReturn(mockFluid);
         assertFalse(
@@ -7384,69 +7298,45 @@ public class NuclearSimulationEngineTest {
             "Depleted liquid fuel must never be classified as active fluid fuel");
 
         // 7. Non-rod silver items (e.g. silver ingot or plate) must not be matched as control rods
-        net.minecraft.item.Item mockSilverIngot = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockSilverIngot.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("item.ingotSilver");
-        ItemStack silverIngotStack = new ItemStack(mockSilverIngot, 1, 0);
+        ItemStack silverIngotStack = TestItems.ore("ingotSilver");
         assertNull(
             ReactorDataRegistry.findControlRod(silverIngotStack),
             "Silver ingot must not be classified as a control rod (wildcards eliminated)");
 
         // 8. Moderators must strictly require long rods only (blocks, plates, dusts, and short rods rejected)
-        net.minecraft.item.Item mockGraphiteBlock = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockGraphiteBlock.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("tile.blockGraphite");
-        ItemStack graphiteBlockStack = new ItemStack(mockGraphiteBlock, 1, 0);
+        ItemStack graphiteBlockStack = TestItems.ore("blockGraphite");
         assertNull(
             ReactorDataRegistry.findModerator(graphiteBlockStack),
             "Graphite block must be rejected as a moderator (only long rods accepted)");
 
-        net.minecraft.item.Item mockCarbonPlate = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockCarbonPlate.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("item.plateCarbon");
-        ItemStack carbonPlateStack = new ItemStack(mockCarbonPlate, 1, 0);
+        ItemStack carbonPlateStack = TestItems.ore("plateCarbon");
         assertNull(
             ReactorDataRegistry.findModerator(carbonPlateStack),
             "Carbon plate must be rejected as a moderator (only long rods accepted)");
 
-        net.minecraft.item.Item mockBerylliumShortRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockBerylliumShortRod.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("item.rodBeryllium");
-        ItemStack berylliumShortRodStack = new ItemStack(mockBerylliumShortRod, 1, 0);
+        ItemStack berylliumShortRodStack = TestItems.ore("stickBeryllium");
         assertNull(
             ReactorDataRegistry.findModerator(berylliumShortRodStack),
             "Beryllium short rod must be rejected as a moderator (only long rods accepted)");
 
-        net.minecraft.item.Item mockGraphiteLongRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockGraphiteLongRod.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("item.stickLongGraphite");
-        ItemStack graphiteLongRodStack = new ItemStack(mockGraphiteLongRod, 1, 0);
+        ItemStack graphiteLongRodStack = TestItems.ore("stickLongGraphite");
         assertNotNull(
             ReactorDataRegistry.findModerator(graphiteLongRodStack),
             "Graphite long rod must be accepted as a moderator");
 
-        net.minecraft.item.Item mockCarbonLongRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockCarbonLongRod.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("item.stickLongCarbon");
-        ItemStack carbonLongRodStack = new ItemStack(mockCarbonLongRod, 1, 0);
+        ItemStack carbonLongRodStack = TestItems.ore("stickLongCarbon");
         assertNotNull(
             ReactorDataRegistry.findModerator(carbonLongRodStack),
             "Carbon long rod must be accepted as a moderator");
 
-        net.minecraft.item.Item mockBerylliumLongRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockBerylliumLongRod.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("item.stickLongBeryllium");
-        ItemStack berylliumLongRodStack = new ItemStack(mockBerylliumLongRod, 1, 0);
+        ItemStack berylliumLongRodStack = TestItems.ore("stickLongBeryllium");
         assertNotNull(
             ReactorDataRegistry.findModerator(berylliumLongRodStack),
             "Beryllium long rod must be accepted as a moderator");
 
         // 9. Reflectors: Gold, Stainless Steel, and Tungsten Carbide plates accepted; Beryllium and all blocks/rods
         // rejected
-        net.minecraft.item.Item mockGoldPlate = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockGoldPlate.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("item.plateGold");
-        ItemStack goldPlateStack = new ItemStack(mockGoldPlate, 1, 0);
+        ItemStack goldPlateStack = TestItems.ore("plateGold");
         ComponentData.ReflectorData goldRefl = ReactorDataRegistry.findReflector(goldPlateStack);
         assertNotNull(goldRefl, "Gold plate must be accepted as a reflector");
         assertEquals("reflector_gold", goldRefl.id);
@@ -7458,10 +7348,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(0.30, goldRefl.heatTransferCoeff, 1e-4);
         assertEquals(0, goldRefl.durability);
 
-        net.minecraft.item.Item mockStainlessPlate = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockStainlessPlate.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("item.plateStainlessSteel");
-        ItemStack stainlessPlateStack = new ItemStack(mockStainlessPlate, 1, 0);
+        ItemStack stainlessPlateStack = TestItems.ore("plateStainlessSteel");
         ComponentData.ReflectorData stainlessRefl = ReactorDataRegistry.findReflector(stainlessPlateStack);
         assertNotNull(stainlessRefl, "Stainless Steel plate must be accepted as a reflector");
         assertEquals("reflector_stainless_steel", stainlessRefl.id);
@@ -7473,10 +7360,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(0.20, stainlessRefl.heatTransferCoeff, 1e-4);
         assertEquals(0, stainlessRefl.durability);
 
-        net.minecraft.item.Item mockTcPlate = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockTcPlate.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("item.plateTungstenCarbide");
-        ItemStack tcPlateStack = new ItemStack(mockTcPlate, 1, 0);
+        ItemStack tcPlateStack = TestItems.ore("plateTungstenCarbide");
         ComponentData.ReflectorData tcRefl = ReactorDataRegistry.findReflector(tcPlateStack);
         assertNotNull(tcRefl, "Tungsten Carbide plate must be accepted as a reflector");
         assertEquals("reflector_tungsten_carbide", tcRefl.id);
@@ -7489,32 +7373,20 @@ public class NuclearSimulationEngineTest {
         assertEquals(0, tcRefl.durability);
 
         // Beryllium, blocks, and rods rejected
-        net.minecraft.item.Item mockBerylliumPlate = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockBerylliumPlate.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("item.plateBeryllium");
-        ItemStack berylliumPlateStack = new ItemStack(mockBerylliumPlate, 1, 0);
+        ItemStack berylliumPlateStack = TestItems.ore("plateBeryllium");
         assertNull(
             ReactorDataRegistry.findReflector(berylliumPlateStack),
             "Beryllium plate must be rejected as a reflector");
 
-        net.minecraft.item.Item mockBerylliumBlockRefl = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockBerylliumBlockRefl.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("tile.blockBeryllium");
-        ItemStack berylliumBlockStack = new ItemStack(mockBerylliumBlockRefl, 1, 0);
+        ItemStack berylliumBlockStack = TestItems.ore("blockBeryllium");
         assertNull(
             ReactorDataRegistry.findReflector(berylliumBlockStack),
             "Beryllium block must be rejected as a reflector");
 
-        net.minecraft.item.Item mockGoldBlock = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockGoldBlock.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("tile.blockGold");
-        ItemStack goldBlockStack = new ItemStack(mockGoldBlock, 1, 0);
+        ItemStack goldBlockStack = TestItems.ore("blockGold");
         assertNull(ReactorDataRegistry.findReflector(goldBlockStack), "Gold block must be rejected as a reflector");
 
-        net.minecraft.item.Item mockGoldRod = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(mockGoldRod.getUnlocalizedName(org.mockito.Mockito.any()))
-            .thenReturn("item.rodGold");
-        ItemStack goldRodStack = new ItemStack(mockGoldRod, 1, 0);
+        ItemStack goldRodStack = TestItems.ore("stickGold");
         assertNull(ReactorDataRegistry.findReflector(goldRodStack), "Gold rod must be rejected as a reflector");
     }
 
@@ -7971,12 +7843,12 @@ public class NuclearSimulationEngineTest {
             .thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
         reactor.setBaseMetaTileEntity(baseTe);
 
-        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("thoriumbasedliquidfuel")) {
+        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("thorium based liquid fuel")) {
             net.minecraftforge.fluids.FluidRegistry
-                .registerFluid(new net.minecraftforge.fluids.Fluid("thoriumbasedliquidfuel"));
+                .registerFluid(new net.minecraftforge.fluids.Fluid("thorium based liquid fuel"));
         }
         net.minecraftforge.fluids.Fluid liquidFuel = net.minecraftforge.fluids.FluidRegistry
-            .getFluid("thoriumbasedliquidfuel");
+            .getFluid("thorium based liquid fuel");
         net.minecraftforge.fluids.FluidStack liquidFuelStack = new net.minecraftforge.fluids.FluidStack(
             liquidFuel,
             1000);
@@ -8361,11 +8233,10 @@ public class NuclearSimulationEngineTest {
         assertNotNull(goldRefl);
         assertEquals(0, goldRefl.durability, "Pure reflector durability must default to 0 (infinite)");
 
-        net.minecraft.item.ItemStack dummyGold = org.mockito.Mockito.mock(net.minecraft.item.ItemStack.class);
-        net.minecraft.item.Item dummyItem = org.mockito.Mockito.mock(net.minecraft.item.Item.class);
-        org.mockito.Mockito.when(dummyGold.getItem())
-            .thenReturn(dummyItem);
-        assertFalse(NuclearFuelClassification.isReflectorAtMaxDamage(dummyGold));
+        net.minecraft.item.ItemStack goldPlate = TestItems.ore("plateGold");
+        assertFalse(NuclearFuelClassification.isReflectorAtMaxDamage(goldPlate));
+        net.minecraft.item.ItemStack dummy = new net.minecraft.item.ItemStack(Blocks.dirt);
+        assertFalse(NuclearFuelClassification.isReflectorAtMaxDamage(dummy));
 
         // 2. Radiovoltaic defaults and fields
         ComponentData.RadiovoltaicData rvHv = ReactorDataRegistry.getComponentData().radiovoltaics.get(0);
@@ -8384,7 +8255,7 @@ public class NuclearSimulationEngineTest {
 
         // 3. Platings are not admitted or recognized as reactor components
         assertFalse(
-            NuclearFuelClassification.isItemAllowedInBus(dummyGold, null),
+            NuclearFuelClassification.isItemAllowedInBus(dummy, null),
             "Dummy non-component must not be admitted");
 
         // 4. Heat vent and heat exchanger maxTemperature default = 0.0 and over-temperature voiding

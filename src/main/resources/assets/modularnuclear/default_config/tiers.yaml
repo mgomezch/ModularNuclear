@@ -17,7 +17,7 @@ tiers:
   allows_coolant_loops: false
   allowed_coolants:
   - ic2coolant
-  - distilledwater
+  - ic2distilledwater
 - tier: 2
   name: Tier 2 (LuV - Osmium)
   casing_material: Osmium Casing
@@ -27,7 +27,7 @@ tiers:
   allows_coolant_loops: true
   allowed_coolants:
   - ic2coolant
-  - distilledwater
+  - ic2distilledwater
 - tier: 3
   name: Tier 3 (ZPM - Quantium)
   casing_material: Quantium Casing
@@ -37,7 +37,7 @@ tiers:
   allows_coolant_loops: true
   allowed_coolants:
   - ic2coolant
-  - distilledwater
+  - ic2distilledwater
   - heavywater
 - tier: 4
   name: Tier 4 (UV - Fluxed)
@@ -46,8 +46,6 @@ tiers:
   max_operating_temp: 2600.0
   repair_temp_threshold: 520.0
   allows_coolant_loops: true
-  allowed_coolants:
-  - '*'
 - tier: 5
   name: Tier 5 (UHV - Black Plutonium)
   casing_material: Black Plutonium Casing
@@ -55,5 +53,3 @@ tiers:
   max_operating_temp: 3200.0
   repair_temp_threshold: 640.0
   allows_coolant_loops: true
-  allowed_coolants:
-  - '*'

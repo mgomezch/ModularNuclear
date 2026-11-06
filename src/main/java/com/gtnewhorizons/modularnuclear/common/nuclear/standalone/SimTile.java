@@ -507,33 +507,33 @@ public class SimTile implements INuclearTile {
         } else {
             switch (this.type) {
                 case HATCH_LIQUID_FUEL_URANIUM -> {
-                    this.inputFluidName = "uraniumbasedliquidfuel";
+                    this.inputFluidName = "uranium based liquid fuel";
                     this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
-                    this.outputFluidName = "depleteduraniumbasedliquidfuel";
+                    this.outputFluidName = "uranium based liquid fuel (depleted)";
                 }
                 case HATCH_LIQUID_FUEL_THORIUM -> {
-                    this.inputFluidName = "thoriumbasedliquidfuel";
+                    this.inputFluidName = "thorium based liquid fuel";
                     this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
-                    this.outputFluidName = "depletedthoriumbasedliquidfuel";
+                    this.outputFluidName = "thorium based liquid fuel (depleted)";
                 }
                 case HATCH_LIQUID_FUEL_PLUTONIUM -> {
-                    this.inputFluidName = "plutoniumbasedliquidfuel";
+                    this.inputFluidName = "plutonium based liquid fuel";
                     this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
-                    this.outputFluidName = "depletedplutoniumbasedliquidfuel";
+                    this.outputFluidName = "plutonium based liquid fuel (depleted)";
                 }
                 case HATCH_LIQUID_FUEL_URANIUM_EXCITED, HATCH_LIQUID_FUEL_THORIUM_EXCITED, HATCH_LIQUID_FUEL_PLUTONIUM_EXCITED -> {
                     String element = (this.type == TileType.HATCH_LIQUID_FUEL_URANIUM_EXCITED) ? "uranium"
                         : (this.type == TileType.HATCH_LIQUID_FUEL_THORIUM_EXCITED) ? "thorium" : "plutonium";
-                    this.inputFluidName = element + "basedliquidfuelexcited";
+                    this.inputFluidName = element + " based liquid fuel (excited state)";
                     this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
-                    this.outputFluidName = "depleted" + element + "basedliquidfuel";
+                    this.outputFluidName = element + " based liquid fuel (depleted)";
                 }
                 case HATCH_DISTILLED_WATER -> {
-                    this.inputFluidName = "distilledwater";
+                    this.inputFluidName = "ic2distilledwater";
                     this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "steam";

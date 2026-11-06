@@ -125,34 +125,6 @@ public class NuclearReactorGridWidgetTest {
         return new MTEHatchNuclearBus(name, 1, new String[0], null);
     }
 
-    private static class DummyFuelRodItem extends net.minecraft.item.Item {
-
-        public DummyFuelRodItem() {
-            this.maxStackSize = 64;
-            setUnlocalizedName("gregtech:gt.reactorUraniumSimple");
-        }
-
-        @Override
-        public String getUnlocalizedName() {
-            return "gregtech:gt.reactorUraniumSimple";
-        }
-
-        @Override
-        public String getUnlocalizedName(ItemStack stack) {
-            return "gregtech:gt.reactorUraniumSimple";
-        }
-
-        @Override
-        public int getItemStackLimit() {
-            return 64;
-        }
-
-        @Override
-        public int getItemStackLimit(ItemStack stack) {
-            return 64;
-        }
-    }
-
     private static class DummyEmptyCellItem extends net.minecraft.item.Item {
 
         public DummyEmptyCellItem() {
@@ -181,11 +153,10 @@ public class NuclearReactorGridWidgetTest {
         }
     }
 
-    private static final DummyFuelRodItem DUMMY_FUEL_ROD = new DummyFuelRodItem();
     private static final DummyEmptyCellItem DUMMY_EMPTY_CELL = new DummyEmptyCellItem();
 
     private ItemStack createValidFuelRod(int count) {
-        return new ItemStack(DUMMY_FUEL_ROD, count, 0);
+        return new ItemStack(TestItems.item("IC2:reactorUraniumSimple"), count, 0);
     }
 
     private ItemStack createEmptyCell(int count) {
@@ -455,8 +426,7 @@ public class NuclearReactorGridWidgetTest {
         assertNull(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD]);
 
         // Create a long rod item for Boron
-        net.minecraft.item.Item testRodItem = new net.minecraft.item.Item().setUnlocalizedName("stickLongBoron");
-        ItemStack boronRod = new ItemStack(testRodItem);
+        ItemStack boronRod = TestItems.ore("stickLongBoron");
         player.inventory.setItemStack(boronRod);
 
         // Click on the control rod cell

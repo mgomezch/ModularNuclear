@@ -471,7 +471,7 @@ public class NuclearSimulationEngine {
         if (reqTier < 0) return false;
         TierData td = configProvider.getTier(pipeTier);
         if (td != null && !td.allowedCoolants.isEmpty()) {
-            if (td.allowedCoolants.contains("*") || configProvider.matchesFluid(fluidName, td.allowedCoolants)) {
+            if (configProvider.matchesFluid(fluidName, td.allowedCoolants)) {
                 return true;
             }
         }

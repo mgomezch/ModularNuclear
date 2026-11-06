@@ -3,7 +3,6 @@ package com.gtnewhorizons.modularnuclear;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -27,24 +26,15 @@ public class AdvancedControlRodTest {
     }
 
     private ItemStack createMockControlRodItem() {
-        Item item = mock(Item.class);
-        when(item.getUnlocalizedName()).thenReturn("item.stickLongCadmium");
-        when(item.getUnlocalizedName(any())).thenReturn("item.stickLongCadmium");
-        return new ItemStack(item, 1, 0);
+        return TestItems.ore("stickLongCadmium");
     }
 
     private ItemStack createMockModeratorItem() {
-        Item item = mock(Item.class);
-        when(item.getUnlocalizedName()).thenReturn("item.stickLongGraphite");
-        when(item.getUnlocalizedName(any())).thenReturn("item.stickLongGraphite");
-        return new ItemStack(item, 1, 0);
+        return TestItems.ore("stickLongGraphite");
     }
 
     private ItemStack createMockFuelItem() {
-        Item item = mock(Item.class);
-        when(item.getUnlocalizedName()).thenReturn("item.fuelRodUranium");
-        when(item.getUnlocalizedName(any())).thenReturn("item.fuelRodUranium");
-        return new ItemStack(item, 1, 0);
+        return TestItems.stack("gregtech:gt.rodUranium");
     }
 
     private BaseMetaTileEntity createMockTileEntity(byte redstoneSignal) {

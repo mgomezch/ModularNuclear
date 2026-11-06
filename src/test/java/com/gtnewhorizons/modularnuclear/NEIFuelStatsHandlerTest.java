@@ -149,7 +149,7 @@ public class NEIFuelStatsHandlerTest {
         assertNotNull(thExcited);
         assertEquals("Thorium Based Liquid Fuel (Excited State)", thExcited.name);
         assertTrue(thExcited.isLiquid);
-        assertEquals("Thorium Based Liquid Fuel (Depleted)", thExcited.spentProduct);
+        assertEquals("thorium based liquid fuel (depleted)", thExcited.spentProduct);
 
         FuelData thStd = ReactorDataRegistry.getAllFuels()
             .stream()
@@ -159,7 +159,7 @@ public class NEIFuelStatsHandlerTest {
         assertNotNull(thStd);
         assertEquals("Thorium Based Liquid Fuel", thStd.name);
         assertTrue(thStd.isLiquid);
-        assertEquals("Thorium Based Liquid Fuel (Depleted)", thStd.spentProduct);
+        assertEquals("thorium based liquid fuel (depleted)", thStd.spentProduct);
 
         FuelData uHex = ReactorDataRegistry.getAllFuels()
             .stream()
@@ -173,7 +173,7 @@ public class NEIFuelStatsHandlerTest {
     }
 
     @Test
-    public void testFindFluidAndNormalization() {
+    public void testFindFluidIsExact() {
         // Register test fluids if not already registered
         if (FluidRegistry.getFluid("thorium based liquid fuel (excited state)") == null) {
             FluidRegistry.registerFluid(new Fluid("thorium based liquid fuel (excited state)"));
@@ -186,15 +186,16 @@ public class NEIFuelStatsHandlerTest {
         assertNotNull(ReactorDataRegistry.findFluid("thorium based liquid fuel (excited state)"));
         assertNotNull(ReactorDataRegistry.findFluid("molten.uraniumhexafluoride"));
 
-        // Test prefix variations
-        assertNotNull(ReactorDataRegistry.findFluid("uraniumhexafluoride"));
-        assertNotNull(ReactorDataRegistry.findFluid("fluid.molten.uraniumhexafluoride"));
+        // Prefix variations name nothing
+        assertNull(ReactorDataRegistry.findFluid("uraniumhexafluoride"));
+        assertNull(ReactorDataRegistry.findFluid("fluid.molten.uraniumhexafluoride"));
 
-        // Test normalized alphanumeric matches
-        assertNotNull(ReactorDataRegistry.findFluid("thoriumbasedliquidfuelexcited"));
-        assertNotNull(ReactorDataRegistry.findFluid("thoriumbasedliquidfuelexcitedstate"));
-        assertNotNull(ReactorDataRegistry.findFluid("Thorium-Based Liquid Fuel"));
-        assertNotNull(ReactorDataRegistry.findFluid("Excited Thorium-Based Liquid Fuel"));
+        // Normalized, recased or permuted names name nothing
+        assertNull(ReactorDataRegistry.findFluid("thoriumbasedliquidfuelexcited"));
+        assertNull(ReactorDataRegistry.findFluid("thoriumbasedliquidfuelexcitedstate"));
+        assertNull(ReactorDataRegistry.findFluid("Thorium Based Liquid Fuel (Excited State)"));
+        assertNull(ReactorDataRegistry.findFluid("Thorium-Based Liquid Fuel"));
+        assertNull(ReactorDataRegistry.findFluid("Excited Thorium-Based Liquid Fuel"));
     }
 
     @Test
@@ -206,13 +207,19 @@ public class NEIFuelStatsHandlerTest {
         assertNotNull(fTh);
         FluidStack fs = new FluidStack(fTh, 1000);
 
-        List<String> patterns = List.of(
+        List<String> names = List.of("thorium based liquid fuel (excited state)");
+        assertTrue(ReactorDataRegistry.matchesFluid(fs, names));
+        assertTrue(ReactorDataRegistry.matchesFluid(fTh, names));
+        assertTrue(ReactorDataRegistry.matchesFluid("thorium based liquid fuel (excited state)", names));
+
+        // Only the exact registry name matches: no recasing, normalization or prefix stripping
+        List<String> fuzzy = List.of(
             "Thorium Based Liquid Fuel (Excited State)",
             "thoriumbasedliquidfuelexcited",
             "fluid.thoriumbasedliquidfuelexcited");
-        assertTrue(ReactorDataRegistry.matchesFluid(fs, patterns));
-        assertTrue(ReactorDataRegistry.matchesFluid("thorium based liquid fuel (excited state)", patterns));
-        assertTrue(ReactorDataRegistry.matchesFluid("thoriumbasedliquidfuelexcited", patterns));
+        assertFalse(ReactorDataRegistry.matchesFluid(fs, fuzzy));
+        assertFalse(ReactorDataRegistry.matchesFluid("thorium based liquid fuel (excited state)", fuzzy));
+        assertFalse(ReactorDataRegistry.matchesFluid("thoriumbasedliquidfuelexcited", names));
     }
 
     @Test

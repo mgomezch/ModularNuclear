@@ -50,7 +50,6 @@ import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.enums.ItemList;
 import gregtech.api.util.GTUtility;
-import ic2.core.Ic2Items;
 
 /**
  * Data-driven registry managing YAML-configured reactor physics, multiblock tiers,
@@ -232,11 +231,9 @@ public final class ReactorDataRegistry {
     }
 
     private static void indexPattern(String pattern, java.util.function.LongConsumer consumer) {
-        if (pattern == null || pattern.isEmpty() || pattern.contains("*")) return;
+        if (pattern == null || pattern.isEmpty()) return;
         try {
-            String oreTarget = pattern.startsWith("ore:") ? pattern.substring(4)
-                : (pattern.startsWith("plate") || pattern.startsWith("dust") || pattern.startsWith("ingot")) ? pattern
-                    : null;
+            String oreTarget = pattern.startsWith(ORE_PREFIX) ? pattern.substring(ORE_PREFIX.length()) : null;
             if (oreTarget != null) {
                 List<ItemStack> ores = OreDictionary.getOres(oreTarget);
                 if (ores != null) {
@@ -764,361 +761,98 @@ public final class ReactorDataRegistry {
         return false;
     }
 
+    /**
+     * The item or fluid an exact config identifier names: {@code modid:name} or {@code modid:name:meta} (an item),
+     * {@code ore:name} (the first item of that ore dictionary name), or a fluid's registry name (its display stack).
+     * Null if it names nothing.
+     */
     public static ItemStack resolveItemStack(String identifier) {
-        if (identifier == null || identifier.trim()
-            .isEmpty()) return null;
-        String id = identifier.trim();
-
-        // 1. Try ItemList enum (e.g. "DepletedRodLithium" or "ItemList.DepletedRodLithium")
-        String itemListName = id.startsWith("ItemList.") ? id.substring("ItemList.".length()) : id;
-        try {
-            ItemList il = ItemList.valueOf(itemListName);
-            if (il != null && il.hasBeenSet()) {
-                ItemStack is = il.get(1L);
-                if (is != null) return is;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (identifier == null || identifier.isEmpty()) return null;
+        if (identifier.startsWith(ORE_PREFIX)) {
+            List<ItemStack> ores = OreDictionary.getOres(identifier.substring(ORE_PREFIX.length()));
+            if (ores.isEmpty()) return null;
+            ItemStack is = ores.get(0)
+                .copy();
+            is.stackSize = 1;
+            return is;
         }
-
-        // 2. Try OreDictionary (e.g. "ore:dustTritium")
-        if (id.startsWith("ore:")) {
-            try {
-                List<ItemStack> ores = OreDictionary.getOres(id.substring(4));
-                if (ores != null && !ores.isEmpty()) {
-                    ItemStack is = ores.get(0)
-                        .copy();
-                    is.stackSize = 1;
-                    return is;
-                }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+        String[] parts = identifier.split(":", -1);
+        if (parts.length == 2 || parts.length == 3) {
+            Item it = GameRegistry.findItem(parts[0], parts[1]);
+            if (it == null) return null;
+            int meta = parts.length == 3 ? parseMeta(parts[2]) : 0;
+            return meta < 0 ? null : new ItemStack(it, 1, meta);
         }
-
-        // 3. Try IC2 item by name (e.g. "IC2:reactorDepletedUraniumSimple")
-        if (id.toUpperCase()
-            .startsWith("IC2:")) {
-            String ic2Name = id.substring(4);
-            try {
-                java.lang.reflect.Field f = Ic2Items.class.getField(ic2Name);
-                Object val = f.get(null);
-                if (val instanceof ItemStack is) {
-                    ItemStack res = is.copy();
-                    res.stackSize = 1;
-                    return res;
-                }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
-            try {
-                ItemStack is = GameRegistry.findItemStack("IC2", ic2Name, 1);
-                if (is != null) return is;
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+        Fluid f = findFluid(identifier);
+        if (f != null && ItemList.Display_Fluid.hasBeenSet()) {
+            return GTUtility.getFluidDisplayStack(new FluidStack(f, 1000), false);
         }
-
-        // 4. Try GameRegistry (e.g. "modularnuclear:rodCustomDepletedFuel4", "minecraft:diamond", "modid:item:meta")
-        if (id.contains(":")) {
-            String[] parts = id.split(":");
-            if (parts.length >= 2) {
-                String modId = parts[0];
-                String name = parts[1];
-                int meta = 0;
-                if (parts.length >= 3) {
-                    try {
-                        meta = Integer.parseInt(parts[2]);
-                    } catch (NumberFormatException ignored) {}
-                }
-                try {
-                    Item it = GameRegistry.findItem(modId, name);
-                    if (it != null) {
-                        return new ItemStack(it, 1, meta);
-                    }
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
-                }
-            }
-        }
-
-        // 5. Try FluidRegistry (e.g. "fluid.distilledwater", "distilledwater", "Thorium Based Liquid Fuel")
-        try {
-            Fluid f = findFluid(id);
-            if (f != null && gregtech.api.enums.ItemList.Display_Fluid.hasBeenSet()) {
-                ItemStack is = GTUtility.getFluidDisplayStack(new FluidStack(f, 1000), false);
-                if (is != null) return is;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
-
         return null;
+    }
+
+    private static int parseMeta(String s) {
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
     }
 
     // =========================================================================
     // Pattern Matching Helpers
     // =========================================================================
 
-    public static boolean matchesPattern(String text, String pattern) {
-        return ReactorConfigData.matchesPattern(text, pattern);
-    }
-
-    public static boolean matchesItem(ItemStack stack, List<String> patterns) {
-        if (stack == null || patterns == null || patterns.isEmpty()) return false;
-
-        Item item = null;
-        try {
-            item = stack.getItem();
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
-
-        String unloc = null;
-        try {
-            unloc = stack.getUnlocalizedName();
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
-
-        String regName = null;
-        try {
-            if (item != null) {
-                GameRegistry.UniqueIdentifier uid = GameRegistry.findUniqueIdentifierFor(item);
-                if (uid != null) {
-                    regName = uid.modId + ":" + uid.name;
-                }
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
-
-        int[] oreIDs = null;
-        try {
-            oreIDs = OreDictionary.getOreIDs(stack);
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
-
-        int damage = 0;
-        try {
-            damage = stack.getItemDamage();
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
-
-        for (String pattern : patterns) {
-            if (pattern == null || pattern.isEmpty()) continue;
-
-            // 1. Exact Registry Name match ("gregtech:gt.rodUranium", "IC2:reactorUraniumSimple", or
-            // "modid:item:damage")
-            if (regName != null) {
-                if (regName.equalsIgnoreCase(pattern)) return true;
-                if ((regName + ":" + damage).equalsIgnoreCase(pattern)) return true;
-            }
-
-            // 2. Exact Unlocalized Name match ("gt.rodUranium", "item.super_uranium", etc.)
-            if (unloc != null) {
-                if (unloc.equalsIgnoreCase(pattern)) return true;
-                if (unloc.startsWith("item.") && unloc.substring(5)
-                    .equalsIgnoreCase(pattern)) return true;
-                if (unloc.startsWith("tile.") && unloc.substring(5)
-                    .equalsIgnoreCase(pattern)) return true;
-                if (pattern.startsWith("item.") && pattern.substring(5)
-                    .equalsIgnoreCase(unloc)) return true;
-                if (pattern.startsWith("tile.") && pattern.substring(5)
-                    .equalsIgnoreCase(unloc)) return true;
-            }
-
-            // 3. Exact OreDictionary match ("ore:plateBeryllium" or "plateBeryllium")
-            String oreTarget = pattern.startsWith("ore:") ? pattern.substring(4) : pattern;
-            if (oreIDs != null && oreIDs.length > 0) {
-                for (int id : oreIDs) {
-                    String oreName = OreDictionary.getOreName(id);
-                    if (oreName != null && oreName.equalsIgnoreCase(oreTarget)) return true;
-                }
-            }
-
-            // 4. Exact ItemList match (supports "ItemList.RodUranium" or enum name "RodUranium")
-            if (pattern.startsWith("ItemList.")) {
-                try {
-                    ItemList il = ItemList.valueOf(pattern.substring("ItemList.".length()));
-                    if (isItemListStack(il, stack)) {
-                        return true;
-                    }
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
-                }
-            } else if (!pattern.contains(":") && !pattern.contains(".") && !pattern.contains("*")) {
-                try {
-                    ItemList il = ItemList.valueOf(pattern);
-                    if (isItemListStack(il, stack)) {
-                        return true;
-                    }
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
-                }
-            }
-
-            // 5. Exact IC2 item match ("IC2:reactorUraniumSimple") via reflection / GameRegistry
-            if (pattern.toUpperCase()
-                .startsWith("IC2:")) {
-                String ic2Name = pattern.substring(4);
-                try {
-                    java.lang.reflect.Field f = Ic2Items.class.getField(ic2Name);
-                    Object val = f.get(null);
-                    if (val instanceof ItemStack is && GTUtility.areStacksEqual(stack, is, true)) {
-                        return true;
-                    }
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
-                }
-                try {
-                    ItemStack is = GameRegistry.findItemStack("IC2", ic2Name, 1);
-                    if (is != null && GTUtility.areStacksEqual(stack, is, true)) {
-                        return true;
-                    }
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
-                }
-            }
-
-            // 6. Explicit Wildcard Fallback (only if pattern explicitly contains '*')
-            if (pattern.contains("*")) {
-                if (regName != null) {
-                    if (matchesPattern(regName, pattern)) return true;
-                    if (matchesPattern(regName + ":" + damage, pattern)) return true;
-                }
-                if (unloc != null && matchesPattern(unloc, pattern)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    public static String normalizeFluidString(String s) {
-        return ReactorConfigData.normalizeFluidString(s);
-    }
+    /** The prefix of an ore dictionary name in config. */
+    public static final String ORE_PREFIX = "ore:";
 
     /**
-     * Resolves a Forge Fluid by exact name, unlocalized name, localized name, or normalized name.
-     * Handles common prefixes ("fluid.", "molten.") and spacing/parentheses variations.
+     * Whether a config item identifier names this stack, exactly: {@code ore:name} (the stack has that ore dictionary
+     * name), {@code modid:name} (that item, any meta) or {@code modid:name:meta}. Names are case-sensitive, as the
+     * registries are.
      */
-    public static Fluid findFluid(String query) {
-        if (query == null || query.trim()
-            .isEmpty()) return null;
-        String q = query.trim();
-        try {
-            // 1. Direct registry lookup
-            Fluid fluid = FluidRegistry.getFluid(q);
-            if (fluid != null) return fluid;
-
-            // 2. Prefix variations (fluid. and molten.)
-            if (q.startsWith("fluid.")) {
-                fluid = FluidRegistry.getFluid(q.substring(6));
-                if (fluid != null) return fluid;
-            } else {
-                fluid = FluidRegistry.getFluid("fluid." + q);
-                if (fluid != null) return fluid;
+    public static boolean matchesItem(ItemStack stack, String identifier) {
+        if (stack == null || identifier == null || stack.getItem() == null) return false;
+        if (identifier.startsWith(ORE_PREFIX)) {
+            String ore = identifier.substring(ORE_PREFIX.length());
+            for (int id : OreDictionary.getOreIDs(stack)) {
+                if (ore.equals(OreDictionary.getOreName(id))) return true;
             }
-
-            if (q.startsWith("molten.")) {
-                fluid = FluidRegistry.getFluid(q.substring(7));
-                if (fluid != null) return fluid;
-            } else {
-                fluid = FluidRegistry.getFluid("molten." + q);
-                if (fluid != null) return fluid;
-            }
-
-            // 3. Scan registered fluids
-            Map<String, Fluid> registered = FluidRegistry.getRegisteredFluids();
-            if (registered != null && !registered.isEmpty()) {
-                // 3a. Case-insensitive exact match against registered key, unlocalizedName, or localizedName
-                for (Map.Entry<String, Fluid> entry : registered.entrySet()) {
-                    if (entry.getKey()
-                        .equalsIgnoreCase(q)) return entry.getValue();
-                    Fluid f = entry.getValue();
-                    if (f != null) {
-                        String unloc = f.getUnlocalizedName();
-                        if (unloc != null) {
-                            if (unloc.equalsIgnoreCase(q)) return f;
-                            if (unloc.startsWith("fluid.") && unloc.substring(6)
-                                .equalsIgnoreCase(q)) return f;
-                            if (q.startsWith("fluid.") && q.substring(6)
-                                .equalsIgnoreCase(unloc)) return f;
-                        }
-                        try {
-                            String loc = f.getLocalizedName(new FluidStack(f, 1000));
-                            if (loc != null && loc.equalsIgnoreCase(q)) return f;
-                        } catch (Throwable swallowed) {
-                            Swallowed.note(swallowed);
-                        }
-                    }
-                }
-
-                // 3b. Normalized alphanumeric comparison (ignoring spaces, punctuation, prefixes)
-                String normQ = normalizeFluidString(q);
-                if (!normQ.isEmpty()) {
-                    for (Map.Entry<String, Fluid> entry : registered.entrySet()) {
-                        String normKey = normalizeFluidString(entry.getKey());
-                        if (ReactorConfigData.matchesPermutedDescriptors(normKey, normQ)) return entry.getValue();
-                        Fluid f = entry.getValue();
-                        if (f != null) {
-                            String normUnloc = normalizeFluidString(f.getUnlocalizedName());
-                            if (ReactorConfigData.matchesPermutedDescriptors(normUnloc, normQ)) return f;
-                            try {
-                                String loc = f.getLocalizedName(new FluidStack(f, 1000));
-                                if (loc != null
-                                    && ReactorConfigData.matchesPermutedDescriptors(normalizeFluidString(loc), normQ))
-                                    return f;
-                            } catch (Throwable swallowed) {
-                                Swallowed.note(swallowed);
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+            return false;
         }
-        return null;
+        int colon = identifier.indexOf(':');
+        if (colon < 0) return false;
+        int metaColon = identifier.indexOf(':', colon + 1);
+        // "modid:name", or null for an item that is not registered
+        String registryName = Item.itemRegistry.getNameForObject(stack.getItem());
+        if (registryName == null) return false;
+        if (metaColon < 0) return identifier.equals(registryName);
+        return identifier.startsWith(registryName) && metaColon == registryName.length()
+            && parseMeta(identifier.substring(metaColon + 1)) == stack.getItemDamage();
     }
 
-    public static boolean matchesFluid(FluidStack fluid, List<String> patterns) {
-        return fluid != null && matchesFluid(fluid.getFluid(), patterns);
-    }
-
-    public static boolean matchesFluid(Fluid fluid, List<String> patterns) {
-        if (fluid == null || patterns == null || patterns.isEmpty()) return false;
-        String name = fluid.getName();
-        String unloc = fluid.getUnlocalizedName();
-        String normName = normalizeFluidString(name);
-        String normUnloc = normalizeFluidString(unloc);
-        for (String pattern : patterns) {
-            if (pattern == null || pattern.isEmpty()) continue;
-            if (name != null && name.equalsIgnoreCase(pattern)) return true;
-            if (unloc != null) {
-                if (unloc.equalsIgnoreCase(pattern)) return true;
-                if (unloc.startsWith("fluid.") && unloc.substring(6)
-                    .equalsIgnoreCase(pattern)) return true;
-                if (pattern.startsWith("fluid.") && pattern.substring(6)
-                    .equalsIgnoreCase(unloc)) return true;
-            }
-            if (pattern.contains("*")) {
-                if (matchesPattern(name, pattern)) return true;
-                if (unloc != null && matchesPattern(unloc, pattern)) return true;
-            }
-            String normPattern = normalizeFluidString(pattern);
-            if (!normPattern.isEmpty()) {
-                if (ReactorConfigData.matchesPermutedDescriptors(normName, normPattern)
-                    || ReactorConfigData.matchesPermutedDescriptors(normUnloc, normPattern)) return true;
-            }
+    public static boolean matchesItem(ItemStack stack, List<String> identifiers) {
+        if (stack == null || identifiers == null) return false;
+        for (String id : identifiers) {
+            if (matchesItem(stack, id)) return true;
         }
         return false;
     }
 
-    public static boolean matchesFluid(String fluidName, List<String> patterns) {
-        return ReactorConfigData.matchesFluid(fluidName, patterns);
+    /** The fluid with exactly this registry name, or null. */
+    public static Fluid findFluid(String name) {
+        return name == null ? null : FluidRegistry.getFluid(name);
+    }
+
+    public static boolean matchesFluid(FluidStack fluid, List<String> names) {
+        return fluid != null && matchesFluid(fluid.getFluid(), names);
+    }
+
+    /** Whether one of the names is exactly this fluid's registry name. */
+    public static boolean matchesFluid(Fluid fluid, List<String> names) {
+        return fluid != null && matchesFluid(fluid.getName(), names);
+    }
+
+    public static boolean matchesFluid(String fluidName, List<String> names) {
+        return ReactorConfigData.matchesFluid(fluidName, names);
     }
 }
