@@ -1410,6 +1410,18 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
     }
 
+    /** How a part of {@link #stepCoolantLoop} ended: carry on with the step, or end it as done or failed. */
+    private enum Step {
+
+        CARRY_ON,
+        DONE,
+        FAILED;
+
+        static Step of(boolean done) {
+            return done ? DONE : FAILED;
+        }
+    }
+
     public boolean stepCoolantLoop() {
         if (!mLoopFormed || mEngine.getSegments()
             .isEmpty()) {
@@ -1476,8 +1488,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
         // Validate fluid in reservoir / loop: liquid nuclear fuel fails pump and destroys impeller immediately!
         FluidStack reservoirFluid = getReservoirFluid();
-        Boolean refuseUnsuitableFluidResult = refuseUnsuitableFluid(reservoirFluid);
-        if (refuseUnsuitableFluidResult != null) return refuseUnsuitableFluidResult;
+        Step refuseUnsuitableFluidResult = refuseUnsuitableFluid(reservoirFluid);
+        if (refuseUnsuitableFluidResult != Step.CARRY_ON) return refuseUnsuitableFluidResult == Step.DONE;
 
         // Validate molten fluid temperature
         CoolantFluidProperty currentProp = mEngine.getFluid();
@@ -1495,8 +1507,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         boolean isLavaNether = ((reservoirFluid != null && isLava(reservoirFluid))
             || (currentProp != null && currentProp.isLava())) && isNetherWorld(loopWorld);
 
-        Boolean checkMoltenCoolantResult = checkMoltenCoolant(reservoirFluid, currentProp, isMolten, isLavaNether);
-        if (checkMoltenCoolantResult != null) return checkMoltenCoolantResult;
+        Step checkMoltenCoolantResult = checkMoltenCoolant(reservoirFluid, currentProp, isMolten, isLavaNether);
+        if (checkMoltenCoolantResult != Step.CARRY_ON) return checkMoltenCoolantResult == Step.DONE;
 
         // Require valid turbine rotor impeller in controller slot
         if (!updateRotorEfficiency()) {
@@ -1519,14 +1531,14 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
         // Check if high-pressure output hatch is disabled by machine controller cover
         boolean dischargeDisabled = isDischargeHatchDisabled();
-        Boolean stepWithDischargeDisabledResult = stepWithDischargeDisabled(baseTE, dischargeDisabled);
-        if (stepWithDischargeDisabledResult != null) return stepWithDischargeDisabledResult;
+        Step stepWithDischargeDisabledResult = stepWithDischargeDisabled(baseTE, dischargeDisabled);
+        if (stepWithDischargeDisabledResult != Step.CARRY_ON) return stepWithDischargeDisabledResult == Step.DONE;
 
         mEngine.setBraking(false);
 
         // Initial Loop Filling Phase (when hatch is enabled)
-        Boolean stepFillingResult = stepFilling(baseTE, reservoirFluid, currentProp);
-        if (stepFillingResult != null) return stepFillingResult;
+        Step stepFillingResult = stepFilling(baseTE, reservoirFluid, currentProp);
+        if (stepFillingResult != Step.CARRY_ON) return stepFillingResult == Step.DONE;
 
         // Active Circulation Phase
         checkMaintenance();
@@ -1611,10 +1623,10 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     }
 
     /**
-     * Refuses liquid fuel (which destroys the impeller), plain water, gases, and lava outside the Nether. Returns the
-     * step's result, or null to carry on.
+     * Refuses liquid fuel (which destroys the impeller), plain water, gases, and lava outside the Nether. Returns
+     * CARRY_ON to carry on with the step.
      */
-    private Boolean refuseUnsuitableFluid(FluidStack reservoirFluid) {
+    private Step refuseUnsuitableFluid(FluidStack reservoirFluid) {
         if (mCurrentFillLiters <= 0 && getTotalCoolantLiters() <= 0) {
             // Nothing in the tank or the loop: the pump waits for coolant
             mLoopState = LoopState.STOPPED;
@@ -1622,14 +1634,14 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             mEngine.setPumpMechanicalPowerWatts(0.0);
             mEngine.setBraking(false);
             setLoopStatusKey("coolantloops.pump.status.tank_empty");
-            return true;
+            return Step.DONE;
         }
         if (reservoirFluid != null && reservoirFluid.getFluid() != null) {
             if (isLiquidNuclearFuel(reservoirFluid)) {
                 failOnLiquidNuclearFuel(
                     reservoirFluid.getFluid()
                         .getName());
-                return stepCoastingAndCheckRupture();
+                return Step.of(stepCoastingAndCheckRupture());
             }
             if (isPlainRegularWater(reservoirFluid)) {
                 mLoopState = LoopState.STOPPED;
@@ -1637,7 +1649,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 mEngine.setPumpMechanicalPowerWatts(0.0);
                 mEngine.setBraking(false);
                 setLoopStatusKey("coolantloops.pump.status.refuse_water");
-                return true;
+                return Step.DONE;
             }
             if (isGaseousFluid(reservoirFluid)) {
                 mLoopState = LoopState.STOPPED;
@@ -1648,7 +1660,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     "coolantloops.pump.status.refuse_gas",
                     reservoirFluid.getFluid()
                         .getName());
-                return true;
+                return Step.DONE;
             }
             if (isLava(reservoirFluid)) {
                 World world = getBaseMetaTileEntity() != null ? getBaseMetaTileEntity().getWorld() : null;
@@ -1658,7 +1670,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     mEngine.setPumpMechanicalPowerWatts(0.0);
                     mEngine.setBraking(false);
                     setLoopStatusKey("coolantloops.pump.status.refuse_lava");
-                    return true;
+                    return Step.DONE;
                 }
             }
         } else if (mEngine.getFluid() != null) {
@@ -1668,7 +1680,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 failOnLiquidNuclearFuel(
                     mEngine.getFluid()
                         .getFluidName());
-                return stepCoastingAndCheckRupture();
+                return Step.of(stepCoastingAndCheckRupture());
             }
             if (mEngine.getFluid()
                 .isPlainWater()) {
@@ -1677,7 +1689,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 mEngine.setPumpMechanicalPowerWatts(0.0);
                 mEngine.setBraking(false);
                 setLoopStatusKey("coolantloops.pump.status.refuse_water");
-                return true;
+                return Step.DONE;
             }
             if (mEngine.getFluid()
                 .isLava()) {
@@ -1688,18 +1700,18 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     mEngine.setPumpMechanicalPowerWatts(0.0);
                     mEngine.setBraking(false);
                     setLoopStatusKey("coolantloops.pump.status.refuse_lava");
-                    return true;
+                    return Step.DONE;
                 }
             }
         }
-        return null;
+        return Step.CARRY_ON;
     }
 
     /**
-     * A molten coolant must be at its melting point or hotter to fill or flow. Returns the step's result, or null to
-     * carry on.
+     * A molten coolant must be at its melting point or hotter to fill or flow. Returns CARRY_ON to carry on
+     * with the step.
      */
-    private Boolean checkMoltenCoolant(FluidStack reservoirFluid, CoolantFluidProperty currentProp, boolean isMolten,
+    private Step checkMoltenCoolant(FluidStack reservoirFluid, CoolantFluidProperty currentProp, boolean isMolten,
         boolean isLavaNether) {
         if (isMolten && !isLavaNether) {
             double declaredMelting = CoolantFluidHelper.getMeltingPointCelsius(
@@ -1721,7 +1733,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                             declaredMelting,
                             currentProp != null ? currentProp.getFluidName() : "molten fluid"));
                     triggerCatastrophicExplosion(mEngine.getFailureReason(), mEngine.getRupturedSegment());
-                    return false;
+                    return Step.FAILED;
                 }
             } else {
                 // Loop is empty (before initial fill): refuse to fill if the reservoir is below the melting point.
@@ -1744,18 +1756,18 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                         resTemp,
                         declaredMelting,
                         currentProp != null ? currentProp.getFluidName() : "molten fluid");
-                    return true;
+                    return Step.DONE;
                 }
             }
         }
-        return null;
+        return Step.CARRY_ON;
     }
 
     /**
-     * With the discharge hatch disabled by a cover the pump brakes the flow, then drains the loop. Returns the step's
-     * result, or null to carry on.
+     * With the discharge hatch disabled by a cover the pump brakes the flow, then drains the loop. Returns CARRY_ON
+     * to carry on with the step.
      */
-    private Boolean stepWithDischargeDisabled(IGregTechTileEntity baseTE, boolean dischargeDisabled) {
+    private Step stepWithDischargeDisabled(IGregTechTileEntity baseTE, boolean dischargeDisabled) {
         if (dischargeDisabled) {
             double flowRate = mEngine.getVolumetricFlowRate();
             if (flowRate > 1e-5) {
@@ -1765,7 +1777,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 long requiredEU = getRequiredPowerDrawEU();
                 boolean powered = drainEnergy(requiredEU);
                 if (!powered) {
-                    return triggerPowerfail();
+                    return Step.of(triggerPowerfail());
                 }
                 if (baseTE != null) {
                     baseTE.setActive(true);
@@ -1787,7 +1799,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
                 if (mEngine.isRuptured()) {
                     triggerCatastrophicExplosion(mEngine.getFailureReason(), mEngine.getRupturedSegment());
-                    return false;
+                    return Step.FAILED;
                 }
 
                 if (mEngine.getVolumetricFlowRate() <= 1e-5) {
@@ -1809,7 +1821,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                         mEngine.getFluid(),
                         b.segment);
                 }
-                return true;
+                return Step.DONE;
             } else {
                 // Phase B: Flow is zero, return fluid in loop back to reservoir
                 if (baseTE != null) {
@@ -1851,10 +1863,10 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     mLoopState = LoopState.EMPTY;
                     setLoopStatusKey("coolantloops.pump.status.flow_stopped_empty");
                 }
-                return true;
+                return Step.DONE;
             }
         }
-        return null;
+        return Step.CARRY_ON;
     }
 
     /** Pipes or devices the pump fills per second at least, however large they are. */
@@ -1879,16 +1891,15 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     }
 
     /**
-     * Fills the loop from the reservoir until it holds what its pipes and devices need. Returns the step's result, or
-     * null to carry on.
+     * Fills the loop from the reservoir until it holds what its pipes and devices need. Returns CARRY_ON to carry on
+     * with the step.
      */
-    private Boolean stepFilling(IGregTechTileEntity baseTE, FluidStack reservoirFluid,
-        CoolantFluidProperty currentProp) {
+    private Step stepFilling(IGregTechTileEntity baseTE, FluidStack reservoirFluid, CoolantFluidProperty currentProp) {
         if (mLoopState == LoopState.EMPTY || mLoopState == LoopState.DRAINING
             || mCurrentFillLiters < mRequiredFillLiters) {
             long requiredEU = getRequiredPowerDrawEU();
             if (!drainEnergy(requiredEU)) {
-                return triggerPowerfail();
+                return Step.of(triggerPowerfail());
             }
             if (baseTE != null) {
                 baseTE.setActive(true);
@@ -1936,9 +1947,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 mLoopState = LoopState.FAILED;
                 setLoopStatusKey("coolantloops.pump.status.filling_failed", mCurrentFillLiters, mRequiredFillLiters);
             }
-            return true;
+            return Step.DONE;
         }
-        return null;
+        return Step.CARRY_ON;
     }
 
     /** Triggers the catastrophic pump explosion and drains 80% of the fluid from the Railcraft tank. */
