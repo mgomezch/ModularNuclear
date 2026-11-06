@@ -9,6 +9,7 @@ import com.gtnewhorizons.modularnuclear.client.renderer.RenderEmpty;
 import com.gtnewhorizons.modularnuclear.common.CommonProxy;
 import com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.config.ConfigNameCheck;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopChunkLoader;
@@ -124,6 +125,7 @@ public class ModularNuclear {
             .loadRecipes();
         ReactorDataRegistry.preIndexKnownItems();
         NuclearFuelClassification.preIndexKeys();
+        ConfigNameCheck.warnUnmatched();
     }
 
     /**
