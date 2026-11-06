@@ -13,6 +13,7 @@ import javax.annotation.Nonnull;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Items;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -211,6 +212,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     // Telemetry
     public double mCachedAmbientTemp = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
+    private boolean mAmbientTempKnown;
     public double mCoreTemp = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     public double mAvgTemp = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     public double mReactorDamage = 0.0;
@@ -1241,7 +1243,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         updateNuclearTilesPipeTier();
 
-        mCachedAmbientTemp = getAmbientTemperature();
+        refreshAmbientTemperature();
         if (mScram) {
             for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
                 if (rod != null) {
@@ -1783,7 +1785,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             }
 
             if (aTick % 100 == 0) {
-                mCachedAmbientTemp = getAmbientTemperature();
+                refreshAmbientTemperature();
             }
 
             int tpc = getTicksPerCycle();
@@ -2412,6 +2414,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             this.mOutputCoolantName = data.outputCoolantName;
             this.mScram = data.scram;
             this.mCachedAmbientTemp = data.ambientTemp;
+            this.mAmbientTempKnown = true;
             this.mReactorDamage = data.reactorDamage;
         }
     }
@@ -2506,17 +2509,25 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (mSimulateComputerMonitorCover) return true;
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null) return false;
-        if (!ItemList.Cover_Screen.hasBeenSet()) return false;
-        ItemStack screenStack = ItemList.Cover_Screen.get(1L);
-        if (screenStack == null) return false;
+        if (screenCoverItem == null) {
+            if (!ItemList.Cover_Screen.hasBeenSet()) return false;
+            ItemStack screenStack = ItemList.Cover_Screen.get(1L);
+            if (screenStack == null) return false;
+            screenCoverMeta = screenStack.getItemDamage();
+            screenCoverItem = screenStack.getItem();
+        }
         for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
             ItemStack cover = base.getCoverItemAtSide(side);
-            if (cover != null && GTUtility.areStacksEqual(cover, screenStack, true)) {
+            if (cover != null && cover.getItem() == screenCoverItem && cover.getItemDamage() == screenCoverMeta) {
                 return true;
             }
         }
         return false;
     }
+
+    /** The computer monitor cover's item, resolved once instead of making a stack each cycle. */
+    private static Item screenCoverItem;
+    private static int screenCoverMeta;
 
     @Override
     public boolean allowCoverOnSide(ForgeDirection side, ItemStack coverItem) {
@@ -2702,15 +2713,21 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         return NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     }
 
+    /** The biome's temperature, read once and then refreshed every 100 ticks and on each structure check. */
     public double getAmbientTemperature() {
+        if (!mAmbientTempKnown) refreshAmbientTemperature();
+        return mCachedAmbientTemp;
+    }
+
+    public void refreshAmbientTemperature() {
         if (getBaseMetaTileEntity() != null && getBaseMetaTileEntity().getWorld() != null) {
             mCachedAmbientTemp = calculateAmbientTemperature(
                 getBaseMetaTileEntity().getWorld(),
                 getBaseMetaTileEntity().getXCoord(),
                 getBaseMetaTileEntity().getYCoord(),
                 getBaseMetaTileEntity().getZCoord());
+            mAmbientTempKnown = true;
         }
-        return mCachedAmbientTemp;
     }
 
     public int getRandomNumber(int max) {
