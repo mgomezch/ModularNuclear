@@ -220,7 +220,7 @@ public class CoolantPumpReservoir {
                     return Materials.Steel;
                 }
                 if (tankType instanceof mods.railcraft.common.blocks.machine.beta.IronTank) {
-                    return Materials.CastIron;
+                    return Materials.Iron;
                 }
                 if (tankType instanceof mods.railcraft.common.blocks.machine.tank.GenericMultiTankBase) {
                     String mat = ((mods.railcraft.common.blocks.machine.tank.GenericMultiTankBase) tankType).tankMaterial;
@@ -230,7 +230,7 @@ public class CoolantPumpReservoir {
                             case "steel":
                                 return Materials.Steel;
                             case "iron":
-                                return Materials.CastIron;
+                                return Materials.Iron;
                             case "stainless":
                                 return Materials.StainlessSteel;
                             case "titanium":
@@ -267,7 +267,7 @@ public class CoolantPumpReservoir {
             case "TileTankIron":
             case "TileIronTank":
             case "IronTank":
-                return Materials.CastIron;
+                return Materials.Iron;
             case "TileTankStainlessSteel":
             case "TileStainlessSteelTank":
             case "StainlessSteelTank":

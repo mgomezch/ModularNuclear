@@ -17,8 +17,7 @@ class CoolantPipingRegistryTest {
 
     @Test
     void testMaxPressureByMaterial() {
-        assertTrue(
-            CoolantPipingRegistry.getMaxPressureBar("CastIron") < CoolantPipingRegistry.getMaxPressureBar("Steel"));
+        assertTrue(CoolantPipingRegistry.getMaxPressureBar("Iron") < CoolantPipingRegistry.getMaxPressureBar("Steel"));
         assertTrue(
             CoolantPipingRegistry.getMaxPressureBar("Steel")
                 < CoolantPipingRegistry.getMaxPressureBar("StainlessSteel"));
@@ -34,7 +33,7 @@ class CoolantPipingRegistryTest {
         assertTrue(
             CoolantPipingRegistry.getMaxPressureBar("Osmium") < CoolantPipingRegistry.getMaxPressureBar("Neutronium"));
 
-        assertEquals(16.0, CoolantPipingRegistry.getMaxPressureBar("CastIron"), 0.1);
+        assertEquals(16.0, CoolantPipingRegistry.getMaxPressureBar("Iron"), 0.1);
         assertEquals(35.0, CoolantPipingRegistry.getMaxPressureBar("Steel"), 0.1);
         assertEquals(70.0, CoolantPipingRegistry.getMaxPressureBar("StainlessSteel"), 0.1);
         assertEquals(140.0, CoolantPipingRegistry.getMaxPressureBar("Titanium"), 0.1);

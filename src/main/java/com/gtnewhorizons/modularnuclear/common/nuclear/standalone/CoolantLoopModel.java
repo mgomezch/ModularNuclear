@@ -180,7 +180,7 @@ public class CoolantLoopModel {
     /** Pipe material of the loop (the coolant pipes the game registers for loops). */
     public enum LoopMaterial {
 
-        CAST_IRON("Cast Iron", "CastIron", "LV"),
+        IRON("Iron", "Iron", "LV"),
         STEEL("Steel", "Steel", "MV"),
         STAINLESS_STEEL("Stainless Steel", "StainlessSteel", "HV"),
         TITANIUM("Titanium", "Titanium", "EV"),
@@ -251,8 +251,8 @@ public class CoolantLoopModel {
             if (str == null) return TITANIUM;
             String s = WasmStrings.normalizeToken(str, " -");
             switch (s) {
-                case "CAST_IRON", "CASTIRON", "CAST", "IRON":
-                    return CAST_IRON;
+                case "IRON":
+                    return IRON;
                 case "STEEL":
                     return STEEL;
                 case "STAINLESS_STEEL", "STAINLESS", "STAINLESSSTEEL":

@@ -100,7 +100,7 @@ public class CoolantPumpStructureTest {
 
     @Test
     public void testTierToMaterialMapping() {
-        assertEquals(Materials.CastIron, MTECoolantPump.getMaterialForTier(0));
+        assertEquals(Materials.Iron, MTECoolantPump.getMaterialForTier(0));
         assertEquals(Materials.Steel, MTECoolantPump.getMaterialForTier(1));
         assertEquals(Materials.StainlessSteel, MTECoolantPump.getMaterialForTier(2));
         assertEquals(Materials.Titanium, MTECoolantPump.getMaterialForTier(3));
@@ -108,7 +108,7 @@ public class CoolantPumpStructureTest {
         assertEquals(Materials.Neutronium, MTECoolantPump.getMaterialForTier(5));
 
         // Fallbacks
-        assertEquals(Materials.CastIron, MTECoolantPump.getMaterialForTier(-1));
+        assertEquals(Materials.Iron, MTECoolantPump.getMaterialForTier(-1));
         assertEquals(Materials.Neutronium, MTECoolantPump.getMaterialForTier(10));
     }
 
@@ -118,9 +118,9 @@ public class CoolantPumpStructureTest {
         ItemStack triggerSteel = new ItemStack(net.minecraft.init.Items.stick, 2);
         assertEquals(Materials.Steel, MTECoolantPump.getMaterialFromTrigger(triggerSteel));
 
-        // Trigger with stackSize = 1 -> tier 0 -> CastIron
+        // Trigger with stackSize = 1 -> tier 0 -> Iron
         ItemStack triggerIron = new ItemStack(net.minecraft.init.Items.stick, 1);
-        assertEquals(Materials.CastIron, MTECoolantPump.getMaterialFromTrigger(triggerIron));
+        assertEquals(Materials.Iron, MTECoolantPump.getMaterialFromTrigger(triggerIron));
 
         // Trigger with stackSize = 3 -> tier 2 -> StainlessSteel
         ItemStack triggerStainless = new ItemStack(net.minecraft.init.Items.stick, 3);
@@ -198,11 +198,11 @@ public class CoolantPumpStructureTest {
 
     @Test
     public void testRailcraftTankItemResolution() {
-        assertNotNull(MTECoolantPump.getTankWallItem(Materials.CastIron));
+        assertNotNull(MTECoolantPump.getTankWallItem(Materials.Iron));
         assertNotNull(MTECoolantPump.getTankWallItem(Materials.Steel));
-        assertNotNull(MTECoolantPump.getTankValveItem(Materials.CastIron));
+        assertNotNull(MTECoolantPump.getTankValveItem(Materials.Iron));
         assertNotNull(MTECoolantPump.getTankValveItem(Materials.Steel));
-        assertNotNull(MTECoolantPump.getTankGaugeItem(Materials.CastIron));
+        assertNotNull(MTECoolantPump.getTankGaugeItem(Materials.Iron));
         assertNotNull(MTECoolantPump.getTankGaugeItem(Materials.Steel));
 
         assertNotNull(MTECoolantPump.getTankWallItem(Materials.StainlessSteel));

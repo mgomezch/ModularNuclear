@@ -1,8 +1,5 @@
 package com.gtnewhorizons.modularnuclear.common.coolantloop;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 
 import gregtech.api.enums.Materials;
@@ -34,23 +31,6 @@ public class CoolantPipingRegistry {
             this.maxTemperatureCelsius = maxTemperatureCelsius;
             this.frictionMultiplier = frictionMultiplier;
         }
-    }
-
-    private static final Map<String, Double> MATERIAL_PRESSURE_RATINGS_BAR = new HashMap<>();
-
-    static {
-        // Pressure ratings (in bar) strictly for allowed coolant pipe materials
-        MATERIAL_PRESSURE_RATINGS_BAR.put("castiron", 16.0);
-        MATERIAL_PRESSURE_RATINGS_BAR.put("iron", 16.0);
-        MATERIAL_PRESSURE_RATINGS_BAR.put("wroughtiron", 15.0);
-        MATERIAL_PRESSURE_RATINGS_BAR.put("steel", 35.0);
-        MATERIAL_PRESSURE_RATINGS_BAR.put("stainlesssteel", 70.0);
-        MATERIAL_PRESSURE_RATINGS_BAR.put("titanium", 140.0);
-        MATERIAL_PRESSURE_RATINGS_BAR.put("tungstensteel", 280.0);
-        MATERIAL_PRESSURE_RATINGS_BAR.put("osmium", 600.0);
-        MATERIAL_PRESSURE_RATINGS_BAR.put("neutronium", 3000.0);
-        MATERIAL_PRESSURE_RATINGS_BAR.put("draconiumawakened", 6000.0);
-        MATERIAL_PRESSURE_RATINGS_BAR.put("infinity", 12000.0);
     }
 
     /**
@@ -147,8 +127,8 @@ public class CoolantPipingRegistry {
     /**
      * Checks if a material is allowed for coolant loop piping and tanks.
      * Only materials with GregTech fluid pipes and a Railcraft tank a pump can use for them are allowed (pipes.yaml):
-     * Iron/Cast Iron/Wrought Iron, Steel, Stainless Steel, Titanium, TungstenSteel, Osmium, Neutronium, and Awakened
-     * Draconium and Infinity on neutronium tanks.
+     * Iron, Steel, Stainless Steel, Titanium, TungstenSteel, Osmium, Neutronium, and Awakened Draconium and Infinity on
+     * neutronium tanks.
      */
     public static boolean isAllowedCoolantPipeMaterial(String materialName) {
         if (materialName == null) return false;
@@ -171,8 +151,7 @@ public class CoolantPipingRegistry {
     }
 
     /**
-     * Checks if two materials are functionally identical for coolant loop material matching.
-     * Iron, Cast Iron, and Wrought Iron are treated as equivalent (Iron family).
+     * Checks if two materials are the same for coolant loop material matching (ignoring case, spaces, '_' and '-').
      */
     public static boolean areMaterialsEqual(String m1, String m2) {
         if (m1 == null || m2 == null) return false;
@@ -188,28 +167,12 @@ public class CoolantPipingRegistry {
             .replace(" ", "")
             .replace("_", "")
             .replace("-", "");
-        if (n1.equals(n2)) return true;
-        if (isIron(n1) && isIron(n2)) return true;
-        return false;
+        return n1.equals(n2);
     }
 
     public static boolean areMaterialsEqual(Materials m1, Materials m2) {
         if (m1 == null || m2 == null) return false;
         if (m1 == m2) return true;
         return areMaterialsEqual(m1.mName, m2.mName);
-    }
-
-    public static boolean isIron(String name) {
-        if (name == null) return false;
-        String n = name.toLowerCase()
-            .replace(" ", "")
-            .replace("_", "")
-            .replace("-", "");
-        return n.equals("iron") || n.equals("castiron") || n.equals("wroughtiron");
-    }
-
-    public static boolean isIron(Materials m) {
-        if (m == null) return false;
-        return isIron(m.mName);
     }
 }

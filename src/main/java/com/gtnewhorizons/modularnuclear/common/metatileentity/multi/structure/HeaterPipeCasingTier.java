@@ -23,7 +23,7 @@ import gregtech.common.blocks.BlockCasings11;
  */
 public enum HeaterPipeCasingTier {
 
-    TIN(1, 0, "Tin", Materials.Tin, Materials.CastIron, 1),
+    TIN(1, 0, "Tin", Materials.Tin, Materials.Iron, 1),
     BRASS(2, 1, "Brass", Materials.Brass, Materials.Steel, 2),
     ELECTRUM(3, 2, "Electrum", Materials.Electrum, Materials.StainlessSteel, 3),
     PLATINUM(4, 3, "Platinum", Materials.Platinum, Materials.Titanium, 4),

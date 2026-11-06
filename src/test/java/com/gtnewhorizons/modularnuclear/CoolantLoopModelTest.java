@@ -168,7 +168,7 @@ public class CoolantLoopModelTest {
     @Test
     void testOverpressureRupturesTheLoop() {
         attachCenterColumn();
-        loop.setMaterial(CoolantLoopModel.LoopMaterial.CAST_IRON);
+        loop.setMaterial(CoolantLoopModel.LoopMaterial.IRON);
         loop.setPipeSize(CoolantLoopModel.LoopPipeSize.TINY);
         loop.setHatchTier(CoolantLoopModel.EnergyHatchTier.UHV);
         loop.setPumpHatchCount(2);
@@ -176,7 +176,7 @@ public class CoolantLoopModelTest {
         for (int i = 0; i < 40 && !exploded; i++) {
             exploded = !grid.step();
         }
-        assertTrue(exploded && loop.isRuptured(), "a UHV pump on tiny cast iron pipes should burst them");
+        assertTrue(exploded && loop.isRuptured(), "a UHV pump on tiny iron pipes should burst them");
         assertTrue(
             loop.getRuptureReason()
                 .contains("burst"),
@@ -272,7 +272,7 @@ public class CoolantLoopModelTest {
         assertEquals(HeaterCasing.OSMIUM, HeaterCasing.forLoopMaterial("Osmium"));
         assertEquals(HeaterCasing.PLATINUM, HeaterCasing.forLoopMaterial("TungstenSteel"));
         assertEquals(HeaterCasing.BLACK_PLUTONIUM, HeaterCasing.forLoopMaterial("Infinity"));
-        assertEquals(HeaterCasing.TIN, HeaterCasing.forLoopMaterial("CastIron"));
+        assertEquals(HeaterCasing.TIN, HeaterCasing.forLoopMaterial("Iron"));
         assertEquals(HeaterCasing.FLUXED_ELECTRUM, HeaterCasing.fromString("fluxed electrum"));
     }
 
@@ -441,14 +441,14 @@ public class CoolantLoopModelTest {
         int tierLuV = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
         int tierZPM = NuclearSimulationEngine.PIPE_TIER_QUANTIUM;
 
-        assertFalse(CoolantLoopModel.LoopMaterial.CAST_IRON.isAllowedInReactorTier(tierEV));
+        assertFalse(CoolantLoopModel.LoopMaterial.IRON.isAllowedInReactorTier(tierEV));
         assertFalse(CoolantLoopModel.LoopMaterial.STEEL.isAllowedInReactorTier(tierEV));
-        assertFalse(CoolantLoopModel.LoopMaterial.CAST_IRON.isAllowedInReactorTier(tierIV));
+        assertFalse(CoolantLoopModel.LoopMaterial.IRON.isAllowedInReactorTier(tierIV));
         assertFalse(CoolantLoopModel.LoopMaterial.STEEL.isAllowedInReactorTier(tierIV));
         assertFalse(CoolantLoopModel.LoopMaterial.OSMIUM.isAllowedInReactorTier(tierIV));
 
         // In Osmium (LuV) and above, loop materials are physically allowed
-        assertTrue(CoolantLoopModel.LoopMaterial.CAST_IRON.isAllowedInReactorTier(tierLuV));
+        assertTrue(CoolantLoopModel.LoopMaterial.IRON.isAllowedInReactorTier(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.STEEL.isAllowedInReactorTier(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isAllowedInReactorTier(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isAllowedInReactorTier(tierLuV));
@@ -459,13 +459,13 @@ public class CoolantLoopModelTest {
             "Neutronium is physically allowed on LuV");
 
         // Progression appropriate check (for automated optimization searches):
-        assertFalse(CoolantLoopModel.LoopMaterial.CAST_IRON.isProgressionAppropriate(tierEV));
+        assertFalse(CoolantLoopModel.LoopMaterial.IRON.isProgressionAppropriate(tierEV));
         assertFalse(CoolantLoopModel.LoopMaterial.STEEL.isProgressionAppropriate(tierEV));
-        assertFalse(CoolantLoopModel.LoopMaterial.CAST_IRON.isProgressionAppropriate(tierIV));
+        assertFalse(CoolantLoopModel.LoopMaterial.IRON.isProgressionAppropriate(tierIV));
         assertFalse(CoolantLoopModel.LoopMaterial.STEEL.isProgressionAppropriate(tierIV));
 
         // In LuV, Osmium and below are progression-appropriate, but Neutronium is excluded
-        assertTrue(CoolantLoopModel.LoopMaterial.CAST_IRON.isProgressionAppropriate(tierLuV));
+        assertTrue(CoolantLoopModel.LoopMaterial.IRON.isProgressionAppropriate(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.STEEL.isProgressionAppropriate(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.STAINLESS_STEEL.isProgressionAppropriate(tierLuV));
         assertTrue(CoolantLoopModel.LoopMaterial.TITANIUM.isProgressionAppropriate(tierLuV));

@@ -24,7 +24,7 @@ public class CoolantPipeTankTest {
     void testPipesTakeTheirOwnMaterialsTank() {
         assertTrue(pipes.takesTank("Neutronium", "Neutronium"));
         assertTrue(pipes.takesTank("Osmium", "Osmium"));
-        assertTrue(pipes.takesTank("CastIron", "Iron"));
+        assertTrue(pipes.takesTank("Iron", "Iron"));
         assertFalse(pipes.takesTank("Osmium", "Neutronium"));
         assertFalse(pipes.takesTank("Neutronium", "TungstenSteel"));
     }

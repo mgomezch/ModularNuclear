@@ -91,7 +91,7 @@ public class CoolantLoopDataRegistryTest {
             fluids.getFluids()
                 .containsKey("lava"));
 
-        // Verify default pipes: strictly the chosen 7 coolant pipe materials (with iron/cast/wrought equivalents)
+        // Verify default pipes: strictly the 9 coolant pipe materials
         CoolantPipeData pipes = CoolantLoopDataRegistry.getPipeData();
         assertNotNull(pipes);
         assertEquals(
@@ -360,9 +360,8 @@ public class CoolantLoopDataRegistryTest {
         assertNotNull(CoolantFluidProperty.get("cheese"));
         assertNotNull(CoolantFluidProperty.get("lava"));
 
-        // Material compatibility must use configured materialFamilies
-        assertTrue(CoolantPipingRegistry.areMaterialsEqual("iron", "castiron"));
-        assertTrue(CoolantPipingRegistry.areMaterialsEqual("castiron", "wroughtiron"));
+        // Materials match only themselves
+        assertFalse(CoolantPipingRegistry.areMaterialsEqual("iron", "castiron"), "Cast iron is not iron");
         assertFalse(
             CoolantPipingRegistry.areMaterialsEqual("steel", "stainlesssteel"),
             "Steel and stainless steel are distinct");

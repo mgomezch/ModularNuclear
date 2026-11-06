@@ -53,7 +53,7 @@ public final class CliHelp {
             "  --auto-supply-fuel    Automatically replace spent fuel and replenish liquid fuel (default true)");
         System.out.println("  --no-auto-supply-fuel Disable automatic fuel replacement and replenishment");
         System.out.println(
-            "  --loop-material <mat> Coolant loop material: CAST_IRON, STEEL, STAINLESS_STEEL, TITANIUM, TUNGSTENSTEEL, OSMIUM,");
+            "  --loop-material <mat> Coolant loop material: IRON, STEEL, STAINLESS_STEEL, TITANIUM, TUNGSTENSTEEL, OSMIUM,");
         System.out.println("                        NEUTRONIUM, DRACONIUM_AWAKENED, INFINITY");
         System.out.println(
             "  --loop-size <size>    Coolant loop pipe size: TINY, SMALL, NORMAL, LARGE, HUGE (default NORMAL)");

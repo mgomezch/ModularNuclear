@@ -15,7 +15,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
  * Unit tests verifying the physical constraints:
  * 1. Material Matching: Railcraft tank and all pipes in a loop must use the same material
  * (restricted to materials having both GT fluid pipes and Railcraft tanks:
- * Iron/Cast Iron, Steel, Stainless Steel, Titanium, TungstenSteel, Neutronium).
+ * Iron, Steel, Stainless Steel, Titanium, TungstenSteel, Neutronium).
  * 2. Pipe Size Consistency: All pipe blocks in a segment between devices must use the same pipe size;
  * device input/output cannot change pipe size; only Manifolds can transition pipe sizes.
  * 3. Volumetric Flow Rate Cap: Fluid circulation rate is strictly capped by the fluid capacity
@@ -38,8 +38,6 @@ public class CoolantLoopConstraintsTest {
         // Materials with both GT fluid pipes and Railcraft tanks
         assertTrue(CoolantPipingRegistry.isAllowedCoolantPipeMaterial("Steel"));
         assertTrue(CoolantPipingRegistry.isAllowedCoolantPipeMaterial("Iron"));
-        assertTrue(CoolantPipingRegistry.isAllowedCoolantPipeMaterial("CastIron"));
-        assertTrue(CoolantPipingRegistry.isAllowedCoolantPipeMaterial("WroughtIron"));
         assertTrue(CoolantPipingRegistry.isAllowedCoolantPipeMaterial("StainlessSteel"));
         assertTrue(CoolantPipingRegistry.isAllowedCoolantPipeMaterial("Titanium"));
         assertTrue(CoolantPipingRegistry.isAllowedCoolantPipeMaterial("TungstenSteel"));
@@ -48,6 +46,8 @@ public class CoolantLoopConstraintsTest {
 
         // Materials without Railcraft tanks or without GT fluid pipes
         assertFalse(CoolantPipingRegistry.isAllowedCoolantPipeMaterial("Bronze"));
+        assertFalse(CoolantPipingRegistry.isAllowedCoolantPipeMaterial("CastIron")); // no RC tank: Railcraft's is iron
+        assertFalse(CoolantPipingRegistry.isAllowedCoolantPipeMaterial("WroughtIron"));
         assertFalse(CoolantPipingRegistry.isAllowedCoolantPipeMaterial("Copper"));
         assertFalse(CoolantPipingRegistry.isAllowedCoolantPipeMaterial("Wood"));
         assertFalse(CoolantPipingRegistry.isAllowedCoolantPipeMaterial("Aluminium")); // RC tank but no GT fluid pipe
@@ -62,10 +62,9 @@ public class CoolantLoopConstraintsTest {
         assertTrue(CoolantPipingRegistry.areMaterialsEqual("Steel", "Steel"));
         assertTrue(CoolantPipingRegistry.areMaterialsEqual("Steel", "steel"));
 
-        // Iron variations should all match each other
-        assertTrue(CoolantPipingRegistry.areMaterialsEqual("Iron", "CastIron"));
-        assertTrue(CoolantPipingRegistry.areMaterialsEqual("CastIron", "WroughtIron"));
-        assertTrue(CoolantPipingRegistry.areMaterialsEqual("Iron", "WroughtIron"));
+        // Iron is only iron
+        assertFalse(CoolantPipingRegistry.areMaterialsEqual("Iron", "CastIron"));
+        assertFalse(CoolantPipingRegistry.areMaterialsEqual("Iron", "WroughtIron"));
 
         // Other materials
         assertTrue(CoolantPipingRegistry.areMaterialsEqual("StainlessSteel", "StainlessSteel"));
@@ -74,7 +73,7 @@ public class CoolantLoopConstraintsTest {
         assertTrue(CoolantPipingRegistry.areMaterialsEqual("Neutronium", "Neutronium"));
 
         // Mismatches
-        assertFalse(CoolantPipingRegistry.areMaterialsEqual("Steel", "CastIron"));
+        assertFalse(CoolantPipingRegistry.areMaterialsEqual("Steel", "Iron"));
         assertFalse(CoolantPipingRegistry.areMaterialsEqual("Steel", "TungstenSteel"));
         assertFalse(CoolantPipingRegistry.areMaterialsEqual("Titanium", "StainlessSteel"));
         assertFalse(CoolantPipingRegistry.areMaterialsEqual("Steel", (String) null));

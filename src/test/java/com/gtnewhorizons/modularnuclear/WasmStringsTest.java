@@ -45,8 +45,12 @@ public class WasmStringsTest {
 
     @Test
     void testParsersStillAcceptSeparatorVariants() {
-        assertEquals(CoolantLoopModel.LoopMaterial.CAST_IRON, CoolantLoopModel.LoopMaterial.fromString("cast-iron"));
-        assertEquals(CoolantLoopModel.LoopMaterial.CAST_IRON, CoolantLoopModel.LoopMaterial.fromString("Cast Iron"));
+        assertEquals(
+            CoolantLoopModel.LoopMaterial.STAINLESS_STEEL,
+            CoolantLoopModel.LoopMaterial.fromString("stainless-steel"));
+        assertEquals(
+            CoolantLoopModel.LoopMaterial.STAINLESS_STEEL,
+            CoolantLoopModel.LoopMaterial.fromString("Stainless Steel"));
         assertEquals(
             CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP,
             CoolantLoopModel.CoolingMode.fromString("closed loop"));

@@ -4,9 +4,7 @@
 
 # Maximum burst pressure ratings in bar for pipe materials
 materialPressureRatingsBar:
-  castiron: 16.0
   iron: 16.0
-  wroughtiron: 15.0
   steel: 35.0
   stainlesssteel: 70.0
   titanium: 140.0
@@ -18,9 +16,7 @@ materialPressureRatingsBar:
 
 # Maximum operating temperature limits in degrees Celsius
 materialTemperatureLimitsCelsius:
-  castiron: 1538.0
   iron: 1538.0
-  wroughtiron: 1500.0
   steel: 1500.0
   stainlesssteel: 1700.0
   titanium: 1668.0
@@ -40,10 +36,8 @@ thicknessDiameters:
 
 # Materials permitted for closed coolant loops (each needs a Railcraft tank: its own material's, or per tankMaterials)
 allowedMaterials:
-  - "steel"
   - "iron"
-  - "castiron"
-  - "wroughtiron"
+  - "steel"
   - "stainlesssteel"
   - "titanium"
   - "tungstensteel"
@@ -58,19 +52,10 @@ tankMaterials:
   draconiumawakened: "neutronium"
   infinity: "neutronium"
 
-# Material equivalence families for loop continuity validation
-materialFamilies:
-  iron:
-    - "iron"
-    - "castiron"
-    - "wroughtiron"
-
 # Multiplier on each pipe block's pressure drop (Darcy friction and its fittings' minor loss), by material; 1 for a
 # material not listed. Long loops still cost flow, but better pipes let a loop reach its PHEs and pump further away.
 materialFrictionMultipliers:
-  castiron: 0.5
   iron: 0.5
-  wroughtiron: 0.5
   steel: 0.4
   stainlesssteel: 0.3
   titanium: 0.25

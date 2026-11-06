@@ -11,7 +11,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
  */
 public enum HeaterCasing {
 
-    TIN("castiron", -1, 1000.0),
+    TIN("iron", -1, 1000.0),
     BRASS("steel", -1, 1100.0),
     ELECTRUM("stainlesssteel", NuclearSimulationEngine.PIPE_TIER_ELECTRUM, 1200.0),
     PLATINUM("titanium", NuclearSimulationEngine.PIPE_TIER_PLATINUM, 1400.0),

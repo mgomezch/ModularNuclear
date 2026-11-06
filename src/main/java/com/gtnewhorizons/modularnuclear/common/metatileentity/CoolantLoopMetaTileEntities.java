@@ -49,7 +49,7 @@ public class CoolantLoopMetaTileEntities {
     /** How many materials the pipe block from COOLANT_PIPE_START_ID holds per size. */
     public static final int PACKED_PIPE_MATERIALS = 7;
 
-    public static final Materials[] COOLANT_PIPE_MATERIALS = new Materials[] { Materials.CastIron, Materials.Steel,
+    public static final Materials[] COOLANT_PIPE_MATERIALS = new Materials[] { Materials.Iron, Materials.Steel,
         Materials.StainlessSteel, Materials.Titanium, Materials.TungstenSteel, Materials.Osmium, Materials.Neutronium,
         Materials.DraconiumAwakened, Materials.Infinity };
 
@@ -128,9 +128,6 @@ public class CoolantLoopMetaTileEntities {
             if (COOLANT_PIPE_MATERIALS[i] == mat || COOLANT_PIPE_MATERIALS[i].mName.equalsIgnoreCase(mat.mName)) {
                 return i;
             }
-        }
-        if (mat == Materials.Iron || mat == Materials.WroughtIron) {
-            return 0; // CastIron/Iron group
         }
         return -1;
     }

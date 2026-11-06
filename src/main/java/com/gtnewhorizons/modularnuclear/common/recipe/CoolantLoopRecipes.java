@@ -73,7 +73,7 @@ public class CoolantLoopRecipes {
         OrePrefixes.pipeMedium, OrePrefixes.pipeLarge, OrePrefixes.pipeHuge };
 
     public static int getMaterialInsulationTier(Materials mat) {
-        if (mat == Materials.CastIron || mat == Materials.Steel) return 1;
+        if (mat == Materials.Iron || mat == Materials.Steel) return 1;
         if (mat == Materials.StainlessSteel) return 2;
         if (mat == Materials.Titanium) return 3;
         if (mat == Materials.TungstenSteel) return 4;
@@ -169,9 +169,6 @@ public class CoolantLoopRecipes {
             for (int s = 0; s < CoolantLoopMetaTileEntities.PIPE_THICKNESSES.length; s++) {
                 OrePrefixes prefix = PIPE_PREFIXES[s];
                 ItemStack originalPipe = GTOreDictUnificator.get(prefix, mat, 1L);
-                if (originalPipe == null && mat == Materials.CastIron) {
-                    originalPipe = GTOreDictUnificator.get(prefix, Materials.Iron, 1L);
-                }
                 ItemStack coolantPipe = CoolantLoopMetaTileEntities.coolantPipeItems[m][s];
 
                 if (originalPipe != null && insulation != null && coolantPipe != null) {
@@ -271,9 +268,6 @@ public class CoolantLoopRecipes {
             for (int s = 0; s < CoolantLoopMetaTileEntities.PIPE_THICKNESSES.length; s++) {
                 OrePrefixes prefix = PIPE_PREFIXES[s];
                 ItemStack originalPipe = GTOreDictUnificator.get(prefix, mat, 1L);
-                if (originalPipe == null && mat == Materials.CastIron) {
-                    originalPipe = GTOreDictUnificator.get(prefix, Materials.Iron, 1L);
-                }
                 ItemStack coolantPipe = CoolantLoopMetaTileEntities.coolantPipeItems[m][s];
 
                 if (originalPipe != null && insulation != null && coolantPipe != null) {

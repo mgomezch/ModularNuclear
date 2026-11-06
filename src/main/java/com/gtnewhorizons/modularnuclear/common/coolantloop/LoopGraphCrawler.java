@@ -312,10 +312,6 @@ public class LoopGraphCrawler {
         return CoolantPipingRegistry.areMaterialsEqual(m1, m2);
     }
 
-    public static boolean isIron(Materials m) {
-        return CoolantPipingRegistry.isIron(m);
-    }
-
     /**
      * Crawls the loop from a starting port (discharge) until returning to the target port (suction),
      * providing the active pump reference to multi-block passages.

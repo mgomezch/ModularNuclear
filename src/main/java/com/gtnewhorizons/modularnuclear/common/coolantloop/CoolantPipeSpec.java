@@ -7,7 +7,7 @@ package com.gtnewhorizons.modularnuclear.common.coolantloop;
 public final class CoolantPipeSpec {
 
     /** GregTech material names, in registration order. */
-    public static final String[] MATERIAL_NAMES = { "CastIron", "Steel", "StainlessSteel", "Titanium", "TungstenSteel",
+    public static final String[] MATERIAL_NAMES = { "Iron", "Steel", "StainlessSteel", "Titanium", "TungstenSteel",
         "Osmium", "Neutronium", "DraconiumAwakened", "Infinity" };
 
     /** Base capacity (L/t) of a medium pipe of each material. */

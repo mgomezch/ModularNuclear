@@ -40,7 +40,7 @@ public final class CoolantPumpStructure {
     public static Materials getMaterialForTier(int tier) {
         switch (tier) {
             case 0:
-                return Materials.CastIron;
+                return Materials.Iron;
             case 1:
                 return Materials.Steel;
             case 2:
@@ -52,7 +52,7 @@ public final class CoolantPumpStructure {
             case 5:
                 return Materials.Neutronium;
             default:
-                if (tier < 0) return Materials.CastIron;
+                if (tier < 0) return Materials.Iron;
                 return Materials.Neutronium;
         }
     }
@@ -125,7 +125,7 @@ public final class CoolantPumpStructure {
 
     public static ItemStack getTankWallItem(Materials mat) {
         try {
-            if (mat == Materials.CastIron && EnumMachineBeta.TANK_IRON_WALL != null) {
+            if (mat == Materials.Iron && EnumMachineBeta.TANK_IRON_WALL != null) {
                 return EnumMachineBeta.TANK_IRON_WALL.getItem();
             }
             if (mat == Materials.Steel && EnumMachineBeta.TANK_STEEL_WALL != null) {
@@ -162,7 +162,7 @@ public final class CoolantPumpStructure {
 
     public static ItemStack getTankValveItem(Materials mat) {
         try {
-            if (mat == Materials.CastIron && EnumMachineBeta.TANK_IRON_VALVE != null) {
+            if (mat == Materials.Iron && EnumMachineBeta.TANK_IRON_VALVE != null) {
                 return EnumMachineBeta.TANK_IRON_VALVE.getItem();
             }
             if (mat == Materials.Steel && EnumMachineBeta.TANK_STEEL_VALVE != null) {
@@ -199,7 +199,7 @@ public final class CoolantPumpStructure {
 
     public static ItemStack getTankGaugeItem(Materials mat) {
         try {
-            if (mat == Materials.CastIron && EnumMachineBeta.TANK_IRON_GAUGE != null) {
+            if (mat == Materials.Iron && EnumMachineBeta.TANK_IRON_GAUGE != null) {
                 return EnumMachineBeta.TANK_IRON_GAUGE.getItem();
             }
             if (mat == Materials.Steel && EnumMachineBeta.TANK_STEEL_GAUGE != null) {
