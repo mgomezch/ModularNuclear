@@ -40,10 +40,10 @@ public class CoolantLoopDataRegistry {
         }
 
         CoolantLoopConfigData.loadDefaults();
-        loadFile("physics.yaml", null, CoolantLoopConfigData::setPhysics);
-        loadFile("fluids.yaml", "coolants.yaml", CoolantLoopConfigData::setFluids);
-        loadFile("pipes.yaml", null, CoolantLoopConfigData::setPipes);
-        loadFile("devices.yaml", null, CoolantLoopConfigData::setDevices);
+        loadFile("physics.yaml", CoolantLoopConfigData::setPhysics);
+        loadFile("fluids.yaml", CoolantLoopConfigData::setFluids);
+        loadFile("pipes.yaml", CoolantLoopConfigData::setPipes);
+        loadFile("devices.yaml", CoolantLoopConfigData::setDevices);
         CoolantLoopConfigData.finishLoading();
         LOG.info("CoolantLoops YAML Data Registry initialized successfully.");
     }
@@ -60,12 +60,8 @@ public class CoolantLoopDataRegistry {
      * Loads one config document as UTF-8 and applies it, writing the shipped default first if the file is missing. A
      * file that cannot be read or applied stops loading.
      */
-    private static void loadFile(String name, String legacyName, Consumer<Object> applier) {
+    private static void loadFile(String name, Consumer<Object> applier) {
         File file = new File(configFolder, name);
-        if (!file.exists() && legacyName != null) {
-            File alt = new File(configFolder, legacyName);
-            if (alt.exists()) file = alt;
-        }
         if (!file.exists()) {
             writeDefault(name, file);
         }

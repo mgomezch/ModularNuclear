@@ -1009,11 +1009,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
 
         if (mLastCrawlResult != null && mLastCrawlResult.graphNodes != null) {
             for (LoopGraphCrawler.FlowNode node : mLastCrawlResult.graphNodes.values()) {
-                if (node.type == LoopGraphCrawler.NodeType.DEVICE && node.data == null) {
-                    // Saved before devices kept their positions
-                    missingOrChanged = true;
-                    break;
-                }
                 if (node.type == LoopGraphCrawler.NodeType.DEVICE
                     && node.data instanceof LoopGraphCrawler.BlockPosCoord bc) {
                     if (!w.blockExists(bc.x, bc.y, bc.z)) return;
