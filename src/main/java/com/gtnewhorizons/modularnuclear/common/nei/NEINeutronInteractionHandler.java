@@ -315,19 +315,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         }
     }
 
-    /**
-     * Legacy subclass retained for backward compatibility.
-     */
-    public class CachedComponentThermalRecipe extends CachedNeutronInteractionRecipe {
-
-        public final PositionedStack thermalInput;
-
-        public CachedComponentThermalRecipe(ComponentStatsData data) {
-            super(data);
-            this.thermalInput = this.inputHeat;
-        }
-    }
-
     public static final List<ComponentStatsData> ALL_COMPONENTS = new ArrayList<>();
     private static boolean initialized = false;
 
@@ -2270,8 +2257,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (recipeIndex < 0 || recipeIndex >= arecipes.size() || stack == null) return currenttip;
 
         CachedRecipe rec = arecipes.get(recipeIndex);
-        ComponentStatsData data = (rec instanceof CachedNeutronInteractionRecipe r1) ? r1.data
-            : (rec instanceof CachedComponentThermalRecipe r2) ? r2.data : null;
+        ComponentStatsData data = (rec instanceof CachedNeutronInteractionRecipe r1) ? r1.data : null;
         if (data == null) return currenttip;
 
         if (matches(stack, data)) {

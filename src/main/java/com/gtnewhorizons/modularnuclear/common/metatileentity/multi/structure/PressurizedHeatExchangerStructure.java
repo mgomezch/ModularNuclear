@@ -101,9 +101,6 @@ public final class PressurizedHeatExchangerStructure {
                 }
             }
 
-            // Legacy alias for 3x5x3 midsection (height 3, length 5)
-            builder.addShape("exchanger_3x5x3", StructureUtility.transpose(buildShape(3, 5)));
-
             builder
                 .addElement(
                     'x',

@@ -96,15 +96,6 @@ public class SimTile implements INuclearTile {
         NEUTRON_SOURCE("Neutron Source", "NS", null),
         NULL_WALL("Casing Wall", "NL", null);
 
-        // Backward-compatibility aliases for legacy quad types
-        public static final TileType FUEL_HD_URANIUM = FUEL_HD_URANIUM_QUAD;
-        public static final TileType FUEL_HD_PLUTONIUM = FUEL_HD_PLUTONIUM_QUAD;
-        public static final TileType FUEL_EXCITED_URANIUM = FUEL_EXCITED_URANIUM_QUAD;
-        public static final TileType FUEL_EXCITED_PLUTONIUM = FUEL_EXCITED_PLUTONIUM_QUAD;
-        public static final TileType FUEL_NAQUADAH = FUEL_NAQUADAH_QUAD;
-        public static final TileType FUEL_NAQUADRIA = FUEL_NAQUADRIA_QUAD;
-        public static final TileType FUEL_TIBERIUM = FUEL_TIBERIUM_QUAD;
-
         public final String displayName;
         public final String code;
         /**
@@ -128,18 +119,16 @@ public class SimTile implements INuclearTile {
             if (trimmed.equals("BV")) return RADIOVOLTAIC_EV;
             if (trimmed.equals("RN")) return REFLECTOR_IC2;
             if (trimmed.equals("RTN")) return REFLECTOR_IC2_THICK;
-            if (trimmed.equals("HP") || trimmed.equals("HH")
-                || trimmed.equals("HATCH_HP_DISTILLED_WATER")
-                || trimmed.equals("HATCH_HP_HEAVY_WATER")) {
+            if (trimmed.equals("HP") || trimmed.equals("HH")) {
                 return PASSAGE_CORE;
             }
-            if (trimmed.equals("HDU") || trimmed.equals("FUEL_HD_URANIUM")) return FUEL_HD_URANIUM_QUAD;
-            if (trimmed.equals("HDP") || trimmed.equals("FUEL_HD_PLUTONIUM")) return FUEL_HD_PLUTONIUM_QUAD;
-            if (trimmed.equals("EXU") || trimmed.equals("FUEL_EXCITED_URANIUM")) return FUEL_EXCITED_URANIUM_QUAD;
-            if (trimmed.equals("EXP") || trimmed.equals("FUEL_EXCITED_PLUTONIUM")) return FUEL_EXCITED_PLUTONIUM_QUAD;
-            if (trimmed.equals("NQ") || trimmed.equals("FUEL_NAQUADAH")) return FUEL_NAQUADAH_QUAD;
-            if (trimmed.equals("NQR") || trimmed.equals("FUEL_NAQUADRIA")) return FUEL_NAQUADRIA_QUAD;
-            if (trimmed.equals("TIB") || trimmed.equals("FUEL_TIBERIUM")) return FUEL_TIBERIUM_QUAD;
+            if (trimmed.equals("HDU")) return FUEL_HD_URANIUM_QUAD;
+            if (trimmed.equals("HDP")) return FUEL_HD_PLUTONIUM_QUAD;
+            if (trimmed.equals("EXU")) return FUEL_EXCITED_URANIUM_QUAD;
+            if (trimmed.equals("EXP")) return FUEL_EXCITED_PLUTONIUM_QUAD;
+            if (trimmed.equals("NQ")) return FUEL_NAQUADAH_QUAD;
+            if (trimmed.equals("NQR")) return FUEL_NAQUADRIA_QUAD;
+            if (trimmed.equals("TIB")) return FUEL_TIBERIUM_QUAD;
             for (TileType type : values()) {
                 if (type.code.equalsIgnoreCase(trimmed) || type.name()
                     .equalsIgnoreCase(trimmed)) {
