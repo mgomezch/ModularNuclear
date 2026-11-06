@@ -468,10 +468,6 @@ public class CoolantLoopModel {
     }
 
     /**
-     * Efficiency of a pump rotor: GregTech's turbine base efficiency, 0.5 + (0.5 + rotor damage) / 10, where the
-     * damage is the rotor tool's base damage plus its material's tool quality.
-     */
-    /**
      * The turbine rotor a pump of an energy hatch tier takes when its circuit does not name one: the best tight-fit
      * rotor of the Large Steam Turbine's recommended progression at that tier (GTNH wiki), Huge Duranium from ZPM up.
      */
@@ -494,6 +490,10 @@ public class CoolantLoopModel {
         };
     }
 
+    /**
+     * Efficiency of a pump rotor: GregTech's turbine base efficiency, 0.5 + (0.5 + rotor damage) / 10, where the
+     * damage is the rotor tool's base damage plus its material's tool quality.
+     */
     public static double rotorEfficiency(RotorMaterial material, RotorSize size) {
         return 0.5 + (0.5 + size.baseDamage + material.toolQuality) * 0.1;
     }
@@ -1118,12 +1118,12 @@ public class CoolantLoopModel {
             return lastPheOnFraction;
         }
 
-        /** What last switched a pump off ("", "duty cycle", "flow cap", "pressure cap" or "temperature band"). */
         /** Whether the circuit's loops hold coolant yet (see {@link #hasTemperatureBand()}). */
         public boolean isFilled() {
             return loops.isEmpty() || loops.get(0).filled;
         }
 
+        /** What last switched a pump off ("", "duty cycle", "flow cap", "pressure cap" or "temperature band"). */
         public String getLimitReason() {
             return limitReason;
         }

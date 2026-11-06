@@ -2075,7 +2075,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
     }
 
-    /** Closes the cycle: last-cycle totals, telemetry, coolant tracking, control hatches and metrics history. */
     /**
      * Right after a load, holds the cycle while a passage that was in a loop when saved has not been bound to its pump
      * again, so the core never heats without its cooling. Only for a few ticks: a reactor that stops unexpectedly can
@@ -2132,6 +2131,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
     }
 
+    /** Closes the cycle: last-cycle totals, telemetry, coolant tracking, control hatches and metrics history. */
     private void endCycle(NuclearSimulationEngine.SimulationResult res, double maintEff) {
         // 5. Update last cycle totals, calculate telemetry, coolant tracking, and nuclear control hatches
         mZeroedCoolantItemsLastCycle = mCycleZeroedCoolantItems;

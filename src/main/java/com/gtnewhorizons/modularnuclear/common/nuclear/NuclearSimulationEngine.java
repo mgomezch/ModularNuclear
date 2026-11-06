@@ -593,10 +593,6 @@ public class NuclearSimulationEngine {
     }
 
     /**
-     * Executes one reactor simulation tick over the 2D grid with full (100%) maintenance efficiency and default ambient
-     * temperature.
-     */
-    /**
      * Working arrays for {@link #simulate}, kept per thread and reused from cycle to cycle instead of allocated each
      * time. None of them outlives a call.
      */
@@ -637,6 +633,10 @@ public class NuclearSimulationEngine {
         }
     }
 
+    /**
+     * Executes one reactor simulation tick over the 2D grid with full (100%) maintenance efficiency and default ambient
+     * temperature.
+     */
     public static SimulationResult simulate(INuclearTile[][] grid, int sizeX, int sizeY) {
         return simulate(grid, sizeX, sizeY, 1.0, params().ambientTemp);
     }

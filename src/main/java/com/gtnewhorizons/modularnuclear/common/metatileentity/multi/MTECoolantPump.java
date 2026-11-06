@@ -744,9 +744,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     /**
      * Re-crawls the connected piping circuit from the discharge hatch back to suction.
      */
-    /**
-     * Re-crawls the connected piping circuit from the discharge hatch back to suction.
-     */
     public boolean crawlLoopGraph() {
         IGregTechTileEntity te = getBaseMetaTileEntity();
         if (te == null || te.getWorld() == null) {
@@ -1614,9 +1611,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     }
 
     /**
-     * Trigger catastrophic pump explosion and drain 80% of fluid from the Railcraft tank.
-     */
-    /**
      * Refuses liquid fuel (which destroys the impeller), plain water, gases, and lava outside the Nether. Returns the
      * step's result, or null to carry on.
      */
@@ -1947,6 +1941,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         return null;
     }
 
+    /** Triggers the catastrophic pump explosion and drains 80% of the fluid from the Railcraft tank. */
     protected void triggerCatastrophicExplosion(String reason) {
         triggerCatastrophicExplosion(reason, mEngine != null ? mEngine.getRupturedSegment() : null);
     }

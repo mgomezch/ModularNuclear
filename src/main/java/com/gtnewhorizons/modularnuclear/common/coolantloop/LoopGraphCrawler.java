@@ -317,9 +317,6 @@ public class LoopGraphCrawler {
     }
 
     /**
-     * Crawls the loop from a starting port (discharge) until returning to the target port (suction).
-     */
-    /**
      * Crawls the loop from a starting port (discharge) until returning to the target port (suction),
      * providing the active pump reference to multi-block passages.
      */

@@ -300,12 +300,10 @@ public class CoolantBathRegistry {
         return 1200.0; // Default fallback for high-temperature metals
     }
 
-    /**
-     * Checks whether an item stack can be processed in the Coolant Bath.
-     */
     /** isCompatibleItem's answers per item kind: the bath asks for every input bus slot every tick. */
     private static final LongKeyMap<Boolean> COMPATIBLE = new LongKeyMap<>();
 
+    /** Whether an item stack can be processed in the Coolant Bath. */
     public static boolean isCompatibleItem(ItemStack stack) {
         if (stack == null) return false;
         long key = ReactorDataRegistry.getItemKey(stack);
@@ -370,9 +368,6 @@ public class CoolantBathRegistry {
         return false;
     }
 
-    /**
-     * Creates a new CoolantBathSlot for an accepted item stack based on current loop coolant temperature.
-     */
     /** The temperature a hot ingot has cooled into its ingot at (devices.yaml bath.ingotCooledTempC). */
     public static double ingotCooledTemperatureCelsius() {
         CoolantDeviceData devData = CoolantLoopDataRegistry.getDeviceData();
@@ -478,6 +473,7 @@ public class CoolantBathRegistry {
     /** The temperature a cryogenic cell's pace is set for: it boils off in the freezer's time in coolant this warm. */
     private static final double AMBIENT_CELSIUS = 20.0;
 
+    /** Creates a new CoolantBathSlot for an accepted item stack based on current loop coolant temperature. */
     public static CoolantBathSlot createSlot(ItemStack inputStack, double currentCoolantTemp) {
         if (inputStack == null) return null;
         ensureInitialized();
