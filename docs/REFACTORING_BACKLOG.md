@@ -75,7 +75,18 @@ NEI handlers, tooltips and GUIs read the client's local YAML. On a server with t
 
 ## Config matching
 
-### C1 (P1): Make resource matching exact
+### C1 (P1): Make resource matching exact (reactor side done)
+
+**Done for the reactor configs** (`fuels.yaml`, `components.yaml`, `tiers.yaml`, the Forge allowlists):
+- **Matching.** Items match only as `modid:name`, `modid:name:meta` or `ore:oreName`, and fluids only by registry name. Everything else is gone: the wildcards, the tier `'*'`, normalization, descriptor permutation, unlocalized, localized and `ItemList` names, the IC2 reflection and the `fluid.`/`molten.` prefix guessing.
+- **Defaults.** They were rewritten from a dump of what each old pattern matched in a GTNH 2.9 instance, so behavior is kept.
+- **Old patterns that matched nothing.** These are now under their correct names: the Forge `allowedFuelFluids` (GT's fluids have spaces in their names), the custom fuel rods and their spent products, `ic2distilledwater` in the tiers, and the Naquarite insulator.
+- **Simulator.** `SimTile` uses the real fluid names.
+- **Config migration.** The Forge config has a version; a file from before it gets its `[allowlists]` replaced by the new defaults.
+- **Load report.** `ConfigNameCheck` warns at load about every entry that names nothing. In GTNH 2.9 that leaves 9 entries, all of which never matched before either: `ore:stickLongGraphite` (graphite moderator), `ore:stickLongBoron`/`stickBoron`, `ore:stickLongCadmium`/`stickCadmium` (control rods) and `molten.sodium` (the sodium coolant). GTNH has `liquid_sodium`. **Open: decide whether these become real items/fluids or are removed.**
+
+**Still to do:** the coolant-loop side is still fuzzy. `CoolantFluidProperty`'s aliases (`distilledwater`/`water.distilled`), `CoolantDeviceData`'s normalized names, `CoolantFluidHelper`'s liquid-fuel name list, and `CoolantLoopModel`'s upper-case switch.
+
 
 `config/ReactorDataRegistry.matchesFluid` and `ReactorConfigData.matchesFluid` and `matchesPermutedDescriptors` match patterns against:
 

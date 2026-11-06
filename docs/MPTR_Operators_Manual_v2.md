@@ -1161,6 +1161,19 @@ Configuration files are read from `config/modularnuclear/`. Each file may overri
 | `fuels.yaml` | Solid and liquid fuels |
 | `components.yaml` | Reflectors, moderators, control rods, heat vents, heat exchangers, insulators, radiovoltaics, coolant fluids, coolant items |
 
+A file that does not parse, or holds a value of the wrong kind, stops the game at startup with the file and the problem (for a syntax error, the line). It does not fall back to the defaults. Files are read as UTF-8.
+
+**Naming items and fluids.** An entry's `matching` list, a fuel's `spent_product`, and the Forge allow and block lists name items and fluids exactly. Nothing is guessed:
+
+| Form | Matches |
+| :--- | :--- |
+| `modid:name` | That item, any meta (e.g. `IC2:reactorUraniumSimple`, whose meta is its damage) |
+| `modid:name:meta` | That item with that meta (e.g. `gregtech:gt.metaitem.03:32251`) |
+| `ore:oreName` | Any item with that ore dictionary name (e.g. `ore:stickLongSilver`) |
+| a fluid's registry name | That fluid (e.g. `ic2distilledwater`, `thorium based liquid fuel (excited state)`) |
+
+Names are case-sensitive, as the registries are. There are no wildcards, and unlocalized names, display names and GregTech `ItemList` names are not accepted. A tier's `allowed_coolants` lists fluid registry names; leaving it out lets the tier take every coolant whose `required_tier` it meets.
+
 **Global physics parameters (`physics.yaml`):**
 
 | Key | Default | Meaning |
@@ -1194,7 +1207,7 @@ Configuration files are read from `config/modularnuclear/`. Each file may overri
 | `coolant_passage_neutrons_per_radiolysis` | 4 | Neutrons absorbed per radiolysis event |
 | `coolant_passage_minor_loss_k` | 2.5 | Minor-loss coefficient of a passage in its loop |
 
-**Main mod configuration** (Forge config) additionally sets the cycle length (`ticksPerCycle`, default 5), the fallout contamination reduction per pollution removed ($62.5/30000$), item and fluid allow/block lists, and visual effects (Cherenkov glow, fallout overlay). Tier temperatures (maximum operating temperature, repair threshold) are set only in `tiers.yaml`; the Forge config's former `reactor_tiers` entries are reported in the log and dropped.
+**Main mod configuration** (Forge config) additionally sets the cycle length (`ticksPerCycle`, default 5), the fallout contamination reduction per pollution removed ($62.5/30000$), item and fluid allow/block lists (exact names, as above; a file saved by an older version, whose lists held wildcard patterns, has its `allowlists` section replaced by the current defaults), and visual effects (Cherenkov glow, fallout overlay). Tier temperatures (maximum operating temperature, repair threshold) are set only in `tiers.yaml`; the Forge config's former `reactor_tiers` entries are reported in the log and dropped.
 
 **Engine constants (not configurable):** fast-absorption and moderation heat 8 HU per neutron; non-fuel thermal absorption heat 4 HU; fuel thermal absorption heat $1.25 \times$ fission heat; conduction floor 0.01; 5 conduction sub-steps; vent/exchanger cost 0.25 EU/HU (configurable per component); coolant cell 25 HU per heat point; wall-wear base probability 1 %/min.
 
