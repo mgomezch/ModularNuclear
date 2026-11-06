@@ -136,7 +136,7 @@ The **maximum operating temperature** is not a soft limit. Any core column above
 | :--- | :--- | :--- |
 | Nuclear core bus | One item (stack size 1) | Fuel rod, coolant cell, reflector, moderator, insulator, heat vent, heat exchanger, radiovoltaic plate, or neutron source. |
 | Nuclear core hatch (LV–UHV) | One fluid | Liquid fuel or liquid coolant. Capacity $8000 \cdot 2^{\text{tier}}$ L (LV 16 000 L … UHV 4 096 000 L). The hatch tier also sets its heat-transfer conductance (§9.2). |
-| Nuclear core high-pressure input hatch (cast iron … infinity) | Nothing (fluid passage) | Inlet of a closed coolant loop. Must be paired with an output hatch of the same material at the bottom of the same column. The material sets the passage's heat capacity and heat transfer (§9.7). |
+| Nuclear core high-pressure input hatch (iron … infinity) | Nothing (fluid passage) | Inlet of a closed coolant loop. Must be paired with an output hatch of the same material at the bottom of the same column. The material sets the passage's heat capacity and heat transfer (§9.7). |
 
 **Bottom elements** (layer 5) act on the column:
 
@@ -145,7 +145,7 @@ The **maximum operating temperature** is not a soft limit. Any core column above
 | Nuclear Casing | None. |
 | Nuclear core control rod hatch | Holds one control rod; redstone-controlled insertion (§7). |
 | Advanced nuclear core control rod hatch | Holds a control rod and a moderator follower (§7.5). |
-| Nuclear core high-pressure output hatch (cast iron … infinity) | Outlet of the closed coolant loop entering at the top of the same column; same material as its input hatch. |
+| Nuclear core high-pressure output hatch (iron … infinity) | Outlet of the closed coolant loop entering at the top of the same column; same material as its input hatch. |
 | Beamline input hatch | Feeds a neutron beam into a neutron source held in the nuclear core bus at the top of the same column. Must be under a bus (§8.5). |
 
 A control rod shares the column's temperature: the rod hatch and the top element are a single thermal node.
@@ -820,7 +820,7 @@ From Osmium tier upward, a column may be a **pressure-tube passage**: a high-pre
 
 **Passage materials.** There is one input and one output hatch for each coolant pipe material, and both ends of a passage must be the same material. Each is crafted from the GregTech input (or output) hatch of the material's voltage tier, a huge coolant pipe of the material and a Clean Stainless Steel Casing; a screwdriver turns an input into the output of the same material and back. The material's voltage tier $t$ sets the passage's heat capacity and heat transfer:
 
-| Material | Cast iron | Steel | Stainless steel | Titanium | Tungstensteel | Osmium | Neutronium | Awakened Draconium | Infinity |
+| Material | Iron | Steel | Stainless steel | Titanium | Tungstensteel | Osmium | Neutronium | Awakened Draconium | Infinity |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Voltage tier $t$ | LV | MV | HV | EV | IV | LuV | ZPM | UV | UHV |
 | Heat capacity $C = 16 \cdot 2^t$ (HU/°C) | 32 | 64 | 128 | 256 | 512 | 1024 | 2048 | 4096 | 8192 |
@@ -927,7 +927,7 @@ Exactly one maintenance hatch (any type) and exactly one energy hatch (single- o
 
 | Item pipe casing | Pressure rated as | Max pressure | Max inner temp. | Passage heat capacity per ring |
 | :--- | :--- | :--- | :--- | :--- |
-| Tin | Cast iron | 16 bar | 1000 °C | 32 HU/°C |
+| Tin | Iron | 16 bar | 1000 °C | 32 HU/°C |
 | Brass | Steel | 35 bar | 1100 °C | 64 HU/°C |
 | Electrum | Stainless steel | 70 bar | 1200 °C | 128 HU/°C |
 | Platinum | Titanium | 140 bar | 1400 °C | 256 HU/°C |
