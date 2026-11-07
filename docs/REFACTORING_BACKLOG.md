@@ -251,7 +251,20 @@ They are invalidated by at least three separate generation counters (`ReactorCon
 - Tie them all to one config generation, or register them with one invalidation hook that every config reload fires.
 - Document which caches the WASM simulator also uses.
 
-### A2 (P1): Split the god classes
+### A2 (P1): Split the god classes (mostly done)
+
+**Done:** cohesive parts moved into helpers in the same package, as `NuclearReactorPhysics` started. Each class keeps its methods as one-line delegates, so its API is unchanged.
+- **Reactor, 3145 → 2595 lines:**
+  - `NuclearReactorMeltdown`: overheating columns, meltdown, voiding contents.
+  - `NuclearReactorStructureChecks`: hatch facings, and high-pressure and beam hatch pairing.
+  - `NuclearReactorGridSnapshot`: the GUI grid's header and cells, and the per-cycle metrics snapshot.
+- **Pump, 3171 → 2460 lines:**
+  - `CoolantPumpLoopBinding`: applying a crawl, rebinding after a load, loop breaks, chunk loading.
+  - `CoolantPumpFluidSafety`: refused fluids and spills.
+  - `CoolantPumpImpeller`: loading, efficiency, wear and destruction.
+  - `CoolantPumpFillDrain`: filling, and stopping and draining.
+
+**Still to do:** each class still holds its structure check (`checkMachine`, about 230 lines), its NBT save and load, and its tick (the reactor's cycle phases in `onPostTick`, the pump's `stepCoolantLoop`).
 
 `MTECoolantPump` (3.3k lines) and `MTENuclearReactor` (3.2k lines) are also the files that change most. Possible splits:
 
