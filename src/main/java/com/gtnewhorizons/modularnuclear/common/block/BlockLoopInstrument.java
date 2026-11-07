@@ -8,7 +8,7 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.IBlockAccess;
@@ -17,7 +17,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.oredict.OreDictionary;
 
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 import com.gtnewhorizons.modularui.api.UIInfos;
 
 import cpw.mods.fml.relauncher.Side;
@@ -218,8 +217,7 @@ public class BlockLoopInstrument extends BlockContainer {
                     world.markBlockForUpdate(x, y, z);
                     world.notifyBlocksOfNeighborChange(x, y, z, this);
                     player.addChatMessage(
-                        new ChatComponentText(
-                            CoolantLocalization.format("coolantloops.chat.instrument.facing", nextFacing.name())));
+                        new ChatComponentTranslation("coolantloops.chat.instrument.facing", nextFacing.name()));
                 }
                 return true;
             }
@@ -227,11 +225,11 @@ public class BlockLoopInstrument extends BlockContainer {
                 if (!world.isRemote) {
                     inst.cycleMetric(player.isSneaking() ? -1 : 1);
                     player.addChatMessage(
-                        new ChatComponentText(
-                            CoolantLocalization.format(
-                                "coolantloops.chat.instrument.tracked_metric",
+                        new ChatComponentTranslation(
+                            "coolantloops.chat.instrument.tracked_metric",
+                            new ChatComponentTranslation(
                                 inst.getTrackedMetric()
-                                    .getDisplayName())));
+                                    .langKey())));
                 }
                 return true;
             }

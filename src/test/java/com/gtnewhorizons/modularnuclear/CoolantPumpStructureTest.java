@@ -27,6 +27,8 @@ import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
+import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
+import com.gtnewhorizons.modularnuclear.common.util.LocalizedTextNbt;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.data.MaterialRotorDatabaseExporter;
 
@@ -1077,7 +1079,7 @@ public class CoolantPumpStructureTest {
         Mockito.verify(device)
             .setLoopPump(pump);
 
-        pump.applyCrawlResult(CrawlResult.fail("broken"));
+        pump.applyCrawlResult(CrawlResult.fail(LocalizedText.literal("broken")));
         Mockito.verify(device)
             .setLoopPump(null);
         assertTrue(
@@ -1169,9 +1171,12 @@ public class CoolantPumpStructureTest {
 
         Mockito.when(world.getBlock(1, 70, 3))
             .thenReturn(air);
-        String reason = pump.findLoopBreak(world);
+        LocalizedText reason = pump.findLoopBreak(world);
         assertNotNull(reason, "a removed pipe breaks the loop");
-        assertTrue(reason.contains("70"), reason);
+        assertTrue(
+            reason.english()
+                .contains("70"),
+            reason.english());
 
         // A chunk that unloads is not a break
         Mockito.when(world.blockExists(1, 70, 3))
@@ -1286,14 +1291,13 @@ public class CoolantPumpStructureTest {
         boolean[] pumpAllowed = new boolean[] { true };
         MTECoolantPump pump = createOperatingPumpWithBase(pumpAllowed);
 
-        CrawlResult failResult = CrawlResult
-            .fail("Loop structure check could not complete because the loop is too large");
+        CrawlResult failResult = CrawlResult.fail(LocalizedText.of("coolantloops.crawler.loop_too_large"));
         boolean applied = pump.applyCrawlResult(failResult);
         assertFalse(applied, "Applying failed crawl result must return false");
         assertFalse(pump.isLoopFormed(), "Loop must not be formed");
         assertEquals(
-            "Loop structure check could not complete because the loop is too large",
-            pump.getLoopStatus(),
+            LocalizedText.of("coolantloops.crawler.loop_too_large"),
+            pump.getLoopStatusMessage(),
             "Controller status must state the exact error message");
     }
 
@@ -1506,8 +1510,6 @@ public class CoolantPumpStructureTest {
             .setRuptured(true);
         pump.getEngine()
             .setRupturedSegment(seg);
-        pump.getEngine()
-            .setFailureReason("Pipe segment burst");
 
         // Ruptures and spills fluid
         boolean result = pump.stepCoolantLoop();
@@ -1578,8 +1580,6 @@ public class CoolantPumpStructureTest {
 
         pump.getEngine()
             .setRuptured(true);
-        pump.getEngine()
-            .setFailureReason("Pipe burst");
 
         boolean result = pump.stepCoolantLoop();
         assertFalse(result);
@@ -1637,8 +1637,6 @@ public class CoolantPumpStructureTest {
 
         pump.getEngine()
             .setRuptured(true);
-        pump.getEngine()
-            .setFailureReason("Pipe burst");
 
         // Should not throw any exception
         assertDoesNotThrow(() -> pump.stepCoolantLoop());
@@ -1700,7 +1698,8 @@ public class CoolantPumpStructureTest {
         // 3. Failed crawl result application: result is retained, failureReason is set
         pump.setLoopFormed(false);
         String failureReason = "Dead-end coolant pipe at (12, 65, 30) entering from EAST";
-        LoopGraphCrawler.CrawlResult failResult = LoopGraphCrawler.CrawlResult.fail(failureReason);
+        LoopGraphCrawler.CrawlResult failResult = LoopGraphCrawler.CrawlResult
+            .fail(LocalizedText.literal(failureReason));
         pump.applyCrawlResult(failResult);
 
         assertFalse(pump.isLoopFormed());
@@ -1714,13 +1713,16 @@ public class CoolantPumpStructureTest {
         CoolantLoopGraphData graphData = CoolantLoopGraphData.buildFrom(pump);
         assertNotNull(graphData);
         assertFalse(graphData.isFormed);
-        assertEquals(pump.getLoopStatus(), graphData.failureReason);
+        assertEquals(pump.getLoopStatusMessage(), graphData.failureReason);
 
         // 5. WAILA status: must report unformed loop error and NOT 'Running Fine'
         NBTTagCompound nbt = new NBTTagCompound();
         pump.getWailaNBTData(null, null, nbt, null, 0, 0, 0);
         assertFalse(nbt.getBoolean("loopFormed"));
-        assertEquals(pump.getLoopStatus(), nbt.getString("loopStatus"));
+        assertEquals(
+            pump.getLoopStatusMessage(),
+            LocalizedTextNbt.read(nbt.getCompoundTag("loopStatus")),
+            "WAILA gets the status as its key and arguments");
 
         List<String> wailaTip = new ArrayList<>();
         IWailaDataAccessor accessor = Mockito.mock(IWailaDataAccessor.class);

@@ -46,7 +46,8 @@ public class ReactorGridSyncData {
         public int controlRodInsertion = 0;
         public int controlRodType = 0;
         public int moderatorInsertion = 0;
-        public String moderatorName = "";
+        /** The advanced rod's moderator, which the client names in its own language. */
+        public ItemStack moderatorStack = null;
         public ItemStack itemStack = null;
         public FluidStack fluidStack = null;
         public float temperature = 20.0f;
@@ -71,7 +72,7 @@ public class ReactorGridSyncData {
                 || controlRodInsertion != that.controlRodInsertion
                 || controlRodType != that.controlRodType
                 || moderatorInsertion != that.moderatorInsertion
-                || !Objects.equals(moderatorName, that.moderatorName)) return false;
+                || !ItemStack.areItemStacksEqual(moderatorStack, that.moderatorStack)) return false;
             if (Math.abs(temperature - that.temperature) > 0.5f) return false;
             if (Math.abs(heatOutput - that.heatOutput) > 0.5f) return false;
             if (fastFlux != that.fastFlux || thermalFlux != that.thermalFlux) return false;
@@ -139,7 +140,8 @@ public class ReactorGridSyncData {
                     buf.writeByte(cell.controlRodType);
                     if (cell.isAdvancedControlRod) {
                         buf.writeByte(cell.moderatorInsertion);
-                        ByteBufUtils.writeUTF8String(buf, cell.moderatorName != null ? cell.moderatorName : "");
+                        buf.writeBoolean(cell.moderatorStack != null);
+                        if (cell.moderatorStack != null) NetworkUtils.writeItemStack(buf, cell.moderatorStack);
                     }
                 }
                 if (cell.itemStack != null) {
@@ -201,7 +203,7 @@ public class ReactorGridSyncData {
                     cell.controlRodType = buf.readByte() & 0xFF;
                     if (cell.isAdvancedControlRod) {
                         cell.moderatorInsertion = buf.readByte() & 0xFF;
-                        cell.moderatorName = ByteBufUtils.readUTF8String(buf);
+                        cell.moderatorStack = buf.readBoolean() ? NetworkUtils.readItemStack(buf) : null;
                     }
                 }
                 if (hasItem) {

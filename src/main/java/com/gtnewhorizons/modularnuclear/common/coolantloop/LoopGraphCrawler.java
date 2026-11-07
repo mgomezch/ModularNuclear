@@ -27,7 +27,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressuriz
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.pipe.MTECoolantPipe;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
+import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.enums.Materials;
@@ -87,10 +87,13 @@ public class LoopGraphCrawler {
         }
     }
 
+    static final String LOOP_TOO_LARGE = "coolantloops.crawler.loop_too_large";
+
     public static class CrawlResult {
 
         public final boolean isSuccess;
-        public final String failureReason;
+        /** Why the crawl failed (null on success), localized where it is shown. */
+        public final LocalizedText failureReason;
         public final List<LoopSegment> segments;
         public final List<ICoolantLoopDevice> devices;
         public final Set<BlockPosCoord> pipePositions;
@@ -100,12 +103,12 @@ public class LoopGraphCrawler {
         public final Map<String, FlowNode> graphNodes;
         public final Map<String, List<String>> graphEdges;
 
-        public CrawlResult(boolean isSuccess, String failureReason, List<LoopSegment> segments,
+        public CrawlResult(boolean isSuccess, LocalizedText failureReason, List<LoopSegment> segments,
             List<ICoolantLoopDevice> devices, Set<BlockPosCoord> pipePositions) {
             this(isSuccess, failureReason, segments, devices, pipePositions, Double.MAX_VALUE, null, null, null, null);
         }
 
-        public CrawlResult(boolean isSuccess, String failureReason, List<LoopSegment> segments,
+        public CrawlResult(boolean isSuccess, LocalizedText failureReason, List<LoopSegment> segments,
             List<ICoolantLoopDevice> devices, Set<BlockPosCoord> pipePositions, double maxPumpPipeCapacityLPerSec,
             Materials loopMaterial) {
             this(
@@ -121,7 +124,7 @@ public class LoopGraphCrawler {
                 null);
         }
 
-        public CrawlResult(boolean isSuccess, String failureReason, List<LoopSegment> segments,
+        public CrawlResult(boolean isSuccess, LocalizedText failureReason, List<LoopSegment> segments,
             List<ICoolantLoopDevice> devices, Set<BlockPosCoord> pipePositions, double maxPumpPipeCapacityLPerSec,
             Materials loopMaterial, List<PipeFlowConfig> pipeConfigs) {
             this(
@@ -137,7 +140,7 @@ public class LoopGraphCrawler {
                 null);
         }
 
-        public CrawlResult(boolean isSuccess, String failureReason, List<LoopSegment> segments,
+        public CrawlResult(boolean isSuccess, LocalizedText failureReason, List<LoopSegment> segments,
             List<ICoolantLoopDevice> devices, Set<BlockPosCoord> pipePositions, double maxPumpPipeCapacityLPerSec,
             Materials loopMaterial, List<PipeFlowConfig> pipeConfigs, Map<String, FlowNode> graphNodes,
             Map<String, List<String>> graphEdges) {
@@ -153,8 +156,13 @@ public class LoopGraphCrawler {
             this.graphEdges = graphEdges != null ? new LinkedHashMap<>(graphEdges) : new LinkedHashMap<>();
         }
 
-        public static CrawlResult fail(String reason) {
+        public static CrawlResult fail(LocalizedText reason) {
             return new CrawlResult(false, reason, null, null, null, 0.0, null, null, null, null);
+        }
+
+        /** Whether the crawl gave up because the loop is larger than a crawl may walk. */
+        public boolean isLoopTooLarge() {
+            return failureReason != null && LOOP_TOO_LARGE.equals(failureReason.key);
         }
 
         public static CrawlResult success(List<LoopSegment> segments, List<ICoolantLoopDevice> devices,
@@ -758,8 +766,8 @@ public class LoopGraphCrawler {
             return ticksElapsed;
         }
 
-        private void finishWithFailure(String reason) {
-            this.result = CrawlResult.fail(reason);
+        private void finishWithFailure(String key, Object... args) {
+            this.result = CrawlResult.fail(LocalizedText.of(key, args));
             this.isDone = true;
         }
 
@@ -770,14 +778,14 @@ public class LoopGraphCrawler {
 
             ticksElapsed++;
             if (ticksElapsed > maxTicks) {
-                finishWithFailure(CoolantLocalization.get("coolantloops.crawler.loop_too_large"));
+                finishWithFailure(LOOP_TOO_LARGE);
                 return true;
             }
 
             int stepsThisSlice = 0;
             while (!frontier.isEmpty() && stepsThisSlice < stepsLimit) {
                 if (stepCount >= maxSteps) {
-                    finishWithFailure(CoolantLocalization.get("coolantloops.crawler.loop_too_large"));
+                    finishWithFailure(LOOP_TOO_LARGE);
                     return true;
                 }
 
@@ -792,12 +800,11 @@ public class LoopGraphCrawler {
                     && bmpe.getMetaTileEntity() instanceof MTEFluidPipe;
                 if (step.sizeFromDevice != null && !fedIsPipe) {
                     finishWithFailure(
-                        CoolantLocalization.format(
-                            "coolantloops.crawler.device_output_not_pipe",
-                            step.sizeFromDevice,
-                            step.x,
-                            step.y,
-                            step.z));
+                        "coolantloops.crawler.device_output_not_pipe",
+                        step.sizeFromDevice,
+                        step.x,
+                        step.y,
+                        step.z);
                     return true;
                 }
 
@@ -808,12 +815,11 @@ public class LoopGraphCrawler {
                         && (Math.abs(step.segmentThickness - dischargeThickness) > 1e-4
                             || !step.segmentPipeAmount.equals(dischargePipeAmount))) {
                         finishWithFailure(
-                            CoolantLocalization.format(
-                                "coolantloops.crawler.pump_pipe_size_mismatch",
-                                step.segmentThickness,
-                                step.segmentPipeAmount,
-                                dischargeThickness,
-                                dischargePipeAmount));
+                            "coolantloops.crawler.pump_pipe_size_mismatch",
+                            step.segmentThickness,
+                            step.segmentPipeAmount,
+                            dischargeThickness,
+                            dischargePipeAmount);
                         return true;
                     }
                     addGraphNode(graphNodes, sinkNodeId, NodeType.SINK, null);
@@ -826,8 +832,7 @@ public class LoopGraphCrawler {
 
                 TileEntity te = world.getTileEntity(step.x, step.y, step.z);
                 if (te == null) {
-                    finishWithFailure(
-                        CoolantLocalization.format("coolantloops.crawler.no_tile", step.x, step.y, step.z));
+                    finishWithFailure("coolantloops.crawler.no_tile", step.x, step.y, step.z);
                     return true;
                 }
 
@@ -884,19 +889,16 @@ public class LoopGraphCrawler {
                 // Entry side check: must enter perpendicularly to the manifold plane (along normal axis)
                 if (!mf.isNormalDirection(step.entrySide)) {
                     finishWithFailure(
-                        CoolantLocalization.format(
-                            "coolantloops.crawler.manifold_parallel",
-                            step.x,
-                            step.y,
-                            step.z,
-                            step.entrySide,
-                            mf.getNormalAxisName()));
+                        "coolantloops.crawler.manifold_parallel",
+                        step.x,
+                        step.y,
+                        step.z,
+                        step.entrySide,
+                        mf.getNormalAxisName());
                     return Visit.STOP;
                 }
                 if (!mf.isConnected(step.entrySide)) {
-                    finishWithFailure(
-                        CoolantLocalization
-                            .format("coolantloops.crawler.manifold_disabled", step.x, step.y, step.z, step.entrySide));
+                    finishWithFailure("coolantloops.crawler.manifold_disabled", step.x, step.y, step.z, step.entrySide);
                     return Visit.STOP;
                 }
 
@@ -957,12 +959,11 @@ public class LoopGraphCrawler {
                         }
                         if (conflicting) {
                             finishWithFailure(
-                                CoolantLocalization.format(
-                                    "coolantloops.crawler.manifold_other_loop",
-                                    tile.xCoord,
-                                    tile.yCoord,
-                                    tile.zCoord,
-                                    otherPumpPos != null ? otherPumpPos.toString() : otherPump));
+                                "coolantloops.crawler.manifold_other_loop",
+                                tile.xCoord,
+                                tile.yCoord,
+                                tile.zCoord,
+                                otherPumpPos != null ? otherPumpPos.toString() : otherPump);
                             return Visit.STOP;
                         }
                     }
@@ -1016,14 +1017,13 @@ public class LoopGraphCrawler {
 
                             if (dir != groupInputSide && dir != groupOutputSide) {
                                 finishWithFailure(
-                                    CoolantLocalization.format(
-                                        "coolantloops.crawler.manifold_unauthorized_dir",
-                                        mPos.x,
-                                        mPos.y,
-                                        mPos.z,
-                                        dir,
-                                        groupInputSide,
-                                        groupOutputSide));
+                                    "coolantloops.crawler.manifold_unauthorized_dir",
+                                    mPos.x,
+                                    mPos.y,
+                                    mPos.z,
+                                    dir,
+                                    groupInputSide,
+                                    groupOutputSide);
                                 return Visit.STOP;
                             }
 
@@ -1033,15 +1033,14 @@ public class LoopGraphCrawler {
                             if (!(port instanceof BaseMetaPipeEntity portPipe
                                 && portPipe.getMetaTileEntity() instanceof MTECoolantPipe)) {
                                 finishWithFailure(
-                                    CoolantLocalization.format(
-                                        "coolantloops.crawler.manifold_port_not_pipe",
-                                        mPos.x,
-                                        mPos.y,
-                                        mPos.z,
-                                        dir,
-                                        nx,
-                                        ny,
-                                        nz));
+                                    "coolantloops.crawler.manifold_port_not_pipe",
+                                    mPos.x,
+                                    mPos.y,
+                                    mPos.z,
+                                    dir,
+                                    nx,
+                                    ny,
+                                    nz);
                                 return Visit.STOP;
                             }
 
@@ -1059,22 +1058,20 @@ public class LoopGraphCrawler {
 
                     if (mg.outputPorts.isEmpty()) {
                         finishWithFailure(
-                            CoolantLocalization.format(
-                                "coolantloops.crawler.manifold_group_no_output",
-                                step.x,
-                                step.y,
-                                step.z,
-                                groupOutputSide));
+                            "coolantloops.crawler.manifold_group_no_output",
+                            step.x,
+                            step.y,
+                            step.z,
+                            groupOutputSide);
                         return Visit.STOP;
                     }
                     if (mg.inputPorts.isEmpty()) {
                         finishWithFailure(
-                            CoolantLocalization.format(
-                                "coolantloops.crawler.manifold_group_no_input",
-                                step.x,
-                                step.y,
-                                step.z,
-                                groupInputSide));
+                            "coolantloops.crawler.manifold_group_no_input",
+                            step.x,
+                            step.y,
+                            step.z,
+                            groupInputSide);
                         return Visit.STOP;
                     }
 
@@ -1142,23 +1139,21 @@ public class LoopGraphCrawler {
                 } else {
                     if (step.entrySide != mg.inputSide) {
                         finishWithFailure(
-                            CoolantLocalization.format(
-                                "coolantloops.crawler.manifold_group_wrong_side",
-                                step.x,
-                                step.y,
-                                step.z,
-                                step.entrySide,
-                                mg.inputSide));
+                            "coolantloops.crawler.manifold_group_wrong_side",
+                            step.x,
+                            step.y,
+                            step.z,
+                            step.entrySide,
+                            mg.inputSide);
                         return Visit.STOP;
                     }
                     if (!mf.isConnected(step.entrySide)) {
                         finishWithFailure(
-                            CoolantLocalization.format(
-                                "coolantloops.crawler.manifold_disabled",
-                                step.x,
-                                step.y,
-                                step.z,
-                                step.entrySide));
+                            "coolantloops.crawler.manifold_disabled",
+                            step.x,
+                            step.y,
+                            step.z,
+                            step.entrySide);
                         return Visit.STOP;
                     }
                     addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, mg.getGroupId());
@@ -1174,8 +1169,7 @@ public class LoopGraphCrawler {
             if (te instanceof BaseMetaPipeEntity) {
                 BaseMetaPipeEntity bmpe = (BaseMetaPipeEntity) te;
                 if (!(bmpe.getMetaTileEntity() instanceof MTECoolantPipe)) {
-                    finishWithFailure(
-                        CoolantLocalization.format("coolantloops.crawler.not_coolant_pipe", step.x, step.y, step.z));
+                    finishWithFailure("coolantloops.crawler.not_coolant_pipe", step.x, step.y, step.z);
                     return Visit.STOP;
                 }
                 MTECoolantPipe pipe = (MTECoolantPipe) bmpe.getMetaTileEntity();
@@ -1183,9 +1177,7 @@ public class LoopGraphCrawler {
 
                 BlockPosCoord pCoord = new BlockPosCoord(step.x, step.y, step.z);
                 if (visitedPipeAndDevicePositions.contains(pCoord)) {
-                    finishWithFailure(
-                        CoolantLocalization
-                            .format("coolantloops.crawler.pipe_merge_needs_manifold", step.x, step.y, step.z));
+                    finishWithFailure("coolantloops.crawler.pipe_merge_needs_manifold", step.x, step.y, step.z);
                     return Visit.STOP;
                 }
                 visitedPipeAndDevicePositions.add(pCoord);
@@ -1193,12 +1185,11 @@ public class LoopGraphCrawler {
                 Materials pipeMat = pipe.mMaterial;
                 if (!isAllowedCoolantPipeMaterial(pipeMat)) {
                     finishWithFailure(
-                        CoolantLocalization.format(
-                            "coolantloops.crawler.pipe_mat_not_allowed",
-                            pipeMat != null ? pipeMat.mDefaultLocalName : "unknown",
-                            step.x,
-                            step.y,
-                            step.z));
+                        "coolantloops.crawler.pipe_mat_not_allowed",
+                        pipeMat != null ? pipeMat.mDefaultLocalName : "unknown",
+                        step.x,
+                        step.y,
+                        step.z);
                     return Visit.STOP;
                 }
 
@@ -1210,22 +1201,20 @@ public class LoopGraphCrawler {
                 } else if (!areMaterialsEqual(pipeMat, detectedLoopMaterial)) {
                     if (expectedTankMaterial != null && areMaterialsEqual(detectedLoopMaterial, expectedTankMaterial)) {
                         finishWithFailure(
-                            CoolantLocalization.format(
-                                "coolantloops.crawler.pipe_mat_tank_mismatch",
-                                step.x,
-                                step.y,
-                                step.z,
-                                pipeMat != null ? pipeMat.mDefaultLocalName : "unknown",
-                                expectedTankMaterial.mDefaultLocalName));
+                            "coolantloops.crawler.pipe_mat_tank_mismatch",
+                            step.x,
+                            step.y,
+                            step.z,
+                            pipeMat != null ? pipeMat.mDefaultLocalName : "unknown",
+                            expectedTankMaterial.mDefaultLocalName);
                     } else {
                         finishWithFailure(
-                            CoolantLocalization.format(
-                                "coolantloops.crawler.pipe_mat_loop_mismatch",
-                                step.x,
-                                step.y,
-                                step.z,
-                                pipeMat != null ? pipeMat.mDefaultLocalName : "unknown",
-                                detectedLoopMaterial.mDefaultLocalName));
+                            "coolantloops.crawler.pipe_mat_loop_mismatch",
+                            step.x,
+                            step.y,
+                            step.z,
+                            pipeMat != null ? pipeMat.mDefaultLocalName : "unknown",
+                            detectedLoopMaterial.mDefaultLocalName);
                     }
                     return Visit.STOP;
                 }
@@ -1241,28 +1230,26 @@ public class LoopGraphCrawler {
                         if (step.sizeFromDevice != null) {
                             // A device's input and output pipes are the same size
                             finishWithFailure(
-                                CoolantLocalization.format(
-                                    "coolantloops.crawler.device_pipe_size_mismatch",
-                                    step.x,
-                                    step.y,
-                                    step.z,
-                                    step.sizeFromDevice,
-                                    pipe.mThickNess,
-                                    pipe.mPipeAmount,
-                                    currThickness,
-                                    currAmount));
-                            return Visit.STOP;
-                        }
-                        finishWithFailure(
-                            CoolantLocalization.format(
-                                "coolantloops.crawler.pipe_size_mismatch",
+                                "coolantloops.crawler.device_pipe_size_mismatch",
                                 step.x,
                                 step.y,
                                 step.z,
-                                currThickness,
-                                currAmount,
+                                step.sizeFromDevice,
                                 pipe.mThickNess,
-                                pipe.mPipeAmount));
+                                pipe.mPipeAmount,
+                                currThickness,
+                                currAmount);
+                            return Visit.STOP;
+                        }
+                        finishWithFailure(
+                            "coolantloops.crawler.pipe_size_mismatch",
+                            step.x,
+                            step.y,
+                            step.z,
+                            currThickness,
+                            currAmount,
+                            pipe.mThickNess,
+                            pipe.mPipeAmount);
                         return Visit.STOP;
                     }
                 }
@@ -1279,14 +1266,13 @@ public class LoopGraphCrawler {
                     for (FluidStack fs : pipe.mFluids) {
                         if (fs != null && fs.amount > 0) {
                             finishWithFailure(
-                                CoolantLocalization.format(
-                                    "coolantloops.crawler.pipe_forge_fluid",
-                                    step.x,
-                                    step.y,
-                                    step.z,
-                                    fs.getFluid()
-                                        .getName(),
-                                    fs.amount));
+                                "coolantloops.crawler.pipe_forge_fluid",
+                                step.x,
+                                step.y,
+                                step.z,
+                                fs.getFluid()
+                                    .getName(),
+                                fs.amount);
                             return Visit.STOP;
                         }
                     }
@@ -1304,12 +1290,11 @@ public class LoopGraphCrawler {
                     targetY,
                     targetZ)) {
                     finishWithFailure(
-                        CoolantLocalization.format(
-                            "coolantloops.crawler.pipe_not_connected_back",
-                            step.x,
-                            step.y,
-                            step.z,
-                            step.entrySide));
+                        "coolantloops.crawler.pipe_not_connected_back",
+                        step.x,
+                        step.y,
+                        step.z,
+                        step.entrySide);
                     return Visit.STOP;
                 }
 
@@ -1361,15 +1346,11 @@ public class LoopGraphCrawler {
                 }
 
                 if (forwardDirs.isEmpty()) {
-                    finishWithFailure(
-                        CoolantLocalization
-                            .format("coolantloops.crawler.pipe_dead_end", step.x, step.y, step.z, step.entrySide));
+                    finishWithFailure("coolantloops.crawler.pipe_dead_end", step.x, step.y, step.z, step.entrySide);
                     return Visit.STOP;
                 }
                 if (forwardDirs.size() > 1) {
-                    finishWithFailure(
-                        CoolantLocalization
-                            .format("coolantloops.crawler.pipe_split_needs_manifold", step.x, step.y, step.z));
+                    finishWithFailure("coolantloops.crawler.pipe_split_needs_manifold", step.x, step.y, step.z);
                     return Visit.STOP;
                 }
 
@@ -1435,21 +1416,18 @@ public class LoopGraphCrawler {
             }
             if (heater.isPowerFailed()) {
                 finishWithFailure(
-                    CoolantLocalization.format(
-                        "coolantloops.crawler.heater_powerfailed",
-                        heater.getInnerTemperatureCelsius(),
-                        heater.getMaxOperatingTemperatureCelsius()));
+                    "coolantloops.crawler.heater_powerfailed",
+                    heater.getInnerTemperatureCelsius(),
+                    heater.getMaxOperatingTemperatureCelsius());
                 return Visit.STOP;
             }
             if (!heater.mMachine || heater.getPressurizedInputHatch() == null
                 || heater.getPressurizedOutputHatch() == null) {
-                finishWithFailure(
-                    CoolantLocalization.format("coolantloops.crawler.heater_unformed", step.x, step.y, step.z));
+                finishWithFailure("coolantloops.crawler.heater_unformed", step.x, step.y, step.z);
                 return Visit.STOP;
             }
             if (heater.getPressurizedOutputHatch() == hatch || !hatch.isInput()) {
-                finishWithFailure(
-                    CoolantLocalization.format("coolantloops.crawler.heater_output", step.x, step.y, step.z));
+                finishWithFailure("coolantloops.crawler.heater_output", step.x, step.y, step.z);
                 return Visit.STOP;
             }
             if (pump != null) {
@@ -1501,8 +1479,7 @@ public class LoopGraphCrawler {
                         heater.getDeviceId()));
                 return Visit.NEXT;
             } else {
-                finishWithFailure(
-                    CoolantLocalization.format("coolantloops.crawler.heater_unformed", step.x, step.y, step.z));
+                finishWithFailure("coolantloops.crawler.heater_unformed", step.x, step.y, step.z);
                 return Visit.STOP;
             }
         }
@@ -1566,8 +1543,7 @@ public class LoopGraphCrawler {
                         phe.getDeviceId()));
                 return Visit.NEXT;
             } else {
-                finishWithFailure(
-                    CoolantLocalization.format("coolantloops.crawler.phe_unformed", step.x, step.y, step.z));
+                finishWithFailure("coolantloops.crawler.phe_unformed", step.x, step.y, step.z);
                 return Visit.STOP;
             }
         }
@@ -1620,8 +1596,7 @@ public class LoopGraphCrawler {
                         degasser.getDeviceId()));
                 return Visit.NEXT;
             } else {
-                finishWithFailure(
-                    CoolantLocalization.format("coolantloops.crawler.degasser_unformed", step.x, step.y, step.z));
+                finishWithFailure("coolantloops.crawler.degasser_unformed", step.x, step.y, step.z);
                 return Visit.STOP;
             }
         }
@@ -1675,8 +1650,7 @@ public class LoopGraphCrawler {
                         bath.getDeviceId()));
                 return Visit.NEXT;
             } else {
-                finishWithFailure(
-                    CoolantLocalization.format("coolantloops.crawler.bath_unformed", step.x, step.y, step.z));
+                finishWithFailure("coolantloops.crawler.bath_unformed", step.x, step.y, step.z);
                 return Visit.STOP;
             }
         }
@@ -1684,14 +1658,12 @@ public class LoopGraphCrawler {
         /** A pressurized hatch paired with an opposite hatch (a passage through another machine). */
         private Visit visitPassageHatchPair(FrontierStep step, MTEHatchPressurizedFluid hatch) {
             if (!hatch.isPassageInlet()) {
-                finishWithFailure(
-                    CoolantLocalization.format("coolantloops.crawler.passage_outlet", step.x, step.y, step.z));
+                finishWithFailure("coolantloops.crawler.passage_outlet", step.x, step.y, step.z);
                 return Visit.STOP;
             }
             IGregTechTileEntity outTE = hatch.getOppositeHatchTile();
             if (outTE == null) {
-                finishWithFailure(
-                    CoolantLocalization.format("coolantloops.crawler.passage_no_pair", step.x, step.y, step.z));
+                finishWithFailure("coolantloops.crawler.passage_no_pair", step.x, step.y, step.z);
                 return Visit.STOP;
             }
             if (pump != null) {
@@ -1741,8 +1713,7 @@ public class LoopGraphCrawler {
         private Visit visitCorePassage(FrontierStep step, TileEntity te, IMetaTileEntity mte) {
             ICoolantPassageHatch passage = (ICoolantPassageHatch) mte;
             if (!passage.isPassageInlet()) {
-                finishWithFailure(
-                    CoolantLocalization.format("coolantloops.crawler.passage_outlet", step.x, step.y, step.z));
+                finishWithFailure("coolantloops.crawler.passage_outlet", step.x, step.y, step.z);
                 return Visit.STOP;
             }
             IGregTechTileEntity outTE = passage.getOppositeHatchTile();
@@ -1759,8 +1730,7 @@ public class LoopGraphCrawler {
                 }
             }
             if (outTE == null) {
-                finishWithFailure(
-                    CoolantLocalization.format("coolantloops.crawler.passage_no_pair", step.x, step.y, step.z));
+                finishWithFailure("coolantloops.crawler.passage_no_pair", step.x, step.y, step.z);
                 return Visit.STOP;
             }
             if (pump != null) {
@@ -1820,9 +1790,7 @@ public class LoopGraphCrawler {
             if (device != null) {
                 BlockPosCoord devCoord = new BlockPosCoord(step.x, step.y, step.z);
                 if (visitedPipeAndDevicePositions.contains(devCoord)) {
-                    finishWithFailure(
-                        CoolantLocalization
-                            .format("coolantloops.crawler.device_merge_needs_manifold", step.x, step.y, step.z));
+                    finishWithFailure("coolantloops.crawler.device_merge_needs_manifold", step.x, step.y, step.z);
                     return Visit.STOP;
                 }
                 visitedPipeAndDevicePositions.add(devCoord);
@@ -1881,13 +1849,12 @@ public class LoopGraphCrawler {
             }
 
             finishWithFailure(
-                CoolantLocalization.format(
-                    "coolantloops.crawler.unknown_block",
-                    step.x,
-                    step.y,
-                    step.z,
-                    te.getClass()
-                        .getSimpleName()));
+                "coolantloops.crawler.unknown_block",
+                step.x,
+                step.y,
+                step.z,
+                te.getClass()
+                    .getSimpleName());
             return Visit.STOP;
         }
 
@@ -2027,7 +1994,7 @@ public class LoopGraphCrawler {
         private void finishCrawl() {
             // 1. Verify that the Sink was reached
             if (!graphNodes.containsKey(sinkNodeId)) {
-                finishWithFailure(CoolantLocalization.get("coolantloops.crawler.no_suction_path"));
+                finishWithFailure("coolantloops.crawler.no_suction_path");
                 return;
             }
 
@@ -2051,8 +2018,7 @@ public class LoopGraphCrawler {
 
             for (String nodeId : graphNodes.keySet()) {
                 if (!canReachSink.contains(nodeId)) {
-                    finishWithFailure(
-                        CoolantLocalization.format("coolantloops.crawler.branch_not_reaching_suction", nodeId));
+                    finishWithFailure("coolantloops.crawler.branch_not_reaching_suction", nodeId);
                     return;
                 }
             }
@@ -2072,11 +2038,9 @@ public class LoopGraphCrawler {
                     }
                 }
                 if (involvesManifold) {
-                    finishWithFailure(
-                        CoolantLocalization.format("coolantloops.crawler.cycle_detected", String.join(" -> ", cycle)));
+                    finishWithFailure("coolantloops.crawler.cycle_detected", String.join(" -> ", cycle));
                 } else {
-                    finishWithFailure(
-                        CoolantLocalization.format("coolantloops.crawler.cycle_generic", String.join(" -> ", cycle)));
+                    finishWithFailure("coolantloops.crawler.cycle_generic", String.join(" -> ", cycle));
                 }
                 return;
             }

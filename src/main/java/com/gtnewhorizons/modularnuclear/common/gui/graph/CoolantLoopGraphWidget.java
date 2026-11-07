@@ -26,6 +26,7 @@ import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphData.Gr
 import com.gtnewhorizons.modularnuclear.common.gui.graph.SugiyamaLayout.LayoutEdge;
 import com.gtnewhorizons.modularnuclear.common.gui.graph.SugiyamaLayout.LayoutNode;
 import com.gtnewhorizons.modularnuclear.common.gui.graph.SugiyamaLayout.Point2D;
+import com.gtnewhorizons.modularnuclear.common.util.ClientText;
 import com.gtnewhorizons.modularui.api.GlStateManager;
 
 /**
@@ -295,8 +296,8 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
         GuiDraw.drawRect(rw - 1, 0, 1, rh, 0xFF222222);
 
         if (graphData == null || !graphData.isFormed) {
-            String msg = (graphData != null && graphData.failureReason != null) ? graphData.failureReason
-                : "Coolant loop not formed";
+            String msg = (graphData != null && graphData.failureReason != null) ? ClientText.of(graphData.failureReason)
+                : ClientText.get("coolantloops.gui.graph.not_formed");
             FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
             int maxWrapWidth = Math.max(40, rw - 24);
             @SuppressWarnings("unchecked")

@@ -22,7 +22,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearRe
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
+import com.gtnewhorizons.modularnuclear.common.util.ClientText;
 
 import cpw.mods.fml.common.ICrashCallable;
 import cpw.mods.fml.common.Loader;
@@ -207,7 +207,7 @@ public class MultiblockStructureErrorsTest {
             "coolantloops.structure.error.heater_no_laser",
             "coolantloops.structure.error.heater_energy_tier_too_high" };
         for (String key : keys) {
-            String val = CoolantLocalization.get(key);
+            String val = ClientText.get(key);
             assertNotNull(val, "Key should exist in lang file: " + key);
             assertNotEquals(key, val, "Key should be translated: " + key);
         }

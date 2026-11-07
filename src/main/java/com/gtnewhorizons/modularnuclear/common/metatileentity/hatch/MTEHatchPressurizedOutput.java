@@ -1,6 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.hatch;
 
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
+import com.gtnewhorizons.modularnuclear.common.util.ClientText;
 
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -13,13 +13,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 public class MTEHatchPressurizedOutput extends MTEHatchPressurizedFluid {
 
     public MTEHatchPressurizedOutput(int aID, String aName, String aNameRegional, int aTier) {
-        super(
-            aID,
-            aName,
-            aNameRegional,
-            aTier,
-            new String[] { CoolantLocalization.get("gt.hatch.pressurized_output.desc1"),
-                CoolantLocalization.get("gt.hatch.pressurized_output.desc2") });
+        super(aID, aName, aNameRegional, aTier, new String[0]);
         super.setMode(HatchMode.DISCHARGE);
     }
 
@@ -36,5 +30,12 @@ public class MTEHatchPressurizedOutput extends MTEHatchPressurizedFluid {
     @Override
     public void setMode(HatchMode mode) {
         super.setMode(HatchMode.DISCHARGE);
+    }
+
+    /** Localized when shown: descriptions built at registration would be in the server's language. */
+    @Override
+    public String[] getDescription() {
+        return new String[] { ClientText.get("gt.hatch.pressurized_output.desc1"),
+            ClientText.get("gt.hatch.pressurized_output.desc2") };
     }
 }

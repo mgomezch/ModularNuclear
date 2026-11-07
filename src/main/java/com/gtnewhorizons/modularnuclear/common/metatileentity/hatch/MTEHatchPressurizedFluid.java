@@ -14,7 +14,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantPassageHatch;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
+import com.gtnewhorizons.modularnuclear.common.util.ClientText;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
@@ -105,13 +105,7 @@ public class MTEHatchPressurizedFluid extends MTEHatch implements ICoolantLoopDe
     protected IThermalExchangeListener mThermalExchangeListener = null;
 
     public MTEHatchPressurizedFluid(int aID, String aName, String aNameRegional, int aTier) {
-        this(
-            aID,
-            aName,
-            aNameRegional,
-            aTier,
-            new String[] { CoolantLocalization.get("gt.hatch.pressurized_fluid.desc1"),
-                CoolantLocalization.get("gt.hatch.pressurized_fluid.desc2") });
+        this(aID, aName, aNameRegional, aTier, new String[0]);
     }
 
     public MTEHatchPressurizedFluid(int aID, String aName, String aNameRegional, int aTier, String[] aDescription) {
@@ -402,5 +396,12 @@ public class MTEHatchPressurizedFluid extends MTEHatch implements ICoolantLoopDe
                         () -> String.format("Pump: %s", mConnectedPump != null ? "Connected" : "Disconnected"))
                     .setDefaultColor(Color.rgb(150, 180, 255))
                     .setPos(10, 56));
+    }
+
+    /** Localized when shown: descriptions built at registration would be in the server's language. */
+    @Override
+    public String[] getDescription() {
+        return new String[] { ClientText.get("gt.hatch.pressurized_fluid.desc1"),
+            ClientText.get("gt.hatch.pressurized_fluid.desc2") };
     }
 }

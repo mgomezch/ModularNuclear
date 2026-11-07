@@ -264,7 +264,11 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public String getModeratorDisplayName() {
-        ItemStack modStack = getModeratorStack();
+        return moderatorDisplayName(getModeratorStack());
+    }
+
+    /** A moderator's configured name, or its item name in the game's language; "None" without one. */
+    public static String moderatorDisplayName(ItemStack modStack) {
         if (modStack == null) return "None";
         ComponentData.ModeratorData data = ReactorDataRegistry.findModerator(modStack);
         if (data != null && data.name != null && !data.name.isEmpty()) {

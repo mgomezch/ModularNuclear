@@ -226,7 +226,8 @@ public class ManifoldAndPipeFlowDirectionTest {
             .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 10, ForgeDirection.NORTH, "test_pump", null, null);
         assertFalse(result.isSuccess, "Regular GT fluid pipe must be rejected by crawler");
         assertTrue(
-            result.failureReason.contains("not an insulated coolant pipe"),
+            result.failureReason.english()
+                .contains("not an insulated coolant pipe"),
             "Failure message must state that coolant loops require specialized Coolant Pipes: " + result.failureReason);
     }
 
@@ -271,7 +272,8 @@ public class ManifoldAndPipeFlowDirectionTest {
             .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 10, ForgeDirection.NORTH, "test_pump", null, null);
         assertFalse(result.isSuccess, "Loop with regular fluid pipe in the middle must fail");
         assertTrue(
-            result.failureReason.contains("pipe at (11, 10, 11) is not an insulated coolant pipe"),
+            result.failureReason.english()
+                .contains("pipe at (11, 10, 11) is not an insulated coolant pipe"),
             "Failure message must identify pipe at (11, 10, 11) as not an insulated coolant pipe, but got: "
                 + result.failureReason);
     }
@@ -312,7 +314,8 @@ public class ManifoldAndPipeFlowDirectionTest {
         CrawlResult mismatched = crawlThroughDevice(0.5f, 0.375f);
         assertFalse(mismatched.isSuccess, "A device between two pipe sizes must fail the crawl");
         assertTrue(
-            mismatched.failureReason.contains("the pipe leaving instrument_2_10_0"),
+            mismatched.failureReason.english()
+                .contains("the pipe leaving instrument_2_10_0"),
             "The failure must name the device: " + mismatched.failureReason);
     }
 
@@ -364,7 +367,8 @@ public class ManifoldAndPipeFlowDirectionTest {
         CrawlResult chained = crawlRun("PDDP");
         assertFalse(chained.isSuccess, "A device feeding another device directly must fail the crawl");
         assertTrue(
-            chained.failureReason.contains("instrument_2_10_0 discharges straight into the block at (3, 10, 0)"),
+            chained.failureReason.english()
+                .contains("instrument_2_10_0 discharges straight into the block at (3, 10, 0)"),
             "The failure must name the device and what it feeds: " + chained.failureReason);
 
         CrawlResult intoSuction = crawlRun("PD");
@@ -373,7 +377,8 @@ public class ManifoldAndPipeFlowDirectionTest {
         CrawlResult fromDischarge = crawlRun("DP");
         assertFalse(fromDischarge.isSuccess, "The pump discharging straight into a device must fail the crawl");
         assertTrue(
-            fromDischarge.failureReason.contains("discharges straight into the block at (1, 10, 0)"),
+            fromDischarge.failureReason.english()
+                .contains("discharges straight into the block at (1, 10, 0)"),
             "The failure must name what the pump feeds: " + fromDischarge.failureReason);
     }
 }

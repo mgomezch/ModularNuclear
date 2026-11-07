@@ -27,7 +27,15 @@ It also does not check that the player is near the bath or has its GUI open. Any
 - Delete the packet class and its registration in `CoolantLoops`.
 - Check that nothing else registers custom GUI packets.
 
-### B2 (P1): The server writes player-facing text, saves it, and uses it as logic
+### B2 (P1): The server writes player-facing text, saves it, and uses it as logic (done)
+
+**Done:**
+- **Messages.** Player-facing lines are `LocalizedText`: a lang key and its arguments, which may be numbers, strings or other `LocalizedText`s. This covers the pump status, crawl failures, device disconnection reasons and loop-break reasons.
+- **Saving and syncing.** NBT, the pump GUI's sync, WAILA and the loop graph's JSON carry the key and arguments. Each client formats them in its own language (`ClientText`). Chat messages are `ChatComponentTranslation`s.
+- **Typed conditions.** "Loop too large" is `CrawlResult.isLoopTooLarge()`, not a text comparison. The loop engine reports a `LoopFailure` with arguments, so the standalone simulator keeps its English messages and the game uses the lang key.
+- **Reactor.** The grid sync sends the advanced rod's moderator item, not its server-side name. The reactor keeps its output coolant's fluid registry name, not a localized one.
+- **Lang files.** `CoolantLocalization`, its `StatCollector` reflection and the duplicate `assets/coolantloops/lang` file are gone. Hatch descriptions are localized when shown, as GregTech's are.
+- **What still formats on the server.** Logs, tests and OpenComputers use English (`EnglishLang`, from the jar's lang file). GregTech's scanner (`getInfoData`) takes finished lines, so those are formatted in the server's language, as GregTech's own are.
 
 `util/CoolantLocalization` localizes on the server by reflecting into `StatCollector`. The localized text ends up in:
 

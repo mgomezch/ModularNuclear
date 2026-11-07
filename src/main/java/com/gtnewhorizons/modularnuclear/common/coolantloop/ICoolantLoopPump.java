@@ -2,6 +2,8 @@ package com.gtnewhorizons.modularnuclear.common.coolantloop;
 
 import java.util.Map;
 
+import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
+
 /**
  * Interface representing the pump controller managing a closed coolant loop.
  * Tracks loop circulation, fluid inventory in the attached reservoir, and dissolved radiolytic gases.
@@ -106,10 +108,15 @@ public interface ICoolantLoopPump {
     }
 
     /**
-     * Gets the human-readable status message of the loop and pump.
+     * The status line of the loop and pump, localized where it is shown.
      */
+    default LocalizedText getLoopStatusMessage() {
+        return LocalizedText.EMPTY;
+    }
+
+    /** The status line in English, for logs and computer APIs. */
     default String getLoopStatus() {
-        return "";
+        return getLoopStatusMessage().english();
     }
 
     /**
@@ -281,7 +288,7 @@ public interface ICoolantLoopPump {
     /**
      * Notifies the pump that an in-line device has disconnected from the loop (e.g. powerfailed).
      */
-    default void onDeviceDisconnected(ICoolantLoopDevice device, String reason) {}
+    default void onDeviceDisconnected(ICoolantLoopDevice device, LocalizedText reason) {}
 
     /** Whether the loop is full and its coolant flowing, so devices on it have coolant to work on. */
     default boolean isCoolantFlowing() {

@@ -29,7 +29,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
+import com.gtnewhorizons.modularnuclear.common.util.ClientText;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -161,9 +161,7 @@ public class MTECoolantPipe extends MTEFluidPipe {
     @Override
     public String[] getDescription() {
         List<String> list = new ArrayList<>();
-        list.add(
-            EnumChatFormatting.AQUA
-                + CoolantLocalization.get("gt.pipe.coolant.desc", "Thermally insulated coolant loop pipe"));
+        list.add(EnumChatFormatting.AQUA + ClientText.get("gt.pipe.coolant.desc"));
         String[] superDesc = super.getDescription();
         if (superDesc != null) {
             list.addAll(Arrays.asList(superDesc));
@@ -171,9 +169,9 @@ public class MTECoolantPipe extends MTEFluidPipe {
         double maxP = CoolantPipingRegistry.getMaxPressureBar(mMaterial);
         double maxT = CoolantPipingRegistry.getMaxTemperatureCelsius(this);
         double diamCm = CoolantPipingRegistry.getDiameterForThickness(mThickNess) * 100.0;
-        list.add(EnumChatFormatting.GRAY + CoolantLocalization.format("gt.pipe.coolant.specs.diameter", diamCm));
-        list.add(EnumChatFormatting.GRAY + CoolantLocalization.format("gt.pipe.coolant.specs.pressure", maxP));
-        list.add(EnumChatFormatting.GRAY + CoolantLocalization.format("gt.pipe.coolant.specs.temperature", maxT));
+        list.add(EnumChatFormatting.GRAY + ClientText.format("gt.pipe.coolant.specs.diameter", diamCm));
+        list.add(EnumChatFormatting.GRAY + ClientText.format("gt.pipe.coolant.specs.pressure", maxP));
+        list.add(EnumChatFormatting.GRAY + ClientText.format("gt.pipe.coolant.specs.temperature", maxT));
         return list.toArray(new String[0]);
     }
 

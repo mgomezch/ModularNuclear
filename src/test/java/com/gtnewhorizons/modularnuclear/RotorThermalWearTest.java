@@ -18,7 +18,6 @@ import com.gtnewhorizons.modularnuclear.common.config.data.CoolantPhysicsData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.opencomputers.LoopInstrumentEnvironment;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
 import com.gtnewhorizons.modularnuclear.data.MaterialRotorDatabaseExporter;
 
@@ -30,7 +29,6 @@ public class RotorThermalWearTest {
 
     @BeforeAll
     public static void setUp() {
-        CoolantLocalization.loadLangFile("/assets/coolantloops/lang/en_US.lang");
         MaterialRotorDatabaseExporter.initEnvironment();
     }
 

@@ -18,7 +18,8 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
+import com.gtnewhorizons.modularnuclear.common.util.ClientText;
+import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
 import com.gtnewhorizons.modularui.api.drawable.IDrawable;
 import com.gtnewhorizons.modularui.api.drawable.Text;
 import com.gtnewhorizons.modularui.api.math.Alignment;
@@ -66,8 +67,13 @@ public class TileEntityLoopInstrument extends TileEntity
             this.unit = unit;
         }
 
+        public String langKey() {
+            return "coolantloops.metric." + name().toLowerCase();
+        }
+
+        /** The name in the game's language, for the client's GUI ({@link #displayName} is the English one). */
         public String getDisplayName() {
-            return CoolantLocalization.get("coolantloops.metric." + name().toLowerCase(), displayName);
+            return ClientText.get(langKey());
         }
     }
 
@@ -224,15 +230,20 @@ public class TileEntityLoopInstrument extends TileEntity
         markDirty();
     }
 
-    public static String getBundledModeName(int mode) {
+    public static LocalizedText getBundledModeText(int mode) {
         if (mode == BUNDLED_MODE_BROADCAST) {
-            return CoolantLocalization.get("coolantloops.bundled.broadcast");
+            return LocalizedText.of("coolantloops.bundled.broadcast");
         }
         int dyeIdx = mode - 1;
         if (dyeIdx >= 0 && dyeIdx < DYE_NAMES.length) {
-            return CoolantLocalization.format("coolantloops.bundled.channel", dyeIdx, DYE_NAMES[dyeIdx]);
+            return LocalizedText.of("coolantloops.bundled.channel", dyeIdx, DYE_NAMES[dyeIdx]);
         }
-        return "Unknown";
+        return LocalizedText.literal("Unknown");
+    }
+
+    /** The bundled mode in English, for computer APIs. */
+    public static String getBundledModeName(int mode) {
+        return getBundledModeText(mode).english();
     }
 
     public static String formatMetricValue(double value) {
@@ -551,7 +562,7 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> cycleMetric(-1))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(CoolantLocalization.get("coolantloops.gui.instrument.btn.prev_metric"))
+                .addTooltip(ClientText.get("coolantloops.gui.instrument.btn.prev_metric"))
                 .setPos(12, 20)
                 .setSize(12, 12));
         builder.widget(
@@ -559,14 +570,15 @@ public class TileEntityLoopInstrument extends TileEntity
                 .setPos(12, 22)
                 .setSize(12, 10));
         builder.widget(
-            new TextWidget().setStringSupplier(
-                () -> CoolantLocalization.format("coolantloops.gui.instrument.metric", trackedMetric.getDisplayName()))
+            new TextWidget()
+                .setStringSupplier(
+                    () -> ClientText.format("coolantloops.gui.instrument.metric", trackedMetric.getDisplayName()))
                 .setDefaultColor(Color.rgb(100, 200, 255))
                 .setPos(28, 22));
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> cycleMetric(1))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(CoolantLocalization.get("coolantloops.gui.instrument.btn.next_metric"))
+                .addTooltip(ClientText.get("coolantloops.gui.instrument.btn.next_metric"))
                 .setPos(153, 20)
                 .setSize(12, 12));
         builder.widget(
@@ -578,7 +590,7 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new TextWidget()
                 .setStringSupplier(
-                    () -> CoolantLocalization.format(
+                    () -> ClientText.format(
                         "coolantloops.gui.instrument.measured",
                         formatMetricValue(getDisplayValue()),
                         trackedMetric.unit))
@@ -589,8 +601,7 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new TextWidget()
                 .setStringSupplier(
-                    () -> CoolantLocalization
-                        .format("coolantloops.gui.instrument.output", redstoneOutput, fineOutputStrength))
+                    () -> ClientText.format("coolantloops.gui.instrument.output", redstoneOutput, fineOutputStrength))
                 .setDefaultColor(Color.rgb(255, 80, 80))
                 .setPos(12, 54));
 
@@ -598,7 +609,7 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> cycleBundledMode(-1))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(CoolantLocalization.get("coolantloops.gui.instrument.btn.prev_bundled"))
+                .addTooltip(ClientText.get("coolantloops.gui.instrument.btn.prev_bundled"))
                 .setPos(12, 70)
                 .setSize(12, 12));
         builder.widget(
@@ -608,13 +619,14 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new TextWidget()
                 .setStringSupplier(
-                    () -> CoolantLocalization.format("coolantloops.gui.instrument.pr", getBundledModeName(bundledMode)))
+                    () -> ClientText
+                        .format("coolantloops.gui.instrument.pr", ClientText.of(getBundledModeText(bundledMode))))
                 .setDefaultColor(Color.rgb(200, 160, 255))
                 .setPos(28, 72));
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> cycleBundledMode(1))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(CoolantLocalization.get("coolantloops.gui.instrument.btn.next_bundled"))
+                .addTooltip(ClientText.get("coolantloops.gui.instrument.btn.next_bundled"))
                 .setPos(153, 70)
                 .setSize(12, 12));
         builder.widget(
@@ -626,13 +638,13 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> setThresholdMode(!thresholdMode))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(CoolantLocalization.get("coolantloops.gui.instrument.btn.mode"))
+                .addTooltip(ClientText.get("coolantloops.gui.instrument.btn.mode"))
                 .setPos(7, 100)
                 .setSize(100, 14));
         builder.widget(
             new TextWidget()
                 .setStringSupplier(
-                    () -> CoolantLocalization.get(
+                    () -> ClientText.get(
                         thresholdMode ? "coolantloops.gui.instrument.mode.threshold"
                             : "coolantloops.gui.instrument.mode.proportional"))
                 .setTextAlignment(Alignment.Center)
@@ -641,12 +653,12 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> setThresholdInverted(!thresholdInverted))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(CoolantLocalization.get("coolantloops.gui.instrument.btn.invert"))
+                .addTooltip(ClientText.get("coolantloops.gui.instrument.btn.invert"))
                 .setPos(111, 100)
                 .setSize(58, 14));
         builder.widget(
             new TextWidget().setStringSupplier(
-                () -> CoolantLocalization.get(
+                () -> ClientText.get(
                     thresholdInverted ? "coolantloops.gui.instrument.inverted" : "coolantloops.gui.instrument.normal"))
                 .setTextAlignment(Alignment.Center)
                 .setPos(111, 103)
@@ -655,8 +667,7 @@ public class TileEntityLoopInstrument extends TileEntity
         // Rows 6 and 7: Threshold setpoints, in the tracked metric's unit
         builder.widget(
             new TextWidget()
-                .setStringSupplier(
-                    () -> CoolantLocalization.format("coolantloops.gui.instrument.on_above", trackedMetric.unit))
+                .setStringSupplier(() -> ClientText.format("coolantloops.gui.instrument.on_above", trackedMetric.unit))
                 .setPos(9, 123));
         builder.widget(
             setpointInput(this::getThresholdHigh, this::setThresholdHigh, "coolantloops.gui.instrument.input.on_above")
@@ -664,8 +675,7 @@ public class TileEntityLoopInstrument extends TileEntity
                 .setSize(74, 14));
         builder.widget(
             new TextWidget()
-                .setStringSupplier(
-                    () -> CoolantLocalization.format("coolantloops.gui.instrument.off_below", trackedMetric.unit))
+                .setStringSupplier(() -> ClientText.format("coolantloops.gui.instrument.off_below", trackedMetric.unit))
                 .setPos(9, 143));
         builder.widget(
             setpointInput(this::getThresholdLow, this::setThresholdLow, "coolantloops.gui.instrument.input.off_below")
@@ -704,7 +714,7 @@ public class TileEntityLoopInstrument extends TileEntity
             .setTextAlignment(Alignment.Center)
             .setTextColor(Color.WHITE.normal)
             .setBackground(GTUITextures.BACKGROUND_TEXT_FIELD.withOffset(-1, -1, 2, 2))
-            .addTooltip(CoolantLocalization.get(tooltipKey));
+            .addTooltip(ClientText.get(tooltipKey));
         return input;
     }
 

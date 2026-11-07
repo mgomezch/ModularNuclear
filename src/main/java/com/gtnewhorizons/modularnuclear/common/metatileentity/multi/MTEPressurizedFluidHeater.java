@@ -35,7 +35,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.He
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PressurizedFluidHeaterStructure;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
+import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
@@ -890,15 +890,15 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
     }
 
     @Override
-    public String getDisconnectionReason() {
+    public LocalizedText getDisconnectionReason() {
         if (mPowerFailed) {
-            return CoolantLocalization.format(
+            return LocalizedText.of(
                 "coolantloops.crawler.heater_powerfailed",
                 mInnerTemperatureCelsius,
                 getMaxOperatingTemperatureCelsius());
         }
         if (!mMachine) {
-            return CoolantLocalization.get("coolantloops.crawler.heater_unformed_generic");
+            return LocalizedText.of("coolantloops.crawler.heater_unformed_generic");
         }
         return null;
     }

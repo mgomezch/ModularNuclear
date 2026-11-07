@@ -306,7 +306,7 @@ public class NuclearReactorWailaProvider {
                     EnumChatFormatting.AQUA,
                     coolantRateSec,
                     coolantRateCycle,
-                    reactor.mOutputCoolantName,
+                    fluidDisplayName(reactor.mOutputCoolantName),
                     EnumChatFormatting.RESET));
         }
 
@@ -387,5 +387,11 @@ public class NuclearReactorWailaProvider {
     public static void getExtraInfoData(MTENuclearReactor reactor, List<String> info) {
         // Main telemetry is exposed through getInfoData() so portable scanners and GT sensor cards
         // do not display duplicate entries.
+    }
+
+    /** A fluid's name in the game's language (GregTech's scanner takes finished lines). */
+    private static String fluidDisplayName(String registryName) {
+        net.minecraftforge.fluids.Fluid f = net.minecraftforge.fluids.FluidRegistry.getFluid(registryName);
+        return f != null ? f.getLocalizedName(new net.minecraftforge.fluids.FluidStack(f, 1000)) : registryName;
     }
 }

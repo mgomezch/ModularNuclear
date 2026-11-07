@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.gui.graph;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,6 +16,13 @@ import net.minecraft.item.ItemStack;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
@@ -36,6 +44,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressuriz
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityCreativeHeatReservoir;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
+import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.enums.Materials;
@@ -48,10 +57,12 @@ import gregtech.api.metatileentity.MetaTileEntity;
  */
 public class CoolantLoopGraphData {
 
-    private static final Gson GSON = new GsonBuilder().create();
+    private static final Gson GSON = new GsonBuilder().registerTypeAdapter(LocalizedText.class, new LocalizedTextJson())
+        .create();
 
     public boolean isFormed;
-    public String failureReason;
+    /** Why the loop is not formed, localized by the client that shows it. */
+    public LocalizedText failureReason;
     public String loopState = "EMPTY";
     public String coolantName = "None";
     public double totalFlowRateLPerSec = 0.0;
@@ -213,7 +224,7 @@ public class CoolantLoopGraphData {
         } catch (Throwable t) {
             CoolantLoopGraphData data = new CoolantLoopGraphData();
             data.isFormed = false;
-            data.failureReason = "Deserialization error: " + t.getMessage();
+            data.failureReason = LocalizedText.literal("Deserialization error: " + t.getMessage());
             return data;
         }
     }
@@ -231,7 +242,7 @@ public class CoolantLoopGraphData {
             data.isFormed = pump.isLoopFormed();
             data.loopState = pump.getLoopState() != null ? pump.getLoopState()
                 .name() : "EMPTY";
-            data.failureReason = pump.getLoopStatus();
+            data.failureReason = pump.getLoopStatusMessage();
         } else {
             data.isFormed = crawl != null && crawl.isSuccess;
             data.loopState = "RUNNING";
@@ -744,5 +755,53 @@ public class CoolantLoopGraphData {
         sink.pressureOutBar = 1.0;
         data.nodes.add(sink);
         data.edges.add(new GraphEdge("edge_sink", prevId, "sink"));
+    }
+
+    /** A {@link LocalizedText} as its key and typed arguments, so the client localizes it. */
+    private static final class LocalizedTextJson
+        implements JsonSerializer<LocalizedText>, JsonDeserializer<LocalizedText> {
+
+        @Override
+        public JsonElement serialize(LocalizedText text, Type type, JsonSerializationContext ctx) {
+            JsonObject o = new JsonObject();
+            o.addProperty("k", text.key);
+            JsonArray args = new JsonArray();
+            for (int i = 0; i < text.argCount(); i++) {
+                Object a = text.arg(i);
+                JsonObject arg = new JsonObject();
+                if (a instanceof LocalizedText t) arg.add("t", serialize(t, type, ctx));
+                else if (a instanceof Long l) arg.addProperty("l", l);
+                else if (a instanceof Double d) arg.addProperty("d", d);
+                else if (a instanceof Boolean b) arg.addProperty("b", b);
+                else arg.addProperty("s", String.valueOf(a));
+                args.add(arg);
+            }
+            o.add("a", args);
+            return o;
+        }
+
+        @Override
+        public LocalizedText deserialize(JsonElement json, Type type, JsonDeserializationContext ctx) {
+            JsonObject o = json.getAsJsonObject();
+            String key = o.get("k")
+                .getAsString();
+            JsonArray array = o.getAsJsonArray("a");
+            Object[] args = new Object[array.size()];
+            for (int i = 0; i < args.length; i++) {
+                JsonObject arg = array.get(i)
+                    .getAsJsonObject();
+                if (arg.has("t")) args[i] = deserialize(arg.get("t"), type, ctx);
+                else if (arg.has("l")) args[i] = arg.get("l")
+                    .getAsLong();
+                else if (arg.has("d")) args[i] = arg.get("d")
+                    .getAsDouble();
+                else if (arg.has("b")) args[i] = arg.get("b")
+                    .getAsBoolean();
+                else args[i] = arg.get("s")
+                    .getAsString();
+            }
+            return LocalizedText.LITERAL_KEY.equals(key) ? LocalizedText.literal((String) args[0])
+                : LocalizedText.of(key, args);
+        }
     }
 }

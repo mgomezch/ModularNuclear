@@ -4,7 +4,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
+import com.gtnewhorizons.modularnuclear.common.util.ClientText;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -28,14 +28,13 @@ public class RotorTooltipEventHandler {
                 double meltC = RotorThermalHelper.getMeltingPointCelsius(mat);
                 double softenC = RotorThermalHelper.getThermalSofteningCelsius(mat);
 
-                event.toolTip
-                    .add(EnumChatFormatting.GRAY + CoolantLocalization.get("coolantloops.tooltip.rotor.header"));
+                event.toolTip.add(EnumChatFormatting.GRAY + ClientText.get("coolantloops.tooltip.rotor.header"));
                 event.toolTip.add(
                     EnumChatFormatting.DARK_GRAY + "  "
-                        + CoolantLocalization.format("coolantloops.tooltip.rotor.softening", softenC));
+                        + ClientText.format("coolantloops.tooltip.rotor.softening", softenC));
                 event.toolTip.add(
                     EnumChatFormatting.DARK_GRAY + "  "
-                        + CoolantLocalization.format("coolantloops.tooltip.rotor.melting", meltC));
+                        + ClientText.format("coolantloops.tooltip.rotor.melting", meltC));
             }
         }
     }

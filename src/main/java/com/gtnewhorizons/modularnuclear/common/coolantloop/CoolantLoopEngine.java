@@ -48,7 +48,8 @@ public class CoolantLoopEngine {
     // Simulation status
     private boolean isRuptured = false;
     private LoopSegment rupturedSegment = null;
-    private String failureReason = null;
+    private LoopFailure failure = null;
+    private Object[] failureArgs = new Object[0];
     private double peakLoopPressureBar = 0.0;
     private double peakLoopTempCelsius = 20.0;
     private double pumpHeadPressurePa = 0.0;
@@ -254,7 +255,8 @@ public class CoolantLoopEngine {
         maxVolumetricFlowRate = Double.MAX_VALUE;
         isRuptured = false;
         rupturedSegment = null;
-        failureReason = null;
+        failure = null;
+        failureArgs = new Object[0];
     }
 
     public List<LoopSegment> getSegments() {
@@ -355,12 +357,24 @@ public class CoolantLoopEngine {
         this.rupturedSegment = rupturedSegment;
     }
 
-    public String getFailureReason() {
-        return failureReason;
+    /** Why the loop ruptured, or null. */
+    public LoopFailure getFailure() {
+        return failure;
     }
 
-    public void setFailureReason(String failureReason) {
-        this.failureReason = failureReason;
+    /** The failure's arguments, in its pattern's order. */
+    public Object[] getFailureArgs() {
+        return failureArgs;
+    }
+
+    /** The failure in English (the standalone simulator's report), or null. */
+    public String getFailureReason() {
+        return failure != null ? String.format(failure.english, failureArgs) : null;
+    }
+
+    private void fail(LoopFailure why, Object... args) {
+        this.failure = why;
+        this.failureArgs = args;
     }
 
     public double getPeakLoopPressureBar() {
@@ -527,11 +541,7 @@ public class CoolantLoopEngine {
             if (segment.hasPressureLimit() && maxSegPressureBar > segment.getMaxPressureBar()) {
                 isRuptured = true;
                 rupturedSegment = segment;
-                failureReason = String.format(
-                    "Pipe segment %s burst! Pressure %.2f bar exceeded maximum rating %.2f bar",
-                    segment.getId(),
-                    maxSegPressureBar,
-                    segment.getMaxPressureBar());
+                fail(LoopFailure.BURST, segment.getId(), maxSegPressureBar, segment.getMaxPressureBar());
                 return;
             }
 
@@ -543,8 +553,8 @@ public class CoolantLoopEngine {
                 && segment.getCurrentTemperatureCelsius() > segment.getMaxTemperatureCelsius()) {
                 isRuptured = true;
                 rupturedSegment = segment;
-                failureReason = String.format(
-                    "Pipe segment %s melted! Temperature %.1f C exceeded maximum rating %.1f C",
+                fail(
+                    LoopFailure.MELTED,
                     segment.getId(),
                     segment.getCurrentTemperatureCelsius(),
                     segment.getMaxTemperatureCelsius());
@@ -559,15 +569,15 @@ public class CoolantLoopEngine {
                     isRuptured = true;
                     rupturedSegment = segment;
                     if (fluid.isMolten()) {
-                        failureReason = String.format(
-                            "Catastrophic coolant solidification: Coolant temperature (%.1f °C) in segment %s dropped below its melting point (%.1f °C) for %s! Solidified plug ruptured loop.",
+                        fail(
+                            LoopFailure.SOLIDIFIED,
                             segment.getCurrentTemperatureCelsius(),
                             segment.getId(),
                             freezingTemp,
                             fluid.getFluidName());
                     } else {
-                        failureReason = String.format(
-                            "Catastrophic coolant freezing: Coolant temperature (%.1f °C) in segment %s dropped below freezing point (%.1f °C) for %s! Solidified ice/plug ruptured loop.",
+                        fail(
+                            LoopFailure.FROZE,
                             segment.getCurrentTemperatureCelsius(),
                             segment.getId(),
                             freezingTemp,

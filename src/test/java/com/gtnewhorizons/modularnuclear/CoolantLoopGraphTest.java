@@ -25,6 +25,7 @@ import com.gtnewhorizons.modularnuclear.common.gui.graph.SugiyamaLayout.LayoutEd
 import com.gtnewhorizons.modularnuclear.common.gui.graph.SugiyamaLayout.LayoutNode;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
+import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
 
 import cpw.mods.fml.common.ICrashCallable;
 import cpw.mods.fml.common.Loader;
@@ -586,7 +587,8 @@ public class CoolantLoopGraphTest {
     public void testUnformedGraphDataAndFailureReason() {
         CoolantLoopGraphData data = new CoolantLoopGraphData();
         data.isFormed = false;
-        data.failureReason = "Loop disconnect: Dead-end coolant pipe at (10, 65, 20) entering from EAST";
+        data.failureReason = LocalizedText
+            .literal("Loop disconnect: Dead-end coolant pipe at (10, 65, 20) entering from EAST");
 
         String json = data.toJson();
         assertNotNull(json);

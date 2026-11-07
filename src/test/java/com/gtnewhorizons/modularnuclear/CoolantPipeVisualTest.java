@@ -18,7 +18,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPres
 import com.gtnewhorizons.modularnuclear.common.metatileentity.pipe.MTECoolantPipe;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
+import com.gtnewhorizons.modularnuclear.common.util.ClientText;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.ITexture;
@@ -121,7 +121,7 @@ public class CoolantPipeVisualTest {
         assertEquals("Medium Steel Coolant Pipe", pipe.getLocalizedName());
         String[] desc = pipe.getDescription();
         assertTrue(desc.length >= 4, "Must contain insulated description and specs");
-        assertTrue(desc[0].contains(CoolantLocalization.get("gt.pipe.coolant.desc")));
+        assertTrue(desc[0].contains(ClientText.get("gt.pipe.coolant.desc")));
     }
 
     @Test

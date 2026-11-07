@@ -337,7 +337,7 @@ coolantloops.manifold.plane.yz=YZ (east-west normal)
 coolantloops.manifold.plane.xz=XZ (vertical normal)
 coolantloops.manifold.plane.xy=XY (north-south normal)
 
-coolantloops.chat.creative_reservoir.temp_set=Creative heat reservoir: Temperature set to %.1f °C
+coolantloops.chat.creative_reservoir.temp_set=Creative heat reservoir: Temperature set to %s °C
 coolantloops.chat.creative_reservoir.info=Creative heat reservoir: Current temp = %.1f °C, area = %.1f m^2 (sneak-click to cycle temp)
 
 # Creative heat reservoir GUI
@@ -492,7 +492,6 @@ coolantloops.structure.error.missing_primary_inlet=Missing primary high-pressure
 coolantloops.structure.error.missing_primary_outlet=Missing primary high-pressure fluid outlet hatch
 coolantloops.structure.error.single_amp_energy_required=Energy hatch must be single-amp (max 2A)
 coolantloops.structure.error.pump.missing_or_mismatched_tank=Missing, incomplete, or mismatched Railcraft tank directly above pump
-coolantloops.structure.error.pump.corner_frame=Requires %s frame box
 coolantloops.structure.error.pump.casing_req=Requires Tungstensteel Pipe Casing or valid hatch
 coolantloops.structure.error.pump.invalid_hatch=Invalid hatch (only high-pressure fluid, maintenance, and energy hatches allowed)
 coolantloops.structure.error.missing_suction_hatch=Missing high-pressure suction hatch (input mode)
@@ -546,3 +545,11 @@ modularnuclear.gui.not_fuel.blocked_by_config=blocked by blockedItems in the con
 modularnuclear.gui.not_fuel.empty_rod=an empty rod
 modularnuclear.gui.not_fuel.spent_product=read as a spent fuel product
 modularnuclear.gui.not_fuel.not_a_fuel=not a fuel
+gt.multiblock.coolant_pump.structure.input_bus=Input bus (optional, 0-1x, for automatic impeller loading)
+coolantloops.engine.burst=Pipe segment %s burst! Pressure %.2f bar exceeded maximum rating %.2f bar
+coolantloops.engine.melted=Pipe segment %s melted! Temperature %.1f °C exceeded maximum rating %.1f °C
+coolantloops.engine.solidified=Catastrophic coolant solidification: Coolant temperature (%.1f °C) in segment %s dropped below its melting point (%.1f °C) for %s! Solidified plug ruptured loop.
+coolantloops.engine.froze=Catastrophic coolant freezing: Coolant temperature (%.1f °C) in segment %s dropped below freezing point (%.1f °C) for %s! Solidified ice/plug ruptured loop.
+coolantloops.engine.failed=Coolant loop failure
+coolantloops.gui.graph.not_formed=Coolant loop not formed
+coolantloops.structure.error.pump.corner_frame_tank=Frame box of the pump tank's material

@@ -25,7 +25,6 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.pipe.MTECoolantPipe;
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.metatileentity.IConnectable;
@@ -122,12 +121,12 @@ public class TileEntityManifold extends TileEntity implements ICoolantLoopDevice
         return this.getPlaneAxis() == other.getPlaneAxis();
     }
 
-    public String getPlaneName() {
+    /** The lang key of the plane the manifold lies in. */
+    public String getPlaneKey() {
         return switch (getPlaneAxis()) {
-            case 0 -> CoolantLocalization.get("coolantloops.manifold.plane.yz");
-            case 1 -> CoolantLocalization.get("coolantloops.manifold.plane.xz");
-            case 2 -> CoolantLocalization.get("coolantloops.manifold.plane.xy");
-            default -> "XY";
+            case 0 -> "coolantloops.manifold.plane.yz";
+            case 1 -> "coolantloops.manifold.plane.xz";
+            default -> "coolantloops.manifold.plane.xy";
         };
     }
 

@@ -1018,7 +1018,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + "  Mod: "
                         + EnumChatFormatting.AQUA
-                        + (cell.moderatorName == null || cell.moderatorName.isEmpty() ? "None" : cell.moderatorName)
+                        + MTEHatchNuclearControlRod.moderatorDisplayName(cell.moderatorStack)
                         + EnumChatFormatting.YELLOW
                         + " ("
                         + cell.moderatorInsertion

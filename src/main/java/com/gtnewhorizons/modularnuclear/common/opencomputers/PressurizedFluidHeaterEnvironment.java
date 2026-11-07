@@ -67,7 +67,10 @@ public class PressurizedFluidHeaterEnvironment extends ManagedEnvironment implem
         data.put("isActive", active);
         data.put("isAllowedToWork", allowedToWork);
         data.put("powerFailed", heater.isPowerFailed());
-        data.put("disconnectionReason", heater.getDisconnectionReason() != null ? heater.getDisconnectionReason() : "");
+        data.put(
+            "disconnectionReason",
+            heater.getDisconnectionReason() != null ? heater.getDisconnectionReason()
+                .english() : "");
         data.put("structureLength", heater.getStructureLength());
         data.put("ringCount", heater.getRingCount());
         data.put(

@@ -7,8 +7,6 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import net.minecraft.util.StatCollector;
-
 import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
@@ -19,9 +17,9 @@ import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.DynamicSyncHandler;
+import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.DynamicSyncedWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
@@ -29,6 +27,9 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphPanel;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
+import com.gtnewhorizons.modularnuclear.common.util.ClientText;
+import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
+import com.gtnewhorizons.modularnuclear.common.util.LocalizedTextNbt;
 
 import gregtech.api.enums.ItemList;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
@@ -78,7 +79,11 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
 
         if (multiblock instanceof MTECoolantPump pump) {
             BooleanSyncValue loopFormedSyncer = new BooleanSyncValue(pump::isLoopFormed);
-            StringSyncValue loopStatusSyncer = new StringSyncValue(pump::getLoopStatus);
+            GenericSyncValue<LocalizedText, ?> loopStatusSyncer = new GenericSyncValue<>(
+                pump::getLoopStatusMessage,
+                pump::setLoopStatus,
+                LocalizedTextNbt::read,
+                LocalizedTextNbt::write);
             DoubleSyncValue pumpPressureSyncer = new DoubleSyncValue(pump::getPumpMechanicalPressureBar);
             DoubleSyncValue pumpFlowSyncer = new DoubleSyncValue(pump::getFlowRateLitersPerSecond);
             DoubleSyncValue pumpTempSyncer = new DoubleSyncValue(pump::getPumpFluidTemperatureCelsius);
@@ -104,9 +109,9 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
                     .setEnabledIf(w -> showLoopDiagnostic.get()));
 
             DynamicSyncHandler loopDiagSyncer = new DynamicSyncHandler().widgetProvider((sm, packet) -> {
-                String status = loopStatusSyncer.getValue();
-                if (status == null || status.isEmpty()) {
-                    status = StatCollector.translateToLocal("coolantloops.pump.status.waiting");
+                String status = loopStatusSyncer.getValue() != null ? ClientText.of(loopStatusSyncer.getValue()) : "";
+                if (status.isEmpty()) {
+                    status = ClientText.get("coolantloops.pump.status.waiting");
                 }
 
                 Flow row = Flow.row()

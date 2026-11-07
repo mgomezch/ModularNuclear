@@ -10,6 +10,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipingRegistry;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.CrawlResult;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
 
 /**
  * Unit tests verifying the physical constraints:
@@ -113,9 +114,10 @@ public class CoolantLoopConstraintsTest {
 
     @Test
     public void testLoopBrokenFailureReporting() {
-        CrawlResult broken = CrawlResult.fail("Loop broken: no path reached the pump suction port!");
+        CrawlResult broken = CrawlResult
+            .fail(LocalizedText.literal("Loop broken: no path reached the pump suction port!"));
         assertFalse(broken.isSuccess);
-        assertEquals("Loop broken: no path reached the pump suction port!", broken.failureReason);
+        assertEquals("Loop broken: no path reached the pump suction port!", broken.failureReason.english());
         assertNotNull(broken.segments);
         assertTrue(broken.segments.isEmpty());
         assertNotNull(broken.devices);

@@ -12,7 +12,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
@@ -20,7 +20,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import com.gtnewhorizons.modularnuclear.client.renderer.RenderBlockManifold;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 
 import gregtech.api.enums.SoundResource;
 import gregtech.api.util.GTModHandler;
@@ -269,12 +268,11 @@ public class BlockManifold extends BlockContainer {
                     world.markBlockForUpdate(x, y, z);
                     world.notifyBlocksOfNeighborChange(x, y, z, this);
                     player.addChatMessage(
-                        new ChatComponentText(
-                            CoolantLocalization.format(
-                                "coolantloops.chat.manifold.orient",
-                                manifold.getPlaneName(),
-                                manifold.getFacing()
-                                    .name())));
+                        new ChatComponentTranslation(
+                            "coolantloops.chat.manifold.orient",
+                            new ChatComponentTranslation(manifold.getPlaneKey()),
+                            manifold.getFacing()
+                                .name()));
                 } else {
                     // Regular rightclick with wrench: Toggle connection on wrenching side
                     ForgeDirection wrenchingSide = GTUtility.determineWrenchingSide(clickedSide, hitX, hitY, hitZ);
@@ -283,19 +281,18 @@ public class BlockManifold extends BlockContainer {
                         world.markBlockForUpdate(x, y, z);
                         world.notifyBlocksOfNeighborChange(x, y, z, this);
                         player.addChatMessage(
-                            new ChatComponentText(
-                                CoolantLocalization
-                                    .format("coolantloops.chat.manifold.invalid_connection", wrenchingSide.name())));
+                            new ChatComponentTranslation(
+                                "coolantloops.chat.manifold.invalid_connection",
+                                wrenchingSide.name()));
                     } else {
                         boolean connected = manifold.toggleConnectionWithNeighbor(wrenchingSide);
                         world.markBlockForUpdate(x, y, z);
                         world.notifyBlocksOfNeighborChange(x, y, z, this);
                         player.addChatMessage(
-                            new ChatComponentText(
-                                CoolantLocalization.format(
-                                    "coolantloops.chat.manifold.connection",
-                                    wrenchingSide.name(),
-                                    connected ? "CONNECTED" : "DISCONNECTED")));
+                            new ChatComponentTranslation(
+                                "coolantloops.chat.manifold.connection",
+                                wrenchingSide.name(),
+                                connected ? "CONNECTED" : "DISCONNECTED"));
                     }
                 }
                 GTModHandler.damageOrDechargeItem(held, 1, 1000, player);

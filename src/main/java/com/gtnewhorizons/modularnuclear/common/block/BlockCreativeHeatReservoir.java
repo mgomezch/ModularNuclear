@@ -5,11 +5,10 @@ import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.world.World;
 
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityCreativeHeatReservoir;
-import com.gtnewhorizons.modularnuclear.common.util.CoolantLocalization;
 import com.gtnewhorizons.modularui.api.UIInfos;
 
 /**
@@ -73,8 +72,9 @@ public class BlockCreativeHeatReservoir extends BlockContainer {
 
                 res.setTargetTemperatureCelsius(next);
                 player.addChatMessage(
-                    new ChatComponentText(
-                        CoolantLocalization.format("coolantloops.chat.creative_reservoir.temp_set", next)));
+                    new ChatComponentTranslation(
+                        "coolantloops.chat.creative_reservoir.temp_set",
+                        String.format("%.1f", next)));
             }
             return true;
         }

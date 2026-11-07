@@ -35,6 +35,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.opencomputers.DriverPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.opencomputers.PressurizedFluidHeaterEnvironment;
 import com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedTransmissionHandler;
+import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
 
 import cpw.mods.fml.common.ICrashCallable;
 import cpw.mods.fml.common.Loader;
@@ -807,8 +808,9 @@ public class PressurizedFluidHeaterTest {
             heater.isPowerFailed(),
             "Heater must enter powerfailed state when inner temperature exceeds casing limit");
         assertTrue(heater.isDeviceDisconnected(), "Powerfailed heater must report isDeviceDisconnected() == true");
-        String disconnectReason = heater.getDisconnectionReason();
-        assertNotNull(disconnectReason);
+        LocalizedText disconnect = heater.getDisconnectionReason();
+        assertNotNull(disconnect);
+        String disconnectReason = disconnect.english();
         assertFalse(
             disconnectReason.startsWith("Format error"),
             "Disconnection reason must format cleanly without IllegalFormatException: " + disconnectReason);
@@ -821,7 +823,7 @@ public class PressurizedFluidHeaterTest {
             heater.getBaseMetaTileEntity()
                 .getLastShutDownReason());
         Mockito.verify(mockPump, Mockito.atLeastOnce())
-            .onDeviceDisconnected(Mockito.eq(heater), Mockito.anyString());
+            .onDeviceDisconnected(Mockito.eq(heater), Mockito.any(LocalizedText.class));
 
         // Verify that a real MTECoolantPump in an active/filled loop ruptures when PFH powerfails
         MTECoolantPump realPump = new MTECoolantPump("test_pump");
@@ -835,7 +837,7 @@ public class PressurizedFluidHeaterTest {
             .addSegment(heaterSeg);
         realPump.addLoopDevice(heater);
 
-        realPump.onDeviceDisconnected(heater, disconnectReason);
+        realPump.onDeviceDisconnected(heater, disconnect);
         assertFalse(realPump.isLoopFormed(), "Pump must mark loop as unformed on PFH powerfail");
         assertTrue(
             realPump.getEngine()

@@ -2,6 +2,8 @@ package com.gtnewhorizons.modularnuclear.common.coolantloop;
 
 import java.util.Set;
 
+import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
+
 /**
  * Interface implemented by in-line blocks and MetaTileEntities that interface
  * with a pressurized coolant loop (Pumps, Exchangers, Reservoirs, Manifolds, Instruments).
@@ -63,7 +65,7 @@ public interface ICoolantLoopDevice {
     /**
      * Human-readable reason why this device disconnected from the loop.
      */
-    default String getDisconnectionReason() {
+    default LocalizedText getDisconnectionReason() {
         return null;
     }
 

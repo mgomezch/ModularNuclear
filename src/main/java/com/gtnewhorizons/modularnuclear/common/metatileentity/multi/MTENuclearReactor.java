@@ -22,7 +22,6 @@ import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
@@ -237,6 +236,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public long mWallNeutronAccumulator = 0;
     public int mWallMaintenanceTimer = 0;
     public int mOutputCoolantRate = 0;
+    /** Registry name of the fluid the coolant hatches last produced; each viewer localizes it. */
     public String mOutputCoolantName = "";
     public static final int GUI_MODE_COMPONENTS = 0;
     public static final int GUI_MODE_TEMPERATURE = 1;
@@ -2002,7 +2002,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     totalCoolantProduced += hatch.mLastProducedAmount;
                     if (coolantName.isEmpty() && hatch.mLastProducedFluidName != null
                         && !hatch.mLastProducedFluidName.isEmpty()) {
-                        coolantName = outputCoolantDisplayName(hatch.mLastProducedFluidName);
+                        coolantName = hatch.mLastProducedFluidName;
                     }
                 }
             }
@@ -2010,19 +2010,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         mOutputCoolantRate = totalCoolantProduced;
         mOutputCoolantName = coolantName;
         super.mEfficiency = (int) Math.round(maintEff * 10000);
-    }
-
-    private String mOutputCoolantSourceName = "";
-    private String mOutputCoolantSourceDisplayName = "";
-
-    /** A produced fluid's display name, looked up again only when the fluid changes. */
-    private String outputCoolantDisplayName(String fluidName) {
-        if (!fluidName.equals(mOutputCoolantSourceName)) {
-            Fluid f = FluidRegistry.getFluid(fluidName);
-            mOutputCoolantSourceDisplayName = f != null ? f.getLocalizedName(new FluidStack(f, 1000)) : fluidName;
-            mOutputCoolantSourceName = fluidName;
-        }
-        return mOutputCoolantSourceDisplayName;
     }
 
     /** Columns past the casing's operating temperature lose their non-fuel contents and add damage (manual 12.3). */
@@ -2490,7 +2477,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                                 .ordinal();
                             if (cell.isAdvancedControlRod) {
                                 cell.moderatorInsertion = rod.getModeratorInsertionPercent();
-                                cell.moderatorName = rod.getModeratorDisplayName();
+                                cell.moderatorStack = ItemStack.copyItemStack(rod.getModeratorStack());
                             }
                         }
                     }

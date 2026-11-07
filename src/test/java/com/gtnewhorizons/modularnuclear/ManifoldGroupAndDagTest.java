@@ -201,8 +201,10 @@ public class ManifoldGroupAndDagTest {
 
         assertFalse(result.isSuccess, "Crawl must fail when branch enters manifold parallel to its plane");
         assertTrue(
-            result.failureReason.contains("parallel to its plane")
-                || result.failureReason.contains("perpendicularly to their plane"),
+            result.failureReason.english()
+                .contains("parallel to its plane")
+                || result.failureReason.english()
+                    .contains("perpendicularly to their plane"),
             "Error message should mention perpendicularity: " + result.failureReason);
     }
 
@@ -230,7 +232,10 @@ public class ManifoldGroupAndDagTest {
 
         assertFalse(result.isSuccess, "Crawl must fail when manifold has lateral connections");
         assertTrue(
-            result.failureReason.contains("unauthorized direction") || result.failureReason.contains("lateral"),
+            result.failureReason.english()
+                .contains("unauthorized direction")
+                || result.failureReason.english()
+                    .contains("lateral"),
             "Error message should mention unauthorized direction: " + result.failureReason);
     }
 
@@ -270,7 +275,8 @@ public class ManifoldGroupAndDagTest {
 
         assertFalse(result.isSuccess, "Crawl must fail when manifold is claimed by another active pump");
         assertTrue(
-            result.failureReason.contains("already part of another active coolant loop"),
+            result.failureReason.english()
+                .contains("already part of another active coolant loop"),
             "Error message should mention already part of another active loop: " + result.failureReason);
     }
 
@@ -309,8 +315,10 @@ public class ManifoldGroupAndDagTest {
 
         assertFalse(result.isSuccess, "Crawl must fail when manifold output loops back to its input without pump");
         assertTrue(
-            result.failureReason.contains("Invalid cyclic loop topology")
-                && result.failureReason.contains("path from manifold output loops back to its input"),
+            result.failureReason.english()
+                .contains("Invalid cyclic loop topology")
+                && result.failureReason.english()
+                    .contains("path from manifold output loops back to its input"),
             "Error message must specify manifold cycle: " + result.failureReason);
     }
 
@@ -408,8 +416,10 @@ public class ManifoldGroupAndDagTest {
 
         assertFalse(result.isSuccess, "A manifold feeding a device directly must fail the crawl");
         assertTrue(
-            result.failureReason.contains("(12, 10, 10) connects on its EAST side")
-                && result.failureReason.contains("at (13, 10, 10)"),
+            result.failureReason.english()
+                .contains("(12, 10, 10) connects on its EAST side")
+                && result.failureReason.english()
+                    .contains("at (13, 10, 10)"),
             "The failure must name the manifold and the device's position: " + result.failureReason);
     }
 
@@ -430,8 +440,10 @@ public class ManifoldGroupAndDagTest {
 
         assertFalse(result.isSuccess, "A manifold's output side against another manifold must fail the crawl");
         assertTrue(
-            result.failureReason.contains("(12, 10, 10) connects on its EAST side")
-                && result.failureReason.contains("at (13, 10, 10)"),
+            result.failureReason.english()
+                .contains("(12, 10, 10) connects on its EAST side")
+                && result.failureReason.english()
+                    .contains("at (13, 10, 10)"),
             "The failure must name both manifolds: " + result.failureReason);
     }
 
@@ -609,7 +621,10 @@ public class ManifoldGroupAndDagTest {
         assertFalse(session.getResult().isSuccess);
         assertEquals(
             "Loop structure check could not complete because the loop is too large",
-            session.getResult().failureReason);
+            session.getResult().failureReason.english());
+        assertTrue(
+            session.getResult()
+                .isLoopTooLarge());
     }
 
     @Test
@@ -650,7 +665,10 @@ public class ManifoldGroupAndDagTest {
         assertFalse(session.getResult().isSuccess);
         assertEquals(
             "Loop structure check could not complete because the loop is too large",
-            session.getResult().failureReason);
+            session.getResult().failureReason.english());
+        assertTrue(
+            session.getResult()
+                .isLoopTooLarge());
     }
 
     @Test
