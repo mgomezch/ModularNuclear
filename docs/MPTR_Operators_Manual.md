@@ -527,6 +527,8 @@ A control rod is a long rod of one of five materials, placed in a control rod ha
 
 In the reactor, a column's heat-transfer coefficient is always that of its top element; the rod coefficient listed here applies only where a rod is simulated as a column on its own.
 
+**Graphite, boron and cadmium rods.** GregTech makes rods only for metals and gems, so it has none of these three: Modular Nuclear has it make them. They are ordinary GregTech rods and long rods (`stickBoron`, `stickLongGraphite`, …). The extruder makes two rods from one dust with the Rod shape, and the forming press makes a long rod from two rods with the Long Rod mold. Boron and cadmium long rods can also be hammered from two rods, as for any metal; graphite cannot be hammered.
+
 ### 7.2 Insertion
 
 The **target insertion** $x_\text{target} \in [0,1]$ is:
@@ -614,6 +616,8 @@ Metal plates are pure scatterers with moderate absorption; they redirect fast ra
 | Graphite (long rod) | 0.002 / 0.009 | 0.93 / 0.621 | 0.50 | 0.05 | 80 000 | ash | yes |
 | Carbon (long rod) | 0.003 / 0.012 | 0.90 / 0.60 | 0.45 | 0.05 | 10 000 | ash | no |
 | Beryllium (long rod) | 0.001 / 0.004 | 0.96 / 0.85 | 0.65 | 0.15 | 240 000 | — | no |
+
+Graphite long rods are made from graphite dust in the extruder and forming press (§7.1).
 
 All three have fast scattering ≥ 0.90 and absorption ≤ 0.05 and therefore reverse fast rays (§4.3). A fast packet entering a graphite cell has a 93.2 % chance to interact; of those, 99.8 % scatter, and of the scattered, 50 % are thermalized in place. Unthermalized packets are sent back toward their source.
 
