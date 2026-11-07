@@ -96,8 +96,8 @@ public class LoopGraphCrawler {
         public final double maxPumpPipeCapacityLPerSec;
         public final Materials loopMaterial;
         public final List<PipeFlowConfig> pipeConfigs;
-        public final Map<String, FlowNode> graphNodes;
-        public final Map<String, List<String>> graphEdges;
+        public final Map<LoopId, FlowNode> graphNodes;
+        public final Map<LoopId, List<LoopId>> graphEdges;
 
         public CrawlResult(boolean isSuccess, LocalizedText failureReason, List<LoopSegment> segments,
             List<ICoolantLoopDevice> devices, Set<BlockPosCoord> pipePositions) {
@@ -138,8 +138,8 @@ public class LoopGraphCrawler {
 
         public CrawlResult(boolean isSuccess, LocalizedText failureReason, List<LoopSegment> segments,
             List<ICoolantLoopDevice> devices, Set<BlockPosCoord> pipePositions, double maxPumpPipeCapacityLPerSec,
-            Materials loopMaterial, List<PipeFlowConfig> pipeConfigs, Map<String, FlowNode> graphNodes,
-            Map<String, List<String>> graphEdges) {
+            Materials loopMaterial, List<PipeFlowConfig> pipeConfigs, Map<LoopId, FlowNode> graphNodes,
+            Map<LoopId, List<LoopId>> graphEdges) {
             this.isSuccess = isSuccess;
             this.failureReason = failureReason;
             this.segments = segments != null ? segments : new ArrayList<>();
@@ -209,7 +209,7 @@ public class LoopGraphCrawler {
 
         public static CrawlResult success(List<LoopSegment> segments, List<ICoolantLoopDevice> devices,
             Set<BlockPosCoord> pipePositions, double maxPumpPipeCapacityLPerSec, Materials loopMaterial,
-            List<PipeFlowConfig> pipeConfigs, Map<String, FlowNode> graphNodes, Map<String, List<String>> graphEdges) {
+            List<PipeFlowConfig> pipeConfigs, Map<LoopId, FlowNode> graphNodes, Map<LoopId, List<LoopId>> graphEdges) {
             return new CrawlResult(
                 true,
                 null,
@@ -374,11 +374,11 @@ public class LoopGraphCrawler {
 
     public static class FlowNode {
 
-        public final String id;
+        public final LoopId id;
         public final NodeType type;
         public final Object data;
 
-        public FlowNode(String id, NodeType type, Object data) {
+        public FlowNode(LoopId id, NodeType type, Object data) {
             this.id = id;
             this.type = type;
             this.data = data;
@@ -394,9 +394,9 @@ public class LoopGraphCrawler {
         public final List<BlockPosCoord> inputPorts = new ArrayList<>();
         public final List<BlockPosCoord> outputPorts = new ArrayList<>();
 
-        private String cachedGroupId;
+        private LoopId cachedGroupId;
 
-        public String getGroupId() {
+        public LoopId getGroupId() {
             if (cachedGroupId == null) {
                 int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
                 for (BlockPosCoord c : blockCoords) {
@@ -406,7 +406,7 @@ public class LoopGraphCrawler {
                         minZ = c.z;
                     }
                 }
-                cachedGroupId = "manifold_group_" + minX + "_" + minY + "_" + minZ;
+                cachedGroupId = LoopId.at("manifold_group", minX, minY, minZ);
             }
             return cachedGroupId;
         }
@@ -450,21 +450,21 @@ public class LoopGraphCrawler {
 
     public static class FrontierStep {
 
-        public final String fromNodeId;
+        public final LoopId fromNodeId;
         public final int x, y, z;
         public final ForgeDirection entrySide;
         public final Float segmentThickness;
         public final Integer segmentPipeAmount;
         /** The device (or pump) this step leaves, whose input pipe set segmentThickness if any; else null. */
-        public final String sizeFromDevice;
+        public final LoopId sizeFromDevice;
 
-        public FrontierStep(String fromNodeId, int x, int y, int z, ForgeDirection entrySide, Float segmentThickness,
+        public FrontierStep(LoopId fromNodeId, int x, int y, int z, ForgeDirection entrySide, Float segmentThickness,
             Integer segmentPipeAmount) {
             this(fromNodeId, x, y, z, entrySide, segmentThickness, segmentPipeAmount, null);
         }
 
-        public FrontierStep(String fromNodeId, int x, int y, int z, ForgeDirection entrySide, Float segmentThickness,
-            Integer segmentPipeAmount, String sizeFromDevice) {
+        public FrontierStep(LoopId fromNodeId, int x, int y, int z, ForgeDirection entrySide, Float segmentThickness,
+            Integer segmentPipeAmount, LoopId sizeFromDevice) {
             this.sizeFromDevice = sizeFromDevice;
             this.fromNodeId = fromNodeId;
             this.x = x;
@@ -546,34 +546,43 @@ public class LoopGraphCrawler {
         return false;
     }
 
-    public static void addGraphNode(Map<String, FlowNode> graphNodes, String id, NodeType type, Object data) {
+    public static void addGraphNode(Map<LoopId, FlowNode> graphNodes, LoopId id, NodeType type, Object data) {
         if (!graphNodes.containsKey(id)) {
             graphNodes.put(id, new FlowNode(id, type, data));
         }
     }
 
-    public static void addGraphEdge(Map<String, List<String>> graphEdges, Map<String, List<String>> reverseGraphEdges,
-        String from, String to) {
-        List<String> fList = graphEdges.computeIfAbsent(from, k -> new ArrayList<>());
+    public static void addGraphEdge(Map<LoopId, List<LoopId>> graphEdges, Map<LoopId, List<LoopId>> reverseGraphEdges,
+        LoopId from, LoopId to) {
+        List<LoopId> fList = graphEdges.computeIfAbsent(from, k -> new ArrayList<>());
         if (!fList.contains(to)) {
             fList.add(to);
         }
-        List<String> rList = reverseGraphEdges.computeIfAbsent(to, k -> new ArrayList<>());
+        List<LoopId> rList = reverseGraphEdges.computeIfAbsent(to, k -> new ArrayList<>());
         if (!rList.contains(from)) {
             rList.add(from);
         }
     }
 
-    public static boolean dfsCheckCycle(String u, Map<String, List<String>> graphEdges, Map<String, Integer> colors,
-        Map<String, String> parents, List<String> cycle) {
+    private static String joinIds(List<LoopId> ids) {
+        StringBuilder sb = new StringBuilder();
+        for (LoopId id : ids) {
+            if (sb.length() > 0) sb.append(" -> ");
+            sb.append(id);
+        }
+        return sb.toString();
+    }
+
+    public static boolean dfsCheckCycle(LoopId u, Map<LoopId, List<LoopId>> graphEdges, Map<LoopId, Integer> colors,
+        Map<LoopId, LoopId> parents, List<LoopId> cycle) {
         colors.put(u, 1); // GRAY
-        List<String> neighbors = graphEdges.get(u);
+        List<LoopId> neighbors = graphEdges.get(u);
         if (neighbors != null) {
-            for (String v : neighbors) {
+            for (LoopId v : neighbors) {
                 int col = colors.getOrDefault(v, 0);
                 if (col == 1) { // Cycle detected!
                     cycle.add(v);
-                    String curr = u;
+                    LoopId curr = u;
                     while (curr != null && !curr.equals(v)) {
                         cycle.add(0, curr);
                         curr = parents.get(curr);
@@ -613,9 +622,9 @@ public class LoopGraphCrawler {
         private final Map<BlockPosCoord, ManifoldGroup> coordToManifoldGroup = new HashMap<>();
         private final Set<ManifoldGroup> allManifoldGroups = new LinkedHashSet<>();
 
-        private final Map<String, FlowNode> graphNodes = new LinkedHashMap<>();
-        private final Map<String, List<String>> graphEdges = new LinkedHashMap<>();
-        private final Map<String, List<String>> reverseGraphEdges = new LinkedHashMap<>();
+        private final Map<LoopId, FlowNode> graphNodes = new LinkedHashMap<>();
+        private final Map<LoopId, List<LoopId>> graphEdges = new LinkedHashMap<>();
+        private final Map<LoopId, List<LoopId>> reverseGraphEdges = new LinkedHashMap<>();
 
         private Materials detectedLoopMaterial;
         /** Size of the pump's discharge pipe, once crawled: its suction pipe must match. */
@@ -627,8 +636,8 @@ public class LoopGraphCrawler {
         private double suctionPipeCapacityLPerSec = -1.0;
         private MTEFluidPipe lastPipe = null;
 
-        private final String sourceNodeId;
-        private final String sinkNodeId;
+        private final LoopId sourceNodeId;
+        private final LoopId sinkNodeId;
         private final Queue<FrontierStep> frontier = new ArrayDeque<>();
 
         private int stepCount = 0;
@@ -659,8 +668,8 @@ public class LoopGraphCrawler {
 
             this.detectedLoopMaterial = expectedTankMaterial != null ? expectedTankMaterial
                 : (pump != null ? pump.getTankMaterial() : null);
-            this.sourceNodeId = "pump_disc_" + startX + "_" + startY + "_" + startZ;
-            this.sinkNodeId = "pump_suc_" + targetX + "_" + targetY + "_" + targetZ;
+            this.sourceNodeId = LoopId.at("pump_disc", startX, startY, startZ);
+            this.sinkNodeId = LoopId.at("pump_suc", targetX, targetY, targetZ);
             addGraphNode(graphNodes, sourceNodeId, NodeType.SOURCE, null);
 
             int firstX = startX + startDir.offsetX;
@@ -1251,7 +1260,7 @@ public class LoopGraphCrawler {
                     dischargeThickness = pipe.mThickNess;
                     dischargePipeAmount = pipe.mPipeAmount;
                 }
-                if (dischargePipeCapacityLPerSec < 0.0 && step.fromNodeId.startsWith("pump_disc_")) {
+                if (dischargePipeCapacityLPerSec < 0.0 && step.fromNodeId.equals(sourceNodeId)) {
                     dischargePipeCapacityLPerSec = pipe.getCapacity();
                 }
 
@@ -1292,7 +1301,7 @@ public class LoopGraphCrawler {
                 }
 
                 CoolantPipingRegistry.PipeProperties props = CoolantPipingRegistry.getProperties(pipe);
-                String pipeNodeId = "pipe_" + step.x + "_" + step.y + "_" + step.z;
+                LoopId pipeNodeId = LoopId.at("pipe", step.x, step.y, step.z);
                 LoopSegment seg = new LoopSegment(
                     pipeNodeId,
                     step.x,
@@ -1448,19 +1457,19 @@ public class LoopGraphCrawler {
                     .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
                 ForgeDirection outFacing = outTE.getFrontFacing();
 
-                addGraphNode(graphNodes, heater.getDeviceId(), NodeType.DEVICE, heater);
-                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, heater.getDeviceId());
+                addGraphNode(graphNodes, LoopId.of(heater.getDeviceId()), NodeType.DEVICE, heater);
+                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, LoopId.of(heater.getDeviceId()));
 
                 frontier.add(
                     new FrontierStep(
-                        heater.getDeviceId(),
+                        LoopId.of(heater.getDeviceId()),
                         outTE.getXCoord() + outFacing.offsetX,
                         outTE.getYCoord() + outFacing.offsetY,
                         outTE.getZCoord() + outFacing.offsetZ,
                         outFacing.getOpposite(),
                         step.segmentThickness,
                         step.segmentPipeAmount,
-                        heater.getDeviceId()));
+                        LoopId.of(heater.getDeviceId())));
                 return Visit.NEXT;
             } else {
                 finishWithFailure("coolantloops.crawler.heater_unformed", step.x, step.y, step.z);
@@ -1512,19 +1521,19 @@ public class LoopGraphCrawler {
                     .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
                 ForgeDirection outFacing = outTE.getFrontFacing();
 
-                addGraphNode(graphNodes, phe.getDeviceId(), NodeType.DEVICE, phe);
-                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, phe.getDeviceId());
+                addGraphNode(graphNodes, LoopId.of(phe.getDeviceId()), NodeType.DEVICE, phe);
+                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, LoopId.of(phe.getDeviceId()));
 
                 frontier.add(
                     new FrontierStep(
-                        phe.getDeviceId(),
+                        LoopId.of(phe.getDeviceId()),
                         outTE.getXCoord() + outFacing.offsetX,
                         outTE.getYCoord() + outFacing.offsetY,
                         outTE.getZCoord() + outFacing.offsetZ,
                         outFacing.getOpposite(),
                         step.segmentThickness,
                         step.segmentPipeAmount,
-                        phe.getDeviceId()));
+                        LoopId.of(phe.getDeviceId())));
                 return Visit.NEXT;
             } else {
                 finishWithFailure("coolantloops.crawler.phe_unformed", step.x, step.y, step.z);
@@ -1565,19 +1574,19 @@ public class LoopGraphCrawler {
                     .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
                 ForgeDirection outFacing = outTE.getFrontFacing();
 
-                addGraphNode(graphNodes, degasser.getDeviceId(), NodeType.DEVICE, degasser);
-                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, degasser.getDeviceId());
+                addGraphNode(graphNodes, LoopId.of(degasser.getDeviceId()), NodeType.DEVICE, degasser);
+                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, LoopId.of(degasser.getDeviceId()));
 
                 frontier.add(
                     new FrontierStep(
-                        degasser.getDeviceId(),
+                        LoopId.of(degasser.getDeviceId()),
                         outTE.getXCoord() + outFacing.offsetX,
                         outTE.getYCoord() + outFacing.offsetY,
                         outTE.getZCoord() + outFacing.offsetZ,
                         outFacing.getOpposite(),
                         step.segmentThickness,
                         step.segmentPipeAmount,
-                        degasser.getDeviceId()));
+                        LoopId.of(degasser.getDeviceId())));
                 return Visit.NEXT;
             } else {
                 finishWithFailure("coolantloops.crawler.degasser_unformed", step.x, step.y, step.z);
@@ -1619,19 +1628,19 @@ public class LoopGraphCrawler {
                     .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
                 ForgeDirection outFacing = outTE.getFrontFacing();
 
-                addGraphNode(graphNodes, bath.getDeviceId(), NodeType.DEVICE, bath);
-                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, bath.getDeviceId());
+                addGraphNode(graphNodes, LoopId.of(bath.getDeviceId()), NodeType.DEVICE, bath);
+                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, LoopId.of(bath.getDeviceId()));
 
                 frontier.add(
                     new FrontierStep(
-                        bath.getDeviceId(),
+                        LoopId.of(bath.getDeviceId()),
                         outTE.getXCoord() + outFacing.offsetX,
                         outTE.getYCoord() + outFacing.offsetY,
                         outTE.getZCoord() + outFacing.offsetZ,
                         outFacing.getOpposite(),
                         step.segmentThickness,
                         step.segmentPipeAmount,
-                        bath.getDeviceId()));
+                        LoopId.of(bath.getDeviceId())));
                 return Visit.NEXT;
             } else {
                 finishWithFailure("coolantloops.crawler.bath_unformed", step.x, step.y, step.z);
@@ -1674,19 +1683,19 @@ public class LoopGraphCrawler {
                 .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
             ForgeDirection outFacing = outTE.getFrontFacing();
 
-            addGraphNode(graphNodes, hatch.getDeviceId(), NodeType.DEVICE, hatch);
-            addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, hatch.getDeviceId());
+            addGraphNode(graphNodes, LoopId.of(hatch.getDeviceId()), NodeType.DEVICE, hatch);
+            addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, LoopId.of(hatch.getDeviceId()));
 
             frontier.add(
                 new FrontierStep(
-                    hatch.getDeviceId(),
+                    LoopId.of(hatch.getDeviceId()),
                     outTE.getXCoord() + outFacing.offsetX,
                     outTE.getYCoord() + outFacing.offsetY,
                     outTE.getZCoord() + outFacing.offsetZ,
                     outFacing.getOpposite(),
                     step.segmentThickness,
                     step.segmentPipeAmount,
-                    hatch.getDeviceId()));
+                    LoopId.of(hatch.getDeviceId())));
             return Visit.NEXT;
         }
 
@@ -1743,19 +1752,19 @@ public class LoopGraphCrawler {
                 .add(new BlockPosCoord(outTE.getXCoord(), outTE.getYCoord(), outTE.getZCoord()));
             ForgeDirection outFacing = outTE.getFrontFacing();
 
-            addGraphNode(graphNodes, passage.getDeviceId(), NodeType.DEVICE, passage);
-            addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, passage.getDeviceId());
+            addGraphNode(graphNodes, LoopId.of(passage.getDeviceId()), NodeType.DEVICE, passage);
+            addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, LoopId.of(passage.getDeviceId()));
 
             frontier.add(
                 new FrontierStep(
-                    passage.getDeviceId(),
+                    LoopId.of(passage.getDeviceId()),
                     outTE.getXCoord() + outFacing.offsetX,
                     outTE.getYCoord() + outFacing.offsetY,
                     outTE.getZCoord() + outFacing.offsetZ,
                     outFacing.getOpposite(),
                     step.segmentThickness,
                     step.segmentPipeAmount,
-                    passage.getDeviceId()));
+                    LoopId.of(passage.getDeviceId())));
             return Visit.NEXT;
         }
 
@@ -1802,8 +1811,8 @@ public class LoopGraphCrawler {
                 devSeg.setCustomVolumeM3(Math.PI * 0.10 * 0.10 / 4.0);
                 segments.add(devSeg);
 
-                addGraphNode(graphNodes, device.getDeviceId(), NodeType.DEVICE, device);
-                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, device.getDeviceId());
+                addGraphNode(graphNodes, LoopId.of(device.getDeviceId()), NodeType.DEVICE, device);
+                addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, LoopId.of(device.getDeviceId()));
 
                 ForgeDirection nextDir = findNextDirection(
                     world,
@@ -1821,14 +1830,14 @@ public class LoopGraphCrawler {
 
                 frontier.add(
                     new FrontierStep(
-                        device.getDeviceId(),
+                        LoopId.of(device.getDeviceId()),
                         step.x + nextDir.offsetX,
                         step.y + nextDir.offsetY,
                         step.z + nextDir.offsetZ,
                         nextDir.getOpposite(),
                         step.segmentThickness,
                         step.segmentPipeAmount,
-                        device.getDeviceId()));
+                        LoopId.of(device.getDeviceId())));
                 return Visit.NEXT;
             }
 
@@ -1842,13 +1851,13 @@ public class LoopGraphCrawler {
             return Visit.STOP;
         }
 
-        private List<LoopSegment> getSegmentsForNode(String nodeId, Map<String, LoopSegment> segmentMap) {
+        private List<LoopSegment> getSegmentsForNode(LoopId nodeId, Map<LoopId, LoopSegment> segmentMap) {
             List<LoopSegment> list = new ArrayList<>();
             FlowNode node = graphNodes.get(nodeId);
             if (node != null && node.type == NodeType.MANIFOLD_GROUP && node.data instanceof ManifoldGroup) {
                 ManifoldGroup mg = (ManifoldGroup) node.data;
                 for (TileEntityManifold tile : mg.tiles) {
-                    LoopSegment s = segmentMap.get(tile.getDeviceId());
+                    LoopSegment s = segmentMap.get(LoopId.of(tile.getDeviceId()));
                     if (s != null) {
                         list.add(s);
                     }
@@ -1862,7 +1871,7 @@ public class LoopGraphCrawler {
             return list;
         }
 
-        private double getNodeFlowSizeWeight(String nodeId, Map<String, LoopSegment> segmentMap) {
+        private double getNodeFlowSizeWeight(LoopId nodeId, Map<LoopId, LoopSegment> segmentMap) {
             List<LoopSegment> segs = getSegmentsForNode(nodeId, segmentMap);
             if (segs.isEmpty()) return 1.0;
             return segs.get(0)
@@ -1870,27 +1879,27 @@ public class LoopGraphCrawler {
         }
 
         private void distributeFlowAndWireUpstreams() {
-            Map<String, LoopSegment> segmentMap = new HashMap<>();
+            Map<LoopId, LoopSegment> segmentMap = new HashMap<>();
             for (LoopSegment seg : segments) {
-                segmentMap.put(seg.getId(), seg);
+                segmentMap.put(seg.getKey(), seg);
             }
 
-            Map<String, Integer> inDegree = new HashMap<>();
-            for (String nodeId : graphNodes.keySet()) {
+            Map<LoopId, Integer> inDegree = new HashMap<>();
+            for (LoopId nodeId : graphNodes.keySet()) {
                 inDegree.put(nodeId, 0);
             }
-            for (Map.Entry<String, List<String>> entry : graphEdges.entrySet()) {
-                for (String target : entry.getValue()) {
+            for (Map.Entry<LoopId, List<LoopId>> entry : graphEdges.entrySet()) {
+                for (LoopId target : entry.getValue()) {
                     if (inDegree.containsKey(target)) {
                         inDegree.put(target, inDegree.get(target) + 1);
                     }
                 }
             }
 
-            Queue<String> topoQueue = new ArrayDeque<>();
-            Map<String, Double> nodeFlow = new HashMap<>();
+            Queue<LoopId> topoQueue = new ArrayDeque<>();
+            Map<LoopId, Double> nodeFlow = new HashMap<>();
 
-            for (String nodeId : graphNodes.keySet()) {
+            for (LoopId nodeId : graphNodes.keySet()) {
                 if (inDegree.get(nodeId) == 0) {
                     topoQueue.add(nodeId);
                 }
@@ -1898,13 +1907,13 @@ public class LoopGraphCrawler {
             nodeFlow.put(sourceNodeId, 1.0);
 
             while (!topoQueue.isEmpty()) {
-                String u = topoQueue.poll();
+                LoopId u = topoQueue.poll();
                 double flowU = nodeFlow.getOrDefault(u, 0.0);
 
-                List<String> succs = graphEdges.get(u);
+                List<LoopId> succs = graphEdges.get(u);
                 if (succs != null && !succs.isEmpty()) {
                     if (succs.size() == 1) {
-                        String v = succs.get(0);
+                        LoopId v = succs.get(0);
                         nodeFlow.put(v, nodeFlow.getOrDefault(v, 0.0) + flowU);
                         int deg = inDegree.get(v) - 1;
                         inDegree.put(v, deg);
@@ -1917,7 +1926,7 @@ public class LoopGraphCrawler {
                             totalWeight += weights[i];
                         }
                         for (int i = 0; i < succs.size(); i++) {
-                            String v = succs.get(i);
+                            LoopId v = succs.get(i);
                             double fraction = (totalWeight > 0.0) ? (weights[i] / totalWeight) : (1.0 / succs.size());
                             double branchFlow = flowU * fraction;
                             nodeFlow.put(v, nodeFlow.getOrDefault(v, 0.0) + branchFlow);
@@ -1929,7 +1938,7 @@ public class LoopGraphCrawler {
                 }
             }
 
-            for (String nodeId : graphNodes.keySet()) {
+            for (LoopId nodeId : graphNodes.keySet()) {
                 double flow = nodeFlow.getOrDefault(nodeId, 1.0);
                 List<LoopSegment> segs = getSegmentsForNode(nodeId, segmentMap);
                 if (segs.isEmpty()) continue;
@@ -1942,9 +1951,9 @@ public class LoopGraphCrawler {
                 seg.clearUpstreamSegments();
             }
 
-            for (Map.Entry<String, List<String>> entry : graphEdges.entrySet()) {
-                String u = entry.getKey();
-                for (String v : entry.getValue()) {
+            for (Map.Entry<LoopId, List<LoopId>> entry : graphEdges.entrySet()) {
+                LoopId u = entry.getKey();
+                for (LoopId v : entry.getValue()) {
                     if (u.equals(sourceNodeId) || v.equals(sinkNodeId)) {
                         continue;
                     }
@@ -1958,12 +1967,12 @@ public class LoopGraphCrawler {
                 }
             }
 
-            List<String> suctionPreds = reverseGraphEdges.get(sinkNodeId);
-            List<String> dischargeSuccs = graphEdges.get(sourceNodeId);
+            List<LoopId> suctionPreds = reverseGraphEdges.get(sinkNodeId);
+            List<LoopId> dischargeSuccs = graphEdges.get(sourceNodeId);
             if (suctionPreds != null && dischargeSuccs != null) {
-                for (String sucId : suctionPreds) {
+                for (LoopId sucId : suctionPreds) {
                     List<LoopSegment> sucSegs = getSegmentsForNode(sucId, segmentMap);
-                    for (String discId : dischargeSuccs) {
+                    for (LoopId discId : dischargeSuccs) {
                         List<LoopSegment> discSegs = getSegmentsForNode(discId, segmentMap);
                         for (LoopSegment discSeg : discSegs) {
                             for (LoopSegment sucSeg : sucSegs) {
@@ -1983,16 +1992,16 @@ public class LoopGraphCrawler {
             }
 
             // 2. Reverse reachability from Sink
-            Set<String> canReachSink = new HashSet<>();
-            Queue<String> revQueue = new ArrayDeque<>();
+            Set<LoopId> canReachSink = new HashSet<>();
+            Queue<LoopId> revQueue = new ArrayDeque<>();
             revQueue.add(sinkNodeId);
             canReachSink.add(sinkNodeId);
 
             while (!revQueue.isEmpty()) {
-                String u = revQueue.poll();
-                List<String> preds = reverseGraphEdges.get(u);
+                LoopId u = revQueue.poll();
+                List<LoopId> preds = reverseGraphEdges.get(u);
                 if (preds != null) {
-                    for (String p : preds) {
+                    for (LoopId p : preds) {
                         if (canReachSink.add(p)) {
                             revQueue.add(p);
                         }
@@ -2000,7 +2009,7 @@ public class LoopGraphCrawler {
                 }
             }
 
-            for (String nodeId : graphNodes.keySet()) {
+            for (LoopId nodeId : graphNodes.keySet()) {
                 if (!canReachSink.contains(nodeId)) {
                     finishWithFailure("coolantloops.crawler.branch_not_reaching_suction", nodeId);
                     return;
@@ -2008,13 +2017,13 @@ public class LoopGraphCrawler {
             }
 
             // 3. Cycle Detection
-            Map<String, Integer> colors = new HashMap<>();
-            Map<String, String> parents = new HashMap<>();
-            List<String> cycle = new ArrayList<>();
+            Map<LoopId, Integer> colors = new HashMap<>();
+            Map<LoopId, LoopId> parents = new HashMap<>();
+            List<LoopId> cycle = new ArrayList<>();
 
             if (dfsCheckCycle(sourceNodeId, graphEdges, colors, parents, cycle)) {
                 boolean involvesManifold = false;
-                for (String cId : cycle) {
+                for (LoopId cId : cycle) {
                     FlowNode fn = graphNodes.get(cId);
                     if (fn != null && fn.type == NodeType.MANIFOLD_GROUP) {
                         involvesManifold = true;
@@ -2022,9 +2031,9 @@ public class LoopGraphCrawler {
                     }
                 }
                 if (involvesManifold) {
-                    finishWithFailure("coolantloops.crawler.cycle_detected", String.join(" -> ", cycle));
+                    finishWithFailure("coolantloops.crawler.cycle_detected", joinIds(cycle));
                 } else {
-                    finishWithFailure("coolantloops.crawler.cycle_generic", String.join(" -> ", cycle));
+                    finishWithFailure("coolantloops.crawler.cycle_generic", joinIds(cycle));
                 }
                 return;
             }

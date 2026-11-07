@@ -12,7 +12,7 @@ import java.util.Map;
  */
 public class LoopSegment {
 
-    private final String id;
+    private final LoopId key;
     private final double length; // Meters (m)
     private final double diameter; // Inner diameter (m)
     private final double area; // Cross-sectional area (m^2)
@@ -53,10 +53,26 @@ public class LoopSegment {
 
     public LoopSegment(String id, int blockX, int blockY, int blockZ, double length, double diameter, double roughness,
         double minorLossK, Double maxPressureBar, Double maxTemperatureCelsius, double initialTempCelsius) {
+        this(
+            LoopId.of(id),
+            blockX,
+            blockY,
+            blockZ,
+            length,
+            diameter,
+            roughness,
+            minorLossK,
+            maxPressureBar,
+            maxTemperatureCelsius,
+            initialTempCelsius);
+    }
+
+    public LoopSegment(LoopId key, int blockX, int blockY, int blockZ, double length, double diameter, double roughness,
+        double minorLossK, Double maxPressureBar, Double maxTemperatureCelsius, double initialTempCelsius) {
         if (length <= 0 || diameter <= 0) {
             throw new IllegalArgumentException("Length and diameter must be positive");
         }
-        this.id = id;
+        this.key = key;
         this.blockX = blockX;
         this.blockY = blockY;
         this.blockZ = blockZ;
@@ -71,8 +87,14 @@ public class LoopSegment {
         this.incomingTemperatureCelsius = initialTempCelsius;
     }
 
+    /** The segment's name, as shown and saved. */
     public String getId() {
-        return id;
+        return key.toString();
+    }
+
+    /** What the crawler and the engine key the segment by. */
+    public LoopId getKey() {
+        return key;
     }
 
     public double getLength() {
@@ -185,7 +207,7 @@ public class LoopSegment {
 
     /** Burst pressure in bar; only for a segment that {@link #hasPressureLimit()}. */
     public double getMaxPressureBar() {
-        if (!hasPressureLimit()) throw new IllegalStateException("Segment " + id + " has no pressure limit");
+        if (!hasPressureLimit()) throw new IllegalStateException("Segment " + key + " has no pressure limit");
         return maxPressureBar;
     }
 
@@ -195,7 +217,7 @@ public class LoopSegment {
 
     /** Maximum safe temperature in °C; only for a segment that {@link #hasTemperatureLimit()}. */
     public double getMaxTemperatureCelsius() {
-        if (!hasTemperatureLimit()) throw new IllegalStateException("Segment " + id + " has no temperature limit");
+        if (!hasTemperatureLimit()) throw new IllegalStateException("Segment " + key + " has no temperature limit");
         return maxTemperatureCelsius;
     }
 
@@ -504,7 +526,7 @@ public class LoopSegment {
      */
     public java.util.Map<String, Object> toStateMap() {
         java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
-        m.put("id", id != null ? id : "");
+        m.put("id", key.toString());
         m.put("x", blockX);
         m.put("y", blockY);
         m.put("z", blockZ);

@@ -33,6 +33,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.Bloc
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.CrawlResult;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.FlowNode;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.NodeType;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopId;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
@@ -258,15 +259,15 @@ public class CoolantLoopGraphData {
         data.totalFlowRateLPerSec = engine.getFlowRateLitersPerSecond();
         data.peakPressureBar = engine.getPeakLoopPressureBar();
 
-        Map<String, FlowNode> graphNodes = (crawl != null && crawl.graphNodes != null) ? crawl.graphNodes
+        Map<LoopId, FlowNode> graphNodes = (crawl != null && crawl.graphNodes != null) ? crawl.graphNodes
             : Collections.emptyMap();
-        Map<String, List<String>> graphEdges = (crawl != null && crawl.graphEdges != null) ? crawl.graphEdges
+        Map<LoopId, List<LoopId>> graphEdges = (crawl != null && crawl.graphEdges != null) ? crawl.graphEdges
             : Collections.emptyMap();
 
-        Map<String, LoopSegment> segmentMap = new HashMap<>();
+        Map<LoopId, LoopSegment> segmentMap = new HashMap<>();
         for (LoopSegment seg : engine.getSegments()) {
             if (seg != null && seg.getId() != null) {
-                segmentMap.put(seg.getId(), seg);
+                segmentMap.put(seg.getKey(), seg);
             }
         }
 
@@ -277,14 +278,14 @@ public class CoolantLoopGraphData {
         }
 
         // 1. Identify all Significant (Hub) Nodes (Source, Sink, Devices, Manifold Groups)
-        Map<String, GraphNode> hubNodeMap = new LinkedHashMap<>();
-        for (Map.Entry<String, FlowNode> entry : graphNodes.entrySet()) {
-            String nodeId = entry.getKey();
+        Map<LoopId, GraphNode> hubNodeMap = new LinkedHashMap<>();
+        for (Map.Entry<LoopId, FlowNode> entry : graphNodes.entrySet()) {
+            LoopId nodeId = entry.getKey();
             FlowNode fn = entry.getValue();
             if (fn.type == NodeType.PIPE) {
                 continue; // Pipe blocks become edges
             }
-            GraphNode gn = createHubNode(pump, engine, nodeId, fn);
+            GraphNode gn = createHubNode(pump, engine, nodeId.toString(), fn);
             if (gn != null) {
                 hubNodeMap.put(nodeId, gn);
                 data.nodes.add(gn);
@@ -295,16 +296,16 @@ public class CoolantLoopGraphData {
         int edgeCounter = 0;
         Set<EdgeKey> visitedBranchKeys = new HashSet<>();
 
-        for (String fromHubId : hubNodeMap.keySet()) {
-            List<String> rawOuts = graphEdges.get(fromHubId);
+        for (LoopId fromHubId : hubNodeMap.keySet()) {
+            List<LoopId> rawOuts = graphEdges.get(fromHubId);
             if (rawOuts == null) continue;
 
-            for (String firstOut : rawOuts) {
+            for (LoopId firstOut : rawOuts) {
                 // Trace until reaching next hub node
                 List<LoopSegment> pathSegments = new ArrayList<>();
-                String curr = firstOut;
-                String toHubId = null;
-                Set<String> visitedInTrace = new HashSet<>();
+                LoopId curr = firstOut;
+                LoopId toHubId = null;
+                Set<LoopId> visitedInTrace = new HashSet<>();
 
                 while (curr != null && visitedInTrace.add(curr)) {
                     if (hubNodeMap.containsKey(curr)) {
@@ -318,7 +319,7 @@ public class CoolantLoopGraphData {
                             pathSegments.add(seg);
                         }
                     }
-                    List<String> nexts = graphEdges.get(curr);
+                    List<LoopId> nexts = graphEdges.get(curr);
                     if (nexts != null && !nexts.isEmpty()) {
                         curr = nexts.get(0);
                     } else {
@@ -330,12 +331,12 @@ public class CoolantLoopGraphData {
                     String pathId = pathSegments.isEmpty() ? "direct"
                         : pathSegments.get(0)
                             .getId();
-                    EdgeKey branchKey = new EdgeKey(fromHubId, toHubId, pathId);
+                    EdgeKey branchKey = new EdgeKey(fromHubId.toString(), toHubId.toString(), pathId);
                     if (visitedBranchKeys.add(branchKey)) {
                         GraphEdge edge = createGraphEdge(
                             "edge_" + (++edgeCounter),
-                            fromHubId,
-                            toHubId,
+                            fromHubId.toString(),
+                            toHubId.toString(),
                             pathSegments,
                             engine,
                             crawl != null ? crawl.loopMaterial : null);

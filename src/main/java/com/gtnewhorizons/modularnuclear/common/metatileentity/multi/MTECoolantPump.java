@@ -44,6 +44,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopChunkLoader;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopDevices;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopFailure;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopId;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantLoopMachineGui;
 import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphData;
@@ -840,8 +841,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         long requiredFill = 0L;
         List<Long> fillOrder = new ArrayList<>();
         for (LoopSegment s : result.segments) {
-            if (s.getId()
-                .startsWith("pipe_")) {
+            if (s.getKey()
+                .isKind("pipe")) {
                 requiredFill += s.getCapacityLiters();
                 fillOrder.add(requiredFill);
             }
@@ -2821,7 +2822,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     int[] coord = nodePosition(fn.data);
                     if (coord == null) continue;
                     NBTTagCompound nTag = new NBTTagCompound();
-                    nTag.setString("id", fn.id);
+                    nTag.setString("id", fn.id.toString());
                     nTag.setString("type", fn.type.name());
                     nTag.setIntArray("coord", coord);
                     nodeList.appendTag(nTag);
@@ -2905,12 +2906,12 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     }
                 }
             }
-            Map<String, LoopGraphCrawler.FlowNode> graphNodes = new LinkedHashMap<>();
+            Map<LoopId, LoopGraphCrawler.FlowNode> graphNodes = new LinkedHashMap<>();
             if (crawlTag.hasKey("graphNodes", 9)) {
                 NBTTagList nodeList = crawlTag.getTagList("graphNodes", 10);
                 for (int i = 0; i < nodeList.tagCount(); i++) {
                     NBTTagCompound nTag = nodeList.getCompoundTagAt(i);
-                    String id = nTag.getString("id");
+                    LoopId id = LoopId.of(nTag.getString("id"));
                     LoopGraphCrawler.NodeType type = LoopGraphCrawler.NodeType.valueOf(nTag.getString("type"));
                     Object data = null;
                     if (nTag.hasKey("coord")) {
@@ -2920,20 +2921,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                     graphNodes.put(id, new LoopGraphCrawler.FlowNode(id, type, data));
                 }
             }
-            Map<String, List<String>> graphEdges = new LinkedHashMap<>();
-            if (crawlTag.hasKey("graphEdges", 9)) {
-                NBTTagList edgeList = crawlTag.getTagList("graphEdges", 10);
-                for (int i = 0; i < edgeList.tagCount(); i++) {
-                    NBTTagCompound eTag = edgeList.getCompoundTagAt(i);
-                    String from = eTag.getString("from");
-                    List<String> toList = new ArrayList<>();
-                    NBTTagList toTags = eTag.getTagList("to", 8);
-                    for (int j = 0; j < toTags.tagCount(); j++) {
-                        toList.add(toTags.getStringTagAt(j));
-                    }
-                    graphEdges.put(from, toList);
-                }
-            }
+            // The edges are not saved: the first crawl after the load finds them again
+            Map<LoopId, List<LoopId>> graphEdges = new LinkedHashMap<>();
             mLastCrawlResult = LoopGraphCrawler.CrawlResult.success(
                 mEngine.getSegments(),
                 mLoopDevices,

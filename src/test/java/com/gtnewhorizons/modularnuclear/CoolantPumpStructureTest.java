@@ -1261,8 +1261,10 @@ public class CoolantPumpStructureTest {
             .thenReturn((short) 70);
         Mockito.when(deviceBase.getZCoord())
             .thenReturn(-3);
-        java.util.Map<String, LoopGraphCrawler.FlowNode> nodes = new java.util.LinkedHashMap<>();
-        nodes.put("phe", new LoopGraphCrawler.FlowNode("phe", LoopGraphCrawler.NodeType.DEVICE, device));
+        java.util.Map<com.gtnewhorizons.modularnuclear.common.coolantloop.LoopId, LoopGraphCrawler.FlowNode> nodes = new java.util.LinkedHashMap<>();
+        com.gtnewhorizons.modularnuclear.common.coolantloop.LoopId pheId = com.gtnewhorizons.modularnuclear.common.coolantloop.LoopId
+            .of("phe");
+        nodes.put(pheId, new LoopGraphCrawler.FlowNode(pheId, LoopGraphCrawler.NodeType.DEVICE, device));
         assertTrue(
             pump.applyCrawlResult(
                 CrawlResult.success(

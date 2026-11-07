@@ -223,12 +223,12 @@ public class CoolantLoopEngine {
      * kept.
      */
     public boolean replaceSegments(List<LoopSegment> next, boolean keepState) {
-        Map<String, LoopSegment> previous = new HashMap<>();
-        for (LoopSegment s : segments) previous.put(s.getId(), s);
+        Map<LoopId, LoopSegment> previous = new HashMap<>();
+        for (LoopSegment s : segments) previous.put(s.getKey(), s);
         boolean sameLoop = keepState && !isRuptured && previous.size() == next.size();
         if (sameLoop) {
             for (LoopSegment s : next) {
-                if (!previous.containsKey(s.getId())) {
+                if (!previous.containsKey(s.getKey())) {
                     sameLoop = false;
                     break;
                 }
@@ -237,7 +237,7 @@ public class CoolantLoopEngine {
         if (sameLoop) {
             segments.clear();
             for (LoopSegment s : next) {
-                s.copyStateFrom(previous.get(s.getId()));
+                s.copyStateFrom(previous.get(s.getKey()));
                 addSegment(s);
             }
             maxVolumetricFlowRate = Double.MAX_VALUE;
