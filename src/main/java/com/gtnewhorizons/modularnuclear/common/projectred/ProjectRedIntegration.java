@@ -20,7 +20,7 @@ public class ProjectRedIntegration {
             ProjectRedTransmissionHandler.register();
             isLoaded = true;
             ModularNuclear.LOG.info("Successfully initialized ProjectRed Transmission integration.");
-        } catch (Throwable t) {
+        } catch (LinkageError t) {
             ModularNuclear.LOG.warn("Failed to initialize ProjectRed integration", t);
         }
     }
@@ -29,7 +29,7 @@ public class ProjectRedIntegration {
         if (!isLoaded || world == null) return false;
         try {
             return ProjectRedTransmissionHandler.isInterfacing(world, x, y, z, facing);
-        } catch (Throwable swallowed) {
+        } catch (LinkageError swallowed) {
             Swallowed.note(swallowed);
             return false;
         }
@@ -39,7 +39,7 @@ public class ProjectRedIntegration {
         if (!isLoaded || world == null) return -1;
         try {
             return ProjectRedTransmissionHandler.getBundledInputAllSides(world, x, y, z, channel);
-        } catch (Throwable swallowed) {
+        } catch (LinkageError swallowed) {
             Swallowed.note(swallowed);
             return -1;
         }
