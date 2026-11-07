@@ -4,7 +4,6 @@ import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantPassageHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
@@ -74,7 +73,7 @@ final class NuclearReactorCycle {
     }
 
     /**
-     * Start of a cycle: bus damage failsafes, the casing tier the core cells see, and the rod hatches' mining pipes.
+     * Start of a cycle: bus damage failsafes and the casing tier the core cells see.
      */
     private static void prepareCycle(MTENuclearReactor r) {
         for (IGregTechTileEntity te : r.mNuclearTiles) {
@@ -84,20 +83,6 @@ final class NuclearReactorCycle {
         }
 
         r.updateNuclearTilesPipeTier();
-
-        for (MTEHatchNuclearControlRod rod : r.mBottomControlRodHatches) {
-            if (rod != null) {
-                rod.updateMiningPipeHousing();
-            }
-        }
-        for (int gx = 0; gx < r.gridSize; gx++) {
-            for (int gy = 0; gy < r.gridSize; gy++) {
-                if (r.mGrid[gx][gy] instanceof NuclearGridTile ngt && ngt.getBottomControlRod() != null) {
-                    ngt.getBottomControlRod()
-                        .updateMiningPipeHousing();
-                }
-            }
-        }
     }
 
     /** Applies CoreHatchRules to every coolant hatch; false when a thermal shock melted the core down or broke it. */
