@@ -4,6 +4,7 @@ import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
+import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.CoolantPumpStructure;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PheSheetmetalTier;
 
@@ -41,7 +42,7 @@ public enum CoolantStructureChannels implements IStructureChannels {
 
     @Override
     public void registerAsIndicator(ItemStack indicator, int channelValue) {
-        StructureLibAPI.registerChannelItem(get(), "coolantloops", channelValue, indicator);
+        StructureLibAPI.registerChannelItem(get(), ModularNuclear.MODID, channelValue, indicator);
 
     }
 
@@ -57,7 +58,7 @@ public enum CoolantStructureChannels implements IStructureChannels {
     public static void register() {
         for (CoolantStructureChannels value : values()) {
             StructureLibAPI
-                .registerChannelDescription(value.get(), "coolantloops", "channels.coolantloops." + value.get());
+                .registerChannelDescription(value.get(), ModularNuclear.MODID, "channels.coolantloops." + value.get());
 
         }
 
