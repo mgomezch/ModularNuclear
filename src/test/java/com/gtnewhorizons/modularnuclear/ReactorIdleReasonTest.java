@@ -21,21 +21,40 @@ public class ReactorIdleReasonTest {
 
     @Test
     public void testCellRefusalSurvivesSync() {
-        ReactorGridSyncData data = new ReactorGridSyncData();
-        data.gridSize = 1;
-        data.coreDimension = 1;
         ReactorGridSyncData.ReactorGridCellData cell = new ReactorGridSyncData.ReactorGridCellData();
         cell.exists = true;
         cell.notFuelReason = (byte) (NotFuelReason.DEPLETED.ordinal() + 1);
-        data.cells.add(cell);
+        cell.temperature = 812.5f;
+        cell.fastFlux = 42;
 
         PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
-        ReactorGridSyncData.writeToBuffer(buf, data);
-        ReactorGridSyncData read = ReactorGridSyncData.readFromBuffer(buf);
+        cell.writeContents(buf);
+        cell.writeReadings(buf);
+        ReactorGridSyncData.ReactorGridCellData read = new ReactorGridSyncData.ReactorGridCellData();
+        read.readContents(buf);
+        read.readReadings(buf);
 
-        assertEquals(1, read.cells.size());
-        assertEquals(cell.notFuelReason, read.cells.get(0).notFuelReason);
-        assertEquals(cell, read.cells.get(0));
+        assertEquals(cell.notFuelReason, read.notFuelReason);
+        assertTrue(cell.sameContents(read));
+        assertEquals(812.5f, read.temperature);
+        assertEquals(42, read.fastFlux);
+    }
+
+    @Test
+    public void testHeaderSurvivesSync() {
+        ReactorGridSyncData data = new ReactorGridSyncData();
+        data.gridSize = 9;
+        data.coreDimension = 7;
+        data.coreTemp = 1234.5f;
+        data.efficiency = 0.875;
+        data.outputCoolantName = "ic2hotcoolant";
+        data.scram = true;
+
+        PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
+        data.writeHeader(buf);
+        ReactorGridSyncData read = new ReactorGridSyncData();
+        read.readHeader(buf);
+        assertTrue(data.sameHeader(read), "the header comes back exactly");
     }
 
     @Test

@@ -2338,8 +2338,24 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
     }
 
+    /** A full grid snapshot of copies (the client-side fallback before the first sync arrives). */
     public ReactorGridSyncData collectGridSyncData() {
         ReactorGridSyncData data = new ReactorGridSyncData();
+        fillGridHeader(data);
+        if (mGrid != null && gridSize > 0) {
+            for (int x = 0; x < gridSize; x++) {
+                for (int y = 0; y < gridSize; y++) {
+                    ReactorGridSyncData.ReactorGridCellData cell = new ReactorGridSyncData.ReactorGridCellData();
+                    fillGridCell(x, y, cell, true);
+                    data.cells.add(cell);
+                }
+            }
+        }
+        return data;
+    }
+
+    /** The reactor-wide readings the GUI shows. */
+    public void fillGridHeader(ReactorGridSyncData data) {
         data.gridSize = this.gridSize;
         data.coreDimension = this.coreDimension;
         data.coreTemp = (float) this.mCoreTemp;
@@ -2358,70 +2374,83 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         data.ambientTemp = (float) getAmbientTemperature();
         data.reactorDamage = (float) this.mReactorDamage;
         data.ticksPerCycle = getTicksPerCycle();
+    }
 
-        if (mGrid != null && gridSize > 0) {
-            for (int x = 0; x < gridSize; x++) {
-                for (int y = 0; y < gridSize; y++) {
-                    INuclearTile tile = mGrid[x][y];
-                    ReactorGridSyncData.ReactorGridCellData cell = new ReactorGridSyncData.ReactorGridCellData();
-                    if (tile instanceof NuclearGridTile gt) {
-                        cell.exists = true;
-                        cell.temperature = (float) gt.getTemperature();
-                        if (gt.isBus()) {
-                            MTEHatchNuclearBus bus = gt.getBus();
-                            cell.isFluid = false;
-                            ItemStack in = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-                            cell.itemStack = (in != null) ? in.copy() : null;
-                            cell.fastFlux = bus.mLastFastFlux;
-                            cell.thermalFlux = bus.mLastThermalFlux;
-                            cell.fastAbsorbed = bus.mLastFastAbsorbed;
-                            cell.thermalAbsorbed = bus.mLastThermalAbsorbed;
-                            cell.directEU = bus.mDirectEUProduced;
-                            cell.heatOutput = (float) bus.mLastHeatOutput;
-                            NuclearFuelClassification.NotFuelReason refused = (in != null && !gt.isFuel())
-                                ? NuclearFuelClassification.unexpectedNotFuel(in)
-                                : null;
-                            cell.notFuelReason = refused != null ? (byte) (refused.ordinal() + 1) : 0;
-                        } else if (gt.isHatch()) {
-                            MTEHatchNuclearHatch hatch = gt.getHatch();
-                            cell.isFluid = true;
-                            cell.fluidStack = (hatch.mInputFluid != null) ? hatch.mInputFluid.copy() : null;
-                            cell.fastFlux = hatch.mLastFastFlux;
-                            cell.thermalFlux = hatch.mLastThermalFlux;
-                            cell.fastAbsorbed = hatch.mLastFastAbsorbed;
-                            cell.thermalAbsorbed = hatch.mLastThermalAbsorbed;
-                            cell.heatOutput = (float) hatch.mLastHeatOutput;
-                        } else if (gt.isHighPressureHatch()) {
-                            MTEHatchNuclearHighPressure hp = gt.getHighPressureHatch();
-                            cell.isFluid = false;
-                            cell.isHighPressure = true;
-                            cell.fastFlux = hp.mLastFastFlux;
-                            cell.thermalFlux = hp.mLastThermalFlux;
-                            cell.fastAbsorbed = hp.mLastFastAbsorbed;
-                            cell.thermalAbsorbed = hp.mLastThermalAbsorbed;
-                            cell.heatOutput = (float) hp.mLastHeatOutput;
-                        }
+    /**
+     * Fills a cell of the GUI's grid from the core cell at (x, y). Without {@code copyStacks} the cell holds the
+     * hatches' own stacks: only for comparing, never to keep.
+     */
+    public void fillGridCell(int x, int y, ReactorGridSyncData.ReactorGridCellData cell, boolean copyStacks) {
+        INuclearTile tile = mGrid[x][y];
+        cell.exists = false;
+        cell.isFluid = false;
+        cell.isHighPressure = false;
+        cell.hasControlRod = false;
+        cell.isAdvancedControlRod = false;
+        cell.controlRodInsertion = 0;
+        cell.controlRodType = 0;
+        cell.moderatorInsertion = 0;
+        cell.moderatorStack = null;
+        cell.itemStack = null;
+        cell.fluidStack = null;
+        cell.temperature = 20.0f;
+        cell.heatOutput = 0.0f;
+        cell.fastFlux = 0;
+        cell.thermalFlux = 0;
+        cell.fastAbsorbed = 0;
+        cell.thermalAbsorbed = 0;
+        cell.directEU = 0;
+        cell.notFuelReason = 0;
+        if (!(tile instanceof NuclearGridTile gt)) return;
+        cell.exists = true;
+        cell.temperature = (float) gt.getTemperature();
+        if (gt.isBus()) {
+            MTEHatchNuclearBus bus = gt.getBus();
+            ItemStack in = bus.getInput();
+            cell.itemStack = copyStacks ? ItemStack.copyItemStack(in) : in;
+            cell.fastFlux = bus.mLastFastFlux;
+            cell.thermalFlux = bus.mLastThermalFlux;
+            cell.fastAbsorbed = bus.mLastFastAbsorbed;
+            cell.thermalAbsorbed = bus.mLastThermalAbsorbed;
+            cell.directEU = bus.mDirectEUProduced;
+            cell.heatOutput = (float) bus.mLastHeatOutput;
+            NuclearFuelClassification.NotFuelReason refused = (in != null && !gt.isFuel())
+                ? NuclearFuelClassification.unexpectedNotFuel(in)
+                : null;
+            cell.notFuelReason = refused != null ? (byte) (refused.ordinal() + 1) : 0;
+        } else if (gt.isHatch()) {
+            MTEHatchNuclearHatch hatch = gt.getHatch();
+            cell.isFluid = true;
+            cell.fluidStack = (copyStacks && hatch.mInputFluid != null) ? hatch.mInputFluid.copy() : hatch.mInputFluid;
+            cell.fastFlux = hatch.mLastFastFlux;
+            cell.thermalFlux = hatch.mLastThermalFlux;
+            cell.fastAbsorbed = hatch.mLastFastAbsorbed;
+            cell.thermalAbsorbed = hatch.mLastThermalAbsorbed;
+            cell.heatOutput = (float) hatch.mLastHeatOutput;
+        } else if (gt.isHighPressureHatch()) {
+            MTEHatchNuclearHighPressure hp = gt.getHighPressureHatch();
+            cell.isHighPressure = true;
+            cell.fastFlux = hp.mLastFastFlux;
+            cell.thermalFlux = hp.mLastThermalFlux;
+            cell.fastAbsorbed = hp.mLastFastAbsorbed;
+            cell.thermalAbsorbed = hp.mLastThermalAbsorbed;
+            cell.heatOutput = (float) hp.mLastHeatOutput;
+        }
 
-                        if (gt.hasControlRod()) {
-                            MTEHatchNuclearControlRod rod = gt.getBottomControlRod();
-                            cell.hasControlRod = true;
-                            cell.isAdvancedControlRod = rod.hasModerator()
-                                || (rod instanceof MTEHatchNuclearAdvancedControlRod);
-                            cell.controlRodInsertion = rod.getInsertionPercent();
-                            cell.controlRodType = MTEHatchNuclearControlRod
-                                .getRodType(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD])
-                                .ordinal();
-                            if (cell.isAdvancedControlRod) {
-                                cell.moderatorInsertion = rod.getModeratorInsertionPercent();
-                                cell.moderatorStack = ItemStack.copyItemStack(rod.getModeratorStack());
-                            }
-                        }
-                    }
-                    data.cells.add(cell);
-                }
+        if (gt.hasControlRod()) {
+            MTEHatchNuclearControlRod rod = gt.getBottomControlRod();
+            cell.hasControlRod = true;
+            cell.isAdvancedControlRod = rod.hasModerator() || (rod instanceof MTEHatchNuclearAdvancedControlRod);
+            cell.controlRodInsertion = rod.getInsertionPercent();
+            cell.controlRodType = MTEHatchNuclearControlRod
+                .getRodType(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD])
+                .ordinal();
+            if (cell.isAdvancedControlRod) {
+                cell.moderatorInsertion = rod.getModeratorInsertionPercent();
+                ItemStack mod = rod.getModeratorStack();
+                cell.moderatorStack = copyStacks ? ItemStack.copyItemStack(mod) : mod;
             }
         }
-        return data;
     }
 
     public boolean hasComputerMonitorCover() {

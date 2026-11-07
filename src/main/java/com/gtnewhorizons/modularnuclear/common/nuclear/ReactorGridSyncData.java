@@ -14,6 +14,11 @@ import com.gtnewhorizons.modularui.common.internal.network.NetworkUtils;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
 
+/**
+ * What the reactor GUI shows: the reactor's readings and each core cell's contents and readings. The server sends it
+ * in parts ({@code ReactorGridSyncHandler}): a cell's contents (items, fluids, rods) when they change, and the readings
+ * (temperatures, heat, fluxes, insertion) once per reactor cycle. These are the parts' wire formats.
+ */
 public class ReactorGridSyncData {
 
     public int gridSize = 0;
@@ -60,192 +65,183 @@ public class ReactorGridSyncData {
         /** 1 + the ordinal of the reason the server refuses the cell's item as fuel, or 0. */
         public byte notFuelReason = 0;
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            ReactorGridCellData that = (ReactorGridCellData) o;
-            if (exists != that.exists || isFluid != that.isFluid
-                || isHighPressure != that.isHighPressure
-                || hasControlRod != that.hasControlRod
-                || isAdvancedControlRod != that.isAdvancedControlRod
-                || controlRodInsertion != that.controlRodInsertion
-                || controlRodType != that.controlRodType
-                || moderatorInsertion != that.moderatorInsertion
-                || !ItemStack.areItemStacksEqual(moderatorStack, that.moderatorStack)) return false;
-            if (Math.abs(temperature - that.temperature) > 0.5f) return false;
-            if (Math.abs(heatOutput - that.heatOutput) > 0.5f) return false;
-            if (fastFlux != that.fastFlux || thermalFlux != that.thermalFlux) return false;
-            if (fastAbsorbed != that.fastAbsorbed || thermalAbsorbed != that.thermalAbsorbed) return false;
-            if (directEU != that.directEU || notFuelReason != that.notFuelReason) return false;
-            if (!ItemStack.areItemStacksEqual(itemStack, that.itemStack)) return false;
-            if (fluidStack == null ? that.fluidStack != null : !fluidStack.isFluidStackIdentical(that.fluidStack))
-                return false;
-            return true;
+        /** Whether the cell holds the same things (items, fluid, rods) as another, exactly. */
+        public boolean sameContents(ReactorGridCellData o) {
+            return exists == o.exists && isFluid == o.isFluid
+                && isHighPressure == o.isHighPressure
+                && hasControlRod == o.hasControlRod
+                && isAdvancedControlRod == o.isAdvancedControlRod
+                && controlRodType == o.controlRodType
+                && notFuelReason == o.notFuelReason
+                && ItemStack.areItemStacksEqual(itemStack, o.itemStack)
+                && ItemStack.areItemStacksEqual(moderatorStack, o.moderatorStack)
+                && (fluidStack == null ? o.fluidStack == null : fluidStack.isFluidStackIdentical(o.fluidStack));
         }
 
-        @Override
-        public int hashCode() {
-            return Objects
-                .hash(exists, isFluid, (int) temperature, fastFlux, thermalFlux, hasControlRod, controlRodInsertion);
+        /** Takes another cell's contents, copying its stacks (it may hold the hatches' own). */
+        public void copyContentsFrom(ReactorGridCellData o) {
+            exists = o.exists;
+            isFluid = o.isFluid;
+            isHighPressure = o.isHighPressure;
+            hasControlRod = o.hasControlRod;
+            isAdvancedControlRod = o.isAdvancedControlRod;
+            controlRodType = o.controlRodType;
+            notFuelReason = o.notFuelReason;
+            itemStack = ItemStack.copyItemStack(o.itemStack);
+            moderatorStack = ItemStack.copyItemStack(o.moderatorStack);
+            fluidStack = o.fluidStack != null ? o.fluidStack.copy() : null;
         }
-    }
 
-    public static void writeToBuffer(PacketBuffer buf, ReactorGridSyncData data) {
-        if (data == null) {
-            buf.writeByte(0);
-            return;
-        }
-        buf.writeByte(data.gridSize);
-        buf.writeByte(data.coreDimension);
-        buf.writeFloat(data.coreTemp);
-        buf.writeFloat(data.avgTemp);
-        buf.writeFloat((float) data.efficiency);
-        buf.writeByte(data.pipeTier);
-        buf.writeLong(data.directPowerEUt);
-        buf.writeVarIntToBuffer(data.neutronsProduced);
-        buf.writeVarIntToBuffer(data.fastAbsorbed);
-        buf.writeVarIntToBuffer(data.thermalAbsorbed);
-        buf.writeVarIntToBuffer(data.escapedNeutrons);
-        buf.writeVarIntToBuffer(data.outputCoolantRate);
-        ByteBufUtils.writeUTF8String(buf, data.outputCoolantName != null ? data.outputCoolantName : "");
-        buf.writeBoolean(data.scram);
-        buf.writeFloat(data.ambientTemp);
-        buf.writeFloat(data.reactorDamage);
-        buf.writeLong(data.cumulativeNeutrons);
-        buf.writeVarIntToBuffer(data.ticksPerCycle);
-
-        buf.writeVarIntToBuffer(data.cells.size());
-        for (ReactorGridCellData cell : data.cells) {
+        public void writeContents(PacketBuffer buf) {
             int mask = 0;
-            if (cell.exists) mask |= 1;
-            if (cell.isFluid) mask |= 2;
-            if (cell.itemStack != null) mask |= 4;
-            if (cell.fluidStack != null) mask |= 8;
-            if (cell.isHighPressure) mask |= 16;
-            if (cell.hasControlRod) mask |= 32;
-            if (cell.isAdvancedControlRod) mask |= 64;
+            if (exists) mask |= 1;
+            if (isFluid) mask |= 2;
+            if (itemStack != null) mask |= 4;
+            if (fluidStack != null) mask |= 8;
+            if (isHighPressure) mask |= 16;
+            if (hasControlRod) mask |= 32;
+            if (isAdvancedControlRod) mask |= 64;
+            if (moderatorStack != null) mask |= 128;
             buf.writeByte(mask);
-            if (cell.exists) {
-                buf.writeFloat(cell.temperature);
-                buf.writeFloat(cell.heatOutput);
-                buf.writeVarIntToBuffer(cell.fastFlux);
-                buf.writeVarIntToBuffer(cell.thermalFlux);
-                buf.writeVarIntToBuffer(cell.fastAbsorbed);
-                buf.writeVarIntToBuffer(cell.thermalAbsorbed);
-                buf.writeLong(cell.directEU);
-                buf.writeByte(cell.notFuelReason);
-                if (cell.hasControlRod) {
-                    buf.writeByte(cell.controlRodInsertion);
-                    buf.writeByte(cell.controlRodType);
-                    if (cell.isAdvancedControlRod) {
-                        buf.writeByte(cell.moderatorInsertion);
-                        buf.writeBoolean(cell.moderatorStack != null);
-                        if (cell.moderatorStack != null) NetworkUtils.writeItemStack(buf, cell.moderatorStack);
-                    }
-                }
-                if (cell.itemStack != null) {
-                    NetworkUtils.writeItemStack(buf, cell.itemStack);
-                }
-                if (cell.fluidStack != null) {
-                    buf.writeVarIntToBuffer(cell.fluidStack.getFluidID());
-                    buf.writeVarIntToBuffer(cell.fluidStack.amount);
-                }
+            if (!exists) return;
+            buf.writeByte(controlRodType);
+            buf.writeByte(notFuelReason);
+            if (itemStack != null) NetworkUtils.writeItemStack(buf, itemStack);
+            if (fluidStack != null) {
+                buf.writeVarIntToBuffer(fluidStack.getFluidID());
+                buf.writeVarIntToBuffer(fluidStack.amount);
             }
+            if (moderatorStack != null) NetworkUtils.writeItemStack(buf, moderatorStack);
         }
-    }
 
-    public static ReactorGridSyncData readFromBuffer(PacketBuffer buf) {
-        ReactorGridSyncData data = new ReactorGridSyncData();
-        data.gridSize = buf.readByte();
-        if (data.gridSize == 0) return data;
-
-        data.coreDimension = buf.readByte();
-        data.coreTemp = buf.readFloat();
-        data.avgTemp = buf.readFloat();
-        data.efficiency = buf.readFloat();
-        data.pipeTier = buf.readByte();
-        data.directPowerEUt = buf.readLong();
-        data.neutronsProduced = buf.readVarIntFromBuffer();
-        data.fastAbsorbed = buf.readVarIntFromBuffer();
-        data.thermalAbsorbed = buf.readVarIntFromBuffer();
-        data.escapedNeutrons = buf.readVarIntFromBuffer();
-        data.outputCoolantRate = buf.readVarIntFromBuffer();
-        data.outputCoolantName = ByteBufUtils.readUTF8String(buf);
-        data.scram = buf.readBoolean();
-        data.ambientTemp = buf.readFloat();
-        data.reactorDamage = buf.readFloat();
-        data.cumulativeNeutrons = buf.readLong();
-        data.ticksPerCycle = buf.readVarIntFromBuffer();
-
-        int cellCount = buf.readVarIntFromBuffer();
-        for (int i = 0; i < cellCount; i++) {
-            ReactorGridCellData cell = new ReactorGridCellData();
-            int mask = buf.readByte();
-            cell.exists = (mask & 1) != 0;
-            cell.isFluid = (mask & 2) != 0;
-            boolean hasItem = (mask & 4) != 0;
-            boolean hasFluid = (mask & 8) != 0;
-            cell.isHighPressure = (mask & 16) != 0;
-            cell.hasControlRod = (mask & 32) != 0;
-            cell.isAdvancedControlRod = (mask & 64) != 0;
-            if (cell.exists) {
-                cell.temperature = buf.readFloat();
-                cell.heatOutput = buf.readFloat();
-                cell.fastFlux = buf.readVarIntFromBuffer();
-                cell.thermalFlux = buf.readVarIntFromBuffer();
-                cell.fastAbsorbed = buf.readVarIntFromBuffer();
-                cell.thermalAbsorbed = buf.readVarIntFromBuffer();
-                cell.directEU = buf.readLong();
-                cell.notFuelReason = buf.readByte();
-                if (cell.hasControlRod) {
-                    cell.controlRodInsertion = buf.readByte() & 0xFF;
-                    cell.controlRodType = buf.readByte() & 0xFF;
-                    if (cell.isAdvancedControlRod) {
-                        cell.moderatorInsertion = buf.readByte() & 0xFF;
-                        cell.moderatorStack = buf.readBoolean() ? NetworkUtils.readItemStack(buf) : null;
-                    }
-                }
-                if (hasItem) {
-                    cell.itemStack = NetworkUtils.readItemStack(buf);
-                }
-                if (hasFluid) {
-                    int fluidId = buf.readVarIntFromBuffer();
-                    int amount = buf.readVarIntFromBuffer();
-                    Fluid fluid = FluidRegistry.getFluid(fluidId);
-                    if (fluid != null) {
-                        cell.fluidStack = new FluidStack(fluid, amount);
-                    }
-                }
+        public void readContents(PacketBuffer buf) {
+            int mask = buf.readByte() & 0xFF;
+            exists = (mask & 1) != 0;
+            isFluid = (mask & 2) != 0;
+            isHighPressure = (mask & 16) != 0;
+            hasControlRod = (mask & 32) != 0;
+            isAdvancedControlRod = (mask & 64) != 0;
+            itemStack = null;
+            fluidStack = null;
+            moderatorStack = null;
+            if (!exists) return;
+            controlRodType = buf.readByte() & 0xFF;
+            notFuelReason = buf.readByte();
+            if ((mask & 4) != 0) itemStack = NetworkUtils.readItemStack(buf);
+            if ((mask & 8) != 0) {
+                Fluid fluid = FluidRegistry.getFluid(buf.readVarIntFromBuffer());
+                int amount = buf.readVarIntFromBuffer();
+                if (fluid != null) fluidStack = new FluidStack(fluid, amount);
             }
-            data.cells.add(cell);
+            if ((mask & 128) != 0) moderatorStack = NetworkUtils.readItemStack(buf);
         }
-        return data;
+
+        public void writeReadings(PacketBuffer buf) {
+            buf.writeFloat(temperature);
+            buf.writeFloat(heatOutput);
+            buf.writeVarIntToBuffer(fastFlux);
+            buf.writeVarIntToBuffer(thermalFlux);
+            buf.writeVarIntToBuffer(fastAbsorbed);
+            buf.writeVarIntToBuffer(thermalAbsorbed);
+            buf.writeLong(directEU);
+            buf.writeByte(controlRodInsertion);
+            buf.writeByte(moderatorInsertion);
+        }
+
+        public void readReadings(PacketBuffer buf) {
+            temperature = buf.readFloat();
+            heatOutput = buf.readFloat();
+            fastFlux = buf.readVarIntFromBuffer();
+            thermalFlux = buf.readVarIntFromBuffer();
+            fastAbsorbed = buf.readVarIntFromBuffer();
+            thermalAbsorbed = buf.readVarIntFromBuffer();
+            directEU = buf.readLong();
+            controlRodInsertion = buf.readByte() & 0xFF;
+            moderatorInsertion = buf.readByte() & 0xFF;
+        }
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ReactorGridSyncData that = (ReactorGridSyncData) o;
-        if (gridSize != that.gridSize || pipeTier != that.pipeTier
-            || directPowerEUt != that.directPowerEUt
-            || ticksPerCycle != that.ticksPerCycle) return false;
-        if (scram != that.scram || cumulativeNeutrons != that.cumulativeNeutrons) return false;
-        if (Math.abs(ambientTemp - that.ambientTemp) > 0.5f) return false;
-        if (Math.abs(coreTemp - that.coreTemp) > 0.5f) return false;
-        if (Math.abs(avgTemp - that.avgTemp) > 0.5f) return false;
-        if (Math.abs(efficiency - that.efficiency) > 0.005) return false;
-        if (cells.size() != that.cells.size()) return false;
-        for (int i = 0; i < cells.size(); i++) {
-            if (!cells.get(i)
-                .equals(that.cells.get(i))) return false;
-        }
-        return true;
+    /** Whether the reactor-wide readings are the same as another's, exactly. */
+    public boolean sameHeader(ReactorGridSyncData o) {
+        return gridSize == o.gridSize && coreDimension == o.coreDimension
+            && coreTemp == o.coreTemp
+            && avgTemp == o.avgTemp
+            && efficiency == o.efficiency
+            && pipeTier == o.pipeTier
+            && directPowerEUt == o.directPowerEUt
+            && neutronsProduced == o.neutronsProduced
+            && fastAbsorbed == o.fastAbsorbed
+            && thermalAbsorbed == o.thermalAbsorbed
+            && escapedNeutrons == o.escapedNeutrons
+            && outputCoolantRate == o.outputCoolantRate
+            && Objects.equals(outputCoolantName, o.outputCoolantName)
+            && scram == o.scram
+            && ambientTemp == o.ambientTemp
+            && reactorDamage == o.reactorDamage
+            && cumulativeNeutrons == o.cumulativeNeutrons
+            && ticksPerCycle == o.ticksPerCycle;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(gridSize, (int) coreTemp, pipeTier, cells.size());
+    public void copyHeaderFrom(ReactorGridSyncData o) {
+        gridSize = o.gridSize;
+        coreDimension = o.coreDimension;
+        coreTemp = o.coreTemp;
+        avgTemp = o.avgTemp;
+        efficiency = o.efficiency;
+        pipeTier = o.pipeTier;
+        directPowerEUt = o.directPowerEUt;
+        neutronsProduced = o.neutronsProduced;
+        fastAbsorbed = o.fastAbsorbed;
+        thermalAbsorbed = o.thermalAbsorbed;
+        escapedNeutrons = o.escapedNeutrons;
+        outputCoolantRate = o.outputCoolantRate;
+        outputCoolantName = o.outputCoolantName;
+        scram = o.scram;
+        ambientTemp = o.ambientTemp;
+        reactorDamage = o.reactorDamage;
+        cumulativeNeutrons = o.cumulativeNeutrons;
+        ticksPerCycle = o.ticksPerCycle;
+    }
+
+    public void writeHeader(PacketBuffer buf) {
+        buf.writeByte(gridSize);
+        buf.writeByte(coreDimension);
+        buf.writeFloat(coreTemp);
+        buf.writeFloat(avgTemp);
+        buf.writeDouble(efficiency);
+        buf.writeByte(pipeTier);
+        buf.writeLong(directPowerEUt);
+        buf.writeVarIntToBuffer(neutronsProduced);
+        buf.writeVarIntToBuffer(fastAbsorbed);
+        buf.writeVarIntToBuffer(thermalAbsorbed);
+        buf.writeVarIntToBuffer(escapedNeutrons);
+        buf.writeVarIntToBuffer(outputCoolantRate);
+        ByteBufUtils.writeUTF8String(buf, outputCoolantName != null ? outputCoolantName : "");
+        buf.writeBoolean(scram);
+        buf.writeFloat(ambientTemp);
+        buf.writeFloat(reactorDamage);
+        buf.writeLong(cumulativeNeutrons);
+        buf.writeVarIntToBuffer(ticksPerCycle);
+    }
+
+    public void readHeader(PacketBuffer buf) {
+        gridSize = buf.readByte();
+        coreDimension = buf.readByte();
+        coreTemp = buf.readFloat();
+        avgTemp = buf.readFloat();
+        efficiency = buf.readDouble();
+        pipeTier = buf.readByte();
+        directPowerEUt = buf.readLong();
+        neutronsProduced = buf.readVarIntFromBuffer();
+        fastAbsorbed = buf.readVarIntFromBuffer();
+        thermalAbsorbed = buf.readVarIntFromBuffer();
+        escapedNeutrons = buf.readVarIntFromBuffer();
+        outputCoolantRate = buf.readVarIntFromBuffer();
+        outputCoolantName = ByteBufUtils.readUTF8String(buf);
+        scram = buf.readBoolean();
+        ambientTemp = buf.readFloat();
+        reactorDamage = buf.readFloat();
+        cumulativeNeutrons = buf.readLong();
+        ticksPerCycle = buf.readVarIntFromBuffer();
     }
 }

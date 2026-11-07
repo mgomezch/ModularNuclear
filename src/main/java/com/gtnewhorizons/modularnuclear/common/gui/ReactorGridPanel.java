@@ -13,14 +13,12 @@ import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.utils.Color;
-import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
-import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
 
 import gregtech.api.enums.ItemList;
 import ic2.core.Ic2Items;
@@ -43,12 +41,7 @@ public class ReactorGridPanel {
         NuclearReactorGridWidget gridWidget = new NuclearReactorGridWidget(reactor, syncManager);
 
         // Server-client network sync of reactor grid telemetry data
-        GenericSyncValue<ReactorGridSyncData, ?> gridSyncer = new GenericSyncValue<>(
-            reactor::collectGridSyncData,
-            reactor::applyGridSyncData,
-            ReactorGridSyncData::readFromBuffer,
-            ReactorGridSyncData::writeToBuffer);
-        syncManager.syncValue("reactorGridData", gridSyncer);
+        syncManager.syncValue("reactorGridData", new ReactorGridSyncHandler(reactor));
 
         IntSyncValue modeSyncer = new IntSyncValue(() -> reactor.mCurrentGuiMode, v -> reactor.mCurrentGuiMode = v);
         syncManager.syncValue("reactorGuiMode", modeSyncer);

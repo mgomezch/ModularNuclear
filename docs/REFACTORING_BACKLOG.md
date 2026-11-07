@@ -122,7 +122,15 @@ The registry scan around `ReactorDataRegistry` line 1050 does the same for name-
 
 ## Performance
 
-### P1 (P1): Reactor grid GUI sync is all-or-nothing
+### P1 (P1): Reactor grid GUI sync is all-or-nothing (done)
+
+**Done:**
+- **Per-viewer handler.** `ReactorGridSyncHandler` replaces the `GenericSyncValue` and keeps what its viewer last got.
+- **Contents per cell.** Each tick it compares each cell's items, fluid and rods with what it sent, using the hatches' own stacks (no copies), and sends only the cells that changed.
+- **Readings per cycle.** The reactor-wide readings and each cell's temperature, heat, fluxes and insertion go once per reactor cycle, or when the reactor-wide ones change.
+- **Whole grid.** It goes only when the panel opens or the grid's size changes.
+- **Exact equality.** The tolerance-based `equals`/`hashCode` are gone: contents compare exactly (`sameContents`), and readings are not compared at all.
+- **Not yet checked in game.**
 
 `ReactorGridPanel` registers a `GenericSyncValue` over `MTENuclearReactor.collectGridSyncData`. While the GUI is open, that builds a full grid snapshot every tick for each viewer, copying every `ItemStack`. Flux values change every cycle, so the whole grid, item NBT included, is resent about every 5 ticks.
 
