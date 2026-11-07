@@ -1,8 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.gui.metrics;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Arrays;
 
 import net.minecraft.network.PacketBuffer;
 
@@ -61,23 +59,13 @@ public class ReactorCycleSnapshot {
         return coolantOutput * getCyclesPerSec();
     }
 
-    public static ReactorCycleSnapshot create(long cycleIndex, List<Double> temperatures, List<Double> reactivities,
-        int escapedNeutrons, int fastNeutronsProduced, int thermalNeutronsAbsorbed, long directEU, long coolantOutput) {
-        return create(
-            cycleIndex,
-            temperatures,
-            reactivities,
-            escapedNeutrons,
-            fastNeutronsProduced,
-            thermalNeutronsAbsorbed,
-            directEU,
-            coolantOutput,
-            NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE);
-    }
-
-    public static ReactorCycleSnapshot create(long cycleIndex, List<Double> temperatures, List<Double> reactivities,
-        int escapedNeutrons, int fastNeutronsProduced, int thermalNeutronsAbsorbed, long directEU, long coolantOutput,
-        int ticksPerCycle) {
+    /**
+     * A cycle's snapshot from the first {@code tempCount} core temperatures and {@code reactivityCount} fuel
+     * reactivities in the given arrays, which it sorts in place (the reactor reuses them every cycle).
+     */
+    public static ReactorCycleSnapshot create(long cycleIndex, double[] temperatures, int tempCount,
+        double[] reactivities, int reactivityCount, int escapedNeutrons, int fastNeutronsProduced,
+        int thermalNeutronsAbsorbed, long directEU, long coolantOutput, int ticksPerCycle) {
         ReactorCycleSnapshot s = new ReactorCycleSnapshot();
         s.cycleIndex = cycleIndex;
         s.escapedNeutrons = escapedNeutrons;
@@ -88,7 +76,7 @@ public class ReactorCycleSnapshot {
         s.ticksPerCycle = ticksPerCycle;
 
         // Compute quartiles for temperature
-        float[] tStats = calculateQuartiles(temperatures);
+        float[] tStats = calculateQuartiles(temperatures, tempCount);
         s.tempMin = tStats[0];
         s.tempQ1 = tStats[1];
         s.tempMedian = tStats[2];
@@ -97,7 +85,7 @@ public class ReactorCycleSnapshot {
         s.tempAvg = tStats[5];
 
         // Compute quartiles for reactivity
-        float[] rStats = calculateQuartiles(reactivities);
+        float[] rStats = calculateQuartiles(reactivities, reactivityCount);
         s.reactivityMin = rStats[0];
         s.reactivityQ1 = rStats[1];
         s.reactivityMedian = rStats[2];
@@ -109,50 +97,44 @@ public class ReactorCycleSnapshot {
     }
 
     /**
-     * Calculates statistical summary: min, Q1, median, Q3, max, and average using standard
-     * linear interpolation between closest ranks (NIST / Excel PERCENTILE.INC).
+     * Statistical summary of the first {@code n} values, which it sorts in place: min, Q1, median, Q3, max and average,
+     * with linear interpolation between closest ranks (NIST / Excel PERCENTILE.INC).
      *
      * @return float array: [min, Q1, median, Q3, max, avg]
      */
-    public static float[] calculateQuartiles(List<Double> values) {
-        if (values == null || values.isEmpty()) {
+    public static float[] calculateQuartiles(double[] values, int n) {
+        if (values == null || n <= 0) {
             return new float[] { 0f, 0f, 0f, 0f, 0f, 0f };
         }
-        List<Double> sorted = new ArrayList<>(values);
-        Collections.sort(sorted);
-        int n = sorted.size();
+        Arrays.sort(values, 0, n);
         double sum = 0.0;
-        for (double v : sorted) {
-            sum += v;
+        for (int i = 0; i < n; i++) {
+            sum += values[i];
         }
         float avg = (float) (sum / n);
-        float min = sorted.get(0)
-            .floatValue();
-        float max = sorted.get(n - 1)
-            .floatValue();
+        float min = (float) values[0];
+        float max = (float) values[n - 1];
 
         if (n == 1) {
             return new float[] { min, min, min, min, max, avg };
         }
 
-        float q1 = (float) getPercentile(sorted, 25.0);
-        float median = (float) getPercentile(sorted, 50.0);
-        float q3 = (float) getPercentile(sorted, 75.0);
+        float q1 = (float) getPercentile(values, n, 25.0);
+        float median = (float) getPercentile(values, n, 50.0);
+        float q3 = (float) getPercentile(values, n, 75.0);
 
         return new float[] { min, q1, median, q3, max, avg };
     }
 
-    private static double getPercentile(List<Double> sortedValues, double percentile) {
-        int n = sortedValues.size();
-        if (n == 1) return sortedValues.get(0);
+    private static double getPercentile(double[] sorted, int n, double percentile) {
         double rank = (percentile / 100.0) * (n - 1);
         int lowerIndex = (int) Math.floor(rank);
         int upperIndex = (int) Math.ceil(rank);
         if (lowerIndex == upperIndex) {
-            return sortedValues.get(lowerIndex);
+            return sorted[lowerIndex];
         }
         double weight = rank - lowerIndex;
-        return sortedValues.get(lowerIndex) * (1.0 - weight) + sortedValues.get(upperIndex) * weight;
+        return sorted[lowerIndex] * (1.0 - weight) + sorted[upperIndex] * weight;
     }
 
     public void writeToBuffer(PacketBuffer buf) {

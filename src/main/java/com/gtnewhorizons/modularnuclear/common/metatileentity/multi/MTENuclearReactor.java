@@ -2434,10 +2434,19 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         return super.allowCoverOnSide(side, coverItem);
     }
 
+    /** Per-cycle scratch for the metrics snapshot's temperatures and reactivities, grown with the grid. */
+    private double[] mSnapshotTemps = new double[0];
+    private double[] mSnapshotReactivities = new double[0];
+
     public void recordMetricsCycleSnapshot(NuclearSimulationEngine.SimulationResult res, double maintEff) {
         if (res == null) return;
-        List<Double> temps = new ArrayList<>();
-        List<Double> reactivities = new ArrayList<>();
+        int cells = gridSize * gridSize;
+        if (mSnapshotTemps.length < cells) {
+            mSnapshotTemps = new double[cells];
+            mSnapshotReactivities = new double[cells];
+        }
+        int temps = 0;
+        int reactivities = 0;
 
         if (mGrid != null) {
             for (int x = 0; x < gridSize; x++) {
@@ -2445,10 +2454,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     INuclearTile tile = mGrid[x][y];
                     if (tile != null) {
                         double t = tile.getTemperature();
-                        temps.add(t);
+                        mSnapshotTemps[temps++] = t;
                         if (tile.isFuel()) {
-                            double r = NuclearSimulationEngine.calculateEfficiency(tile, t) * 100.0;
-                            reactivities.add(r);
+                            mSnapshotReactivities[reactivities++] = NuclearSimulationEngine.calculateEfficiency(tile, t)
+                                * 100.0;
                         }
                     }
                 }
@@ -2457,7 +2466,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         ReactorCycleSnapshot snapshot = ReactorCycleSnapshot.create(
             mTotalCycles,
+            mSnapshotTemps,
             temps,
+            mSnapshotReactivities,
             reactivities,
             res.neutronsEscaped,
             res.totalNeutronsGenerated,

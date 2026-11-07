@@ -132,9 +132,12 @@ The registry scan around `ReactorDataRegistry` line 1050 does the same for name-
 - Better still, sync per cell with dirty flags.
 - Fix `ReactorGridCellData.equals`: it uses a tolerance, so it is not transitive and disagrees with `hashCode`. Use quantized values instead.
 
-### P2 (P1): Reactor metrics history is resent whole (mostly done)
+### P2 (P1): Reactor metrics history is resent whole (done)
 
-**Done:** the history is a ring buffer with an added-count and a clear epoch. `MetricsHistorySyncHandler` sends the whole window on open, then only new snapshots per viewer. Unit-tested, not yet checked in game. **Left:** `recordMetricsCycleSnapshot` still builds boxed `List<Double>` once per cycle (only quartiles are kept), and the pump's metrics history has not been checked for the same pattern.
+**Done:**
+- **History sync.** The history is a ring buffer with an added-count and a clear epoch. `MetricsHistorySyncHandler` sends the whole window on open, then only the new snapshots, per viewer. Unit-tested, not yet checked in game.
+- **No boxing.** `recordMetricsCycleSnapshot` fills two `double[]` arrays it keeps between cycles, and the quartiles sort them in place.
+- **The pump.** It has no metrics history. Its loop graph view resends the whole graph, but only while the view is open and at the configured `loopGraphSyncIntervalTicks`.
 
 
 `MTENuclearReactor.collectMetricsHistory` copies all 100 snapshots every tick, and the whole history is resent every cycle. `ReactorMetricsHistory.addSnapshot` trims with `ArrayList.remove(0)`. `recordMetricsCycleSnapshot` builds boxed `List<Double>` every cycle.

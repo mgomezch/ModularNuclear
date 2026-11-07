@@ -2,7 +2,6 @@ package com.gtnewhorizons.modularnuclear;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.Arrays;
 import java.util.List;
 
 import net.minecraft.nbt.NBTTagCompound;
@@ -43,12 +42,12 @@ public class ReactorMetricsDashboardTest {
 
     @Test
     void testQuartilesEmptyAndSingle() {
-        float[] empty = ReactorCycleSnapshot.calculateQuartiles(null);
+        float[] empty = ReactorCycleSnapshot.calculateQuartiles(null, 0);
         assertEquals(0f, empty[0]);
         assertEquals(0f, empty[2]);
         assertEquals(0f, empty[4]);
 
-        float[] single = ReactorCycleSnapshot.calculateQuartiles(List.of(250.0));
+        float[] single = ReactorCycleSnapshot.calculateQuartiles(new double[] { 250.0 }, 1);
         assertEquals(250f, single[0], 0.001f); // min
         assertEquals(250f, single[1], 0.001f); // Q1
         assertEquals(250f, single[2], 0.001f); // median
@@ -59,8 +58,8 @@ public class ReactorMetricsDashboardTest {
 
     @Test
     void testQuartilesFiveValues() {
-        List<Double> values = Arrays.asList(50.0, 10.0, 40.0, 20.0, 30.0);
-        float[] stats = ReactorCycleSnapshot.calculateQuartiles(values);
+        double[] values = { 50.0, 10.0, 40.0, 20.0, 30.0, 999.0 };
+        float[] stats = ReactorCycleSnapshot.calculateQuartiles(values, 5); // only the first five count
         assertEquals(10f, stats[0], 0.001f); // min
         assertEquals(20f, stats[1], 0.001f); // Q1 (rank 1.0)
         assertEquals(30f, stats[2], 0.001f); // median (rank 2.0)
@@ -71,8 +70,8 @@ public class ReactorMetricsDashboardTest {
 
     @Test
     void testQuartilesEvenCountInterpolation() {
-        List<Double> values = Arrays.asList(10.0, 20.0, 30.0, 40.0);
-        float[] stats = ReactorCycleSnapshot.calculateQuartiles(values);
+        double[] values = { 10.0, 20.0, 30.0, 40.0 };
+        float[] stats = ReactorCycleSnapshot.calculateQuartiles(values, values.length);
         assertEquals(10f, stats[0], 0.001f); // min
         assertEquals(17.5f, stats[1], 0.001f); // Q1: 0.25 * 3 = 0.75 rank -> 10 + 0.75 * 10
         assertEquals(25.0f, stats[2], 0.001f); // median: 0.5 * 3 = 1.5 rank -> 20 + 0.5 * 10
@@ -145,13 +144,16 @@ public class ReactorMetricsDashboardTest {
     void testSnapshotPacketBufferSerialization() {
         ReactorCycleSnapshot original = ReactorCycleSnapshot.create(
             42L,
-            Arrays.asList(100.0, 200.0, 300.0, 400.0, 500.0),
-            Arrays.asList(50.0, 80.0, 100.0),
+            new double[] { 100.0, 200.0, 300.0, 400.0, 500.0 },
+            5,
+            new double[] { 50.0, 80.0, 100.0 },
+            3,
             1200,
             45000,
             38000,
             8192L,
-            128000);
+            128000,
+            NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE);
 
         PacketBuffer buf = new PacketBuffer(Unpooled.buffer());
         original.writeToBuffer(buf);
