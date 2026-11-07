@@ -19,7 +19,6 @@ import net.minecraftforge.common.ForgeChunkManager;
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopChunkLoader;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.Loader;
 import gregtech.api.hazards.Hazard;
@@ -47,16 +46,13 @@ public class EntityMeltdownFallout extends Entity {
 
     public void setupChunkLoading() {
         if (worldObj == null || worldObj.isRemote || mChunkTicket != null) return;
-        try {
-            mChunkTicket = ForgeChunkManager
-                .requestTicket(ModularNuclear.instance, worldObj, ForgeChunkManager.Type.ENTITY);
-            if (mChunkTicket != null) {
-                mChunkTicket.bindEntity(this);
-                forceChunks();
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        mChunkTicket = ForgeChunkManager
+            .requestTicket(ModularNuclear.instance, worldObj, ForgeChunkManager.Type.ENTITY);
+        if (mChunkTicket != null) {
+            mChunkTicket.bindEntity(this);
+            forceChunks();
         }
+
     }
 
     private void forceChunks() {
@@ -65,23 +61,16 @@ public class EntityMeltdownFallout extends Entity {
         int centerChunkZ = MathHelper.floor_double(posZ) >> 4;
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
-                try {
-                    ForgeChunkManager
-                        .forceChunk(mChunkTicket, new ChunkCoordIntPair(centerChunkX + dx, centerChunkZ + dz));
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
-                }
+                ForgeChunkManager.forceChunk(mChunkTicket, new ChunkCoordIntPair(centerChunkX + dx, centerChunkZ + dz));
+
             }
         }
     }
 
     public void releaseChunkLoading() {
         if (mChunkTicket != null) {
-            try {
-                ForgeChunkManager.releaseTicket(mChunkTicket);
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            ForgeChunkManager.releaseTicket(mChunkTicket);
+
             mChunkTicket = null;
         }
     }
@@ -147,11 +136,8 @@ public class EntityMeltdownFallout extends Entity {
             mContamination = INITIAL_CONTAMINATION;
         }
         if (this.dataWatcher != null) {
-            try {
-                this.dataWatcher.updateObject(12, (float) mContamination);
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            this.dataWatcher.updateObject(12, (float) mContamination);
+
         }
     }
 
@@ -182,21 +168,13 @@ public class EntityMeltdownFallout extends Entity {
     }
 
     public static boolean isPollutionEnabled() {
-        try {
-            return gregtech.GTMod.proxy != null && gregtech.GTMod.proxy.mPollution;
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-            return false;
-        }
+        return gregtech.GTMod.proxy != null && gregtech.GTMod.proxy.mPollution;
     }
 
     public double getContamination() {
         if (worldObj != null && worldObj.isRemote) {
-            try {
-                return this.dataWatcher.getWatchableObjectFloat(12);
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            return this.dataWatcher.getWatchableObjectFloat(12);
+
         }
         return mContamination;
     }
@@ -207,18 +185,12 @@ public class EntityMeltdownFallout extends Entity {
         mContamination -= amount;
         if (mContamination <= 0.0) {
             mContamination = 0.0;
-            try {
-                this.dataWatcher.updateObject(12, 0.0f);
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            this.dataWatcher.updateObject(12, 0.0f);
+
             setDead();
         } else {
-            try {
-                this.dataWatcher.updateObject(12, (float) mContamination);
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            this.dataWatcher.updateObject(12, (float) mContamination);
+
         }
     }
 
@@ -278,11 +250,8 @@ public class EntityMeltdownFallout extends Entity {
     public void setContamination(double contamination) {
         this.mContamination = Math.max(0.0, contamination);
         if (worldObj != null && !worldObj.isRemote) {
-            try {
-                this.dataWatcher.updateObject(12, (float) mContamination);
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            this.dataWatcher.updateObject(12, (float) mContamination);
+
         }
         if (this.mContamination <= 0.0) {
             setDead();
@@ -353,27 +322,21 @@ public class EntityMeltdownFallout extends Entity {
 
     public static boolean isWearingFullHazmat(EntityPlayer player) {
         if (player == null) return false;
-        try {
-            if (HazardProtection.isWearingFullRadioHazmat(player)) {
-                return true;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (HazardProtection.isWearingFullRadioHazmat(player)) {
+            return true;
         }
+
         int count = 0;
         for (int i = 1; i <= 4; i++) {
             ItemStack stack = player.getEquipmentInSlot(i);
             if (stack == null) continue;
             boolean protects = false;
-            try {
-                if (HazardProtection.protectsAgainstHazard(player, stack, Hazard.RADIOLOGICAL)
-                    || HazardProtection.protectsAgainstHazardFully(player, stack, Hazard.RADIOLOGICAL)
-                    || HazardProtection.protectsAgainstHazard(stack, Hazard.RADIOLOGICAL)) {
-                    protects = true;
-                }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
+            if (HazardProtection.protectsAgainstHazard(player, stack, Hazard.RADIOLOGICAL)
+                || HazardProtection.protectsAgainstHazardFully(player, stack, Hazard.RADIOLOGICAL)
+                || HazardProtection.protectsAgainstHazard(stack, Hazard.RADIOLOGICAL)) {
+                protects = true;
             }
+
             if (!protects && stack.getUnlocalizedName() != null) {
                 String lower = stack.getUnlocalizedName()
                     .toLowerCase();

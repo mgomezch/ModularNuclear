@@ -153,18 +153,14 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     public static ControlRodType getRodType(ItemStack stack) {
         if (stack == null) return ControlRodType.NONE;
 
-        try {
-            ComponentData.ControlRodData crd = ReactorDataRegistry.findControlRod(stack);
-            if (crd != null && crd.id != null) {
-                if ("rod_silver".equals(crd.id)) return ControlRodType.SILVER;
-                if ("rod_boron".equals(crd.id)) return ControlRodType.BORON;
-                if ("rod_cadmium".equals(crd.id)) return ControlRodType.CADMIUM;
-                if ("rod_indium".equals(crd.id)) return ControlRodType.INDIUM;
-                if ("rod_hafnium".equals(crd.id)) return ControlRodType.HAFNIUM;
-                if ("rod_neutronium".equals(crd.id)) return ControlRodType.NEUTRONIUM;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        ComponentData.ControlRodData crd = ReactorDataRegistry.findControlRod(stack);
+        if (crd != null && crd.id != null) {
+            if ("rod_silver".equals(crd.id)) return ControlRodType.SILVER;
+            if ("rod_boron".equals(crd.id)) return ControlRodType.BORON;
+            if ("rod_cadmium".equals(crd.id)) return ControlRodType.CADMIUM;
+            if ("rod_indium".equals(crd.id)) return ControlRodType.INDIUM;
+            if ("rod_hafnium".equals(crd.id)) return ControlRodType.HAFNIUM;
+            if ("rod_neutronium".equals(crd.id)) return ControlRodType.NEUTRONIUM;
         }
 
         try {
@@ -172,55 +168,43 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
             if (cfgType != null) {
                 return ControlRodType.valueOf(cfgType.toUpperCase());
             }
-        } catch (Throwable swallowed) {
+        } catch (IllegalArgumentException swallowed) {
             Swallowed.note(swallowed);
         }
 
         if (stack.getItem() == null) return ControlRodType.NONE;
 
-        try {
-            ItemData itemData = GTOreDictUnificator.getItemData(stack);
-            if (itemData != null && itemData.mPrefix == OrePrefixes.stickLong && itemData.mMaterial != null) {
-                Materials mat = itemData.mMaterial.mMaterial;
-                if (mat == Materials.Silver) return ControlRodType.SILVER;
-                if (mat == Materials.Boron) return ControlRodType.BORON;
-                if (mat == Materials.Cadmium) return ControlRodType.CADMIUM;
-                if (mat == Materials.Indium) return ControlRodType.INDIUM;
-                if (mat != null && "Hafnium".equalsIgnoreCase(mat.mName)) return ControlRodType.HAFNIUM;
-                if (mat == Materials.Neutronium) return ControlRodType.NEUTRONIUM;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        ItemData itemData = GTOreDictUnificator.getItemData(stack);
+        if (itemData != null && itemData.mPrefix == OrePrefixes.stickLong && itemData.mMaterial != null) {
+            Materials mat = itemData.mMaterial.mMaterial;
+            if (mat == Materials.Silver) return ControlRodType.SILVER;
+            if (mat == Materials.Boron) return ControlRodType.BORON;
+            if (mat == Materials.Cadmium) return ControlRodType.CADMIUM;
+            if (mat == Materials.Indium) return ControlRodType.INDIUM;
+            if (mat != null && "Hafnium".equalsIgnoreCase(mat.mName)) return ControlRodType.HAFNIUM;
+            if (mat == Materials.Neutronium) return ControlRodType.NEUTRONIUM;
         }
 
-        try {
-            int[] oreIDs = OreDictionary.getOreIDs(stack);
-            for (int id : oreIDs) {
-                String name = OreDictionary.getOreName(id);
-                if ("stickLongSilver".equals(name)) return ControlRodType.SILVER;
-                if ("stickLongBoron".equals(name)) return ControlRodType.BORON;
-                if ("stickLongCadmium".equals(name)) return ControlRodType.CADMIUM;
-                if ("stickLongIndium".equals(name)) return ControlRodType.INDIUM;
-                if ("stickLongHafnium".equals(name)) return ControlRodType.HAFNIUM;
-                if ("stickLongNeutronium".equals(name)) return ControlRodType.NEUTRONIUM;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        int[] oreIDs = OreDictionary.getOreIDs(stack);
+        for (int id : oreIDs) {
+            String name = OreDictionary.getOreName(id);
+            if ("stickLongSilver".equals(name)) return ControlRodType.SILVER;
+            if ("stickLongBoron".equals(name)) return ControlRodType.BORON;
+            if ("stickLongCadmium".equals(name)) return ControlRodType.CADMIUM;
+            if ("stickLongIndium".equals(name)) return ControlRodType.INDIUM;
+            if ("stickLongHafnium".equals(name)) return ControlRodType.HAFNIUM;
+            if ("stickLongNeutronium".equals(name)) return ControlRodType.NEUTRONIUM;
         }
 
-        try {
-            String unloc = stack.getUnlocalizedName();
-            if (unloc != null) {
-                String clean = unloc.startsWith("item.") ? unloc.substring(5) : unloc;
-                if ("stickLongSilver".equalsIgnoreCase(clean)) return ControlRodType.SILVER;
-                if ("stickLongBoron".equalsIgnoreCase(clean)) return ControlRodType.BORON;
-                if ("stickLongCadmium".equalsIgnoreCase(clean)) return ControlRodType.CADMIUM;
-                if ("stickLongIndium".equalsIgnoreCase(clean)) return ControlRodType.INDIUM;
-                if ("stickLongHafnium".equalsIgnoreCase(clean)) return ControlRodType.HAFNIUM;
-                if ("stickLongNeutronium".equalsIgnoreCase(clean)) return ControlRodType.NEUTRONIUM;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        String unloc = stack.getUnlocalizedName();
+        if (unloc != null) {
+            String clean = unloc.startsWith("item.") ? unloc.substring(5) : unloc;
+            if ("stickLongSilver".equalsIgnoreCase(clean)) return ControlRodType.SILVER;
+            if ("stickLongBoron".equalsIgnoreCase(clean)) return ControlRodType.BORON;
+            if ("stickLongCadmium".equalsIgnoreCase(clean)) return ControlRodType.CADMIUM;
+            if ("stickLongIndium".equalsIgnoreCase(clean)) return ControlRodType.INDIUM;
+            if ("stickLongHafnium".equalsIgnoreCase(clean)) return ControlRodType.HAFNIUM;
+            if ("stickLongNeutronium".equalsIgnoreCase(clean)) return ControlRodType.NEUTRONIUM;
         }
 
         return ControlRodType.NONE;
@@ -401,69 +385,39 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         if (block == null) return false;
 
         // 1. Direct IC2 block / item lookup
-        try {
-            Block ic2Pipe = GameRegistry.findBlock("IC2", "blockMiningPipe");
-            if (ic2Pipe != null && block == ic2Pipe) return true;
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        Block ic2Pipe = GameRegistry.findBlock("IC2", "blockMiningPipe");
+        if (ic2Pipe != null && block == ic2Pipe) return true;
 
-        try {
-            Block ic2Tip = GameRegistry.findBlock("IC2", "blockMiningTip");
-            if (ic2Tip != null && block == ic2Tip) return true;
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        Block ic2Tip = GameRegistry.findBlock("IC2", "blockMiningTip");
+        if (ic2Tip != null && block == ic2Tip) return true;
 
-        try {
-            ItemStack ic2Stack = ic2.api.item.IC2Items.getItem("miningPipe");
-            if (ic2Stack != null && Block.getBlockFromItem(ic2Stack.getItem()) == block) return true;
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        ItemStack ic2Stack = ic2.api.item.IC2Items.getItem("miningPipe");
+        if (ic2Stack != null && Block.getBlockFromItem(ic2Stack.getItem()) == block) return true;
 
         // 2. Registry Unique Identifier
-        try {
-            GameRegistry.UniqueIdentifier uid = GameRegistry.findUniqueIdentifierFor(block);
-            if (uid != null
-                && ("blockMiningPipe".equalsIgnoreCase(uid.name) || "blockMiningTip".equalsIgnoreCase(uid.name))) {
+        // 3. Unlocalized name check
+        String unloc = block.getUnlocalizedName();
+        if (unloc != null) {
+            String clean = unloc.startsWith("tile.") ? unloc.substring(5) : unloc;
+            if ("blockMiningPipe".equalsIgnoreCase(clean) || "miningPipe".equalsIgnoreCase(clean)
+                || "mining_pipe".equalsIgnoreCase(clean)
+                || "blockMiningTip".equalsIgnoreCase(clean)) {
                 return true;
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
-
-        // 3. Unlocalized name check
-        try {
-            String unloc = block.getUnlocalizedName();
-            if (unloc != null) {
-                String clean = unloc.startsWith("tile.") ? unloc.substring(5) : unloc;
-                if ("blockMiningPipe".equalsIgnoreCase(clean) || "miningPipe".equalsIgnoreCase(clean)
-                    || "mining_pipe".equalsIgnoreCase(clean)
-                    || "blockMiningTip".equalsIgnoreCase(clean)) {
-                    return true;
-                }
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
 
         // 4. OreDictionary check
-        try {
-            Item item = Item.getItemFromBlock(block);
-            if (item != null) {
-                ItemStack stack = new ItemStack(item, 1, meta);
-                int[] ids = OreDictionary.getOreIDs(stack);
-                for (int id : ids) {
-                    String oreName = OreDictionary.getOreName(id);
-                    if ("miningPipe".equalsIgnoreCase(oreName) || "pipeMining".equalsIgnoreCase(oreName)
-                        || "blockMiningPipe".equalsIgnoreCase(oreName)) {
-                        return true;
-                    }
+        Item item = Item.getItemFromBlock(block);
+        if (item != null) {
+            ItemStack stack = new ItemStack(item, 1, meta);
+            int[] ids = OreDictionary.getOreIDs(stack);
+            for (int id : ids) {
+                String oreName = OreDictionary.getOreName(id);
+                if ("miningPipe".equalsIgnoreCase(oreName) || "pipeMining".equalsIgnoreCase(oreName)
+                    || "blockMiningPipe".equalsIgnoreCase(oreName)) {
+                    return true;
                 }
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
 
         return false;

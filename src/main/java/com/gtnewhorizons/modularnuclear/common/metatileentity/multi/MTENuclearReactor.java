@@ -637,11 +637,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null || !base.isServerSide()) return;
 
-        try {
-            GTLog.writeExplosionLog(this, reason);
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        GTLog.writeExplosionLog(this, reason);
 
         if (!GregTechAPI.sMachineExplosions) {
             ModularNuclear.LOG.warn(
@@ -788,22 +784,19 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             base.setActive(false);
             base.setLightValue((byte) 0);
             base.markDirty();
-            try {
-                World world = base.getWorld();
-                int cX = base.getXCoord();
-                int cY = base.getYCoord();
-                int cZ = base.getZCoord();
-                GTUtility.sendSoundToPlayers(
-                    world,
-                    SoundResource.IC2_MACHINES_MACHINE_OVERLOAD,
-                    1.0F,
-                    0.5F,
-                    cX + 0.5,
-                    cY + 0.5,
-                    cZ + 0.5);
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            World world = base.getWorld();
+            int cX = base.getXCoord();
+            int cY = base.getYCoord();
+            int cZ = base.getZCoord();
+            GTUtility.sendSoundToPlayers(
+                world,
+                SoundResource.IC2_MACHINES_MACHINE_OVERLOAD,
+                1.0F,
+                0.5F,
+                cX + 0.5,
+                cY + 0.5,
+                cZ + 0.5);
+
         }
     }
 
@@ -816,11 +809,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             return;
         }
 
-        try {
-            GTLog.writeExplosionLog(this, "THERMAL SHOCK: " + reason);
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        GTLog.writeExplosionLog(this, "THERMAL SHOCK: " + reason);
 
         // Void the coolant in the affected hatch (flashes into steam)
         if (hatch != null) {
@@ -839,30 +828,23 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         super.mEfficiency = (int) Math.round(getMaintenanceEfficiency() * 10000);
 
         // Issue powerfail notification to player (without stopping machine entity)
-        try {
-            if (GTMod.proxy != null && GTMod.proxy.powerfailTracker != null) {
-                GTMod.proxy.powerfailTracker.createPowerfailEvent(base);
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (GTMod.proxy != null && GTMod.proxy.powerfailTracker != null) {
+            GTMod.proxy.powerfailTracker.createPowerfailEvent(base);
         }
 
-        try {
-            World world = base.getWorld();
-            int cX = base.getXCoord();
-            int cY = base.getYCoord();
-            int cZ = base.getZCoord();
-            GTUtility.sendSoundToPlayers(
-                world,
-                SoundResource.IC2_MACHINES_MACHINE_OVERLOAD,
-                0.8F,
-                0.5F,
-                cX + 0.5,
-                cY + 0.5,
-                cZ + 0.5);
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        World world = base.getWorld();
+        int cX = base.getXCoord();
+        int cY = base.getYCoord();
+        int cZ = base.getZCoord();
+        GTUtility.sendSoundToPlayers(
+            world,
+            SoundResource.IC2_MACHINES_MACHINE_OVERLOAD,
+            0.8F,
+            0.5F,
+            cX + 0.5,
+            cY + 0.5,
+            cZ + 0.5);
+
     }
 
     public void triggerDryCoolantShutdown(String reason) {
@@ -873,13 +855,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null || !base.isServerSide()) return;
 
-        try {
-            GTLog.writeExplosionLog(
-                this,
-                String.format("MELTDOWN: reactor damage %.1f%%, core %.0f °C", mReactorDamage, mCoreTemp));
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        GTLog.writeExplosionLog(
+            this,
+            String.format("MELTDOWN: reactor damage %.1f%%, core %.0f °C", mReactorDamage, mCoreTemp));
 
         if (!GregTechAPI.sMachineExplosions) {
             ModularNuclear.LOG.warn(
@@ -1612,11 +1590,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             mLastFormedNuclearTiles.clear();
         }
         releaseClientEffects();
-        try {
-            super.onRemoval();
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        super.onRemoval();
+
     }
 
     @Override
@@ -3144,11 +3119,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     @Override
     public void getWailaNBTData(EntityPlayerMP player, TileEntity tile, NBTTagCompound tag, World world, int x, int y,
         int z) {
-        try {
+        // GregTech's part is per player
+        if (player != null) {
             super.getWailaNBTData(player, tile, tag, world, x, y, z);
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
+
         tag.setInteger("progress", 0);
         tag.setInteger("maxProgress", 0);
     }

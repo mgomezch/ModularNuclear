@@ -2467,64 +2467,74 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testThermalShockSetsMaxMaintenanceWithoutStoppingMachine() {
-        MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.test");
-        reactor.mMachine = true;
-        reactor.fixAllIssues();
-        assertEquals(1.0, reactor.getMaintenanceEfficiency(), 1e-6);
-        assertEquals(0.0, reactor.mReactorDamage, 1e-6);
-        assertEquals(6, reactor.getRepairStatus());
-
-        MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 4, 16000, new String[0], null);
-        net.minecraftforge.fluids.FluidStack coolantIn = org.mockito.Mockito
-            .mock(net.minecraftforge.fluids.FluidStack.class);
-        hatch.mInputFluid = coolantIn;
-
-        gregtech.api.interfaces.tileentity.IGregTechTileEntity te = org.mockito.Mockito
-            .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-        org.mockito.Mockito.when(te.isServerSide())
-            .thenReturn(true);
-        org.mockito.Mockito.when(te.getWorld())
-            .thenReturn(org.mockito.Mockito.mock(World.class));
-        reactor.setBaseMetaTileEntity(te);
-
-        // 1st thermal shock
-        reactor.triggerThermalShock(hatch, "Test thermal shock 1");
-
-        // Machine entity must remain active (never disabled/stopped)
-        assertTrue(reactor.mMachine, "Thermal shock must NOT disable or stop the reactor machine entity!");
-
-        // Coolant in hatch must be voided
-        assertNull(hatch.mInputFluid, "Coolant in hatch must be voided upon thermal shock");
-
-        // Must increase reactor damage by 2%
-        assertEquals(2.0, reactor.mReactorDamage, 1e-6, "Thermal shock must increase reactor damage by 2%");
-
-        // Must increment maintenance issues by 1 (5 working out of 6, NOT maxed out)
-        assertEquals(5, reactor.getRepairStatus(), "Thermal shock must increase maintenance issues by 1");
-        assertTrue(reactor.getMaintenanceEfficiency() > 0.0, "Efficiency must not be dropped directly to 0%");
-
-        // 2nd thermal shock
-        hatch.mInputFluid = coolantIn;
-        reactor.triggerThermalShock(hatch, "Test thermal shock 2");
-        assertEquals(4.0, reactor.mReactorDamage, 1e-6, "2nd thermal shock must increase reactor damage to 4%");
-        assertEquals(
-            4,
-            reactor.getRepairStatus(),
-            "2nd thermal shock must increase maintenance issues to 2 (4 working)");
-
-        // 3rd through 6th thermal shocks
-        for (int i = 3; i <= 6; i++) {
-            hatch.mInputFluid = coolantIn;
-            reactor.triggerThermalShock(hatch, "Test thermal shock " + i);
+        // The mocked machine has no world for GregTech's explosion log, and GregTech no network to play sounds on
+        if (gregtech.api.enums.GTValues.NW == null) {
+            gregtech.api.enums.GTValues.NW = org.mockito.Mockito.mock(gregtech.api.net.IGT_NetworkHandler.class);
         }
-        assertEquals(12.0, reactor.mReactorDamage, 1e-6, "6 thermal shocks must accumulate 12% reactor damage");
-        assertEquals(0, reactor.getRepairStatus(), "6 thermal shocks should reach max maintenance issues (0 working)");
+        try (org.mockito.MockedStatic<gregtech.api.util.GTLog> gtLog = org.mockito.Mockito
+            .mockStatic(gregtech.api.util.GTLog.class)) {
+            MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.test");
+            reactor.mMachine = true;
+            reactor.fixAllIssues();
+            assertEquals(1.0, reactor.getMaintenanceEfficiency(), 1e-6);
+            assertEquals(0.0, reactor.mReactorDamage, 1e-6);
+            assertEquals(6, reactor.getRepairStatus());
 
-        // 7th thermal shock - issues capped at maximum (0 working), but damage keeps increasing
-        hatch.mInputFluid = coolantIn;
-        reactor.triggerThermalShock(hatch, "Test thermal shock 7");
-        assertEquals(14.0, reactor.mReactorDamage, 1e-6, "7th thermal shock must increase damage to 14%");
-        assertEquals(0, reactor.getRepairStatus(), "Maintenance issues must not exceed maximum (0 working)");
+            MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch", 4, 16000, new String[0], null);
+            net.minecraftforge.fluids.FluidStack coolantIn = org.mockito.Mockito
+                .mock(net.minecraftforge.fluids.FluidStack.class);
+            hatch.mInputFluid = coolantIn;
+
+            gregtech.api.interfaces.tileentity.IGregTechTileEntity te = org.mockito.Mockito
+                .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+            org.mockito.Mockito.when(te.isServerSide())
+                .thenReturn(true);
+            org.mockito.Mockito.when(te.getWorld())
+                .thenReturn(org.mockito.Mockito.mock(World.class));
+            reactor.setBaseMetaTileEntity(te);
+
+            // 1st thermal shock
+            reactor.triggerThermalShock(hatch, "Test thermal shock 1");
+
+            // Machine entity must remain active (never disabled/stopped)
+            assertTrue(reactor.mMachine, "Thermal shock must NOT disable or stop the reactor machine entity!");
+
+            // Coolant in hatch must be voided
+            assertNull(hatch.mInputFluid, "Coolant in hatch must be voided upon thermal shock");
+
+            // Must increase reactor damage by 2%
+            assertEquals(2.0, reactor.mReactorDamage, 1e-6, "Thermal shock must increase reactor damage by 2%");
+
+            // Must increment maintenance issues by 1 (5 working out of 6, NOT maxed out)
+            assertEquals(5, reactor.getRepairStatus(), "Thermal shock must increase maintenance issues by 1");
+            assertTrue(reactor.getMaintenanceEfficiency() > 0.0, "Efficiency must not be dropped directly to 0%");
+
+            // 2nd thermal shock
+            hatch.mInputFluid = coolantIn;
+            reactor.triggerThermalShock(hatch, "Test thermal shock 2");
+            assertEquals(4.0, reactor.mReactorDamage, 1e-6, "2nd thermal shock must increase reactor damage to 4%");
+            assertEquals(
+                4,
+                reactor.getRepairStatus(),
+                "2nd thermal shock must increase maintenance issues to 2 (4 working)");
+
+            // 3rd through 6th thermal shocks
+            for (int i = 3; i <= 6; i++) {
+                hatch.mInputFluid = coolantIn;
+                reactor.triggerThermalShock(hatch, "Test thermal shock " + i);
+            }
+            assertEquals(12.0, reactor.mReactorDamage, 1e-6, "6 thermal shocks must accumulate 12% reactor damage");
+            assertEquals(
+                0,
+                reactor.getRepairStatus(),
+                "6 thermal shocks should reach max maintenance issues (0 working)");
+
+            // 7th thermal shock - issues capped at maximum (0 working), but damage keeps increasing
+            hatch.mInputFluid = coolantIn;
+            reactor.triggerThermalShock(hatch, "Test thermal shock 7");
+            assertEquals(14.0, reactor.mReactorDamage, 1e-6, "7th thermal shock must increase damage to 14%");
+            assertEquals(0, reactor.getRepairStatus(), "Maintenance issues must not exceed maximum (0 working)");
+        }
     }
 
     @Test
@@ -5157,52 +5167,62 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testHatchCoolingStarvationSetsWasDryAndThermalShock() {
-        MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.starvation.test");
-        reactor.setTicksPerCycle(20);
-        reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
-        reactor.mEfficiency = 10000;
-        reactor.mReactorDamage = 10.0;
-        reactor.fixAllIssues();
-        assertEquals(6, reactor.getRepairStatus());
-
-        gregtech.api.interfaces.tileentity.IGregTechTileEntity teMock = org.mockito.Mockito
-            .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-        org.mockito.Mockito.when(teMock.isServerSide())
-            .thenReturn(true);
-        org.mockito.Mockito.when(teMock.getWorld())
-            .thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
-        reactor.setBaseMetaTileEntity(teMock);
-
-        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("ic2distilledwater")) {
-            net.minecraftforge.fluids.FluidRegistry
-                .registerFluid(new net.minecraftforge.fluids.Fluid("ic2distilledwater"));
+        // The mocked machine has no world for GregTech's explosion log, and GregTech no network to play sounds on
+        if (gregtech.api.enums.GTValues.NW == null) {
+            gregtech.api.enums.GTValues.NW = org.mockito.Mockito.mock(gregtech.api.net.IGT_NetworkHandler.class);
         }
-        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("steam")) {
-            net.minecraftforge.fluids.FluidRegistry.registerFluid(new net.minecraftforge.fluids.Fluid("steam"));
+        try (org.mockito.MockedStatic<gregtech.api.util.GTLog> gtLog = org.mockito.Mockito
+            .mockStatic(gregtech.api.util.GTLog.class)) {
+            MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.starvation.test");
+            reactor.setTicksPerCycle(20);
+            reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_PLATINUM;
+            reactor.mEfficiency = 10000;
+            reactor.mReactorDamage = 10.0;
+            reactor.fixAllIssues();
+            assertEquals(6, reactor.getRepairStatus());
+
+            gregtech.api.interfaces.tileentity.IGregTechTileEntity teMock = org.mockito.Mockito
+                .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+            org.mockito.Mockito.when(teMock.isServerSide())
+                .thenReturn(true);
+            org.mockito.Mockito.when(teMock.getWorld())
+                .thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
+            reactor.setBaseMetaTileEntity(teMock);
+
+            if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("ic2distilledwater")) {
+                net.minecraftforge.fluids.FluidRegistry
+                    .registerFluid(new net.minecraftforge.fluids.Fluid("ic2distilledwater"));
+            }
+            if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("steam")) {
+                net.minecraftforge.fluids.FluidRegistry.registerFluid(new net.minecraftforge.fluids.Fluid("steam"));
+            }
+            net.minecraftforge.fluids.Fluid distilledWater = net.minecraftforge.fluids.FluidRegistry
+                .getFluid("ic2distilledwater");
+
+            MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch.starve", 3, 32000, new String[0], null);
+            hatch.mTemperature = 200.0;
+            // Only 2 mB of distilled water - insufficient to absorb Q_max (~98 EU, needing ~20 mB)
+            hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(distilledWater, 2);
+
+            NuclearReactorPhysics
+
+                .hatchCoolantSubstep(reactor, hatch, cycleSeconds(), 1.0);
+
+            reactor.processHatchNuclearTick(hatch, null, 1.0);
+
+            // Coolant should be completely exhausted
+            assertNull(hatch.mInputFluid, "Coolant pool should be completely exhausted");
+            assertTrue(hatch.mWasDry, "Hatch must be marked dry after coolant pool is exhausted");
+            assertTrue(hatch.mTemperature > 100.0, "Hatch remains hot after coolant starvation");
+
+            // Subsequent injection of cold coolant into this dry superheated hatch triggers thermal shock
+            reactor.triggerThermalShock(hatch, "Coolant injected into dry superheated hatch");
+            assertEquals(12.0, reactor.mReactorDamage, 1e-6, "Thermal shock must increase reactor damage by 2%");
+            assertEquals(
+                5,
+                reactor.getRepairStatus(),
+                "Thermal shock must increase maintenance issues by 1 (5 working)");
         }
-        net.minecraftforge.fluids.Fluid distilledWater = net.minecraftforge.fluids.FluidRegistry
-            .getFluid("ic2distilledwater");
-
-        MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch.starve", 3, 32000, new String[0], null);
-        hatch.mTemperature = 200.0;
-        // Only 2 mB of distilled water - insufficient to absorb Q_max (~98 EU, needing ~20 mB)
-        hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(distilledWater, 2);
-
-        NuclearReactorPhysics
-
-            .hatchCoolantSubstep(reactor, hatch, cycleSeconds(), 1.0);
-
-        reactor.processHatchNuclearTick(hatch, null, 1.0);
-
-        // Coolant should be completely exhausted
-        assertNull(hatch.mInputFluid, "Coolant pool should be completely exhausted");
-        assertTrue(hatch.mWasDry, "Hatch must be marked dry after coolant pool is exhausted");
-        assertTrue(hatch.mTemperature > 100.0, "Hatch remains hot after coolant starvation");
-
-        // Subsequent injection of cold coolant into this dry superheated hatch triggers thermal shock
-        reactor.triggerThermalShock(hatch, "Coolant injected into dry superheated hatch");
-        assertEquals(12.0, reactor.mReactorDamage, 1e-6, "Thermal shock must increase reactor damage by 2%");
-        assertEquals(5, reactor.getRepairStatus(), "Thermal shock must increase maintenance issues by 1 (5 working)");
     }
 
     @Test
@@ -5912,64 +5932,71 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testReactorSimulationProceedsOnThermalShock() {
-        MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.thermalshock.proceed");
-        reactor.mMachine = true;
-        reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
-        reactor.gridSize = 3;
-        reactor.mGrid = new INuclearTile[3][3];
-        reactor.fixAllIssues();
-        assertEquals(6, reactor.getRepairStatus());
-
-        gregtech.api.metatileentity.BaseMetaTileEntity baseTe = org.mockito.Mockito
-            .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
-        org.mockito.Mockito.when(baseTe.isServerSide())
-            .thenReturn(true);
-        org.mockito.Mockito.when(baseTe.isAllowedToWork())
-            .thenReturn(true);
-        org.mockito.Mockito.when(baseTe.getWorld())
-            .thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
-        reactor.setBaseMetaTileEntity(baseTe);
-
-        // Put a fuel rod tile in mGrid[1][1]
-        MockNuclearTile fuelTile = new MockNuclearTile(true, 1000);
-        reactor.mGrid[1][1] = fuelTile;
-
-        // Register distilled water if needed
-        if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("ic2distilledwater")) {
-            net.minecraftforge.fluids.FluidRegistry
-                .registerFluid(new net.minecraftforge.fluids.Fluid("ic2distilledwater"));
+        // The mocked machine has no world for GregTech's explosion log, and GregTech no network to play sounds on
+        if (gregtech.api.enums.GTValues.NW == null) {
+            gregtech.api.enums.GTValues.NW = org.mockito.Mockito.mock(gregtech.api.net.IGT_NetworkHandler.class);
         }
-        net.minecraftforge.fluids.Fluid distilledWater = net.minecraftforge.fluids.FluidRegistry
-            .getFluid("ic2distilledwater");
+        try (org.mockito.MockedStatic<gregtech.api.util.GTLog> gtLog = org.mockito.Mockito
+            .mockStatic(gregtech.api.util.GTLog.class)) {
+            MTENuclearReactor reactor = new MTENuclearReactor("test.reactor.thermalshock.proceed");
+            reactor.mMachine = true;
+            reactor.mPipeTier = NuclearSimulationEngine.PIPE_TIER_OSMIUM;
+            reactor.gridSize = 3;
+            reactor.mGrid = new INuclearTile[3][3];
+            reactor.fixAllIssues();
+            assertEquals(6, reactor.getRepairStatus());
 
-        // Add a coolant hatch that is dry and superheated (>100°C) with cold coolant injected
-        MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch.shock", 3, 32000, new String[0], null);
-        hatch.mTemperature = 150.0;
-        hatch.mWasDry = true;
-        hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(distilledWater, 8000);
+            gregtech.api.metatileentity.BaseMetaTileEntity baseTe = org.mockito.Mockito
+                .mock(gregtech.api.metatileentity.BaseMetaTileEntity.class);
+            org.mockito.Mockito.when(baseTe.isServerSide())
+                .thenReturn(true);
+            org.mockito.Mockito.when(baseTe.isAllowedToWork())
+                .thenReturn(true);
+            org.mockito.Mockito.when(baseTe.getWorld())
+                .thenReturn(org.mockito.Mockito.mock(net.minecraft.world.World.class));
+            reactor.setBaseMetaTileEntity(baseTe);
 
-        gregtech.api.interfaces.tileentity.IGregTechTileEntity hatchTe = org.mockito.Mockito
-            .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-        org.mockito.Mockito.when(hatchTe.getMetaTileEntity())
-            .thenReturn(hatch);
-        hatch.setBaseMetaTileEntity(hatchTe);
-        reactor.mNuclearTiles.add(hatchTe);
+            // Put a fuel rod tile in mGrid[1][1]
+            MockNuclearTile fuelTile = new MockNuclearTile(true, 1000);
+            reactor.mGrid[1][1] = fuelTile;
 
-        // Run cycle at tick 20
-        reactor.mNeutronsProduced = 0;
-        reactor.onPostTick(baseTe, 20);
+            // Register distilled water if needed
+            if (!net.minecraftforge.fluids.FluidRegistry.isFluidRegistered("ic2distilledwater")) {
+                net.minecraftforge.fluids.FluidRegistry
+                    .registerFluid(new net.minecraftforge.fluids.Fluid("ic2distilledwater"));
+            }
+            net.minecraftforge.fluids.Fluid distilledWater = net.minecraftforge.fluids.FluidRegistry
+                .getFluid("ic2distilledwater");
 
-        // Verify thermal shock occurred
-        assertNull(hatch.mInputFluid, "Coolant in superheated dry hatch must be voided on thermal shock");
-        assertTrue(hatch.mWasDry, "Hatch must remain marked dry after thermal shock");
-        assertEquals(2.0, reactor.mReactorDamage, 1e-6, "Reactor damage must increase by 2% on thermal shock");
-        assertEquals(5, reactor.getRepairStatus(), "Maintenance issues must increase by 1 on thermal shock");
+            // Add a coolant hatch that is dry and superheated (>100°C) with cold coolant injected
+            MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("test.hatch.shock", 3, 32000, new String[0], null);
+            hatch.mTemperature = 150.0;
+            hatch.mWasDry = true;
+            hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(distilledWater, 8000);
 
-        // CRITICAL: verify that the simulation cycle was NOT skipped!
-        assertTrue(
-            reactor.mNeutronsProduced > 0,
-            "Simulation cycle MUST proceed and produce neutrons even after thermal shock");
-        assertTrue(reactor.mCoreTemp > 0.0, "Core temperature must be updated by simulation cycle");
+            gregtech.api.interfaces.tileentity.IGregTechTileEntity hatchTe = org.mockito.Mockito
+                .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+            org.mockito.Mockito.when(hatchTe.getMetaTileEntity())
+                .thenReturn(hatch);
+            hatch.setBaseMetaTileEntity(hatchTe);
+            reactor.mNuclearTiles.add(hatchTe);
+
+            // Run cycle at tick 20
+            reactor.mNeutronsProduced = 0;
+            reactor.onPostTick(baseTe, 20);
+
+            // Verify thermal shock occurred
+            assertNull(hatch.mInputFluid, "Coolant in superheated dry hatch must be voided on thermal shock");
+            assertTrue(hatch.mWasDry, "Hatch must remain marked dry after thermal shock");
+            assertEquals(2.0, reactor.mReactorDamage, 1e-6, "Reactor damage must increase by 2% on thermal shock");
+            assertEquals(5, reactor.getRepairStatus(), "Maintenance issues must increase by 1 on thermal shock");
+
+            // CRITICAL: verify that the simulation cycle was NOT skipped!
+            assertTrue(
+                reactor.mNeutronsProduced > 0,
+                "Simulation cycle MUST proceed and produce neutrons even after thermal shock");
+            assertTrue(reactor.mCoreTemp > 0.0, "Core temperature must be updated by simulation cycle");
+        }
     }
 
     @Test
@@ -7583,67 +7610,80 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testExplosionsDisabledPreventsExplosionAndMeltdownAndVoidsAllContents() {
-        boolean prevSetting = gregtech.api.GregTechAPI.sMachineExplosions;
-        try {
-            gregtech.api.GregTechAPI.sMachineExplosions = false;
+        // The mocked machine has no world for GregTech's explosion log, and GregTech no network to play sounds on
+        if (gregtech.api.enums.GTValues.NW == null) {
+            gregtech.api.enums.GTValues.NW = org.mockito.Mockito.mock(gregtech.api.net.IGT_NetworkHandler.class);
+        }
+        try (org.mockito.MockedStatic<gregtech.api.util.GTLog> gtLog = org.mockito.Mockito
+            .mockStatic(gregtech.api.util.GTLog.class)) {
+            boolean prevSetting = gregtech.api.GregTechAPI.sMachineExplosions;
+            try {
+                gregtech.api.GregTechAPI.sMachineExplosions = false;
 
-            MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.no_expl_test");
-            reactor.mReactorDamage = 100.0;
-            reactor.mMachine = true;
+                MTENuclearReactor reactor = new MTENuclearReactor("nuclear.reactor.no_expl_test");
+                reactor.mReactorDamage = 100.0;
+                reactor.mMachine = true;
 
-            gregtech.api.interfaces.tileentity.IGregTechTileEntity teMock = org.mockito.Mockito
-                .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-            org.mockito.Mockito.when(teMock.isServerSide())
-                .thenReturn(true);
-            reactor.setBaseMetaTileEntity(teMock);
+                gregtech.api.interfaces.tileentity.IGregTechTileEntity teMock = org.mockito.Mockito
+                    .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+                org.mockito.Mockito.when(teMock.isServerSide())
+                    .thenReturn(true);
+                reactor.setBaseMetaTileEntity(teMock);
 
-            // Add a mock nuclear tile bus with an item
-            MTEHatchNuclearBus bus = new MTEHatchNuclearBus("bus.test", 4, new String[0], null);
-            bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = new ItemStack(Blocks.dirt);
-            gregtech.api.interfaces.tileentity.IGregTechTileEntity busTe = org.mockito.Mockito
-                .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-            org.mockito.Mockito.when(busTe.getMetaTileEntity())
-                .thenReturn(bus);
-            org.mockito.Mockito.when(busTe.isServerSide())
-                .thenReturn(true);
-            reactor.mNuclearTiles.add(busTe);
+                // Add a mock nuclear tile bus with an item
+                MTEHatchNuclearBus bus = new MTEHatchNuclearBus("bus.test", 4, new String[0], null);
+                bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = new ItemStack(Blocks.dirt);
+                gregtech.api.interfaces.tileentity.IGregTechTileEntity busTe = org.mockito.Mockito
+                    .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+                org.mockito.Mockito.when(busTe.getMetaTileEntity())
+                    .thenReturn(bus);
+                org.mockito.Mockito.when(busTe.isServerSide())
+                    .thenReturn(true);
+                reactor.mNuclearTiles.add(busTe);
 
-            // Add a mock nuclear tile hatch with fluid
-            MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("hatch.test", 1, 16000, new String[0], null);
-            hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(
-                net.minecraftforge.fluids.FluidRegistry.WATER,
-                1000);
-            gregtech.api.interfaces.tileentity.IGregTechTileEntity hatchTe = org.mockito.Mockito
-                .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
-            org.mockito.Mockito.when(hatchTe.getMetaTileEntity())
-                .thenReturn(hatch);
-            org.mockito.Mockito.when(hatchTe.isServerSide())
-                .thenReturn(true);
-            reactor.mNuclearTiles.add(hatchTe);
+                // Add a mock nuclear tile hatch with fluid
+                MTEHatchNuclearHatch hatch = new MTEHatchNuclearHatch("hatch.test", 1, 16000, new String[0], null);
+                hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(
+                    net.minecraftforge.fluids.FluidRegistry.WATER,
+                    1000);
+                gregtech.api.interfaces.tileentity.IGregTechTileEntity hatchTe = org.mockito.Mockito
+                    .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+                org.mockito.Mockito.when(hatchTe.getMetaTileEntity())
+                    .thenReturn(hatch);
+                org.mockito.Mockito.when(hatchTe.isServerSide())
+                    .thenReturn(true);
+                reactor.mNuclearTiles.add(hatchTe);
 
-            // Trigger meltdown with explosions disabled
-            reactor.triggerMeltdown();
+                // Trigger meltdown with explosions disabled
+                reactor.triggerMeltdown();
 
-            // Meltdown should NOT mark controller as moltenDown when explosions are disabled
-            assertFalse(reactor.mMoltenDown, "Controller should not be ruined when explosions are disabled");
-            assertEquals(0.0, reactor.mReactorDamage, 1e-6, "Reactor damage should be reset to 0 after safe shutdown");
-            assertFalse(reactor.mMachine, "Reactor should be shut down");
-            assertTrue(reactor.mScram, "Reactor should be SCRAMmed");
+                // Meltdown should NOT mark controller as moltenDown when explosions are disabled
+                assertFalse(reactor.mMoltenDown, "Controller should not be ruined when explosions are disabled");
+                assertEquals(
+                    0.0,
+                    reactor.mReactorDamage,
+                    1e-6,
+                    "Reactor damage should be reset to 0 after safe shutdown");
+                assertFalse(reactor.mMachine, "Reactor should be shut down");
+                assertTrue(reactor.mScram, "Reactor should be SCRAMmed");
 
-            // All contents must be voided
-            assertNull(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Bus inventory must be completely voided");
-            assertNull(hatch.mInputFluid, "Hatch fluid must be completely voided");
+                // All contents must be voided
+                assertNull(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Bus inventory must be completely voided");
+                assertNull(hatch.mInputFluid, "Hatch fluid must be completely voided");
 
-            // Similarly, explodeReactor should void all contents without exploding
-            bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = new ItemStack(Blocks.dirt);
-            hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(
-                net.minecraftforge.fluids.FluidRegistry.WATER,
-                1000);
-            reactor.explodeReactor(null, "Test explosion when disabled");
-            assertNull(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT], "Bus inventory must be voided by explodeReactor");
-            assertNull(hatch.mInputFluid, "Hatch fluid must be voided by explodeReactor");
-        } finally {
-            gregtech.api.GregTechAPI.sMachineExplosions = prevSetting;
+                // Similarly, explodeReactor should void all contents without exploding
+                bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = new ItemStack(Blocks.dirt);
+                hatch.mInputFluid = new net.minecraftforge.fluids.FluidStack(
+                    net.minecraftforge.fluids.FluidRegistry.WATER,
+                    1000);
+                reactor.explodeReactor(null, "Test explosion when disabled");
+                assertNull(
+                    bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT],
+                    "Bus inventory must be voided by explodeReactor");
+                assertNull(hatch.mInputFluid, "Hatch fluid must be voided by explodeReactor");
+            } finally {
+                gregtech.api.GregTechAPI.sMachineExplosions = prevSetting;
+            }
         }
     }
 
@@ -7652,6 +7692,9 @@ public class NuclearSimulationEngineTest {
         EntityMeltdownFallout fallout = org.mockito.Mockito
             .mock(EntityMeltdownFallout.class, org.mockito.Mockito.CALLS_REAL_METHODS);
         assertNull(fallout.getChunkTicket(), "Initial ticket should be null");
+        // Forge's chunk manager is not set up outside the game
+        org.mockito.MockedStatic<net.minecraftforge.common.ForgeChunkManager> chunkManager = org.mockito.Mockito
+            .mockStatic(net.minecraftforge.common.ForgeChunkManager.class);
 
         net.minecraftforge.common.ForgeChunkManager.Ticket mockTicket = org.mockito.Mockito
             .mock(net.minecraftforge.common.ForgeChunkManager.Ticket.class);
@@ -7660,6 +7703,7 @@ public class NuclearSimulationEngineTest {
 
         fallout.releaseChunkLoading();
         assertNull(fallout.getChunkTicket(), "Ticket should be cleared after releaseChunkLoading");
+        chunkManager.close();
     }
 
     @Test
@@ -7675,6 +7719,7 @@ public class NuclearSimulationEngineTest {
                 EntityMeltdownFallout fallout = org.mockito.Mockito
                     .mock(EntityMeltdownFallout.class, org.mockito.Mockito.CALLS_REAL_METHODS);
                 fallout.worldObj = mockWorld;
+                giveDataWatcher(fallout);
                 fallout.posX = 0.0;
                 fallout.posY = 64.0;
                 fallout.posZ = 0.0;
@@ -8391,5 +8436,18 @@ public class NuclearSimulationEngineTest {
             }
         }
         file.delete();
+    }
+
+    /** A mocked entity skips its constructor, and with it the data watcher entityInit fills. */
+    private static void giveDataWatcher(EntityMeltdownFallout fallout) {
+        try {
+            java.lang.reflect.Field f = net.minecraft.entity.Entity.class.getDeclaredField("dataWatcher");
+            f.setAccessible(true);
+            net.minecraft.entity.DataWatcher watcher = new net.minecraft.entity.DataWatcher(fallout);
+            watcher.addObject(12, 0.0f);
+            f.set(fallout, watcher);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        }
     }
 }
