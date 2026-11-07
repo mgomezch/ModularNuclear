@@ -63,7 +63,14 @@ It also does not check that the player is near the bath or has its GUI open. Any
 
 **Do:** fail loudly at startup with the file, the line and the problem. At the least, refuse to start unless a config flag says otherwise. Read files as UTF-8 explicitly; `FileReader` uses the platform charset.
 
-### B4 (P2): Too many `catch (Throwable)` blocks
+### B4 (P2): Too many `catch (Throwable)` blocks (done)
+
+**Done:**
+- **None left.** No `catch (Throwable)` remains; 35 catches do, each narrowed to what can happen. Committed package by package.
+- **Optional-mod boundaries** catch only `LinkageError`: OpenComputers, ProjectRed, Nuclear Control, BetterQuesting, the NEI registrations, and Railcraft's tank items (they link the CoFH energy API).
+- **Others catch the specific exception:** reflection `ReflectiveOperationException`, `NoSuchFieldException` or `IllegalAccessException`; Gson parsing `JsonParseException`; resource and file reads `IOException`; a bad configured rod type `IllegalArgumentException`; shaders `RuntimeException`.
+- **Fixed in passing.** Errors that had been swallowed surfaced in code that ran outside a real game. The reactor's WAILA data now skips GregTech's player part without a player, the compounder checks GregTech's circuit is set, and corium names blocks by registry name. Two NEI fluid lookups that still guessed `ic2`/`fluid.` prefixes now take exact names.
+- **Tests.** They now run with GregTech's network handler and a mocked explosion log for every test (`GregTechTestEnvironment`); a few mock Forge's chunk manager or give a mocked entity its data watcher.
 
 There are about 192 of them, 177 routed through `Swallowed.note`, which logs once per call site. Many guard calls that cannot fail (`stack.getItem()`, `resource.getFluid()`, `Item.getIdFromItem`). Real bugs become one log line and then silent wrong behavior.
 
