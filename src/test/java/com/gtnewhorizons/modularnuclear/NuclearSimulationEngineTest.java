@@ -457,14 +457,14 @@ public class NuclearSimulationEngineTest {
     @Test
     void testLiquidMetalsCoolLoopsOnly() {
         // Molten sodium and lead have nothing hotter to turn into, so no core hatch takes them, at any tier
-        for (String metal : new String[] { "sodium", "molten.sodium", "lead", "molten.lead" }) {
+        for (String metal : new String[] { "liquid_sodium", "lead", "molten.lead" }) {
             assertEquals(-1, MTEHatchNuclearHatch.getRequiredFluidTier(metal), metal);
             for (int tier = 0; tier <= 5; tier++) {
                 assertFalse(NuclearSimulationEngine.isFluidAllowed(metal, tier), metal + " at tier " + tier);
             }
         }
         // A passage carrying them still has their moderation
-        assertEquals(0.05, CoolantPassage.moderation("molten.sodium"), 1e-9);
+        assertEquals(0.05, CoolantPassage.moderation("liquid_sodium"), 1e-9);
         assertEquals(0.02, CoolantPassage.moderation("molten.lead"), 1e-9);
     }
 

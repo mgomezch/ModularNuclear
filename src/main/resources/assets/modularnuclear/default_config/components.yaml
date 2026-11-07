@@ -401,7 +401,7 @@ coolant_fluids:
 - id: coolant_sodium
   name: Molten Sodium
   matching:
-  - molten.sodium
+  - liquid_sodium
   boiling_temperature: 883.0
   heat_transfer_coeff: 0.7
   heat_capacity: 1.28
