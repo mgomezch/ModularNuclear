@@ -24,7 +24,6 @@ import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
-import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
@@ -742,49 +741,25 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             errors.add(StructureErrors.of("GT5U.gui.text.structure_error.molten_down"));
             return;
         }
-        clearHatches();
-        mNuclearTiles.clear();
         mGrid = null;
         gridSize = 0;
         coreDimension = 0;
-        mPipeTier = -1;
-        mCheckedCasingTier = -1;
-        mHatchTier = -1;
-        mHatchTierInconsistent = false;
-        mCasing = 0;
-
+        resetMatchedParts();
         if (checkPiece(STRUCTURE_TIER_1, 3, 3, 0, errors)) {
             gridSize = 5;
-            coreDimension = 5;
         } else {
-            clearHatches();
-            mNuclearTiles.clear();
-            mPipeTier = -1;
-            mCheckedCasingTier = -1;
-            mHatchTier = -1;
-            mHatchTierInconsistent = false;
-            mCasing = 0;
+            resetMatchedParts();
             errors.clear();
             if (checkPiece(STRUCTURE_TIER_2, 5, 3, 0, errors)) {
                 gridSize = 9;
-                coreDimension = 9;
             } else {
-                clearHatches();
-                mNuclearTiles.clear();
-                mPipeTier = -1;
-                mCheckedCasingTier = -1;
-                mHatchTier = -1;
-                mHatchTierInconsistent = false;
-                mCasing = 0;
+                resetMatchedParts();
                 errors.clear();
-                if (checkPiece(STRUCTURE_TIER_3, 7, 3, 0, errors)) {
-                    gridSize = 13;
-                    coreDimension = 13;
-                } else {
-                    return;
-                }
+                if (!checkPiece(STRUCTURE_TIER_3, 7, 3, 0, errors)) return;
+                gridSize = 13;
             }
         }
+        coreDimension = gridSize;
 
         checkOneMaintenanceHatch(errors);
 
@@ -807,144 +782,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             return;
         }
 
-        // Build 2D grid from matched tiles
-        mGrid = new INuclearTile[gridSize][gridSize];
-        int cX = aBaseMetaTileEntity.getXCoord();
-        int cY = aBaseMetaTileEntity.getYCoord();
-        int cZ = aBaseMetaTileEntity.getZCoord();
-        ExtendedFacing ef = getExtendedFacing();
-        boolean isUpsideDown = ef.getRotation() == Rotation.UPSIDE_DOWN;
-        int hOffset = gridSize / 2;
-        int[] in = new int[3];
-        int[] out = new int[3];
-
-        for (IGregTechTileEntity te : mNuclearTiles) {
-            in[0] = te.getXCoord() - cX;
-            in[1] = te.getYCoord() - cY;
-            in[2] = te.getZCoord() - cZ;
-
-            ef.getOffsetABC(in, out);
-
-            int localA = isUpsideDown ? -out[0] : out[0];
-            int gx = localA + hOffset;
-            int gy = out[2] - 1;
-
-            if (gx >= 0 && gx < gridSize && gy >= 0 && gy < gridSize) {
-                IMetaTileEntity mte = te.getMetaTileEntity();
-                if (mte instanceof MTEHatchNuclearBus bus) {
-                    mGrid[gx][gy] = new NuclearGridTile(this, bus, gx, gy);
-                } else if (mte instanceof MTEHatchNuclearHatch hatch) {
-                    mGrid[gx][gy] = new NuclearGridTile(this, hatch, gx, gy);
-                } else if (mte instanceof MTEHatchNuclearHighPressure hp) {
-                    mGrid[gx][gy] = new NuclearGridTile(this, hp, gx, gy);
-                }
-            }
-        }
-
-        // Attach bottom-layer control rod hatches to corresponding grid cells
-        for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
-            IGregTechTileEntity bTe = rod.getBaseMetaTileEntity();
-            if (bTe != null) {
-                int[] gCoords = calculateGridCoords(bTe, cX, cY, cZ, ef, isUpsideDown, hOffset);
-                if (gCoords != null && gCoords[0] >= 0
-                    && gCoords[0] < gridSize
-                    && gCoords[1] >= 0
-                    && gCoords[1] < gridSize) {
-                    INuclearTile tile = mGrid[gCoords[0]][gCoords[1]];
-                    if (tile instanceof NuclearGridTile gt) {
-                        gt.setBottomControlRod(rod);
-                        rod.mReactor = this;
-                        if (mScram) {
-                            rod.setScram(true);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Attach bottom-layer beam input hatches to corresponding grid cells
-        for (MTEHatchInputBeamline beamHatch : mBottomBeamInputHatches) {
-            IGregTechTileEntity bTe = beamHatch.getBaseMetaTileEntity();
-            if (bTe != null) {
-                int[] gCoords = calculateGridCoords(bTe, cX, cY, cZ, ef, isUpsideDown, hOffset);
-                if (gCoords != null && gCoords[0] >= 0
-                    && gCoords[0] < gridSize
-                    && gCoords[1] >= 0
-                    && gCoords[1] < gridSize) {
-                    INuclearTile tile = mGrid[gCoords[0]][gCoords[1]];
-                    if (tile instanceof NuclearGridTile gt) {
-                        gt.setBottomBeamInput(beamHatch);
-                    }
-                }
-            }
-        }
-
-        for (IGregTechTileEntity te : mNuclearTiles) {
-            if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
-                hatch.mWasDry = false;
-            }
-            if (te != null && te.getMetaTileEntity() instanceof MTEHatch hatch) {
-                if (hatch.getBaseMetaTileEntity() == null) {
-                    hatch.setBaseMetaTileEntity(te);
-                }
-                if (hatch.getBaseMetaTileEntity() != null) {
-                    hatch.updateTexture(CASING_INDEX);
-                }
-                if (getBaseMetaTileEntity() != null) {
-                    hatch.updateCraftingIcon(getMachineCraftingIcon());
-                }
-            }
-        }
-        for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
-            if (rod != null) {
-                if (rod.getBaseMetaTileEntity() != null) {
-                    rod.updateTexture(CASING_INDEX);
-                }
-                if (getBaseMetaTileEntity() != null) {
-                    rod.updateCraftingIcon(getMachineCraftingIcon());
-                }
-            }
-        }
-        for (ICoolantPassageHatch hp : mTopHighPressureHatches) {
-            if (hp instanceof MTEHatch hatch) {
-                if (hatch.getBaseMetaTileEntity() != null) {
-                    hatch.updateTexture(CASING_INDEX);
-                }
-                if (getBaseMetaTileEntity() != null) {
-                    hatch.updateCraftingIcon(getMachineCraftingIcon());
-                }
-            }
-        }
-        for (ICoolantPassageHatch hp : mBottomHighPressureHatches) {
-            if (hp instanceof MTEHatch hatch) {
-                if (hatch.getBaseMetaTileEntity() != null) {
-                    hatch.updateTexture(CASING_INDEX);
-                }
-                if (getBaseMetaTileEntity() != null) {
-                    hatch.updateCraftingIcon(getMachineCraftingIcon());
-                }
-            }
-        }
-        for (MTEHatchInputBeamline beam : mBottomBeamInputHatches) {
-            if (beam != null) {
-                if (beam.getBaseMetaTileEntity() != null) {
-                    beam.updateTexture(CASING_INDEX);
-                }
-                if (getBaseMetaTileEntity() != null) {
-                    beam.updateCraftingIcon(getMachineCraftingIcon());
-                }
-            }
-        }
-        for (MTEHatchNuclearControl control : mControlHatches) {
-            if (control != null) {
-                if (control.getBaseMetaTileEntity() != null) {
-                    control.updateTexture(CASING_INDEX);
-                }
-                if (getBaseMetaTileEntity() != null) {
-                    control.updateCraftingIcon(getMachineCraftingIcon());
-                }
-            }
-        }
+        NuclearReactorGridAssembly.assemble(this, aBaseMetaTileEntity);
+        NuclearReactorGridAssembly.texture(this);
 
         updateNuclearTilesPipeTier();
 
@@ -956,6 +795,17 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 }
             }
         }
+    }
+
+    /** Forgets the hatches, casings and tiers a structure match collected, before trying a tier. */
+    private void resetMatchedParts() {
+        clearHatches();
+        mNuclearTiles.clear();
+        mPipeTier = -1;
+        mCheckedCasingTier = -1;
+        mHatchTier = -1;
+        mHatchTierInconsistent = false;
+        mCasing = 0;
     }
 
     public int[] calculateGridCoords(IGregTechTileEntity te, int cX, int cY, int cZ, ExtendedFacing ef,

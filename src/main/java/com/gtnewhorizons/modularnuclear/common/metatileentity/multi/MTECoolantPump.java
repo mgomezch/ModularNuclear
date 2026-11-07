@@ -2,7 +2,6 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -35,7 +34,6 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
-import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipingRegistry;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopChunkLoader;
@@ -78,7 +76,6 @@ import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
 import gregtech.api.render.TextureFactory;
-import gregtech.api.structure.error.PositionedStructureError;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrors;
 import gregtech.api.util.GTLog;
@@ -86,7 +83,6 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.TurbineStatCalculator;
 import gregtech.api.util.shutdown.ShutDownReason;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
-import gregtech.common.blocks.BlockFrameBox;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import mcp.mobius.waila.api.IWailaConfigHandler;
 import mcp.mobius.waila.api.IWailaDataAccessor;
@@ -403,144 +399,11 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             return;
         }
 
-        int x = aBaseMetaTileEntity.getXCoord();
-        int y = aBaseMetaTileEntity.getYCoord();
-        int z = aBaseMetaTileEntity.getZCoord();
         World world = aBaseMetaTileEntity.getWorld();
-
         if (world != null) {
-            ForgeDirection front = aBaseMetaTileEntity.getFrontFacing();
-            ForgeDirection back = front != null && front != ForgeDirection.UNKNOWN ? front.getOpposite()
-                : ForgeDirection.SOUTH;
-            ForgeDirection right = front != null && front != ForgeDirection.UNKNOWN
-                ? front.getRotation(ForgeDirection.UP)
-                : ForgeDirection.WEST;
-            int R = mWidth / 2;
-
-            // 1. Verify four corners on both layer 0 and layer 1 are Frame Boxes of mTankMaterial
-            int[][] cornerOffsets = { { -R, 0 }, { R, 0 }, { -R, mWidth - 1 }, { R, mWidth - 1 } };
-            for (int[] corner : cornerOffsets) {
-                int cx = x + right.offsetX * corner[0] + back.offsetX * corner[1];
-                int cz = z + right.offsetZ * corner[0] + back.offsetZ * corner[1];
-                for (int ly = 0; ly < 2; ly++) {
-                    int cy = y + ly;
-                    Block block = world.getBlock(cx, cy, cz);
-                    String matName = mTankMaterial != null ? mTankMaterial.mDefaultLocalName : "Matching";
-                    if (!(block instanceof BlockFrameBox)) {
-                        setLoopStatusKey("coolantloops.pump.status.corner_frame", cx, cy, cz);
-                        aErrors.add(
-                            new PositionedStructureError(
-                                cx,
-                                cy,
-                                cz,
-                                Collections.singletonList("coolantloops.structure.error.pump.corner_frame_tank")));
-                        return;
-                    }
-                    int meta = world.getBlockMetadata(cx, cy, cz);
-                    Materials frameMat = BlockFrameBox.getMaterial(meta);
-                    if (!CoolantPipingRegistry.areMaterialsEqual(frameMat, mTankMaterial)) {
-                        setLoopStatusKey(
-                            "coolantloops.pump.status.corner_frame_mat",
-                            cx,
-                            cy,
-                            cz,
-                            frameMat != null ? frameMat.mDefaultLocalName : "unknown",
-                            matName);
-                        aErrors.add(
-                            new PositionedStructureError(
-                                cx,
-                                cy,
-                                cz,
-                                Collections.singletonList("coolantloops.structure.error.pump.corner_frame_tank")));
-                        return;
-                    }
-                }
-            }
-
-            // 2. Scan footprint on both layers for hatches and casings
-            List<MTEHatchPressurizedFluid> pressHatches = new ArrayList<>();
-            for (int localX = -R; localX <= R; localX++) {
-                for (int localZ = 0; localZ < mWidth; localZ++) {
-                    // Skip corners (already verified)
-                    if ((localX == -R || localX == R) && (localZ == 0 || localZ == mWidth - 1)) {
-                        continue;
-                    }
-                    int bx = x + right.offsetX * localX + back.offsetX * localZ;
-                    int bz = z + right.offsetZ * localX + back.offsetZ * localZ;
-                    for (int ly = 0; ly < 2; ly++) {
-                        // Skip controller position
-                        if (localX == 0 && localZ == 0 && ly == 0) {
-                            continue;
-                        }
-                        int by = y + ly;
-                        TileEntity te = world.getTileEntity(bx, by, bz);
-                        if (te instanceof IGregTechTileEntity) {
-                            IGregTechTileEntity gte = (IGregTechTileEntity) te;
-                            IMetaTileEntity mte = gte.getMetaTileEntity();
-                            if (mte instanceof MTEHatchPressurizedFluid) {
-                                MTEHatchPressurizedFluid ph = (MTEHatchPressurizedFluid) mte;
-                                if (!pressHatches.contains(ph)) {
-                                    pressHatches.add(ph);
-                                }
-                            } else if (mte instanceof MTEHatchMaintenance) {
-                                if (!mMaintenanceHatches.contains(mte)) {
-                                    mMaintenanceHatches.add((MTEHatchMaintenance) mte);
-                                }
-                            } else if (mte instanceof MTEHatchEnergy) {
-                                if (!mEnergyHatches.contains(mte)) {
-                                    mEnergyHatches.add((MTEHatchEnergy) mte);
-                                }
-                            } else if (mte instanceof MTEHatchInputBus) {
-                                if (!mInputBusses.contains(mte)) {
-                                    mInputBusses.add((MTEHatchInputBus) mte);
-                                }
-                            } else {
-                                setLoopStatusKey("coolantloops.pump.status.invalid_hatch", bx, by, bz);
-                                aErrors.add(
-                                    new PositionedStructureError(
-                                        bx,
-                                        by,
-                                        bz,
-                                        Collections.singletonList("coolantloops.structure.error.pump.invalid_hatch")));
-                                return;
-                            }
-                        } else if (GregTechAPI.sBlockCasings2 != null) {
-                            Block block = world.getBlock(bx, by, bz);
-                            int meta = world.getBlockMetadata(bx, by, bz);
-                            if (block != GregTechAPI.sBlockCasings2 || meta != 15) {
-                                setLoopStatusKey("coolantloops.pump.status.casing_req", bx, by, bz);
-                                aErrors.add(
-                                    new PositionedStructureError(
-                                        bx,
-                                        by,
-                                        bz,
-                                        Collections.singletonList("coolantloops.structure.error.pump.casing_req")));
-                                return;
-                            }
-                        }
-                    }
-                }
-            }
-
-            for (MTEHatchPressurizedFluid ph : pressHatches) {
-                if (ph.isOutput()) {
-                    if (mDischargeHatch == null) {
-                        mDischargeHatch = ph;
-                    } else {
-                        setLoopStatusKey("coolantloops.pump.status.req_hatches");
-                        aErrors.add(StructureErrors.of("coolantloops.structure.error.duplicate_pump_hatches"));
-                        return;
-                    }
-                } else if (ph.isInput()) {
-                    if (mSuctionHatch == null) {
-                        mSuctionHatch = ph;
-                    } else {
-                        setLoopStatusKey("coolantloops.pump.status.req_hatches");
-                        aErrors.add(StructureErrors.of("coolantloops.structure.error.duplicate_pump_hatches"));
-                        return;
-                    }
-                }
-            }
+            List<MTEHatchPressurizedFluid> pressHatches = CoolantPumpStructureScan
+                .scan(this, aBaseMetaTileEntity, world, aErrors);
+            if (pressHatches == null) return;
 
             if (mDischargeHatch == null) {
                 setLoopStatusKey("coolantloops.pump.status.req_hatches");
@@ -567,46 +430,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 return;
             }
 
-            final int casingIndex = 16 + 15;
-            for (MTEHatchPressurizedFluid ph : pressHatches) {
-                ph.updateTexture(casingIndex);
-            }
-            for (MTEHatchMaintenance mh : mMaintenanceHatches) {
-                mh.updateTexture(casingIndex);
-            }
-            for (MTEHatchEnergy eh : mEnergyHatches) {
-                eh.updateTexture(casingIndex);
-            }
-            for (MTEHatchInputBus ib : mInputBusses) {
-                ib.updateTexture(casingIndex);
-            }
-            if (mDischargeHatch != null) {
-                mDischargeHatch.updateTexture(casingIndex);
-            }
-            if (mSuctionHatch != null) {
-                mSuctionHatch.updateTexture(casingIndex);
-            }
-            if (getBaseMetaTileEntity() != null) {
-                ItemStack icon = getMachineCraftingIcon();
-                for (MTEHatchPressurizedFluid ph : pressHatches) {
-                    ph.updateCraftingIcon(icon);
-                }
-                for (MTEHatchMaintenance mh : mMaintenanceHatches) {
-                    mh.updateCraftingIcon(icon);
-                }
-                for (MTEHatchEnergy eh : mEnergyHatches) {
-                    eh.updateCraftingIcon(icon);
-                }
-                for (MTEHatchInputBus ib : mInputBusses) {
-                    ib.updateCraftingIcon(icon);
-                }
-                if (mDischargeHatch != null) {
-                    mDischargeHatch.updateCraftingIcon(icon);
-                }
-                if (mSuctionHatch != null) {
-                    mSuctionHatch.updateCraftingIcon(icon);
-                }
-            }
+            CoolantPumpStructureScan.texture(this, pressHatches);
         }
 
         checkMaintenance();
