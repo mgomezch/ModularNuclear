@@ -16,6 +16,7 @@ import org.mockito.Mockito;
 import com.gtnewhorizons.modularnuclear.common.block.CoolantLoopBlocks;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.CrawlResult;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.CrawlSession;
@@ -373,6 +374,42 @@ public class ManifoldGroupAndDagTest {
         assertEquals(ForgeDirection.EAST, split1.getOutputSide());
         assertEquals(ForgeDirection.WEST, merge1.getInputSide());
         assertEquals(ForgeDirection.EAST, merge1.getOutputSide());
+    }
+
+    @Test
+    public void testManifoldMustNotFeedADeviceDirectly() {
+        WorldTileMap map = new WorldTileMap();
+        // The split and merge of testValidParallelBranchSplitAndMergeAsDAG, with branch A starting at an in-line
+        // device right against the splitter
+        map.putPipe(11, 10, 10, ForgeDirection.WEST, ForgeDirection.EAST);
+        map.putManifold(12, 10, 10);
+        map.putManifold(12, 10, 11);
+        TileEntity device = Mockito.mock(
+            TileEntity.class,
+            Mockito.withSettings()
+                .extraInterfaces(ICoolantLoopDevice.class));
+        Mockito.when(((ICoolantLoopDevice) device).getDeviceId())
+            .thenReturn("instrument_13_10_10");
+        map.put(13, 10, 10, device);
+        map.putPipe(14, 10, 10, ForgeDirection.WEST, ForgeDirection.EAST);
+        map.putPipe(13, 10, 11, ForgeDirection.WEST, ForgeDirection.EAST);
+        map.putPipe(14, 10, 11, ForgeDirection.WEST, ForgeDirection.EAST);
+        map.putManifold(15, 10, 10);
+        map.putManifold(15, 10, 11);
+        map.putPipe(16, 10, 10, ForgeDirection.WEST, ForgeDirection.NORTH);
+        map.putPipe(16, 10, 9, ForgeDirection.SOUTH, ForgeDirection.WEST);
+        for (int x = 15; x >= 11; x--) {
+            map.putPipe(x, 10, 9, ForgeDirection.EAST, ForgeDirection.WEST);
+        }
+        map.putPipe(10, 10, 9, ForgeDirection.EAST, ForgeDirection.NORTH);
+
+        CrawlResult result = new LoopGraphCrawler(map.world, 100)
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10", null, null);
+
+        assertFalse(result.isSuccess, "A manifold feeding a device directly must fail the crawl");
+        assertTrue(
+            result.failureReason.contains("feeds the device or pump at (13, 10, 10) directly"),
+            "The failure must name the device's position: " + result.failureReason);
     }
 
     private LoopSegment findSegment(List<LoopSegment> segments, String id) {

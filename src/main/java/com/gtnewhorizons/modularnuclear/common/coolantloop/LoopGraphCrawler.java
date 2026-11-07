@@ -784,6 +784,20 @@ public class LoopGraphCrawler {
                 stepsThisSlice++;
                 stepCount++;
 
+                // A manifold feeds only pipes (or another manifold), never a device or the pump directly
+                FlowNode fromNode = graphNodes.get(step.fromNodeId);
+                if (fromNode != null && fromNode.type == NodeType.MANIFOLD_GROUP) {
+                    TileEntity fed = world.getTileEntity(step.x, step.y, step.z);
+                    boolean isPipe = fed instanceof BaseMetaPipeEntity bmpe
+                        && bmpe.getMetaTileEntity() instanceof MTEFluidPipe;
+                    if (!isPipe && !(fed instanceof TileEntityManifold)) {
+                        finishWithFailure(
+                            CoolantLocalization
+                                .format("coolantloops.crawler.device_fed_by_manifold", step.x, step.y, step.z));
+                        return true;
+                    }
+                }
+
                 // Check if we arrived at the pump suction port
                 if (step.x == targetX && step.y == targetY && step.z == targetZ) {
                     // The pump is a loop device too: its suction pipe is the size of its discharge pipe
