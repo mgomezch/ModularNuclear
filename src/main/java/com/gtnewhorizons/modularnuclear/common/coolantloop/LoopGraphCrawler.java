@@ -451,9 +451,17 @@ public class LoopGraphCrawler {
         public final ForgeDirection entrySide;
         public final Float segmentThickness;
         public final Integer segmentPipeAmount;
+        /** The device whose input pipe set segmentThickness, when the step leaves a device; else null. */
+        public final String sizeFromDevice;
 
         public FrontierStep(String fromNodeId, int x, int y, int z, ForgeDirection entrySide, Float segmentThickness,
             Integer segmentPipeAmount) {
+            this(fromNodeId, x, y, z, entrySide, segmentThickness, segmentPipeAmount, null);
+        }
+
+        public FrontierStep(String fromNodeId, int x, int y, int z, ForgeDirection entrySide, Float segmentThickness,
+            Integer segmentPipeAmount, String sizeFromDevice) {
+            this.sizeFromDevice = sizeFromDevice;
             this.fromNodeId = fromNodeId;
             this.x = x;
             this.y = y;
@@ -609,6 +617,9 @@ public class LoopGraphCrawler {
         private final Map<String, List<String>> reverseGraphEdges = new LinkedHashMap<>();
 
         private Materials detectedLoopMaterial;
+        /** Size of the pump's discharge pipe, once crawled: its suction pipe must match. */
+        private Float dischargeThickness = null;
+        private Integer dischargePipeAmount = null;
         /** Whether detectedLoopMaterial comes from a pipe yet, rather than from the pump's tank. */
         private boolean loopMaterialFromPipe = false;
         private double dischargePipeCapacityLPerSec = -1.0;
@@ -775,6 +786,19 @@ public class LoopGraphCrawler {
 
                 // Check if we arrived at the pump suction port
                 if (step.x == targetX && step.y == targetY && step.z == targetZ) {
+                    // The pump is a loop device too: its suction pipe is the size of its discharge pipe
+                    if (step.segmentThickness != null && dischargeThickness != null
+                        && (Math.abs(step.segmentThickness - dischargeThickness) > 1e-4
+                            || !step.segmentPipeAmount.equals(dischargePipeAmount))) {
+                        finishWithFailure(
+                            CoolantLocalization.format(
+                                "coolantloops.crawler.pump_pipe_size_mismatch",
+                                step.segmentThickness,
+                                step.segmentPipeAmount,
+                                dischargeThickness,
+                                dischargePipeAmount));
+                        return true;
+                    }
                     addGraphNode(graphNodes, sinkNodeId, NodeType.SINK, null);
                     addGraphEdge(graphEdges, reverseGraphEdges, step.fromNodeId, sinkNodeId);
                     if (lastPipe != null && suctionPipeCapacityLPerSec < 0.0) {
@@ -1179,6 +1203,21 @@ public class LoopGraphCrawler {
                     currAmount = pipe.mPipeAmount;
                 } else {
                     if (Math.abs(pipe.mThickNess - currThickness) > 1e-4 || pipe.mPipeAmount != currAmount) {
+                        if (step.sizeFromDevice != null) {
+                            // A device's input and output pipes are the same size
+                            finishWithFailure(
+                                CoolantLocalization.format(
+                                    "coolantloops.crawler.device_pipe_size_mismatch",
+                                    step.x,
+                                    step.y,
+                                    step.z,
+                                    step.sizeFromDevice,
+                                    pipe.mThickNess,
+                                    pipe.mPipeAmount,
+                                    currThickness,
+                                    currAmount));
+                            return Visit.STOP;
+                        }
                         finishWithFailure(
                             CoolantLocalization.format(
                                 "coolantloops.crawler.pipe_size_mismatch",
@@ -1193,6 +1232,10 @@ public class LoopGraphCrawler {
                     }
                 }
 
+                if (dischargeThickness == null && step.fromNodeId.equals(sourceNodeId)) {
+                    dischargeThickness = pipe.mThickNess;
+                    dischargePipeAmount = pipe.mPipeAmount;
+                }
                 if (dischargePipeCapacityLPerSec < 0.0 && step.fromNodeId.startsWith("pump_disc_")) {
                     dischargePipeCapacityLPerSec = pipe.getCapacity();
                 }
@@ -1418,8 +1461,9 @@ public class LoopGraphCrawler {
                         outTE.getYCoord() + outFacing.offsetY,
                         outTE.getZCoord() + outFacing.offsetZ,
                         outFacing.getOpposite(),
-                        null,
-                        null));
+                        step.segmentThickness,
+                        step.segmentPipeAmount,
+                        heater.getDeviceId()));
                 return Visit.NEXT;
             } else {
                 finishWithFailure(
@@ -1482,8 +1526,9 @@ public class LoopGraphCrawler {
                         outTE.getYCoord() + outFacing.offsetY,
                         outTE.getZCoord() + outFacing.offsetZ,
                         outFacing.getOpposite(),
-                        null,
-                        null));
+                        step.segmentThickness,
+                        step.segmentPipeAmount,
+                        phe.getDeviceId()));
                 return Visit.NEXT;
             } else {
                 finishWithFailure(
@@ -1535,8 +1580,9 @@ public class LoopGraphCrawler {
                         outTE.getYCoord() + outFacing.offsetY,
                         outTE.getZCoord() + outFacing.offsetZ,
                         outFacing.getOpposite(),
-                        null,
-                        null));
+                        step.segmentThickness,
+                        step.segmentPipeAmount,
+                        degasser.getDeviceId()));
                 return Visit.NEXT;
             } else {
                 finishWithFailure(
@@ -1589,8 +1635,9 @@ public class LoopGraphCrawler {
                         outTE.getYCoord() + outFacing.offsetY,
                         outTE.getZCoord() + outFacing.offsetZ,
                         outFacing.getOpposite(),
-                        null,
-                        null));
+                        step.segmentThickness,
+                        step.segmentPipeAmount,
+                        bath.getDeviceId()));
                 return Visit.NEXT;
             } else {
                 finishWithFailure(
@@ -1646,8 +1693,9 @@ public class LoopGraphCrawler {
                     outTE.getYCoord() + outFacing.offsetY,
                     outTE.getZCoord() + outFacing.offsetZ,
                     outFacing.getOpposite(),
-                    null,
-                    null));
+                    step.segmentThickness,
+                    step.segmentPipeAmount,
+                    hatch.getDeviceId()));
             return Visit.NEXT;
         }
 
@@ -1716,8 +1764,9 @@ public class LoopGraphCrawler {
                     outTE.getYCoord() + outFacing.offsetY,
                     outTE.getZCoord() + outFacing.offsetZ,
                     outFacing.getOpposite(),
-                    null,
-                    null));
+                    step.segmentThickness,
+                    step.segmentPipeAmount,
+                    passage.getDeviceId()));
             return Visit.NEXT;
         }
 
@@ -1790,8 +1839,9 @@ public class LoopGraphCrawler {
                         step.y + nextDir.offsetY,
                         step.z + nextDir.offsetZ,
                         nextDir.getOpposite(),
-                        null,
-                        null));
+                        step.segmentThickness,
+                        step.segmentPipeAmount,
+                        device.getDeviceId()));
                 return Visit.NEXT;
             }
 

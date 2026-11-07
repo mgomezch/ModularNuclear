@@ -14,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import com.gtnewhorizons.modularnuclear.common.block.BlockManifold;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.CrawlResult;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler.PipeFlowConfig;
@@ -273,5 +274,45 @@ public class ManifoldAndPipeFlowDirectionTest {
             result.failureReason.contains("pipe at (11, 10, 11) is not an insulated coolant pipe"),
             "Failure message must identify pipe at (11, 10, 11) as not an insulated coolant pipe, but got: "
                 + result.failureReason);
+    }
+
+    /** A straight run: discharge (0) - pipe (1) - in-line device (2) - pipe (3) - suction (4), along +X. */
+    private static CrawlResult crawlThroughDevice(float inThickness, float outThickness) {
+        World world = Mockito.mock(World.class);
+        byte eastWest = (byte) ((1 << ForgeDirection.WEST.ordinal()) | (1 << ForgeDirection.EAST.ordinal()));
+        float[] thickness = { inThickness, outThickness };
+        int[] xs = { 1, 3 };
+        for (int i = 0; i < 2; i++) {
+            MTECoolantPipe pipe = new MTECoolantPipe("pipe" + i, thickness[i], Materials.Steel, 1000, 1000, true);
+            pipe.mConnections = eastWest;
+            BaseMetaPipeEntity bmpe = Mockito.mock(BaseMetaPipeEntity.class);
+            Mockito.when(bmpe.getMetaTileEntity())
+                .thenReturn(pipe);
+            bmpe.mConnections = eastWest;
+            Mockito.when(world.getTileEntity(xs[i], 10, 0))
+                .thenReturn((TileEntity) bmpe);
+        }
+        TileEntity device = Mockito.mock(
+            TileEntity.class,
+            Mockito.withSettings()
+                .extraInterfaces(ICoolantLoopDevice.class));
+        Mockito.when(((ICoolantLoopDevice) device).getDeviceId())
+            .thenReturn("instrument_2_10_0");
+        Mockito.when(world.getTileEntity(2, 10, 0))
+            .thenReturn(device);
+        return new LoopGraphCrawler(world, 100)
+            .crawl(0, 10, 0, ForgeDirection.EAST, 4, 10, 0, ForgeDirection.WEST, "test_pump", null, null);
+    }
+
+    @Test
+    public void testLoopDeviceInputAndOutputPipesMustBeTheSameSize() {
+        CrawlResult same = crawlThroughDevice(0.5f, 0.5f);
+        assertTrue(same.isSuccess, "Same-size pipes on both sides of a device crawl: " + same.failureReason);
+
+        CrawlResult mismatched = crawlThroughDevice(0.5f, 0.375f);
+        assertFalse(mismatched.isSuccess, "A device between two pipe sizes must fail the crawl");
+        assertTrue(
+            mismatched.failureReason.contains("the pipe leaving instrument_2_10_0"),
+            "The failure must name the device: " + mismatched.failureReason);
     }
 }
