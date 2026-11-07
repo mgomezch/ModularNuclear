@@ -120,6 +120,7 @@ public class ModularNuclear {
             .registerEntityRenderingHandler(EntityMeltdownFallout.class, new RenderEmpty());
         net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(new CherenkovClientHandler());
         FalloutVisualEffectRenderer.init();
+        com.gtnewhorizons.modularnuclear.client.renderer.RenderBlockControlRodHousing.init();
     }
 
     @Mod.EventHandler

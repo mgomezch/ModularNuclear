@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.recipe;
 
+import static gregtech.api.recipe.RecipeMaps.assemblerRecipes;
 import static gregtech.api.recipe.RecipeMaps.centrifugeRecipes;
 import static gregtech.api.recipe.RecipeMaps.extruderRecipes;
 import static gregtech.api.recipe.RecipeMaps.fluidHeaterRecipes;
@@ -23,10 +24,12 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntitie
 import bartworks.system.material.Werkstoff;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.ItemList;
+import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.TierEU;
 import gregtech.api.enums.ToolDictNames;
 import gregtech.api.util.GTModHandler;
+import gregtech.api.util.GTOreDictUnificator;
 
 public class ModRecipes {
 
@@ -40,6 +43,7 @@ public class ModRecipes {
         registerFluidHeaterRecipes();
         registerCoriumRecipes();
         registerHighPressureHatchRecipes();
+        registerControlRodHousingRecipe();
         ReactorRodMaterials.registerRecipes();
     }
 
@@ -79,6 +83,20 @@ public class ModRecipes {
                 input.copy(),
                 new Object[] { output.copy(), ToolDictNames.craftingToolScrewdriver });
         }
+    }
+
+    /** The control rod housing: a small steel coolant pipe sleeved in two steel plates. */
+    private static void registerControlRodHousingRecipe() {
+        int steel = CoolantLoopMetaTileEntities.getMaterialIndex(Materials.Steel);
+        ItemStack pipe = steel >= 0 ? CoolantLoopMetaTileEntities.coolantPipeItems[steel][1] : null;
+        ItemStack plates = GTOreDictUnificator.get(OrePrefixes.plate, Materials.Steel, 2L);
+        if (pipe == null || plates == null || ModBlocks.controlRodHousing == null) return;
+        GTValues.RA.stdBuilder()
+            .itemInputs(pipe.copy(), plates)
+            .itemOutputs(new ItemStack(ModBlocks.controlRodHousing))
+            .duration(5 * SECONDS)
+            .eut(TierEU.RECIPE_LV)
+            .addTo(assemblerRecipes);
     }
 
     private static void registerCoriumRecipes() {

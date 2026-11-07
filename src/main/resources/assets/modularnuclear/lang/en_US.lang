@@ -1,5 +1,6 @@
 tile.modularnuclear.casing.name=Nuclear casing
 tile.modularnuclear.casing.0.name=Nuclear casing
+tile.modularnuclear.control_rod_housing.name=Nuclear control rod housing
 modularnuclear.casing.name=Nuclear casing
 modularnuclear.casing.0.name=Nuclear casing
 item.modularnuclear.radiovoltaic.plate.hv.name=Radiovoltaic plate (HV)
