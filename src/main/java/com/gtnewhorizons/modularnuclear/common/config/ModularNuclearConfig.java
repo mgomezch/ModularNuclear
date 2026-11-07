@@ -10,6 +10,7 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.util.ConfigGeneration;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
@@ -110,18 +111,12 @@ public final class ModularNuclearConfig {
 
     public static String[] allowedNeutronSources = new String[] { "GoodGenerator:neutronSource" };
 
-    private static volatile int generation;
-
     /**
-     * Counts configuration changes: what reactors work out from this configuration once (item and fluid roles) is
-     * kept until it changes. Code that edits the lists above at runtime must call {@link #changed()}.
+     * What reactors work out from this configuration once (item and fluid roles) is kept until it changes. Code that
+     * edits the lists above at runtime must call this.
      */
-    public static int generation() {
-        return generation;
-    }
-
     public static void changed() {
-        generation++;
+        ConfigGeneration.bump();
     }
 
     public static void init(File configFile) {

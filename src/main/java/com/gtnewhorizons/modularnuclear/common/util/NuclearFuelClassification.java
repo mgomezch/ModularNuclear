@@ -10,7 +10,6 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
-import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
@@ -71,8 +70,7 @@ public final class NuclearFuelClassification {
         ItemList.Reactor_Coolant_Sp_2, ItemList.Reactor_Coolant_Sp_3, ItemList.Reactor_Coolant_Sp_6 };
 
     /** Each item kind's roles (see ItemRoles), until the configuration reloads (see roles). */
-    private static final LongKeyMap<ItemRoles> ROLES = new LongKeyMap<>();
-    private static volatile long rolesGeneration = -1;
+    private static final LongKeyCache<ItemRoles> ROLES = new LongKeyCache<>();
     private static final java.util.Set<Long> ACTIVE_ROD_KEYS = new java.util.HashSet<>();
     private static final java.util.Set<Long> DEPLETED_ROD_KEYS = new java.util.HashSet<>();
     private static final java.util.Set<Long> GT_COOLANT_KEYS = new java.util.HashSet<>();
@@ -337,25 +335,13 @@ public final class NuclearFuelClassification {
      */
     public static ItemRoles roles(ItemStack stack) {
         if (stack == null) return ItemRoles.NONE;
-        long gen = configGeneration();
-        if (gen != rolesGeneration) {
-            ROLES.clear();
-            rolesGeneration = gen;
-        }
-        long key = ReactorDataRegistry.getItemKey(stack);
-        // An item with no registry id (never in the game) has no key to cache under
-        if (key == 0L) return scanRoles(stack);
-        ItemRoles r = ROLES.get(key);
-        if (r == null) {
-            r = scanRoles(stack);
-            ROLES.put(key, r);
-        }
-        return r;
+        // An item with no registry id (never in the game) has no key to cache under, so it is scanned each time
+        return ROLES.get(ReactorDataRegistry.getItemKey(stack), stack, (s, k) -> scanRoles(s));
     }
 
-    /** Changes whenever either configuration does (the YAML files, or the Forge config's item and fluid lists). */
+    /** Changes whenever a configuration does (the YAML files, or the Forge config's item and fluid lists). */
     static long configGeneration() {
-        return ((long) ReactorConfigData.generation() << 32) | (ModularNuclearConfig.generation() & 0xFFFFFFFFL);
+        return ConfigGeneration.current();
     }
 
     /** The slow part: ore dictionary, registry names and the configuration's pattern lists, once per item kind. */

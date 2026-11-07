@@ -8,6 +8,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.CoolantPhysicsData;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantPipeData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ConvectiveHeatTransferModel;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+import com.gtnewhorizons.modularnuclear.common.util.ConfigGeneration;
 
 /**
  * Coolant loop configuration (hydrodynamic physics, fluids, pipes and devices) without any Minecraft, logging or YAML
@@ -93,6 +94,7 @@ public final class CoolantLoopConfigData {
             physicsData.getHMax());
         applyFluidRegistry();
         loaded = true;
+        ConfigGeneration.bump();
     }
 
     /** Applies configured fluid properties into the runtime registry of CoolantFluidProperty. */

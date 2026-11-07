@@ -301,18 +301,12 @@ public class CoolantBathRegistry {
     }
 
     /** isCompatibleItem's answers per item kind: the bath asks for every input bus slot every tick. */
-    private static final LongKeyMap<Boolean> COMPATIBLE = new LongKeyMap<>();
+    private static final LongKeyCache<Boolean> COMPATIBLE = new LongKeyCache<>();
 
     /** Whether an item stack can be processed in the Coolant Bath. */
     public static boolean isCompatibleItem(ItemStack stack) {
         if (stack == null) return false;
-        long key = ReactorDataRegistry.getItemKey(stack);
-        Boolean hit = COMPATIBLE.get(key);
-        if (hit == null) {
-            hit = scanIsCompatibleItem(stack);
-            COMPATIBLE.put(key, hit);
-        }
-        return hit;
+        return COMPATIBLE.get(ReactorDataRegistry.getItemKey(stack), stack, (s, k) -> scanIsCompatibleItem(s));
     }
 
     private static boolean scanIsCompatibleItem(ItemStack stack) {

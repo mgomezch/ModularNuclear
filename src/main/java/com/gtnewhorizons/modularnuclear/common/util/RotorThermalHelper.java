@@ -1,8 +1,5 @@
 package com.gtnewhorizons.modularnuclear.common.util;
 
-import java.util.IdentityHashMap;
-import java.util.Map;
-
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
@@ -92,22 +89,14 @@ public final class RotorThermalHelper {
     }
 
     /** Resolved once per material and config: the pump checks its impeller every tick. */
-    private static final Map<Materials, Double> CONFIGURED_MELTING = new IdentityHashMap<>();
-    private static Object configuredFor;
+    private static final IdentityCache<Materials, Double> CONFIGURED_MELTING = new IdentityCache<>();
 
-    private static synchronized double configuredMeltingPointKelvin(Materials mat) {
-        CoolantPhysicsData physics = CoolantLoopDataRegistry.getPhysicsData();
-        if (physics == null) return 0.0;
-        if (configuredFor != physics) {
-            CONFIGURED_MELTING.clear();
-            configuredFor = physics;
-        }
-        Double k = CONFIGURED_MELTING.get(mat);
-        if (k == null) {
-            k = physics.getRotorMeltingPointKelvin(mat.mName);
-            CONFIGURED_MELTING.put(mat, k);
-        }
-        return k;
+    private static double configuredMeltingPointKelvin(Materials mat) {
+        Double k = CONFIGURED_MELTING.get(mat, m -> {
+            CoolantPhysicsData physics = CoolantLoopDataRegistry.getPhysicsData();
+            return physics != null ? physics.getRotorMeltingPointKelvin(m.mName) : 0.0;
+        });
+        return k != null ? k : 0.0;
     }
 
     public static double getMeltingPointKelvin(Materials mat) {

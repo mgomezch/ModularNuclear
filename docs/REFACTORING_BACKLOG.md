@@ -209,7 +209,17 @@ The background for the plan below:
 
 ## Architecture and maintenance
 
-### A1 (P1): Make the caches uniform
+### A1 (P1): Make the caches uniform (done)
+
+**Done:**
+- **Three components.** Caches built from configuration use three components in `common/util`, with the same miss handling (a miss is cached) and the same thread-safety story:
+  - `LongKeyCache` for item kinds: lock-free reads over `LongKeyMap`, with a non-capturing loader so a lookup allocates nothing.
+  - `IdentityCache` for fluids and materials: copy-on-write.
+  - `NameCache` for fluid names: concurrent.
+- **One generation.** They all follow one `ConfigGeneration` and start over when it moves on. Every configuration load moves it: the reactor YAML, the coolant loop YAML, and the Forge config's lists (`ModularNuclearConfig.changed`). The three separate counters, one of them a non-volatile `int`, are gone.
+- **Migrated.** `ReactorDataRegistry`'s item and fluid caches, `ReactorConfigData`'s name lookups, `ItemRoles`, `FluidRoles`, `CoolantBathRegistry.COMPATIBLE` (which was never cleared), `CoolantFluidHelper`'s liquid-fuel and gas caches, the rotor melting points, and the engine's `isFluidAllowed`. `CoolantFluidHelper`'s water and lava caches were dropped: those checks are now exact name comparisons.
+- **Shared with the WebAssembly simulator.** `ReactorConfigData`'s two `NameCache`s, the engine's `isFluidAllowed` cache and `SimTile`'s content cache (an enum-indexed array that follows `ConfigGeneration`). All of them are plain Java.
+- **Left as is.** Registries filled once from game data, such as `FreezerRecipeEnergy`, the bath's ingot pairs and `CoolantFluidProperty`'s registry, are not caches of configuration.
 
 There are about 27 static caches, each written its own way:
 

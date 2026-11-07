@@ -1,6 +1,5 @@
 package com.gtnewhorizons.modularnuclear.common.util;
 
-import java.util.IdentityHashMap;
 import java.util.Locale;
 
 import net.minecraftforge.fluids.Fluid;
@@ -26,9 +25,8 @@ public final class FluidRoles {
 
     private static final FluidRoles NONE = new FluidRoles();
 
-    /** Each fluid's roles (copy on write: reads take no lock), and the configuration generation they belong to. */
-    private static volatile IdentityHashMap<Fluid, FluidRoles> cache = new IdentityHashMap<>();
-    private static volatile long cacheGeneration = -1;
+    /** Each fluid's roles, until the configuration changes. */
+    private static final IdentityCache<Fluid, FluidRoles> CACHE = new IdentityCache<>();
 
     private boolean fuel;
     private FuelData fuelData;
@@ -52,27 +50,11 @@ public final class FluidRoles {
 
     public static FluidRoles of(Fluid fluid) {
         if (fluid == null) return NONE;
-        if (NuclearFuelClassification.configGeneration() != cacheGeneration) clearCache();
-        FluidRoles r = cache.get(fluid);
-        if (r != null) return r;
-        // A fluid missing from the registry (never in the game) is matched by name each time
-        if (!FluidRegistry.isFluidRegistered(fluid)) return scan(fluid);
-        return add(fluid);
+        return CACHE.get(fluid, FluidRoles::scan);
     }
 
-    public static synchronized void clearCache() {
-        cache = new IdentityHashMap<>();
-        cacheGeneration = NuclearFuelClassification.configGeneration();
-    }
-
-    private static synchronized FluidRoles add(Fluid fluid) {
-        FluidRoles r = cache.get(fluid);
-        if (r != null) return r;
-        r = scan(fluid);
-        IdentityHashMap<Fluid, FluidRoles> next = new IdentityHashMap<>(cache);
-        next.put(fluid, r);
-        cache = next;
-        return r;
+    public static void clearCache() {
+        CACHE.clear();
     }
 
     /** The slow part: the configuration's name patterns, once per fluid. */

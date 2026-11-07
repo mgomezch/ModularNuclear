@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
@@ -24,6 +23,8 @@ import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.util.ConfigGeneration;
+import com.gtnewhorizons.modularnuclear.common.util.NameCache;
 
 /**
  * Reactor configuration state (physics, tiers, fuels and components) without any Minecraft or YAML dependency, shared
@@ -41,13 +42,10 @@ public final class ReactorConfigData {
     static final List<FuelData> fuels = new ArrayList<>();
     static ComponentData componentData = new ComponentData();
     private static volatile boolean defaultsLoaded = false;
-    private static int generation = 0;
 
     /** Name lookups are pattern matches over every entry, so their results are kept until the configuration changes. */
-    private static final Object NO_MATCH = new Object();
-    private static final Map<String, Object> coolantFluidByName = new ConcurrentHashMap<>();
-    private static final Map<String, Object> liquidFuelByName = new ConcurrentHashMap<>();
-    private static volatile int cachedGeneration = -1;
+    private static final NameCache<ComponentData.CoolantFluidData> coolantFluidByName = new NameCache<>();
+    private static final NameCache<FuelData> liquidFuelByName = new NameCache<>();
 
     private ReactorConfigData() {}
 
@@ -76,11 +74,6 @@ public final class ReactorConfigData {
 
     private static synchronized void loadIfNeeded() {
         if (!defaultsLoaded) loadBuiltInDefaults();
-    }
-
-    /** Incremented whenever the configuration changes, so callers can invalidate derived caches. */
-    public static int generation() {
-        return generation;
     }
 
     /**
@@ -112,7 +105,7 @@ public final class ReactorConfigData {
         componentData = (componentsDoc instanceof Map<?, ?>cm) ? ComponentData.fromMap((Map<String, Object>) cm)
             : new ComponentData();
         defaultsLoaded = true;
-        generation++;
+        ConfigGeneration.bump();
     }
 
     private static List<?> listOf(Object doc, String key) {
@@ -131,7 +124,7 @@ public final class ReactorConfigData {
             deepMerge(merged, (Map<String, Object>) pm);
             physicsData = PhysicsData.fromMap(merged);
         }
-        generation++;
+        ConfigGeneration.bump();
         syncPhysicsToEngine();
     }
 
@@ -216,29 +209,14 @@ public final class ReactorConfigData {
     public static FuelData findLiquidFuel(String fluidName) {
         ensureLoaded();
         if (fluidName == null) return null;
-        return (FuelData) cachedLookup(liquidFuelByName, fluidName, ReactorConfigData::scanLiquidFuel);
+        return liquidFuelByName.get(fluidName, ReactorConfigData::scanLiquidFuel);
     }
 
-    private static Object scanLiquidFuel(String fluidName) {
+    private static FuelData scanLiquidFuel(String fluidName) {
         for (FuelData fd : fuels) {
             if (fd.isLiquid && matchesFluid(fluidName, fd.matching)) return fd;
         }
         return null;
-    }
-
-    private static Object cachedLookup(Map<String, Object> cache, String name, Function<String, Object> scan) {
-        if (cachedGeneration != generation) {
-            coolantFluidByName.clear();
-            liquidFuelByName.clear();
-            cachedGeneration = generation;
-        }
-        Object hit = cache.get(name);
-        if (hit == null) {
-            Object found = scan.apply(name);
-            hit = found != null ? found : NO_MATCH;
-            cache.put(name, hit);
-        }
-        return hit == NO_MATCH ? null : hit;
     }
 
     /**
@@ -340,7 +318,7 @@ public final class ReactorConfigData {
     }
 
     public static void applyTierOverrides(Object obj) {
-        generation++;
+        ConfigGeneration.bump();
         if (obj == null) return;
         Object rawTiers = obj;
         if (obj instanceof Map<?, ?>m && m.containsKey("tiers")) {
@@ -397,7 +375,7 @@ public final class ReactorConfigData {
     }
 
     public static void applyFuelOverrides(Object obj) {
-        generation++;
+        ConfigGeneration.bump();
         if (obj == null) return;
         Object rawFuels = obj;
         if (obj instanceof Map<?, ?>m && m.containsKey("fuels")) {
@@ -433,7 +411,7 @@ public final class ReactorConfigData {
     }
 
     public static void applyComponentOverrides(Object obj) {
-        generation++;
+        ConfigGeneration.bump();
         if (!(obj instanceof Map<?, ?>m)) return;
         @SuppressWarnings("unchecked")
         Map<String, Object> map = (Map<String, Object>) m;
@@ -538,7 +516,7 @@ public final class ReactorConfigData {
     public static ComponentData.CoolantFluidData findCoolantFluid(String fluidName) {
         if (fluidName == null) return null;
         ensureLoaded();
-        return (ComponentData.CoolantFluidData) cachedLookup(coolantFluidByName, fluidName, name -> {
+        return coolantFluidByName.get(fluidName, name -> {
             for (ComponentData.CoolantFluidData d : componentData.coolantFluids) {
                 if (matchesFluid(name, d.matching)) return d;
             }

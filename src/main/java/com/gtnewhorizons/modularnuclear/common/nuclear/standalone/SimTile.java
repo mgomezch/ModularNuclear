@@ -12,6 +12,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileContent;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileTick;
+import com.gtnewhorizons.modularnuclear.common.util.ConfigGeneration;
 
 /**
  * Pure Java implementation of INuclearTile for standalone simulation and tooling.
@@ -182,7 +183,7 @@ public class SimTile implements INuclearTile {
 
     /** The configuration-backed content of a tile type, shared with the game through {@link TileContent}. */
     public static TileContent contentOf(TileType type) {
-        int gen = ReactorConfigData.generation();
+        int gen = ConfigGeneration.current();
         if (gen != contentCacheGeneration) {
             contentCache = new TileContent[TileType.values().length];
             contentCacheGeneration = gen;

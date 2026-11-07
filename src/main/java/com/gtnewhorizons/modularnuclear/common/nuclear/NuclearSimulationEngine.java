@@ -9,6 +9,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
+import com.gtnewhorizons.modularnuclear.common.util.NameCache;
 
 public class NuclearSimulationEngine {
 
@@ -307,26 +308,17 @@ public class NuclearSimulationEngine {
     }
 
     /** {@link #isFluidAllowed} answers per casing tier and fluid name, kept until the configuration changes. */
-    private static final java.util.Map<Integer, java.util.Map<String, Boolean>> fluidAllowedCache = new java.util.concurrent.ConcurrentHashMap<>();
-    private static volatile int fluidAllowedGeneration = -1;
+    private static final java.util.Map<Integer, NameCache<Boolean>> fluidAllowedCache = new java.util.concurrent.ConcurrentHashMap<>();
     private static volatile INuclearConfigProvider fluidAllowedProvider;
 
     public static boolean isFluidAllowed(String fluidName, int pipeTier) {
         if (fluidName == null) return false;
-        int gen = ReactorConfigData.generation();
-        if (fluidAllowedGeneration != gen || fluidAllowedProvider != configProvider) {
+        if (fluidAllowedProvider != configProvider) {
             fluidAllowedCache.clear();
-            fluidAllowedGeneration = gen;
             fluidAllowedProvider = configProvider;
         }
-        java.util.Map<String, Boolean> byName = fluidAllowedCache
-            .computeIfAbsent(pipeTier, t -> new java.util.concurrent.ConcurrentHashMap<>());
-        Boolean hit = byName.get(fluidName);
-        if (hit == null) {
-            hit = computeFluidAllowed(fluidName, pipeTier);
-            byName.put(fluidName, hit);
-        }
-        return hit;
+        return fluidAllowedCache.computeIfAbsent(pipeTier, t -> new NameCache<>())
+            .get(fluidName, name -> computeFluidAllowed(name, pipeTier));
     }
 
     private static boolean computeFluidAllowed(String fluidName, int pipeTier) {

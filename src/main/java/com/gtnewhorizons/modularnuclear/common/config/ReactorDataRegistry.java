@@ -14,8 +14,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -44,7 +44,9 @@ import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
 import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
-import com.gtnewhorizons.modularnuclear.common.util.LongKeyMap;
+import com.gtnewhorizons.modularnuclear.common.util.ConfigGeneration;
+import com.gtnewhorizons.modularnuclear.common.util.IdentityCache;
+import com.gtnewhorizons.modularnuclear.common.util.LongKeyCache;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -60,32 +62,20 @@ public final class ReactorDataRegistry {
     private static File configDirectory;
 
     // Fast item-level lookup caches for WAILA and client tick responsiveness
-    private static final LongKeyMap<FuelData> fuelCache = new LongKeyMap<>();
-    private static final LongKeyMap<ModeratorData> moderatorCache = new LongKeyMap<>();
-    private static final LongKeyMap<ReflectorData> reflectorCache = new LongKeyMap<>();
-    private static final LongKeyMap<ControlRodData> controlRodCache = new LongKeyMap<>();
-    private static final LongKeyMap<InsulatorData> insulatorCache = new LongKeyMap<>();
-    private static final LongKeyMap<HeatVentData> heatVentCache = new LongKeyMap<>();
-    private static final LongKeyMap<HeatExchangerData> heatExchangerCache = new LongKeyMap<>();
-    private static final LongKeyMap<RadiovoltaicData> radiovoltaicCache = new LongKeyMap<>();
-    private static final LongKeyMap<CoolantItemData> coolantItemCache = new LongKeyMap<>();
-    private static final LongKeyMap<CoolantFluidData> coolantFluidItemCache = new LongKeyMap<>();
-    private static final LongKeyMap<Boolean> spentProductCache = new LongKeyMap<>();
-    /** Fluid lookups match names against every entry's patterns, so they are kept per fluid like item lookups. */
-    private static final Map<net.minecraftforge.fluids.Fluid, Object> liquidFuelByFluid = new ConcurrentHashMap<>();
-    private static final Map<net.minecraftforge.fluids.Fluid, Object> coolantFluidByFluid = new ConcurrentHashMap<>();
-    private static final Object NO_FLUID_MATCH = new Object();
-
-    private static final FuelData NO_FUEL = new FuelData();
-    private static final ModeratorData NO_MODERATOR = new ModeratorData();
-    private static final ReflectorData NO_REFLECTOR = new ReflectorData();
-    private static final ControlRodData NO_CONTROL_ROD = new ControlRodData();
-    private static final InsulatorData NO_INSULATOR = new InsulatorData();
-    private static final HeatVentData NO_HEAT_VENT = new HeatVentData();
-    private static final HeatExchangerData NO_HEAT_EXCHANGER = new HeatExchangerData();
-    private static final RadiovoltaicData NO_RADIOVOLTAIC = new RadiovoltaicData();
-    private static final CoolantItemData NO_COOLANT_ITEM = new CoolantItemData();
-    private static final CoolantFluidData NO_COOLANT_FLUID = new CoolantFluidData();
+    // What each item kind (and fluid) is to the configuration, until it changes (see ConfigGeneration)
+    private static final LongKeyCache<FuelData> fuelCache = new LongKeyCache<>();
+    private static final LongKeyCache<ModeratorData> moderatorCache = new LongKeyCache<>();
+    private static final LongKeyCache<ReflectorData> reflectorCache = new LongKeyCache<>();
+    private static final LongKeyCache<ControlRodData> controlRodCache = new LongKeyCache<>();
+    private static final LongKeyCache<InsulatorData> insulatorCache = new LongKeyCache<>();
+    private static final LongKeyCache<HeatVentData> heatVentCache = new LongKeyCache<>();
+    private static final LongKeyCache<HeatExchangerData> heatExchangerCache = new LongKeyCache<>();
+    private static final LongKeyCache<RadiovoltaicData> radiovoltaicCache = new LongKeyCache<>();
+    private static final LongKeyCache<CoolantItemData> coolantItemCache = new LongKeyCache<>();
+    private static final LongKeyCache<CoolantFluidData> coolantFluidItemCache = new LongKeyCache<>();
+    private static final LongKeyCache<Boolean> spentProductCache = new LongKeyCache<>();
+    private static final IdentityCache<Fluid, FuelData> liquidFuelByFluid = new IdentityCache<>();
+    private static final IdentityCache<Fluid, CoolantFluidData> coolantFluidByFluid = new IdentityCache<>();
 
     public static long getItemKey(ItemStack stack) {
         if (stack == null) return 0L;
@@ -125,20 +115,9 @@ public final class ReactorDataRegistry {
         return key != 0L && key == getItemKey(item.get(1L));
     }
 
+    /** The configuration changed: every cache built from it starts over. */
     public static synchronized void clearCaches() {
-        fuelCache.clear();
-        moderatorCache.clear();
-        reflectorCache.clear();
-        controlRodCache.clear();
-        insulatorCache.clear();
-        heatVentCache.clear();
-        heatExchangerCache.clear();
-        radiovoltaicCache.clear();
-        coolantItemCache.clear();
-        coolantFluidItemCache.clear();
-        spentProductCache.clear();
-        liquidFuelByFluid.clear();
-        coolantFluidByFluid.clear();
+        ConfigGeneration.bump();
         try {
             Class.forName("net.minecraft.item.Item");
             Class<?> clazz = Class.forName("com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification");
@@ -148,6 +127,15 @@ public final class ReactorDataRegistry {
             Swallowed.note(swallowed);
             // Standalone CLI or WebAssembly environment without Minecraft classes
         }
+    }
+
+    /** The first entry whose matching patterns cover the stack, or null. */
+    private static <D> D firstMatch(ItemStack stack, List<D> entries, Function<D, List<String>> matching) {
+        if (entries == null) return null;
+        for (D d : entries) {
+            if (matchesItem(stack, matching.apply(d))) return d;
+        }
+        return null;
     }
 
     public static synchronized void preIndexKnownItems() {
@@ -471,14 +459,10 @@ public final class ReactorDataRegistry {
             return null;
         }
 
-        long key = getItemKey(stack);
-        if (key != 0L) {
-            FuelData cached = fuelCache.get(key);
-            if (cached != null) {
-                return cached == NO_FUEL ? null : cached;
-            }
-        }
+        return fuelCache.get(getItemKey(stack), stack, (s, k) -> scanFuel(s));
+    }
 
+    private static FuelData scanFuel(ItemStack stack) {
         FluidStack fs = null;
         try {
             if (ItemList.Display_Fluid.hasBeenSet()) {
@@ -487,19 +471,10 @@ public final class ReactorDataRegistry {
         } catch (Throwable swallowed) {
             Swallowed.note(swallowed);
         }
-        if (fs != null) {
-            FuelData result = findFuel(fs);
-            if (key != 0L) fuelCache.put(key, result != null ? result : NO_FUEL);
-            return result;
-        }
-
+        if (fs != null) return findFuel(fs);
         for (FuelData fd : ReactorConfigData.fuels) {
-            if (!fd.isLiquid && matchesItem(stack, fd.matching)) {
-                if (key != 0L) fuelCache.put(key, fd);
-                return fd;
-            }
+            if (!fd.isLiquid && matchesItem(stack, fd.matching)) return fd;
         }
-        if (key != 0L) fuelCache.put(key, NO_FUEL);
         return null;
     }
 
@@ -509,18 +484,12 @@ public final class ReactorDataRegistry {
 
     public static FuelData findFuel(Fluid fluid) {
         if (fluid == null) return null;
-        Object hit = liquidFuelByFluid.get(fluid);
-        if (hit == null) {
-            hit = NO_FLUID_MATCH;
+        return liquidFuelByFluid.get(fluid, f -> {
             for (FuelData fd : ReactorConfigData.fuels) {
-                if (fd.isLiquid && matchesFluid(fluid, fd.matching)) {
-                    hit = fd;
-                    break;
-                }
+                if (fd.isLiquid && matchesFluid(f, fd.matching)) return fd;
             }
-            liquidFuelByFluid.put(fluid, hit);
-        }
-        return hit == NO_FLUID_MATCH ? null : (FuelData) hit;
+            return null;
+        });
     }
 
     public static FuelData findFuel(String fluidName) {
@@ -529,161 +498,73 @@ public final class ReactorDataRegistry {
 
     public static ReflectorData findReflector(ItemStack stack) {
         if (stack == null) return null;
-        long key = getItemKey(stack);
-        if (key != 0L) {
-            ReflectorData cached = reflectorCache.get(key);
-            if (cached != null) {
-                return cached == NO_REFLECTOR ? null : cached;
-            }
-        }
-        for (ReflectorData d : ReactorConfigData.componentData.reflectors) {
-            if (matchesItem(stack, d.matching)) {
-                if (key != 0L) reflectorCache.put(key, d);
-                return d;
-            }
-        }
-        if (key != 0L) reflectorCache.put(key, NO_REFLECTOR);
-        return null;
+        return reflectorCache.get(
+            getItemKey(stack),
+            stack,
+            (s, k) -> firstMatch(s, ReactorConfigData.componentData.reflectors, d -> d.matching));
     }
 
     public static ModeratorData findModerator(ItemStack stack) {
         if (stack == null) return null;
-        long key = getItemKey(stack);
-        if (key != 0L) {
-            ModeratorData cached = moderatorCache.get(key);
-            if (cached != null) {
-                return cached == NO_MODERATOR ? null : cached;
-            }
-        }
-        for (ModeratorData d : ReactorConfigData.componentData.moderators) {
-            if (matchesItem(stack, d.matching)) {
-                if (key != 0L) moderatorCache.put(key, d);
-                return d;
-            }
-        }
-        if (key != 0L) moderatorCache.put(key, NO_MODERATOR);
-        return null;
+        return moderatorCache.get(
+            getItemKey(stack),
+            stack,
+            (s, k) -> firstMatch(s, ReactorConfigData.componentData.moderators, d -> d.matching));
     }
 
     public static ControlRodData findControlRod(ItemStack stack) {
         if (stack == null) return null;
-        long key = getItemKey(stack);
-        if (key != 0L) {
-            ControlRodData cached = controlRodCache.get(key);
-            if (cached != null) {
-                return cached == NO_CONTROL_ROD ? null : cached;
-            }
-        }
-        for (ControlRodData d : ReactorConfigData.componentData.controlRods) {
-            if (matchesItem(stack, d.matching)) {
-                if (key != 0L) controlRodCache.put(key, d);
-                return d;
-            }
-        }
-        if (key != 0L) controlRodCache.put(key, NO_CONTROL_ROD);
-        return null;
+        return controlRodCache.get(
+            getItemKey(stack),
+            stack,
+            (s, k) -> firstMatch(s, ReactorConfigData.componentData.controlRods, d -> d.matching));
     }
 
     public static HeatVentData findHeatVent(ItemStack stack) {
         if (stack == null) return null;
-        long key = getItemKey(stack);
-        if (key != 0L) {
-            HeatVentData cached = heatVentCache.get(key);
-            if (cached != null) {
-                return cached == NO_HEAT_VENT ? null : cached;
-            }
-        }
-        for (HeatVentData d : ReactorConfigData.componentData.heatVents) {
-            if (matchesItem(stack, d.matching)) {
-                if (key != 0L) heatVentCache.put(key, d);
-                return d;
-            }
-        }
-        if (key != 0L) heatVentCache.put(key, NO_HEAT_VENT);
-        return null;
+        return heatVentCache.get(
+            getItemKey(stack),
+            stack,
+            (s, k) -> firstMatch(s, ReactorConfigData.componentData.heatVents, d -> d.matching));
     }
 
     public static HeatExchangerData findHeatExchanger(ItemStack stack) {
         if (stack == null) return null;
-        long key = getItemKey(stack);
-        if (key != 0L) {
-            HeatExchangerData cached = heatExchangerCache.get(key);
-            if (cached != null) {
-                return cached == NO_HEAT_EXCHANGER ? null : cached;
-            }
-        }
-        for (HeatExchangerData d : ReactorConfigData.componentData.heatExchangers) {
-            if (matchesItem(stack, d.matching)) {
-                if (key != 0L) heatExchangerCache.put(key, d);
-                return d;
-            }
-        }
-        if (key != 0L) heatExchangerCache.put(key, NO_HEAT_EXCHANGER);
-        return null;
+        return heatExchangerCache.get(
+            getItemKey(stack),
+            stack,
+            (s, k) -> firstMatch(s, ReactorConfigData.componentData.heatExchangers, d -> d.matching));
     }
 
     public static InsulatorData findInsulator(ItemStack stack) {
         if (stack == null) return null;
-        long key = getItemKey(stack);
-        if (key != 0L) {
-            InsulatorData cached = insulatorCache.get(key);
-            if (cached != null) {
-                return cached == NO_INSULATOR ? null : cached;
-            }
-        }
-        for (InsulatorData d : ReactorConfigData.componentData.insulators) {
-            if (matchesItem(stack, d.matching)) {
-                if (key != 0L) insulatorCache.put(key, d);
-                return d;
-            }
-        }
-        if (key != 0L) insulatorCache.put(key, NO_INSULATOR);
-        return null;
+        return insulatorCache.get(
+            getItemKey(stack),
+            stack,
+            (s, k) -> firstMatch(s, ReactorConfigData.componentData.insulators, d -> d.matching));
     }
 
     public static RadiovoltaicData findRadiovoltaic(ItemStack stack) {
         if (stack == null) return null;
-        long key = getItemKey(stack);
-        if (key != 0L) {
-            RadiovoltaicData cached = radiovoltaicCache.get(key);
-            if (cached != null) {
-                return cached == NO_RADIOVOLTAIC ? null : cached;
-            }
-        }
-        for (RadiovoltaicData d : ReactorConfigData.componentData.radiovoltaics) {
-            if (matchesItem(stack, d.matching)) {
-                if (key != 0L) radiovoltaicCache.put(key, d);
-                return d;
-            }
-        }
-        if (key != 0L) radiovoltaicCache.put(key, NO_RADIOVOLTAIC);
-        return null;
+        return radiovoltaicCache.get(
+            getItemKey(stack),
+            stack,
+            (s, k) -> firstMatch(s, ReactorConfigData.componentData.radiovoltaics, d -> d.matching));
     }
 
     public static CoolantFluidData findCoolantFluid(ItemStack stack) {
         if (stack == null) return null;
-        long key = getItemKey(stack);
-        if (key != 0L) {
-            CoolantFluidData cached = coolantFluidItemCache.get(key);
-            if (cached != null) {
-                return cached == NO_COOLANT_FLUID ? null : cached;
+        return coolantFluidItemCache.get(getItemKey(stack), stack, (s, k) -> {
+            FluidStack fs = null;
+            try {
+                if (ItemList.Display_Fluid.hasBeenSet()) {
+                    fs = GTUtility.getFluidFromDisplayStack(s);
+                }
+            } catch (Throwable swallowed) {
+                Swallowed.note(swallowed);
             }
-        }
-        FluidStack fs = null;
-        try {
-            if (ItemList.Display_Fluid.hasBeenSet()) {
-                fs = GTUtility.getFluidFromDisplayStack(stack);
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
-        if (fs != null) {
-            CoolantFluidData res = findCoolantFluid(fs);
-            if (key != 0L) coolantFluidItemCache.put(key, res != null ? res : NO_COOLANT_FLUID);
-            return res;
-        }
-        if (key != 0L) coolantFluidItemCache.put(key, NO_COOLANT_FLUID);
-        return null;
+            return fs != null ? findCoolantFluid(fs) : null;
+        });
     }
 
     public static CoolantFluidData findCoolantFluid(FluidStack fluid) {
@@ -692,18 +573,12 @@ public final class ReactorDataRegistry {
 
     public static CoolantFluidData findCoolantFluid(Fluid fluid) {
         if (fluid == null) return null;
-        Object hit = coolantFluidByFluid.get(fluid);
-        if (hit == null) {
-            hit = NO_FLUID_MATCH;
+        return coolantFluidByFluid.get(fluid, f -> {
             for (CoolantFluidData d : ReactorConfigData.componentData.coolantFluids) {
-                if (matchesFluid(fluid, d.matching)) {
-                    hit = d;
-                    break;
-                }
+                if (matchesFluid(f, d.matching)) return d;
             }
-            coolantFluidByFluid.put(fluid, hit);
-        }
-        return hit == NO_FLUID_MATCH ? null : (CoolantFluidData) hit;
+            return null;
+        });
     }
 
     public static CoolantFluidData findCoolantFluid(String fluidName) {
@@ -712,50 +587,28 @@ public final class ReactorDataRegistry {
 
     public static CoolantItemData findCoolantItem(ItemStack stack) {
         if (stack == null) return null;
-        long key = getItemKey(stack);
-        if (key != 0L) {
-            CoolantItemData cached = coolantItemCache.get(key);
-            if (cached != null) {
-                return cached == NO_COOLANT_ITEM ? null : cached;
-            }
-        }
-        for (CoolantItemData d : ReactorConfigData.componentData.coolantItems) {
-            if (matchesItem(stack, d.matching)) {
-                if (key != 0L) coolantItemCache.put(key, d);
-                return d;
-            }
-        }
-        if (key != 0L) coolantItemCache.put(key, NO_COOLANT_ITEM);
-        return null;
+        return coolantItemCache.get(
+            getItemKey(stack),
+            stack,
+            (s, k) -> firstMatch(s, ReactorConfigData.componentData.coolantItems, d -> d.matching));
     }
 
     public static boolean isSpentProduct(ItemStack stack) {
         if (stack == null) return false;
-        long key = getItemKey(stack);
-        if (key != 0L) {
-            Boolean cached = spentProductCache.get(key);
-            if (cached != null) {
-                return cached.booleanValue();
+        return spentProductCache.get(getItemKey(stack), stack, (s, k) -> {
+            for (FuelData fd : ReactorConfigData.fuels) {
+                if (fd.spentProduct != null && !fd.spentProduct.isEmpty()
+                    && matchesItem(s, Collections.singletonList(fd.spentProduct))) return Boolean.TRUE;
             }
-        }
-        for (FuelData fd : ReactorConfigData.fuels) {
-            if (fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
-                if (matchesItem(stack, Collections.singletonList(fd.spentProduct))) {
-                    if (key != 0L) spentProductCache.put(key, Boolean.TRUE);
-                    return true;
-                }
-            }
-        }
-        if (key != 0L) spentProductCache.put(key, Boolean.FALSE);
-        return false;
+            return Boolean.FALSE;
+        });
     }
 
     public static boolean isSpentProduct(String name) {
         if (name == null || name.isEmpty()) return false;
         for (FuelData fd : ReactorConfigData.fuels) {
             if (fd.spentProduct != null && !fd.spentProduct.isEmpty()) {
-                if (fd.spentProduct.equalsIgnoreCase(name) || ("fluid." + fd.spentProduct).equalsIgnoreCase(name))
-                    return true;
+                if (fd.spentProduct.equals(name)) return true;
             }
         }
         return false;

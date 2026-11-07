@@ -1,8 +1,5 @@
 package com.gtnewhorizons.modularnuclear.common.util;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
@@ -15,29 +12,21 @@ import gregtech.api.enums.Materials;
 
 public final class CoolantFluidHelper {
 
-    private static final Map<Fluid, Boolean> sWaterCache = new ConcurrentHashMap<>();
-    private static final Map<Fluid, Boolean> sLavaCache = new ConcurrentHashMap<>();
-    private static final Map<Fluid, Boolean> sGasCache = new ConcurrentHashMap<>();
-    private static final Map<Fluid, Boolean> sNuclearFuelFluidCache = new ConcurrentHashMap<>();
-    private static final Map<String, Boolean> sNuclearFuelNameCache = new ConcurrentHashMap<>();
+    private static final IdentityCache<Fluid, Boolean> GASEOUS = new IdentityCache<>();
+    private static final IdentityCache<Fluid, Boolean> LIQUID_FUEL_FLUID = new IdentityCache<>();
+    private static final NameCache<Boolean> LIQUID_FUEL_NAME = new NameCache<>();
 
     public static void clearCaches() {
-        sWaterCache.clear();
-        sLavaCache.clear();
-        sGasCache.clear();
-        sNuclearFuelFluidCache.clear();
-        sNuclearFuelNameCache.clear();
+        GASEOUS.clear();
+        LIQUID_FUEL_FLUID.clear();
+        LIQUID_FUEL_NAME.clear();
     }
 
     private CoolantFluidHelper() {}
 
     public static boolean isPlainRegularWater(Fluid fluid) {
         if (fluid == null) return false;
-        Boolean cached = sWaterCache.get(fluid);
-        if (cached != null) return cached;
-        boolean res = "water".equals(fluid.getName());
-        sWaterCache.put(fluid, res);
-        return res;
+        return fluid == FluidRegistry.WATER || "water".equals(fluid.getName());
     }
 
     public static boolean isPlainRegularWater(FluidStack stack) {
@@ -54,11 +43,7 @@ public final class CoolantFluidHelper {
             fluid = stack.getFluid();
         }
         if (fluid == null) return false;
-        Boolean cached = sLavaCache.get(fluid);
-        if (cached != null) return cached;
-        boolean res = isLava(fluid.getName());
-        sLavaCache.put(fluid, res);
-        return res;
+        return fluid == FluidRegistry.LAVA || isLava(fluid.getName());
     }
 
     public static boolean isLava(FluidStack stack) {
@@ -73,14 +58,10 @@ public final class CoolantFluidHelper {
 
     public static boolean isLiquidNuclearFuel(String name) {
         if (name == null) return false;
-        Boolean cached = sNuclearFuelNameCache.get(name);
-        if (cached != null) return cached;
-        boolean res = computeIsLiquidNuclearFuel(name);
-        sNuclearFuelNameCache.put(name, res);
-        return res;
+        return LIQUID_FUEL_NAME.get(name, CoolantFluidHelper::computeIsLiquidNuclearFuel);
     }
 
-    private static boolean computeIsLiquidNuclearFuel(String name) {
+    private static Boolean computeIsLiquidNuclearFuel(String name) {
         return CoolantLoopDataRegistry.getFluidData()
             .isLiquidNuclearFuel(name);
     }
@@ -90,11 +71,7 @@ public final class CoolantFluidHelper {
             fluid = stack.getFluid();
         }
         if (fluid == null) return false;
-        Boolean cached = sNuclearFuelFluidCache.get(fluid);
-        if (cached != null) return cached;
-        boolean res = isLiquidNuclearFuel(fluid.getName());
-        sNuclearFuelFluidCache.put(fluid, res);
-        return res;
+        return LIQUID_FUEL_FLUID.get(fluid, f -> isLiquidNuclearFuel(f.getName()));
     }
 
     public static boolean isLiquidNuclearFuel(FluidStack stack) {
@@ -107,9 +84,12 @@ public final class CoolantFluidHelper {
             fluid = stack.getFluid();
         }
         if (fluid == null) return false;
-        Boolean cached = sGasCache.get(fluid);
-        if (cached != null) return cached;
-        boolean res = fluid.isGaseous() || (stack != null && fluid.isGaseous(stack));
+        if (stack != null && fluid.isGaseous(stack)) return true;
+        return GASEOUS.get(fluid, CoolantFluidHelper::scanGaseous);
+    }
+
+    private static Boolean scanGaseous(Fluid fluid) {
+        boolean res = fluid.isGaseous();
         if (!res) {
             String name = fluid.getName()
                 .trim()
@@ -127,7 +107,6 @@ public final class CoolantFluidHelper {
                 }
             }
         }
-        sGasCache.put(fluid, res);
         return res;
     }
 
