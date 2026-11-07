@@ -785,20 +785,11 @@ public class LoopGraphCrawler {
                 stepsThisSlice++;
                 stepCount++;
 
-                // Every device and the pump has a pipe on each side: a manifold feeds only pipes (or another
-                // manifold), and a device's output goes into a pipe, so chains of devices can't stand in for pipes
+                // Every device and the pump has a pipe on each side (a manifold's ports are checked as its group
+                // forms): a device's output goes into a pipe, so chains of devices can't stand in for pipes
                 TileEntity fed = world.getTileEntity(step.x, step.y, step.z);
                 boolean fedIsPipe = fed instanceof BaseMetaPipeEntity bmpe
                     && bmpe.getMetaTileEntity() instanceof MTEFluidPipe;
-                FlowNode fromNode = graphNodes.get(step.fromNodeId);
-                if (fromNode != null && fromNode.type == NodeType.MANIFOLD_GROUP
-                    && !fedIsPipe
-                    && !(fed instanceof TileEntityManifold)) {
-                    finishWithFailure(
-                        CoolantLocalization
-                            .format("coolantloops.crawler.device_fed_by_manifold", step.x, step.y, step.z));
-                    return true;
-                }
                 if (step.sizeFromDevice != null && !fedIsPipe) {
                     finishWithFailure(
                         CoolantLocalization.format(
@@ -1033,6 +1024,24 @@ public class LoopGraphCrawler {
                                         dir,
                                         groupInputSide,
                                         groupOutputSide));
+                                return Visit.STOP;
+                            }
+
+                            // Manifolds join each other only in their plane: the input and output sides take
+                            // high-pressure pipes and nothing else
+                            TileEntity port = world.getTileEntity(nx, ny, nz);
+                            if (!(port instanceof BaseMetaPipeEntity portPipe
+                                && portPipe.getMetaTileEntity() instanceof MTECoolantPipe)) {
+                                finishWithFailure(
+                                    CoolantLocalization.format(
+                                        "coolantloops.crawler.manifold_port_not_pipe",
+                                        mPos.x,
+                                        mPos.y,
+                                        mPos.z,
+                                        dir,
+                                        nx,
+                                        ny,
+                                        nz));
                                 return Visit.STOP;
                             }
 

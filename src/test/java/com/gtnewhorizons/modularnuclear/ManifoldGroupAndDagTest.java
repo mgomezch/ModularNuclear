@@ -408,8 +408,31 @@ public class ManifoldGroupAndDagTest {
 
         assertFalse(result.isSuccess, "A manifold feeding a device directly must fail the crawl");
         assertTrue(
-            result.failureReason.contains("feeds the device or pump at (13, 10, 10) directly"),
-            "The failure must name the device's position: " + result.failureReason);
+            result.failureReason.contains("(12, 10, 10) connects on its EAST side")
+                && result.failureReason.contains("at (13, 10, 10)"),
+            "The failure must name the manifold and the device's position: " + result.failureReason);
+    }
+
+    @Test
+    public void testManifoldsJoinOnlyInTheirPlane() {
+        WorldTileMap map = new WorldTileMap();
+        // A splitter whose output side is right against a second manifold group, instead of pipes
+        map.putPipe(11, 10, 10, ForgeDirection.WEST, ForgeDirection.EAST);
+        map.putManifold(12, 10, 10);
+        map.putManifold(12, 10, 11);
+        map.putManifold(13, 10, 10);
+        map.putManifold(13, 10, 11);
+        map.putPipe(14, 10, 10, ForgeDirection.WEST, ForgeDirection.EAST);
+        map.putPipe(14, 10, 11, ForgeDirection.WEST, ForgeDirection.EAST);
+
+        CrawlResult result = new LoopGraphCrawler(map.world, 100)
+            .crawl(10, 10, 10, ForgeDirection.EAST, 10, 10, 8, ForgeDirection.NORTH, "pump:10:10:10", null, null);
+
+        assertFalse(result.isSuccess, "A manifold's output side against another manifold must fail the crawl");
+        assertTrue(
+            result.failureReason.contains("(12, 10, 10) connects on its EAST side")
+                && result.failureReason.contains("at (13, 10, 10)"),
+            "The failure must name both manifolds: " + result.failureReason);
     }
 
     private LoopSegment findSegment(List<LoopSegment> segments, String id) {
