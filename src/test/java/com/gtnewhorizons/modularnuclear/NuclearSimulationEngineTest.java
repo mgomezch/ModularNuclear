@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.CommonProxy;
+import com.gtnewhorizons.modularnuclear.common.block.BlockControlRodHousing;
 import com.gtnewhorizons.modularnuclear.common.block.BlockCorium;
 import com.gtnewhorizons.modularnuclear.common.block.BlockCoriumSolid;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
@@ -8016,29 +8017,29 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
-    void testControlRodMiningPipeTravelHousing() {
+    void testControlRodHousing() {
         // 1. Basic Hatch properties and clamping
         MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test.rod.housing", 4, new String[0], null);
-        assertEquals(5, rod.getMiningPipeCount());
+        assertEquals(5, rod.getHousingCount());
         assertEquals(100, rod.getMaxExtractionPercent());
         assertEquals(1.0, rod.getMaxExtractionRatio(), 1e-6);
         assertEquals(0, rod.getMinInsertionPercent());
         assertEquals(0.0, rod.getMinInsertionRatio(), 1e-6);
 
         // Clamp checks on setter
-        rod.setMiningPipeCount(6);
-        assertEquals(5, rod.getMiningPipeCount());
-        rod.setMiningPipeCount(-2);
-        assertEquals(0, rod.getMiningPipeCount());
+        rod.setHousingCount(6);
+        assertEquals(5, rod.getHousingCount());
+        rod.setHousingCount(-2);
+        assertEquals(0, rod.getHousingCount());
 
-        // 2. Extraction and insertion limits per pipe count
-        int[][] pipeScenarios = {
-            // pipes, expectedMaxExtraction, expectedMinInsertion
+        // 2. Extraction and insertion limits per housing count
+        int[][] housingScenarios = {
+            // housings, expectedMaxExtraction, expectedMinInsertion
             { 5, 100, 0 }, { 4, 80, 20 }, { 3, 60, 40 }, { 2, 40, 60 }, { 1, 20, 80 }, { 0, 0, 100 } };
-        for (int[] s : pipeScenarios) {
-            rod.setMiningPipeCount(s[0]);
-            assertEquals(s[1], rod.getMaxExtractionPercent(), "Max extraction mismatch for " + s[0] + " pipes");
-            assertEquals(s[2], rod.getMinInsertionPercent(), "Min insertion mismatch for " + s[0] + " pipes");
+        for (int[] s : housingScenarios) {
+            rod.setHousingCount(s[0]);
+            assertEquals(s[1], rod.getMaxExtractionPercent(), "Max extraction mismatch for " + s[0] + " housings");
+            assertEquals(s[2], rod.getMinInsertionPercent(), "Min insertion mismatch for " + s[0] + " housings");
             assertEquals(s[1] / 100.0, rod.getMaxExtractionRatio(), 1e-6);
             assertEquals(s[2] / 100.0, rod.getMinInsertionRatio(), 1e-6);
         }
@@ -8066,8 +8067,8 @@ public class NuclearSimulationEngineTest {
 
         TestHousingRod testRod = new TestHousingRod();
 
-        // 3 pipes: max extraction 60%, min insertion 40%
-        testRod.setMiningPipeCount(3);
+        // 3 housings: max extraction 60%, min insertion 40%
+        testRod.setHousingCount(3);
         assertEquals(40, testRod.getMinInsertionPercent());
 
         // Target insertion 0% (full extraction requested): clamped to 40%
@@ -8088,14 +8089,14 @@ public class NuclearSimulationEngineTest {
         assertEquals(60, testRod.getInsertionPercent());
         assertEquals(0.60, testRod.getInsertionRatio(), 1e-6);
 
-        // 0 pipes: locked at 100% insertion regardless of redstone
-        testRod.setMiningPipeCount(0);
+        // 0 housings: locked at 100% insertion regardless of redstone
+        testRod.setHousingCount(0);
         testRod.fine = 0;
         assertEquals(100, testRod.getInsertionPercent());
         assertEquals(1.0, testRod.getInsertionRatio(), 1e-6);
 
-        // SCRAM forces 100% insertion even with 5 pipes
-        testRod.setMiningPipeCount(5);
+        // SCRAM forces 100% insertion even with 5 housings
+        testRod.setHousingCount(5);
         testRod.fine = 0;
         testRod.setScram(true);
         assertEquals(100, testRod.getInsertionPercent());
@@ -8116,62 +8117,79 @@ public class NuclearSimulationEngineTest {
         org.mockito.Mockito.when(mockGt.getFrontFacing())
             .thenReturn(ForgeDirection.DOWN);
 
-        net.minecraft.block.Block mockMiningPipe = org.mockito.Mockito.mock(net.minecraft.block.Block.class);
-        net.minecraft.block.Block mockMiningTip = org.mockito.Mockito.mock(net.minecraft.block.Block.class);
+        net.minecraft.block.Block housing = org.mockito.Mockito.mock(BlockControlRodHousing.class);
         net.minecraft.block.Block mockOther = org.mockito.Mockito.mock(net.minecraft.block.Block.class);
-        MTEHatchNuclearControlRod.useMiningPipeBlocks(mockMiningPipe, mockMiningTip);
+        BlockControlRodHousing previousHousing = ModBlocks.controlRodHousing;
+        ModBlocks.controlRodHousing = (BlockControlRodHousing) housing;
+        try {
+            // A housing counts only when it runs along the hatch's facing
+            assertTrue(
+                MTEHatchNuclearControlRod.isHousing(housing, BlockControlRodHousing.AXIS_Y, ForgeDirection.DOWN));
+            assertFalse(
+                MTEHatchNuclearControlRod.isHousing(housing, BlockControlRodHousing.AXIS_X, ForgeDirection.DOWN));
+            assertTrue(
+                MTEHatchNuclearControlRod.isHousing(housing, BlockControlRodHousing.AXIS_Z, ForgeDirection.NORTH));
+            assertFalse(
+                MTEHatchNuclearControlRod.isHousing(mockOther, BlockControlRodHousing.AXIS_Y, ForgeDirection.DOWN));
+            assertFalse(MTEHatchNuclearControlRod.isHousing(null, BlockControlRodHousing.AXIS_Y, ForgeDirection.DOWN));
 
-        // Test isMiningPipeBlock: IC2's pipe and tip, by identity
-        assertTrue(MTEHatchNuclearControlRod.isMiningPipeBlock(mockMiningPipe));
-        assertTrue(MTEHatchNuclearControlRod.isMiningPipeBlock(mockMiningTip));
-        assertFalse(MTEHatchNuclearControlRod.isMiningPipeBlock(mockOther));
-        assertFalse(MTEHatchNuclearControlRod.isMiningPipeBlock(null));
+            MTEHatchNuclearControlRod worldRod = new MTEHatchNuclearControlRod(
+                "test.world.rod",
+                4,
+                new String[0],
+                null);
+            worldRod.setBaseMetaTileEntity(mockGt);
 
-        MTEHatchNuclearControlRod worldRod = new MTEHatchNuclearControlRod("test.world.rod", 4, new String[0], null);
-        worldRod.setBaseMetaTileEntity(mockGt);
+            // Case A: 5 consecutive vertical housings below the hatch (y=49..45)
+            for (int y = 49; y >= 45; y--) {
+                org.mockito.Mockito.when(mockWorld.getBlock(10, y, 10))
+                    .thenReturn(housing);
+                org.mockito.Mockito.when(mockWorld.getBlockMetadata(10, y, 10))
+                    .thenReturn(BlockControlRodHousing.AXIS_Y);
+            }
+            worldRod.updateHousingCount();
+            assertEquals(5, worldRod.getHousingCount());
+            assertEquals(0, worldRod.getMinInsertionPercent());
 
-        // Case A: 5 consecutive mining pipes below hatch (y=49..45)
-        for (int y = 49; y >= 45; y--) {
-            org.mockito.Mockito.when(mockWorld.getBlock(10, y, 10))
-                .thenReturn(mockMiningPipe);
+            // Case B: 2 housings, then a gap (stone), then 2 housings
+            org.mockito.Mockito.when(mockWorld.getBlock(10, 47, 10))
+                .thenReturn(mockOther); // GAP!
+            worldRod.updateHousingCount();
+            assertEquals(2, worldRod.getHousingCount(), "Gap should stop housing counting at 2");
+            assertEquals(60, worldRod.getMinInsertionPercent());
+            assertEquals(40, worldRod.getMaxExtractionPercent());
+
+            // Case C: the second housing is turned sideways
+            org.mockito.Mockito.when(mockWorld.getBlockMetadata(10, 48, 10))
+                .thenReturn(BlockControlRodHousing.AXIS_X);
+            worldRod.updateHousingCount();
+            assertEquals(1, worldRod.getHousingCount(), "A sideways housing should stop counting");
+
+            // Case D: Immediate blockage / no housings (y=49 is stone)
+            org.mockito.Mockito.when(mockWorld.getBlock(10, 49, 10))
+                .thenReturn(mockOther);
+            worldRod.updateHousingCount();
+            assertEquals(0, worldRod.getHousingCount());
+            assertEquals(100, worldRod.getMinInsertionPercent());
+
+            // NuclearGridTile delegation
+            NuclearGridTile gridTile = new NuclearGridTile(null, (MTEHatchNuclearBus) null, 0, 0);
+            assertEquals(5, gridTile.getControlRodHousings(), "Default without hatch is 5");
+            gridTile.setBottomControlRod(worldRod);
+            assertEquals(worldRod.getHousingCount(), gridTile.getControlRodHousings());
+        } finally {
+            ModBlocks.controlRodHousing = previousHousing;
         }
-        worldRod.updateMiningPipeHousing();
-        assertEquals(5, worldRod.getMiningPipeCount());
-        assertEquals(0, worldRod.getMinInsertionPercent());
 
-        // Case B: 2 mining pipes, then gap (stone), then 2 mining pipes
-        org.mockito.Mockito.when(mockWorld.getBlock(10, 49, 10))
-            .thenReturn(mockMiningPipe);
-        org.mockito.Mockito.when(mockWorld.getBlock(10, 48, 10))
-            .thenReturn(mockMiningPipe);
-        org.mockito.Mockito.when(mockWorld.getBlock(10, 47, 10))
-            .thenReturn(mockOther); // GAP!
-        org.mockito.Mockito.when(mockWorld.getBlock(10, 46, 10))
-            .thenReturn(mockMiningPipe);
-        org.mockito.Mockito.when(mockWorld.getBlock(10, 45, 10))
-            .thenReturn(mockMiningPipe);
-
-        worldRod.updateMiningPipeHousing();
-        assertEquals(2, worldRod.getMiningPipeCount(), "Gap should stop pipe counting at 2");
-        assertEquals(60, worldRod.getMinInsertionPercent());
-        assertEquals(40, worldRod.getMaxExtractionPercent());
-
-        // Case C: Immediate blockage / no pipes (y=49 is stone)
-        org.mockito.Mockito.when(mockWorld.getBlock(10, 49, 10))
-            .thenReturn(mockOther);
-        worldRod.updateMiningPipeHousing();
-        assertEquals(0, worldRod.getMiningPipeCount());
-        assertEquals(100, worldRod.getMinInsertionPercent());
-
-        // 5. SimTile mining pipe logic
+        // 5. SimTile housing logic
         SimTile simTile = new SimTile(SimTile.TileType.EMPTY);
         simTile.setHasControlRod(true);
         simTile.setControlRodType(SimTile.ControlRodType.CADMIUM);
-        assertEquals(5, simTile.getControlRodMiningPipes());
+        assertEquals(5, simTile.getControlRodHousings());
         assertEquals(0, simTile.getMinControlRodInsertion());
         assertEquals(100, simTile.getMaxControlRodExtraction());
 
-        simTile.setControlRodMiningPipes(2); // 2 pipes -> min insertion 60%
+        simTile.setControlRodHousings(2); // 2 housings -> min insertion 60%
         assertEquals(60, simTile.getMinControlRodInsertion());
         assertEquals(40, simTile.getMaxControlRodExtraction());
 
@@ -8181,13 +8199,6 @@ public class NuclearSimulationEngineTest {
         // Check absorption probability uses effective insertion (60% instead of 10%)
         double expectedAbs = 0.60 * SimTile.ControlRodType.CADMIUM.maxThermalAbsorption;
         assertEquals(expectedAbs, simTile.getControlRodAbsorptionProbability(NeutronType.THERMAL), 1e-4);
-
-        // 6. NuclearGridTile delegation
-        NuclearGridTile gridTile = new NuclearGridTile(null, (MTEHatchNuclearBus) null, 0, 0);
-        assertEquals(5, gridTile.getControlRodMiningPipes(), "Default without hatch is 5");
-
-        gridTile.setBottomControlRod(worldRod);
-        assertEquals(worldRod.getMiningPipeCount(), gridTile.getControlRodMiningPipes());
     }
 
     @Test

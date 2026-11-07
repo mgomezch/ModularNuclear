@@ -240,10 +240,10 @@ public interface INuclearTile {
     }
 
     /**
-     * Gets the number of valid mining pipe blocks in the control rod travel housing (0..5).
+     * Gets the number of control rod housings the rod can withdraw into (0..5).
      * Defaults to 5 (full travel) when no housing restriction is present.
      */
-    default int getControlRodMiningPipes() {
+    default int getControlRodHousings() {
         return 5;
     }
 }

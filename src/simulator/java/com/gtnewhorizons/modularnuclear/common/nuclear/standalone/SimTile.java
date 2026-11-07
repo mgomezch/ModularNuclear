@@ -350,7 +350,7 @@ public class SimTile implements INuclearTile {
     private boolean hasControlRod = false;
     private ControlRodType controlRodType = ControlRodType.NONE;
     private int controlRodInsertion = 0; // 0 to 100%
-    private int controlRodMiningPipes = 5; // 0 to 5 pipes (default 5 for 100% extraction)
+    private int controlRodHousings = 5; // 0 to 5 housings (default 5 for 100% extraction)
     private int lastControlRodFastAbsorbed = 0;
     private int lastControlRodThermalAbsorbed = 0;
     private int controlRodFastAbsorbed = 0;
@@ -403,20 +403,20 @@ public class SimTile implements INuclearTile {
     }
 
     @Override
-    public int getControlRodMiningPipes() {
-        return controlRodMiningPipes;
+    public int getControlRodHousings() {
+        return controlRodHousings;
     }
 
-    public void setControlRodMiningPipes(int count) {
-        this.controlRodMiningPipes = Math.max(0, Math.min(5, count));
+    public void setControlRodHousings(int count) {
+        this.controlRodHousings = Math.max(0, Math.min(5, count));
     }
 
     public int getMinControlRodInsertion() {
-        return Math.max(0, 100 - controlRodMiningPipes * 20);
+        return Math.max(0, 100 - controlRodHousings * 20);
     }
 
     public int getMaxControlRodExtraction() {
-        return Math.min(100, controlRodMiningPipes * 20);
+        return Math.min(100, controlRodHousings * 20);
     }
 
     public int getEffectiveControlRodInsertion() {

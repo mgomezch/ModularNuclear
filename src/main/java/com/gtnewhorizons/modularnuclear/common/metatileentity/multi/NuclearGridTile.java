@@ -59,7 +59,7 @@ public class NuclearGridTile implements INuclearTile {
     private int lastItemDamage = -1;
     private Object lastFluid = null;
     private int lastAmount = -1;
-    private int lastPipes = -1;
+    private int lastHousings = -1;
     private boolean lastScram = false;
     private boolean dirty = true;
 
@@ -119,8 +119,8 @@ public class NuclearGridTile implements INuclearTile {
     }
 
     @Override
-    public int getControlRodMiningPipes() {
-        return (bottomControlRod != null) ? bottomControlRod.getMiningPipeCount() : 5;
+    public int getControlRodHousings() {
+        return (bottomControlRod != null) ? bottomControlRod.getHousingCount() : 5;
     }
 
     public MTEHatchNuclearControlRod getBottomControlRod() {
@@ -413,7 +413,7 @@ public class NuclearGridTile implements INuclearTile {
         Object currentFluid = (fluid != null) ? fluid.getFluid() : null;
         int currentAmount = (fluid != null) ? fluid.amount : 0;
 
-        int pipes = (bottomControlRod != null) ? bottomControlRod.getMiningPipeCount() : -1;
+        int housings = (bottomControlRod != null) ? bottomControlRod.getHousingCount() : -1;
         boolean scram = (bottomControlRod != null) && bottomControlRod.mScram;
 
         // A different stack object can carry different NBT (a custom rod's fuel mix) under the same item key
@@ -422,7 +422,7 @@ public class NuclearGridTile implements INuclearTile {
             && (damageable || damage == lastItemDamage)
             && currentFluid == lastFluid
             && (currentAmount > 0) == (lastAmount > 0)
-            && pipes == lastPipes
+            && housings == lastHousings
             && scram == lastScram) {
             return;
         }
@@ -432,7 +432,7 @@ public class NuclearGridTile implements INuclearTile {
         lastItemDamage = damage;
         lastFluid = currentFluid;
         lastAmount = currentAmount;
-        lastPipes = pipes;
+        lastHousings = housings;
         lastScram = scram;
         dirty = false;
 

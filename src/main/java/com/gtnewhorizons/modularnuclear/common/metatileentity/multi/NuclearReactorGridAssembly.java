@@ -17,7 +17,7 @@ import gtnhlanth.common.hatch.MTEHatchInputBeamline;
 
 /**
  * What the reactor structure check does once the structure matched: builds the core grid from the matched hatches,
- * attaches the bottom-layer control rods (counting the mining pipes under each) and beam inputs to their cells, and
+ * attaches the bottom-layer control rods (counting the housings each extends into) and beam inputs to their cells, and
  * gives every hatch the reactor's casing texture and crafting icon.
  */
 final class NuclearReactorGridAssembly {
@@ -54,7 +54,7 @@ final class NuclearReactorGridAssembly {
                 gt.setBottomControlRod(rod);
                 rod.mReactor = reactor;
                 if (reactor.mScram) rod.setScram(true);
-                rod.updateMiningPipeHousing();
+                rod.updateHousingCount();
             }
         }
 

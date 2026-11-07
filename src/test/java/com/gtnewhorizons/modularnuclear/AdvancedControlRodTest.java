@@ -143,14 +143,14 @@ public class AdvancedControlRodTest {
         assertEquals(100, advRod.getInsertionPercent(), "SCRAM must force rod insertion to 100%");
         assertEquals(0, advRod.getModeratorInsertionPercent(), "SCRAM must force moderator insertion to 0%");
 
-        // 5. Mining pipe constraints
+        // 5. Housing constraints
         advRod.setScram(false);
         when(te.getStrongestRedstone()).thenReturn((byte) 0);
-        advRod.setMiningPipeCount(0); // 0 pipes: min insertion is 100%
-        assertEquals(100, advRod.getInsertionPercent(), "With 0 pipes, rod cannot be extracted below 100%");
+        advRod.setHousingCount(0); // 0 housings: min insertion is 100%
+        assertEquals(100, advRod.getInsertionPercent(), "With 0 housings, rod cannot be extracted below 100%");
         assertEquals(0, advRod.getModeratorInsertionPercent(), "With rod stuck at 100%, moderator remains at 0%");
 
-        advRod.setMiningPipeCount(5); // 5 pipes: full extraction allowed
+        advRod.setHousingCount(5); // 5 housings: full extraction allowed
         assertEquals(0, advRod.getInsertionPercent());
         assertEquals(100, advRod.getModeratorInsertionPercent());
     }

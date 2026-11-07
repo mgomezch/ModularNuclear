@@ -14,7 +14,9 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.gtnewhorizons.modularnuclear.common.block.BlockControlRodHousing;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
+import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
@@ -33,7 +35,6 @@ import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 
-import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.enums.Textures;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
@@ -306,31 +307,31 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         return getFineRedstoneSignal() >= 0;
     }
 
-    public static final int MAX_MINING_PIPES = 5;
-    public int mMiningPipeCount = MAX_MINING_PIPES;
+    public static final int MAX_HOUSINGS = 5;
+    public int mHousingCount = MAX_HOUSINGS;
 
-    public int getMiningPipeCount() {
-        return mMiningPipeCount;
+    public int getHousingCount() {
+        return mHousingCount;
     }
 
-    public void setMiningPipeCount(int count) {
-        this.mMiningPipeCount = Math.max(0, Math.min(MAX_MINING_PIPES, count));
+    public void setHousingCount(int count) {
+        this.mHousingCount = Math.max(0, Math.min(MAX_HOUSINGS, count));
     }
 
     public int getMaxExtractionPercent() {
-        return mMiningPipeCount * 20;
+        return mHousingCount * 20;
     }
 
     public double getMaxExtractionRatio() {
-        return (double) mMiningPipeCount * 0.20;
+        return (double) mHousingCount * 0.20;
     }
 
     public int getMinInsertionPercent() {
-        return Math.max(0, 100 - mMiningPipeCount * 20);
+        return Math.max(0, 100 - mHousingCount * 20);
     }
 
     public double getMinInsertionRatio() {
-        return Math.max(0.0, 1.0 - (double) mMiningPipeCount * 0.20);
+        return Math.max(0.0, 1.0 - (double) mHousingCount * 0.20);
     }
 
     public double getTargetInsertionRatio() {
@@ -357,31 +358,20 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         return (int) Math.round(getInsertionRatio() * 100.0);
     }
 
-    /** IC2's mining pipe and its tip, looked up on first use: blocks are all registered by then. */
-    private static Block miningPipe, miningTip;
-    private static boolean miningBlocksResolved;
-
-    public static boolean isMiningPipeBlock(Block block) {
-        if (block == null) return false;
-        if (!miningBlocksResolved) {
-            miningPipe = GameRegistry.findBlock("IC2", "blockMiningPipe");
-            miningTip = GameRegistry.findBlock("IC2", "blockMiningTip");
-            miningBlocksResolved = true;
-        }
-        return block == miningPipe || block == miningTip;
+    /** True when the block is a control rod housing running along the direction. */
+    public static boolean isHousing(Block block, int meta, ForgeDirection direction) {
+        return block != null && block == ModBlocks.controlRodHousing
+            && BlockControlRodHousing.runsAlong(meta, direction);
     }
 
-    /** Sets the mining pipe and tip blocks in place of IC2's, for tests that run without it. */
-    public static void useMiningPipeBlocks(Block pipe, Block tip) {
-        miningPipe = pipe;
-        miningTip = tip;
-        miningBlocksResolved = true;
-    }
-
-    public int countMiningPipes() {
+    /**
+     * The control rod housings in an unbroken line from the hatch's front face, up to {@link #MAX_HOUSINGS}, each
+     * running along the hatch's facing.
+     */
+    public int countHousings() {
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null || base.getWorld() == null) {
-            return mMiningPipeCount;
+            return mHousingCount;
         }
         World world = base.getWorld();
         ForgeDirection facing = base.getFrontFacing();
@@ -394,12 +384,11 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         int y = base.getYCoord();
         int z = base.getZCoord();
 
-        for (int i = 1; i <= MAX_MINING_PIPES; i++) {
+        for (int i = 1; i <= MAX_HOUSINGS; i++) {
             int bx = x + facing.offsetX * i;
             int by = y + facing.offsetY * i;
             int bz = z + facing.offsetZ * i;
-            Block block = world.getBlock(bx, by, bz);
-            if (isMiningPipeBlock(block)) {
+            if (isHousing(world.getBlock(bx, by, bz), world.getBlockMetadata(bx, by, bz), facing)) {
                 count++;
             } else {
                 break;
@@ -408,8 +397,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         return count;
     }
 
-    public void updateMiningPipeHousing() {
-        this.mMiningPipeCount = countMiningPipes();
+    public void updateHousingCount() {
+        this.mHousingCount = countHousings();
     }
 
     public double getAbsorptionProbability(NeutronType type) {
@@ -503,14 +492,6 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     @Override
-    public void onFirstTick(IGregTechTileEntity aBaseMetaTileEntity) {
-        super.onFirstTick(aBaseMetaTileEntity);
-        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide()) {
-            updateMiningPipeHousing();
-        }
-    }
-
-    @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
         aNBT.setDouble("mTemperature", mTemperature);
@@ -518,7 +499,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         aNBT.setLong("mCumulativeFluence", mCumulativeFluence);
         aNBT.setBoolean("mScram", mScram);
         aNBT.setInteger("mInputChannel", mInputChannel);
-        aNBT.setInteger("mMiningPipeCount", mMiningPipeCount);
+        aNBT.setInteger("mHousingCount", mHousingCount);
     }
 
     @Override
@@ -539,8 +520,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         if (aNBT.hasKey("mInputChannel")) {
             mInputChannel = aNBT.getInteger("mInputChannel");
         }
-        if (aNBT.hasKey("mMiningPipeCount")) {
-            mMiningPipeCount = aNBT.getInteger("mMiningPipeCount");
+        if (aNBT.hasKey("mHousingCount")) {
+            mHousingCount = aNBT.getInteger("mHousingCount");
         }
     }
 
@@ -610,7 +591,6 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                 return true;
             }
         }
-        updateMiningPipeHousing();
         openGui(aPlayer);
         return true;
     }
@@ -653,10 +633,10 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
                     .setDefaultColor(Color.rgb(200, 200, 255))
                     .setPos(10, 53))
             .widget(new TextWidget().setStringSupplier(() -> {
-                if (mMiningPipeCount < MAX_MINING_PIPES) {
-                    return String.format("Pipes: %d/5 (Min %d%%)", mMiningPipeCount, getMinInsertionPercent());
+                if (mHousingCount < MAX_HOUSINGS) {
+                    return String.format("Housing: %d/5 (Min %d%%)", mHousingCount, getMinInsertionPercent());
                 }
-                return "Pipes: 5/5 (Full)";
+                return "Housing: 5/5 (Full)";
             })
                 .setDefaultColor(Color.rgb(200, 200, 100))
                 .setPos(10, 64))

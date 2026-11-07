@@ -300,7 +300,7 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
                     Map<String, Object> rodMap = new LinkedHashMap<>();
                     rodMap.put("hasRod", true);
                     rodMap.put("insertion", rod.getInsertionPercent());
-                    rodMap.put("miningPipes", rod.getMiningPipeCount());
+                    rodMap.put("housings", rod.getHousingCount());
                     rodMap.put("minInsertion", rod.getMinInsertionPercent());
                     rodMap.put("maxExtraction", rod.getMaxExtractionPercent());
                     rodMap.put("targetInsertion", rod.getTargetInsertionPercent());

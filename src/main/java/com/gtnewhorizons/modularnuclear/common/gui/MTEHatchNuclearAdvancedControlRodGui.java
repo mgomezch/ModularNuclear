@@ -54,9 +54,8 @@ public class MTEHatchNuclearAdvancedControlRodGui extends MTEHatchBaseGui<MTEHat
         syncManager.syncValue(
             "inputChannel",
             new IntSyncValue(() -> machine.mInputChannel, val -> machine.mInputChannel = val));
-        syncManager.syncValue(
-            "miningPipes",
-            new IntSyncValue(() -> machine.mMiningPipeCount, val -> machine.mMiningPipeCount = val));
+        syncManager
+            .syncValue("housings", new IntSyncValue(() -> machine.mHousingCount, val -> machine.mHousingCount = val));
     }
 
     @Override

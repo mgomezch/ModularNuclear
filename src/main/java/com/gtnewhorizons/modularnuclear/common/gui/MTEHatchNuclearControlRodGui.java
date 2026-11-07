@@ -53,9 +53,8 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
         syncManager.syncValue(
             "inputChannel",
             new IntSyncValue(() -> machine.mInputChannel, val -> machine.mInputChannel = val));
-        syncManager.syncValue(
-            "miningPipes",
-            new IntSyncValue(() -> machine.mMiningPipeCount, val -> machine.mMiningPipeCount = val));
+        syncManager
+            .syncValue("housings", new IntSyncValue(() -> machine.mHousingCount, val -> machine.mHousingCount = val));
     }
 
     @Override
@@ -96,10 +95,10 @@ public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclea
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
-            int pipes = machine.getMiningPipeCount();
-            if (pipes < MTEHatchNuclearControlRod.MAX_MINING_PIPES) {
+            int housings = machine.getHousingCount();
+            if (housings < MTEHatchNuclearControlRod.MAX_HOUSINGS) {
                 return EnumChatFormatting.YELLOW
-                    + String.format("Housing: %d/5 (min %d%%)", pipes, machine.getMinInsertionPercent());
+                    + String.format("Housing: %d/5 (min %d%%)", housings, machine.getMinInsertionPercent());
             }
             return EnumChatFormatting.GRAY + "Housing: 5/5 (full)";
         })
