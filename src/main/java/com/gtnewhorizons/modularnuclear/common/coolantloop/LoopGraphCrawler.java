@@ -28,7 +28,6 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressuriz
 import com.gtnewhorizons.modularnuclear.common.metatileentity.pipe.MTECoolantPipe;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityManifold;
 import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -75,13 +74,10 @@ public class LoopGraphCrawler {
             if (pipe.mDisableInput != targetMask) {
                 pipe.mDisableInput = targetMask;
                 if (bmpe != null) {
-                    try {
-                        bmpe.sendBlockEvent(GregTechTileClientEvents.CHANGE_CUSTOM_DATA, targetMask);
-                        bmpe.issueTextureUpdate();
-                        bmpe.markDirty();
-                    } catch (Throwable swallowed) {
-                        Swallowed.note(swallowed);
-                    }
+                    bmpe.sendBlockEvent(GregTechTileClientEvents.CHANGE_CUSTOM_DATA, targetMask);
+                    bmpe.issueTextureUpdate();
+                    bmpe.markDirty();
+
                 }
             }
         }
@@ -482,18 +478,15 @@ public class LoopGraphCrawler {
 
     public static boolean isPumpActive(World world, int px, int py, int pz) {
         if (world == null) return false;
-        try {
-            TileEntity te = world.getTileEntity(px, py, pz);
-            if (te instanceof IGregTechTileEntity) {
-                IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
-                if (mte instanceof MTECoolantPump) {
-                    MTECoolantPump pump = (MTECoolantPump) mte;
-                    return pump.isLoopFormed() && !te.isInvalid() && pump.getBaseMetaTileEntity() != null;
-                }
+        TileEntity te = world.getTileEntity(px, py, pz);
+        if (te instanceof IGregTechTileEntity) {
+            IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
+            if (mte instanceof MTECoolantPump) {
+                MTECoolantPump pump = (MTECoolantPump) mte;
+                return pump.isLoopFormed() && !te.isInvalid() && pump.getBaseMetaTileEntity() != null;
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
+
         return false;
     }
 
@@ -2149,11 +2142,8 @@ public class LoopGraphCrawler {
         int flag = 1 << side.ordinal();
         if (pipe != null) {
             if ((pipe.mConnections & flag) != 0) return true;
-            try {
-                if (pipe.isConnectedAtSide(side)) return true;
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            if (pipe.isConnectedAtSide(side)) return true;
+
         }
         if (bmpe != null) {
             if ((bmpe.mConnections & flag) != 0) return true;
