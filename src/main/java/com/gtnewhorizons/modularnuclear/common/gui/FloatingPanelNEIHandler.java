@@ -87,7 +87,7 @@ public class FloatingPanelNEIHandler
                 GuiContainerManager.addDrawHandler(handler);
             }
             MinecraftForge.EVENT_BUS.register(handler);
-        } catch (Throwable swallowed) {
+        } catch (LinkageError swallowed) {
             Swallowed.note(swallowed);
         }
     }
@@ -96,22 +96,19 @@ public class FloatingPanelNEIHandler
         try {
             if (!Loader.isModLoaded("NotEnoughItems")) return false;
             return NEIClientConfig.isEnabled() && !NEIClientConfig.isHidden();
-        } catch (Throwable t) {
+        } catch (LinkageError t) {
             return false;
         }
     }
 
     public static boolean isRecipeViewerActive(ModularScreen screen) {
         if (screen == null) return false;
-        try {
-            ModularGuiContext ctx = screen.getContext();
-            if (ctx != null && ctx.getRecipeViewerSettings() != null) {
-                return ctx.getRecipeViewerSettings()
-                    .isEnabled(screen);
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        ModularGuiContext ctx = screen.getContext();
+        if (ctx != null && ctx.getRecipeViewerSettings() != null) {
+            return ctx.getRecipeViewerSettings()
+                .isEnabled(screen);
         }
+
         return true;
     }
 
@@ -143,17 +140,14 @@ public class FloatingPanelNEIHandler
     }
 
     public static ModularScreen getModularScreen(GuiContainer gui) {
-        try {
-            if (FMLCommonHandler.instance() != null && FMLCommonHandler.instance()
-                .getSide() != null
-                && FMLCommonHandler.instance()
-                    .getSide()
-                    .isClient()) {
-                return ClientScreenHandler.getMuiScreen();
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (FMLCommonHandler.instance() != null && FMLCommonHandler.instance()
+            .getSide() != null
+            && FMLCommonHandler.instance()
+                .getSide()
+                .isClient()) {
+            return ClientScreenHandler.getMuiScreen();
         }
+
         return null;
     }
 
@@ -201,7 +195,7 @@ public class FloatingPanelNEIHandler
             java.lang.reflect.Method m = panel.getClass()
                 .getMethod("getEffectiveArea");
             return (Area) m.invoke(panel);
-        } catch (Throwable swallowed) {
+        } catch (ReflectiveOperationException swallowed) {
             Swallowed.note(swallowed);
         }
         return panel.getArea();
@@ -350,8 +344,6 @@ public class FloatingPanelNEIHandler
                     cb.accept(context);
                 }
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         } finally {
             drawingOverNEI = false;
             GL11.glPopAttrib();
@@ -367,7 +359,7 @@ public class FloatingPanelNEIHandler
             java.lang.reflect.Method m = panel.getClass()
                 .getMethod("getLastRenderFrameId");
             return ((Long) m.invoke(panel)) == frameId;
-        } catch (Throwable t) {
+        } catch (ReflectiveOperationException t) {
             return false;
         }
     }
@@ -381,7 +373,7 @@ public class FloatingPanelNEIHandler
             java.lang.reflect.Method m = panel.getClass()
                 .getMethod("setLastRenderFrameId", long.class);
             m.invoke(panel, frameId);
-        } catch (Throwable swallowed) {
+        } catch (ReflectiveOperationException swallowed) {
             Swallowed.note(swallowed);
         }
     }
