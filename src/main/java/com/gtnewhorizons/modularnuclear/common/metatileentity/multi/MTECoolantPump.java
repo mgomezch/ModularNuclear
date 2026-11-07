@@ -1932,18 +1932,15 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     }
 
     protected void triggerCatastrophicExplosion(LocalizedText reason, LoopSegment rupturedSegment) {
-        try {
-            GTLog.writeExplosionLog(
-                this,
-                "COOLANT LOOP FAILURE: " + reason.english()
-                    + (rupturedSegment != null ? " (segment " + rupturedSegment.getId() + ")" : "")
-                    + String.format(
-                        ", peak %.1f bar, flow %.1f L/s",
-                        mEngine.getPeakLoopPressureBar(),
-                        mEngine.getVolumetricFlowRate() * 1000.0));
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        GTLog.writeExplosionLog(
+            this,
+            "COOLANT LOOP FAILURE: " + reason.english()
+                + (rupturedSegment != null ? " (segment " + rupturedSegment.getId() + ")" : "")
+                + String.format(
+                    ", peak %.1f bar, flow %.1f L/s",
+                    mEngine.getPeakLoopPressureBar(),
+                    mEngine.getVolumetricFlowRate() * 1000.0));
+
         // Drain 80% of fluid from tank above
         drainFromReservoir((int) (getTotalCoolantLiters() * 0.80));
 
@@ -2059,18 +2056,15 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         if (item instanceof MetaGeneratedTool) {
             return true;
         }
-        try {
-            Class<?> clazz = item.getClass();
-            while (clazz != null && clazz != Object.class) {
-                if (clazz.getName()
-                    .endsWith("MetaGeneratedTool")) {
-                    return true;
-                }
-                clazz = clazz.getSuperclass();
+        Class<?> clazz = item.getClass();
+        while (clazz != null && clazz != Object.class) {
+            if (clazz.getName()
+                .endsWith("MetaGeneratedTool")) {
+                return true;
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+            clazz = clazz.getSuperclass();
         }
+
         return false;
     }
 
@@ -2158,25 +2152,15 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             if (rotor == mCachedRotorObj && rotor.getItemDamage() == mCachedRotorDamage && mRotorMaterial != null) {
                 return true;
             }
-            try {
-                TurbineStatCalculator calc = new TurbineStatCalculator((MetaGeneratedTool) rotor.getItem(), rotor);
-                double eff = calc.getBaseEfficiency();
-                mRotorEfficiency = eff > 0.0 ? eff : 1.0;
-                mRotorStack = rotor;
-                Materials mat = RotorThermalHelper.getRotorMaterial(rotor);
-                mRotorMaterial = (mat != null && mat != Materials._NULL) ? mat : Materials.Steel;
-                mCachedRotorObj = rotor;
-                mCachedRotorDamage = rotor.getItemDamage();
-                return true;
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-                mRotorEfficiency = 1.0;
-                mRotorStack = rotor;
-                mRotorMaterial = Materials.Steel;
-                mCachedRotorObj = rotor;
-                mCachedRotorDamage = rotor.getItemDamage();
-                return true;
-            }
+            TurbineStatCalculator calc = new TurbineStatCalculator((MetaGeneratedTool) rotor.getItem(), rotor);
+            double eff = calc.getBaseEfficiency();
+            mRotorEfficiency = eff > 0.0 ? eff : 1.0;
+            mRotorStack = rotor;
+            Materials mat = RotorThermalHelper.getRotorMaterial(rotor);
+            mRotorMaterial = (mat != null && mat != Materials._NULL) ? mat : Materials.Steel;
+            mCachedRotorObj = rotor;
+            mCachedRotorDamage = rotor.getItemDamage();
+            return true;
         }
         // Headless mock or test environment fallback
         if (getBaseMetaTileEntity() == null || getBaseMetaTileEntity().getWorld() == null) {
@@ -2195,12 +2179,9 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         this.mCachedRotorDamage = stack != null ? stack.getItemDamage() : -1;
         this.mRotorMaterial = RotorThermalHelper.getRotorMaterial(stack);
         if (stack != null && isMetaGeneratedTool(stack.getItem())) {
-            try {
-                TurbineStatCalculator calc = new TurbineStatCalculator((MetaGeneratedTool) stack.getItem(), stack);
-                this.mRotorEfficiency = calc.getBaseEfficiency();
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            TurbineStatCalculator calc = new TurbineStatCalculator((MetaGeneratedTool) stack.getItem(), stack);
+            this.mRotorEfficiency = calc.getBaseEfficiency();
+
         }
     }
 
