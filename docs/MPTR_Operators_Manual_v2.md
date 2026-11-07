@@ -923,20 +923,20 @@ Exactly one maintenance hatch (any type) and exactly one energy hatch (single- o
 
 **Exchange with the loop.** Whether enabled or not, the heater exchanges heat with the coolant flowing through it as a core passage does (§9.7), in either direction: Dittus–Boelter convection over 4 m² per ring (`heater.baseExchangeArea` in `devices.yaml`), scaled by the item pipe casing tier's passage heat transfer factor and by the maintenance efficiency. Its heat capacity is that of a passage of the casing's tier, times the number of rings. With no flow it exchanges nothing.
 
-**Item pipe casings.** The casing tier sets the heater's heat transfer and limits. Any tier works in a loop of any pipe material: the loop's pipes are what withstand its pressure, the casings what the heat crosses. The pressure limit is that of a loop pipe of the equivalent material:
+**Item pipe casings.** The casing tier sets only the heater's heat transfer and temperature limit. Any tier works in a loop of any pipe material:
 
-| Item pipe casing | Pressure rated as | Max pressure | Max inner temp. | Passage heat capacity per ring |
-| :--- | :--- | :--- | :--- | :--- |
-| Tin | Iron | 16 bar | 1000 °C | 32 HU/°C |
-| Brass | Steel | 35 bar | 1100 °C | 64 HU/°C |
-| Electrum | Stainless steel | 70 bar | 1200 °C | 128 HU/°C |
-| Platinum | Titanium | 140 bar | 1400 °C | 256 HU/°C |
-| Osmium | Osmium | 600 bar | 1800 °C | 512 HU/°C |
-| Quantium | Neutronium | 3000 bar | 2200 °C | 1024 HU/°C |
-| Fluxed Electrum | Neutronium | 3000 bar | 2600 °C | 2048 HU/°C |
-| Black Plutonium | Neutronium | 3000 bar | 3200 °C | 4096 HU/°C |
+| Item pipe casing | Max inner temp. | Passage heat capacity per ring |
+| :--- | :--- | :--- |
+| Tin | 1000 °C | 32 HU/°C |
+| Brass | 1100 °C | 64 HU/°C |
+| Electrum | 1200 °C | 128 HU/°C |
+| Platinum | 1400 °C | 256 HU/°C |
+| Osmium | 1800 °C | 512 HU/°C |
+| Quantium | 2200 °C | 1024 HU/°C |
+| Fluxed Electrum | 2600 °C | 2048 HU/°C |
+| Black Plutonium | 3200 °C | 4096 HU/°C |
 
-Unlike other loop devices, the heater has a pressure limit: its casings'. If its inner temperature passes its limit, the heater powerfails, disconnects from the loop, and the pump treats the loop as broken: a running loop ruptures (§12.8).
+**Pressure and flow.** To the loop, the heater is a run of the pipe attached to its input hatch, as long as the heater: the coolant loses what that many blocks of that pipe's size and material lose, and the heater bursts at that pipe's pressure rating, whatever its casings. If its inner temperature passes its casings' limit, the heater powerfails, disconnects from the loop, and the pump treats the loop as broken: a running loop ruptures (§12.8).
 
 **Readouts.** The controller shows its inner temperature against its limit, heat capacity, exchange area, coolant flow, heat moved per tick, and EU drawn. An energy detector cover on the controller outputs the inner temperature as redstone: 0 at ambient, full strength at the cover's threshold (or the heater's limit when no threshold is set), inverted if the cover is. ProjectRed reads a 0–255 level, and bundled cables carry it on every channel or on one chosen channel. OpenComputers can read its state.
 
