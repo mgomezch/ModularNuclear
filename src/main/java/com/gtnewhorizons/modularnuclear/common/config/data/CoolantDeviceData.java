@@ -497,12 +497,10 @@ public class CoolantDeviceData {
     public static class HeaterData {
 
         public double baseExchangeArea = 4.0; // Heat exchange surface area in m^2 per ring layer
-        public double minorLossK = 1.5; // Minor loss coefficient across heater passage
 
         public Map<String, Object> toMap() {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("baseExchangeArea", baseExchangeArea);
-            map.put("minorLossK", minorLossK);
             return map;
         }
 
@@ -511,7 +509,6 @@ public class CoolantDeviceData {
             if (map == null) return d;
             if (map.containsKey("baseExchangeArea"))
                 d.baseExchangeArea = ((Number) map.get("baseExchangeArea")).doubleValue();
-            if (map.containsKey("minorLossK")) d.minorLossK = ((Number) map.get("minorLossK")).doubleValue();
             return d;
         }
     }

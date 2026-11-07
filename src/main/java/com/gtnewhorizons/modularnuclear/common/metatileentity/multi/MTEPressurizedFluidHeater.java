@@ -107,7 +107,8 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
 
     protected double mInnerTemperatureCelsius = 20.0;
     protected double mSimulatedAmbientTempCelsius = 20.0;
-    protected double mMinorLossK = 1.5;
+    /** Burst pressure of the loop pipe the heater is attached to, in bar; 0 until a loop crawl finds it. */
+    protected double mLoopPipeMaxPressureBar = 0.0;
     protected double mBaseExchangeAreaM2 = 4.0;
 
     protected long mLastConsumedEuPerTick = 0L;
@@ -204,8 +205,6 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
             .getHeater() != null) {
             mBaseExchangeAreaM2 = CoolantLoopDataRegistry.getDeviceData()
                 .getHeater().baseExchangeArea;
-            mMinorLossK = CoolantLoopDataRegistry.getDeviceData()
-                .getHeater().minorLossK;
         }
     }
 
@@ -605,8 +604,14 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
         return mBaseExchangeAreaM2 * rings;
     }
 
+    /** Burst pressure in bar: that of the loop pipe it is attached to (0 outside a loop). */
     public double getMaxOperatingPressureBar() {
-        return getHeaterPipeCasingTier().getMaxPressureBar();
+        return mLoopPipeMaxPressureBar;
+    }
+
+    /** Set by the loop crawler: the burst pressure of the pipe the heater is attached to. */
+    public void setLoopPipeMaxPressureBar(double bar) {
+        mLoopPipeMaxPressureBar = bar;
     }
 
     @Override
@@ -845,7 +850,8 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
 
     @Override
     public double getMinorLossK() {
-        return mMinorLossK;
+        // A run of the loop's pipe as long as the heater
+        return LoopSegment.PIPE_BLOCK_MINOR_LOSS_K * mStructureLength;
     }
 
     @Override
@@ -1201,11 +1207,8 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
                 mLastHeatTransferWatts / 1000.0),
             String
                 .format(Locale.US, "Electrical consumption: %,d / %,d EU/t", mLastConsumedEuPerTick, getMaxEuPerTick()),
-            String.format(
-                Locale.US,
-                "Item pipe casing: %s (max %.0f bar)",
-                pipeTier.getDisplayName(),
-                pipeTier.getMaxPressureBar()),
+            String.format(Locale.US, "Item pipe casing: %s", pipeTier.getDisplayName()),
+            String.format(Locale.US, "Pressure rating: %.0f bar (the loop's pipe)", getMaxOperatingPressureBar()),
             String.format(
                 Locale.US,
                 "Heating coils: %s (%d rings, %.1f%% heating eff, max %s energy hatch)",

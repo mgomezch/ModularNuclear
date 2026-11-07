@@ -4,7 +4,6 @@ import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 
-import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipingRegistry;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.HeaterCasing;
 
 import gregtech.api.GregTechAPI;
@@ -16,36 +15,34 @@ import gregtech.common.blocks.BlockCasings11;
  * the Pressurized Fluid Heater.
  *
  * <p>
- * Each tier maps to its casing material, passage voltage tier (used for heat capacity and convective heat transfer),
- * maximum operating pressure (bar, rated like a coolant loop pipe of the equivalent material), and maximum operating
- * temperature (°C, exceeding which causes a powerfail and loop disconnection). Any casing tier works in a loop of any
- * pipe material: the loop pipes withstand pressure, while the casings set the heater's heat transfer.
+ * Each tier maps to its casing material, passage voltage tier (used for heat capacity and convective heat transfer) and
+ * maximum operating temperature (°C, exceeding which causes a powerfail and loop disconnection). Any casing tier works
+ * in a loop of any pipe material: the heater's pressure drop and burst pressure are those of the loop pipe it is
+ * attached to, while the casings set its heat transfer and temperature limit.
  */
 public enum HeaterPipeCasingTier {
 
-    TIN(1, 0, "Tin", Materials.Tin, Materials.Iron, 1),
-    BRASS(2, 1, "Brass", Materials.Brass, Materials.Steel, 2),
-    ELECTRUM(3, 2, "Electrum", Materials.Electrum, Materials.StainlessSteel, 3),
-    PLATINUM(4, 3, "Platinum", Materials.Platinum, Materials.Titanium, 4),
-    OSMIUM(5, 4, "Osmium", Materials.Osmium, Materials.Osmium, 5),
-    QUANTIUM(6, 5, "Quantium", Materials.Quantium, Materials.Neutronium, 6),
-    FLUXED_ELECTRUM(7, 6, "Fluxed Electrum", Materials.ElectrumFlux, Materials.Neutronium, 7),
-    BLACK_PLUTONIUM(8, 7, "Black Plutonium", Materials.BlackPlutonium, Materials.Neutronium, 8);
+    TIN(1, 0, "Tin", Materials.Tin, 1),
+    BRASS(2, 1, "Brass", Materials.Brass, 2),
+    ELECTRUM(3, 2, "Electrum", Materials.Electrum, 3),
+    PLATINUM(4, 3, "Platinum", Materials.Platinum, 4),
+    OSMIUM(5, 4, "Osmium", Materials.Osmium, 5),
+    QUANTIUM(6, 5, "Quantium", Materials.Quantium, 6),
+    FLUXED_ELECTRUM(7, 6, "Fluxed Electrum", Materials.ElectrumFlux, 7),
+    BLACK_PLUTONIUM(8, 7, "Black Plutonium", Materials.BlackPlutonium, 8);
 
     private final int casingTier;
     private final int meta;
     private final String displayName;
     private final Materials casingMaterial;
-    private final Materials equivalentLoopMaterial;
     private final int passageVoltageTier;
 
     HeaterPipeCasingTier(int casingTier, int meta, String displayName, Materials casingMaterial,
-        Materials equivalentLoopMaterial, int passageVoltageTier) {
+        int passageVoltageTier) {
         this.casingTier = casingTier;
         this.meta = meta;
         this.displayName = displayName;
         this.casingMaterial = casingMaterial;
-        this.equivalentLoopMaterial = equivalentLoopMaterial;
         this.passageVoltageTier = passageVoltageTier;
     }
 
@@ -67,18 +64,9 @@ public enum HeaterPipeCasingTier {
         return casingMaterial;
     }
 
-    public Materials getEquivalentLoopMaterial() {
-        return equivalentLoopMaterial;
-    }
-
     /** Voltage tier (1..8) passed to {@code CoolantPassage.heatCapacity(tier)} and {@code heatTransferFactor(tier)}. */
     public int getPassageVoltageTier() {
         return passageVoltageTier;
-    }
-
-    /** Maximum operating pressure in bar: that of a coolant loop pipe of the equivalent material. */
-    public double getMaxPressureBar() {
-        return CoolantPipingRegistry.getMaxPressureBar(equivalentLoopMaterial);
     }
 
     /** Maximum inner operating temperature in °C before the fluid heater powerfails. */
@@ -86,12 +74,7 @@ public enum HeaterPipeCasingTier {
         return heaterCasing().maxTemperatureCelsius();
     }
 
-    /** Pressure drop multiplier of the coolant passing through: that of the loop pipe material it rates as. */
-    public double getFrictionMultiplier() {
-        return heaterCasing().frictionMultiplier();
-    }
-
-    /** The casing as the game and the simulator share it (its limits and pressure drop). */
+    /** The casing as the game and the simulator share it (its temperature limit). */
     public HeaterCasing heaterCasing() {
         return HeaterCasing.byCasingTier(casingTier);
     }

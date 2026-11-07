@@ -1380,25 +1380,25 @@ public class LoopGraphCrawler {
             if (!devices.contains(heater)) {
                 devices.add(heater);
             }
-            // The coolant runs through the heater at the bore of the loop's pipes, so a heater does not choke the loop
+            // The heater loses and bursts as a run of the pipe it is attached to, as long as the heater; its casings
+            // set only its heat transfer and temperature limit
+            CoolantPipingRegistry.PipeProperties pipeProps = attachedPipe(step);
+            heater.setLoopPipeMaxPressureBar(pipeProps.maxPressureBar);
             LoopSegment devSeg = new LoopSegment(
                 heater.getDeviceId(),
                 step.x,
                 step.y,
                 step.z,
-                heater.getRingCount(),
-                inlineBore(step, 0.15),
-                0.000045,
+                heater.getStructureLength(),
+                pipeProps.diameter,
+                pipeProps.roughness,
                 heater.getMinorLossK(),
-                heater.getMaxOperatingPressureBar(),
+                pipeProps.maxPressureBar,
                 heater.getMaxOperatingTemperatureCelsius(),
                 heater.getDeviceTemperatureCelsius());
             devSeg.setCustomVolumeM3(Math.PI * 0.15 * 0.15 / 4.0 * heater.getRingCount());
             devSeg.setCapacityLiters(heater.getFillVolumeLiters());
-            // Better casings lose less, as a loop pipe of the material they rate as does
-            devSeg.setFrictionMultiplier(
-                heater.getHeaterPipeCasingTier()
-                    .getFrictionMultiplier());
+            devSeg.setFrictionMultiplier(pipeProps.frictionMultiplier);
             segments.add(devSeg);
 
             MTEHatchPressurizedFluid outlet = heater.getPressurizedOutputHatch();
@@ -1426,6 +1426,20 @@ public class LoopGraphCrawler {
                     CoolantLocalization.format("coolantloops.crawler.heater_unformed", step.x, step.y, step.z));
                 return Visit.STOP;
             }
+        }
+
+        /** The pipe a crawl step came through: the block it was entered from, else the last pipe crawled. */
+        private CoolantPipingRegistry.PipeProperties attachedPipe(FrontierStep step) {
+            if (step.entrySide != null && step.entrySide != ForgeDirection.UNKNOWN) {
+                TileEntity te = world.getTileEntity(
+                    step.x + step.entrySide.offsetX,
+                    step.y + step.entrySide.offsetY,
+                    step.z + step.entrySide.offsetZ);
+                if (te instanceof BaseMetaPipeEntity bmpe && bmpe.getMetaTileEntity() instanceof MTECoolantPipe pipe) {
+                    return CoolantPipingRegistry.getProperties(pipe);
+                }
+            }
+            return CoolantPipingRegistry.getProperties(lastPipe);
         }
 
         /** A pressurized hatch of a heat exchanger. */

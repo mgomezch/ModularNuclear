@@ -120,7 +120,9 @@ public class PressurizedFluidHeaterEnvironment extends ManagedEnvironment implem
         return new Object[] { heater.getMaxOperatingTemperatureCelsius() };
     }
 
-    @Callback(doc = "function():number -- Returns max operating pressure in bar.", direct = true)
+    @Callback(
+        doc = "function():number -- Returns the burst pressure in bar of the loop pipe it is attached to (0 outside a loop).",
+        direct = true)
     public Object[] getMaxPressure(Context context, Arguments args) {
         return new Object[] { heater.getMaxOperatingPressureBar() };
     }

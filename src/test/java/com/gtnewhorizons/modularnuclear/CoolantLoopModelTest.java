@@ -264,13 +264,13 @@ public class CoolantLoopModelTest {
         c.setHeaterRings(9);
         c.setHeaterCasing(HeaterCasing.BLACK_PLUTONIUM);
         run(20);
-        assertTrue(loop.getCurrentFlowRateLPerSec() > platinumHeater, "a better heater casing should lose less");
+        assertEquals(platinumHeater, loop.getCurrentFlowRateLPerSec(), 1e-9, "the casings do not change what it loses");
     }
 
     @Test
     void testHeaterCasingFollowsLoopMaterial() {
-        assertEquals(HeaterCasing.OSMIUM, HeaterCasing.forLoopMaterial("Osmium"));
-        assertEquals(HeaterCasing.PLATINUM, HeaterCasing.forLoopMaterial("TungstenSteel"));
+        assertEquals(HeaterCasing.QUANTIUM, HeaterCasing.forLoopMaterial("Osmium"));
+        assertEquals(HeaterCasing.OSMIUM, HeaterCasing.forLoopMaterial("TungstenSteel"));
         assertEquals(HeaterCasing.BLACK_PLUTONIUM, HeaterCasing.forLoopMaterial("Infinity"));
         assertEquals(HeaterCasing.TIN, HeaterCasing.forLoopMaterial("Iron"));
         assertEquals(HeaterCasing.FLUXED_ELECTRUM, HeaterCasing.fromString("fluxed electrum"));

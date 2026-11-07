@@ -503,14 +503,14 @@ gt.multiblock.pressurized_fluid_heater.desc1=Electrically heats circulating cool
 gt.multiblock.pressurized_fluid_heater.desc2=Structure length scales from 3x3x3 (1 coil ring) up to 3x3x11 (9 coil rings)
 gt.multiblock.pressurized_fluid_heater.desc3=Consumes up to 32 * rings * 4^(coilTier - 1) EU/t (1 EU = 4 HU); partial power does not powerfail
 gt.multiblock.pressurized_fluid_heater.desc4=Heat capacity and 4 m²/ring convective exchange area transfer heat bidirectionally with coolant
-gt.multiblock.pressurized_fluid_heater.desc5=Item pipe casing must match loop material; exceeding casing temperature limit causes powerfail and loop disconnect
+gt.multiblock.pressurized_fluid_heater.desc5=Loses and bursts as a run of the attached loop pipe as long as the heater; exceeding the casing temperature limit causes powerfail and loop disconnect
 gt.multiblock.pressurized_fluid_heater.desc6=Heating coil efficiency scales linearly from 25% (Cupronickel) to 100% (maximum coil tier)
 gt.multiblock.pressurized_fluid_heater.structure.controller=Front bottom center
 gt.multiblock.pressurized_fluid_heater.structure.casings=Heat proof machine casings (front and back 3x3 layers)
 gt.multiblock.pressurized_fluid_heater.structure.coils=Heating coils
 gt.multiblock.pressurized_fluid_heater.structure.coils_pos=Outer 3x3 ring of each middle layer (sets max energy hatch tier starting at LV = Cupronickel)
 gt.multiblock.pressurized_fluid_heater.structure.pipe_casings=Item pipe casings
-gt.multiblock.pressurized_fluid_heater.structure.pipe_casings_pos=Center line between inlet and outlet (uniform tier matching loop material)
+gt.multiblock.pressurized_fluid_heater.structure.pipe_casings_pos=Center line between inlet and outlet (one uniform tier, any loop material)
 gt.multiblock.pressurized_fluid_heater.structure.hatch_inlet=High-pressure input hatch (front center)
 gt.multiblock.pressurized_fluid_heater.structure.hatch_outlet=High-pressure output hatch (back center)
 gt.multiblock.pressurized_fluid_heater.structure.hp_in=High-pressure input hatch

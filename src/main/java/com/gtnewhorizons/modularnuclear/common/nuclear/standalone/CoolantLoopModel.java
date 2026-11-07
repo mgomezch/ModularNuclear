@@ -871,7 +871,7 @@ public class CoolantLoopModel {
             return heaterCasing != null;
         }
 
-        /** The heater's pipe casing (its pressure drop and limits), or null for the loop pipe material's best. */
+        /** The heater's pipe casing (its temperature limit), or null for the loop pipe material's tier. */
         public void setHeaterCasing(HeaterCasing casing) {
             if (casing != heaterCasing) {
                 heaterCasing = casing;
@@ -1314,22 +1314,23 @@ public class CoolantLoopModel {
     }
 
     /**
-     * The hot leg's Pressurized Fluid Heater, unpowered, as the game's crawler adds one: a ring per meter at the bore
-     * of the pipe it comes in through, the heater config's minor loss, its casing's pressure drop and limits.
+     * The hot leg's Pressurized Fluid Heater, unpowered, as the game's crawler adds one: a run of the loop's pipe as
+     * long as the heater (its rings and its two end layers), with its casing's temperature limit.
      */
     private static LoopSegment heater(Circuit c, double temp) {
-        HeaterCasing casing = c.getHeaterCasing();
+        int length = c.heaterRings + 2;
         LoopSegment h = new LoopSegment(
             "heater",
-            c.heaterRings,
+            length,
             c.pipeSize.diameterMeters(),
-            0.000045,
-            CoolantLoopConfigData.getDeviceData()
-                .getHeater().minorLossK,
-            casing.maxPressureBar(),
-            casing.maxTemperatureCelsius(),
+            CoolantLoopConfigData.getPipeData()
+                .getDefaultRoughness(),
+            LoopSegment.PIPE_BLOCK_MINOR_LOSS_K * length,
+            c.material.maxPressureBar(),
+            c.getHeaterCasing()
+                .maxTemperatureCelsius(),
             temp);
-        h.setFrictionMultiplier(casing.frictionMultiplier());
+        h.setFrictionMultiplier(c.material.frictionMultiplier());
         h.setCustomVolumeM3(Math.PI * 0.15 * 0.15 / 4.0 * c.heaterRings);
         h.setCapacityLiters(1000L * c.heaterRings);
         return h;
