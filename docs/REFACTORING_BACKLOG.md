@@ -251,27 +251,26 @@ They are invalidated by at least three separate generation counters (`ReactorCon
 - Tie them all to one config generation, or register them with one invalidation hook that every config reload fires.
 - Document which caches the WASM simulator also uses.
 
-### A2 (P1): Split the god classes (mostly done)
+### A2 (P1): Split the god classes (done)
 
-**Done:** cohesive parts moved into helpers in the same package, as `NuclearReactorPhysics` started. Each class keeps its methods as one-line delegates, so its API is unchanged.
-- **Reactor, 3145 → 2595 lines:**
+**Done:** cohesive parts moved into helpers in the same package, as `NuclearReactorPhysics` started. Each class keeps its public methods as one-line delegates, so its API is unchanged.
+- **Reactor, 3145 → 1999 lines:**
   - `NuclearReactorMeltdown`: overheating columns, meltdown, voiding contents.
   - `NuclearReactorStructureChecks`: hatch facings, and high-pressure and beam hatch pairing.
+  - `NuclearReactorGridAssembly`: after a structure match, building the core grid, attaching the bottom rods and beam inputs, and texturing the hatches.
   - `NuclearReactorGridSnapshot`: the GUI grid's header and cells, and the per-cycle metrics snapshot.
-- **Pump, 3171 → 2460 lines:**
+  - `NuclearReactorNbt`: saving and loading, and the item's custom name.
+  - `NuclearReactorCycle`: the cycle and its phases (prepare, coolant feeds, simulate, outputs, wall wear, Cherenkov sync, idle reason, end).
+- **Pump, 3171 → 1828 lines:**
+  - `CoolantPumpStructureScan`: the structure check's corner frames, footprint casings and hatches, and the discharge and suction roles.
   - `CoolantPumpLoopBinding`: applying a crawl, rebinding after a load, loop breaks, chunk loading.
+  - `CoolantPumpCirculation`: the loop step: disconnects, power, fluid and impeller checks, filling, circulation and devices.
   - `CoolantPumpFluidSafety`: refused fluids and spills.
   - `CoolantPumpImpeller`: loading, efficiency, wear and destruction.
   - `CoolantPumpFillDrain`: filling, and stopping and draining.
+  - `CoolantPumpNbt`: saving and loading.
 
-**Still to do:** each class still holds its structure check (`checkMachine`, about 230 lines), its NBT save and load, and its tick (the reactor's cycle phases in `onPostTick`, the pump's `stepCoolantLoop`).
-
-`MTECoolantPump` (3.3k lines) and `MTENuclearReactor` (3.2k lines) are also the files that change most. Possible splits:
-
-- **Pump:** loop lifecycle and crawling, filling and draining, rotor and impeller, fluid safety checks, and the GUI and telemetry.
-- **Reactor:** the cycle (prepare / feeds / simulate / outputs / overheating / end), structure checking, meltdown and explosions, telemetry and sync.
-
-`NuclearReactorPhysics` and the `multi/util` helpers have started this; continue it.
+**What stays in the classes:** the GregTech and StructureLib overrides (structure definition, the tier tries in `checkMachine`, `onPostTick`'s side dispatch), the GUI and tooltips, and the accessors the helpers and GUIs use. The rest of each is many small methods; splitting it further would only scatter them.
 
 ### A3 (P1): Stop writing other machines' fields (done)
 
