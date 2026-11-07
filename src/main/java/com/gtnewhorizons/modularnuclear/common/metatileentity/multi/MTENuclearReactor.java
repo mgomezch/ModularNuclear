@@ -56,7 +56,6 @@ import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemCardModularNuc
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemKitModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
-import com.gtnewhorizons.modularnuclear.common.util.FluidRoles;
 import com.gtnewhorizons.modularnuclear.common.util.MonitorCover;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
@@ -203,10 +202,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public boolean mScram = false;
     public int mNeutronsProduced = 0;
     /** Most ticks a reactor holds its first cycle after a load for the pumps of the loops through its passages. */
-    private static final int PASSAGE_PUMP_WAIT_TICKS = 5;
-    private int mPassagePumpWaitTicks = 0;
+    static final int PASSAGE_PUMP_WAIT_TICKS = 5;
+    int mPassagePumpWaitTicks = 0;
     /** A cycle came due while held, so it runs as soon as the hold ends instead of a whole cycle later. */
-    private boolean mCycleDeferred = false;
+    boolean mCycleDeferred = false;
     /** Why nothing burns, for the GUI (a lang key, or empty while it runs); see {@link #updateIdleReason}. */
     public String mIdleReasonKey = "";
     public int mIdleCount = 0;
@@ -247,7 +246,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public double mClientRadius = 2.5;
     public float mClientCherenkovIntensity = 0f;
     public float mClientRadiationIntensity = 0f;
-    private byte mLastSentCherenkovMetricByte = -1;
+    byte mLastSentCherenkovMetricByte = -1;
 
     public int mHatchTier = -1;
     public boolean mHatchTierInconsistent = false;
@@ -1171,52 +1170,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 refreshAmbientTemperature();
             }
 
-            int tpc = getTicksPerCycle();
-            boolean cycleDue = aTick % tpc == 0 || mCycleDeferred;
-            if (mGrid != null && !cycleDue) {
-                NuclearSimulationEngine.processActiveVentsAndExchangers(mGrid, gridSize, gridSize, mCachedAmbientTemp);
-            }
-
-            if (mGrid != null && cycleDue && holdForPassagePumps()) {
-                mCycleDeferred = true;
-            } else if (mGrid != null && cycleDue) {
-                mCycleDeferred = false;
-                prepareCycle();
-
-                double ambient = getAmbientTemperature();
-
-                if (!checkCoolantFeeds(ambient)) return;
-
-                beginCycleTotals();
-
-                double maintEff = getMaintenanceEfficiency();
-                NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine
-                    .simulate(mGrid, gridSize, gridSize, maintEff, ambient);
-                mCoreTemp = res.maxTemperature;
-                mAvgTemp = res.averageTemperature;
-                mNeutronsProduced = res.totalNeutronsGenerated;
-                mFastAbsorbed = res.fastNeutronsAbsorbed;
-                mThermalAbsorbed = res.thermalNeutronsAbsorbed;
-                mEscapedNeutrons = res.neutronsEscaped;
-                mReactivity = res.averageReactivity;
-                updateIdleReason();
-
-                syncCherenkovMetric(res, aBaseMetaTileEntity, aTick);
-
-                accumulateWallWear(res, tpc, aBaseMetaTileEntity);
-
-                collectCycleOutputs(maintEff);
-
-                applyOverheating();
-
-                endCycle(res, maintEff);
-
-                // Meltdown: strictly when reactor damage reaches 100%
-                if (mReactorDamage >= 100.0) {
-                    triggerMeltdown();
-                    return;
-                }
-            }
+            NuclearReactorCycle.tick(this, aBaseMetaTileEntity, aTick);
         } else if (aBaseMetaTileEntity.isServerSide()) {
             if (aBaseMetaTileEntity.isActive()) {
                 aBaseMetaTileEntity.setActive(false);
@@ -1233,253 +1187,6 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             }
         } else if (aBaseMetaTileEntity.isClientSide()) {
             ModularNuclear.proxy.updateCherenkov(this, aBaseMetaTileEntity);
-        }
-    }
-
-    /**
-     * Start of a cycle: bus damage failsafes, the casing tier the core cells see, and the rod hatches' mining pipes.
-     */
-    private void prepareCycle() {
-        for (IGregTechTileEntity te : mNuclearTiles) {
-            if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearBus bus) {
-                bus.processMaxDamageFailsafe();
-            }
-        }
-
-        updateNuclearTilesPipeTier();
-
-        for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
-            if (rod != null) {
-                rod.updateMiningPipeHousing();
-            }
-        }
-        for (int gx = 0; gx < gridSize; gx++) {
-            for (int gy = 0; gy < gridSize; gy++) {
-                if (mGrid[gx][gy] instanceof NuclearGridTile ngt && ngt.getBottomControlRod() != null) {
-                    ngt.getBottomControlRod()
-                        .updateMiningPipeHousing();
-                }
-            }
-        }
-    }
-
-    /** Applies CoreHatchRules to every coolant hatch; false when a thermal shock melted the core down or broke it. */
-    private boolean checkCoolantFeeds(double ambient) {
-        // Check coolant boiling against ambient or dry hatch injection (thermal shock)
-        for (IGregTechTileEntity te : mNuclearTiles) {
-            if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
-                // Liquid fuel does not boil/evaporate and is exempt from thermal shock
-                FluidRoles roles = FluidRoles.of(hatch.mInputFluid);
-                if (roles.isFuel()) {
-                    hatch.mWasDry = false;
-                    continue;
-                }
-                if (hatch.mInputFluid != null && hatch.mInputFluid.amount > 0) {
-                    String name = roles.lowerName();
-                    CoreHatchRules.CoolantFeed feed = CoreHatchRules
-                        .checkCoolantFeed(name, hatch.mWasDry, hatch.mTemperature, ambient);
-                    if (feed != CoreHatchRules.CoolantFeed.SAFE) {
-                        triggerThermalShock(hatch, CoreHatchRules.describe(feed, name, hatch.mTemperature, ambient));
-                        if (mReactorDamage >= 100.0 || !mMachine) return false;
-                        continue;
-                    }
-                    hatch.mWasDry = false;
-                } else {
-                    // Hatch has zero coolant: controller remembers that
-                    hatch.mWasDry = true;
-                }
-            }
-        }
-        return true;
-    }
-
-    /** Clears this cycle's counters and has every core cell reread its contents. */
-    private void beginCycleTotals() {
-        mCycleZeroedCoolantItems = 0;
-        mCycleZeroedFuelItems = 0;
-        mCycleConsumedCoolant = 0;
-        mCycleProducedHotCoolant = 0;
-        mCycleTransmutationLoss = 0;
-        mCycleTransmutationByproducts = 0;
-        mCycleDepletedLiquidFuel = 0;
-
-        if (mGrid != null) {
-            for (int x = 0; x < gridSize; x++) {
-                for (int y = 0; y < gridSize; y++) {
-                    if (mGrid[x][y] instanceof NuclearGridTile gt) {
-                        gt.refreshProperties();
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Sends clients the Cherenkov glow for this cycle's flux when it changes, and every five seconds while it glows.
-     */
-    private void syncCherenkovMetric(NuclearSimulationEngine.SimulationResult res,
-        IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        // Dynamic Cherenkov radiation intensity metric: active baseline + scaling with flux
-        double flux = Math.max(res.neutronsEscaped, res.totalNeutronsGenerated * 0.15);
-        float cherenkovMetric = (flux > 0) ? (float) Math.min(1.0, 0.40 + 0.60 * (flux / (flux + 400.0))) : 0.0f;
-        byte metricByte = (byte) Math.round(cherenkovMetric * 100.0f);
-        int tier = getReactorTier();
-        if (metricByte != mLastSentCherenkovMetricByte) {
-            mLastSentCherenkovMetricByte = metricByte;
-            if (tier > 0) {
-                aBaseMetaTileEntity.sendBlockEvent((byte) 100, (byte) tier);
-            }
-            aBaseMetaTileEntity.sendBlockEvent((byte) 101, metricByte);
-        } else if (TickPhase.due(aTick, schedulePhase(), 100) && cherenkovMetric > 0) {
-            if (tier > 0) {
-                aBaseMetaTileEntity.sendBlockEvent((byte) 100, (byte) tier);
-            }
-            aBaseMetaTileEntity.sendBlockEvent((byte) 101, metricByte);
-        }
-    }
-
-    /**
-     * Neutrons escaping into the vessel wall wear it: once a minute, a chance of a maintenance issue rising with the
-     * flux.
-     */
-    private void accumulateWallWear(NuclearSimulationEngine.SimulationResult res, int tpc,
-        IGregTechTileEntity aBaseMetaTileEntity) {
-        // Accumulate escaped neutrons for vessel maintenance wear mechanic
-        mWallNeutronAccumulator += res.neutronsEscaped;
-        mWallMaintenanceTimer += tpc;
-
-        // Once per minute (1200 ticks = 60s), check maintenance issue probability:
-        // S(N) = N^2 / (N^2 + 1000^2), scaling maintenance wear from 1.0x to 10.0x base rate (0.01 per minute)
-        if (mWallMaintenanceTimer >= 1200) {
-            mWallMaintenanceTimer = 0;
-            double avgEscaped = (double) mWallNeutronAccumulator / 60.0;
-            mWallNeutronAccumulator = 0;
-            double sFactor = (avgEscaped > 0.0)
-                ? (avgEscaped * avgEscaped) / (avgEscaped * avgEscaped + 1000.0 * 1000.0)
-                : 0.0;
-            double multiplier = 1.0 + 9.0 * sFactor;
-            double baseProb = 0.01;
-            double prob = baseProb * multiplier;
-            if ((aBaseMetaTileEntity.getRandomNumber(1000000) / 1000000.0) < prob) {
-                causeNewMaintenanceIssue();
-            }
-        }
-    }
-
-    /** Direct power from radiovoltaics and the hot coolant the hatches produced this cycle. */
-    private void collectCycleOutputs(double maintEff) {
-        // Sum direct EU from radiovoltaic cells across the grid
-        long directEU = 0;
-        for (int x = 0; x < gridSize; x++) {
-            for (int y = 0; y < gridSize; y++) {
-                INuclearTile tile = mGrid[x][y];
-                if (tile instanceof NuclearGridTile gt && gt.isBus()) {
-                    directEU += gt.getBus().mDirectEUProduced;
-                }
-            }
-        }
-        mDirectPowerEUt = (long) Math.round(directEU * maintEff);
-
-        // Sum output coolant production across all coolant hatches
-        int totalCoolantProduced = 0;
-        String coolantName = "";
-        for (IGregTechTileEntity te : mNuclearTiles) {
-            if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
-                if (hatch.mLastProducedAmount > 0) {
-                    totalCoolantProduced += hatch.mLastProducedAmount;
-                    if (coolantName.isEmpty() && hatch.mLastProducedFluidName != null
-                        && !hatch.mLastProducedFluidName.isEmpty()) {
-                        coolantName = hatch.mLastProducedFluidName;
-                    }
-                }
-            }
-        }
-        mOutputCoolantRate = totalCoolantProduced;
-        mOutputCoolantName = coolantName;
-        super.mEfficiency = (int) Math.round(maintEff * 10000);
-    }
-
-    /** Columns past the casing's operating temperature lose their non-fuel contents and add damage (manual 12.3). */
-    private void applyOverheating() {
-        NuclearReactorMeltdown.applyOverheating(this);
-    }
-
-    /**
-     * Right after a load, holds the cycle while a passage that was in a loop when saved has not been bound to its pump
-     * again, so the core never heats without its cooling. Only for a few ticks: a reactor that stops unexpectedly can
-     * starve whatever it powers.
-     */
-    private boolean holdForPassagePumps() {
-        boolean awaiting = false;
-        for (ICoolantPassageHatch hp : mBottomHighPressureHatches) {
-            if (hp != null && hp.isAwaitingLoopPump()) awaiting = true;
-        }
-        if (!awaiting) return false;
-        if (++mPassagePumpWaitTicks <= PASSAGE_PUMP_WAIT_TICKS) return true;
-        for (ICoolantPassageHatch hp : mBottomHighPressureHatches) {
-            if (hp != null) hp.stopAwaitingLoopPump();
-        }
-        return false;
-    }
-
-    /**
-     * When the core produced no neutrons, works out why for the GUI: no fuel at all, or items that look like fuel
-     * (depleted or empty rods, spent products, items the config blocks) that the core refuses.
-     */
-    private void updateIdleReason() {
-        mIdleReasonKey = "";
-        mIdleCount = 0;
-        mIdleDetailKey = "";
-        if (mNeutronsProduced > 0 || mGrid == null) return;
-        int burning = 0, refused = 0;
-        NuclearFuelClassification.NotFuelReason firstReason = null;
-        for (int x = 0; x < gridSize; x++) {
-            for (int y = 0; y < gridSize; y++) {
-                if (!(mGrid[x][y] instanceof NuclearGridTile gt)) continue;
-                if (gt.isFuel() || gt.isNeutronSource()) {
-                    burning++;
-                } else if (gt.isBus()) {
-                    ItemStack in = gt.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT];
-                    NuclearFuelClassification.NotFuelReason reason = (in != null)
-                        ? NuclearFuelClassification.unexpectedNotFuel(in)
-                        : null;
-                    if (reason != null) {
-                        refused++;
-                        if (firstReason == null) firstReason = reason;
-                    }
-                }
-            }
-        }
-        if (burning > 0) return;
-        if (refused > 0) {
-            mIdleReasonKey = "modularnuclear.gui.idle.refused";
-            mIdleCount = refused;
-            mIdleDetailKey = firstReason.langKey();
-        } else {
-            mIdleReasonKey = "modularnuclear.gui.idle.no_fuel";
-        }
-    }
-
-    /** Closes the cycle: last-cycle totals, telemetry, coolant tracking, control hatches and metrics history. */
-    private void endCycle(NuclearSimulationEngine.SimulationResult res, double maintEff) {
-        // 5. Update last cycle totals, calculate telemetry, coolant tracking, and nuclear control hatches
-        mZeroedCoolantItemsLastCycle = mCycleZeroedCoolantItems;
-        mZeroedFuelItemsLastCycle = mCycleZeroedFuelItems;
-        mConsumedCoolantLastCycle = mCycleConsumedCoolant;
-        mProducedHotCoolantLastCycle = mCycleProducedHotCoolant;
-        mTransmutationLossLastCycle = mCycleTransmutationLoss;
-        mTransmutationByproductsLastCycle = mCycleTransmutationByproducts;
-        mDepletedLiquidFuelLastCycle = mCycleDepletedLiquidFuel;
-
-        updateCoolantTracking();
-        calculateTelemetry();
-        updateControlHatches();
-
-        mTotalCycles++;
-        if (hasComputerMonitorCover()) {
-            recordMetricsCycleSnapshot(res, maintEff);
-        } else if (!mMetricsHistory.isEmpty()) {
-            mMetricsHistory.clear();
         }
     }
 
@@ -1770,7 +1477,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     /** This reactor's offset for its periodic work, so reactors loaded together do not all do it on one tick. */
     private int mSchedulePhase = -1;
 
-    private int schedulePhase() {
+    int schedulePhase() {
         if (mSchedulePhase < 0 && getBaseMetaTileEntity() != null) {
             mSchedulePhase = TickPhase.of(getBaseMetaTileEntity());
         }
