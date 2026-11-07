@@ -8172,6 +8172,41 @@ public class NuclearSimulationEngineTest {
             assertEquals(0, worldRod.getHousingCount());
             assertEquals(100, worldRod.getMinInsertionPercent());
 
+            // Case E: the count runs outward from the hatch whichever way it faces. Along each facing: 3 housings
+            // along the facing, then one across it, then one more along it, which is cut off and must not count.
+            for (ForgeDirection facing : ForgeDirection.VALID_DIRECTIONS) {
+                World facingWorld = org.mockito.Mockito.mock(World.class);
+                IGregTechTileEntity facingGt = org.mockito.Mockito.mock(IGregTechTileEntity.class);
+                org.mockito.Mockito.when(facingGt.getWorld())
+                    .thenReturn(facingWorld);
+                org.mockito.Mockito.when(facingGt.getXCoord())
+                    .thenReturn(10);
+                org.mockito.Mockito.when(facingGt.getYCoord())
+                    .thenReturn((short) 50);
+                org.mockito.Mockito.when(facingGt.getZCoord())
+                    .thenReturn(10);
+                org.mockito.Mockito.when(facingGt.getFrontFacing())
+                    .thenReturn(facing);
+                int along = BlockControlRodHousing.axisOf(facing);
+                int across = (along + 1) % 3;
+                int[] metas = { along, along, along, across, along };
+                for (int i = 1; i <= 5; i++) {
+                    int bx = 10 + facing.offsetX * i, by = 50 + facing.offsetY * i, bz = 10 + facing.offsetZ * i;
+                    org.mockito.Mockito.when(facingWorld.getBlock(bx, by, bz))
+                        .thenReturn(housing);
+                    org.mockito.Mockito.when(facingWorld.getBlockMetadata(bx, by, bz))
+                        .thenReturn(metas[i - 1]);
+                }
+                MTEHatchNuclearControlRod facingRod = new MTEHatchNuclearControlRod(
+                    "test.facing.rod",
+                    4,
+                    new String[0],
+                    null);
+                facingRod.setBaseMetaTileEntity(facingGt);
+                facingRod.updateHousingCount();
+                assertEquals(3, facingRod.getHousingCount(), "Facing " + facing);
+            }
+
             // NuclearGridTile delegation
             NuclearGridTile gridTile = new NuclearGridTile(null, (MTEHatchNuclearBus) null, 0, 0);
             assertEquals(5, gridTile.getControlRodHousings(), "Default without hatch is 5");
