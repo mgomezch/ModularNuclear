@@ -47,7 +47,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.util.ConfigGeneration;
 import com.gtnewhorizons.modularnuclear.common.util.IdentityCache;
 import com.gtnewhorizons.modularnuclear.common.util.LongKeyCache;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
+import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.enums.ItemList;
@@ -80,25 +80,16 @@ public final class ReactorDataRegistry {
     public static long getItemKey(ItemStack stack) {
         if (stack == null) return 0L;
         Item item = null;
-        try {
-            item = stack.getItem();
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        item = stack.getItem();
+
         if (item == null) return 0L;
         int id = 0;
-        try {
-            id = Item.getIdFromItem(item);
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        id = Item.getIdFromItem(item);
+
         if (id <= 0) return 0L;
         int damage = 0;
-        try {
-            damage = stack.isItemStackDamageable() ? 0 : stack.getItemDamage();
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        damage = stack.isItemStackDamageable() ? 0 : stack.getItemDamage();
+
         if (damage == OreDictionary.WILDCARD_VALUE) {
             damage = 0;
         }
@@ -118,15 +109,7 @@ public final class ReactorDataRegistry {
     /** The configuration changed: every cache built from it starts over. */
     public static synchronized void clearCaches() {
         ConfigGeneration.bump();
-        try {
-            Class.forName("net.minecraft.item.Item");
-            Class<?> clazz = Class.forName("com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification");
-            clazz.getMethod("clearCaches")
-                .invoke(null);
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-            // Standalone CLI or WebAssembly environment without Minecraft classes
-        }
+        NuclearFuelClassification.clearCaches();
     }
 
     /** The first entry whose matching patterns cover the stack, or null. */
@@ -220,25 +203,22 @@ public final class ReactorDataRegistry {
 
     private static void indexPattern(String pattern, java.util.function.LongConsumer consumer) {
         if (pattern == null || pattern.isEmpty()) return;
-        try {
-            String oreTarget = pattern.startsWith(ORE_PREFIX) ? pattern.substring(ORE_PREFIX.length()) : null;
-            if (oreTarget != null) {
-                List<ItemStack> ores = OreDictionary.getOres(oreTarget);
-                if (ores != null) {
-                    for (ItemStack ore : ores) {
-                        long key = getItemKey(ore);
-                        if (key != 0L) consumer.accept(key);
-                    }
+        String oreTarget = pattern.startsWith(ORE_PREFIX) ? pattern.substring(ORE_PREFIX.length()) : null;
+        if (oreTarget != null) {
+            List<ItemStack> ores = OreDictionary.getOres(oreTarget);
+            if (ores != null) {
+                for (ItemStack ore : ores) {
+                    long key = getItemKey(ore);
+                    if (key != 0L) consumer.accept(key);
                 }
             }
-            ItemStack is = resolveItemStack(pattern);
-            if (is != null) {
-                long key = getItemKey(is);
-                if (key != 0L) consumer.accept(key);
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
+        ItemStack is = resolveItemStack(pattern);
+        if (is != null) {
+            long key = getItemKey(is);
+            if (key != 0L) consumer.accept(key);
+        }
+
     }
 
     static {
@@ -464,13 +444,10 @@ public final class ReactorDataRegistry {
 
     private static FuelData scanFuel(ItemStack stack) {
         FluidStack fs = null;
-        try {
-            if (ItemList.Display_Fluid.hasBeenSet()) {
-                fs = GTUtility.getFluidFromDisplayStack(stack);
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (ItemList.Display_Fluid.hasBeenSet()) {
+            fs = GTUtility.getFluidFromDisplayStack(stack);
         }
+
         if (fs != null) return findFuel(fs);
         for (FuelData fd : ReactorConfigData.fuels) {
             if (!fd.isLiquid && matchesItem(stack, fd.matching)) return fd;
@@ -556,13 +533,10 @@ public final class ReactorDataRegistry {
         if (stack == null) return null;
         return coolantFluidItemCache.get(getItemKey(stack), stack, (s, k) -> {
             FluidStack fs = null;
-            try {
-                if (ItemList.Display_Fluid.hasBeenSet()) {
-                    fs = GTUtility.getFluidFromDisplayStack(s);
-                }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
+            if (ItemList.Display_Fluid.hasBeenSet()) {
+                fs = GTUtility.getFluidFromDisplayStack(s);
             }
+
             return fs != null ? findCoolantFluid(fs) : null;
         });
     }
