@@ -8117,17 +8117,15 @@ public class NuclearSimulationEngineTest {
             .thenReturn(ForgeDirection.DOWN);
 
         net.minecraft.block.Block mockMiningPipe = org.mockito.Mockito.mock(net.minecraft.block.Block.class);
-        org.mockito.Mockito.when(mockMiningPipe.getUnlocalizedName())
-            .thenReturn("tile.blockMiningPipe");
-
+        net.minecraft.block.Block mockMiningTip = org.mockito.Mockito.mock(net.minecraft.block.Block.class);
         net.minecraft.block.Block mockOther = org.mockito.Mockito.mock(net.minecraft.block.Block.class);
-        org.mockito.Mockito.when(mockOther.getUnlocalizedName())
-            .thenReturn("tile.stone");
+        MTEHatchNuclearControlRod.useMiningPipeBlocks(mockMiningPipe, mockMiningTip);
 
-        // Test isMiningPipeBlock
-        assertTrue(MTEHatchNuclearControlRod.isMiningPipeBlock(mockMiningPipe, 0));
-        assertFalse(MTEHatchNuclearControlRod.isMiningPipeBlock(mockOther, 0));
-        assertFalse(MTEHatchNuclearControlRod.isMiningPipeBlock(null, 0));
+        // Test isMiningPipeBlock: IC2's pipe and tip, by identity
+        assertTrue(MTEHatchNuclearControlRod.isMiningPipeBlock(mockMiningPipe));
+        assertTrue(MTEHatchNuclearControlRod.isMiningPipeBlock(mockMiningTip));
+        assertFalse(MTEHatchNuclearControlRod.isMiningPipeBlock(mockOther));
+        assertFalse(MTEHatchNuclearControlRod.isMiningPipeBlock(null));
 
         MTEHatchNuclearControlRod worldRod = new MTEHatchNuclearControlRod("test.world.rod", 4, new String[0], null);
         worldRod.setBaseMetaTileEntity(mockGt);

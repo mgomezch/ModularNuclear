@@ -6,12 +6,10 @@ import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_IN;
 import java.util.Locale;
 
 import net.minecraft.block.Block;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.oredict.OreDictionary;
 
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
@@ -359,46 +357,25 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         return (int) Math.round(getInsertionRatio() * 100.0);
     }
 
-    public static boolean isMiningPipeBlock(Block block, int meta) {
+    /** IC2's mining pipe and its tip, looked up on first use: blocks are all registered by then. */
+    private static Block miningPipe, miningTip;
+    private static boolean miningBlocksResolved;
+
+    public static boolean isMiningPipeBlock(Block block) {
         if (block == null) return false;
-
-        // 1. Direct IC2 block / item lookup
-        Block ic2Pipe = GameRegistry.findBlock("IC2", "blockMiningPipe");
-        if (ic2Pipe != null && block == ic2Pipe) return true;
-
-        Block ic2Tip = GameRegistry.findBlock("IC2", "blockMiningTip");
-        if (ic2Tip != null && block == ic2Tip) return true;
-
-        ItemStack ic2Stack = ic2.api.item.IC2Items.getItem("miningPipe");
-        if (ic2Stack != null && Block.getBlockFromItem(ic2Stack.getItem()) == block) return true;
-
-        // 2. Registry Unique Identifier
-        // 3. Unlocalized name check
-        String unloc = block.getUnlocalizedName();
-        if (unloc != null) {
-            String clean = unloc.startsWith("tile.") ? unloc.substring(5) : unloc;
-            if ("blockMiningPipe".equalsIgnoreCase(clean) || "miningPipe".equalsIgnoreCase(clean)
-                || "mining_pipe".equalsIgnoreCase(clean)
-                || "blockMiningTip".equalsIgnoreCase(clean)) {
-                return true;
-            }
+        if (!miningBlocksResolved) {
+            miningPipe = GameRegistry.findBlock("IC2", "blockMiningPipe");
+            miningTip = GameRegistry.findBlock("IC2", "blockMiningTip");
+            miningBlocksResolved = true;
         }
+        return block == miningPipe || block == miningTip;
+    }
 
-        // 4. OreDictionary check
-        Item item = Item.getItemFromBlock(block);
-        if (item != null) {
-            ItemStack stack = new ItemStack(item, 1, meta);
-            int[] ids = OreDictionary.getOreIDs(stack);
-            for (int id : ids) {
-                String oreName = OreDictionary.getOreName(id);
-                if ("miningPipe".equalsIgnoreCase(oreName) || "pipeMining".equalsIgnoreCase(oreName)
-                    || "blockMiningPipe".equalsIgnoreCase(oreName)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+    /** Sets the mining pipe and tip blocks in place of IC2's, for tests that run without it. */
+    public static void useMiningPipeBlocks(Block pipe, Block tip) {
+        miningPipe = pipe;
+        miningTip = tip;
+        miningBlocksResolved = true;
     }
 
     public int countMiningPipes() {
@@ -422,8 +399,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
             int by = y + facing.offsetY * i;
             int bz = z + facing.offsetZ * i;
             Block block = world.getBlock(bx, by, bz);
-            int meta = world.getBlockMetadata(bx, by, bz);
-            if (isMiningPipeBlock(block, meta)) {
+            if (isMiningPipeBlock(block)) {
                 count++;
             } else {
                 break;
