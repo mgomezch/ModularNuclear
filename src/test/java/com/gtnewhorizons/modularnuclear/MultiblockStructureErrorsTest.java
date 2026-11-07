@@ -197,7 +197,7 @@ public class MultiblockStructureErrorsTest {
             "coolantloops.structure.error.single_amp_energy_required",
             "coolantloops.structure.error.sheetmetal_missing", "coolantloops.structure.error.sheetmetal_mixed",
             "coolantloops.structure.error.pump.missing_or_mismatched_tank",
-            "coolantloops.structure.error.pump.corner_frame", "coolantloops.structure.error.pump.casing_req",
+            "coolantloops.structure.error.pump.corner_frame_tank", "coolantloops.structure.error.pump.casing_req",
             "coolantloops.structure.error.pump.invalid_hatch", "coolantloops.structure.error.missing_suction_hatch",
             "coolantloops.structure.error.missing_discharge_hatch",
             "coolantloops.structure.error.duplicate_pump_hatches", "coolantloops.structure.error.heater_missing_coils",
