@@ -315,4 +315,65 @@ public class ManifoldAndPipeFlowDirectionTest {
             mismatched.failureReason.contains("the pipe leaving instrument_2_10_0"),
             "The failure must name the device: " + mismatched.failureReason);
     }
+
+    /** A straight run along +X from the discharge at 0: 'P' a pipe, 'D' an in-line device; the suction follows. */
+    private static CrawlResult crawlRun(String run) {
+        World world = Mockito.mock(World.class);
+        byte eastWest = (byte) ((1 << ForgeDirection.WEST.ordinal()) | (1 << ForgeDirection.EAST.ordinal()));
+        for (int i = 0; i < run.length(); i++) {
+            int x = i + 1;
+            TileEntity te;
+            if (run.charAt(i) == 'P') {
+                MTECoolantPipe pipe = new MTECoolantPipe("pipe" + x, 0.5f, Materials.Steel, 1000, 1000, true);
+                pipe.mConnections = eastWest;
+                BaseMetaPipeEntity bmpe = Mockito.mock(BaseMetaPipeEntity.class);
+                Mockito.when(bmpe.getMetaTileEntity())
+                    .thenReturn(pipe);
+                bmpe.mConnections = eastWest;
+                te = bmpe;
+            } else {
+                te = Mockito.mock(
+                    TileEntity.class,
+                    Mockito.withSettings()
+                        .extraInterfaces(ICoolantLoopDevice.class));
+                Mockito.when(((ICoolantLoopDevice) te).getDeviceId())
+                    .thenReturn("instrument_" + x + "_10_0");
+            }
+            Mockito.when(world.getTileEntity(x, 10, 0))
+                .thenReturn(te);
+        }
+        return new LoopGraphCrawler(world, 100).crawl(
+            0,
+            10,
+            0,
+            ForgeDirection.EAST,
+            run.length() + 1,
+            10,
+            0,
+            ForgeDirection.WEST,
+            "test_pump",
+            null,
+            null);
+    }
+
+    @Test
+    public void testEveryDeviceHasAPipeOnItsOutput() {
+        CrawlResult piped = crawlRun("PDPDP");
+        assertTrue(piped.isSuccess, "Devices with pipes on both sides crawl: " + piped.failureReason);
+
+        CrawlResult chained = crawlRun("PDDP");
+        assertFalse(chained.isSuccess, "A device feeding another device directly must fail the crawl");
+        assertTrue(
+            chained.failureReason.contains("instrument_2_10_0 discharges straight into the block at (3, 10, 0)"),
+            "The failure must name the device and what it feeds: " + chained.failureReason);
+
+        CrawlResult intoSuction = crawlRun("PD");
+        assertFalse(intoSuction.isSuccess, "A device feeding the pump suction directly must fail the crawl");
+
+        CrawlResult fromDischarge = crawlRun("DP");
+        assertFalse(fromDischarge.isSuccess, "The pump discharging straight into a device must fail the crawl");
+        assertTrue(
+            fromDischarge.failureReason.contains("discharges straight into the block at (1, 10, 0)"),
+            "The failure must name what the pump feeds: " + fromDischarge.failureReason);
+    }
 }

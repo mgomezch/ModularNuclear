@@ -455,6 +455,7 @@ coolantloops.crawler.pipe_size_mismatch=Pipe size mismatch at (%d, %d, %d): Expe
 coolantloops.crawler.device_pipe_size_mismatch=Pipe size mismatch at (%d, %d, %d): the pipe leaving %s has thickness %.3f (amount %d), but the pipe entering it has %.3f (amount %d). A loop device's input and output pipes must be the same size
 coolantloops.crawler.pump_pipe_size_mismatch=Pipe size mismatch at the pump: its suction pipe has thickness %.3f (amount %d), but its discharge pipe has %.3f (amount %d). The pump's input and output pipes must be the same size
 coolantloops.crawler.device_fed_by_manifold=A manifold feeds the device or pump at (%d, %d, %d) directly. Put a pipe between them: a loop device takes its coolant from a pipe
+coolantloops.crawler.device_output_not_pipe=%s discharges straight into the block at (%d, %d, %d). Put a pipe between them: every loop device and the pump needs a high-pressure pipe on its output
 coolantloops.crawler.pipe_forge_fluid=Catastrophic loop disconnect: Pipe at (%d, %d, %d) contains Forge fluid (%s, %d L)! Coolant pipes must remain empty.
 coolantloops.crawler.pipe_not_connected_back=Pipe at (%d, %d, %d) is not connected backwards to incoming side %s
 coolantloops.crawler.pipe_dead_end=Dead-end or missing forward connection at pipe (%d, %d, %d) [incoming=%s]

@@ -451,7 +451,7 @@ public class LoopGraphCrawler {
         public final ForgeDirection entrySide;
         public final Float segmentThickness;
         public final Integer segmentPipeAmount;
-        /** The device whose input pipe set segmentThickness, when the step leaves a device; else null. */
+        /** The device (or pump) this step leaves, whose input pipe set segmentThickness if any; else null. */
         public final String sizeFromDevice;
 
         public FrontierStep(String fromNodeId, int x, int y, int z, ForgeDirection entrySide, Float segmentThickness,
@@ -667,7 +667,8 @@ public class LoopGraphCrawler {
             int firstZ = startZ + startDir.offsetZ;
             ForgeDirection firstEntrySide = startDir.getOpposite();
 
-            frontier.add(new FrontierStep(sourceNodeId, firstX, firstY, firstZ, firstEntrySide, null, null));
+            frontier
+                .add(new FrontierStep(sourceNodeId, firstX, firstY, firstZ, firstEntrySide, null, null, sourceNodeId));
         }
 
         public CrawlSession(World world, int startX, int startY, int startZ, ForgeDirection startDir, int targetX,
@@ -784,18 +785,29 @@ public class LoopGraphCrawler {
                 stepsThisSlice++;
                 stepCount++;
 
-                // A manifold feeds only pipes (or another manifold), never a device or the pump directly
+                // Every device and the pump has a pipe on each side: a manifold feeds only pipes (or another
+                // manifold), and a device's output goes into a pipe, so chains of devices can't stand in for pipes
+                TileEntity fed = world.getTileEntity(step.x, step.y, step.z);
+                boolean fedIsPipe = fed instanceof BaseMetaPipeEntity bmpe
+                    && bmpe.getMetaTileEntity() instanceof MTEFluidPipe;
                 FlowNode fromNode = graphNodes.get(step.fromNodeId);
-                if (fromNode != null && fromNode.type == NodeType.MANIFOLD_GROUP) {
-                    TileEntity fed = world.getTileEntity(step.x, step.y, step.z);
-                    boolean isPipe = fed instanceof BaseMetaPipeEntity bmpe
-                        && bmpe.getMetaTileEntity() instanceof MTEFluidPipe;
-                    if (!isPipe && !(fed instanceof TileEntityManifold)) {
-                        finishWithFailure(
-                            CoolantLocalization
-                                .format("coolantloops.crawler.device_fed_by_manifold", step.x, step.y, step.z));
-                        return true;
-                    }
+                if (fromNode != null && fromNode.type == NodeType.MANIFOLD_GROUP
+                    && !fedIsPipe
+                    && !(fed instanceof TileEntityManifold)) {
+                    finishWithFailure(
+                        CoolantLocalization
+                            .format("coolantloops.crawler.device_fed_by_manifold", step.x, step.y, step.z));
+                    return true;
+                }
+                if (step.sizeFromDevice != null && !fedIsPipe) {
+                    finishWithFailure(
+                        CoolantLocalization.format(
+                            "coolantloops.crawler.device_output_not_pipe",
+                            step.sizeFromDevice,
+                            step.x,
+                            step.y,
+                            step.z));
+                    return true;
                 }
 
                 // Check if we arrived at the pump suction port

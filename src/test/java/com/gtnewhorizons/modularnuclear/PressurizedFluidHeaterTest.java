@@ -30,6 +30,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPu
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.HeaterPipeCasingTier;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PressurizedFluidHeaterStructure;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.pipe.MTECoolantPipe;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.opencomputers.DriverPressurizedFluidHeater;
 import com.gtnewhorizons.modularnuclear.common.opencomputers.PressurizedFluidHeaterEnvironment;
@@ -44,6 +45,7 @@ import gregtech.GTMod;
 import gregtech.api.enums.HeatingCoilLevel;
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.BaseMetaPipeEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
@@ -388,6 +390,21 @@ public class PressurizedFluidHeaterTest {
         assertTrue(MTEPressurizedFluidHeater.isLaserEnergyHatch(laser));
     }
 
+    /** A north-south coolant pipe of the material at (0, 65, z) for each z. */
+    private static void placeNorthSouthPipes(World world, Materials material, int... zs) {
+        byte northSouth = (byte) ((1 << ForgeDirection.NORTH.ordinal()) | (1 << ForgeDirection.SOUTH.ordinal()));
+        for (int z : zs) {
+            MTECoolantPipe pipe = new MTECoolantPipe("pipe" + z, 0.5f, material, 1000, 1000, true);
+            pipe.mConnections = northSouth;
+            BaseMetaPipeEntity bmpe = Mockito.mock(BaseMetaPipeEntity.class);
+            Mockito.when(bmpe.getMetaTileEntity())
+                .thenReturn(pipe);
+            bmpe.mConnections = northSouth;
+            Mockito.when(world.getTileEntity(0, 65, z))
+                .thenReturn((TileEntity) bmpe);
+        }
+    }
+
     @Test
     public void testHeaterWorksInLoopsOfAnyPipeMaterial() {
         // The heater's casing tier does not need to match the loop pipe material
@@ -436,8 +453,8 @@ public class PressurizedFluidHeaterTest {
         Mockito.when(outletBase.getFrontFacing())
             .thenReturn(ForgeDirection.SOUTH);
 
-        // Pump discharge at (0, 65, 0) facing SOUTH -> enters heater inlet at (0, 65, 1)
-        // Heater outlet at (0, 65, 3) facing SOUTH -> enters pump suction at (0, 65, 4)
+        // Pump discharge at (0, 65, -1) facing SOUTH -> pipe at (0, 65, 0) -> heater inlet at (0, 65, 1)
+        // Heater outlet at (0, 65, 3) facing SOUTH -> pipe at (0, 65, 4) -> pump suction at (0, 65, 5)
         MTEHatchPressurizedOutput pumpDischarge = new MTEHatchPressurizedOutput("pump_dis", 4, new String[0], null);
         IGregTechTileEntity disBase = createMockHatchBase(pumpDischarge);
         Mockito.when(disBase.getWorld())
@@ -447,7 +464,7 @@ public class PressurizedFluidHeaterTest {
         Mockito.when(disBase.getYCoord())
             .thenReturn((short) 65);
         Mockito.when(disBase.getZCoord())
-            .thenReturn(0);
+            .thenReturn(-1);
         Mockito.when(disBase.getFrontFacing())
             .thenReturn(ForgeDirection.SOUTH);
 
@@ -460,7 +477,7 @@ public class PressurizedFluidHeaterTest {
         Mockito.when(sucBase.getYCoord())
             .thenReturn((short) 65);
         Mockito.when(sucBase.getZCoord())
-            .thenReturn(4);
+            .thenReturn(5);
         Mockito.when(sucBase.getFrontFacing())
             .thenReturn(ForgeDirection.NORTH);
 
@@ -497,20 +514,21 @@ public class PressurizedFluidHeaterTest {
                 .extraInterfaces(IGregTechTileEntity.class));
         Mockito.when(((IGregTechTileEntity) worldSuctionTE).getMetaTileEntity())
             .thenReturn(pumpSuction);
-        Mockito.when(world.getTileEntity(0, 65, 4))
+        Mockito.when(world.getTileEntity(0, 65, 5))
             .thenReturn(worldSuctionTE);
 
         LoopGraphCrawler crawler = new LoopGraphCrawler(world);
 
         // Crawl with matching Osmium tank material -> succeeds
+        placeNorthSouthPipes(world, Materials.Osmium, 0, 4);
         LoopGraphCrawler.CrawlResult okResult = crawler.crawl(
             0,
             65,
-            0,
+            -1,
             ForgeDirection.SOUTH,
             0,
             65,
-            4,
+            5,
             ForgeDirection.SOUTH,
             "pump:0:64:0",
             null,
@@ -522,14 +540,15 @@ public class PressurizedFluidHeaterTest {
         assertSame(heater, okResult.devices.get(0));
 
         // An Osmium-cased heater in a Titanium loop crawls the same
+        placeNorthSouthPipes(world, Materials.Titanium, 0, 4);
         LoopGraphCrawler.CrawlResult titaniumResult = crawler.crawl(
             0,
             65,
-            0,
+            -1,
             ForgeDirection.SOUTH,
             0,
             65,
-            4,
+            5,
             ForgeDirection.SOUTH,
             "pump:0:64:0",
             null,
