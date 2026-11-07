@@ -79,106 +79,89 @@ public class CoolantBathRegistry {
         initialized = true;
 
         // 1. Scan Vacuum Freezer recipes for hot ingot -> cold ingot conversions
-        try {
-            if (RecipeMaps.vacuumFreezerRecipes != null) {
-                for (GTRecipe recipe : RecipeMaps.vacuumFreezerRecipes.getAllRecipes()) {
-                    if (recipe.mInputs != null && recipe.mInputs.length > 0
-                        && recipe.mOutputs != null
-                        && recipe.mOutputs.length > 0) {
-                        ItemStack in = recipe.mInputs[0];
-                        ItemStack out = recipe.mOutputs[0];
-                        if (in == null || out == null) continue;
+        if (RecipeMaps.vacuumFreezerRecipes != null) {
+            for (GTRecipe recipe : RecipeMaps.vacuumFreezerRecipes.getAllRecipes()) {
+                if (recipe.mInputs != null && recipe.mInputs.length > 0
+                    && recipe.mOutputs != null
+                    && recipe.mOutputs.length > 0) {
+                    ItemStack in = recipe.mInputs[0];
+                    ItemStack out = recipe.mOutputs[0];
+                    if (in == null || out == null) continue;
 
-                        ItemData inData = GTOreDictUnificator.getAssociation(in);
-                        ItemData outData = GTOreDictUnificator.getAssociation(out);
-                        if (inData != null && inData.mPrefix == OrePrefixes.ingotHot
-                            && outData != null
-                            && outData.mPrefix == OrePrefixes.ingot) {
-                            Materials mat = inData.mMaterial != null ? inData.mMaterial.mMaterial : null;
-                            double bfTemp = getMaterialBlastFurnaceTemp(mat);
-                            HotColdPair pair = new HotColdPair(in.copy(), out.copy(), bfTemp, mat);
-                            ItemDamageKey inKey = ItemDamageKey.of(in);
-                            ItemDamageKey outKey = ItemDamageKey.of(out);
-                            if (inKey != null) HOT_TO_COLD_INGOTS.put(inKey, pair);
-                            if (outKey != null) COLD_TO_HOT_INGOTS.put(outKey, pair);
-                        }
+                    ItemData inData = GTOreDictUnificator.getAssociation(in);
+                    ItemData outData = GTOreDictUnificator.getAssociation(out);
+                    if (inData != null && inData.mPrefix == OrePrefixes.ingotHot
+                        && outData != null
+                        && outData.mPrefix == OrePrefixes.ingot) {
+                        Materials mat = inData.mMaterial != null ? inData.mMaterial.mMaterial : null;
+                        double bfTemp = getMaterialBlastFurnaceTemp(mat);
+                        HotColdPair pair = new HotColdPair(in.copy(), out.copy(), bfTemp, mat);
+                        ItemDamageKey inKey = ItemDamageKey.of(in);
+                        ItemDamageKey outKey = ItemDamageKey.of(out);
+                        if (inKey != null) HOT_TO_COLD_INGOTS.put(inKey, pair);
+                        if (outKey != null) COLD_TO_HOT_INGOTS.put(outKey, pair);
                     }
                 }
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
 
         // 2. Scan all GregTech materials for ingotHot <-> ingot pairs
-        try {
-            for (Materials mat : Materials.values()) {
-                if (mat == null) continue;
-                ItemStack hot = GTOreDictUnificator.get(OrePrefixes.ingotHot, mat, 1L);
-                ItemStack cold = GTOreDictUnificator.get(OrePrefixes.ingot, mat, 1L);
-                if (hot != null && cold != null) {
-                    double bfTemp = getMaterialBlastFurnaceTemp(mat);
-                    HotColdPair pair = new HotColdPair(hot, cold, bfTemp, mat);
-                    ItemDamageKey hotKey = ItemDamageKey.of(hot);
-                    ItemDamageKey coldKey = ItemDamageKey.of(cold);
-                    if (hotKey != null && !HOT_TO_COLD_INGOTS.containsKey(hotKey)) {
-                        HOT_TO_COLD_INGOTS.put(hotKey, pair);
-                    }
-                    if (coldKey != null && !COLD_TO_HOT_INGOTS.containsKey(coldKey)) {
-                        COLD_TO_HOT_INGOTS.put(coldKey, pair);
-                    }
+        for (Materials mat : Materials.values()) {
+            if (mat == null) continue;
+            ItemStack hot = GTOreDictUnificator.get(OrePrefixes.ingotHot, mat, 1L);
+            ItemStack cold = GTOreDictUnificator.get(OrePrefixes.ingot, mat, 1L);
+            if (hot != null && cold != null) {
+                double bfTemp = getMaterialBlastFurnaceTemp(mat);
+                HotColdPair pair = new HotColdPair(hot, cold, bfTemp, mat);
+                ItemDamageKey hotKey = ItemDamageKey.of(hot);
+                ItemDamageKey coldKey = ItemDamageKey.of(cold);
+                if (hotKey != null && !HOT_TO_COLD_INGOTS.containsKey(hotKey)) {
+                    HOT_TO_COLD_INGOTS.put(hotKey, pair);
+                }
+                if (coldKey != null && !COLD_TO_HOT_INGOTS.containsKey(coldKey)) {
+                    COLD_TO_HOT_INGOTS.put(coldKey, pair);
                 }
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
 
         // 3. Register cryogenic cells
-        try {
-            registerCryoCellPair(
-                "liquidnitrogen",
-                GTOreDictUnificator.get(OrePrefixes.cell, Materials.LiquidNitrogen, 1L),
-                GTOreDictUnificator.get(OrePrefixes.cell, Materials.Nitrogen, 1L),
-                -196.0,
-                160000.0);
-            registerCryoCellPair(
-                "liquidoxygen",
-                GTOreDictUnificator.get(OrePrefixes.cell, Materials.LiquidOxygen, 1L),
-                GTOreDictUnificator.get(OrePrefixes.cell, Materials.Oxygen, 1L),
-                -183.0,
-                243000.0);
-            ItemStack airCell = null;
-            try {
-                airCell = gregtech.api.util.GTModHandler.getIC2Item("airCell", 1L);
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
-            if (airCell == null) {
-                airCell = GTOreDictUnificator.get(OrePrefixes.cell, Materials.Air, 1L);
-            }
-            registerCryoCellPair(
-                "liquidair",
-                GTOreDictUnificator.get(OrePrefixes.cell, Materials.LiquidAir, 1L),
-                airCell,
-                -194.0,
-                174000.0);
-            ItemStack heliumLiquidCell = null;
-            try {
-                heliumLiquidCell = bartworks.system.material.WerkstoffLoader.LiquidHelium.get(OrePrefixes.cell);
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
-            if (heliumLiquidCell == null) {
-                heliumLiquidCell = GTOreDictUnificator.get(OrePrefixes.cell, Materials.Helium, 1L);
-            }
-            registerCryoCellPair(
-                "liquidhelium",
-                heliumLiquidCell,
-                GTOreDictUnificator.get(OrePrefixes.cell, Materials.Helium, 1L),
-                -269.0,
-                20700.0);
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        registerCryoCellPair(
+            "liquidnitrogen",
+            GTOreDictUnificator.get(OrePrefixes.cell, Materials.LiquidNitrogen, 1L),
+            GTOreDictUnificator.get(OrePrefixes.cell, Materials.Nitrogen, 1L),
+            -196.0,
+            160000.0);
+        registerCryoCellPair(
+            "liquidoxygen",
+            GTOreDictUnificator.get(OrePrefixes.cell, Materials.LiquidOxygen, 1L),
+            GTOreDictUnificator.get(OrePrefixes.cell, Materials.Oxygen, 1L),
+            -183.0,
+            243000.0);
+        ItemStack airCell = null;
+        airCell = gregtech.api.util.GTModHandler.getIC2Item("airCell", 1L);
+
+        if (airCell == null) {
+            airCell = GTOreDictUnificator.get(OrePrefixes.cell, Materials.Air, 1L);
         }
+        registerCryoCellPair(
+            "liquidair",
+            GTOreDictUnificator.get(OrePrefixes.cell, Materials.LiquidAir, 1L),
+            airCell,
+            -194.0,
+            174000.0);
+        ItemStack heliumLiquidCell = null;
+        heliumLiquidCell = bartworks.system.material.WerkstoffLoader.LiquidHelium.get(OrePrefixes.cell);
+
+        if (heliumLiquidCell == null) {
+            heliumLiquidCell = GTOreDictUnificator.get(OrePrefixes.cell, Materials.Helium, 1L);
+        }
+        registerCryoCellPair(
+            "liquidhelium",
+            heliumLiquidCell,
+            GTOreDictUnificator.get(OrePrefixes.cell, Materials.Helium, 1L),
+            -269.0,
+            20700.0);
+
     }
 
     public static void registerCryoCellPair(String name, ItemStack liquidCell, ItemStack gasCell,
@@ -228,11 +211,8 @@ public class CoolantBathRegistry {
             }
             if (matName.contains("liquidair")) {
                 ItemStack airOut = null;
-                try {
-                    airOut = gregtech.api.util.GTModHandler.getIC2Item("airCell", 1L);
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
-                }
+                airOut = gregtech.api.util.GTModHandler.getIC2Item("airCell", 1L);
+
                 if (airOut == null) airOut = GTOreDictUnificator.get(OrePrefixes.cell, Materials.Air, 1L);
                 return new CryoCellPair("liquidair", stack, airOut, -194.0, 174000.0);
             }
@@ -266,11 +246,8 @@ public class CoolantBathRegistry {
             }
             if (lower.contains("liquidair") || lower.contains("liquid_air")) {
                 ItemStack airOut = null;
-                try {
-                    airOut = gregtech.api.util.GTModHandler.getIC2Item("airCell", 1L);
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
-                }
+                airOut = gregtech.api.util.GTModHandler.getIC2Item("airCell", 1L);
+
                 if (airOut == null) airOut = GTOreDictUnificator.get(OrePrefixes.cell, Materials.Air, 1L);
                 return new CryoCellPair("liquidair", stack, airOut, -194.0, 174000.0);
             }
@@ -371,12 +348,9 @@ public class CoolantBathRegistry {
 
     /** The fluid a cell holds, as GregTech and the fluid container registry know it. */
     private static FluidStack heldFluid(ItemStack cell) {
-        try {
-            FluidStack fluid = GTUtility.getFluidForFilledItem(cell, true);
-            if (fluid != null) return fluid;
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        FluidStack fluid = GTUtility.getFluidForFilledItem(cell, true);
+        if (fluid != null) return fluid;
+
         return FluidContainerRegistry.getFluidForFilledItem(cell);
     }
 
@@ -410,13 +384,10 @@ public class CoolantBathRegistry {
                 String[] parts = o.item.trim()
                     .split(":");
                 if (parts.length < 2) continue;
-                try {
-                    Item item = GameRegistry.findItem(parts[0], parts[1]);
-                    int meta = parts.length > 2 ? Integer.parseInt(parts[2]) : 0;
-                    if (item != null) resolved.put(ItemDamageKey.of(item, meta), o);
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
-                }
+                Item item = GameRegistry.findItem(parts[0], parts[1]);
+                int meta = parts.length > 2 ? Integer.parseInt(parts[2]) : 0;
+                if (item != null) resolved.put(ItemDamageKey.of(item, meta), o);
+
             }
             overrides = resolved;
             overridesOf = bath;
