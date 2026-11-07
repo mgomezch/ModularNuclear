@@ -1491,69 +1491,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
-        aNBT.setBoolean("mWorldSaved", true);
-        aNBT.setBoolean("mScram", mScram);
-        aNBT.setBoolean("mMoltenDown", mMoltenDown);
-        aNBT.setDouble("mCoreTemp", mCoreTemp);
-        aNBT.setDouble("mAvgTemp", mAvgTemp);
-        aNBT.setDouble("mReactorDamage", mReactorDamage);
-        aNBT.setInteger("gridSize", gridSize);
-        aNBT.setInteger("coreDimension", coreDimension);
-        aNBT.setInteger("mPipeTier", mPipeTier);
-        aNBT.setLong("mDirectPowerEUt", mDirectPowerEUt);
-        aNBT.setLong("mWallNeutronAccumulator", mWallNeutronAccumulator);
-        aNBT.setInteger("mWallMaintenanceTimer", mWallMaintenanceTimer);
-        aNBT.setInteger("mOutputCoolantRate", mOutputCoolantRate);
-        aNBT.setString("mOutputCoolantName", mOutputCoolantName != null ? mOutputCoolantName : "");
-
-        aNBT.setDouble("mMinTileTemp", mMinTileTemp);
-        aNBT.setDouble("mMaxTileTemp", mMaxTileTemp);
-        aNBT.setDouble("mAvgTileTemp", mAvgTileTemp);
-        aNBT.setDouble("mMinCoolantItemDur", mMinCoolantItemDur);
-        aNBT.setDouble("mMaxCoolantItemDur", mMaxCoolantItemDur);
-        aNBT.setDouble("mAvgCoolantItemDur", mAvgCoolantItemDur);
-        aNBT.setDouble("mMinFuelItemDur", mMinFuelItemDur);
-        aNBT.setDouble("mMaxFuelItemDur", mMaxFuelItemDur);
-        aNBT.setDouble("mAvgFuelItemDur", mAvgFuelItemDur);
-        aNBT.setDouble("mMinCoolantHatchFill", mMinCoolantHatchFill);
-        aNBT.setDouble("mMaxCoolantHatchFill", mMaxCoolantHatchFill);
-        aNBT.setDouble("mAvgCoolantHatchFill", mAvgCoolantHatchFill);
-        aNBT.setDouble("mMinFuelHatchFill", mMinFuelHatchFill);
-        aNBT.setDouble("mMaxFuelHatchFill", mMaxFuelHatchFill);
-        aNBT.setDouble("mAvgFuelHatchFill", mAvgFuelHatchFill);
-
-        aNBT.setInteger("mTotalFuelItems", mTotalFuelItems);
-        aNBT.setInteger("mTotalCoolantItems", mTotalCoolantItems);
-        aNBT.setLong("mTotalCoolantFluid", mTotalCoolantFluid);
-        aNBT.setLong("mTotalCoolantCapacity", mTotalCoolantCapacity);
-        aNBT.setLong("mTotalFuelFluid", mTotalFuelFluid);
-        aNBT.setLong("mTotalFuelCapacity", mTotalFuelCapacity);
-        aNBT.setInteger("mCoolantHatchCount", mCoolantHatchCount);
-        aNBT.setInteger("mFuelHatchCount", mFuelHatchCount);
-
-        aNBT.setInteger("mZeroedCoolantItemsLastCycle", mZeroedCoolantItemsLastCycle);
-        aNBT.setInteger("mZeroedFuelItemsLastCycle", mZeroedFuelItemsLastCycle);
-        aNBT.setLong("mConsumedCoolantLastCycle", mConsumedCoolantLastCycle);
-        aNBT.setLong("mProducedHotCoolantLastCycle", mProducedHotCoolantLastCycle);
-        aNBT.setLong("mTransmutationLossLastCycle", mTransmutationLossLastCycle);
-        aNBT.setLong("mTransmutationByproductsLastCycle", mTransmutationByproductsLastCycle);
-        aNBT.setLong("mDepletedLiquidFuelLastCycle", mDepletedLiquidFuelLastCycle);
-        if (hasCustomName()) {
-            NBTTagCompound display;
-            if (aNBT.hasKey("display", 10)) {
-                display = aNBT.getCompoundTag("display");
-            } else {
-                display = new NBTTagCompound();
-                aNBT.setTag("display", display);
-            }
-            display.setString("Name", mCustomName);
-        } else if (aNBT.hasKey("display", 10)) {
-            NBTTagCompound display = aNBT.getCompoundTag("display");
-            display.removeTag("Name");
-            if (display.hasNoTags()) {
-                aNBT.removeTag("display");
-            }
-        }
+        NuclearReactorNbt.save(this, aNBT);
+        NuclearReactorNbt.saveCustomName(this, aNBT);
     }
 
     @Override
@@ -1565,22 +1504,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (mMoltenDown) {
             aNBT.setBoolean("mMoltenDown", true);
         }
-        if (hasCustomName()) {
-            NBTTagCompound display;
-            if (aNBT.hasKey("display", 10)) {
-                display = aNBT.getCompoundTag("display");
-            } else {
-                display = new NBTTagCompound();
-                aNBT.setTag("display", display);
-            }
-            display.setString("Name", mCustomName);
-        } else if (aNBT.hasKey("display", 10)) {
-            NBTTagCompound display = aNBT.getCompoundTag("display");
-            display.removeTag("Name");
-            if (display.hasNoTags()) {
-                aNBT.removeTag("display");
-            }
-        }
+        NuclearReactorNbt.saveCustomName(this, aNBT);
     }
 
     @Override
@@ -1627,84 +1551,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (getBaseMetaTileEntity() != null) {
             super.loadNBTData(aNBT);
         }
-        if (aNBT.hasKey("display", 10)) {
-            NBTTagCompound display = aNBT.getCompoundTag("display");
-            if (display.hasKey("Name", 8)) {
-                String name = display.getString("Name")
-                    .trim();
-                this.mCustomName = !name.isEmpty() ? name : null;
-            } else {
-                this.mCustomName = null;
-            }
-        } else {
-            this.mCustomName = null;
-        }
-        mWorldSaved = aNBT.getBoolean("mWorldSaved");
-        if (!mWorldSaved) {
-            mWrench = false;
-            mScrewdriver = false;
-            mSoftMallet = false;
-            mHardHammer = false;
-            mSolderingTool = false;
-            mCrowbar = false;
-        }
-        mScram = aNBT.getBoolean("mScram");
-        if (aNBT.hasKey("mMoltenDown")) {
-            mMoltenDown = aNBT.getBoolean("mMoltenDown");
-        }
-        if (aNBT.hasKey("mCoreTemp")) {
-            mCoreTemp = aNBT.getDouble("mCoreTemp");
-            mAvgTemp = aNBT.getDouble("mAvgTemp");
-        } else {
-            mCoreTemp = getAmbientTemperature();
-            mAvgTemp = getAmbientTemperature();
-        }
-        if (aNBT.hasKey("mReactorDamage")) {
-            mReactorDamage = aNBT.getDouble("mReactorDamage");
-        } else {
-            mReactorDamage = 0.0;
-        }
-        gridSize = aNBT.getInteger("gridSize");
-        coreDimension = aNBT.getInteger("coreDimension");
-        mPipeTier = aNBT.getInteger("mPipeTier");
-        mDirectPowerEUt = aNBT.getLong("mDirectPowerEUt");
-        mWallNeutronAccumulator = aNBT.getLong("mWallNeutronAccumulator");
-        mWallMaintenanceTimer = aNBT.getInteger("mWallMaintenanceTimer");
-        mOutputCoolantRate = aNBT.getInteger("mOutputCoolantRate");
-        mOutputCoolantName = aNBT.getString("mOutputCoolantName");
-
-        mMinTileTemp = aNBT.getDouble("mMinTileTemp");
-        mMaxTileTemp = aNBT.getDouble("mMaxTileTemp");
-        mAvgTileTemp = aNBT.getDouble("mAvgTileTemp");
-        mMinCoolantItemDur = aNBT.getDouble("mMinCoolantItemDur");
-        mMaxCoolantItemDur = aNBT.getDouble("mMaxCoolantItemDur");
-        mAvgCoolantItemDur = aNBT.getDouble("mAvgCoolantItemDur");
-        mMinFuelItemDur = aNBT.getDouble("mMinFuelItemDur");
-        mMaxFuelItemDur = aNBT.getDouble("mMaxFuelItemDur");
-        mAvgFuelItemDur = aNBT.getDouble("mAvgFuelItemDur");
-        mMinCoolantHatchFill = aNBT.getDouble("mMinCoolantHatchFill");
-        mMaxCoolantHatchFill = aNBT.getDouble("mMaxCoolantHatchFill");
-        mAvgCoolantHatchFill = aNBT.getDouble("mAvgCoolantHatchFill");
-        mMinFuelHatchFill = aNBT.getDouble("mMinFuelHatchFill");
-        mMaxFuelHatchFill = aNBT.getDouble("mMaxFuelHatchFill");
-        mAvgFuelHatchFill = aNBT.getDouble("mAvgFuelHatchFill");
-
-        mTotalFuelItems = aNBT.getInteger("mTotalFuelItems");
-        mTotalCoolantItems = aNBT.getInteger("mTotalCoolantItems");
-        mTotalCoolantFluid = aNBT.getLong("mTotalCoolantFluid");
-        mTotalCoolantCapacity = aNBT.getLong("mTotalCoolantCapacity");
-        mTotalFuelFluid = aNBT.getLong("mTotalFuelFluid");
-        mTotalFuelCapacity = aNBT.getLong("mTotalFuelCapacity");
-        mCoolantHatchCount = aNBT.getInteger("mCoolantHatchCount");
-        mFuelHatchCount = aNBT.getInteger("mFuelHatchCount");
-
-        mZeroedCoolantItemsLastCycle = aNBT.getInteger("mZeroedCoolantItemsLastCycle");
-        mZeroedFuelItemsLastCycle = aNBT.getInteger("mZeroedFuelItemsLastCycle");
-        mConsumedCoolantLastCycle = aNBT.getLong("mConsumedCoolantLastCycle");
-        mProducedHotCoolantLastCycle = aNBT.getLong("mProducedHotCoolantLastCycle");
-        mTransmutationLossLastCycle = aNBT.getLong("mTransmutationLossLastCycle");
-        mTransmutationByproductsLastCycle = aNBT.getLong("mTransmutationByproductsLastCycle");
-        mDepletedLiquidFuelLastCycle = aNBT.getLong("mDepletedLiquidFuelLastCycle");
+        NuclearReactorNbt.load(this, aNBT);
     }
 
     public ReactorGridSyncData getClientGridData() {

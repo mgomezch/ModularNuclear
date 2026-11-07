@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,15 +13,12 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
-import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.ForgeChunkManager;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -39,7 +34,6 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopChunkLoader;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopFailure;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
-import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopId;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantLoopMachineGui;
 import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphData;
@@ -51,12 +45,10 @@ import com.gtnewhorizons.modularnuclear.common.util.ClientText;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
 import com.gtnewhorizons.modularnuclear.common.util.LocalizedTextNbt;
-import com.gtnewhorizons.modularnuclear.common.util.LoopStateNbt;
 import com.gtnewhorizons.modularnuclear.common.util.MonitorCover;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 import com.gtnewhorizons.modularnuclear.common.util.TickPhase;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
 import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
@@ -139,7 +131,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     private static final int MAX_PUMP_WIDTH = 9;
     protected Block[] mFootprintBlocks;
     /** The status line, as a lang key and its arguments: each client localizes it. */
-    private LocalizedText mLoopStatus = LocalizedText.of("coolantloops.pump.status.waiting");
+    LocalizedText mLoopStatus = LocalizedText.of("coolantloops.pump.status.waiting");
     protected Materials mTankMaterial = Materials.Steel;
 
     // Impeller slot
@@ -900,20 +892,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         if (base != null && base.getWorld() != null && !base.getWorld().isRemote) {
             LoopChunkLoader.releaseRestored(base.getWorld(), base.getXCoord(), base.getYCoord(), base.getZCoord());
         }
-    }
-
-    /**
-     * Where a graph node's block is, so a load can find the node again: devices are recorded as the device itself,
-     * which is saved as the position of its block (a multiblock's controller, or a hatch).
-     */
-    private static int[] nodePosition(Object data) {
-        if (data instanceof LoopGraphCrawler.BlockPosCoord bc) return new int[] { bc.x, bc.y, bc.z };
-        if (data instanceof IMetaTileEntity mte && mte.getBaseMetaTileEntity() != null) {
-            IGregTechTileEntity base = mte.getBaseMetaTileEntity();
-            return new int[] { base.getXCoord(), base.getYCoord(), base.getZCoord() };
-        }
-        if (data instanceof TileEntity te) return new int[] { te.xCoord, te.yCoord, te.zCoord };
-        return null;
     }
 
     /** Records the loop's pipe blocks; none after a load, until the first crawl finds them again. */
@@ -1879,177 +1857,13 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     @Override
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
-        if (!mLoopChunks.isEmpty()) {
-            int[] chunks = new int[2 * mLoopChunks.size()];
-            int i = 0;
-            for (long chunk : mLoopChunks) {
-                chunks[i++] = (int) chunk;
-                chunks[i++] = (int) (chunk >>> 32);
-            }
-            aNBT.setIntArray("mLoopChunks", chunks);
-        }
-        mReservoir.saveNBTData(aNBT);
-        aNBT.setBoolean("mLoopFormed", mLoopFormed);
-        aNBT.setString("mLoopState", mLoopState.name());
-        aNBT.setTag("mLoopStatus", LocalizedTextNbt.write(mLoopStatus));
-        aNBT.setLong("mCurrentFillLiters", mCurrentFillLiters);
-        aNBT.setLong("mRequiredFillLiters", mRequiredFillLiters);
-        aNBT.setDouble("mRotorDamageAccumulator", mRotorDamageAccumulator);
-        aNBT.setBoolean("mPowerFailed", mPowerFailed);
-        if (mTankMaterial != null && mTankMaterial.mName != null) {
-            aNBT.setString("mTankMaterial", mTankMaterial.mName);
-        }
-        if (mRotorMaterial != null && mRotorMaterial.mName != null) {
-            aNBT.setString("mRotorMaterial", mRotorMaterial.mName);
-        }
-
-        if (mDischargeHatch != null && mDischargeHatch.getBaseMetaTileEntity() != null) {
-            IGregTechTileEntity dte = mDischargeHatch.getBaseMetaTileEntity();
-            aNBT.setIntArray("discCoord", new int[] { dte.getXCoord(), dte.getYCoord(), dte.getZCoord() });
-        } else if (mSavedDischargeCoord != null) {
-            aNBT.setIntArray("discCoord", mSavedDischargeCoord);
-        }
-        if (mSuctionHatch != null && mSuctionHatch.getBaseMetaTileEntity() != null) {
-            IGregTechTileEntity ste = mSuctionHatch.getBaseMetaTileEntity();
-            aNBT.setIntArray("sucCoord", new int[] { ste.getXCoord(), ste.getYCoord(), ste.getZCoord() });
-        } else if (mSavedSuctionCoord != null) {
-            aNBT.setIntArray("sucCoord", mSavedSuctionCoord);
-        }
-
-        NBTTagCompound engineTag = new NBTTagCompound();
-        LoopStateNbt.write(mEngine.exportState(), engineTag);
-        aNBT.setTag("mEngine", engineTag);
-
-        if (mLastCrawlResult != null && mLastCrawlResult.isSuccess) {
-            NBTTagCompound crawlTag = new NBTTagCompound();
-            crawlTag.setDouble("maxPumpPipeCap", mLastCrawlResult.maxPumpPipeCapacityLPerSec);
-            if (mLastCrawlResult.loopMaterial != null) {
-                crawlTag.setString("loopMaterial", mLastCrawlResult.loopMaterial.mName);
-            }
-            // Only the devices, by position, to bind them again after a load. The pipes and the graph's edges are
-            // found again by the first crawl after the load
-            if (mLastCrawlResult.graphNodes != null) {
-                NBTTagList nodeList = new NBTTagList();
-                for (LoopGraphCrawler.FlowNode fn : mLastCrawlResult.graphNodes.values()) {
-                    if (fn.type != LoopGraphCrawler.NodeType.DEVICE) continue;
-                    int[] coord = nodePosition(fn.data);
-                    if (coord == null) continue;
-                    NBTTagCompound nTag = new NBTTagCompound();
-                    nTag.setString("id", fn.id.toString());
-                    nTag.setString("type", fn.type.name());
-                    nTag.setIntArray("coord", coord);
-                    nodeList.appendTag(nTag);
-                }
-                crawlTag.setTag("graphNodes", nodeList);
-            }
-            aNBT.setTag("mLastCrawlResult", crawlTag);
-        }
+        CoolantPumpNbt.save(this, aNBT);
     }
 
     @Override
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
-        mLoopChunks = new HashSet<>();
-        int[] loopChunks = aNBT.getIntArray("mLoopChunks");
-        for (int i = 0; i + 1 < loopChunks.length; i += 2) {
-            mLoopChunks.add(ChunkCoordIntPair.chunkXZ2Int(loopChunks[i], loopChunks[i + 1]));
-        }
-        mReservoir.loadNBTData(aNBT);
-        if (aNBT.hasKey("mLoopState")) {
-            try {
-                mLoopState = LoopState.valueOf(aNBT.getString("mLoopState"));
-            } catch (Exception swallowed) {
-                Swallowed.note(swallowed);
-            }
-        }
-        if (aNBT.hasKey("mCurrentFillLiters")) {
-            mCurrentFillLiters = aNBT.getLong("mCurrentFillLiters");
-        }
-        if (aNBT.hasKey("mRequiredFillLiters")) {
-            mRequiredFillLiters = aNBT.getLong("mRequiredFillLiters");
-        }
-        if (aNBT.hasKey("mRotorDamageAccumulator")) {
-            mRotorDamageAccumulator = aNBT.getDouble("mRotorDamageAccumulator");
-        }
-        if (aNBT.hasKey("mPowerFailed")) {
-            mPowerFailed = aNBT.getBoolean("mPowerFailed");
-        }
-        if (aNBT.hasKey("mLoopStatus", Constants.NBT.TAG_COMPOUND)) {
-            mLoopStatus = LocalizedTextNbt.read(aNBT.getCompoundTag("mLoopStatus"));
-        }
-        if (aNBT.hasKey("mTankMaterial")) {
-            Materials mat = Materials.get(aNBT.getString("mTankMaterial"));
-            if (mat != null) {
-                mTankMaterial = mat;
-            }
-        }
-        if (aNBT.hasKey("mRotorMaterial")) {
-            Materials mat = Materials.get(aNBT.getString("mRotorMaterial"));
-            if (mat != null) {
-                mRotorMaterial = mat;
-            }
-        }
-        if (aNBT.hasKey("discCoord")) {
-            mSavedDischargeCoord = aNBT.getIntArray("discCoord");
-        }
-        if (aNBT.hasKey("sucCoord")) {
-            mSavedSuctionCoord = aNBT.getIntArray("sucCoord");
-        }
-
-        if (aNBT.hasKey("mEngine", 10)) {
-            mEngine.importState(LoopStateNbt.read(aNBT.getCompoundTag("mEngine")));
-        }
-        if (aNBT.hasKey("mLoopFormed")) {
-            mLoopFormed = aNBT.getBoolean("mLoopFormed") && !mEngine.getSegments()
-                .isEmpty();
-        }
-
-        if (aNBT.hasKey("mLastCrawlResult", 10)) {
-            NBTTagCompound crawlTag = aNBT.getCompoundTag("mLastCrawlResult");
-            double maxCap = crawlTag.getDouble("maxPumpPipeCap");
-            Materials loopMat = crawlTag.hasKey("loopMaterial") ? Materials.get(crawlTag.getString("loopMaterial"))
-                : null;
-            Set<LoopGraphCrawler.BlockPosCoord> pipePositions = new LinkedHashSet<>();
-            if (crawlTag.hasKey("pipePositions", 9)) {
-                NBTTagList pipeList = crawlTag.getTagList("pipePositions", 11);
-                for (int i = 0; i < pipeList.tagCount(); i++) {
-                    int[] c = pipeList.func_150306_c(i);
-                    if (c.length >= 3) {
-                        pipePositions.add(new LoopGraphCrawler.BlockPosCoord(c[0], c[1], c[2]));
-                    }
-                }
-            }
-            Map<LoopId, LoopGraphCrawler.FlowNode> graphNodes = new LinkedHashMap<>();
-            if (crawlTag.hasKey("graphNodes", 9)) {
-                NBTTagList nodeList = crawlTag.getTagList("graphNodes", 10);
-                for (int i = 0; i < nodeList.tagCount(); i++) {
-                    NBTTagCompound nTag = nodeList.getCompoundTagAt(i);
-                    LoopId id = LoopId.of(nTag.getString("id"));
-                    LoopGraphCrawler.NodeType type = LoopGraphCrawler.NodeType.valueOf(nTag.getString("type"));
-                    Object data = null;
-                    if (nTag.hasKey("coord")) {
-                        int[] c = nTag.getIntArray("coord");
-                        if (c.length >= 3) data = new LoopGraphCrawler.BlockPosCoord(c[0], c[1], c[2]);
-                    }
-                    graphNodes.put(id, new LoopGraphCrawler.FlowNode(id, type, data));
-                }
-            }
-            // The edges are not saved: the first crawl after the load finds them again
-            Map<LoopId, List<LoopId>> graphEdges = new LinkedHashMap<>();
-            mLastCrawlResult = LoopGraphCrawler.CrawlResult.success(
-                mEngine.getSegments(),
-                mLoopDevices,
-                pipePositions,
-                maxCap,
-                loopMat,
-                null,
-                graphNodes,
-                graphEdges);
-        }
-
-        if (mLoopFormed) {
-            mNeedsPostLoadRebind = true;
-        }
+        CoolantPumpNbt.load(this, aNBT);
     }
 
     public boolean addBottomHatch(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
