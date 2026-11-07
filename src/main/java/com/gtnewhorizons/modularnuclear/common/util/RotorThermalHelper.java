@@ -24,18 +24,15 @@ public final class RotorThermalHelper {
 
     public static boolean isMetaGeneratedTool(Item item) {
         if (item == null) return false;
-        try {
-            Class<?> clazz = item.getClass();
-            while (clazz != null && clazz != Object.class) {
-                if (clazz.getName()
-                    .endsWith("MetaGeneratedTool")) {
-                    return true;
-                }
-                clazz = clazz.getSuperclass();
+        Class<?> clazz = item.getClass();
+        while (clazz != null && clazz != Object.class) {
+            if (clazz.getName()
+                .endsWith("MetaGeneratedTool")) {
+                return true;
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+            clazz = clazz.getSuperclass();
         }
+
         return false;
     }
 
@@ -50,14 +47,11 @@ public final class RotorThermalHelper {
 
     public static Materials getRotorMaterial(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return null;
-        try {
-            if (stack.getItem() instanceof MetaGeneratedTool) {
-                Materials mat = ((MetaGeneratedTool) stack.getItem()).getPrimaryMaterial(stack);
-                if (mat != null && mat != Materials._NULL) return mat;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (stack.getItem() instanceof MetaGeneratedTool) {
+            Materials mat = ((MetaGeneratedTool) stack.getItem()).getPrimaryMaterial(stack);
+            if (mat != null && mat != Materials._NULL) return mat;
         }
+
         return Materials.Steel;
     }
 
@@ -68,17 +62,14 @@ public final class RotorThermalHelper {
         // A configured melting point overrides GregTech's: GTNH gives a molten fluid it has no temperature for 1000 K
         double configured = configuredMeltingPointKelvin(mat);
         if (configured > 0) return configured - 273.15;
-        try {
-            FluidStack molten = mat.getMolten(1);
-            if (molten != null && molten.getFluid() != null
-                && molten.getFluid()
-                    .getTemperature() > 0) {
-                return molten.getFluid()
-                    .getTemperature() - 273.15;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        FluidStack molten = mat.getMolten(1);
+        if (molten != null && molten.getFluid() != null
+            && molten.getFluid()
+                .getTemperature() > 0) {
+            return molten.getFluid()
+                .getTemperature() - 273.15;
         }
+
         if (mat.mMeltingPoint > 0) {
             return mat.mMeltingPoint - 273.15;
         }
@@ -144,14 +135,11 @@ public final class RotorThermalHelper {
     public static String getMaterialLocalizedName(Materials mat) {
         if (mat == null) return "Unknown";
         if (mat.mDefaultLocalName != null && !mat.mDefaultLocalName.isEmpty()) {
-            try {
-                String key = mat.getLocalizedNameKey();
-                if (StatCollector.canTranslate(key)) {
-                    return StatCollector.translateToLocal(key);
-                }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
+            String key = mat.getLocalizedNameKey();
+            if (StatCollector.canTranslate(key)) {
+                return StatCollector.translateToLocal(key);
             }
+
             return mat.mDefaultLocalName;
         }
         return mat.getLocalizedName();

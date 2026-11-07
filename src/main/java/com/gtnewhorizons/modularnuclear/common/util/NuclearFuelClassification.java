@@ -171,16 +171,13 @@ public final class NuclearFuelClassification {
 
     public static boolean isOreDictMatch(ItemStack stack, String oreName) {
         if (stack == null || oreName == null) return false;
-        try {
-            int targetId = OreDictionary.getOreID(oreName);
-            if (targetId < 0) return false;
-            int[] ids = OreDictionary.getOreIDs(stack);
-            for (int id : ids) {
-                if (id == targetId) return true;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        int targetId = OreDictionary.getOreID(oreName);
+        if (targetId < 0) return false;
+        int[] ids = OreDictionary.getOreIDs(stack);
+        for (int id : ids) {
+            if (id == targetId) return true;
         }
+
         return false;
     }
 
@@ -643,47 +640,37 @@ public final class NuclearFuelClassification {
 
     private static boolean scanIsItemNeutronSource(ItemStack stack) {
         if (!neutronSourceInitialized) {
-            try {
-                if (goodgenerator.loader.Loaders.neutronSource != null) {
-                    cachedNeutronSourceItem = goodgenerator.loader.Loaders.neutronSource;
+            if (goodgenerator.loader.Loaders.neutronSource != null) {
+                cachedNeutronSourceItem = goodgenerator.loader.Loaders.neutronSource;
+                neutronSourceInitialized = true;
+            }
+
+            if (cachedNeutronSourceItem == null) {
+                cachedNeutronSourceItem = cpw.mods.fml.common.registry.GameRegistry
+                    .findItem("GoodGenerator", "neutronSource");
+                if (cachedNeutronSourceItem != null) {
                     neutronSourceInitialized = true;
                 }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
-            if (cachedNeutronSourceItem == null) {
-                try {
-                    cachedNeutronSourceItem = cpw.mods.fml.common.registry.GameRegistry
-                        .findItem("GoodGenerator", "neutronSource");
-                    if (cachedNeutronSourceItem != null) {
-                        neutronSourceInitialized = true;
-                    }
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
-                }
+
             }
         }
         if (cachedNeutronSourceItem != null) {
             return stack.getItem() == cachedNeutronSourceItem;
         }
-        try {
-            net.minecraft.item.Item item = stack.getItem();
-            cpw.mods.fml.common.registry.GameRegistry.UniqueIdentifier uid = cpw.mods.fml.common.registry.GameRegistry
-                .findUniqueIdentifierFor(item);
-            if (uid != null && "GoodGenerator".equalsIgnoreCase(uid.modId)
-                && "neutronSource".equalsIgnoreCase(uid.name)) {
-                cachedNeutronSourceItem = item;
-                neutronSourceInitialized = true;
-                return true;
-            }
-            if ("item.neutronSource".equalsIgnoreCase(item.getUnlocalizedName())) {
-                cachedNeutronSourceItem = item;
-                neutronSourceInitialized = true;
-                return true;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        net.minecraft.item.Item item = stack.getItem();
+        cpw.mods.fml.common.registry.GameRegistry.UniqueIdentifier uid = cpw.mods.fml.common.registry.GameRegistry
+            .findUniqueIdentifierFor(item);
+        if (uid != null && "GoodGenerator".equalsIgnoreCase(uid.modId) && "neutronSource".equalsIgnoreCase(uid.name)) {
+            cachedNeutronSourceItem = item;
+            neutronSourceInitialized = true;
+            return true;
         }
+        if ("item.neutronSource".equalsIgnoreCase(item.getUnlocalizedName())) {
+            cachedNeutronSourceItem = item;
+            neutronSourceInitialized = true;
+            return true;
+        }
+
         return false;
     }
 
