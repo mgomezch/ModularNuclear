@@ -97,14 +97,11 @@ public final class CoolantFluidHelper {
             if (name.startsWith("gas_") || name.endsWith("_gas") || name.endsWith(".gas")) {
                 res = true;
             } else {
-                try {
-                    Materials mat = Materials.FLUID_MAP.get(fluid);
-                    if (mat != null && mat.mGas != null && mat.mGas == fluid) {
-                        res = true;
-                    }
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
+                Materials mat = Materials.FLUID_MAP.get(fluid);
+                if (mat != null && mat.mGas != null && mat.mGas == fluid) {
+                    res = true;
                 }
+
             }
         }
         return res;
@@ -155,11 +152,8 @@ public final class CoolantFluidHelper {
             fluid = stack.getFluid();
         }
         if (fluid == null && prop != null) {
-            try {
-                fluid = FluidRegistry.getFluid(prop.getFluidName());
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            fluid = FluidRegistry.getFluid(prop.getFluidName());
+
         }
         if (fluid != null) {
             int tempK = (stack != null) ? fluid.getTemperature(stack) : fluid.getTemperature();

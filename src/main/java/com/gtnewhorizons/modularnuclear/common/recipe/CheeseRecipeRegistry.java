@@ -121,32 +121,29 @@ public class CheeseRecipeRegistry {
         if (isLoaded) return;
         synchronized (this) {
             if (isLoaded) return;
-            try {
-                if (RecipeMaps.fluidExtractionRecipes != null) {
-                    for (GTRecipe recipe : RecipeMaps.fluidExtractionRecipes.getAllRecipes()) {
-                        if (recipe.mFluidOutputs != null) {
-                            for (FluidStack out : recipe.mFluidOutputs) {
-                                if (out != null && isMoltenCheese(out)) {
-                                    cheeseRecipes.add(recipe);
-                                    if (recipe.mInputs != null && recipe.mInputs.length > 0) {
-                                        for (ItemStack in : recipe.mInputs) {
-                                            if (in != null && in.getItem() != null) {
-                                                cheeseInputItems.add(in.getItem());
-                                                recipeCache.put(new RecipeCacheKey(in), Optional.of(recipe));
-                                            }
+            if (RecipeMaps.fluidExtractionRecipes != null) {
+                for (GTRecipe recipe : RecipeMaps.fluidExtractionRecipes.getAllRecipes()) {
+                    if (recipe.mFluidOutputs != null) {
+                        for (FluidStack out : recipe.mFluidOutputs) {
+                            if (out != null && isMoltenCheese(out)) {
+                                cheeseRecipes.add(recipe);
+                                if (recipe.mInputs != null && recipe.mInputs.length > 0) {
+                                    for (ItemStack in : recipe.mInputs) {
+                                        if (in != null && in.getItem() != null) {
+                                            cheeseInputItems.add(in.getItem());
+                                            recipeCache.put(new RecipeCacheKey(in), Optional.of(recipe));
                                         }
-                                    } else {
-                                        hasDynamicOrUnknownInputs = true;
                                     }
-                                    break;
+                                } else {
+                                    hasDynamicOrUnknownInputs = true;
                                 }
+                                break;
                             }
                         }
                     }
                 }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
             }
+
             isLoaded = true;
         }
     }

@@ -101,7 +101,7 @@ public final class GrayscaleShader {
                 GL20.glUniform1i(texLoc, 0);
                 GL20.glUseProgram(0);
             }
-        } catch (Throwable t) {
+        } catch (RuntimeException t) {
             supported = false;
             program = 0;
         }

@@ -221,7 +221,7 @@ public class CoolantLoopGraphData {
         }
         try {
             return GSON.fromJson(json, CoolantLoopGraphData.class);
-        } catch (Throwable t) {
+        } catch (com.google.gson.JsonParseException t) {
             CoolantLoopGraphData data = new CoolantLoopGraphData();
             data.isFormed = false;
             data.failureReason = LocalizedText.literal("Deserialization error: " + t.getMessage());
@@ -537,7 +537,7 @@ public class CoolantLoopGraphData {
                         .getField("mLastHeatOutput");
                     double heatOut = heatField.getDouble(devObj);
                     extra.put("Heat output", String.format(Locale.US, "%,.1f HU/s", heatOut));
-                } catch (Throwable swallowed) {
+                } catch (ReflectiveOperationException swallowed) {
                     Swallowed.note(swallowed);
                 }
             } else if (devObj instanceof MTEHatchPressurizedFluid hatch) {

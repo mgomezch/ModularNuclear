@@ -16,7 +16,6 @@ import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.WidgetTree;
 import com.cleanroommc.modularui.widget.sizer.Area;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 /**
  * A robust, jump-free drag handle for floating ModularPanels.
@@ -128,11 +127,8 @@ public class PanelDragHandle extends Widget<PanelDragHandle> implements IDraggab
             if (ctx != null) return ctx;
         }
         if (this.panel != null) {
-            try {
-                return this.panel.getContext();
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            return this.panel.getContext();
+
         }
         return null;
     }

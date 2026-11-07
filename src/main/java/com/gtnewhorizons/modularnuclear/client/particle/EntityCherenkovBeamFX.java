@@ -112,7 +112,7 @@ public class EntityCherenkovBeamFX extends EntityFX {
                 String line = new String(java.nio.file.Files.readAllBytes(overrideFile.toPath())).trim();
                 intensityMult = Float.parseFloat(line);
             }
-        } catch (Throwable swallowed) {
+        } catch (java.io.IOException | NumberFormatException swallowed) {
             Swallowed.note(swallowed);
         }
 

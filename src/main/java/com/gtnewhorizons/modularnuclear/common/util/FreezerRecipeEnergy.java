@@ -36,43 +36,40 @@ public final class FreezerRecipeEnergy {
     private static synchronized void ensureScanned() {
         if (scanned) return;
         scanned = true;
-        try {
-            if (RecipeMaps.vacuumFreezerRecipes == null) return;
-            for (GTRecipe recipe : RecipeMaps.vacuumFreezerRecipes.getAllRecipes()) {
-                double eu = (double) recipe.mEUt * recipe.mDuration;
-                if (eu <= 0.0) continue;
-                ItemStack in = single(recipe.mInputs);
-                ItemStack out = single(recipe.mOutputs);
-                boolean noFluids = isEmpty(recipe.mFluidInputs) && isEmpty(recipe.mFluidOutputs);
-                if (in != null && out != null && noFluids) {
-                    double seconds = recipe.mDuration / 20.0;
-                    if (keepLeast(EU_BY_INPUT, ItemDamageKey.of(in), eu / in.stackSize))
-                        SECONDS_BY_INPUT.put(ItemDamageKey.of(in), seconds / in.stackSize);
-                    if (keepLeast(EU_BY_OUTPUT, ItemDamageKey.of(out), eu / out.stackSize))
-                        SECONDS_BY_OUTPUT.put(ItemDamageKey.of(out), seconds / out.stackSize);
-                    FluidStack held = GTUtility.getFluidForFilledItem(out, true);
-                    if (held != null && held.amount > 0 && held.getFluid() != null) {
-                        keepLeast(
-                            EU_PER_LITER,
-                            held.getFluid()
-                                .getName(),
-                            eu / ((double) held.amount * out.stackSize));
-                    }
-                } else if (isEmpty(recipe.mOutputs) && recipe.mFluidOutputs != null
-                    && recipe.mFluidOutputs.length == 1
-                    && recipe.mFluidOutputs[0] != null
-                    && recipe.mFluidOutputs[0].amount > 0
-                    && recipe.mFluidOutputs[0].getFluid() != null) {
-                        keepLeast(
-                            EU_PER_LITER,
-                            recipe.mFluidOutputs[0].getFluid()
-                                .getName(),
-                            eu / recipe.mFluidOutputs[0].amount);
-                    }
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (RecipeMaps.vacuumFreezerRecipes == null) return;
+        for (GTRecipe recipe : RecipeMaps.vacuumFreezerRecipes.getAllRecipes()) {
+            double eu = (double) recipe.mEUt * recipe.mDuration;
+            if (eu <= 0.0) continue;
+            ItemStack in = single(recipe.mInputs);
+            ItemStack out = single(recipe.mOutputs);
+            boolean noFluids = isEmpty(recipe.mFluidInputs) && isEmpty(recipe.mFluidOutputs);
+            if (in != null && out != null && noFluids) {
+                double seconds = recipe.mDuration / 20.0;
+                if (keepLeast(EU_BY_INPUT, ItemDamageKey.of(in), eu / in.stackSize))
+                    SECONDS_BY_INPUT.put(ItemDamageKey.of(in), seconds / in.stackSize);
+                if (keepLeast(EU_BY_OUTPUT, ItemDamageKey.of(out), eu / out.stackSize))
+                    SECONDS_BY_OUTPUT.put(ItemDamageKey.of(out), seconds / out.stackSize);
+                FluidStack held = GTUtility.getFluidForFilledItem(out, true);
+                if (held != null && held.amount > 0 && held.getFluid() != null) {
+                    keepLeast(
+                        EU_PER_LITER,
+                        held.getFluid()
+                            .getName(),
+                        eu / ((double) held.amount * out.stackSize));
+                }
+            } else if (isEmpty(recipe.mOutputs) && recipe.mFluidOutputs != null
+                && recipe.mFluidOutputs.length == 1
+                && recipe.mFluidOutputs[0] != null
+                && recipe.mFluidOutputs[0].amount > 0
+                && recipe.mFluidOutputs[0].getFluid() != null) {
+                    keepLeast(
+                        EU_PER_LITER,
+                        recipe.mFluidOutputs[0].getFluid()
+                            .getName(),
+                        eu / recipe.mFluidOutputs[0].amount);
+                }
         }
+
     }
 
     private static ItemStack single(ItemStack[] stacks) {

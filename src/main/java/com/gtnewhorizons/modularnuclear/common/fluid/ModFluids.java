@@ -10,8 +10,6 @@ import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
-
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -47,17 +45,14 @@ public class ModFluids {
 
         registerWithGregTech();
 
-        try {
-            if (FMLCommonHandler.instance() != null && FMLCommonHandler.instance()
-                .getSide() != null
-                && FMLCommonHandler.instance()
-                    .getSide()
-                    .isClient()) {
-                registerClientEvents();
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (FMLCommonHandler.instance() != null && FMLCommonHandler.instance()
+            .getSide() != null
+            && FMLCommonHandler.instance()
+                .getSide()
+                .isClient()) {
+            registerClientEvents();
         }
+
     }
 
     /**

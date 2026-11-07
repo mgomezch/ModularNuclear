@@ -93,26 +93,23 @@ public class CoolantLoopRecipes {
                     return (ItemStack) m.invoke(constant, 1);
                 }
             }
-        } catch (Throwable swallowed) {
+        } catch (ReflectiveOperationException swallowed) {
             Swallowed.note(swallowed);
         }
         return null;
     }
 
     private static ItemStack findItemSafe(String modId, String name, int amount, int meta) {
-        try {
-            net.minecraft.item.Item item = cpw.mods.fml.common.registry.GameRegistry.findItem(modId, name);
-            if (item != null) {
-                return new ItemStack(item, amount, meta);
-            }
-            ItemStack is = cpw.mods.fml.common.registry.GameRegistry.findItemStack(modId, name, amount);
-            if (is != null) {
-                if (meta > 0) is.setItemDamage(meta);
-                return is;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        net.minecraft.item.Item item = cpw.mods.fml.common.registry.GameRegistry.findItem(modId, name);
+        if (item != null) {
+            return new ItemStack(item, amount, meta);
         }
+        ItemStack is = cpw.mods.fml.common.registry.GameRegistry.findItemStack(modId, name, amount);
+        if (is != null) {
+            if (meta > 0) is.setItemDamage(meta);
+            return is;
+        }
+
         return null;
     }
 
