@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 public class SharedCodeIsolationTest {
 
     private static final Path BASE = Paths.get("src/main/java/com/gtnewhorizons/modularnuclear/common");
+    private static final Path SIMULATOR = Paths.get("src/simulator/java/com/gtnewhorizons/modularnuclear/common");
 
     /** The coolant loop engine and config core the simulator runs. */
     static final List<String> SHARED_LOOP_FILES = Arrays.asList(
@@ -67,7 +68,7 @@ public class SharedCodeIsolationTest {
         try (Stream<Path> s = Files.list(BASE.resolve("nuclear"))) {
             s.forEach(files::add);
         }
-        try (Stream<Path> s = Files.walk(BASE.resolve("nuclear/standalone"))) {
+        try (Stream<Path> s = Files.walk(SIMULATOR.resolve("nuclear/standalone"))) {
             s.forEach(files::add);
         }
         files.addAll(sharedLoopSources());

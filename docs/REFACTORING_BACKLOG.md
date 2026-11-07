@@ -309,7 +309,12 @@ Recognizing a loop device is an if-chain repeated in the crawler, in `rebindRest
 
 **Do:** move these into test subclasses or fakes, and stop saving them.
 
-### A7 (P3): Keep the simulator out of the mod jar
+### A7 (P3): Keep the simulator out of the mod jar (done)
+
+**Done:**
+- **Own source set.** The standalone simulator (`nuclear/standalone`: the CLI, `NuclearSimulationWebServer`, `NuclearSimWasmBridge` and the rest) is in `src/simulator`. It builds on the main classes, the shared engine and config, which stay plain Java. The mod jar no longer contains it.
+- **Build and tools.** `downgradeSimulatorClasses` downgrades it for TeaVM; `generateWasm` and `exportStaticDist` take both class sets; tests see it. `tools/gtnh-nuclear-sim` runs it from `build/classes/java/simulator`.
+- **Left as is.** The page template is still built in `NuclearSimulationWebServer`, and the shared engine still avoids what TeaVM lacks (`WasmStrings`).
 
 About 115 classes under `nuclear/standalone` (the CLI, `NuclearSimulationWebServer` with its HTML template in Java, `NuclearSimWasmBridge`) ship in the mod jar. TeaVM's limits also reach into game code: no `String.replace` anywhere the bridge reaches (`WasmStrings`).
 
