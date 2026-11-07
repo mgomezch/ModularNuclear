@@ -16,6 +16,7 @@ import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModWerkstoffs;
+import com.gtnewhorizons.modularnuclear.common.item.ReactorRodMaterials;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 
@@ -39,6 +40,7 @@ public class ModRecipes {
         registerFluidHeaterRecipes();
         registerCoriumRecipes();
         registerHighPressureHatchRecipes();
+        ReactorRodMaterials.registerRecipes();
     }
 
     /**

@@ -18,6 +18,7 @@ import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
 import com.gtnewhorizons.modularnuclear.common.fluid.ModWerkstoffs;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.item.NuclearFuelTooltipHandler;
+import com.gtnewhorizons.modularnuclear.common.item.ReactorRodMaterials;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.nei.NEIConfig;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration;
@@ -31,6 +32,7 @@ import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.Mod;
+import cpw.mods.fml.common.event.FMLConstructionEvent;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
@@ -53,6 +55,11 @@ public class ModularNuclear {
         clientSide = "com.gtnewhorizons.modularnuclear.client.ClientProxy",
         serverSide = "com.gtnewhorizons.modularnuclear.common.CommonProxy")
     public static CommonProxy proxy;
+
+    @Mod.EventHandler
+    public void construct(FMLConstructionEvent event) {
+        ReactorRodMaterials.register();
+    }
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
