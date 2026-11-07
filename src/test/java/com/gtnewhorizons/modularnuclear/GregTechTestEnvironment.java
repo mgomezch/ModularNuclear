@@ -7,6 +7,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import gregtech.api.enums.GTValues;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.net.IGT_NetworkHandler;
 import gregtech.api.util.GTLog;
 
@@ -22,8 +23,12 @@ public class GregTechTestEnvironment implements BeforeEachCallback, AfterEachCal
     @Override
     public void beforeEach(ExtensionContext context) {
         if (GTValues.NW == null) GTValues.NW = Mockito.mock(IGT_NetworkHandler.class);
+        // Only the explosion log is stubbed: GregTech's classes make their loggers through GTLog as they load
+        MockedStatic<GTLog> log = Mockito.mockStatic(GTLog.class, Mockito.CALLS_REAL_METHODS);
+        log.when(() -> GTLog.writeExplosionLog(Mockito.any(IMetaTileEntity.class), Mockito.any()))
+            .thenAnswer(invocation -> null);
         context.getStore(NS)
-            .put("log", Mockito.mockStatic(GTLog.class));
+            .put("log", log);
     }
 
     @Override
