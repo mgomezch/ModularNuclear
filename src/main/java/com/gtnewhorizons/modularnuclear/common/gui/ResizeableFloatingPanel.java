@@ -12,7 +12,6 @@ import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.utils.Platform;
 import com.cleanroommc.modularui.widget.sizer.Area;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 /**
  * A floating modular panel that provides enhanced draggable borders and visible resize indicators.
@@ -116,22 +115,19 @@ public class ResizeableFloatingPanel extends ModularPanel {
     }
 
     public static Area getClientScreenArea() {
-        try {
-            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
-            if (mc != null && mc.displayWidth > 0 && mc.displayHeight > 0) {
-                net.minecraft.client.gui.ScaledResolution sr = new net.minecraft.client.gui.ScaledResolution(
-                    mc,
-                    mc.displayWidth,
-                    mc.displayHeight);
-                int sw = sr.getScaledWidth();
-                int sh = sr.getScaledHeight();
-                if (sw > 0 && sh > 0) {
-                    return new Area(0, 0, sw, sh);
-                }
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+        if (mc != null && mc.displayWidth > 0 && mc.displayHeight > 0) {
+            net.minecraft.client.gui.ScaledResolution sr = new net.minecraft.client.gui.ScaledResolution(
+                mc,
+                mc.displayWidth,
+                mc.displayHeight);
+            int sw = sr.getScaledWidth();
+            int sh = sr.getScaledHeight();
+            if (sw > 0 && sh > 0) {
+                return new Area(0, 0, sw, sh);
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
+
         return null;
     }
 
@@ -152,29 +148,23 @@ public class ResizeableFloatingPanel extends ModularPanel {
             }
         }
         if (this.mainPanel != null) {
-            try {
-                if (this.mainPanel.isValid() && this.mainPanel.getScreen() != null) {
-                    Area area = this.mainPanel.getScreen()
-                        .getScreenArea();
-                    if (area != null && area.width > 0 && area.height > 0) {
-                        return area;
-                    }
+            if (this.mainPanel.isValid() && this.mainPanel.getScreen() != null) {
+                Area area = this.mainPanel.getScreen()
+                    .getScreenArea();
+                if (area != null && area.width > 0 && area.height > 0) {
+                    return area;
                 }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
             }
+
         }
         return new Area(0, 0, 480, 270);
     }
 
     private ModularScreen getSafeScreen() {
-        try {
-            if (isValid()) {
-                return getScreen();
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (isValid()) {
+            return getScreen();
         }
+
         return null;
     }
 

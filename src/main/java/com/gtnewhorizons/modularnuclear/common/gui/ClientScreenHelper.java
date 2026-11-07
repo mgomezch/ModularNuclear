@@ -91,7 +91,7 @@ public class ClientScreenHelper {
                         reserved = Math.max(reserved, y + h);
                     }
                 }
-            } catch (Throwable swallowed) {
+            } catch (ReflectiveOperationException swallowed) {
                 Swallowed.note(swallowed);
             }
 
@@ -115,10 +115,10 @@ public class ClientScreenHelper {
                         }
                     }
                 }
-            } catch (Throwable swallowed) {
+            } catch (ReflectiveOperationException swallowed) {
                 Swallowed.note(swallowed);
             }
-        } catch (Throwable swallowed) {
+        } catch (ReflectiveOperationException swallowed) {
             Swallowed.note(swallowed);
         }
 
