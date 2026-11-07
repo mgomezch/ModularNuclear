@@ -80,7 +80,13 @@ There are about 192 of them, 177 routed through `Swallowed.note`, which logs onc
 - Remove the rest and let real errors surface.
 - Do it package by package, one commit each.
 
-### B5 (P2): The client never gets the server's config
+### B5 (P2): The client never gets the server's config (done)
+
+**Done:**
+- **What is sent.** A dedicated server sends each joining player its configuration (`PacketSyncConfig`, gzipped): its reactor override files and coolant loop files as YAML text, and its Forge config's gameplay settings (the item and fluid lists, cycle length and fallout tuning). The client's own visual and GUI settings are not sent.
+- **On the client.** It loads the server's configuration through the same loaders as its own files (`ReactorDataRegistry.loadFromTexts`, `CoolantLoopDataRegistry.loadFromTexts`), so NEI, tooltips and GUIs use the server's numbers. On disconnect it reloads its own files (`SyncedConfig.useLocal`).
+- **Singleplayer and LAN.** The client shares one configuration with its integrated server, so nothing is sent.
+- **Not yet checked** on a real dedicated server.
 
 NEI handlers, tooltips and GUIs read the client's local YAML. On a server with tuned configs, players see wrong numbers.
 

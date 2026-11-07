@@ -45,6 +45,20 @@ public class CoolantLoops {
             PacketSyncCoolantBath.class,
             0,
             cpw.mods.fml.relauncher.Side.CLIENT);
+        network.registerMessage(
+            com.gtnewhorizons.modularnuclear.network.PacketSyncConfig.Handler.class,
+            com.gtnewhorizons.modularnuclear.network.PacketSyncConfig.class,
+            1,
+            cpw.mods.fml.relauncher.Side.CLIENT);
+        cpw.mods.fml.common.FMLCommonHandler.instance()
+            .bus()
+            .register(new com.gtnewhorizons.modularnuclear.common.config.SyncedConfig.ServerEvents());
+        if (event.getSide()
+            .isClient()) {
+            cpw.mods.fml.common.FMLCommonHandler.instance()
+                .bus()
+                .register(new com.gtnewhorizons.modularnuclear.common.config.SyncedConfig.ClientEvents());
+        }
     }
 
     public static void init(FMLInitializationEvent event) {

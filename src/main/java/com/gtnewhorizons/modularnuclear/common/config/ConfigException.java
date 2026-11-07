@@ -18,9 +18,14 @@ public class ConfigException extends RuntimeException {
 
     /** Wraps a failure to load one file, naming the file. YAML syntax errors already carry the line and column. */
     public static ConfigException inFile(File file, Throwable cause) {
+        return in(file.getPath(), cause);
+    }
+
+    /** Wraps a failure to load one document, naming where it came from (a file, or the server's copy of one). */
+    public static ConfigException in(String where, Throwable cause) {
         if (cause instanceof ConfigException) {
-            return new ConfigException(file.getPath() + ": " + cause.getMessage(), cause);
+            return new ConfigException(where + ": " + cause.getMessage(), cause);
         }
-        return new ConfigException(file.getPath() + ": " + cause, cause);
+        return new ConfigException(where + ": " + cause, cause);
     }
 }

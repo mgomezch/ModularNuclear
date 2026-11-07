@@ -1,12 +1,9 @@
 package com.gtnewhorizons.modularnuclear.common.config;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -281,37 +278,68 @@ public final class ReactorDataRegistry {
         ReactorConfigData.loadDefaults();
     }
 
+    /** The override files, in the order they are applied. */
+    public static final String[] OVERRIDE_FILES = { "physics.yaml", "tiers.yaml", "fuels.yaml", "components.yaml" };
+
     public static synchronized void loadFromDir(File dir) {
+        if (dir == null || !dir.exists()) {
+            loadFrom(name -> null, name -> name);
+            return;
+        }
+        loadFrom(name -> readText(new File(dir, name)), name -> new File(dir, name).getPath());
+    }
+
+    /** Loads the configuration directory's override files again (after a server's configuration was in use). */
+    public static synchronized void reload() {
+        loadFromDir(configDirectory);
+    }
+
+    /** Loads the defaults and another machine's override files (name to YAML text), e.g. the server's. */
+    public static synchronized void loadFromTexts(Map<String, String> texts) {
+        loadFrom(texts::get, name -> "the server's " + name);
+    }
+
+    /** The override files of the configuration directory (name to YAML text), as {@link #loadFromTexts} takes them. */
+    public static synchronized Map<String, String> overrideTexts() {
+        Map<String, String> texts = new java.util.LinkedHashMap<>();
+        if (configDirectory == null) return texts;
+        for (String name : OVERRIDE_FILES) {
+            String text = readText(new File(configDirectory, name));
+            if (text != null) texts.put(name, text);
+        }
+        return texts;
+    }
+
+    private static void loadFrom(Function<String, String> textOf, Function<String, String> where) {
         loadDefaults();
-        if (dir == null || !dir.exists()) return;
-
         Yaml yaml = createYaml();
-
-        apply(yaml, new File(dir, "physics.yaml"), doc -> ReactorConfigData.applyPhysicsOverrides(asMap(doc)));
-        apply(yaml, new File(dir, "tiers.yaml"), ReactorConfigData::applyTierOverrides);
-        apply(yaml, new File(dir, "fuels.yaml"), ReactorConfigData::applyFuelOverrides);
-        apply(yaml, new File(dir, "components.yaml"), ReactorConfigData::applyComponentOverrides);
-
+        apply(yaml, textOf, where, "physics.yaml", doc -> ReactorConfigData.applyPhysicsOverrides(asMap(doc)));
+        apply(yaml, textOf, where, "tiers.yaml", ReactorConfigData::applyTierOverrides);
+        apply(yaml, textOf, where, "fuels.yaml", ReactorConfigData::applyFuelOverrides);
+        apply(yaml, textOf, where, "components.yaml", ReactorConfigData::applyComponentOverrides);
         clearCaches();
     }
 
-    /** Reads one override file as UTF-8, or null if it does not exist. Any problem stops loading. */
-    private static Object load(Yaml yaml, File file) {
+    /** A file's text as UTF-8, or null if it does not exist. */
+    private static String readText(File file) {
         if (!file.exists()) return null;
-        try (Reader r = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
-            return yaml.load(r);
-        } catch (Exception e) {
+        try {
+            return new String(java.nio.file.Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
             throw ConfigException.inFile(file, e);
         }
     }
 
-    private static void apply(Yaml yaml, File file, Consumer<Object> applier) {
-        Object doc = load(yaml, file);
-        if (doc == null) return;
+    /** Parses and applies one override document; any problem stops loading, naming where it came from. */
+    private static void apply(Yaml yaml, Function<String, String> textOf, Function<String, String> where, String name,
+        Consumer<Object> applier) {
+        String text = textOf.apply(name);
+        if (text == null) return;
         try {
-            applier.accept(doc);
+            Object doc = yaml.load(text);
+            if (doc != null) applier.accept(doc);
         } catch (RuntimeException e) {
-            throw ConfigException.inFile(file, e);
+            throw ConfigException.in(where.apply(name), e);
         }
     }
 

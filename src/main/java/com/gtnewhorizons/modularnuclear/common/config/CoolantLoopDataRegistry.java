@@ -39,13 +39,61 @@ public class CoolantLoopDataRegistry {
             configFolder.mkdirs();
         }
 
+        loadFromDir();
+        LOG.info("CoolantLoops YAML Data Registry initialized successfully.");
+    }
+
+    /** The config files, in the order they are applied. */
+    public static final String[] FILES = { "physics.yaml", "fluids.yaml", "pipes.yaml", "devices.yaml" };
+
+    /** Loads the configuration directory's files again (after a server's configuration was in use). */
+    public static synchronized void loadFromDir() {
         CoolantLoopConfigData.loadDefaults();
         loadFile("physics.yaml", CoolantLoopConfigData::setPhysics);
         loadFile("fluids.yaml", CoolantLoopConfigData::setFluids);
         loadFile("pipes.yaml", CoolantLoopConfigData::setPipes);
         loadFile("devices.yaml", CoolantLoopConfigData::setDevices);
         CoolantLoopConfigData.finishLoading();
-        LOG.info("CoolantLoops YAML Data Registry initialized successfully.");
+    }
+
+    /** Loads another machine's config files (name to YAML text), e.g. the server's. */
+    public static synchronized void loadFromTexts(Map<String, String> texts) {
+        CoolantLoopConfigData.loadDefaults();
+        applyText(texts, "physics.yaml", CoolantLoopConfigData::setPhysics);
+        applyText(texts, "fluids.yaml", CoolantLoopConfigData::setFluids);
+        applyText(texts, "pipes.yaml", CoolantLoopConfigData::setPipes);
+        applyText(texts, "devices.yaml", CoolantLoopConfigData::setDevices);
+        CoolantLoopConfigData.finishLoading();
+    }
+
+    /** The configuration directory's files (name to YAML text), as {@link #loadFromTexts} takes them. */
+    public static synchronized Map<String, String> fileTexts() {
+        Map<String, String> texts = new java.util.LinkedHashMap<>();
+        if (configFolder == null) return texts;
+        for (String name : FILES) {
+            File file = new File(configFolder, name);
+            if (!file.exists()) continue;
+            try {
+                texts.put(name, new String(java.nio.file.Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8));
+            } catch (java.io.IOException e) {
+                throw ConfigException.inFile(file, e);
+            }
+        }
+        return texts;
+    }
+
+    private static void applyText(Map<String, String> texts, String name, Consumer<Object> applier) {
+        String text = texts.get(name);
+        if (text == null) return;
+        try {
+            Object doc = createYaml().load(text);
+            if (doc != null && !(doc instanceof Map)) {
+                throw new ConfigException("expected a map of settings, got " + doc);
+            }
+            applier.accept(doc);
+        } catch (RuntimeException e) {
+            throw ConfigException.in("the server's " + name, e);
+        }
     }
 
     private static Yaml createYaml() {

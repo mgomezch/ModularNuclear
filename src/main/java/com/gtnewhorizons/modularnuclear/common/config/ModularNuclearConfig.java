@@ -1,6 +1,8 @@
 package com.gtnewhorizons.modularnuclear.common.config;
 
 import java.io.File;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
@@ -117,6 +119,52 @@ public final class ModularNuclearConfig {
      */
     public static void changed() {
         ConfigGeneration.bump();
+    }
+
+    /**
+     * The settings a server decides for everyone on it: what counts as fuel, coolant and so on, and the reactor cycle
+     * and fallout tuning. Not the client's own (its visual effects and GUI timing).
+     */
+    public static Map<String, Object> gameplaySettings() {
+        Map<String, Object> settings = new LinkedHashMap<>();
+        settings.put("blockedItems", blockedItems.clone());
+        settings.put("allowedFuelItems", allowedFuelItems.clone());
+        settings.put("allowedFuelFluids", allowedFuelFluids.clone());
+        settings.put("blockedFuelFluids", blockedFuelFluids.clone());
+        settings.put("allowedCoolantItems", allowedCoolantItems.clone());
+        settings.put("allowedCoolantFluids", allowedCoolantFluids.clone());
+        settings.put("allowedControlRods", allowedControlRods.clone());
+        settings.put("allowedReflectors", allowedReflectors.clone());
+        settings.put("allowedModerators", allowedModerators.clone());
+        settings.put("allowedHeatVents", allowedHeatVents.clone());
+        settings.put("allowedHeatExchangers", allowedHeatExchangers.clone());
+        settings.put("allowedInsulators", allowedInsulators.clone());
+        settings.put("allowedRadiovoltaics", allowedRadiovoltaics.clone());
+        settings.put("allowedNeutronSources", allowedNeutronSources.clone());
+        settings.put("ticksPerCycle", ticksPerCycle);
+        settings.put("falloutContaminationReductionPerPollution", falloutContaminationReductionPerPollution);
+        return settings;
+    }
+
+    /** Takes a server's {@link #gameplaySettings}, or the client's own back. */
+    public static void applyGameplaySettings(Map<String, Object> settings) {
+        blockedItems = (String[]) settings.get("blockedItems");
+        allowedFuelItems = (String[]) settings.get("allowedFuelItems");
+        allowedFuelFluids = (String[]) settings.get("allowedFuelFluids");
+        blockedFuelFluids = (String[]) settings.get("blockedFuelFluids");
+        allowedCoolantItems = (String[]) settings.get("allowedCoolantItems");
+        allowedCoolantFluids = (String[]) settings.get("allowedCoolantFluids");
+        allowedControlRods = (String[]) settings.get("allowedControlRods");
+        allowedReflectors = (String[]) settings.get("allowedReflectors");
+        allowedModerators = (String[]) settings.get("allowedModerators");
+        allowedHeatVents = (String[]) settings.get("allowedHeatVents");
+        allowedHeatExchangers = (String[]) settings.get("allowedHeatExchangers");
+        allowedInsulators = (String[]) settings.get("allowedInsulators");
+        allowedRadiovoltaics = (String[]) settings.get("allowedRadiovoltaics");
+        allowedNeutronSources = (String[]) settings.get("allowedNeutronSources");
+        ticksPerCycle = (Integer) settings.get("ticksPerCycle");
+        falloutContaminationReductionPerPollution = (Double) settings.get("falloutContaminationReductionPerPollution");
+        changed();
     }
 
     public static void init(File configFile) {
