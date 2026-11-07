@@ -294,7 +294,7 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
-    // The heater's pipe casing on the selected circuit (TIN ... BLACK_PLUTONIUM), or "" for the loop pipe's best.
+    // The heater's pipe casing on the selected circuit (TIN ... BLACK_PLUTONIUM), or "" for the loop pipe's tier.
     setCoolantLoopHeaterCasing(casing, notify = true) {
         if (this.inst.exports.setCoolantLoopHeaterCasing) {
             this.inst.exports.setCoolantLoopHeaterCasing(this.createJavaString(casing || ""));
