@@ -25,12 +25,12 @@ public class ClientProxy extends CommonProxy {
             registeredNEIHandlerInfo = true;
             try {
                 MinecraftForge.EVENT_BUS.register(new NEIConfig());
-            } catch (Throwable swallowed) {
+            } catch (LinkageError swallowed) {
                 Swallowed.note(swallowed);
             }
             try {
                 FloatingPanelNEIHandler.register();
-            } catch (Throwable swallowed) {
+            } catch (LinkageError swallowed) {
                 Swallowed.note(swallowed);
             }
         }

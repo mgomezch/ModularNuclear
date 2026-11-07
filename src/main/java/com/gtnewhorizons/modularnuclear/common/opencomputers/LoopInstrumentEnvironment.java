@@ -10,7 +10,6 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import li.cil.oc.api.Network;
 import li.cil.oc.api.driver.NamedBlock;
@@ -29,16 +28,13 @@ public class LoopInstrumentEnvironment extends ManagedEnvironment implements Nam
 
     public LoopInstrumentEnvironment(TileEntityLoopInstrument instrument) {
         this.instrument = instrument;
-        try {
-            var builder = Network.newNode(this, Visibility.Network);
-            if (builder != null) {
-                setNode(
-                    builder.withComponent("pressurized_instrumentation_computer")
-                        .create());
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        var builder = Network.newNode(this, Visibility.Network);
+        if (builder != null) {
+            setNode(
+                builder.withComponent("pressurized_instrumentation_computer")
+                    .create());
         }
+
     }
 
     @Override

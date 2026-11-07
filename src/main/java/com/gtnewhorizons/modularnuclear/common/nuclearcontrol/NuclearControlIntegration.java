@@ -25,7 +25,7 @@ public class NuclearControlIntegration {
             GameRegistry.registerItem(kitModularNuclear, "kit_modular_nuclear");
 
             isLoaded = true;
-        } catch (Throwable t) {
+        } catch (LinkageError t) {
             ModularNuclear.LOG.error("Could not register the Nuclear Control integration", t);
         }
     }

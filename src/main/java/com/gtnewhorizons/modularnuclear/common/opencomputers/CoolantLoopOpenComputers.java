@@ -12,7 +12,7 @@ public class CoolantLoopOpenComputers {
             try {
                 Driver.add(new DriverLoopInstrument());
                 Driver.add(new DriverPressurizedFluidHeater());
-            } catch (Throwable t) {
+            } catch (LinkageError t) {
                 ModularNuclear.LOG.error("Could not register the OpenComputers drivers for coolant loop devices", t);
             }
         }

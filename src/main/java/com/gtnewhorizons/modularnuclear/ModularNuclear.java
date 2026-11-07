@@ -100,7 +100,7 @@ public class ModularNuclear {
             if (cpw.mods.fml.common.Loader.isModLoaded("NotEnoughItems")) {
                 try {
                     new NEIConfig().loadConfig();
-                } catch (Throwable swallowed) {
+                } catch (LinkageError swallowed) {
                     Swallowed.note(swallowed);
                 }
             }

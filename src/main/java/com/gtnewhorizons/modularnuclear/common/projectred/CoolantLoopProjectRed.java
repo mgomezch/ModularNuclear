@@ -44,7 +44,7 @@ public class CoolantLoopProjectRed {
                         return null;
                     }
                 });
-            } catch (Throwable t) {
+            } catch (LinkageError t) {
                 ModularNuclear.LOG.error("Could not register the ProjectRed bundled cable integration", t);
             }
         }

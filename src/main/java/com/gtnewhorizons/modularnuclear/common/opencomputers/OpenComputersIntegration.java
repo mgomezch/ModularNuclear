@@ -16,7 +16,7 @@ public class OpenComputersIntegration {
         try {
             Driver.add(new DriverNuclearControlHatch());
             isLoaded = true;
-        } catch (Throwable t) {
+        } catch (LinkageError t) {
             ModularNuclear.LOG.error("Could not register the OpenComputers driver for the nuclear control hatch", t);
         }
     }
