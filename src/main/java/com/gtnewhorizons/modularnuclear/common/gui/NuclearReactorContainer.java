@@ -65,8 +65,7 @@ public class NuclearReactorContainer extends ModularContainer {
                                     if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] == null) {
                                         ItemStack single = stack.copy();
                                         single.stackSize = 1;
-                                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = single;
-                                        rod.markTileDirty();
+                                        rod.setRod(single);
                                         stack.stackSize--;
                                         moved = true;
                                     }

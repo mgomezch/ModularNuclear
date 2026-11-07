@@ -494,8 +494,7 @@ public class NuclearReactorPhysics {
                 CoolantFluidData cfd = roles.coolantData();
                 if (cfd != null && cfd.transmutationProduct != null && cfd.transmutationChancePerNeutron > 0.0) {
                     if (TileTick.transmutes(cfd, count, reactor.getRandomNumber(10000))) {
-                        hatch.mInputFluid.amount -= 2;
-                        if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
+                        hatch.drainFluid(2);
                         reactor.mCycleTransmutationLoss += 2;
                         Fluid prod = roles.transmutationFluid();
                         if (prod != null) {
@@ -546,7 +545,7 @@ public class NuclearReactorPhysics {
                                     stack.stackTagCompound.removeTag("advDmg");
                                 }
                             } else {
-                                bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                                bus.clearInput();
                             }
                         } else {
                             if (stack.stackTagCompound == null) {
@@ -684,7 +683,7 @@ public class NuclearReactorPhysics {
                     } else if (depleted == null) {
                         depleted = reactor.getItemDepletedForm(stack);
                     }
-                    bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                    bus.clearInput();
                     if (depleted != null) {
                         reactor.addOutputPartial(depleted);
                     }
@@ -702,7 +701,7 @@ public class NuclearReactorPhysics {
                     if (depleted == null) {
                         depleted = reactor.getItemDepletedForm(stack);
                     }
-                    bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                    bus.clearInput();
                     if (depleted != null) {
                         reactor.addOutputPartial(depleted);
                     }
@@ -747,7 +746,7 @@ public class NuclearReactorPhysics {
                                 stack.stackTagCompound.removeTag("advDmg");
                             }
                         } else {
-                            bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                            bus.clearInput();
                         }
                         if (depleted != null) {
                             reactor.addOutputPartial(depleted);
@@ -791,7 +790,7 @@ public class NuclearReactorPhysics {
                 if (hex != null) maxTemp = hex.maxTemperature;
             }
             if (maxTemp > 0.0 && bus.mTemperature > maxTemp) {
-                bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                bus.clearInput();
                 reactor.mCycleZeroedCoolantItems++;
                 bus.markTileDirty();
             }
@@ -831,7 +830,7 @@ public class NuclearReactorPhysics {
                 if (comp.getCurrentHeat(reactor.getReactorDummy(), stack, 0, 0) >= maxHeat) {
                     reactor.mCycleZeroedCoolantItems++;
                     ItemStack fullCell = stack.copy();
-                    bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+                    bus.clearInput();
                     reactor.addOutputPartial(fullCell);
                     bus.markTileDirty();
                 }
@@ -900,7 +899,7 @@ public class NuclearReactorPhysics {
         }
         stack.stackSize -= consumeCount;
         if (stack.stackSize <= 0) {
-            bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+            bus.clearInput();
         }
 
         reactor.addOutputPartial(cheeseOutput);
@@ -977,9 +976,8 @@ public class NuclearReactorPhysics {
             int toConsume = Math.max(1, Math.min(fluid.amount, burn));
 
             if (toConsume > 0) {
-                fluid.amount -= toConsume;
+                hatch.drainFluid(toConsume);
                 reactor.mCycleDepletedLiquidFuel += toConsume;
-                if (fluid.amount <= 0) hatch.mInputFluid = null;
                 if (spentFluid != null) {
                     reactor.addOutputPartial(new FluidStack(spentFluid, toConsume));
                 }
@@ -1007,13 +1005,9 @@ public class NuclearReactorPhysics {
 
             if (fluidToProcess > 0) {
                 int outAmount = fluidToProcess * steamRatio;
-                hatch.mInputFluid.amount -= fluidToProcess;
+                hatch.drainCoolant(fluidToProcess);
                 reactor.mCycleConsumedCoolant += fluidToProcess;
                 reactor.mCycleProducedHotCoolant += outAmount;
-                if (hatch.mInputFluid.amount <= 0) {
-                    hatch.mInputFluid = null;
-                    hatch.mWasDry = true;
-                }
 
                 Fluid outFluid = fluidRoles.hotFluid();
                 if (outFluid != null && outAmount > 0) {

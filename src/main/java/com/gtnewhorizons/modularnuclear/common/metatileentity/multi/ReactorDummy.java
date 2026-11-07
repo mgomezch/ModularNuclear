@@ -113,14 +113,12 @@ public class ReactorDummy implements IReactor {
         if (reactor.mGrid != null && x >= 0 && x < reactor.gridSize && y >= 0 && y < reactor.gridSize) {
             INuclearTile t = reactor.mGrid[x][y];
             if (t instanceof NuclearGridTile gt && gt.isBus()) {
-                gt.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT] = item;
                 gt.getBus()
-                    .markTileDirty();
+                    .setInput(item);
             }
         } else if (currentTile != null && currentTile.isBus()) {
-            currentTile.getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT] = item;
             currentTile.getBus()
-                .markTileDirty();
+                .setInput(item);
         }
     }
 

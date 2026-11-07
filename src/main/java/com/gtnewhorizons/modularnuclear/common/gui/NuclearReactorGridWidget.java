@@ -1114,19 +1114,17 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 if (cursorStack == null) {
                     if (slotStack != null) {
                         if (playerMP.inventory.addItemStackToInventory(slotStack)) {
-                            rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                            rod.setRod(null);
                         } else if (slotStack.stackSize <= 0) {
-                            rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
+                            rod.setRod(null);
                         }
-                        rod.markTileDirty();
                         syncPlayerAndReactor(reactor, playerMP);
                     } else if (modStack != null) {
                         if (playerMP.inventory.addItemStackToInventory(modStack)) {
-                            rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = null;
+                            rod.setModerator(null);
                         } else if (modStack.stackSize <= 0) {
-                            rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = null;
+                            rod.setModerator(null);
                         }
-                        rod.markTileDirty();
                         syncPlayerAndReactor(reactor, playerMP);
                     }
                 }
@@ -1134,47 +1132,41 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 if (cursorStack == null) {
                     if (slotStack != null) {
                         playerMP.inventory.setItemStack(slotStack);
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
-                        rod.markTileDirty();
+                        rod.setRod(null);
                         syncPlayerAndReactor(reactor, playerMP);
                     } else if (modStack != null) {
                         playerMP.inventory.setItemStack(modStack);
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = null;
-                        rod.markTileDirty();
+                        rod.setModerator(null);
                         syncPlayerAndReactor(reactor, playerMP);
                     }
                 } else if (MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
                     if (slotStack == null) {
                         ItemStack placed = cursorStack.copy();
                         placed.stackSize = 1;
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
-                        rod.markTileDirty();
+                        rod.setRod(placed);
                         cursorStack.stackSize--;
                         if (cursorStack.stackSize <= 0) {
                             playerMP.inventory.setItemStack(null);
                         }
                         syncPlayerAndReactor(reactor, playerMP);
                     } else if (cursorStack.stackSize == 1) {
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = cursorStack;
+                        rod.setRod(cursorStack);
                         playerMP.inventory.setItemStack(slotStack);
-                        rod.markTileDirty();
                         syncPlayerAndReactor(reactor, playerMP);
                     }
                 } else if (hasModSlot && MTEHatchNuclearControlRod.isModerator(cursorStack)) {
                     if (modStack == null) {
                         ItemStack placed = cursorStack.copy();
                         placed.stackSize = 1;
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = placed;
-                        rod.markTileDirty();
+                        rod.setModerator(placed);
                         cursorStack.stackSize--;
                         if (cursorStack.stackSize <= 0) {
                             playerMP.inventory.setItemStack(null);
                         }
                         syncPlayerAndReactor(reactor, playerMP);
                     } else if (cursorStack.stackSize == 1) {
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = cursorStack;
+                        rod.setModerator(cursorStack);
                         playerMP.inventory.setItemStack(modStack);
-                        rod.markTileDirty();
                         syncPlayerAndReactor(reactor, playerMP);
                     }
                 }
@@ -1182,20 +1174,17 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 if (cursorStack == null) {
                     if (slotStack != null) {
                         playerMP.inventory.setItemStack(slotStack);
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
-                        rod.markTileDirty();
+                        rod.setRod(null);
                         syncPlayerAndReactor(reactor, playerMP);
                     } else if (modStack != null) {
                         playerMP.inventory.setItemStack(modStack);
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = null;
-                        rod.markTileDirty();
+                        rod.setModerator(null);
                         syncPlayerAndReactor(reactor, playerMP);
                     }
                 } else if (slotStack == null && MTEHatchNuclearControlRod.isControlRod(cursorStack)) {
                     ItemStack placed = cursorStack.copy();
                     placed.stackSize = 1;
-                    rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
-                    rod.markTileDirty();
+                    rod.setRod(placed);
                     cursorStack.stackSize--;
                     if (cursorStack.stackSize <= 0) {
                         playerMP.inventory.setItemStack(null);
@@ -1204,8 +1193,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 } else if (hasModSlot && modStack == null && MTEHatchNuclearControlRod.isModerator(cursorStack)) {
                     ItemStack placed = cursorStack.copy();
                     placed.stackSize = 1;
-                    rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = placed;
-                    rod.markTileDirty();
+                    rod.setModerator(placed);
                     cursorStack.stackSize--;
                     if (cursorStack.stackSize <= 0) {
                         playerMP.inventory.setItemStack(null);
@@ -1223,36 +1211,32 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
             if (isShift) {
                 if (cursorStack == null && slotStack != null) {
                     if (playerMP.inventory.addItemStackToInventory(slotStack)) {
-                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, null);
+                        bus.setInput(null);
                     } else if (slotStack.stackSize <= 0) {
-                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, null);
+                        bus.setInput(null);
                     }
-                    bus.markTileDirty();
                     syncPlayerAndReactor(reactor, playerMP);
                 }
             } else if (button == 0) {
                 if (cursorStack == null) {
                     if (slotStack != null) {
                         playerMP.inventory.setItemStack(slotStack);
-                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, null);
-                        bus.markTileDirty();
+                        bus.setInput(null);
                         syncPlayerAndReactor(reactor, playerMP);
                     }
                 } else if (bus.isItemAllowed(cursorStack)) {
                     if (slotStack == null) {
                         ItemStack placed = cursorStack.copy();
                         placed.stackSize = 1;
-                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, placed);
-                        bus.markTileDirty();
+                        bus.setInput(placed);
                         cursorStack.stackSize--;
                         if (cursorStack.stackSize <= 0) {
                             playerMP.inventory.setItemStack(null);
                         }
                         syncPlayerAndReactor(reactor, playerMP);
                     } else if (cursorStack.stackSize == 1) {
-                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, cursorStack);
+                        bus.setInput(cursorStack);
                         playerMP.inventory.setItemStack(slotStack);
-                        bus.markTileDirty();
                         syncPlayerAndReactor(reactor, playerMP);
                     }
                 }
@@ -1260,15 +1244,13 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 if (cursorStack == null) {
                     if (slotStack != null) {
                         playerMP.inventory.setItemStack(slotStack);
-                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, null);
-                        bus.markTileDirty();
+                        bus.setInput(null);
                         syncPlayerAndReactor(reactor, playerMP);
                     }
                 } else if (slotStack == null && bus.isItemAllowed(cursorStack)) {
                     ItemStack placed = cursorStack.copy();
                     placed.stackSize = 1;
-                    bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, placed);
-                    bus.markTileDirty();
+                    bus.setInput(placed);
                     cursorStack.stackSize--;
                     if (cursorStack.stackSize <= 0) {
                         playerMP.inventory.setItemStack(null);
@@ -1308,8 +1290,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                     if (bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT) == null && bus.isItemAllowed(cursorStack)) {
                         ItemStack placed = cursorStack.copy();
                         placed.stackSize = 1;
-                        bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, placed);
-                        bus.markTileDirty();
+                        bus.setInput(placed);
                         cursorStack.stackSize--;
                         insertedAny = true;
                     }
@@ -1319,8 +1300,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                         if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] == null) {
                             ItemStack placed = cursorStack.copy();
                             placed.stackSize = 1;
-                            rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
-                            rod.markTileDirty();
+                            rod.setRod(placed);
                             cursorStack.stackSize--;
                             insertedAny = true;
                         }
@@ -1329,8 +1309,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                             if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] == null) {
                                 ItemStack placed = cursorStack.copy();
                                 placed.stackSize = 1;
-                                rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = placed;
-                                rod.markTileDirty();
+                                rod.setModerator(placed);
                                 cursorStack.stackSize--;
                                 insertedAny = true;
                             }
@@ -1361,8 +1340,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
             if (bus.getStackInSlot(MTEHatchNuclearBus.SLOT_INPUT) == null && bus.isItemAllowed(cursorStack)) {
                 ItemStack placed = cursorStack.copy();
                 placed.stackSize = 1;
-                bus.setInventorySlotContents(MTEHatchNuclearBus.SLOT_INPUT, placed);
-                bus.markTileDirty();
+                bus.setInput(placed);
                 cursorStack.stackSize--;
                 if (cursorStack.stackSize <= 0) {
                     playerMP.inventory.setItemStack(null);
@@ -1375,8 +1353,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] == null) {
                     ItemStack placed = cursorStack.copy();
                     placed.stackSize = 1;
-                    rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = placed;
-                    rod.markTileDirty();
+                    rod.setRod(placed);
                     cursorStack.stackSize--;
                     if (cursorStack.stackSize <= 0) {
                         playerMP.inventory.setItemStack(null);
@@ -1388,8 +1365,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                     if (rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] == null) {
                         ItemStack placed = cursorStack.copy();
                         placed.stackSize = 1;
-                        rod.mInventory[MTEHatchNuclearControlRod.SLOT_MODERATOR] = placed;
-                        rod.markTileDirty();
+                        rod.setModerator(placed);
                         cursorStack.stackSize--;
                         if (cursorStack.stackSize <= 0) {
                             playerMP.inventory.setItemStack(null);
@@ -1448,8 +1424,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 FluidStack filledFluid = GTUtility.getFluidForFilledItem(filled, true);
                 int needed = (filledFluid != null) ? filledFluid.amount : 1000;
                 if (hatch.mInputFluid.amount >= needed) {
-                    hatch.mInputFluid.amount -= needed;
-                    if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
+                    hatch.drainFluid(needed);
                     if (cursorStack.stackSize == 1) {
                         player.inventory.setItemStack(filled);
                     } else {
@@ -1527,8 +1502,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                     FluidStack filledFluid = GTUtility.getFluidForFilledItem(filled, true);
                     int needed = (filledFluid != null) ? filledFluid.amount : 1000;
                     if (hatch.mInputFluid.amount >= needed) {
-                        hatch.mInputFluid.amount -= needed;
-                        if (hatch.mInputFluid.amount <= 0) hatch.mInputFluid = null;
+                        hatch.drainFluid(needed);
                         if (invStack.stackSize == 1) {
                             player.inventory.mainInventory[i] = filled;
                         } else {

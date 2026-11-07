@@ -639,6 +639,28 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         }
     }
 
+    /** Loses its rod and moderator (a meltdown). */
+    public void voidContents() {
+        java.util.Arrays.fill(mInventory, null);
+        markTileDirty();
+    }
+
+    /** Loses its rod (overheated past the casing's limit). */
+    public void voidRod() {
+        mInventory[SLOT_ROD] = null;
+        markTileDirty();
+    }
+
+    public void setRod(ItemStack stack) {
+        mInventory[SLOT_ROD] = stack;
+        markTileDirty();
+    }
+
+    public void setModerator(ItemStack stack) {
+        mInventory[SLOT_MODERATOR] = stack;
+        markTileDirty();
+    }
+
     @Override
     public boolean isFacingValid(ForgeDirection facing) {
         return true;

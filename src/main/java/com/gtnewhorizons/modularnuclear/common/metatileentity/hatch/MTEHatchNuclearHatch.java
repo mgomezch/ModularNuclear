@@ -18,6 +18,7 @@ import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearHatchGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.FluidRoles;
+import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
@@ -305,6 +306,43 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     public void markTileDirty() {
         if (getBaseMetaTileEntity() != null) {
             getBaseMetaTileEntity().markDirty();
+        }
+    }
+
+    /** Takes up to {@code amount} of the hatch's fluid (fuel burnt, coolant transmuted); it is empty at 0. */
+    public void drainFluid(int amount) {
+        if (mInputFluid == null) return;
+        mInputFluid.amount -= amount;
+        if (mInputFluid.amount <= 0) mInputFluid = null;
+        markTileDirty();
+    }
+
+    /** Takes coolant that boiled off; a hatch boiled dry remembers it ran dry. */
+    public void drainCoolant(int amount) {
+        drainFluid(amount);
+        if (mInputFluid == null) mWasDry = true;
+    }
+
+    /** Loses all its fluid at once (a meltdown, a thermal shock flashing it to steam): the hatch ran dry. */
+    public void voidFluid() {
+        mInputFluid = null;
+        mWasDry = true;
+        markTileDirty();
+    }
+
+    /** Loses its fluid if it is a liquid fuel. */
+    public void voidFuel() {
+        if (NuclearFuelClassification.isFluidFuel(mInputFluid)) {
+            mInputFluid = null;
+            markTileDirty();
+        }
+    }
+
+    /** Loses its fluid unless it is a liquid fuel (an overheated column boils off its other contents). */
+    public void voidNonFuel() {
+        if (mInputFluid != null && !NuclearFuelClassification.isFluidFuel(mInputFluid)) {
+            mInputFluid = null;
+            markTileDirty();
         }
     }
 

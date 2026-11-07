@@ -386,11 +386,10 @@ public class NuclearGridTile implements INuclearTile {
     @Override
     public void voidComponent() {
         if (isBus() && getBus() != null) {
-            getBus().mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+            getBus().clearInput();
             if (reactor != null) {
                 reactor.mCycleZeroedCoolantItems++;
             }
-            getBus().markTileDirty();
             this.dirty = true;
             refreshProperties();
         }

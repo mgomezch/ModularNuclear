@@ -689,45 +689,18 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             if (te != null && !te.isDead()) {
                 IMetaTileEntity mte = te.getMetaTileEntity();
                 if (mte instanceof MTEHatchNuclearHatch hatch) {
-                    hatch.mInputFluid = null;
-                    hatch.mWasDry = true;
-                    if (te.isServerSide()) {
-                        te.markDirty();
-                    }
+                    hatch.voidFluid();
                 } else if (mte instanceof MTEHatchNuclearBus bus) {
-                    if (bus.mInventory != null) {
-                        for (int i = 0; i < bus.mInventory.length; i++) {
-                            bus.mInventory[i] = null;
-                        }
-                    }
-                    bus.mLastNeutronsGenerated = 0;
-                    if (te.isServerSide()) {
-                        te.markDirty();
-                    }
+                    bus.voidContents();
                 } else if (mte instanceof MTEHatchNuclearControlRod rod) {
-                    if (rod.mInventory != null) {
-                        for (int i = 0; i < rod.mInventory.length; i++) {
-                            rod.mInventory[i] = null;
-                        }
-                    }
-                    if (te.isServerSide()) {
-                        te.markDirty();
-                    }
+                    rod.voidContents();
                 }
             }
         }
 
         for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
             if (rod != null) {
-                if (rod.mInventory != null) {
-                    for (int i = 0; i < rod.mInventory.length; i++) {
-                        rod.mInventory[i] = null;
-                    }
-                }
-                if (rod.getBaseMetaTileEntity() != null) {
-                    rod.getBaseMetaTileEntity()
-                        .markDirty();
-                }
+                rod.voidContents();
             }
         }
         for (MTEHatchNuclearControl ctrl : mControlHatches) {
@@ -765,30 +738,26 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         for (MTEHatchInput inHatch : mInputHatches) {
             if (inHatch != null) {
-                inHatch.mFluid = null;
-                if (inHatch.getBaseMetaTileEntity() != null) inHatch.getBaseMetaTileEntity()
-                    .markDirty();
+                inHatch.setFillableStack(null);
+                inHatch.markDirty();
             }
         }
         for (MTEHatchOutput outHatch : mOutputHatches) {
             if (outHatch != null) {
-                outHatch.mFluid = null;
-                if (outHatch.getBaseMetaTileEntity() != null) outHatch.getBaseMetaTileEntity()
-                    .markDirty();
+                outHatch.setDrainableStack(null);
+                outHatch.markDirty();
             }
         }
         for (MTEHatchInputBus inBus : mInputBusses) {
             if (inBus != null && inBus.mInventory != null) {
-                for (int i = 0; i < inBus.mInventory.length; i++) inBus.mInventory[i] = null;
-                if (inBus.getBaseMetaTileEntity() != null) inBus.getBaseMetaTileEntity()
-                    .markDirty();
+                for (int i = 0; i < inBus.getSizeInventory(); i++) inBus.setInventorySlotContents(i, null);
+                inBus.markDirty();
             }
         }
         for (MTEHatchOutputBus outBus : mOutputBusses) {
             if (outBus != null && outBus.mInventory != null) {
-                for (int i = 0; i < outBus.mInventory.length; i++) outBus.mInventory[i] = null;
-                if (outBus.getBaseMetaTileEntity() != null) outBus.getBaseMetaTileEntity()
-                    .markDirty();
+                for (int i = 0; i < outBus.getSizeInventory(); i++) outBus.setInventorySlotContents(i, null);
+                outBus.markDirty();
             }
         }
         for (MTEHatchEnergy energy : mEnergyHatches) {
@@ -855,12 +824,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
         // Void the coolant in the affected hatch (flashes into steam)
         if (hatch != null) {
-            hatch.mInputFluid = null;
-            hatch.mWasDry = true;
-            if (hatch.getBaseMetaTileEntity() != null) {
-                hatch.getBaseMetaTileEntity()
-                    .markDirty();
-            }
+            hatch.voidFluid();
         }
 
         // Hot-dry-hatch conduction-coolant flash condition increases reactor damage by 2%
@@ -1709,30 +1673,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 if (te != null && !te.isDead()) {
                     IMetaTileEntity mte = te.getMetaTileEntity();
                     if (mte instanceof MTEHatchNuclearBus bus) {
-                        boolean modified = false;
-                        for (int i = 0; i < bus.mInventory.length; i++) {
-                            ItemStack stack = bus.mInventory[i];
-                            if (stack != null && NuclearFuelClassification.isItemFuel(stack)) {
-                                bus.mInventory[i] = null;
-                                modified = true;
-                            }
-                        }
-                        if (modified) {
-                            bus.markDirty();
-                            if (bus.getBaseMetaTileEntity() != null) {
-                                bus.getBaseMetaTileEntity()
-                                    .markDirty();
-                            }
-                        }
+                        bus.voidFuel();
                     } else if (mte instanceof MTEHatchNuclearHatch hatch) {
-                        if (NuclearFuelClassification.isFluidFuel(hatch.mInputFluid)) {
-                            hatch.mInputFluid = null;
-                            hatch.markDirty();
-                            if (hatch.getBaseMetaTileEntity() != null) {
-                                hatch.getBaseMetaTileEntity()
-                                    .markDirty();
-                            }
-                        }
+                        hatch.voidFuel();
                     }
                 }
             }
@@ -2025,18 +1968,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 if (te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
                     if (hatch.mTemperature > maxTemp) {
                         overheatingHatchesCount++;
-                        if (!isFluidFuel(hatch.mInputFluid)) {
-                            hatch.mInputFluid = null;
-                            hatch.markTileDirty();
-                        }
+                        hatch.voidNonFuel();
                     }
                 } else if (te.getMetaTileEntity() instanceof MTEHatchNuclearBus bus) {
                     if (bus.mTemperature > maxTemp) {
                         overheatingHatchesCount++;
-                        if (!isItemFuel(bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT])) {
-                            bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
-                            bus.markTileDirty();
-                        }
+                        bus.voidNonFuelInput();
                     }
                 } else if (te.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure hp) {
                     if (hp.getTemperature() > maxTemp || hp.mIncomingCoolantTemp > maxTemp) {
@@ -2048,8 +1985,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
             if (rod != null && rod.mTemperature > maxTemp) {
                 overheatingHatchesCount++;
-                rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD] = null;
-                rod.markTileDirty();
+                rod.voidRod();
             }
         }
         if (overheatingHatchesCount > 0) {
@@ -2959,7 +2895,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 mCycleZeroedCoolantItems++;
             }
             ItemStack depleted = getItemDepletedForm(stack);
-            bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT] = null;
+            bus.clearInput();
             if (depleted != null) {
                 this.addOutputPartial(depleted);
             }

@@ -224,7 +224,13 @@ They are invalidated by at least three separate generation counters (`ReactorCon
 
 `NuclearReactorPhysics` and the `multi/util` helpers have started this; continue it.
 
-### A3 (P1): Stop writing other machines' fields
+### A3 (P1): Stop writing other machines' fields (done)
+
+**Done:**
+- **Hatch methods.** The core hatches keep their own contents. The bus has `clearInput`, `setInput`, `voidContents`, `voidFuel` and `voidNonFuelInput`. The coolant hatch has `drainFluid`, `drainCoolant` (which notes a hatch boiled dry), `voidFluid`, `voidFuel` and `voidNonFuel`. The control rod has `setRod`, `setModerator`, `voidRod` and `voidContents`. Each marks its tile dirty.
+- **Callers.** The reactor, its physics, the grid GUI, the container and the IC2 reactor dummy use these methods; none nulls a slot or fluid and marks the tile by hand.
+- **GregTech's hatches and buses.** A meltdown empties them through GregTech's own setters (`setFillableStack`, `setDrainableStack`, `setInventorySlotContents`).
+- **Left as is.** The physics still writes each hatch's per-cycle telemetry (`mLastFastFlux`, `mLastHeatOutput`, `mLastNeutronsGenerated`, ...). Those are plain readings with no invariant to keep. The beamline hatch's `dataPacket` is cleared directly: TecTech gives it no setter.
 
 The reactor writes hatch fields directly, about 52 times: `hatch.mInputFluid = null`, `bus.mInventory[SLOT_INPUT] = null`, `rod.mInventory[SLOT_ROD] = null`, then `markTileDirty()` by hand.
 

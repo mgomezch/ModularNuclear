@@ -321,6 +321,49 @@ public class MTEHatchNuclearBus extends MTEHatch {
         }
     }
 
+    /** The item in the core slot, or null. */
+    public ItemStack getInput() {
+        return mInventory[SLOT_INPUT];
+    }
+
+    /** Empties the core slot (its item burnt up, depleted or left for the output bus). */
+    public void clearInput() {
+        mInventory[SLOT_INPUT] = null;
+        markTileDirty();
+    }
+
+    /** Puts an item in the core slot (an IC2 reactor component swapping itself out). */
+    public void setInput(ItemStack stack) {
+        mInventory[SLOT_INPUT] = stack;
+        markTileDirty();
+    }
+
+    /** Loses everything it holds (a meltdown). */
+    public void voidContents() {
+        java.util.Arrays.fill(mInventory, null);
+        mLastNeutronsGenerated = 0;
+        markTileDirty();
+    }
+
+    /** Loses the fuel it holds. */
+    public void voidFuel() {
+        boolean changed = false;
+        for (int i = 0; i < mInventory.length; i++) {
+            if (mInventory[i] != null && NuclearFuelClassification.isItemFuel(mInventory[i])) {
+                mInventory[i] = null;
+                changed = true;
+            }
+        }
+        if (changed) markTileDirty();
+    }
+
+    /** Loses the core slot's item unless it is fuel (an overheated column boils off its other contents). */
+    public void voidNonFuelInput() {
+        if (mInventory[SLOT_INPUT] != null && !NuclearFuelClassification.isItemFuel(mInventory[SLOT_INPUT])) {
+            clearInput();
+        }
+    }
+
     public void processMaxDamageFailsafe() {
         if (mReactor == null) return;
         ItemStack stack = mInventory[SLOT_INPUT];
