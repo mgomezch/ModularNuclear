@@ -344,7 +344,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     .isEmpty()) {
                 return true;
             }
-        } catch (Throwable t) {
+        } catch (RuntimeException | LinkageError t) {
             return true;
         }
         return false;
@@ -603,16 +603,12 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         // 4. RADIOVOLTAIC PLATES - 40% (HV) / 60% (EV) absorption, generates direct EU from absorbed neutron flux
         ComponentData.RadiovoltaicData rvHv = null;
         ComponentData.RadiovoltaicData rvEv = null;
-        try {
-            if (ReactorDataRegistry.getComponentData() != null
-                && ReactorDataRegistry.getComponentData().radiovoltaics != null) {
-                for (ComponentData.RadiovoltaicData r : ReactorDataRegistry.getComponentData().radiovoltaics) {
-                    if ("radiovoltaic_hv".equals(r.id) || r.tier == 1) rvHv = r;
-                    else if ("radiovoltaic_ev".equals(r.id) || r.tier == 2) rvEv = r;
-                }
+        if (ReactorDataRegistry.getComponentData() != null
+            && ReactorDataRegistry.getComponentData().radiovoltaics != null) {
+            for (ComponentData.RadiovoltaicData r : ReactorDataRegistry.getComponentData().radiovoltaics) {
+                if ("radiovoltaic_hv".equals(r.id) || r.tier == 1) rvHv = r;
+                else if ("radiovoltaic_ev".equals(r.id) || r.tier == 2) rvEv = r;
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
 
         double hvAbs = (rvHv != null) ? rvHv.absorptionFast : 0.40;
@@ -1179,27 +1175,14 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         double slowing, double thermScattering, double thermAbs, double conduction, double boilingPoint,
         double specificHeat, boolean hasTransmutation, ItemStack product, long reqNeutrons, String extra) {
         Fluid fluid = null;
-        try {
-            fluid = FluidRegistry.getFluid(fluidName);
-            if (fluid == null && fluidName.startsWith("ic2")) {
-                fluid = FluidRegistry.getFluid(fluidName.substring(3));
-            }
-            if (fluid == null && fluidName.startsWith("molten.")) {
-                fluid = FluidRegistry.getFluid(fluidName.substring(7));
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        fluid = FluidRegistry.getFluid(fluidName);
 
         ItemStack display = null;
         if (fluid != null) {
-            try {
-                if (ItemList.Display_Fluid.hasBeenSet()) {
-                    display = GTUtility.getFluidDisplayStack(new FluidStack(fluid, 1000), false);
-                }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
+            if (ItemList.Display_Fluid.hasBeenSet()) {
+                display = GTUtility.getFluidDisplayStack(new FluidStack(fluid, 1000), false);
             }
+
         }
         if (display == null && isTestMode()) {
             display = createTestPlaceholder(name);
@@ -1357,17 +1340,11 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     }
 
     private static ItemStack getFluidDisplay(String fluidName, int amount) {
-        try {
-            Fluid fluid = FluidRegistry.getFluid(fluidName);
-            if (fluid == null && !fluidName.startsWith("fluid.")) {
-                fluid = FluidRegistry.getFluid("fluid." + fluidName);
-            }
-            if (fluid != null && ItemList.Display_Fluid.hasBeenSet()) {
-                return GTUtility.getFluidDisplayStack(new FluidStack(fluid, amount), false);
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        Fluid fluid = FluidRegistry.getFluid(fluidName);
+        if (fluid != null && ItemList.Display_Fluid.hasBeenSet()) {
+            return GTUtility.getFluidDisplayStack(new FluidStack(fluid, amount), false);
         }
+
         if (isTestMode()) {
             return createTestPlaceholder(fluidName);
         }
@@ -1924,15 +1901,12 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     public static List<String> wrapExtraInfo(String text, int wrapWidth, FontRenderer fr) {
         if (text == null || text.isEmpty()) return Collections.emptyList();
         if (fr != null) {
-            try {
-                @SuppressWarnings("unchecked")
-                List<String> lines = (List<String>) fr.listFormattedStringToWidth(text, wrapWidth);
-                if (lines != null && !lines.isEmpty()) {
-                    return lines;
-                }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
+            @SuppressWarnings("unchecked")
+            List<String> lines = (List<String>) fr.listFormattedStringToWidth(text, wrapWidth);
+            if (lines != null && !lines.isEmpty()) {
+                return lines;
             }
+
         }
         // Fallback character-based word wrapping (~5px per char average in MC)
         int maxChars = Math.max(15, wrapWidth / 5);
@@ -1981,22 +1955,22 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         try {
             fieldGuiLeft = GuiContainer.class.getDeclaredField("guiLeft");
             fieldGuiLeft.setAccessible(true);
-        } catch (Throwable t) {
+        } catch (NoSuchFieldException t) {
             try {
                 fieldGuiLeft = GuiContainer.class.getDeclaredField("field_147003_i");
                 fieldGuiLeft.setAccessible(true);
-            } catch (Throwable swallowed) {
+            } catch (NoSuchFieldException swallowed) {
                 Swallowed.note(swallowed);
             }
         }
         try {
             fieldGuiTop = GuiContainer.class.getDeclaredField("guiTop");
             fieldGuiTop.setAccessible(true);
-        } catch (Throwable t) {
+        } catch (NoSuchFieldException t) {
             try {
                 fieldGuiTop = GuiContainer.class.getDeclaredField("field_147009_r");
                 fieldGuiTop.setAccessible(true);
-            } catch (Throwable swallowed) {
+            } catch (NoSuchFieldException swallowed) {
                 Swallowed.note(swallowed);
             }
         }
@@ -2006,7 +1980,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (fieldGuiLeft != null) {
             try {
                 return fieldGuiLeft.getInt(gui);
-            } catch (Throwable swallowed) {
+            } catch (IllegalAccessException swallowed) {
                 Swallowed.note(swallowed);
             }
         }
@@ -2017,7 +1991,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (fieldGuiTop != null) {
             try {
                 return fieldGuiTop.getInt(gui);
-            } catch (Throwable swallowed) {
+            } catch (IllegalAccessException swallowed) {
                 Swallowed.note(swallowed);
             }
         }
@@ -2469,46 +2443,43 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     }
 
     public static void drawFastNeutronDiagram(ComponentStatsData d, int baseY) {
-        try {
-            double dy = baseY - 2.0;
+        double dy = baseY - 2.0;
 
-            // Incoming fast neutrons arrow (blue, down-right towards center tile)
-            drawArrow(24.0, 17.0 + dy, 70.0, 30.0 + dy, 2.0, 5.0, 6.0, 0xFF0033EE);
+        // Incoming fast neutrons arrow (blue, down-right towards center tile)
+        drawArrow(24.0, 17.0 + dy, 70.0, 30.0 + dy, 2.0, 5.0, 6.0, 0xFF0033EE);
 
-            // Reflected fast neutrons arrow (blue, down-left away from center tile)
-            drawArrow(70.0, 38.0 + dy, 24.0, 51.0 + dy, 2.0, 5.0, 6.0, 0xFF0033EE);
+        // Reflected fast neutrons arrow (blue, down-left away from center tile)
+        drawArrow(70.0, 38.0 + dy, 24.0, 51.0 + dy, 2.0, 5.0, 6.0, 0xFF0033EE);
 
-            // Absorbed neutrons arrow (red, straight down under center tile)
-            drawArrow(83.0, 44.0 + dy, 83.0, 52.0 + dy, 2.0, 4.0, 5.5, 0xFFDD0000);
+        // Absorbed neutrons arrow (red, straight down under center tile)
+        drawArrow(83.0, 44.0 + dy, 83.0, 52.0 + dy, 2.0, 4.0, 5.5, 0xFFDD0000);
 
-            // Three scattered neutrons arrows (green, pointing right away from center tile)
-            // Middle: horizontal
-            drawArrow(96.0, 34.0 + dy, 107.0, 34.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
-            // Upper: 45 degrees up-right
-            drawArrow(96.0, 32.0 + dy, 106.0, 22.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
-            // Lower: 45 degrees down-right
-            drawArrow(96.0, 36.0 + dy, 106.0, 46.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
+        // Three scattered neutrons arrows (green, pointing right away from center tile)
+        // Middle: horizontal
+        drawArrow(96.0, 34.0 + dy, 107.0, 34.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
+        // Upper: 45 degrees up-right
+        drawArrow(96.0, 32.0 + dy, 106.0, 22.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
+        // Lower: 45 degrees down-right
+        drawArrow(96.0, 36.0 + dy, 106.0, 46.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
 
-            // Dynamic pie chart at (FAST_PIE_X, 34 + dy), radius 9.0
-            double slowing = Math.max(0.0, Math.min(1.0, d.slowingProbability));
-            double fastFrac = 1.0 - slowing;
-            if (slowing <= 0.001) {
-                drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, 2.0 * Math.PI, 0xFF0033EE);
-            } else if (fastFrac <= 0.001) {
-                drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, 2.0 * Math.PI, 0xFF7F00FF);
-            } else {
-                double splitAngle = fastFrac * 2.0 * Math.PI;
-                drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, splitAngle, 0xFF0033EE);
-                drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, splitAngle, 2.0 * Math.PI, 0xFF7F00FF);
-            }
-
-            // Scattered fast neutrons arrow (blue, straight up above pie chart)
-            drawArrow(FAST_PIE_X, 24.0 + dy, FAST_PIE_X, 16.0 + dy, 2.0, 4.0, 5.5, 0xFF0033EE);
-
-            // Scattered moderated neutrons arrow (purple, straight down below pie chart)
-            drawArrow(FAST_PIE_X, 44.0 + dy, FAST_PIE_X, 52.0 + dy, 2.0, 4.0, 5.5, 0xFF7F00FF);
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        // Dynamic pie chart at (FAST_PIE_X, 34 + dy), radius 9.0
+        double slowing = Math.max(0.0, Math.min(1.0, d.slowingProbability));
+        double fastFrac = 1.0 - slowing;
+        if (slowing <= 0.001) {
+            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, 2.0 * Math.PI, 0xFF0033EE);
+        } else if (fastFrac <= 0.001) {
+            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, 2.0 * Math.PI, 0xFF7F00FF);
+        } else {
+            double splitAngle = fastFrac * 2.0 * Math.PI;
+            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, splitAngle, 0xFF0033EE);
+            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, splitAngle, 2.0 * Math.PI, 0xFF7F00FF);
         }
+
+        // Scattered fast neutrons arrow (blue, straight up above pie chart)
+        drawArrow(FAST_PIE_X, 24.0 + dy, FAST_PIE_X, 16.0 + dy, 2.0, 4.0, 5.5, 0xFF0033EE);
+
+        // Scattered moderated neutrons arrow (purple, straight down below pie chart)
+        drawArrow(FAST_PIE_X, 44.0 + dy, FAST_PIE_X, 52.0 + dy, 2.0, 4.0, 5.5, 0xFF7F00FF);
+
     }
 }

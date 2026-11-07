@@ -90,7 +90,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                     }
                 }
             }
-        } catch (Throwable swallowed) {
+        } catch (java.io.IOException swallowed) {
             Swallowed.note(swallowed);
         }
         sCachedThemeBg = 0xFFC6C6C6;
@@ -154,22 +154,22 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         try {
             fieldGuiLeft = net.minecraft.client.gui.inventory.GuiContainer.class.getDeclaredField("guiLeft");
             fieldGuiLeft.setAccessible(true);
-        } catch (Throwable t) {
+        } catch (NoSuchFieldException t) {
             try {
                 fieldGuiLeft = net.minecraft.client.gui.inventory.GuiContainer.class.getDeclaredField("field_147003_i");
                 fieldGuiLeft.setAccessible(true);
-            } catch (Throwable swallowed) {
+            } catch (NoSuchFieldException swallowed) {
                 Swallowed.note(swallowed);
             }
         }
         try {
             fieldGuiTop = net.minecraft.client.gui.inventory.GuiContainer.class.getDeclaredField("guiTop");
             fieldGuiTop.setAccessible(true);
-        } catch (Throwable t) {
+        } catch (NoSuchFieldException t) {
             try {
                 fieldGuiTop = net.minecraft.client.gui.inventory.GuiContainer.class.getDeclaredField("field_147009_r");
                 fieldGuiTop.setAccessible(true);
-            } catch (Throwable swallowed) {
+            } catch (NoSuchFieldException swallowed) {
                 Swallowed.note(swallowed);
             }
         }
@@ -179,7 +179,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         if (fieldGuiLeft != null) {
             try {
                 return fieldGuiLeft.getInt(gui);
-            } catch (Throwable swallowed) {
+            } catch (IllegalAccessException swallowed) {
                 Swallowed.note(swallowed);
             }
         }
@@ -190,7 +190,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         if (fieldGuiTop != null) {
             try {
                 return fieldGuiTop.getInt(gui);
-            } catch (Throwable swallowed) {
+            } catch (IllegalAccessException swallowed) {
                 Swallowed.note(swallowed);
             }
         }
@@ -428,14 +428,11 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         }
         FuelData fd = ReactorDataRegistry.findFuel(result);
         if (fd == null) {
-            try {
-                FluidStack fs = GTUtility.getFluidForFilledItem(result, true);
-                if (fs != null) {
-                    fd = ReactorDataRegistry.findFuel(fs);
-                }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
+            FluidStack fs = GTUtility.getFluidForFilledItem(result, true);
+            if (fs != null) {
+                fd = ReactorDataRegistry.findFuel(fs);
             }
+
         }
         if (fd != null) {
             List<ItemStack> stacks = getFuelStacks(fd);
@@ -469,14 +466,11 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
         FuelData fd = ReactorDataRegistry.findFuel(ingredient);
         if (fd == null) {
-            try {
-                FluidStack fs = GTUtility.getFluidForFilledItem(ingredient, true);
-                if (fs != null) {
-                    fd = ReactorDataRegistry.findFuel(fs);
-                }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
+            FluidStack fs = GTUtility.getFluidForFilledItem(ingredient, true);
+            if (fs != null) {
+                fd = ReactorDataRegistry.findFuel(fs);
             }
+
         }
         if (fd != null) {
             List<ItemStack> stacks = getFuelStacks(fd);
@@ -519,49 +513,43 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
     public static ItemStack getFluidDisplayStack(String fluidName) {
         if (fluidName == null || fluidName.isEmpty()) return null;
-        try {
-            Fluid fluid = ReactorDataRegistry.findFluid(fluidName);
-            if (fluid != null && ItemList.Display_Fluid.hasBeenSet()) {
-                ItemStack display = GTUtility.getFluidDisplayStack(new FluidStack(fluid, 1000), false);
-                if (display != null && display.getItem() != null
-                    && Item.itemRegistry.getNameForObject(display.getItem()) != null) {
-                    return display;
-                }
+        Fluid fluid = ReactorDataRegistry.findFluid(fluidName);
+        if (fluid != null && ItemList.Display_Fluid.hasBeenSet()) {
+            ItemStack display = GTUtility.getFluidDisplayStack(new FluidStack(fluid, 1000), false);
+            if (display != null && display.getItem() != null
+                && Item.itemRegistry.getNameForObject(display.getItem()) != null) {
+                return display;
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
+
         return null;
     }
 
     public static ItemStack getFluidContainerStack(String fluidName) {
         if (fluidName == null || fluidName.isEmpty()) return null;
-        try {
-            Fluid fluid = ReactorDataRegistry.findFluid(fluidName);
-            if (fluid != null) {
-                FluidStack fs = new FluidStack(fluid, 1000);
-                if (ItemList.Cell_Empty.hasBeenSet()) {
-                    ItemStack filled = GTUtility.fillFluidContainer(fs, ItemList.Cell_Empty.get(1L), true, true);
-                    if (filled != null && filled.getItem() != null
-                        && Item.itemRegistry.getNameForObject(filled.getItem()) != null) {
-                        return filled;
-                    }
+        Fluid fluid = ReactorDataRegistry.findFluid(fluidName);
+        if (fluid != null) {
+            FluidStack fs = new FluidStack(fluid, 1000);
+            if (ItemList.Cell_Empty.hasBeenSet()) {
+                ItemStack filled = GTUtility.fillFluidContainer(fs, ItemList.Cell_Empty.get(1L), true, true);
+                if (filled != null && filled.getItem() != null
+                    && Item.itemRegistry.getNameForObject(filled.getItem()) != null) {
+                    return filled;
                 }
-                for (net.minecraftforge.fluids.FluidContainerRegistry.FluidContainerData data : net.minecraftforge.fluids.FluidContainerRegistry
-                    .getRegisteredFluidContainerData()) {
-                    if (data != null && data.fluid != null
-                        && data.fluid.getFluid() == fluid
-                        && data.filledContainer != null) {
-                        if (data.filledContainer.getItem() != null
-                            && Item.itemRegistry.getNameForObject(data.filledContainer.getItem()) != null) {
-                            return data.filledContainer.copy();
-                        }
+            }
+            for (net.minecraftforge.fluids.FluidContainerRegistry.FluidContainerData data : net.minecraftforge.fluids.FluidContainerRegistry
+                .getRegisteredFluidContainerData()) {
+                if (data != null && data.fluid != null
+                    && data.fluid.getFluid() == fluid
+                    && data.filledContainer != null) {
+                    if (data.filledContainer.getItem() != null
+                        && Item.itemRegistry.getNameForObject(data.filledContainer.getItem()) != null) {
+                        return data.filledContainer.copy();
                     }
                 }
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
+
         return null;
     }
 
@@ -636,19 +624,13 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         if (target == null || fd == null) return false;
         if (fd.isLiquid) {
             FluidStack fs = null;
-            try {
-                if (ItemList.Display_Fluid.hasBeenSet()) {
-                    fs = GTUtility.getFluidFromDisplayStack(target);
-                }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
+            if (ItemList.Display_Fluid.hasBeenSet()) {
+                fs = GTUtility.getFluidFromDisplayStack(target);
             }
+
             if (fs == null) {
-                try {
-                    fs = GTUtility.getFluidForFilledItem(target, true);
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
-                }
+                fs = GTUtility.getFluidForFilledItem(target, true);
+
             }
             if (fs != null) {
                 return ReactorDataRegistry.matchesFluid(fs, fd.matching);
@@ -1051,7 +1033,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                     .isEmpty()) {
                 return true;
             }
-        } catch (Throwable t) {
+        } catch (RuntimeException | LinkageError t) {
             return true;
         }
         return false;
