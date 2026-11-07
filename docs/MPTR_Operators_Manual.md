@@ -63,7 +63,7 @@ Every 5 ticks the controller executes one full core cycle. The order of operatio
 
 | Step | Name | What happens |
 | :--- | :--- | :--- |
-| 0 | Pre-cycle checks | Max-damage fuel failsafe; control rod mining-pipe housing re-scan; coolant hatch thermal-shock checks (§12.2); per-column property refresh. |
+| 0 | Pre-cycle checks | Max-damage fuel failsafe; coolant hatch thermal-shock checks (§12.2); per-column property refresh. |
 | 1 | Snapshot and emission | Each fuel column computes its temperature-dependent reactivity and emits neutrons. Prompt fission heat is queued. External neutron sources emit beam-derived neutrons. |
 | 2a | Fast transport | Each emitted packet travels as a fast ray, interacting with the columns it crosses until it is absorbed, thermalized, or leaves the core. |
 | 2b | Thermal diffusion | Thermalized neutrons diffuse over the grid with a 9-point stencil until the population is exhausted. |
@@ -537,11 +537,11 @@ The **target insertion** $x_\text{target} \in [0,1]$ is:
 - otherwise $s/255$ if a ProjectRed bundled cable supplies a signal $s$ on the hatch's selected channel (selected with a screwdriver; default "auto", the strongest channel);
 - otherwise $r/15$ for a vanilla redstone signal of strength $r$.
 
-The **mining-pipe housing** limits how far the rod can be withdrawn. The hatch counts up to 5 consecutive IC2 mining pipes extending from its front face (away from the core). Each pipe allows 20 % withdrawal:
+The **control rod housing** limits how far the rod can be withdrawn. A Nuclear control rod housing is a block that looks like a straight small steel coolant pipe; it runs along one axis, set by the face it is placed against and turned with a wrench. The reactor counts up to 5 housings in an unbroken line from each control rod hatch's front face (away from the core), each running along the hatch's facing. Each housing allows 20 % withdrawal:
 
-$$x_\text{min} = \max(0,\ 1 - 0.2\,n_\text{pipes}), \qquad x = \max(x_\text{min},\ x_\text{target})$$
+$$x_\text{min} = \max(0,\ 1 - 0.2\,n_\text{housings}), \qquad x = \max(x_\text{min},\ x_\text{target})$$
 
-With no pipes installed the rod is always fully inserted; with five pipes it covers the full range. The pipe count is re-scanned every cycle.
+With no housings the rod is always fully inserted; with five it covers the full range. Housings are an optional part of the structure: the structure preview and the projector do not place them, and a missing housing never stops the reactor from forming. The reactor counts them when it checks its structure, and placing, breaking or turning a housing makes it check again. Housings are made in the assembler from a small steel coolant pipe and two steel plates (LV, 5 s).
 
 The rod's own probabilities are then
 
@@ -1104,7 +1104,7 @@ A loop failure does not affect the reactor directly, but the passage cells stop 
 - **Coolant supply interruption** in a boiling-coolant hatch: stops cooling, then shocks on refill.
 - **Maintenance neglect**: reduces cooling, not power (§11.1).
 - **Operating below fuel peak temperature**: positive temperature coefficient; the core accelerates as it heats (§4.6).
-- **Control rod hatches without mining pipes**: the rod cannot be withdrawn; conversely, removing pipes from a running reactor forces rods in.
+- **Control rod hatches without housings**: the rod cannot be withdrawn; conversely, removing housings from a running reactor forces rods in.
 - **Graphite above 1500 °C**: Wigner release adds heat that increases with temperature (§5.5).
 - **Fuel cells in each other's fast-ray path**: high fast absorption; rapid fuel wear (§6.4).
 
