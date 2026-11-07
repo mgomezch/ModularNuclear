@@ -2,6 +2,7 @@ package com.gtnewhorizons.modularnuclear.common.util;
 
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 
 /**
@@ -50,6 +51,7 @@ public final class ItemRoles {
     ComponentData.RadiovoltaicData radiovoltaicData;
     ComponentData.CoolantItemData coolantItemData;
     ComponentData.ControlRodData controlRodData;
+    MTEHatchNuclearControlRod.ControlRodType controlRodType = MTEHatchNuclearControlRod.ControlRodType.NONE;
 
     boolean hullOnly;
     boolean coolant;
@@ -106,6 +108,10 @@ public final class ItemRoles {
 
     public ComponentData.ControlRodData controlRodData() {
         return controlRodData;
+    }
+
+    public MTEHatchNuclearControlRod.ControlRodType controlRodType() {
+        return controlRodType;
     }
 
     public boolean isCustomRod() {

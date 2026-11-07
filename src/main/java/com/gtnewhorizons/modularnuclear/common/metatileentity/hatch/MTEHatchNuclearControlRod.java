@@ -3,6 +3,8 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity.hatch;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_COLORS;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_IN;
 
+import java.util.Locale;
+
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -34,17 +36,13 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 
 import cpw.mods.fml.common.registry.GameRegistry;
-import gregtech.api.enums.Materials;
-import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.Textures;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
-import gregtech.api.objects.ItemData;
 import gregtech.api.render.TextureFactory;
-import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTSplit;
 import gregtech.api.util.GTUtility;
 
@@ -150,70 +148,50 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         return new MTEHatchNuclearControlRod(mName, mTier, mDescriptionArray, mTextures);
     }
 
+    /** The rod type of an item, as resolved once per kind of item (see {@link #resolveRodType}). */
     public static ControlRodType getRodType(ItemStack stack) {
+        return NuclearFuelClassification.roles(stack)
+            .controlRodType();
+    }
+
+    /**
+     * Works out an item's rod type from the configuration: its {@code components.yaml} control rod record, or else the
+     * Forge config's {@code allowedControlRods} entry. Matches names, so NuclearFuelClassification calls it once per
+     * kind of item and keeps the answer in its roles.
+     */
+    public static ControlRodType resolveRodType(ItemStack stack, ComponentData.ControlRodData crd) {
         if (stack == null) return ControlRodType.NONE;
-
-        ComponentData.ControlRodData crd = ReactorDataRegistry.findControlRod(stack);
         if (crd != null && crd.id != null) {
-            if ("rod_silver".equals(crd.id)) return ControlRodType.SILVER;
-            if ("rod_boron".equals(crd.id)) return ControlRodType.BORON;
-            if ("rod_cadmium".equals(crd.id)) return ControlRodType.CADMIUM;
-            if ("rod_indium".equals(crd.id)) return ControlRodType.INDIUM;
-            if ("rod_hafnium".equals(crd.id)) return ControlRodType.HAFNIUM;
-            if ("rod_neutronium".equals(crd.id)) return ControlRodType.NEUTRONIUM;
-        }
-
-        try {
-            String cfgType = ModularNuclearConfig.getControlRodType(stack);
-            if (cfgType != null) {
-                return ControlRodType.valueOf(cfgType.toUpperCase());
+            switch (crd.id) {
+                case "rod_silver":
+                    return ControlRodType.SILVER;
+                case "rod_boron":
+                    return ControlRodType.BORON;
+                case "rod_cadmium":
+                    return ControlRodType.CADMIUM;
+                case "rod_indium":
+                    return ControlRodType.INDIUM;
+                case "rod_hafnium":
+                    return ControlRodType.HAFNIUM;
+                case "rod_neutronium":
+                    return ControlRodType.NEUTRONIUM;
+                default:
+                    break;
             }
-        } catch (IllegalArgumentException swallowed) {
-            Swallowed.note(swallowed);
         }
-
-        if (stack.getItem() == null) return ControlRodType.NONE;
-
-        ItemData itemData = GTOreDictUnificator.getItemData(stack);
-        if (itemData != null && itemData.mPrefix == OrePrefixes.stickLong && itemData.mMaterial != null) {
-            Materials mat = itemData.mMaterial.mMaterial;
-            if (mat == Materials.Silver) return ControlRodType.SILVER;
-            if (mat == Materials.Boron) return ControlRodType.BORON;
-            if (mat == Materials.Cadmium) return ControlRodType.CADMIUM;
-            if (mat == Materials.Indium) return ControlRodType.INDIUM;
-            if (mat != null && "Hafnium".equalsIgnoreCase(mat.mName)) return ControlRodType.HAFNIUM;
-            if (mat == Materials.Neutronium) return ControlRodType.NEUTRONIUM;
+        String cfgType = ModularNuclearConfig.getControlRodType(stack);
+        if (cfgType == null) return ControlRodType.NONE;
+        try {
+            return ControlRodType.valueOf(cfgType.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException unknownType) {
+            Swallowed.note(unknownType);
+            return ControlRodType.NONE;
         }
-
-        int[] oreIDs = OreDictionary.getOreIDs(stack);
-        for (int id : oreIDs) {
-            String name = OreDictionary.getOreName(id);
-            if ("stickLongSilver".equals(name)) return ControlRodType.SILVER;
-            if ("stickLongBoron".equals(name)) return ControlRodType.BORON;
-            if ("stickLongCadmium".equals(name)) return ControlRodType.CADMIUM;
-            if ("stickLongIndium".equals(name)) return ControlRodType.INDIUM;
-            if ("stickLongHafnium".equals(name)) return ControlRodType.HAFNIUM;
-            if ("stickLongNeutronium".equals(name)) return ControlRodType.NEUTRONIUM;
-        }
-
-        String unloc = stack.getUnlocalizedName();
-        if (unloc != null) {
-            String clean = unloc.startsWith("item.") ? unloc.substring(5) : unloc;
-            if ("stickLongSilver".equalsIgnoreCase(clean)) return ControlRodType.SILVER;
-            if ("stickLongBoron".equalsIgnoreCase(clean)) return ControlRodType.BORON;
-            if ("stickLongCadmium".equalsIgnoreCase(clean)) return ControlRodType.CADMIUM;
-            if ("stickLongIndium".equalsIgnoreCase(clean)) return ControlRodType.INDIUM;
-            if ("stickLongHafnium".equalsIgnoreCase(clean)) return ControlRodType.HAFNIUM;
-            if ("stickLongNeutronium".equalsIgnoreCase(clean)) return ControlRodType.NEUTRONIUM;
-        }
-
-        return ControlRodType.NONE;
     }
 
     public static boolean isControlRod(ItemStack stack) {
-        if (stack == null) return false;
-        if (ReactorDataRegistry.findControlRod(stack) != null) return true;
-        return getRodType(stack) != ControlRodType.NONE;
+        return NuclearFuelClassification.roles(stack)
+            .isControlRod();
     }
 
     public static boolean isModerator(ItemStack stack) {
@@ -459,7 +437,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public double getAbsorptionProbability(NeutronType type) {
-        ComponentData.ControlRodData crData = ReactorDataRegistry.findControlRod(mInventory[SLOT_ROD]);
+        ComponentData.ControlRodData crData = NuclearFuelClassification.roles(mInventory[SLOT_ROD])
+            .controlRodData();
         if (crData != null) {
             return TileTick.rodAbsorption(crData, getInsertionRatio(), type);
         }
@@ -472,7 +451,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public double getScatteringProbability(NeutronType type) {
-        ComponentData.ControlRodData crData = ReactorDataRegistry.findControlRod(mInventory[SLOT_ROD]);
+        ComponentData.ControlRodData crData = NuclearFuelClassification.roles(mInventory[SLOT_ROD])
+            .controlRodData();
         if (crData != null) {
             return TileTick.rodScattering(crData, getInsertionRatio(), type);
         }
@@ -482,7 +462,8 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
     }
 
     public double getHeatTransferCoeff() {
-        ComponentData.ControlRodData crData = ReactorDataRegistry.findControlRod(mInventory[SLOT_ROD]);
+        ComponentData.ControlRodData crData = NuclearFuelClassification.roles(mInventory[SLOT_ROD])
+            .controlRodData();
         if (crData != null) {
             return crData.heatTransferCoeff;
         }

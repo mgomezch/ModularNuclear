@@ -391,7 +391,8 @@ public final class NuclearFuelClassification {
         }
         r.neutronSource = scanIsItemNeutronSource(stack);
         r.controlRodData = ReactorDataRegistry.findControlRod(stack);
-        r.controlRod = MTEHatchNuclearControlRod.isControlRod(stack);
+        r.controlRodType = MTEHatchNuclearControlRod.resolveRodType(stack, r.controlRodData);
+        r.controlRod = r.controlRodData != null || r.controlRodType != MTEHatchNuclearControlRod.ControlRodType.NONE;
         r.allowedInBus = !r.customRod && scanIsItemAllowedInBus(r, stack);
         return r;
     }
