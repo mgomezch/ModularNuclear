@@ -27,44 +27,8 @@ public class CoolantFluidData {
         private boolean isMolten = false;
         private double radiolysisMultiplier = 1.0;
         private boolean spillOnRupture = true;
-        private List<String> aliases = new ArrayList<>();
 
         public FluidPropertyEntry() {}
-
-        public FluidPropertyEntry(String fluidName, double density, double dynamicViscosity, double specificHeat,
-            double thermalConductivity, double boilingPointCelsius, double freezingPointCelsius, boolean isMolten,
-            double radiolysisMultiplier, List<String> aliases) {
-            this(
-                fluidName,
-                density,
-                dynamicViscosity,
-                specificHeat,
-                thermalConductivity,
-                boilingPointCelsius,
-                freezingPointCelsius,
-                isMolten,
-                radiolysisMultiplier,
-                true,
-                aliases);
-        }
-
-        public FluidPropertyEntry(String fluidName, double density, double dynamicViscosity, double specificHeat,
-            double thermalConductivity, double boilingPointCelsius, double freezingPointCelsius, boolean isMolten,
-            double radiolysisMultiplier, boolean spillOnRupture, List<String> aliases) {
-            this.fluidName = fluidName;
-            this.density = density;
-            this.dynamicViscosity = dynamicViscosity;
-            this.specificHeat = specificHeat;
-            this.thermalConductivity = thermalConductivity;
-            this.boilingPointCelsius = boilingPointCelsius;
-            this.freezingPointCelsius = freezingPointCelsius;
-            this.isMolten = isMolten;
-            this.radiolysisMultiplier = radiolysisMultiplier;
-            this.spillOnRupture = spillOnRupture;
-            if (aliases != null) {
-                this.aliases.addAll(aliases);
-            }
-        }
 
         public Map<String, Object> toMap() {
             Map<String, Object> map = new LinkedHashMap<>();
@@ -82,7 +46,6 @@ public class CoolantFluidData {
             map.put("isMolten", isMolten);
             map.put("radiolysisMultiplier", radiolysisMultiplier);
             map.put("spillOnRupture", spillOnRupture);
-            map.put("aliases", aliases);
             return map;
         }
 
@@ -105,11 +68,8 @@ public class CoolantFluidData {
             }
             entry.fluidName = fluidName;
 
-            // Resolve canonical fluid properties as the baseline when available
-            CoolantFluidProperty canonical = CoolantFluidProperty.getCanonical(fluidName);
-            if (canonical == null && entryKey != null) {
-                canonical = CoolantFluidProperty.getCanonical(entryKey);
-            }
+            // A built-in coolant of the same name is the baseline for what the entry leaves out
+            CoolantFluidProperty canonical = CoolantFluidProperty.getDefault(fluidName);
 
             if (canonical != null) {
                 entry.density = canonical.getDensity();
@@ -181,16 +141,8 @@ public class CoolantFluidData {
                 entry.spillOnRupture = Boolean.TRUE.equals(map.get("spill_on_rupture"));
             }
 
-            if (map.containsKey("aliases") && map.get("aliases") instanceof List) {
-                entry.aliases = new ArrayList<>();
-                for (Object o : (List<?>) map.get("aliases")) {
-                    if (o != null) entry.aliases.add(o.toString());
-                }
-            }
-
             // IC2 coolant intentionally never freezes regardless of configuration
-            if (CoolantFluidProperty.isIC2Coolant(fluidName) || CoolantFluidProperty.isIC2Coolant(entryKey)
-                || canonical == CoolantFluidProperty.IC2_COOLANT) {
+            if (CoolantFluidProperty.isIC2Coolant(fluidName)) {
                 entry.freezingPointCelsius = Double.NEGATIVE_INFINITY;
             }
 
@@ -276,33 +228,35 @@ public class CoolantFluidData {
         public void setSpillOnRupture(boolean spillOnRupture) {
             this.spillOnRupture = spillOnRupture;
         }
-
-        public List<String> getAliases() {
-            return aliases;
-        }
-
-        public void setAliases(List<String> aliases) {
-            this.aliases = aliases;
-        }
     }
 
     private Map<String, FluidPropertyEntry> fluids = new LinkedHashMap<>();
+    /** Fluid registry names of the liquid nuclear fuels that wreck a pump's impeller. */
     private List<String> liquidNuclearFuels = new ArrayList<>(
         java.util.Arrays.asList(
-            "liquidfuel",
-            "liquid_fuel",
-            "nuclearfuel",
-            "uraniumhexafluoride",
-            "uraniumtetrafluoride",
-            "thoriumbasedliquidfuel",
-            "uraniumbasedliquidfuel",
-            "plutoniumbasedliquidfuel",
-            "naquadahbasedliquidfuel",
-            "liquid_naquadah_fuel",
-            "depletedthoriumbasedliquidfuel",
-            "depleteduraniumbasedliquidfuel",
-            "depletedplutoniumbasedliquidfuel",
-            "depletednaquadahbasedliquidfuel"));
+            "thorium based liquid fuel",
+            "thorium based liquid fuel (excited state)",
+            "thorium based liquid fuel (depleted)",
+            "uranium based liquid fuel",
+            "uranium based liquid fuel (excited state)",
+            "uranium based liquid fuel (depleted)",
+            "plutonium based liquid fuel",
+            "plutonium based liquid fuel (excited state)",
+            "plutonium based liquid fuel (depleted)",
+            "naquadah based liquid fuel mki",
+            "naquadah based liquid fuel mki (depleted)",
+            "naquadah based liquid fuel mkii",
+            "naquadah based liquid fuel mkii (depleted)",
+            "naquadah based liquid fuel mkiii",
+            "naquadah based liquid fuel mkiii (depleted)",
+            "naquadah based liquid fuel mkiv",
+            "naquadah based liquid fuel mkiv (depleted)",
+            "naquadah based liquid fuel mkv",
+            "naquadah based liquid fuel mkv (depleted)",
+            "naquadah based liquid fuel mkvi",
+            "naquadah based liquid fuel mkvi (depleted)",
+            "molten.uraniumhexafluoride",
+            "molten.uraniumtetrafluoride"));
 
     public Map<String, FluidPropertyEntry> getFluids() {
         return fluids;
@@ -312,7 +266,7 @@ public class CoolantFluidData {
         this.fluids = fluids;
     }
 
-    private final Set<String> normalizedLiquidNuclearFuels = new HashSet<>();
+    private Set<String> liquidNuclearFuelSet = new HashSet<>(liquidNuclearFuels);
 
     public List<String> getLiquidNuclearFuels() {
         return liquidNuclearFuels;
@@ -320,30 +274,11 @@ public class CoolantFluidData {
 
     public void setLiquidNuclearFuels(List<String> fuels) {
         this.liquidNuclearFuels = fuels;
-        rebuildNormalizedFuels();
-    }
-
-    public synchronized void rebuildNormalizedFuels() {
-        normalizedLiquidNuclearFuels.clear();
-        if (liquidNuclearFuels != null) {
-            for (String fuel : liquidNuclearFuels) {
-                if (fuel != null) {
-                    normalizedLiquidNuclearFuels.add(
-                        fuel.trim()
-                            .toLowerCase());
-                }
-            }
-        }
+        this.liquidNuclearFuelSet = new HashSet<>(fuels);
     }
 
     public boolean isLiquidNuclearFuel(String name) {
-        if (name == null) return false;
-        if (normalizedLiquidNuclearFuels.isEmpty() && !liquidNuclearFuels.isEmpty()) {
-            rebuildNormalizedFuels();
-        }
-        return normalizedLiquidNuclearFuels.contains(
-            name.trim()
-                .toLowerCase());
+        return name != null && liquidNuclearFuelSet.contains(name);
     }
 
     public Map<String, Object> toMap() {
@@ -381,12 +316,13 @@ public class CoolantFluidData {
         }
 
         if (map.containsKey("liquidNuclearFuels") && map.get("liquidNuclearFuels") instanceof List) {
-            data.liquidNuclearFuels = new ArrayList<>();
+            List<String> fuels = new ArrayList<>();
             for (Object o : (List<?>) map.get("liquidNuclearFuels")) {
                 if (o != null) {
-                    data.liquidNuclearFuels.add(o.toString());
+                    fuels.add(o.toString());
                 }
             }
+            data.setLiquidNuclearFuels(fuels);
         }
         return data;
     }

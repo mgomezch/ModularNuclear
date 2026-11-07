@@ -1,7 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.coolantloop;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -21,25 +20,7 @@ public class CoolantFluidProperty {
     private final double radiolysisMultiplier;
     private final boolean spillOnRupture;
 
-    private static final Map<String, CoolantFluidProperty> REGISTRY = new HashMap<>();
-
-    public CoolantFluidProperty(String fluidName, double density, double dynamicViscosity, double specificHeat,
-        double thermalConductivity, double boilingPointCelsius, double freezingPointCelsius) {
-        this(
-            fluidName,
-            density,
-            dynamicViscosity,
-            specificHeat,
-            thermalConductivity,
-            boilingPointCelsius,
-            freezingPointCelsius,
-            "lava".equalsIgnoreCase(fluidName) || "molten.cheese".equalsIgnoreCase(fluidName)
-                || "sodium".equalsIgnoreCase(fluidName)
-                || (fluidName != null && fluidName.toLowerCase()
-                    .startsWith("molten.")),
-            1.0,
-            true);
-    }
+    private static final Map<String, CoolantFluidProperty> REGISTRY = new java.util.concurrent.ConcurrentHashMap<>();
 
     public CoolantFluidProperty(String fluidName, double density, double dynamicViscosity, double specificHeat,
         double thermalConductivity, double boilingPointCelsius, double freezingPointCelsius, boolean isMolten,
@@ -76,40 +57,16 @@ public class CoolantFluidProperty {
         this.spillOnRupture = spillOnRupture;
     }
 
+    /** Registers a coolant under its exact fluid registry name. */
     public static void register(CoolantFluidProperty property) {
-        BY_RAW_NAME.clear();
         if (property != null && property.getFluidName() != null) {
-            REGISTRY.put(
-                property.getFluidName()
-                    .toLowerCase(),
-                property);
+            REGISTRY.put(property.getFluidName(), property);
         }
     }
 
-    public static void registerAlias(String alias, CoolantFluidProperty property) {
-        BY_RAW_NAME.clear();
-        if (alias != null && property != null) {
-            REGISTRY.put(alias.toLowerCase(), property);
-        }
-    }
-
-    /** get's answers by the name as given (fluid registry names, every tick), until the registry changes. */
-    private static final Map<String, Object> BY_RAW_NAME = new java.util.concurrent.ConcurrentHashMap<>();
-    private static final Object NOT_REGISTERED = new Object();
-
+    /** The coolant registered under exactly this fluid registry name, or null. */
     public static CoolantFluidProperty get(String name) {
-        if (name == null) {
-            return null;
-        }
-        Object hit = BY_RAW_NAME.get(name);
-        if (hit == null) {
-            CoolantFluidProperty found = REGISTRY.get(
-                name.trim()
-                    .toLowerCase());
-            hit = found != null ? found : NOT_REGISTERED;
-            BY_RAW_NAME.put(name, hit);
-        }
-        return hit == NOT_REGISTERED ? null : (CoolantFluidProperty) hit;
+        return name == null ? null : REGISTRY.get(name);
     }
 
     public static Map<String, CoolantFluidProperty> getRegistry() {
@@ -124,7 +81,10 @@ public class CoolantFluidProperty {
         4184.0, // 4.184 kJ/kg*K
         0.606, // 0.606 W/m*K
         100.0,
-        0.0);
+        0.0,
+        false,
+        1.0,
+        true);
 
     public static final CoolantFluidProperty DISTILLED_WATER = new CoolantFluidProperty(
         "ic2distilledwater",
@@ -133,7 +93,10 @@ public class CoolantFluidProperty {
         4186.0,
         0.610,
         100.0,
-        0.0);
+        0.0,
+        false,
+        1.0,
+        true);
 
     public static final CoolantFluidProperty HEAVY_WATER = new CoolantFluidProperty(
         "heavywater",
@@ -142,7 +105,10 @@ public class CoolantFluidProperty {
         4210.0,
         0.595,
         101.4,
-        3.8);
+        3.8,
+        false,
+        1.0,
+        true);
 
     public static final CoolantFluidProperty IC2_COOLANT = new CoolantFluidProperty(
         "ic2coolant",
@@ -151,16 +117,22 @@ public class CoolantFluidProperty {
         3800.0,
         0.520,
         Double.POSITIVE_INFINITY, // Non-boiling closed coolant
-        Double.NEGATIVE_INFINITY); // IC2 coolant has no freezing point
+        Double.NEGATIVE_INFINITY, // IC2 coolant has no freezing point
+        false,
+        1.0,
+        true);
 
     public static final CoolantFluidProperty SODIUM = new CoolantFluidProperty(
-        "sodium",
+        "liquid_sodium",
         927.0,
         0.0007,
         1260.0,
         86.0, // High liquid metal conductivity
         Double.POSITIVE_INFINITY, // Handled as non-boiling liquid metal
-        96.85); // GregTech's sodium melting point (370 K)
+        96.85, // GregTech's sodium melting point (370 K)
+        true,
+        1.0,
+        true);
 
     public static final CoolantFluidProperty MOLTEN_CHEESE = new CoolantFluidProperty(
         "molten.cheese",
@@ -169,7 +141,10 @@ public class CoolantFluidProperty {
         3000.0, // 3 kJ/(kg*K)
         0.481, // 0.481 W/(m*K)
         Double.POSITIVE_INFINITY, // Non-boiling
-        46.85); // GregTech melting point: 320 K - 273.15 = 46.85°C
+        46.85, // GregTech melting point: 320 K - 273.15 = 46.85°C
+        true,
+        1.0,
+        true);
 
     /**
      * Nether lava easter egg.
@@ -186,51 +161,26 @@ public class CoolantFluidProperty {
         1250.0, // 1250 J/(kg*K) silicate melt specific heat
         1.5, // 1.5 W/(m*K) thermal conductivity
         Double.POSITIVE_INFINITY, // Non-boiling closed liquid
-        1026.85); // Lava's declared temperature: 1300 K
+        1026.85, // Lava's declared temperature: 1300 K
+        true,
+        1.0,
+        true);
+
+    private static final CoolantFluidProperty[] DEFAULTS = { WATER, DISTILLED_WATER, HEAVY_WATER, IC2_COOLANT, SODIUM,
+        MOLTEN_CHEESE, LAVA };
 
     public static void resetDefaults() {
         REGISTRY.clear();
-        register(WATER);
-        register(DISTILLED_WATER);
-        register(HEAVY_WATER);
-        register(IC2_COOLANT);
-        register(SODIUM);
-        register(MOLTEN_CHEESE);
-        register(LAVA);
-        REGISTRY.put("minecraft:water", WATER);
-        REGISTRY.put("fluid.water", WATER);
-        REGISTRY.put("cheese", MOLTEN_CHEESE);
-        REGISTRY.put("moltencheese", MOLTEN_CHEESE);
-        REGISTRY.put("distilledwater", DISTILLED_WATER);
-        REGISTRY.put("distilled_water", DISTILLED_WATER);
-        REGISTRY.put("water.distilled", DISTILLED_WATER);
-        REGISTRY.put("heavywater", HEAVY_WATER);
-        REGISTRY.put("heavy_water", HEAVY_WATER);
-        REGISTRY.put("water.heavy", HEAVY_WATER);
-        REGISTRY.put("coolant", IC2_COOLANT);
-        REGISTRY.put("fluid.sodium", SODIUM);
-        REGISTRY.put("liquid.sodium", SODIUM);
-        REGISTRY.put("lava", LAVA);
-        REGISTRY.put("fluid.lava", LAVA);
-        REGISTRY.put("minecraft:lava", LAVA);
+        for (CoolantFluidProperty p : DEFAULTS) {
+            register(p);
+        }
     }
 
-    public static CoolantFluidProperty getCanonical(String name) {
-        if (name == null) return null;
-        String clean = stripSpacesAndUnderscores(
-            name.trim()
-                .toLowerCase());
-        if (clean.equals("water") || clean.equals("minecraft:water")) return WATER;
-        if (clean.equals("ic2distilledwater") || clean.equals("distilledwater") || clean.equals("water.distilled"))
-            return DISTILLED_WATER;
-        if (clean.equals("heavywater") || clean.equals("water.heavy")) return HEAVY_WATER;
-        if (clean.equals("ic2coolant") || clean.equals("coolant")) return IC2_COOLANT;
-        if (clean.equals("sodium") || clean.equals("fluid.sodium")
-            || clean.equals("liquid.sodium")
-            || clean.equals("liquidsodium")) return SODIUM;
-        if (clean.equals("molten.cheese") || clean.equals("cheese") || clean.equals("moltencheese"))
-            return MOLTEN_CHEESE;
-        if (clean.equals("lava") || clean.equals("fluid.lava") || clean.equals("minecraft:lava")) return LAVA;
+    /** The built-in coolant of exactly this fluid registry name, or null. */
+    public static CoolantFluidProperty getDefault(String name) {
+        for (CoolantFluidProperty p : DEFAULTS) {
+            if (p.fluidName.equals(name)) return p;
+        }
         return null;
     }
 
@@ -239,11 +189,11 @@ public class CoolantFluidProperty {
     }
 
     public boolean isPlainWater() {
-        return this == WATER || "water".equalsIgnoreCase(this.fluidName);
+        return this == WATER || "water".equals(this.fluidName);
     }
 
     public boolean isLava() {
-        return this == LAVA || "lava".equalsIgnoreCase(this.fluidName);
+        return this == LAVA || "lava".equals(this.fluidName);
     }
 
     public boolean isMolten() {
@@ -293,16 +243,6 @@ public class CoolantFluidProperty {
         return freezingPointCelsius;
     }
 
-    /** Lower case without spaces or underscores (TeaVM-safe; no String.replace). */
-    private static String stripSpacesAndUnderscores(String s) {
-        StringBuilder sb = new StringBuilder(s.length());
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c != ' ' && c != '_') sb.append(c);
-        }
-        return sb.toString();
-    }
-
     public String getFluidName() {
         return fluidName;
     }
@@ -332,11 +272,7 @@ public class CoolantFluidProperty {
     }
 
     public static boolean isIC2Coolant(String fluidName) {
-        if (fluidName == null) return false;
-        String clean = stripSpacesAndUnderscores(
-            fluidName.trim()
-                .toLowerCase());
-        return clean.equals("ic2coolant") || clean.equals("coolant");
+        return "ic2coolant".equals(fluidName);
     }
 
     public boolean isIC2Coolant() {

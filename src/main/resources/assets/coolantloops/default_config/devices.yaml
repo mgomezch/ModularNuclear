@@ -15,12 +15,7 @@ phe:
   supercriticalTempThreshold: 700.0 # Coolant temp for supercritical steam (deg C)
   approachMinDeltaT: 5.0            # Minimum pinch point approach temperature difference (deg C)
   superheatThresholdDeltaT: 10.0    # Superheat threshold delta above boiling for vapor production (deg C)
-  allowedSecondaryFluids:
-    - "ic2distilledwater"
-    - "distilledwater"
-    - "distilled_water"
-    - "water.distilled"
-    - "heavywater"
+  allowedSecondaryFluids: [] # Further fluids a PHE boils as steam at 100 C, by exact registry name (plain water only if listed)
 
 # Pressurized Degasser
 degasser:

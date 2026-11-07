@@ -60,7 +60,7 @@ public class CoolantLoopConstraintsTest {
     public void testMaterialEqualityComparison() {
         // Steel
         assertTrue(CoolantPipingRegistry.areMaterialsEqual("Steel", "Steel"));
-        assertTrue(CoolantPipingRegistry.areMaterialsEqual("Steel", "steel"));
+        assertFalse(CoolantPipingRegistry.areMaterialsEqual("Steel", "steel"), "Material names match exactly");
 
         // Iron is only iron
         assertFalse(CoolantPipingRegistry.areMaterialsEqual("Iron", "CastIron"));

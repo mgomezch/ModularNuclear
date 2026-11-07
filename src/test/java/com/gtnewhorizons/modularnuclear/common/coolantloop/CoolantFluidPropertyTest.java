@@ -12,10 +12,10 @@ class CoolantFluidPropertyTest {
         assertNotNull(CoolantFluidProperty.get("ic2distilledwater"));
         assertNotNull(CoolantFluidProperty.get("heavywater"));
         assertNotNull(CoolantFluidProperty.get("ic2coolant"));
-        assertNotNull(CoolantFluidProperty.get("sodium"));
+        assertNotNull(CoolantFluidProperty.get("liquid_sodium"));
         assertNotNull(CoolantFluidProperty.get("molten.cheese"));
-        assertNotNull(CoolantFluidProperty.get("cheese"));
-        assertNotNull(CoolantFluidProperty.get("moltencheese"));
+        assertNull(CoolantFluidProperty.get("cheese"), "Coolants are looked up by exact fluid registry name");
+        assertNull(CoolantFluidProperty.get("Water"));
     }
 
     @Test
@@ -48,8 +48,6 @@ class CoolantFluidPropertyTest {
         assertTrue(Double.isInfinite(cheese.getBoilingPointCelsius()));
         assertFalse(cheese.canBoil());
         assertSame(cheese, CoolantFluidProperty.get("molten.cheese"));
-        assertSame(cheese, CoolantFluidProperty.get("cheese"));
-        assertSame(cheese, CoolantFluidProperty.get("moltencheese"));
     }
 
     @Test
@@ -94,6 +92,5 @@ class CoolantFluidPropertyTest {
         assertTrue(lava.isMolten());
         assertFalse(lava.isPlainWater());
         assertSame(lava, CoolantFluidProperty.get("lava"));
-        assertSame(lava, CoolantFluidProperty.get("fluid.lava"));
     }
 }

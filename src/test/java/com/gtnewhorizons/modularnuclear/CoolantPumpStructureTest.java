@@ -563,19 +563,18 @@ public class CoolantPumpStructureTest {
     @Test
     public void testLiquidNuclearFuelFailureAndImpellerDestruction() {
         // 1. Classification tests
-        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("thoriumbasedliquidfuel"));
-        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("uraniumbasedliquidfuel"));
-        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("plutoniumbasedliquidfuel"));
-        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("naquadahbasedliquidfuel"));
-        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("liquid_naquadah_fuel"));
-        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("uraniumhexafluoride"));
-        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("uraniumtetrafluoride"));
-        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("depleteduraniumbasedliquidfuel"));
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("thorium based liquid fuel"));
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("uranium based liquid fuel (excited state)"));
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("plutonium based liquid fuel (depleted)"));
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("naquadah based liquid fuel mkiii"));
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("molten.uraniumhexafluoride"));
+        assertFalse(CoolantFluidHelper.isLiquidNuclearFuel("thoriumbasedliquidfuel"), "Fuels are named exactly");
+        assertTrue(CoolantFluidHelper.isLiquidNuclearFuel("molten.uraniumtetrafluoride"));
 
         // Regular coolants are NOT liquid nuclear fuels
         assertFalse(CoolantFluidHelper.isLiquidNuclearFuel("ic2distilledwater"));
         assertFalse(CoolantFluidHelper.isLiquidNuclearFuel("heavywater"));
-        assertFalse(CoolantFluidHelper.isLiquidNuclearFuel("sodium"));
+        assertFalse(CoolantFluidHelper.isLiquidNuclearFuel("liquid_sodium"));
         assertFalse(CoolantFluidHelper.isLiquidNuclearFuel("molten.cheese"));
 
         // 2. Pump failure and impeller destruction
@@ -679,7 +678,7 @@ public class CoolantPumpStructureTest {
     public void testLavaCoolantLoopEasterEgg() {
         // 1. Classification
         assertTrue(CoolantFluidHelper.isLava("lava"));
-        assertTrue(CoolantFluidHelper.isLava("fluid.lava"));
+        assertFalse(CoolantFluidHelper.isLava("fluid.lava"), "Lava is the fluid named exactly \"lava\"");
         assertFalse(CoolantFluidHelper.isLava("water"));
         assertFalse(CoolantFluidHelper.isLava("sodium"));
 

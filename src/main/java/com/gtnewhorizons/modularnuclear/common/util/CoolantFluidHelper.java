@@ -35,10 +35,7 @@ public final class CoolantFluidHelper {
         if (fluid == null) return false;
         Boolean cached = sWaterCache.get(fluid);
         if (cached != null) return cached;
-        String name = fluid.getName()
-            .trim()
-            .toLowerCase();
-        boolean res = name.equals("water") || name.equals("minecraft:water") || name.equals("fluid.water");
+        boolean res = "water".equals(fluid.getName());
         sWaterCache.put(fluid, res);
         return res;
     }
@@ -49,10 +46,7 @@ public final class CoolantFluidHelper {
     }
 
     public static boolean isLava(String name) {
-        if (name == null) return false;
-        String clean = name.trim()
-            .toLowerCase();
-        return clean.equals("lava") || clean.endsWith(".lava") || clean.equals("fluid.lava");
+        return "lava".equals(name);
     }
 
     public static boolean isLava(Fluid fluid, FluidStack stack) {
@@ -87,25 +81,8 @@ public final class CoolantFluidHelper {
     }
 
     private static boolean computeIsLiquidNuclearFuel(String name) {
-        if (CoolantLoopDataRegistry.getFluidData() != null) {
-            return CoolantLoopDataRegistry.getFluidData()
-                .isLiquidNuclearFuel(name);
-        }
-        String clean = name.trim()
-            .toLowerCase();
-        return clean.equals("liquidfuel") || clean.equals("liquid_fuel")
-            || clean.equals("nuclearfuel")
-            || clean.equals("uraniumhexafluoride")
-            || clean.equals("uraniumtetrafluoride")
-            || clean.equals("thoriumbasedliquidfuel")
-            || clean.equals("uraniumbasedliquidfuel")
-            || clean.equals("plutoniumbasedliquidfuel")
-            || clean.equals("naquadahbasedliquidfuel")
-            || clean.equals("liquid_naquadah_fuel")
-            || clean.equals("depletedthoriumbasedliquidfuel")
-            || clean.equals("depleteduraniumbasedliquidfuel")
-            || clean.equals("depletedplutoniumbasedliquidfuel")
-            || clean.equals("depletednaquadahbasedliquidfuel");
+        return CoolantLoopDataRegistry.getFluidData()
+            .isLiquidNuclearFuel(name);
     }
 
     public static boolean isLiquidNuclearFuel(Fluid fluid, FluidStack stack) {
@@ -116,16 +93,6 @@ public final class CoolantFluidHelper {
         Boolean cached = sNuclearFuelFluidCache.get(fluid);
         if (cached != null) return cached;
         boolean res = isLiquidNuclearFuel(fluid.getName());
-        if (!res) {
-            try {
-                Materials mat = Materials.FLUID_MAP.get(fluid);
-                if (mat != null && mat.mName != null && isLiquidNuclearFuel(mat.mName)) {
-                    res = true;
-                }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
-        }
         sNuclearFuelFluidCache.put(fluid, res);
         return res;
     }

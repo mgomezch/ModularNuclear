@@ -47,11 +47,7 @@ public class CoolantPipingRegistry {
         if (materialName == null) {
             return 10.0;
         }
-        String name = materialName.toLowerCase()
-            .replace(" ", "")
-            .replace("_", "")
-            .replace("-", "");
-        return CoolantLoopDataRegistry.getPipePressureRating(name);
+        return CoolantLoopDataRegistry.getPipePressureRating(materialName);
     }
 
     /**
@@ -61,21 +57,7 @@ public class CoolantPipingRegistry {
         if (material == null) {
             return 10.0;
         }
-        double rating = getMaxPressureBar(material.mName);
-        String clean = material.mName.toLowerCase()
-            .replace(" ", "")
-            .replace("_", "")
-            .replace("-", "");
-        if (rating > 15.0 || CoolantLoopDataRegistry.getPipeData()
-            .getMaterialPressureRatingsBar()
-            .containsKey(clean)) {
-            return rating;
-        }
-        // Fallback: estimate based on blast furnace temperature
-        if (material.mBlastFurnaceTemp > 0) {
-            return Math.max(20.0, material.mBlastFurnaceTemp / 25.0);
-        }
-        return rating;
+        return getMaxPressureBar(material.mName);
     }
 
     /**
@@ -86,13 +68,9 @@ public class CoolantPipingRegistry {
             return 100.0;
         }
         if (pipe.mMaterial != null) {
-            String name = pipe.mMaterial.mName.toLowerCase()
-                .replace(" ", "")
-                .replace("_", "")
-                .replace("-", "");
             Double yamlLimit = CoolantLoopDataRegistry.getPipeData()
                 .getMaterialTemperatureLimitsCelsius()
-                .get(name);
+                .get(pipe.mMaterial.mName);
             if (yamlLimit != null) {
                 return yamlLimit;
             }
@@ -150,24 +128,9 @@ public class CoolantPipingRegistry {
             .takesTank(pipeMaterial.mName, tankMaterial.mName);
     }
 
-    /**
-     * Checks if two materials are the same for coolant loop material matching (ignoring case, spaces, '_' and '-').
-     */
+    /** Whether two GregTech material names are the same material (exact names). */
     public static boolean areMaterialsEqual(String m1, String m2) {
-        if (m1 == null || m2 == null) return false;
-        if (CoolantLoopDataRegistry.getPipeData() != null) {
-            return CoolantLoopDataRegistry.getPipeData()
-                .areMaterialsEqual(m1, m2);
-        }
-        String n1 = m1.toLowerCase()
-            .replace(" ", "")
-            .replace("_", "")
-            .replace("-", "");
-        String n2 = m2.toLowerCase()
-            .replace(" ", "")
-            .replace("_", "")
-            .replace("-", "");
-        return n1.equals(n2);
+        return m1 != null && m1.equals(m2);
     }
 
     public static boolean areMaterialsEqual(Materials m1, Materials m2) {

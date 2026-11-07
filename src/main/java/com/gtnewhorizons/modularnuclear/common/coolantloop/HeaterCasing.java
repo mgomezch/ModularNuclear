@@ -1,7 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.coolantloop;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
-import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
 
 /**
  * A Pressurized Fluid Heater's pipe casing, by casing tier (1 Tin ... 8 Black Plutonium), as the game and the
@@ -49,22 +48,17 @@ public enum HeaterCasing {
         return byCasingTier(CoolantPipeSpec.VOLTAGE_TIERS[m]);
     }
 
+    /** The casing of exactly this enum name or casing tier number, or null (the loop's own) for a blank name. */
     public static HeaterCasing fromString(String s) {
-        if (s == null) return null;
-        String key = WasmStrings.normalizeToken(s, " -");
+        if (s == null || s.isEmpty()) return null;
         for (HeaterCasing c : values()) {
             if (c.name()
-                .equals(key)
-                || c.name()
-                    .replace("_", "")
-                    .equals(key.replace("_", ""))) {
-                return c;
-            }
+                .equals(s)) return c;
         }
         try {
-            return byCasingTier(Integer.parseInt(key));
+            return byCasingTier(Integer.parseInt(s));
         } catch (NumberFormatException e) {
-            return null;
+            throw new IllegalArgumentException("unknown heater casing: " + s);
         }
     }
 }

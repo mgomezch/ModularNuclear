@@ -42,7 +42,7 @@ public class PipeFrictionMultiplierTest {
         multipliers.put("Steel", 0.7);
         map.put("materialFrictionMultipliers", multipliers);
         CoolantPipeData parsed = CoolantPipeData.fromMap(map);
-        assertEquals(0.7, parsed.getFrictionMultiplier("steel"));
-        assertEquals(1.0, parsed.getFrictionMultiplier("infinity"), "a config lists every material it wants lowered");
+        assertEquals(0.7, parsed.getFrictionMultiplier("Steel"));
+        assertEquals(1.0, parsed.getFrictionMultiplier("Infinity"), "a config lists every material it wants lowered");
     }
 }

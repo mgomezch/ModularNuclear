@@ -4,27 +4,27 @@
 
 # Maximum burst pressure ratings in bar for pipe materials
 materialPressureRatingsBar:
-  iron: 16.0
-  steel: 35.0
-  stainlesssteel: 70.0
-  titanium: 140.0
-  tungstensteel: 280.0
-  osmium: 600.0
-  neutronium: 3000.0
-  draconiumawakened: 6000.0
-  infinity: 12000.0
+  Iron: 16.0
+  Steel: 35.0
+  StainlessSteel: 70.0
+  Titanium: 140.0
+  TungstenSteel: 280.0
+  Osmium: 600.0
+  Neutronium: 3000.0
+  DraconiumAwakened: 6000.0
+  Infinity: 12000.0
 
 # Maximum operating temperature limits in degrees Celsius
 materialTemperatureLimitsCelsius:
-  iron: 1538.0
-  steel: 1500.0
-  stainlesssteel: 1700.0
-  titanium: 1668.0
-  tungstensteel: 3000.0
-  osmium: 3033.0
-  neutronium: 10000.0
-  draconiumawakened: 10000.0
-  infinity: 10000.0
+  Iron: 1538.0
+  Steel: 1500.0
+  StainlessSteel: 1700.0
+  Titanium: 1668.0
+  TungstenSteel: 3000.0
+  Osmium: 3033.0
+  Neutronium: 10000.0
+  DraconiumAwakened: 10000.0
+  Infinity: 10000.0
 
 # Inner flow diameter (meters) by GregTech pipe thickness
 thicknessDiameters:
@@ -34,36 +34,36 @@ thicknessDiameters:
   large: 0.15
   huge: 0.20
 
-# Materials permitted for closed coolant loops (each needs a Railcraft tank: its own material's, or per tankMaterials)
+# Materials permitted for closed coolant loops, by exact GregTech material name (as in every list here) (each needs a Railcraft tank: its own material's, or per tankMaterials)
 allowedMaterials:
-  - "iron"
-  - "steel"
-  - "stainlesssteel"
-  - "titanium"
-  - "tungstensteel"
-  - "osmium"
-  - "neutronium"
-  - "draconiumawakened"
-  - "infinity"
+  - "Iron"
+  - "Steel"
+  - "StainlessSteel"
+  - "Titanium"
+  - "TungstenSteel"
+  - "Osmium"
+  - "Neutronium"
+  - "DraconiumAwakened"
+  - "Infinity"
 
 # Railcraft tank a loop's pump needs, for pipe materials Railcraft has no tank of (others need a tank of their own
 # material)
 tankMaterials:
-  draconiumawakened: "neutronium"
-  infinity: "neutronium"
+  DraconiumAwakened: "Neutronium"
+  Infinity: "Neutronium"
 
 # Multiplier on each pipe block's pressure drop (Darcy friction and its fittings' minor loss), by material; 1 for a
 # material not listed. Long loops still cost flow, but better pipes let a loop reach its PHEs and pump further away.
 materialFrictionMultipliers:
-  iron: 0.5
-  steel: 0.4
-  stainlesssteel: 0.3
-  titanium: 0.25
-  tungstensteel: 0.2
-  osmium: 0.15
-  neutronium: 0.1
-  draconiumawakened: 0.07
-  infinity: 0.05
+  Iron: 0.5
+  Steel: 0.4
+  StainlessSteel: 0.3
+  Titanium: 0.25
+  TungstenSteel: 0.2
+  Osmium: 0.15
+  Neutronium: 0.1
+  DraconiumAwakened: 0.07
+  Infinity: 0.05
 
 # Standard commercial metal pipe surface roughness (meters)
 defaultRoughness: 0.000045

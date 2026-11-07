@@ -273,7 +273,7 @@ public class CoolantLoopModelTest {
         assertEquals(HeaterCasing.OSMIUM, HeaterCasing.forLoopMaterial("TungstenSteel"));
         assertEquals(HeaterCasing.BLACK_PLUTONIUM, HeaterCasing.forLoopMaterial("Infinity"));
         assertEquals(HeaterCasing.TIN, HeaterCasing.forLoopMaterial("Iron"));
-        assertEquals(HeaterCasing.FLUXED_ELECTRUM, HeaterCasing.fromString("fluxed electrum"));
+        assertEquals(HeaterCasing.FLUXED_ELECTRUM, HeaterCasing.fromString("FLUXED_ELECTRUM"));
     }
 
     @Test

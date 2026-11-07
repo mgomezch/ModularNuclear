@@ -1176,6 +1176,8 @@ A file that does not parse, or holds a value of the wrong kind, stops the game a
 
 Names are case-sensitive, as the registries are. There are no wildcards, and unlocalized names, display names and GregTech `ItemList` names are not accepted. A tier's `allowed_coolants` lists fluid registry names; leaving it out lets the tier take every coolant whose `required_tier` it meets.
 
+**Coolant loop files** are read from `config/coolantloops/`: `physics.yaml`, `fluids.yaml`, `pipes.yaml` and `devices.yaml`. They name fluids the same way, by exact registry name: the loop coolants in `fluids.yaml` (e.g. `ic2distilledwater`, `liquid_sodium`, `molten.lead`), its `liquidNuclearFuels`, and the fluids a PHE boils in `devices.yaml`. Pipe materials are exact GregTech material names (`Iron`, `StainlessSteel`, `TungstenSteel`, `DraconiumAwakened`, …). There are no aliases.
+
 **Global physics parameters (`physics.yaml`):**
 
 | Key | Default | Meaning |

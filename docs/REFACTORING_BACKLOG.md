@@ -75,7 +75,7 @@ NEI handlers, tooltips and GUIs read the client's local YAML. On a server with t
 
 ## Config matching
 
-### C1 (P1): Make resource matching exact (reactor side done)
+### C1 (P1): Make resource matching exact (done)
 
 **Done for the reactor configs** (`fuels.yaml`, `components.yaml`, `tiers.yaml`, the Forge allowlists):
 - **Matching.** Items match only as `modid:name`, `modid:name:meta` or `ore:oreName`, and fluids only by registry name. Everything else is gone: the wildcards, the tier `'*'`, normalization, descriptor permutation, unlocalized, localized and `ItemList` names, the IC2 reflection and the `fluid.`/`molten.` prefix guessing.
@@ -84,7 +84,12 @@ NEI handlers, tooltips and GUIs read the client's local YAML. On a server with t
 - **Simulator.** `SimTile` uses the real fluid names.
 - **Load report.** `ConfigNameCheck` warns at load about every entry that names nothing. In GTNH 2.9 that leaves 9 entries, all of which never matched before either: `ore:stickLongGraphite` (graphite moderator), `ore:stickLongBoron`/`stickBoron`, `ore:stickLongCadmium`/`stickCadmium` (control rods) and `molten.sodium` (the sodium coolant). GTNH has `liquid_sodium`. **Open: decide whether these become real items/fluids or are removed.**
 
-**Still to do:** the coolant-loop side is still fuzzy. `CoolantFluidProperty`'s aliases (`distilledwater`/`water.distilled`), `CoolantDeviceData`'s normalized names, `CoolantFluidHelper`'s liquid-fuel name list, and `CoolantLoopModel`'s upper-case switch.
+**Done for the coolant-loop configs** (`fluids.yaml`, `pipes.yaml`, `devices.yaml`):
+- **Fluids.** Loop coolants, liquid nuclear fuels and the fluids a PHE boils are looked up by exact registry name. The aliases are gone, along with lower-casing, separator stripping and `getCanonical`.
+- **Wrong default names.** Several defaults named fluids GTNH does not have, so they never matched. Sodium is now `liquid_sodium`, liquid helium `liquid helium`, and the liquid nuclear fuels are the real thorium, uranium, plutonium and naquadah fuels and the uranium fluorides.
+- **Pipe materials.** These are exact GregTech material names (`StainlessSteel`, `DraconiumAwakened`, ...), so `normalizeMaterial` is gone. The blast-furnace pressure estimate for unlisted materials is gone too.
+- **Simulator.** The loop fluid, loop material and heater casing take an exact enum name or game name; anything else is an error. The other simulator option parsers (cooling mode, hatch tier, pipe size) still take loose spellings: they are command-line options, not resource names.
+- **Instances.** The `-dev` and `-test` instances' stale `config/coolantloops` copies were set aside (`*.before-exact-names.bak`), so their next launch writes the new defaults.
 
 
 `config/ReactorDataRegistry.matchesFluid` and `ReactorConfigData.matchesFluid` and `matchesPermutedDescriptors` match patterns against:

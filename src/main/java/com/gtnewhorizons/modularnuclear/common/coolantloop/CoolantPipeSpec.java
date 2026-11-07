@@ -45,11 +45,11 @@ public final class CoolantPipeSpec {
         return capacityPerTick(materialIndex, sizeIndex) * 20.0;
     }
 
-    /** Index of a material name in {@link #MATERIAL_NAMES} (case-insensitive), or -1. */
+    /** Index of a GregTech material name in {@link #MATERIAL_NAMES}, or -1. */
     public static int materialIndex(String materialName) {
         if (materialName == null) return -1;
         for (int i = 0; i < MATERIAL_NAMES.length; i++) {
-            if (MATERIAL_NAMES[i].equalsIgnoreCase(materialName)) return i;
+            if (MATERIAL_NAMES[i].equals(materialName)) return i;
         }
         return -1;
     }

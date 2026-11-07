@@ -1,6 +1,7 @@
 # ==========================================================================
 # Coolant Loops: Thermodynamic Fluid Properties
 # All units are standard SI (kg/m^3, Pa*s, J/(kg*K), W/(m*K), deg C)
+# Each entry is keyed by the fluid's exact registry name (fluidName), as /fluids or NEI shows it
 # ==========================================================================
 
 fluids:
@@ -15,8 +16,6 @@ fluids:
     isMolten: false
     radiolysisMultiplier: 1.0
     spillOnRupture: true
-    aliases:
-      - "minecraft:water"
 
   ic2distilledwater:
     fluidName: "ic2distilledwater"
@@ -29,10 +28,6 @@ fluids:
     isMolten: false
     radiolysisMultiplier: 1.0
     spillOnRupture: true
-    aliases:
-      - "distilledwater"
-      - "distilled_water"
-      - "water.distilled"
 
   heavywater:
     fluidName: "heavywater"
@@ -45,9 +40,6 @@ fluids:
     isMolten: false
     radiolysisMultiplier: 1.0
     spillOnRupture: true
-    aliases:
-      - "heavy_water"
-      - "water.heavy"
 
   ic2coolant:
     fluidName: "ic2coolant"
@@ -60,11 +52,9 @@ fluids:
     isMolten: false
     radiolysisMultiplier: 1.0
     spillOnRupture: true
-    aliases:
-      - "coolant"
 
-  sodium:
-    fluidName: "sodium"
+  liquid_sodium:
+    fluidName: "liquid_sodium"
     density: 927.0
     dynamicViscosity: 0.0007
     specificHeat: 1260.0
@@ -74,11 +64,6 @@ fluids:
     isMolten: true
     radiolysisMultiplier: 1.0
     spillOnRupture: true
-    aliases:
-      - "fluid.sodium"
-      - "liquid.sodium"
-      - "liquid_sodium"            # GregTech's Liquid Sodium
-      - "molten.sodium"
 
   molten.lead:
     fluidName: "molten.lead"
@@ -91,10 +76,6 @@ fluids:
     isMolten: true
     radiolysisMultiplier: 1.0
     spillOnRupture: true
-    aliases:
-      - "lead"
-      - "moltenlead"
-      - "fluid.molten.lead"
 
   molten.cheese:
     fluidName: "molten.cheese"
@@ -107,9 +88,6 @@ fluids:
     isMolten: true
     radiolysisMultiplier: 1.0
     spillOnRupture: true
-    aliases:
-      - "cheese"
-      - "moltencheese"
 
   lava:
     fluidName: "lava"
@@ -122,23 +100,29 @@ fluids:
     isMolten: true
     radiolysisMultiplier: 1.0
     spillOnRupture: true
-    aliases:
-      - "fluid.lava"
-      - "minecraft:lava"
 
-# Liquid nuclear fuels that destroy impellers and fail closed-loop pumps
+# Liquid nuclear fuels that destroy impellers and fail closed-loop pumps, by exact fluid registry name
 liquidNuclearFuels:
-  - "liquidfuel"
-  - "liquid_fuel"
-  - "nuclearfuel"
-  - "uraniumhexafluoride"
-  - "uraniumtetrafluoride"
-  - "thoriumbasedliquidfuel"
-  - "uraniumbasedliquidfuel"
-  - "plutoniumbasedliquidfuel"
-  - "naquadahbasedliquidfuel"
-  - "liquid_naquadah_fuel"
-  - "depletedthoriumbasedliquidfuel"
-  - "depleteduraniumbasedliquidfuel"
-  - "depletedplutoniumbasedliquidfuel"
-  - "depletednaquadahbasedliquidfuel"
+  - "thorium based liquid fuel"
+  - "thorium based liquid fuel (excited state)"
+  - "thorium based liquid fuel (depleted)"
+  - "uranium based liquid fuel"
+  - "uranium based liquid fuel (excited state)"
+  - "uranium based liquid fuel (depleted)"
+  - "plutonium based liquid fuel"
+  - "plutonium based liquid fuel (excited state)"
+  - "plutonium based liquid fuel (depleted)"
+  - "naquadah based liquid fuel mki"
+  - "naquadah based liquid fuel mki (depleted)"
+  - "naquadah based liquid fuel mkii"
+  - "naquadah based liquid fuel mkii (depleted)"
+  - "naquadah based liquid fuel mkiii"
+  - "naquadah based liquid fuel mkiii (depleted)"
+  - "naquadah based liquid fuel mkiv"
+  - "naquadah based liquid fuel mkiv (depleted)"
+  - "naquadah based liquid fuel mkv"
+  - "naquadah based liquid fuel mkv (depleted)"
+  - "naquadah based liquid fuel mkvi"
+  - "naquadah based liquid fuel mkvi (depleted)"
+  - "molten.uraniumhexafluoride"
+  - "molten.uraniumtetrafluoride"

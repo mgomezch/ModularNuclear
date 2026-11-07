@@ -96,66 +96,26 @@ public class CoolantDeviceData {
         public double baseMaxHeatPerBatchJoules = 2260000.0; // Base heat transfer cap per 20-tick batch at 1A LV (32
                                                              // EU/t) (equivalent to 1 L distilled water)
         public int batchTicks = 20; // Batch duration (20 ticks = 1 second)
-        public List<String> allowedSecondaryFluids = new ArrayList<>(
-            Arrays.asList(
-                "ic2distilledwater",
-                "distilledwater",
-                "distilled_water",
-                "water.distilled",
-                "liquidnitrogen",
-                "liquid_nitrogen",
-                "liquidoxygen",
-                "liquid_oxygen",
-                "liquidair",
-                "liquid_air",
-                "liquid_helium",
-                "liquidhelium",
-                "liquid helium",
-                "bwm.liquidhelium"));
+        /**
+         * Further fluids a PHE may boil, by exact fluid registry name, as steam at 100 °C: fluids with an entry in
+         * secondaryCoolants need none. Plain water boils only if listed here.
+         */
+        public List<String> allowedSecondaryFluids = new ArrayList<>();
         public List<SecondaryCoolantEntry> secondaryCoolants = new ArrayList<>(
             Arrays.asList(
                 new SecondaryCoolantEntry("ic2distilledwater", 100.0, "steam", 2260000.0, 160, true),
-                new SecondaryCoolantEntry("distilledwater", 100.0, "steam", 2260000.0, 160, true),
-                new SecondaryCoolantEntry("distilled_water", 100.0, "steam", 2260000.0, 160, true),
-                new SecondaryCoolantEntry("water.distilled", 100.0, "steam", 2260000.0, 160, true),
                 // Heavy water boils to heavy-water steam of the same grades (PheExchange.steamOfFamily)
                 new SecondaryCoolantEntry("heavywater", 101.4, "heavywatersteam", 2300000.0, 160, true),
                 // Cryogens take up the heat a vacuum freezer's electricity for making them is worth (joulesPerEU):
                 // in game from its recipes (FreezerRecipeEnergy), and here as GregTech's stock recipes have it
                 // (nitrogen and oxygen 576 EU/L, air 13.44 EU/L). The freezer makes no liquid helium
                 new SecondaryCoolantEntry("liquidnitrogen", -196.0, "nitrogen", 16272000.0, 1, false),
-                new SecondaryCoolantEntry("liquid_nitrogen", -196.0, "nitrogen", 16272000.0, 1, false),
                 new SecondaryCoolantEntry("liquidoxygen", -183.0, "oxygen", 16272000.0, 1, false),
-                new SecondaryCoolantEntry("liquid_oxygen", -183.0, "oxygen", 16272000.0, 1, false),
                 new SecondaryCoolantEntry("liquidair", -194.0, "air", 379680.0, 1, false),
-                new SecondaryCoolantEntry("liquid_air", -194.0, "air", 379680.0, 1, false),
-                new SecondaryCoolantEntry("liquid_helium", -269.0, "helium", 20700.0, 1, false),
-                new SecondaryCoolantEntry("liquidhelium", -269.0, "helium", 20700.0, 1, false),
-                new SecondaryCoolantEntry("liquid helium", -269.0, "helium", 20700.0, 1, false),
-                new SecondaryCoolantEntry("bwm.liquidhelium", -269.0, "helium", 20700.0, 1, false)));
+                new SecondaryCoolantEntry("liquid helium", -269.0, "helium", 20700.0, 1, false)));
 
         public boolean isAllowedSecondaryFluid(String fluidName) {
-            if (fluidName == null) return false;
-            String clean = fluidName.trim()
-                .toLowerCase();
-            for (String allowed : allowedSecondaryFluids) {
-                if (allowed != null && clean.equals(
-                    allowed.trim()
-                        .toLowerCase())) {
-                    return true;
-                }
-            }
             return findSecondaryCoolant(fluidName) != null;
-        }
-
-        /** Removes underscores, dots and spaces (TeaVM-safe; no String.replace). */
-        private static String stripSeparators(String s) {
-            StringBuilder sb = new StringBuilder(s.length());
-            for (int i = 0; i < s.length(); i++) {
-                char c = s.charAt(i);
-                if (c != '_' && c != '.' && c != ' ') sb.append(c);
-            }
-            return sb.toString();
         }
 
         /** findSecondaryCoolant's answers by fluid name; the configuration is fixed once loaded. */
@@ -163,8 +123,8 @@ public class CoolantDeviceData {
         private static final Object NO_SECONDARY = new Object();
 
         /**
-         * The secondary coolant entry a fluid boils as, or null. Exchangers ask every tick, and matching normalizes
-         * names (and builds the fallback entries), so answers are kept per name: a name gets the same entry each time.
+         * The secondary coolant entry a fluid of exactly this registry name boils as, or null. Exchangers ask every
+         * tick, so answers are kept per name: a name gets the same entry each time.
          */
         public SecondaryCoolantEntry findSecondaryCoolant(String fluidName) {
             if (fluidName == null) return null;
@@ -178,65 +138,14 @@ public class CoolantDeviceData {
         }
 
         private SecondaryCoolantEntry scanSecondaryCoolant(String fluidName) {
-            String clean = fluidName.trim()
-                .toLowerCase();
-            String norm = stripSeparators(clean);
-
-            // If explicitly configured in allowedSecondaryFluids, allow even plain water
-            boolean inAllowedList = false;
-            for (String allowed : allowedSecondaryFluids) {
-                if (allowed != null && clean.equals(
-                    allowed.trim()
-                        .toLowerCase())) {
-                    inAllowedList = true;
-                    break;
-                }
-            }
-
-            if ((norm.equals("water") || norm.equals("minecraft:water") || norm.equals("fluid.water"))
-                && !inAllowedList) {
-                return null; // Plain water is prohibited by default unless explicitly configured by admin
-            }
-
             for (SecondaryCoolantEntry entry : secondaryCoolants) {
-                if (entry != null && entry.inputFluidName != null) {
-                    String entryClean = entry.inputFluidName.trim()
-                        .toLowerCase();
-                    String entryNorm = stripSeparators(entryClean);
-                    if (clean.equals(entryClean) || norm.equals(entryNorm)) {
-                        return entry;
-                    }
+                if (entry != null && fluidName.equals(entry.inputFluidName)) {
+                    return entry;
                 }
             }
-            // Fallback for distilled water or configured plain water
-            if (norm.equals("ic2distilledwater") || norm.equals("distilledwater")
-                || norm.equals("waterdistilled")
-                || (inAllowedList
-                    && (norm.equals("water") || norm.equals("minecraft:water") || norm.equals("fluid.water")))) {
+            if (allowedSecondaryFluids.contains(fluidName)) {
                 return new SecondaryCoolantEntry(
-                    clean,
-                    100.0,
-                    "steam",
-                    latentHeatJoulePerLiter,
-                    steamExpansionRatio,
-                    true);
-            }
-            if (norm.equals("liquidnitrogen") || norm.equals("nitrogenliquid")) {
-                return new SecondaryCoolantEntry("liquidnitrogen", -196.0, "nitrogen", 16272000.0, 160, false);
-            }
-            if (norm.equals("liquidoxygen") || norm.equals("oxygenliquid")) {
-                return new SecondaryCoolantEntry("liquidoxygen", -183.0, "oxygen", 16272000.0, 160, false);
-            }
-            if (norm.equals("liquidair") || norm.equals("airliquid")) {
-                return new SecondaryCoolantEntry("liquidair", -194.0, "air", 379680.0, 160, false);
-            }
-            if (norm.equals("liquidhelium") || norm.equals("heliumliquid") || norm.equals("bwmliquidhelium")) {
-                return new SecondaryCoolantEntry("liquid_helium", -269.0, "helium", 20700.0, 160, false);
-            }
-            if (inAllowedList) {
-                // Admin added an arbitrary allowed secondary fluid, treat as steam generator at 100 C if unknown
-                return new SecondaryCoolantEntry(
-                    clean,
+                    fluidName,
                     100.0,
                     "steam",
                     latentHeatJoulePerLiter,

@@ -80,7 +80,7 @@ public class CoolantLoopDataRegistryTest {
                 .containsKey("heavywater"));
         assertTrue(
             fluids.getFluids()
-                .containsKey("sodium"));
+                .containsKey("liquid_sodium"));
         assertTrue(
             fluids.getFluids()
                 .containsKey("ic2coolant"));
@@ -97,27 +97,27 @@ public class CoolantLoopDataRegistryTest {
         assertEquals(
             35.0,
             pipes.getMaterialPressureRatingsBar()
-                .get("steel"),
+                .get("Steel"),
             1e-4);
         assertEquals(
             140.0,
             pipes.getMaterialPressureRatingsBar()
-                .get("titanium"),
+                .get("Titanium"),
             1e-4);
         assertEquals(
             3000.0,
             pipes.getMaterialPressureRatingsBar()
-                .get("neutronium"),
+                .get("Neutronium"),
             1e-4);
         assertTrue(
             pipes.getAllowedMaterials()
-                .contains("steel"));
+                .contains("Steel"));
         assertTrue(
             pipes.getAllowedMaterials()
-                .contains("stainlesssteel"));
+                .contains("StainlessSteel"));
         assertTrue(
             pipes.getAllowedMaterials()
-                .contains("titanium"));
+                .contains("Titanium"));
         assertFalse(
             pipes.getMaterialPressureRatingsBar()
                 .containsKey("wood"),
@@ -183,9 +183,6 @@ public class CoolantLoopDataRegistryTest {
             + "    freezingPointCelsius: 12.0\n"
             + "    isMolten: false\n"
             + "    radiolysisMultiplier: 0.5\n"
-            + "    aliases:\n"
-            + "      - \"synthetic_heat_transfer_fluid\"\n"
-            + "      - \"fluid.dowtherm\"\n"
             + "  custom_liquid_metal:\n"
             + "    fluidName: \"custom_liquid_metal\"\n"
             + "    density: 10500.0\n"
@@ -195,9 +192,7 @@ public class CoolantLoopDataRegistryTest {
             + "    boilingPointCelsius: Infinity\n"
             + "    freezingPointCelsius: 125.0\n"
             + "    isMolten: true\n"
-            + "    radiolysisMultiplier: 0.0\n"
-            + "    aliases:\n"
-            + "      - \"lead_bismuth_eutectic\"\n";
+            + "    radiolysisMultiplier: 0.0\n";
         Files.write(new File(loopDir, "fluids.yaml").toPath(), customFluids.getBytes());
 
         // Write custom pipes.yaml with custom alloy inconel_718
@@ -264,7 +259,7 @@ public class CoolantLoopDataRegistryTest {
         assertEquals(4.5, model.getVSaturation(), 1e-4);
         assertEquals(8000.0, model.getHMax(), 1e-4);
 
-        // 3. Verify custom fluids registered and searchable by primary name and alias
+        // 3. Verify custom fluids registered under their exact names
         CoolantFluidProperty dowtherm = CoolantFluidProperty.get("dowtherm_a");
         assertNotNull(dowtherm, "dowtherm_a must be registered via YAML");
         assertEquals(1060.0, dowtherm.getDensity(), 1e-4);
@@ -273,12 +268,8 @@ public class CoolantLoopDataRegistryTest {
         assertEquals(257.0, dowtherm.getBoilingPointCelsius(), 1e-4);
         assertFalse(dowtherm.isMolten());
 
-        CoolantFluidProperty aliasLookup = CoolantFluidProperty.get("synthetic_heat_transfer_fluid");
-        assertNotNull(aliasLookup, "fluid must be resolved by YAML alias");
-        assertEquals("dowtherm_a", aliasLookup.getFluidName());
-
-        CoolantFluidProperty lbe = CoolantFluidProperty.get("lead_bismuth_eutectic");
-        assertNotNull(lbe, "custom liquid metal must be resolved by alias");
+        CoolantFluidProperty lbe = CoolantFluidProperty.get("custom_liquid_metal");
+        assertNotNull(lbe, "custom liquid metal must be registered via YAML");
         assertEquals(10500.0, lbe.getDensity(), 1e-4);
         assertTrue(lbe.isMolten());
 
@@ -312,22 +303,18 @@ public class CoolantLoopDataRegistryTest {
             .getPhe();
         assertNotNull(phe);
 
-        // By default, distilled water variants are allowed
+        // By default distilled water boils, under its exact registry name only
         assertTrue(phe.isAllowedSecondaryFluid("ic2distilledwater"));
-        assertTrue(phe.isAllowedSecondaryFluid("distilledwater"));
-        assertTrue(phe.isAllowedSecondaryFluid("distilled_water"));
-        assertTrue(phe.isAllowedSecondaryFluid("water.distilled"));
+        assertFalse(phe.isAllowedSecondaryFluid("distilledwater"));
 
         // Plain regular water is NOT allowed by default in PHE
         assertFalse(phe.isAllowedSecondaryFluid("water"));
-        assertFalse(phe.isAllowedSecondaryFluid("minecraft:water"));
 
         // Now customize devices.yaml to allow plain water as well
         File loopDir = new File(configDir, "coolantloops");
         String customDevices = "phe:\n" + "  allowedSecondaryFluids:\n"
             + "    - \"ic2distilledwater\"\n"
-            + "    - \"water\"\n"
-            + "    - \"minecraft:water\"\n";
+            + "    - \"water\"\n";
         Files.write(new File(loopDir, "devices.yaml").toPath(), customDevices.getBytes());
 
         // Re-init from directory
@@ -337,35 +324,35 @@ public class CoolantLoopDataRegistryTest {
         assertTrue(
             customPhe.isAllowedSecondaryFluid("water"),
             "Admin configured water must now be allowed without code changes");
-        assertTrue(customPhe.isAllowedSecondaryFluid("minecraft:water"));
     }
 
     @Test
     public void testZeroSubstringMatchingForFluidsAndMaterials() {
-        // CoolantFluidProperty must strictly match exact names and configured aliases, NOT arbitrary substrings
+        // CoolantFluidProperty must strictly match exact names, NOT arbitrary substrings or variants
         assertNull(CoolantFluidProperty.get("sparkling_water"), "Arbitrary water substring must not match");
         assertNull(CoolantFluidProperty.get("cheese_sauce"), "Arbitrary cheese substring must not match");
         assertNull(CoolantFluidProperty.get("sodium_bicarbonate"), "Arbitrary sodium substring must not match");
         assertNull(CoolantFluidProperty.get("hot_coolant_blend"), "Arbitrary coolant substring must not match");
         assertNull(CoolantFluidProperty.get("super_heavy_water"), "Arbitrary heavy substring must not match");
 
-        // Exact registered names and aliases must resolve
+        // Exact registry names resolve; other spellings do not
         assertNotNull(CoolantFluidProperty.get("water"));
-        assertNotNull(CoolantFluidProperty.get("minecraft:water"));
+        assertNull(CoolantFluidProperty.get("minecraft:water"));
         assertNotNull(CoolantFluidProperty.get("ic2distilledwater"));
-        assertNotNull(CoolantFluidProperty.get("distilledwater"));
-        assertNotNull(CoolantFluidProperty.get("sodium"));
-        assertNotNull(CoolantFluidProperty.get("fluid.sodium"));
+        assertNull(CoolantFluidProperty.get("distilledwater"));
+        assertNotNull(CoolantFluidProperty.get("liquid_sodium"));
+        assertNull(CoolantFluidProperty.get("sodium"));
         assertNotNull(CoolantFluidProperty.get("molten.cheese"));
-        assertNotNull(CoolantFluidProperty.get("cheese"));
+        assertNull(CoolantFluidProperty.get("cheese"));
         assertNotNull(CoolantFluidProperty.get("lava"));
 
         // Materials match only themselves
-        assertFalse(CoolantPipingRegistry.areMaterialsEqual("iron", "castiron"), "Cast iron is not iron");
+        assertFalse(CoolantPipingRegistry.areMaterialsEqual("Iron", "CastIron"), "Cast iron is not iron");
         assertFalse(
-            CoolantPipingRegistry.areMaterialsEqual("steel", "stainlesssteel"),
+            CoolantPipingRegistry.areMaterialsEqual("Steel", "StainlessSteel"),
             "Steel and stainless steel are distinct");
-        assertFalse(CoolantPipingRegistry.areMaterialsEqual("iron", "steel"), "Iron and steel are distinct");
+        assertFalse(CoolantPipingRegistry.areMaterialsEqual("Iron", "Steel"), "Iron and steel are distinct");
+        assertFalse(CoolantPipingRegistry.areMaterialsEqual("Iron", "iron"), "Names match case and all");
     }
 
     @Test
@@ -374,16 +361,17 @@ public class CoolantLoopDataRegistryTest {
         CoolantLoopDataRegistry.init(configDir);
 
         CoolantFluidData fluidData = CoolantLoopDataRegistry.getFluidData();
-        assertTrue(fluidData.isLiquidNuclearFuel("uraniumbasedliquidfuel"));
-        assertTrue(fluidData.isLiquidNuclearFuel("depleteduraniumbasedliquidfuel"));
-        assertTrue(fluidData.isLiquidNuclearFuel("thoriumbasedliquidfuel"));
+        assertTrue(fluidData.isLiquidNuclearFuel("uranium based liquid fuel"));
+        assertTrue(fluidData.isLiquidNuclearFuel("uranium based liquid fuel (depleted)"));
+        assertTrue(fluidData.isLiquidNuclearFuel("thorium based liquid fuel"));
+        assertFalse(fluidData.isLiquidNuclearFuel("uraniumbasedliquidfuel"), "Fuels are named exactly");
         assertFalse(
             fluidData.isLiquidNuclearFuel("custom_thorium_blend"),
             "Unregistered fluid is not liquid nuclear fuel");
 
         // Add custom fuel in fluids.yaml
         File loopDir = new File(configDir, "coolantloops");
-        String customFluids = "liquidNuclearFuels:\n" + "  - \"custom_thorium_blend\"\n" + "  - \"liquidfuel\"\n";
+        String customFluids = "liquidNuclearFuels:\n" + "  - \"custom_thorium_blend\"\n";
         Files.write(new File(loopDir, "fluids.yaml").toPath(), customFluids.getBytes());
 
         CoolantLoopDataRegistry.init(configDir);

@@ -100,10 +100,7 @@ public final class CoolantLoopConfigData {
         for (Map.Entry<String, CoolantFluidData.FluidPropertyEntry> entry : fluidData.getFluids()
             .entrySet()) {
             CoolantFluidData.FluidPropertyEntry prop = entry.getValue();
-            CoolantFluidProperty canonical = CoolantFluidProperty.getCanonical(prop.getFluidName());
-            if (canonical == null) {
-                canonical = CoolantFluidProperty.getCanonical(entry.getKey());
-            }
+            CoolantFluidProperty canonical = CoolantFluidProperty.getDefault(prop.getFluidName());
 
             CoolantFluidProperty runtimeProp;
             if (canonical != null && isClose(canonical.getDensity(), prop.getDensity())
@@ -131,14 +128,6 @@ public final class CoolantLoopConfigData {
             }
 
             CoolantFluidProperty.register(runtimeProp);
-            CoolantFluidProperty.registerAlias(lower(entry.getKey()), runtimeProp);
-            if (prop.getAliases() != null) {
-                for (String alias : prop.getAliases()) {
-                    if (alias != null && !alias.isEmpty()) {
-                        CoolantFluidProperty.registerAlias(lower(alias), runtimeProp);
-                    }
-                }
-            }
         }
     }
 
@@ -146,20 +135,6 @@ public final class CoolantLoopConfigData {
         if (Double.isInfinite(a) || Double.isInfinite(b)) return a == b;
         if (Double.isNaN(a) && Double.isNaN(b)) return true;
         return Math.abs(a - b) < 1e-4;
-    }
-
-    private static String lower(String s) {
-        return s.toLowerCase(java.util.Locale.ROOT);
-    }
-
-    /** Lower case with spaces, underscores and dashes removed (TeaVM-safe; no String.replace). */
-    public static String normalizeMaterial(String materialName) {
-        StringBuilder sb = new StringBuilder(materialName.length());
-        for (int i = 0; i < materialName.length(); i++) {
-            char c = materialName.charAt(i);
-            if (c != ' ' && c != '_' && c != '-') sb.append(Character.toLowerCase(c));
-        }
-        return sb.toString();
     }
 
     // Lookups
@@ -192,14 +167,14 @@ public final class CoolantLoopConfigData {
     public static double getPipePressureRating(String materialName) {
         if (materialName == null) return 10.0;
         Double rating = getPipeData().getMaterialPressureRatingsBar()
-            .get(normalizeMaterial(materialName));
+            .get(materialName);
         return rating != null ? rating : 15.0;
     }
 
     public static double getPipeTemperatureLimit(String materialName) {
         if (materialName == null) return 200.0;
         Double limit = getPipeData().getMaterialTemperatureLimitsCelsius()
-            .get(normalizeMaterial(materialName));
+            .get(materialName);
         return limit != null ? limit : 200.0;
     }
 
@@ -215,6 +190,6 @@ public final class CoolantLoopConfigData {
     public static boolean isAllowedCoolantPipeMaterial(String materialName) {
         if (materialName == null) return false;
         return getPipeData().getAllowedMaterials()
-            .contains(normalizeMaterial(materialName));
+            .contains(materialName);
     }
 }

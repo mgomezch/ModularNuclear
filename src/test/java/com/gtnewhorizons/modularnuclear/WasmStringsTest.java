@@ -2,6 +2,7 @@ package com.gtnewhorizons.modularnuclear;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -47,20 +48,26 @@ public class WasmStringsTest {
     void testParsersStillAcceptSeparatorVariants() {
         assertEquals(
             CoolantLoopModel.LoopMaterial.STAINLESS_STEEL,
-            CoolantLoopModel.LoopMaterial.fromString("stainless-steel"));
+            CoolantLoopModel.LoopMaterial.fromString("STAINLESS_STEEL"));
         assertEquals(
             CoolantLoopModel.LoopMaterial.STAINLESS_STEEL,
-            CoolantLoopModel.LoopMaterial.fromString("Stainless Steel"));
+            CoolantLoopModel.LoopMaterial.fromString("StainlessSteel"));
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> CoolantLoopModel.LoopMaterial.fromString("stainless-steel"),
+            "Materials are named exactly");
         assertEquals(
             CoolantLoopModel.CoolingMode.CONVECTIVE_LOOP,
             CoolantLoopModel.CoolingMode.fromString("closed loop"));
         assertEquals(CoolantLoopModel.LoopPipeSize.LARGE, CoolantLoopModel.LoopPipeSize.fromString("pipe large"));
         assertEquals(
             CoolantLoopModel.CoolantFluidType.HEAVY_WATER,
-            CoolantLoopModel.CoolantFluidType.fromString("heavy water"));
-        assertEquals(
-            CoolantLoopModel.CoolantFluidType.SODIUM,
-            CoolantLoopModel.CoolantFluidType.fromString("molten.sodium"));
+            CoolantLoopModel.CoolantFluidType.fromString("heavywater"));
+        assertEquals(CoolantLoopModel.CoolantFluidType.SODIUM, CoolantLoopModel.CoolantFluidType.fromString("SODIUM"));
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> CoolantLoopModel.CoolantFluidType.fromString("heavy water"),
+            "Fluids are named exactly");
     }
 
     @Test

@@ -239,45 +239,15 @@ public class CoolantLoopModel {
             return voltageTier() <= reactorTier - NuclearSimulationEngine.PIPE_TIER_OSMIUM + 6;
         }
 
-        public static LoopMaterial fromMaterialName(String name) {
-            if (name == null) return TITANIUM;
-            for (LoopMaterial mat : values()) {
-                if (mat.materialName.equalsIgnoreCase(name)) return mat;
-            }
-            return fromString(name);
-        }
-
+        /** The material of exactly this enum name or GregTech material name; anything else is an error. */
         public static LoopMaterial fromString(String str) {
-            if (str == null) return TITANIUM;
-            String s = WasmStrings.normalizeToken(str, " -");
-            switch (s) {
-                case "IRON":
-                    return IRON;
-                case "STEEL":
-                    return STEEL;
-                case "STAINLESS_STEEL", "STAINLESS", "STAINLESSSTEEL":
-                    return STAINLESS_STEEL;
-                case "TITANIUM", "TITAN":
-                    return TITANIUM;
-                case "TUNGSTENSTEEL", "TUNGSTEN_STEEL", "TUNGSTEN":
-                    return TUNGSTENSTEEL;
-                case "OSMIUM":
-                    return OSMIUM;
-                case "NEUTRONIUM", "NEUTRON":
-                    return NEUTRONIUM;
-                case "DRACONIUM_AWAKENED", "DRACONIUMAWAKENED", "AWAKENED_DRACONIUM", "DRACONIUM":
-                    return DRACONIUM_AWAKENED;
-                case "INFINITY":
-                    return INFINITY;
-            }
             for (LoopMaterial mat : values()) {
                 if (mat.name()
-                    .equalsIgnoreCase(s) || mat.displayName.equalsIgnoreCase(s)
-                    || mat.materialName.equalsIgnoreCase(s)) {
+                    .equals(str) || mat.materialName.equals(str)) {
                     return mat;
                 }
             }
-            return TITANIUM;
+            throw new IllegalArgumentException("unknown loop material: " + str);
         }
     }
 
@@ -332,7 +302,7 @@ public class CoolantLoopModel {
         DISTILLED_WATER("Distilled Water", "ic2distilledwater"),
         HEAVY_WATER("Heavy Water", "heavywater"),
         IC2_COOLANT("IC2 Coolant", "ic2coolant"),
-        SODIUM("Sodium", "sodium"),
+        SODIUM("Sodium", "liquid_sodium"),
         MOLTEN_LEAD("Molten Lead", "molten.lead"),
         MOLTEN_CHEESE("Molten Cheese", "molten.cheese"),
         LAVA("Lava", "lava");
@@ -348,45 +318,18 @@ public class CoolantLoopModel {
         public CoolantFluidProperty property() {
             CoolantLoopConfigData.ensureLoaded();
             CoolantFluidProperty prop = CoolantFluidProperty.get(fluidName);
-            if (prop == null) prop = CoolantFluidProperty.getCanonical(fluidName);
             return prop != null ? prop : CoolantFluidProperty.DISTILLED_WATER;
         }
 
-        public static CoolantFluidType fromFluidName(String fluidName) {
-            if (fluidName == null) return DISTILLED_WATER;
-            for (CoolantFluidType f : values()) {
-                if (f.fluidName.equalsIgnoreCase(fluidName)) return f;
-            }
-            return fromString(fluidName);
-        }
-
+        /** The coolant of exactly this enum name or fluid registry name; anything else is an error. */
         public static CoolantFluidType fromString(String str) {
-            if (str == null) return DISTILLED_WATER;
-            String s = WasmStrings.normalizeToken(str, " .");
-            switch (s) {
-                case "DISTILLED_WATER", "DISTILLEDWATER", "IC2DISTILLEDWATER", "WATER":
-                    return DISTILLED_WATER;
-                case "HEAVY_WATER", "HEAVYWATER":
-                    return HEAVY_WATER;
-                case "IC2_COOLANT", "IC2COOLANT", "COOLANT":
-                    return IC2_COOLANT;
-                case "SODIUM", "MOLTEN_SODIUM", "MOLTENSODIUM":
-                    return SODIUM;
-                case "LEAD", "MOLTEN_LEAD", "MOLTENLEAD":
-                    return MOLTEN_LEAD;
-                case "LAVA":
-                    return LAVA;
-                case "MOLTEN_CHEESE", "MOLTENCHEESE", "CHEESE":
-                    return MOLTEN_CHEESE;
-            }
             for (CoolantFluidType fluid : values()) {
                 if (fluid.name()
-                    .equalsIgnoreCase(s) || fluid.displayName.equalsIgnoreCase(s)
-                    || fluid.fluidName.equalsIgnoreCase(s)) {
+                    .equals(str) || fluid.fluidName.equals(str)) {
                     return fluid;
                 }
             }
-            return DISTILLED_WATER;
+            throw new IllegalArgumentException("unknown loop fluid: " + str);
         }
     }
 

@@ -503,7 +503,7 @@ public class PressurizedHeatExchangerTest {
 
     @Test
     public void testCryogenicLiquidHeliumBoiling() {
-        registerFluidIfMissing("liquid_helium");
+        registerFluidIfMissing("liquid helium");
         registerFluidIfMissing("helium");
 
         boolean[] allowed = new boolean[] { true };
@@ -519,7 +519,7 @@ public class PressurizedHeatExchangerTest {
 
         MTEHatchInput inputHatch = new MTEHatchInput("input", 1, new String[0], null);
         inputHatch.setBaseMetaTileEntity(createMockHatchBase(inputHatch));
-        Fluid liquidHe = FluidRegistry.getFluid("liquid_helium");
+        Fluid liquidHe = FluidRegistry.getFluid("liquid helium");
         assertNotNull(liquidHe);
         inputHatch.fill(new FluidStack(liquidHe, 10_000), true);
         phe.mInputHatches.add(inputHatch);

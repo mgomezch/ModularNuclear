@@ -627,9 +627,6 @@ public class CoolantLoopEngine {
         if (m.containsKey("fluid")) {
             String fName = StateValues.str(m, "fluid", "");
             CoolantFluidProperty prop = CoolantFluidProperty.get(fName);
-            if (prop == null) {
-                prop = CoolantFluidProperty.getCanonical(fName);
-            }
             if (prop != null) {
                 this.fluid = prop;
             }
