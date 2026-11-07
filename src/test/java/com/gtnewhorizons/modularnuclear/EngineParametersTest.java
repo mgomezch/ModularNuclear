@@ -60,9 +60,23 @@ class EngineParametersTest {
             StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
             grid.loadPreset("BEST_ELECTRUM_5X5");
             NuclearSimulationEngine.params().fissionHeatPerNeutron *= heatScale;
-            NuclearSimulationEngine.setRandomSeed(seed);
+            NuclearSimulationEngine.params()
+                .setRandomSeed(seed);
             for (int i = 0; i < 40; i++) grid.step();
             return grid.getCoreMaxTemp();
         });
+    }
+
+    @Test
+    void eachTestRunsWithItsOwnParameters() {
+        EngineParameters mine = NuclearSimulationEngine.params();
+        mine.setTicksPerCycle(17);
+        NuclearSimulationEngine.endScope();
+        try {
+            assertNotSame(mine, NuclearSimulationEngine.params(), "a test's parameters are not the installed set");
+            assertNotEquals(17, NuclearSimulationEngine.params().ticksPerCycle, "and changing them leaves it alone");
+        } finally {
+            NuclearSimulationEngine.beginScope();
+        }
     }
 }

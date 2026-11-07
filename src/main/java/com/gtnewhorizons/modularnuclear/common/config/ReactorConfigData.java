@@ -22,6 +22,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.config.data.INuclearConfigProvider;
 import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 /**
@@ -134,36 +135,38 @@ public final class ReactorConfigData {
         syncPhysicsToEngine();
     }
 
-    /** Pushes the loaded physics constants into the simulation engine's static parameters. */
+    /** Installs the engine's parameters with the loaded physics constants, as one new set. */
     public static synchronized void syncPhysicsToEngine() {
         if (physicsData == null) return;
-        NuclearSimulationEngine.setHuPerDegree(physicsData.huPerDegree);
-        NuclearSimulationEngine.setGlobalThermalFissionMultiplier(physicsData.globalThermalFissionMultiplier);
-        NuclearSimulationEngine.setGlobalFastFissionMultiplier(physicsData.globalFastFissionMultiplier);
-        NuclearSimulationEngine.setFastAbsorptionDamageMultiplier(physicsData.fastAbsorptionDamageMultiplier);
-        NuclearSimulationEngine.setThermalAbsorptionDamageMultiplier(physicsData.thermalAbsorptionDamageMultiplier);
-        NuclearSimulationEngine.params().fissionHeatPerNeutron = physicsData.fissionHeatPerNeutron;
-        NuclearSimulationEngine.params().wallReflectionChance = physicsData.wallReflectionChance;
-        NuclearSimulationEngine.setBeamEnergyToFastNeutronMultiplier(physicsData.beamEnergyToFastNeutronMultiplier);
-        NuclearSimulationEngine.setGridConductionMultiplier(physicsData.gridConductionMultiplier);
-        NuclearSimulationEngine.setFuelBurnupMultiplier(physicsData.fuelBurnupMultiplier);
-        NuclearSimulationEngine.params().neutronYieldMultiplier = Math.max(0.0, physicsData.neutronYieldMultiplier);
-        NuclearSimulationEngine.params().spontaneousHeatFraction = physicsData.spontaneousHeatFraction;
-        NuclearSimulationEngine.params().coolantPassageHeatTransferMultiplier = Math
-            .max(0.0, physicsData.coolantPassageHeatTransferMultiplier);
-        NuclearSimulationEngine
-            .params().coolantPassageHeatTransferTierRatio = physicsData.coolantPassageHeatTransferTierRatio;
-        NuclearSimulationEngine.setBaseHatchConductance(physicsData.baseHatchConductance);
-        NuclearSimulationEngine.setHatchConductanceTierRatio(physicsData.hatchConductanceTierRatio);
-        NuclearSimulationEngine.setCoreHatchHeatCapacity(physicsData.coreHatchHeatCapacity);
-        NuclearSimulationEngine.params().denseNbaseMultiplier = physicsData.denseNbaseMultiplier;
-        NuclearSimulationEngine.params().denseFissionMultiplier = physicsData.denseFissionMultiplier;
-        NuclearSimulationEngine.params().excitedNbaseMultiplier = physicsData.excitedNbaseMultiplier;
-        NuclearSimulationEngine.params().excitedFissionMultiplier = physicsData.excitedFissionMultiplier;
-        NuclearSimulationEngine.params().standardNbaseMultiplier = physicsData.standardNbaseMultiplier;
-        NuclearSimulationEngine.params().standardFissionMultiplier = physicsData.standardFissionMultiplier;
-        NuclearSimulationEngine.params().breederNbaseMultiplier = physicsData.breederNbaseMultiplier;
-        NuclearSimulationEngine.params().breederFissionMultiplier = physicsData.breederFissionMultiplier;
+        EngineParameters p = NuclearSimulationEngine.params()
+            .copy();
+        p.random = NuclearSimulationEngine.params().random; // a seeded run keeps its sequence
+        p.setHuPerDegree(physicsData.huPerDegree);
+        p.setGlobalThermalFissionMultiplier(physicsData.globalThermalFissionMultiplier);
+        p.setGlobalFastFissionMultiplier(physicsData.globalFastFissionMultiplier);
+        p.setFastAbsorptionDamageMultiplier(physicsData.fastAbsorptionDamageMultiplier);
+        p.setThermalAbsorptionDamageMultiplier(physicsData.thermalAbsorptionDamageMultiplier);
+        p.fissionHeatPerNeutron = physicsData.fissionHeatPerNeutron;
+        p.wallReflectionChance = physicsData.wallReflectionChance;
+        p.setBeamEnergyToFastNeutronMultiplier(physicsData.beamEnergyToFastNeutronMultiplier);
+        p.setGridConductionMultiplier(physicsData.gridConductionMultiplier);
+        p.setFuelBurnupMultiplier(physicsData.fuelBurnupMultiplier);
+        p.neutronYieldMultiplier = Math.max(0.0, physicsData.neutronYieldMultiplier);
+        p.spontaneousHeatFraction = physicsData.spontaneousHeatFraction;
+        p.coolantPassageHeatTransferMultiplier = Math.max(0.0, physicsData.coolantPassageHeatTransferMultiplier);
+        p.coolantPassageHeatTransferTierRatio = physicsData.coolantPassageHeatTransferTierRatio;
+        p.setBaseHatchConductance(physicsData.baseHatchConductance);
+        p.setHatchConductanceTierRatio(physicsData.hatchConductanceTierRatio);
+        p.setCoreHatchHeatCapacity(physicsData.coreHatchHeatCapacity);
+        p.denseNbaseMultiplier = physicsData.denseNbaseMultiplier;
+        p.denseFissionMultiplier = physicsData.denseFissionMultiplier;
+        p.excitedNbaseMultiplier = physicsData.excitedNbaseMultiplier;
+        p.excitedFissionMultiplier = physicsData.excitedFissionMultiplier;
+        p.standardNbaseMultiplier = physicsData.standardNbaseMultiplier;
+        p.standardFissionMultiplier = physicsData.standardFissionMultiplier;
+        p.breederNbaseMultiplier = physicsData.breederNbaseMultiplier;
+        p.breederFissionMultiplier = physicsData.breederFissionMultiplier;
+        NuclearSimulationEngine.installParameters(p);
     }
 
     public static PhysicsData getPhysics() {

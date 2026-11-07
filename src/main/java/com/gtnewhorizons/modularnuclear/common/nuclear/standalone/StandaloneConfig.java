@@ -21,7 +21,7 @@ public final class StandaloneConfig {
 
     /** Heat absorbed per litre of IC2 coolant heated. */
     public static void setIc2CoolantHeatPerLiter(double heatPerLiter) {
-        NuclearSimulationEngine.ic2CoolantHeatPerLiter = heatPerLiter;
+        NuclearSimulationEngine.params().ic2CoolantHeatPerLiter = heatPerLiter;
         setCoolantHeatPerLiter("coolant_ic2", heatPerLiter);
     }
 

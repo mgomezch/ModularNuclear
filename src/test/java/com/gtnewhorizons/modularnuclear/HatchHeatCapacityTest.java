@@ -52,7 +52,7 @@ public class HatchHeatCapacityTest {
             assertEquals(1024.0, hatch(type, 6).getHeatCapacity(), 1e-9, type.toString());
         }
         assertEquals(
-            NuclearSimulationEngine.HU_PER_DEGREE,
+            NuclearSimulationEngine.params().huPerDegree,
             new SimTile(SimTile.TileType.FUEL_URANIUM_QUAD).getHeatCapacity(),
             1e-9,
             "a bus holds hu_per_degree");
@@ -68,7 +68,8 @@ public class HatchHeatCapacityTest {
             4.0,
             data.toMap()
                 .get("core_hatch_heat_capacity"));
-        NuclearSimulationEngine.setCoreHatchHeatCapacity(data.coreHatchHeatCapacity);
+        NuclearSimulationEngine.params()
+            .setCoreHatchHeatCapacity(data.coreHatchHeatCapacity);
         assertEquals(4.0 * 16, hatch(SimTile.TileType.HATCH_DISTILLED_WATER, 4).getHeatCapacity(), 1e-9);
     }
 

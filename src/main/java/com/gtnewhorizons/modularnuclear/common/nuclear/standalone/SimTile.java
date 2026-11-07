@@ -232,7 +232,7 @@ public class SimTile implements INuclearTile {
     }
 
     private TileType type = TileType.EMPTY;
-    private double temperature = NuclearSimulationEngine.AMBIENT_TEMP;
+    private double temperature = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     private double heatHu = 0;
     /** The coolant loop (0-based) a passage belongs to: layout code CP is loop 0, CP2 to CP9 are loops 1 to 8. */
     private int passageLoop = 0;
@@ -614,7 +614,7 @@ public class SimTile implements INuclearTile {
     public double getHeatCapacity() {
         if (isCoolantHatch() || isLiquidFuelHatch()) return NuclearSimulationEngine.getCoreHatchHeatCapacity(tier);
         if (type == TileType.PASSAGE_CORE) return CoolantPassage.heatCapacity(passageTier);
-        return NuclearSimulationEngine.HU_PER_DEGREE;
+        return NuclearSimulationEngine.params().huPerDegree;
     }
 
     public double getHeatHu() {
@@ -998,14 +998,14 @@ public class SimTile implements INuclearTile {
                 maxCellHeat,
                 currentCellHeat,
                 temperature,
-                NuclearSimulationEngine.AMBIENT_TEMP,
+                NuclearSimulationEngine.params().ambientTemp,
                 huPerDurability,
                 efficiency,
                 dt);
             if (take > 0) {
                 currentCellHeat += take;
                 double heatConsumed = take * huPerDurability;
-                temperature -= heatConsumed / NuclearSimulationEngine.HU_PER_DEGREE;
+                temperature -= heatConsumed / NuclearSimulationEngine.params().huPerDegree;
                 lastHeatOutput = heatConsumed;
             }
         }
@@ -1056,7 +1056,7 @@ public class SimTile implements INuclearTile {
     public double coolantSubstep(double dtSub, double efficiency) {
         ComponentData.CoolantFluidData cfd = activeCoolant();
         if (cfd == null) return 0.0;
-        double sink = TileTick.coolantSinkTemperature(cfd, NuclearSimulationEngine.AMBIENT_TEMP);
+        double sink = TileTick.coolantSinkTemperature(cfd, NuclearSimulationEngine.params().ambientTemp);
         double remaining = inputFluidAmount * cfd.heatPerLiter - pendingCoolantHeat;
         double q = TileTick.coolantSubstepHeat(temperature, sink, tier, efficiency, dtSub, remaining);
         if (q > 0.0) {

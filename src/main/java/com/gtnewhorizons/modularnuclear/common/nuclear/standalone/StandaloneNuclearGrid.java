@@ -48,8 +48,8 @@ public class StandaloneNuclearGrid {
     private String explosionReason = "";
     private boolean powerFailed = false;
     private String powerFailReason = "";
-    private double coreMaxTemp = NuclearSimulationEngine.AMBIENT_TEMP;
-    private double coreAvgTemp = NuclearSimulationEngine.AMBIENT_TEMP;
+    private double coreMaxTemp = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
+    private double coreAvgTemp = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     private double efficiency = 1.0;
     private int lastNeutronsProduced = 0;
     private int lastFastAbsorbed = 0;
@@ -59,7 +59,7 @@ public class StandaloneNuclearGrid {
     private int lastWallAbsorbed = 0;
     private int burnedFuelCount = 0;
     private int voidedHatchCount = 0;
-    private double peakLifetimeTemp = NuclearSimulationEngine.AMBIENT_TEMP;
+    private double peakLifetimeTemp = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
 
     // Historical accumulators
     private long totalNeutronsGenerated = 0;
@@ -538,8 +538,8 @@ public class StandaloneNuclearGrid {
         this.currentTick = 0;
         this.exploded = false;
         this.explosionReason = "";
-        this.coreMaxTemp = NuclearSimulationEngine.AMBIENT_TEMP;
-        this.coreAvgTemp = NuclearSimulationEngine.AMBIENT_TEMP;
+        this.coreMaxTemp = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
+        this.coreAvgTemp = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
         this.efficiency = 1.0;
         this.lastNeutronsProduced = 0;
         this.lastFastAbsorbed = 0;
@@ -558,7 +558,7 @@ public class StandaloneNuclearGrid {
         this.powerFailReason = "";
         this.burnedFuelCount = 0;
         this.voidedHatchCount = 0;
-        this.peakLifetimeTemp = NuclearSimulationEngine.AMBIENT_TEMP;
+        this.peakLifetimeTemp = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
         this.reactorDamage = 0.0;
         this.maintenanceIssues = 0;
         this.coolantLoop.reset();
@@ -575,7 +575,7 @@ public class StandaloneNuclearGrid {
             for (int y = 0; y < height; y++) {
                 SimTile tile = grid[x][y];
                 if (tile != null) {
-                    tile.setTemperature(NuclearSimulationEngine.AMBIENT_TEMP);
+                    tile.setTemperature(NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP);
                     if (tile.isFuel()) {
                         tile.setDurability(tile.getMaxDurability());
                         tile.setDepleted(false);
@@ -1362,7 +1362,8 @@ public class StandaloneNuclearGrid {
     }
 
     public void setBaseHatchConductance(double val) {
-        NuclearSimulationEngine.setBaseHatchConductance(val);
+        NuclearSimulationEngine.params()
+            .setBaseHatchConductance(val);
     }
 
     /**

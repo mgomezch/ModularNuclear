@@ -820,7 +820,7 @@ public class NuclearReactorPhysics {
                     if (heatToTake > 0) {
                         comp.alterHeat(reactor.getReactorDummy(), stack, 0, 0, heatToTake);
                         double heatConsumed = heatToTake * huPerDurability;
-                        bus.mTemperature -= (heatConsumed / NuclearSimulationEngine.HU_PER_DEGREE);
+                        bus.mTemperature -= (heatConsumed / NuclearSimulationEngine.params().huPerDegree);
                         bus.mLastHeatOutput = heatConsumed;
                         bus.markTileDirty();
                     }
@@ -889,7 +889,7 @@ public class NuclearReactorPhysics {
 
         long totalEU = (long) recipe.mDuration * recipe.mEUt;
         double heatAbsorbed = Math.max(1.0, (double) totalEU);
-        double tempDrop = heatAbsorbed / NuclearSimulationEngine.HU_PER_DEGREE;
+        double tempDrop = heatAbsorbed / NuclearSimulationEngine.params().huPerDegree;
         bus.mTemperature = Math.max(reactor.getAmbientTemperature(), bus.mTemperature - tempDrop);
         bus.mLastHeatOutput = heatAbsorbed;
 

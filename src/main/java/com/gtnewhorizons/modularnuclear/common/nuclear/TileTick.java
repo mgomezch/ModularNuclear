@@ -95,7 +95,7 @@ public final class TileTick {
         double huPerDurability, double efficiency, double dt) {
         if (maxHeat <= 0 || temp <= ambient || huPerDurability <= 0.0) return 0;
         int maxTransfer = Math.max(1, (int) Math.round((maxHeat / 100.0) * dt));
-        double heatAvailable = (temp - ambient) * NuclearSimulationEngine.HU_PER_DEGREE;
+        double heatAvailable = (temp - ambient) * NuclearSimulationEngine.params().huPerDegree;
         double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
         int take = (int) Math.round(Math.min(heatAvailable / huPerDurability, (double) maxTransfer) * effFactor);
         return Math.max(0, Math.min(take, maxHeat - currentHeat));

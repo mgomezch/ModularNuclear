@@ -28,6 +28,7 @@ public final class EngineParameters {
     public double turnoverExponent = NuclearSimulationEngine.DEFAULT_TURNOVER_EXPONENT;
     public int coolantFeedRate = NuclearSimulationEngine.DEFAULT_COOLANT_FEED_RATE;
     public double coolingHeatPerLiter = NuclearSimulationEngine.DEFAULT_COOLING_HEAT_PER_LITER;
+    public double ic2CoolantHeatPerLiter = NuclearSimulationEngine.DEFAULT_IC2_COOLANT_HEAT_PER_LITER;
     public double fuelBurnupMultiplier = NuclearSimulationEngine.DEFAULT_FUEL_BURNUP_MULTIPLIER;
     /** Scales every fuel's base neutron emission, on top of its archetype's multiplier. */
     public double neutronYieldMultiplier = NuclearSimulationEngine.DEFAULT_NEUTRON_YIELD_MULT;
@@ -57,7 +58,7 @@ public final class EngineParameters {
     public double hatchConductanceTierRatio = NuclearSimulationEngine.DEFAULT_HATCH_CONDUCTANCE_TIER_RATIO;
     /**
      * Heat capacity (HU/°C) of a tier-0 nuclear core hatch's structure; a hatch of tier t holds this times 2^t, as its
-     * tank holds 8000 L times 2^t. Every other core tile holds {@link #HU_PER_DEGREE}.
+     * tank holds 8000 L times 2^t. Every other core tile holds {@link #huPerDegree}.
      */
     public double coreHatchHeatCapacity = NuclearSimulationEngine.DEFAULT_CORE_HATCH_HEAT_CAPACITY;
 
@@ -110,7 +111,78 @@ public final class EngineParameters {
         c.baseHatchConductance = baseHatchConductance;
         c.hatchConductanceTierRatio = hatchConductanceTierRatio;
         c.coreHatchHeatCapacity = coreHatchHeatCapacity;
+        c.ic2CoolantHeatPerLiter = ic2CoolantHeatPerLiter;
         c.random = new FastRandom();
         return c;
+    }
+
+    // Setters that keep each value in its sensible range
+
+    public void setHuPerDegree(double v) {
+        huPerDegree = Math.max(0.1, v);
+    }
+
+    public void setGlobalThermalFissionMultiplier(double mult) {
+        globalThermalFissionMultiplier = Math.max(0.0, mult);
+        thermalFissionMultiplier = globalThermalFissionMultiplier;
+    }
+
+    public void setGlobalFastFissionMultiplier(double mult) {
+        globalFastFissionMultiplier = Math.max(0.0, mult);
+    }
+
+    public void setFastAbsorptionDamageMultiplier(double mult) {
+        fastAbsorptionDamageMultiplier = Math.max(0.0, mult);
+    }
+
+    public void setThermalAbsorptionDamageMultiplier(double mult) {
+        thermalAbsorptionDamageMultiplier = Math.max(0.0, mult);
+    }
+
+    public void setBeamEnergyToFastNeutronMultiplier(double mult) {
+        beamEnergyToFastNeutronMultiplier = Math.max(0.0, mult);
+    }
+
+    public void setFuelBurnupMultiplier(double mult) {
+        fuelBurnupMultiplier = Math.max(0.0, mult);
+    }
+
+    public void setAmbientTemperature(double temp) {
+        ambientTemp = temp;
+    }
+
+    public void setTicksPerCycle(int ticks) {
+        ticksPerCycle = Math.max(1, ticks);
+    }
+
+    public void setGridConductionMultiplier(double mult) {
+        gridConductionMultiplier = Math.max(0.0, mult);
+    }
+
+    public void setBaseHatchConductance(double val) {
+        baseHatchConductance = Math.max(0.01, val);
+    }
+
+    public void setHatchConductanceTierRatio(double val) {
+        hatchConductanceTierRatio = Math.max(1.0, val);
+    }
+
+    public void setCoreHatchHeatCapacity(double val) {
+        coreHatchHeatCapacity = Math.max(0.1, val);
+    }
+
+    /** Seeds the random source, so a run can be repeated exactly. */
+    public void setRandomSeed(long seed) {
+        random.setSeed(seed);
+    }
+
+    public void setSimulationParameters(double low, double high, double power, double fissionMult,
+        double heatPerNeutron, double hpBoil) {
+        tempThresholdLow = low;
+        tempThresholdHigh = high;
+        reactivityPower = power;
+        setGlobalThermalFissionMultiplier(fissionMult);
+        fissionHeatPerNeutron = heatPerNeutron;
+        hpWaterBoilingPoint = hpBoil;
     }
 }

@@ -77,7 +77,7 @@ public final class SteadyStateDetector {
         double meanT = sumT / n;
 
         if (meanP <= 1.0) {
-            return meanT <= (NuclearSimulationEngine.AMBIENT_TEMP + 5.0);
+            return meanT <= (NuclearSimulationEngine.params().ambientTemp + 5.0);
         }
 
         // 1. Ordinary Least Squares (OLS) linear regression slope on Power
@@ -151,7 +151,7 @@ public final class SteadyStateDetector {
         double meanLoopT = sumLoopT / n;
 
         // Only evaluate if coolant loop is thermally active (> ambient + 5°C)
-        if (meanLoopT > (NuclearSimulationEngine.AMBIENT_TEMP + 5.0)) {
+        if (meanLoopT > (NuclearSimulationEngine.params().ambientTemp + 5.0)) {
             double ssTyLt = 0.0;
             for (int i = 0; i < n; i++) {
                 ssTyLt += (i - meanIdx) * (ltArr[i] - meanLoopT);

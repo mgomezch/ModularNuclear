@@ -220,7 +220,7 @@ public class NuclearGridTile implements INuclearTile {
             return NuclearSimulationEngine.getCoreHatchHeatCapacity(hatch.mTier);
         }
         if (highPressureHatch != null) return highPressureHatch.getHeatCapacity();
-        return NuclearSimulationEngine.HU_PER_DEGREE;
+        return NuclearSimulationEngine.params().huPerDegree;
     }
 
     @Override

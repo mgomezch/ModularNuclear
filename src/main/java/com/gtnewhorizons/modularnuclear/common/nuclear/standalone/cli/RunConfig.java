@@ -98,7 +98,8 @@ public final class RunConfig {
 
     /** Builds the grid this run simulates: casing, layout or preset, turbine, run options and coolant loops. */
     public StandaloneNuclearGrid buildGrid(boolean withTrace) {
-        if (seed != null) NuclearSimulationEngine.setRandomSeed(seed);
+        if (seed != null) NuclearSimulationEngine.params()
+            .setRandomSeed(seed);
         StandaloneNuclearGrid grid = new StandaloneNuclearGrid(size, size, tier != null ? tier : tierDefault);
         grid.setStrictMode(strict);
         grid.setMachineLimits(limits);

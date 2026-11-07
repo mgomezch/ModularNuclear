@@ -260,7 +260,15 @@ Recognizing a loop device is an if-chain repeated in the crawler, in `rebindRest
 
 **Do:** have one lookup that answers which loop device owns the block at a position, and let devices register themselves.
 
-### A5 (P2): Engine parameters are global and mutable
+### A5 (P2): Engine parameters are global and mutable (done)
+
+**Done:**
+- **No static setters.** The engine's static setters, and its static mirrors `HU_PER_DEGREE`, `AMBIENT_TEMP` and `ic2CoolantHeatPerLiter`, are gone. The values live only in `EngineParameters`, whose setters keep them in range.
+- **Installed whole.** The game's configuration builds a whole parameter set from `physics.yaml` and installs it at once (`installParameters`); nothing changes the installed set field by field.
+- **Context.** The engine reads `params()`: the set `withParameters` installed for its thread, or the installed one.
+- **Tests.** Every test runs with its own copy of the installed set (`EngineParametersPerTest`, registered for all tests). What a test changes, or installs by loading a configuration, ends with it.
+- **Standalone simulator.** The CLI and WebAssembly bridge still adjust the installed set through its setters: each is a single program with one set.
+- **Not done: passing the set explicitly.** The engine's helpers do not take it as an argument; they read `params()`, which a run or test scopes.
 
 `NuclearSimulationEngine`'s static setters are shared by the game, the tests and the simulator. `withParameters` and the thread-local override exist, but the default is a global. This caused test-order dependence: running one test class alone broke the next full run.
 

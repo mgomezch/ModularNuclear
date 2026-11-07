@@ -212,7 +212,7 @@ public final class JsonReport {
             .field("coolantFeedRate", NuclearSimulationEngine.params().coolantFeedRate)
             .field("coolingHeatPerLiter", NuclearSimulationEngine.params().coolingHeatPerLiter)
             .field("ambientTemp", NuclearSimulationEngine.params().ambientTemp)
-            .field("ic2CoolantHeatPerLiter", NuclearSimulationEngine.ic2CoolantHeatPerLiter);
+            .field("ic2CoolantHeatPerLiter", NuclearSimulationEngine.params().ic2CoolantHeatPerLiter);
         scenarios(j, grid, tier);
         j.field("machineLimitExceeded", p != null && p.machineLimitExceeded)
             .fixed("voidedCoolantFlow", p != null ? p.voidedCoolantFlow : 0.0, 1)

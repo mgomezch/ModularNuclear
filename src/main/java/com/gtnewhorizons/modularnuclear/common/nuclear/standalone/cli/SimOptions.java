@@ -46,7 +46,11 @@ public final class SimOptions {
             .value(SimOptions::parseTier, (c, v) -> c.tier = v, "tier")
             .value(INT, (c, v) -> c.ticks = v, "ticks")
             .value(OptionTable.LONG, (c, v) -> c.seed = v, "seed")
-            .value(INT, (c, v) -> NuclearSimulationEngine.setTicksPerCycle(v), "ticks_per_cycle")
+            .value(
+                INT,
+                (c, v) -> NuclearSimulationEngine.params()
+                    .setTicksPerCycle(v),
+                "ticks_per_cycle")
             .value(s -> TurbineCalculator.TurbineMaterial.fromString(s), (c, v) -> {
                 c.turbineMaterial = v;
                 c.turbineSpecified = true;
@@ -78,12 +82,26 @@ public final class SimOptions {
             v -> NuclearSimulationEngine.params().thermalAbsorptionDamageMultiplier = v,
             "thermal_damage_mult",
             "thermal_absorption_damage_mult");
-        engine(t, NuclearSimulationEngine::setHuPerDegree, "hu_per_degree");
-        engine(t, NuclearSimulationEngine::setCoreHatchHeatCapacity, "core_hatch_heat_capacity", "hatch_heat_capacity");
-        engine(t, NuclearSimulationEngine::setHatchConductanceTierRatio, "hatch_conductance_tier_ratio");
         engine(
             t,
-            NuclearSimulationEngine::setGridConductionMultiplier,
+            v -> NuclearSimulationEngine.params()
+                .setHuPerDegree(v),
+            "hu_per_degree");
+        engine(
+            t,
+            v -> NuclearSimulationEngine.params()
+                .setCoreHatchHeatCapacity(v),
+            "core_hatch_heat_capacity",
+            "hatch_heat_capacity");
+        engine(
+            t,
+            v -> NuclearSimulationEngine.params()
+                .setHatchConductanceTierRatio(v),
+            "hatch_conductance_tier_ratio");
+        engine(
+            t,
+            v -> NuclearSimulationEngine.params()
+                .setGridConductionMultiplier(v),
             "grid_conduction_mult",
             "grid_conduction_multiplier");
         engine(
@@ -137,7 +155,12 @@ public final class SimOptions {
         engine(t, v -> NuclearSimulationEngine.params().turnoverExponent = v, "turnover_exp", "turnover_pow");
         t.value(INT, (c, v) -> NuclearSimulationEngine.params().coolantFeedRate = v, "feed_rate");
         engine(t, StandaloneConfig::setWaterHeatPerLiter, "cooling_heat");
-        engine(t, NuclearSimulationEngine::setAmbientTemperature, "ambient_temp", "ambient");
+        engine(
+            t,
+            v -> NuclearSimulationEngine.params()
+                .setAmbientTemperature(v),
+            "ambient_temp",
+            "ambient");
         engine(t, StandaloneConfig::setIc2CoolantHeatPerLiter, "ic2_heat", "ic2_cooling_heat");
         engine(t, v -> NuclearSimulationEngine.params().fuelBurnupMultiplier = v, "burnup_mult");
         engine(

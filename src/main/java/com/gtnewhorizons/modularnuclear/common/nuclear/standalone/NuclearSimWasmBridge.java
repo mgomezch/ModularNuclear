@@ -616,13 +616,17 @@ public class NuclearSimWasmBridge {
             return;
         }
         if ("huPerDegree".equals(key)) {
-            NuclearSimulationEngine.setHuPerDegree(d);
+            NuclearSimulationEngine.params()
+                .setHuPerDegree(d);
         } else if ("baseHatchConductance".equals(key) || "baseConductance".equals(key) || "conductance".equals(key)) {
-            NuclearSimulationEngine.setBaseHatchConductance(d);
+            NuclearSimulationEngine.params()
+                .setBaseHatchConductance(d);
         } else if ("coreHatchHeatCapacity".equals(key)) {
-            NuclearSimulationEngine.setCoreHatchHeatCapacity(d);
+            NuclearSimulationEngine.params()
+                .setCoreHatchHeatCapacity(d);
         } else if ("hatchConductanceTierRatio".equals(key)) {
-            NuclearSimulationEngine.setHatchConductanceTierRatio(d);
+            NuclearSimulationEngine.params()
+                .setHatchConductanceTierRatio(d);
         } else if ("reactorDamage".equals(key) || "damage".equals(key)) {
             if (grid != null) {
                 grid.setReactorDamage(d);
@@ -671,9 +675,11 @@ public class NuclearSimWasmBridge {
         } else if ("hpWaterBoilingPoint".equals(key) || "hpBoil".equals(key)) {
             NuclearSimulationEngine.params().hpWaterBoilingPoint = d;
         } else if ("gridConductionMultiplier".equals(key) || "gridConductionMult".equals(key)) {
-            NuclearSimulationEngine.setGridConductionMultiplier(d);
+            NuclearSimulationEngine.params()
+                .setGridConductionMultiplier(d);
         } else if ("fuelBurnupMultiplier".equals(key) || "burnupMult".equals(key)) {
-            NuclearSimulationEngine.setFuelBurnupMultiplier(d);
+            NuclearSimulationEngine.params()
+                .setFuelBurnupMultiplier(d);
         } else if ("denseNbaseMultiplier".equals(key)) {
             NuclearSimulationEngine.params().denseNbaseMultiplier = d;
         } else if ("denseFissionMultiplier".equals(key)) {
@@ -692,7 +698,8 @@ public class NuclearSimWasmBridge {
             NuclearSimulationEngine.params().breederFissionMultiplier = d;
         } else if ("ticksPerCycle".equalsIgnoreCase(key) || "ticks_per_cycle".equalsIgnoreCase(key)) {
             int ticks = Math.max(1, (int) d);
-            NuclearSimulationEngine.setTicksPerCycle(ticks);
+            NuclearSimulationEngine.params()
+                .setTicksPerCycle(ticks);
             if (grid != null) {
                 grid.setTicksPerCycle(ticks);
             }
@@ -702,7 +709,8 @@ public class NuclearSimWasmBridge {
     @Export(name = "setTicksPerCycle")
     public static void setTicksPerCycle(int ticks) {
         int t = Math.max(1, ticks);
-        NuclearSimulationEngine.setTicksPerCycle(t);
+        NuclearSimulationEngine.params()
+            .setTicksPerCycle(t);
         if (grid != null) {
             grid.setTicksPerCycle(t);
         }
@@ -1632,7 +1640,7 @@ public class NuclearSimWasmBridge {
             .append(fmt1(NuclearSimulationEngine.params().ambientTemp))
             .append(",");
         sb.append("\"ic2CoolantHeatPerLiter\":")
-            .append(fmt1(NuclearSimulationEngine.ic2CoolantHeatPerLiter))
+            .append(fmt1(NuclearSimulationEngine.params().ic2CoolantHeatPerLiter))
             .append(",");
         sb.append("\"tempThresholdLow\":")
             .append(fmt1(NuclearSimulationEngine.params().tempThresholdLow))

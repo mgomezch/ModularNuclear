@@ -20,7 +20,7 @@ public interface INuclearTile {
      * tile holds the configured HU per degree.
      */
     default double getHeatCapacity() {
-        return NuclearSimulationEngine.HU_PER_DEGREE;
+        return NuclearSimulationEngine.params().huPerDegree;
     }
 
     /**

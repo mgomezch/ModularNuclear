@@ -14,10 +14,8 @@ public class NuclearSimulationEngine {
 
     public static final double HU_FOR_FAST_NEUTRON = 8.0;
     public static final double DEFAULT_HU_PER_DEGREE = 32.0;
-    public static double HU_PER_DEGREE = DEFAULT_HU_PER_DEGREE;
     public static final double BASE_HEAT_CONDUCTION = 0.01;
     public static final double DEFAULT_AMBIENT_TEMP = 20.0;
-    public static double AMBIENT_TEMP = DEFAULT_AMBIENT_TEMP;
     public static final double DEFAULT_TEMP_THRESHOLD_LOW = 800.0;
     public static final double DEFAULT_TEMP_THRESHOLD_HIGH = 3200.0;
     public static final double DEFAULT_REACTIVITY_POWER = 1.2;
@@ -71,8 +69,6 @@ public class NuclearSimulationEngine {
     public static INuclearConfigProvider getConfigProvider() {
         return configProvider;
     }
-
-    public static double ic2CoolantHeatPerLiter = DEFAULT_IC2_COOLANT_HEAT_PER_LITER;
 
     public static final double DEFAULT_FUEL_BURNUP_MULTIPLIER = 1.0;
     public static final double DEFAULT_NEUTRON_YIELD_MULT = 1.0;
@@ -143,132 +139,15 @@ public class NuclearSimulationEngine {
         };
     }
 
-    public static void setFuelBurnupMultiplier(double mult) {
-        params().fuelBurnupMultiplier = Math.max(0.0, mult);
-    }
-
     public static final double DEFAULT_WALL_REFLECTION_CHANCE = 0.0;
 
     public static final double DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER = 0.001;
 
-    public static void setHuPerDegree(double v) {
-        params().huPerDegree = Math.max(0.1, v);
-        HU_PER_DEGREE = params().huPerDegree;
-    }
-
-    public static void setGlobalThermalFissionMultiplier(double mult) {
-        params().globalThermalFissionMultiplier = Math.max(0.0, mult);
-        params().thermalFissionMultiplier = params().globalThermalFissionMultiplier;
-    }
-
-    public static void setGlobalFastFissionMultiplier(double mult) {
-        params().globalFastFissionMultiplier = Math.max(0.0, mult);
-    }
-
-    public static void setFastAbsorptionDamageMultiplier(double mult) {
-        params().fastAbsorptionDamageMultiplier = Math.max(0.0, mult);
-    }
-
-    public static void setThermalAbsorptionDamageMultiplier(double mult) {
-        params().thermalAbsorptionDamageMultiplier = Math.max(0.0, mult);
-    }
-
-    public static void setBeamEnergyToFastNeutronMultiplier(double mult) {
-        params().beamEnergyToFastNeutronMultiplier = Math.max(0.0, mult);
-    }
-
-    public static void setAmbientTemperature(double temp) {
-        params().ambientTemp = temp;
-        AMBIENT_TEMP = temp;
-    }
-
-    public static void setSimulationParameters(double low, double high, double power, double fissionMult,
-        double heatPerNeutron, double hpBoil) {
-        params().tempThresholdLow = low;
-        params().tempThresholdHigh = high;
-        params().reactivityPower = power;
-        setGlobalThermalFissionMultiplier(fissionMult);
-        params().fissionHeatPerNeutron = heatPerNeutron;
-        params().hpWaterBoilingPoint = hpBoil;
-    }
-
-    public static void setExtendedParameters(int hatchCap, TurnoverCurve curve, double dtMax, double exp, int feedRate,
-        double coolingHeat, double low, double high, double power, double fissionMult, double heatPerNeutron,
-        double hpBoil) {
-        params().hatchCoolantCapacity = Math.max(100, hatchCap);
-        params().turnoverCurve = (curve != null) ? curve : DEFAULT_TURNOVER_CURVE;
-        params().turnoverDeltaTMax = Math.max(10.0, dtMax);
-        params().turnoverExponent = Math.max(0.1, exp);
-        params().coolantFeedRate = Math.max(0, feedRate);
-        params().coolingHeatPerLiter = Math.max(0.1, coolingHeat);
-        setSimulationParameters(low, high, power, fissionMult, heatPerNeutron, hpBoil);
-    }
-
-    public static void setExtendedParameters(int hatchCap, TurnoverCurve curve, double dtMax, double exp, int feedRate,
-        double coolingHeat, double low, double high, double power, double fissionMult, double heatPerNeutron,
-        double hpBoil, double ic2Heat, double ambient) {
-        setExtendedParameters(
-            hatchCap,
-            curve,
-            dtMax,
-            exp,
-            feedRate,
-            coolingHeat,
-            low,
-            high,
-            power,
-            fissionMult,
-            heatPerNeutron,
-            hpBoil);
-        ic2CoolantHeatPerLiter = Math.max(0.1, ic2Heat);
-        setAmbientTemperature(ambient);
-    }
-
+    /** Installs the default parameters, then the shared configuration's physics over them. */
     public static void resetDefaultParameters() {
-        setHuPerDegree(DEFAULT_HU_PER_DEGREE);
-        setGlobalThermalFissionMultiplier(DEFAULT_GLOBAL_THERMAL_FISSION_MULT);
-        setGlobalFastFissionMultiplier(DEFAULT_GLOBAL_FAST_FISSION_MULT);
-        setFastAbsorptionDamageMultiplier(DEFAULT_FAST_ABSORPTION_DAMAGE_MULT);
-        setThermalAbsorptionDamageMultiplier(DEFAULT_THERMAL_ABSORPTION_DAMAGE_MULT);
-        params().tempThresholdLow = DEFAULT_TEMP_THRESHOLD_LOW;
-        params().tempThresholdHigh = DEFAULT_TEMP_THRESHOLD_HIGH;
-        params().reactivityPower = DEFAULT_REACTIVITY_POWER;
-        params().fissionHeatPerNeutron = DEFAULT_FISSION_HEAT_PER_NEUTRON;
-        params().hpWaterBoilingPoint = DEFAULT_HP_WATER_BOILING_POINT;
-        params().hatchCoolantCapacity = DEFAULT_HATCH_CAPACITY;
-        params().turnoverCurve = DEFAULT_TURNOVER_CURVE;
-        params().turnoverDeltaTMax = DEFAULT_TURNOVER_DELTA_T_MAX;
-        params().turnoverExponent = DEFAULT_TURNOVER_EXPONENT;
-        params().coolantFeedRate = DEFAULT_COOLANT_FEED_RATE;
-        params().coolingHeatPerLiter = DEFAULT_COOLING_HEAT_PER_LITER;
-        params().fuelBurnupMultiplier = DEFAULT_FUEL_BURNUP_MULTIPLIER;
-        params().neutronYieldMultiplier = DEFAULT_NEUTRON_YIELD_MULT;
-        params().coolantPassageHeatTransferMultiplier = DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_MULT;
-        params().coolantPassageHeatTransferTierRatio = DEFAULT_COOLANT_PASSAGE_HEAT_TRANSFER_TIER_RATIO;
-        params().spontaneousHeatFraction = DEFAULT_SPONTANEOUS_HEAT_FRACTION;
-        params().denseNbaseMultiplier = DEFAULT_DENSE_NBASE_MULT;
-        params().denseFissionMultiplier = DEFAULT_DENSE_FISSION_MULT;
-        params().excitedNbaseMultiplier = DEFAULT_EXCITED_NBASE_MULT;
-        params().excitedFissionMultiplier = DEFAULT_EXCITED_FISSION_MULT;
-        params().standardNbaseMultiplier = DEFAULT_STANDARD_NBASE_MULT;
-        params().standardFissionMultiplier = DEFAULT_STANDARD_FISSION_MULT;
-        params().breederNbaseMultiplier = DEFAULT_BREEDER_NBASE_MULT;
-        params().breederFissionMultiplier = DEFAULT_BREEDER_FISSION_MULT;
-        params().wallReflectionChance = DEFAULT_WALL_REFLECTION_CHANCE;
-        ic2CoolantHeatPerLiter = DEFAULT_IC2_COOLANT_HEAT_PER_LITER;
-        params().baseHatchConductance = DEFAULT_BASE_HATCH_CONDUCTANCE;
-        params().hatchConductanceTierRatio = DEFAULT_HATCH_CONDUCTANCE_TIER_RATIO;
-        params().coreHatchHeatCapacity = DEFAULT_CORE_HATCH_HEAT_CAPACITY;
-        params().gridConductionMultiplier = DEFAULT_GRID_CONDUCTION_MULTIPLIER;
-        setBeamEnergyToFastNeutronMultiplier(DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER);
-        setAmbientTemperature(DEFAULT_AMBIENT_TEMP);
-        params().ticksPerCycle = DEFAULT_TICKS_PER_CYCLE;
-        // physics.yaml (and the fuel/component records) take precedence over the constants above.
+        installParameters(new EngineParameters());
+        // physics.yaml (and the fuel/component records) take precedence over the constants
         ReactorConfigData.loadDefaults();
-    }
-
-    public static void setTicksPerCycle(int ticks) {
-        params().ticksPerCycle = Math.max(1, ticks);
     }
 
     public static int getTicksPerCycle() {
@@ -277,27 +156,11 @@ public class NuclearSimulationEngine {
 
     public static final double DEFAULT_GRID_CONDUCTION_MULTIPLIER = 1.0;
 
-    public static void setGridConductionMultiplier(double mult) {
-        params().gridConductionMultiplier = Math.max(0.0, mult);
-    }
-
     public static final double DEFAULT_BASE_HATCH_CONDUCTANCE = 8.12;
-
-    public static void setBaseHatchConductance(double val) {
-        params().baseHatchConductance = Math.max(0.01, val);
-    }
 
     public static final double DEFAULT_HATCH_CONDUCTANCE_TIER_RATIO = 2.65;
 
-    public static void setHatchConductanceTierRatio(double val) {
-        params().hatchConductanceTierRatio = Math.max(1.0, val);
-    }
-
     public static final double DEFAULT_CORE_HATCH_HEAT_CAPACITY = 16.0;
-
-    public static void setCoreHatchHeatCapacity(double val) {
-        params().coreHatchHeatCapacity = Math.max(0.1, val);
-    }
 
     /** Heat capacity (HU/°C) of a nuclear core hatch of the given tier (LV=1 ... UHV=9), whatever it holds. */
     public static double getCoreHatchHeatCapacity(int tier) {
@@ -492,16 +355,34 @@ public class NuclearSimulationEngine {
                                                                                               // each)
         1.0 / 12.0, 1.0 / 12.0, 1.0 / 12.0, 1.0 / 12.0 // 4 Diagonals (weight 1/12 each)
     };
-    private static final EngineParameters SHARED = new EngineParameters();
+    private static volatile EngineParameters installed = new EngineParameters();
     private static final ThreadLocal<EngineParameters> SCOPED = new ThreadLocal<>();
 
     /**
-     * The parameters the engine runs with on this thread: those installed by {@link #withParameters}, or the shared
-     * set.
+     * The parameters the engine runs with on this thread: those installed by {@link #withParameters}, or the installed
+     * set (the game's, built from its configuration).
      */
     public static EngineParameters params() {
         EngineParameters scoped = SCOPED.get();
-        return scoped != null ? scoped : SHARED;
+        return scoped != null ? scoped : installed;
+    }
+
+    /**
+     * Makes {@code parameters} the set the engine runs with: this thread's, while {@link #withParameters} (or a test's
+     * own set) is in effect, or else everyone's. A whole set is installed at once, never changed field by field.
+     */
+    public static void installParameters(EngineParameters parameters) {
+        if (SCOPED.get() != null) SCOPED.set(parameters);
+        else installed = parameters;
+    }
+
+    /** Gives this thread its own parameters (a copy of the installed set) until {@link #endScope}. For tests. */
+    public static void beginScope() {
+        SCOPED.set(installed.copy());
+    }
+
+    public static void endScope() {
+        SCOPED.remove();
     }
 
     /**
@@ -523,11 +404,6 @@ public class NuclearSimulationEngine {
         return params().random;
     }
 
-    /** Seeds the simulation's random source, so a run can be repeated exactly. */
-    public static void setRandomSeed(long seed) {
-        params().random.setSeed(seed);
-    }
-
     public static class SimulationResult {
 
         public int totalNeutronsGenerated = 0;
@@ -536,8 +412,8 @@ public class NuclearSimulationEngine {
         public int wallNeutronsReflected = 0;
         public int wallNeutronsAbsorbed = 0;
         public int neutronsEscaped = 0;
-        public double maxTemperature = AMBIENT_TEMP;
-        public double averageTemperature = AMBIENT_TEMP;
+        public double maxTemperature = DEFAULT_AMBIENT_TEMP;
+        public double averageTemperature = DEFAULT_AMBIENT_TEMP;
         public double averageReactivity = 0.0;
         public double totalHeatHU = 0;
     }
@@ -977,10 +853,10 @@ public class NuclearSimulationEngine {
         // Explicit integration overshoots (temperatures oscillate) once a cell's combined transfer per sub-step
         // exceeds about half its temperature difference, so use enough sub-steps to keep the worst cell under 0.5.
         final double dt = (double) p.ticksPerCycle / 20.0;
-        // Conductances are given for a tile of HU_PER_DEGREE heat capacity; a tile holding more heat per degree
+        // Conductances are given for a tile of huPerDegree heat capacity; a tile holding more heat per degree
         // changes temperature more slowly, so only the smallest capacity limits the step.
         double maxCoeff = BASE_HEAT_CONDUCTION;
-        double minCapacity = HU_PER_DEGREE;
+        double minCapacity = p.huPerDegree;
         double[][] capacity = scratch.cleared(Scratch.CAPACITY);
         for (int x = 0; x < sizeX; x++) {
             for (int y = 0; y < sizeY; y++) {
@@ -994,7 +870,7 @@ public class NuclearSimulationEngine {
         final int SUBSTEPS = Math.max(
             5,
             (int) Math
-                .ceil(8.0 * maxCoeff * dt * Math.max(1.0, p.gridConductionMultiplier) * HU_PER_DEGREE / minCapacity));
+                .ceil(8.0 * maxCoeff * dt * Math.max(1.0, p.gridConductionMultiplier) * p.huPerDegree / minCapacity));
         double[][] deltaHeat = scratch.cleared(Scratch.DELTA_HEAT);
 
         for (int sub = 0; sub < SUBSTEPS; sub++) {
@@ -1030,7 +906,7 @@ public class NuclearSimulationEngine {
                                 * dt
                                 / SUBSTEPS
                                 * p.gridConductionMultiplier
-                                * HU_PER_DEGREE;
+                                * p.huPerDegree;
                             if (tempA > tempB) {
                                 double dampening = Math
                                     .max(tileA.getInsulationDampening(), tileB.getInsulationDampening());
@@ -1043,7 +919,7 @@ public class NuclearSimulationEngine {
                             // Heat loss to empty space / outer walls at ambient temperature
                             double dampening = tileA.getInsulationDampening();
                             double loss = (tempA - ambient) * (coeffA * dt / (2.0 * SUBSTEPS))
-                                * HU_PER_DEGREE
+                                * p.huPerDegree
                                 * (1.0 - Math.min(1.0, Math.max(0.0, dampening)));
                             deltaHeat[x][y] -= loss;
                         }
