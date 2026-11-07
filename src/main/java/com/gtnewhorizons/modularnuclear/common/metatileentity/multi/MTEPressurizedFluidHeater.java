@@ -23,8 +23,8 @@ import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
-import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ILoopHatchOwner;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantLoopMachineGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
@@ -90,7 +90,7 @@ import tectech.thing.metaTileEntity.hatch.MTEHatchEnergyTunnel;
  */
 @Optional.Interface(iface = "mrtjp.projectred.api.IBundledEmitter", modid = "ProjRed|Transmission")
 public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MTEPressurizedFluidHeater>
-    implements ICoolantLoopDevice, ISurvivalConstructable, IBundledEmitter {
+    implements ILoopHatchOwner, ISurvivalConstructable, IBundledEmitter {
 
     public static final int CASING_INDEX = PressurizedFluidHeaterStructure.CASING_INDEX;
 
@@ -282,6 +282,7 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
             hatch.updateTexture(aBaseCasingIndex);
             hatch.setMode(MTEHatchPressurizedFluid.HatchMode.SUCTION);
             mPressurizedInputs.add(hatch);
+            hatch.setLoopOwner(this);
             return true;
         }
         return false;
@@ -295,6 +296,7 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
             hatch.updateTexture(aBaseCasingIndex);
             hatch.setMode(MTEHatchPressurizedFluid.HatchMode.DISCHARGE);
             mPressurizedOutputs.add(hatch);
+            hatch.setLoopOwner(this);
             return true;
         }
         return false;
@@ -1366,5 +1368,15 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
             .addSubChannel(GTStructureChannels.ITEM_PIPE_CASING)
             .toolTipFinisher(StatCollector.translateToLocal("gt.multiblock.coolantloops.finisher"));
         return tt;
+    }
+
+    @Override
+    public MTEHatchPressurizedFluid getLoopInlet() {
+        return getPressurizedInputHatch();
+    }
+
+    @Override
+    public MTEHatchPressurizedFluid getLoopOutlet() {
+        return getPressurizedOutputHatch();
     }
 }

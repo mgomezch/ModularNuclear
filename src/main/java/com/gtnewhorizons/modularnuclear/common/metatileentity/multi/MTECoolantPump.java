@@ -41,6 +41,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipingRegistry
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopChunkLoader;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopDevices;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopFailure;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
@@ -1007,32 +1008,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                         missingOrChanged = true;
                         break;
                     }
-                    ICoolantLoopDevice dev = null;
-                    if (te instanceof ICoolantLoopDevice) {
-                        dev = (ICoolantLoopDevice) te;
-                    } else if (te instanceof IGregTechTileEntity gte) {
-                        IMetaTileEntity mte = gte.getMetaTileEntity();
-                        if (mte instanceof MTEHatchPressurizedFluid) {
-                            MTEPressurizedFluidHeater heater = LoopGraphCrawler
-                                .findAdjacentFluidHeater(w, bc.x, bc.y, bc.z);
-                            MTEPressurizedHeatExchanger phe = (heater == null)
-                                ? LoopGraphCrawler.findAdjacentPHE(w, bc.x, bc.y, bc.z)
-                                : null;
-                            MTEPressurizedDegasser degasser = (heater == null && phe == null)
-                                ? LoopGraphCrawler.findAdjacentDegasser(w, bc.x, bc.y, bc.z)
-                                : null;
-                            MTECoolantBath bath = (heater == null && phe == null && degasser == null)
-                                ? LoopGraphCrawler.findAdjacentCoolantBath(w, bc.x, bc.y, bc.z)
-                                : null;
-                            if (heater != null) dev = heater;
-                            else if (phe != null) dev = phe;
-                            else if (degasser != null) dev = degasser;
-                            else if (bath != null) dev = bath;
-                            else dev = (ICoolantLoopDevice) mte;
-                        } else if (mte instanceof ICoolantLoopDevice) {
-                            dev = (ICoolantLoopDevice) mte;
-                        }
-                    }
+                    ICoolantLoopDevice dev = LoopDevices.at(w, bc.x, bc.y, bc.z);
                     if (dev == null) {
                         missingOrChanged = true;
                         break;

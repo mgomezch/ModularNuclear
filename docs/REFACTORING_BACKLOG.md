@@ -230,7 +230,14 @@ The reactor writes hatch fields directly, about 52 times: `hatch.mInputFluid = n
 
 **Do:** give hatches methods that keep their own invariants (e.g. `voidNonFuelContents()`), with dirty marking and sync inside.
 
-### A4 (P2): Add a loop-device registry
+### A4 (P2): Add a loop-device registry (done)
+
+**Done:**
+- **One lookup.** `LoopDevices.at(world, x, y, z)` answers which loop device owns a block. Both the crawler and the pump's post-load rebind use it, and the four `findAdjacent...` scans and their if-chains are gone.
+- **Self-registration.** Multiblock devices implement `ILoopHatchOwner` and claim their loop inlet and outlet as their structure check finds them, so a claimed hatch names its owner without a search.
+- **After a load.** Claims are not saved, so until a device's first structure check a hatch has no known owner. The lookup then searches for the device types registered in `LoopDevices` (each with its reach), as the old scans did.
+- **Ownership is checked.** The degasser and bath scans used to take any hatch within reach; now only the device that owns a hatch claims it.
+- **What still names each type.** Adding a device type means registering it and giving the crawler a visit method for its segment.
 
 Recognizing a loop device is an if-chain repeated in the crawler, in `rebindRestoredLoop` and elsewhere: `findAdjacentFluidHeater` / `findAdjacentPHE` / `findAdjacentDegasser` / `findAdjacentCoolantBath`, plus `instanceof` checks. Adding a device type means editing all of them.
 

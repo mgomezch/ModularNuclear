@@ -1378,23 +1378,14 @@ public class LoopGraphCrawler {
                 IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
                 if (mte instanceof MTEHatchPressurizedFluid) {
                     MTEHatchPressurizedFluid hatch = (MTEHatchPressurizedFluid) mte;
-                    MTEPressurizedFluidHeater heater = findAdjacentFluidHeater(world, step.x, step.y, step.z);
-                    MTEPressurizedHeatExchanger phe = (heater == null) ? findAdjacentPHE(world, step.x, step.y, step.z)
-                        : null;
-                    MTEPressurizedDegasser degasser = (heater == null && phe == null)
-                        ? findAdjacentDegasser(world, step.x, step.y, step.z)
-                        : null;
-                    MTECoolantBath bath = (heater == null && phe == null && degasser == null)
-                        ? findAdjacentCoolantBath(world, step.x, step.y, step.z)
-                        : null;
-
-                    if (heater != null) {
+                    ICoolantLoopDevice owner = LoopDevices.at(world, step.x, step.y, step.z);
+                    if (owner instanceof MTEPressurizedFluidHeater heater) {
                         return visitHeaterHatch(step, hatch, heater);
-                    } else if (phe != null) {
+                    } else if (owner instanceof MTEPressurizedHeatExchanger phe) {
                         return visitHeatExchangerHatch(step, hatch, phe);
-                    } else if (degasser != null) {
+                    } else if (owner instanceof MTEPressurizedDegasser degasser) {
                         return visitDegasserHatch(step, hatch, degasser);
-                    } else if (bath != null) {
+                    } else if (owner instanceof MTECoolantBath bath) {
                         return visitBathHatch(step, hatch, bath);
                     } else if (hatch.getOppositeHatchTile() != null || !hatch.isPassageInlet()) {
                         return visitPassageHatchPair(step, hatch);
@@ -2138,100 +2129,6 @@ public class LoopGraphCrawler {
         }
 
         return session.getResult();
-    }
-
-    /**
-     * The Pressurized Fluid Heater whose input or output hatch is the hatch at (x, y, z), among heater controllers
-     * within a heater's reach (11 long), or null. A controller whose hatches are not known yet checks its structure
-     * first. Only the heater that owns the hatch qualifies.
-     */
-    public static MTEPressurizedFluidHeater findAdjacentFluidHeater(World world, int x, int y, int z) {
-        IMetaTileEntity target = metaTileEntityAt(world, x, y, z);
-        if (target == null) return null;
-        for (int dy = -2; dy <= 2; dy++) {
-            for (int dx = -11; dx <= 11; dx++) {
-                for (int dz = -11; dz <= 11; dz++) {
-                    if (!(metaTileEntityAt(
-                        world,
-                        x + dx,
-                        y + dy,
-                        z + dz) instanceof MTEPressurizedFluidHeater heater)) {
-                        continue;
-                    }
-                    if ((heater.getPressurizedInputHatch() == null || heater.getPressurizedOutputHatch() == null)
-                        && heater.getBaseMetaTileEntity() != null) {
-                        heater.checkMachine(heater.getBaseMetaTileEntity(), null);
-                    }
-                    if (heater.getPressurizedInputHatch() == target || heater.getPressurizedOutputHatch() == target) {
-                        return heater;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * The PHE whose primary inlet or outlet is the hatch at (x, y, z), among PHE controllers within a PHE's reach
-     * (11 long, 9 high), or null. A controller whose hatches are not known yet checks its structure first. Only the
-     * PHE that owns the hatch qualifies, so a nearby PHE never claims another device's hatch.
-     */
-    public static MTEPressurizedHeatExchanger findAdjacentPHE(World world, int x, int y, int z) {
-        IMetaTileEntity target = metaTileEntityAt(world, x, y, z);
-        if (target == null) return null;
-        for (int dy = -8; dy <= 8; dy++) {
-            for (int dx = -11; dx <= 11; dx++) {
-                for (int dz = -11; dz <= 11; dz++) {
-                    if (!(metaTileEntityAt(world, x + dx, y + dy, z + dz) instanceof MTEPressurizedHeatExchanger phe)) {
-                        continue;
-                    }
-                    if ((phe.getPrimaryInlet() == null || phe.getPrimaryOutlet() == null)
-                        && phe.getBaseMetaTileEntity() != null) {
-                        phe.checkMachine(phe.getBaseMetaTileEntity(), null);
-                    }
-                    if (phe.getPrimaryInlet() == target || phe.getPrimaryOutlet() == target) return phe;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static IMetaTileEntity metaTileEntityAt(World world, int x, int y, int z) {
-        if (world == null) return null;
-        TileEntity te = world.getTileEntity(x, y, z);
-        return te instanceof IGregTechTileEntity gte ? gte.getMetaTileEntity() : null;
-    }
-
-    public static MTEPressurizedDegasser findAdjacentDegasser(World world, int x, int y, int z) {
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dz = -2; dz <= 2; dz++) {
-                TileEntity te = world.getTileEntity(x + dx, y, z + dz);
-                if (te instanceof IGregTechTileEntity) {
-                    IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
-                    if (mte instanceof MTEPressurizedDegasser) {
-                        return (MTEPressurizedDegasser) mte;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    public static MTECoolantBath findAdjacentCoolantBath(World world, int x, int y, int z) {
-        for (int dy = -2; dy <= 1; dy++) {
-            for (int dx = -5; dx <= 5; dx++) {
-                for (int dz = -12; dz <= 12; dz++) {
-                    TileEntity te = world.getTileEntity(x + dx, y + dy, z + dz);
-                    if (te instanceof IGregTechTileEntity) {
-                        IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
-                        if (mte instanceof MTECoolantBath) {
-                            return (MTECoolantBath) mte;
-                        }
-                    }
-                }
-            }
-        }
-        return null;
     }
 
     public static boolean isValidLoopBlock(World world, int x, int y, int z, int targetX, int targetY, int targetZ) {

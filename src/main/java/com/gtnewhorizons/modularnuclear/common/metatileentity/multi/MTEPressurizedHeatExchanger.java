@@ -19,7 +19,7 @@ import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ConvectiveHeatTransferModel;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
-import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ILoopHatchOwner;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheExchange;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
@@ -65,7 +65,7 @@ import gregtech.common.tileentities.machines.MTEHatchInputME;
  * (e.g. Distilled Water -> Steam at standard 1:160 expansion ratio).
  */
 public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPressurizedHeatExchanger>
-    implements ICoolantLoopDevice, ISurvivalConstructable {
+    implements ILoopHatchOwner, ISurvivalConstructable {
 
     public static final int CASING_INDEX_HEAT_PROOF = 11;
 
@@ -962,12 +962,14 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
             if (ph.isInput()) {
                 if (mPrimaryInlet == null) {
                     mPrimaryInlet = ph;
+                    ph.setLoopOwner(this);
                     return true;
                 }
                 return false;
             } else if (ph.isOutput()) {
                 if (mPrimaryOutlet == null) {
                     mPrimaryOutlet = ph;
+                    ph.setLoopOwner(this);
                     return true;
                 }
                 return false;
@@ -1080,5 +1082,15 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
             .addSubChannel(CoolantStructureChannels.PHE_SHEETMETAL)
             .toolTipFinisher(StatCollector.translateToLocal("gt.multiblock.coolantloops.finisher"));
         return tt;
+    }
+
+    @Override
+    public MTEHatchPressurizedFluid getLoopInlet() {
+        return getPrimaryInlet();
+    }
+
+    @Override
+    public MTEHatchPressurizedFluid getLoopOutlet() {
+        return getPrimaryOutlet();
     }
 }

@@ -22,8 +22,8 @@ import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ConvectiveHeatTransferModel;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
-import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ILoopHatchOwner;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantBathGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
@@ -69,7 +69,7 @@ import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
  * - LuV glass (Tier 6): 9x11 footprint, 7x9 = 63 slots.
  */
 public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
-    implements ICoolantLoopDevice, ISurvivalConstructable {
+    implements ILoopHatchOwner, ISurvivalConstructable {
 
     public static final int CASING_INDEX_HEAT_PROOF = 11;
     public static final Set<MTECoolantBath> ACTIVE_CLIENT_BATHS = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -577,6 +577,7 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
             }
             ph.updateTexture(aBaseCasingIndex);
             mPrimaryInlet = ph;
+            ph.setLoopOwner(this);
             return true;
         }
         return false;
@@ -592,6 +593,7 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
             }
             ph.updateTexture(aBaseCasingIndex);
             mPrimaryOutlet = ph;
+            ph.setLoopOwner(this);
             return true;
         }
         return false;
@@ -899,5 +901,15 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
                 }
             }
         }
+    }
+
+    @Override
+    public MTEHatchPressurizedFluid getLoopInlet() {
+        return getPrimaryInlet();
+    }
+
+    @Override
+    public MTEHatchPressurizedFluid getLoopOutlet() {
+        return getPrimaryOutlet();
     }
 }

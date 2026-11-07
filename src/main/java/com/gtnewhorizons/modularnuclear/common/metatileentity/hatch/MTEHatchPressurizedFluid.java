@@ -13,6 +13,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantPassageHatch;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ILoopHatchOwner;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.util.ClientText;
 import com.gtnewhorizons.modularui.api.math.Color;
@@ -103,6 +104,16 @@ public class MTEHatchPressurizedFluid extends MTEHatch implements ICoolantLoopDe
     protected IGregTechTileEntity mOppositeHatch = null;
     protected ICoolantLoopPump mConnectedPump = null;
     protected IThermalExchangeListener mThermalExchangeListener = null;
+    /** The multiblock that claimed this hatch as its loop inlet or outlet (not saved: it claims it again). */
+    private ILoopHatchOwner mLoopOwner = null;
+
+    public ILoopHatchOwner getLoopOwner() {
+        return mLoopOwner;
+    }
+
+    public void setLoopOwner(ILoopHatchOwner owner) {
+        mLoopOwner = owner;
+    }
 
     public MTEHatchPressurizedFluid(int aID, String aName, String aNameRegional, int aTier) {
         this(aID, aName, aNameRegional, aTier, new String[0]);

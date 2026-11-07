@@ -21,8 +21,8 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
-import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.ILoopHatchOwner;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantLoopMachineGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
@@ -60,7 +60,7 @@ import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
  * from circulating closed coolant loops into top-layer output hatches.
  */
 public class MTEPressurizedDegasser extends MTEEnhancedMultiBlockBase<MTEPressurizedDegasser>
-    implements ICoolantLoopDevice, ISurvivalConstructable {
+    implements ILoopHatchOwner, ISurvivalConstructable {
 
     protected MTEHatchPressurizedFluid mPrimaryInlet = null;
     protected MTEHatchPressurizedFluid mPrimaryOutlet = null;
@@ -240,12 +240,14 @@ public class MTEPressurizedDegasser extends MTEEnhancedMultiBlockBase<MTEPressur
             if (ph.isInput()) {
                 if (mPrimaryInlet == null) {
                     mPrimaryInlet = ph;
+                    ph.setLoopOwner(this);
                     return true;
                 }
                 return false;
             } else if (ph.isOutput()) {
                 if (mPrimaryOutlet == null) {
                     mPrimaryOutlet = ph;
+                    ph.setLoopOwner(this);
                     return true;
                 }
                 return false;
@@ -733,5 +735,15 @@ public class MTEPressurizedDegasser extends MTEEnhancedMultiBlockBase<MTEPressur
                 2)
             .toolTipFinisher(StatCollector.translateToLocal("gt.multiblock.coolantloops.finisher"));
         return tt;
+    }
+
+    @Override
+    public MTEHatchPressurizedFluid getLoopInlet() {
+        return getPrimaryInlet();
+    }
+
+    @Override
+    public MTEHatchPressurizedFluid getLoopOutlet() {
+        return getPrimaryOutlet();
     }
 }
