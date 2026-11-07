@@ -24,7 +24,6 @@ import org.lwjgl.opengl.GL11;
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -77,12 +76,8 @@ public class FalloutVisualEffectRenderer {
 
     public static int getHazmatPieceCount(EntityPlayer player) {
         if (player == null) return 0;
-        try {
-            if (HazardProtection.isWearingFullRadioHazmat(player)) {
-                return 4;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (HazardProtection.isWearingFullRadioHazmat(player)) {
+            return 4;
         }
 
         int count = 0;
@@ -90,15 +85,12 @@ public class FalloutVisualEffectRenderer {
             ItemStack stack = player.getEquipmentInSlot(i);
             if (stack == null) continue;
             boolean protects = false;
-            try {
-                if (HazardProtection.protectsAgainstHazard(player, stack, Hazard.RADIOLOGICAL)
-                    || HazardProtection.protectsAgainstHazardFully(player, stack, Hazard.RADIOLOGICAL)
-                    || HazardProtection.protectsAgainstHazard(stack, Hazard.RADIOLOGICAL)) {
-                    protects = true;
-                }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
+            if (HazardProtection.protectsAgainstHazard(player, stack, Hazard.RADIOLOGICAL)
+                || HazardProtection.protectsAgainstHazardFully(player, stack, Hazard.RADIOLOGICAL)
+                || HazardProtection.protectsAgainstHazard(stack, Hazard.RADIOLOGICAL)) {
+                protects = true;
             }
+
             if (!protects && stack.getUnlocalizedName() != null) {
                 String lower = stack.getUnlocalizedName()
                     .toLowerCase();
@@ -126,13 +118,10 @@ public class FalloutVisualEffectRenderer {
 
     public static boolean isWearingFullHazmat(EntityPlayer player) {
         if (player == null) return false;
-        try {
-            if (HazardProtection.isWearingFullRadioHazmat(player)) {
-                return true;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (HazardProtection.isWearingFullRadioHazmat(player)) {
+            return true;
         }
+
         return getHazmatPieceCount(player) >= 4;
     }
 
@@ -257,15 +246,12 @@ public class FalloutVisualEffectRenderer {
             lastDisplayWidth = mc.displayWidth;
             lastDisplayHeight = mc.displayHeight;
             shaderGroup.createBindFramebuffers(lastDisplayWidth, lastDisplayHeight);
-        } catch (Throwable t) {
+        } catch (java.io.IOException | RuntimeException t) {
             ModularNuclear.LOG.error("Failed to initialize fallout post-processing shader: " + t.getMessage(), t);
             shaderLoadFailed = true;
             if (shaderGroup != null) {
-                try {
-                    shaderGroup.deleteShaderGroup();
-                } catch (Throwable swallowed) {
-                    Swallowed.note(swallowed);
-                }
+                shaderGroup.deleteShaderGroup();
+
                 shaderGroup = null;
             }
         }
@@ -273,25 +259,22 @@ public class FalloutVisualEffectRenderer {
 
     private void updateUniforms(float partialTicks) {
         if (shaderGroup == null) return;
-        try {
-            List<?> shaders = ReflectionHelper
-                .getPrivateValue(ShaderGroup.class, shaderGroup, "listShaders", "field_148031_d", "d");
-            if (shaders != null && !shaders.isEmpty()) {
-                Shader falloutPass = (Shader) shaders.get(0);
-                ShaderUniform intensityUni = falloutPass.getShaderManager()
-                    .func_147991_a("Intensity");
-                if (intensityUni != null) {
-                    intensityUni.func_148090_a(currentIntensity);
-                }
-                ShaderUniform seedUni = falloutPass.getShaderManager()
-                    .func_147991_a("Seed");
-                if (seedUni != null) {
-                    seedUni.func_148090_a((float) (Math.random() * 1000.0));
-                }
+        List<?> shaders = ReflectionHelper
+            .getPrivateValue(ShaderGroup.class, shaderGroup, "listShaders", "field_148031_d", "d");
+        if (shaders != null && !shaders.isEmpty()) {
+            Shader falloutPass = (Shader) shaders.get(0);
+            ShaderUniform intensityUni = falloutPass.getShaderManager()
+                .func_147991_a("Intensity");
+            if (intensityUni != null) {
+                intensityUni.func_148090_a(currentIntensity);
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+            ShaderUniform seedUni = falloutPass.getShaderManager()
+                .func_147991_a("Seed");
+            if (seedUni != null) {
+                seedUni.func_148090_a((float) (Math.random() * 1000.0));
+            }
         }
+
     }
 
     private void renderShader(Minecraft mc, float partialTicks) {
@@ -315,7 +298,7 @@ public class FalloutVisualEffectRenderer {
         GL11.glLoadIdentity();
         try {
             shaderGroup.loadShaderGroup(partialTicks);
-        } catch (Throwable t) {
+        } catch (RuntimeException t) {
             ModularNuclear.LOG.warn("Failed to execute fallout shader: " + t.getMessage());
         } finally {
             GL11.glPopMatrix();
