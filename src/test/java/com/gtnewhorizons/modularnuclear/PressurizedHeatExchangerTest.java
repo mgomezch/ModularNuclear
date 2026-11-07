@@ -88,6 +88,14 @@ public class PressurizedHeatExchangerTest {
         gregtech.api.GregTechAPI.sBlockCasings4 = net.minecraft.init.Blocks.stone;
         gregtech.api.GregTechAPI.sBlockCasings10 = net.minecraft.init.Blocks.stone;
         gregtech.api.GregTechAPI.sBlockSheetmetalGT = net.minecraft.init.Blocks.stone;
+        // GregTech gives materials their sheetmetal metas (MaterialsIDMap) at runtime: these are its IDs
+        Object[][] ids = { { gregtech.api.enums.Materials.Copper, 35 }, { gregtech.api.enums.Materials.Electrum, 303 },
+            { gregtech.api.enums.Materials.Platinum, 85 }, { gregtech.api.enums.Materials.Osmium, 83 },
+            { gregtech.api.enums.Materials.Quantium, 391 }, { gregtech.api.enums.Materials.ElectrumFlux, 320 },
+            { gregtech.api.enums.Materials.BlackPlutonium, 388 }, { gregtech.api.enums.Materials.Neutronium, 129 },
+            { gregtech.api.enums.Materials.Steel, 305 }, { gregtech.api.enums.Materials.Bronze, 300 },
+            { gregtech.api.enums.Materials.Iron, 32 } };
+        for (Object[] id : ids) ((gregtech.api.enums.Materials) id[0]).mMetaItemSubID = (Integer) id[1];
 
         try {
             Field fBlockHint = com.gtnewhorizon.structurelib.StructureLib.class.getDeclaredField("blockHint");
@@ -1048,22 +1056,43 @@ public class PressurizedHeatExchangerTest {
         Mockito.when(mockWorld.getBlock(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt()))
             .thenReturn(gregtech.api.GregTechAPI.sBlockSheetmetalGT);
 
-        // First block: Copper (meta 0)
+        int copper = gregtech.api.enums.Materials.Copper.mMetaItemSubID;
+        // First block: Copper
         Mockito.when(mockWorld.getBlockMetadata(0, 0, 0))
-            .thenReturn(0);
+            .thenReturn(copper);
         assertTrue(elem.check(phe, mockWorld, 0, 0, 0));
         assertTrue(phe.areSheetmetalsUniform(), "Single sheetmetal should be uniform");
 
-        // Second block: Copper (meta 0)
+        // Second block: Copper
         Mockito.when(mockWorld.getBlockMetadata(0, 0, 1))
-            .thenReturn(0);
+            .thenReturn(copper);
         assertTrue(elem.check(phe, mockWorld, 0, 0, 1));
         assertTrue(phe.areSheetmetalsUniform(), "Two identical sheetmetals should be uniform");
 
-        // Third block: Electrum (meta 1) - breaks uniformity
+        // Third block: Electrum - breaks uniformity
         Mockito.when(mockWorld.getBlockMetadata(0, 0, 2))
-            .thenReturn(1);
+            .thenReturn(gregtech.api.enums.Materials.Electrum.mMetaItemSubID);
         assertTrue(elem.check(phe, mockWorld, 0, 0, 2));
         assertFalse(phe.areSheetmetalsUniform(), "Different sheetmetal tier should break uniformity");
+    }
+
+    @Test
+    public void testPheStructureElementRejectsSheetmetalOutsideTheTiers() {
+        MTEPressurizedHeatExchanger phe = new MTEPressurizedHeatExchanger("phe_element_reject");
+        com.gtnewhorizon.structurelib.structure.IStructureElement<MTEPressurizedHeatExchanger> elem = PressurizedHeatExchangerStructure
+            .ofSheetMetalTiered();
+        World mockWorld = Mockito.mock(World.class);
+        Mockito.when(mockWorld.getBlock(Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt()))
+            .thenReturn(gregtech.api.GregTechAPI.sBlockSheetmetalGT);
+
+        // Steel, bronze and iron sheetmetal used to count as copper or electrum: now they are just wrong blocks
+        for (gregtech.api.enums.Materials m : new gregtech.api.enums.Materials[] { gregtech.api.enums.Materials.Steel,
+            gregtech.api.enums.Materials.Bronze, gregtech.api.enums.Materials.Iron }) {
+            Mockito.when(mockWorld.getBlockMetadata(0, 0, 0))
+                .thenReturn(m.mMetaItemSubID);
+            assertFalse(elem.check(phe, mockWorld, 0, 0, 0), m.mName + " sheetmetal is not a PHE tier");
+            assertNull(PheSheetmetalTier.fromBlock(gregtech.api.GregTechAPI.sBlockSheetmetalGT, m.mMetaItemSubID));
+        }
+        assertNull(PheSheetmetalTier.fromBlock(net.minecraft.init.Blocks.iron_block, 0));
     }
 }

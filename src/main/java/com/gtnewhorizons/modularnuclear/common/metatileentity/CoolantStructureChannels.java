@@ -126,7 +126,7 @@ public enum CoolantStructureChannels implements IStructureChannels {
             Swallowed.note(swallowed);
         }
 
-        // Register indicator items for PHE_SHEETMETAL (Copper, Steel, Stainless, Titanium, Tungstensteel, Neutronium)
+        // Register indicator items for PHE_SHEETMETAL (each tier's GregTech sheetmetal)
         try {
             for (PheSheetmetalTier tier : PheSheetmetalTier.values()) {
                 ItemStack stack = tier.getItemStack();
