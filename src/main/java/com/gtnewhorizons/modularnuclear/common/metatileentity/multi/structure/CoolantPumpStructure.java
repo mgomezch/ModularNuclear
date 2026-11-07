@@ -65,15 +65,11 @@ public final class CoolantPumpStructure {
     public static Materials getMaterialFromTrigger(ItemStack trigger) {
         if (trigger == null) return Materials.Steel;
         int tier;
-        try {
-            if (ChannelDataAccessor.hasSubChannel(trigger, CoolantStructureChannels.TANK_MATERIAL.get())) {
-                tier = CoolantStructureChannels.TANK_MATERIAL.getValueClamped(trigger, 0, 6);
-            } else if (ChannelDataAccessor.hasSubChannel(trigger, "tier")) {
-                tier = ChannelDataAccessor.getChannelData(trigger, "tier");
-            } else {
-                tier = trigger.stackSize - 1;
-            }
-        } catch (Throwable t) {
+        if (ChannelDataAccessor.hasSubChannel(trigger, CoolantStructureChannels.TANK_MATERIAL.get())) {
+            tier = CoolantStructureChannels.TANK_MATERIAL.getValueClamped(trigger, 0, 6);
+        } else if (ChannelDataAccessor.hasSubChannel(trigger, "tier")) {
+            tier = ChannelDataAccessor.getChannelData(trigger, "tier");
+        } else {
             tier = trigger.stackSize - 1;
         }
         return getMaterialForTier(tier);
@@ -146,7 +142,8 @@ public final class CoolantPumpStructure {
 
     /** A part of the tank of a material, or the steel one (or a stick, without Railcraft) for any other material. */
     private static ItemStack tankItem(Materials mat, TankPart part) {
-        // Railcraft's classes are only touched in here, so a missing Railcraft falls back to the stick
+        // Railcraft's classes are only touched in here, so a missing Railcraft (or the energy API its
+        // tanks link against) falls back to the stick
         try {
             IEnumMachine iron = switch (part) {
                 case WALL -> EnumMachineBeta.TANK_IRON_WALL;
@@ -168,9 +165,10 @@ public final class CoolantPumpStructure {
             if (mat == Materials.Steel && steel != null) return steel.getItem();
             if (advanced != null) return advanced.getItem();
             if (steel != null) return steel.getItem();
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        } catch (LinkageError missing) {
+            Swallowed.note(missing);
         }
+
         return new ItemStack(net.minecraft.init.Items.stick, 1);
     }
 

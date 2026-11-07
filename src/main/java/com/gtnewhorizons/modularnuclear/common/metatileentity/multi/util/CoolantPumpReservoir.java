@@ -18,7 +18,6 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -214,48 +213,45 @@ public class CoolantPumpReservoir {
         if (te == null) return null;
         if (te instanceof TileTankBase) {
             TileTankBase tankBase = (TileTankBase) te;
-            try {
-                mods.railcraft.common.blocks.machine.beta.MetalTank tankType = tankBase.getTankType();
-                if (tankType instanceof mods.railcraft.common.blocks.machine.beta.SteelTank) {
-                    return Materials.Steel;
-                }
-                if (tankType instanceof mods.railcraft.common.blocks.machine.beta.IronTank) {
-                    return Materials.Iron;
-                }
-                if (tankType instanceof mods.railcraft.common.blocks.machine.tank.GenericMultiTankBase) {
-                    String mat = ((mods.railcraft.common.blocks.machine.tank.GenericMultiTankBase) tankType).tankMaterial;
-                    if (mat != null) {
-                        mat = mat.toLowerCase();
-                        switch (mat) {
-                            case "steel":
-                                return Materials.Steel;
-                            case "iron":
-                                return Materials.Iron;
-                            case "stainless":
-                                return Materials.StainlessSteel;
-                            case "titanium":
-                                return Materials.Titanium;
-                            case "tungstensteel":
-                                return Materials.TungstenSteel;
-                            case "neutronium":
-                                return Materials.Neutronium;
-                            case "aluminium":
-                            case "aluminum":
-                                return Materials.Aluminium;
-                            case "palladium":
-                                return Materials.Palladium;
-                            case "iridium":
-                                return Materials.Iridium;
-                            case "osmium":
-                                return Materials.Osmium;
-                            default:
-                                return null;
-                        }
+            mods.railcraft.common.blocks.machine.beta.MetalTank tankType = tankBase.getTankType();
+            if (tankType instanceof mods.railcraft.common.blocks.machine.beta.SteelTank) {
+                return Materials.Steel;
+            }
+            if (tankType instanceof mods.railcraft.common.blocks.machine.beta.IronTank) {
+                return Materials.Iron;
+            }
+            if (tankType instanceof mods.railcraft.common.blocks.machine.tank.GenericMultiTankBase) {
+                String mat = ((mods.railcraft.common.blocks.machine.tank.GenericMultiTankBase) tankType).tankMaterial;
+                if (mat != null) {
+                    mat = mat.toLowerCase();
+                    switch (mat) {
+                        case "steel":
+                            return Materials.Steel;
+                        case "iron":
+                            return Materials.Iron;
+                        case "stainless":
+                            return Materials.StainlessSteel;
+                        case "titanium":
+                            return Materials.Titanium;
+                        case "tungstensteel":
+                            return Materials.TungstenSteel;
+                        case "neutronium":
+                            return Materials.Neutronium;
+                        case "aluminium":
+                        case "aluminum":
+                            return Materials.Aluminium;
+                        case "palladium":
+                            return Materials.Palladium;
+                        case "iridium":
+                            return Materials.Iridium;
+                        case "osmium":
+                            return Materials.Osmium;
+                        default:
+                            return null;
                     }
                 }
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
             }
+
         }
         String name = te.getClass()
             .getSimpleName();

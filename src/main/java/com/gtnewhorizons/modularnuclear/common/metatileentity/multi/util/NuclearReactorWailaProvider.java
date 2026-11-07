@@ -19,7 +19,6 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -177,17 +176,14 @@ public class NuclearReactorWailaProvider {
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("GT5U.waila.multiblock.status.running_fine")
                     + efficiency);
         }
-        try {
-            if (gregtech.GTMod.proxy != null && gregtech.GTMod.proxy.wailaAverageNS && tag.hasKey("averageNS")) {
-                int tAverageTime = tag.getInteger("averageNS");
-                currentTip.add(
-                    StatCollector.translateToLocalFormatted(
-                        "GT5U.waila.multiblock.status.cpu_load",
-                        formatNumber((long) tAverageTime)));
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (gregtech.GTMod.proxy != null && gregtech.GTMod.proxy.wailaAverageNS && tag.hasKey("averageNS")) {
+            int tAverageTime = tag.getInteger("averageNS");
+            currentTip.add(
+                StatCollector.translateToLocalFormatted(
+                    "GT5U.waila.multiblock.status.cpu_load",
+                    formatNumber((long) tAverageTime)));
         }
+
     }
 
     public static String[] getInfoData(MTENuclearReactor reactor) {

@@ -23,7 +23,6 @@ import com.gtnewhorizons.modularnuclear.common.item.ItemCustomFuelRod;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
@@ -251,13 +250,10 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
 
     public static boolean isEmptyFuelRod(ItemStack stack) {
         if (stack == null) return false;
-        try {
-            if (ReactorDataRegistry.isItemListStack(ItemList.IC2_Fuel_Rod_Empty, stack)) {
-                return true;
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (ReactorDataRegistry.isItemListStack(ItemList.IC2_Fuel_Rod_Empty, stack)) {
+            return true;
         }
+
         for (int id : OreDictionary.getOreIDs(stack)) {
             String ore = OreDictionary.getOreName(id);
             if ("fuelRodEmpty".equals(ore) || "rodEmpty".equals(ore) || "itemFuelRodEmpty".equals(ore)) return true;
@@ -288,13 +284,10 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         if (stack.getItem() instanceof gregtech.common.items.ItemIntegratedCircuit) {
             return stack.getItemDamage();
         }
-        try {
-            if (ItemList.Circuit_Integrated != null && ItemList.Circuit_Integrated.isStackEqual(stack, false, true)) {
-                return stack.getItemDamage();
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (ItemList.Circuit_Integrated.hasBeenSet() && ItemList.Circuit_Integrated.isStackEqual(stack, false, true)) {
+            return stack.getItemDamage();
         }
+
         for (int id : OreDictionary.getOreIDs(stack)) {
             String ore = OreDictionary.getOreName(id);
             if ("circuitIntegrated".equals(ore)) {

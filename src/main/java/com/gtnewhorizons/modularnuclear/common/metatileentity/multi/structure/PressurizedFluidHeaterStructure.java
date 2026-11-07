@@ -10,7 +10,6 @@ import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.HeatingCoilLevel;
@@ -69,14 +68,11 @@ public final class PressurizedFluidHeaterStructure {
 
     public static int getLengthFromTrigger(ItemStack trigger) {
         if (trigger == null) return MIN_LENGTH;
-        try {
-            if (ChannelDataAccessor.hasSubChannel(trigger, CoolantStructureChannels.HEATER_LENGTH.get())) {
-                int val = CoolantStructureChannels.HEATER_LENGTH.getValueClamped(trigger, MIN_LENGTH, MAX_LENGTH);
-                return clampLength(val);
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (ChannelDataAccessor.hasSubChannel(trigger, CoolantStructureChannels.HEATER_LENGTH.get())) {
+            int val = CoolantStructureChannels.HEATER_LENGTH.getValueClamped(trigger, MIN_LENGTH, MAX_LENGTH);
+            return clampLength(val);
         }
+
         int size = trigger.stackSize;
         if (size >= 1 && size <= 9) {
             return clampLength(size + 2);

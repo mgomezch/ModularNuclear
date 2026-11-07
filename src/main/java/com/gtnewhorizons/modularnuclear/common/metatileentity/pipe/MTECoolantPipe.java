@@ -249,12 +249,8 @@ public class MTECoolantPipe extends MTEFluidPipe {
      */
     @SuppressWarnings("deprecation")
     protected ITexture getInsulationOverlay(int colorIndex) {
-        try {
-            if (INSULATION_OVERLAY_ICON == null) return null;
-            return TextureFactory.of(INSULATION_OVERLAY_ICON, Dyes.getModulation(colorIndex, getPipeMaterialRgba()));
-        } catch (Throwable t) {
-            return null;
-        }
+        if (INSULATION_OVERLAY_ICON == null) return null;
+        return TextureFactory.of(INSULATION_OVERLAY_ICON, Dyes.getModulation(colorIndex, getPipeMaterialRgba()));
     }
 
     @Override

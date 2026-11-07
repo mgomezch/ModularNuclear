@@ -26,7 +26,6 @@ import net.minecraftforge.fluids.Fluid;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import cpw.mods.fml.common.Loader;
-import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.hazards.HazardProtection;
@@ -170,18 +169,17 @@ public class BlockCorium extends BlockFluidClassic {
 
     /** Thaumcraft's warded blocks, by registry or unlocalized name. */
     private static int wardedKind(Block block) {
-        try {
-            GameRegistry.UniqueIdentifier uid = GameRegistry.findUniqueIdentifierFor(block);
-            if (uid != null && uid.modId.toLowerCase(Locale.ENGLISH)
-                .equals("thaumcraft")) {
-                String name = uid.name.toLowerCase(Locale.ENGLISH);
-                if (name.equals("blockwarded") || name.equals("blockwardedglass") || name.equals("blockwardedstone")) {
-                    return WARDED;
-                }
-                if (name.equals("blockcosmeticopaque")) return WARDED_AT_META_2;
+        String id = Block.blockRegistry.getNameForObject(block);
+        int colon = id != null ? id.indexOf(':') : -1;
+        if (colon > 0 && id.substring(0, colon)
+            .toLowerCase(Locale.ENGLISH)
+            .equals("thaumcraft")) {
+            String name = id.substring(colon + 1)
+                .toLowerCase(Locale.ENGLISH);
+            if (name.equals("blockwarded") || name.equals("blockwardedglass") || name.equals("blockwardedstone")) {
+                return WARDED;
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+            if (name.equals("blockcosmeticopaque")) return WARDED_AT_META_2;
         }
 
         String unloc = block.getUnlocalizedName();
