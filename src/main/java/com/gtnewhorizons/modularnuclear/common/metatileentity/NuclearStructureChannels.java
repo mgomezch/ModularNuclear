@@ -3,7 +3,6 @@ package com.gtnewhorizons.modularnuclear.common.metatileentity;
 import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizon.structurelib.StructureLibAPI;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.structure.IStructureChannels;
 
@@ -33,32 +32,23 @@ public enum NuclearStructureChannels implements IStructureChannels {
     public void registerAsIndicator(ItemStack indicator, int channelValue) {
         if (indicator == null) return;
         if (channelValue > 0) {
-            try {
-                StructureLibAPI.registerChannelItem(get(), "modularnuclear", channelValue, indicator);
-                return;
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            StructureLibAPI.registerChannelItem(get(), "modularnuclear", channelValue, indicator);
+            return;
+
         }
-        try {
-            if (!StructureLibAPI.isDebugEnabled()) {
-                com.gtnewhorizon.structurelib.ChannelDescription.item(get(), channelValue, indicator);
-            }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
+        if (!StructureLibAPI.isDebugEnabled()) {
+            com.gtnewhorizon.structurelib.ChannelDescription.item(get(), channelValue, indicator);
         }
-        try {
-            com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler.addItemTooltip(
-                indicator,
-                com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler
-                    .translatedText("structurelib.tooltip.channelvalue", channelValue, get()));
-            com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler.addItemTooltip(
-                indicator,
-                com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler
-                    .translatedText("structurelib.tooltip.indicator_dnd", channelValue, get()));
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+
+        com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler.addItemTooltip(
+            indicator,
+            com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler
+                .translatedText("structurelib.tooltip.channelvalue", channelValue, get()));
+        com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler.addItemTooltip(
+            indicator,
+            com.gtnewhorizon.gtnhlib.util.AnimatedTooltipHandler
+                .translatedText("structurelib.tooltip.indicator_dnd", channelValue, get()));
+
     }
 
     @Override
@@ -76,14 +66,9 @@ public enum NuclearStructureChannels implements IStructureChannels {
 
     public static void register() {
         for (NuclearStructureChannels value : values()) {
-            try {
-                StructureLibAPI.registerChannelDescription(
-                    value.get(),
-                    "modularnuclear",
-                    "channels.modularnuclear." + value.get());
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            StructureLibAPI
+                .registerChannelDescription(value.get(), "modularnuclear", "channels.modularnuclear." + value.get());
+
         }
     }
 }

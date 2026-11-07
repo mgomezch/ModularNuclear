@@ -6,7 +6,6 @@ import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.CoolantPumpStructure;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PheSheetmetalTier;
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -42,11 +41,8 @@ public enum CoolantStructureChannels implements IStructureChannels {
 
     @Override
     public void registerAsIndicator(ItemStack indicator, int channelValue) {
-        try {
-            StructureLibAPI.registerChannelItem(get(), "coolantloops", channelValue, indicator);
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
-        }
+        StructureLibAPI.registerChannelItem(get(), "coolantloops", channelValue, indicator);
+
     }
 
     @Override
@@ -60,93 +56,63 @@ public enum CoolantStructureChannels implements IStructureChannels {
 
     public static void register() {
         for (CoolantStructureChannels value : values()) {
-            try {
-                StructureLibAPI
-                    .registerChannelDescription(value.get(), "coolantloops", "channels.coolantloops." + value.get());
-            } catch (Throwable swallowed) {
-                Swallowed.note(swallowed);
-            }
+            StructureLibAPI
+                .registerChannelDescription(value.get(), "coolantloops", "channels.coolantloops." + value.get());
+
         }
 
         // Register indicator items for STRUCTURE_WIDTH (3, 5, 7, 9)
-        try {
-            if (GregTechAPI.sBlockCasings2 != null) {
-                for (int w : new int[] { 3, 5, 7, 9 }) {
-                    STRUCTURE_WIDTH.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings2, w, 15), w);
-                }
+        if (GregTechAPI.sBlockCasings2 != null) {
+            for (int w : new int[] { 3, 5, 7, 9 }) {
+                STRUCTURE_WIDTH.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings2, w, 15), w);
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
 
         // Register indicator items for STRUCTURE_HEIGHT (4 to 8)
-        try {
-            if (GregTechAPI.sBlockCasings2 != null) {
-                for (int h = 4; h <= 8; h++) {
-                    STRUCTURE_HEIGHT.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings2, h, 15), h);
-                }
+        if (GregTechAPI.sBlockCasings2 != null) {
+            for (int h = 4; h <= 8; h++) {
+                STRUCTURE_HEIGHT.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings2, h, 15), h);
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
 
         // Register indicator items for TANK_MATERIAL (Iron, Steel, Stainless, Titanium, Tungstensteel, Osmium,
         // Neutronium)
-        try {
-            for (int tier = 0; tier <= 6; tier++) {
-                Materials mat = CoolantPumpStructure.getMaterialForTier(tier);
-                ItemStack stack = CoolantPumpStructure.getTankWallItem(mat);
-                if (stack != null && stack.getItem() != null) {
-                    TANK_MATERIAL.registerAsIndicator(stack.copy(), tier);
-                }
+        for (int tier = 0; tier <= 6; tier++) {
+            Materials mat = CoolantPumpStructure.getMaterialForTier(tier);
+            ItemStack stack = CoolantPumpStructure.getTankWallItem(mat);
+            if (stack != null && stack.getItem() != null) {
+                TANK_MATERIAL.registerAsIndicator(stack.copy(), tier);
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
 
         // Register indicator items for PHE_HEIGHT (3, 5, 7, 9)
-        try {
-            if (GregTechAPI.sBlockCasings1 != null) {
-                for (int h : new int[] { 3, 5, 7, 9 }) {
-                    PHE_HEIGHT.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings1, h, 11), h);
-                }
+        if (GregTechAPI.sBlockCasings1 != null) {
+            for (int h : new int[] { 3, 5, 7, 9 }) {
+                PHE_HEIGHT.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings1, h, 11), h);
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
 
         // Register indicator items for PHE_LENGTH (5 to 11)
-        try {
-            if (GregTechAPI.sBlockCasings1 != null) {
-                for (int l = 5; l <= 11; l++) {
-                    PHE_LENGTH.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings1, l, 11), l);
-                }
+        if (GregTechAPI.sBlockCasings1 != null) {
+            for (int l = 5; l <= 11; l++) {
+                PHE_LENGTH.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings1, l, 11), l);
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
 
         // Register indicator items for PHE_SHEETMETAL (each tier's GregTech sheetmetal)
-        try {
-            for (PheSheetmetalTier tier : PheSheetmetalTier.values()) {
-                ItemStack stack = tier.getItemStack();
-                if (stack != null && stack.getItem() != null) {
-                    PHE_SHEETMETAL.registerAsIndicator(stack.copy(), tier.getTier());
-                }
+        for (PheSheetmetalTier tier : PheSheetmetalTier.values()) {
+            ItemStack stack = tier.getItemStack();
+            if (stack != null && stack.getItem() != null) {
+                PHE_SHEETMETAL.registerAsIndicator(stack.copy(), tier.getTier());
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
 
         // Register indicator items for HEATER_LENGTH (3 to 11)
-        try {
-            if (GregTechAPI.sBlockCasings1 != null) {
-                for (int l = 3; l <= 11; l++) {
-                    HEATER_LENGTH.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings1, l, 11), l);
-                }
+        if (GregTechAPI.sBlockCasings1 != null) {
+            for (int l = 3; l <= 11; l++) {
+                HEATER_LENGTH.registerAsIndicator(new ItemStack(GregTechAPI.sBlockCasings1, l, 11), l);
             }
-        } catch (Throwable swallowed) {
-            Swallowed.note(swallowed);
         }
+
     }
 }
