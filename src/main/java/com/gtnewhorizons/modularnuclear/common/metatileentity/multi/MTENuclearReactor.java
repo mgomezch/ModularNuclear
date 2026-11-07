@@ -1,11 +1,8 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Random;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -16,7 +13,6 @@ import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
@@ -32,19 +28,14 @@ import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
-import com.gtnewhorizons.modularnuclear.common.block.BlockCorium;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
-import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantPassageHatch;
-import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 import com.gtnewhorizons.modularnuclear.common.gui.NuclearReactorGui;
-import com.gtnewhorizons.modularnuclear.common.gui.metrics.ReactorCycleSnapshot;
 import com.gtnewhorizons.modularnuclear.common.gui.metrics.ReactorMetricsHistory;
 import com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControl;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
@@ -88,16 +79,10 @@ import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.ICasingTextureProvider;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatch;
-import gregtech.api.metatileentity.implementations.MTEHatchDynamo;
 import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
-import gregtech.api.metatileentity.implementations.MTEHatchInput;
-import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
 import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
-import gregtech.api.metatileentity.implementations.MTEHatchOutput;
-import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
@@ -248,7 +233,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public ReactorGridSyncData mClientGridData = null;
 
     // Metrics dashboard state (in-memory, not persisted to NBT)
-    private final ReactorMetricsHistory mMetricsHistory = new ReactorMetricsHistory();
+    final ReactorMetricsHistory mMetricsHistory = new ReactorMetricsHistory();
     public ReactorMetricsHistory mClientMetricsHistory = null;
     public long mTotalCycles = 0L;
     public boolean mMoltenDown = false;
@@ -677,127 +662,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public void voidAllContents() {
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-
-        Set<IGregTechTileEntity> allNuclearTiles = new HashSet<>(mNuclearTiles);
-        allNuclearTiles.addAll(mLastFormedNuclearTiles);
-        for (IGregTechTileEntity te : allNuclearTiles) {
-            if (te != null && !te.isDead()) {
-                IMetaTileEntity mte = te.getMetaTileEntity();
-                if (mte instanceof MTEHatchNuclearHatch hatch) {
-                    hatch.voidFluid();
-                } else if (mte instanceof MTEHatchNuclearBus bus) {
-                    bus.voidContents();
-                } else if (mte instanceof MTEHatchNuclearControlRod rod) {
-                    rod.voidContents();
-                }
-            }
-        }
-
-        for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
-            if (rod != null) {
-                rod.voidContents();
-            }
-        }
-        for (MTEHatchNuclearControl ctrl : mControlHatches) {
-            if (ctrl != null) {
-                ctrl.setOutputRedstone((byte) 0);
-                if (ctrl.getBaseMetaTileEntity() != null) {
-                    ctrl.getBaseMetaTileEntity()
-                        .markDirty();
-                }
-            }
-        }
-
-        for (ICoolantPassageHatch hp : mTopHighPressureHatches) {
-            if (hp instanceof MetaTileEntity mte && mte.getBaseMetaTileEntity() != null) {
-                mte.getBaseMetaTileEntity()
-                    .markDirty();
-            }
-        }
-        for (ICoolantPassageHatch hp : mBottomHighPressureHatches) {
-            if (hp instanceof MetaTileEntity mte && mte.getBaseMetaTileEntity() != null) {
-                mte.getBaseMetaTileEntity()
-                    .markDirty();
-            }
-        }
-
-        for (MTEHatchInputBeamline beam : mBottomBeamInputHatches) {
-            if (beam != null) {
-                beam.dataPacket = null;
-                if (beam.getBaseMetaTileEntity() != null) {
-                    beam.getBaseMetaTileEntity()
-                        .markDirty();
-                }
-            }
-        }
-
-        for (MTEHatchInput inHatch : mInputHatches) {
-            if (inHatch != null) {
-                inHatch.setFillableStack(null);
-                inHatch.markDirty();
-            }
-        }
-        for (MTEHatchOutput outHatch : mOutputHatches) {
-            if (outHatch != null) {
-                outHatch.setDrainableStack(null);
-                outHatch.markDirty();
-            }
-        }
-        for (MTEHatchInputBus inBus : mInputBusses) {
-            if (inBus != null && inBus.mInventory != null) {
-                for (int i = 0; i < inBus.getSizeInventory(); i++) inBus.setInventorySlotContents(i, null);
-                inBus.markDirty();
-            }
-        }
-        for (MTEHatchOutputBus outBus : mOutputBusses) {
-            if (outBus != null && outBus.mInventory != null) {
-                for (int i = 0; i < outBus.getSizeInventory(); i++) outBus.setInventorySlotContents(i, null);
-                outBus.markDirty();
-            }
-        }
-        for (MTEHatchEnergy energy : mEnergyHatches) {
-            if (energy != null) {
-                energy.setEUVar(0);
-                if (energy.getBaseMetaTileEntity() != null) energy.getBaseMetaTileEntity()
-                    .markDirty();
-            }
-        }
-        for (MTEHatchDynamo dynamo : mDynamoHatches) {
-            if (dynamo != null) {
-                dynamo.setEUVar(0);
-                if (dynamo.getBaseMetaTileEntity() != null) dynamo.getBaseMetaTileEntity()
-                    .markDirty();
-            }
-        }
-
-        mDirectPowerEUt = 0;
-        mNeutronsProduced = 0;
-        mFastAbsorbed = 0;
-        mThermalAbsorbed = 0;
-        mEscapedNeutrons = 0;
-        mReactorDamage = 0.0;
-        mScram = true;
-        mMachine = false;
-        stopMachine();
-        if (base != null) {
-            base.setActive(false);
-            base.setLightValue((byte) 0);
-            base.markDirty();
-            World world = base.getWorld();
-            int cX = base.getXCoord();
-            int cY = base.getYCoord();
-            int cZ = base.getZCoord();
-            GTUtility.sendSoundToPlayers(
-                world,
-                SoundResource.IC2_MACHINES_MACHINE_OVERLOAD,
-                1.0F,
-                0.5F,
-                cX + 0.5,
-                cY + 0.5,
-                cZ + 0.5);
-
-        }
+        NuclearReactorMeltdown.voidAllContents(this);
     }
 
     public void triggerThermalShock(MTEHatchNuclearHatch hatch, String reason) {
@@ -852,105 +717,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public void triggerMeltdown() {
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base == null || !base.isServerSide()) return;
-
-        GTLog.writeExplosionLog(
-            this,
-            String.format("MELTDOWN: reactor damage %.1f%%, core %.0f °C", mReactorDamage, mCoreTemp));
-
-        if (!GregTechAPI.sMachineExplosions) {
-            ModularNuclear.LOG.warn(
-                "Meltdown condition reached, but machine explosions are disabled! Voiding all contents and shutting down safely.");
-            voidAllContents();
-            return;
-        }
-
-        World world = base.getWorld();
-        if (world == null) return;
-
-        // Mark controller as permanently ruined from meltdown prior to explosion
-        this.mMoltenDown = true;
-        base.markDirty();
-        base.sendBlockEvent((byte) 102, (byte) 1);
-        base.issueTextureUpdate();
-
-        List<ChunkCoordinates> hollowCoords = new ArrayList<>();
-        double sumX = 0;
-        double sumY = 0;
-        double sumZ = 0;
-        int count = 0;
-
-        for (IGregTechTileEntity te : mNuclearTiles) {
-            if (te != null) {
-                int tx = te.getXCoord();
-                int ty = te.getYCoord();
-                int tz = te.getZCoord();
-                hollowCoords.add(new ChunkCoordinates(tx, ty - 2, tz));
-                hollowCoords.add(new ChunkCoordinates(tx, ty - 3, tz));
-                sumX += tx;
-                sumY += ty;
-                sumZ += tz;
-                count++;
-            }
-        }
-
-        double centerX = (count > 0) ? (sumX / count) : base.getXCoord();
-        double centerY = (count > 0) ? ((sumY / count) - 2.5) : (base.getYCoord() + 0.5);
-        double centerZ = (count > 0) ? (sumZ / count) : base.getZCoord();
-
-        // 1. Center explosion damaging internal casings/hatches
-        world.createExplosion(null, centerX, centerY, centerZ, 20.0F, true);
-
-        // 2. Corium fluid generation in inner hollow space
-        if (!hollowCoords.isEmpty()) {
-            Random rand = world.rand;
-            // 2-block-radius randomly-centred sphere of the inner hollow space
-            ChunkCoordinates sphereCenter = hollowCoords.get(rand.nextInt(hollowCoords.size()));
-            double radiusSq = 2.0 * 2.0;
-            Set<ChunkCoordinates> coriumPlaced = new HashSet<>();
-
-            for (ChunkCoordinates coord : hollowCoords) {
-                double dx = coord.posX - sphereCenter.posX;
-                double dy = coord.posY - sphereCenter.posY;
-                double dz = coord.posZ - sphereCenter.posZ;
-                if (dx * dx + dy * dy + dz * dz <= radiusSq) {
-                    BlockCorium.claimOwnerlessGtMachine(world, coord.posX, coord.posY, coord.posZ);
-                    world.setBlock(coord.posX, coord.posY, coord.posZ, ModBlocks.blockCorium, 0, 3);
-                    coriumPlaced.add(coord);
-                }
-            }
-
-            // Plus 4 more random blocks anywhere in the reactor hollow space
-            List<ChunkCoordinates> remaining = new ArrayList<>();
-            for (ChunkCoordinates coord : hollowCoords) {
-                if (!coriumPlaced.contains(coord)) {
-                    remaining.add(coord);
-                }
-            }
-            Collections.shuffle(remaining, rand);
-            int extraCount = Math.min(4, remaining.size());
-            for (int i = 0; i < extraCount; i++) {
-                ChunkCoordinates coord = remaining.get(i);
-                BlockCorium.claimOwnerlessGtMachine(world, coord.posX, coord.posY, coord.posZ);
-                world.setBlock(coord.posX, coord.posY, coord.posZ, ModBlocks.blockCorium, 0, 3);
-            }
-        }
-
-        // 3. Invisible fallout entity for timers, radiation, particles, and corium solidification
-        EntityMeltdownFallout fallout = new EntityMeltdownFallout(world, centerX, centerY, centerZ);
-        world.spawnEntityInWorld(fallout);
-
-        // 4. Shutdown reactor
-        mMachine = false;
-        stopMachine();
-        base.setActive(false);
-
-        ModularNuclear.LOG.warn(
-            "Modular Pressure Tube Reactor melted down at ({}, {}, {})! Produced corium and spawned fallout entity.",
-            centerX,
-            centerY,
-            centerZ);
+        NuclearReactorMeltdown.triggerMeltdown(this);
     }
 
     @Override
@@ -1231,7 +998,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public void verifyNuclearHatchFacings(List<StructureError> errors) {
-        checkNuclearHatchFacings(errors);
+        NuclearReactorStructureChecks.verifyNuclearHatchFacings(this, errors);
     }
 
     public static boolean isOuterWallFacingValid(IGregTechTileEntity bTe, int cX, int cY, int cZ, ExtendedFacing ef,
@@ -1280,33 +1047,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public void checkNuclearControlHatchFacings(IGregTechTileEntity aBaseMetaTileEntity, List<StructureError> errors) {
-        if (mControlHatches.isEmpty() || gridSize <= 0) return;
-        ExtendedFacing ef = getExtendedFacing();
-        if (ef == null) return;
-        int cX = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getXCoord() : 0;
-        int cY = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getYCoord() : 0;
-        int cZ = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getZCoord() : 0;
-
-        ForgeDirection controllerUp = ef.getRelativeUpInWorld();
-
-        for (MTEHatchNuclearControl hatch : mControlHatches) {
-            if (hatch == null) continue;
-            IGregTechTileEntity bTe = hatch.getBaseMetaTileEntity();
-            if (bTe == null) continue;
-
-            // 1. Must face outward away from the center of the structure
-            if (!isOuterWallFacingValid(bTe, cX, cY, cZ, ef, gridSize)) {
-                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.wrong_control_hatch_facing"));
-                return;
-            }
-
-            // 2. Must be upright relative to the controller on lateral faces
-            ExtendedFacing hatchEF = hatch.getExtendedFacing();
-            if (hatchEF == null || hatchEF.getRelativeUpInWorld() != controllerUp) {
-                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.wrong_control_hatch_facing"));
-                return;
-            }
-        }
+        NuclearReactorStructureChecks.checkNuclearControlHatchFacings(this, aBaseMetaTileEntity, errors);
     }
 
     public void verifyNuclearControlHatchFacings(IGregTechTileEntity aBaseMetaTileEntity, List<StructureError> errors) {
@@ -1348,133 +1089,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public void validateHighPressureHatchPairing(IGregTechTileEntity aBaseMetaTileEntity, List<StructureError> errors) {
-        if (!mTopHighPressureHatches.isEmpty() || !mBottomHighPressureHatches.isEmpty()) {
-            ReactorStructureRules.Violation tier = ReactorStructureRules.passages(mPipeTier);
-            if (tier != null) errors.add(StructureErrors.of(tier.langKey));
-            if (mTopHighPressureHatches.size() != mBottomHighPressureHatches.size()) {
-                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.hp_hatch_unpaired"));
-            } else if (gridSize > 0) {
-                int cX = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getXCoord() : 0;
-                int cY = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getYCoord() : 0;
-                int cZ = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getZCoord() : 0;
-                ExtendedFacing ef = getExtendedFacing();
-                boolean isUpsideDown = ef.getRotation() == Rotation.UPSIDE_DOWN;
-                int hOffset = gridSize / 2;
-
-                ICoolantPassageHatch[][] bottomGrid = new ICoolantPassageHatch[gridSize][gridSize];
-                for (ICoolantPassageHatch bottom : mBottomHighPressureHatches) {
-                    IGregTechTileEntity bTe = bottom instanceof IMetaTileEntity mte ? mte.getBaseMetaTileEntity()
-                        : null;
-                    if (bTe != null) {
-                        int[] gCoords = calculateGridCoords(bTe, cX, cY, cZ, ef, isUpsideDown, hOffset);
-                        if (gCoords != null && gCoords[0] >= 0
-                            && gCoords[0] < gridSize
-                            && gCoords[1] >= 0
-                            && gCoords[1] < gridSize) {
-                            bottomGrid[gCoords[0]][gCoords[1]] = bottom;
-                        }
-                    }
-                }
-
-                boolean anyUnpaired = false;
-                boolean anyMismatched = false;
-                for (ICoolantPassageHatch top : mTopHighPressureHatches) {
-                    IGregTechTileEntity tTe = top instanceof IMetaTileEntity mte ? mte.getBaseMetaTileEntity() : null;
-                    if (tTe != null) {
-                        int[] gCoords = calculateGridCoords(tTe, cX, cY, cZ, ef, isUpsideDown, hOffset);
-                        if (gCoords != null && gCoords[0] >= 0
-                            && gCoords[0] < gridSize
-                            && gCoords[1] >= 0
-                            && gCoords[1] < gridSize) {
-                            ICoolantPassageHatch bottom = bottomGrid[gCoords[0]][gCoords[1]];
-                            if (bottom != null) {
-                                if (top instanceof MTEHatchNuclearHighPressure in
-                                    && bottom instanceof MTEHatchNuclearHighPressure out
-                                    && in.getMaterialIndex() != out.getMaterialIndex()) {
-                                    anyMismatched = true;
-                                }
-                                IGregTechTileEntity bTe = bottom instanceof IMetaTileEntity mte
-                                    ? mte.getBaseMetaTileEntity()
-                                    : null;
-                                top.setOppositeHatch(bTe);
-                                if (top instanceof MTEHatchNuclearHighPressure nhp) {
-                                    nhp.setIsInlet(true);
-                                }
-                                bottom.setOppositeHatch(tTe);
-                                if (bottom instanceof MTEHatchNuclearHighPressure nhp) {
-                                    nhp.setIsInlet(false);
-                                }
-                                bottomGrid[gCoords[0]][gCoords[1]] = null;
-                            } else {
-                                anyUnpaired = true;
-                            }
-                        } else {
-                            anyUnpaired = true;
-                        }
-                    } else {
-                        anyUnpaired = true;
-                    }
-                }
-
-                if (anyUnpaired) {
-                    errors.add(StructureErrors.of("GT5U.gui.text.structure_error.hp_hatch_unpaired"));
-                }
-                if (anyMismatched) {
-                    errors.add(StructureErrors.of("GT5U.gui.text.structure_error.hp_hatch_material"));
-                }
-            }
-        }
+        NuclearReactorStructureChecks.validateHighPressureHatchPairing(this, aBaseMetaTileEntity, errors);
     }
 
     public void validateBeamInputHatchPairing(IGregTechTileEntity aBaseMetaTileEntity, List<StructureError> errors) {
-        if (!mBottomBeamInputHatches.isEmpty() && gridSize > 0) {
-            int cX = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getXCoord() : 0;
-            int cY = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getYCoord() : 0;
-            int cZ = aBaseMetaTileEntity != null ? aBaseMetaTileEntity.getZCoord() : 0;
-            ExtendedFacing ef = getExtendedFacing();
-            boolean isUpsideDown = ef.getRotation() == Rotation.UPSIDE_DOWN;
-            int hOffset = gridSize / 2;
-
-            boolean[][] busGrid = new boolean[gridSize][gridSize];
-            for (IGregTechTileEntity te : mNuclearTiles) {
-                if (te != null && te.getMetaTileEntity() instanceof MTEHatchNuclearBus) {
-                    int[] gCoords = calculateGridCoords(te, cX, cY, cZ, ef, isUpsideDown, hOffset);
-                    if (gCoords != null && gCoords[0] >= 0
-                        && gCoords[0] < gridSize
-                        && gCoords[1] >= 0
-                        && gCoords[1] < gridSize) {
-                        busGrid[gCoords[0]][gCoords[1]] = true;
-                    }
-                }
-            }
-
-            boolean anyUnpaired = false;
-            for (MTEHatchInputBeamline bottom : mBottomBeamInputHatches) {
-                IGregTechTileEntity bTe = bottom.getBaseMetaTileEntity();
-                if (bTe != null) {
-                    int[] gCoords = calculateGridCoords(bTe, cX, cY, cZ, ef, isUpsideDown, hOffset);
-                    if (gCoords != null && gCoords[0] >= 0
-                        && gCoords[0] < gridSize
-                        && gCoords[1] >= 0
-                        && gCoords[1] < gridSize) {
-                        if (!busGrid[gCoords[0]][gCoords[1]]) {
-                            anyUnpaired = true;
-                            break;
-                        }
-                    } else {
-                        anyUnpaired = true;
-                        break;
-                    }
-                } else {
-                    anyUnpaired = true;
-                    break;
-                }
-            }
-
-            if (anyUnpaired) {
-                errors.add(StructureErrors.of("GT5U.gui.text.structure_error.beam_hatch_unpaired"));
-            }
-        }
+        NuclearReactorStructureChecks.validateBeamInputHatchPairing(this, aBaseMetaTileEntity, errors);
     }
 
     @Override
@@ -1932,42 +1551,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     /** Columns past the casing's operating temperature lose their non-fuel contents and add damage (manual 12.3). */
     private void applyOverheating() {
-        // 4. Check casing-dependent maximum operating temperature:
-        // Overheating hatches increase reactor damage by 1% per overheating hatch.
-        // Overheating non-fuel contents in hatches/buses are voided, but fuel rods and fluids are NOT directly
-        // voided!
-        double maxTemp = NuclearSimulationEngine.getMaxOperatingTemperature(mPipeTier);
-        int overheatingHatchesCount = 0;
-        for (IGregTechTileEntity te : mNuclearTiles) {
-            if (te != null) {
-                if (te.getMetaTileEntity() instanceof MTEHatchNuclearHatch hatch) {
-                    if (hatch.mTemperature > maxTemp) {
-                        overheatingHatchesCount++;
-                        hatch.voidNonFuel();
-                    }
-                } else if (te.getMetaTileEntity() instanceof MTEHatchNuclearBus bus) {
-                    if (bus.mTemperature > maxTemp) {
-                        overheatingHatchesCount++;
-                        bus.voidNonFuelInput();
-                    }
-                } else if (te.getMetaTileEntity() instanceof MTEHatchNuclearHighPressure hp) {
-                    if (hp.getTemperature() > maxTemp || hp.mIncomingCoolantTemp > maxTemp) {
-                        overheatingHatchesCount++;
-                    }
-                }
-            }
-        }
-        for (MTEHatchNuclearControlRod rod : mBottomControlRodHatches) {
-            if (rod != null && rod.mTemperature > maxTemp) {
-                overheatingHatchesCount++;
-                rod.voidRod();
-            }
-        }
-        if (overheatingHatchesCount > 0) {
-            mReactorDamage = Math.min(
-                100.0,
-                mReactorDamage + overheatingHatchesCount * CoreHatchRules.OVERHEAT_DAMAGE_PERCENT_PER_COLUMN);
-        }
+        NuclearReactorMeltdown.applyOverheating(this);
     }
 
     /**
@@ -2315,40 +1899,12 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
 
     /** A full grid snapshot of copies (the client-side fallback before the first sync arrives). */
     public ReactorGridSyncData collectGridSyncData() {
-        ReactorGridSyncData data = new ReactorGridSyncData();
-        fillGridHeader(data);
-        if (mGrid != null && gridSize > 0) {
-            for (int x = 0; x < gridSize; x++) {
-                for (int y = 0; y < gridSize; y++) {
-                    ReactorGridSyncData.ReactorGridCellData cell = new ReactorGridSyncData.ReactorGridCellData();
-                    fillGridCell(x, y, cell, true);
-                    data.cells.add(cell);
-                }
-            }
-        }
-        return data;
+        return NuclearReactorGridSnapshot.collectGridSyncData(this);
     }
 
     /** The reactor-wide readings the GUI shows. */
     public void fillGridHeader(ReactorGridSyncData data) {
-        data.gridSize = this.gridSize;
-        data.coreDimension = this.coreDimension;
-        data.coreTemp = (float) this.mCoreTemp;
-        data.avgTemp = (float) this.mAvgTemp;
-        data.efficiency = this.mReactivity;
-        data.pipeTier = this.mPipeTier;
-        data.directPowerEUt = this.mDirectPowerEUt;
-        data.neutronsProduced = this.mNeutronsProduced;
-        data.cumulativeNeutrons = this.mCumulativeNeutrons;
-        data.fastAbsorbed = this.mFastAbsorbed;
-        data.thermalAbsorbed = this.mThermalAbsorbed;
-        data.escapedNeutrons = this.mEscapedNeutrons;
-        data.outputCoolantRate = this.mOutputCoolantRate;
-        data.outputCoolantName = this.mOutputCoolantName;
-        data.scram = this.mScram;
-        data.ambientTemp = (float) getAmbientTemperature();
-        data.reactorDamage = (float) this.mReactorDamage;
-        data.ticksPerCycle = getTicksPerCycle();
+        NuclearReactorGridSnapshot.fillGridHeader(this, data);
     }
 
     /**
@@ -2356,76 +1912,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
      * hatches' own stacks: only for comparing, never to keep.
      */
     public void fillGridCell(int x, int y, ReactorGridSyncData.ReactorGridCellData cell, boolean copyStacks) {
-        INuclearTile tile = mGrid[x][y];
-        cell.exists = false;
-        cell.isFluid = false;
-        cell.isHighPressure = false;
-        cell.hasControlRod = false;
-        cell.isAdvancedControlRod = false;
-        cell.controlRodInsertion = 0;
-        cell.controlRodType = 0;
-        cell.moderatorInsertion = 0;
-        cell.moderatorStack = null;
-        cell.itemStack = null;
-        cell.fluidStack = null;
-        cell.temperature = 20.0f;
-        cell.heatOutput = 0.0f;
-        cell.fastFlux = 0;
-        cell.thermalFlux = 0;
-        cell.fastAbsorbed = 0;
-        cell.thermalAbsorbed = 0;
-        cell.directEU = 0;
-        cell.notFuelReason = 0;
-        if (!(tile instanceof NuclearGridTile gt)) return;
-        cell.exists = true;
-        cell.temperature = (float) gt.getTemperature();
-        if (gt.isBus()) {
-            MTEHatchNuclearBus bus = gt.getBus();
-            ItemStack in = bus.getInput();
-            cell.itemStack = copyStacks ? ItemStack.copyItemStack(in) : in;
-            cell.fastFlux = bus.mLastFastFlux;
-            cell.thermalFlux = bus.mLastThermalFlux;
-            cell.fastAbsorbed = bus.mLastFastAbsorbed;
-            cell.thermalAbsorbed = bus.mLastThermalAbsorbed;
-            cell.directEU = bus.mDirectEUProduced;
-            cell.heatOutput = (float) bus.mLastHeatOutput;
-            NuclearFuelClassification.NotFuelReason refused = (in != null && !gt.isFuel())
-                ? NuclearFuelClassification.unexpectedNotFuel(in)
-                : null;
-            cell.notFuelReason = refused != null ? (byte) (refused.ordinal() + 1) : 0;
-        } else if (gt.isHatch()) {
-            MTEHatchNuclearHatch hatch = gt.getHatch();
-            cell.isFluid = true;
-            cell.fluidStack = (copyStacks && hatch.mInputFluid != null) ? hatch.mInputFluid.copy() : hatch.mInputFluid;
-            cell.fastFlux = hatch.mLastFastFlux;
-            cell.thermalFlux = hatch.mLastThermalFlux;
-            cell.fastAbsorbed = hatch.mLastFastAbsorbed;
-            cell.thermalAbsorbed = hatch.mLastThermalAbsorbed;
-            cell.heatOutput = (float) hatch.mLastHeatOutput;
-        } else if (gt.isHighPressureHatch()) {
-            MTEHatchNuclearHighPressure hp = gt.getHighPressureHatch();
-            cell.isHighPressure = true;
-            cell.fastFlux = hp.mLastFastFlux;
-            cell.thermalFlux = hp.mLastThermalFlux;
-            cell.fastAbsorbed = hp.mLastFastAbsorbed;
-            cell.thermalAbsorbed = hp.mLastThermalAbsorbed;
-            cell.heatOutput = (float) hp.mLastHeatOutput;
-        }
-
-        if (gt.hasControlRod()) {
-            MTEHatchNuclearControlRod rod = gt.getBottomControlRod();
-            cell.hasControlRod = true;
-            cell.isAdvancedControlRod = rod.hasModerator() || (rod instanceof MTEHatchNuclearAdvancedControlRod);
-            cell.controlRodInsertion = rod.getInsertionPercent();
-            cell.controlRodType = MTEHatchNuclearControlRod
-                .getRodType(rod.mInventory[MTEHatchNuclearControlRod.SLOT_ROD])
-                .ordinal();
-            if (cell.isAdvancedControlRod) {
-                cell.moderatorInsertion = rod.getModeratorInsertionPercent();
-                ItemStack mod = rod.getModeratorStack();
-                cell.moderatorStack = copyStacks ? ItemStack.copyItemStack(mod) : mod;
-            }
-        }
+        NuclearReactorGridSnapshot.fillGridCell(this, x, y, cell, copyStacks);
     }
 
     public boolean hasComputerMonitorCover() {
@@ -2439,48 +1926,11 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     /** Per-cycle scratch for the metrics snapshot's temperatures and reactivities, grown with the grid. */
-    private double[] mSnapshotTemps = new double[0];
-    private double[] mSnapshotReactivities = new double[0];
+    double[] mSnapshotTemps = new double[0];
+    double[] mSnapshotReactivities = new double[0];
 
     public void recordMetricsCycleSnapshot(NuclearSimulationEngine.SimulationResult res, double maintEff) {
-        if (res == null) return;
-        int cells = gridSize * gridSize;
-        if (mSnapshotTemps.length < cells) {
-            mSnapshotTemps = new double[cells];
-            mSnapshotReactivities = new double[cells];
-        }
-        int temps = 0;
-        int reactivities = 0;
-
-        if (mGrid != null) {
-            for (int x = 0; x < gridSize; x++) {
-                for (int y = 0; y < gridSize; y++) {
-                    INuclearTile tile = mGrid[x][y];
-                    if (tile != null) {
-                        double t = tile.getTemperature();
-                        mSnapshotTemps[temps++] = t;
-                        if (tile.isFuel()) {
-                            mSnapshotReactivities[reactivities++] = NuclearSimulationEngine.calculateEfficiency(tile, t)
-                                * 100.0;
-                        }
-                    }
-                }
-            }
-        }
-
-        ReactorCycleSnapshot snapshot = ReactorCycleSnapshot.create(
-            mTotalCycles,
-            mSnapshotTemps,
-            temps,
-            mSnapshotReactivities,
-            reactivities,
-            res.neutronsEscaped,
-            res.totalNeutronsGenerated,
-            res.thermalNeutronsAbsorbed,
-            mDirectPowerEUt,
-            mProducedHotCoolantLastCycle,
-            getTicksPerCycle());
-        mMetricsHistory.addSnapshot(snapshot);
+        NuclearReactorGridSnapshot.recordMetricsCycleSnapshot(this, res, maintEff);
     }
 
     public ReactorMetricsHistory getMetricsHistory() {
