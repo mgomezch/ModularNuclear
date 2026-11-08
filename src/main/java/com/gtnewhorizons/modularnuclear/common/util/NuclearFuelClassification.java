@@ -603,7 +603,7 @@ public final class NuclearFuelClassification {
         if (r.customRod) return CustomFuelMix.hasCustomMix(stack);
 
         // Cheese, for the molten cheese extraction
-        if (bus != null && CheeseRecipeRegistry.getInstance()
+        if (bus != null && bus.cheeseRecipes()
             .findRecipe(stack) != null) {
             return true;
         }

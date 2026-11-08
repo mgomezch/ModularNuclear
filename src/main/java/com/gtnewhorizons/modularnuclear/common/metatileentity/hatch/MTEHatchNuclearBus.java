@@ -14,6 +14,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearBusGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
@@ -171,6 +172,11 @@ public class MTEHatchNuclearBus extends MTEHatch {
             }
         }
         super.onContentsChanged(aIndex);
+    }
+
+    /** The molten cheese recipes this bus's contents are checked against: GregTech's fluid extractor's. */
+    public CheeseRecipeRegistry cheeseRecipes() {
+        return CheeseRecipeRegistry.getInstance();
     }
 
     public boolean isItemAllowed(ItemStack aStack) {

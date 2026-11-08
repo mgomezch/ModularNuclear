@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.recipe;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -7,6 +8,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Supplier;
 
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
@@ -26,11 +28,17 @@ import gregtech.api.util.GTRecipe;
  */
 public class CheeseRecipeRegistry {
 
-    private static final CheeseRecipeRegistry INSTANCE = new CheeseRecipeRegistry();
+    private static final CheeseRecipeRegistry INSTANCE = new CheeseRecipeRegistry(
+        () -> RecipeMaps.fluidExtractionRecipes != null ? RecipeMaps.fluidExtractionRecipes.getAllRecipes()
+            : Collections.emptyList());
 
+    /** The registry over GregTech's fluid extractor recipes, which the game's nuclear buses use. */
     public static CheeseRecipeRegistry getInstance() {
         return INSTANCE;
     }
+
+    /** Where the registry finds its candidate recipes; it keeps those that make molten cheese. */
+    private final Supplier<? extends Collection<GTRecipe>> source;
 
     private final List<GTRecipe> cheeseRecipes = new CopyOnWriteArrayList<>();
     private final Set<Item> cheeseInputItems = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -38,7 +46,10 @@ public class CheeseRecipeRegistry {
     private volatile boolean isLoaded = false;
     private volatile boolean hasDynamicOrUnknownInputs = false;
 
-    private CheeseRecipeRegistry() {}
+    /** A registry over the molten cheese recipes among {@code source}'s, read on first use. */
+    public CheeseRecipeRegistry(Supplier<? extends Collection<GTRecipe>> source) {
+        this.source = source;
+    }
 
     /**
      * Cache key for item inputs matching fluid extraction recipes.
@@ -121,63 +132,28 @@ public class CheeseRecipeRegistry {
         if (isLoaded) return;
         synchronized (this) {
             if (isLoaded) return;
-            if (RecipeMaps.fluidExtractionRecipes != null) {
-                for (GTRecipe recipe : RecipeMaps.fluidExtractionRecipes.getAllRecipes()) {
-                    if (recipe.mFluidOutputs != null) {
-                        for (FluidStack out : recipe.mFluidOutputs) {
-                            if (out != null && isMoltenCheese(out)) {
-                                cheeseRecipes.add(recipe);
-                                if (recipe.mInputs != null && recipe.mInputs.length > 0) {
-                                    for (ItemStack in : recipe.mInputs) {
-                                        if (in != null && in.getItem() != null) {
-                                            cheeseInputItems.add(in.getItem());
-                                            recipeCache.put(new RecipeCacheKey(in), Optional.of(recipe));
-                                        }
+            for (GTRecipe recipe : source.get()) {
+                if (recipe.mFluidOutputs != null) {
+                    for (FluidStack out : recipe.mFluidOutputs) {
+                        if (out != null && isMoltenCheese(out)) {
+                            cheeseRecipes.add(recipe);
+                            if (recipe.mInputs != null && recipe.mInputs.length > 0) {
+                                for (ItemStack in : recipe.mInputs) {
+                                    if (in != null && in.getItem() != null) {
+                                        cheeseInputItems.add(in.getItem());
+                                        recipeCache.put(new RecipeCacheKey(in), Optional.of(recipe));
                                     }
-                                } else {
-                                    hasDynamicOrUnknownInputs = true;
                                 }
-                                break;
+                            } else {
+                                hasDynamicOrUnknownInputs = true;
                             }
+                            break;
                         }
                     }
                 }
             }
 
             isLoaded = true;
-        }
-    }
-
-    /**
-     * Clears cached recipes and input lookups. Primarily for unit testing or recipe reloading.
-     */
-    public void clear() {
-        synchronized (this) {
-            cheeseRecipes.clear();
-            cheeseInputItems.clear();
-            recipeCache.clear();
-            hasDynamicOrUnknownInputs = false;
-            isLoaded = false;
-        }
-    }
-
-    /**
-     * Registers a single cheese extraction recipe into the global singleton.
-     */
-    public void registerRecipe(GTRecipe recipe) {
-        if (recipe == null) return;
-        loadRecipes();
-        recipeCache.clear();
-        cheeseRecipes.add(recipe);
-        if (recipe.mInputs != null && recipe.mInputs.length > 0) {
-            for (ItemStack in : recipe.mInputs) {
-                if (in != null && in.getItem() != null) {
-                    cheeseInputItems.add(in.getItem());
-                    recipeCache.put(new RecipeCacheKey(in), Optional.of(recipe));
-                }
-            }
-        } else {
-            hasDynamicOrUnknownInputs = true;
         }
     }
 
@@ -245,27 +221,5 @@ public class CheeseRecipeRegistry {
 
         recipeCache.put(key, Optional.empty());
         return null;
-    }
-
-    public Set<Item> getCheeseInputItems() {
-        if (!isLoaded) {
-            loadRecipes();
-        }
-        return Collections.unmodifiableSet(cheeseInputItems);
-    }
-
-    public List<GTRecipe> getCheeseRecipes() {
-        if (!isLoaded) {
-            loadRecipes();
-        }
-        return Collections.unmodifiableList(cheeseRecipes);
-    }
-
-    public boolean isLoaded() {
-        return isLoaded;
-    }
-
-    public boolean hasDynamicOrUnknownInputs() {
-        return hasDynamicOrUnknownInputs;
     }
 }
