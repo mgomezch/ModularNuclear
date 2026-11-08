@@ -415,9 +415,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         if (mSolderingTool) working.add(4);
         if (mCrowbar) working.add(5);
         if (!working.isEmpty()) {
-            IGregTechTileEntity base = getBaseMetaTileEntity();
-            int randIdx = (base != null) ? base.getRandomNumber(working.size())
-                : (int) (Math.random() * working.size());
+            int randIdx = getRandomNumber(working.size());
             int pick = working.get(randIdx);
             switch (pick) {
                 case 0 -> mWrench = false;
@@ -427,6 +425,7 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                 case 4 -> mSolderingTool = false;
                 case 5 -> mCrowbar = false;
             }
+            IGregTechTileEntity base = getBaseMetaTileEntity();
             if (base != null) {
                 base.markDirty();
             }
@@ -1502,11 +1501,9 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         }
     }
 
+    /** A random number in [0, max) from this reactor's engine's random source, as the core's physics uses. */
     public int getRandomNumber(int max) {
-        if (getBaseMetaTileEntity() != null) {
-            return getBaseMetaTileEntity().getRandomNumber(max);
-        }
-        return (int) (Math.random() * max);
+        return engine().parameters().random.nextInt(max);
     }
 
     public boolean isItemFuel(ItemStack stack) {

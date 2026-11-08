@@ -182,7 +182,7 @@ final class NuclearReactorCycle {
             double multiplier = 1.0 + 9.0 * sFactor;
             double baseProb = 0.01;
             double prob = baseProb * multiplier;
-            if ((aBaseMetaTileEntity.getRandomNumber(1000000) / 1000000.0) < prob) {
+            if ((r.getRandomNumber(1000000) / 1000000.0) < prob) {
                 r.causeNewMaintenanceIssue();
             }
         }
