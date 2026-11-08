@@ -324,6 +324,67 @@ public class CoolantLoopEndToEndTest {
     }
 
     @Test
+    public void testUnpoweredFlowStopsCompletely() {
+        engine.setPumpPowered(true);
+        engine.setPumpMechanicalPowerWatts(120000.0);
+        for (int t = 0; t < 400; t++) engine.step(0.05);
+        assertTrue(engine.getFlowRateLitersPerSecond() > 10.0, "The pump must get the loop moving");
+
+        engine.setPumpPowered(false);
+        engine.setPumpMechanicalPowerWatts(0.0);
+        int ticks = 0;
+        double last = engine.getVolumetricFlowRate();
+        while (engine.getVolumetricFlowRate() > 0.0 && ticks < 20 * 120) {
+            engine.step(0.05);
+            ticks++;
+            assertTrue(engine.getVolumetricFlowRate() < last, "Coasting flow must keep falling, tick " + ticks);
+            last = engine.getVolumetricFlowRate();
+        }
+        assertEquals(0.0, engine.getVolumetricFlowRate(), 0.0, "Flow must reach exactly zero");
+        assertTrue(ticks < 20 * 120, "Flow must stop within two minutes, took " + ticks + " ticks");
+    }
+
+    @Test
+    public void testSlowFlowStopsWithinTheStopTime() {
+        engine.setVolumetricFlowRate(0.0009);
+        for (int t = 0; t < 40; t++) engine.step(0.05);
+        assertEquals(0.0, engine.getVolumetricFlowRate(), 0.0, "0.9 L/s must stop within 2 s");
+    }
+
+    @Test
+    public void testPoweredSlowFlowIsNotStopped() {
+        engine.setPumpPowered(true);
+        engine.setPumpMechanicalPowerWatts(50.0);
+        double last = 0.0;
+        for (int t = 0; t < 5; t++) {
+            engine.step(0.05);
+            assertTrue(engine.getVolumetricFlowRate() > last, "A powered pump must speed up from rest, tick " + t);
+            last = engine.getVolumetricFlowRate();
+        }
+        assertTrue(engine.getFlowRateLitersPerSecond() < 1.0, "This test needs a flow under the stopping threshold");
+    }
+
+    @Test
+    public void testNewSegmentsTakeTheCoolantsTemperature() {
+        loopSegments.get(0)
+            .setCurrentTemperatureCelsius(100.0);
+        loopSegments.get(1)
+            .setCurrentTemperatureCelsius(100.0);
+        loopSegments.get(2)
+            .setCurrentTemperatureCelsius(100.0);
+        loopSegments.get(3)
+            .setCurrentTemperatureCelsius(100.0);
+
+        LoopSegment added = new LoopSegment("seg_new", 4.0, 0.1, 0.00005, 0.0, 100.0, 1000.0, 20.0);
+        List<LoopSegment> next = new ArrayList<>(loopSegments.subList(0, 3));
+        next.add(added);
+        assertFalse(engine.replaceSegmentsKeepingCoolant(next), "A changed loop isn't the same loop");
+        assertEquals(100.0, added.getCurrentTemperatureCelsius(), 1e-9);
+
+        assertTrue(engine.replaceSegmentsKeepingCoolant(new ArrayList<>(next)), "An unchanged loop is the same loop");
+    }
+
+    @Test
     public void testFillingPhaseSimulationTransitionsToCirculation() {
         long requiredFill = 3000L;
         long currentFill = 0L;

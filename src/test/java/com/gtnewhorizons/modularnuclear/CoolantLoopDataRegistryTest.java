@@ -65,6 +65,8 @@ public class CoolantLoopDataRegistryTest {
         assertEquals(4.0, phys.getRotorThermalAlpha(), 1e-4);
         assertEquals(10.0, phys.getCavitationWearMultiplier(), 1e-4);
         assertEquals(0.98, phys.getCoastDownDecay(), 1e-4);
+        assertEquals(1.0, phys.getCoastDownStopFlowLitersPerSecond(), 1e-4);
+        assertEquals(2.0, phys.getCoastDownStopSeconds(), 1e-4);
 
         // Verify default fluids
         CoolantFluidData fluids = CoolantLoopDataRegistry.getFluidData();

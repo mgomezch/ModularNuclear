@@ -29,6 +29,8 @@ public class CoolantPhysicsData {
     private double rotorThermalAlpha = 4.0; // Thermal softening and creep wear acceleration exponent
     private double cavitationWearMultiplier = 10.0; // Cavitation wear multiplier when dissolved gas is present
     private double coastDownDecay = 0.98; // Viscous coast-down decay factor per tick when unpowered
+    private double coastDownStopFlowLitersPerSecond = 1.0; // Below this flow an unpowered loop runs down to a stop
+    private double coastDownStopSeconds = 2.0; // How long it takes to stop from coastDownStopFlowLitersPerSecond
     /**
      * Melting point (K) of rotor materials, over GregTech's: for those it has no temperature for, whose molten fluid
      * GTNH gives 1000 K.
@@ -62,6 +64,8 @@ public class CoolantPhysicsData {
         map.put("rotorThermalAlpha", rotorThermalAlpha);
         map.put("cavitationWearMultiplier", cavitationWearMultiplier);
         map.put("coastDownDecay", coastDownDecay);
+        map.put("coastDownStopFlowLitersPerSecond", coastDownStopFlowLitersPerSecond);
+        map.put("coastDownStopSeconds", coastDownStopSeconds);
         map.put("rotorMeltingPointsKelvin", rotorMeltingPointsKelvin);
 
         map.put("standardPassageLength", standardPassageLength);
@@ -97,6 +101,11 @@ public class CoolantPhysicsData {
         if (map.containsKey("cavitationWearMultiplier"))
             data.cavitationWearMultiplier = ((Number) map.get("cavitationWearMultiplier")).doubleValue();
         if (map.containsKey("coastDownDecay")) data.coastDownDecay = ((Number) map.get("coastDownDecay")).doubleValue();
+        if (map.containsKey("coastDownStopFlowLitersPerSecond"))
+            data.coastDownStopFlowLitersPerSecond = ((Number) map.get("coastDownStopFlowLitersPerSecond"))
+                .doubleValue();
+        if (map.containsKey("coastDownStopSeconds"))
+            data.coastDownStopSeconds = ((Number) map.get("coastDownStopSeconds")).doubleValue();
         if (map.get("rotorMeltingPointsKelvin") instanceof Map<?, ?>melt) {
             data.rotorMeltingPointsKelvin.clear();
             for (Map.Entry<?, ?> e : melt.entrySet()) {
@@ -250,6 +259,14 @@ public class CoolantPhysicsData {
 
     public void setCavitationWearMultiplier(double cavitationWearMultiplier) {
         this.cavitationWearMultiplier = cavitationWearMultiplier;
+    }
+
+    public double getCoastDownStopFlowLitersPerSecond() {
+        return coastDownStopFlowLitersPerSecond;
+    }
+
+    public double getCoastDownStopSeconds() {
+        return coastDownStopSeconds;
     }
 
     public double getCoastDownDecay() {

@@ -46,6 +46,12 @@ cavitationWearMultiplier: 10.0
 # Viscous coast-down decay factor per tick when unpowered (default 0.98)
 coastDownDecay: 0.98
 
+# Below this flow (L/s) an unpowered loop runs down to a full stop (default 1.0)
+coastDownStopFlowLitersPerSecond: 1.0
+
+# Seconds it takes to stop from that flow (default 2.0)
+coastDownStopSeconds: 2.0
+
 # Standard reactor passage length in meters (default 5.0)
 standardPassageLength: 5.0
 

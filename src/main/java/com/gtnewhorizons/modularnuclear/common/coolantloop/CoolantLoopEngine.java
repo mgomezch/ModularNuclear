@@ -33,6 +33,9 @@ public class CoolantLoopEngine {
     private double unpoweredImpellerK = 8.0; // High minor loss coefficient when motor is disengaged
     private double maxPumpHeadPressurePa = Double.POSITIVE_INFINITY; // Maximum stall head (uncapped by default)
     private double coastDownDecay = 0.98; // Viscous coast-down decay factor per tick when unpowered
+    // See Note [Changing a stopped coolant loop]
+    private double coastDownStopFlow = 0.001; // Below this flow (m^3/s) an unpowered loop runs down to a stop
+    private double coastDownStopSeconds = 2.0; // How long it takes to stop from coastDownStopFlow
     /**
      * Whether the loop holds coolant. Unfilled pipe has no temperature: until the loop fills, no temperature limit
      * (melting, freezing) applies to its segments.
@@ -174,6 +177,10 @@ public class CoolantLoopEngine {
                 .getMaxPumpHeadPressurePa();
             this.coastDownDecay = CoolantLoopConfigData.getPhysicsData()
                 .getCoastDownDecay();
+            this.coastDownStopFlow = CoolantLoopConfigData.getPhysicsData()
+                .getCoastDownStopFlowLitersPerSecond() / 1000.0;
+            this.coastDownStopSeconds = CoolantLoopConfigData.getPhysicsData()
+                .getCoastDownStopSeconds();
         }
     }
 
@@ -246,6 +253,36 @@ public class CoolantLoopEngine {
         clearSegments();
         for (LoopSegment s : next) addSegment(s);
         return false;
+    }
+
+    // See Note [Changing a stopped coolant loop]
+    /**
+     * Replaces the segments of a loop at rest, which can change while its coolant stays in it: a segment still in the
+     * loop keeps its state, and a new one takes the coolant's average temperature. Returns whether the segments are
+     * the same as before.
+     */
+    public boolean replaceSegmentsKeepingCoolant(List<LoopSegment> next) {
+        Map<LoopId, LoopSegment> previous = new HashMap<>();
+        for (LoopSegment s : segments) previous.put(s.getKey(), s);
+        double coolantTemp = getAvgLoopTempCelsius();
+        boolean hadCoolant = !segments.isEmpty();
+        boolean same = previous.size() == next.size();
+        segments.clear();
+        for (LoopSegment s : next) {
+            LoopSegment old = previous.get(s.getKey());
+            if (old != null) {
+                s.copyStateFrom(old);
+            } else {
+                same = false;
+                if (hadCoolant) {
+                    s.setCurrentTemperatureCelsius(coolantTemp);
+                    s.setIncomingTemperatureCelsius(coolantTemp);
+                }
+            }
+            addSegment(s);
+        }
+        maxVolumetricFlowRate = Double.MAX_VALUE;
+        return same;
     }
 
     public void clearSegments() {
@@ -501,6 +538,10 @@ public class CoolantLoopEngine {
 
         if (!isPumpPowered && volumetricFlowRate > 1e-6 && coastDownDecay > 0.0 && coastDownDecay < 1.0) {
             volumetricFlowRate *= Math.pow(coastDownDecay, dt / 0.05);
+        }
+        // Decay alone never reaches zero. See Note [Changing a stopped coolant loop]
+        if (!isPumpPowered && volumetricFlowRate > 0.0 && volumetricFlowRate < coastDownStopFlow) {
+            volumetricFlowRate = Math.max(0.0, volumetricFlowRate - coastDownStopFlow * dt / coastDownStopSeconds);
         }
 
         // 4. Pressure distribution and safety verification
