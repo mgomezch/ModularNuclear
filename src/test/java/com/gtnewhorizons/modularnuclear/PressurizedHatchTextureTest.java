@@ -10,7 +10,6 @@ import org.mockito.Mockito;
 
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
 
@@ -120,7 +119,7 @@ public class PressurizedHatchTextureTest {
 
     @Test
     public void testCoolantPumpHatchTextureOnForm() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump");
+        TestCoolantPump pump = new TestCoolantPump("test_pump");
         MTEHatchPressurizedFluid dischargeHatch = new MTEHatchPressurizedFluid("discharge", 1, new String[0], null);
         dischargeHatch.setMode(MTEHatchPressurizedFluid.HatchMode.DISCHARGE);
 
@@ -206,7 +205,7 @@ public class PressurizedHatchTextureTest {
 
     @Test
     public void testCoolantPumpInputBusTextureOnForm() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump_bus");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_bus");
         MTEHatchInputBus inputBus = new MTEHatchInputBus("input_bus", 1, new String[0], null);
 
         IGregTechTileEntity mockTile = Mockito.mock(IGregTechTileEntity.class);

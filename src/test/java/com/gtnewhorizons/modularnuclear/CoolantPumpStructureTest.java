@@ -216,7 +216,7 @@ public class CoolantPumpStructureTest {
 
     @Test
     public void testStructureDefinitionShapes() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump");
+        TestCoolantPump pump = new TestCoolantPump("test_pump");
         IStructureDefinition<MTECoolantPump> def = pump.getStructureDefinition();
         assertNotNull(def, "Structure definition should not be null");
 
@@ -252,7 +252,7 @@ public class CoolantPumpStructureTest {
 
     @Test
     public void testEnergyHatchesAndRotorImpellerValidation() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump");
+        TestCoolantPump pump = new TestCoolantPump("test_pump");
 
         // Rotor validation tests
         assertFalse(MTECoolantPump.isValidRotor(null));
@@ -301,7 +301,7 @@ public class CoolantPumpStructureTest {
         assertFalse(MTECoolantPump.isGaseousFluid(cheese, null));
 
         // Pump simulation step refusal on regular water
-        MTECoolantPump pump = new MTECoolantPump("test_pump_water");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_water");
         gregtech.api.interfaces.tileentity.IGregTechTileEntity mockPumpBase = Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
         Mockito.when(mockPumpBase.isAllowedToWork())
@@ -334,7 +334,7 @@ public class CoolantPumpStructureTest {
 
         // 1. Unfilled pipe has no temperature: a cold, empty loop does not stop a molten fill, which goes on to
         // the pump's power check (none here)
-        MTECoolantPump pump = new MTECoolantPump("test_pump_molten");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_molten");
         gregtech.api.interfaces.tileentity.IGregTechTileEntity mockPumpBase = Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
         Mockito.when(mockPumpBase.isAllowedToWork())
@@ -451,7 +451,7 @@ public class CoolantPumpStructureTest {
             0.05);
 
         // 2. Fresh pump with molten sodium reservoir initializes at baseline inlet temperature (96.85 °C)
-        MTECoolantPump pump = new MTECoolantPump("test_pump_sodium");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_sodium");
         pump.setSimulatedBiomeTemperatureCelsius(20.0);
         pump.getEngine()
             .setFluid(CoolantFluidProperty.SODIUM);
@@ -580,7 +580,7 @@ public class CoolantPumpStructureTest {
         assertFalse(CoolantFluidHelper.isLiquidNuclearFuel("molten.cheese"));
 
         // 2. Pump failure and impeller destruction
-        MTECoolantPump pump = new MTECoolantPump("test_pump_nuke");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_nuke");
         net.minecraft.item.Item mockTool = Mockito.mock(net.minecraft.item.Item.class);
         ItemStack mockRotor = Mockito.mock(ItemStack.class);
         Mockito.when(mockRotor.getItem())
@@ -611,7 +611,7 @@ public class CoolantPumpStructureTest {
 
     @Test
     public void testImpellerCavitationWearFromDissolvedGases() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump_cavit");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_cavit");
         net.minecraft.item.Item mockTool = Mockito.mock(net.minecraft.item.Item.class);
         ItemStack mockRotor = Mockito.mock(ItemStack.class);
         Mockito.when(mockRotor.getItem())
@@ -649,7 +649,7 @@ public class CoolantPumpStructureTest {
 
     @Test
     public void testScannerInfoDataUsesNormalSentenceCase() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump_scanner");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_scanner");
         String[] info = pump.getInfoData();
         assertNotNull(info);
         assertTrue(info.length >= 8);
@@ -724,7 +724,7 @@ public class CoolantPumpStructureTest {
         giveFluidTank(nether, lavaStack);
 
         // 3. Pump in Overworld rejects lava
-        MTECoolantPump pumpOverworld = new MTECoolantPump("test_pump_lava_overworld");
+        TestCoolantPump pumpOverworld = new TestCoolantPump("test_pump_lava_overworld");
         gregtech.api.interfaces.tileentity.IGregTechTileEntity mockPumpBaseOw = Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
         Mockito.when(mockPumpBaseOw.isAllowedToWork())
@@ -747,7 +747,7 @@ public class CoolantPumpStructureTest {
         assertEquals("Pump refused to start: Lava is too viscous here!", pumpOverworld.getLoopStatus());
 
         // 4. Pump in Nether accepts lava and bypasses melting temperature check
-        MTECoolantPump pumpNether = new MTECoolantPump("test_pump_lava_nether");
+        TestCoolantPump pumpNether = new TestCoolantPump("test_pump_lava_nether");
         gregtech.api.interfaces.tileentity.IGregTechTileEntity mockPumpBaseNether = Mockito
             .mock(gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
         Mockito.when(mockPumpBaseNether.isAllowedToWork())
@@ -822,7 +822,7 @@ public class CoolantPumpStructureTest {
     }
 
     private MTECoolantPump createOperatingPumpWithBase(boolean[] allowedToWorkHolder) {
-        MTECoolantPump pump = new MTECoolantPump("test_pump");
+        TestCoolantPump pump = new TestCoolantPump("test_pump");
         IGregTechTileEntity mockPumpBase = Mockito.mock(IGregTechTileEntity.class);
         Mockito.when(mockPumpBase.isAllowedToWork())
             .thenAnswer(inv -> allowedToWorkHolder[0]);
@@ -1426,7 +1426,7 @@ public class CoolantPumpStructureTest {
     @Test
     public void testUnpoweredPumpRupturesCatastrophically() {
         // Test that loop rupture occurs regardless of whether the pump is powered or unpowered
-        MTECoolantPump pump = new MTECoolantPump("test_pump_unpowered_rupture");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_unpowered_rupture");
         IGregTechTileEntity mockPumpBase = Mockito.mock(IGregTechTileEntity.class);
         Mockito.when(mockPumpBase.isAllowedToWork())
             .thenReturn(false); // unpowered / stopped by user
@@ -1465,7 +1465,7 @@ public class CoolantPumpStructureTest {
 
     @Test
     public void testFluidSpillOnRupturePlacesSourceBlocksAndNotifiesNeighbors() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump_fluid_spill");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_fluid_spill");
         IGregTechTileEntity mockPumpBase = Mockito.mock(IGregTechTileEntity.class);
         net.minecraft.world.World mockWorld = Mockito.mock(net.minecraft.world.World.class);
         mockWorld.isRemote = false;
@@ -1535,7 +1535,7 @@ public class CoolantPumpStructureTest {
 
     @Test
     public void testSpillOnRuptureDisabledConfig() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump_no_spill");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_no_spill");
         IGregTechTileEntity mockPumpBase = Mockito.mock(IGregTechTileEntity.class);
         net.minecraft.world.World mockWorld = Mockito.mock(net.minecraft.world.World.class);
         mockWorld.isRemote = false;
@@ -1600,7 +1600,7 @@ public class CoolantPumpStructureTest {
 
     @Test
     public void testSpillOnRuptureGracefullySkipsWhenNoAirBlocks() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump_no_air");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_no_air");
         IGregTechTileEntity mockPumpBase = Mockito.mock(IGregTechTileEntity.class);
         net.minecraft.world.World mockWorld = Mockito.mock(net.minecraft.world.World.class);
         mockWorld.isRemote = false;
@@ -1655,7 +1655,7 @@ public class CoolantPumpStructureTest {
 
     @Test
     public void testCoolantPumpTooltipAndStructureCasings() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump_tooltip");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_tooltip");
         gregtech.api.util.MultiblockTooltipBuilder tt = pump.createTooltip();
         assertNotNull(tt);
         String[] structInfo = tt.getStructureInformation();
@@ -1681,7 +1681,7 @@ public class CoolantPumpStructureTest {
 
     @Test
     public void testLoopFormationFailureDiagnosticsAndGuiOverrides() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump_loop_diag");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_loop_diag");
 
         // 1. Initial unformed loop state: recipe & running texts must be suppressed
         assertFalse(pump.isLoopFormed(), "Initial pump must have unformed loop");
@@ -1753,7 +1753,7 @@ public class CoolantPumpStructureTest {
 
     @Test
     public void testCoolantPumpInputBusStructureAllowedZeroOrOne() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump_structure_bus");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_structure_bus");
 
         // 1. Zero input bus is allowed by default
         assertEquals(0, pump.mInputBusses.size());
@@ -1787,7 +1787,7 @@ public class CoolantPumpStructureTest {
 
     @Test
     public void testCoolantPumpAutoLoadsImpellerFromInputBus() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump_autoload");
+        TestCoolantPump pump = new TestCoolantPump("test_pump_autoload");
 
         // Pump starts without impeller
         assertFalse(pump.hasImpeller());

@@ -41,6 +41,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureCh
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.CoolantPumpStructure;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantPumpReservoir;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.ClientText;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
@@ -138,7 +139,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     protected ItemStack mRotorStack = null;
     protected double mRotorEfficiency = 0.85;
     protected Materials mRotorMaterial = null;
-    protected Double mSimulatedFluidTempCelsius = null;
 
     public enum LoopState {
         EMPTY,
@@ -166,7 +166,13 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     protected long[] mFillOrderCumulative = null;
 
     // Reservoir management
-    protected final CoolantPumpReservoir mReservoir = new CoolantPumpReservoir(this);
+    protected final CoolantPumpReservoir mReservoir = createReservoir();
+
+    /** The reservoir over the Railcraft tank above the pump. */
+    protected CoolantPumpReservoir createReservoir() {
+        return new CoolantPumpReservoir(this);
+    }
+
     protected boolean mPowerFailed = false;
 
     // Multi-tick loop crawling state
@@ -261,22 +267,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     public boolean isDischargeHatchDisabled() {
         if (mDischargeHatch == null) return false;
         return !mDischargeHatch.isAllowedToWork();
-    }
-
-    public long getSimulatedTankCapacityLiters() {
-        return mReservoir.getSimulatedTankCapacityLiters();
-    }
-
-    public void setSimulatedTankCapacityLiters(long capacity) {
-        mReservoir.setSimulatedTankCapacityLiters(capacity);
-    }
-
-    public long getSimulatedCoolantLiters() {
-        return mReservoir.getSimulatedCoolantLiters();
-    }
-
-    public void setSimulatedCoolantLiters(long liters) {
-        mReservoir.setSimulatedCoolantLiters(liters);
     }
 
     public void addLoopDevice(ICoolantLoopDevice dev) {
@@ -505,12 +495,6 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         return CoolantFluidHelper.getFluidStackTemperatureCelsius(stack);
     }
 
-    protected double mSimulatedBiomeTempCelsius = 20.0;
-
-    public void setSimulatedBiomeTemperatureCelsius(double temp) {
-        this.mSimulatedBiomeTempCelsius = temp;
-    }
-
     public static double calculateAmbientTemperature(World world, int x, int y, int z) {
         return CoolantFluidHelper.calculateAmbientTemperature(world, x, y, z);
     }
@@ -520,7 +504,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         if (te != null && te.getWorld() != null) {
             return calculateAmbientTemperature(te.getWorld(), te.getXCoord(), te.getYCoord(), te.getZCoord());
         }
-        return mSimulatedBiomeTempCelsius;
+        return NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     }
 
     public double getCoolantTemperatureCelsius() {
@@ -1101,19 +1085,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         this.mRotorMaterial = mat;
     }
 
-    public void setSimulatedFluidTemperatureCelsius(Double temp) {
-        this.mSimulatedFluidTempCelsius = temp;
-    }
-
-    public Double getSimulatedFluidTemperatureCelsius() {
-        return this.mSimulatedFluidTempCelsius;
-    }
-
     @Override
     public double getPumpFluidTemperatureCelsius() {
-        if (mSimulatedFluidTempCelsius != null) {
-            return mSimulatedFluidTempCelsius;
-        }
         if (mEngine != null && mEngine.getSegments() != null
             && !mEngine.getSegments()
                 .isEmpty()) {

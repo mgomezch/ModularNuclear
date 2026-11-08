@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.gtnewhorizons.modularnuclear.TestCoolantPump;
 import com.gtnewhorizons.modularnuclear.TestEnvironmentHelper;
 
 class CoolantPumpFillRateTest {
@@ -15,7 +16,7 @@ class CoolantPumpFillRateTest {
     }
 
     private static MTECoolantPump pump(long configuredRate, long... fillVolumes) {
-        MTECoolantPump pump = new MTECoolantPump("fill_rate_test_pump");
+        MTECoolantPump pump = new TestCoolantPump("fill_rate_test_pump");
         pump.mFillRateLitersPerTick = configuredRate;
         pump.mFillOrderCumulative = new long[fillVolumes.length];
         long total = 0L;
@@ -53,7 +54,7 @@ class CoolantPumpFillRateTest {
 
     @Test
     void uncrawledLoopFillsAtTheConfiguredRate() {
-        MTECoolantPump pump = new MTECoolantPump("fill_rate_test_pump");
+        MTECoolantPump pump = new TestCoolantPump("fill_rate_test_pump");
         pump.mFillRateLitersPerTick = 1000L;
         assertEquals(1000L, pump.currentFillRateLitersPerTick());
     }

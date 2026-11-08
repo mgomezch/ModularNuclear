@@ -17,7 +17,6 @@ import org.mockito.Mockito;
 import com.gtnewhorizon.structurelib.StructureLib;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEActinideCompounder;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantBath;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedDegasser;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
@@ -168,7 +167,7 @@ public class MultiblockStructureErrorsTest {
 
     @Test
     void testCoolantPumpStructureErrors() {
-        MTECoolantPump pump = new MTECoolantPump("test_pump");
+        TestCoolantPump pump = new TestCoolantPump("test_pump");
         List<StructureError> errors = new ArrayList<>();
         IGregTechTileEntity mockBase = Mockito.mock(IGregTechTileEntity.class);
         World mockWorld = Mockito.mock(World.class);
@@ -219,7 +218,7 @@ public class MultiblockStructureErrorsTest {
      */
     @Test
     void testFixedStructureLeavesMachineOff() {
-        assertStaysOffAfterFix(new MTECoolantPump("test_pump") {
+        assertStaysOffAfterFix(new TestCoolantPump("test_pump") {
 
             @Override
             public void checkMachine(IGregTechTileEntity b, ItemStack s, List<StructureError> e) {}

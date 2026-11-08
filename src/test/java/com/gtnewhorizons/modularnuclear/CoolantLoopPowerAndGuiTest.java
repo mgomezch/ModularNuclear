@@ -259,7 +259,7 @@ public class CoolantLoopPowerAndGuiTest {
     @Test
     public void testCoolantPumpStandardPowerfailEventCreation() {
         boolean[] allowed = new boolean[] { true };
-        MTECoolantPump pump = new MTECoolantPump("pump_powerfail");
+        TestCoolantPump pump = new TestCoolantPump("pump_powerfail");
         IGregTechTileEntity mockBase = createMockBaseMetaTileEntity(allowed);
         pump.setBaseMetaTileEntity(mockBase);
         pump.setLoopFormed(true);
@@ -443,7 +443,7 @@ public class CoolantLoopPowerAndGuiTest {
     @Test
     public void testPumpElectricalAndMechanicalPowerReporting() {
         boolean[] allowed = new boolean[] { true };
-        MTECoolantPump pump = new MTECoolantPump("pump_power_reporting");
+        TestCoolantPump pump = new TestCoolantPump("pump_power_reporting");
         IGregTechTileEntity mockBase = createMockBaseMetaTileEntity(allowed);
         pump.setBaseMetaTileEntity(mockBase);
 

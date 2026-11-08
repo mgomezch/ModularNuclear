@@ -826,7 +826,7 @@ public class PressurizedFluidHeaterTest {
             .onDeviceDisconnected(Mockito.eq(heater), Mockito.any(LocalizedText.class));
 
         // Verify that a real MTECoolantPump in an active/filled loop ruptures when PFH powerfails
-        MTECoolantPump realPump = new MTECoolantPump("test_pump");
+        TestCoolantPump realPump = new TestCoolantPump("test_pump");
         realPump.setLoopFormed(true);
         realPump.setLoopState(MTECoolantPump.LoopState.CIRCULATING);
         realPump.setCurrentFillLiters(4000L);

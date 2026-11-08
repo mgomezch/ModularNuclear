@@ -27,7 +27,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
  */
 public class CoolantLoopFlowStopTest {
 
-    private MTECoolantPump pump;
+    private TestCoolantPump pump;
     private MTEHatchPressurizedFluid dischargeHatch;
     private MTEHatchPressurizedFluid suctionHatch;
     private IGregTechTileEntity mockPumpBase;
@@ -88,7 +88,7 @@ public class CoolantLoopFlowStopTest {
         pumpAllowedToWork = true;
         dischargeAllowedToWork = true;
 
-        pump = new MTECoolantPump("test_pump");
+        pump = new TestCoolantPump("test_pump");
         mockPumpBase = Mockito.mock(IGregTechTileEntity.class);
         Mockito.when(mockPumpBase.isAllowedToWork())
             .thenAnswer(inv -> pumpAllowedToWork);

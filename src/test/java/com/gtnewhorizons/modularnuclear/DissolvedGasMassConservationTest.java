@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantLoopEngine;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 
 /**
  * Verifies that coolant loops strictly track absolute dissolved gas amounts (in liters),
@@ -20,7 +19,7 @@ public class DissolvedGasMassConservationTest {
 
     @Test
     public void testAbsoluteDissolvedGasTrackingAndMassConservation() {
-        MTECoolantPump pump = new MTECoolantPump("test_conservation_pump");
+        TestCoolantPump pump = new TestCoolantPump("test_conservation_pump");
         pump.setCurrentFillLiters(10000L);
         pump.setSimulatedCoolantLiters(10000L);
 
@@ -134,7 +133,7 @@ public class DissolvedGasMassConservationTest {
 
     @Test
     public void testCaseInsensitiveGasLookup() {
-        MTECoolantPump pump = new MTECoolantPump("test_case_pump");
+        TestCoolantPump pump = new TestCoolantPump("test_case_pump");
         pump.setCurrentFillLiters(10000L);
         pump.setSimulatedCoolantLiters(10000L);
 

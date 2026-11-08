@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.client.tooltip.RotorTooltipEventHandler;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantPhysicsData;
-import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.opencomputers.LoopInstrumentEnvironment;
 import com.gtnewhorizons.modularnuclear.common.tileentity.TileEntityLoopInstrument;
 import com.gtnewhorizons.modularnuclear.common.util.RotorThermalHelper;
@@ -87,7 +86,7 @@ public class RotorThermalWearTest {
 
     @Test
     public void testPumpThermalWearAccumulation() {
-        MTECoolantPump pump = new MTECoolantPump("thermal_wear_test_pump");
+        TestCoolantPump pump = new TestCoolantPump("thermal_wear_test_pump");
         pump.setRotorMaterial(Materials.Magnalium);
         // Magnalium melting point in GT is approx 650-660 C (around 924-933 K)
         double meltK = RotorThermalHelper.getMeltingPointKelvin(Materials.Magnalium);
@@ -147,7 +146,7 @@ public class RotorThermalWearTest {
 
     @Test
     public void testCatastrophicMeltingFailure() {
-        MTECoolantPump pump = new MTECoolantPump("melting_test_pump");
+        TestCoolantPump pump = new TestCoolantPump("melting_test_pump");
         pump.setRotorMaterial(Materials.Magnalium);
         double meltC = RotorThermalHelper.getMeltingPointCelsius(Materials.Magnalium);
 
@@ -205,7 +204,7 @@ public class RotorThermalWearTest {
 
     @Test
     public void testScannerInfoDataIncludesThermalTelemtry() {
-        MTECoolantPump pump = new MTECoolantPump("scanner_thermal_pump");
+        TestCoolantPump pump = new TestCoolantPump("scanner_thermal_pump");
         ItemStack rotorStack = MetaGeneratedTool01.INSTANCE
             .getToolWithStats(IDMetaTool01.TURBINE.ID, 1, Materials.Titanium, Materials.Titanium, null);
         pump.setRotorStack(rotorStack);
@@ -230,7 +229,7 @@ public class RotorThermalWearTest {
     @Test
     public void testOpenComputersThermalTelemetry() {
         TileEntityLoopInstrument te = new TileEntityLoopInstrument();
-        MTECoolantPump pump = new MTECoolantPump("oc_thermal_pump");
+        TestCoolantPump pump = new TestCoolantPump("oc_thermal_pump");
         ItemStack rotorStack = MetaGeneratedTool01.INSTANCE
             .getToolWithStats(IDMetaTool01.TURBINE.ID, 1, Materials.Titanium, Materials.Titanium, null);
         pump.setRotorStack(rotorStack);

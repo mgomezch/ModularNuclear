@@ -340,7 +340,7 @@ public class CoolantLoopGraphTest {
 
     @Test
     public void testCoolantPumpMonitorCoverDetection() {
-        MTECoolantPump pump = new MTECoolantPump("test_monitor_pump");
+        TestCoolantPump pump = new TestCoolantPump("test_monitor_pump");
 
         // Without a tile entity base there is no cover
         assertFalse(pump.hasComputerMonitorCover());

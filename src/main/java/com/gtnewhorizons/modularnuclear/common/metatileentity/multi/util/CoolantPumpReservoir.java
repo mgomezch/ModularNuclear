@@ -32,36 +32,9 @@ public class CoolantPumpReservoir {
     private final Map<String, Long> dissolvedGases = new java.util.LinkedHashMap<>();
     private final Map<String, Long> unmodifiableDissolvedGases = Collections.unmodifiableMap(dissolvedGases);
     private long dissolvedGasesVersion = 0L;
-    /**
-     * A stand-in for the Railcraft tank, used only while the pump has no world (unit tests). It is never used in a
-     * world, where an empty tank yields nothing and a full one takes nothing, and it is not saved.
-     */
-    private long simulatedCoolantLiters = 100000L;
-    private long simulatedTankCapacityLiters = 0L;
-
-    private boolean inWorld() {
-        IGregTechTileEntity te = pump.getBaseMetaTileEntity();
-        return te != null && te.getWorld() != null;
-    }
 
     public CoolantPumpReservoir(MTECoolantPump pump) {
         this.pump = pump;
-    }
-
-    public long getSimulatedCoolantLiters() {
-        return simulatedCoolantLiters;
-    }
-
-    public void setSimulatedCoolantLiters(long simulatedCoolantLiters) {
-        this.simulatedCoolantLiters = simulatedCoolantLiters;
-    }
-
-    public long getSimulatedTankCapacityLiters() {
-        return simulatedTankCapacityLiters;
-    }
-
-    public void setSimulatedTankCapacityLiters(long simulatedTankCapacityLiters) {
-        this.simulatedTankCapacityLiters = simulatedTankCapacityLiters;
     }
 
     private double reservoirTemperatureCelsius = Double.NaN;
@@ -76,7 +49,8 @@ public class CoolantPumpReservoir {
                     .getBaselineInletTemperatureCelsius(f.getFluid(), f, prop, pump.getBiomeTemperatureCelsius());
                 return reservoirTemperatureCelsius;
             }
-            if (!inWorld() && simulatedCoolantLiters > 0) {
+            if (getTotalCoolantLiters() > 0) {
+                // Coolant whose fluid the tank does not report: take the loop's
                 CoolantFluidProperty prop = pump.getEngine() != null ? pump.getEngine()
                     .getFluid() : null;
                 reservoirTemperatureCelsius = CoolantFluidHelper
@@ -166,9 +140,6 @@ public class CoolantPumpReservoir {
     }
 
     public long getTotalTankCapacityLiters() {
-        if (simulatedTankCapacityLiters > 0) {
-            return simulatedTankCapacityLiters;
-        }
         IGregTechTileEntity baseTE = pump.getBaseMetaTileEntity();
         if (baseTE != null && baseTE.getWorld() != null) {
             World world = baseTE.getWorld();
@@ -352,9 +323,7 @@ public class CoolantPumpReservoir {
     public boolean verifyRailcraftTankAbove(IGregTechTileEntity aBaseMetaTileEntity) {
         if (aBaseMetaTileEntity == null) return false;
         World world = aBaseMetaTileEntity.getWorld();
-        if (world == null) {
-            return simulatedCoolantLiters > 0;
-        }
+        if (world == null) return false;
 
         ForgeDirection front = aBaseMetaTileEntity.getFrontFacing();
         ForgeDirection back = front != null && front != ForgeDirection.UNKNOWN ? front.getOpposite()
@@ -609,7 +578,8 @@ public class CoolantPumpReservoir {
         return drained;
     }
 
-    private int drainFromReservoirInternal(int liters) {
+    /** Drains up to {@code liters} from the tank above the pump; returns how much it drained. */
+    protected int drainFromReservoirInternal(int liters) {
         if (liters <= 0) return 0;
         IGregTechTileEntity te = pump.getBaseMetaTileEntity();
         if (te != null && te.getWorld() != null) {
@@ -653,12 +623,6 @@ public class CoolantPumpReservoir {
                 }
             }
         }
-
-        if (!inWorld() && simulatedCoolantLiters > 0) {
-            int drained = (int) Math.min(liters, simulatedCoolantLiters);
-            simulatedCoolantLiters -= drained;
-            return drained;
-        }
         return 0;
     }
 
@@ -687,7 +651,8 @@ public class CoolantPumpReservoir {
         return filled;
     }
 
-    private int fillIntoReservoirInternal(int liters) {
+    /** Fills up to {@code liters} of the loop's coolant into the tank above the pump; returns how much it took. */
+    protected int fillIntoReservoirInternal(int liters) {
         if (liters <= 0) return 0;
         IGregTechTileEntity te = pump.getBaseMetaTileEntity();
         if (te != null && te.getWorld() != null) {
@@ -748,17 +713,7 @@ public class CoolantPumpReservoir {
                 }
             }
         }
-
-        if (inWorld()) return 0;
-        if (simulatedTankCapacityLiters > 0) {
-            long space = Math.max(0, simulatedTankCapacityLiters - simulatedCoolantLiters);
-            int filled = (int) Math.min(liters, space);
-            simulatedCoolantLiters += filled;
-            return filled;
-        } else {
-            simulatedCoolantLiters += liters;
-            return liters;
-        }
+        return 0;
     }
 
     public boolean isReservoirFull() {
@@ -804,12 +759,8 @@ public class CoolantPumpReservoir {
                 }
             }
         }
-
-        if (inWorld()) return true;
-        if (simulatedTankCapacityLiters > 0) {
-            return simulatedCoolantLiters >= simulatedTankCapacityLiters;
-        }
-        return false;
+        // No tank takes anything
+        return true;
     }
 
     public void addDissolvedGas(String gasName, long liters) {
@@ -926,9 +877,8 @@ public class CoolantPumpReservoir {
                     }
                 }
             }
-            return 0;
         }
-        return simulatedCoolantLiters;
+        return 0;
     }
 
     public void saveNBTData(NBTTagCompound aNBT) {
