@@ -30,26 +30,26 @@ import ic2.core.IC2Potion;
 /*-
 Note [Fallout and GregTech pollution]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-A meltdown leaves an EntityMeltdownFallout. Its contamination starts at INITIAL_CONTAMINATION (10,000) and sets the
-radius of its radiation: 160 blocks at full contamination, shrinking in proportion. How contamination goes down
+A meltdown leaves an EntityMeltdownFallout.  Its contamination starts at INITIAL_CONTAMINATION (10,000) and sets the
+radius of its radiation: 160 blocks at full contamination, shrinking in proportion.  How contamination goes down
 depends on GregTech's "Activate Pollution" setting (isPollutionEnabled):
 
 - Pollution off: contamination falls on a timer in onUpdate, INITIAL_CONTAMINATION over TOTAL_LIFETIME ticks
   (10 minutes), and nothing else lowers it.
-- Pollution on: there is no timer. Contamination falls only when pollution in the fallout's area falls, by
+- Pollution on: there is no timer.  Contamination falls only when pollution in the fallout's area falls, by
   ModularNuclearConfig.falloutContaminationReductionPerPollution per unit of pollution: 62.5 per 30,000, which is
-  one block of radius. The fallout vanishes when contamination reaches zero.
+  one block of radius.  The fallout vanishes when contamination reaches zero.
 
-With pollution on, fallout is a pollution problem. Players clean it with the machines they already use against
-pollution, such as the Electric Air Filter, and fallout left alone waits on GregTech's own decay and spread. Two
+With pollution on, fallout is a pollution problem.  Players clean it with the machines they already use against
+pollution, such as the Electric Air Filter, and fallout left alone waits on GregTech's own decay and spread.  Two
 halves make that work:
 
-1. The fallout is pollution. On its first tick it adds 2,000,000 pollution to its chunk (onUpdate). While it lives,
+1. The fallout is pollution.  On its first tick it adds 2,000,000 pollution to its chunk (onUpdate).  While it lives,
    getVirtualPollution adds contamination / falloutContaminationReductionPerPollution (4,800,000 at full
-   contamination) to Pollution.getPollution in every chunk it affects (isAffectingChunk). Anything that reads
+   contamination) to Pollution.getPollution in every chunk it affects (isAffectingChunk).  Anything that reads
    pollution sees it, so an Electric Air Filter near the fallout finds its area polluted and runs.
-2. Removing pollution cleans the fallout. Every decrease in a chunk's pollution calls onPollutionRemoved, which
-   lowers the contamination of each fallout affecting that chunk. GregTech lowers pollution in two ways, and
+2. Removing pollution cleans the fallout.  Every decrease in a chunk's pollution calls onPollutionRemoved, which
+   lowers the contamination of each fallout affecting that chunk.  GregTech lowers pollution in two ways, and
    MixinPollution hooks both:
    - Pollution.addPollution(World, int, int, int) with a negative amount: air filters, scrubbers, /gt pollution.
    - Pollution.setChunkPollution, from GregTech's pollution cycle (every 1,200 ticks), which decays each chunk by
@@ -59,28 +59,28 @@ Moving parts: in this class isPollutionEnabled, onUpdate, isAffectingChunk, getV
 and ACTIVE_SERVER_FALLOUTS (the server's live fallouts, which the static hooks search); MixinPollution's three
 injections; and ModularNuclearConfig.falloutContaminationReductionPerPollution.
 
-(W1) The cycle compares stored pollution only. The cycle reads a chunk's stored pollution, without the fallout's
-     virtual share, and writes the new value back through setChunkPollution. MixinPollution's
+(W1) The cycle compares stored pollution only.  The cycle reads a chunk's stored pollution, without the fallout's
+     virtual share, and writes the new value back through setChunkPollution.  MixinPollution's
      modularnuclear$onSetChunkPollution compares against that same stored value, reading it with
-     modularnuclear$physicalOnly set. Compared against the full getPollution, every cycle would look like a drop of
+     modularnuclear$physicalOnly set.  Compared against the full getPollution, every cycle would look like a drop of
      millions.
-(W2) Removals count the virtual share. MixinPollution's modularnuclear$onAddPollution caps a removal at
-     getPollution, virtual share included, while GregTech clamps the stored amount at zero. So an air filter keeps
+(W2) Removals count the virtual share.  MixinPollution's modularnuclear$onAddPollution caps a removal at
+     getPollution, virtual share included, while GregTech clamps the stored amount at zero.  So an air filter keeps
      cleaning the fallout after the chunk's stored pollution is gone, until the fallout itself is.
-(W3) Spreading counts as removal. When the cycle spreads pollution, the source chunk's loss lowers contamination
-     and the neighbour's gain does not raise it. Nothing that adds pollution raises contamination, the fallout's
+(W3) Spreading counts as removal.  When the cycle spreads pollution, the source chunk's loss lowers contamination
+     and the neighbour's gain does not raise it.  Nothing that adds pollution raises contamination, the fallout's
      own 2,000,000 included.
-(W4) Overlaps. isAffectingChunk covers the 3×3 chunks around the fallout plus every chunk whose centre lies inside
-     its radius. A removal lowers every fallout affecting that chunk, and removals in several affected chunks each
-     count in full. getVirtualPollution reports the largest share among the fallouts affecting a chunk, not their
+(W4) Overlaps.  isAffectingChunk covers the 3×3 chunks around the fallout plus every chunk whose centre lies inside
+     its radius.  A removal lowers every fallout affecting that chunk, and removals in several affected chunks each
+     count in full.  getVirtualPollution reports the largest share among the fallouts affecting a chunk, not their
      sum.
-(W5) Pollution off. Pollution.getPollution returns 0, addPollution does nothing and the cycle never runs, so
+(W5) Pollution off.  Pollution.getPollution returns 0, addPollution does nothing and the cycle never runs, so
      getVirtualPollution returns 0 and the hooks never call onPollutionRemoved: the timer is the only way down.
 
 inworld-tests/test_fallout_decay.py checks both settings against stock GregTech: the timer with pollution off, and
 with pollution on the natural cycle, removals with /gt pollution, and an Electric Air Filter cleaning a fallout to
-zero. Its pollution-off case needs the game's GregTech/Pollution.cfg changed first. inworld-tests/test_meltdown.py
-checks a real meltdown's fallout. NuclearSimulationEngineTest.testVirtualPollutionCalculations checks
+zero.  Its pollution-off case needs the game's GregTech/Pollution.cfg changed first.  inworld-tests/test_meltdown.py
+checks a real meltdown's fallout.  NuclearSimulationEngineTest.testVirtualPollutionCalculations checks
 getVirtualPollution and onPollutionRemoved.
 */
 
