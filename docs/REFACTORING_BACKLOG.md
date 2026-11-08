@@ -305,7 +305,7 @@ Recognizing a loop device is an if-chain repeated in the crawler, in `rebindRest
 - **Engine as an object.** `NuclearSimulationEngine` is built with its parameter set (`new NuclearSimulationEngine(parameters)`), and `simulate` is an instance method that reads only that set. Derived values (archetype multipliers, hatch heat capacity and conductance, conductive transfer, stochastic rounding) are methods of `EngineParameters`.
 - **Tiles read their owner's set.** `INuclearTile.parameters()` is the set of the tile's owner: a game tile's reactor (`MTENuclearReactor.engine()`) or a simulator tile's grid (`StandaloneNuclearGrid.engine()`). The tile physics helpers (`TileTick`, `TileProperties`, `NuclearReactorPhysics`) take the set as an argument. A reactor or grid builds its engine from the installed set and rebuilds it when a new set is installed.
 - **Where the installed set is still read.** `params()` is where reactors and grids get their set, and what the static display queries (tier names and limits, hatch conductance in tooltips, flux formatting) read. A part outside any reactor uses it too. The coolant loop's passage heat transfer (`CoolantPassage.heatTransferFactor`) reads it as well: the loop engine is separate and runs on the game's set.
-- **Tests.** Every test runs with its own copy of the installed set (`EngineParametersPerTest`, registered for all tests). What a test changes, or installs by loading a configuration, ends with it.
+- **Tests.** Every test runs with its own copy of the installed set (`EngineParametersPerTest`, registered for all tests, installs one and restores the original after). What a test changes, or installs by loading a configuration, ends with it.
 - **Standalone simulator.** The CLI and WebAssembly bridge still adjust the installed set through its setters: each is a single program with one set.
 
 `NuclearSimulationEngine`'s static setters are shared by the game, the tests and the simulator. `withParameters` and the thread-local override exist, but the default is a global. This caused test-order dependence: running one test class alone broke the next full run.
@@ -314,7 +314,12 @@ Recognizing a loop device is an if-chain repeated in the crawler, in `rebindRest
 
 ### A6 (P2): Remove test hooks from game code (done)
 
-**Done:** the monitor-cover flags are gone (tests override `hasComputerMonitorCover`). The reservoir's simulated tank is used only while the pump has no world, and it is no longer saved. That fixed a real bug: in a world, an empty Railcraft tank fell back to the simulated 100000 L, and a full one took any amount. `mSimulatedFluidTempCelsius` and `mSimulatedBiomeTempCelsius` remain: only tests set them, and they are not saved.
+**Done:**
+- **Monitor covers.** The flags are gone; tests override `hasComputerMonitorCover`.
+- **Pump.** The simulated fluid and biome temperatures and the reservoir's stand-in tank are gone. Without a world the reservoir has no tank and the biome is the default ambient. The reservoir's tank drain and fill are overridable and the pump builds its reservoir through `createReservoir`. Tests use `TestCoolantPump`, whose fake reservoir is the in-memory tank (100000 L, unlimited unless set) and whose temperatures can be set. Before the stand-in tank was confined to pumps without a world, an empty Railcraft tank fell back to it in a world, and a full one took any amount.
+- **Pressurized fluid heater.** The simulated energy buffer, energy hatch tier, ambient temperature and detector cover are gone. Covers are read through an overridable `energyDetectorAt(side)`. Tests use `TestPressurizedFluidHeater`.
+- **Engine parameter scoping.** `beginScope`, `endScope` and `withParameters` (a thread-local set) are gone: only tests used them once each engine held its own set. `EngineParametersPerTest` installs a copy of the installed set before each test and restores the original after it.
+- **Not done: `CheeseRecipeRegistry.clear` and `registerRecipe`.** Only tests call them, to put a recipe into the global registry the reactor reads. Moving them out needs the reactor to get its registry from somewhere a test can replace, not a subclass.
 
 
 - `mSimulateComputerMonitorCover` is on both `MTENuclearReactor` and `MTECoolantPump`.
