@@ -14,6 +14,59 @@ final class CoolantPumpFillDrain {
 
     private CoolantPumpFillDrain() {}
 
+    // See Note [Changing a stopped coolant loop]
+    /** A loop at rest is crawled again before its pump can start. Returns CARRY_ON to carry on with the step. */
+    static MTECoolantPump.Step stepRestartCrawl(MTECoolantPump pump, IGregTechTileEntity baseTE) {
+        if (!pump.mLoopAtRest) return MTECoolantPump.Step.CARRY_ON;
+        if (pump.mCurrentFillLiters <= 0L) {
+            pump.mLoopAtRest = false;
+            return MTECoolantPump.Step.CARRY_ON;
+        }
+        stopPumping(pump, baseTE);
+        if (pump.mActiveCrawl == null) {
+            pump.setLoopStatusKey("coolantloops.pump.status.restart_crawl");
+            pump.mRestartCrawlRunning = true;
+            pump.crawlLoopGraph();
+        }
+        return MTECoolantPump.Step.DONE;
+    }
+
+    // See Note [Changing a stopped coolant loop]
+    /**
+     * Returns coolant to the reservoir when a change at rest left the loop holding less. Returns CARRY_ON to carry on
+     * with the step.
+     */
+    static MTECoolantPump.Step stepReturningExcess(MTECoolantPump pump, IGregTechTileEntity baseTE) {
+        if (pump.mCurrentFillLiters <= pump.mRequiredFillLiters || pump.mEngine.getVolumetricFlowRate() > 0.0) {
+            return MTECoolantPump.Step.CARRY_ON;
+        }
+        stopPumping(pump, baseTE);
+        long excess = pump.mCurrentFillLiters - pump.mRequiredFillLiters;
+        int returned = pump.fillIntoReservoir((int) Math.min(pump.currentFillRateLitersPerTick(), excess));
+        if (returned <= 0) {
+            pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
+            pump.setLoopStatusKey("coolantloops.pump.status.excess_no_room", excess);
+            return MTECoolantPump.Step.DONE;
+        }
+        pump.mCurrentFillLiters -= returned;
+        if (pump.mCurrentFillLiters > pump.mRequiredFillLiters) {
+            pump.mLoopState = MTECoolantPump.LoopState.DRAINING;
+            pump.setLoopStatusKey(
+                "coolantloops.pump.status.returning_excess",
+                pump.mCurrentFillLiters - pump.mRequiredFillLiters);
+        } else {
+            pump.mLoopState = MTECoolantPump.LoopState.CIRCULATING;
+            pump.setLoopStatusKey("coolantloops.pump.status.filled_circulating", pump.mCurrentFillLiters);
+        }
+        return MTECoolantPump.Step.DONE;
+    }
+
+    private static void stopPumping(MTECoolantPump pump, IGregTechTileEntity baseTE) {
+        if (baseTE != null) baseTE.setActive(false);
+        pump.mEngine.setPumpPowered(false);
+        pump.mEngine.setPumpMechanicalPowerWatts(0.0);
+    }
+
     /**
      * Fills the loop from the reservoir until it holds what its pipes and devices need. Returns CARRY_ON to carry on
      * with the step.
@@ -182,6 +235,7 @@ final class CoolantPumpFillDrain {
                     pump.mLoopState = MTECoolantPump.LoopState.EMPTY;
                     pump.setLoopStatusKey("coolantloops.pump.status.flow_stopped_empty");
                 }
+                pump.noteLoopAtRest();
                 return MTECoolantPump.Step.DONE;
             }
         }

@@ -1679,6 +1679,214 @@ public class CoolantPumpStructureTest {
         assertEquals("tank_material", CoolantStructureChannels.TANK_MATERIAL.get());
     }
 
+    private static LoopSegment pipeOf(String id, long capacityLiters) {
+        LoopSegment seg = new LoopSegment(id, 10.0, 0.1, 0.00005, 0.5, 100.0, 1000.0, 20.0);
+        seg.setCapacityLiters(capacityLiters);
+        return seg;
+    }
+
+    private static CrawlResult crawlOf(LoopSegment... segments) {
+        return CrawlResult.success(
+            new ArrayList<>(java.util.Arrays.asList(segments)),
+            new ArrayList<>(),
+            Collections.emptySet(),
+            500.0,
+            Materials.Steel,
+            Collections.emptyList());
+    }
+
+    /** A pump allowed to work per the holder, with a filled loop of one 1000 L pipe, disabled and so at rest. */
+    private TestCoolantPump restingPump(boolean[] allowed) {
+        allowed[0] = false;
+        TestCoolantPump pump = (TestCoolantPump) createOperatingPumpWithBase(allowed);
+        pump.setUnlimitedPower(true);
+        pump.getEngine()
+            .clearSegments();
+        pump.applyCrawlResult(crawlOf(pipeOf("pipe_1_0_0", 1000L)));
+        pump.setCurrentFillLiters(1000L);
+        pump.setSimulatedCoolantLiters(50000L);
+        assertTrue(pump.stepCoolantLoop());
+        assertTrue(pump.isLoopAtRest(), "A stopped, filled loop with no flow is at rest");
+        return pump;
+    }
+
+    private static void assertNotRunning(TestCoolantPump pump) {
+        assertEquals(
+            0.0,
+            pump.getEngine()
+                .getVolumetricFlowRate(),
+            0.0,
+            pump.getLoopStatus());
+        assertFalse(
+            pump.getEngine()
+                .isRuptured(),
+            pump.getLoopStatus());
+    }
+
+    private static void stepUntilFlowing(TestCoolantPump pump) {
+        for (int t = 0; t < 400 && pump.getEngine()
+            .getVolumetricFlowRate() <= 0.0; t++) pump.stepCoolantLoop();
+        assertTrue(
+            pump.getEngine()
+                .getVolumetricFlowRate() > 0.0,
+            "Expected flow: " + pump.getLoopStatus());
+    }
+
+    @Test
+    public void testStoppedLoopIsAtRestOnlyAtZeroFlow() {
+        boolean[] allowed = { false };
+        TestCoolantPump pump = (TestCoolantPump) createOperatingPumpWithBase(allowed);
+        pump.getEngine()
+            .clearSegments();
+        pump.applyCrawlResult(crawlOf(pipeOf("pipe_1_0_0", 1000L)));
+        pump.setCurrentFillLiters(1000L);
+        pump.getEngine()
+            .setVolumetricFlowRate(0.01);
+        pump.stepCoolantLoop();
+        assertFalse(pump.isLoopAtRest(), "A coasting loop isn't at rest");
+        for (int t = 0; t < 20 * 60 && !pump.isLoopAtRest(); t++) pump.stepCoolantLoop();
+        assertTrue(pump.isLoopAtRest(), "A coasting loop comes to rest");
+        pump.stepCoolantLoop();
+        assertTrue(
+            pump.getLoopStatus()
+                .contains("1000"),
+            pump.getLoopStatus());
+    }
+
+    @Test
+    public void testStoppedLoopKeepsItsCoolantWhenBroken() {
+        TestCoolantPump pump = restingPump(new boolean[1]);
+        pump.applyCrawlResult(CrawlResult.fail(LocalizedText.literal("pipe removed")));
+        assertEquals(1000L, pump.getCurrentFillLiters());
+        assertTrue(pump.isLoopAtRest());
+        assertEquals(MTECoolantPump.LoopState.STOPPED, pump.getLoopState());
+        assertNotRunning(pump);
+    }
+
+    @Test
+    public void testStoppedLoopIgnoresDevicesLeaving() {
+        TestCoolantPump pump = restingPump(new boolean[1]);
+        pump.onDeviceDisconnected(null, LocalizedText.literal("loop broken"));
+        assertTrue(pump.isLoopFormed());
+        assertEquals(1000L, pump.getCurrentFillLiters());
+        assertNotRunning(pump);
+    }
+
+    @Test
+    public void testStoppedLoopWontStartWhileBroken() {
+        boolean[] allowed = new boolean[1];
+        TestCoolantPump pump = restingPump(allowed);
+        pump.setNextCrawlResult(CrawlResult.fail(LocalizedText.literal("pipe removed")));
+        allowed[0] = true;
+        for (int t = 0; t < 40; t++) pump.stepCoolantLoop();
+        assertFalse(pump.isLoopFormed());
+        assertEquals(1000L, pump.getCurrentFillLiters());
+        assertTrue(
+            pump.getLoopStatus()
+                .contains("pipe removed"),
+            pump.getLoopStatus());
+        assertNotRunning(pump);
+
+        // Fixed: a crawl finds it closed, and the next one, with the pump allowed to work, lets it start
+        pump.setNextCrawlResult(crawlOf(pipeOf("pipe_1_0_0", 1000L)));
+        pump.crawlLoopGraph();
+        assertTrue(pump.isLoopAtRest(), "A crawl before the restart's own leaves the loop at rest");
+        stepUntilFlowing(pump);
+        assertFalse(pump.isLoopAtRest());
+    }
+
+    @Test
+    public void testStoppedLoopRestartsUnchanged() {
+        boolean[] allowed = new boolean[1];
+        TestCoolantPump pump = restingPump(allowed);
+        long reservoir = pump.getSimulatedCoolantLiters();
+        pump.setNextCrawlResult(crawlOf(pipeOf("pipe_1_0_0", 1000L)));
+        allowed[0] = true;
+        stepUntilFlowing(pump);
+        assertEquals(1000L, pump.getCurrentFillLiters());
+        assertEquals(reservoir, pump.getSimulatedCoolantLiters(), "An unchanged loop moves no coolant");
+    }
+
+    @Test
+    public void testStoppedLoopThatGrewDrawsTheDifference() {
+        boolean[] allowed = new boolean[1];
+        TestCoolantPump pump = restingPump(allowed);
+        long reservoir = pump.getSimulatedCoolantLiters();
+        pump.setNextCrawlResult(crawlOf(pipeOf("pipe_1_0_0", 1000L), pipeOf("pipe_2_0_0", 2500L)));
+        allowed[0] = true;
+        stepUntilFlowing(pump);
+        assertEquals(3500L, pump.getCurrentFillLiters());
+        assertEquals(reservoir - 2500L, pump.getSimulatedCoolantLiters());
+    }
+
+    @Test
+    public void testStoppedLoopThatGrewWontStartWithoutEnoughCoolant() {
+        boolean[] allowed = new boolean[1];
+        TestCoolantPump pump = restingPump(allowed);
+        pump.setSimulatedCoolantLiters(1000L);
+        pump.setNextCrawlResult(crawlOf(pipeOf("pipe_1_0_0", 1000L), pipeOf("pipe_2_0_0", 2500L)));
+        allowed[0] = true;
+        for (int t = 0; t < 40; t++) {
+            pump.stepCoolantLoop();
+            assertNotRunning(pump);
+        }
+        assertEquals(2000L, pump.getCurrentFillLiters());
+        assertEquals(MTECoolantPump.LoopState.FAILED, pump.getLoopState());
+
+        pump.setSimulatedCoolantLiters(5000L);
+        stepUntilFlowing(pump);
+        assertEquals(3500L, pump.getCurrentFillLiters());
+    }
+
+    @Test
+    public void testStoppedLoopThatShrankReturnsTheDifference() {
+        boolean[] allowed = new boolean[1];
+        TestCoolantPump pump = restingPump(allowed);
+        long reservoir = pump.getSimulatedCoolantLiters();
+        pump.setNextCrawlResult(crawlOf(pipeOf("pipe_3_0_0", 200L)));
+        allowed[0] = true;
+        stepUntilFlowing(pump);
+        assertEquals(200L, pump.getCurrentFillLiters());
+        assertEquals(reservoir + 800L, pump.getSimulatedCoolantLiters());
+    }
+
+    @Test
+    public void testStoppedLoopThatShrankWontStartWithoutRoomForTheDifference() {
+        boolean[] allowed = new boolean[1];
+        TestCoolantPump pump = restingPump(allowed);
+        pump.setSimulatedTankCapacityLiters(pump.getSimulatedCoolantLiters() + 300L);
+        pump.setNextCrawlResult(crawlOf(pipeOf("pipe_3_0_0", 200L)));
+        allowed[0] = true;
+        for (int t = 0; t < 40; t++) {
+            pump.stepCoolantLoop();
+            assertNotRunning(pump);
+        }
+        assertEquals(700L, pump.getCurrentFillLiters(), "It returns what fits");
+        assertTrue(
+            pump.getLoopStatus()
+                .contains("500"),
+            pump.getLoopStatus());
+
+        pump.setSimulatedTankCapacityLiters(pump.getSimulatedCoolantLiters() + 5000L);
+        stepUntilFlowing(pump);
+        assertEquals(200L, pump.getCurrentFillLiters());
+    }
+
+    @Test
+    public void testStoppedLoopStaysAtRestAcrossASave() {
+        TestCoolantPump pump = restingPump(new boolean[1]);
+        net.minecraft.nbt.NBTTagCompound nbt = new net.minecraft.nbt.NBTTagCompound();
+        pump.saveNBTData(nbt);
+        TestCoolantPump loaded = new TestCoolantPump("test_pump_loaded");
+        IGregTechTileEntity loadedBase = Mockito.mock(IGregTechTileEntity.class);
+        Mockito.when(loadedBase.getFrontFacing())
+            .thenReturn(net.minecraftforge.common.util.ForgeDirection.NORTH);
+        loaded.setBaseMetaTileEntity(loadedBase);
+        loaded.loadNBTData(nbt);
+        assertTrue(loaded.isLoopAtRest());
+        assertEquals(1000L, loaded.getCurrentFillLiters());
+    }
+
     @Test
     public void testLoopFormationFailureDiagnosticsAndGuiOverrides() {
         TestCoolantPump pump = new TestCoolantPump("test_pump_loop_diag");

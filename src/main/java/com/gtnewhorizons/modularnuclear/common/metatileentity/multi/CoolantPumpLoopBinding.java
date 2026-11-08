@@ -27,6 +27,41 @@ import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
  * A pump's loop: applying a crawl's result, binding it again after a load, noticing when it breaks, and keeping its
  * chunks loaded.
  */
+/*-
+Note [Changing a stopped coolant loop] (generated)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Players expect to stop a pump, watch its flow fall to zero, and then rework their pipes without draining the loop or
+blowing anything up.  Draining first would be more realistic, but too tedious for a small change of route.  So a loop
+at rest, a stopped loop holding coolant with exactly zero flow, may change freely until its pump starts again.
+
+Reaching zero.  Friction and CoolantLoopEngine's coastDownDecay slow the flow in proportion, so alone they never reach
+zero.  So in CoolantLoopEngine.step, while the pump is unpowered and the flow is under coastDownStopFlow (1 L/s), the
+flow also falls at a constant rate that stops it within coastDownStopSeconds (2 s).  This is ergonomics, not physics.
+It only acts on an unpowered pump, so it can't touch a pump speeding up or a running loop, however slow.
+
+At rest.  MTECoolantPump.noteLoopAtRest sets mLoopAtRest when a stopped pump (disabled, unpowered, without a rotor, or
+with its discharge disabled) finds zero flow with coolant in the loop.  While it's set, the pump doesn't look for
+breaks or crawl on schedule, and onDeviceDisconnected ignores devices leaving, so nothing explodes or spills.  A crawl
+that does run and fails keeps the coolant (applyCrawlResult), and one that succeeds only updates the loop.
+
+Restarting.  With the pump allowed to work, these steps in CoolantPumpFillDrain run in turn, and flow starts only when
+they've all passed.  None of them can spill or explode.
+
+1. stepRestartCrawl crawls the loop again.  If the loop isn't closed the pump refuses to start, and retries.
+2. stepReturningExcess returns coolant to the reservoir if the loop now holds less, and refuses to start while the
+   reservoir has no room for it.
+3. stepFilling draws more if the loop now holds more, and stops as for a first fill if the reservoir runs dry.
+
+(W1) What's compared.  The pump saves only the loop's total, mRequiredFillLiters and mCurrentFillLiters, rather than
+     every pipe's position: storing those would take too much NBT, and the totals are all a restart needs.
+(W2) Coolant in new pipes.  CoolantLoopEngine.replaceSegmentsKeepingCoolant gives a new segment the average temperature
+     of the coolant, and segments still in the loop keep theirs.
+(W3) Once restarted, the pump is back to normal: a pipe removed during a refill or while circulating breaks the loop.
+
+CoolantLoopEndToEndTest and the testStoppedLoop tests in CoolantPumpStructureTest check this, and in game so does
+inworld-tests/test_coolant_loop_restructure.py.
+*/
+
 final class CoolantPumpLoopBinding {
 
     private CoolantPumpLoopBinding() {}
@@ -34,13 +69,20 @@ final class CoolantPumpLoopBinding {
     static boolean applyCrawlResult(MTECoolantPump pump, LoopGraphCrawler.CrawlResult result) {
         boolean keepState = pump.mRecrawlKeepsState;
         pump.mRecrawlKeepsState = false;
+        boolean restarting = pump.mRestartCrawlRunning;
+        pump.mRestartCrawlRunning = false;
+        boolean atRest = pump.mLoopAtRest;
         if (result == null || !result.isSuccess) {
             pump.releaseLoopDevices();
             pump.releaseLoopChunks();
             pump.mLastCrawlResult = result;
             pump.mLoopFormed = false;
-            pump.mLoopState = MTECoolantPump.LoopState.EMPTY;
-            pump.mCurrentFillLiters = 0L;
+            if (atRest) {
+                pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
+            } else {
+                pump.mLoopState = MTECoolantPump.LoopState.EMPTY;
+                pump.mCurrentFillLiters = 0L;
+            }
             LocalizedText reason = (result != null && result.failureReason != null) ? result.failureReason
                 : LocalizedText.of("coolantloops.crawler.no_suction_path");
             if (result != null && result.isLoopTooLarge()) {
@@ -52,7 +94,9 @@ final class CoolantPumpLoopBinding {
         }
 
         pump.mLastCrawlResult = result;
-        boolean sameLoop = pump.mEngine.replaceSegments(result.segments, keepState);
+        boolean sameLoop = atRest ? pump.mEngine.replaceSegmentsKeepingCoolant(result.segments)
+            : pump.mEngine.replaceSegments(result.segments, keepState);
+        if (atRest && !sameLoop) pump.mLastSyncedGasVersion = -1L;
         if (result.maxPumpPipeCapacityLPerSec > 0 && result.maxPumpPipeCapacityLPerSec != Double.MAX_VALUE) {
             pump.mEngine.setMaxVolumetricFlowRate(result.maxPumpPipeCapacityLPerSec / 1000.0);
         }
@@ -82,6 +126,13 @@ final class CoolantPumpLoopBinding {
         pump.mLoopFormed = true;
         pump.mFootprint = null;
         pump.updateLoopChunks();
+
+        if (atRest && !restarting) {
+            pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
+            pump.setLoopStatusKey("coolantloops.pump.status.at_rest", pump.mCurrentFillLiters);
+            return true;
+        }
+        pump.mLoopAtRest = false;
 
         if (sameLoop && pump.mLoopState != MTECoolantPump.LoopState.STOPPED
             && pump.mLoopState != MTECoolantPump.LoopState.EMPTY) {
@@ -294,6 +345,7 @@ final class CoolantPumpLoopBinding {
     }
 
     static void onDeviceDisconnected(MTECoolantPump pump, ICoolantLoopDevice device, LocalizedText reason) {
+        if (pump.mLoopAtRest) return;
         pump.mActiveCrawl = null;
         pump.mRecrawlKeepsState = false;
         boolean wasActiveLoop = pump.mLoopFormed

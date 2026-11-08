@@ -41,7 +41,7 @@ final class CoolantPumpCirculation {
             return true;
         }
 
-        if (p.mLoopDevices != null && !p.mLoopDevices.isEmpty()) {
+        if (!p.mLoopAtRest && p.mLoopDevices != null && !p.mLoopDevices.isEmpty()) {
             // Indexed: onDeviceDisconnected replaces the list, and returns straight after
             for (int i = 0, n = p.mLoopDevices.size(); i < n; i++) {
                 ICoolantLoopDevice dev = p.mLoopDevices.get(i);
@@ -87,12 +87,16 @@ final class CoolantPumpCirculation {
                         "coolantloops.pump.status.stopping_paused",
                         p.mCurrentFillLiters,
                         p.mRequiredFillLiters);
+                } else if (p.mLoopAtRest) {
+                    p.setLoopStatusKey("coolantloops.pump.status.at_rest", p.mCurrentFillLiters);
                 } else {
                     p.setLoopStatusKey(
                         "coolantloops.pump.status.disabled_coasting",
                         p.mEngine.getVolumetricFlowRate() * 1000.0);
                 }
-            return p.stepCoastingAndCheckRupture();
+            boolean survived = p.stepCoastingAndCheckRupture();
+            p.noteLoopAtRest();
+            return survived;
         }
 
         // Validate fluid in reservoir / loop: liquid nuclear fuel fails pump and destroys impeller immediately!
@@ -133,7 +137,9 @@ final class CoolantPumpCirculation {
             p.mEngine.setPumpMechanicalPowerWatts(0.0);
             p.mEngine.setBraking(false);
             p.setLoopStatusKey("coolantloops.pump.status.missing_rotor");
-            return p.stepCoastingAndCheckRupture();
+            boolean survived = p.stepCoastingAndCheckRupture();
+            p.noteLoopAtRest();
+            return survived;
         }
 
         // Impeller melting check: if fluid temperature exceeds impeller melting point, melt catastrophically!
@@ -153,6 +159,14 @@ final class CoolantPumpCirculation {
             return stepWithDischargeDisabledResult == MTECoolantPump.Step.DONE;
 
         p.mEngine.setBraking(false);
+
+        // A loop at rest may have changed. See Note [Changing a stopped coolant loop]
+        MTECoolantPump.Step stepRestartCrawlResult = CoolantPumpFillDrain.stepRestartCrawl(p, baseTE);
+        if (stepRestartCrawlResult != MTECoolantPump.Step.CARRY_ON)
+            return stepRestartCrawlResult == MTECoolantPump.Step.DONE;
+        MTECoolantPump.Step stepReturningExcessResult = CoolantPumpFillDrain.stepReturningExcess(p, baseTE);
+        if (stepReturningExcessResult != MTECoolantPump.Step.CARRY_ON)
+            return stepReturningExcessResult == MTECoolantPump.Step.DONE;
 
         // Initial Loop Filling Phase (when hatch is enabled)
         MTECoolantPump.Step stepFillingResult = CoolantPumpFillDrain

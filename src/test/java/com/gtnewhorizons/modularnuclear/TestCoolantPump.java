@@ -5,6 +5,7 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
+import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopGraphCrawler;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantPumpReservoir;
 
@@ -18,6 +19,8 @@ public class TestCoolantPump extends MTECoolantPump {
 
     private Double fluidTemperatureCelsius;
     private double biomeTemperatureCelsius = 20.0;
+    private LoopGraphCrawler.CrawlResult nextCrawlResult;
+    private boolean unlimitedPower;
 
     public TestCoolantPump(String aName) {
         super(aName);
@@ -31,6 +34,27 @@ public class TestCoolantPump extends MTECoolantPump {
     @Override
     public FakeReservoir getReservoir() {
         return (FakeReservoir) super.getReservoir();
+    }
+
+    /** The pump needs no energy hatches and never runs out of power. */
+    public void setUnlimitedPower(boolean unlimited) {
+        unlimitedPower = unlimited;
+    }
+
+    @Override
+    public boolean drainEnergy(long aEU) {
+        return unlimitedPower || super.drainEnergy(aEU);
+    }
+
+    /** Without a world there is nothing to crawl: this is what the next crawl finds. */
+    public void setNextCrawlResult(LoopGraphCrawler.CrawlResult result) {
+        nextCrawlResult = result;
+    }
+
+    @Override
+    public boolean crawlLoopGraph() {
+        if (inWorld() || nextCrawlResult == null) return super.crawlLoopGraph();
+        return applyCrawlResult(nextCrawlResult);
     }
 
     public long getSimulatedCoolantLiters() {

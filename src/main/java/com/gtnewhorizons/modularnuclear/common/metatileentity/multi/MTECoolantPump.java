@@ -164,6 +164,10 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
      * part; null until the loop is crawled.
      */
     protected long[] mFillOrderCumulative = null;
+    // The stopped loop can change without harm until it restarts. See Note [Changing a stopped coolant loop]
+    boolean mLoopAtRest = false;
+    /** The crawl under way is the one a restart waits for. */
+    boolean mRestartCrawlRunning = false;
 
     // Reservoir management
     protected final CoolantPumpReservoir mReservoir = createReservoir();
@@ -543,8 +547,13 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             mRecrawlKeepsState = false;
             releaseLoopChunks();
             mLoopFormed = false;
-            mLoopState = LoopState.EMPTY;
-            mCurrentFillLiters = 0L;
+            mRestartCrawlRunning = false;
+            if (mLoopAtRest) {
+                mLoopState = LoopState.STOPPED;
+            } else {
+                mLoopState = LoopState.EMPTY;
+                mCurrentFillLiters = 0L;
+            }
             setLoopStatusKey("coolantloops.pump.status.req_hatches");
             return false;
         }
@@ -639,11 +648,13 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             } else if (!mLoopFormed && mMachine && TickPhase.due(aTick, phase, 100)) {
                 crawlLoopGraph();
             }
-            if (mLoopFormed && TickPhase.due(aTick, phase, LOOP_CHECK_INTERVAL_TICKS)) {
+            if (mLoopFormed && !mLoopAtRest && TickPhase.due(aTick, phase, LOOP_CHECK_INTERVAL_TICKS)) {
                 LocalizedText loopBreak = findLoopBreak(aBaseMetaTileEntity.getWorld());
                 if (loopBreak != null) onDeviceDisconnected(null, loopBreak);
             }
-            if (mLoopFormed && mActiveCrawl == null && TickPhase.due(aTick, phase, LOOP_RECRAWL_INTERVAL_TICKS)) {
+            if (mLoopFormed && !mLoopAtRest
+                && mActiveCrawl == null
+                && TickPhase.due(aTick, phase, LOOP_RECRAWL_INTERVAL_TICKS)) {
                 crawlLoopGraph();
             }
             stepCoolantLoop();
@@ -733,6 +744,19 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         mEngine.setBraking(false);
         setLoopStatus(shutDownText(ShutDownReasonRegistry.POWER_LOSS));
         return stepCoastingAndCheckRupture();
+    }
+
+    // A stopped loop holding coolant comes to rest. See Note [Changing a stopped coolant loop]
+    void noteLoopAtRest() {
+        if (mCurrentFillLiters <= 0L) {
+            mLoopAtRest = false;
+        } else if (mEngine.getVolumetricFlowRate() == 0.0) {
+            mLoopAtRest = true;
+        }
+    }
+
+    public boolean isLoopAtRest() {
+        return mLoopAtRest;
     }
 
     protected boolean stepCoastingAndCheckRupture() {

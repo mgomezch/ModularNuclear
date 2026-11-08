@@ -422,6 +422,10 @@ coolantloops.pump.status.drained_complete=Flow stopped. Loop drained completely 
 coolantloops.pump.status.draining_paused=Flow stopped. Draining paused: Reservoir full (%d L remaining in loop)
 coolantloops.pump.status.draining_loop=Draining loop to reservoir: %d / %d L remaining
 coolantloops.pump.status.flow_stopped_empty=Flow stopped. Loop empty.
+coolantloops.pump.status.at_rest=Flow stopped, holding %d L. Pipes can be changed safely until the pump starts.
+coolantloops.pump.status.restart_crawl=Checking the loop before starting...
+coolantloops.pump.status.returning_excess=Loop is smaller: returning coolant to the reservoir (%d L left)
+coolantloops.pump.status.excess_no_room=Refusing to start: no room in the reservoir for %d L of excess coolant
 
 coolantloops.pump.status.filling_loop=Filling loop: %d / %d L (%.1f%%)
 coolantloops.pump.status.filling_failed=Filling failed: Reservoir dry! (%d / %d L filled)

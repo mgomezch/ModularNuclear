@@ -46,6 +46,7 @@ final class CoolantPumpNbt {
         aNBT.setTag("mLoopStatus", LocalizedTextNbt.write(p.mLoopStatus));
         aNBT.setLong("mCurrentFillLiters", p.mCurrentFillLiters);
         aNBT.setLong("mRequiredFillLiters", p.mRequiredFillLiters);
+        aNBT.setBoolean("mLoopAtRest", p.mLoopAtRest);
         aNBT.setDouble("mRotorDamageAccumulator", p.mRotorDamageAccumulator);
         aNBT.setBoolean("mPowerFailed", p.mPowerFailed);
         if (p.mTankMaterial != null && p.mTankMaterial.mName != null) {
@@ -115,6 +116,7 @@ final class CoolantPumpNbt {
         if (aNBT.hasKey("mCurrentFillLiters")) {
             p.mCurrentFillLiters = aNBT.getLong("mCurrentFillLiters");
         }
+        p.mLoopAtRest = aNBT.getBoolean("mLoopAtRest");
         if (aNBT.hasKey("mRequiredFillLiters")) {
             p.mRequiredFillLiters = aNBT.getLong("mRequiredFillLiters");
         }
