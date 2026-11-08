@@ -32,7 +32,8 @@ PIPE_ID = 32140  # Medium Steel Coolant Pipe
 
 
 def build_coolant_loops(client: HarnessClient):
-    """Stage 1: Assembles Coolant Pump with full Railcraft Tank, PHE, Reservoir, and Instruments with ticks frozen."""
+    """Stage 1: Assembles Coolant Pump with full Railcraft Tank, PHE, Reservoir, and Instruments with ticks frozen.
+    Returns the route of the cold leg's second segment, between the manifold and the pump's suction."""
     print("------------------------------------------------------------")
     OX, OY, OZ = 500, 5, 20
     OY_LOOP = OY + 1
@@ -166,6 +167,7 @@ def build_coolant_loops(client: HarnessClient):
 
     client.wait(10)
     print("[✓] Build Phase completed: Coolant loops components staged with ticks frozen.")
+    return route_cold_2
 
 
 def test_coolant_loops(client: HarnessClient):
