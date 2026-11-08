@@ -1,8 +1,12 @@
 package com.gtnewhorizons.modularnuclear.mixins.late;
 
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -15,10 +19,18 @@ import gregtech.common.pollution.Pollution;
 @Mixin(value = Pollution.class, remap = false)
 public abstract class MixinPollution {
 
+    @Shadow
+    @Final
+    private World world;
+
+    /** Set while reading a chunk's own pollution, without the fallout's virtual pollution. */
+    @Unique
+    private static boolean modularnuclear$physicalOnly;
+
     @Inject(method = "getPollution(Lnet/minecraft/world/World;II)I", at = @At("RETURN"), cancellable = true)
     private static void modularnuclear$onGetPollution(World w, int chunkX, int chunkZ,
         CallbackInfoReturnable<Integer> cir) {
-        if (w != null && !w.isRemote) {
+        if (w != null && !w.isRemote && !modularnuclear$physicalOnly) {
             int virtual = EntityMeltdownFallout.getVirtualPollution(w, chunkX, chunkZ);
             if (virtual > 0) {
                 int physical = Math.max(0, cir.getReturnValueI());
@@ -36,6 +48,24 @@ public abstract class MixinPollution {
             if (actuallyRemoved > 0) {
                 EntityMeltdownFallout.onPollutionRemoved(w, chunkX, chunkZ, actuallyRemoved);
             }
+        }
+    }
+
+    /**
+     * GregTech's pollution cycle writes each chunk's new pollution here, after it decays and spreads to its neighbours,
+     * without going through {@code addPollution}. A chunk losing pollution this way cleans fallout too.
+     */
+    @Inject(method = "setChunkPollution", at = @At("HEAD"))
+    private void modularnuclear$onSetChunkPollution(ChunkCoordIntPair coord, int pollution, CallbackInfo ci) {
+        int before;
+        modularnuclear$physicalOnly = true;
+        try {
+            before = Pollution.getPollution(world, coord.chunkXPos, coord.chunkZPos);
+        } finally {
+            modularnuclear$physicalOnly = false;
+        }
+        if (pollution < before) {
+            EntityMeltdownFallout.onPollutionRemoved(world, coord.chunkXPos, coord.chunkZPos, before - pollution);
         }
     }
 }
