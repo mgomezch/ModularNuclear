@@ -246,9 +246,9 @@ public class PressurizedFluidHeaterTest {
         return hatch;
     }
 
-    private MTEPressurizedFluidHeater createConfiguredHeater(int length, HeatingCoilLevel coilLevel,
+    private TestPressurizedFluidHeater createConfiguredHeater(int length, HeatingCoilLevel coilLevel,
         HeaterPipeCasingTier pipeTier, boolean[] allowedHolder) {
-        MTEPressurizedFluidHeater heater = new MTEPressurizedFluidHeater("test_heater");
+        TestPressurizedFluidHeater heater = new TestPressurizedFluidHeater("test_heater");
         IGregTechTileEntity mockBase = createMockBaseMetaTileEntity(allowedHolder);
         Mockito.when(mockBase.getMetaTileEntity())
             .thenReturn(heater);
@@ -346,7 +346,7 @@ public class PressurizedFluidHeaterTest {
     @Test
     public void testEnergyHatchValidationSingleMultiAndLaserRejection() {
         boolean[] allowed = new boolean[] { true };
-        MTEPressurizedFluidHeater heater = createConfiguredHeater(
+        TestPressurizedFluidHeater heater = createConfiguredHeater(
             5,
             HeatingCoilLevel.HV,
             HeaterPipeCasingTier.ELECTRUM,
@@ -411,7 +411,7 @@ public class PressurizedFluidHeaterTest {
         // The heater's casing tier does not need to match the loop pipe material
         World world = Mockito.mock(World.class);
         boolean[] allowed = new boolean[] { true };
-        MTEPressurizedFluidHeater heater = createConfiguredHeater(
+        TestPressurizedFluidHeater heater = createConfiguredHeater(
             3,
             HeatingCoilLevel.EV,
             HeaterPipeCasingTier.OSMIUM,
@@ -561,7 +561,7 @@ public class PressurizedFluidHeaterTest {
     public void testEnergyHatchRatingCapsHeatingPower() {
         boolean[] allowed = new boolean[] { true };
         // Length 11 -> 9 rings, Nichrome (HV) coils -> 32 * 9 * 4^2 = 4608 EU/t
-        MTEPressurizedFluidHeater heater = createConfiguredHeater(
+        TestPressurizedFluidHeater heater = createConfiguredHeater(
             11,
             HeatingCoilLevel.HV,
             HeaterPipeCasingTier.PLATINUM,
@@ -585,7 +585,7 @@ public class PressurizedFluidHeaterTest {
     @Test
     public void testHeaterStaysOffWithoutFlowingCoolant() {
         boolean[] allowed = new boolean[] { true };
-        MTEPressurizedFluidHeater heater = createConfiguredHeater(
+        TestPressurizedFluidHeater heater = createConfiguredHeater(
             5,
             HeatingCoilLevel.LV,
             HeaterPipeCasingTier.TIN,
@@ -614,7 +614,7 @@ public class PressurizedFluidHeaterTest {
     public void testElectricalHeatingFullAndPartialEuWithoutPowerfail() {
         boolean[] allowed = new boolean[] { true };
         // Length 5 -> 3 rings, Cupronickel (LV) -> max EU/t = 32 * 3 * 4^0 = 96 EU/t
-        MTEPressurizedFluidHeater heater = createConfiguredHeater(
+        TestPressurizedFluidHeater heater = createConfiguredHeater(
             5,
             HeatingCoilLevel.LV,
             HeaterPipeCasingTier.PLATINUM,
@@ -667,7 +667,7 @@ public class PressurizedFluidHeaterTest {
         assertFalse(heater.isPowerFailed(), "Zero EU in energy hatch must NOT cause powerfail");
 
         // Verify MAX coil tier reaches 100% (1.0) coil heating efficiency
-        MTEPressurizedFluidHeater maxCoilHeater = createConfiguredHeater(
+        TestPressurizedFluidHeater maxCoilHeater = createConfiguredHeater(
             3,
             HeatingCoilLevel.MAX,
             HeaterPipeCasingTier.OSMIUM,
@@ -682,7 +682,7 @@ public class PressurizedFluidHeaterTest {
     @Test
     public void testBidirectionalConvectiveHeatTransferOnAndOff() {
         boolean[] allowed = new boolean[] { true };
-        MTEPressurizedFluidHeater heater = createConfiguredHeater(
+        TestPressurizedFluidHeater heater = createConfiguredHeater(
             4, // 2 rings
             HeatingCoilLevel.MV,
             HeaterPipeCasingTier.OSMIUM,
@@ -735,7 +735,7 @@ public class PressurizedFluidHeaterTest {
     @Test
     public void testMaintenancePenaltyReducesBothHeatingAndHeatTransfer() {
         boolean[] allowedFull = new boolean[] { true };
-        MTEPressurizedFluidHeater fullHeater = createConfiguredHeater(
+        TestPressurizedFluidHeater fullHeater = createConfiguredHeater(
             3,
             HeatingCoilLevel.HV,
             HeaterPipeCasingTier.OSMIUM,
@@ -744,7 +744,7 @@ public class PressurizedFluidHeaterTest {
         fullHeater.addEnergyOrMultiAmpToMachineList(fullEnergy.getBaseMetaTileEntity(), 11);
 
         boolean[] allowedDegraded = new boolean[] { true };
-        MTEPressurizedFluidHeater degradedHeater = createConfiguredHeater(
+        TestPressurizedFluidHeater degradedHeater = createConfiguredHeater(
             3,
             HeatingCoilLevel.HV,
             HeaterPipeCasingTier.OSMIUM,
@@ -785,7 +785,7 @@ public class PressurizedFluidHeaterTest {
     @Test
     public void testOverTemperaturePowerfailAndLoopDisconnection() {
         boolean[] allowed = new boolean[] { true };
-        MTEPressurizedFluidHeater heater = createConfiguredHeater(
+        TestPressurizedFluidHeater heater = createConfiguredHeater(
             3,
             HeatingCoilLevel.EV,
             HeaterPipeCasingTier.TIN,
@@ -865,7 +865,7 @@ public class PressurizedFluidHeaterTest {
     @Test
     public void testEnergyDetectorCoverRedstoneAndProjectRedSignals() {
         boolean[] allowed = new boolean[] { true };
-        MTEPressurizedFluidHeater heater = createConfiguredHeater(
+        TestPressurizedFluidHeater heater = createConfiguredHeater(
             3,
             HeatingCoilLevel.HV,
             HeaterPipeCasingTier.PLATINUM,
@@ -932,7 +932,7 @@ public class PressurizedFluidHeaterTest {
     @Test
     public void testOpenComputersDriverAndEnvironment() {
         boolean[] allowed = new boolean[] { true };
-        MTEPressurizedFluidHeater heater = createConfiguredHeater(
+        TestPressurizedFluidHeater heater = createConfiguredHeater(
             6, // 4 rings
             HeatingCoilLevel.EV,
             HeaterPipeCasingTier.OSMIUM,

@@ -34,6 +34,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPres
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.HeaterPipeCasingTier;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PressurizedFluidHeaterStructure;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.CoolantFluidHelper;
 import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
@@ -61,7 +62,6 @@ import gregtech.api.structure.error.StructureErrors;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
-import gregtech.common.covers.Cover;
 import gregtech.common.covers.CoverEUMeter;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import gregtech.common.misc.GTStructureChannels;
@@ -106,7 +106,6 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
     protected boolean mRejectedLaserHatch = false;
 
     protected double mInnerTemperatureCelsius = 20.0;
-    protected double mSimulatedAmbientTempCelsius = 20.0;
     /** Burst pressure of the loop pipe the heater is attached to, in bar; 0 until a loop crawl finds it. */
     protected double mLoopPipeMaxPressureBar = 0.0;
     protected double mBaseExchangeAreaM2 = 4.0;
@@ -122,13 +121,6 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
     protected ICoolantLoopPump mConnectedPump = null;
     protected LoopSegment mBoundSegment = null;
     protected CoolantFluidProperty mLoopFluid = null;
-
-    // Headless unit test energy & cover simulation
-    protected long mSimulatedStoredEU = -1L;
-    protected int mSimulatedEnergyHatchTier = -1;
-    protected ForgeDirection mSimulatedDetectorSide = ForgeDirection.UNKNOWN;
-    protected long mSimulatedDetectorThreshold = 0L;
-    protected boolean mSimulatedDetectorInverted = false;
 
     // Redstone & ProjectRed telemetry
     protected byte mRedstoneOutput = 0;
@@ -338,9 +330,6 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
     }
 
     public int getInstalledEnergyHatchTier() {
-        if (mSimulatedEnergyHatchTier >= 0) {
-            return mSimulatedEnergyHatchTier;
-        }
         int maxTier = 0;
         for (MTEHatchEnergy eh : mEnergyHatches) {
             if (eh != null && eh.mTier > maxTier) {
@@ -353,10 +342,6 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
             }
         }
         return maxTier;
-    }
-
-    public void setSimulatedEnergyHatchTier(int tier) {
-        this.mSimulatedEnergyHatchTier = tier;
     }
 
     public int getMaxAllowedEnergyHatchTier() {
@@ -635,19 +620,7 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
             return CoolantFluidHelper
                 .calculateAmbientTemperature(te.getWorld(), te.getXCoord(), te.getYCoord(), te.getZCoord());
         }
-        return mSimulatedAmbientTempCelsius;
-    }
-
-    public void setSimulatedAmbientTemperatureCelsius(double tempC) {
-        this.mSimulatedAmbientTempCelsius = tempC;
-    }
-
-    public void setSimulatedStoredEU(long storedEU) {
-        this.mSimulatedStoredEU = storedEU;
-    }
-
-    public long getSimulatedStoredEU() {
-        return mSimulatedStoredEU;
+        return NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
     }
 
     public long getLastConsumedEuPerTick() {
@@ -700,19 +673,13 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
     }
 
     /**
-     * Drains up to {@code maxEU} from the installed energy hatch (or simulated EU buffer).
+     * Drains up to {@code maxEU} from the installed energy hatches.
      * Never triggers powerfail when less than {@code maxEU} is available; simply drains whatever is available.
      */
     public long drainUpToEnergy(long maxEU) {
         if (maxEU <= 0L) {
             return 0L;
         }
-        if (mSimulatedStoredEU >= 0L) {
-            long drained = Math.min(mSimulatedStoredEU, maxEU);
-            mSimulatedStoredEU -= drained;
-            return drained;
-        }
-
         long remaining = maxEU;
         long totalDrained = 0L;
 
@@ -976,10 +943,25 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
         return (long) Math.ceil(getMaxOperatingTemperatureCelsius());
     }
 
-    public void setSimulatedEnergyDetectorCover(ForgeDirection side, long threshold, boolean inverted) {
-        this.mSimulatedDetectorSide = side != null ? side : ForgeDirection.UNKNOWN;
-        this.mSimulatedDetectorThreshold = threshold;
-        this.mSimulatedDetectorInverted = inverted;
+    /** An energy detector cover's settings: its threshold (0 for the heater's maximum) and whether it inverts. */
+    public static final class EnergyDetector {
+
+        public final long threshold;
+        public final boolean inverted;
+
+        public EnergyDetector(long threshold, boolean inverted) {
+            this.threshold = threshold;
+            this.inverted = inverted;
+        }
+    }
+
+    /** The energy detector cover on a side of the heater, or null. */
+    protected EnergyDetector energyDetectorAt(ForgeDirection side) {
+        IGregTechTileEntity base = getBaseMetaTileEntity();
+        if (base == null || side == null || side == ForgeDirection.UNKNOWN) return null;
+        return base.getCoverAtSide(side) instanceof CoverEUMeter euMeter
+            ? new EnergyDetector(euMeter.getThreshold(), euMeter.isInverted())
+            : null;
     }
 
     public byte getRedstoneOutput() {
@@ -1044,45 +1026,21 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
         int highestFine = 0;
 
         IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base != null) {
-            for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
-                Cover cover = base.getCoverAtSide(side);
-                if (cover instanceof CoverEUMeter euMeter) {
-                    foundCover = true;
-                    long rawThreshold = euMeter.getThreshold();
-                    double threshold = rawThreshold > 0L ? (double) rawThreshold : maxTemp;
-                    boolean inverted = euMeter.isInverted();
-                    byte rs = computeTemperatureRedstoneSignal(mInnerTemperatureCelsius, ambient, threshold, inverted);
-                    int fine = computeTemperatureFineSignal(mInnerTemperatureCelsius, ambient, threshold, inverted);
-                    base.setInternalOutputRedstoneSignal(side, rs);
-                    base.setOutputRedstoneSignal(side, rs);
-                    if (fine >= highestFine) {
-                        highestFine = fine;
-                        highestRedstone = rs;
-                    }
-                }
-            }
-        }
-
-        if (mSimulatedDetectorSide != ForgeDirection.UNKNOWN) {
+        for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
+            EnergyDetector detector = energyDetectorAt(side);
+            if (detector == null) continue;
             foundCover = true;
-            double threshold = mSimulatedDetectorThreshold > 0L ? (double) mSimulatedDetectorThreshold : maxTemp;
-            byte rs = computeTemperatureRedstoneSignal(
-                mInnerTemperatureCelsius,
-                ambient,
-                threshold,
-                mSimulatedDetectorInverted);
-            int fine = computeTemperatureFineSignal(
-                mInnerTemperatureCelsius,
-                ambient,
-                threshold,
-                mSimulatedDetectorInverted);
+            double threshold = detector.threshold > 0L ? (double) detector.threshold : maxTemp;
+            byte rs = computeTemperatureRedstoneSignal(mInnerTemperatureCelsius, ambient, threshold, detector.inverted);
+            int fine = computeTemperatureFineSignal(mInnerTemperatureCelsius, ambient, threshold, detector.inverted);
             if (base != null) {
-                base.setInternalOutputRedstoneSignal(mSimulatedDetectorSide, rs);
-                base.setOutputRedstoneSignal(mSimulatedDetectorSide, rs);
+                base.setInternalOutputRedstoneSignal(side, rs);
+                base.setOutputRedstoneSignal(side, rs);
             }
-            highestRedstone = rs;
-            highestFine = fine;
+            if (fine >= highestFine) {
+                highestFine = fine;
+                highestRedstone = rs;
+            }
         }
 
         if (!foundCover) {
@@ -1105,24 +1063,12 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
     }
 
     public boolean hasEnergyDetectorCoverAtSide(ForgeDirection side) {
-        if (side == null || side == ForgeDirection.UNKNOWN) return false;
-        if (mSimulatedDetectorSide == side) return true;
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base != null) {
-            return base.getCoverAtSide(side) instanceof CoverEUMeter;
-        }
-        return false;
+        return energyDetectorAt(side) != null;
     }
 
     public boolean hasAnyEnergyDetectorCover() {
-        if (mSimulatedDetectorSide != ForgeDirection.UNKNOWN) return true;
-        IGregTechTileEntity base = getBaseMetaTileEntity();
-        if (base != null) {
-            for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
-                if (base.getCoverAtSide(side) instanceof CoverEUMeter) {
-                    return true;
-                }
-            }
+        for (ForgeDirection side : ForgeDirection.VALID_DIRECTIONS) {
+            if (energyDetectorAt(side) != null) return true;
         }
         return false;
     }
