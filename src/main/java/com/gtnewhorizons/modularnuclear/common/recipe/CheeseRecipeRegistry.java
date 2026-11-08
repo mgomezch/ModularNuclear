@@ -10,13 +10,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 
-import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
-
-import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import gregtech.api.enums.Materials;
 import gregtech.api.recipe.RecipeMaps;
@@ -30,7 +28,8 @@ public class CheeseRecipeRegistry {
 
     private static final CheeseRecipeRegistry INSTANCE = new CheeseRecipeRegistry(
         () -> RecipeMaps.fluidExtractionRecipes != null ? RecipeMaps.fluidExtractionRecipes.getAllRecipes()
-            : Collections.emptyList());
+            : Collections.emptyList(),
+        () -> Materials.Cheese != null ? Materials.Cheese.mStandardMoltenFluid : null);
 
     /** The registry over GregTech's fluid extractor recipes, which the game's nuclear buses use. */
     public static CheeseRecipeRegistry getInstance() {
@@ -39,6 +38,10 @@ public class CheeseRecipeRegistry {
 
     /** Where the registry finds its candidate recipes; it keeps those that make molten cheese. */
     private final Supplier<? extends Collection<GTRecipe>> source;
+    /** Where it finds the molten cheese fluid. */
+    private final Supplier<Fluid> moltenCheeseSource;
+    /** The molten cheese fluid, resolved with the recipes. */
+    private volatile Fluid moltenCheese;
 
     private final List<GTRecipe> cheeseRecipes = new CopyOnWriteArrayList<>();
     private final Set<Item> cheeseInputItems = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -46,9 +49,13 @@ public class CheeseRecipeRegistry {
     private volatile boolean isLoaded = false;
     private volatile boolean hasDynamicOrUnknownInputs = false;
 
-    /** A registry over the molten cheese recipes among {@code source}'s, read on first use. */
-    public CheeseRecipeRegistry(Supplier<? extends Collection<GTRecipe>> source) {
+    /**
+     * A registry over the recipes among {@code source}'s that make {@code moltenCheese}'s fluid, both read on first
+     * use.
+     */
+    public CheeseRecipeRegistry(Supplier<? extends Collection<GTRecipe>> source, Supplier<Fluid> moltenCheese) {
         this.source = source;
+        this.moltenCheeseSource = moltenCheese;
     }
 
     /**
@@ -61,34 +68,8 @@ public class CheeseRecipeRegistry {
         private final NBTTagCompound nbt;
 
         public RecipeCacheKey(ItemStack stack) {
-            Item it = null;
-            try {
-                it = stack.getItem();
-            } catch (Exception swallowed) {
-                Swallowed.note(swallowed);
-            }
-            this.item = it;
-
-            int dmg = 0;
-            if (Items.feather != null) {
-                try {
-                    dmg = Items.feather.getDamage(stack);
-                } catch (Exception swallowed) {
-                    Swallowed.note(swallowed);
-                    try {
-                        dmg = stack.getItemDamage();
-                    } catch (Exception swallowedAgain) {
-                        Swallowed.note(swallowedAgain);
-                    }
-                }
-            } else {
-                try {
-                    dmg = stack.getItemDamage();
-                } catch (Exception swallowed) {
-                    Swallowed.note(swallowed);
-                }
-            }
-            this.damage = dmg;
+            this.item = stack.getItem();
+            this.damage = stack.getItemDamage();
             this.nbt = stack.getTagCompound();
         }
 
@@ -110,19 +91,10 @@ public class CheeseRecipeRegistry {
         }
     }
 
-    /**
-     * Determines whether a fluid stack represents molten cheese.
-     */
-    public static boolean isMoltenCheese(FluidStack fluid) {
-        if (fluid == null || fluid.getFluid() == null) return false;
-        if (Materials.Cheese != null && (fluid.getFluid() == Materials.Cheese.mStandardMoltenFluid
-            || Materials.FLUID_MAP.get(fluid.getFluid()) == Materials.Cheese)) {
-            return true;
-        }
-        String name = fluid.getFluid()
-            .getName();
-        return "molten.cheese".equalsIgnoreCase(name) || "cheese".equalsIgnoreCase(name)
-            || "fluid.cheese".equalsIgnoreCase(name);
+    /** Whether a fluid stack is molten cheese: GregTech's Cheese material's molten fluid. */
+    public boolean isMoltenCheese(FluidStack fluid) {
+        loadRecipes();
+        return fluid != null && moltenCheese != null && fluid.getFluid() == moltenCheese;
     }
 
     /**
@@ -132,10 +104,11 @@ public class CheeseRecipeRegistry {
         if (isLoaded) return;
         synchronized (this) {
             if (isLoaded) return;
+            moltenCheese = moltenCheeseSource.get();
             for (GTRecipe recipe : source.get()) {
                 if (recipe.mFluidOutputs != null) {
                     for (FluidStack out : recipe.mFluidOutputs) {
-                        if (out != null && isMoltenCheese(out)) {
+                        if (out != null && moltenCheese != null && out.getFluid() == moltenCheese) {
                             cheeseRecipes.add(recipe);
                             if (recipe.mInputs != null && recipe.mInputs.length > 0) {
                                 for (ItemStack in : recipe.mInputs) {

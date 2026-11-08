@@ -27,7 +27,6 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileContent;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileTick;
-import com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry;
 import com.gtnewhorizons.modularnuclear.common.util.FluidRoles;
 import com.gtnewhorizons.modularnuclear.common.util.ItemRoles;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
@@ -884,7 +883,8 @@ public class NuclearReactorPhysics {
         FluidStack cheeseOutput = null;
         if (recipe.mFluidOutputs != null) {
             for (FluidStack out : recipe.mFluidOutputs) {
-                if (out != null && CheeseRecipeRegistry.isMoltenCheese(out)) {
+                if (out != null && bus.cheeseRecipes()
+                    .isMoltenCheese(out)) {
                     cheeseOutput = out.copy();
                     break;
                 }
