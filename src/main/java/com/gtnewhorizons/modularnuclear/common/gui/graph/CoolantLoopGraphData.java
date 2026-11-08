@@ -703,8 +703,10 @@ public class CoolantLoopGraphData {
     private static void buildLinearFallbackGraph(MTECoolantPump pump, CoolantLoopEngine engine,
         CoolantLoopGraphData data) {
         GraphNode source = new GraphNode("source", "Pump discharge", "coolant_pump", "SOURCE", 0, 0, 0);
-        source.temperature = pump.getReservoir() != null ? pump.getReservoir()
-            .getReservoirTemperatureCelsius() : 20.0;
+        // The reservoir's temperature is NaN while its fluid is unknown, which JSON can't carry
+        double reservoirCelsius = pump.getReservoir() != null ? pump.getReservoir()
+            .getReservoirTemperatureCelsius() : Double.NaN;
+        source.temperature = Double.isNaN(reservoirCelsius) ? engine.getAvgLoopTempCelsius() : reservoirCelsius;
         source.temperatureIn = source.temperature;
         source.temperatureOut = source.temperature;
         source.flowRateLPerSec = engine.getFlowRateLitersPerSecond();

@@ -346,6 +346,25 @@ public class CoolantLoopGraphTest {
         assertFalse(pump.hasComputerMonitorCover());
     }
 
+    /** An empty reservoir has no temperature (NaN), which JSON can't carry: the graph must still serialize. */
+    @Test
+    public void testFallbackGraphWithEmptyReservoirSerializes() {
+        TestCoolantPump pump = new TestCoolantPump("test_empty_reservoir_graph_pump");
+        pump.getReservoir()
+            .setSimulatedCoolantLiters(0);
+        assertTrue(
+            Double.isNaN(
+                pump.getReservoir()
+                    .getReservoirTemperatureCelsius()));
+
+        CoolantLoopGraphData data = CoolantLoopGraphData.fromJson(pump.getLoopGraphDataJson());
+        GraphNode source = data.nodes.stream()
+            .filter(n -> "source".equals(n.id))
+            .findFirst()
+            .orElseThrow(AssertionError::new);
+        assertEquals(20.0, source.temperature, 1e-9);
+    }
+
     @Test
     public void testEdgeKeyBasics() {
         CoolantLoopGraphData.EdgeKey key1 = new CoolantLoopGraphData.EdgeKey("hubA", "hubB", "seg1");
