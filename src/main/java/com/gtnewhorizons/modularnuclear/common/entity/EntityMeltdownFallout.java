@@ -224,7 +224,7 @@ public class EntityMeltdownFallout extends Entity {
         return null;
     }
 
-    /** Which of the two ways contamination falls applies: see Note [Fallout and GregTech pollution]. */
+    // Which of the two ways contamination falls applies: see Note [Fallout and GregTech pollution]
     public static boolean isPollutionEnabled() {
         return gregtech.GTMod.proxy != null && gregtech.GTMod.proxy.mPollution;
     }
@@ -269,7 +269,7 @@ public class EntityMeltdownFallout extends Entity {
         return (dx * dx + dz * dz) <= (currentRadius * currentRadius);
     }
 
-    /** Pollution from the fallouts affecting a chunk. See Note [Fallout and GregTech pollution]. */
+    // Pollution from the fallouts affecting a chunk. See Note [Fallout and GregTech pollution]
     public static int getVirtualPollution(World world, int chunkX, int chunkZ) {
         if (world == null || !isPollutionEnabled()) return 0;
         if (ACTIVE_SERVER_FALLOUTS.isEmpty()) return 0;
@@ -317,7 +317,7 @@ public class EntityMeltdownFallout extends Entity {
         }
     }
 
-    /** Pollution removed from a chunk cleans the fallouts affecting it. See Note [Fallout and GregTech pollution]. */
+    // Pollution removed from a chunk cleans the fallouts affecting it. See Note [Fallout and GregTech pollution]
     public static void onPollutionRemoved(World world, int chunkX, int chunkZ, int removedPollution) {
         if (world == null || world.isRemote || removedPollution <= 0) return;
         if (ACTIVE_SERVER_FALLOUTS.isEmpty()) return;
