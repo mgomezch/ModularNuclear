@@ -34,6 +34,7 @@ public class PassageTierTest {
         // A large segment, so the coolant barely warms and the exchange is not limited by it
         LoopSegment segment = new LoopSegment("passage", 50.0, 0.10, 0.000045, 2.5, 500.0, 3200.0, 200.0);
         double hu = CoolantPassage.exchange(
+            NuclearSimulationEngine.params(),
             210.0,
             CoolantPassage.heatCapacity(tier),
             tier,

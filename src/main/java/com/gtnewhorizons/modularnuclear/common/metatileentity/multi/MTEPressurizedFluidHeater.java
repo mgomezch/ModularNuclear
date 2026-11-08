@@ -903,7 +903,9 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
         double eff = getEfficiencyFactor();
         int passageTier = getPassageVoltageTier();
 
+        // A heater is not part of a reactor: its passage runs on the installed parameters
         double transferredHu = CoolantPassage.exchange(
+            NuclearSimulationEngine.params(),
             mInnerTemperatureCelsius,
             capacityHuPerC,
             passageTier,

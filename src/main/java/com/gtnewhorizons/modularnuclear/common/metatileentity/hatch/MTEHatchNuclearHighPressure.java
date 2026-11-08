@@ -358,7 +358,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         }
         double capacity = getHeatCapacity();
         double heatTransferredHu = CoolantPassage
-            .exchange(mTemperature, capacity, mTier, volumetricFlowRateM3s, dtSeconds, fluid, segment);
+            .exchange(parameters(), mTemperature, capacity, mTier, volumetricFlowRateM3s, dtSeconds, fluid, segment);
         if (heatTransferredHu == 0.0) {
             return;
         }

@@ -1658,6 +1658,7 @@ public class CoolantLoopModel {
                     LoopSegment seg = loop.passageSegments.get(i);
                     double capacity = tile.getHeatCapacity();
                     double hu = CoolantPassage.exchange(
+                        tile.parameters(),
                         tile.getTemperature(),
                         capacity,
                         tile.getPassageTier(),

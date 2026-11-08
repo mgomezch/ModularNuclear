@@ -68,7 +68,7 @@ public final class EngineParameters {
 
     /** Hatch conductance per tier (base × ratio^(tier − MV)), see hatchConductance. */
     public final TierScale hatchConductanceByTier = new TierScale(2);
-    /** Passage heat transfer factor per tier, see CoolantPassage.heatTransferFactor. */
+    /** Passage heat transfer factor per tier, see passageHeatTransferFactor. */
     public final TierScale passageHeatTransferByTier = new TierScale(2);
 
     /** An independent copy: changing it leaves this one (and its random sequence) as it was. */
@@ -157,6 +157,15 @@ public final class EngineParameters {
      */
     public double hatchConductance(int tier) {
         return hatchConductanceByTier.get(baseHatchConductance, hatchConductanceTierRatio, tier);
+    }
+
+    /**
+     * Factor on a coolant passage's convective heat transfer for its voltage tier: the configured multiplier at MV
+     * (tier 2), times the tier ratio per tier above.
+     */
+    public double passageHeatTransferFactor(int tier) {
+        return passageHeatTransferByTier
+            .get(coolantPassageHeatTransferMultiplier, coolantPassageHeatTransferTierRatio, tier);
     }
 
     /**
