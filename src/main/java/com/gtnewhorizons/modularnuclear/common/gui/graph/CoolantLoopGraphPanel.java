@@ -1,5 +1,7 @@
 package com.gtnewhorizons.modularnuclear.common.gui.graph;
 
+import java.util.function.Supplier;
+
 import net.minecraft.util.EnumChatFormatting;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
@@ -32,15 +34,18 @@ public class CoolantLoopGraphPanel {
         CoolantLoopGraphWidget graphWidget = new CoolantLoopGraphWidget();
 
         // Server-client network sync of loop graph data JSON (a large loop's passes a packet string's 32 KB), as often
-        // as the config allows
-        StringSyncValue graphDataSyncer = new LargeStringSyncValue(pump::getLoopGraphDataJson, json -> {
+        // as the config allows. Only the server builds it: the client's pump has no loop, and shows an empty graph
+        // until the first sync
+        Supplier<String> serverGraphJson = () -> pump.getBaseMetaTileEntity()
+            .isServerSide() ? pump.getLoopGraphDataJson() : "";
+        StringSyncValue graphDataSyncer = new LargeStringSyncValue(serverGraphJson, json -> {
             CoolantLoopGraphData data = CoolantLoopGraphData.fromJson(json);
             graphWidget.setGraphData(data);
         }, ModularNuclearConfig.loopGraphSyncIntervalTicks());
         syncManager.syncValue("loopGraphJson", graphDataSyncer);
 
         // Initial setup on opening
-        graphWidget.setGraphData(CoolantLoopGraphData.fromJson(pump.getLoopGraphDataJson()));
+        graphWidget.setGraphData(CoolantLoopGraphData.fromJson(serverGraphJson.get()));
 
         // Title bar header with drag handle and zoom controls
         Flow headerRow = Flow.row()
