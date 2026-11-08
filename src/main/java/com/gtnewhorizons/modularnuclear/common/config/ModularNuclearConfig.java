@@ -33,6 +33,7 @@ public final class ModularNuclearConfig {
     // ==========================================
     // Meltdown Fallout Dynamics
     // ==========================================
+    // See Note [Fallout and GregTech pollution]
     public static double falloutContaminationReductionPerPollution = 62.5 / 30000.0;
 
     // ==========================================

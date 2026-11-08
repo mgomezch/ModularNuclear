@@ -15,6 +15,8 @@ Run it against stock GregTech pollution, in a game whose GregTech pollution sett
                     contamination by 62.5 per 30,000 removed.
                  3. Air filter: an Electric Air Filter near the fallout cleans its fallout-polluted chunks
                     every second, and contamination falls with it, down to zero.
+
+See Note [Fallout and GregTech pollution].
 """
 
 import sys

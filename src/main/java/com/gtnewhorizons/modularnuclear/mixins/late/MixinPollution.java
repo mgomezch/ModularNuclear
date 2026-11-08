@@ -16,6 +16,7 @@ import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 
 import gregtech.common.pollution.Pollution;
 
+/** Ties meltdown fallout to GregTech pollution. See Note [Fallout and GregTech pollution]. */
 @Mixin(value = Pollution.class, remap = false)
 public abstract class MixinPollution {
 
@@ -23,7 +24,10 @@ public abstract class MixinPollution {
     @Final
     private World world;
 
-    /** Set while reading a chunk's own pollution, without the fallout's virtual pollution. */
+    /**
+     * Set while reading a chunk's own pollution, without the fallout's virtual pollution.
+     * See wrinkle (W1) of Note [Fallout and GregTech pollution].
+     */
     @Unique
     private static boolean modularnuclear$physicalOnly;
 
@@ -39,6 +43,7 @@ public abstract class MixinPollution {
         }
     }
 
+    // See wrinkle (W2) of Note [Fallout and GregTech pollution]
     @Inject(method = "addPollution(Lnet/minecraft/world/World;III)V", at = @At("HEAD"))
     private static void modularnuclear$onAddPollution(World w, int chunkX, int chunkZ, int aPollution,
         CallbackInfo ci) {
@@ -53,7 +58,8 @@ public abstract class MixinPollution {
 
     /**
      * GregTech's pollution cycle writes each chunk's new pollution here, after it decays and spreads to its neighbours,
-     * without going through {@code addPollution}. A chunk losing pollution this way cleans fallout too.
+     * without going through {@code addPollution}. A chunk losing pollution this way cleans fallout too. See wrinkles
+     * (W1) and (W3) of Note [Fallout and GregTech pollution].
      */
     @Inject(method = "setChunkPollution", at = @At("HEAD"))
     private void modularnuclear$onSetChunkPollution(ChunkCoordIntPair coord, int pollution, CallbackInfo ci) {
