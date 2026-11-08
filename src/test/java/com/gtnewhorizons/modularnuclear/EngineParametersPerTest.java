@@ -4,6 +4,7 @@ import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 /**
@@ -13,13 +14,21 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
  */
 public class EngineParametersPerTest implements BeforeEachCallback, AfterEachCallback {
 
+    private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace
+        .create(EngineParametersPerTest.class);
+
     @Override
     public void beforeEach(ExtensionContext context) {
-        NuclearSimulationEngine.beginScope();
+        EngineParameters before = NuclearSimulationEngine.params();
+        context.getStore(NAMESPACE)
+            .put("before", before);
+        NuclearSimulationEngine.installParameters(before.copy());
     }
 
     @Override
     public void afterEach(ExtensionContext context) {
-        NuclearSimulationEngine.endScope();
+        NuclearSimulationEngine.installParameters(
+            context.getStore(NAMESPACE)
+                .get("before", EngineParameters.class));
     }
 }

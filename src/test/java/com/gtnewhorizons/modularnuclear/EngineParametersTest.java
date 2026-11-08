@@ -2,81 +2,52 @@ package com.gtnewhorizons.modularnuclear;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
-import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNuclearGrid;
+import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
 
 class EngineParametersTest {
 
-    @AfterEach
-    void reset() {
-        NuclearSimulationEngine.resetDefaultParameters();
-    }
-
+    /** An engine runs with its own set: another engine's set, or the installed one, does not change its results. */
     @Test
-    void scopedParametersLeaveTheSharedSetAlone() {
-        double shared = NuclearSimulationEngine.params().fissionHeatPerNeutron;
-        EngineParameters mine = NuclearSimulationEngine.params()
-            .copy();
-        mine.fissionHeatPerNeutron = shared * 3;
-        double seen = NuclearSimulationEngine
-            .withParameters(mine, () -> NuclearSimulationEngine.params().fissionHeatPerNeutron);
-        assertEquals(shared * 3, seen, 1e-9);
-        assertEquals(shared, NuclearSimulationEngine.params().fissionHeatPerNeutron, 1e-9);
-    }
-
-    /** Two parameter sets run side by side on two threads, each giving the result it gives alone. */
-    @Test
-    void twoParameterSetsRunInParallel() throws Exception {
+    void anEngineRunsWithItsOwnParameters() {
         EngineParameters cold = NuclearSimulationEngine.params()
             .copy();
         EngineParameters hot = NuclearSimulationEngine.params()
             .copy();
-        double coldAlone = run(cold, 1.0, 7);
-        double hotAlone = run(hot, 4.0, 7);
+        hot.fissionHeatPerNeutron *= 4.0;
+
+        double coldAlone = run(cold, 7);
+        double hotAlone = run(hot, 7);
         assertNotEquals(coldAlone, hotAlone);
 
-        ExecutorService pool = Executors.newFixedThreadPool(2);
-        try {
-            Future<Double> c = pool.submit(() -> run(cold, 1.0, 7));
-            Future<Double> h = pool.submit(() -> run(hot, 4.0, 7));
-            assertEquals(coldAlone, c.get(), 1e-9);
-            assertEquals(hotAlone, h.get(), 1e-9);
-        } finally {
-            pool.shutdown();
-        }
+        NuclearSimulationEngine.params().fissionHeatPerNeutron *= 10.0;
+        assertEquals(coldAlone, run(cold, 7), 1e-9, "the installed set does not reach an engine built with its own");
     }
 
-    /** Runs the EV preset with its fission heat scaled (after setup, which loads the configured physics). */
-    private static double run(EngineParameters parameters, double heatScale, long seed) {
-        return NuclearSimulationEngine.withParameters(parameters, () -> {
-            StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
-            grid.loadPreset("BEST_ELECTRUM_5X5");
-            NuclearSimulationEngine.params().fissionHeatPerNeutron *= heatScale;
-            NuclearSimulationEngine.params()
-                .setRandomSeed(seed);
-            for (int i = 0; i < 40; i++) grid.step();
-            return grid.getCoreMaxTemp();
-        });
+    /** A 3x3 core of uranium fuel run for 20 cycles with a seeded random source; returns its hottest cell. */
+    private static double run(EngineParameters parameters, long seed) {
+        parameters.setRandomSeed(seed);
+        SimTile[][] grid = new SimTile[3][3];
+        for (int x = 0; x < 3; x++)
+            for (int y = 0; y < 3; y++) grid[x][y] = new SimTile(parameters, SimTile.TileType.FUEL_URANIUM_QUAD);
+        NuclearSimulationEngine engine = new NuclearSimulationEngine(parameters);
+        double max = 0;
+        for (int i = 0; i < 20; i++) max = engine.simulate(grid, 3, 3).maxTemperature;
+        return max;
     }
 
     @Test
     void eachTestRunsWithItsOwnParameters() {
-        EngineParameters mine = NuclearSimulationEngine.params();
-        mine.setTicksPerCycle(17);
-        NuclearSimulationEngine.endScope();
-        try {
-            assertNotSame(mine, NuclearSimulationEngine.params(), "a test's parameters are not the installed set");
-            assertNotEquals(17, NuclearSimulationEngine.params().ticksPerCycle, "and changing them leaves it alone");
-        } finally {
-            NuclearSimulationEngine.beginScope();
-        }
+        NuclearSimulationEngine.params()
+            .setTicksPerCycle(17);
+        assertEquals(17, NuclearSimulationEngine.params().ticksPerCycle);
+    }
+
+    @Test
+    void eachTestRunsWithItsOwnParametersToo() {
+        assertNotEquals(17, NuclearSimulationEngine.params().ticksPerCycle, "another test's change is gone");
     }
 }

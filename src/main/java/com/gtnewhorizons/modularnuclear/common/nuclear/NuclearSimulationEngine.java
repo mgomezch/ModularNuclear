@@ -306,48 +306,18 @@ public class NuclearSimulationEngine {
         1.0 / 12.0, 1.0 / 12.0, 1.0 / 12.0, 1.0 / 12.0 // 4 Diagonals (weight 1/12 each)
     };
     private static volatile EngineParameters installed = new EngineParameters();
-    private static final ThreadLocal<EngineParameters> SCOPED = new ThreadLocal<>();
 
     /**
-     * The installed parameters: the game's, built from its configuration, or this thread's while
-     * {@link #withParameters}
-     * (or a test's own set) is in effect. New engines are built from it; static queries for displays read it.
+     * The installed parameters: the game's, built from its configuration. New engines are built from it; static
+     * queries for displays read it.
      */
     public static EngineParameters params() {
-        EngineParameters scoped = SCOPED.get();
-        return scoped != null ? scoped : installed;
+        return installed;
     }
 
-    /**
-     * Makes {@code parameters} the set the engine runs with: this thread's, while {@link #withParameters} (or a test's
-     * own set) is in effect, or else everyone's. A whole set is installed at once, never changed field by field.
-     */
+    /** Makes {@code parameters} the installed set. A whole set is installed at once, never changed field by field. */
     public static void installParameters(EngineParameters parameters) {
-        if (SCOPED.get() != null) SCOPED.set(parameters);
-        else installed = parameters;
-    }
-
-    /** Gives this thread its own parameters (a copy of the installed set) until {@link #endScope}. For tests. */
-    public static void beginScope() {
-        SCOPED.set(installed.copy());
-    }
-
-    public static void endScope() {
-        SCOPED.remove();
-    }
-
-    /**
-     * Runs {@code body} with {@code parameters} as this thread's engine parameters, then restores the previous ones.
-     */
-    public static <T> T withParameters(EngineParameters parameters, java.util.function.Supplier<T> body) {
-        EngineParameters previous = SCOPED.get();
-        SCOPED.set(parameters);
-        try {
-            return body.get();
-        } finally {
-            if (previous != null) SCOPED.set(previous);
-            else SCOPED.remove();
-        }
+        installed = java.util.Objects.requireNonNull(parameters);
     }
 
     public static class SimulationResult {
