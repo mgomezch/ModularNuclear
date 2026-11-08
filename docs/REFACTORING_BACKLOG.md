@@ -302,10 +302,11 @@ Recognizing a loop device is an if-chain repeated in the crawler, in `rebindRest
 **Done:**
 - **No static setters.** The engine's static setters, and its static mirrors `HU_PER_DEGREE`, `AMBIENT_TEMP` and `ic2CoolantHeatPerLiter`, are gone. The values live only in `EngineParameters`, whose setters keep them in range.
 - **Installed whole.** The game's configuration builds a whole parameter set from `physics.yaml` and installs it at once (`installParameters`); nothing changes the installed set field by field.
-- **Context.** The engine reads `params()`: the set `withParameters` installed for its thread, or the installed one.
+- **Engine as an object.** `NuclearSimulationEngine` is built with its parameter set (`new NuclearSimulationEngine(parameters)`), and `simulate` is an instance method that reads only that set. Derived values (archetype multipliers, hatch heat capacity and conductance, conductive transfer, stochastic rounding) are methods of `EngineParameters`.
+- **Tiles read their owner's set.** `INuclearTile.parameters()` is the set of the tile's owner: a game tile's reactor (`MTENuclearReactor.engine()`) or a simulator tile's grid (`StandaloneNuclearGrid.engine()`). The tile physics helpers (`TileTick`, `TileProperties`, `NuclearReactorPhysics`) take the set as an argument. A reactor or grid builds its engine from the installed set and rebuilds it when a new set is installed.
+- **Where the installed set is still read.** `params()` is where reactors and grids get their set, and what the static display queries (tier names and limits, hatch conductance in tooltips, flux formatting) read. A part outside any reactor uses it too. The coolant loop's passage heat transfer (`CoolantPassage.heatTransferFactor`) reads it as well: the loop engine is separate and runs on the game's set.
 - **Tests.** Every test runs with its own copy of the installed set (`EngineParametersPerTest`, registered for all tests). What a test changes, or installs by loading a configuration, ends with it.
 - **Standalone simulator.** The CLI and WebAssembly bridge still adjust the installed set through its setters: each is a single program with one set.
-- **Not done: passing the set explicitly.** The engine's helpers do not take it as an argument; they read `params()`, which a run or test scopes.
 
 `NuclearSimulationEngine`'s static setters are shared by the game, the tests and the simulator. `withParameters` and the thread-local override exist, but the default is a global. This caused test-order dependence: running one test class alone broke the next full run.
 
