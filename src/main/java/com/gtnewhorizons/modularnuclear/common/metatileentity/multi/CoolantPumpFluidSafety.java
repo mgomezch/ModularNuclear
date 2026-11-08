@@ -41,6 +41,10 @@ final class CoolantPumpFluidSafety {
             pump.setLoopStatusKey("coolantloops.pump.status.tank_empty");
             return MTECoolantPump.Step.DONE;
         }
+        // Coolant in the tank: the pump starts only on a fluid it can tell is a loop coolant
+        if (pump.getTotalCoolantLiters() > 0 && (reservoirFluid == null || reservoirFluid.getFluid() == null)) {
+            return refuse(pump, "coolantloops.pump.status.reservoir_unknown_fluid");
+        }
         if (reservoirFluid != null && reservoirFluid.getFluid() != null) {
             if (pump.isLiquidNuclearFuel(reservoirFluid)) {
                 pump.failOnLiquidNuclearFuel(
@@ -111,7 +115,27 @@ final class CoolantPumpFluidSafety {
                 }
             }
         }
+        if (pump.getTotalCoolantLiters() > 0 && CoolantFluidProperty.get(
+            reservoirFluid.getFluid()
+                .getName())
+            == null) {
+            return refuse(
+                pump,
+                "coolantloops.pump.status.refuse_unknown_coolant",
+                reservoirFluid.getFluid()
+                    .getName());
+        }
         return MTECoolantPump.Step.CARRY_ON;
+    }
+
+    /** Stops the pump with a status saying why it will not start. */
+    private static MTECoolantPump.Step refuse(MTECoolantPump pump, String statusKey, Object... args) {
+        pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
+        pump.mEngine.setPumpPowered(false);
+        pump.mEngine.setPumpMechanicalPowerWatts(0.0);
+        pump.mEngine.setBraking(false);
+        pump.setLoopStatusKey(statusKey, args);
+        return MTECoolantPump.Step.DONE;
     }
 
     static void spillCoolantFluid(MTECoolantPump pump, World world, LoopSegment rupturedSegment) {

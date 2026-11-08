@@ -49,14 +49,6 @@ public class CoolantPumpReservoir {
                     .getBaselineInletTemperatureCelsius(f.getFluid(), f, prop, pump.getBiomeTemperatureCelsius());
                 return reservoirTemperatureCelsius;
             }
-            if (getTotalCoolantLiters() > 0) {
-                // Coolant whose fluid the tank does not report: take the loop's
-                CoolantFluidProperty prop = pump.getEngine() != null ? pump.getEngine()
-                    .getFluid() : null;
-                reservoirTemperatureCelsius = CoolantFluidHelper
-                    .getBaselineInletTemperatureCelsius(null, null, prop, pump.getBiomeTemperatureCelsius());
-                return reservoirTemperatureCelsius;
-            }
         }
         return reservoirTemperatureCelsius;
     }
@@ -477,7 +469,14 @@ public class CoolantPumpReservoir {
         CoolantFluidProperty prop = CoolantFluidProperty.get(
             availableFluid.getFluid()
                 .getName());
-        if (prop == null || prop.isPlainWater()) {
+        if (prop == null) {
+            pump.setLoopStatusKey(
+                "coolantloops.pump.status.refuse_unknown_coolant",
+                availableFluid.getFluid()
+                    .getName());
+            return false;
+        }
+        if (prop.isPlainWater()) {
             pump.setLoopStatusKey("coolantloops.pump.status.refuse_water");
             return false;
         }
@@ -512,17 +511,13 @@ public class CoolantPumpReservoir {
 
     /**
      * The coolant in the tank: its own fluid's properties (a sodium reservoir is molten before the loop has ever
-     * filled), else the loop's.
+     * filled), or null for a tank whose fluid is not a loop coolant or that does not report its fluid.
      */
     private CoolantFluidProperty reservoirFluidProperty(FluidStack f) {
-        if (f != null && f.getFluid() != null) {
-            CoolantFluidProperty own = CoolantFluidProperty.get(
-                f.getFluid()
-                    .getName());
-            if (own != null) return own;
-        }
-        return pump.getEngine() != null ? pump.getEngine()
-            .getFluid() : null;
+        if (f == null || f.getFluid() == null) return null;
+        return CoolantFluidProperty.get(
+            f.getFluid()
+                .getName());
     }
 
     public FluidStack getReservoirFluid() {

@@ -1,5 +1,10 @@
 package com.gtnewhorizons.modularnuclear;
 
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
+
+import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.CoolantPumpReservoir;
 
@@ -71,6 +76,8 @@ public class TestCoolantPump extends MTECoolantPump {
         long coolantLiters = 100000L;
         /** 0 for unlimited. */
         long capacityLiters = 0L;
+        /** The coolant in the tank; null for the loop's. */
+        CoolantFluidProperty fluid;
 
         FakeReservoir(TestCoolantPump pump) {
             super(pump);
@@ -83,6 +90,30 @@ public class TestCoolantPump extends MTECoolantPump {
 
         public void setSimulatedTankCapacityLiters(long liters) {
             capacityLiters = liters;
+        }
+
+        /** The coolant in the tank, in place of the loop's. */
+        public void setSimulatedFluid(CoolantFluidProperty fluid) {
+            this.fluid = fluid;
+        }
+
+        /**
+         * The tank's coolant: the one set, else the loop's; a Forge fluid of that name, registered here if the tests'
+         * world has none.
+         */
+        @Override
+        public FluidStack getReservoirFluid() {
+            if (pump.inWorld()) return super.getReservoirFluid();
+            CoolantFluidProperty prop = fluid != null ? fluid
+                : pump.getEngine() != null ? pump.getEngine()
+                    .getFluid() : null;
+            if (coolantLiters <= 0 || prop == null) return null;
+            Fluid forgeFluid = FluidRegistry.getFluid(prop.getFluidName());
+            if (forgeFluid == null) {
+                forgeFluid = new Fluid(prop.getFluidName());
+                FluidRegistry.registerFluid(forgeFluid);
+            }
+            return new FluidStack(forgeFluid, (int) Math.min(Integer.MAX_VALUE, coolantLiters));
         }
 
         @Override

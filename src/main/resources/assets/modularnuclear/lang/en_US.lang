@@ -407,6 +407,8 @@ coolantloops.waila.loop_not_formed=Coolant loop incomplete: %s
 
 coolantloops.pump.status.refuse_water=Pump refused to start: Plain regular water cannot be used in a coolant loop! Use Distilled Water.
 coolantloops.pump.status.refuse_gas=Pump refused to start: Gaseous fluid (%s) cannot be used as a coolant!
+coolantloops.pump.status.refuse_unknown_coolant=Pump refused to start: the reservoir holds %s, which is not a loop coolant.
+coolantloops.pump.status.reservoir_unknown_fluid=Pump refused to start: the reservoir's tank does not report which fluid it holds.
 coolantloops.pump.status.refuse_lava=Pump refused to start: Lava is too viscous here!
 coolantloops.pump.status.refuse_solidify=Pump refused to start: Reservoir coolant temperature (%.1f °C) is below declared GregTech melting point (%.1f °C) for %s! Fluid would solidify.
 
