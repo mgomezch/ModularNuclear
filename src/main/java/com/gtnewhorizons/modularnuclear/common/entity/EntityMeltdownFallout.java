@@ -59,18 +59,20 @@ Moving parts: in this class isPollutionEnabled, onUpdate, isAffectingChunk, getV
 and ACTIVE_SERVER_FALLOUTS (the server's live fallouts, which the static hooks search); MixinPollution's three
 injections; and ModularNuclearConfig.falloutContaminationReductionPerPollution.
 
-The GregTech pollution cycle compares/updates stored pollution only, without the fallout's virtual share.  Removals
-count the virtual share.  MixinPollution's modularnuclear$onAddPollution caps removal at getPollution, virtual share
-included, while GregTech clamps the stored amount at zero.  So an air filter keeps cleaning the fallout after the
-chunk's stored pollution is gone, until the fallout itself is.
+(W1) The GregTech pollution cycle compares/updates stored pollution only, without the fallout's virtual share.
 
-Spreading counts as removal.  When the cycle spreads pollution, the source chunk's loss lowers contamination and the
-neighbour's gain does not raise it.  Nothing that adds pollution raises contamination, the fallout's own 2,000,000
-included.
+(W2) Removals count the virtual share.  MixinPollution's modularnuclear$onAddPollution caps removal at getPollution,
+     virtual share included, while GregTech clamps the stored amount at zero.  So an air filter keeps cleaning the
+     fallout after the chunk's stored pollution is gone, until the fallout itself is.
 
-isAffectingChunk covers the 3×3 chunks around the fallout plus every chunk whose center lies inside its radius.  A
-removal lowers every fallout affecting that chunk, and removals in several affected chunks each count in full.
-getVirtualPollution reports the largest share among the fallouts affecting a chunk, not their sum.
+(W3) Spreading counts as removal.  When the cycle spreads pollution, the source chunk's loss lowers contamination
+     and the neighbour's gain does not raise it.  Nothing that adds pollution raises contamination, the fallout's
+     own 2,000,000 included.
+
+(W4) isAffectingChunk covers the 3×3 chunks around the fallout plus every chunk whose center lies inside its
+     radius.  A removal lowers every fallout affecting that chunk, and removals in several affected chunks each
+     count in full.  getVirtualPollution reports the largest share among the fallouts affecting a chunk, not their
+     sum.
 */
 
 public class EntityMeltdownFallout extends Entity {

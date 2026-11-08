@@ -25,7 +25,7 @@ public abstract class MixinPollution {
     private World world;
 
     // Set while reading a chunk's own pollution, without the fallout's virtual pollution.
-    // See Note [Fallout and GregTech pollution]
+    // See wrinkle (W1) of Note [Fallout and GregTech pollution]
     @Unique
     private static boolean modularnuclear$physicalOnly;
 
@@ -41,7 +41,7 @@ public abstract class MixinPollution {
         }
     }
 
-    // See Note [Fallout and GregTech pollution]
+    // See wrinkle (W2) of Note [Fallout and GregTech pollution]
     @Inject(method = "addPollution(Lnet/minecraft/world/World;III)V", at = @At("HEAD"))
     private static void modularnuclear$onAddPollution(World w, int chunkX, int chunkZ, int aPollution,
         CallbackInfo ci) {
@@ -56,7 +56,7 @@ public abstract class MixinPollution {
 
     // GregTech's pollution cycle writes each chunk's new pollution here, after it decays and spreads to its
     // neighbours, without going through addPollution. A chunk losing pollution this way cleans fallout too.
-    // See Note [Fallout and GregTech pollution]
+    // See wrinkles (W1) and (W3) of Note [Fallout and GregTech pollution]
     @Inject(method = "setChunkPollution", at = @At("HEAD"))
     private void modularnuclear$onSetChunkPollution(ChunkCoordIntPair coord, int pollution, CallbackInfo ci) {
         int before;
