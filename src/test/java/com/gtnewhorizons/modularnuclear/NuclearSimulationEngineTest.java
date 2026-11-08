@@ -8377,7 +8377,7 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
-    void testNuclearCoreHatchesDisableTickingExceptFluidHatches() {
+    void testNuclearCoreHatchesDisableTicking() {
         IGregTechTileEntity mockTe = org.mockito.Mockito.mock(IGregTechTileEntity.class);
         org.mockito.Mockito.when(mockTe.isServerSide())
             .thenReturn(true);
@@ -8387,7 +8387,7 @@ public class NuclearSimulationEngineTest {
         MTEHatchNuclearControlRod rod = new MTEHatchNuclearControlRod("test.rod", 4, new String[0], null);
         MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp", 4, 0, new String[0], null);
 
-        // Before tick 20: must NOT call tryDisableTicking so mTickTimer can exceed 5
+        // Before tick 20: must NOT call tryDisableTicking
         bus.onPostTick(mockTe, 1);
         hatch.onPostTick(mockTe, 1);
         rod.onPostTick(mockTe, 1);
@@ -8401,12 +8401,9 @@ public class NuclearSimulationEngineTest {
         org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.times(1))
             .tryDisableTicking();
 
-        // The fluid hatch keeps ticking: GregTech accepts fluid only into a tile that has ticked more than 5 times, and
-        // a
-        // disabled tile can be left at 0 for good, so it would refuse its coolant
         org.mockito.Mockito.clearInvocations(mockTe);
         hatch.onPostTick(mockTe, 20);
-        org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.never())
+        org.mockito.Mockito.verify(mockTe, org.mockito.Mockito.times(1))
             .tryDisableTicking();
 
         org.mockito.Mockito.clearInvocations(mockTe);

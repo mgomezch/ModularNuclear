@@ -52,7 +52,7 @@ import gregtech.api.util.GTSplit;
  * tier ({@link CoolantPipeSpec#VOLTAGE_TIERS}) sets the passage's heat capacity and heat transfer.
  */
 public class MTEHatchNuclearHighPressure extends MTEHatch
-    implements ICoolantPassageHatch, INuclearTile, IAddGregtechLogo {
+    implements ICoolantPassageHatch, INuclearTile, IAddGregtechLogo, IReadyBeforeFirstTick {
 
     public MTENuclearReactor mReactor = null;
     public double mTemperature = NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP;
@@ -199,6 +199,7 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         return false;
     }
 
+    // See Note [Hatches that work without ticking]
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);

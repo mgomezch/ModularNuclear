@@ -28,6 +28,7 @@ public class ModularNuclearLateMixins implements ILateMixinLoader {
             mixins.add("MixinMTECoolantTower");
             mixins.add("MixinGTPostLoad");
             mixins.add("MixinPollution");
+            mixins.add("MixinBaseMetaTileEntity");
         }
         return mixins;
     }

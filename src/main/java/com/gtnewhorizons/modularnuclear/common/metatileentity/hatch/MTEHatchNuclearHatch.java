@@ -42,7 +42,7 @@ import gregtech.api.util.GTSplit;
  * Holds input coolant or liquid nuclear fuel.
  * All nuclear physics, boiling, and transmutation logic is processed by MTENuclearReactor.
  */
-public class MTEHatchNuclearHatch extends MTEHatch {
+public class MTEHatchNuclearHatch extends MTEHatch implements IReadyBeforeFirstTick {
 
     public FluidStack mInputFluid;
     public final int mCapacity;
@@ -140,6 +140,15 @@ public class MTEHatchNuclearHatch extends MTEHatch {
     @Override
     public boolean canTankBeEmptied() {
         return false;
+    }
+
+    // See Note [Hatches that work without ticking]
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPostTick(aBaseMetaTileEntity, aTick);
+        if (aBaseMetaTileEntity != null && aBaseMetaTileEntity.isServerSide() && aTick >= 20) {
+            aBaseMetaTileEntity.tryDisableTicking();
+        }
     }
 
     // --- Input-Only Fluid Hatch ---

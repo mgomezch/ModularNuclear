@@ -37,7 +37,7 @@ import gregtech.api.util.GTSplit;
  * Holds 1 input slot (slot 0).
  * All nuclear physics, depletion, and energy generation logic is processed by MTENuclearReactor.
  */
-public class MTEHatchNuclearBus extends MTEHatch {
+public class MTEHatchNuclearBus extends MTEHatch implements IReadyBeforeFirstTick {
 
     public static final int SLOT_INPUT = 0;
 
@@ -412,6 +412,7 @@ public class MTEHatchNuclearBus extends MTEHatch {
         }
     }
 
+    // See Note [Hatches that work without ticking]
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);

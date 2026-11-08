@@ -52,7 +52,7 @@ import gregtech.api.util.GTUtility;
  * Incoming redstone signal (0..15) determines how far the control rod is inserted (0% to 100%).
  * Absorbs neutrons and converts them into heat in the reactor core.
  */
-public class MTEHatchNuclearControlRod extends MTEHatch {
+public class MTEHatchNuclearControlRod extends MTEHatch implements IReadyBeforeFirstTick {
 
     public static final int SLOT_ROD = 0;
     public static final int SLOT_MODERATOR = 1;
@@ -271,6 +271,7 @@ public class MTEHatchNuclearControlRod extends MTEHatch {
         markTileDirty();
     }
 
+    // See Note [Hatches that work without ticking]
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
