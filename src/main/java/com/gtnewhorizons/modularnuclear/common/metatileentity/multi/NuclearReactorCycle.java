@@ -44,7 +44,7 @@ final class NuclearReactorCycle {
             beginCycleTotals(r);
 
             double maintEff = r.getMaintenanceEfficiency();
-            NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine
+            NuclearSimulationEngine.SimulationResult res = r.engine()
                 .simulate(r.mGrid, r.gridSize, r.gridSize, maintEff, ambient);
             r.mCoreTemp = res.maxTemperature;
             r.mAvgTemp = res.averageTemperature;

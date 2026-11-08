@@ -12,10 +12,10 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
-import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
 import gtnhlanth.common.hatch.MTEHatchInputBeamline;
@@ -106,6 +106,11 @@ public class NuclearGridTile implements INuclearTile {
 
     public MTENuclearReactor getReactor() {
         return reactor;
+    }
+
+    @Override
+    public EngineParameters parameters() {
+        return MTENuclearReactor.parameters(reactor);
     }
 
     @Override
@@ -217,10 +222,10 @@ public class NuclearGridTile implements INuclearTile {
     @Override
     public double getHeatCapacity() {
         if (hatch != null) {
-            return NuclearSimulationEngine.getCoreHatchHeatCapacity(hatch.mTier);
+            return parameters().hatchHeatCapacity(hatch.mTier);
         }
         if (highPressureHatch != null) return highPressureHatch.getHeatCapacity();
-        return NuclearSimulationEngine.params().huPerDegree;
+        return parameters().huPerDegree;
     }
 
     @Override

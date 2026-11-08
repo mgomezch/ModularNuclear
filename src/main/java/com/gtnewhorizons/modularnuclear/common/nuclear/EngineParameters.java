@@ -3,9 +3,10 @@ package com.gtnewhorizons.modularnuclear.common.nuclear;
 import java.util.Random;
 
 /**
- * The physics parameters {@link NuclearSimulationEngine} runs with, and its random number source. The engine reads
- * the set installed for the current thread ({@link NuclearSimulationEngine#withParameters}), or the shared one: so
- * a simulator run, a calibration candidate or a test can use its own set without disturbing anyone else's.
+ * The physics parameters a {@link NuclearSimulationEngine} runs with, the values derived from them, and its random
+ * number source. An engine holds its set; the tiles of a grid read their owner's (the reactor's or the simulator
+ * grid's). {@link NuclearSimulationEngine#params()} is the set the game installs from its configuration, and the set
+ * new engines are built from.
  */
 public final class EngineParameters {
 
@@ -49,7 +50,7 @@ public final class EngineParameters {
     public double beamEnergyToFastNeutronMultiplier = NuclearSimulationEngine.DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER;
     /** Scales cell-to-cell heat conduction (not boundary loss or hatch-to-coolant transfer). */
     public double gridConductionMultiplier = NuclearSimulationEngine.DEFAULT_GRID_CONDUCTION_MULTIPLIER;
-    /** Conductance (HU/(s·°C)) of an MV (tier 2) nuclear core hatch; see {@link #getHatchConductance(int)}. */
+    /** Conductance (HU/(s·°C)) of an MV (tier 2) nuclear core hatch; see {@link #hatchConductance(int)}. */
     public double baseHatchConductance = NuclearSimulationEngine.DEFAULT_BASE_HATCH_CONDUCTANCE;
     /**
      * Factor by which a nuclear core hatch's conductance grows per tier. Its heat capacity doubles per tier, so above 2
@@ -65,7 +66,7 @@ public final class EngineParameters {
     /** The engine's random number source (neutron directions, stochastic interactions). */
     public Random random = new FastRandom();
 
-    /** Hatch conductance per tier (base × ratio^(tier − MV)), see NuclearSimulationEngine.getHatchConductance. */
+    /** Hatch conductance per tier (base × ratio^(tier − MV)), see hatchConductance. */
     public final TierScale hatchConductanceByTier = new TierScale(2);
     /** Passage heat transfer factor per tier, see CoolantPassage.heatTransferFactor. */
     public final TierScale passageHeatTransferByTier = new TierScale(2);
@@ -114,6 +115,62 @@ public final class EngineParameters {
         c.ic2CoolantHeatPerLiter = ic2CoolantHeatPerLiter;
         c.random = new FastRandom();
         return c;
+    }
+
+    /** Rounds down and adds one with probability equal to the fractional part. */
+    public int stochasticRound(double value) {
+        if (value <= 0.0) return 0;
+        int whole = (int) value;
+        return whole + (random.nextDouble() < value - whole ? 1 : 0);
+    }
+
+    /** Base neutron multiplier of a fuel archetype, including the global neutron yield multiplier. */
+    public double nbaseMultiplier(String archetype) {
+        double mult = switch (NuclearSimulationEngine.archetypeOf(archetype)) {
+            case NuclearSimulationEngine.ARCHETYPE_DENSE -> denseNbaseMultiplier;
+            case NuclearSimulationEngine.ARCHETYPE_EXCITED -> excitedNbaseMultiplier;
+            case NuclearSimulationEngine.ARCHETYPE_BREEDER -> breederNbaseMultiplier;
+            default -> standardNbaseMultiplier;
+        };
+        return mult * neutronYieldMultiplier;
+    }
+
+    /** Fission multiplier of a fuel archetype. */
+    public double fissionMultiplier(String archetype) {
+        return switch (NuclearSimulationEngine.archetypeOf(archetype)) {
+            case NuclearSimulationEngine.ARCHETYPE_DENSE -> denseFissionMultiplier;
+            case NuclearSimulationEngine.ARCHETYPE_EXCITED -> excitedFissionMultiplier;
+            case NuclearSimulationEngine.ARCHETYPE_BREEDER -> breederFissionMultiplier;
+            default -> standardFissionMultiplier;
+        };
+    }
+
+    /** Heat capacity (HU/°C) of a nuclear core hatch of the given tier (LV=1 ... UHV=9), whatever it holds. */
+    public double hatchHeatCapacity(int tier) {
+        return coreHatchHeatCapacity * TierScale.pow2(tier);
+    }
+
+    /**
+     * Thermal conductance U in HU/(s·°C) of a nuclear core hatch of the given tier: the base (MV) conductance times the
+     * tier ratio per tier above MV. With the defaults an EV hatch removes 20% of its excess heat per second and a UHV
+     * hatch 60%.
+     */
+    public double hatchConductance(int tier) {
+        return hatchConductanceByTier.get(baseHatchConductance, hatchConductanceTierRatio, tier);
+    }
+
+    /**
+     * Heat (HU) a core hatch at {@code temp} conducts into a coolant sink at {@code sinkTemp} over {@code ticks}:
+     * exact exponential cooling of the hatch's heat capacity at its conductance, scaled by efficiency.
+     */
+    public double conductiveHeatTransfer(double temp, double sinkTemp, int tier, double efficiency, int ticks) {
+        if (temp <= sinkTemp || efficiency <= 0.0) return 0.0;
+        double deltaT = temp - sinkTemp;
+        double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
+        double conductance = hatchConductance(tier) * effFactor;
+        double ch = hatchHeatCapacity(tier);
+        double dt = (double) Math.max(1, ticks) / 20.0;
+        return ch * deltaT * (1.0 - Math.exp(-conductance * dt / ch));
     }
 
     // Setters that keep each value in its sensible range

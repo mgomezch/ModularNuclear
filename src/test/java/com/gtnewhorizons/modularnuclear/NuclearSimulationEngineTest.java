@@ -58,6 +58,7 @@ import com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
@@ -84,6 +85,11 @@ import shedar.mods.ic2.nuclearcontrol.api.PanelString;
 import shedar.mods.ic2.nuclearcontrol.panel.CardWrapperImpl;
 
 public class NuclearSimulationEngineTest {
+
+    /** An engine running with this test's parameters. */
+    private static NuclearSimulationEngine engine() {
+        return new NuclearSimulationEngine(NuclearSimulationEngine.params());
+    }
 
     @BeforeAll
     static void initEnvironment() {
@@ -114,6 +120,11 @@ public class NuclearSimulationEngineTest {
     }
 
     private static class MockNuclearTile implements INuclearTile {
+
+        @Override
+        public EngineParameters parameters() {
+            return NuclearSimulationEngine.params();
+        }
 
         double temperature = 20.0;
         double heatHU = 0.0;
@@ -266,12 +277,12 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testEmptyGridSimulation() {
-        NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine.simulate(null, 0, 0);
+        NuclearSimulationEngine.SimulationResult res = engine().simulate(null, 0, 0);
         assertNotNull(res);
         assertEquals(0, res.totalNeutronsGenerated);
 
         INuclearTile[][] emptyGrid = new INuclearTile[3][3];
-        NuclearSimulationEngine.SimulationResult res2 = NuclearSimulationEngine.simulate(emptyGrid, 3, 3);
+        NuclearSimulationEngine.SimulationResult res2 = engine().simulate(emptyGrid, 3, 3);
         assertNotNull(res2);
         assertEquals(0, res2.totalNeutronsGenerated);
         assertEquals(NuclearSimulationEngine.DEFAULT_AMBIENT_TEMP, res2.averageTemperature, 1e-6);
@@ -290,7 +301,7 @@ public class NuclearSimulationEngineTest {
         grid[0][1] = moderator;
         grid[2][1] = moderator;
 
-        NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine.simulate(grid, 3, 3);
+        NuclearSimulationEngine.SimulationResult res = engine().simulate(grid, 3, 3);
         assertTrue(res.totalNeutronsGenerated > 0, "Fuel rod should generate neutrons");
         assertEquals((int) (100 * NuclearSimulationEngine.calculateEfficiency(20.0)), res.totalNeutronsGenerated);
         assertTrue(fuel.getTemperature() > 20.0, "Fuel rod should heat up due to fission");
@@ -305,7 +316,7 @@ public class NuclearSimulationEngineTest {
         hotFuel.temperature = 2500.0; // Above Uranium floor temp (2200°C)
         grid[0][0] = hotFuel;
 
-        NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine.simulate(grid, 1, 1);
+        NuclearSimulationEngine.SimulationResult res = engine().simulate(grid, 1, 1);
         assertEquals(
             5,
             res.totalNeutronsGenerated,
@@ -321,7 +332,7 @@ public class NuclearSimulationEngineTest {
         grid[1][0] = coldTile;
 
         double initialDiff = hotTile.getTemperature() - coldTile.getTemperature();
-        NuclearSimulationEngine.simulate(grid, 2, 1);
+        engine().simulate(grid, 2, 1);
 
         double newDiff = hotTile.getTemperature() - coldTile.getTemperature();
         assertTrue(newDiff < initialDiff, "Heat diffusion should reduce temperature difference between adjacent tiles");
@@ -348,7 +359,7 @@ public class NuclearSimulationEngineTest {
         NuclearSimulationEngine.SimulationResult res = null;
         for (int i = 0; i < 100; i++) {
             fuel.temperature = NuclearFuelType.URANIUM.peakReactivityTemp;
-            res = NuclearSimulationEngine.simulate(grid, 3, 3);
+            res = engine().simulate(grid, 3, 3);
             if (reflector.scattered > 0) break;
         }
         assertTrue(reflector.fluxReceived > 0, "Reflector should receive neutron flux from adjacent fuel");
@@ -642,7 +653,7 @@ public class NuclearSimulationEngineTest {
     @Test
     void testCoolantPhaseChangeAndExpansionRatios() {
         // Distilled water: 160:1 expansion into steam
-        SimTile waterTile = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
+        SimTile waterTile = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_DISTILLED_WATER);
         waterTile.setInputFluidAmount(1000);
         waterTile.setTemperature(200.0);
         int initialWater = waterTile.getInputFluidAmount();
@@ -658,7 +669,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(waterConsumed * 160, waterTile.getOutputFluidAmount());
 
         // Heavy water: 160:1 expansion into heavy water steam
-        SimTile heavyWaterTile = new SimTile(SimTile.TileType.HATCH_HEAVY_WATER);
+        SimTile heavyWaterTile = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_HEAVY_WATER);
         heavyWaterTile.setInputFluidAmount(1000);
         heavyWaterTile.setTemperature(200.0);
         int initialHw = heavyWaterTile.getInputFluidAmount();
@@ -674,7 +685,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(hwConsumed * 160, heavyWaterTile.getOutputFluidAmount());
 
         // IC2 coolant: 1:1 liquid exchange (NO steam, NO volume expansion)
-        SimTile ic2Tile = new SimTile(SimTile.TileType.HATCH_IC2_COOLANT);
+        SimTile ic2Tile = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_IC2_COOLANT);
         ic2Tile.setInputFluidAmount(1000);
         ic2Tile.setTemperature(200.0);
         int initialIc2 = ic2Tile.getInputFluidAmount();
@@ -689,8 +700,8 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testRadiovoltaicGenerationAndSaturation() {
-        SimTile cellHV = new SimTile(SimTile.TileType.RADIOVOLTAIC_HV);
-        SimTile cellEV = new SimTile(SimTile.TileType.RADIOVOLTAIC_EV);
+        SimTile cellHV = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.RADIOVOLTAIC_HV);
+        SimTile cellEV = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.RADIOVOLTAIC_EV);
 
         // 1. Check absorption properties (rebalanced: 40% for HV, 60% for EV)
         assertEquals(0.40, cellHV.getAbsorptionProbability(NeutronType.FAST), 1e-4);
@@ -705,7 +716,7 @@ public class NuclearSimulationEngineTest {
         cellHV.nuclearTick(1.0);
         long fastEU = cellHV.getDirectEUProduced();
 
-        SimTile cellHVThermal = new SimTile(SimTile.TileType.RADIOVOLTAIC_HV);
+        SimTile cellHVThermal = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.RADIOVOLTAIC_HV);
         cellHVThermal.onNeutronAbsorbed(NeutronType.THERMAL, 4);
         cellHVThermal.nuclearTick(1.0);
         long thermalEU = cellHVThermal.getDirectEUProduced();
@@ -714,7 +725,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(thermalEU, fastEU, "One fast neutron must count as four thermal neutrons");
 
         // 3. Saturation: HV caps around 1024 EU/t (2A HV)
-        SimTile cellHVSat = new SimTile(SimTile.TileType.RADIOVOLTAIC_HV);
+        SimTile cellHVSat = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.RADIOVOLTAIC_HV);
         cellHVSat.onNeutronAbsorbed(NeutronType.FAST, 1000);
         cellHVSat.nuclearTick(1.0);
         assertEquals(1024, cellHVSat.getDirectEUProduced(), "HV Radiovoltaic cell must cap at 1024 EU/t (2A HV)");
@@ -748,12 +759,12 @@ public class NuclearSimulationEngineTest {
                 .setTicksPerCycle(ticksPerCycle);
             NuclearSimulationEngine.params()
                 .setGridConductionMultiplier(mult);
-            SimTile hot = new SimTile(SimTile.TileType.REFLECTOR_GOLD);
-            SimTile cold = new SimTile(SimTile.TileType.REFLECTOR_GOLD);
+            SimTile hot = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.REFLECTOR_GOLD);
+            SimTile cold = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.REFLECTOR_GOLD);
             hot.setTemperature(1000.0);
             cold.setTemperature(20.0);
             INuclearTile[][] grid = { { hot }, { cold } };
-            NuclearSimulationEngine.simulate(grid, 2, 1, 1.0, 20.0);
+            engine().simulate(grid, 2, 1, 1.0, 20.0);
             return new double[] { hot.getTemperature(), cold.getTemperature() };
         } finally {
             NuclearSimulationEngine.params()
@@ -804,7 +815,7 @@ public class NuclearSimulationEngineTest {
             for (int i = 0; i < tpcs.length; i++) {
                 NuclearSimulationEngine.params()
                     .setTicksPerCycle(tpcs[i]);
-                SimTile plate = new SimTile(SimTile.TileType.RADIOVOLTAIC_EV);
+                SimTile plate = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.RADIOVOLTAIC_EV);
                 // A steady 8 thermal neutrons per second (2 per cycle at 5 ticks, 8 at 20 ticks) for 30 seconds,
                 // long enough for the plate's rate average to settle
                 for (int c = 0; c < 30 * 20 / tpcs[i]; c++) {
@@ -825,12 +836,12 @@ public class NuclearSimulationEngineTest {
     @Test
     void testRadiovoltaicLinearMaintenanceEfficiencyScaling() {
         // 1. SimTile nuclearTick efficiency does not scale individual plate directEUProduced
-        SimTile cellHV100 = new SimTile(SimTile.TileType.RADIOVOLTAIC_HV);
+        SimTile cellHV100 = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.RADIOVOLTAIC_HV);
         cellHV100.onNeutronAbsorbed(NeutronType.FAST, 20);
         cellHV100.nuclearTick(1.0);
         long directEU100 = cellHV100.getDirectEUProduced();
 
-        SimTile cellHV50 = new SimTile(SimTile.TileType.RADIOVOLTAIC_HV);
+        SimTile cellHV50 = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.RADIOVOLTAIC_HV);
         cellHV50.onNeutronAbsorbed(NeutronType.FAST, 20);
         cellHV50.nuclearTick(0.5);
         long directEU50 = cellHV50.getDirectEUProduced();
@@ -1108,7 +1119,7 @@ public class NuclearSimulationEngineTest {
 
         NuclearSimulationEngine.SimulationResult res = null;
         for (int i = 0; i < 20; i++) {
-            res = NuclearSimulationEngine.simulate(grid, 3, 3);
+            res = engine().simulate(grid, 3, 3);
             if (res.neutronsEscaped > 0) break;
         }
         assertTrue(res.neutronsEscaped > 0, "Neutrons hitting outer boundary / null cells must escape");
@@ -1134,7 +1145,7 @@ public class NuclearSimulationEngineTest {
         grid[0][1] = nWest;
         grid[2][1] = nEast;
 
-        NuclearSimulationEngine.simulate(grid, 3, 3);
+        engine().simulate(grid, 3, 3);
 
         // Center only borders 4 tiles; it has no direct boundaries with empty space/ambient.
         // Neighbors border ambient directly, so their temperature drops significantly faster than the center.
@@ -1151,7 +1162,7 @@ public class NuclearSimulationEngineTest {
         grid[1][2] = new MockNuclearTile(500.0, 0.1);
         grid[0][1] = new MockNuclearTile(500.0, 0.1);
         grid[2][1] = new MockNuclearTile(500.0, 0.1);
-        NuclearSimulationEngine.simulate(grid, 3, 3);
+        engine().simulate(grid, 3, 3);
         assertEquals(
             500.0,
             insulatedCenter.getTemperature(),
@@ -1172,23 +1183,23 @@ public class NuclearSimulationEngineTest {
         MockNuclearTile[][] soloGrid = new MockNuclearTile[1][1];
 
         soloGrid[0][0] = basePerimeter;
-        NuclearSimulationEngine.simulate(soloGrid, 1, 1);
+        engine().simulate(soloGrid, 1, 1);
         double lossBase = 500.0 - basePerimeter.getTemperature();
 
         soloGrid[0][0] = insulated20;
-        NuclearSimulationEngine.simulate(soloGrid, 1, 1);
+        engine().simulate(soloGrid, 1, 1);
         double loss20 = 500.0 - insulated20.getTemperature();
 
         soloGrid[0][0] = insulated40;
-        NuclearSimulationEngine.simulate(soloGrid, 1, 1);
+        engine().simulate(soloGrid, 1, 1);
         double loss40 = 500.0 - insulated40.getTemperature();
 
         soloGrid[0][0] = insulated60;
-        NuclearSimulationEngine.simulate(soloGrid, 1, 1);
+        engine().simulate(soloGrid, 1, 1);
         double loss60 = 500.0 - insulated60.getTemperature();
 
         soloGrid[0][0] = insulated100;
-        NuclearSimulationEngine.simulate(soloGrid, 1, 1);
+        engine().simulate(soloGrid, 1, 1);
         double loss100 = 500.0 - insulated100.getTemperature();
 
         assertEquals(0.0, loss100, 1e-6, "100% insulation should completely prevent ambient heat loss");
@@ -1217,7 +1228,7 @@ public class NuclearSimulationEngineTest {
         grid[2][0] = behind;
 
         for (int i = 0; i < 20; i++) {
-            NuclearSimulationEngine.simulate(grid, 3, 1);
+            engine().simulate(grid, 3, 1);
         }
 
         assertEquals(0, behind.fluxReceived, "Behind tile should receive no flux because Naquarite blocks 100%");
@@ -1293,7 +1304,7 @@ public class NuclearSimulationEngineTest {
         moderator.setTemperature(2000.0);
         grid[2][2] = moderator;
 
-        NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine.simulate(grid, 3, 3);
+        NuclearSimulationEngine.SimulationResult res = engine().simulate(grid, 3, 3);
         double maxTileTemp = Math
             .max(moderator.getTemperature(), Math.max(fuel1.getTemperature(), fuel2.getTemperature()));
         assertEquals(
@@ -1317,7 +1328,7 @@ public class NuclearSimulationEngineTest {
         // Test grid with NO fuel cells
         INuclearTile[][] noFuelGrid = new INuclearTile[2][2];
         noFuelGrid[0][0] = new MockNuclearTile(false, 0);
-        NuclearSimulationEngine.SimulationResult noFuelRes = NuclearSimulationEngine.simulate(noFuelGrid, 2, 2);
+        NuclearSimulationEngine.SimulationResult noFuelRes = engine().simulate(noFuelGrid, 2, 2);
         assertEquals(0.0, noFuelRes.averageReactivity, 1e-6, "Reactivity must be 0.0 when no fuel cells are present");
 
         NuclearSimulationEngine.resetDefaultParameters();
@@ -1361,10 +1372,10 @@ public class NuclearSimulationEngineTest {
         };
         grid[0][0] = nonFuel;
 
-        NuclearSimulationEngine.simulate(grid, 2, 2, 0.70);
+        engine().simulate(grid, 2, 2, 0.70);
         assertEquals(0.70, receivedEfficiency[0], 1e-6, "Non-fuel tile must receive maintenance efficiency");
 
-        NuclearSimulationEngine.simulate(grid, 2, 2, 1.0);
+        engine().simulate(grid, 2, 2, 1.0);
         assertEquals(1.0, receivedEfficiency[0], 1e-6, "Default/full maintenance efficiency must be 1.0");
 
         NuclearSimulationEngine.resetDefaultParameters();
@@ -2918,7 +2929,7 @@ public class NuclearSimulationEngineTest {
             .setTicksPerCycle(20);
         try {
             // Test The Core (NQ32)
-            SimTile core = new SimTile(SimTile.TileType.FUEL_CORE);
+            SimTile core = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.FUEL_CORE);
             assertTrue(core.isFuel());
             assertFalse(core.isHatch());
             // Dense archetype multiplier (0.50) applies to base neutrons (512 * 0.50 = 256)
@@ -2926,7 +2937,7 @@ public class NuclearSimulationEngineTest {
             assertEquals(2560000, core.getMaxDurability());
 
             // Test Liquid Uranium Fuel Hatch
-            SimTile liquidU = new SimTile(SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM);
+            SimTile liquidU = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM);
             assertTrue(liquidU.isFuel());
             assertTrue(liquidU.isHatch());
             assertTrue(liquidU.isLiquidFuelHatch());
@@ -2936,9 +2947,13 @@ public class NuclearSimulationEngineTest {
             assertEquals(0, liquidU.getOutputFluidAmount());
 
             // Test Liquid Thorium and Plutonium Hatches
-            SimTile liquidTh = new SimTile(SimTile.TileType.HATCH_LIQUID_FUEL_THORIUM);
+            SimTile liquidTh = new SimTile(
+                NuclearSimulationEngine.params(),
+                SimTile.TileType.HATCH_LIQUID_FUEL_THORIUM);
             assertEquals(4, liquidTh.generateNeutrons(1.0));
-            SimTile liquidPu = new SimTile(SimTile.TileType.HATCH_LIQUID_FUEL_PLUTONIUM);
+            SimTile liquidPu = new SimTile(
+                NuclearSimulationEngine.params(),
+                SimTile.TileType.HATCH_LIQUID_FUEL_PLUTONIUM);
             assertEquals(16, liquidPu.generateNeutrons(1.0));
 
             // Test liquid fuel burnup into spent byproduct
@@ -3036,7 +3051,7 @@ public class NuclearSimulationEngineTest {
         grid3x3[2][2] = diagReceiver;
 
         for (int i = 0; i < 20; i++) {
-            NuclearSimulationEngine.simulate(grid3x3, 3, 3);
+            engine().simulate(grid3x3, 3, 3);
         }
 
         assertTrue(
@@ -3065,7 +3080,7 @@ public class NuclearSimulationEngineTest {
         grid4x4[3][3] = behindDiag;
 
         for (int i = 0; i < 20; i++) {
-            NuclearSimulationEngine.simulate(grid4x4, 4, 4);
+            engine().simulate(grid4x4, 4, 4);
         }
 
         assertTrue(naquarite.fluxReceived > 0, "Naquarite must receive diagonal flux");
@@ -3112,7 +3127,7 @@ public class NuclearSimulationEngineTest {
         // 1. Standard Vent: up to 128 EU/t (up to 512 HU/t). Equalizes cell temperature towards ambient.
         // Heat capacity is 32 HU/°C. At 100°C: tempDiff = 80°C = 2560 HU.
         // Standard vent removes 512 HU (16°C), consuming 128 EU.
-        SimTile ventStd = new SimTile(SimTile.TileType.VENT_STANDARD);
+        SimTile ventStd = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_STANDARD);
         ventStd.setTemperature(100.0);
         NuclearSimulationEngine.processHeatVent(ventStd, ambient);
         assertEquals(84.0, ventStd.getTemperature(), 1e-4, "Standard vent must cool 16°C (512 HU)");
@@ -3120,7 +3135,7 @@ public class NuclearSimulationEngineTest {
 
         // 2. Advanced Vent (IC2 reactorVentDiamond): up to 2048 EU/t (up to 8192 HU/t).
         // At 100°C: tempDiff = 80°C = 2560 HU <= 8192 HU, so it equalizes to ambient for 2560 / 4 = 640 EU.
-        SimTile ventAdv = new SimTile(SimTile.TileType.VENT_ADVANCED);
+        SimTile ventAdv = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_ADVANCED);
         ventAdv.setTemperature(100.0);
         NuclearSimulationEngine.processHeatVent(ventAdv, ambient);
         assertEquals(20.0, ventAdv.getTemperature(), 1e-4, "Advanced vent must cool all the way to ambient");
@@ -3128,21 +3143,21 @@ public class NuclearSimulationEngineTest {
 
         // 3. Overclocked Vent (IC2 reactorVentGold): up to 512 EU/t (up to 2048 HU/t).
         // At 100°C: tempDiff = 80°C = 2560 HU. Removes 2048 HU (64°C), consuming 512 EU.
-        SimTile ventOver = new SimTile(SimTile.TileType.VENT_OVERCLOCKED);
+        SimTile ventOver = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_OVERCLOCKED);
         ventOver.setTemperature(100.0);
         NuclearSimulationEngine.processHeatVent(ventOver, ambient);
         assertEquals(36.0, ventOver.getTemperature(), 1e-4, "Overclocked vent must cool 64°C (2048 HU)");
         assertEquals(512, ventOver.drainedEnergy, "Overclocked vent must consume 512 EU");
 
         // 4. Component Vent (IC2 reactorVentSpread): up to 1024 EU/t (up to 4096 HU/t).
-        SimTile ventComp = new SimTile(SimTile.TileType.VENT_COMPONENT);
+        SimTile ventComp = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_COMPONENT);
         ventComp.setTemperature(100.0);
         NuclearSimulationEngine.processHeatVent(ventComp, ambient);
         assertEquals(20.0, ventComp.getTemperature(), 1e-4, "Component vent must cool all the way to ambient");
         assertEquals(640, ventComp.drainedEnergy, "Component vent must consume 640 EU for 2560 HU");
 
         // 5. Insufficient EU: component stops work for that tick
-        SimTile ventNoPower = new SimTile(SimTile.TileType.VENT_STANDARD);
+        SimTile ventNoPower = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_STANDARD);
         ventNoPower.setTemperature(100.0);
         ventNoPower.energyDrainingAllowed = false;
         NuclearSimulationEngine.processHeatVent(ventNoPower, ambient);
@@ -3155,13 +3170,13 @@ public class NuclearSimulationEngineTest {
         SimTile[][] grid = new SimTile[3][3];
         for (int x = 0; x < 3; x++) {
             for (int y = 0; y < 3; y++) {
-                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                grid[x][y] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EMPTY);
             }
         }
 
         // Center: Component Heat Vent (IC2 reactorVentSpread: up to 1024 EU/t, up to 4096 HU/t).
         // Requirement: Operates strictly on its own cell (does NOT interact across cell boundaries).
-        SimTile compVent = new SimTile(SimTile.TileType.VENT_COMPONENT);
+        SimTile compVent = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_COMPONENT);
         compVent.setTemperature(300.0);
         grid[1][1] = compVent;
 
@@ -3193,14 +3208,14 @@ public class NuclearSimulationEngineTest {
         SimTile[][] grid = new SimTile[3][3];
         for (int x = 0; x < 3; x++) {
             for (int y = 0; y < 3; y++) {
-                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                grid[x][y] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EMPTY);
                 grid[x][y].setTemperature(20.0);
             }
         }
 
         // Center: Standard Heat Exchanger (up to 256 EU/t, up to 1024 HU/t)
         // Equalizes temperature between own cell and all 4 cardinally adjacent cells.
-        SimTile exchanger = new SimTile(SimTile.TileType.EXCHANGER_STANDARD);
+        SimTile exchanger = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EXCHANGER_STANDARD);
         exchanger.setTemperature(20.0);
         grid[1][1] = exchanger;
 
@@ -3246,16 +3261,16 @@ public class NuclearSimulationEngineTest {
         SimTile[][] grid = new SimTile[3][3];
         for (int x = 0; x < 3; x++) {
             for (int y = 0; y < 3; y++) {
-                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                grid[x][y] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EMPTY);
                 grid[x][y].setTemperature(20.0);
             }
         }
 
         // Center: Standard Heat Exchanger (1024 HU/t). Top neighbor: Standard Heat Vent (512 HU/t).
-        SimTile exchanger = new SimTile(SimTile.TileType.EXCHANGER_STANDARD);
+        SimTile exchanger = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EXCHANGER_STANDARD);
         exchanger.setTemperature(20.0);
         grid[1][1] = exchanger;
-        SimTile vent = new SimTile(SimTile.TileType.VENT_STANDARD);
+        SimTile vent = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_STANDARD);
         vent.setTemperature(20.0);
         grid[1][0] = vent;
 
@@ -3278,7 +3293,7 @@ public class NuclearSimulationEngineTest {
     }
 
     private static SimTile pooledSimTile(SimTile.TileType type, long[] pool) {
-        return new SimTile(type) {
+        return new SimTile(NuclearSimulationEngine.params(), type) {
 
             @Override
             public long getAvailableEnergy() {
@@ -3302,7 +3317,7 @@ public class NuclearSimulationEngineTest {
         SimTile[][] grid = new SimTile[sizeX][sizeY];
         for (int x = 0; x < sizeX; x++) {
             for (int y = 0; y < sizeY; y++) {
-                grid[x][y] = new SimTile(types[rand.nextInt(types.length)]);
+                grid[x][y] = new SimTile(NuclearSimulationEngine.params(), types[rand.nextInt(types.length)]);
                 grid[x][y].setTemperature(rand.nextDouble() * 1500.0);
             }
         }
@@ -3357,12 +3372,12 @@ public class NuclearSimulationEngineTest {
         SimTile[][] grid = new SimTile[5][3];
         for (int x = 0; x < 5; x++) {
             for (int y = 0; y < 3; y++) {
-                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                grid[x][y] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EMPTY);
                 grid[x][y].setTemperature(0.0);
             }
         }
-        SimTile left = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
-        SimTile right = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
+        SimTile left = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EXCHANGER_COMPONENT);
+        SimTile right = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EXCHANGER_COMPONENT);
         left.setTemperature(0.0);
         right.setTemperature(0.0);
         grid[1][1] = left;
@@ -3403,7 +3418,7 @@ public class NuclearSimulationEngineTest {
             for (int x = 0; x < n; x++) {
                 for (int y = 0; y < n; y++) {
                     // Every cell is a component exchanger: maximal overlap
-                    grid[x][y] = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
+                    grid[x][y] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EXCHANGER_COMPONENT);
                     double t = rand.nextDouble() * 3000.0 - 200.0;
                     grid[x][y].setTemperature(t);
                     min = Math.min(min, t);
@@ -3434,7 +3449,7 @@ public class NuclearSimulationEngineTest {
         SimTile[][] grid = new SimTile[7][3];
         for (int x = 0; x < 7; x++) {
             for (int y = 0; y < 3; y++) {
-                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                grid[x][y] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EMPTY);
                 grid[x][y].setTemperature(20.0);
             }
         }
@@ -3468,7 +3483,7 @@ public class NuclearSimulationEngineTest {
         a.setTemperature(100.0);
         b.setTemperature(100.0);
         grid[0][0] = a;
-        grid[1][0] = new SimTile(SimTile.TileType.EMPTY);
+        grid[1][0] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EMPTY);
         grid[2][0] = b;
 
         NuclearSimulationEngine.processHeatVents(grid, 3, 1, 20.0);
@@ -3484,30 +3499,30 @@ public class NuclearSimulationEngineTest {
         SimTile[][] grid = new SimTile[5][5];
         for (int x = 0; x < 5; x++) {
             for (int y = 0; y < 5; y++) {
-                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                grid[x][y] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EMPTY);
             }
         }
 
         // Center: Uranium quad rod
-        grid[2][2] = new SimTile(SimTile.TileType.FUEL_URANIUM_QUAD);
+        grid[2][2] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.FUEL_URANIUM_QUAD);
 
         // Surrounding: Component Heat Exchangers (XC)
-        grid[1][2] = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
-        grid[3][2] = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
-        grid[2][1] = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
-        grid[2][3] = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
+        grid[1][2] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EXCHANGER_COMPONENT);
+        grid[3][2] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EXCHANGER_COMPONENT);
+        grid[2][1] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EXCHANGER_COMPONENT);
+        grid[2][3] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EXCHANGER_COMPONENT);
 
         // Outer: Advanced Heat Vents (VA) and Component Vents (VC)
-        grid[0][2] = new SimTile(SimTile.TileType.VENT_ADVANCED);
-        grid[4][2] = new SimTile(SimTile.TileType.VENT_ADVANCED);
-        grid[2][0] = new SimTile(SimTile.TileType.VENT_ADVANCED);
-        grid[2][4] = new SimTile(SimTile.TileType.VENT_ADVANCED);
-        grid[1][1] = new SimTile(SimTile.TileType.VENT_COMPONENT);
-        grid[3][3] = new SimTile(SimTile.TileType.VENT_COMPONENT);
+        grid[0][2] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_ADVANCED);
+        grid[4][2] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_ADVANCED);
+        grid[2][0] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_ADVANCED);
+        grid[2][4] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_ADVANCED);
+        grid[1][1] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_COMPONENT);
+        grid[3][3] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_COMPONENT);
 
         // Run 20 ticks of simulation
         for (int t = 0; t < 20; t++) {
-            NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine.simulate(grid, 5, 5, 1.0, 20.0);
+            NuclearSimulationEngine.SimulationResult res = engine().simulate(grid, 5, 5, 1.0, 20.0);
             assertNotNull(res);
             assertTrue(
                 res.maxTemperature < 1000.0,
@@ -4982,12 +4997,14 @@ public class NuclearSimulationEngineTest {
         // Tier 3 (HV, base 8.12 x ratio 2.65 => U = 21.518), Ch = 16 * 2^3 = 128 HU/°C, DeltaT = 100°C, eff = 1.0,
         // dt = 1.0 (20 ticks)
         // Expected Q = 128 * 100 * (1 - exp(-21.518 / 128)) = 1980.65 HU
-        double qHV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 3, 1.0, 20);
+        double qHV = NuclearSimulationEngine.params()
+            .conductiveHeatTransfer(200.0, 100.0, 3, 1.0, 20);
         assertEquals(1980.65, qHV, 0.02);
 
         // Tier 4 (EV, 8.12 x 2.65^2 => U = 57.0227), Ch = 256 HU/°C, DeltaT = 100°C, eff = 1.0, dt = 1.0 (20 ticks)
         // Expected Q = 256 * 100 * (1 - exp(-57.0227 / 256)) = 5111.83 HU
-        double qEV = NuclearSimulationEngine.calculateConductiveHeatTransfer(200.0, 100.0, 4, 1.0, 20);
+        double qEV = NuclearSimulationEngine.params()
+            .conductiveHeatTransfer(200.0, 100.0, 4, 1.0, 20);
         assertEquals(5111.83, qEV, 0.02);
 
         // Default 5 ticks per cycle (dt = 0.25)
@@ -5072,21 +5089,21 @@ public class NuclearSimulationEngineTest {
     void testCoolantHatchHigherTierRemovesMoreHeat() {
         // MV (tier 2), HV (tier 3) and EV (tier 4) hatches starting at 200°C. A higher tier conducts more and holds
         // more heat per degree, so it removes more heat from the same temperature.
-        SimTile hatchMV = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
+        SimTile hatchMV = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_DISTILLED_WATER);
         hatchMV.setTier(2); // MV
         hatchMV.setInputFluidAmount(8000);
         hatchMV.setTemperature(200.0);
         double qMV = hatchMV.coolantSubstep(cycleSeconds(), 1.0);
         hatchMV.nuclearTick(1.0);
 
-        SimTile hatchHV = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
+        SimTile hatchHV = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_DISTILLED_WATER);
         hatchHV.setTier(3); // HV
         hatchHV.setInputFluidAmount(8000);
         hatchHV.setTemperature(200.0);
         double qHV = hatchHV.coolantSubstep(cycleSeconds(), 1.0);
         hatchHV.nuclearTick(1.0);
 
-        SimTile hatchEV = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
+        SimTile hatchEV = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_DISTILLED_WATER);
         hatchEV.setTier(4); // EV
         hatchEV.setInputFluidAmount(8000);
         hatchEV.setTemperature(200.0);
@@ -5103,7 +5120,7 @@ public class NuclearSimulationEngineTest {
 
     @Test
     void testIC2CoolantHatchTemperatureRisesAboveAmbient() {
-        SimTile hatch = new SimTile(SimTile.TileType.HATCH_IC2_COOLANT);
+        SimTile hatch = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_IC2_COOLANT);
         hatch.setTier(3); // HV
         hatch.setInputFluidAmount(8000);
         hatch.setTemperature(80.0);
@@ -5979,11 +5996,11 @@ public class NuclearSimulationEngineTest {
     @Test
     void testDistilledWaterVsHeavyWaterModerationAndTransmutation() {
         // 1. SimTile moderation probabilities
-        SimTile dwTile = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
+        SimTile dwTile = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_DISTILLED_WATER);
         dwTile.setInputFluidAmount(1000);
         assertEquals(0.25, dwTile.getModerationProbability(), 1e-4, "Distilled water moderation must be 0.25");
 
-        SimTile hwTile = new SimTile(SimTile.TileType.HATCH_HEAVY_WATER);
+        SimTile hwTile = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_HEAVY_WATER);
         hwTile.setInputFluidAmount(1000);
         assertEquals(0.90, hwTile.getModerationProbability(), 1e-4, "Heavy water moderation must be 0.90");
 
@@ -6013,7 +6030,7 @@ public class NuclearSimulationEngineTest {
         int hwSuccess = 0;
         int trials = 10_000;
         for (int i = 0; i < trials; i++) {
-            SimTile testDw = new SimTile(SimTile.TileType.HATCH_DISTILLED_WATER);
+            SimTile testDw = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_DISTILLED_WATER);
             testDw.setInputFluidAmount(1000);
             testDw.onNeutronAbsorbed(NeutronType.FAST, 1);
             if (testDw.getTotalDeuteriumProduced() > 0) {
@@ -6023,7 +6040,7 @@ public class NuclearSimulationEngineTest {
                 assertEquals(998, testDw.getInputFluidAmount(), "Transmutation must consume 2 L water");
             }
 
-            SimTile testHw = new SimTile(SimTile.TileType.HATCH_HEAVY_WATER);
+            SimTile testHw = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_HEAVY_WATER);
             testHw.setInputFluidAmount(1000);
             testHw.onNeutronAbsorbed(NeutronType.FAST, 1);
             if (testHw.getTotalTritiumProduced() > 0) {
@@ -6599,7 +6616,7 @@ public class NuclearSimulationEngineTest {
         gridZero[1][0] = zeroScattering;
         gridZero[1][2] = zeroScattering;
 
-        NuclearSimulationEngine.SimulationResult resZero = NuclearSimulationEngine.simulate(gridZero, 3, 3);
+        NuclearSimulationEngine.SimulationResult resZero = engine().simulate(gridZero, 3, 3);
         assertEquals(0, zeroScattering.scattered, "Zero-scattering tile must never scatter thermal neutrons");
         assertTrue(resZero.neutronsEscaped > 0, "Non-scattered thermal neutrons must escape");
 
@@ -6620,7 +6637,7 @@ public class NuclearSimulationEngineTest {
         gridRefl[1][0] = highScattering;
         gridRefl[1][2] = highScattering;
 
-        NuclearSimulationEngine.SimulationResult resRefl = NuclearSimulationEngine.simulate(gridRefl, 3, 3);
+        NuclearSimulationEngine.SimulationResult resRefl = engine().simulate(gridRefl, 3, 3);
         assertTrue(highScattering.scattered > 0, "High-scattering tile must receive and scatter thermal neutrons");
         assertTrue(resRefl.thermalNeutronsAbsorbed > 0, "Scattered thermal neutrons must diffuse and be absorbed");
     }
@@ -6642,7 +6659,7 @@ public class NuclearSimulationEngineTest {
         gridAbs[1][0] = absorber;
         gridAbs[1][2] = absorber;
 
-        NuclearSimulationEngine.SimulationResult resAbs = NuclearSimulationEngine.simulate(gridAbs, 3, 3);
+        NuclearSimulationEngine.SimulationResult resAbs = engine().simulate(gridAbs, 3, 3);
         assertTrue(resAbs.totalNeutronsGenerated > 0);
         assertEquals(resAbs.totalNeutronsGenerated, resAbs.fastNeutronsAbsorbed, "All fast neutrons must be absorbed");
         assertEquals(0, resAbs.neutronsEscaped, "Absorbed neutrons must not be counted as escaped");
@@ -6652,7 +6669,7 @@ public class NuclearSimulationEngineTest {
         INuclearTile[][] gridOpen = new INuclearTile[3][3];
         gridOpen[1][1] = new MockNuclearTile(true, 400);
 
-        NuclearSimulationEngine.SimulationResult resOpen = NuclearSimulationEngine.simulate(gridOpen, 3, 3);
+        NuclearSimulationEngine.SimulationResult resOpen = engine().simulate(gridOpen, 3, 3);
         assertTrue(resOpen.totalNeutronsGenerated > 0);
         assertEquals(0, resOpen.fastNeutronsAbsorbed);
         assertEquals(
@@ -6860,7 +6877,7 @@ public class NuclearSimulationEngineTest {
             assertEquals(1.0, NuclearSimulationEngine.params().globalFastFissionMultiplier, 1e-4);
 
             // Uranium fuel tile (baseFastFissionMultiplier = 0.10, baseNeutrons = 4)
-            SimTile tile = new SimTile(SimTile.TileType.FUEL_URANIUM_SINGLE);
+            SimTile tile = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.FUEL_URANIUM_SINGLE);
             assertEquals(4, tile.generateNeutrons(1.0)); // 0 absorbed neutrons -> baseline 4
 
             // Absorb 100 fast neutrons
@@ -6894,14 +6911,14 @@ public class NuclearSimulationEngineTest {
         NuclearSimulationEngine.params().fuelBurnupMultiplier = 1.0;
         try {
             // Fast neutron absorption wear
-            SimTile tileFast = new SimTile(SimTile.TileType.FUEL_URANIUM_SINGLE);
+            SimTile tileFast = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.FUEL_URANIUM_SINGLE);
             tileFast.onNeutronAbsorbed(NeutronType.FAST, 10);
             tileFast.nuclearTick(1.0);
             double fastWear = tileFast.getLastDurabilityLoss();
             assertEquals(80.0, fastWear, 1e-4); // 10 * 8.0 = 80.0
 
             // Thermal neutron absorption wear
-            SimTile tileThermal = new SimTile(SimTile.TileType.FUEL_URANIUM_SINGLE);
+            SimTile tileThermal = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.FUEL_URANIUM_SINGLE);
             tileThermal.onNeutronAbsorbed(NeutronType.THERMAL, 10);
             tileThermal.nuclearTick(1.0);
             double thermalWear = tileThermal.getLastDurabilityLoss();
@@ -6964,15 +6981,15 @@ public class NuclearSimulationEngineTest {
         assertEquals("ore:dustAsh", graphite.spentProduct);
 
         // SimTile parity
-        SimTile simCarbon = new SimTile(SimTile.TileType.MODERATOR_CARBON);
+        SimTile simCarbon = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.MODERATOR_CARBON);
         assertEquals(10000, simCarbon.getDurability());
         assertEquals(0.45, simCarbon.getModerationProbability(), 1e-4);
 
-        SimTile simGraphite = new SimTile(SimTile.TileType.MODERATOR_GRAPHITE);
+        SimTile simGraphite = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.MODERATOR_GRAPHITE);
         assertEquals(80000, simGraphite.getDurability());
         assertEquals(0.50, simGraphite.getModerationProbability(), 1e-4);
 
-        SimTile simBeryllium = new SimTile(SimTile.TileType.MODERATOR_BERYLLIUM);
+        SimTile simBeryllium = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.MODERATOR_BERYLLIUM);
         assertEquals(240000, simBeryllium.getDurability());
         assertEquals(0.65, simBeryllium.getModerationProbability(), 1e-4);
     }
@@ -7013,7 +7030,7 @@ public class NuclearSimulationEngineTest {
         assertTrue(releaseHigh > 1800.0 && releaseHigh <= 2000.0);
 
         // SimTile parity & saturation cap at 10000.0
-        SimTile tile = new SimTile(SimTile.TileType.MODERATOR_GRAPHITE);
+        SimTile tile = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.MODERATOR_GRAPHITE);
         tile.setTemperature(1200.0);
         tile.addWignerEnergy(6000.0);
         assertEquals(6000.0, tile.getStoredWignerEnergy(), 1e-4);
@@ -7129,7 +7146,7 @@ public class NuclearSimulationEngineTest {
         try {
             assertEquals(SimTile.TileType.NEUTRON_SOURCE, SimTile.TileType.fromCode("NS"));
 
-            SimTile sourceTile = new SimTile(SimTile.TileType.NEUTRON_SOURCE);
+            SimTile sourceTile = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.NEUTRON_SOURCE);
             assertTrue(sourceTile.isNeutronSource());
             assertFalse(sourceTile.isFuel());
             assertEquals(4, sourceTile.getNeutronEmissionCount());
@@ -7147,12 +7164,12 @@ public class NuclearSimulationEngineTest {
             SimTile[][] grid = new SimTile[3][3];
             for (int x = 0; x < 3; x++) {
                 for (int y = 0; y < 3; y++) {
-                    grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                    grid[x][y] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EMPTY);
                 }
             }
             grid[1][1] = sourceTile;
 
-            NuclearSimulationEngine.SimulationResult result = NuclearSimulationEngine.simulate(grid, 3, 3, 1.0, 20.0);
+            NuclearSimulationEngine.SimulationResult result = engine().simulate(grid, 3, 3, 1.0, 20.0);
 
             assertEquals(400, result.totalNeutronsGenerated);
             // Neutron source receives 0 prompt fission heat and does not degrade
@@ -7184,13 +7201,13 @@ public class NuclearSimulationEngineTest {
         }
 
         // 2. SimTile moderation values
-        SimTile ic2Tile = new SimTile(SimTile.TileType.HATCH_IC2_COOLANT);
+        SimTile ic2Tile = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_IC2_COOLANT);
         ic2Tile.setInputFluidAmount(1000);
         assertEquals(0.05, ic2Tile.getModerationProbability(), 1e-4);
         ic2Tile.setInputFluidAmount(0);
         assertEquals(0.05, ic2Tile.getModerationProbability(), 1e-4);
 
-        SimTile passageTile = new SimTile(SimTile.TileType.PASSAGE_CORE);
+        SimTile passageTile = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.PASSAGE_CORE);
         assertEquals(0.05, passageTile.getModerationProbability(), 1e-4);
 
         MTEHatchNuclearHighPressure hp = new MTEHatchNuclearHighPressure("test.hp.mod", 4, 0, new String[0], null);
@@ -7432,7 +7449,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(25.0, customStats.damageRatioPercent, 1e-2); // 1.0 / 4.0 = 25%
 
         // 3. Liquid fuel hatch ray count scaling with fluid amount
-        SimTile hatch = new SimTile(SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM);
+        SimTile hatch = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.HATCH_LIQUID_FUEL_URANIUM);
 
         // Empty hatch -> 0 rays
         hatch.setInputFluidAmount(0);
@@ -7906,7 +7923,7 @@ public class NuclearSimulationEngineTest {
     @Test
     void testControlRodAbsorptionHeatRateOnFuelCell() {
         // 1. Verify SimTile control rod absorption fraction logic
-        SimTile simTileFuel = new SimTile(SimTile.TileType.FUEL_URANIUM_SINGLE);
+        SimTile simTileFuel = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.FUEL_URANIUM_SINGLE);
         assertFalse(simTileFuel.hasControlRod());
         assertEquals(0.0, simTileFuel.getControlRodAbsorptionFraction(NeutronType.THERMAL), 1e-6);
 
@@ -7949,7 +7966,7 @@ public class NuclearSimulationEngineTest {
                 .setTicksPerCycle(20);
             java.util.function.BiFunction<Boolean, Double, Double> runSim = (isFuel, rodFraction) -> {
                 INuclearTile[][] grid = new INuclearTile[3][3];
-                SimTile source = new SimTile(SimTile.TileType.NEUTRON_SOURCE);
+                SimTile source = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.NEUTRON_SOURCE);
                 source.setNeutronSourceBeamEnergy(1000.0f);
                 source.setNeutronSourceBeamRate(100);
                 grid[0][1] = source;
@@ -7965,7 +7982,7 @@ public class NuclearSimulationEngineTest {
                 target.rodAbsorptionFraction = rodFraction;
                 grid[1][1] = target;
 
-                NuclearSimulationEngine.simulate(grid, 3, 3);
+                engine().simulate(grid, 3, 3);
                 return target.heatHU;
             };
 
@@ -8217,7 +8234,7 @@ public class NuclearSimulationEngineTest {
         }
 
         // 5. SimTile housing logic
-        SimTile simTile = new SimTile(SimTile.TileType.EMPTY);
+        SimTile simTile = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EMPTY);
         simTile.setHasControlRod(true);
         simTile.setControlRodType(SimTile.ControlRodType.CADMIUM);
         assertEquals(5, simTile.getControlRodHousings());
@@ -8327,7 +8344,7 @@ public class NuclearSimulationEngineTest {
         }
 
         // Test overtemp voiding for heat vent
-        SimTile overtempVent = new SimTile(SimTile.TileType.VENT_STANDARD) {
+        SimTile overtempVent = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.VENT_STANDARD) {
 
             @Override
             public ComponentData.HeatVentData getHeatVentData() {
@@ -8344,10 +8361,10 @@ public class NuclearSimulationEngineTest {
         SimTile[][] hexGrid = new SimTile[3][3];
         for (int x = 0; x < 3; x++) {
             for (int y = 0; y < 3; y++) {
-                hexGrid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                hexGrid[x][y] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EMPTY);
             }
         }
-        SimTile overtempHex = new SimTile(SimTile.TileType.EXCHANGER_STANDARD) {
+        SimTile overtempHex = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EXCHANGER_STANDARD) {
 
             @Override
             public ComponentData.HeatExchangerData getHeatExchangerData() {

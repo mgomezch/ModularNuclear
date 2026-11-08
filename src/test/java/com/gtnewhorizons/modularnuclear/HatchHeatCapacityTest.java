@@ -26,7 +26,7 @@ public class HatchHeatCapacityTest {
     }
 
     private static SimTile hatch(SimTile.TileType type, int tier) {
-        SimTile t = new SimTile(type);
+        SimTile t = new SimTile(NuclearSimulationEngine.params(), type);
         t.setTier(tier);
         return t;
     }
@@ -53,7 +53,7 @@ public class HatchHeatCapacityTest {
         }
         assertEquals(
             NuclearSimulationEngine.params().huPerDegree,
-            new SimTile(SimTile.TileType.FUEL_URANIUM_QUAD).getHeatCapacity(),
+            new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.FUEL_URANIUM_QUAD).getHeatCapacity(),
             1e-9,
             "a bus holds hu_per_degree");
     }
@@ -101,11 +101,11 @@ public class HatchHeatCapacityTest {
         SimTile[][] grid = new SimTile[3][3];
         for (int x = 0; x < 3; x++) {
             for (int y = 0; y < 3; y++) {
-                grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                grid[x][y] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EMPTY);
                 grid[x][y].setTemperature(20.0);
             }
         }
-        grid[1][1] = new SimTile(SimTile.TileType.EXCHANGER_COMPONENT);
+        grid[1][1] = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EXCHANGER_COMPONENT);
         grid[1][1].setTemperature(600.0);
         SimTile cold = hatch(SimTile.TileType.HATCH_DISTILLED_WATER, 8);
         cold.setTemperature(100.0);

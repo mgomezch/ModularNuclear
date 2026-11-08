@@ -20,6 +20,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -227,6 +228,7 @@ public class NuclearReactorPhysics {
     }
 
     public static int generateTileNeutrons(MTENuclearReactor reactor, NuclearGridTile tile, double efficiency) {
+        EngineParameters p = MTENuclearReactor.parameters(reactor);
         // What the tile holds was resolved when its contents last changed (NuclearGridTile.refreshProperties)
         CustomFuelMix customMix = tile.getCustomFuelMix();
         FuelData tileFuelData = tile.getFuelData();
@@ -259,7 +261,7 @@ public class NuclearReactorPhysics {
                         }
                         double dt = (double) reactor.getTicksPerCycle() / 20.0;
                         double multiplier = (physics != null) ? physics.beamEnergyToFastNeutronMultiplier
-                            : NuclearSimulationEngine.params().beamEnergyToFastNeutronMultiplier;
+                            : p.beamEnergyToFastNeutronMultiplier;
                         double packets = beamInfo.getEnergy() * beamInfo.getRate() * multiplier * dt;
                         bus.mBeamlinePacketAccumulator += packets;
                         int packetSize = (int) bus.mBeamlinePacketAccumulator;
@@ -285,9 +287,9 @@ public class NuclearReactorPhysics {
                 baseFissMult = customMix.baseThermalFissionMultiplier;
                 baseFastFissMult = customMix.baseFastFissionMultiplier;
             } else if (fd != null) {
-                baseNeutrons = TileProperties.effectiveBaseNeutrons(fd);
-                baseFissMult = TileProperties.effectiveThermalFissionMultiplier(fd);
-                baseFastFissMult = TileProperties.effectiveFastFissionMultiplier(fd);
+                baseNeutrons = TileProperties.effectiveBaseNeutrons(p, fd);
+                baseFissMult = TileProperties.effectiveThermalFissionMultiplier(p, fd);
+                baseFastFissMult = TileProperties.effectiveFastFissionMultiplier(p, fd);
             } else if (stack.getItem() instanceof ItemRadioactiveCellIC icCell) {
                 baseNeutrons = 4 * icCell.numberOfCells;
                 if (icCell.sMox) baseNeutrons *= 2;
@@ -302,14 +304,15 @@ public class NuclearReactorPhysics {
 
             double dt = (double) reactor.getTicksPerCycle() / 20.0;
             bus.mChainRate = TileProperties.chainRate(
+                p,
                 bus.mChainRate,
                 bus.mLastThermalAbsorbed,
                 bus.mLastFastAbsorbed,
                 baseFissMult,
                 baseFastFissMult,
                 dt);
-            int produced = TileProperties.fuelNeutrons(baseNeutrons, bus.mChainRate, efficiency, dt);
-            tile.promptHeatWeight = TileProperties.promptHeatWeight(baseNeutrons, bus.mChainRate);
+            int produced = TileProperties.fuelNeutrons(p, baseNeutrons, bus.mChainRate, efficiency, dt);
+            tile.promptHeatWeight = TileProperties.promptHeatWeight(p, baseNeutrons, bus.mChainRate);
             bus.mLastNeutronsGenerated = produced;
             return produced;
         } else if (tile.isHatch()) {
@@ -323,9 +326,9 @@ public class NuclearReactorPhysics {
             int baseNeutrons = 8;
             FuelData fd = tileFuelData;
             if (fd != null) {
-                baseNeutrons = TileProperties.effectiveBaseNeutrons(fd);
-                baseFissMult = TileProperties.effectiveThermalFissionMultiplier(fd);
-                baseFastFissMult = TileProperties.effectiveFastFissionMultiplier(fd);
+                baseNeutrons = TileProperties.effectiveBaseNeutrons(p, fd);
+                baseFissMult = TileProperties.effectiveThermalFissionMultiplier(p, fd);
+                baseFastFissMult = TileProperties.effectiveFastFissionMultiplier(p, fd);
             } else if (fuel != null) {
                 baseNeutrons = fuel.baseNeutrons;
                 baseFissMult = fuel.baseThermalFissionMultiplier;
@@ -334,14 +337,15 @@ public class NuclearReactorPhysics {
 
             double dt = (double) reactor.getTicksPerCycle() / 20.0;
             hatch.mChainRate = TileProperties.chainRate(
+                p,
                 hatch.mChainRate,
                 hatch.mLastThermalAbsorbed,
                 hatch.mLastFastAbsorbed,
                 baseFissMult,
                 baseFastFissMult,
                 dt);
-            int produced = TileProperties.fuelNeutrons(baseNeutrons, hatch.mChainRate, efficiency, dt);
-            tile.promptHeatWeight = TileProperties.promptHeatWeight(baseNeutrons, hatch.mChainRate);
+            int produced = TileProperties.fuelNeutrons(p, baseNeutrons, hatch.mChainRate, efficiency, dt);
+            tile.promptHeatWeight = TileProperties.promptHeatWeight(p, baseNeutrons, hatch.mChainRate);
             hatch.mLastNeutronsGenerated = produced;
             return produced;
         }
@@ -355,7 +359,7 @@ public class NuclearReactorPhysics {
         if (tile.isHatch()) {
             FluidStack fluid = tile.getHatch().mInputFluid;
             if (fluid != null && fluid.amount > 0 && MTENuclearReactor.isFluidFuel(fluid)) {
-                return TileProperties.liquidPacketCount(fluid.amount);
+                return TileProperties.liquidPacketCount(tile.parameters(), fluid.amount);
             }
             return 0;
         }
@@ -611,6 +615,7 @@ public class NuclearReactorPhysics {
 
     public static void processBusNuclearTick(MTENuclearReactor reactor, MTEHatchNuclearBus bus, NuclearGridTile tile,
         double efficiency) {
+        EngineParameters p = MTENuclearReactor.parameters(reactor);
         bus.mLastHeatOutput = 0.0;
         ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
         if (stack == null || tile.isNeutronSource()) {
@@ -640,7 +645,7 @@ public class NuclearReactorPhysics {
                     : (fuelType != null) ? fuelType.calculateTemperatureDamage(bus.mTemperature)
                         : TileTick.genericFuelTemperatureDamage(bus.mTemperature);
             double totalDmg = TileTick
-                .fuelWear(rawTempDmg, bus.mLastNeutronsGenerated, bus.mFastAbsorbed, bus.mThermalAbsorbed, dt);
+                .fuelWear(p, rawTempDmg, bus.mLastNeutronsGenerated, bus.mFastAbsorbed, bus.mThermalAbsorbed, dt);
 
             int configuredDurability = (customMix != null) ? customMix.defaultDurability
                 : (fd != null && fd.defaultDurability > 0) ? fd.defaultDurability : 0;
@@ -667,7 +672,7 @@ public class NuclearReactorPhysics {
             double scale = (double) intrinsicMax / (double) configuredDurability;
             double scaledDmg = totalDmg * scale;
 
-            int damage = TileTick.stochasticRound(scaledDmg);
+            int damage = p.stochasticRound(scaledDmg);
 
             if (stack.getItem() instanceof ItemRadioactiveCell radCell) {
                 radCell.damageItemStack(stack, damage);
@@ -720,13 +725,14 @@ public class NuclearReactorPhysics {
             if (mod != null) {
                 double dt = (double) reactor.getTicksPerCycle() / 20.0;
                 double totalDmg = TileTick.moderatorWear(
+                    p,
                     mod,
                     bus.mTemperature,
                     bus.mFastAbsorbed,
                     bus.mThermalAbsorbed,
                     bus.mFastFlux + bus.mThermalFlux,
                     dt);
-                int damage = TileTick.stochasticRound(totalDmg);
+                int damage = p.stochasticRound(totalDmg);
 
                 if (damage > 0) {
                     int curDmg = 0;
@@ -809,6 +815,7 @@ public class NuclearReactorPhysics {
                     double huPerDurability = (cItem != null) ? cItem.getHuPerDurability() : 25.0;
                     double dt = (double) reactor.getTicksPerCycle() / 20.0;
                     int heatToTake = TileTick.coolantCellUptake(
+                        p,
                         maxHeat,
                         curHeat,
                         bus.mTemperature,
@@ -820,7 +827,7 @@ public class NuclearReactorPhysics {
                     if (heatToTake > 0) {
                         comp.alterHeat(reactor.getReactorDummy(), stack, 0, 0, heatToTake);
                         double heatConsumed = heatToTake * huPerDurability;
-                        bus.mTemperature -= (heatConsumed / NuclearSimulationEngine.params().huPerDegree);
+                        bus.mTemperature -= (heatConsumed / p.huPerDegree);
                         bus.mLastHeatOutput = heatConsumed;
                         bus.markTileDirty();
                     }
@@ -889,7 +896,7 @@ public class NuclearReactorPhysics {
 
         long totalEU = (long) recipe.mDuration * recipe.mEUt;
         double heatAbsorbed = Math.max(1.0, (double) totalEU);
-        double tempDrop = heatAbsorbed / NuclearSimulationEngine.params().huPerDegree;
+        double tempDrop = heatAbsorbed / MTENuclearReactor.parameters(reactor).huPerDegree;
         bus.mTemperature = Math.max(reactor.getAmbientTemperature(), bus.mTemperature - tempDrop);
         bus.mLastHeatOutput = heatAbsorbed;
 
@@ -935,7 +942,14 @@ public class NuclearReactorPhysics {
         if (cfd == null) return 0.0;
         double sink = TileTick.coolantSinkTemperature(cfd, reactor.getAmbientTemperature());
         double remaining = hatch.mInputFluid.amount * cfd.heatPerLiter - hatch.mPendingCoolantHeat;
-        double q = TileTick.coolantSubstepHeat(hatch.mTemperature, sink, hatch.mTier, efficiency, dtSub, remaining);
+        double q = TileTick.coolantSubstepHeat(
+            MTENuclearReactor.parameters(reactor),
+            hatch.mTemperature,
+            sink,
+            hatch.mTier,
+            efficiency,
+            dtSub,
+            remaining);
         if (q > 0.0) {
             hatch.mPendingCoolantHeat += q;
             hatch.mTemperature -= q / NuclearSimulationEngine.getCoreHatchHeatCapacity(hatch.mTier);
@@ -945,6 +959,7 @@ public class NuclearReactorPhysics {
 
     public static void processHatchNuclearTick(MTENuclearReactor reactor, MTEHatchNuclearHatch hatch,
         NuclearGridTile tile, double efficiency) {
+        EngineParameters p = MTENuclearReactor.parameters(reactor);
         hatch.mLastFastFlux = hatch.mFastFlux;
         hatch.mLastThermalFlux = hatch.mThermalFlux;
         hatch.mLastFastAbsorbed = hatch.mFastAbsorbed;
@@ -967,12 +982,13 @@ public class NuclearReactorPhysics {
             double rawTempDmg = (fuelData != null) ? fuelData.calculateTemperatureDamage(hatch.mTemperature)
                 : TileTick.genericFuelTemperatureDamage(hatch.mTemperature);
             double totalBurn = TileTick.fuelWear(
+                p,
                 rawTempDmg,
                 hatch.mLastNeutronsGenerated,
                 hatch.mLastFastAbsorbed,
                 hatch.mLastThermalAbsorbed,
                 dt);
-            int burn = Math.max(1, TileTick.stochasticRound(totalBurn));
+            int burn = Math.max(1, p.stochasticRound(totalBurn));
             int toConsume = Math.max(1, Math.min(fluid.amount, burn));
 
             if (toConsume > 0) {
@@ -1001,7 +1017,7 @@ public class NuclearReactorPhysics {
         // The heat itself left the hatch during the conduction sub-steps (hatchCoolantSubstep); here it becomes coolant
         // consumed and hot fluid produced.
         if (pendingHeat > 0.0) {
-            int fluidToProcess = Math.min(hatch.mInputFluid.amount, TileTick.coolantConsumed(cfd, pendingHeat));
+            int fluidToProcess = Math.min(hatch.mInputFluid.amount, TileTick.coolantConsumed(p, cfd, pendingHeat));
 
             if (fluidToProcess > 0) {
                 int outAmount = fluidToProcess * steamRatio;

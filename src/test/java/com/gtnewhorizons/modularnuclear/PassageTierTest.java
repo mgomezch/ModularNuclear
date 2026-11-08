@@ -82,7 +82,7 @@ public class PassageTierTest {
 
     @Test
     void testSimulatorPassageHoldsItsTiersHeat() {
-        SimTile passage = new SimTile(SimTile.TileType.PASSAGE_CORE);
+        SimTile passage = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.PASSAGE_CORE);
         assertEquals(CoolantPassage.heatCapacity(SimTile.DEFAULT_PASSAGE_TIER), passage.getHeatCapacity(), 1e-9);
         passage.setPassageTier(CoolantLoopModel.LoopMaterial.OSMIUM.voltageTier());
         assertEquals(CoolantPassage.heatCapacity(6), passage.getHeatCapacity(), 1e-9);

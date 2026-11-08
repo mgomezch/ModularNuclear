@@ -22,6 +22,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntitie
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEActinideCompounder;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix.ActinideIsotope;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -570,6 +571,11 @@ public class ActinideCompounderTest {
     }
 
     private static class MockNuclearTile implements INuclearTile {
+
+        @Override
+        public EngineParameters parameters() {
+            return NuclearSimulationEngine.params();
+        }
 
         private final CustomFuelMix mix;
         private double temp;

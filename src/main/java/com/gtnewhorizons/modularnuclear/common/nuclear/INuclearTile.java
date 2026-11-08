@@ -5,6 +5,9 @@ import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 
 public interface INuclearTile {
 
+    /** The parameters this tile's physics runs with: its owner's (the reactor's or the simulator grid's). */
+    EngineParameters parameters();
+
     /**
      * Current temperature of this grid tile in degrees Celsius.
      */
@@ -20,7 +23,7 @@ public interface INuclearTile {
      * tile holds the configured HU per degree.
      */
     default double getHeatCapacity() {
-        return NuclearSimulationEngine.params().huPerDegree;
+        return parameters().huPerDegree;
     }
 
     /**

@@ -20,6 +20,7 @@ import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearHighPressureGu
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -375,6 +376,11 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
     }
 
     // --- INuclearTile Implementation ---
+
+    @Override
+    public EngineParameters parameters() {
+        return MTENuclearReactor.parameters(mReactor);
+    }
 
     @Override
     public double getTemperature() {

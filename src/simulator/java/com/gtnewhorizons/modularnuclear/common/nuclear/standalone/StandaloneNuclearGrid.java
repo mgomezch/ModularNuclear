@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -34,6 +35,19 @@ public class StandaloneNuclearGrid {
 
     // Simulation metrics
     private int ticksPerCycle = NuclearSimulationEngine.params().ticksPerCycle;
+
+    private NuclearSimulationEngine engine;
+
+    /**
+     * The engine this grid runs on, built from the installed parameters; rebuilt if a new set is installed (the
+     * simulator's options and the WebAssembly bridge adjust the installed set).
+     */
+    public NuclearSimulationEngine engine() {
+        EngineParameters installed = NuclearSimulationEngine.params();
+        if (engine == null || engine.parameters() != installed) engine = new NuclearSimulationEngine(installed);
+        return engine;
+    }
+
     private long currentTick = 0;
 
     public int getTicksPerCycle() {
@@ -524,9 +538,9 @@ public class StandaloneNuclearGrid {
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 if (NuclearSimulationEngine.isCornerNullCell(x, y, width, height)) {
-                    grid[x][y] = new SimTile(SimTile.TileType.NULL_WALL);
+                    grid[x][y] = new SimTile(engine().parameters(), SimTile.TileType.NULL_WALL);
                 } else {
-                    grid[x][y] = new SimTile(SimTile.TileType.EMPTY);
+                    grid[x][y] = new SimTile(engine().parameters(), SimTile.TileType.EMPTY);
                 }
                 grid[x][y].grid = this;
             }
@@ -610,7 +624,7 @@ public class StandaloneNuclearGrid {
             if (grid[x][y].isHatch()) {
                 int hatchTier = Math.max(1, pipeTier + 4);
                 grid[x][y].setTier(hatchTier);
-                int cap = Math.max(NuclearSimulationEngine.params().hatchCoolantCapacity, 8000 * (1 << hatchTier));
+                int cap = Math.max(engine().parameters().hatchCoolantCapacity, 8000 * (1 << hatchTier));
                 grid[x][y].setInputFluidCapacity(cap);
                 grid[x][y].setInputFluidAmount(cap);
             }
@@ -671,9 +685,9 @@ public class StandaloneNuclearGrid {
                 } else if (tile.isCoolantHatch() && tile.isAutoRefill()) {
                     int space = tile.getInputFluidCapacity() - tile.getInputFluidAmount();
                     if (space > 0) {
-                        int feed = Math.min(space, NuclearSimulationEngine.params().coolantFeedRate);
+                        int feed = Math.min(space, engine().parameters().coolantFeedRate);
                         if (feed > 0) {
-                            double ambient = NuclearSimulationEngine.params().ambientTemp;
+                            double ambient = engine().parameters().ambientTemp;
                             CoreHatchRules.CoolantFeed check = CoreHatchRules.checkCoolantFeed(
                                 tile.getInputFluidName(),
                                 tile.isWasDry(),
@@ -969,8 +983,8 @@ public class StandaloneNuclearGrid {
                 }
             }
         }
-        NuclearSimulationEngine.SimulationResult res = NuclearSimulationEngine
-            .simulate(simGrid, width, height, getMaintenanceEfficiency(), NuclearSimulationEngine.params().ambientTemp);
+        NuclearSimulationEngine.SimulationResult res = engine()
+            .simulate(simGrid, width, height, getMaintenanceEfficiency(), engine().parameters().ambientTemp);
 
         coreMaxTemp = res.maxTemperature;
         coreAvgTemp = res.averageTemperature;
@@ -1358,11 +1372,11 @@ public class StandaloneNuclearGrid {
     }
 
     public double getBaseHatchConductance() {
-        return NuclearSimulationEngine.params().baseHatchConductance;
+        return engine().parameters().baseHatchConductance;
     }
 
     public void setBaseHatchConductance(double val) {
-        NuclearSimulationEngine.params()
+        engine().parameters()
             .setBaseHatchConductance(val);
     }
 
@@ -1658,7 +1672,7 @@ public class StandaloneNuclearGrid {
                 SimTile tile = grid[x][y];
                 if (tile != null && tile.isHatch()) {
                     tile.setTier(hatchTier);
-                    int cap = Math.max(NuclearSimulationEngine.params().hatchCoolantCapacity, 8000 * (1 << hatchTier));
+                    int cap = Math.max(engine().parameters().hatchCoolantCapacity, 8000 * (1 << hatchTier));
                     tile.setInputFluidCapacity(cap);
                     tile.setInputFluidAmount(cap);
                 }
@@ -2110,7 +2124,7 @@ public class StandaloneNuclearGrid {
             long produced = cumulativeDepletedFuelItems.getOrDefault(type, 0L);
             if (active > 0 || produced > 0) {
                 if (maxDur <= 0) {
-                    NuclearFuelType f = new SimTile(type).getFuelType();
+                    NuclearFuelType f = new SimTile(engine().parameters(), type).getFuelType();
                     if (f != null) maxDur = f.defaultDurability;
                 }
                 double cyclesPerMin = 1200.0 / (double) ticksPerCycle;
@@ -2122,7 +2136,7 @@ public class StandaloneNuclearGrid {
                 double avgLifespan = (active > 0 && totalDamage > 0 && maxDur > 0)
                     ? ((double) maxDur / (totalDamage / (double) active)) / cyclesPerMin
                     : Double.POSITIVE_INFINITY;
-                SimTile sample = new SimTile(type);
+                SimTile sample = new SimTile(engine().parameters(), type);
                 list.add(
                     new SolidFuelByproduct(
                         type,
@@ -2165,7 +2179,7 @@ public class StandaloneNuclearGrid {
             long totalLiters = cumulativeDepletedLiquidLiters.getOrDefault(type, 0L);
             if (active > 0 || totalLiters > 0) {
                 if (fluidName.isEmpty()) {
-                    SimTile sample = new SimTile(type);
+                    SimTile sample = new SimTile(engine().parameters(), type);
                     fluidName = sample.getOutputFluidName();
                     dispName = sample.getDepletedDisplayName();
                 }

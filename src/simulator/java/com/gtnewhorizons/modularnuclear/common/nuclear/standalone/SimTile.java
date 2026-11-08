@@ -5,6 +5,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
@@ -326,8 +327,17 @@ public class SimTile implements INuclearTile {
 
     public StandaloneNuclearGrid grid;
 
+    /** The parameters of a tile outside any grid; a tile in a grid uses its grid's engine's. */
+    private final EngineParameters ownParameters;
+
+    @Override
+    public EngineParameters parameters() {
+        return grid != null ? grid.engine()
+            .parameters() : ownParameters;
+    }
+
     public int getTicksPerCycle() {
-        return grid != null ? grid.getTicksPerCycle() : NuclearSimulationEngine.params().ticksPerCycle;
+        return grid != null ? grid.getTicksPerCycle() : parameters().ticksPerCycle;
     }
 
     public long getDirectEUProduced() {
@@ -445,7 +455,8 @@ public class SimTile implements INuclearTile {
         this.lastHeatOutput = lastHeatOutput;
     }
 
-    public SimTile(TileType type) {
+    public SimTile(EngineParameters parameters, TileType type) {
+        this.ownParameters = java.util.Objects.requireNonNull(parameters);
         setType(type);
     }
 
@@ -498,19 +509,19 @@ public class SimTile implements INuclearTile {
             switch (this.type) {
                 case HATCH_LIQUID_FUEL_URANIUM -> {
                     this.inputFluidName = "uranium based liquid fuel";
-                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
+                    this.inputFluidCapacity = parameters().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "uranium based liquid fuel (depleted)";
                 }
                 case HATCH_LIQUID_FUEL_THORIUM -> {
                     this.inputFluidName = "thorium based liquid fuel";
-                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
+                    this.inputFluidCapacity = parameters().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "thorium based liquid fuel (depleted)";
                 }
                 case HATCH_LIQUID_FUEL_PLUTONIUM -> {
                     this.inputFluidName = "plutonium based liquid fuel";
-                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
+                    this.inputFluidCapacity = parameters().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "plutonium based liquid fuel (depleted)";
                 }
@@ -518,25 +529,25 @@ public class SimTile implements INuclearTile {
                     String element = (this.type == TileType.HATCH_LIQUID_FUEL_URANIUM_EXCITED) ? "uranium"
                         : (this.type == TileType.HATCH_LIQUID_FUEL_THORIUM_EXCITED) ? "thorium" : "plutonium";
                     this.inputFluidName = element + " based liquid fuel (excited state)";
-                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
+                    this.inputFluidCapacity = parameters().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = element + " based liquid fuel (depleted)";
                 }
                 case HATCH_DISTILLED_WATER -> {
                     this.inputFluidName = "ic2distilledwater";
-                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
+                    this.inputFluidCapacity = parameters().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "steam";
                 }
                 case HATCH_HEAVY_WATER -> {
                     this.inputFluidName = "heavywater";
-                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
+                    this.inputFluidCapacity = parameters().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "superheatedheavywatersteam";
                 }
                 case HATCH_IC2_COOLANT -> {
                     this.inputFluidName = "ic2coolant";
-                    this.inputFluidCapacity = NuclearSimulationEngine.params().hatchCoolantCapacity;
+                    this.inputFluidCapacity = parameters().hatchCoolantCapacity;
                     this.inputFluidAmount = this.inputFluidCapacity;
                     this.outputFluidName = "ic2hotcoolant";
                 }
@@ -615,7 +626,7 @@ public class SimTile implements INuclearTile {
     public double getHeatCapacity() {
         if (isCoolantHatch() || isLiquidFuelHatch()) return NuclearSimulationEngine.getCoreHatchHeatCapacity(tier);
         if (type == TileType.PASSAGE_CORE) return CoolantPassage.heatCapacity(passageTier);
-        return NuclearSimulationEngine.params().huPerDegree;
+        return parameters().huPerDegree;
     }
 
     public double getHeatHu() {
@@ -702,7 +713,7 @@ public class SimTile implements INuclearTile {
         double dt = (double) getTicksPerCycle() / 20.0;
         if (isNeutronSource()) {
             double packets = neutronSourceBeamEnergy * neutronSourceBeamRate
-                * NuclearSimulationEngine.params().beamEnergyToFastNeutronMultiplier
+                * parameters().beamEnergyToFastNeutronMultiplier
                 * dt;
             beamlinePacketAccumulator += packets;
             int packetSize = (int) beamlinePacketAccumulator;
@@ -720,15 +731,16 @@ public class SimTile implements INuclearTile {
 
         FuelData fd = getFuelData();
         chainRate = TileProperties.chainRate(
+            parameters(),
             chainRate,
             lastThermalAbsorbed,
             lastFastAbsorbed,
-            TileProperties.effectiveThermalFissionMultiplier(fd),
-            TileProperties.effectiveFastFissionMultiplier(fd),
+            TileProperties.effectiveThermalFissionMultiplier(parameters(), fd),
+            TileProperties.effectiveFastFissionMultiplier(parameters(), fd),
             dt);
-        int base = TileProperties.effectiveBaseNeutrons(fd);
-        int produced = TileProperties.fuelNeutrons(base, chainRate, efficiency, dt);
-        promptHeatWeight = TileProperties.promptHeatWeight(base, chainRate);
+        int base = TileProperties.effectiveBaseNeutrons(parameters(), fd);
+        int produced = TileProperties.fuelNeutrons(parameters(), base, chainRate, efficiency, dt);
+        promptHeatWeight = TileProperties.promptHeatWeight(parameters(), base, chainRate);
         lastNeutronsGenerated = produced;
         return produced;
     }
@@ -741,7 +753,7 @@ public class SimTile implements INuclearTile {
     @Override
     public int getNeutronEmissionCount() {
         if (isNeutronSource()) return 4;
-        if (isLiquidFuelHatch()) return TileProperties.liquidPacketCount(inputFluidAmount);
+        if (isLiquidFuelHatch()) return TileProperties.liquidPacketCount(parameters(), inputFluidAmount);
         FuelData fd = getFuelData();
         return fd != null ? TileProperties.solidPacketCount(fd) : 1;
     }
@@ -852,11 +864,7 @@ public class SimTile implements INuclearTile {
         // Fast neutron capture transmutation
         if (nType == NeutronType.FAST && isCoolantHatch() && inputFluidAmount >= 2) {
             ComponentData.CoolantFluidData cfd = contentOf(type).coolantFluid();
-            if (TileTick.transmutes(
-                cfd,
-                count,
-                NuclearSimulationEngine.random()
-                    .nextInt(10000))) {
+            if (TileTick.transmutes(cfd, count, parameters().random.nextInt(10000))) {
                 inputFluidAmount -= 2;
                 if ("deuterium".equalsIgnoreCase(cfd.transmutationProduct)) {
                     totalDeuteriumProduced += 2;
@@ -874,8 +882,7 @@ public class SimTile implements INuclearTile {
         if ((type == TileType.REFLECTOR_IC2 || type == TileType.REFLECTOR_IC2_THICK) && !depleted
             && maxDurability > 0) {
             for (int i = 0; i < count; i++) {
-                if (NuclearSimulationEngine.random()
-                    .nextInt(20) == 0) {
+                if (parameters().random.nextInt(20) == 0) {
                     durability--;
                     if (durability <= 0) {
                         durability = 0;
@@ -920,8 +927,14 @@ public class SimTile implements INuclearTile {
                     : TileTick.genericFuelTemperatureDamage(temperature);
                 int burn = Math.max(
                     1,
-                    TileTick.stochasticRound(
-                        TileTick.fuelWear(tempDmg, lastNeutronsGenerated, fastAbsorbed, thermalAbsorbed, dt)));
+                    parameters().stochasticRound(
+                        TileTick.fuelWear(
+                            parameters(),
+                            tempDmg,
+                            lastNeutronsGenerated,
+                            fastAbsorbed,
+                            thermalAbsorbed,
+                            dt)));
                 int toConsume = Math.max(1, Math.min(inputFluidAmount, burn));
                 inputFluidAmount -= toConsume;
                 outputFluidAmount += toConsume;
@@ -935,6 +948,7 @@ public class SimTile implements INuclearTile {
             }
         } else if (isFuel() && !depleted) {
             double rawDamage = TileTick.fuelWear(
+                parameters(),
                 getFuelData().calculateTemperatureDamage(temperature),
                 lastNeutronsGenerated,
                 fastAbsorbed,
@@ -943,7 +957,7 @@ public class SimTile implements INuclearTile {
             lastDurabilityLoss = rawDamage;
             totalDurabilityLoss += rawDamage;
             wearCycles++;
-            int intDamage = TileTick.stochasticRound(rawDamage);
+            int intDamage = parameters().stochasticRound(rawDamage);
             if (intDamage > 0) {
                 durability = Math.max(0, durability - intDamage);
                 if (durability == 0) {
@@ -952,6 +966,7 @@ public class SimTile implements INuclearTile {
             }
         } else if (isModerator() && !depleted) {
             double rawDamage = TileTick.moderatorWear(
+                parameters(),
                 getModeratorData(),
                 temperature,
                 fastAbsorbed,
@@ -961,7 +976,7 @@ public class SimTile implements INuclearTile {
             lastDurabilityLoss = rawDamage;
             totalDurabilityLoss += rawDamage;
             wearCycles++;
-            int intDamage = TileTick.stochasticRound(rawDamage);
+            int intDamage = parameters().stochasticRound(rawDamage);
             if (intDamage > 0) {
                 durability = Math.max(0, durability - intDamage);
                 if (durability == 0) {
@@ -996,17 +1011,18 @@ public class SimTile implements INuclearTile {
             ComponentData.CoolantItemData cItem = contentOf(type).coolantItem();
             double huPerDurability = (cItem != null) ? cItem.getHuPerDurability() : 25.0;
             int take = TileTick.coolantCellUptake(
+                parameters(),
                 maxCellHeat,
                 currentCellHeat,
                 temperature,
-                NuclearSimulationEngine.params().ambientTemp,
+                parameters().ambientTemp,
                 huPerDurability,
                 efficiency,
                 dt);
             if (take > 0) {
                 currentCellHeat += take;
                 double heatConsumed = take * huPerDurability;
-                temperature -= heatConsumed / NuclearSimulationEngine.params().huPerDegree;
+                temperature -= heatConsumed / parameters().huPerDegree;
                 lastHeatOutput = heatConsumed;
             }
         }
@@ -1017,7 +1033,7 @@ public class SimTile implements INuclearTile {
         double pendingHeat = pendingCoolantHeat;
         pendingCoolantHeat = 0.0;
         if (cfd != null && pendingHeat > 0.0) {
-            int mbToCool = Math.min(inputFluidAmount, TileTick.coolantConsumed(cfd, pendingHeat));
+            int mbToCool = Math.min(inputFluidAmount, TileTick.coolantConsumed(parameters(), cfd, pendingHeat));
             if (mbToCool > 0) {
                 int fluidOut = mbToCool * cfd.expansionRatio;
                 inputFluidAmount -= mbToCool;
@@ -1057,9 +1073,9 @@ public class SimTile implements INuclearTile {
     public double coolantSubstep(double dtSub, double efficiency) {
         ComponentData.CoolantFluidData cfd = activeCoolant();
         if (cfd == null) return 0.0;
-        double sink = TileTick.coolantSinkTemperature(cfd, NuclearSimulationEngine.params().ambientTemp);
+        double sink = TileTick.coolantSinkTemperature(cfd, parameters().ambientTemp);
         double remaining = inputFluidAmount * cfd.heatPerLiter - pendingCoolantHeat;
-        double q = TileTick.coolantSubstepHeat(temperature, sink, tier, efficiency, dtSub, remaining);
+        double q = TileTick.coolantSubstepHeat(parameters(), temperature, sink, tier, efficiency, dtSub, remaining);
         if (q > 0.0) {
             pendingCoolantHeat += q;
             temperature -= q / getHeatCapacity();
@@ -1078,8 +1094,7 @@ public class SimTile implements INuclearTile {
 
     public boolean refillCoolant(int maxFeed) {
         if (inputFluidAmount >= inputFluidCapacity) return true;
-        if (CoreHatchRules
-            .checkCoolantFeed(inputFluidName, wasDry, temperature, NuclearSimulationEngine.params().ambientTemp)
+        if (CoreHatchRules.checkCoolantFeed(inputFluidName, wasDry, temperature, parameters().ambientTemp)
             != CoreHatchRules.CoolantFeed.SAFE) {
             return false; // Thermal shock
         }
@@ -1446,8 +1461,7 @@ public class SimTile implements INuclearTile {
     }
 
     public void processNeighborComponents(INuclearTile[][] grid, int x, int y, int sizeX, int sizeY) {
-        NuclearSimulationEngine
-            .processActiveVentsAndExchangers(grid, sizeX, sizeY, NuclearSimulationEngine.params().ambientTemp);
+        NuclearSimulationEngine.processActiveVentsAndExchangers(grid, sizeX, sizeY, parameters().ambientTemp);
     }
 
     public double storedWignerEnergy = 0.0;

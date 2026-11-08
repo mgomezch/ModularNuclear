@@ -225,12 +225,11 @@ public final class TileProperties {
     }
 
     /** Number of packets a liquid fuel hatch emits: one per 8000 mB stored, the remainder emitted stochastically. */
-    public static int liquidPacketCount(int fluidAmount) {
+    public static int liquidPacketCount(EngineParameters p, int fluidAmount) {
         if (fluidAmount <= 0) return 0;
         double expected = fluidAmount / LIQUID_FUEL_MB_PER_PACKET;
         int base = (int) Math.floor(expected);
-        return base + (NuclearSimulationEngine.random()
-            .nextDouble() < expected - base ? 1 : 0);
+        return base + (p.random.nextDouble() < expected - base ? 1 : 0);
     }
 
     /**
@@ -245,11 +244,11 @@ public final class TileProperties {
      * relaxes toward absorptions per second times the fission multipliers with time constant
      * {@link #CHAIN_TIME_CONSTANT}. At steady state it equals that product, as with a one-cycle delay.
      */
-    public static double chainRate(double previousRate, int lastThermalAbsorbed, int lastFastAbsorbed,
-        double thermalFissionMult, double fastFissionMult, double dt) {
+    public static double chainRate(EngineParameters p, double previousRate, int lastThermalAbsorbed,
+        int lastFastAbsorbed, double thermalFissionMult, double fastFissionMult, double dt) {
         if (dt <= 0.0) return previousRate;
-        double effThermal = thermalFissionMult * NuclearSimulationEngine.params().globalThermalFissionMultiplier;
-        double effFast = fastFissionMult * NuclearSimulationEngine.params().globalFastFissionMultiplier;
+        double effThermal = thermalFissionMult * p.globalThermalFissionMultiplier;
+        double effFast = fastFissionMult * p.globalFastFissionMultiplier;
         double target = (lastThermalAbsorbed * effThermal + lastFastAbsorbed * effFast) / dt;
         double alpha = 1.0 - Math.exp(-dt / CHAIN_TIME_CONSTANT);
         return previousRate + alpha * (target - previousRate);
@@ -259,34 +258,35 @@ public final class TileProperties {
      * Neutrons a fuel emits in one cycle: its spontaneous base yield plus its chain-reaction emission (both per
      * second) over the cycle, scaled by efficiency and rounded stochastically so the expected yield is exact.
      */
-    public static int fuelNeutrons(int baseNeutronsPerSecond, double chainRate, double efficiency, double dt) {
-        return TileTick.stochasticRound((baseNeutronsPerSecond + Math.max(0.0, chainRate)) * dt * efficiency);
+    public static int fuelNeutrons(EngineParameters p, int baseNeutronsPerSecond, double chainRate, double efficiency,
+        double dt) {
+        return p.stochasticRound((baseNeutronsPerSecond + Math.max(0.0, chainRate)) * dt * efficiency);
     }
 
     /**
      * Share of the full fission heat per neutron that a fuel's emission deposits as prompt heat: its chain emission
      * deposits all of it, its spontaneous emission the spontaneous_heat_fraction.
      */
-    public static double promptHeatWeight(int baseNeutronsPerSecond, double chainRate) {
+    public static double promptHeatWeight(EngineParameters p, int baseNeutronsPerSecond, double chainRate) {
         double chain = Math.max(0.0, chainRate);
         double total = baseNeutronsPerSecond + chain;
         if (total <= 0.0) return 1.0;
-        return (baseNeutronsPerSecond * NuclearSimulationEngine.params().spontaneousHeatFraction + chain) / total;
+        return (baseNeutronsPerSecond * p.spontaneousHeatFraction + chain) / total;
     }
 
     /** Base neutrons per second after the archetype multiplier. */
-    public static int effectiveBaseNeutrons(FuelData fd) {
-        double mult = NuclearSimulationEngine.getArchetypeNbaseMultiplier(fd.archetype);
+    public static int effectiveBaseNeutrons(EngineParameters p, FuelData fd) {
+        double mult = p.nbaseMultiplier(fd.archetype);
         return Math.max(1, (int) Math.round(fd.baseNeutrons * mult));
     }
 
     /** Thermal fission multiplier after the archetype multiplier (before the global multiplier). */
-    public static double effectiveThermalFissionMultiplier(FuelData fd) {
-        return fd.thermalFissionMultiplier * NuclearSimulationEngine.getArchetypeFissionMultiplier(fd.archetype);
+    public static double effectiveThermalFissionMultiplier(EngineParameters p, FuelData fd) {
+        return fd.thermalFissionMultiplier * p.fissionMultiplier(fd.archetype);
     }
 
     /** Fast fission multiplier after the archetype multiplier (before the global multiplier). */
-    public static double effectiveFastFissionMultiplier(FuelData fd) {
-        return fd.fastFissionMultiplier * NuclearSimulationEngine.getArchetypeFissionMultiplier(fd.archetype);
+    public static double effectiveFastFissionMultiplier(EngineParameters p, FuelData fd) {
+        return fd.fastFissionMultiplier * p.fissionMultiplier(fd.archetype);
     }
 }

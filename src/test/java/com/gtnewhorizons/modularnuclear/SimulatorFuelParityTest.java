@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileContent;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.SimTile;
 
@@ -74,7 +75,7 @@ public class SimulatorFuelParityTest {
         ReactorDataRegistry.loadDefaults();
         for (SimTile.ControlRodType rod : SimTile.ControlRodType.values()) {
             if (rod == SimTile.ControlRodType.NONE) continue;
-            SimTile tile = new SimTile(SimTile.TileType.EMPTY);
+            SimTile tile = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.EMPTY);
             tile.setControlRodType(rod);
             var data = tile.getControlRodData();
             assertNotNull(data, rod + " has no components.yaml entry " + rod.configId);
@@ -102,7 +103,7 @@ public class SimulatorFuelParityTest {
                 continue;
             }
             checked++;
-            SimTile tile = new SimTile(type);
+            SimTile tile = new SimTile(NuclearSimulationEngine.params(), type);
             if (tile.isLiquidFuelHatch()) {
                 tile.setInputFluidAmount(8000);
             }

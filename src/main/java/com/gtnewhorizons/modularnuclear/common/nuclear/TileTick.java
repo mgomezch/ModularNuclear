@@ -13,26 +13,17 @@ public final class TileTick {
 
     private TileTick() {}
 
-    /** Rounds down and adds one with probability equal to the fractional part. */
-    public static int stochasticRound(double value) {
-        if (value <= 0.0) return 0;
-        int whole = (int) value;
-        return whole + (NuclearSimulationEngine.random()
-            .nextDouble() < value - whole ? 1 : 0);
-    }
-
     /**
      * Fuel wear in durability units for one cycle: a quarter of the neutrons it emitted, its absorptions weighted by
      * the absorption damage multipliers, and temperature damage (given per second) over the cycle, all scaled by the
      * fuel burnup multiplier.
      */
-    public static double fuelWear(double tempDamagePerSecond, int neutronsGenerated, int fastAbsorbed,
-        int thermalAbsorbed, double dt) {
-        double wear = Math.max(0.0, neutronsGenerated * 0.25)
-            + fastAbsorbed * NuclearSimulationEngine.params().fastAbsorptionDamageMultiplier
-            + thermalAbsorbed * NuclearSimulationEngine.params().thermalAbsorptionDamageMultiplier
+    public static double fuelWear(EngineParameters p, double tempDamagePerSecond, int neutronsGenerated,
+        int fastAbsorbed, int thermalAbsorbed, double dt) {
+        double wear = Math.max(0.0, neutronsGenerated * 0.25) + fastAbsorbed * p.fastAbsorptionDamageMultiplier
+            + thermalAbsorbed * p.thermalAbsorptionDamageMultiplier
             + tempDamagePerSecond * dt;
-        return wear * NuclearSimulationEngine.params().fuelBurnupMultiplier;
+        return wear * p.fuelBurnupMultiplier;
     }
 
     /** Temperature damage per second for a fuel without a configuration entry. */
@@ -44,10 +35,9 @@ public final class TileTick {
      * Moderator wear in durability units for one cycle: weighted absorptions, 5% of the flux through it, and its
      * temperature damage over the cycle.
      */
-    public static double moderatorWear(ModeratorData mod, double temp, int fastAbsorbed, int thermalAbsorbed,
-        int totalFlux, double dt) {
-        return fastAbsorbed * NuclearSimulationEngine.params().fastAbsorptionDamageMultiplier
-            + thermalAbsorbed * NuclearSimulationEngine.params().thermalAbsorptionDamageMultiplier
+    public static double moderatorWear(EngineParameters p, ModeratorData mod, double temp, int fastAbsorbed,
+        int thermalAbsorbed, int totalFlux, double dt) {
+        return fastAbsorbed * p.fastAbsorptionDamageMultiplier + thermalAbsorbed * p.thermalAbsorptionDamageMultiplier
             + totalFlux * 0.05
             + mod.calculateTemperatureDamage(temp) * dt;
     }
@@ -62,19 +52,19 @@ public final class TileTick {
      * hatch's heat capacity toward the sink at the hatch's conductance, limited to the heat the remaining coolant can
      * still absorb this cycle.
      */
-    public static double coolantSubstepHeat(double temp, double sinkTemp, int hatchTier, double efficiency,
-        double dtSub, double remainingCapacityHu) {
-        double ch = NuclearSimulationEngine.getCoreHatchHeatCapacity(hatchTier);
+    public static double coolantSubstepHeat(EngineParameters p, double temp, double sinkTemp, int hatchTier,
+        double efficiency, double dtSub, double remainingCapacityHu) {
+        double ch = p.hatchHeatCapacity(hatchTier);
         if (temp <= sinkTemp || remainingCapacityHu <= 0.0) return 0.0;
         double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
-        double conductance = NuclearSimulationEngine.getHatchConductance(hatchTier) * effFactor;
+        double conductance = p.hatchConductance(hatchTier) * effFactor;
         double q = ch * (temp - sinkTemp) * (1.0 - Math.exp(-conductance * dtSub / ch));
         return Math.min(q, remainingCapacityHu);
     }
 
     /** Millilitres of coolant consumed for the heat it absorbed this cycle (rounded stochastically). */
-    public static int coolantConsumed(CoolantFluidData cfd, double heatHu) {
-        return cfd.heatPerLiter > 0.0 ? stochasticRound(heatHu / cfd.heatPerLiter) : 0;
+    public static int coolantConsumed(EngineParameters p, CoolantFluidData cfd, double heatHu) {
+        return cfd.heatPerLiter > 0.0 ? p.stochasticRound(heatHu / cfd.heatPerLiter) : 0;
     }
 
     /**
@@ -91,11 +81,11 @@ public final class TileTick {
      * Durability-heat units a coolant cell takes from its cell this cycle: the heat above ambient converted at
      * huPerDurability, limited to 1% of the cell's capacity per second and to the room left in the cell.
      */
-    public static int coolantCellUptake(int maxHeat, int currentHeat, double temp, double ambient,
+    public static int coolantCellUptake(EngineParameters p, int maxHeat, int currentHeat, double temp, double ambient,
         double huPerDurability, double efficiency, double dt) {
         if (maxHeat <= 0 || temp <= ambient || huPerDurability <= 0.0) return 0;
         int maxTransfer = Math.max(1, (int) Math.round((maxHeat / 100.0) * dt));
-        double heatAvailable = (temp - ambient) * NuclearSimulationEngine.params().huPerDegree;
+        double heatAvailable = (temp - ambient) * p.huPerDegree;
         double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
         int take = (int) Math.round(Math.min(heatAvailable / huPerDurability, (double) maxTransfer) * effFactor);
         return Math.max(0, Math.min(take, maxHeat - currentHeat));

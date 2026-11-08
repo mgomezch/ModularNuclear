@@ -46,6 +46,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.Nuclear
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.util.NuclearReactorWailaProvider;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CoreHatchRules;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
@@ -1943,6 +1944,24 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     }
 
     public int mTicksPerCycle = -1;
+
+    private NuclearSimulationEngine mEngine;
+
+    /**
+     * The engine this reactor's core runs on, built from the installed parameters; rebuilt when a configuration reload
+     * installs a new set.
+     */
+    public NuclearSimulationEngine engine() {
+        EngineParameters installed = NuclearSimulationEngine.params();
+        if (mEngine == null || mEngine.parameters() != installed) mEngine = new NuclearSimulationEngine(installed);
+        return mEngine;
+    }
+
+    /** The parameters of a reactor's engine, or the installed set for a part outside any reactor. */
+    public static EngineParameters parameters(MTENuclearReactor reactor) {
+        return reactor != null ? reactor.engine()
+            .parameters() : NuclearSimulationEngine.params();
+    }
 
     public int getTicksPerCycle() {
         return mTicksPerCycle > 0 ? mTicksPerCycle : NuclearSimulationEngine.params().ticksPerCycle;

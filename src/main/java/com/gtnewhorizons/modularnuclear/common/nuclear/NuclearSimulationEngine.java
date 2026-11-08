@@ -2,7 +2,6 @@ package com.gtnewhorizons.modularnuclear.common.nuclear;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
@@ -12,6 +11,22 @@ import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
 import com.gtnewhorizons.modularnuclear.common.util.NameCache;
 
 public class NuclearSimulationEngine {
+
+    /** The parameters this engine runs with: its own, fixed for its life. */
+    private final EngineParameters p;
+
+    /**
+     * An engine running with {@code parameters}. The game's reactors and the simulator's grids each hold one built from
+     * the installed set ({@link #params()}); a test or calibration run builds its own.
+     */
+    public NuclearSimulationEngine(EngineParameters parameters) {
+        this.p = java.util.Objects.requireNonNull(parameters);
+    }
+
+    /** The parameters this engine runs with. */
+    public EngineParameters parameters() {
+        return p;
+    }
 
     public static final double HU_FOR_FAST_NEUTRON = 8.0;
     public static final double DEFAULT_HU_PER_DEGREE = 32.0;
@@ -98,13 +113,13 @@ public class NuclearSimulationEngine {
     public static final double DEFAULT_BREEDER_NBASE_MULT = 1.00;
     public static final double DEFAULT_BREEDER_FISSION_MULT = 1.00;
 
-    private static final int ARCHETYPE_STANDARD = 0, ARCHETYPE_DENSE = 1, ARCHETYPE_EXCITED = 2, ARCHETYPE_BREEDER = 3;
+    static final int ARCHETYPE_STANDARD = 0, ARCHETYPE_DENSE = 1, ARCHETYPE_EXCITED = 2, ARCHETYPE_BREEDER = 3;
 
     /**
      * A fuel archetype name's family. Called per fuel cell every cycle: configured names are lower case and match
      * directly; only an unrecognised one is lower-cased and tried again.
      */
-    private static int archetypeOf(String archetype) {
+    static int archetypeOf(String archetype) {
         if (archetype == null) return ARCHETYPE_STANDARD;
         int a = archetypeExact(archetype);
         return a >= 0 ? a : Math.max(ARCHETYPE_STANDARD, archetypeExact(archetype.toLowerCase(java.util.Locale.ROOT)));
@@ -117,26 +132,6 @@ public class NuclearSimulationEngine {
             case "excited", "driver" -> ARCHETYPE_EXCITED;
             case "breeder" -> ARCHETYPE_BREEDER;
             default -> -1;
-        };
-    }
-
-    /** Base neutron multiplier of a fuel archetype, including the global neutron yield multiplier. */
-    public static double getArchetypeNbaseMultiplier(String archetype) {
-        double mult = switch (archetypeOf(archetype)) {
-            case ARCHETYPE_DENSE -> params().denseNbaseMultiplier;
-            case ARCHETYPE_EXCITED -> params().excitedNbaseMultiplier;
-            case ARCHETYPE_BREEDER -> params().breederNbaseMultiplier;
-            default -> params().standardNbaseMultiplier;
-        };
-        return mult * params().neutronYieldMultiplier;
-    }
-
-    public static double getArchetypeFissionMultiplier(String archetype) {
-        return switch (archetypeOf(archetype)) {
-            case ARCHETYPE_DENSE -> params().denseFissionMultiplier;
-            case ARCHETYPE_EXCITED -> params().excitedFissionMultiplier;
-            case ARCHETYPE_BREEDER -> params().breederFissionMultiplier;
-            default -> params().standardFissionMultiplier;
         };
     }
 
@@ -163,19 +158,14 @@ public class NuclearSimulationEngine {
 
     public static final double DEFAULT_CORE_HATCH_HEAT_CAPACITY = 16.0;
 
-    /** Heat capacity (HU/°C) of a nuclear core hatch of the given tier (LV=1 ... UHV=9), whatever it holds. */
+    /** The installed set's {@link EngineParameters#hatchHeatCapacity}, for displays. */
     public static double getCoreHatchHeatCapacity(int tier) {
-        return params().coreHatchHeatCapacity * TierScale.pow2(tier);
+        return params().hatchHeatCapacity(tier);
     }
 
-    /**
-     * Thermal conductance U in HU/(s·°C) of a nuclear core hatch of the given tier: the base (MV) conductance times the
-     * tier ratio per tier above MV. With the defaults an EV hatch removes 20% of its excess heat per second and a UHV
-     * hatch 60%.
-     */
+    /** The installed set's {@link EngineParameters#hatchConductance}, for displays. */
     public static double getHatchConductance(int tier) {
-        EngineParameters p = params();
-        return p.hatchConductanceByTier.get(p.baseHatchConductance, p.hatchConductanceTierRatio, tier);
+        return params().hatchConductance(tier);
     }
 
     /**
@@ -192,42 +182,10 @@ public class NuclearSimulationEngine {
         return ambient;
     }
 
-    /**
-     * Analytical lumped-capacitance heat transfer model based on continuous exponential cooling.
-     * Calculates the maximum heat energy (Hu) transferred from a hatch at temperature temp
-     * into a coolant heat sink at sinkTemp over the default ticksPerCycle interval.
-     *
-     * @param temp       The hatch temperature in °C
-     * @param sinkTemp   The coolant sink temperature in °C
-     * @param tier       The tier of the nuclear core hatch (LV=1, MV=2, HV=3, EV=4, ...)
-     * @param efficiency Reactor efficiency multiplier [0.0, 1.0]
-     * @return Heat energy in Hu transferred this cycle
-     */
+    /** The installed set's {@link EngineParameters#conductiveHeatTransfer} over its cycle, for displays. */
     public static double calculateConductiveHeatTransfer(double temp, double sinkTemp, int tier, double efficiency) {
-        return calculateConductiveHeatTransfer(temp, sinkTemp, tier, efficiency, params().ticksPerCycle);
-    }
-
-    /**
-     * Analytical lumped-capacitance heat transfer model based on continuous exponential cooling.
-     * Calculates the maximum heat energy (Hu) transferred from a hatch at temperature temp
-     * into a coolant heat sink at sinkTemp over a specified interval of ticks (dt = ticks / 20.0).
-     *
-     * @param temp       The hatch temperature in °C
-     * @param sinkTemp   The coolant sink temperature in °C
-     * @param tier       The tier of the nuclear core hatch (LV=1, MV=2, HV=3, EV=4, ...)
-     * @param efficiency Reactor efficiency multiplier [0.0, 1.0]
-     * @param ticks      The duration of the cycle in world ticks
-     * @return Heat energy in Hu transferred over the specified duration
-     */
-    public static double calculateConductiveHeatTransfer(double temp, double sinkTemp, int tier, double efficiency,
-        int ticks) {
-        if (temp <= sinkTemp || efficiency <= 0.0) return 0.0;
-        double deltaT = temp - sinkTemp;
-        double effFactor = Math.max(0.0, Math.min(1.0, efficiency));
-        double conductance = getHatchConductance(tier) * effFactor;
-        double ch = getCoreHatchHeatCapacity(tier);
-        double dt = (double) Math.max(1, ticks) / 20.0;
-        return ch * deltaT * (1.0 - Math.exp(-conductance * dt / ch));
+        EngineParameters p = params();
+        return p.conductiveHeatTransfer(temp, sinkTemp, tier, efficiency, p.ticksPerCycle);
     }
 
     public static final int PIPE_TIER_ELECTRUM = 0;
@@ -351,8 +309,9 @@ public class NuclearSimulationEngine {
     private static final ThreadLocal<EngineParameters> SCOPED = new ThreadLocal<>();
 
     /**
-     * The parameters the engine runs with on this thread: those installed by {@link #withParameters}, or the installed
-     * set (the game's, built from its configuration).
+     * The installed parameters: the game's, built from its configuration, or this thread's while
+     * {@link #withParameters}
+     * (or a test's own set) is in effect. New engines are built from it; static queries for displays read it.
      */
     public static EngineParameters params() {
         EngineParameters scoped = SCOPED.get();
@@ -389,11 +348,6 @@ public class NuclearSimulationEngine {
             if (previous != null) SCOPED.set(previous);
             else SCOPED.remove();
         }
-    }
-
-    /** The one random source of the reactor simulation (neutron walks, stochastic rounding, transmutation). */
-    public static Random random() {
-        return params().random;
     }
 
     public static class SimulationResult {
@@ -505,25 +459,24 @@ public class NuclearSimulationEngine {
      * Executes one reactor simulation tick over the 2D grid with full (100%) maintenance efficiency and default ambient
      * temperature.
      */
-    public static SimulationResult simulate(INuclearTile[][] grid, int sizeX, int sizeY) {
-        return simulate(grid, sizeX, sizeY, 1.0, params().ambientTemp);
+    public SimulationResult simulate(INuclearTile[][] grid, int sizeX, int sizeY) {
+        return simulate(grid, sizeX, sizeY, 1.0, p.ambientTemp);
     }
 
     /**
      * Executes one reactor simulation tick over the 2D grid with specified maintenance efficiency factor [0.0, 1.0] and
      * default ambient temperature.
      */
-    public static SimulationResult simulate(INuclearTile[][] grid, int sizeX, int sizeY, double maintenanceEfficiency) {
-        return simulate(grid, sizeX, sizeY, maintenanceEfficiency, params().ambientTemp);
+    public SimulationResult simulate(INuclearTile[][] grid, int sizeX, int sizeY, double maintenanceEfficiency) {
+        return simulate(grid, sizeX, sizeY, maintenanceEfficiency, p.ambientTemp);
     }
 
     /**
      * Executes one reactor simulation tick over the 2D grid with specified maintenance efficiency and biome ambient
      * temperature.
      */
-    public static SimulationResult simulate(INuclearTile[][] grid, int sizeX, int sizeY, double maintenanceEfficiency,
+    public SimulationResult simulate(INuclearTile[][] grid, int sizeX, int sizeY, double maintenanceEfficiency,
         double ambient) {
-        EngineParameters p = params();
         SimulationResult result = new SimulationResult();
         if (grid == null || sizeX <= 0 || sizeY <= 0) return result;
 
@@ -809,16 +762,16 @@ public class NuclearSimulationEngine {
                 INuclearTile tile = grid[x][y];
                 if (tile == null) continue;
 
-                int fT = TileTick.stochasticRound(tileFluxThermal[x][y]);
+                int fT = p.stochasticRound(tileFluxThermal[x][y]);
                 if (fT > 0) tile.addNeutronFlux(NeutronType.THERMAL, fT);
 
-                int aT = TileTick.stochasticRound(tileAbsThermal[x][y]);
+                int aT = p.stochasticRound(tileAbsThermal[x][y]);
                 if (aT > 0) {
                     tile.onNeutronAbsorbed(NeutronType.THERMAL, aT);
                     result.thermalNeutronsAbsorbed += aT;
                 }
 
-                int sT = TileTick.stochasticRound(tileScatteringThermal[x][y]);
+                int sT = p.stochasticRound(tileScatteringThermal[x][y]);
                 if (sT > 0) {
                     tile.onNeutronScattered(NeutronType.THERMAL, sT);
                 }
