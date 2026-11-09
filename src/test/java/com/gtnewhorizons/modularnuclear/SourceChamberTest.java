@@ -86,11 +86,11 @@ class SourceChamberTest {
     }
 
     @Test
-    void aFuelFreeReactorNeverBeatsTheTiersSimpleDesign() {
-        // See Note [Source Chamber beams]: about 30 A at EV, 60 A at the tiers above
+    void aFuelFreeReactorNeverBeatsTheSimpleZpmDesign() {
+        // See Note [Source Chamber beams]: the chamber is a ZPM machine, and the simple design makes about 60 A there
+        double simple = 60 * SourceChamber.voltage(SourceChamber.BUILD_TIER);
         for (SourceChamber.Recipe r : SourceChamber.Recipe.values()) {
             int tier = r.minTier();
-            double simple = (tier == EV ? 30 : 60) * SourceChamber.voltage(tier);
             double bound = SourceChamber.maxFuelFreeEuPerTick(r, NuclearSimulationEngine.params());
             assertTrue(
                 bound < simple,

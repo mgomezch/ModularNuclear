@@ -16,21 +16,21 @@ show what a beam costs.  Everything here mirrors the game, as the in-world suite
 
 The reactor turns a beam into fast neutrons (beamPacketsPerSecond): E · rate · beam_energy_to_fast_neutron_multiplier
 packets a second, of 4 fast neutrons each, emitted from the source tile.  NuclearReactorPhysics (in game) and SimTile
-(simulator) both use it.  With the multiplier at 0.01, Californium dust from an EV hatch costs 1,920 EU/t and a dust
-a second for 900 packets, 3,600 fast neutrons a second.
+(simulator) both use it.  With the multiplier at 0.05, Californium dust from an EV hatch costs 1,920 EU/t and a dust
+a second for 4,500 packets, 18,000 fast neutrons a second.
 
-Balance.  A beam is meant to pay off, in EU and as a neutron source for driving or irradiating fuel: its price is the
-item it burns every second and a ZPM-tier chamber, not EU.  But a reactor with no fuel must not beat the tier's
-simple design (about 30 A at EV, 60 A above) on one beam.  Without fuel nothing multiplies neutrons, so a beam
-neutron brings at most 12 HU (8 when moderated, then 4 when absorbed as thermal), and that heat is worth at most:
+Balance.  A Source Chamber is a ZPM-tier multiblock (BUILD_TIER), whatever hatch its recipe runs on, so beams only
+matter from ZPM on, where their power is small: a beam is a neutron source for starting, driving and irradiating
+fuel, paid for in the item it burns every second and the chamber.  But a reactor with no fuel must not beat the
+simple ZPM design (about 60 A) on one beam.  Without fuel nothing multiplies neutrons, so a beam neutron brings at most
+12 HU (8 when moderated, then 4 when absorbed as thermal), and that heat is worth at most:
 
     in a radiovoltaic plate, at vanishing flux:   artanh(0.95) / 0.95 · m_R · κ   EU/HU  (Note [Radiovoltaic energy])
     as steam: water a coolant hatch boils straight into superheated steam, at 1 EU/L:   160 / 17.65625 EU/HU
 
 maxFuelFreeEuPerTick bounds a fuel-free reactor's output with that, and SourceChamberTest checks the bound stays
-under the simple design for every recipe: raising m_R, or the multiplier, must keep it there.  With the multiplier at
-0.01 the bound for Californium is about 25,700 EU/t (12.5 A at EV); the best plates-only layout in the simulator, a
-9x9 of EV plates around the source, makes about 20,600.
+under the simple ZPM design for every recipe: raising m_R, or the multiplier, must keep it there.  With the multiplier
+at 0.05 the bound is about 128,000 EU/t for Californium and 214,000 for Beryllium, against about 7.9 million.
 
 Wrinkles.
 (W1) Only the particle counts, not its focus: the reactor ignores focus.  A beam of any other particle explodes the
@@ -48,6 +48,8 @@ public final class SourceChamber {
 
     /** A neutron's highest source energy, keV (gtnhlanth's Particle.NEUTRON). */
     public static final double NEUTRON_MAX_KEV = 15_000.0;
+    /** The Source Chamber's own tier: ZPM, whatever its recipes' hatches. See Note [Source Chamber beams]. */
+    public static final int BUILD_TIER = 7;
     /** Fast neutrons in a packet of beam neutrons. */
     public static final int NEUTRONS_PER_PACKET = 4;
 
