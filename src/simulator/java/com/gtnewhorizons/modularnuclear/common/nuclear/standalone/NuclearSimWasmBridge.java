@@ -687,6 +687,9 @@ public class NuclearSimWasmBridge {
         } else if ("gridConductionMultiplier".equals(key) || "gridConductionMult".equals(key)) {
             NuclearSimulationEngine.params()
                 .setGridConductionMultiplier(d);
+        } else if ("beamEnergyToFastNeutronMultiplier".equals(key) || "beamMult".equals(key)) {
+            NuclearSimulationEngine.params()
+                .setBeamEnergyToFastNeutronMultiplier(d);
         } else if ("fuelBurnupMultiplier".equals(key) || "burnupMult".equals(key)) {
             NuclearSimulationEngine.params()
                 .setFuelBurnupMultiplier(d);
