@@ -30,6 +30,7 @@ import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import codechicken.lib.gui.GuiDraw;
@@ -56,28 +57,38 @@ import gregtech.api.util.GTUtility;
  */
 public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
-    public static final ResourceLocation TEXTURE_ATLAS = new ResourceLocation(
-        "modularnuclear",
-        "textures/gui/nei/neutron_interaction_atlas.png");
-
     public static final ResourceLocation LONG_ARROW = new ResourceLocation(
         "modularnuclear",
         "textures/gui/nei/long_arrow.png");
 
     public static final String OVERLAY_ID = "gt.nei.neutron_interaction";
 
+    public static final String CATEGORY_EMPTY = "Empty Core Tile";
+
+    public static final int THERMAL_PANEL_Y = 101;
+    public static final int THERMAL_SLOT_Y = THERMAL_PANEL_Y + 23;
+
+    public static final int HEAT_PANEL_Y = 169;
+    public static final int HEAT_PANEL_H = 108;
+    public static final int HEAT_SLOT_Y = HEAT_PANEL_Y + 23;
+    public static final int HEAT_ROW_Y = HEAT_PANEL_Y + 78;
+    private static final int[] HEAT_ROW_X = { 17, 36, 55, 74, 93, 112, 131 };
+
+    public static final int DURABILITY_PANEL_Y = HEAT_PANEL_Y + HEAT_PANEL_H + 4;
+    public static final int DURABILITY_SLOT_Y = DURABILITY_PANEL_Y + 28;
+
     public static final int RV_PANEL_X = 6;
-    public static final int RV_PANEL_Y = 237;
+    public static final int RV_PANEL_Y = DURABILITY_PANEL_Y;
     public static final int RV_PANEL_W = 154;
     public static final int RV_PANEL_H = 72;
 
     public static final int RV_SCREEN_X = 8;
-    public static final int RV_SCREEN_Y = 249;
+    public static final int RV_SCREEN_Y = RV_PANEL_Y + 12;
     public static final int RV_SCREEN_W = 150;
     public static final int RV_SCREEN_H = 58;
 
     public static final int RV_PLOT_X = 28;
-    public static final int RV_PLOT_Y = 252;
+    public static final int RV_PLOT_Y = RV_PANEL_Y + 15;
     public static final int RV_PLOT_W = 104;
     public static final int RV_PLOT_H = 42;
 
@@ -133,6 +144,19 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         public final boolean isRadiovoltaic;
         /** Weighted neutrons absorbed per second at which output reaches 95% of maxDirectEU. */
         public final double fullOutputAbsorbedPerSecond;
+
+        private ComponentCardValues cardValues;
+        private Object cardValuesConfig;
+
+        /** What the thermal and heat cards show, worked out again if the config has been reloaded. */
+        public ComponentCardValues cardValues() {
+            Object config = ReactorDataRegistry.getComponentData();
+            if (cardValues == null || cardValuesConfig != config) {
+                cardValues = ComponentCardValues.of(this);
+                cardValuesConfig = config;
+            }
+            return cardValues;
+        }
 
         /** EU/t for a weighted absorption rate (fast neutrons count 4x). */
         public double calculatePower(double absorbedPerSecond) {
@@ -244,6 +268,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         public final PositionedStack input;
         public final PositionedStack inputThermal;
         public final PositionedStack inputHeat;
+        public final PositionedStack inputHeatRow;
         public final PositionedStack durabilityInput;
         public final PositionedStack transmutationOutput;
         public final PositionedStack catalyst;
@@ -264,18 +289,19 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             // Card 1 (Fast neutrons): slot box at (74, 56) -> stack at (75, 57)
             this.input = new PositionedStack(allVariants, 75, 57, false);
 
-            // Card 2 (Thermal neutrons): slot box at (66, 129) -> stack at (67, 130)
-            this.inputThermal = new PositionedStack(allVariants, 67, 130, false);
+            // Card 2 (Thermal neutrons)
+            this.inputThermal = new PositionedStack(allVariants, 75, THERMAL_SLOT_Y + 1, false);
 
-            // Card 3 (Heat): slot box at (57, 193) -> stack at (58, 194, false);
-            this.inputHeat = new PositionedStack(allVariants, 58, 194, false);
+            // Card 3 (Heat): once between its hot and cold neighbours, once in the row of tiles
+            this.inputHeat = new PositionedStack(allVariants, 75, HEAT_SLOT_Y + 1, false);
+            this.inputHeatRow = new PositionedStack(allVariants, 75, HEAT_ROW_Y + 1, false);
 
             // Card 4 (Durability & byproducts):
             if (!data.isRadiovoltaic) {
                 int durSlotX = data.transmutationOutput != null ? 30 : 66;
-                this.durabilityInput = new PositionedStack(allVariants, durSlotX + 1, 266, false);
+                this.durabilityInput = new PositionedStack(allVariants, durSlotX + 1, DURABILITY_SLOT_Y + 1, false);
                 this.transmutationOutput = data.transmutationOutput != null
-                    ? new PositionedStack(data.transmutationOutput, 101, 266, false)
+                    ? new PositionedStack(data.transmutationOutput, 101, DURABILITY_SLOT_Y + 1, false)
                     : null;
             } else {
                 this.durabilityInput = null;
@@ -302,6 +328,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             List<PositionedStack> list = new ArrayList<>();
             list.add(inputThermal);
             list.add(inputHeat);
+            list.add(inputHeatRow);
             if (durabilityInput != null) {
                 list.add(durabilityInput);
             }
@@ -767,7 +794,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             "Non-boiling high-capacity coolant | Cycles to Hot Coolant");
 
         // 8. IC2 HEAT VENTS & HEAT EXCHANGERS
-        addHeatVent("reactorVent", "Heat Vent", 6.0, 0.0, 0.40, 128L, 512L, "Self-cooling: 6 Hu/t | 128 EU/t");
+        addHeatVent("reactorVent", "Heat Vent", 6.0, 0.0, 0.40, 128L, 512L, "Vents its own heat, using EU");
         addHeatVent(
             "reactorVentGold",
             "Overclocked Heat Vent",
@@ -776,7 +803,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.45,
             512L,
             2048L,
-            "Self-cooling: 12 Hu/t | 512 EU/t");
+            "Vents its own heat, using EU");
         addHeatVent(
             "reactorVentSpread",
             "Component Heat Vent",
@@ -785,7 +812,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.40,
             1024L,
             4096L,
-            "Self-cooling: 8 Hu/t | 1024 EU/t");
+            "Vents its own heat, using EU");
         addHeatVent(
             "reactorVentDiamond",
             "Advanced Heat Vent",
@@ -794,7 +821,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.50,
             2048L,
             8192L,
-            "Adjacent cooling: 20 Hu/t | 2048 EU/t");
+            "Vents its own heat, using EU");
 
         addHeatExchanger(
             "reactorHeatSwitch",
@@ -803,7 +830,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.40,
             256L,
             1024L,
-            "Heat transfer: 12 Hu/t | 256 EU/t");
+            "Evens out heat with its neighbours, using EU");
         addHeatExchanger(
             "reactorHeatSwitchSpread",
             "Component Heat Exchanger",
@@ -811,7 +838,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.45,
             512L,
             2048L,
-            "Heat transfer: 24 Hu/t | 512 EU/t");
+            "Evens out heat with its neighbours, using EU");
         addHeatExchanger(
             "reactorHeatSwitchDiamond",
             "Advanced Heat Exchanger",
@@ -819,7 +846,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.50,
             1024L,
             4096L,
-            "Adjacent component heat transfer: 36 Hu/t | 1024 EU/t");
+            "Evens out heat with its neighbours, using EU");
 
         // 9. EMPTY CORE TILE - Unimpeded neutron streaming
         ItemStack emptyStack = ModItems.emptyCoreTile != null ? new ItemStack(ModItems.emptyCoreTile)
@@ -829,7 +856,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 new ComponentStatsData(
                     emptyStack,
                     "Empty Core Tile",
-                    "Empty Core Tile",
+                    CATEGORY_EMPTY,
                     0.0,
                     0.0,
                     0.0,
@@ -1453,10 +1480,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (recipe >= 0 && recipe < arecipes.size()) {
             CachedRecipe cr = arecipes.get(recipe);
             if (cr instanceof CachedNeutronInteractionRecipe nr && nr.data.isRadiovoltaic) {
-                return 314;
+                return RV_PANEL_Y + 77;
             }
         }
-        return 304;
+        return DURABILITY_PANEL_Y + 67;
     }
 
     // =========================================================================
@@ -1477,35 +1504,35 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             drawSlotBox(74, 56);
             drawFastNeutronDiagram(recipe.data, 33);
 
-            // Card 2: Thermal neutrons panel at y=101
-            drawPanel(6, 101, 154, 64);
-            drawSlotBox(66, 129);
-            GuiDraw.changeTexture(TEXTURE_ATLAS);
-            GuiDraw.drawTexturedModalRect(14, 111, 0, 60, 88, 54);
+            // Card 2: Thermal neutrons panel
+            ComponentCardValues values = recipe.data.cardValues();
+            drawPanel(6, THERMAL_PANEL_Y, 154, 64);
+            drawThermalNeutronDiagram(values, THERMAL_PANEL_Y);
+            drawSlotBox(74, THERMAL_SLOT_Y);
 
-            // Card 3: Heat panel at y=169
-            drawPanel(6, 169, 154, 64);
-            drawSlotBox(57, 193);
-            GuiDraw.changeTexture(TEXTURE_ATLAS);
-            GuiDraw.drawTexturedModalRect(30, 187, 0, 109, 92, 31);
+            // Card 3: Heat panel, its hot-to-cold diagram above its row of tiles
+            drawPanel(6, HEAT_PANEL_Y, 154, HEAT_PANEL_H);
+            drawHeatDiagram(values, HEAT_PANEL_Y);
+            drawSlotBox(74, HEAT_SLOT_Y);
+            drawHeatRow(values);
 
-            // Card 4: Durability & byproducts panel at y=237 OR Radiovoltaic curve panel
+            // Card 4: Durability & byproducts panel OR Radiovoltaic curve panel
             if (recipe.data.isRadiovoltaic) {
                 NEIFuelStatsHandler.drawThemePanel(RV_PANEL_X, RV_PANEL_Y, RV_PANEL_W, RV_PANEL_H);
                 NEIFuelStatsHandler.drawSunkenBox(RV_SCREEN_X, RV_SCREEN_Y, RV_SCREEN_W, RV_SCREEN_H, 0xFF141619);
             } else {
-                drawPanel(6, 237, 154, 64);
+                drawPanel(6, DURABILITY_PANEL_Y, 154, 64);
                 int durSlotX = recipe.data.transmutationOutput != null ? 30 : 66;
-                drawSlotBox(durSlotX, 265);
+                drawSlotBox(durSlotX, DURABILITY_SLOT_Y);
 
                 if (recipe.data.transmutationOutput != null) {
-                    drawSlotBox(100, 265);
+                    drawSlotBox(100, DURABILITY_SLOT_Y);
                     GuiDraw.changeTexture(LONG_ARROW);
-                    drawCustomTexturedModalRect(58, 264, 0, 0, 40, 20, 40, 40);
+                    drawCustomTexturedModalRect(58, DURABILITY_SLOT_Y - 1, 0, 0, 40, 20, 40, 40);
                     long cycle = System.currentTimeMillis() % 3000L;
                     int fillW = (int) (40.0 * (cycle / 3000.0));
                     if (fillW > 0) {
-                        drawCustomTexturedModalRect(58, 264, 0, 20, fillW, 20, 40, 40);
+                        drawCustomTexturedModalRect(58, DURABILITY_SLOT_Y - 1, 0, 20, fillW, 20, 40, 40);
                     }
                 }
             }
@@ -1562,150 +1589,36 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             String modScatteringStr = formatPercent(slowing);
             GuiDraw.drawStringC(modScatteringStr, FAST_PIE_X, 86, slowing > 0 ? 0x7F00FF : 0x404040, false);
 
-            // --- Card 2: Thermal Neutron Panel (baseY = 101) ---
-            GuiDraw.drawStringC(
-                StatCollector.translateToLocal("gt.nei.neutron_interaction.thermal"),
-                83,
-                104,
-                0x404040,
-                false);
+            // --- Card 2: Thermal Neutron Panel ---
+            ComponentCardValues values = d.cardValues();
+            drawThermalNeutronText(values, THERMAL_PANEL_Y);
 
-            if (d.isReflector) {
-                String reflStr = formatPercent(d.reflectionThermal);
-                GuiDraw.drawStringC(reflStr, 47, 115, 0x9A6B00, false);
-                GuiDraw.drawStringC("REFLECT", 47, 124, 0x9A6B00, false);
-            } else {
-                String thermScatteringStr = formatPercent(d.thermalScattering);
-                GuiDraw.drawStringC(thermScatteringStr, 47, 115, 0x404040, false);
-            }
+            // --- Card 3: Heat Panel ---
+            drawHeatText(values, HEAT_PANEL_Y);
 
-            String thermAbsStr = formatPercent(d.thermalAbsorption);
-            GuiDraw.drawStringC(thermAbsStr, 97, 153, 0x00A000, false);
-
-            // --- Card 3: Heat Panel (baseY = 169) ---
-            GuiDraw.drawStringC(
-                StatCollector.translateToLocal("gt.nei.neutron_interaction.capture"),
-                83,
-                172,
-                0x404040,
-                false);
-
-            // Direct EU production (left of diagram)
-            if (d.producesDirectEU) {
-                if (d.directEUPenNeutronFast > 0) {
-                    GuiDraw.drawString(
-                        String.format(Locale.US, "%.0f EU/n", d.directEUPenNeutronFast),
-                        32,
-                        219,
-                        0x00A000,
-                        false);
-                } else if (d.selfCoolingRate > 0) {
-                    GuiDraw
-                        .drawString(String.format(Locale.US, "%.0f Hu/t", d.selfCoolingRate), 32, 219, 0x0055AA, false);
-                } else if (d.heatTransferRate > 0) {
-                    GuiDraw.drawString(
-                        String.format(Locale.US, "%.0f Hu/t", d.heatTransferRate),
-                        32,
-                        219,
-                        0x0055AA,
-                        false);
-                } else {
-                    GuiDraw.drawString("Active", 34, 219, 0x00A000, false);
-                }
-            } else {
-                GuiDraw.drawString("0 EU", 36, 219, 0x606060, false);
-            }
-
-            // Heat transfer & thermal metrics (right of diagram)
-            if (d.thermalInsulationFactor > 0.0) {
-                GuiDraw.drawString("Barrier: " + formatPercent(d.thermalInsulationFactor), 110, 185, 0x902020, false);
-                GuiDraw.drawString("k = " + formatNumber(d.heatTransferCoeff), 110, 201, 0x404040, false);
-            } else if (d.boilingPoint > 0.0) {
-                GuiDraw.drawString("Boils: " + formatNumber(d.boilingPoint) + " °C", 110, 185, 0x205090, false);
-                GuiDraw.drawString("Cp: " + formatNumber(d.specificHeat), 110, 201, 0x404040, false);
-            } else if (d.selfCoolingRate > 0.0 || d.componentCoolingRate > 0.0) {
-                double cool = d.selfCoolingRate > 0 ? d.selfCoolingRate : d.componentCoolingRate;
-                GuiDraw.drawString("Cool: " + formatNumber(cool) + " Hu/t", 110, 185, 0x0055AA, false);
-                GuiDraw.drawString("k = " + formatNumber(d.heatTransferCoeff), 110, 201, 0x404040, false);
-            } else if (d.heatTransferRate > 0.0) {
-                GuiDraw.drawString("Xfer: " + formatNumber(d.heatTransferRate) + " Hu/t", 110, 185, 0x0055AA, false);
-                GuiDraw.drawString("k = " + formatNumber(d.heatTransferCoeff), 110, 201, 0x404040, false);
-            } else if (d.maxTemperature > 0.0) {
-                GuiDraw.drawString("k = " + formatNumber(d.heatTransferCoeff), 110, 185, 0x404040, false);
-                GuiDraw.drawString("Max: " + formatNumber(d.maxTemperature) + " °C", 110, 201, 0xAA5500, false);
-            } else {
-                GuiDraw.drawString("k = " + formatNumber(d.heatTransferCoeff), 110, 185, 0x404040, false);
-                GuiDraw.drawString("Passive", 110, 201, 0x606060, false);
-            }
-
-            // Summary line in heat panel (y = 221)
-            if (d.maxDirectEU > 0) {
-                String euText = String.format(
-                    Locale.US,
-                    "Max: %d EU/t (%s)",
-                    d.maxDirectEU,
-                    d.directEUTier != null ? d.directEUTier : "");
-                GuiDraw.drawStringC(euText, 83, 221, 0x00A000, false);
-            } else if (d.selfCoolingRate > 0) {
-                GuiDraw.drawStringC(
-                    "Self-cooling rate: " + formatNumber(d.selfCoolingRate) + " Hu/t",
-                    83,
-                    221,
-                    0x0055AA,
-                    false);
-            } else if (d.componentCoolingRate > 0) {
-                GuiDraw.drawStringC(
-                    "Adjacent cooling: " + formatNumber(d.componentCoolingRate) + " Hu/t",
-                    83,
-                    221,
-                    0x0055AA,
-                    false);
-            } else if (d.heatTransferRate > 0) {
-                GuiDraw.drawStringC(
-                    "Adjacent component transfer: " + formatNumber(d.heatTransferRate) + " Hu/t",
-                    83,
-                    221,
-                    0x0055AA,
-                    false);
-            } else if (d.thermalInsulationFactor > 0) {
-                GuiDraw.drawStringC(
-                    "Blocks " + formatPercent(d.thermalInsulationFactor) + " of heat conduction",
-                    83,
-                    221,
-                    0x902020,
-                    false);
-            } else {
-                GuiDraw.drawStringC(
-                    "Thermal conduction coefficient: k = " + formatNumber(d.heatTransferCoeff),
-                    83,
-                    221,
-                    0x505050,
-                    false);
-            }
-
-            // --- Card 4: Durability & Byproducts Panel OR Radiovoltaic Power & Heat Curve (baseY = 237) ---
+            // --- Card 4: Durability & Byproducts Panel OR Radiovoltaic Power & Heat Curve ---
             if (d.isRadiovoltaic) {
                 drawRadiovoltaicCurve(recipe, recipeIndex);
             } else {
                 GuiDraw.drawStringC(
                     StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption"),
                     83,
-                    240,
+                    DURABILITY_PANEL_Y + 3,
                     0x404040,
                     false);
 
                 if (d.transmutationOutput != null) {
                     String reqStr = formatNeutrons(d.transmutationNeutrons);
                     String transStr = reqStr + " Neutrons -> " + d.transmutationOutput.getDisplayName();
-                    GuiDraw.drawStringC(transStr, 83, 289, 0x205090, false);
+                    GuiDraw.drawStringC(transStr, 83, DURABILITY_PANEL_Y + 52, 0x205090, false);
                 } else if (d.hasDurability) {
                     String durStr = d.durabilityLabel + ": " + formatNeutrons(d.durability);
-                    GuiDraw.drawStringC(durStr, 83, 289, 0x404040, false);
+                    GuiDraw.drawStringC(durStr, 83, DURABILITY_PANEL_Y + 52, 0x404040, false);
                 } else {
                     GuiDraw.drawStringC(
                         d.durabilityLabel != null ? d.durabilityLabel : "Indestructible",
                         83,
-                        289,
+                        DURABILITY_PANEL_Y + 52,
                         0x008000,
                         false);
                 }
@@ -1730,11 +1643,11 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         double maxFlux = rvPlotMaxAbsorbed(d);
         double maxHeat = Math.max(1.0, d.calculateHeat(maxFlux));
 
-        // Title at (83, 239)
+        // Title
         GuiDraw.drawStringC(
             StatCollector.translateToLocal("gt.nei.neutron_interaction.radiovoltaic_curve"),
             83,
-            239,
+            RV_PANEL_Y + 2,
             0x404040,
             false);
 
@@ -2083,71 +1996,16 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                             formatPercent(d.slowingProbability)));
                 }
 
-                // Card 2: Thermal Neutron Panel (Y in [101, 165])
-            } else if (relY >= 101 && relY <= 165) {
-                // Thermal scattering / reflection: covers text (47, 115) and full curved arrow
-                if (relX >= 25 && relX <= 66 && relY >= 107 && relY <= 135) {
-                    if (d.isReflector) {
-                        currenttip.add(
-                            EnumChatFormatting.GOLD
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection"));
-                        currenttip.add(
-                            EnumChatFormatting.GRAY
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection_thermal.desc"));
-                    } else {
-                        currenttip.add(
-                            EnumChatFormatting.WHITE
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering"));
-                        currenttip.add(
-                            EnumChatFormatting.GRAY
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.scattering_thermal.desc"));
-                    }
-                    // Thermal absorption: covers text (97, 153), downward arrow, and curved arrow
-                } else if ((relX >= 65 && relX <= 118 && relY >= 141 && relY <= 163)
-                    || (relX >= 72 && relX <= 104 && relY >= 117 && relY <= 139)) {
-                        currenttip.add(
-                            EnumChatFormatting.GREEN
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_title"));
-                        currenttip.add(
-                            EnumChatFormatting.GRAY
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_thermal.desc"));
-                    }
+                // Card 2: Thermal Neutron Panel
+            } else if (relY >= THERMAL_PANEL_Y && relY < THERMAL_PANEL_Y + 64) {
+                addThermalTooltip(d.cardValues(), relX, relY - THERMAL_PANEL_Y, currenttip);
 
-                // Card 3: Heat Panel (Y in [169, 233])
-            } else if (relY >= 169 && relY <= 233) {
-                // Direct EU / Hu production (left of diagram)
-                if (relX >= 20 && relX <= 55 && relY >= 211 && relY <= 229) {
-                    if (d.producesDirectEU) {
-                        currenttip.add(
-                            EnumChatFormatting.GREEN
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.direct_eu"));
-                        currenttip.add(
-                            EnumChatFormatting.GRAY + StatCollector
-                                .translateToLocalFormatted("gt.nei.neutron_interaction.direct_eu.desc", d.maxDirectEU));
-                    } else {
-                        currenttip.add(EnumChatFormatting.GRAY + "No direct electricity produced");
-                    }
-                    // Conduction & thermal properties (right of diagram)
-                } else if (relX >= 95 && relX <= 155 && relY >= 179 && relY <= 207) {
-                    currenttip.add(
-                        EnumChatFormatting.GOLD
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.conduction"));
-                    currenttip.add(
-                        EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
-                            "gt.nei.neutron_interaction.conduction.desc",
-                            formatNumber(d.heatTransferCoeff)));
-                    // Summary line (bottom of heat panel)
-                } else if (relX >= 25 && relX <= 140 && relY >= 215 && relY <= 231) {
-                    currenttip.add(
-                        EnumChatFormatting.AQUA
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.multiplication"));
-                    currenttip.add(
-                        EnumChatFormatting.GRAY
-                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.multiplication.desc"));
-                }
+                // Card 3: Heat Panel
+            } else if (relY >= HEAT_PANEL_Y && relY < HEAT_PANEL_Y + HEAT_PANEL_H) {
+                addHeatTooltip(d.cardValues(), relX, relY - HEAT_PANEL_Y, currenttip);
 
-                // Card 4: Durability & Byproducts Panel OR Radiovoltaic Power & Heat Curve (Y in [237, 309])
-            } else if (relY >= 237 && relY <= 309) {
+                // Card 4: Durability & Byproducts Panel OR Radiovoltaic Power & Heat Curve
+            } else if (relY >= RV_PANEL_Y && relY <= RV_PANEL_Y + RV_PANEL_H) {
                 if (d.isRadiovoltaic) {
                     if (isMouseOverRVPlot(relX, relY)) {
                         long maxEU = Math.max(1L, d.maxDirectEU);
@@ -2176,7 +2034,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                         String heatNote = (heat <= 0.0) ? EnumChatFormatting.GRAY + " (None)" : "";
                         currenttip
                             .add(EnumChatFormatting.RED + "Excess heating: " + formatNumber(heat) + " Hu/s" + heatNote);
-                    } else if (relX >= 6 && relX <= 160 && relY >= 237 && relY <= 248) {
+                    } else if (relX >= 6 && relX <= 160 && relY <= RV_PANEL_Y + 11) {
                         currenttip.add(
                             EnumChatFormatting.AQUA
                                 + StatCollector.translateToLocal("gt.nei.neutron_interaction.radiovoltaic_curve"));
@@ -2185,7 +2043,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                                 + StatCollector.translateToLocal("gt.nei.neutron_interaction.radiovoltaic_curve.desc"));
                     }
                 } else {
-                    if (relX >= 25 && relX <= 140 && relY >= 257 && relY <= 299) {
+                    if (relX >= 25 && relX <= 140
+                        && relY >= DURABILITY_PANEL_Y + 20
+                        && relY <= DURABILITY_PANEL_Y + 62) {
                         currenttip.add(
                             EnumChatFormatting.WHITE
                                 + StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption_capacity"));
@@ -2197,6 +2057,105 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             }
         }
         return currenttip;
+    }
+
+    private static void addTooltip(List<String> tip, EnumChatFormatting color, String titleKey, String... lines) {
+        tip.add(color + StatCollector.translateToLocal(titleKey));
+        for (String line : lines) tip.add(EnumChatFormatting.GRAY + line);
+    }
+
+    private static String tr(String key, Object... args) {
+        return StatCollector.translateToLocalFormatted("gt.nei.neutron_interaction." + key, args);
+    }
+
+    /** @param y relative to the panel's top */
+    private static void addThermalTooltip(ComponentCardValues v, int x, int y, List<String> tip) {
+        if (x >= 129 && y >= 2) {
+            addTooltip(
+                tip,
+                EnumChatFormatting.LIGHT_PURPLE,
+                "gt.nei.neutron_interaction.thermal_spread",
+                tr("thermal_spread.desc", formatOutcome(v.perSide()), formatOutcome(v.perCorner())),
+                tr("thermal_spread.edge"));
+        } else if (x >= 93 && x < 129 && y >= 12 && y <= 42) {
+            addTooltip(
+                tip,
+                EnumChatFormatting.GREEN,
+                "gt.nei.neutron_interaction.thermal_scattered",
+                tr("thermal_scattered.desc", formatOutcome(v.scattered)),
+                tr("thermal_scattered.stay"));
+        } else if (x >= 74 && x < 129 && y > 42) {
+            addTooltip(
+                tip,
+                EnumChatFormatting.RED,
+                "gt.nei.neutron_interaction.thermal_absorbed",
+                tr("thermal_absorbed.desc", formatOutcome(v.absorbed)));
+        } else if (x < 74 && y > 42) {
+            addTooltip(
+                tip,
+                EnumChatFormatting.GRAY,
+                "gt.nei.neutron_interaction.thermal_lost",
+                tr("thermal_lost.desc", formatOutcome(v.lost)));
+        } else if (x < 74 && y >= 22) {
+            addTooltip(
+                tip,
+                EnumChatFormatting.LIGHT_PURPLE,
+                "gt.nei.neutron_interaction.thermal_arriving",
+                tr("thermal_arriving.desc"));
+        }
+    }
+
+    /** @param y relative to the panel's top */
+    private static void addHeatTooltip(ComponentCardValues v, int x, int y, List<String> tip) {
+        int rowY = HEAT_ROW_Y - HEAT_PANEL_Y;
+        if (x >= 74 && x < 92 && y >= rowY && y < rowY + 18) return; // The slot's tooltip is the item's
+        if (y >= rowY - 14) {
+            addTooltip(
+                tip,
+                EnumChatFormatting.GOLD,
+                "gt.nei.neutron_interaction.heat_row",
+                tr("heat_row.desc", formatNumber(ComponentCardValues.NEIGHBOUR_K)),
+                v.inHatch ? tr("heat_row.hatch") : tr("heat_row.tile"));
+        } else if (y >= 53 || (y >= 42 && x >= 76 && x <= 90)) {
+            addTooltip(
+                tip,
+                EnumChatFormatting.AQUA,
+                "gt.nei.neutron_interaction.heat_action",
+                heatActionDescription(v));
+        } else if (y < 13 && x < 73) {
+            String[] lines = v.inHatch ? new String[] { tr("capacity.desc"), tr("capacity.hatch") }
+                : new String[] { tr("capacity.desc") };
+            addTooltip(tip, EnumChatFormatting.GOLD, "gt.nei.neutron_interaction.capacity", lines);
+        } else if (y < 13 && x > 93) {
+            addTooltip(
+                tip,
+                EnumChatFormatting.GOLD,
+                "gt.nei.neutron_interaction.conduction",
+                tr("conduction.desc", formatNumber(v.k)));
+        } else if (y >= 13 && y < 53 && (x < 74 || x >= 92)) {
+            addTooltip(
+                tip,
+                EnumChatFormatting.GOLD,
+                "gt.nei.neutron_interaction.conductance",
+                v.dampening >= 1.0 ? tr("conductance.none")
+                    : tr(
+                        "conductance.desc",
+                        formatCardNumber(v.conductance()),
+                        formatNumber(ComponentCardValues.NEIGHBOUR_K)));
+        }
+    }
+
+    private static String heatActionDescription(ComponentCardValues v) {
+        return switch (v.action) {
+            case BOILS -> tr("heat_action.boils.desc");
+            case COOLS_TO_AMBIENT -> tr("heat_action.cools.desc");
+            case VENTS -> tr("heat_action.vents.desc");
+            case EXCHANGES -> tr("heat_action.exchanges.desc");
+            case STORES -> tr("heat_action.stores.desc");
+            case BLOCKS -> tr("heat_action.blocks.desc");
+            case BURNS -> tr("heat_action.burns.desc");
+            case CONDUCTS_ONLY -> tr("heat_action.conducts.desc");
+        };
     }
 
     @Override
@@ -2245,17 +2204,15 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     formatPercent(data.fastAbsorption),
                     formatPercent(data.slowingProbability)));
             currenttip.add(
-                EnumChatFormatting.AQUA + StatCollector.translateToLocalFormatted(
-                    "gt.nei.neutron_interaction.thermal_stats",
-                    formatPercent(data.thermalScattering),
-                    formatPercent(data.thermalAbsorption)));
+                EnumChatFormatting.AQUA + tr(
+                    "thermal_stats",
+                    formatOutcome(data.cardValues().absorbed),
+                    formatOutcome(data.cardValues().scattered),
+                    formatOutcome(data.cardValues().lost)));
             if (data.isReflector) {
                 currenttip.add(
-                    EnumChatFormatting.GREEN + String.format(
-                        Locale.US,
-                        "Reflection: Fast %s, Thermal %s",
-                        formatPercent(data.reflectionFast),
-                        formatPercent(data.reflectionThermal)));
+                    EnumChatFormatting.GREEN
+                        + String.format(Locale.US, "Fast reflection: %s", formatPercent(data.reflectionFast)));
             }
             if (data.extraInfo != null) {
                 currenttip.add(EnumChatFormatting.GRAY + data.extraInfo);
@@ -2481,5 +2438,273 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         // Scattered moderated neutrons arrow (purple, straight down below pie chart)
         drawArrow(FAST_PIE_X, 44.0 + dy, FAST_PIE_X, 52.0 + dy, 2.0, 4.0, 5.5, 0xFF7F00FF);
 
+    }
+
+    /**
+     * Formats a share of neutrons for the thermal card. Shares are computed values such as 84.15%, so unlike
+     * {@link #formatPercent} this rounds them to fit the panel.
+     */
+    public static String formatOutcome(double frac) {
+        if (frac <= 0.0) return "0%";
+        if (frac >= 0.0995) return Math.round(frac * 100.0) + "%";
+        if (frac < 0.001) return "<0.1%";
+        return formatPercentFromPercent(Math.round(frac * 1000.0) / 10.0);
+    }
+
+    /**
+     * Formats a number for the heat card: up to 2 decimals below 100, whole below 10000, and shortened from there on.
+     */
+    public static String formatCardNumber(double val) {
+        if (val >= 1_000_000.0) return formatNumber(Math.round(val / 100_000.0) / 10.0) + "M";
+        if (val >= 10_000.0) return formatNumber(Math.round(val / 100.0) / 10.0) + "k";
+        return val >= 100.0 ? String.valueOf(Math.round(val)) : formatNumber(val);
+    }
+
+    private static int mixColor(int a, int b, double t) {
+        int result = 0xFF000000;
+        for (int shift = 0; shift <= 16; shift += 8) {
+            int ca = (a >> shift) & 0xFF;
+            int cb = (b >> shift) & 0xFF;
+            result |= ((int) Math.round(ca + (cb - ca) * t)) << shift;
+        }
+        return result;
+    }
+
+    private static final int PANEL_GREY = 0xFFC6C6C6;
+    private static final int THERMAL_PURPLE = 0xFF7F00FF;
+    private static final int ABSORBED_RED = 0xFFDD0000;
+    private static final int SCATTERED_GREEN = 0xFF00CC00;
+    private static final int LOST_GREY = 0xFF7A7A7A;
+    private static final int HEAT_ARROW = 0xFFF2913D;
+    private static final int HOT_TILE = 0xFFE5582A;
+    private static final int COLD_TILE = 0xFF2B6CDE;
+    private static final int REMOVAL_BLUE = 0xFF0055AA;
+
+    /** The width of the band that stands for all arriving thermal neutrons. */
+    private static final double THERMAL_BAND = 12.0;
+
+    private static double thermalWidth(double share) {
+        return share > 0.0 ? Math.max(1.0, THERMAL_BAND * share) : 0.0;
+    }
+
+    // See Note [Thermal and heat cards]
+    public static void drawThermalNeutronDiagram(ComponentCardValues v, int baseY) {
+        double midY = baseY + 32.0;
+
+        drawArrow(
+            12.0,
+            midY,
+            73.0,
+            midY,
+            THERMAL_BAND,
+            7.0,
+            THERMAL_BAND + 6.0,
+            mixColor(THERMAL_PURPLE, PANEL_GREY, 0.25));
+
+        double absorbed = thermalWidth(v.absorbed);
+        if (absorbed > 0.0) {
+            drawArrow(83.0, baseY + 42.0, 83.0, baseY + 55.0, absorbed, 4.0, absorbed + 5.0, ABSORBED_RED);
+        }
+        double lost = thermalWidth(v.lost);
+        if (lost > 0.0) {
+            drawArrow(72.0, baseY + 45.0, 46.0, baseY + 55.0, lost, 4.0, lost + 5.0, LOST_GREY);
+        }
+        double scattered = thermalWidth(v.scattered);
+        if (scattered > 0.0) {
+            drawArrow(93.0, midY, 124.0, midY, scattered, 5.0, scattered + 5.0, SCATTERED_GREEN);
+        }
+
+        // The spread: the tile in the middle, its neighbours by what each receives
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                boolean middle = i == 1 && j == 1;
+                int color = middle ? 0xFF6B6B6B : spreadColor(v.scattered, i != 1 && j != 1);
+                GuiDraw.drawRect(131 + i * 8, baseY + 21 + j * 8, 7, 7, color);
+            }
+        }
+        drawArrow(142.5, baseY + 20.0, 142.5, baseY + 13.0, 2.0, 4.0, 5.5, THERMAL_PURPLE);
+        drawArrow(150.5, baseY + 44.0, 150.5, baseY + 51.0, 1.2, 3.5, 4.5, mixColor(THERMAL_PURPLE, PANEL_GREY, 0.35));
+    }
+
+    private static int spreadColor(double scattered, boolean corner) {
+        if (scattered <= 0.0) return 0xFFB4B4B4;
+        double strength = (corner ? 0.32 : 0.62) * (0.35 + 0.65 * Math.min(1.0, scattered * 6.0));
+        return mixColor(PANEL_GREY, THERMAL_PURPLE, strength + (corner ? 0.05 : 0.2));
+    }
+
+    private static void drawThermalNeutronText(ComponentCardValues v, int baseY) {
+        GuiDraw.drawStringC(
+            StatCollector.translateToLocal("gt.nei.neutron_interaction.thermal"),
+            83,
+            baseY + 3,
+            0x404040,
+            false);
+        GuiDraw.drawStringC(formatOutcome(v.lost), 32, baseY + 52, 0x606060, false);
+        GuiDraw.drawStringC(formatOutcome(v.absorbed), 104, baseY + 51, v.absorbed > 0.0 ? 0xCC0000 : 0x404040, false);
+        GuiDraw
+            .drawStringC(formatOutcome(v.scattered), 108, baseY + 15, v.scattered > 0.0 ? 0x00A000 : 0x404040, false);
+        boolean spreads = v.scattered > 0.0;
+        GuiDraw.drawStringC(formatOutcome(v.perSide()), 142, baseY + 4, spreads ? 0x7F00FF : 0x404040, false);
+        GuiDraw.drawStringR(formatOutcome(v.perCorner()), 158, baseY + 53, spreads ? 0x7200E6 : 0x404040, false);
+    }
+
+    /** Arrow width for a k: 0.005 draws 1 px wide and 0.9 draws 8 px wide, as k spans orders of magnitude. */
+    public static double conductionWidth(double k) {
+        return 1.0 + 7.0 * Math.log(Math.max(k, 0.005) / 0.005) / Math.log(0.9 / 0.005);
+    }
+
+    private static void drawShadedTile(int x, int y, int color) {
+        GuiDraw.drawRect(x, y, 18, 18, color);
+        GuiDraw.drawRect(x, y, 18, 1, 0x59FFFFFF);
+        GuiDraw.drawRect(x, y + 17, 18, 1, 0x4D000000);
+    }
+
+    // See Note [Thermal and heat cards]
+    public static void drawHeatDiagram(ComponentCardValues v, int baseY) {
+        double midY = baseY + 32.0;
+        boolean walled = v.dampening > 0.0;
+
+        drawShadedTile(12, baseY + 23, HOT_TILE);
+        drawShadedTile(136, baseY + 23, COLD_TILE);
+
+        if (v.dampening < 1.0) {
+            double width = Math.max(1.0, conductionWidth(v.k) * (1.0 - v.dampening));
+            drawArrow(31.0, midY, walled ? 68.0 : 72.0, midY, width, 5.0, width + 5.0, HEAT_ARROW);
+            drawArrow(walled ? 98.0 : 94.0, midY, 135.0, midY, width, 5.0, width + 5.0, HEAT_ARROW);
+        }
+        if (walled) {
+            for (int x : new int[] { 69, 94 }) {
+                GuiDraw.drawRect(x, baseY + 22, 3, 21, 0xFF3A3A3A);
+                for (int y = baseY + 23; y < baseY + 42; y += 4) GuiDraw.drawRect(x + 1, y, 1, 2, PANEL_GREY);
+            }
+        }
+        if (v.action == ComponentCardValues.HeatAction.EXCHANGES) {
+            for (int[] span : new int[][] { { 34, 70 }, { 96, 132 } }) {
+                drawArrow(span[0], baseY + 39.0, span[1], baseY + 39.0, 1.2, 3.5, 4.5, REMOVAL_BLUE);
+                drawArrow(span[1], baseY + 43.0, span[0], baseY + 43.0, 1.2, 3.5, 4.5, REMOVAL_BLUE);
+            }
+        }
+        if (v.removesHeat()) {
+            drawArrow(83.0, baseY + 42.0, 83.0, baseY + 51.0, 2.0, 4.0, 5.5, REMOVAL_BLUE);
+        }
+    }
+
+    /** The row's current frame: it runs through in 6 s of real time, then holds for 2 s. */
+    private static int heatRowFrame(float[][] frames) {
+        double seconds = (System.currentTimeMillis() % 8000L) / 1000.0;
+        return (int) Math.round((frames.length - 1) * Math.min(1.0, seconds / 6.0));
+    }
+
+    private static int rowTemperatureColor(double temperature) {
+        return NuclearColorMaps.getTemperatureColor(temperature, HeatRowSimulation.HOT_END) | 0xFF000000;
+    }
+
+    public static void drawHeatRow(ComponentCardValues v) {
+        GuiDraw.drawRect(8, HEAT_ROW_Y - 14, 150, 1, 0xFF8B8B8B);
+        float[][] frames = v.heatRow();
+        float[] temperatures = frames[heatRowFrame(frames)];
+        for (int i = 0; i < HEAT_ROW_X.length; i++) {
+            if (i == HeatRowSimulation.MIDDLE) continue;
+            drawShadedTile(HEAT_ROW_X[i], HEAT_ROW_Y, rowTemperatureColor(temperatures[i]));
+        }
+        drawSlotBox(HEAT_ROW_X[HeatRowSimulation.MIDDLE], HEAT_ROW_Y);
+        GuiDraw.drawRect(
+            HEAT_ROW_X[HeatRowSimulation.MIDDLE] + 1,
+            HEAT_ROW_Y + 18,
+            16,
+            3,
+            rowTemperatureColor(temperatures[HeatRowSimulation.MIDDLE]));
+    }
+
+    /** Draws text from its left edge at a scale, keeping it vertically centred on its line. */
+    private static void drawScaledText(String text, double left, int y, int color, double scale) {
+        if (scale >= 1.0) {
+            GuiDraw.drawString(text, (int) Math.round(left), y, color, false);
+            return;
+        }
+        GL11.glPushMatrix();
+        GL11.glTranslated(left, y + (1.0 - scale) * 4.0, 0.0);
+        GL11.glScaled(scale, scale, 1.0);
+        GuiDraw.drawString(text, 0, 0, color, false);
+        GL11.glPopMatrix();
+    }
+
+    private static double fitScale(String text, int maxWidth) {
+        int width = GuiDraw.getStringWidth(text);
+        return width > maxWidth ? maxWidth / (double) width : 1.0;
+    }
+
+    private static void drawTextCentredFit(String text, int centre, int y, int color, int maxWidth) {
+        double scale = fitScale(text, maxWidth);
+        drawScaledText(text, centre - GuiDraw.getStringWidth(text) * scale / 2.0, y, color, scale);
+    }
+
+    private static String capacityText(ComponentCardValues v) {
+        String range = v.minCapacity == v.maxCapacity ? formatNumber(v.minCapacity)
+            : formatNumber(v.minCapacity) + "-" + Math.round(v.maxCapacity / 1000.0) + "k";
+        return tr("capacity.value", range);
+    }
+
+    /** One line on what the component does about heat, other than conduct it. */
+    public static String heatActionText(ComponentCardValues v) {
+        return switch (v.action) {
+            case BOILS -> tr("heat_action.boils", formatNumber(v.actionRate), formatNumber(v.actionHeat));
+            case COOLS_TO_AMBIENT -> tr("heat_action.cools", formatNumber(v.actionHeat));
+            case VENTS -> tr("heat_action.vents", formatCardNumber(v.actionHeat), formatCardNumber(v.actionRate));
+            case EXCHANGES -> tr(
+                "heat_action.exchanges",
+                formatCardNumber(v.actionHeat),
+                formatCardNumber(v.actionRate));
+            case STORES -> tr("heat_action.stores", formatCardNumber(v.actionHeat), formatCardNumber(v.actionRate));
+            case BLOCKS -> tr("heat_action.blocks", formatPercent(v.dampening));
+            case BURNS -> tr("heat_action.burns", formatNumber(v.actionRate));
+            case CONDUCTS_ONLY -> tr("heat_action.conducts");
+        };
+    }
+
+    private static int heatActionColor(ComponentCardValues v) {
+        return switch (v.action) {
+            case BLOCKS -> 0x902020;
+            case BURNS -> 0xAA5500;
+            case CONDUCTS_ONLY -> 0x606060;
+            default -> 0x0055AA;
+        };
+    }
+
+    private static void drawHeatText(ComponentCardValues v, int baseY) {
+        GuiDraw.drawStringC(
+            StatCollector.translateToLocal("gt.nei.neutron_interaction.capture"),
+            83,
+            baseY + 3,
+            0x404040,
+            false);
+        String capacity = capacityText(v);
+        drawScaledText(capacity, 10, baseY + 3, 0x404040, Math.min(0.75, fitScale(capacity, 60)));
+        GuiDraw.drawStringR(tr("k.value", formatNumber(v.k)), 156, baseY + 3, 0x404040, false);
+
+        GuiDraw.drawStringC("+", 21, baseY + 28, 0xFFFFFF, false);
+        GuiDraw.drawStringC("-", 145, baseY + 28, 0xFFFFFF, false);
+        if (v.dampening < 1.0) {
+            drawTextCentredFit(
+                tr("conductance.value", formatCardNumber(v.conductance())),
+                50,
+                baseY + 14,
+                0x8A4A00,
+                56);
+        }
+        drawTextCentredFit(heatActionText(v), 83, baseY + 54, heatActionColor(v), 150);
+
+        // The row of tiles
+        float[][] frames = v.heatRow();
+        int frame = heatRowFrame(frames);
+        int second = frame / HeatRowSimulation.FRAMES_PER_SECOND;
+        GuiDraw.drawStringC(tr("heat_row.title", second), 83, HEAT_ROW_Y - 11, 0x404040, false);
+        float[] temperatures = frames[frame];
+        for (int i = 0; i < HEAT_ROW_X.length; i++) {
+            String degrees = String.valueOf(Math.round(temperatures[i]));
+            double left = HEAT_ROW_X[i] + 9 - GuiDraw.getStringWidth(degrees) * 0.25;
+            int color = i == HeatRowSimulation.MIDDLE ? 0x000000 : 0x404040;
+            drawScaledText(degrees, left, HEAT_ROW_Y + 22, color, 0.5);
+        }
     }
 }

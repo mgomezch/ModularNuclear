@@ -175,7 +175,11 @@ public class NuclearSimulationEngine {
      */
     public static double getCoolantSinkTemperature(String fluidName, double ambient) {
         if (fluidName == null) return ambient;
-        ComponentData.CoolantFluidData cfd = configProvider.findCoolantFluid(fluidName);
+        return coolantSinkTemperature(configProvider.findCoolantFluid(fluidName), ambient);
+    }
+
+    /** The same for a coolant's configuration, or ambient temperature when it is null. */
+    public static double coolantSinkTemperature(ComponentData.CoolantFluidData cfd, double ambient) {
         if (cfd != null && cfd.expansionRatio > 1) {
             return Math.max(ambient, cfd.boilingTemperature);
         }

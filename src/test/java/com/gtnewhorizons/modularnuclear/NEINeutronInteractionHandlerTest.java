@@ -186,7 +186,10 @@ public class NEINeutronInteractionHandlerTest {
             handler.arecipes.size(),
             "Every component must have exactly 1 unified scrollable page");
         assertTrue(p1Count >= 20, "Should have at least 20 component recipes registered");
-        assertEquals(304, handler.getRecipeHeight(0), "Recipe height must be 304 for full 4-card display");
+        assertEquals(
+            NEINeutronInteractionHandler.DURABILITY_PANEL_Y + 67,
+            handler.getRecipeHeight(0),
+            "Recipe height must fit the full 4-card display");
     }
 
     @Test
@@ -213,43 +216,20 @@ public class NEINeutronInteractionHandlerTest {
         }
         assertNotNull(r1, "Should find non-reflector neutron recipe");
 
-        // 1. Thermal scattering arrow and text (Card 2: dy = +33)
-        java.util.List<String> tipScatteringTip = handler.getTooltipsAt(r1, 40, 123, null);
-        assertFalse(tipScatteringTip.isEmpty(), "Thermal scattering arrow tip (40, 123) must show tooltip");
+        // 1. Thermal outcomes (Card 2)
+        int thermalY = NEINeutronInteractionHandler.THERMAL_PANEL_Y;
+        assertTooltipMentions(handler, r1, 30, thermalY + 32, "arriving");
+        assertTooltipMentions(handler, r1, 104, thermalY + 32, "scattered");
+        assertTooltipMentions(handler, r1, 108, thermalY + 18, "scattered");
+        assertTooltipMentions(handler, r1, 83, thermalY + 50, "absorbed");
+        assertTooltipMentions(handler, r1, 104, thermalY + 54, "absorbed");
+        assertTooltipMentions(handler, r1, 50, thermalY + 52, "lost");
+        assertTooltipMentions(handler, r1, 142, thermalY + 32, "spread");
+        assertTooltipMentions(handler, r1, 150, thermalY + 54, "spread");
         assertTrue(
-            tipScatteringTip.stream()
-                .anyMatch(
-                    s -> s.toLowerCase()
-                        .contains("scattering")),
-            "Should mention scattering");
-
-        java.util.List<String> tipScatteringCurve = handler.getTooltipsAt(r1, 52, 128, null);
-        assertFalse(tipScatteringCurve.isEmpty(), "Thermal scattering arrow curve (52, 128) must show tooltip");
-
-        java.util.List<String> tipScatteringText = handler.getTooltipsAt(r1, 47, 115, null);
-        assertFalse(tipScatteringText.isEmpty(), "Thermal scattering text (47, 115) must show tooltip");
-
-        // 2. Thermal absorption downward arrow, curved arrow, and text (Card 2: dy = +33)
-        java.util.List<String> tipAbsDown = handler.getTooltipsAt(r1, 74, 153, null);
-        assertFalse(tipAbsDown.isEmpty(), "Thermal absorption downward arrow (74, 153) must show tooltip");
-        assertTrue(
-            tipAbsDown.stream()
-                .anyMatch(
-                    s -> s.toLowerCase()
-                        .contains("absorption")),
-            "Should mention absorption");
-
-        java.util.List<String> tipAbsCurved = handler.getTooltipsAt(r1, 85, 125, null);
-        assertFalse(tipAbsCurved.isEmpty(), "Thermal absorption curved arrow (85, 125) must show tooltip");
-        assertTrue(
-            tipAbsCurved.stream()
-                .anyMatch(
-                    s -> s.toLowerCase()
-                        .contains("absorption")),
-            "Should mention absorption");
-
-        java.util.List<String> tipAbsText = handler.getTooltipsAt(r1, 97, 153, null);
-        assertFalse(tipAbsText.isEmpty(), "Thermal absorption text (97, 153) must show tooltip");
+            handler.getTooltipsAt(r1, 83, thermalY + 32, null)
+                .isEmpty(),
+            "The slot's tooltip is the item's");
 
         // 3. Fast neutron interaction elements (Card 1: dy = +31)
         // 3a. Fast reflection / incoming arrow (40, 55)
@@ -312,26 +292,39 @@ public class NEINeutronInteractionHandlerTest {
         // 3g. Slot positions on single page
         assertEquals(75, r1.input.relx, "Fast input stack X must be 75");
         assertEquals(57, r1.input.rely, "Fast input stack Y must be 57");
-        assertEquals(67, r1.inputThermal.relx, "Thermal input stack X must be 67");
-        assertEquals(130, r1.inputThermal.rely, "Thermal input stack Y must be 130");
-        assertEquals(58, r1.inputHeat.relx, "Heat input stack X must be 58");
-        assertEquals(194, r1.inputHeat.rely, "Heat input stack Y must be 194");
+        assertEquals(75, r1.inputThermal.relx, "Thermal input stack X must be 75");
+        assertEquals(thermalY + 24, r1.inputThermal.rely, "Thermal input stack must sit in its slot");
+        assertEquals(75, r1.inputHeat.relx, "Heat input stack X must be 75");
+        int heatY = NEINeutronInteractionHandler.HEAT_PANEL_Y;
+        assertEquals(heatY + 24, r1.inputHeat.rely, "Heat input stack must sit in its slot");
+        assertEquals(heatY + 79, r1.inputHeatRow.rely, "The heat row's stack must sit in its slot");
         assertNotNull(r1.catalyst, "Header catalyst stack must not be null");
         assertEquals(7, r1.catalyst.relx, "Header catalyst stack X must be 7");
         assertEquals(3, r1.catalyst.rely, "Header catalyst stack Y must be 3");
 
         // 4. Card 3 (Heat) & Card 4 (Durability) tooltips on the same page
-        java.util.List<String> tipConduction = handler.getTooltipsAt(r1, 110, 190, null);
-        assertFalse(tipConduction.isEmpty(), "Conduction tooltip in Card 3 must show");
+        assertTooltipMentions(handler, r1, 30, heatY + 6, "capacity");
+        assertTooltipMentions(handler, r1, 140, heatY + 6, "conduction");
+        assertTooltipMentions(handler, r1, 50, heatY + 32, "conduct");
+        assertTooltipMentions(handler, r1, 120, heatY + 32, "conduct");
+        assertTooltipMentions(handler, r1, 83, heatY + 56, "heat");
+        assertTooltipMentions(handler, r1, 40, heatY + 85, "row");
+        assertTrue(handler.getTooltipsAt(r1, 83, heatY + 85, null).isEmpty(), "The slot's tooltip is the item's");
+
+        java.util.List<String> tipDurability = handler
+            .getTooltipsAt(r1, 80, NEINeutronInteractionHandler.DURABILITY_PANEL_Y + 38, null);
+        assertFalse(tipDurability.isEmpty(), "Durability capacity tooltip in Card 4 must show");
+    }
+
+    private static void assertTooltipMentions(NEINeutronInteractionHandler handler, CachedRecipe recipe, int x, int y,
+        String text) {
+        java.util.List<String> tip = handler.getTooltipsAt(recipe, x, y, null);
         assertTrue(
-            tipConduction.stream()
+            tip.stream()
                 .anyMatch(
                     s -> s.toLowerCase()
-                        .contains("conduction")),
-            "Should mention conduction");
-
-        java.util.List<String> tipDurability = handler.getTooltipsAt(r1, 80, 275, null);
-        assertFalse(tipDurability.isEmpty(), "Durability capacity tooltip in Card 4 must show");
+                        .contains(text)),
+            "Tooltip at (" + x + ", " + y + ") should mention " + text + ", got " + tip);
     }
 
     @Test
@@ -417,9 +410,10 @@ public class NEINeutronInteractionHandlerTest {
                     formatted = String.format(
                         java.util.Locale.US,
                         raw,
-                        NEINeutronInteractionHandler.formatPercent(0.15),
-                        NEINeutronInteractionHandler.formatPercent(0.85));
-                    assertEquals("Thermal: Scatter 15%, Absorb 85%", formatted);
+                        NEINeutronInteractionHandler.formatPercent(0.85),
+                        NEINeutronInteractionHandler.formatPercent(0.10),
+                        NEINeutronInteractionHandler.formatPercent(0.05));
+                    assertEquals("Thermal: Absorbed 85%, Scattered 10%, Lost 5%", formatted);
                 }
             } else if (key.contains("conduction")) {
                 formatted = String.format(java.util.Locale.US, raw, NEINeutronInteractionHandler.formatNumber(0.70));
@@ -478,8 +472,14 @@ public class NEINeutronInteractionHandlerTest {
         assertEquals(10.0, rvEvRecipe.data.fullOutputAbsorbedPerSecond, 1e-4, "EV reaches 95% at 10 absorbed/s");
 
         // 3. Recipe height: 314 for radiovoltaics (to comfortably accommodate the curve), 304 for standard
-        assertEquals(314, handler.getRecipeHeight(rvHvIndex), "HV Radiovoltaic recipe height must be 314");
-        assertEquals(314, handler.getRecipeHeight(rvEvIndex), "EV Radiovoltaic recipe height must be 314");
+        assertEquals(
+            NEINeutronInteractionHandler.RV_PANEL_Y + 77,
+            handler.getRecipeHeight(rvHvIndex),
+            "HV Radiovoltaic recipe height must fit its curve");
+        assertEquals(
+            NEINeutronInteractionHandler.RV_PANEL_Y + 77,
+            handler.getRecipeHeight(rvEvIndex),
+            "EV Radiovoltaic recipe height must fit its curve");
 
         // 4. Power & heat curve calculations
         double hvPowerLow = rvHvRecipe.data.calculatePower(2.0);
