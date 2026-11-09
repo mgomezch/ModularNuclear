@@ -11,8 +11,10 @@ restyles the GUIs around them, so everything we draw has to be restyleable by pa
 Design.  We don't decide on a look for any pack in the code, and in particular there is no dark mode here.  The
 defaults are the designed look, and packs override them through the same channels the rest of GTNH uses:
 
-    textures       where we can, we draw with a texture: NEI's own slot.png for slots and bevels on the NEI pages
-                   (NEIPalette.drawSlot, drawBevel), and ours for icons such as gui/lock.png (LockIconWidget)
+    textures       where we can, we draw with a texture: NEI's own slot.png for slots, card bevels and plot
+                   backgrounds on the NEI pages (NEIPalette.drawSlot, drawBevel, drawPlotWell), and ours for icons
+                   such as gui/lock.png (LockIconWidget).  A plot is a stretched slot, so the curves' default
+                   colours are picked to read on the slot's grey
     colours        every other colour is a GTNHLib ColorResource in ColorUtils.  A pack overrides one with a lang entry,
                    such as color.resource.modularnuclear.neiInk=BFBFBF, and F3+T reloads it
     colour scales  the heat map scales are textures a pack may add; see Note [Heat map scales come from textures]
@@ -48,10 +50,9 @@ public final class ColorUtils {
     // spotless:off
         // NEI pages.  See wrinkle (W2) for neiPanel
         neiPanel                    = color.rgb("neiPanel",                     "0xC6C6C6"),
-        neiPlotWell                 = color.rgb("neiPlotWell",                  "0xE6E6E6"),
         neiDivider                  = color.rgb("neiDivider",                   "0x8B8B8B"),
-        neiPlotGrid                 = color.argb("neiPlotGrid",                 "0x20000000"),
-        neiPlotCursor               = color.argb("neiPlotCursor",               "0xA0000000"),
+        neiPlotGrid                 = color.argb("neiPlotGrid",                 "0x28000000"),
+        neiPlotCursor               = color.argb("neiPlotCursor",               "0xC0FFFFFF"),
         neiInkStrong                = color.rgb("neiInkStrong",                 "0x000000"),
         neiInk                      = color.rgb("neiInk",                       "0x404040"),
         neiInkDim                   = color.rgb("neiInkDim",                    "0x606060"),
@@ -77,10 +78,10 @@ public final class ColorUtils {
         neiBurnsText                = color.rgb("neiBurnsText",                 "0xAA5500"),
         neiByproductText            = color.rgb("neiByproductText",             "0x205090"),
         neiIndestructibleText       = color.rgb("neiIndestructibleText",        "0x008000"),
-        neiReactivityCurve          = color.rgb("neiReactivityCurve",           "0xC87800"),
+        neiReactivityCurve          = color.rgb("neiReactivityCurve",           "0xFFFF55"),
         neiReactivityLabel          = color.rgb("neiReactivityLabel",           "0x8A5F00"),
-        neiDamageCurve              = color.rgb("neiDamageCurve",               "0xCC0000"),
-        neiPowerCurve               = color.rgb("neiPowerCurve",                "0x0055CC"),
+        neiDamageCurve              = color.rgb("neiDamageCurve",               "0xAA0000"),
+        neiPowerCurve               = color.rgb("neiPowerCurve",                "0x55FFFF"),
         neiPowerLabel               = color.rgb("neiPowerLabel",                "0x0044AA"),
         neiPeakStat                 = color.rgb("neiPeakStat",                  "0x00AAAA"),
         neiFloorStat                = color.rgb("neiFloorStat",                 "0xFF5555"),

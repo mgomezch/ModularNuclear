@@ -25,8 +25,6 @@ public final class NEIPalette {
 
     /** Only blended into other colours. See wrinkle (W2) of Note [Resource packs restyle our GUIs]. */
     public final int panel;
-    /** Behind a plot. */
-    public final int well;
     /** Lines inside a panel. */
     public final int divider;
     public final int grid;
@@ -85,7 +83,6 @@ public final class NEIPalette {
 
     private NEIPalette() {
         this.panel = ColorUtils.neiPanel.getColor();
-        this.well = ColorUtils.neiPlotWell.getColor();
         this.divider = ColorUtils.neiDivider.getColor();
         this.grid = ColorUtils.neiPlotGrid.getColor();
         this.cursor = ColorUtils.neiPlotCursor.getColor();
@@ -182,9 +179,16 @@ public final class NEIPalette {
         tessellator.draw();
     }
 
-    /** The background of a plot whose axes run along the given rectangle. */
+    /** The background of a plot whose axes run along the given rectangle: a slot stretched around it. */
     public void drawPlotWell(int x, int y, int w, int h) {
-        GuiDraw.drawRect(x, y, w, h, well);
+        final double e = 1.0 / 18.0;
+        final double f = 17.0 / 18.0;
+        GuiDraw.changeTexture(SLOT_TEXTURE);
+        GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        Tessellator tessellator = Tessellator.instance;
+        tessellator.startDrawingQuads();
+        quad(tessellator, x, y, w, h, e, e, f, f);
+        tessellator.draw();
         drawBevel(x - 1, y - 1, w + 2, h + 2);
     }
 

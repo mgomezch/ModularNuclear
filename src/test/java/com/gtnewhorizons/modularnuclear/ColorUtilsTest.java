@@ -32,7 +32,7 @@ public class ColorUtilsTest {
     @Test
     public void defaultsAreTheDesignedColours() {
         assertEquals(0xFF404040, ColorUtils.neiInk.getColor());
-        assertEquals(0x20000000, ColorUtils.neiPlotGrid.getColor());
+        assertEquals(0x28000000, ColorUtils.neiPlotGrid.getColor());
         assertEquals(0xEE12161E, ColorUtils.reactorGridBackground.getColor());
     }
 
