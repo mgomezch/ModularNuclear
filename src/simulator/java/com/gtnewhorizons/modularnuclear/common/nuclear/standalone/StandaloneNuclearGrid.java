@@ -13,6 +13,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules;
+import com.gtnewhorizons.modularnuclear.common.nuclear.SourceChamber;
 import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
 
 /**
@@ -1132,10 +1133,7 @@ public class StandaloneNuclearGrid {
             machineLimits);
 
         grossPowerEUt = lastPowerResult.totalPowerEUt;
-        if (shouldStepCoolantLoop()) {
-            double loopPower = coolantLoop.getLastLoopPowerEUt();
-            lastPowerResult.totalPowerEUt = Math.max(0.0, lastPowerResult.totalPowerEUt - loopPower);
-        }
+        updatePowerResultNet();
 
         totalEnergyEU += lastPowerResult.totalPowerEUt * ticksPerCycle;
         totalDirectEnergyEU += lastPowerResult.directPowerEUt * ticksPerCycle;
@@ -1560,7 +1558,18 @@ public class StandaloneNuclearGrid {
                 crPart = token;
             }
 
+        String chamberPart = null;
+        if (tilePart.toUpperCase()
+            .startsWith("NS:")) {
+            chamberPart = tilePart.substring(3);
+            tilePart = "NS";
+        }
+
         setTileCode(x, y, tilePart);
+        if (chamberPart != null) {
+            String[] parts = chamberPart.split(":", 2);
+            setSourceChamber(x, y, parts[0], parts.length > 1 ? parts[1] : "");
+        }
 
         if (crPart != null) {
             boolean hasRod = true;
@@ -1752,7 +1761,9 @@ public class StandaloneNuclearGrid {
             if (shouldStepCoolantLoop()) {
                 net = Math.max(0.0, net - coolantLoop.getLastLoopPowerEUt());
             }
-            lastPowerResult.totalPowerEUt = net;
+            // The Source Chambers' draw can make it negative: a beam that costs more than it gives. See Note
+            // [Source Chamber beams]
+            lastPowerResult.totalPowerEUt = net - getBeamEuPerTick();
         }
     }
 
@@ -2500,6 +2511,29 @@ public class StandaloneNuclearGrid {
             }
         }
         return result;
+    }
+
+    /**
+     * Feeds a neutron source tile from a Source Chamber: a recipe code (SourceChamber.Recipe: CF, BE; empty for none)
+     * and an energy hatch tier name (empty for the recipe's own). See Note [Source Chamber beams].
+     */
+    public void setSourceChamber(int x, int y, String recipeCode, String tierName) {
+        if (x < 0 || x >= width || y < 0 || y >= height) return;
+        SimTile tile = grid[x][y];
+        if (tile == null || !tile.isNeutronSource()) return;
+        tile.setSourceChamber(
+            SourceChamber.Recipe.fromCode(recipeCode),
+            tierName == null || tierName.isEmpty() ? -1 : SourceChamber.tierFromName(tierName));
+    }
+
+    /** EU/t all the Source Chambers feeding this reactor draw. See Note [Source Chamber beams]. */
+    public long getBeamEuPerTick() {
+        long total = 0;
+        for (int x = 0; x < width; x++) for (int y = 0; y < height; y++) {
+            SimTile tile = grid[x][y];
+            if (tile != null) total += tile.getSourceChamberEuPerTick();
+        }
+        return total;
     }
 
     public void setControlRod(int x, int y, boolean hasRod, SimTile.ControlRodType type, int insertion) {

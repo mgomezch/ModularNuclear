@@ -24,6 +24,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.SourceChamber;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileContent;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileTick;
@@ -259,11 +260,13 @@ public class NuclearReactorPhysics {
                         double dt = (double) reactor.getTicksPerCycle() / 20.0;
                         double multiplier = (physics != null) ? physics.beamEnergyToFastNeutronMultiplier
                             : p.beamEnergyToFastNeutronMultiplier;
-                        double packets = beamInfo.getEnergy() * beamInfo.getRate() * multiplier * dt;
+                        // See Note [Source Chamber beams]
+                        double packets = SourceChamber
+                            .beamPacketsPerSecond(beamInfo.getEnergy(), beamInfo.getRate(), multiplier) * dt;
                         bus.mBeamlinePacketAccumulator += packets;
                         int packetSize = (int) bus.mBeamlinePacketAccumulator;
                         bus.mBeamlinePacketAccumulator -= packetSize;
-                        int totalNeutrons = packetSize * 4;
+                        int totalNeutrons = packetSize * SourceChamber.NEUTRONS_PER_PACKET;
                         bus.mLastNeutronsGenerated = totalNeutrons;
                         return totalNeutrons;
                     }

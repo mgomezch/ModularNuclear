@@ -10,6 +10,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.SourceChamber;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileContent;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileTick;
@@ -259,6 +260,13 @@ public class SimTile implements INuclearTile {
     /** Layout code of this tile, with the loop number for passages on loops other than the first. */
     public String getLayoutCode() {
         if (type == TileType.PASSAGE_CORE && passageLoop > 0) return "CP" + (passageLoop + 1);
+        if (type == TileType.NEUTRON_SOURCE && sourceChamberRecipe != null) {
+            // NS:<recipe>, and :<tier> when the hatch is above the recipe's own tier
+            String code = type.code + ":" + sourceChamberRecipe.code;
+            return sourceChamberTier > sourceChamberRecipe.minTier()
+                ? code + ":" + SourceChamber.TIER_NAMES[sourceChamberTier]
+                : code;
+        }
         return type.code;
     }
 
@@ -385,6 +393,33 @@ public class SimTile implements INuclearTile {
 
     public void setNeutronSourceBeamRate(int rate) {
         this.neutronSourceBeamRate = rate;
+    }
+
+    private SourceChamber.Recipe sourceChamberRecipe;
+    private int sourceChamberTier = -1;
+
+    /**
+     * Feeds this neutron source from a Source Chamber running a recipe on an energy hatch of a tier (the recipe's own
+     * tier when tier < 0), or from none when recipe is null. See Note [Source Chamber beams].
+     */
+    public void setSourceChamber(SourceChamber.Recipe recipe, int tier) {
+        sourceChamberRecipe = recipe;
+        sourceChamberTier = recipe == null ? -1 : Math.max(tier, recipe.minTier());
+        neutronSourceBeamEnergy = recipe == null ? 0.0f : (float) recipe.beamEnergyKeV(sourceChamberTier);
+        neutronSourceBeamRate = recipe == null ? 0 : recipe.rate;
+    }
+
+    public SourceChamber.Recipe getSourceChamberRecipe() {
+        return sourceChamberRecipe;
+    }
+
+    public int getSourceChamberTier() {
+        return sourceChamberTier;
+    }
+
+    /** EU/t the Source Chamber feeding this tile draws, 0 without one. */
+    public long getSourceChamberEuPerTick() {
+        return sourceChamberRecipe == null ? 0 : SourceChamber.practicalVoltage(sourceChamberTier);
     }
 
     @Override
@@ -712,13 +747,15 @@ public class SimTile implements INuclearTile {
     public int generateNeutrons(double efficiency) {
         double dt = (double) getTicksPerCycle() / 20.0;
         if (isNeutronSource()) {
-            double packets = neutronSourceBeamEnergy * neutronSourceBeamRate
-                * parameters().beamEnergyToFastNeutronMultiplier
-                * dt;
+            // See Note [Source Chamber beams]
+            double packets = SourceChamber.beamPacketsPerSecond(
+                neutronSourceBeamEnergy,
+                neutronSourceBeamRate,
+                parameters().beamEnergyToFastNeutronMultiplier) * dt;
             beamlinePacketAccumulator += packets;
             int packetSize = (int) beamlinePacketAccumulator;
             beamlinePacketAccumulator -= packetSize;
-            int totalNeutrons = packetSize * 4;
+            int totalNeutrons = packetSize * SourceChamber.NEUTRONS_PER_PACKET;
             lastNeutronsGenerated = totalNeutrons;
             return totalNeutrons;
         }
