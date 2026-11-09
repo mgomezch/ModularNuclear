@@ -2,23 +2,17 @@ package com.gtnewhorizons.modularnuclear.common.nei;
 
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.image.BufferedImage;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-import javax.imageio.ImageIO;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.OpenGlHelper;
-import net.minecraft.client.resources.IResource;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
@@ -52,8 +46,6 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
     public static final int SCREEN_X = PANEL_X + 2;
     public static final int SCREEN_Y = PANEL_Y + 2;
-    public static final int SCREEN_W = PANEL_W - 4;
-    public static final int SCREEN_H = PANEL_H - 4;
 
     public static final int PLOT_X = 28;
     public static final int PLOT_Y = 78;
@@ -64,84 +56,6 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
     public static final double AMBIENT_TEMP = 20.0;
     public static final double DEFAULT_AMBIENT_TEMP = 20.0;
     public static final double sAmbientTemp = 20.0;
-
-    private static int sCachedThemeBg = -1;
-    private static long sLastThemeCheck = 0;
-
-    public static int getThemeBackgroundColor() {
-        long now = System.currentTimeMillis();
-        if (sCachedThemeBg != -1 && now - sLastThemeCheck < 4000) {
-            return sCachedThemeBg;
-        }
-        sLastThemeCheck = now;
-        try {
-            ResourceLocation loc = new ResourceLocation("nei:textures/gui/recipebg.png");
-            IResource res = Minecraft.getMinecraft()
-                .getResourceManager()
-                .getResource(loc);
-            if (res != null) {
-                try (InputStream in = res.getInputStream()) {
-                    BufferedImage img = ImageIO.read(in);
-                    if (img != null) {
-                        int sx = Math.min(30, img.getWidth() - 1);
-                        int sy = Math.min(30, img.getHeight() - 1);
-                        sCachedThemeBg = img.getRGB(sx, sy) | 0xFF000000;
-                        return sCachedThemeBg;
-                    }
-                }
-            }
-        } catch (java.io.IOException swallowed) {
-            Swallowed.note(swallowed);
-        }
-        sCachedThemeBg = 0xFFC6C6C6;
-        return sCachedThemeBg;
-    }
-
-    public static boolean isDarkTheme() {
-        int col = getThemeBackgroundColor();
-        int r = (col >> 16) & 0xFF;
-        int g = (col >> 8) & 0xFF;
-        int b = col & 0xFF;
-        return (0.299 * r + 0.587 * g + 0.114 * b) < 128.0;
-    }
-
-    public static void drawThemePanel(int x, int y, int w, int h) {
-        boolean dark = isDarkTheme();
-        int highlight = dark ? 0xFF555555 : 0xFFFFFFFF;
-        int shadow = dark ? 0xFF141414 : 0xFF373737;
-        int bg = getThemeBackgroundColor();
-
-        GuiDraw.drawRect(x + 1, y, w - 2, 1, shadow);
-        GuiDraw.drawRect(x, y + 1, 1, h - 2, shadow);
-        GuiDraw.drawRect(x + 1, y + h - 1, w - 2, 1, highlight);
-        GuiDraw.drawRect(x + w - 1, y + 1, 1, h - 2, highlight);
-        GuiDraw.drawRect(x + 1, y + 1, w - 2, h - 2, bg);
-    }
-
-    public static void drawSunkenBox(int x, int y, int w, int h, int fillCol) {
-        boolean dark = isDarkTheme();
-        int shadow = dark ? 0xFF141414 : 0xFF373737;
-        int highlight = dark ? 0xFF555555 : 0xFFFFFFFF;
-
-        GuiDraw.drawRect(x, y, w, 1, shadow);
-        GuiDraw.drawRect(x, y, 1, h, shadow);
-        GuiDraw.drawRect(x + 1, y + h - 1, w - 2, 1, highlight);
-        GuiDraw.drawRect(x + w - 1, y + 1, 1, h - 2, highlight);
-        GuiDraw.drawRect(x + 1, y + 1, w - 2, h - 2, fillCol);
-    }
-
-    public static void drawSlotBox(int x, int y) {
-        boolean dark = isDarkTheme();
-        int shadow = dark ? 0xFF141414 : 0xFF373737;
-        int highlight = dark ? 0xFF555555 : 0xFFFFFFFF;
-        int fill = dark ? 0xFF222222 : 0xFF8B8B8B;
-
-        GuiDraw.drawRect(x, y, 18, 1, shadow);
-        GuiDraw.drawRect(x, y, 1, 18, shadow);
-        GuiDraw.drawRect(x + 17, y, 1, 18, highlight);
-        GuiDraw.drawRect(x, y + 17, 18, 1, highlight);
-        GuiDraw.drawRect(x + 1, y + 1, 16, 16, fill);
-    }
 
     public static boolean isMouseOverPlot(int x, int y) {
         return x >= PLOT_X && x <= PLOT_X + PLOT_W && y >= PLOT_Y && y <= PLOT_Y + PLOT_H;
@@ -672,39 +586,31 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         CachedRecipe cached = this.arecipes.get(recipeIndex);
         if (!(cached instanceof CachedFuelStatsRecipe recipe)) return;
 
+        // See Note [NEI colours follow the resource pack]
+        NEIPalette palette = NEIPalette.current();
+
         // Slot box for the fuel rod icon
-        drawSlotBox(11, 9);
+        palette.drawSlot(11, 9);
 
-        // Chart container panel matching theme background
-        drawThemePanel(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
-
-        // Sunken monitor display screen (neutral dark graphite fill)
-        drawSunkenBox(SCREEN_X, SCREEN_Y, SCREEN_W, SCREEN_H, 0xFF141619);
-
-        // Inner plot area backdrop (neutral deep dark charcoal)
-        GuiDraw.drawRect(PLOT_X, PLOT_Y, PLOT_W, PLOT_H, 0xFF101114);
-
-        // Inner plot border (neutral subtle graphite outline)
-        GuiDraw.drawRect(PLOT_X - 1, PLOT_Y - 1, PLOT_W + 2, 1, 0xFF2A2D34);
-        GuiDraw.drawRect(PLOT_X - 1, PLOT_Y + PLOT_H, PLOT_W + 2, 1, 0xFF2A2D34);
-        GuiDraw.drawRect(PLOT_X - 1, PLOT_Y, 1, PLOT_H, 0xFF2A2D34);
-        GuiDraw.drawRect(PLOT_X + PLOT_W, PLOT_Y, 1, PLOT_H, 0xFF2A2D34);
+        // Chart container panel, and the plot's well
+        palette.drawPanel(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+        palette.drawPlotWell(PLOT_X, PLOT_Y, PLOT_W, PLOT_H);
 
         FuelData fd = recipe.fuelData;
         double floorTemp = (fd != null) ? fd.floorTemp : (recipe.fuel != null ? recipe.fuel.floorTemp : 2300.0);
         double maxTemp = Math.ceil((floorTemp + 200.0) / 500.0) * 500.0;
 
-        // Subtle neutral grid lines (10% white)
+        // Horizontal grid lines
         for (int p = 25; p <= 100; p += 25) {
             int gy = PLOT_Y + PLOT_H - (int) Math.round((p / 100.0) * PLOT_H);
-            GuiDraw.drawRect(PLOT_X, gy, PLOT_W, 1, 0x18FFFFFF);
+            GuiDraw.drawRect(PLOT_X, gy, PLOT_W, 1, palette.grid);
         }
 
         // Vertical grid lines
         double step = (maxTemp > 3000.0) ? 1000.0 : 500.0;
         for (double t = step; t < maxTemp; t += step) {
             int gx = PLOT_X + (int) Math.round((t / maxTemp) * PLOT_W);
-            GuiDraw.drawRect(gx, PLOT_Y, 1, PLOT_H, 0x18FFFFFF);
+            GuiDraw.drawRect(gx, PLOT_Y, 1, PLOT_H, palette.grid);
         }
     }
 
@@ -730,11 +636,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             .solve(recipe.fuel, peakTemp, floorTemp, AMBIENT_TEMP, wear);
 
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
-        boolean dark = isDarkTheme();
-        int titleColor = dark ? 0xFFFFFFFF : 0x111111;
-        int subtitleColor = dark ? 0xFFCCCCCC : 0x333333;
-        EnumChatFormatting primaryFormat = dark ? EnumChatFormatting.WHITE : EnumChatFormatting.BLACK;
-        EnumChatFormatting dimFormat = dark ? EnumChatFormatting.GRAY : EnumChatFormatting.DARK_GRAY;
+        NEIPalette palette = NEIPalette.current();
 
         // Fuel display title (auto-scaled if longer than header width)
         String displayName = null;
@@ -751,33 +653,23 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         String title = EnumChatFormatting.BOLD + displayName;
         int titleWidth = font.getStringWidth(title);
         float titleScale = (titleWidth > 115) ? (115.0f / titleWidth) : 1.0f;
-        drawScaledString(title, 36, 10, titleScale, titleColor);
+        drawScaledString(title, 36, 10, titleScale, palette.title);
 
         // Non-heading stats scaled at 0.75x to prevent right-edge clipping
         final float STATS_SCALE = 0.75f;
 
         // Line 1: Peak & Floor Reactivity Temperatures
-        String l1 = String.format(
-            Locale.US,
-            "Peak: %s%.0f °C%s | Floor: %s%.0f °C",
-            EnumChatFormatting.DARK_AQUA,
-            peakTemp,
-            dimFormat,
-            EnumChatFormatting.RED,
-            floorTemp);
-        drawScaledString(l1, 36, 22, STATS_SCALE, subtitleColor);
+        new StatLine(36, 22, STATS_SCALE).add("Peak: ", palette.subtitle)
+            .add(String.format(Locale.US, "%.0f °C", peakTemp), palette.peakStat)
+            .add(" | Floor: ", palette.label)
+            .add(String.format(Locale.US, "%.0f °C", floorTemp), palette.floorStat);
 
         // Line 2: 10% Reactivity Point & Damage Ratio (calculated dynamically for sAmbientTemp)
-        String l2 = String.format(
-            Locale.US,
-            "10%% Point: %s%.0f °C%s (Ratio: %s%s%s)",
-            EnumChatFormatting.BLUE,
-            t10,
-            dimFormat,
-            EnumChatFormatting.DARK_GREEN,
-            NEINeutronInteractionHandler.formatPercentFromPercent(stats.damageRatioPercent),
-            dimFormat);
-        drawScaledString(l2, 12, 33, STATS_SCALE, subtitleColor);
+        new StatLine(12, 33, STATS_SCALE).add("10% Point: ", palette.subtitle)
+            .add(String.format(Locale.US, "%.0f °C", t10), palette.pointStat)
+            .add(" (Ratio: ", palette.label)
+            .add(NEINeutronInteractionHandler.formatPercentFromPercent(stats.damageRatioPercent), palette.goodStat)
+            .add(")", palette.label);
 
         // Line 3: Fission Multiplier & Base Neutron Output
         double effFiss = (fd != null) ? fd.getEffectiveFissionMultiplier(physics)
@@ -787,31 +679,20 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         int effNeutrons = (fd != null) ? fd.getEffectiveBaseNeutrons(physics)
             : (recipe.fuel != null ? recipe.fuel.getEffectiveBaseNeutrons(physics) : 4);
 
-        String l3 = String.format(
-            Locale.US,
-            "Th: %s%sx%s | Fast: %s%sx%s | %s%d n/s",
-            EnumChatFormatting.DARK_PURPLE,
-            NEINeutronInteractionHandler.formatNumber(effFiss),
-            dimFormat,
-            EnumChatFormatting.BLUE,
-            NEINeutronInteractionHandler.formatNumber(effFastFiss),
-            dimFormat,
-            EnumChatFormatting.DARK_RED,
-            effNeutrons);
-        drawScaledString(l3, 12, 44, STATS_SCALE, subtitleColor);
+        new StatLine(12, 44, STATS_SCALE).add("Th: ", palette.subtitle)
+            .add(NEINeutronInteractionHandler.formatNumber(effFiss) + "x", palette.thermalFissionStat)
+            .add(" | Fast: ", palette.label)
+            .add(NEINeutronInteractionHandler.formatNumber(effFastFiss) + "x", palette.pointStat)
+            .add(" | ", palette.label)
+            .add(effNeutrons + " n/s", palette.yieldStat);
 
         // Line 4: Durability & Growth Parameter k (calculated dynamically for sAmbientTemp)
         int durability = (fd != null) ? fd.defaultDurability
             : (recipe.fuel != null ? recipe.fuel.defaultDurability : 160000);
-        String l4 = String.format(
-            Locale.US,
-            "Durability: %s%,d%s | k: %s%.6f",
-            EnumChatFormatting.DARK_GREEN,
-            durability,
-            dimFormat,
-            primaryFormat,
-            stats.k);
-        drawScaledString(l4, 12, 55, STATS_SCALE, subtitleColor);
+        new StatLine(12, 55, STATS_SCALE).add("Durability: ", palette.subtitle)
+            .add(String.format(Locale.US, "%,d", durability), palette.goodStat)
+            .add(" | k: ", palette.label)
+            .add(String.format(Locale.US, "%.6f", stats.k), palette.inkStrong);
 
         // --- DYNAMIC VECTOR PLOT RENDERING ---
         double damageAtFloor = stats.calculateDamage(floorTemp);
@@ -821,40 +702,40 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         GL11.glPushMatrix();
         GL11.glScalef(0.5f, 0.5f, 1.0f);
 
-        // 1. Legend at top of plot screen (Amber & Coral Red)
-        GuiDraw.drawRect((SCREEN_X + 6) * 2, (SCREEN_Y + 4) * 2 + 3, 10, 2, 0xFFF59E0B);
-        font.drawString("Reactivity", (SCREEN_X + 13) * 2, (SCREEN_Y + 3) * 2, 0xFFF59E0B);
+        // 1. Legend above the plot
+        GuiDraw.drawRect((SCREEN_X + 6) * 2, (SCREEN_Y + 4) * 2 + 3, 10, 2, palette.reactivityCurve);
+        font.drawString("Reactivity", (SCREEN_X + 13) * 2, (SCREEN_Y + 3) * 2, palette.reactivityLabel);
 
-        GuiDraw.drawRect((SCREEN_X + 78) * 2, (SCREEN_Y + 4) * 2 + 3, 10, 2, 0xFFF43F5E);
-        font.drawString("Durability loss / s", (SCREEN_X + 85) * 2, (SCREEN_Y + 3) * 2, 0xFFF43F5E);
+        GuiDraw.drawRect((SCREEN_X + 78) * 2, (SCREEN_Y + 4) * 2 + 3, 10, 2, palette.damageCurve);
+        font.drawString("Durability loss / s", (SCREEN_X + 85) * 2, (SCREEN_Y + 3) * 2, palette.damageCurve);
 
-        // 2. Left Axis: Reactivity % labels (Warm Gold)
+        // 2. Left Axis: Reactivity % labels
         for (int p = 0; p <= 100; p += 25) {
             int gy = PLOT_Y + PLOT_H - (int) Math.round((p / 100.0) * PLOT_H);
             String pStr = p + "%";
             int sw = font.getStringWidth(pStr);
-            font.drawString(pStr, (PLOT_X - 2) * 2 - sw, (gy - 2) * 2, 0xFFFBBF24);
+            font.drawString(pStr, (PLOT_X - 2) * 2 - sw, (gy - 2) * 2, palette.reactivityLabel);
         }
 
-        // 3. Right Axis: Damage rate labels (Coral Red)
+        // 3. Right Axis: Damage rate labels
         for (int p = 0; p <= 100; p += 25) {
             int gy = PLOT_Y + PLOT_H - (int) Math.round((p / 100.0) * PLOT_H);
             double dVal = (p / 100.0) * maxDamage;
             String dStr = String.format(Locale.US, "%.1f", dVal);
-            font.drawString(dStr, (PLOT_X + PLOT_W + 3) * 2, (gy - 2) * 2, 0xFFF87171);
+            font.drawString(dStr, (PLOT_X + PLOT_W + 3) * 2, (gy - 2) * 2, palette.damageCurve);
         }
 
-        // 4. Bottom Axis: Temperature labels (Neutral Silver)
+        // 4. Bottom Axis: Temperature labels
         double step = (maxTemp > 3000.0) ? 1000.0 : 500.0;
-        font.drawString("0", (PLOT_X - 1) * 2, (PLOT_Y + PLOT_H + 3) * 2, 0xFF9CA3AF);
+        font.drawString("0", (PLOT_X - 1) * 2, (PLOT_Y + PLOT_H + 3) * 2, palette.ink);
         for (double t = step; t < maxTemp; t += step) {
             int gx = PLOT_X + (int) Math.round((t / maxTemp) * PLOT_W);
             String tStr = (t >= 1000.0 && t % 1000.0 == 0) ? String.format(Locale.US, "%.0fk", t / 1000.0)
                 : String.valueOf((int) t);
             int sw = font.getStringWidth(tStr);
-            font.drawString(tStr, gx * 2 - sw / 2, (PLOT_Y + PLOT_H + 3) * 2, 0xFF9CA3AF);
+            font.drawString(tStr, gx * 2 - sw / 2, (PLOT_Y + PLOT_H + 3) * 2, palette.ink);
         }
-        font.drawString("°C", (PLOT_X + PLOT_W + 1) * 2, (PLOT_Y + PLOT_H + 3) * 2, 0xFF9CA3AF);
+        font.drawString("°C", (PLOT_X + PLOT_W + 1) * 2, (PLOT_Y + PLOT_H + 3) * 2, palette.ink);
 
         GL11.glPopMatrix();
 
@@ -868,8 +749,8 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         GL11.glHint(GL11.GL_LINE_SMOOTH_HINT, GL11.GL_NICEST);
         GL11.glLineWidth(2.0f);
 
-        // Reactivity curve (Golden Amber: #F59E0B)
-        GL11.glColor4f(0.96f, 0.62f, 0.04f, 1.0f);
+        // Reactivity curve
+        NEIPalette.glColor(palette.reactivityCurve, 1.0f);
         GL11.glBegin(GL11.GL_LINE_STRIP);
         for (int i = 0; i <= PLOT_W; i++) {
             double temp = (i / (double) PLOT_W) * maxTemp;
@@ -880,8 +761,8 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         }
         GL11.glEnd();
 
-        // Durability damage curve (Coral Red: #F43F5E)
-        GL11.glColor4f(0.95f, 0.25f, 0.37f, 1.0f);
+        // Durability damage curve
+        NEIPalette.glColor(palette.damageCurve, 1.0f);
         GL11.glBegin(GL11.GL_LINE_STRIP);
         for (int i = 0; i <= PLOT_W; i++) {
             double temp = (i / (double) PLOT_W) * maxTemp;
@@ -906,31 +787,31 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             float yr = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, rAtMouse)) * PLOT_H);
             float yd = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, dAtMouse / maxDamage)) * PLOT_H);
 
-            // Vertical cursor line (neutral white)
+            // Vertical cursor line
             GL11.glLineWidth(1.0f);
-            GL11.glColor4f(1.0f, 1.0f, 1.0f, 0.6f);
+            NEIPalette.glColor(palette.cursor, ((palette.cursor >>> 24) & 0xFF) / 255.0f);
             GL11.glBegin(GL11.GL_LINES);
             GL11.glVertex2f(mx, PLOT_Y);
             GL11.glVertex2f(mx, PLOT_Y + PLOT_H);
             GL11.glEnd();
 
-            // Horizontal projection to left axis for Reactivity (Amber)
-            GL11.glColor4f(0.96f, 0.62f, 0.04f, 0.5f);
+            // Horizontal projection to left axis for Reactivity
+            NEIPalette.glColor(palette.reactivityCurve, 0.5f);
             GL11.glBegin(GL11.GL_LINES);
             GL11.glVertex2f(PLOT_X, yr);
             GL11.glVertex2f(mx, yr);
             GL11.glEnd();
 
-            // Horizontal projection to right axis for Damage (Coral Red)
-            GL11.glColor4f(0.95f, 0.25f, 0.37f, 0.5f);
+            // Horizontal projection to right axis for Damage
+            NEIPalette.glColor(palette.damageCurve, 0.5f);
             GL11.glBegin(GL11.GL_LINES);
             GL11.glVertex2f(mx, yd);
             GL11.glVertex2f(PLOT_X + PLOT_W, yd);
             GL11.glEnd();
 
             // Snap indicator dots (diamonds)
-            drawIndicatorDot(mx, yr, 0.96f, 0.62f, 0.04f);
-            drawIndicatorDot(mx, yd, 0.95f, 0.25f, 0.37f);
+            drawIndicatorDot(mx, yr, palette.reactivityCurve);
+            drawIndicatorDot(mx, yd, palette.damageCurve);
         }
 
         GL11.glDisable(GL11.GL_LINE_SMOOTH);
@@ -939,6 +820,26 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         GL11.glPopMatrix();
+    }
+
+    /** A line of stats, each piece in its own colour. */
+    private static final class StatLine {
+
+        private final float y;
+        private final float scale;
+        private float x;
+
+        StatLine(float x, float y, float scale) {
+            this.x = x;
+            this.y = y;
+            this.scale = scale;
+        }
+
+        StatLine add(String text, int color) {
+            drawScaledString(text, x, y, scale, color);
+            x += Minecraft.getMinecraft().fontRenderer.getStringWidth(text) * scale;
+            return this;
+        }
     }
 
     public static void drawScaledString(String text, float x, float y, float scale, int color) {
@@ -952,17 +853,8 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
     }
 
     public static void drawIndicatorDot(float x, float y, int color) {
-        drawIndicatorDot(
-            x,
-            y,
-            ((color >> 16) & 0xFF) / 255.0f,
-            ((color >> 8) & 0xFF) / 255.0f,
-            (color & 0xFF) / 255.0f);
-    }
-
-    public static void drawIndicatorDot(float x, float y, float r, float g, float b) {
         // Outer colored diamond (radius 2.5)
-        GL11.glColor4f(r, g, b, 1.0f);
+        NEIPalette.glColor(color, 1.0f);
         GL11.glBegin(GL11.GL_QUADS);
         GL11.glVertex2f(x - 2.5f, y);
         GL11.glVertex2f(x, y + 2.5f);
