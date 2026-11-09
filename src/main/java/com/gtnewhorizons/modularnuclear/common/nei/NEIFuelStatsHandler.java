@@ -586,7 +586,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         CachedRecipe cached = this.arecipes.get(recipeIndex);
         if (!(cached instanceof CachedFuelStatsRecipe recipe)) return;
 
-        // See Note [NEI colours follow the resource pack]
+        // See Note [Resource packs restyle our GUIs]
         NEIPalette palette = NEIPalette.current();
 
         // Slot box for the fuel rod icon

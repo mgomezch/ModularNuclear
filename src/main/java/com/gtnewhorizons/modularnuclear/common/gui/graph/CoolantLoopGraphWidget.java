@@ -21,6 +21,7 @@ import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.utils.Platform;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.sizer.Area;
+import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphData.GraphEdge;
 import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphData.GraphNode;
 import com.gtnewhorizons.modularnuclear.common.gui.graph.SugiyamaLayout.LayoutEdge;
@@ -289,11 +290,12 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
         }
 
         // 1. Draw viewport background and border in widget-local coordinates [0, 0, rw, rh]
-        GuiDraw.drawRect(0, 0, rw, rh, 0xFF0A0A0A);
-        GuiDraw.drawRect(0, 0, rw, 1, 0xFF222222);
-        GuiDraw.drawRect(0, rh - 1, rw, 1, 0xFF222222);
-        GuiDraw.drawRect(0, 0, 1, rh, 0xFF222222);
-        GuiDraw.drawRect(rw - 1, 0, 1, rh, 0xFF222222);
+        GuiDraw.drawRect(0, 0, rw, rh, ColorUtils.graphBackground.getColor());
+        int border = ColorUtils.graphBorder.getColor();
+        GuiDraw.drawRect(0, 0, rw, 1, border);
+        GuiDraw.drawRect(0, rh - 1, rw, 1, border);
+        GuiDraw.drawRect(0, 0, 1, rh, border);
+        GuiDraw.drawRect(rw - 1, 0, 1, rh, border);
 
         if (graphData == null || !graphData.isFormed) {
             String msg = (graphData != null && graphData.failureReason != null) ? ClientText.of(graphData.failureReason)
@@ -309,7 +311,7 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
                 String line = lines.get(i);
                 int lw = fr.getStringWidth(line);
                 int lx = Math.max(12, (rw - lw) / 2);
-                fr.drawStringWithShadow(line, lx, startY + i * lineHeight, 0xFF8888);
+                fr.drawStringWithShadow(line, lx, startY + i * lineHeight, ColorUtils.graphMessage.getColor());
             }
             return;
         }
@@ -377,7 +379,8 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
 
         GL11.glPointSize(1.5f);
         GL11.glBegin(GL11.GL_POINTS);
-        GL11.glColor4f(0.22f, 0.22f, 0.22f, 0.25f);
+        int dots = ColorUtils.graphGridDots.getColor();
+        GL11.glColor4f(red(dots), green(dots), blue(dots), alpha(dots));
         for (double gx = 0; gx < gw; gx += gridStep) {
             for (double gy = 0; gy < gh; gy += gridStep) {
                 GL11.glVertex2d(gx, gy);
@@ -395,25 +398,8 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
                 if (edge.waypoints.size() < 2) continue;
 
                 boolean isHovered = (edge == hoveredEdge);
-                float r = 0.35f, g = 0.38f, b = 0.42f, a = 0.90f; // Neutral dark steel
-                if (edge.data != null) {
-                    double temp = edge.data.temperatureCelsius;
-                    if (temp > 300.0) {
-                        r = 0.88f;
-                        g = 0.25f;
-                        b = 0.20f; // Red hot
-                    } else if (temp > 100.0) {
-                        r = 0.88f;
-                        g = 0.55f;
-                        b = 0.20f; // Warm amber
-                    }
-                }
-                if (isHovered) {
-                    r = 0.85f;
-                    g = 0.85f;
-                    b = 0.85f;
-                    a = 1.0f; // Highlighted silver
-                }
+                int pipe = pipeColor(edge, isHovered);
+                float r = red(pipe), g = green(pipe), b = blue(pipe), a = alpha(pipe);
 
                 double thickness = isHovered ? 5.0 : 3.5;
 
@@ -430,7 +416,8 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
                     double ny = dx / len * (thickness / 2.0);
 
                     // Outer dark border
-                    float br = 0.08f, bg = 0.08f, bb = 0.08f, ba = 0.90f;
+                    int outline = ColorUtils.graphPipeOutline.getColor();
+                    float br = red(outline), bg = green(outline), bb = blue(outline), ba = alpha(outline);
                     builder.pos(p1.x + nx * 1.5, p1.y + ny * 1.5, 0.0)
                         .color(br, bg, bb, ba)
                         .endVertex();
@@ -464,6 +451,30 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
         GL11.glEnable(GL11.GL_CULL_FACE);
     }
 
+    private static int pipeColor(LayoutEdge edge, boolean isHovered) {
+        if (isHovered) return ColorUtils.graphPipeHover.getColor();
+        double temp = edge.data != null ? edge.data.temperatureCelsius : 0.0;
+        if (temp > 300.0) return ColorUtils.graphPipeHot.getColor();
+        if (temp > 100.0) return ColorUtils.graphPipeWarm.getColor();
+        return ColorUtils.graphPipe.getColor();
+    }
+
+    private static float red(int argb) {
+        return ((argb >> 16) & 0xFF) / 255.0f;
+    }
+
+    private static float green(int argb) {
+        return ((argb >> 8) & 0xFF) / 255.0f;
+    }
+
+    private static float blue(int argb) {
+        return (argb & 0xFF) / 255.0f;
+    }
+
+    private static float alpha(int argb) {
+        return ((argb >>> 24) & 0xFF) / 255.0f;
+    }
+
     private void drawChevrons() {
         GL11.glDisable(GL11.GL_CULL_FACE);
         Platform.setupDrawColor();
@@ -472,10 +483,8 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
                 if (edge.arrowPoints.size() < 3) continue;
 
                 boolean isHovered = (edge == hoveredEdge);
-                float ar = isHovered ? 1.0f : 0.75f;
-                float ag = isHovered ? 1.0f : 0.75f;
-                float ab = isHovered ? 1.0f : 0.75f;
-                float aa = isHovered ? 1.0f : 0.85f;
+                int arrow = (isHovered ? ColorUtils.graphArrowHover : ColorUtils.graphArrow).getColor();
+                float ar = red(arrow), ag = green(arrow), ab = blue(arrow), aa = alpha(arrow);
 
                 Point2D tip = edge.arrowPoints.get(0);
                 Point2D left = edge.arrowPoints.get(1);
@@ -503,8 +512,8 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
         int nh = (int) node.height;
 
         // Node card background - dark gray neutral
-        int bgColor = isHovered ? 0xF02A2A2A : 0xEE1E1E1E;
-        int borderColor = isHovered ? 0xFF888888 : 0xFF3A3A3A;
+        int bgColor = (isHovered ? ColorUtils.graphNodeHover : ColorUtils.graphNode).getColor();
+        int borderColor = (isHovered ? ColorUtils.graphNodeBorderHover : ColorUtils.graphNodeBorder).getColor();
 
         GuiDraw.drawRect(nx, ny, nw, nh, bgColor);
         GuiDraw.drawRect(nx, ny, nw, 1, borderColor);
@@ -534,7 +543,7 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
         GlStateManager.translate(textX, ny + 3, 0);
         GlStateManager.scale(titleScale, titleScale, 1.0f);
         for (int i = 0; i < drawnTitleLines; i++) {
-            fr.drawString(titleLines.get(i), 0, i * 9, 0xFFE0E0E0, false);
+            fr.drawString(titleLines.get(i), 0, i * 9, ColorUtils.graphNodeTitle.getColor(), false);
         }
         GlStateManager.popMatrix();
 
@@ -542,7 +551,7 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
             float valScale = 0.52f;
             int startY = ny + 3 + drawnTitleLines * 5 + 1;
 
-            // Line 1: Temperature in RED (0xFFFF5555)
+            // Line 1: temperature
             String tempStr;
             if (Math.abs(node.data.temperatureOut - node.data.temperatureIn) < 0.05) {
                 tempStr = String.format(Locale.US, "%.1f°C", node.data.temperatureIn);
@@ -554,10 +563,10 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
             GlStateManager.pushMatrix();
             GlStateManager.translate(textX, startY, 0);
             GlStateManager.scale(valScale, valScale, 1.0f);
-            fr.drawString(tempStr, 0, 0, 0xFFFF5555, false);
+            fr.drawString(tempStr, 0, 0, ColorUtils.graphTemperature.getColor(), false);
             GlStateManager.popMatrix();
 
-            // Line 2: Pressure in YELLOW (0xFFFFFF55)
+            // Line 2: pressure
             String pressStr;
             double deltaP = node.data.pressureOutBar - node.data.pressureInBar;
             if (Math.abs(deltaP) < 0.0005) {
@@ -571,16 +580,16 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
             GlStateManager.pushMatrix();
             GlStateManager.translate(textX, startY + 6, 0);
             GlStateManager.scale(valScale, valScale, 1.0f);
-            fr.drawString(pressStr, 0, 0, 0xFFFFFF55, false);
+            fr.drawString(pressStr, 0, 0, ColorUtils.graphPressure.getColor(), false);
             GlStateManager.popMatrix();
 
-            // Line 3: Flow rate in GREEN (0xFF55FF55)
+            // Line 3: flow rate
             String flowStr = String.format(Locale.US, "%.1f L/s", node.data.flowRateLPerSec);
 
             GlStateManager.pushMatrix();
             GlStateManager.translate(textX, startY + 12, 0);
             GlStateManager.scale(valScale, valScale, 1.0f);
-            fr.drawString(flowStr, 0, 0, 0xFF55FF55, false);
+            fr.drawString(flowStr, 0, 0, ColorUtils.graphFlow.getColor(), false);
             GlStateManager.popMatrix();
         }
     }

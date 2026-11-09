@@ -19,7 +19,6 @@ import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.utils.Alignment;
-import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.DynamicSyncHandler;
@@ -171,7 +170,7 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
                     coreTempSyncer != null ? coreTempSyncer.getDoubleValue() : multiblock.mCoreTemp,
                     NuclearSimulationEngine.getMaxOperatingTemperature(
                         pipeTierSyncer != null ? pipeTierSyncer.getIntValue() : multiblock.mPipeTier)))
-                .color(Color.rgb(255, 200, 0))
+                .color(ColorUtils.reactorCoreTemp::getColor)
                 .asWidget()
                 .textAlign(Alignment.CenterLeft));
 
@@ -182,7 +181,7 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
                     Locale.US,
                     "Avg reactivity: %.1f%%",
                     (reactivitySyncer != null ? reactivitySyncer.getDoubleValue() : multiblock.mReactivity) * 100.0))
-                .color(Color.rgb(100, 200, 255))
+                .color(ColorUtils.reactorReactivity::getColor)
                 .asWidget()
                 .textAlign(Alignment.CenterLeft));
 
@@ -192,7 +191,7 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
                 () -> "Flux: " + NuclearSimulationEngine.formatNeutronFlux(
                     fluxSyncer != null ? (int) fluxSyncer.getLongValue() : multiblock.mNeutronsProduced,
                     multiblock.getTicksPerCycle()))
-                .color(Color.rgb(100, 220, 255))
+                .color(ColorUtils.reactorNeutrons::getColor)
                 .asWidget()
                 .textAlign(Alignment.CenterLeft));
 
@@ -204,7 +203,7 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
             long fastSec = Math.round(fast * cps);
             return String.format(Locale.US, "Fast neutrons: %,d /s (%,d /cycle)", fastSec, fast);
         })
-            .color(Color.rgb(200, 200, 200))
+            .color(ColorUtils.reactorNeutronBreakdown::getColor)
             .asWidget()
             .textAlign(Alignment.CenterLeft));
 
@@ -216,7 +215,7 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
             long thermSec = Math.round(therm * cps);
             return String.format(Locale.US, "Thermal neutrons: %,d /s (%,d /cycle)", thermSec, therm);
         })
-            .color(Color.rgb(200, 200, 200))
+            .color(ColorUtils.reactorNeutronBreakdown::getColor)
             .asWidget()
             .textAlign(Alignment.CenterLeft));
 
@@ -228,7 +227,7 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
             long escSec = Math.round(esc * cps);
             return String.format(Locale.US, "Escaped neutrons: %,d /s (%,d /cycle)", escSec, esc);
         })
-            .color(Color.rgb(200, 200, 200))
+            .color(ColorUtils.reactorNeutronBreakdown::getColor)
             .asWidget()
             .textAlign(Alignment.CenterLeft));
 
@@ -239,7 +238,7 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
                     Locale.US,
                     "Damage: %.1f%%",
                     damageSyncer != null ? damageSyncer.getDoubleValue() : multiblock.mReactorDamage))
-                .color(Color.rgb(255, 80, 80))
+                .color(ColorUtils.reactorDamage::getColor)
                 .asWidget()
                 .textAlign(Alignment.CenterLeft)
                 .setEnabledIf(
@@ -253,7 +252,7 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
                         multiblock.mIdleReasonKey,
                         multiblock.mIdleCount,
                         StatCollector.translateToLocal(multiblock.mIdleDetailKey)))
-                .color(Color.rgb(255, 170, 60))
+                .color(ColorUtils.reactorIdle::getColor)
                 .asWidget()
                 .textAlign(Alignment.CenterLeft)
                 .setEnabledIf(w -> !multiblock.mIdleReasonKey.isEmpty()));
@@ -396,20 +395,21 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
             int w = getArea() != null ? getArea().w() : 64;
             int h = getArea() != null ? getArea().h() : 16;
             // Outer dark red/black border
-            GuiDraw.drawRect(0, 0, w, h, 0xFF330000);
+            GuiDraw.drawRect(0, 0, w, h, ColorUtils.scramBorder.getColor());
             // Background red
             boolean active = scramSyncer != null ? scramSyncer.getBoolValue() : multiblock.mScram;
             boolean hovering = context != null && context.isHovered(this);
-            int bgColor = hovering ? (active ? 0xFFFF3333 : 0xFFDD1111) : (active ? 0xFFCC0000 : 0xFFAA0000);
+            int bgColor = (hovering ? (active ? ColorUtils.scramButtonActiveHover : ColorUtils.scramButtonHover)
+                : (active ? ColorUtils.scramButtonActive : ColorUtils.scramButton)).getColor();
             GuiDraw.drawRect(1, 1, w - 2, h - 2, bgColor);
             // Highlight line at top
-            GuiDraw.drawRect(1, 1, w - 2, 1, 0x55FFFFFF);
+            GuiDraw.drawRect(1, 1, w - 2, 1, ColorUtils.scramHighlight.getColor());
             // Text: SCRAM or SCRAMMED in bold white letters
             String text = active ? (EnumChatFormatting.BOLD + "SCRAMMED") : (EnumChatFormatting.BOLD + "SCRAM");
             int strW = Minecraft.getMinecraft().fontRenderer.getStringWidth(text);
             int strH = 8;
             Minecraft.getMinecraft().fontRenderer
-                .drawStringWithShadow(text, (w - strW) / 2, (h - strH) / 2, 0xFFFFFFFF);
+                .drawStringWithShadow(text, (w - strW) / 2, (h - strH) / 2, ColorUtils.scramText.getColor());
         }
     }
 

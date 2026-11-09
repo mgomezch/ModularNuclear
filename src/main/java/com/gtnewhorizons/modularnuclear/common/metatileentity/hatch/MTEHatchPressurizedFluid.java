@@ -16,8 +16,8 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantPassageHatch;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ILoopHatchOwner;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 import com.gtnewhorizons.modularnuclear.common.util.ClientText;
-import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
@@ -389,24 +389,24 @@ public class MTEHatchPressurizedFluid extends MTEHatch implements ICoolantLoopDe
             .widget(
                 new TextWidget()
                     .setStringSupplier(() -> isInput() ? "Pressurized input hatch" : "Pressurized output hatch")
-                    .setDefaultColor(Color.rgb(168, 85, 247))
+                    .setDefaultColor(ColorUtils.hatchPressurizedTitle.getColor())
                     .setPos(10, 20))
             .widget(
                 new TextWidget()
                     .setStringSupplier(() -> String.format("Temperature: %.1f °C", currentTemperatureCelsius))
-                    .setDefaultColor(Color.rgb(255, 200, 0))
+                    .setDefaultColor(ColorUtils.hatchTemperature.getColor())
                     .setPos(10, 32))
             .widget(
                 new TextWidget()
                     .setStringSupplier(
                         () -> String.format("Paired: %s", mOppositeHatch != null ? "Linked passage" : "None"))
-                    .setDefaultColor(Color.rgb(150, 255, 150))
+                    .setDefaultColor(ColorUtils.hatchPaired.getColor())
                     .setPos(10, 44))
             .widget(
                 new TextWidget()
                     .setStringSupplier(
                         () -> String.format("Pump: %s", mConnectedPump != null ? "Connected" : "Disconnected"))
-                    .setDefaultColor(Color.rgb(150, 180, 255))
+                    .setDefaultColor(ColorUtils.hatchPump.getColor())
                     .setPos(10, 56));
     }
 

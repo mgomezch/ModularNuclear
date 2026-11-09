@@ -1297,7 +1297,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         CachedRecipe cached = this.arecipes.get(recipeIndex);
 
         if (cached instanceof CachedNeutronInteractionRecipe recipe) {
-            // See Note [NEI colours follow the resource pack]
+            // See Note [Resource packs restyle our GUIs]
             NEIPalette palette = NEIPalette.current();
 
             // Header catalyst slot box at (6, 2)
@@ -2241,10 +2241,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         return val >= 100.0 ? String.valueOf(Math.round(val)) : formatNumber(val);
     }
 
-    // Data, not theme: see wrinkle (W2) of Note [NEI colours follow the resource pack]
-    private static final int HOT_TILE = 0xFFE5582A;
-    private static final int COLD_TILE = 0xFF2B6CDE;
-
     /** The width of the band that stands for all arriving thermal neutrons. */
     private static final double THERMAL_BAND = 12.0;
 
@@ -2326,10 +2322,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         return 1.0 + 7.0 * Math.log(Math.max(k, 0.005) / 0.005) / Math.log(0.9 / 0.005);
     }
 
-    private static void drawShadedTile(int x, int y, int color) {
+    private static void drawShadedTile(NEIPalette palette, int x, int y, int color) {
         GuiDraw.drawRect(x, y, 18, 18, color);
-        GuiDraw.drawRect(x, y, 18, 1, 0x59FFFFFF);
-        GuiDraw.drawRect(x, y + 17, 18, 1, 0x4D000000);
+        GuiDraw.drawRect(x, y, 18, 1, palette.tileHighlight);
+        GuiDraw.drawRect(x, y + 17, 18, 1, palette.tileShadow);
     }
 
     // See Note [Thermal and heat cards]
@@ -2338,8 +2334,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         boolean walled = v.dampening > 0.0;
         NEIPalette palette = NEIPalette.current();
 
-        drawShadedTile(12, baseY + 23, HOT_TILE);
-        drawShadedTile(136, baseY + 23, COLD_TILE);
+        drawShadedTile(palette, 12, baseY + 23, palette.hotTile);
+        drawShadedTile(palette, 136, baseY + 23, palette.coldTile);
 
         if (v.dampening < 1.0) {
             double width = Math.max(1.0, conductionWidth(v.k) * (1.0 - v.dampening));
@@ -2380,7 +2376,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         float[] temperatures = frames[heatRowFrame(frames)];
         for (int i = 0; i < HEAT_ROW_X.length; i++) {
             if (i == HeatRowSimulation.MIDDLE) continue;
-            drawShadedTile(HEAT_ROW_X[i], HEAT_ROW_Y, rowTemperatureColor(temperatures[i]));
+            drawShadedTile(palette, HEAT_ROW_X[i], HEAT_ROW_Y, rowTemperatureColor(temperatures[i]));
         }
         palette.drawSlot(HEAT_ROW_X[HeatRowSimulation.MIDDLE], HEAT_ROW_Y);
         GuiDraw.drawRect(
@@ -2458,8 +2454,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         drawScaledText(capacity, 10, baseY + 3, palette.ink, Math.min(0.75, fitScale(capacity, 60)));
         GuiDraw.drawStringR(tr("k.value", formatNumber(v.k)), 156, baseY + 3, palette.ink, false);
 
-        GuiDraw.drawStringC("+", 21, baseY + 28, 0xFFFFFF, false);
-        GuiDraw.drawStringC("-", 145, baseY + 28, 0xFFFFFF, false);
+        GuiDraw.drawStringC("+", 21, baseY + 28, palette.tileSign, false);
+        GuiDraw.drawStringC("-", 145, baseY + 28, palette.tileSign, false);
         if (v.dampening < 1.0) {
             drawTextCentredFit(
                 tr("conductance.value", formatCardNumber(v.conductance())),

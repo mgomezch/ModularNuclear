@@ -19,6 +19,8 @@ import com.cleanroommc.modularui.screen.RichTooltip;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.Widget;
+import com.gtnewhorizon.gtnhlib.color.ColorResource;
+import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 
 /**
  * High-performance vector chart widget for MPTR live reactor cycle telemetry.
@@ -30,30 +32,21 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
     public enum Metric {
 
         CORE_TEMP("Core temp", "°C", true, s -> (float) s.tempMedian, s -> s.tempMin, s -> s.tempQ1, s -> s.tempMedian,
-            s -> s.tempQ3, s -> s.tempMax, s -> s.tempAvg, 0xFFFFB020, // Warm amber
-            0x993B82F6, // Subtle cool blue for min
-            0xCCEF4444 // Subtle red for max
-        ),
+            s -> s.tempQ3, s -> s.tempMax, s -> s.tempAvg, ColorUtils.plotCoreTemp, ColorUtils.plotCoreTempMin,
+            ColorUtils.plotCoreTempMax),
         REACTIVITY("Reactivity", "%", true, s -> (float) s.reactivityMedian, s -> s.reactivityMin, s -> s.reactivityQ1,
-            s -> s.reactivityMedian, s -> s.reactivityQ3, s -> s.reactivityMax, s -> s.reactivityAvg, 0xFF00D4FF, // Cyan
-            0x996366F1, // Subtle indigo for min
-            0xCC38BDF8 // Subtle sky blue for max
-        ),
+            s -> s.reactivityMedian, s -> s.reactivityQ3, s -> s.reactivityMax, s -> s.reactivityAvg,
+            ColorUtils.plotReactivity, ColorUtils.plotReactivityMin, ColorUtils.plotReactivityMax),
         FAST_NEUTRONS("Fast neutrons produced", "n/s", false, s -> (float) s.getFastNeutronsPerSec(), null, null, null,
-            null, null, null, 0xFFA855F7, // Purple
-            0, 0),
+            null, null, null, ColorUtils.plotFastNeutrons, null, null),
         THERMAL_NEUTRONS("Thermal neutrons absorbed", "n/s", false, s -> (float) s.getThermalNeutronsAbsorbedPerSec(),
-            null, null, null, null, null, null, 0xFF06B6D4, // Teal / Cyan
-            0, 0),
+            null, null, null, null, null, null, ColorUtils.plotThermalNeutrons, null, null),
         ESCAPED_NEUTRONS("Escaped neutrons", "n/s", false, s -> (float) s.getEscapedNeutronsPerSec(), null, null, null,
-            null, null, null, 0xFFF97316, // Orange
-            0, 0),
+            null, null, null, ColorUtils.plotEscapedNeutrons, null, null),
         DIRECT_EU("Direct EU output", "EU/t", false, s -> (float) s.directEU, null, null, null, null, null, null,
-            0xFFEAB308, // Gold / Yellow
-            0, 0),
+            ColorUtils.plotDirectEu, null, null),
         COOLANT_OUTPUT("Coolant output", "L/s", false, s -> (float) s.getCoolantOutputPerSec(), null, null, null, null,
-            null, null, 0xFF3B82F6, // Blue
-            0, 0);
+            null, null, ColorUtils.plotCoolantOutput, null, null);
 
         private final String title;
         private final String unit;
@@ -65,15 +58,15 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         private final Function<ReactorCycleSnapshot, Float> q3Val;
         private final Function<ReactorCycleSnapshot, Float> maxVal;
         private final Function<ReactorCycleSnapshot, Float> avgVal;
-        private final int mainColor;
-        private final int minColor;
-        private final int maxColor;
+        private final ColorResource mainColor;
+        private final ColorResource minColor;
+        private final ColorResource maxColor;
 
         Metric(String title, String unit, boolean quartile, Function<ReactorCycleSnapshot, Float> scalarVal,
             Function<ReactorCycleSnapshot, Float> minVal, Function<ReactorCycleSnapshot, Float> q1Val,
             Function<ReactorCycleSnapshot, Float> medVal, Function<ReactorCycleSnapshot, Float> q3Val,
-            Function<ReactorCycleSnapshot, Float> maxVal, Function<ReactorCycleSnapshot, Float> avgVal, int mainColor,
-            int minColor, int maxColor) {
+            Function<ReactorCycleSnapshot, Float> maxVal, Function<ReactorCycleSnapshot, Float> avgVal,
+            ColorResource mainColor, ColorResource minColor, ColorResource maxColor) {
             this.title = title;
             this.unit = unit;
             this.quartile = quartile;
@@ -147,25 +140,30 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
 
         // Container background
-        GuiDraw.drawRect(0, 0, w, h, 0xEE111827);
-        GuiDraw.drawRect(0, 0, w, 1, 0xFF1F2937);
-        GuiDraw.drawRect(0, h - 1, w, 1, 0xFF1F2937);
-        GuiDraw.drawRect(0, 0, 1, h, 0xFF1F2937);
-        GuiDraw.drawRect(w - 1, 0, 1, h, 0xFF1F2937);
+        GuiDraw.drawRect(0, 0, w, h, ColorUtils.plotBackground.getColor());
+        int border = ColorUtils.plotBorder.getColor();
+        GuiDraw.drawRect(0, 0, w, 1, border);
+        GuiDraw.drawRect(0, h - 1, w, 1, border);
+        GuiDraw.drawRect(0, 0, 1, h, border);
+        GuiDraw.drawRect(w - 1, 0, 1, h, border);
 
         // Header: metric title (sentence case)
-        font.drawString(metric.getTitle(), 6, 4, 0xFFE5E7EB);
+        font.drawString(metric.getTitle(), 6, 4, ColorUtils.plotTitle.getColor());
 
         ReactorMetricsHistory history = historySupplier != null ? historySupplier.get() : null;
         List<ReactorCycleSnapshot> snapshots = history != null ? history.getSnapshots() : null;
 
         if (snapshots == null || snapshots.isEmpty()) {
             String emptyMsg = "no cycle data recorded yet";
-            font.drawString(emptyMsg, w - font.getStringWidth(emptyMsg) - 6, 4, 0xFF6B7280);
+            font.drawString(emptyMsg, w - font.getStringWidth(emptyMsg) - 6, 4, ColorUtils.plotNoData.getColor());
 
             // Empty state placeholder
             String waitMsg = "Awaiting reactor cycle completion with Computer Screen cover...";
-            font.drawString(waitMsg, (w - font.getStringWidth(waitMsg)) / 2, (h - 8) / 2, 0xFF4B5563);
+            font.drawString(
+                waitMsg,
+                (w - font.getStringWidth(waitMsg)) / 2,
+                (h - 8) / 2,
+                ColorUtils.plotWaiting.getColor());
             hoveredSnapshot = null;
             return;
         }
@@ -182,11 +180,11 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
                 metric.getUnit(),
                 metric.minVal.apply(latest),
                 metric.maxVal.apply(latest));
-            font.drawString(latestStr, w - font.getStringWidth(latestStr) - 6, 4, 0xFF9CA3AF);
+            font.drawString(latestStr, w - font.getStringWidth(latestStr) - 6, 4, ColorUtils.plotLatest.getColor());
         } else {
             String latestStr = String
                 .format(Locale.US, "latest: %,d %s", Math.round(metric.scalarVal.apply(latest)), metric.getUnit());
-            font.drawString(latestStr, w - font.getStringWidth(latestStr) - 6, 4, 0xFF9CA3AF);
+            font.drawString(latestStr, w - font.getStringWidth(latestStr) - 6, 4, ColorUtils.plotLatest.getColor());
         }
 
         // Plot canvas area
@@ -196,7 +194,7 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         int plotH = Math.max(10, h - plotY - 14);
 
         // Dark canvas background
-        GuiDraw.drawRect(plotX, plotY, plotW, plotH, 0x44030712);
+        GuiDraw.drawRect(plotX, plotY, plotW, plotH, ColorUtils.plotArea.getColor());
 
         // Compute min and max value range across all snapshots
         float[] bounds = calculateBounds(metric, snapshots);
@@ -208,24 +206,32 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         float[] gridFracs = { 1.0f, 0.5f, 0.0f };
         for (float frac : gridFracs) {
             int lineY = (int) (plotY + plotH - frac * plotH);
-            GuiDraw.drawRect(plotX, lineY, plotW, 1, 0x1AFFFFFF);
+            GuiDraw.drawRect(plotX, lineY, plotW, 1, ColorUtils.plotGridLine.getColor());
 
             float yVal = minVal + frac * range;
             String lbl = formatCompact(yVal);
             int strW = font.getStringWidth(lbl);
-            font.drawString(lbl, plotX - strW - 3, lineY - 4, 0xFF6B7280);
+            font.drawString(lbl, plotX - strW - 3, lineY - 4, ColorUtils.plotAxisLabel.getColor());
         }
 
         // Draw X-axis relative time labels
         if (N > 1) {
             String leftLbl = "-" + (N - 1) + "s";
-            font.drawString(leftLbl, plotX, plotY + plotH + 3, 0xFF6B7280);
+            font.drawString(leftLbl, plotX, plotY + plotH + 3, ColorUtils.plotAxisLabel.getColor());
 
             String midLbl = "-" + (N / 2) + "s";
-            font.drawString(midLbl, plotX + (plotW - font.getStringWidth(midLbl)) / 2, plotY + plotH + 3, 0xFF6B7280);
+            font.drawString(
+                midLbl,
+                plotX + (plotW - font.getStringWidth(midLbl)) / 2,
+                plotY + plotH + 3,
+                ColorUtils.plotAxisLabel.getColor());
 
             String rightLbl = "now";
-            font.drawString(rightLbl, plotX + plotW - font.getStringWidth(rightLbl), plotY + plotH + 3, 0xFF6B7280);
+            font.drawString(
+                rightLbl,
+                plotX + plotW - font.getStringWidth(rightLbl),
+                plotY + plotH + 3,
+                ColorUtils.plotAxisLabel.getColor());
         }
 
         // GL state setup for smooth vector curve rendering
@@ -239,32 +245,32 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
 
         if (metric.isQuartile()) {
             // 1. Min curve (subtle minColor)
-            setGlColor(metric.minColor, 0.6f);
+            setGlColor(metric.minColor.getColor(), 0.6f);
             GL11.glLineWidth(1.0f);
             drawCurve(snapshots, metric.minVal, plotX, plotY, plotW, plotH, minVal, range);
 
             // 2. Q1 curve (subtle mainColor)
-            setGlColor(metric.mainColor, 0.4f);
+            setGlColor(metric.mainColor.getColor(), 0.4f);
             GL11.glLineWidth(1.0f);
             drawCurve(snapshots, metric.q1Val, plotX, plotY, plotW, plotH, minVal, range);
 
             // 3. Median curve (bold mainColor)
-            setGlColor(metric.mainColor, 1.0f);
+            setGlColor(metric.mainColor.getColor(), 1.0f);
             GL11.glLineWidth(2.0f);
             drawCurve(snapshots, metric.medVal, plotX, plotY, plotW, plotH, minVal, range);
 
             // 4. Q3 curve (subtle mainColor)
-            setGlColor(metric.mainColor, 0.4f);
+            setGlColor(metric.mainColor.getColor(), 0.4f);
             GL11.glLineWidth(1.0f);
             drawCurve(snapshots, metric.q3Val, plotX, plotY, plotW, plotH, minVal, range);
 
             // 5. Max curve (subtle maxColor)
-            setGlColor(metric.maxColor, 0.75f);
+            setGlColor(metric.maxColor.getColor(), 0.75f);
             GL11.glLineWidth(1.0f);
             drawCurve(snapshots, metric.maxVal, plotX, plotY, plotW, plotH, minVal, range);
         } else {
             // Single scalar curve (bold mainColor)
-            setGlColor(metric.mainColor, 1.0f);
+            setGlColor(metric.mainColor.getColor(), 1.0f);
             GL11.glLineWidth(2.0f);
             drawCurve(snapshots, metric.scalarVal, plotX, plotY, plotW, plotH, minVal, range);
         }
@@ -286,7 +292,7 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
 
             // Vertical crosshair guide
             GL11.glLineWidth(1.0f);
-            GL11.glColor4f(1.0f, 1.0f, 1.0f, 0.45f);
+            setGlColor(ColorUtils.plotCursor.getColor(), 1.0f);
             GL11.glBegin(GL11.GL_LINES);
             GL11.glVertex2f(guideX, plotY);
             GL11.glVertex2f(guideX, plotY + plotH);
@@ -297,28 +303,28 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
                 drawDot(
                     guideX,
                     getY(metric.minVal.apply(hoveredSnapshot), plotY, plotH, minVal, range),
-                    metric.minColor);
+                    metric.minColor.getColor());
                 drawDot(
                     guideX,
                     getY(metric.q1Val.apply(hoveredSnapshot), plotY, plotH, minVal, range),
-                    metric.mainColor);
+                    metric.mainColor.getColor());
                 drawDot(
                     guideX,
                     getY(metric.medVal.apply(hoveredSnapshot), plotY, plotH, minVal, range),
-                    metric.mainColor);
+                    metric.mainColor.getColor());
                 drawDot(
                     guideX,
                     getY(metric.q3Val.apply(hoveredSnapshot), plotY, plotH, minVal, range),
-                    metric.mainColor);
+                    metric.mainColor.getColor());
                 drawDot(
                     guideX,
                     getY(metric.maxVal.apply(hoveredSnapshot), plotY, plotH, minVal, range),
-                    metric.maxColor);
+                    metric.maxColor.getColor());
             } else {
                 drawDot(
                     guideX,
                     getY(metric.scalarVal.apply(hoveredSnapshot), plotY, plotH, minVal, range),
-                    metric.mainColor);
+                    metric.mainColor.getColor());
             }
         } else {
             hoveredSnapshot = null;
@@ -385,7 +391,7 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         if (n == 1) {
             float x = plotX + plotW / 2.0f;
             float y = getY(valueGetter.apply(snapshots.get(0)), plotY, plotH, minVal, range);
-            drawDot(x, y, 0xFFFFFFFF);
+            drawDot(x, y, ColorUtils.plotSinglePoint.getColor());
             return;
         }
 

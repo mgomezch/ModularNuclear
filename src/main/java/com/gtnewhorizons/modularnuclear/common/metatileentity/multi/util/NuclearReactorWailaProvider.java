@@ -13,6 +13,8 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
+import com.gtnewhorizon.gtnhlib.color.ColorResource;
+import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
@@ -76,23 +78,23 @@ public class NuclearReactorWailaProvider {
         }
         double ratio = Math.max(0.0, Math.min(1.0, temp / maxTemp));
 
-        int topColor;
-        int bottomColor;
+        ColorResource topColor;
+        ColorResource bottomColor;
         if (ratio >= 0.90) {
-            topColor = 0xFFFF3333;
-            bottomColor = 0xFF880000;
+            topColor = ColorUtils.wailaTempCriticalTop;
+            bottomColor = ColorUtils.wailaTempCriticalBottom;
         } else if (ratio >= 0.75) {
-            topColor = 0xFFFF9900;
-            bottomColor = 0xFFCC5500;
+            topColor = ColorUtils.wailaTempHighTop;
+            bottomColor = ColorUtils.wailaTempHighBottom;
         } else if (ratio >= 0.50) {
-            topColor = 0xFFFFD700;
-            bottomColor = 0xFFB8860B;
+            topColor = ColorUtils.wailaTempWarmTop;
+            bottomColor = ColorUtils.wailaTempWarmBottom;
         } else {
-            topColor = 0xFF00E676;
-            bottomColor = 0xFF007A33;
+            topColor = ColorUtils.wailaTempNormalTop;
+            bottomColor = ColorUtils.wailaTempNormalBottom;
         }
         String tempText = String.format("Core temp: %,.1f / %,.0f °C", temp, maxTemp);
-        list.add(TTRenderBar.create(tempText, topColor, bottomColor, ratio));
+        list.add(TTRenderBar.create(tempText, topColor.getColor(), bottomColor.getColor(), ratio));
 
         long euOutput = tag.getLong("euOutput");
         int coolantRate = tag.getInteger("coolantRate");

@@ -14,13 +14,13 @@ import net.minecraftforge.fluids.FluidTankInfo;
 import com.cleanroommc.modularui.utils.fluid.FluidStackTank;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearHatchGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.FluidRoles;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
-import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
@@ -414,7 +414,7 @@ public class MTEHatchNuclearHatch extends MTEHatch implements IReadyBeforeFirstT
                 .setPos(7, 16)
                 .setSize(96, 56))
             .widget(
-                new TextWidget("Stats").setDefaultColor(Color.rgb(0, 255, 200))
+                new TextWidget("Stats").setDefaultColor(ColorUtils.hatchStatsTitle.getColor())
                     .setPos(10, 20))
             .widget(new TextWidget().setStringSupplier(() -> {
                 if (!isFluidTierValid()) {
@@ -422,15 +422,15 @@ public class MTEHatchNuclearHatch extends MTEHatch implements IReadyBeforeFirstT
                 }
                 return String.format("%.0f °C", mTemperature);
             })
-                .setDefaultColor(Color.rgb(255, 200, 0))
+                .setDefaultColor(ColorUtils.hatchTemperature.getColor())
                 .setPos(10, 31))
             .widget(
                 new TextWidget().setStringSupplier(() -> String.format("F: %d", mLastFastFlux))
-                    .setDefaultColor(Color.rgb(100, 220, 255))
+                    .setDefaultColor(ColorUtils.hatchFastFlux.getColor())
                     .setPos(10, 42))
             .widget(
                 new TextWidget().setStringSupplier(() -> String.format("T: %d", mLastThermalFlux))
-                    .setDefaultColor(Color.rgb(150, 180, 255))
+                    .setDefaultColor(ColorUtils.hatchThermalFlux.getColor())
                     .setPos(10, 53))
             // Coolant In Tank
             .widget(
@@ -438,11 +438,11 @@ public class MTEHatchNuclearHatch extends MTEHatch implements IReadyBeforeFirstT
                     .setPos(107, 16)
                     .setSize(48, 56))
             .widget(
-                new TextWidget("In").setDefaultColor(0xFFFFFFFF)
+                new TextWidget("In").setDefaultColor(ColorUtils.hatchSlotLabel.getColor())
                     .setPos(109, 19))
             .widget(
                 new TextWidget().setStringSupplier(() -> (mInputFluid != null ? mInputFluid.amount : 0) + "L")
-                    .setDefaultColor(Color.rgb(180, 180, 180))
+                    .setDefaultColor(ColorUtils.hatchFluidAmount.getColor())
                     .setPos(109, 30))
             .widget(new FluidSlotWidget(getInputTank()).setPos(121, 42));
     }

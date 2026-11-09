@@ -6,8 +6,8 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearAdvancedControlRodGui;
-import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
@@ -88,11 +88,11 @@ public class MTEHatchNuclearAdvancedControlRod extends MTEHatchNuclearControlRod
                 .setPos(7, 16)
                 .setSize(100, 60))
             .widget(
-                new TextWidget("Adv. control rod").setDefaultColor(Color.rgb(180, 100, 255))
+                new TextWidget("Adv. control rod").setDefaultColor(ColorUtils.hatchControlRodTitle.getColor())
                     .setPos(10, 20))
             .widget(
                 new TextWidget().setStringSupplier(() -> String.format("Temp: %.1f °C", mTemperature))
-                    .setDefaultColor(Color.rgb(255, 200, 0))
+                    .setDefaultColor(ColorUtils.hatchTemperature.getColor())
                     .setPos(10, 31))
             .widget(new TextWidget().setStringSupplier(() -> {
                 int fine = getFineRedstoneSignal();
@@ -102,25 +102,25 @@ public class MTEHatchNuclearAdvancedControlRod extends MTEHatchNuclearControlRod
                 }
                 return String.format("Rod: %d%% | Mod: %d%%", getInsertionPercent(), getModeratorInsertionPercent());
             })
-                .setDefaultColor(Color.rgb(100, 255, 200))
+                .setDefaultColor(ColorUtils.hatchInsertion.getColor())
                 .setPos(10, 42))
             .widget(
                 new TextWidget().setStringSupplier(() -> "Rod: " + getRodType(mInventory[SLOT_ROD]).displayName)
-                    .setDefaultColor(Color.rgb(200, 200, 255))
+                    .setDefaultColor(ColorUtils.hatchRodType.getColor())
                     .setPos(10, 53))
             .widget(
                 new TextWidget().setStringSupplier(() -> "Mod: " + getModeratorDisplayName())
-                    .setDefaultColor(Color.rgb(150, 255, 150))
+                    .setDefaultColor(ColorUtils.hatchModerator.getColor())
                     .setPos(10, 64))
             .widget(
-                new TextWidget("Rod").setDefaultColor(0xFFFFFFFF)
+                new TextWidget("Rod").setDefaultColor(ColorUtils.hatchSlotLabel.getColor())
                     .setPos(116, 16))
             .widget(
                 new SlotWidget(inventoryHandler, SLOT_ROD).setFilter(MTEHatchNuclearControlRod::isControlRod)
                     .setBackground(getGUITextureSet().getItemSlot(), GTUITextures.OVERLAY_SLOT_IN)
                     .setPos(113, 28))
             .widget(
-                new TextWidget("Mod").setDefaultColor(0xFFFFFFFF)
+                new TextWidget("Mod").setDefaultColor(ColorUtils.hatchSlotLabel.getColor())
                     .setPos(142, 16))
             .widget(
                 new SlotWidget(inventoryHandler, SLOT_MODERATOR).setFilter(MTEHatchNuclearControlRod::isModerator)

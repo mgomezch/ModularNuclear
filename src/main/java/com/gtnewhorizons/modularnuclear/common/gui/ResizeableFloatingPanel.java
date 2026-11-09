@@ -43,10 +43,6 @@ public class ResizeableFloatingPanel extends ModularPanel {
     private static final float BAR_THICKNESS_HOVERED = 7.0f;
 
     // Color palette
-    private static final int COLOR_NORMAL_FILL = 0xAA707882;
-    private static final int COLOR_NORMAL_LINE = 0xDD95A0AA;
-    private static final int COLOR_HOVER_FILL = 0xFF55D8FF;
-    private static final int COLOR_HOVER_LINE = 0xFFFFFFFF;
 
     public enum SnapMode {
         NONE,
@@ -592,14 +588,22 @@ public class ResizeableFloatingPanel extends ModularPanel {
         GL11.glPopMatrix();
     }
 
+    private static int fill(boolean hovered) {
+        return (hovered ? ColorUtils.panelResizeHandleHover : ColorUtils.panelResizeHandle).getColor();
+    }
+
+    private static int line(boolean hovered) {
+        return (hovered ? ColorUtils.panelResizeHandleLineHover : ColorUtils.panelResizeHandleLine).getColor();
+    }
+
     private void drawEdgeBars(float width, float height, ResizeDragArea activeArea) {
         // Top edge center bar
         boolean topHover = (activeArea == ResizeDragArea.TOP);
         float topL = topHover ? BAR_LENGTH_HOVERED : BAR_LENGTH_NORMAL;
         float topT = topHover ? BAR_THICKNESS_HOVERED : BAR_THICKNESS_NORMAL;
         float topX = (width - topL) * 0.5f;
-        int topFill = topHover ? COLOR_HOVER_FILL : COLOR_NORMAL_FILL;
-        int topLine = topHover ? COLOR_HOVER_LINE : COLOR_NORMAL_LINE;
+        int topFill = fill(topHover);
+        int topLine = line(topHover);
         GuiDraw.drawRect(topX, 0, topL, topT, topFill);
         GuiDraw.drawRect(topX, topT - 1.0f, topL, 1.0f, topLine);
 
@@ -608,8 +612,8 @@ public class ResizeableFloatingPanel extends ModularPanel {
         float botL = botHover ? BAR_LENGTH_HOVERED : BAR_LENGTH_NORMAL;
         float botT = botHover ? BAR_THICKNESS_HOVERED : BAR_THICKNESS_NORMAL;
         float botX = (width - botL) * 0.5f;
-        int botFill = botHover ? COLOR_HOVER_FILL : COLOR_NORMAL_FILL;
-        int botLine = botHover ? COLOR_HOVER_LINE : COLOR_NORMAL_LINE;
+        int botFill = fill(botHover);
+        int botLine = line(botHover);
         GuiDraw.drawRect(botX, height - botT, botL, botT, botFill);
         GuiDraw.drawRect(botX, height - botT, botL, 1.0f, botLine);
 
@@ -618,8 +622,8 @@ public class ResizeableFloatingPanel extends ModularPanel {
         float leftL = leftHover ? BAR_LENGTH_HOVERED : BAR_LENGTH_NORMAL;
         float leftT = leftHover ? BAR_THICKNESS_HOVERED : BAR_THICKNESS_NORMAL;
         float leftY = (height - leftL) * 0.5f;
-        int leftFill = leftHover ? COLOR_HOVER_FILL : COLOR_NORMAL_FILL;
-        int leftLine = leftHover ? COLOR_HOVER_LINE : COLOR_NORMAL_LINE;
+        int leftFill = fill(leftHover);
+        int leftLine = line(leftHover);
         GuiDraw.drawRect(0, leftY, leftT, leftL, leftFill);
         GuiDraw.drawRect(leftT - 1.0f, leftY, 1.0f, leftL, leftLine);
 
@@ -628,8 +632,8 @@ public class ResizeableFloatingPanel extends ModularPanel {
         float rightL = rightHover ? BAR_LENGTH_HOVERED : BAR_LENGTH_NORMAL;
         float rightT = rightHover ? BAR_THICKNESS_HOVERED : BAR_THICKNESS_NORMAL;
         float rightY = (height - rightL) * 0.5f;
-        int rightFill = rightHover ? COLOR_HOVER_FILL : COLOR_NORMAL_FILL;
-        int rightLine = rightHover ? COLOR_HOVER_LINE : COLOR_NORMAL_LINE;
+        int rightFill = fill(rightHover);
+        int rightLine = line(rightHover);
         GuiDraw.drawRect(width - rightT, rightY, rightT, rightL, rightFill);
         GuiDraw.drawRect(width - rightT, rightY, 1.0f, rightL, rightLine);
     }
@@ -645,15 +649,15 @@ public class ResizeableFloatingPanel extends ModularPanel {
         float blS = blHover ? CORNER_SIZE_HOVERED : CORNER_SIZE_NORMAL;
         float brS = brHover ? CORNER_SIZE_HOVERED : CORNER_SIZE_NORMAL;
 
-        int tlFill = tlHover ? COLOR_HOVER_FILL : COLOR_NORMAL_FILL;
-        int trFill = trHover ? COLOR_HOVER_FILL : COLOR_NORMAL_FILL;
-        int blFill = blHover ? COLOR_HOVER_FILL : COLOR_NORMAL_FILL;
-        int brFill = brHover ? COLOR_HOVER_FILL : COLOR_NORMAL_FILL;
+        int tlFill = fill(tlHover);
+        int trFill = fill(trHover);
+        int blFill = fill(blHover);
+        int brFill = fill(brHover);
 
-        int tlLine = tlHover ? COLOR_HOVER_LINE : COLOR_NORMAL_LINE;
-        int trLine = trHover ? COLOR_HOVER_LINE : COLOR_NORMAL_LINE;
-        int blLine = blHover ? COLOR_HOVER_LINE : COLOR_NORMAL_LINE;
-        int brLine = brHover ? COLOR_HOVER_LINE : COLOR_NORMAL_LINE;
+        int tlLine = line(tlHover);
+        int trLine = line(trHover);
+        int blLine = line(blHover);
+        int brLine = line(brHover);
 
         GL11.glDisable(GL11.GL_CULL_FACE);
         Platform.setupDrawColor();

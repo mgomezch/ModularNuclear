@@ -15,13 +15,13 @@ import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Flip;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
+import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedIntegration;
 import com.gtnewhorizons.modularnuclear.common.textures.ModularNuclearTextures;
 import com.gtnewhorizons.modularui.api.drawable.IDrawable;
 import com.gtnewhorizons.modularui.api.drawable.Text;
 import com.gtnewhorizons.modularui.api.math.Alignment;
-import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.ButtonWidget;
@@ -450,7 +450,7 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter,
                 .setPos(7, 16)
                 .setSize(162, 75))
             .widget(
-                new TextWidget("Nuclear control hatch").setDefaultColor(Color.rgb(0, 255, 128))
+                new TextWidget("Nuclear control hatch").setDefaultColor(ColorUtils.hatchControlTitle.getColor())
                     .setPos(12, 20))
             // Row 1: Metric
             .widget(
@@ -465,7 +465,7 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter,
                     .setSize(12, 10))
             .widget(
                 new TextWidget().setStringSupplier(() -> "Metric: " + getMetricName(mMetric))
-                    .setDefaultColor(Color.rgb(100, 200, 255))
+                    .setDefaultColor(ColorUtils.hatchControlMetric.getColor())
                     .setPos(28, 34))
             .widget(
                 new ButtonWidget().setOnClick((clickData, widget) -> cycleMetric(1))
@@ -490,7 +490,7 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter,
                     .setSize(12, 10))
             .widget(
                 new TextWidget().setStringSupplier(() -> "Stat: " + getStatisticDisplayName(mStatistic))
-                    .setDefaultColor(Color.rgb(255, 220, 100))
+                    .setDefaultColor(ColorUtils.hatchControlStatistic.getColor())
                     .setPos(28, 49))
             .widget(
                 new ButtonWidget().setOnClick((clickData, widget) -> cycleStatistic(1))
@@ -509,7 +509,7 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter,
                 }
                 return String.format("Output: %d / 15 (Fine: %d / 255)", mOutputStrength, mFineOutputStrength);
             })
-                .setDefaultColor(Color.rgb(255, 80, 80))
+                .setDefaultColor(ColorUtils.hatchControlOutput.getColor())
                 .setPos(12, 62))
             // Row 4: ProjectRed Bundled Cable Mode
             .widget(
@@ -524,7 +524,7 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter,
                     .setSize(12, 10))
             .widget(
                 new TextWidget().setStringSupplier(() -> "PR: " + getBundledModeName(mBundledChannelMode))
-                    .setDefaultColor(Color.rgb(200, 160, 255))
+                    .setDefaultColor(ColorUtils.hatchControlBundled.getColor())
                     .setPos(28, 76))
             .widget(
                 new ButtonWidget().setOnClick((clickData, widget) -> cycleBundledMode(1))

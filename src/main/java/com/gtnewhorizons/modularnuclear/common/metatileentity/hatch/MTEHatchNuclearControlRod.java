@@ -20,6 +20,7 @@ import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearControlRodGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
@@ -28,7 +29,6 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.TileTick;
 import com.gtnewhorizons.modularnuclear.common.projectred.ProjectRedIntegration;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
-import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
@@ -614,11 +614,11 @@ public class MTEHatchNuclearControlRod extends MTEHatch implements IReadyBeforeF
                 .setPos(7, 16)
                 .setSize(96, 60))
             .widget(
-                new TextWidget("Control rod hatch").setDefaultColor(Color.rgb(180, 100, 255))
+                new TextWidget("Control rod hatch").setDefaultColor(ColorUtils.hatchControlRodTitle.getColor())
                     .setPos(10, 20))
             .widget(
                 new TextWidget().setStringSupplier(() -> String.format("Temp: %.1f °C", mTemperature))
-                    .setDefaultColor(Color.rgb(255, 200, 0))
+                    .setDefaultColor(ColorUtils.hatchTemperature.getColor())
                     .setPos(10, 31))
             .widget(new TextWidget().setStringSupplier(() -> {
                 int fine = getFineRedstoneSignal();
@@ -627,11 +627,11 @@ public class MTEHatchNuclearControlRod extends MTEHatch implements IReadyBeforeF
                 }
                 return String.format("Insert: %d%% (RS: %d)", getInsertionPercent(), getRedstoneSignal());
             })
-                .setDefaultColor(Color.rgb(100, 255, 200))
+                .setDefaultColor(ColorUtils.hatchInsertion.getColor())
                 .setPos(10, 42))
             .widget(
                 new TextWidget().setStringSupplier(() -> "Rod: " + getRodType(mInventory[SLOT_ROD]).displayName)
-                    .setDefaultColor(Color.rgb(200, 200, 255))
+                    .setDefaultColor(ColorUtils.hatchRodType.getColor())
                     .setPos(10, 53))
             .widget(new TextWidget().setStringSupplier(() -> {
                 if (mHousingCount < MAX_HOUSINGS) {
@@ -639,10 +639,10 @@ public class MTEHatchNuclearControlRod extends MTEHatch implements IReadyBeforeF
                 }
                 return "Housing: 5/5 (Full)";
             })
-                .setDefaultColor(Color.rgb(200, 200, 100))
+                .setDefaultColor(ColorUtils.hatchHousing.getColor())
                 .setPos(10, 64))
             .widget(
-                new TextWidget("Rod").setDefaultColor(0xFFFFFFFF)
+                new TextWidget("Rod").setDefaultColor(ColorUtils.hatchSlotLabel.getColor())
                     .setPos(125, 16))
             .widget(
                 new SlotWidget(inventoryHandler, SLOT_ROD).setFilter(MTEHatchNuclearControlRod::isControlRod)

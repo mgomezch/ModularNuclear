@@ -13,7 +13,6 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
-import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.DynamicSyncHandler;
@@ -132,7 +131,7 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
 
                 row.child(
                     IKey.str("• " + status)
-                        .color(0xFFE0E0E0)
+                        .color(ColorUtils.loopStatus::getColor)
                         .alignment(Alignment.TopLeft)
                         .asWidget()
                         .expanded());
@@ -162,14 +161,14 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
                 IKey.dynamic(
                     () -> String
                         .format(Locale.US, "Pump mechanical pressure: %.2f bar", pumpPressureSyncer.getDoubleValue()))
-                    .color(Color.rgb(255, 255, 85))
+                    .color(ColorUtils.loopPressure::getColor)
                     .asWidget()
                     .textAlign(Alignment.CenterLeft)
                     .setEnabledIf(w -> showLoopStats.get()));
 
             list.child(
                 IKey.dynamic(() -> String.format(Locale.US, "Flow rate: %.1f L/s", pumpFlowSyncer.getDoubleValue()))
-                    .color(Color.rgb(85, 255, 85))
+                    .color(ColorUtils.loopFlow::getColor)
                     .asWidget()
                     .textAlign(Alignment.CenterLeft)
                     .setEnabledIf(w -> showLoopStats.get()));
@@ -177,7 +176,7 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
             list.child(
                 IKey.dynamic(
                     () -> String.format(Locale.US, "Coolant temperature: %.1f °C", pumpTempSyncer.getDoubleValue()))
-                    .color(Color.rgb(255, 85, 85))
+                    .color(ColorUtils.loopTemperature::getColor)
                     .asWidget()
                     .textAlign(Alignment.CenterLeft)
                     .setEnabledIf(w -> showLoopStats.get()));
@@ -205,7 +204,7 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
                         "Inner temperature: %.1f / %.1f °C",
                         innerTempSyncer.getDoubleValue(),
                         maxTempSyncer.getDoubleValue()))
-                    .color(Color.rgb(255, 85, 85))
+                    .color(ColorUtils.loopTemperature::getColor)
                     .asWidget()
                     .textAlign(Alignment.CenterLeft)
                     .setEnabledIf(w -> showHeaterStats.get()));
@@ -213,21 +212,21 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
             list.child(
                 IKey.dynamic(
                     () -> String.format(Locale.US, "Heat capacity: %.1f HU/°C", heatCapSyncer.getDoubleValue()))
-                    .color(Color.rgb(255, 255, 85))
+                    .color(ColorUtils.loopHeatCapacity::getColor)
                     .asWidget()
                     .textAlign(Alignment.CenterLeft)
                     .setEnabledIf(w -> showHeaterStats.get()));
 
             list.child(
                 IKey.dynamic(() -> String.format(Locale.US, "Heat transfer area: %.1f m²", areaSyncer.getDoubleValue()))
-                    .color(Color.rgb(85, 255, 255))
+                    .color(ColorUtils.loopArea::getColor)
                     .asWidget()
                     .textAlign(Alignment.CenterLeft)
                     .setEnabledIf(w -> showHeaterStats.get()));
 
             list.child(
                 IKey.dynamic(() -> String.format(Locale.US, "Coolant flow: %.1f L/s", flowSyncer.getDoubleValue()))
-                    .color(Color.rgb(85, 255, 85))
+                    .color(ColorUtils.loopFlow::getColor)
                     .asWidget()
                     .textAlign(Alignment.CenterLeft)
                     .setEnabledIf(w -> showHeaterStats.get()));
@@ -236,7 +235,7 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
                 IKey.dynamic(
                     () -> String
                         .format(Locale.US, "Heat transfer rate: %.1f HU/t", transferRateSyncer.getDoubleValue()))
-                    .color(Color.rgb(255, 170, 0))
+                    .color(ColorUtils.loopHeatTransfer::getColor)
                     .asWidget()
                     .textAlign(Alignment.CenterLeft)
                     .setEnabledIf(w -> showHeaterStats.get()));

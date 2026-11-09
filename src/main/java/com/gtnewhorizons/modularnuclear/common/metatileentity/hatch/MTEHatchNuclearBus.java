@@ -11,12 +11,12 @@ import net.minecraftforge.common.util.ForgeDirection;
 import com.gtnewhorizons.modularnuclear.common.block.BlockNuclearCasing;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearBusGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
-import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
@@ -462,22 +462,22 @@ public class MTEHatchNuclearBus extends MTEHatch implements IReadyBeforeFirstTic
                 .setPos(7, 16)
                 .setSize(120, 56))
             .widget(
-                new TextWidget("Nuclear core bus").setDefaultColor(Color.rgb(0, 255, 128))
+                new TextWidget("Nuclear core bus").setDefaultColor(ColorUtils.hatchBusTitle.getColor())
                     .setPos(10, 20))
             .widget(
                 new TextWidget().setStringSupplier(() -> String.format("Temp: %.1f °C", mTemperature))
-                    .setDefaultColor(Color.rgb(255, 200, 0))
+                    .setDefaultColor(ColorUtils.hatchTemperature.getColor())
                     .setPos(10, 31))
             .widget(
                 new TextWidget().setStringSupplier(() -> String.format("Fast: %d n/t", mLastFastFlux))
-                    .setDefaultColor(Color.rgb(100, 200, 255))
+                    .setDefaultColor(ColorUtils.hatchFastFlux.getColor())
                     .setPos(10, 42))
             .widget(
                 new TextWidget().setStringSupplier(() -> String.format("Thrm: %d n/t", mLastThermalFlux))
-                    .setDefaultColor(Color.rgb(150, 180, 255))
+                    .setDefaultColor(ColorUtils.hatchThermalFlux.getColor())
                     .setPos(10, 53))
             .widget(
-                new TextWidget("In").setDefaultColor(0xFFFFFFFF)
+                new TextWidget("In").setDefaultColor(ColorUtils.hatchSlotLabel.getColor())
                     .setPos(134, 16))
             .widget(
                 new SlotWidget(inventoryHandler, SLOT_INPUT).setFilter(this::isItemAllowed)

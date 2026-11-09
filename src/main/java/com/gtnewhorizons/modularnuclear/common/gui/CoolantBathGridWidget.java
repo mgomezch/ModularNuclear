@@ -110,8 +110,8 @@ public class CoolantBathGridWidget extends Widget<CoolantBathGridWidget> impleme
         int startY = (area.h() - totalHeight) / 2;
 
         // Draw background container panel
-        GuiDraw.drawRect(startX - 2, startY - 2, totalWidth + 4, totalHeight + 4, 0xFF22262B);
-        GuiDraw.drawRect(startX - 1, startY - 1, totalWidth + 2, totalHeight + 2, 0xFF15181C);
+        GuiDraw.drawRect(startX - 2, startY - 2, totalWidth + 4, totalHeight + 4, ColorUtils.bathBackground.getColor());
+        GuiDraw.drawRect(startX - 1, startY - 1, totalWidth + 2, totalHeight + 2, ColorUtils.bathInner.getColor());
 
         int hoveredSlot = getSlotIndexUnderCursor();
         int z = context != null ? context.getCurrentDrawingZ() : 0;
@@ -123,8 +123,8 @@ public class CoolantBathGridWidget extends Widget<CoolantBathGridWidget> impleme
                 int py = startY + r * CELL_SIZE;
 
                 // Slot border & background
-                GuiDraw.drawRect(px, py, CELL_SIZE, CELL_SIZE, 0xFF374151);
-                GuiDraw.drawRect(px + 1, py + 1, CELL_SIZE - 2, CELL_SIZE - 2, 0xFF1F2937);
+                GuiDraw.drawRect(px, py, CELL_SIZE, CELL_SIZE, ColorUtils.bathSlotBorder.getColor());
+                GuiDraw.drawRect(px + 1, py + 1, CELL_SIZE - 2, CELL_SIZE - 2, ColorUtils.bathSlotFill.getColor());
 
                 ItemStack stack = getSlotStack(idx);
                 if (stack != null) {
@@ -134,13 +134,13 @@ public class CoolantBathGridWidget extends Widget<CoolantBathGridWidget> impleme
                     float progress = getSlotProgress(idx);
                     if (progress > 0.0f) {
                         int barW = Math.max(1, Math.round((CELL_SIZE - 2) * Math.min(1.0f, progress)));
-                        GuiDraw.drawRect(px + 1, py + CELL_SIZE - 3, barW, 2, 0xFF10B981);
+                        GuiDraw.drawRect(px + 1, py + CELL_SIZE - 3, barW, 2, ColorUtils.bathProgress.getColor());
                     }
                 }
 
                 // Highlight hovered slot
                 if (idx == hoveredSlot) {
-                    GuiDraw.drawRect(px + 1, py + 1, CELL_SIZE - 2, CELL_SIZE - 2, 0x55FFFFFF);
+                    GuiDraw.drawRect(px + 1, py + 1, CELL_SIZE - 2, CELL_SIZE - 2, ColorUtils.bathHover.getColor());
                 }
             }
         }

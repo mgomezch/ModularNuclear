@@ -30,6 +30,7 @@ import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.sizer.Area;
+import com.gtnewhorizon.gtnhlib.color.ColorResource;
 import com.gtnewhorizons.modularnuclear.client.renderer.GrayscaleShader;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ControlRodData;
@@ -397,17 +398,18 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         }
 
         // Draw background container panel and border in local coords
-        GuiDraw.drawRect(0, 0, rw, rh, 0xEE12161E);
-        GuiDraw.drawRect(0, 0, rw, 1, 0xFF2A3645);
-        GuiDraw.drawRect(0, rh - 1, rw, 1, 0xFF2A3645);
-        GuiDraw.drawRect(0, 0, 1, rh, 0xFF2A3645);
-        GuiDraw.drawRect(rw - 1, 0, 1, rh, 0xFF2A3645);
+        GuiDraw.drawRect(0, 0, rw, rh, ColorUtils.reactorGridBackground.getColor());
+        int border = ColorUtils.reactorGridBorder.getColor();
+        GuiDraw.drawRect(0, 0, rw, 1, border);
+        GuiDraw.drawRect(0, rh - 1, rw, 1, border);
+        GuiDraw.drawRect(0, 0, 1, rh, border);
+        GuiDraw.drawRect(rw - 1, 0, 1, rh, border);
 
         if (sync == null || sync.gridSize <= 0) {
             String msg = "Reactor Core Offline / Unformed";
             FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
             int sw = fr.getStringWidth(msg);
-            fr.drawStringWithShadow(msg, (rw - sw) / 2, (rh - 8) / 2, 0x888888);
+            fr.drawStringWithShadow(msg, (rw - sw) / 2, (rh - 8) / 2, ColorUtils.reactorGridOfflineText.getColor());
             return;
         }
 
@@ -451,8 +453,8 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 ReactorGridSyncData.ReactorGridCellData cell = (idx < sync.cells.size()) ? sync.cells.get(idx) : null;
 
                 // Slot background
-                GuiDraw.drawRect(px, py, 18, 18, 0xFF373737);
-                GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0xFF1E1E1E);
+                GuiDraw.drawRect(px, py, 18, 18, ColorUtils.reactorGridSlotBorder.getColor());
+                GuiDraw.drawRect(px + 1, py + 1, 16, 16, ColorUtils.reactorGridSlotFill.getColor());
 
                 if (cell != null && cell.exists) {
                     boolean isHeatmap = reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_TEMPERATURE
@@ -475,7 +477,11 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                         if (cell.itemStack.stackSize > 1) {
                             String countStr = String.valueOf(cell.itemStack.stackSize);
                             FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
-                            fr.drawStringWithShadow(countStr, px + 17 - fr.getStringWidth(countStr), py + 9, 0xFFFFFF);
+                            fr.drawStringWithShadow(
+                                countStr,
+                                px + 17 - fr.getStringWidth(countStr),
+                                py + 9,
+                                ColorUtils.reactorGridStackSize.getColor());
                         }
 
                         // Durability bar
@@ -487,7 +493,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                             int barColor = (int) Math.round(255.0 * health);
                             int color = isHeatmap ? ((barColor << 16) | (barColor << 8) | barColor)
                                 : (((255 - barColor) << 16) | (barColor << 8));
-                            GuiDraw.drawRect(px + 2, py + 14, 13, 2, 0xFF000000);
+                            GuiDraw.drawRect(px + 2, py + 14, 13, 2, ColorUtils.reactorGridDurabilityTrack.getColor());
                             GuiDraw.drawRect(px + 2, py + 14, barW, 1, 0xFF000000 | color);
                         }
                     } else if (cell.fluidStack != null) {
@@ -501,9 +507,9 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                         }
                     } else if (!isHeatmap) {
                         if (cell.isHighPressure) {
-                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x40FFA500);
+                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, ColorUtils.reactorGridHighPressure.getColor());
                         } else if (cell.isFluid) {
-                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x300055AA);
+                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, ColorUtils.reactorGridFluid.getColor());
                         }
                     }
 
@@ -525,36 +531,37 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                     } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
                         if (cell.hasControlRod) {
                             // Dark backdrop tint
-                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x881E293B);
+                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, ColorUtils.reactorGridRodBackdrop.getColor());
 
                             // Control rod fill bar
-                            int rodColor = switch (cell.controlRodType) {
-                                case 1 -> 0xFFC0C0C0; // Silver
-                                case 2 -> 0xFF5A5A6E; // Boron
-                                case 3 -> 0xFF5588AA; // Cadmium
-                                case 4 -> 0xFF3366BB; // Indium
-                                case 5 -> 0xFFAA3333; // Hafnium
-                                case 6 -> 0xFFE8E8F0; // Neutronium
-                                default -> 0x88666666; // None
+                            ColorResource rod = switch (cell.controlRodType) {
+                                case 1 -> ColorUtils.reactorGridRodSilver;
+                                case 2 -> ColorUtils.reactorGridRodBoron;
+                                case 3 -> ColorUtils.reactorGridRodCadmium;
+                                case 4 -> ColorUtils.reactorGridRodIndium;
+                                case 5 -> ColorUtils.reactorGridRodHafnium;
+                                case 6 -> ColorUtils.reactorGridRodNeutronium;
+                                default -> ColorUtils.reactorGridRodNone;
                             };
 
                             int barH = Math.max(1, Math.round(12.0f * (cell.controlRodInsertion / 100.0f)));
-                            GuiDraw.drawRect(px + 3, py + 15 - barH, 12, barH, rodColor);
+                            GuiDraw.drawRect(px + 3, py + 15 - barH, 12, barH, rod.getColor());
 
                             // Control rod hatch border
-                            GuiDraw.drawRect(px + 1, py + 1, 16, 1, 0xFF00AAFF);
-                            GuiDraw.drawRect(px + 1, py + 16, 16, 1, 0xFF00AAFF);
-                            GuiDraw.drawRect(px + 1, py + 1, 1, 16, 0xFF00AAFF);
-                            GuiDraw.drawRect(px + 16, py + 1, 1, 16, 0xFF00AAFF);
+                            int rodBorder = ColorUtils.reactorGridRodBorder.getColor();
+                            GuiDraw.drawRect(px + 1, py + 1, 16, 1, rodBorder);
+                            GuiDraw.drawRect(px + 1, py + 16, 16, 1, rodBorder);
+                            GuiDraw.drawRect(px + 1, py + 1, 1, 16, rodBorder);
+                            GuiDraw.drawRect(px + 16, py + 1, 1, 16, rodBorder);
                         } else {
-                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x77000000);
+                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, ColorUtils.reactorGridNoRod.getColor());
                         }
                     }
 
                     // Flashing thermal hazard warning rect (>85% max operating temp)
                     if (cell.temperature > maxTemp * 0.85) {
                         if ((System.currentTimeMillis() / 400) % 2 == 0) {
-                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, 0x60FF0000);
+                            GuiDraw.drawRect(px + 1, py + 1, 16, 16, ColorUtils.reactorGridOverheat.getColor());
                         }
                     }
                 }
@@ -569,15 +576,15 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 int renderDy = (N - 1) - dy;
                 int dpx = dx * 18;
                 int dpy = renderDy * 18;
-                GuiDraw.drawRect(dpx + 1, dpy + 1, 16, 16, 0x6000FF00);
+                GuiDraw.drawRect(dpx + 1, dpy + 1, 16, 16, ColorUtils.reactorGridDragPreview.getColor());
             }
         }
 
         // Controller Icon slot at center bottom (representing physical multiblock front face)
         int cx = (N * 18 - 18) / 2;
         int cy = N * 18 + 4;
-        GuiDraw.drawRect(cx, cy, 18, 18, 0xFF4A5568);
-        GuiDraw.drawRect(cx + 1, cy + 1, 16, 16, 0xFF1A202C);
+        GuiDraw.drawRect(cx, cy, 18, 18, ColorUtils.reactorGridControllerBorder.getColor());
+        GuiDraw.drawRect(cx + 1, cy + 1, 16, 16, ColorUtils.reactorGridControllerFill.getColor());
         if (ModMetaTileEntities.reactor != null) {
             GuiDraw.drawItem(ModMetaTileEntities.reactor.copy(), cx + 1, cy + 1, 16, 16, 0);
         }
@@ -587,11 +594,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         boolean mouseInside = (mx >= 0 && mx < rw && my >= 0 && my < rh);
 
         if (mouseInside && isOverController(mx, my)) {
-            GuiDraw.drawRect(cx, cy, 18, 1, 0xFFFFFFFF);
-            GuiDraw.drawRect(cx, cy + 17, 18, 1, 0xFFFFFFFF);
-            GuiDraw.drawRect(cx, cy + 1, 1, 16, 0xFFFFFFFF);
-            GuiDraw.drawRect(cx + 17, cy + 1, 1, 16, 0xFFFFFFFF);
-            GuiDraw.drawRect(cx + 1, cy + 1, 16, 16, 0x30FFFFFF);
+            drawHover(cx, cy);
         }
 
         // Hover highlight with crisp 1px border and subtle tint
@@ -602,11 +605,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
             int renderHy = (N - 1) - hy;
             int hpx = hx * 18;
             int hpy = renderHy * 18;
-            GuiDraw.drawRect(hpx, hpy, 18, 1, 0xFFFFFFFF);
-            GuiDraw.drawRect(hpx, hpy + 17, 18, 1, 0xFFFFFFFF);
-            GuiDraw.drawRect(hpx, hpy + 1, 1, 16, 0xFFFFFFFF);
-            GuiDraw.drawRect(hpx + 17, hpy + 1, 1, 16, 0xFFFFFFFF);
-            GuiDraw.drawRect(hpx + 1, hpy + 1, 16, 16, 0x30FFFFFF);
+            drawHover(hpx, hpy);
         }
 
         GL11.glPopMatrix();
@@ -616,6 +615,16 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         GlStateManager.disableLighting();
         GlStateManager.enableBlend();
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+
+    /** A crisp 1px border and a subtle tint over the 18x18 slot at (x, y). */
+    private static void drawHover(int x, int y) {
+        int border = ColorUtils.reactorGridHoverBorder.getColor();
+        GuiDraw.drawRect(x, y, 18, 1, border);
+        GuiDraw.drawRect(x, y + 17, 18, 1, border);
+        GuiDraw.drawRect(x, y + 1, 1, 16, border);
+        GuiDraw.drawRect(x + 17, y + 1, 1, 16, border);
+        GuiDraw.drawRect(x + 1, y + 1, 16, 16, ColorUtils.reactorGridHoverFill.getColor());
     }
 
     private void buildTooltip(RichTooltip tooltip) {

@@ -7,12 +7,12 @@ import net.minecraft.util.EnumChatFormatting;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
-import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
+import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 import com.gtnewhorizons.modularnuclear.common.gui.LockIconWidget;
 import com.gtnewhorizons.modularnuclear.common.gui.PanelDragHandle;
 import com.gtnewhorizons.modularnuclear.common.gui.ResizeableFloatingPanel;
@@ -73,7 +73,7 @@ public class CoolantLoopGraphPanel {
             // Zoom level display (also draggable)
             .child(
                 new PanelDragHandle(panel).title(IKey.dynamic(graphWidget::getZoomString))
-                    .color(Color.WHITE.main)
+                    .color(ColorUtils.panelZoomText::getColor)
                     .textAlign(Alignment.Center)
                     .size(36, 14)
                     .marginRight(2))

@@ -16,6 +16,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantPipeSpec;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantPassageHatch;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
+import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearHighPressureGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantLoopMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
@@ -24,7 +25,6 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
-import com.gtnewhorizons.modularui.api.math.Color;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
@@ -596,35 +596,35 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
                 .setPos(7, 16)
                 .setSize(160, 82))
             .widget(
-                new TextWidget("High-Pressure Passage").setDefaultColor(Color.rgb(255, 128, 0))
+                new TextWidget("High-Pressure Passage").setDefaultColor(ColorUtils.hatchHighPressureTitle.getColor())
                     .setPos(10, 21))
             .widget(
                 new TextWidget()
                     .setStringSupplier(
                         () -> String.format("Role: %s", mIsInlet ? "Core inlet (slice 0)" : "Core outlet (slice 4)"))
-                    .setDefaultColor(Color.rgb(200, 200, 200))
+                    .setDefaultColor(ColorUtils.hatchRole.getColor())
                     .setPos(10, 33))
             .widget(
                 new TextWidget().setStringSupplier(() -> String.format("Core temp: %.1f °C", getTemperature()))
-                    .setDefaultColor(Color.rgb(255, 200, 0))
+                    .setDefaultColor(ColorUtils.hatchTemperature.getColor())
                     .setPos(10, 45))
             .widget(
                 new TextWidget()
                     .setStringSupplier(
                         () -> String.format("Fast: %d n/t  Thrm: %d n/t", mLastFastFlux, mLastThermalFlux))
-                    .setDefaultColor(Color.rgb(100, 200, 255))
+                    .setDefaultColor(ColorUtils.hatchFastFlux.getColor())
                     .setPos(10, 57))
             .widget(
                 new TextWidget()
                     .setStringSupplier(
                         () -> String.format("Paired: %s", mOppositeHatch != null ? "Linked" : "Unpaired"))
-                    .setDefaultColor(Color.rgb(150, 255, 150))
+                    .setDefaultColor(ColorUtils.hatchPaired.getColor())
                     .setPos(10, 69))
             .widget(
                 new TextWidget()
                     .setStringSupplier(
                         () -> String.format("Pump: %s", mConnectedPump != null ? "Connected" : "Disconnected"))
-                    .setDefaultColor(Color.rgb(150, 180, 255))
+                    .setDefaultColor(ColorUtils.hatchPump.getColor())
                     .setPos(10, 81));
     }
 

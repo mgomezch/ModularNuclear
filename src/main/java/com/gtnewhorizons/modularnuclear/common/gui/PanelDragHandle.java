@@ -392,10 +392,15 @@ public class PanelDragHandle extends Widget<PanelDragHandle> implements IDraggab
     private void drawSnapPreview(Area snapArea) {
         // Semi-transparent blue fill
         com.cleanroommc.modularui.drawable.GuiDraw
-            .drawRect(snapArea.x, snapArea.y, snapArea.width, snapArea.height, 0x4055D8FF);
+            .drawRect(snapArea.x, snapArea.y, snapArea.width, snapArea.height, ColorUtils.panelSnapArea.getColor());
         // Bright cyan border (2px)
-        com.cleanroommc.modularui.drawable.GuiDraw
-            .drawBorderInsideXYWH(snapArea.x, snapArea.y, snapArea.width, snapArea.height, 2.0f, 0xCC55D8FF);
+        com.cleanroommc.modularui.drawable.GuiDraw.drawBorderInsideXYWH(
+            snapArea.x,
+            snapArea.y,
+            snapArea.width,
+            snapArea.height,
+            2.0f,
+            ColorUtils.panelSnapAreaBorder.getColor());
     }
 
     @Override

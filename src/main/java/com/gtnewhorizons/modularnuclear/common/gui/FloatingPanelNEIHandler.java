@@ -318,7 +318,8 @@ public class FloatingPanelNEIHandler
                     context.updateZ(0);
                     if (panel.disablePanelsBelow()) {
                         float alpha = panel.getAlpha();
-                        int color = Color.argb(16, 16, 16, (int) (125.0f * alpha));
+                        int dim = ColorUtils.panelDimBelow.getColor();
+                        int color = Color.withAlpha(dim, (int) (Color.getAlpha(dim) * alpha));
                         GuiDraw.drawRect(
                             0,
                             0,
