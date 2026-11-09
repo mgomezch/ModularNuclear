@@ -11,6 +11,7 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.HeaterCasing;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules;
+import com.gtnewhorizons.modularnuclear.common.nuclear.SourceChamber;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.cli.RunConfig;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.cli.SimOptions;
 
@@ -507,6 +508,15 @@ public class NuclearSimWasmBridge {
         if (grid != null) {
             SimTile.ControlRodType rodType = SimTile.ControlRodType.fromName(typeStr);
             grid.setControlRod(x, y, hasRod, rodType, insertion);
+        }
+    }
+
+    /** Feeds a neutron source from a Source Chamber. See Note [Source Chamber beams]. */
+    @Export(name = "setSourceChamber")
+    public static void setSourceChamber(int x, int y, String recipeCode, String tierName) {
+        if (grid != null) {
+            grid.setSourceChamber(x, y, recipeCode, tierName);
+            grid.updatePowerResultNet();
         }
     }
 
@@ -1417,6 +1427,9 @@ public class NuclearSimWasmBridge {
         sb.append("\"flowDirectEU\":")
             .append(fmt1(targetGrid.getFlowDirectEU()))
             .append(",");
+        sb.append("\"beamEuPerTick\":")
+            .append(targetGrid.getBeamEuPerTick())
+            .append(",");
 
         TurbineCalculator.PowerEstimationResult p = targetGrid.getLastPowerResult();
         sb.append("\"powerEstimate\":{");
@@ -1822,6 +1835,29 @@ public class NuclearSimWasmBridge {
                 sb.append("\"controlRodThermalAbsorbed\":")
                     .append(t.getLastControlRodThermalAbsorbed())
                     .append(",");
+                if (t.getSourceChamberRecipe() != null) {
+                    sb.append("\"sourceChamber\":\"")
+                        .append(t.getSourceChamberRecipe().code)
+                        .append("\",");
+                    sb.append("\"sourceChamberName\":\"")
+                        .append(escapeJson(t.getSourceChamberRecipe().displayName))
+                        .append("\",");
+                    sb.append("\"sourceChamberTier\":\"")
+                        .append(SourceChamber.TIER_NAMES[t.getSourceChamberTier()])
+                        .append("\",");
+                    sb.append("\"beamEnergyKeV\":")
+                        .append(fmt1(t.getNeutronSourceBeamEnergy()))
+                        .append(",");
+                    sb.append("\"beamRate\":")
+                        .append(t.getNeutronSourceBeamRate())
+                        .append(",");
+                    sb.append("\"beamEuPerTick\":")
+                        .append(t.getSourceChamberEuPerTick())
+                        .append(",");
+                    sb.append("\"neutronsGenerated\":")
+                        .append(t.getLastNeutronsGenerated())
+                        .append(",");
+                }
                 sb.append("\"heatOutput\":")
                     .append(fmt1(t.getLastHeatOutput()));
                 sb.append("}");

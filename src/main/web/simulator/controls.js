@@ -185,6 +185,7 @@ function renderInspector(t) {
     <div class="stat-row"><span>Temperature:</span><span class="stat-val">${t.temp} °C</span></div>
     ${t.code !== "NL" ? `<div class="stat-row"><span>Heat output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${((t.heatOutput || 0) * cps).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/s (${(t.heatOutput || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/cycle)</span></div>` : ''}
     ${coolingMethodHtml}
+    ${sourceChamberHtml(t, cps)}
     ${controlRodHtml}
     ${extraHtml}
     ${fluxHtml}
@@ -632,6 +633,48 @@ async function changeTier(tier) {
   await fetch(`/api/set-tier?tier=${tier}`);
   await fetchState();
   schedulePoll();
+}
+
+// The Source Chamber feeding a neutron source tile: its recipe and energy hatch tier decide the beam and its EU cost.
+// See Note [Source Chamber beams] (SourceChamber.java).
+const SOURCE_CHAMBER_RECIPES = [
+  { code: "CF", name: "Californium Dust", minTier: "EV" },
+  { code: "BE", name: "Long Beryllium Rod", minTier: "LuV" },
+];
+const SOURCE_CHAMBER_TIERS = ["EV", "IV", "LuV", "ZPM", "UV", "UHV"];
+
+function sourceChamberHtml(t, cps) {
+  if (t.type !== "NEUTRON_SOURCE") return "";
+  const recipe = t.sourceChamber || "";
+  const r = SOURCE_CHAMBER_RECIPES.find(r => r.code === recipe);
+  const tiers = r ? SOURCE_CHAMBER_TIERS.slice(SOURCE_CHAMBER_TIERS.indexOf(r.minTier)) : [];
+  const beam = r
+    ? `<div class="stat-row"><span>Beam:</span><span class="stat-val">${Math.round(t.beamEnergyKeV).toLocaleString()} keV × ${t.beamRate}</span></div>` +
+      `<div class="stat-row"><span>Chamber draw:</span><span class="stat-val" style="color:var(--danger); font-weight:600;">−${(t.beamEuPerTick || 0).toLocaleString()} EU/t</span></div>` +
+      `<div class="stat-row"><span>Fast neutrons:</span><span class="stat-val">${Math.round((t.neutronsGenerated || 0) * cps).toLocaleString()} n/s</span></div>`
+    : `<div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">No beam: this source emits nothing until a Source Chamber feeds it.</div>`;
+  return `
+    <div style="background:#10141d; border:1px solid #e879f9; border-radius:3px; padding:6px 8px; margin-top:8px;">
+      <div style="font-weight:700; font-size:0.75rem; color:#e879f9; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">⚛️ Source Chamber</div>
+      <div style="display:flex; gap:6px; margin-bottom:6px;">
+        <select onchange="changeTileSourceChamber(${t.x}, ${t.y}, this.value, '')" style="flex:2; font-size:0.75rem;" aria-label="Source Chamber recipe">
+          <option value="" ${recipe === "" ? "selected" : ""}>None</option>
+          ${SOURCE_CHAMBER_RECIPES.map(o => `<option value="${o.code}" ${o.code === recipe ? "selected" : ""}>${o.name} (${o.minTier}+)</option>`).join("")}
+        </select>
+        ${r ? `<select onchange="changeTileSourceChamber(${t.x}, ${t.y}, '${recipe}', this.value)" style="flex:1; font-size:0.75rem;" aria-label="Energy hatch tier">
+          ${tiers.map(tier => `<option value="${tier}" ${tier === t.sourceChamberTier ? "selected" : ""}>${tier} hatch</option>`).join("")}
+        </select>` : ""}
+      </div>
+      ${beam}
+    </div>`;
+}
+
+async function changeTileSourceChamber(x, y, recipe, tier) {
+  if (isWasmMode && wasmSim) {
+    wasmSim.setSourceChamber(x, y, recipe, tier);
+    currentState = wasmSim.getState();
+    renderUI();
+  }
 }
 
 async function toggleTileControlRod(x, y, hasRod) {

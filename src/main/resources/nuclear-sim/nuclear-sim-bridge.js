@@ -368,6 +368,14 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    /** Feeds a neutron source tile from a Source Chamber: recipe "CF", "BE" or "" (none), tier name or "" (the recipe's own). */
+    setSourceChamber(x, y, recipe, tier, notify = true) {
+        if (this.inst.exports.setSourceChamber) {
+            this.inst.exports.setSourceChamber(x, y, this.createJavaString(recipe || ""), this.createJavaString(tier || ""));
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     setAllControlRodsInsertion(insertion, notify = true) {
         if (this.inst.exports.setAllControlRodsInsertion) {
             this.inst.exports.setAllControlRodsInsertion(Math.round(insertion));

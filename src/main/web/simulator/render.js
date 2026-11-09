@@ -506,8 +506,11 @@ function renderUI() {
   if (currentState.powerEstimate) {
     const pe = currentState.powerEstimate;
     let pwrDisplay = formatPowerAndAmps(pe.totalPowerEUt, false);
-    if (currentState.pumpPowerEUt && currentState.pumpPowerEUt > 0) {
-      pwrDisplay += ` [Gross: ${Math.round(currentState.grossPowerEUt).toLocaleString()} - Pump: ${Math.round(currentState.pumpPowerEUt).toLocaleString()}]`;
+    const pump = currentState.pumpPowerEUt || 0, beam = currentState.beamEuPerTick || 0;
+    if (pump > 0 || beam > 0) {
+      pwrDisplay += ` [Gross: ${Math.round(currentState.grossPowerEUt).toLocaleString()}` +
+        (pump > 0 ? ` - Pump: ${Math.round(pump).toLocaleString()}` : "") +
+        (beam > 0 ? ` - Beam: ${Math.round(beam).toLocaleString()}` : "") + "]";
     }
     setText("stat-power-tier", formatPowerAndAmps(pe.totalPowerEUt, false));
     setText("stat-power", pwrDisplay);

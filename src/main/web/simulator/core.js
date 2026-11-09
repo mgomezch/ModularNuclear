@@ -164,6 +164,9 @@ async function initEngine() {
           if (t.hasControlRod) {
             wasmSim.setControlRod(t.x, t.y, true, t.controlRodType || "BORON", t.controlRodInsertion || 0, false);
           }
+          if (t.sourceChamber) {
+            wasmSim.setSourceChamber(t.x, t.y, t.sourceChamber, t.sourceChamberTier || "", false);
+          }
         });
         if (window.__INITIAL_STATE__.turbineMaterial) {
           wasmSim.setTurbine(window.__INITIAL_STATE__.turbineMaterial, window.__INITIAL_STATE__.turbineSize, window.__INITIAL_STATE__.turbineFitting, false);
@@ -261,6 +264,7 @@ const PALETTE = [
   { type: "MODERATOR_CARBON", name: "Carbon Moderator", code: "MC", color: "#334155" },
   { type: "MODERATOR_BERYLLIUM", name: "Beryllium Moderator", code: "MB", color: "#cbd5e1" },
   { type: "COOLANT_CELL_60K", name: "60k Coolant Cell", code: "C6", color: "#06b6d4" },
+  { type: "NEUTRON_SOURCE", name: "Neutron Source (beam-fed)", code: "NS", color: "#e879f9" },
   { type: "RADIOVOLTAIC_HV", name: "Radiovoltaic Cell (HV)", code: "RH", color: "#f59e0b" },
   { type: "RADIOVOLTAIC_EV", name: "Radiovoltaic Cell (EV)", code: "RV", color: "#f97316" },
   { type: "VENT_STANDARD", name: "Heat Vent", code: "V1", color: "#38bdf8" },

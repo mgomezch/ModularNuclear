@@ -108,4 +108,28 @@ if (!failed) {
   }
 }
 
+// A Source Chamber beam drives a neutron source, and its draw comes off the net power.  See Note [Source Chamber beams]
+if (!failed) {
+  try {
+    sim.initGrid(5, 5, 1);
+    sim.loadLayout("RH,RH,RH,RH,RH;RH,RH,RH,RH,RH;RH,RH,NS,RH,RH;RH,RH,RH,RH,RH;RH,RH,RH,RH,RH", false);
+    sim.setSourceChamber(2, 2, "CF", "", false);
+    sim.stepTicks(400);
+    const st = sim.getState();
+    const ns = st.tiles.find(t => t.type === "NEUTRON_SOURCE");
+    const pe = st.powerEstimate;
+    if (!st.layout.split(/[;,]/).includes("NS:CF") || ns.beamEnergyKeV !== 9000 || ns.beamRate !== 10
+        || ns.beamEuPerTick !== 1920 || st.beamEuPerTick !== 1920 || !(ns.neutronsGenerated > 0)
+        || Math.abs(pe.totalPowerEUt - (st.grossPowerEUt - 1920)) > 1) {
+      failed++;
+      console.log(`FAIL source chamber: ${JSON.stringify({ layout: st.layout, ns, beam: st.beamEuPerTick, gross: st.grossPowerEUt, net: pe.totalPowerEUt })}`);
+    } else {
+      console.log(`ok   source chamber (9000 keV x 10, ${ns.neutronsGenerated} n/cycle, gross ${Math.round(st.grossPowerEUt)} - beam 1920 = net ${Math.round(pe.totalPowerEUt)} EU/t)`);
+    }
+  } catch (err) {
+    failed++;
+    console.log(`FAIL source chamber: ${String(err).split("\n")[0]}`);
+  }
+}
+
 process.exit(failed ? 1 : 0);
