@@ -221,7 +221,7 @@ final class NuclearReactorCycle {
         r.mEfficiency = (int) Math.round(maintEff * 10000);
     }
 
-    /** Columns past the casing's operating temperature lose their non-fuel contents and add damage (manual 12.3). */
+    /** Columns past the casing's operating temperature lose their non-fuel contents and add damage. */
     private static void applyOverheating(MTENuclearReactor r) {
         NuclearReactorMeltdown.applyOverheating(r);
     }

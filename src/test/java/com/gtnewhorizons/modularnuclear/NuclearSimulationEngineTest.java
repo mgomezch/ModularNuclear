@@ -911,7 +911,7 @@ public class NuclearSimulationEngineTest {
         assertEquals(0, hatchTile.getInputFluidAmount(), "Overheating fluid hatch must void input fluid");
         assertEquals(0, hatchTile.getOutputFluidAmount(), "Overheating fluid hatch must void output fluid");
 
-        // As in the game (manual §12.3), fuel is not voided by overheating
+        // As in the game, fuel is not voided by overheating
         assertEquals(SimTile.TileType.FUEL_URANIUM_QUAD, fuelTile.getType(), "Overheating does not void fuel");
     }
 

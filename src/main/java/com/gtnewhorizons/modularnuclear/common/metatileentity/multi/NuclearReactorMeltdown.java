@@ -269,7 +269,7 @@ final class NuclearReactorMeltdown {
             centerZ);
     }
 
-    /** Columns past the casing's operating temperature lose their non-fuel contents and add damage (manual 12.3). */
+    /** Columns past the casing's operating temperature lose their non-fuel contents and add damage. */
     static void applyOverheating(MTENuclearReactor reactor) {
         // 4. Check casing-dependent maximum operating temperature:
         // Overheating hatches increase reactor damage by 1% per overheating hatch.

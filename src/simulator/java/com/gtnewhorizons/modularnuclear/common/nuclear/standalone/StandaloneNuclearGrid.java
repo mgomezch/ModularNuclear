@@ -785,7 +785,7 @@ public class StandaloneNuclearGrid {
         }
     }
 
-    /** The casing operating temperature limit (manual 12.3); false when the core melted down. */
+    /** The casing operating temperature limit; false when the core melted down. */
     private boolean applyOverheating() {
         // 5. Casing operating temperature limit, as in the game: an overheating column loses its non-fuel contents
         // (coolant, components, its control rod) and adds damage; fuel rods and liquid fuel stay. A passage overheats
