@@ -112,24 +112,12 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         // Reflection
         public final boolean isReflector;
         public final double reflectionFast;
-        public final double reflectionThermal;
 
         // Page 2: Thermal & Energy Properties
         public final double heatTransferCoeff;
         public final double thermalInsulationFactor;
-        public final double selfCoolingRate;
-        public final double componentCoolingRate;
-        public final double heatTransferRate;
-        public final double maxTemperature;
-        public final double boilingPoint;
-        public final double specificHeat;
-
-        // Direct EU Production
-        public final boolean producesDirectEU;
+        // Radiovoltaic output
         public final long maxDirectEU;
-        public final String directEUTier;
-        public final double directEUPenNeutronFast;
-        public final double directEUPenNeutronThermal;
 
         // Durability / Capacity / Transmutation / Byproducts
         public final boolean hasDurability;
@@ -171,12 +159,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         public ComponentStatsData(ItemStack stack, String name, String category, double fastScattering,
             double fastAbsorption, double slowingProbability, double thermalScattering, double thermalAbsorption,
-            boolean isReflector, double reflectionFast, double reflectionThermal, double heatTransferCoeff,
-            double thermalInsulationFactor, double selfCoolingRate, double componentCoolingRate,
-            double heatTransferRate, double maxTemperature, double boilingPoint, double specificHeat,
-            boolean producesDirectEU, long maxDirectEU, String directEUTier, double directEUPenNeutronFast,
-            double directEUPenNeutronThermal, boolean hasDurability, long durability, String durabilityLabel,
-            boolean hasTransmutation, ItemStack transmutationOutput, long transmutationNeutrons, String extraInfo) {
+            boolean isReflector, double reflectionFast, double heatTransferCoeff, double thermalInsulationFactor,
+            long maxDirectEU, boolean hasDurability, long durability, String durabilityLabel, boolean hasTransmutation,
+            ItemStack transmutationOutput, long transmutationNeutrons, String extraInfo) {
             this(
                 stack,
                 name,
@@ -188,20 +173,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 thermalAbsorption,
                 isReflector,
                 reflectionFast,
-                reflectionThermal,
                 heatTransferCoeff,
                 thermalInsulationFactor,
-                selfCoolingRate,
-                componentCoolingRate,
-                heatTransferRate,
-                maxTemperature,
-                boilingPoint,
-                specificHeat,
-                producesDirectEU,
                 maxDirectEU,
-                directEUTier,
-                directEUPenNeutronFast,
-                directEUPenNeutronThermal,
                 hasDurability,
                 durability,
                 durabilityLabel,
@@ -215,13 +189,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         public ComponentStatsData(ItemStack stack, String name, String category, double fastScattering,
             double fastAbsorption, double slowingProbability, double thermalScattering, double thermalAbsorption,
-            boolean isReflector, double reflectionFast, double reflectionThermal, double heatTransferCoeff,
-            double thermalInsulationFactor, double selfCoolingRate, double componentCoolingRate,
-            double heatTransferRate, double maxTemperature, double boilingPoint, double specificHeat,
-            boolean producesDirectEU, long maxDirectEU, String directEUTier, double directEUPenNeutronFast,
-            double directEUPenNeutronThermal, boolean hasDurability, long durability, String durabilityLabel,
-            boolean hasTransmutation, ItemStack transmutationOutput, long transmutationNeutrons, String extraInfo,
-            boolean isRadiovoltaic, double fullOutputAbsorbedPerSecond) {
+            boolean isReflector, double reflectionFast, double heatTransferCoeff, double thermalInsulationFactor,
+            long maxDirectEU, boolean hasDurability, long durability, String durabilityLabel, boolean hasTransmutation,
+            ItemStack transmutationOutput, long transmutationNeutrons, String extraInfo, boolean isRadiovoltaic,
+            double fullOutputAbsorbedPerSecond) {
             this.stack = stack;
             this.name = name;
             this.category = category;
@@ -232,20 +203,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             this.thermalAbsorption = thermalAbsorption;
             this.isReflector = isReflector;
             this.reflectionFast = reflectionFast;
-            this.reflectionThermal = reflectionThermal;
             this.heatTransferCoeff = heatTransferCoeff;
             this.thermalInsulationFactor = thermalInsulationFactor;
-            this.selfCoolingRate = selfCoolingRate;
-            this.componentCoolingRate = componentCoolingRate;
-            this.heatTransferRate = heatTransferRate;
-            this.maxTemperature = maxTemperature;
-            this.boilingPoint = boilingPoint;
-            this.specificHeat = specificHeat;
-            this.producesDirectEU = producesDirectEU;
             this.maxDirectEU = maxDirectEU;
-            this.directEUTier = directEUTier;
-            this.directEUPenNeutronFast = directEUPenNeutronFast;
-            this.directEUPenNeutronThermal = directEUPenNeutronThermal;
             this.hasDurability = hasDurability;
             this.durability = durability;
             this.durabilityLabel = durabilityLabel;
@@ -524,7 +484,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.621,
             0.009,
             0.05,
-            2500.0,
             80_000,
             dustAsh,
             "Standard moderator | Burns into ash above 2500 °C");
@@ -539,7 +498,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.60,
             0.012,
             0.05,
-            2200.0,
             10_000,
             dustAsh,
             "Budget carbon moderator | Burns into ash above 2200 °C");
@@ -554,7 +512,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.85,
             0.004,
             0.15,
-            2600.0,
             240_000,
             null,
             "High-performance moderator | High thermal conductivity (k = 0.15)");
@@ -756,8 +713,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.70,
             0.10,
             0.30,
-            100.0,
-            4.184,
             true,
             getFluidDisplay("deuterium", 1000),
             40L,
@@ -771,8 +726,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.85,
             0.01,
             0.30,
-            101.4,
-            4.220,
             true,
             getFluidDisplay("tritium", 1000),
             100L,
@@ -786,66 +739,27 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.45,
             0.12,
             0.50,
-            300.0,
-            8.000,
             false,
             null,
             0L,
             "Non-boiling high-capacity coolant | Cycles to Hot Coolant");
 
         // 8. IC2 HEAT VENTS & HEAT EXCHANGERS
-        addHeatVent("reactorVent", "Heat Vent", 6.0, 0.0, 0.40, 128L, 512L, "Vents its own heat, using EU");
-        addHeatVent(
-            "reactorVentGold",
-            "Overclocked Heat Vent",
-            12.0,
-            0.0,
-            0.45,
-            512L,
-            2048L,
-            "Vents its own heat, using EU");
-        addHeatVent(
-            "reactorVentSpread",
-            "Component Heat Vent",
-            8.0,
-            0.0,
-            0.40,
-            1024L,
-            4096L,
-            "Vents its own heat, using EU");
-        addHeatVent(
-            "reactorVentDiamond",
-            "Advanced Heat Vent",
-            0.0,
-            20.0,
-            0.50,
-            2048L,
-            8192L,
-            "Vents its own heat, using EU");
+        addHeatVent("reactorVent", "Heat Vent", 0.40, "Vents its own heat, using EU");
+        addHeatVent("reactorVentGold", "Overclocked Heat Vent", 0.45, "Vents its own heat, using EU");
+        addHeatVent("reactorVentSpread", "Component Heat Vent", 0.40, "Vents its own heat, using EU");
+        addHeatVent("reactorVentDiamond", "Advanced Heat Vent", 0.50, "Vents its own heat, using EU");
 
-        addHeatExchanger(
-            "reactorHeatSwitch",
-            "Heat Exchanger",
-            12.0,
-            0.40,
-            256L,
-            1024L,
-            "Evens out heat with its neighbours, using EU");
+        addHeatExchanger("reactorHeatSwitch", "Heat Exchanger", 0.40, "Evens out heat with its neighbours, using EU");
         addHeatExchanger(
             "reactorHeatSwitchSpread",
             "Component Heat Exchanger",
-            24.0,
             0.45,
-            512L,
-            2048L,
             "Evens out heat with its neighbours, using EU");
         addHeatExchanger(
             "reactorHeatSwitchDiamond",
             "Advanced Heat Exchanger",
-            36.0,
             0.50,
-            1024L,
-            4096L,
             "Evens out heat with its neighbours, using EU");
 
         // 9. EMPTY CORE TILE - Unimpeded neutron streaming
@@ -864,20 +778,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     0.0,
                     false,
                     0.0,
-                    0.0,
                     0.02,
                     0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    false,
                     0L,
-                    null,
-                    0.0,
-                    0.0,
                     false,
                     0L,
                     "N/A",
@@ -908,20 +811,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 thermAbs,
                 true,
                 fastRefl,
-                thermRefl,
                 conduction,
                 0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                false,
                 0L,
-                null,
-                0.0,
-                0.0,
                 durability > 0,
                 durability,
                 durability > 0 ? "Impacts" : "Indestructible",
@@ -955,7 +847,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     }
 
     private static void addModerator(ItemStack stack, String name, double fastScattering, double fastAbs,
-        double slowing, double thermScattering, double thermAbs, double conduction, double maxTemp, long wearCapacity,
+        double slowing, double thermScattering, double thermAbs, double conduction, long wearCapacity,
         ItemStack byproduct, String extra) {
         if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
         if (stack == null) return;
@@ -974,20 +866,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 thermAbs,
                 false,
                 0.0,
-                0.0,
                 conduction,
                 0.0,
-                0.0,
-                0.0,
-                0.0,
-                maxTemp,
-                0.0,
-                0.0,
-                false,
                 0L,
-                null,
-                0.0,
-                0.0,
                 true,
                 wearCapacity,
                 "Wear Capacity",
@@ -1043,20 +924,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             thermAbs,
             false,
             0.0,
-            0.0,
             conduction,
             0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            false,
             0L,
-            null,
-            0.0,
-            0.0,
             true,
             capacity,
             "Neutrons",
@@ -1084,20 +954,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 absRate,
                 false,
                 0.0,
-                0.0,
                 0.10,
                 0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                true,
                 maxEU,
-                tierLabel,
-                20.0,
-                5.0,
                 false,
                 0L,
                 "Indestructible",
@@ -1125,20 +984,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 thermAbs,
                 false,
                 0.0,
-                0.0,
                 conduction,
                 insulation,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                false,
                 0L,
-                null,
-                0.0,
-                0.0,
                 false,
                 0L,
                 "Indestructible",
@@ -1171,20 +1019,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.05,
             false,
             0.0,
-            0.0,
             conduction,
             0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            false,
             0L,
-            null,
-            0.0,
-            0.0,
             true,
             heatCapacity,
             "HU Heat Capacity",
@@ -1203,8 +1040,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     }
 
     private static void addFluidCoolant(String fluidName, String name, double fastScattering, double fastAbs,
-        double slowing, double thermScattering, double thermAbs, double conduction, double boilingPoint,
-        double specificHeat, boolean hasTransmutation, ItemStack product, long reqNeutrons, String extra) {
+        double slowing, double thermScattering, double thermAbs, double conduction, boolean hasTransmutation,
+        ItemStack product, long reqNeutrons, String extra) {
         Fluid fluid = null;
         fluid = FluidRegistry.getFluid(fluidName);
 
@@ -1232,20 +1069,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 thermAbs,
                 false,
                 0.0,
-                0.0,
                 conduction,
                 0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                boilingPoint,
-                specificHeat,
-                false,
                 0L,
-                null,
-                0.0,
-                0.0,
                 false,
                 0L,
                 hasTransmutation ? "Transmutes" : "Continuous",
@@ -1255,8 +1081,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 extra));
     }
 
-    private static void addHeatVent(String ic2Name, String name, double selfCooling, double compCooling,
-        double conduction, long directEU, long maxEU, String extra) {
+    private static void addHeatVent(String ic2Name, String name, double conduction, String extra) {
         ItemStack stack = resolveStack("IC2:" + ic2Name);
         if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
         if (stack == null) return;
@@ -1272,20 +1097,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 0.05,
                 false,
                 0.0,
-                0.0,
                 conduction,
                 0.0,
-                selfCooling,
-                compCooling,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                true,
-                maxEU,
-                directEU + " EU/t",
-                0.0,
-                0.0,
+                0L,
                 false,
                 0L,
                 "Indestructible",
@@ -1295,8 +1109,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 extra));
     }
 
-    private static void addHeatExchanger(String ic2Name, String name, double transferRate, double conduction,
-        long directEU, long maxEU, String extra) {
+    private static void addHeatExchanger(String ic2Name, String name, double conduction, String extra) {
         ItemStack stack = resolveStack("IC2:" + ic2Name);
         if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
         if (stack == null) return;
@@ -1312,20 +1125,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 0.05,
                 false,
                 0.0,
-                0.0,
                 conduction,
                 0.0,
-                0.0,
-                0.0,
-                transferRate,
-                0.0,
-                0.0,
-                0.0,
-                true,
-                maxEU,
-                directEU + " EU/t",
-                0.0,
-                0.0,
+                0L,
                 false,
                 0L,
                 "Indestructible",

@@ -2,7 +2,7 @@
 
 | Assets | Generator |
 | :--- | :--- |
-| `textures/gui/nei/neutron_interaction_atlas.png`<br>`textures/gui/nei/long_arrow.png` | `generate_nei_atlas.py` |
+| `textures/gui/nei/long_arrow.png` | `generate_nei_atlas.py` |
 | `textures/blocks/OVERLAY_FRONT_FISSION_REACTOR.png`<br>`textures/blocks/OVERLAY_FRONT_FISSION_REACTOR_ACTIVE.png` | `generate_reactor_overlays.py` |
 | `textures/blocks/fluids/corium_still.png`<br>`textures/blocks/fluids/corium_flow.png` | `generate_corium.py` |
 | `textures/blocks/fluids/heavywater_*` | `generate_water_fluids.py` |

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Procedural generator for NEI neutron interaction atlas and long animated arrow textures.
+Procedural generator for the NEI long animated arrow texture.
 Uses pure Python standard library (math, struct, zlib) with zero external dependencies.
 
 Targets:
-  - assets/modularnuclear/textures/gui/nei/neutron_interaction_atlas.png (256x256)
   - assets/modularnuclear/textures/gui/nei/long_arrow.png (40x40)
 """
 
@@ -38,163 +37,6 @@ def write_png(path, w, h, pixels):
     with open(path, 'wb') as f:
         f.write(png)
     print(f"  [✓] Wrote {path} ({w}x{h})")
-
-
-def generate_atlas():
-    w, h = 256, 256
-    grid = [[(0, 0, 0, 0) for _ in range(w)] for _ in range(h)]
-
-    def draw_pixel(x, y, color):
-        if 0 <= x < w and 0 <= y < h:
-            grid[y][x] = color
-
-    def draw_arrow_head_right(tip_x, tip_y, length, color, color_inner=None):
-        for i in range(length):
-            draw_pixel(tip_x - i, tip_y - i, color)
-            draw_pixel(tip_x - i, tip_y + i, color)
-            if color_inner:
-                for dy in range(-i + 1, i):
-                    draw_pixel(tip_x - i, tip_y + dy, color_inner)
-
-    def draw_arrow_head_left(tip_x, tip_y, length, color, color_inner=None):
-        for i in range(length):
-            draw_pixel(tip_x + i, tip_y - i, color)
-            draw_pixel(tip_x + i, tip_y + i, color)
-            if color_inner:
-                for dy in range(-i + 1, i):
-                    draw_pixel(tip_x + i, tip_y + dy, color_inner)
-
-    def draw_arrow_head_down(tip_x, tip_y, length, color, color_inner=None):
-        for i in range(length):
-            draw_pixel(tip_x - i, tip_y - i, color)
-            draw_pixel(tip_x + i, tip_y - i, color)
-            if color_inner:
-                for dx in range(-i + 1, i):
-                    draw_pixel(tip_x + dx, tip_y - i, color_inner)
-
-    # 1. Fast Diagram (u=0, v=0, w=88, h=54)
-    FAST_RED = (0xD3, 0x2F, 0x2F, 255)
-    STEEL_BORDER = (0x37, 0x47, 0x4F, 255)
-    STEEL_FILL = (0x78, 0x90, 0x9C, 255)
-    GREEN_ABS = (0x2E, 0x7D, 0x32, 255)
-    GREEN_GLOW = (0x81, 0xC7, 0x84, 255)
-    THERM_BLUE = (0x19, 0x76, 0xD2, 255)
-    THERM_GLOW = (0x90, 0xCA, 0xF9, 255)
-
-    for x in range(6, 48):
-        draw_pixel(x, 26, STEEL_BORDER)
-        draw_pixel(x, 27, FAST_RED)
-        draw_pixel(x, 28, STEEL_BORDER)
-    draw_arrow_head_right(50, 27, 4, STEEL_BORDER, FAST_RED)
-
-    for x, y in [(51, 21), (50, 20), (48, 18), (46, 16), (43, 14), (40, 13), (37, 12), (33, 12), (28, 12)]:
-        draw_pixel(x, y - 1, STEEL_BORDER)
-        draw_pixel(x, y, STEEL_FILL)
-        draw_pixel(x, y + 1, STEEL_BORDER)
-    draw_arrow_head_left(26, 12, 3, STEEL_BORDER, STEEL_FILL)
-
-    for x, y in [(70, 21), (71, 20), (73, 18), (75, 16), (78, 14), (81, 13)]:
-        draw_pixel(x, y - 1, STEEL_BORDER)
-        draw_pixel(x, y, GREEN_GLOW)
-        draw_pixel(x, y + 1, STEEL_BORDER)
-    draw_arrow_head_right(84, 13, 3, STEEL_BORDER, GREEN_ABS)
-
-    for x in range(60, 62):
-        for y in range(36, 47):
-            draw_pixel(x - 1, y, STEEL_BORDER)
-            draw_pixel(x, y, THERM_BLUE)
-            draw_pixel(x + 1, y, STEEL_BORDER)
-    draw_arrow_head_down(60, 49, 3, STEEL_BORDER, THERM_GLOW)
-
-    # 2. Thermal Diagram (u=0, v=60, w=88, h=54)
-    t_off = 60
-    for x in range(6, 48):
-        draw_pixel(x, t_off + 26, STEEL_BORDER)
-        draw_pixel(x, t_off + 27, THERM_BLUE)
-        draw_pixel(x, t_off + 28, STEEL_BORDER)
-    draw_arrow_head_right(50, t_off + 27, 4, STEEL_BORDER, THERM_BLUE)
-
-    for x, y in [(51, 21), (50, 20), (48, 18), (46, 16), (43, 14), (40, 13), (37, 12), (33, 12), (28, 12)]:
-        draw_pixel(x, t_off + y - 1, STEEL_BORDER)
-        draw_pixel(x, t_off + y, STEEL_FILL)
-        draw_pixel(x, t_off + y + 1, STEEL_BORDER)
-    draw_arrow_head_left(26, t_off + 12, 3, STEEL_BORDER, STEEL_FILL)
-
-    for x, y in [(70, 21), (71, 20), (73, 18), (75, 16), (78, 14), (81, 13)]:
-        draw_pixel(x, t_off + y - 1, STEEL_BORDER)
-        draw_pixel(x, t_off + y, GREEN_GLOW)
-        draw_pixel(x, t_off + y + 1, STEEL_BORDER)
-    draw_arrow_head_right(84, t_off + 13, 3, STEEL_BORDER, GREEN_ABS)
-
-    for x in range(60, 62):
-        for y in range(36, 47):
-            draw_pixel(x - 1, t_off + y, STEEL_BORDER)
-            draw_pixel(x, t_off + y, GREEN_ABS)
-            draw_pixel(x + 1, t_off + y, STEEL_BORDER)
-    draw_arrow_head_down(60, t_off + 49, 3, STEEL_BORDER, GREEN_GLOW)
-
-    # 3. Breeder / Conversion Diagram (u=0, v=120, w=88, h=54)
-    c_off = 120
-    GOLD_HOT = (0xFF, 0xC1, 0x07, 255)
-    GOLD_FILL = (0xFF, 0xEC, 0xB3, 255)
-    GOLD_BORDER = (0xE6, 0x51, 0x00, 255)
-
-    for x in range(6, 48):
-        draw_pixel(x, c_off + 26, STEEL_BORDER)
-        draw_pixel(x, c_off + 27, FAST_RED if x % 4 < 2 else THERM_BLUE)
-        draw_pixel(x, c_off + 28, STEEL_BORDER)
-    draw_arrow_head_right(50, c_off + 27, 4, STEEL_BORDER, GOLD_HOT)
-
-    for x, y in [(70, 26), (73, 25), (76, 25), (79, 24), (82, 24)]:
-        draw_pixel(x, c_off + y - 1, GOLD_BORDER)
-        draw_pixel(x, c_off + y, GOLD_HOT)
-        draw_pixel(x, c_off + y + 1, GOLD_BORDER)
-    draw_arrow_head_right(84, c_off + 24, 3, GOLD_BORDER, GOLD_HOT)
-
-    for dy in [-1, 0, 1]:
-        draw_pixel(50, c_off + 15 + dy, GOLD_BORDER)
-        draw_pixel(51, c_off + 15 + dy, GOLD_HOT)
-        draw_pixel(52, c_off + 15 + dy, GOLD_FILL)
-        draw_pixel(53, c_off + 15 + dy, GOLD_BORDER)
-
-    # 4. Pie Charts (u=index*16, v=240, w=16, h=16) for index=0..10
-    PIE_BORDER = (0x21, 0x21, 0x21, 255)
-    PIE_FAST = (0xD3, 0x2F, 0x2F, 255)
-    PIE_THERM = (0x19, 0x76, 0xD2, 255)
-
-    r_outer = 6.2
-    for idx in range(11):
-        ox = idx * 16
-        oy = 240
-        cx = ox + 7.5
-        cy = oy + 7.5
-        fraction_therm = idx / 10.0
-
-        for py in range(16):
-            for px in range(16):
-                gx = ox + px
-                gy = oy + py
-                dx = (gx - cx)
-                dy = (gy - cy)
-                dist = math.hypot(dx, dy)
-                if dist <= r_outer:
-                    if dist > r_outer - 1.1:
-                        draw_pixel(gx, gy, PIE_BORDER)
-                    else:
-                        angle = math.atan2(dy, dx)
-                        norm_angle = angle - (-math.pi / 2.0)
-                        while norm_angle < 0:
-                            norm_angle += 2.0 * math.pi
-                        while norm_angle >= 2.0 * math.pi:
-                            norm_angle -= 2.0 * math.pi
-
-                        therm_limit = fraction_therm * 2.0 * math.pi
-                        if norm_angle < therm_limit and fraction_therm > 0.0:
-                            draw_pixel(gx, gy, PIE_THERM)
-                        else:
-                            draw_pixel(gx, gy, PIE_FAST)
-
-    return w, h, grid
 
 
 def generate_long_arrow():
@@ -255,9 +97,6 @@ def main(output_dir=None):
         output_dir = Path(output_dir)
 
     print("Generating NEI Procedural Textures:")
-    w, h, grid = generate_atlas()
-    write_png(output_dir / "neutron_interaction_atlas.png", w, h, grid)
-
     w, h, grid = generate_long_arrow()
     write_png(output_dir / "long_arrow.png", w, h, grid)
 

@@ -91,13 +91,11 @@ public class NEINeutronInteractionHandlerTest {
                         foundReflector = true;
                         assertTrue(d.isReflector, "Reflector must have isReflector flag set");
                         assertTrue(d.reflectionFast > 0.0, "Reflector must specify fast reflection");
-                        assertTrue(d.reflectionThermal > 0.0, "Reflector must specify thermal reflection");
                     }
                     case "Moderator" -> {
                         foundModerator = true;
                         assertTrue(d.slowingProbability > 0.40, "Moderators must have high slowing probability");
                         assertTrue(d.hasDurability, "Moderators must specify wear durability");
-                        assertTrue(d.maxTemperature >= 2200.0, "Moderators must specify max operating temperature");
                     }
                     case "Radiovoltaic Plate" -> {
                         foundRadiovoltaic = true;
@@ -105,7 +103,6 @@ public class NEINeutronInteractionHandlerTest {
                             d.fastAbsorption == 0.40 || d.fastAbsorption == 0.60,
                             "Radiovoltaic plates must have 40% (HV) or 60% (EV) absorption");
                         assertEquals(d.fastAbsorption, d.thermalAbsorption, 1e-6);
-                        assertTrue(d.producesDirectEU, "Radiovoltaic plates must produce direct EU");
                         assertTrue(d.maxDirectEU >= 1024L, "Radiovoltaic plates must specify max EU/t");
                         assertTrue(d.isRadiovoltaic, "Radiovoltaic plates must have isRadiovoltaic flag");
                         assertTrue(
@@ -124,20 +121,12 @@ public class NEINeutronInteractionHandlerTest {
                     }
                     case "Fluid Coolant" -> {
                         foundFluidCoolant = true;
-                        assertTrue(d.boilingPoint > 0.0, "Fluid coolants must specify boiling point");
-                        assertTrue(d.specificHeat > 0.0, "Fluid coolants must specify specific heat");
                     }
                     case "Heat Vent" -> {
                         foundHeatVent = true;
-                        assertTrue(d.producesDirectEU, "Heat vents must produce direct EU while active");
-                        assertTrue(
-                            d.selfCoolingRate > 0.0 || d.componentCoolingRate > 0.0,
-                            "Heat vents must specify cooling rate");
                     }
                     case "Heat Exchanger" -> {
                         foundHeatExchanger = true;
-                        assertTrue(d.producesDirectEU, "Heat exchangers must produce direct EU while active");
-                        assertTrue(d.heatTransferRate > 0.0, "Heat exchangers must specify heat transfer rate");
                     }
                     case "Control Rod" -> {
                         foundControlRod = true;

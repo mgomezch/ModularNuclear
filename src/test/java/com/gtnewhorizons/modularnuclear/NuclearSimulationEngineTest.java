@@ -1249,20 +1249,9 @@ public class NuclearSimulationEngineTest {
             0.009,
             false,
             0.0,
-            0.0,
             0.15,
             0.0,
-            0.0,
-            0.0,
-            0.0,
-            2400.0,
-            0.0,
-            0.0,
-            false,
             0L,
-            null,
-            0.0,
-            0.0,
             true,
             100_000_000L,
             "Wear Capacity",
@@ -1278,7 +1267,6 @@ public class NuclearSimulationEngineTest {
         assertEquals(0.009, graphite.thermalAbsorption, 1e-4);
         assertEquals(0.50, 1.0 - graphite.slowingProbability, 1e-4);
         assertEquals(0.15, graphite.heatTransferCoeff, 1e-4);
-        assertEquals(2400.0, graphite.maxTemperature, 1e-4);
         assertTrue(graphite.hasDurability);
         assertEquals(100_000_000L, graphite.durability);
     }
