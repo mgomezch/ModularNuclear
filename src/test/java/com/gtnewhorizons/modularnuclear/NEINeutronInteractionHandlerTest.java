@@ -309,7 +309,10 @@ public class NEINeutronInteractionHandlerTest {
         assertTooltipMentions(handler, r1, 120, heatY + 32, "conduct");
         assertTooltipMentions(handler, r1, 83, heatY + 56, "heat");
         assertTooltipMentions(handler, r1, 40, heatY + 85, "row");
-        assertTrue(handler.getTooltipsAt(r1, 83, heatY + 85, null).isEmpty(), "The slot's tooltip is the item's");
+        assertTrue(
+            handler.getTooltipsAt(r1, 83, heatY + 85, null)
+                .isEmpty(),
+            "The slot's tooltip is the item's");
 
         java.util.List<String> tipDurability = handler
             .getTooltipsAt(r1, 80, NEINeutronInteractionHandler.DURABILITY_PANEL_Y + 38, null);

@@ -1155,6 +1155,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (stack == null && gtItem != null && gtItem.hasBeenSet()) stack = gtItem.get(1L);
         if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
         if (stack == null) return;
+        ComponentData.CoolantItemData configured = ReactorDataRegistry.findCoolantItem(stack);
+        if (configured != null) {
+            heatCapacity = Math.round(ComponentCardValues.coolantCellCapacity(stack, configured));
+        }
 
         ComponentStatsData data = new ComponentStatsData(
             stack,

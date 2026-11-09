@@ -131,6 +131,19 @@ public class ComponentCardValuesTest {
     }
 
     @Test
+    public void aCoolantCellWithoutAnItemHoldsItsConfiguredHeat() {
+        ComponentData.CoolantItemData cell = find(
+            ReactorDataRegistry.getComponentData().coolantItems,
+            x -> x.id,
+            "coolant_cell_ic2");
+        ComponentCardValues v = ComponentCardValues
+            .ofContent(TileContent.of(TileContent.Kind.COOLANT_ITEM, cell), null, 0.0);
+        assertEquals(HeatAction.STORES, v.action);
+        assertEquals(250_000.0, v.actionHeat, 1e-9);
+        assertEquals(2500.0, v.actionRate, 1e-9, "1% of its capacity per second");
+    }
+
+    @Test
     public void onlyHatchesHaveADifferentHeatCapacity() {
         EngineParameters p = NuclearSimulationEngine.params();
         assertEquals(p.huPerDegree, vent().minCapacity, 1e-9);
