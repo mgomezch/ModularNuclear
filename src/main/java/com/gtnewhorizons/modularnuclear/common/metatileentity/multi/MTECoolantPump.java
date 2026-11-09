@@ -132,7 +132,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     private static final int MAX_PUMP_WIDTH = 9;
     protected Block[] mFootprintBlocks;
     /** The status line, as a lang key and its arguments: each client localizes it. */
-    LocalizedText mLoopStatus = LocalizedText.of("coolantloops.pump.status.waiting");
+    LocalizedText mLoopStatus = LocalizedText.of("modularnuclear.coolant_loop.pump.status.waiting");
     protected Materials mTankMaterial = Materials.Steel;
 
     // Impeller slot
@@ -378,10 +378,12 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         // Check Railcraft tank presence above pump
         boolean hasValidTank = verifyRailcraftTankAbove(aBaseMetaTileEntity);
         if (!hasValidTank) {
-            if ("coolantloops.pump.status.formed".equals(mLoopStatus.key) || mLoopStatus.equals(LocalizedText.EMPTY)) {
-                setLoopStatusKey("coolantloops.pump.status.missing_or_mismatched_tank");
+            if ("modularnuclear.coolant_loop.pump.status.formed".equals(mLoopStatus.key)
+                || mLoopStatus.equals(LocalizedText.EMPTY)) {
+                setLoopStatusKey("modularnuclear.coolant_loop.pump.status.missing_or_mismatched_tank");
             }
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.pump.missing_or_mismatched_tank"));
+            aErrors
+                .add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.pump.missing_or_mismatched_tank"));
             return;
         }
 
@@ -392,12 +394,12 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             if (pressHatches == null) return;
 
             if (mDischargeHatch == null) {
-                setLoopStatusKey("coolantloops.pump.status.req_hatches");
-                aErrors.add(StructureErrors.of("coolantloops.structure.error.missing_discharge_hatch"));
+                setLoopStatusKey("modularnuclear.coolant_loop.pump.status.req_hatches");
+                aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.missing_discharge_hatch"));
             }
             if (mSuctionHatch == null) {
-                setLoopStatusKey("coolantloops.pump.status.req_hatches");
-                aErrors.add(StructureErrors.of("coolantloops.structure.error.missing_suction_hatch"));
+                setLoopStatusKey("modularnuclear.coolant_loop.pump.status.req_hatches");
+                aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.missing_suction_hatch"));
             }
 
             checkOneMaintenanceHatch(aErrors);
@@ -420,7 +422,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         }
 
         checkMaintenance();
-        setLoopStatusKey("coolantloops.pump.status.formed");
+        setLoopStatusKey("modularnuclear.coolant_loop.pump.status.formed");
         // A saved loop is restored by rebindRestoredLoop, which re-crawls only if it changed
         if (mActiveCrawl != null && !mActiveCrawl.isDone() || mNeedsPostLoadRebind) {
             return;
@@ -554,7 +556,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
                 mLoopState = LoopState.EMPTY;
                 mCurrentFillLiters = 0L;
             }
-            setLoopStatusKey("coolantloops.pump.status.req_hatches");
+            setLoopStatusKey("modularnuclear.coolant_loop.pump.status.req_hatches");
             return false;
         }
 
@@ -591,7 +593,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             return applyCrawlResult(result);
         } else if (!mLoopFormed) {
             setLoopStatusKey(
-                "coolantloops.pump.status.crawling",
+                "modularnuclear.coolant_loop.pump.status.crawling",
                 mActiveCrawl.getStepCount(),
                 mActiveCrawl.getTicksElapsed());
             return false;
@@ -612,7 +614,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             applyCrawlResult(result);
         } else if (!mLoopFormed) {
             setLoopStatusKey(
-                "coolantloops.pump.status.crawling",
+                "modularnuclear.coolant_loop.pump.status.crawling",
                 mActiveCrawl.getStepCount(),
                 mActiveCrawl.getTicksElapsed());
         }
@@ -958,7 +960,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
     protected LocalizedText engineFailureText() {
         LoopFailure f = mEngine.getFailure();
         return f != null ? LocalizedText.of(f.langKey, mEngine.getFailureArgs())
-            : LocalizedText.of("coolantloops.engine.failed");
+            : LocalizedText.of("modularnuclear.coolant_loop.engine.failed");
     }
 
     /** A GregTech shutdown reason as a status line, in each client's language. */
@@ -1168,7 +1170,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         mEngine.setBraking(false);
         // Do NOT abruptly zero flow rate! Fluid continues circulating through inertia and slowing with drag.
         String name = fluidName != null ? fluidName : "liquid nuclear fuel";
-        setLoopStatusKey("coolantloops.pump.status.catastrophic_fuel", name);
+        setLoopStatusKey("modularnuclear.coolant_loop.pump.status.catastrophic_fuel", name);
     }
 
     public void failOnImpellerMelting(double fluidTemp, Materials mat) {
@@ -1180,7 +1182,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         // Do NOT abruptly zero flow rate! Fluid continues circulating through inertia and slowing with drag.
         String matName = mat != null ? RotorThermalHelper.getMaterialLocalizedName(mat) : "impeller";
         double meltC = RotorThermalHelper.getMeltingPointCelsius(mat);
-        setLoopStatusKey("coolantloops.pump.status.catastrophic_melt", fluidTemp, meltC, matName);
+        setLoopStatusKey("modularnuclear.coolant_loop.pump.status.catastrophic_melt", fluidTemp, meltC, matName);
     }
 
     public void destroyImpeller() {
@@ -1573,9 +1575,11 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         if (!tag.getBoolean("loopFormed")) {
             String status = ClientText.of(LocalizedTextNbt.read(tag.getCompoundTag("loopStatus")));
             if (status.isEmpty()) {
-                status = ClientText.get("coolantloops.pump.status.waiting");
+                status = ClientText.get("modularnuclear.coolant_loop.pump.status.waiting");
             }
-            currentTip.add(EnumChatFormatting.RED + ClientText.format("coolantloops.waila.loop_not_formed", status));
+            currentTip.add(
+                EnumChatFormatting.RED
+                    + ClientText.format("modularnuclear.coolant_loop.waila.loop_not_formed", status));
             return;
         }
         super.getWailaBody(itemStack, currentTip, accessor, config);
@@ -1819,7 +1823,7 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             .addSubChannel(CoolantStructureChannels.STRUCTURE_WIDTH)
             .addSubChannel(CoolantStructureChannels.STRUCTURE_HEIGHT)
             .addSubChannel(CoolantStructureChannels.TANK_MATERIAL)
-            .toolTipFinisher(StatCollector.translateToLocal("gt.multiblock.coolantloops.finisher"));
+            .toolTipFinisher(StatCollector.translateToLocal("gt.multiblock.modularnuclear.coolant_loop.finisher"));
         return tt;
     }
 }

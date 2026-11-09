@@ -78,20 +78,20 @@ final class CoolantPumpCirculation {
                 p.setLoopStatus(MTECoolantPump.shutDownText(baseTE.getLastShutDownReason()));
             } else if (p.mLoopState == MTECoolantPump.LoopState.FILLING) {
                 p.setLoopStatusKey(
-                    "coolantloops.pump.status.filling_paused",
+                    "modularnuclear.coolant_loop.pump.status.filling_paused",
                     p.mCurrentFillLiters,
                     p.mRequiredFillLiters);
             } else if (p.mLoopState == MTECoolantPump.LoopState.DECELERATING
                 || p.mLoopState == MTECoolantPump.LoopState.DRAINING) {
                     p.setLoopStatusKey(
-                        "coolantloops.pump.status.stopping_paused",
+                        "modularnuclear.coolant_loop.pump.status.stopping_paused",
                         p.mCurrentFillLiters,
                         p.mRequiredFillLiters);
                 } else if (p.mLoopAtRest) {
-                    p.setLoopStatusKey("coolantloops.pump.status.at_rest", p.mCurrentFillLiters);
+                    p.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.at_rest", p.mCurrentFillLiters);
                 } else {
                     p.setLoopStatusKey(
-                        "coolantloops.pump.status.disabled_coasting",
+                        "modularnuclear.coolant_loop.pump.status.disabled_coasting",
                         p.mEngine.getVolumetricFlowRate() * 1000.0);
                 }
             boolean survived = p.stepCoastingAndCheckRupture();
@@ -136,7 +136,7 @@ final class CoolantPumpCirculation {
             p.mEngine.setPumpPowered(false);
             p.mEngine.setPumpMechanicalPowerWatts(0.0);
             p.mEngine.setBraking(false);
-            p.setLoopStatusKey("coolantloops.pump.status.missing_rotor");
+            p.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.missing_rotor");
             boolean survived = p.stepCoastingAndCheckRupture();
             p.noteLoopAtRest();
             return survived;
@@ -194,7 +194,7 @@ final class CoolantPumpCirculation {
                 p.mEngine.setRuptured(true);
                 p.triggerCatastrophicExplosion(
                     LocalizedText.of(
-                        "coolantloops.pump.status.catastrophic_solidification",
+                        "modularnuclear.coolant_loop.pump.status.catastrophic_solidification",
                         minLoopTemp,
                         declaredMelting,
                         currentProp != null ? currentProp.getFluidName() : "molten fluid"),
@@ -258,7 +258,7 @@ final class CoolantPumpCirculation {
                     p.mEngine.setRuptured(true);
                     p.triggerCatastrophicExplosion(
                         LocalizedText.of(
-                            "coolantloops.pump.status.catastrophic_solidification",
+                            "modularnuclear.coolant_loop.pump.status.catastrophic_solidification",
                             minLoopTemp,
                             declaredMelting,
                             currentProp != null ? currentProp.getFluidName() : "molten fluid"),
@@ -282,7 +282,7 @@ final class CoolantPumpCirculation {
                     p.mEngine.setPumpMechanicalPowerWatts(0.0);
                     p.mEngine.setBraking(false);
                     p.setLoopStatusKey(
-                        "coolantloops.pump.status.refuse_solidify",
+                        "modularnuclear.coolant_loop.pump.status.refuse_solidify",
                         resTemp,
                         declaredMelting,
                         currentProp != null ? currentProp.getFluidName() : "molten fluid");

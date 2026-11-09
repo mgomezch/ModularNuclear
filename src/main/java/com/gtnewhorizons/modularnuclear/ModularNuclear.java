@@ -70,14 +70,14 @@ public class ModularNuclear {
         ModWerkstoffs.register();
         ModBlocks.init();
         ModItems.init();
-        CoolantLoops.preInit(event);
+        CoolantLoopSetup.preInit(event);
     }
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         ModMetaTileEntities.init();
         ModFluids.registerContainers();
-        CoolantLoops.init(event);
+        CoolantLoopSetup.init(event);
         NuclearControlIntegration.init();
         OpenComputersIntegration.init();
         ProjectRedIntegration.init();
@@ -126,7 +126,7 @@ public class ModularNuclear {
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
         ModRecipes.init();
-        CoolantLoops.postInit(event);
+        CoolantLoopSetup.postInit(event);
         ModWerkstoffs.checkIds();
         CheeseRecipeRegistry.getInstance()
             .loadRecipes();

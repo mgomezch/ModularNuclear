@@ -13,7 +13,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 /**
- * Validates HorizonsQA multiblock structure definitions for CoolantLoops.
+ * Validates HorizonsQA multiblock structure definitions for coolant loops.
  */
 public class HorizonsQAStructureTest {
 
@@ -83,7 +83,8 @@ public class HorizonsQAStructureTest {
 
     @Test
     public void testCoolantPumpStructure() {
-        JsonObject json = loadStructure("/assets/coolantloops/horizonqastructures/multiblock/coolant_pump/valid.json");
+        JsonObject json = loadStructure(
+            "/assets/modularnuclear/horizonqastructures/multiblock/coolant_pump/valid.json");
         validateStructure(json, 3, 2, 3);
 
         JsonObject annotations = json.getAsJsonObject("annotations");
@@ -98,7 +99,7 @@ public class HorizonsQAStructureTest {
     @Test
     public void testPressurizedHeatExchangerStructure() {
         JsonObject json = loadStructure(
-            "/assets/coolantloops/horizonqastructures/multiblock/pressurized_heat_exchanger/valid.json");
+            "/assets/modularnuclear/horizonqastructures/multiblock/pressurized_heat_exchanger/valid.json");
         validateStructure(json, 3, 3, 5);
 
         JsonObject annotations = json.getAsJsonObject("annotations");
@@ -117,7 +118,7 @@ public class HorizonsQAStructureTest {
     @Test
     public void testPressurizedHeatExchangerComponentCountsAndPlacements() {
         JsonObject json = loadStructure(
-            "/assets/coolantloops/horizonqastructures/multiblock/pressurized_heat_exchanger/valid.json");
+            "/assets/modularnuclear/horizonqastructures/multiblock/pressurized_heat_exchanger/valid.json");
         assertNotNull(json);
 
         JsonArray layers = json.getAsJsonArray("layers");

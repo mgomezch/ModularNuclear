@@ -62,20 +62,21 @@ final class CoolantPumpStructureScan {
                 Block block = world.getBlock(cx, cy, cz);
                 String matName = pump.mTankMaterial != null ? pump.mTankMaterial.mDefaultLocalName : "Matching";
                 if (!(block instanceof BlockFrameBox)) {
-                    pump.setLoopStatusKey("coolantloops.pump.status.corner_frame", cx, cy, cz);
+                    pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.corner_frame", cx, cy, cz);
                     aErrors.add(
                         new PositionedStructureError(
                             cx,
                             cy,
                             cz,
-                            Collections.singletonList("coolantloops.structure.error.pump.corner_frame_tank")));
+                            Collections
+                                .singletonList("modularnuclear.coolant_loop.structure.error.pump.corner_frame_tank")));
                     return null;
                 }
                 int meta = world.getBlockMetadata(cx, cy, cz);
                 Materials frameMat = BlockFrameBox.getMaterial(meta);
                 if (!CoolantPipingRegistry.areMaterialsEqual(frameMat, pump.mTankMaterial)) {
                     pump.setLoopStatusKey(
-                        "coolantloops.pump.status.corner_frame_mat",
+                        "modularnuclear.coolant_loop.pump.status.corner_frame_mat",
                         cx,
                         cy,
                         cz,
@@ -86,7 +87,8 @@ final class CoolantPumpStructureScan {
                             cx,
                             cy,
                             cz,
-                            Collections.singletonList("coolantloops.structure.error.pump.corner_frame_tank")));
+                            Collections
+                                .singletonList("modularnuclear.coolant_loop.structure.error.pump.corner_frame_tank")));
                     return null;
                 }
             }
@@ -130,26 +132,28 @@ final class CoolantPumpStructureScan {
                                 pump.mInputBusses.add((MTEHatchInputBus) mte);
                             }
                         } else {
-                            pump.setLoopStatusKey("coolantloops.pump.status.invalid_hatch", bx, by, bz);
+                            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.invalid_hatch", bx, by, bz);
                             aErrors.add(
                                 new PositionedStructureError(
                                     bx,
                                     by,
                                     bz,
-                                    Collections.singletonList("coolantloops.structure.error.pump.invalid_hatch")));
+                                    Collections.singletonList(
+                                        "modularnuclear.coolant_loop.structure.error.pump.invalid_hatch")));
                             return null;
                         }
                     } else if (GregTechAPI.sBlockCasings2 != null) {
                         Block block = world.getBlock(bx, by, bz);
                         int meta = world.getBlockMetadata(bx, by, bz);
                         if (block != GregTechAPI.sBlockCasings2 || meta != 15) {
-                            pump.setLoopStatusKey("coolantloops.pump.status.casing_req", bx, by, bz);
+                            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.casing_req", bx, by, bz);
                             aErrors.add(
                                 new PositionedStructureError(
                                     bx,
                                     by,
                                     bz,
-                                    Collections.singletonList("coolantloops.structure.error.pump.casing_req")));
+                                    Collections
+                                        .singletonList("modularnuclear.coolant_loop.structure.error.pump.casing_req")));
                             return null;
                         }
                     }
@@ -162,16 +166,18 @@ final class CoolantPumpStructureScan {
                 if (pump.mDischargeHatch == null) {
                     pump.mDischargeHatch = ph;
                 } else {
-                    pump.setLoopStatusKey("coolantloops.pump.status.req_hatches");
-                    aErrors.add(StructureErrors.of("coolantloops.structure.error.duplicate_pump_hatches"));
+                    pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.req_hatches");
+                    aErrors
+                        .add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.duplicate_pump_hatches"));
                     return null;
                 }
             } else if (ph.isInput()) {
                 if (pump.mSuctionHatch == null) {
                     pump.mSuctionHatch = ph;
                 } else {
-                    pump.setLoopStatusKey("coolantloops.pump.status.req_hatches");
-                    aErrors.add(StructureErrors.of("coolantloops.structure.error.duplicate_pump_hatches"));
+                    pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.req_hatches");
+                    aErrors
+                        .add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.duplicate_pump_hatches"));
                     return null;
                 }
             }

@@ -17,7 +17,7 @@ public class CoolantLoopDefaultsJsonTest {
 
     private static Object yaml(String name) throws Exception {
         try (InputStream in = CoolantLoopDefaultsJsonTest.class
-            .getResourceAsStream("/assets/coolantloops/default_config/" + name + ".yaml")) {
+            .getResourceAsStream("/assets/modularnuclear/default_config/coolant_loops/" + name + ".yaml")) {
             assertNotNull(in, name + ".yaml resource");
             return new Yaml().load(in);
         }

@@ -182,7 +182,7 @@ public class MultiblockStructureErrorsTest {
         boolean hasTankError = errors.stream()
             .anyMatch(
                 e -> e.getDisplayString() != null && (e.getDisplayString()
-                    .contains("coolantloops.structure.error.pump.missing_or_mismatched_tank")
+                    .contains("modularnuclear.coolant_loop.structure.error.pump.missing_or_mismatched_tank")
                     || e.getDisplayString()
                         .toLowerCase()
                         .contains("railcraft tank")));
@@ -191,20 +191,25 @@ public class MultiblockStructureErrorsTest {
 
     @Test
     void testStructureErrorLocalizationKeysExist() {
-        String[] keys = new String[] { "coolantloops.structure.error.missing_primary_inlet",
-            "coolantloops.structure.error.missing_primary_outlet",
-            "coolantloops.structure.error.single_amp_energy_required",
-            "coolantloops.structure.error.sheetmetal_missing", "coolantloops.structure.error.sheetmetal_mixed",
-            "coolantloops.structure.error.pump.missing_or_mismatched_tank",
-            "coolantloops.structure.error.pump.corner_frame_tank", "coolantloops.structure.error.pump.casing_req",
-            "coolantloops.structure.error.pump.invalid_hatch", "coolantloops.structure.error.missing_suction_hatch",
-            "coolantloops.structure.error.missing_discharge_hatch",
-            "coolantloops.structure.error.duplicate_pump_hatches", "coolantloops.structure.error.heater_missing_coils",
-            "coolantloops.structure.error.heater_missing_pipe_casing",
-            "coolantloops.structure.error.heater_mixed_pipe_casing",
-            "coolantloops.structure.error.heater_missing_energy", "coolantloops.structure.error.heater_multiple_energy",
-            "coolantloops.structure.error.heater_no_laser",
-            "coolantloops.structure.error.heater_energy_tier_too_high" };
+        String[] keys = new String[] { "modularnuclear.coolant_loop.structure.error.missing_primary_inlet",
+            "modularnuclear.coolant_loop.structure.error.missing_primary_outlet",
+            "modularnuclear.coolant_loop.structure.error.single_amp_energy_required",
+            "modularnuclear.coolant_loop.structure.error.sheetmetal_missing",
+            "modularnuclear.coolant_loop.structure.error.sheetmetal_mixed",
+            "modularnuclear.coolant_loop.structure.error.pump.missing_or_mismatched_tank",
+            "modularnuclear.coolant_loop.structure.error.pump.corner_frame_tank",
+            "modularnuclear.coolant_loop.structure.error.pump.casing_req",
+            "modularnuclear.coolant_loop.structure.error.pump.invalid_hatch",
+            "modularnuclear.coolant_loop.structure.error.missing_suction_hatch",
+            "modularnuclear.coolant_loop.structure.error.missing_discharge_hatch",
+            "modularnuclear.coolant_loop.structure.error.duplicate_pump_hatches",
+            "modularnuclear.coolant_loop.structure.error.heater_missing_coils",
+            "modularnuclear.coolant_loop.structure.error.heater_missing_pipe_casing",
+            "modularnuclear.coolant_loop.structure.error.heater_mixed_pipe_casing",
+            "modularnuclear.coolant_loop.structure.error.heater_missing_energy",
+            "modularnuclear.coolant_loop.structure.error.heater_multiple_energy",
+            "modularnuclear.coolant_loop.structure.error.heater_no_laser",
+            "modularnuclear.coolant_loop.structure.error.heater_energy_tier_too_high" };
         for (String key : keys) {
             String val = ClientText.get(key);
             assertNotNull(val, "Key should exist in lang file: " + key);

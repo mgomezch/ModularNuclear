@@ -41,15 +41,15 @@ public class CoolantLoopMetaTileEntitiesCollisionTest {
         for (int id : coolantLoopIds) {
             assertFalse(
                 gtIds.contains(id),
-                "CoolantLoops MTE ID " + id + " collides with a core GT/TecTech MetaTileEntityID enum!");
+                "Coolant loop MTE ID " + id + " collides with a core GT/TecTech MetaTileEntityID enum!");
         }
 
         // Also verify no overlap with ModularNuclear IDs (32100..32115)
         for (int mnId = 32100; mnId <= 32115; mnId++) {
-            assertFalse(coolantLoopIds.contains(mnId), "CoolantLoops MTE ID collides with ModularNuclear ID " + mnId);
+            assertFalse(coolantLoopIds.contains(mnId), "Coolant loop MTE ID collides with ModularNuclear ID " + mnId);
         }
 
-        assertTrue(coolantLoopIds.size() >= 39, "Expected at least 39 distinct CoolantLoops MTE IDs");
+        assertTrue(coolantLoopIds.size() >= 39, "Expected at least 39 distinct coolant loop MTE IDs");
     }
 
     /** Every coolant pipe's ID, checking none repeats. */

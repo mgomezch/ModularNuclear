@@ -38,12 +38,12 @@ final class CoolantPumpFluidSafety {
             pump.mEngine.setPumpPowered(false);
             pump.mEngine.setPumpMechanicalPowerWatts(0.0);
             pump.mEngine.setBraking(false);
-            pump.setLoopStatusKey("coolantloops.pump.status.tank_empty");
+            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.tank_empty");
             return MTECoolantPump.Step.DONE;
         }
         // Coolant in the tank: the pump starts only on a fluid it can tell is a loop coolant
         if (pump.getTotalCoolantLiters() > 0 && (reservoirFluid == null || reservoirFluid.getFluid() == null)) {
-            return refuse(pump, "coolantloops.pump.status.reservoir_unknown_fluid");
+            return refuse(pump, "modularnuclear.coolant_loop.pump.status.reservoir_unknown_fluid");
         }
         if (reservoirFluid != null && reservoirFluid.getFluid() != null) {
             if (pump.isLiquidNuclearFuel(reservoirFluid)) {
@@ -57,7 +57,7 @@ final class CoolantPumpFluidSafety {
                 pump.mEngine.setPumpPowered(false);
                 pump.mEngine.setPumpMechanicalPowerWatts(0.0);
                 pump.mEngine.setBraking(false);
-                pump.setLoopStatusKey("coolantloops.pump.status.refuse_water");
+                pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.refuse_water");
                 return MTECoolantPump.Step.DONE;
             }
             if (pump.isGaseousFluid(reservoirFluid)) {
@@ -66,7 +66,7 @@ final class CoolantPumpFluidSafety {
                 pump.mEngine.setPumpMechanicalPowerWatts(0.0);
                 pump.mEngine.setBraking(false);
                 pump.setLoopStatusKey(
-                    "coolantloops.pump.status.refuse_gas",
+                    "modularnuclear.coolant_loop.pump.status.refuse_gas",
                     reservoirFluid.getFluid()
                         .getName());
                 return MTECoolantPump.Step.DONE;
@@ -79,7 +79,7 @@ final class CoolantPumpFluidSafety {
                     pump.mEngine.setPumpPowered(false);
                     pump.mEngine.setPumpMechanicalPowerWatts(0.0);
                     pump.mEngine.setBraking(false);
-                    pump.setLoopStatusKey("coolantloops.pump.status.refuse_lava");
+                    pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.refuse_lava");
                     return MTECoolantPump.Step.DONE;
                 }
             }
@@ -98,7 +98,7 @@ final class CoolantPumpFluidSafety {
                 pump.mEngine.setPumpPowered(false);
                 pump.mEngine.setPumpMechanicalPowerWatts(0.0);
                 pump.mEngine.setBraking(false);
-                pump.setLoopStatusKey("coolantloops.pump.status.refuse_water");
+                pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.refuse_water");
                 return MTECoolantPump.Step.DONE;
             }
             if (pump.mEngine.getFluid()
@@ -110,7 +110,7 @@ final class CoolantPumpFluidSafety {
                     pump.mEngine.setPumpPowered(false);
                     pump.mEngine.setPumpMechanicalPowerWatts(0.0);
                     pump.mEngine.setBraking(false);
-                    pump.setLoopStatusKey("coolantloops.pump.status.refuse_lava");
+                    pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.refuse_lava");
                     return MTECoolantPump.Step.DONE;
                 }
             }
@@ -121,7 +121,7 @@ final class CoolantPumpFluidSafety {
             == null) {
             return refuse(
                 pump,
-                "coolantloops.pump.status.refuse_unknown_coolant",
+                "modularnuclear.coolant_loop.pump.status.refuse_unknown_coolant",
                 reservoirFluid.getFluid()
                     .getName());
         }

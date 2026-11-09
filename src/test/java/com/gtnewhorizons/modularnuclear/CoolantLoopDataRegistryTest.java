@@ -37,8 +37,8 @@ public class CoolantLoopDataRegistryTest {
         File configDir = tempDir.toFile();
         CoolantLoopDataRegistry.init(configDir);
 
-        File loopDir = new File(configDir, "coolantloops");
-        assertTrue(loopDir.exists(), "coolantloops config directory should be created");
+        File loopDir = new File(configDir, "modularnuclear/coolant_loops");
+        assertTrue(loopDir.exists(), "coolant loop config directory should be created");
 
         File physicsFile = new File(loopDir, "physics.yaml");
         File fluidsFile = new File(loopDir, "fluids.yaml");
@@ -153,7 +153,7 @@ public class CoolantLoopDataRegistryTest {
     @Test
     public void testCustomFluidAndPhysicsYamlConfiguration(@TempDir Path tempDir) throws Exception {
         File configDir = tempDir.toFile();
-        File loopDir = new File(configDir, "coolantloops");
+        File loopDir = new File(configDir, "modularnuclear/coolant_loops");
         loopDir.mkdirs();
 
         // Write custom physics.yaml
@@ -313,7 +313,7 @@ public class CoolantLoopDataRegistryTest {
         assertFalse(phe.isAllowedSecondaryFluid("water"));
 
         // Now customize devices.yaml to allow plain water as well
-        File loopDir = new File(configDir, "coolantloops");
+        File loopDir = new File(configDir, "modularnuclear/coolant_loops");
         String customDevices = "phe:\n" + "  allowedSecondaryFluids:\n"
             + "    - \"ic2distilledwater\"\n"
             + "    - \"water\"\n";
@@ -372,7 +372,7 @@ public class CoolantLoopDataRegistryTest {
             "Unregistered fluid is not liquid nuclear fuel");
 
         // Add custom fuel in fluids.yaml
-        File loopDir = new File(configDir, "coolantloops");
+        File loopDir = new File(configDir, "modularnuclear/coolant_loops");
         String customFluids = "liquidNuclearFuels:\n" + "  - \"custom_thorium_blend\"\n";
         Files.write(new File(loopDir, "fluids.yaml").toPath(), customFluids.getBytes());
 
@@ -388,7 +388,7 @@ public class CoolantLoopDataRegistryTest {
         File configDir = tempDir.toFile();
         CoolantLoopDataRegistry.init(configDir);
 
-        File loopDir = new File(configDir, "coolantloops");
+        File loopDir = new File(configDir, "modularnuclear/coolant_loops");
         // Override only phase change points for water, without specifying any transport properties
         String customFluids = "fluids:\n" + "  water:\n"
             + "    boilingPointCelsius: 95.0\n"
@@ -415,7 +415,7 @@ public class CoolantLoopDataRegistryTest {
         File configDir = tempDir.toFile();
         CoolantLoopDataRegistry.init(configDir);
 
-        File loopDir = new File(configDir, "coolantloops");
+        File loopDir = new File(configDir, "modularnuclear/coolant_loops");
         // Override only density for heavywater, without specifying phase change points
         String customFluids = "fluids:\n" + "  heavywater:\n" + "    density: 1115.0\n";
         Files.write(new File(loopDir, "fluids.yaml").toPath(), customFluids.getBytes());
@@ -440,7 +440,7 @@ public class CoolantLoopDataRegistryTest {
         File configDir = tempDir.toFile();
         CoolantLoopDataRegistry.init(configDir);
 
-        File loopDir = new File(configDir, "coolantloops");
+        File loopDir = new File(configDir, "modularnuclear/coolant_loops");
         // Attempt to configure a finite freezing point for ic2coolant
         String customFluids = "fluids:\n" + "  ic2coolant:\n" + "    freezingPointCelsius: -25.0\n";
         Files.write(new File(loopDir, "fluids.yaml").toPath(), customFluids.getBytes());

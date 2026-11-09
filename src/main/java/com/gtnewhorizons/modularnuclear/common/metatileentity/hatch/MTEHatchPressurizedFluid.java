@@ -9,6 +9,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.CoolantFluidProperty;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopDevice;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ICoolantLoopPump;
@@ -73,10 +74,10 @@ public class MTEHatchPressurizedFluid extends MTEHatch implements ICoolantLoopDe
     }
 
     public static final IIconContainer OVERLAY_PRESSURIZED_IN = new CustomHatchIcon(
-        "coolantloops",
+        ModularNuclear.MODID,
         "overlay_pressurized_in");
     public static final IIconContainer OVERLAY_PRESSURIZED_OUT = new CustomHatchIcon(
-        "coolantloops",
+        ModularNuclear.MODID,
         "overlay_pressurized_out");
 
     public enum HatchMode {

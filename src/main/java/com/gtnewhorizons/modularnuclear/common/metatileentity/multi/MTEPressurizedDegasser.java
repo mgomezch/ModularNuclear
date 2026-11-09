@@ -158,10 +158,10 @@ public class MTEPressurizedDegasser extends MTEEnhancedMultiBlockBase<MTEPressur
 
         checkCasingMin(aErrors, mCasing, 48);
         if (mPrimaryInlet == null) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.missing_primary_inlet"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.missing_primary_inlet"));
         }
         if (mPrimaryOutlet == null) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.missing_primary_outlet"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.missing_primary_outlet"));
         }
 
         if (mEnergyHatches.isEmpty()) {
@@ -171,7 +171,8 @@ public class MTEPressurizedDegasser extends MTEEnhancedMultiBlockBase<MTEPressur
         }
         for (MTEHatchEnergy eh : mEnergyHatches) {
             if (!isSingleAmpEnergyHatch(eh)) {
-                aErrors.add(StructureErrors.of("coolantloops.structure.error.single_amp_energy_required"));
+                aErrors
+                    .add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.single_amp_energy_required"));
                 break;
             }
         }
@@ -733,7 +734,7 @@ public class MTEPressurizedDegasser extends MTEEnhancedMultiBlockBase<MTEPressur
             .addOutputHatch(
                 StatCollector.translateToLocal("gt.multiblock.pressurized_degasser.structure.output_hatch"),
                 2)
-            .toolTipFinisher(StatCollector.translateToLocal("gt.multiblock.coolantloops.finisher"));
+            .toolTipFinisher(StatCollector.translateToLocal("gt.multiblock.modularnuclear.coolant_loop.finisher"));
         return tt;
     }
 

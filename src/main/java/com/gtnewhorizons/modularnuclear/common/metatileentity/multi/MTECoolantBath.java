@@ -17,7 +17,8 @@ import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
-import com.gtnewhorizons.modularnuclear.CoolantLoops;
+import com.gtnewhorizons.modularnuclear.CoolantLoopSetup;
+import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.config.CoolantLoopDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.CoolantDeviceData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ConvectiveHeatTransferModel;
@@ -482,7 +483,7 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
             mStructureTier,
             syncData);
 
-        CoolantLoops.network.sendToAllAround(
+        CoolantLoopSetup.network.sendToAllAround(
             packet,
             new TargetPoint(
                 bte.getWorld().provider.dimensionId,
@@ -741,10 +742,10 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
         }
 
         if (mPrimaryInlet == null) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.missing_primary_inlet"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.missing_primary_inlet"));
         }
         if (mPrimaryOutlet == null) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.missing_primary_outlet"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.missing_primary_outlet"));
         }
         checkHasInputBus(aErrors);
         checkHasOutputBus(aErrors);
@@ -855,7 +856,7 @@ public class MTECoolantBath extends MTEEnhancedMultiBlockBase<MTECoolantBath>
             .addOtherStructurePart("Pressurized Outlet Hatch", "Middle layer, opposite narrow end")
             .addInputBus("Any heatproof casing block", 1)
             .addOutputBus("Any heatproof casing block", 1)
-            .toolTipFinisher("Coolant Loops");
+            .toolTipFinisher(ModularNuclear.MODNAME);
         return tt;
     }
 

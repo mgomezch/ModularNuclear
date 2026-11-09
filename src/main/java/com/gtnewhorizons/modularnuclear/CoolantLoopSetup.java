@@ -22,11 +22,12 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 
-public class CoolantLoops {
+/** Sets up the coolant loop machines, as part of ModularNuclear's own lifecycle. */
+public class CoolantLoopSetup {
 
-    public static final String MODID = "coolantloops";
-    public static final String MODNAME = "Coolant Loops";
-    public static final Logger LOG = LogManager.getLogger(MODID);
+    private static final String NETWORK_CHANNEL = "mn_coolant_loops";
+
+    public static final Logger LOG = LogManager.getLogger(ModularNuclear.MODID);
 
     public static cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper network;
 
@@ -39,7 +40,7 @@ public class CoolantLoops {
         });
         CoolantLoopBlocks.init();
 
-        network = cpw.mods.fml.common.network.NetworkRegistry.INSTANCE.newSimpleChannel(MODID);
+        network = cpw.mods.fml.common.network.NetworkRegistry.INSTANCE.newSimpleChannel(NETWORK_CHANNEL);
         network.registerMessage(
             PacketSyncCoolantBath.Handler.class,
             PacketSyncCoolantBath.class,

@@ -28,13 +28,14 @@ public class RotorTooltipEventHandler {
                 double meltC = RotorThermalHelper.getMeltingPointCelsius(mat);
                 double softenC = RotorThermalHelper.getThermalSofteningCelsius(mat);
 
-                event.toolTip.add(EnumChatFormatting.GRAY + ClientText.get("coolantloops.tooltip.rotor.header"));
+                event.toolTip
+                    .add(EnumChatFormatting.GRAY + ClientText.get("modularnuclear.coolant_loop.tooltip.rotor.header"));
                 event.toolTip.add(
                     EnumChatFormatting.DARK_GRAY + "  "
-                        + ClientText.format("coolantloops.tooltip.rotor.softening", softenC));
+                        + ClientText.format("modularnuclear.coolant_loop.tooltip.rotor.softening", softenC));
                 event.toolTip.add(
                     EnumChatFormatting.DARK_GRAY + "  "
-                        + ClientText.format("coolantloops.tooltip.rotor.melting", meltC));
+                        + ClientText.format("modularnuclear.coolant_loop.tooltip.rotor.melting", meltC));
             }
         }
     }

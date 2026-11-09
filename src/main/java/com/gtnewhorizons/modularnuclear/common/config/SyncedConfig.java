@@ -5,7 +5,7 @@ import java.util.Map;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.MinecraftServer;
 
-import com.gtnewhorizons.modularnuclear.CoolantLoops;
+import com.gtnewhorizons.modularnuclear.CoolantLoopSetup;
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.network.PacketSyncConfig;
 
@@ -66,7 +66,7 @@ public final class SyncedConfig {
         public void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
             MinecraftServer server = MinecraftServer.getServer();
             if (server != null && server.isDedicatedServer() && event.player instanceof EntityPlayerMP player) {
-                CoolantLoops.network.sendTo(snapshot(), player);
+                CoolantLoopSetup.network.sendTo(snapshot(), player);
             }
         }
     }

@@ -124,9 +124,9 @@ public class TileEntityManifold extends TileEntity implements ICoolantLoopDevice
     /** The lang key of the plane the manifold lies in. */
     public String getPlaneKey() {
         return switch (getPlaneAxis()) {
-            case 0 -> "coolantloops.manifold.plane.yz";
-            case 1 -> "coolantloops.manifold.plane.xz";
-            default -> "coolantloops.manifold.plane.xy";
+            case 0 -> "modularnuclear.coolant_loop.manifold.plane.yz";
+            case 1 -> "modularnuclear.coolant_loop.manifold.plane.xz";
+            default -> "modularnuclear.coolant_loop.manifold.plane.xy";
         };
     }
 

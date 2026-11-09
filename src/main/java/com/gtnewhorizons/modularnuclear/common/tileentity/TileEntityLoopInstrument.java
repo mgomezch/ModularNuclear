@@ -68,7 +68,7 @@ public class TileEntityLoopInstrument extends TileEntity
         }
 
         public String langKey() {
-            return "coolantloops.metric." + name().toLowerCase();
+            return "modularnuclear.coolant_loop.metric." + name().toLowerCase();
         }
 
         /** The name in the game's language, for the client's GUI ({@link #displayName} is the English one). */
@@ -232,11 +232,11 @@ public class TileEntityLoopInstrument extends TileEntity
 
     public static LocalizedText getBundledModeText(int mode) {
         if (mode == BUNDLED_MODE_BROADCAST) {
-            return LocalizedText.of("coolantloops.bundled.broadcast");
+            return LocalizedText.of("modularnuclear.coolant_loop.bundled.broadcast");
         }
         int dyeIdx = mode - 1;
         if (dyeIdx >= 0 && dyeIdx < DYE_NAMES.length) {
-            return LocalizedText.of("coolantloops.bundled.channel", dyeIdx, DYE_NAMES[dyeIdx]);
+            return LocalizedText.of("modularnuclear.coolant_loop.bundled.channel", dyeIdx, DYE_NAMES[dyeIdx]);
         }
         return LocalizedText.literal("Unknown");
     }
@@ -562,7 +562,7 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> cycleMetric(-1))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(ClientText.get("coolantloops.gui.instrument.btn.prev_metric"))
+                .addTooltip(ClientText.get("modularnuclear.coolant_loop.gui.instrument.btn.prev_metric"))
                 .setPos(12, 20)
                 .setSize(12, 12));
         builder.widget(
@@ -572,13 +572,14 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new TextWidget()
                 .setStringSupplier(
-                    () -> ClientText.format("coolantloops.gui.instrument.metric", trackedMetric.getDisplayName()))
+                    () -> ClientText
+                        .format("modularnuclear.coolant_loop.gui.instrument.metric", trackedMetric.getDisplayName()))
                 .setDefaultColor(Color.rgb(100, 200, 255))
                 .setPos(28, 22));
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> cycleMetric(1))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(ClientText.get("coolantloops.gui.instrument.btn.next_metric"))
+                .addTooltip(ClientText.get("modularnuclear.coolant_loop.gui.instrument.btn.next_metric"))
                 .setPos(153, 20)
                 .setSize(12, 12));
         builder.widget(
@@ -591,7 +592,7 @@ public class TileEntityLoopInstrument extends TileEntity
             new TextWidget()
                 .setStringSupplier(
                     () -> ClientText.format(
-                        "coolantloops.gui.instrument.measured",
+                        "modularnuclear.coolant_loop.gui.instrument.measured",
                         formatMetricValue(getDisplayValue()),
                         trackedMetric.unit))
                 .setDefaultColor(Color.rgb(255, 220, 100))
@@ -599,9 +600,9 @@ public class TileEntityLoopInstrument extends TileEntity
 
         // Row 3: Output Signal
         builder.widget(
-            new TextWidget()
-                .setStringSupplier(
-                    () -> ClientText.format("coolantloops.gui.instrument.output", redstoneOutput, fineOutputStrength))
+            new TextWidget().setStringSupplier(
+                () -> ClientText
+                    .format("modularnuclear.coolant_loop.gui.instrument.output", redstoneOutput, fineOutputStrength))
                 .setDefaultColor(Color.rgb(255, 80, 80))
                 .setPos(12, 54));
 
@@ -609,7 +610,7 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> cycleBundledMode(-1))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(ClientText.get("coolantloops.gui.instrument.btn.prev_bundled"))
+                .addTooltip(ClientText.get("modularnuclear.coolant_loop.gui.instrument.btn.prev_bundled"))
                 .setPos(12, 70)
                 .setSize(12, 12));
         builder.widget(
@@ -619,14 +620,15 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new TextWidget()
                 .setStringSupplier(
-                    () -> ClientText
-                        .format("coolantloops.gui.instrument.pr", ClientText.of(getBundledModeText(bundledMode))))
+                    () -> ClientText.format(
+                        "modularnuclear.coolant_loop.gui.instrument.pr",
+                        ClientText.of(getBundledModeText(bundledMode))))
                 .setDefaultColor(Color.rgb(200, 160, 255))
                 .setPos(28, 72));
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> cycleBundledMode(1))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(ClientText.get("coolantloops.gui.instrument.btn.next_bundled"))
+                .addTooltip(ClientText.get("modularnuclear.coolant_loop.gui.instrument.btn.next_bundled"))
                 .setPos(153, 70)
                 .setSize(12, 12));
         builder.widget(
@@ -638,28 +640,30 @@ public class TileEntityLoopInstrument extends TileEntity
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> setThresholdMode(!thresholdMode))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(ClientText.get("coolantloops.gui.instrument.btn.mode"))
+                .addTooltip(ClientText.get("modularnuclear.coolant_loop.gui.instrument.btn.mode"))
                 .setPos(7, 100)
                 .setSize(100, 14));
         builder.widget(
             new TextWidget()
                 .setStringSupplier(
                     () -> ClientText.get(
-                        thresholdMode ? "coolantloops.gui.instrument.mode.threshold"
-                            : "coolantloops.gui.instrument.mode.proportional"))
+                        thresholdMode ? "modularnuclear.coolant_loop.gui.instrument.mode.threshold"
+                            : "modularnuclear.coolant_loop.gui.instrument.mode.proportional"))
                 .setTextAlignment(Alignment.Center)
                 .setPos(7, 103)
                 .setSize(100, 10));
         builder.widget(
             new ButtonWidget().setOnClick((clickData, widget) -> setThresholdInverted(!thresholdInverted))
                 .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
-                .addTooltip(ClientText.get("coolantloops.gui.instrument.btn.invert"))
+                .addTooltip(ClientText.get("modularnuclear.coolant_loop.gui.instrument.btn.invert"))
                 .setPos(111, 100)
                 .setSize(58, 14));
         builder.widget(
-            new TextWidget().setStringSupplier(
-                () -> ClientText.get(
-                    thresholdInverted ? "coolantloops.gui.instrument.inverted" : "coolantloops.gui.instrument.normal"))
+            new TextWidget()
+                .setStringSupplier(
+                    () -> ClientText.get(
+                        thresholdInverted ? "modularnuclear.coolant_loop.gui.instrument.inverted"
+                            : "modularnuclear.coolant_loop.gui.instrument.normal"))
                 .setTextAlignment(Alignment.Center)
                 .setPos(111, 103)
                 .setSize(58, 10));
@@ -667,20 +671,26 @@ public class TileEntityLoopInstrument extends TileEntity
         // Rows 6 and 7: Threshold setpoints, in the tracked metric's unit
         builder.widget(
             new TextWidget()
-                .setStringSupplier(() -> ClientText.format("coolantloops.gui.instrument.on_above", trackedMetric.unit))
+                .setStringSupplier(
+                    () -> ClientText.format("modularnuclear.coolant_loop.gui.instrument.on_above", trackedMetric.unit))
                 .setPos(9, 123));
         builder.widget(
-            setpointInput(this::getThresholdHigh, this::setThresholdHigh, "coolantloops.gui.instrument.input.on_above")
-                .setPos(95, 120)
-                .setSize(74, 14));
+            setpointInput(
+                this::getThresholdHigh,
+                this::setThresholdHigh,
+                "modularnuclear.coolant_loop.gui.instrument.input.on_above").setPos(95, 120)
+                    .setSize(74, 14));
         builder.widget(
             new TextWidget()
-                .setStringSupplier(() -> ClientText.format("coolantloops.gui.instrument.off_below", trackedMetric.unit))
+                .setStringSupplier(
+                    () -> ClientText.format("modularnuclear.coolant_loop.gui.instrument.off_below", trackedMetric.unit))
                 .setPos(9, 143));
         builder.widget(
-            setpointInput(this::getThresholdLow, this::setThresholdLow, "coolantloops.gui.instrument.input.off_below")
-                .setPos(95, 140)
-                .setSize(74, 14));
+            setpointInput(
+                this::getThresholdLow,
+                this::setThresholdLow,
+                "modularnuclear.coolant_loop.gui.instrument.input.off_below").setPos(95, 140)
+                    .setSize(74, 14));
 
         // Syncers
         builder.widget(new FakeSyncWidget.BooleanSyncer(() -> thresholdMode, val -> this.thresholdMode = val));

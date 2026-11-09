@@ -38,7 +38,7 @@ public class BlockLoopInstrument extends BlockContainer {
 
     public BlockLoopInstrument() {
         super(Material.iron);
-        setBlockName("coolantloops.instrument");
+        setBlockName("modularnuclear.coolant_loop.instrument");
         setHardness(2.0f);
         setResistance(10.0f);
         setStepSound(soundTypeMetal);
@@ -53,9 +53,9 @@ public class BlockLoopInstrument extends BlockContainer {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister register) {
-        this.iconSide = register.registerIcon("coolantloops:instrument_side");
-        this.iconTop = register.registerIcon("coolantloops:instrument_top");
-        this.iconFront = register.registerIcon("coolantloops:instrument_front");
+        this.iconSide = register.registerIcon("modularnuclear:instrument_side");
+        this.iconTop = register.registerIcon("modularnuclear:instrument_top");
+        this.iconFront = register.registerIcon("modularnuclear:instrument_front");
     }
 
     @Override
@@ -217,7 +217,9 @@ public class BlockLoopInstrument extends BlockContainer {
                     world.markBlockForUpdate(x, y, z);
                     world.notifyBlocksOfNeighborChange(x, y, z, this);
                     player.addChatMessage(
-                        new ChatComponentTranslation("coolantloops.chat.instrument.facing", nextFacing.name()));
+                        new ChatComponentTranslation(
+                            "modularnuclear.coolant_loop.chat.instrument.facing",
+                            nextFacing.name()));
                 }
                 return true;
             }
@@ -226,7 +228,7 @@ public class BlockLoopInstrument extends BlockContainer {
                     inst.cycleMetric(player.isSneaking() ? -1 : 1);
                     player.addChatMessage(
                         new ChatComponentTranslation(
-                            "coolantloops.chat.instrument.tracked_metric",
+                            "modularnuclear.coolant_loop.chat.instrument.tracked_metric",
                             new ChatComponentTranslation(
                                 inst.getTrackedMetric()
                                     .langKey())));

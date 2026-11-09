@@ -40,7 +40,7 @@ public class BlockManifold extends BlockContainer {
 
     public BlockManifold() {
         super(Material.iron);
-        setBlockName("coolantloops.manifold");
+        setBlockName("modularnuclear.coolant_loop.manifold");
         setHardness(3.0f);
         setResistance(15.0f);
         setStepSound(soundTypeMetal);
@@ -269,7 +269,7 @@ public class BlockManifold extends BlockContainer {
                     world.notifyBlocksOfNeighborChange(x, y, z, this);
                     player.addChatMessage(
                         new ChatComponentTranslation(
-                            "coolantloops.chat.manifold.orient",
+                            "modularnuclear.coolant_loop.chat.manifold.orient",
                             new ChatComponentTranslation(manifold.getPlaneKey()),
                             manifold.getFacing()
                                 .name()));
@@ -282,7 +282,7 @@ public class BlockManifold extends BlockContainer {
                         world.notifyBlocksOfNeighborChange(x, y, z, this);
                         player.addChatMessage(
                             new ChatComponentTranslation(
-                                "coolantloops.chat.manifold.invalid_connection",
+                                "modularnuclear.coolant_loop.chat.manifold.invalid_connection",
                                 wrenchingSide.name()));
                     } else {
                         boolean connected = manifold.toggleConnectionWithNeighbor(wrenchingSide);
@@ -290,7 +290,7 @@ public class BlockManifold extends BlockContainer {
                         world.notifyBlocksOfNeighborChange(x, y, z, this);
                         player.addChatMessage(
                             new ChatComponentTranslation(
-                                "coolantloops.chat.manifold.connection",
+                                "modularnuclear.coolant_loop.chat.manifold.connection",
                                 wrenchingSide.name(),
                                 connected ? "CONNECTED" : "DISCONNECTED"));
                     }

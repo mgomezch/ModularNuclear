@@ -57,8 +57,10 @@ public enum CoolantStructureChannels implements IStructureChannels {
 
     public static void register() {
         for (CoolantStructureChannels value : values()) {
-            StructureLibAPI
-                .registerChannelDescription(value.get(), ModularNuclear.MODID, "channels.coolantloops." + value.get());
+            StructureLibAPI.registerChannelDescription(
+                value.get(),
+                ModularNuclear.MODID,
+                "channels.modularnuclear.coolant_loop." + value.get());
 
         }
 

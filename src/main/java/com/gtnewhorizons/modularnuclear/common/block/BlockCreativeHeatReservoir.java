@@ -23,7 +23,7 @@ public class BlockCreativeHeatReservoir extends BlockContainer {
 
     public BlockCreativeHeatReservoir() {
         super(Material.iron);
-        setBlockName("coolantloops.creative_heat_reservoir");
+        setBlockName("modularnuclear.coolant_loop.creative_heat_reservoir");
         setHardness(2.0f);
         setResistance(10.0f);
         setStepSound(soundTypeMetal);
@@ -33,7 +33,7 @@ public class BlockCreativeHeatReservoir extends BlockContainer {
     @Override
     @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
     public void registerBlockIcons(net.minecraft.client.renderer.texture.IIconRegister reg) {
-        this.blockIcon = reg.registerIcon("coolantloops:creative_heat_reservoir");
+        this.blockIcon = reg.registerIcon("modularnuclear:creative_heat_reservoir");
         this.mIcon = this.blockIcon;
     }
 
@@ -73,7 +73,7 @@ public class BlockCreativeHeatReservoir extends BlockContainer {
                 res.setTargetTemperatureCelsius(next);
                 player.addChatMessage(
                     new ChatComponentTranslation(
-                        "coolantloops.chat.creative_reservoir.temp_set",
+                        "modularnuclear.coolant_loop.chat.creative_reservoir.temp_set",
                         String.format("%.1f", next)));
             }
             return true;

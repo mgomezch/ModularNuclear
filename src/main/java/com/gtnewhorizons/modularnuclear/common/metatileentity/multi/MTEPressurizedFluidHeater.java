@@ -430,7 +430,7 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
             resetStructureCounters();
             checkPiece(PressurizedFluidHeaterStructure.getShapeName(detectedLen), 1, 2, 0, aErrors);
             if (mRejectedLaserHatch) {
-                aErrors.add(StructureErrors.of("coolantloops.structure.error.heater_no_laser"));
+                aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.heater_no_laser"));
             }
             return;
         }
@@ -440,38 +440,39 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
         checkCasingMin(aErrors, mCasingAmount, PressurizedFluidHeaterStructure.getMinCasings());
 
         if (mCoilLevel == null || mCoilLevel == HeatingCoilLevel.None) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.heater_missing_coils"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.heater_missing_coils"));
         }
         if (mPipeCasingTier < 1 || mPipeCasingTier > 8) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.heater_missing_pipe_casing"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.heater_missing_pipe_casing"));
         }
         if (!mPipeCasingUniform) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.heater_mixed_pipe_casing"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.heater_mixed_pipe_casing"));
         }
 
         if (mPressurizedInputs.size() != 1) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.missing_primary_inlet"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.missing_primary_inlet"));
         }
         if (mPressurizedOutputs.size() != 1) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.missing_primary_outlet"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.missing_primary_outlet"));
         }
 
         checkOneMaintenanceHatch(aErrors);
 
         if (mRejectedLaserHatch) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.heater_no_laser"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.heater_no_laser"));
         }
 
         int totalEnergyHatches = getTotalEnergyHatchCount();
         if (totalEnergyHatches == 0) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.heater_missing_energy"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.heater_missing_energy"));
         } else if (totalEnergyHatches > 1) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.heater_multiple_energy"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.heater_multiple_energy"));
         } else {
             int hatchTier = getInstalledEnergyHatchTier();
             int maxAllowedTier = getMaxAllowedEnergyHatchTier();
             if (hatchTier > maxAllowedTier) {
-                aErrors.add(StructureErrors.of("coolantloops.structure.error.heater_energy_tier_too_high"));
+                aErrors
+                    .add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.heater_energy_tier_too_high"));
             }
         }
 
@@ -862,12 +863,12 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
     public LocalizedText getDisconnectionReason() {
         if (mPowerFailed) {
             return LocalizedText.of(
-                "coolantloops.crawler.heater_powerfailed",
+                "modularnuclear.coolant_loop.crawler.heater_powerfailed",
                 mInnerTemperatureCelsius,
                 getMaxOperatingTemperatureCelsius());
         }
         if (!mMachine) {
-            return LocalizedText.of("coolantloops.crawler.heater_unformed_generic");
+            return LocalizedText.of("modularnuclear.coolant_loop.crawler.heater_unformed_generic");
         }
         return null;
     }
@@ -1314,7 +1315,7 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
             .addSubChannel(CoolantStructureChannels.HEATER_LENGTH)
             .addSubChannel(GTStructureChannels.HEATING_COIL)
             .addSubChannel(GTStructureChannels.ITEM_PIPE_CASING)
-            .toolTipFinisher(StatCollector.translateToLocal("gt.multiblock.coolantloops.finisher"));
+            .toolTipFinisher(StatCollector.translateToLocal("gt.multiblock.modularnuclear.coolant_loop.finisher"));
         return tt;
     }
 

@@ -84,11 +84,11 @@ final class CoolantPumpLoopBinding {
                 pump.mCurrentFillLiters = 0L;
             }
             LocalizedText reason = (result != null && result.failureReason != null) ? result.failureReason
-                : LocalizedText.of("coolantloops.crawler.no_suction_path");
+                : LocalizedText.of("modularnuclear.coolant_loop.crawler.no_suction_path");
             if (result != null && result.isLoopTooLarge()) {
                 pump.setLoopStatus(reason);
             } else {
-                pump.setLoopStatusKey("coolantloops.pump.status.loop_disconnect", reason);
+                pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.loop_disconnect", reason);
             }
             return false;
         }
@@ -129,7 +129,7 @@ final class CoolantPumpLoopBinding {
 
         if (atRest && !restarting) {
             pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
-            pump.setLoopStatusKey("coolantloops.pump.status.at_rest", pump.mCurrentFillLiters);
+            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.at_rest", pump.mCurrentFillLiters);
             return true;
         }
         pump.mLoopAtRest = false;
@@ -140,14 +140,14 @@ final class CoolantPumpLoopBinding {
         } else if (pump.mCurrentFillLiters < pump.mRequiredFillLiters) {
             pump.mLoopState = MTECoolantPump.LoopState.FILLING;
             pump.setLoopStatusKey(
-                "coolantloops.pump.status.filling_loop",
+                "modularnuclear.coolant_loop.pump.status.filling_loop",
                 pump.mCurrentFillLiters,
                 pump.mRequiredFillLiters,
                 pump.mRequiredFillLiters > 0 ? (pump.mCurrentFillLiters * 100.0 / pump.mRequiredFillLiters) : 100.0);
         } else {
             pump.mLoopState = MTECoolantPump.LoopState.CIRCULATING;
             pump.setLoopStatusKey(
-                "coolantloops.pump.status.loop_active",
+                "modularnuclear.coolant_loop.pump.status.loop_active",
                 result.segments.size(),
                 result.devices.size(),
                 pump.mCurrentFillLiters);
@@ -265,25 +265,28 @@ final class CoolantPumpLoopBinding {
         // Multiblocks report unformed until their first structure check after a load
         boolean settled = base != null && base.getTimer() > pump.STRUCTURE_SETTLE_TICKS;
         if (!pump.mMachine && settled) {
-            return LocalizedText
-                .of("coolantloops.crawler.loop_broken", base.getXCoord(), (int) base.getYCoord(), base.getZCoord());
+            return LocalizedText.of(
+                "modularnuclear.coolant_loop.crawler.loop_broken",
+                base.getXCoord(),
+                (int) base.getYCoord(),
+                base.getZCoord());
         }
         for (ICoolantLoopDevice dev : pump.mLoopDevices) {
             if (dev instanceof IMetaTileEntity mte) {
                 IGregTechTileEntity dte = mte.getBaseMetaTileEntity();
                 if (dte == null || dte.isInvalidTileEntity()) {
-                    return LocalizedText.of("coolantloops.crawler.device_removed");
+                    return LocalizedText.of("modularnuclear.coolant_loop.crawler.device_removed");
                 }
                 if (mte instanceof MTEMultiBlockBase mb && !mb.mMachine
                     && dte.getTimer() > pump.STRUCTURE_SETTLE_TICKS) {
                     return LocalizedText.of(
-                        "coolantloops.crawler.device_unformed",
+                        "modularnuclear.coolant_loop.crawler.device_unformed",
                         dte.getXCoord(),
                         (int) dte.getYCoord(),
                         dte.getZCoord());
                 }
             } else if (dev instanceof TileEntity te && te.isInvalid()) {
-                return LocalizedText.of("coolantloops.crawler.device_removed");
+                return LocalizedText.of("modularnuclear.coolant_loop.crawler.device_removed");
             }
         }
         if (world == null || pump.mLastCrawlResult == null) return null;
@@ -292,7 +295,7 @@ final class CoolantPumpLoopBinding {
         for (int i = 0, n = pump.mFootprintBlocks.length; i < n; i++) {
             int x = pump.mFootprint[3 * i], y = pump.mFootprint[3 * i + 1], z = pump.mFootprint[3 * i + 2];
             if (world.blockExists(x, y, z) && world.getBlock(x, y, z) != pump.mFootprintBlocks[i]) {
-                return LocalizedText.of("coolantloops.crawler.loop_broken", x, y, z);
+                return LocalizedText.of("modularnuclear.coolant_loop.crawler.loop_broken", x, y, z);
             }
         }
         return null;
@@ -375,7 +378,7 @@ final class CoolantPumpLoopBinding {
             baseTE.setActive(false);
         }
         LocalizedText msg = reason != null ? reason
-            : LocalizedText.of("coolantloops.crawler.heater_powerfailed_generic");
+            : LocalizedText.of("modularnuclear.coolant_loop.crawler.heater_powerfailed_generic");
         pump.applyCrawlResult(LoopGraphCrawler.CrawlResult.fail(msg));
 
         if (wasActiveLoop && pump.mEngine != null) {

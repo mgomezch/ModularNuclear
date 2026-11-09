@@ -33,7 +33,7 @@ import gregtech.common.items.MetaGeneratedTool01;
 
 /**
  * Extracts GTNH material, turbine rotor, and coolant fluid properties into an SQLite database.
- * Grounded strictly in GT5, CoolantLoops, and ModularNuclear mod code and constants.
+ * Grounded strictly in GT5 and ModularNuclear mod code and constants.
  */
 public class MaterialRotorDatabaseExporter {
 

@@ -87,7 +87,9 @@ public class MTECoolantPipe extends MTEFluidPipe {
         }
     }
 
-    public static final IIconContainer INSULATION_OVERLAY_ICON = new CustomPipeIcon("coolantloops", "pipe_insulation");
+    public static final IIconContainer INSULATION_OVERLAY_ICON = new CustomPipeIcon(
+        "modularnuclear",
+        "pipe_insulation");
 
     private volatile ITexture[][] mInventoryTextureCache;
 

@@ -31,7 +31,7 @@ dependencies {
 
 val reactorDefaultsSourceDir = layout.buildDirectory.dir("generated/sources/reactorDefaults/java")
 val defaultConfigDir = file("src/main/resources/assets/modularnuclear/default_config")
-val coolantDefaultConfigDir = file("src/main/resources/assets/coolantloops/default_config")
+val coolantDefaultConfigDir = file("src/main/resources/assets/modularnuclear/default_config/coolant_loops")
 
 val generateReactorDefaults by tasks.registering(JavaExec::class) {
     group = "build"

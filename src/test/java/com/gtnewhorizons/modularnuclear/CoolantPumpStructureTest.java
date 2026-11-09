@@ -1293,12 +1293,13 @@ public class CoolantPumpStructureTest {
         boolean[] pumpAllowed = new boolean[] { true };
         MTECoolantPump pump = createOperatingPumpWithBase(pumpAllowed);
 
-        CrawlResult failResult = CrawlResult.fail(LocalizedText.of("coolantloops.crawler.loop_too_large"));
+        CrawlResult failResult = CrawlResult
+            .fail(LocalizedText.of("modularnuclear.coolant_loop.crawler.loop_too_large"));
         boolean applied = pump.applyCrawlResult(failResult);
         assertFalse(applied, "Applying failed crawl result must return false");
         assertFalse(pump.isLoopFormed(), "Loop must not be formed");
         assertEquals(
-            LocalizedText.of("coolantloops.crawler.loop_too_large"),
+            LocalizedText.of("modularnuclear.coolant_loop.crawler.loop_too_large"),
             pump.getLoopStatusMessage(),
             "Controller status must state the exact error message");
     }

@@ -52,7 +52,7 @@ class PressurizedInstrumentationComputerTest {
         } catch (Throwable ignored) {}
 
         try {
-            TileEntity.addMapping(TileEntityLoopInstrument.class, "coolantloops.loop_instrument");
+            TileEntity.addMapping(TileEntityLoopInstrument.class, "modularnuclear.coolant_loop.loop_instrument");
         } catch (Throwable ignored) {}
     }
 
@@ -60,12 +60,12 @@ class PressurizedInstrumentationComputerTest {
     void testBlockNamingAndTexturesExist() {
         BlockLoopInstrument block = new BlockLoopInstrument();
         assertEquals(
-            "coolantloops.instrument",
+            "modularnuclear.coolant_loop.instrument",
             block.getUnlocalizedName()
                 .replace("tile.", ""));
 
         // Composed textures must exist on disk
-        File texDir = new File("src/main/resources/assets/coolantloops/textures/blocks");
+        File texDir = new File("src/main/resources/assets/modularnuclear/textures/blocks");
         File sideTex = new File(texDir, "instrument_side.png");
         File topTex = new File(texDir, "instrument_top.png");
         File topMeta = new File(texDir, "instrument_top.png.mcmeta");

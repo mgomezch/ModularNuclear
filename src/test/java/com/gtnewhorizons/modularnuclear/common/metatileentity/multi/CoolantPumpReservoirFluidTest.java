@@ -26,7 +26,9 @@ class CoolantPumpReservoirFluidTest {
         TestCoolantPump pump = new TestCoolantPump("unknown_fluid_pump");
         assertEquals(MTECoolantPump.Step.DONE, CoolantPumpFluidSafety.refuseUnsuitableFluid(pump, null));
         assertEquals(MTECoolantPump.LoopState.STOPPED, pump.mLoopState);
-        assertEquals("coolantloops.pump.status.reservoir_unknown_fluid", pump.getLoopStatusMessage().key);
+        assertEquals(
+            "modularnuclear.coolant_loop.pump.status.reservoir_unknown_fluid",
+            pump.getLoopStatusMessage().key);
     }
 
     @Test
@@ -41,6 +43,6 @@ class CoolantPumpReservoirFluidTest {
             MTECoolantPump.Step.DONE,
             CoolantPumpFluidSafety.refuseUnsuitableFluid(pump, new FluidStack(notACoolant, 1000)));
         assertEquals(MTECoolantPump.LoopState.STOPPED, pump.mLoopState);
-        assertEquals("coolantloops.pump.status.refuse_unknown_coolant", pump.getLoopStatusMessage().key);
+        assertEquals("modularnuclear.coolant_loop.pump.status.refuse_unknown_coolant", pump.getLoopStatusMessage().key);
     }
 }

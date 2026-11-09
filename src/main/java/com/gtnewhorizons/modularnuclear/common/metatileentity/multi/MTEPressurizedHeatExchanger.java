@@ -296,10 +296,10 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         checkCasingMin(aErrors, mCasing, minCasings);
         int reqSheetmetal = PressurizedHeatExchangerStructure.getRequiredSheetmetalCount(matchedH, matchedL);
         if (mSheetmetalCount < reqSheetmetal) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.sheetmetal_missing"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.sheetmetal_missing"));
         }
         if (!mSheetmetalsUniform) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.sheetmetal_mixed"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.sheetmetal_mixed"));
         }
         checkOneMaintenanceHatch(aErrors);
         if (mEnergyHatches.isEmpty()) {
@@ -309,7 +309,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         }
         for (MTEHatchEnergy eh : mEnergyHatches) {
             if (!isSingleAmpEnergyHatch(eh)) {
-                aErrors.add(StructureErrors.of("coolantloops.structure.error.single_amp_energy_required"));
+                aErrors
+                    .add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.single_amp_energy_required"));
                 break;
             }
         }
@@ -317,10 +318,10 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         checkOneOutputHatch(aErrors);
 
         if (mPrimaryInlet == null) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.missing_primary_inlet"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.missing_primary_inlet"));
         }
         if (mPrimaryOutlet == null) {
-            aErrors.add(StructureErrors.of("coolantloops.structure.error.missing_primary_outlet"));
+            aErrors.add(StructureErrors.of("modularnuclear.coolant_loop.structure.error.missing_primary_outlet"));
         }
 
         if (!aErrors.isEmpty()) {
@@ -1080,7 +1081,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
             .addSubChannel(CoolantStructureChannels.PHE_HEIGHT)
             .addSubChannel(CoolantStructureChannels.PHE_LENGTH)
             .addSubChannel(CoolantStructureChannels.PHE_SHEETMETAL)
-            .toolTipFinisher(StatCollector.translateToLocal("gt.multiblock.coolantloops.finisher"));
+            .toolTipFinisher(StatCollector.translateToLocal("gt.multiblock.modularnuclear.coolant_loop.finisher"));
         return tt;
     }
 

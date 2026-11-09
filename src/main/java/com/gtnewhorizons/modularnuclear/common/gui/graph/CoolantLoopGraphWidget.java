@@ -297,7 +297,7 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
 
         if (graphData == null || !graphData.isFormed) {
             String msg = (graphData != null && graphData.failureReason != null) ? ClientText.of(graphData.failureReason)
-                : ClientText.get("coolantloops.gui.graph.not_formed");
+                : ClientText.get("modularnuclear.coolant_loop.gui.graph.not_formed");
             FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
             int maxWrapWidth = Math.max(40, rw - 24);
             @SuppressWarnings("unchecked")

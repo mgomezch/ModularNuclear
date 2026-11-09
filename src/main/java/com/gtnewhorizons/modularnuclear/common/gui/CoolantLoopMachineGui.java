@@ -102,7 +102,7 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
 
             // Incomplete coolant loop header (styled like ShutDownReasonRegistry.STRUCTURE_INCOMPLETE)
             list.child(
-                IKey.lang("coolantloops.gui.text.loop_incomplete")
+                IKey.lang("modularnuclear.coolant_loop.gui.text.loop_incomplete")
                     .asWidget()
                     .fullWidth()
                     .marginBottom(2)
@@ -111,7 +111,7 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
             DynamicSyncHandler loopDiagSyncer = new DynamicSyncHandler().widgetProvider((sm, packet) -> {
                 String status = loopStatusSyncer.getValue() != null ? ClientText.of(loopStatusSyncer.getValue()) : "";
                 if (status.isEmpty()) {
-                    status = ClientText.get("coolantloops.pump.status.waiting");
+                    status = ClientText.get("modularnuclear.coolant_loop.pump.status.waiting");
                 }
 
                 Flow row = Flow.row()
@@ -277,8 +277,8 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
                 return true;
             })
             .tooltipBuilder(t -> {
-                t.addLine(IKey.lang("coolantloops.gui.button.loop_graph"));
-                t.addLine(IKey.lang("coolantloops.gui.button.loop_graph.tooltip"));
+                t.addLine(IKey.lang("modularnuclear.coolant_loop.gui.button.loop_graph"));
+                t.addLine(IKey.lang("modularnuclear.coolant_loop.gui.button.loop_graph.tooltip"));
             })
             .tooltipShowUpTimer(TOOLTIP_DELAY);
     }

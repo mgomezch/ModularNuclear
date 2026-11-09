@@ -362,24 +362,24 @@ public class CoolantPumpReservoir {
         }
 
         if (masterBlock == null) {
-            pump.setLoopStatusKey("coolantloops.pump.status.missing_tank");
+            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.missing_tank");
             return false;
         }
 
         Materials tankMat = getRailcraftTankMaterial(masterBlock);
         if (tankMat == null) {
-            pump.setLoopStatusKey("coolantloops.pump.status.unrecognized_tank");
+            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.unrecognized_tank");
             return false;
         }
         if (!LoopGraphCrawler.isAllowedCoolantPipeMaterial(tankMat)) {
-            pump.setLoopStatusKey("coolantloops.pump.status.tank_no_pipe", tankMat.mDefaultLocalName);
+            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.tank_no_pipe", tankMat.mDefaultLocalName);
             return false;
         }
         pump.setTankMaterial(tankMat);
 
         MultiBlockPattern pattern = masterBlock.getPattern();
         if (pattern == null) {
-            pump.setLoopStatusKey("coolantloops.pump.status.invalid_pattern");
+            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.invalid_pattern");
             return false;
         }
         int tankWidthX = pattern.getPatternWidthX();
@@ -389,11 +389,11 @@ public class CoolantPumpReservoir {
 
         int detectedWidth = effX;
         if (detectedWidth != 3 && detectedWidth != 5 && detectedWidth != 7 && detectedWidth != 9) {
-            pump.setLoopStatusKey("coolantloops.pump.status.unsupported_width", detectedWidth);
+            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.unsupported_width", detectedWidth);
             return false;
         }
         if (effX != effZ) {
-            pump.setLoopStatusKey("coolantloops.pump.status.tank_square", effX, effZ);
+            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.tank_square", effX, effZ);
             return false;
         }
 
@@ -407,12 +407,12 @@ public class CoolantPumpReservoir {
                 int bz = z0 + right.offsetZ * localX + back.offsetZ * localZ;
                 TileEntity te = world.getTileEntity(bx, y, bz);
                 if (te == null) {
-                    pump.setLoopStatusKey("coolantloops.pump.status.missing_tank_block", bx, y, bz);
+                    pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.missing_tank_block", bx, y, bz);
                     return false;
                 }
                 if (!(te instanceof TileMultiBlock)) {
                     pump.setLoopStatusKey(
-                        "coolantloops.pump.status.not_tank_block",
+                        "modularnuclear.coolant_loop.pump.status.not_tank_block",
                         bx,
                         y,
                         bz,
@@ -422,11 +422,11 @@ public class CoolantPumpReservoir {
                 }
                 TileMultiBlock tmb = (TileMultiBlock) te;
                 if (!tmb.isStructureValid()) {
-                    pump.setLoopStatusKey("coolantloops.pump.status.tank_not_valid");
+                    pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.tank_not_valid");
                     return false;
                 }
                 if (tmb.getMasterBlock() != masterBlock) {
-                    pump.setLoopStatusKey("coolantloops.pump.status.multiple_tanks");
+                    pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.multiple_tanks");
                     return false;
                 }
             }
@@ -435,7 +435,7 @@ public class CoolantPumpReservoir {
         FluidStack availableFluid = getReservoirFluid();
         if (availableFluid == null || availableFluid.amount <= 0 || availableFluid.getFluid() == null) {
             // The tank is built: an empty one keeps the pump from starting, not from forming
-            pump.setLoopStatusKey("coolantloops.pump.status.tank_empty");
+            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.tank_empty");
             return true;
         }
 
@@ -447,13 +447,13 @@ public class CoolantPumpReservoir {
         }
 
         if (CoolantFluidHelper.isPlainRegularWater(availableFluid)) {
-            pump.setLoopStatusKey("coolantloops.pump.status.refuse_water");
+            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.refuse_water");
             return false;
         }
 
         if (CoolantFluidHelper.isGaseousFluid(availableFluid)) {
             pump.setLoopStatusKey(
-                "coolantloops.pump.status.refuse_gas",
+                "modularnuclear.coolant_loop.pump.status.refuse_gas",
                 availableFluid.getFluid()
                     .getName());
             return false;
@@ -461,7 +461,7 @@ public class CoolantPumpReservoir {
 
         if (CoolantFluidHelper.isLava(availableFluid)) {
             if (!CoolantFluidHelper.isNetherWorld(world)) {
-                pump.setLoopStatusKey("coolantloops.pump.status.refuse_lava");
+                pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.refuse_lava");
                 return false;
             }
         }
@@ -471,13 +471,13 @@ public class CoolantPumpReservoir {
                 .getName());
         if (prop == null) {
             pump.setLoopStatusKey(
-                "coolantloops.pump.status.refuse_unknown_coolant",
+                "modularnuclear.coolant_loop.pump.status.refuse_unknown_coolant",
                 availableFluid.getFluid()
                     .getName());
             return false;
         }
         if (prop.isPlainWater()) {
-            pump.setLoopStatusKey("coolantloops.pump.status.refuse_water");
+            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.refuse_water");
             return false;
         }
 
@@ -496,7 +496,7 @@ public class CoolantPumpReservoir {
                 }
                 if (resTemp < declaredMelting - CoolantLoopEngine.FREEZE_TOLERANCE_CELSIUS) {
                     pump.setLoopStatusKey(
-                        "coolantloops.pump.status.refuse_solidify",
+                        "modularnuclear.coolant_loop.pump.status.refuse_solidify",
                         resTemp,
                         declaredMelting,
                         prop.getFluidName());

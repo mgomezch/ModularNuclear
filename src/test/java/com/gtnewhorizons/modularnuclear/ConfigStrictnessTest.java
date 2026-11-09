@@ -78,7 +78,7 @@ public class ConfigStrictnessTest {
     @Test
     public void coolantYamlSyntaxErrorFails(@TempDir Path tempDir) throws Exception {
         File configDir = tempDir.toFile();
-        write(new File(configDir, "coolantloops"), "fluids.yaml", "fluids:\n  water: {density: [\n");
+        write(new File(configDir, "modularnuclear/coolant_loops"), "fluids.yaml", "fluids:\n  water: {density: [\n");
         ConfigException e = assertThrows(ConfigException.class, () -> CoolantLoopDataRegistry.init(configDir));
         assertTrue(
             e.getMessage()
@@ -89,7 +89,10 @@ public class ConfigStrictnessTest {
     @Test
     public void coolantWrongValueTypeFails(@TempDir Path tempDir) throws Exception {
         File configDir = tempDir.toFile();
-        write(new File(configDir, "coolantloops"), "fluids.yaml", "fluids:\n  water:\n    boilingPointCelsius: hot\n");
+        write(
+            new File(configDir, "modularnuclear/coolant_loops"),
+            "fluids.yaml",
+            "fluids:\n  water:\n    boilingPointCelsius: hot\n");
         ConfigException e = assertThrows(ConfigException.class, () -> CoolantLoopDataRegistry.init(configDir));
         assertTrue(
             e.getMessage()

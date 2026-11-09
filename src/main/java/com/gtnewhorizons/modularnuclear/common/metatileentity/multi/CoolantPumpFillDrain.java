@@ -24,7 +24,7 @@ final class CoolantPumpFillDrain {
         }
         stopPumping(pump, baseTE);
         if (pump.mActiveCrawl == null) {
-            pump.setLoopStatusKey("coolantloops.pump.status.restart_crawl");
+            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.restart_crawl");
             pump.mRestartCrawlRunning = true;
             pump.crawlLoopGraph();
         }
@@ -45,18 +45,20 @@ final class CoolantPumpFillDrain {
         int returned = pump.fillIntoReservoir((int) Math.min(pump.currentFillRateLitersPerTick(), excess));
         if (returned <= 0) {
             pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
-            pump.setLoopStatusKey("coolantloops.pump.status.excess_no_room", excess);
+            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.excess_no_room", excess);
             return MTECoolantPump.Step.DONE;
         }
         pump.mCurrentFillLiters -= returned;
         if (pump.mCurrentFillLiters > pump.mRequiredFillLiters) {
             pump.mLoopState = MTECoolantPump.LoopState.DRAINING;
             pump.setLoopStatusKey(
-                "coolantloops.pump.status.returning_excess",
+                "modularnuclear.coolant_loop.pump.status.returning_excess",
                 pump.mCurrentFillLiters - pump.mRequiredFillLiters);
         } else {
             pump.mLoopState = MTECoolantPump.LoopState.CIRCULATING;
-            pump.setLoopStatusKey("coolantloops.pump.status.filled_circulating", pump.mCurrentFillLiters);
+            pump.setLoopStatusKey(
+                "modularnuclear.coolant_loop.pump.status.filled_circulating",
+                pump.mCurrentFillLiters);
         }
         return MTECoolantPump.Step.DONE;
     }
@@ -111,10 +113,12 @@ final class CoolantPumpFillDrain {
                 if (pump.mCurrentFillLiters >= pump.mRequiredFillLiters) {
                     pump.mCurrentFillLiters = pump.mRequiredFillLiters;
                     pump.mLoopState = MTECoolantPump.LoopState.CIRCULATING;
-                    pump.setLoopStatusKey("coolantloops.pump.status.filled_circulating", pump.mCurrentFillLiters);
+                    pump.setLoopStatusKey(
+                        "modularnuclear.coolant_loop.pump.status.filled_circulating",
+                        pump.mCurrentFillLiters);
                 } else {
                     pump.setLoopStatusKey(
-                        "coolantloops.pump.status.filling_loop",
+                        "modularnuclear.coolant_loop.pump.status.filling_loop",
                         pump.mCurrentFillLiters,
                         pump.mRequiredFillLiters,
                         pump.mRequiredFillLiters > 0 ? (pump.mCurrentFillLiters * 100.0 / pump.mRequiredFillLiters)
@@ -125,7 +129,7 @@ final class CoolantPumpFillDrain {
                 // Safe fail condition: stop cleanly WITHOUT EXPLOSION
                 pump.mLoopState = MTECoolantPump.LoopState.FAILED;
                 pump.setLoopStatusKey(
-                    "coolantloops.pump.status.filling_failed",
+                    "modularnuclear.coolant_loop.pump.status.filling_failed",
                     pump.mCurrentFillLiters,
                     pump.mRequiredFillLiters);
             }
@@ -180,7 +184,7 @@ final class CoolantPumpFillDrain {
                 }
 
                 pump.setLoopStatusKey(
-                    "coolantloops.pump.status.braking",
+                    "modularnuclear.coolant_loop.pump.status.braking",
                     Math.round(pump.mEngine.getFlowRateLitersPerSecond() * 10.0) / 10.0,
                     Math.round(mechanicalWatts / 100.0) / 10.0);
 
@@ -207,7 +211,9 @@ final class CoolantPumpFillDrain {
                 if (pump.mCurrentFillLiters > 0) {
                     if (pump.isReservoirFull()) {
                         pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
-                        pump.setLoopStatusKey("coolantloops.pump.status.draining_paused", pump.mCurrentFillLiters);
+                        pump.setLoopStatusKey(
+                            "modularnuclear.coolant_loop.pump.status.draining_paused",
+                            pump.mCurrentFillLiters);
                     } else {
                         pump.mLoopState = MTECoolantPump.LoopState.DRAINING;
                         long neededReturn = pump.mCurrentFillLiters;
@@ -220,20 +226,22 @@ final class CoolantPumpFillDrain {
                         if (pump.mCurrentFillLiters <= 0) {
                             pump.mCurrentFillLiters = 0;
                             pump.mLoopState = MTECoolantPump.LoopState.EMPTY;
-                            pump.setLoopStatusKey("coolantloops.pump.status.drained_complete");
+                            pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.drained_complete");
                         } else if (pump.isReservoirFull()) {
                             pump.mLoopState = MTECoolantPump.LoopState.STOPPED;
-                            pump.setLoopStatusKey("coolantloops.pump.status.draining_paused", pump.mCurrentFillLiters);
+                            pump.setLoopStatusKey(
+                                "modularnuclear.coolant_loop.pump.status.draining_paused",
+                                pump.mCurrentFillLiters);
                         } else {
                             pump.setLoopStatusKey(
-                                "coolantloops.pump.status.draining_loop",
+                                "modularnuclear.coolant_loop.pump.status.draining_loop",
                                 pump.mCurrentFillLiters,
                                 pump.mRequiredFillLiters);
                         }
                     }
                 } else {
                     pump.mLoopState = MTECoolantPump.LoopState.EMPTY;
-                    pump.setLoopStatusKey("coolantloops.pump.status.flow_stopped_empty");
+                    pump.setLoopStatusKey("modularnuclear.coolant_loop.pump.status.flow_stopped_empty");
                 }
                 pump.noteLoopAtRest();
                 return MTECoolantPump.Step.DONE;

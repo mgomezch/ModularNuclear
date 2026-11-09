@@ -22,25 +22,25 @@ import com.gtnewhorizons.modularnuclear.common.config.data.CoolantPipeData;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.ConvectiveHeatTransferModel;
 
 /**
- * Central data registry for CoolantLoops, providing structured YAML-backed
+ * Central data registry for coolant loops, providing structured YAML-backed
  * configuration of hydrodynamic constants, fluid thermodynamic properties,
  * piping limits, and multiblock device parameters.
  */
 public class CoolantLoopDataRegistry {
 
-    private static final Logger LOG = LogManager.getLogger("CoolantLoopsDataRegistry");
-    private static final String DEFAULTS_PATH = "assets/coolantloops/default_config/";
+    private static final Logger LOG = LogManager.getLogger("CoolantLoopDataRegistry");
+    private static final String DEFAULTS_PATH = "assets/modularnuclear/default_config/coolant_loops/";
 
     private static File configFolder;
 
     public static synchronized void init(File configDirectory) {
-        configFolder = new File(configDirectory, "coolantloops");
+        configFolder = new File(configDirectory, "modularnuclear/coolant_loops");
         if (!configFolder.exists()) {
             configFolder.mkdirs();
         }
 
         loadFromDir();
-        LOG.info("CoolantLoops YAML Data Registry initialized successfully.");
+        LOG.info("Coolant loop YAML Data Registry initialized successfully.");
     }
 
     /** The config files, in the order they are applied. */

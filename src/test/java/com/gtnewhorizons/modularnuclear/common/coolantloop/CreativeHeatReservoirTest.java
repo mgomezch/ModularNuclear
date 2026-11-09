@@ -55,7 +55,9 @@ class CreativeHeatReservoirTest {
         } catch (Throwable ignored) {}
 
         try {
-            TileEntity.addMapping(TileEntityCreativeHeatReservoir.class, "coolantloops.creative_heat_reservoir");
+            TileEntity.addMapping(
+                TileEntityCreativeHeatReservoir.class,
+                "modularnuclear.coolant_loop.creative_heat_reservoir");
         } catch (Throwable ignored) {}
     }
 
@@ -227,7 +229,8 @@ class CreativeHeatReservoirTest {
 
     @Test
     void testCoolantLocalizationTooltipLines() {
-        List<String> tempBtnLines = ClientText.lines("coolantloops.gui.creative_reservoir.btn.decrease_temp");
+        List<String> tempBtnLines = ClientText
+            .lines("modularnuclear.coolant_loop.gui.creative_reservoir.btn.decrease_temp");
         assertEquals(5, tempBtnLines.size());
         assertEquals("Decrease target temperature", tempBtnLines.get(0));
         assertEquals("Left-click: -10 °C", tempBtnLines.get(1));
@@ -235,12 +238,14 @@ class CreativeHeatReservoirTest {
         assertEquals("Ctrl-click: -1000 °C", tempBtnLines.get(3));
         assertEquals("Right-click: -1 °C", tempBtnLines.get(4));
 
-        List<String> tempInputLines = ClientText.lines("coolantloops.gui.creative_reservoir.input.temp_tooltip");
+        List<String> tempInputLines = ClientText
+            .lines("modularnuclear.coolant_loop.gui.creative_reservoir.input.temp_tooltip");
         assertEquals(2, tempInputLines.size());
         assertEquals("Target temperature in °C (min: -273.15 °C)", tempInputLines.get(0));
         assertEquals("Right-click to clear", tempInputLines.get(1));
 
-        List<String> areaInputLines = ClientText.lines("coolantloops.gui.creative_reservoir.input.area_tooltip");
+        List<String> areaInputLines = ClientText
+            .lines("modularnuclear.coolant_loop.gui.creative_reservoir.input.area_tooltip");
         assertEquals(2, areaInputLines.size());
         assertEquals("Heat-transfer area in m² (min: 0.1 m²)", areaInputLines.get(0));
         assertEquals("Right-click to clear", areaInputLines.get(1));

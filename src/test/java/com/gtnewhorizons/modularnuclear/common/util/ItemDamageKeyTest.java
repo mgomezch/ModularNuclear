@@ -38,7 +38,7 @@ public class ItemDamageKeyTest {
             Bootstrap.func_151354_b();
         } catch (Throwable ignored) {}
         try {
-            TileEntity.addMapping(TileEntityManifold.class, "coolantloops.manifold");
+            TileEntity.addMapping(TileEntityManifold.class, "modularnuclear.coolant_loop.manifold");
         } catch (Throwable ignored) {}
     }
 

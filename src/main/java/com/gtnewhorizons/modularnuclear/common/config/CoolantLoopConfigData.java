@@ -16,7 +16,8 @@ import com.gtnewhorizons.modularnuclear.common.util.ConfigGeneration;
  *
  * <p>
  * Built-in defaults come from {@link CoolantLoopDefaultsJson}, which the build generates from
- * {@code assets/coolantloops/default_config/*.yaml}; those YAML files are also what the game writes out as its
+ * {@code assets/modularnuclear/default_config/coolant_loops/*.yaml}; those YAML files are also what the game writes out
+ * as its
  * initial config files. The game's {@link CoolantLoopDataRegistry} loads the files on disk and hands each document to
  * this class.
  */
