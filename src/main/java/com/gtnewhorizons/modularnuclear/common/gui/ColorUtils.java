@@ -15,10 +15,12 @@ defaults are the designed look, and packs override them through the same channel
                    (NEIPalette.drawSlot, drawBevel), and ours for icons such as gui/lock.png (LockIconWidget)
     colours        every other colour is a GTNHLib ColorResource in ColorUtils.  A pack overrides one with a lang entry,
                    such as color.resource.modularnuclear.neiInk=BFBFBF, and F3+T reloads it
+    colour scales  the heat map scales are textures a pack may add; see Note [Heat map scales come from textures]
 
 Moving parts.
     ColorUtils                every colour, named by where and what it is: nei*, reactorGrid*, graph*, plot*, ...
     NEIPalette                the NEI colours, read once per resource reload, with the few worked out by blending
+    ColorScales               the heat map scales
 
 Wrinkles.
 (W1) Angelica recolours text as well.  A pack's dark_mode_utils block in pack.mcmeta makes Angelica replace text in a

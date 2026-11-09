@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.nuclear;
 
+/** The built-in heat map scales. See Note [Heat map scales come from textures]. */
 public final class NuclearColorMaps {
 
     private NuclearColorMaps() {}
@@ -74,22 +75,18 @@ public final class NuclearColorMaps {
         0x9FDCE218, 0xA0DFE318, 0xA0E1E318, 0xA0E4E318, 0x9FE7E419, 0x9FE7E419, 0xA0E9E419, 0x9FECE41A, 0xA0EEE51B,
         0xA0F1E51C, 0x9FF3E51E, 0xA0F6E61F, 0x9FF6E61F, 0xA0F8E621, 0x9FFAE622, 0xA0FDE724 };
 
-    public static int getTemperatureColor(double temperature, double maxTemp) {
+    /** The place of a temperature on a 300-step scale such as {@link #TEMPERATURE_COLORS}. */
+    public static int temperatureIndex(double temperature, double maxTemp) {
         if (maxTemp <= 0) maxTemp = 3250.0;
-        int u = (int) Math.round(299.0 * Math.min(1.0, Math.max(0.0, temperature / maxTemp)));
-        if (u < 0) u = 0;
-        if (u > 299) u = 299;
-        return TEMPERATURE_COLORS[u];
+        return (int) Math.round(299.0 * Math.min(1.0, Math.max(0.0, temperature / maxTemp)));
     }
 
-    public static int getNeutronColor(double neutronRate) {
+    /** The place of a neutron rate on a 300-step scale such as {@link #NEUTRON_COLORS}. */
+    public static int neutronIndex(double neutronRate) {
         double maxRate = 8192.0;
         double rate = Math.min(neutronRate, maxRate);
         double factor = (rate <= 0) ? 0.0 : Math.log1p(10.0 * rate) / Math.log1p(10.0 * maxRate);
-        int u = (int) Math.round(299.0 * Math.min(1.0, Math.max(0.0, factor)));
-        if (u < 0) u = 0;
-        if (u > 299) u = 299;
-        return NEUTRON_COLORS[u];
+        return (int) Math.round(299.0 * Math.min(1.0, Math.max(0.0, factor)));
     }
 
     public static final int[] HEAT_OUTPUT_COLORS = new int[] { 0x8CB4320A, 0x8CB4320A, 0x8CB5330A, 0x8CB5330A,
@@ -127,15 +124,11 @@ public final class NuclearColorMaps {
         0xA3FDE782, 0xA3FDE886, 0xA4FDE98B, 0xA4FDEA8F, 0xA4FDEB93, 0xA4FDED98, 0xA4FDEE9C, 0xA4FEEFA0, 0xA4FEF0A5,
         0xA5FEF1A9, 0xA5FEF2AD, 0xA5FEF4B2, 0xA5FEF5B6, 0xA5FEF6BA, 0xA5FEF7BF, 0xA5FEF8C3, 0xA6FFFAC8 };
 
-    public static int getHeatOutputColor(double heatRate) {
-        if (heatRate <= 0) return 0;
+    /** The place of a positive heat rate on a 300-step scale such as {@link #HEAT_OUTPUT_COLORS}. */
+    public static int heatOutputIndex(double heatRate) {
         double maxRate = 100000.0;
-        double rate = Math.min(heatRate, maxRate);
+        double rate = Math.min(Math.max(heatRate, 0.0), maxRate);
         double factor = Math.log1p(10.0 * rate) / Math.log1p(10.0 * maxRate);
-        int u = (int) Math.round(299.0 * Math.min(1.0, Math.max(0.0, factor)));
-        if (u < 0) u = 0;
-        if (u > 299) u = 299;
-        return HEAT_OUTPUT_COLORS[u];
+        return (int) Math.round(299.0 * Math.min(1.0, Math.max(0.0, factor)));
     }
-
 }

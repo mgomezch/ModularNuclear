@@ -47,7 +47,6 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
-import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
@@ -515,18 +514,18 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
 
                     // Mode Overlays
                     if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_TEMPERATURE) {
-                        int color = NuclearColorMaps.getTemperatureColor(cell.temperature, maxTemp);
+                        int color = ColorScales.temperature(cell.temperature, maxTemp);
                         GuiDraw.drawRect(px + 1, py + 1, 16, 16, color);
                     } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_HEAT_OUTPUT) {
                         if (cell.heatOutput > 0) {
-                            int color = NuclearColorMaps.getHeatOutputColor(cell.heatOutput);
+                            int color = ColorScales.heatOutput(cell.heatOutput);
                             GuiDraw.drawRect(px + 1, py + 1, 16, 16, color);
                         }
                     } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_FLUX) {
-                        int color = NuclearColorMaps.getNeutronColor(cell.fastFlux + cell.thermalFlux);
+                        int color = ColorScales.neutrons(cell.fastFlux + cell.thermalFlux);
                         GuiDraw.drawRect(px + 1, py + 1, 16, 16, color);
                     } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_ABSORPTION) {
-                        int color = NuclearColorMaps.getNeutronColor(5.0 * (cell.fastAbsorbed + cell.thermalAbsorbed));
+                        int color = ColorScales.neutrons(5.0 * (cell.fastAbsorbed + cell.thermalAbsorbed));
                         GuiDraw.drawRect(px + 1, py + 1, 16, 16, color);
                     } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_CONTROL_RODS) {
                         if (cell.hasControlRod) {

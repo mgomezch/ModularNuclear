@@ -28,9 +28,9 @@ import org.lwjgl.opengl.GL11;
 
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
+import com.gtnewhorizons.modularnuclear.common.gui.ColorScales;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
-import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import codechicken.lib.gui.GuiDraw;
@@ -2366,7 +2366,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     }
 
     private static int rowTemperatureColor(double temperature) {
-        return NuclearColorMaps.getTemperatureColor(temperature, HeatRowSimulation.HOT_END) | 0xFF000000;
+        return ColorScales.temperature(temperature, HeatRowSimulation.HOT_END) | 0xFF000000;
     }
 
     public static void drawHeatRow(ComponentCardValues v) {
