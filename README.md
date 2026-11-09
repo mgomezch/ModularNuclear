@@ -4,7 +4,7 @@ This is a WIP small personal-project Minecraft mod meant to be deployed alongsid
 
 That said: this is an adaptation of the Modern Industrialization nuclear reactor, because I really enjoyed playing that machine back when I played ATM10, and I was nostalgic for it.
 
-To be clear: I haven't looked at a single line of code in this app; it all comes from Antigravity.  As a longtime software engineer, I have complicated / weird feelings about this.  But anyway, that whole can of worms aside, here it is.  Play with it, it's fun.  If you're interested, hit me up (mgomezch in GTNH Discord).
+To be clear: I haven't looked at a single line of code in this app; it all comes from Antigravity and Claude Code.  As a longtime software engineer, I have complicated / weird feelings about this.  But anyway, that whole can of worms aside, here it is.  Play with it, it's fun.  If you're interested, hit me up (mgomezch in GTNH Discord).
 
 It works as an add-on to GTNH 2.9 (tested on some daily shortly after release candidate 1).  It's unfinished, and completely unbalanced, but it's kinda fun to mess with anyway.  You can get built JARs from the GitHub actions, I think.
 
