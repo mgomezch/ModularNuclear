@@ -773,12 +773,13 @@ public class NuclearReactorPhysics {
             }
             // See Note [Radiovoltaic energy]
             double dt = (double) reactor.getTicksPerCycle() / 20.0;
-            double steamEuPerHu = NuclearSimulationEngine.params().radiovoltaicSteamEuPerHu;
+            double plateEuPerHu = NuclearSimulationEngine.params()
+                .radiovoltaicEuPerHu();
             double absorbedHeat = RadiovoltaicData.absorbedHeat(bus.mFastAbsorbed, bus.mThermalAbsorbed);
             bus.mRadiovoltaicRate = TileTick.radiovoltaicRate(bus.mRadiovoltaicRate, absorbedHeat, dt);
-            long genEU = Math.round(rv.calculatePower(bus.mRadiovoltaicRate, steamEuPerHu));
+            long genEU = Math.round(rv.calculatePower(bus.mRadiovoltaicRate, plateEuPerHu));
             bus.mDirectEUProduced = genEU;
-            double converted = RadiovoltaicData.convertedHeat(absorbedHeat, genEU, dt, steamEuPerHu);
+            double converted = RadiovoltaicData.convertedHeat(absorbedHeat, genEU, dt, plateEuPerHu);
             double aboveAmbient = (bus.mTemperature - reactor.getAmbientTemperature()) * tile.getHeatCapacity();
             double removed = Math.min(converted, Math.max(0.0, aboveAmbient));
             if (removed > 0.0) {

@@ -989,12 +989,12 @@ public class SimTile implements INuclearTile {
         // Radiovoltaic direct EU generation. See Note [Radiovoltaic energy]
         if (isRadiovoltaic()) {
             ComponentData.RadiovoltaicData rv = getRadiovoltaicData();
-            double steamEuPerHu = parameters().radiovoltaicSteamEuPerHu;
+            double plateEuPerHu = parameters().radiovoltaicEuPerHu();
             double absorbedHeat = ComponentData.RadiovoltaicData.absorbedHeat(fastAbsorbed, thermalAbsorbed);
             radiovoltaicRate = TileTick.radiovoltaicRate(radiovoltaicRate, absorbedHeat, dt);
-            long genEU = Math.round(rv.calculatePower(radiovoltaicRate, steamEuPerHu));
+            long genEU = Math.round(rv.calculatePower(radiovoltaicRate, plateEuPerHu));
             this.directEUProduced = genEU;
-            double converted = ComponentData.RadiovoltaicData.convertedHeat(absorbedHeat, genEU, dt, steamEuPerHu);
+            double converted = ComponentData.RadiovoltaicData.convertedHeat(absorbedHeat, genEU, dt, plateEuPerHu);
             double aboveAmbient = (temperature - parameters().ambientTemp) * getHeatCapacity();
             double removed = Math.min(converted, Math.max(0.0, aboveAmbient));
             if (removed > 0.0) {

@@ -803,11 +803,14 @@ public class NuclearSimulationEngineTest {
         ComponentData.RadiovoltaicData rv = new ComponentData.RadiovoltaicData();
         rv.tier = 2;
         rv.maxEU = 4096;
-        double kappa = NuclearSimulationEngine.params().radiovoltaicSteamEuPerHu;
-        double full = rv.fullOutputHeatPerSecond(kappa);
-        assertEquals(0.95 * 4096, rv.calculatePower(full, kappa), 1e-6);
-        assertEquals(0.0, rv.calculatePower(0.0, kappa), 1e-9);
-        assertTrue(rv.calculatePower(3.0 * full, kappa) > 0.999 * 4096, "Well past the 95% point it is saturated");
+        double plateEuPerHu = NuclearSimulationEngine.params()
+            .radiovoltaicEuPerHu();
+        double full = rv.fullOutputHeatPerSecond(plateEuPerHu);
+        assertEquals(0.95 * 4096, rv.calculatePower(full, plateEuPerHu), 1e-6);
+        assertEquals(0.0, rv.calculatePower(0.0, plateEuPerHu), 1e-9);
+        assertTrue(
+            rv.calculatePower(3.0 * full, plateEuPerHu) > 0.999 * 4096,
+            "Well past the 95% point it is saturated");
 
         // Same absorption rate gives the same output regardless of cycle length
         int savedTpc = NuclearSimulationEngine.getTicksPerCycle();
@@ -828,7 +831,7 @@ public class NuclearSimulationEngineTest {
             }
             assertTrue(outputs[0] > 0, "Plate must produce EU");
             assertEquals(outputs[0], outputs[1], 1.0, "Output must not depend on ticks per cycle");
-            assertEquals(Math.round(rv.calculatePower(400 * 4.0, kappa)), outputs[0], 1.0);
+            assertEquals(Math.round(rv.calculatePower(400 * 4.0, plateEuPerHu)), outputs[0], 1.0);
         } finally {
             NuclearSimulationEngine.params()
                 .setTicksPerCycle(savedTpc);
@@ -837,27 +840,36 @@ public class NuclearSimulationEngineTest {
 
     // See Note [Radiovoltaic energy]
     @Test
-    void testRadiovoltaicMatchesTheSteamRouteAtItsFullOutputPoint() {
-        double kappa = NuclearSimulationEngine.params().radiovoltaicSteamEuPerHu;
-        assertEquals(160.0 / 17.65625, kappa, 1e-3, "The steam route: water to superheated steam to an XL HP turbine");
+    void testRadiovoltaicIsMeasuredAgainstPlainSteam() {
+        EngineParameters p = NuclearSimulationEngine.params();
+        double kappa = p.radiovoltaicSteamEuPerHu;
+        assertEquals(160.0 / 2.0 / 17.65625, kappa, 1e-4, "Plain steam: 160 L per litre of water, 2 L per EU");
+        double mR = p.radiovoltaicEfficiencyMultiplier;
+        assertEquals(mR * kappa, p.radiovoltaicEuPerHu(), 1e-12);
         for (long maxEU : new long[] { 1024, 4096 }) {
             ComponentData.RadiovoltaicData rv = new ComponentData.RadiovoltaicData();
             rv.maxEU = maxEU;
-            double full = rv.fullOutputHeatPerSecond(kappa);
+            double full = rv.fullOutputHeatPerSecond(p.radiovoltaicEuPerHu());
             assertEquals(
-                full * kappa / 20.0,
-                rv.calculatePower(full, kappa),
+                mR * full * kappa / 20.0,
+                rv.calculatePower(full, p.radiovoltaicEuPerHu()),
                 1e-6,
-                "At H_95 it makes what steam would");
+                "At H_95 it makes m_R times what steam would");
+            double catchUp = 20.0 * maxEU / kappa;
             assertTrue(
-                rv.calculatePower(2.0 * full, kappa) < 2.0 * full * kappa / 20.0,
-                "Above H_95 it makes less than steam would");
+                rv.calculatePower(1.01 * catchUp, p.radiovoltaicEuPerHu()) < 1.01 * catchUp * kappa / 20.0,
+                "Once steam makes its maximum output, steam makes more");
+            assertEquals(
+                0.0,
+                rv.keptHeatPerSecond(0.5 * full, p.radiovoltaicEuPerHu()),
+                1e-9,
+                "Below H_95 it keeps no heat");
             assertTrue(
-                rv.calculatePower(0.25 * full, kappa) > 0.25 * full * kappa / 20.0,
-                "Below H_95 it makes more than steam would");
-            assertEquals(0.0, rv.keptHeatPerSecond(0.5 * full, kappa), 1e-9, "Below H_95 it keeps no heat");
-            assertTrue(rv.keptHeatPerSecond(2.0 * full, kappa) > 0.0, "Above H_95 it keeps the rest as heat");
-            assertTrue(rv.keptHeatPerSecond(2.0 * full, kappa) < 2.0 * full, "It always converts some");
+                rv.keptHeatPerSecond(2.0 * full, p.radiovoltaicEuPerHu()) > 0.0,
+                "Above H_95 it keeps the rest as heat");
+            assertTrue(
+                rv.keptHeatPerSecond(2.0 * full, p.radiovoltaicEuPerHu()) < 2.0 * full,
+                "It always converts some");
         }
     }
 

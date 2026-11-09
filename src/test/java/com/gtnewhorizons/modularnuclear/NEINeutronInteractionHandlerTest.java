@@ -22,6 +22,7 @@ import com.gtnewhorizons.modularnuclear.common.nei.NEIFuelStatsHandler;
 import com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler;
 import com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.CachedNeutronInteractionRecipe;
 import com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.ComponentStatsData;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import codechicken.nei.recipe.TemplateRecipeHandler.CachedRecipe;
 
@@ -483,7 +484,16 @@ public class NEINeutronInteractionHandlerTest {
         assertTrue(hvPowerLow > 0.0, "Low absorption must generate power");
         assertEquals(0.0, hvHeatLow, 1e-9, "Low absorption must leave no heat");
         assertEquals(0.95 * 1024, rvHvRecipe.data.calculatePower(full), 1e-6, "95% output at the full-output point");
-        assertEquals(rvHvRecipe.data.steamPower(full), rvHvRecipe.data.calculatePower(full), 1e-6);
+        assertEquals(
+            NuclearSimulationEngine.params().radiovoltaicEfficiencyMultiplier * rvHvRecipe.data.steamPower(full),
+            rvHvRecipe.data.calculatePower(full),
+            1e-6,
+            "At the full-output point it makes m_R times what plain steam would");
+        assertEquals(
+            1024.0,
+            rvHvRecipe.data.steamPower(rvHvRecipe.data.steamCatchUpHeatPerSecond()),
+            1e-6,
+            "Steam catches up with the plate's maximum output");
 
         double hvPowerHigh = rvHvRecipe.data.calculatePower(4.0 * full);
         double hvHeatHigh = rvHvRecipe.data.calculateHeat(4.0 * full);

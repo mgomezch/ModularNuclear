@@ -138,7 +138,7 @@ gt.blockmachines.hatch.nuclearadvancedcontrolrod.desc=Dual-slot nuclear core con
 # Item Tooltips
 item.modularnuclear.radiovoltaic.plate.hv.desc=Converts absorbed neutron flux into direct HV electricity\nMax output: 1,024 EU/t (2A HV)
 item.modularnuclear.radiovoltaic.plate.ev.desc=Converts absorbed neutron flux into direct EV electricity\nMax output: 4,096 EU/t (2A EV)
-item.modularnuclear.radiovoltaic.plate.common.desc=Absorbs some neutrons and scatters others back into the core\nTurns the heat of absorbed neutrons into EU, up to its maximum output\nNear full output it makes about what steam would; past that, the rest stays as heat
+item.modularnuclear.radiovoltaic.plate.common.desc=Absorbs some neutrons and scatters others back into the core\nTurns the heat of absorbed neutrons into EU, up to its maximum output\nAt low flux it makes more than steam would of that heat; near full output it falls off, and the rest stays as heat
 item.modularnuclear.sensorcard.target=Target: [%d, %d, %d]
 item.modularnuclear.sensorcard.unlinked=Unlinked. Right-click on MPTR reactor to bind.
 item.modularnuclear.sensorkit.desc=Right-click on MPTR reactor to link and create sensor card
@@ -221,7 +221,7 @@ gt.nei.neutron_interaction.thermal_stats=Thermal: Absorbed %s, Scattered %s, Los
 gt.nei.neutron_interaction.depleted_title=Depleted component (byproduct)
 gt.nei.neutron_interaction.depleted_desc=Produced after full component wear in the nuclear reactor
 gt.nei.neutron_interaction.radiovoltaic_curve=Power & heating
-gt.nei.neutron_interaction.radiovoltaic_curve.desc=Direct power (solid), what steam would make of the same heat (dashed) and the heat the plate keeps, against the heat its absorbed neutrons bring
+gt.nei.neutron_interaction.radiovoltaic_curve.desc=Direct power (solid), what plain steam would make of the same heat (dashed) and the heat the plate keeps, against the heat its absorbed neutrons bring
 
 # BetterQuesting
 modularnuclear=Modern nuclear engineering

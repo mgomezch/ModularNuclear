@@ -705,23 +705,28 @@ public class ComponentData {
     neutrons bring, as in any other non-fuel cell: 8 HU per fast neutron and 4 HU per thermal one
     (RadiovoltaicData.absorbedHeat, matching what NuclearSimulationEngine deposits).
     
-    Design principle: a plate should not make more EU from that heat than the steam route would, once it is near
-    saturation.  The steam route is radiovoltaic_steam_eu_per_hu (κ, PhysicsData.radiovoltaicSteamEuPerHu): distilled
-    water takes 17.65625 HU per litre and becomes 160 L of superheated steam, at 1 EU per litre in an XL
-    high-pressure turbine, so κ = 9.06 EU/HU.
+    Plates are measured against plain GregTech steam, the baseline radiovoltaic_steam_eu_per_hu (κ,
+    PhysicsData.radiovoltaicSteamEuPerHu): distilled water takes 17.65625 HU per litre (its latent heat, 2260 J/mL,
+    at CoolantPassage.JOULES_PER_HU) and becomes 160 L of steam, which a steam turbine at 100% efficiency turns into
+    1 EU per 2 L.  So κ = 80 / 17.65625 = 4.53 EU/HU.  The baseline deliberately ignores what this mod's reactor and
+    PHE make of water, so that it is simple to explain.
+    
+    A balance lever, radiovoltaic_efficiency_multiplier (m_R, PhysicsData.radiovoltaicEfficiencyMultiplier), lets
+    plates beat that baseline: the gameplay point of plates is easy power for simple EV reactors, falling off past EV
+    so that bigger reactors make steam.  EngineParameters.radiovoltaicEuPerHu is m_R · κ.
     
     Output follows a tanh curve of the absorbed heat rate H (HU/s, averaged by TileTick.radiovoltaicRate):
     
         P = P_max · η · tanh(artanh(0.95) · H / H_95)          EU/t
-        H_95 = 0.95 · P_max · 20 / κ                             (RadiovoltaicData.fullOutputHeatPerSecond)
+        H_95 = 0.95 · P_max · 20 / (m_R · κ)                     (RadiovoltaicData.fullOutputHeatPerSecond)
     
-    so at H_95 the plate makes exactly what steam would make of H.  For an HV plate (P_max 1024 EU/t) H_95 is about
-    2150 HU/s, some 270 fast or 540 thermal neutrons absorbed per second; for EV it is four times that.
+    so at H_95 the plate makes m_R times what steam would make of H.  With m_R = 2, H_95 is about 2150 HU/s for an HV
+    plate (P_max 1024 EU/t), some 270 fast or 540 thermal neutrons absorbed per second; for EV it is four times that.
     
-    The plate takes the heat it converts, 20·P/κ HU/s, out of its cell (RadiovoltaicData.convertedHeat), and keeps the
-    rest.  Below H_95 the plate converts more than steam would, up to 1.93 times as much at low flux, and then it takes
-    out only what it absorbed: it never cools its cell.  Above H_95 it converts less, so more of the heat stays.  This
-    is accepted: a plate's output is capped, so its advantage at low flux doesn't scale.
+    The plate takes the heat it converts, 20·P/(m_R·κ) HU/s, out of its cell (RadiovoltaicData.convertedHeat), and
+    keeps the rest.  Below H_95 the plate converts more than that, up to 1.93 times as much at low flux, and then it
+    takes out only what it absorbed: it never cools its cell.  Above H_95 it converts less, so more of the heat stays.
+    This is accepted: a plate's output is capped, so its advantage at low flux doesn't scale.
     
     Wrinkles.
     (W1) The heat is deposited during the neutron passes and taken out in the column update, after conduction has
@@ -730,7 +735,7 @@ public class ComponentData {
     (W2) Plates scatter (scattering_fast and scattering_thermal, 0.3 by default), so the neutrons they neither absorb
          nor pass on go back into the core, and plates are not thermal sinks.
     
-    NEINeutronInteractionHandler.drawRadiovoltaicCurve shows P, the kept heat and the steam route against H.
+    NEINeutronInteractionHandler.drawRadiovoltaicCurve shows P, the kept heat and the steam baseline κ·H/20 against H.
     */
     public static class RadiovoltaicData {
 
@@ -758,11 +763,11 @@ public class ComponentData {
         }
 
         /**
-         * The absorbed heat rate (HU/s) at which output reaches FULL_OUTPUT_FRACTION of maxEU: where the plate's output
-         * equals what the steam route makes of the same heat. See Note [Radiovoltaic energy].
+         * The absorbed heat rate (HU/s) at which output reaches FULL_OUTPUT_FRACTION of maxEU: where the plate makes
+         * plateEuPerHu of each HU. See Note [Radiovoltaic energy].
          */
-        public double fullOutputHeatPerSecond(double steamEuPerHu) {
-            return FULL_OUTPUT_FRACTION * getMaxEffectiveEU() * 20.0 / steamEuPerHu;
+        public double fullOutputHeatPerSecond(double plateEuPerHu) {
+            return FULL_OUTPUT_FRACTION * getMaxEffectiveEU() * 20.0 / plateEuPerHu;
         }
 
         /**
@@ -777,24 +782,24 @@ public class ComponentData {
         }
 
         /** Direct output in EU/t for an absorbed heat rate in HU/s. */
-        public double calculatePower(double heatPerSecond, double steamEuPerHu) {
+        public double calculatePower(double heatPerSecond, double plateEuPerHu) {
             return getMaxEffectiveEU() * euConversionEfficiency
-                * outputFraction(heatPerSecond, fullOutputHeatPerSecond(steamEuPerHu));
+                * outputFraction(heatPerSecond, fullOutputHeatPerSecond(plateEuPerHu));
         }
 
         /**
-         * The share of absorbed heat a plate takes out of its cell as EU, over an interval: the steam-route heat
-         * equivalent of its output, but never more than it absorbed. See Note [Radiovoltaic energy].
+         * The share of absorbed heat a plate takes out of its cell as EU, over an interval: its output at plateEuPerHu,
+         * but never more than it absorbed. See Note [Radiovoltaic energy].
          */
-        public static double convertedHeat(double absorbedHeat, double euPerTick, double seconds, double steamEuPerHu) {
-            if (absorbedHeat <= 0.0 || steamEuPerHu <= 0.0) return 0.0;
-            return Math.min(absorbedHeat, euPerTick * 20.0 * seconds / steamEuPerHu);
+        public static double convertedHeat(double absorbedHeat, double euPerTick, double seconds, double plateEuPerHu) {
+            if (absorbedHeat <= 0.0 || plateEuPerHu <= 0.0) return 0.0;
+            return Math.min(absorbedHeat, euPerTick * 20.0 * seconds / plateEuPerHu);
         }
 
         /** Heat a plate keeps, in HU/s, for an absorbed heat rate in HU/s. */
-        public double keptHeatPerSecond(double heatPerSecond, double steamEuPerHu) {
+        public double keptHeatPerSecond(double heatPerSecond, double plateEuPerHu) {
             return heatPerSecond
-                - convertedHeat(heatPerSecond, calculatePower(heatPerSecond, steamEuPerHu), 1.0, steamEuPerHu);
+                - convertedHeat(heatPerSecond, calculatePower(heatPerSecond, plateEuPerHu), 1.0, plateEuPerHu);
         }
 
         public RadiovoltaicData() {}

@@ -94,6 +94,7 @@ The formulas in this manual therefore name these parameters by symbol.  What to 
 | $m_G$ | `grid_conduction_multiplier` | Conduction between neighbouring columns | §5.2 | 37.985 |
 | $m_0$, $r$ | `coolant_passage_heat_transfer_multiplier`, `coolant_passage_heat_transfer_tier_ratio` | A passage's convective transfer into its loop at MV, and its growth per tier | §9.7 | 0.0699, 1.633 |
 | $m_\text{PHE}$ | `heatTransferMultiplier` (`devices.yaml`) | Every PHE's effective area | §9.7 | 1.2251 |
+| $m_R$ | `radiovoltaic_efficiency_multiplier` | How far radiovoltaic plates beat plain steam at small scale.  Set by hand for now | §8.4 | 2.0 |
 
 ---
 
@@ -355,7 +356,7 @@ The GUI converts per-cycle neutron counts into nominal physical units by $1\ \te
 | Fast neutron absorbed | 8 HU per neutron | Absorbing cell |
 | Fast neutron moderated | 8 HU per neutron | Moderating cell |
 | Wigner energy release | variable (§5.5) | Graphite moderator cell |
-| Radiovoltaic conversion | removes $\min(H, 20P/\kappa)$ (§8.4) | Radiovoltaic cell |
+| Radiovoltaic conversion | removes $\min(H, 20P/(m_R\kappa))$ (§8.4) | Radiovoltaic cell |
 
 $q_f$ and $s$ are calibrated (§1.4): with the values there, 121 HU, 23 HU and 152 HU.  The other heats in this table are fixed.  Neutrons emitted by external neutron sources carry no prompt fission heat. Perfect insulators (dampening 1.0, i.e. Naquarite foil) absorb neutrons without receiving the 8 HU or 4 HU absorption heat.
 
@@ -685,19 +686,23 @@ Radiovoltaic plates convert absorbed neutrons directly into EU.  What they conve
 | HV | 0.40 / 0.40 | 0.30 / 0.30 | 0 | 1024 EU/t | 0.10 |
 | EV | 0.60 / 0.60 | 0.30 / 0.30 | 0 | 4096 EU/t | 0.10 |
 
-Plates are measured against the steam route: $\kappa$ = `radiovoltaic_steam_eu_per_hu` is the EU that boiling water and an XL high-pressure turbine make of 1 HU.  Distilled water takes 17.65625 HU per litre and becomes 160 L of superheated steam, at 1 EU per litre, so $\kappa = 160 / 17.65625 \approx 9.06$ EU/HU.
+Plates are measured against plain GregTech steam.  Distilled water takes 17.65625 HU per litre to boil, and becomes 160 L of steam.  A steam turbine at 100 % efficiency turns 2 L of steam into 1 EU.  So 1 HU spent on steam is worth
+
+$$\kappa = \frac{160 / 2}{17.65625} \approx 4.53\ \text{EU/HU}$$
+
+(`radiovoltaic_steam_eu_per_hu`).  Plates are meant to beat that baseline at small scale, by the calibrated factor $m_R$ (`radiovoltaic_efficiency_multiplier`, §1.4): a plate converts heat at $m_R\,\kappa$ EU/HU.
 
 With $A_f$, $A_t$ the neutrons a plate absorbs this cycle, its absorbed heat rate is $H = (8A_f + 4A_t)/\Delta t$ HU/s, averaged over about 2 s.  Its output is
 
-$$P = \operatorname{round}\!\left(P_\text{max}\cdot\eta\cdot\tanh\!\left(\operatorname{artanh}(0.95)\,\frac{H}{H_{95}}\right)\right)\ \text{EU/t}, \qquad H_{95} = \frac{0.95\,P_\text{max}\cdot 20}{\kappa}$$
+$$P = \operatorname{round}\!\left(P_\text{max}\cdot\eta\cdot\tanh\!\left(\operatorname{artanh}(0.95)\,\frac{H}{H_{95}}\right)\right)\ \text{EU/t}, \qquad H_{95} = \frac{0.95\,P_\text{max}\cdot 20}{m_R\,\kappa}$$
 
-with conversion efficiency $\eta = 1$ by default.  At $H = H_{95}$ the plate makes 95 % of $P_\text{max}$, which is exactly what steam would make of the same heat.  With $\kappa$ as above, $H_{95}$ is about 2150 HU/s for an HV plate (some 270 fast or 540 thermal neutrons absorbed per second) and four times that for EV.  Because $H$ is a rate per second, the curve does not depend on the cycle length.
+with conversion efficiency $\eta = 1$ by default.  At $H = H_{95}$ the plate makes 95 % of $P_\text{max}$, which is $m_R$ times what steam would make of the same heat.  Past that its output is capped, and steam catches up once $H$ reaches $20\,P_\text{max}\eta/\kappa$.  With the §1.4 values, $H_{95}$ is about 2150 HU/s for an HV plate (some 270 fast or 540 thermal neutrons absorbed per second) and four times that for EV, and steam catches up at about 4500 HU/s for HV.  Because $H$ is a rate per second, the curve does not depend on the cycle length.
 
 The plate takes the heat it converts out of its cell, and keeps the rest:
 
-$$Q_\text{kept} = H - \min\!\left(H,\ \frac{20\,P}{\kappa}\right)\ \text{HU/s}$$
+$$Q_\text{kept} = H - \min\!\left(H,\ \frac{20\,P}{m_R\,\kappa}\right)\ \text{HU/s}$$
 
-Below $H_{95}$ a plate converts more than steam would, up to about 1.9 times as much at low flux, and then keeps no heat: it removes what it absorbed and no more, and never cools its cell below ambient.  Above $H_{95}$ it converts less than steam would, and the rest of the heat stays in the plate's cell.  A plate's output is capped, so its advantage at low flux doesn't scale.
+Below $H_{95}$ a plate converts more than $m_R\,\kappa$ per HU, up to about 1.9 times as much at low flux, and then keeps no heat: it removes what it absorbed and no more, and never cools its cell below ambient.  Above $H_{95}$ it converts less, and the rest of the heat stays in the plate's cell.  A plate's output is capped, so its advantage at low flux doesn't scale.
 
 The summed plate output, multiplied by the maintenance efficiency (§11.1), is emitted through the dynamo hatch every tick. Plates are indestructible.  They scatter the neutrons they don't absorb at $p_s = 0.30$, so they pass thermal neutrons on rather than ending them.
 
@@ -1232,7 +1237,8 @@ Names are case-sensitive, as the registries are. There are no wildcards, and unl
 | `hu_per_degree` | 32 | Heat capacity of a column other than a core hatch (HU/°C) |
 | `core_hatch_heat_capacity` | 16 | Heat capacity of a tier-0 core hatch (HU/°C); a tier-$t$ hatch holds $2^t$ times this |
 | `fission_heat_per_neutron` | calibrated | $q_f$: prompt heat per emitted neutron (HU) |
-| `radiovoltaic_steam_eu_per_hu` | 9.0619 | $\kappa$: EU the steam route makes of 1 HU; where radiovoltaic plates saturate (§8.4) |
+| `radiovoltaic_steam_eu_per_hu` | 4.53097 | $\kappa$: EU plain steam makes of 1 HU, the baseline radiovoltaic plates are measured against (§8.4) |
+| `radiovoltaic_efficiency_multiplier` | calibrated | $m_R$: how many times $\kappa$ a radiovoltaic plate makes of its heat at $H_{95}$ (§8.4) |
 | `spontaneous_heat_fraction` | calibrated | $s$: share of that heat a spontaneously emitted neutron deposits (§4.2) |
 | `global_thermal_fission_multiplier` | calibrated | $g_t$: scales all $\phi_t$ |
 | `global_fast_fission_multiplier` | 1.0 | $g_f$: scales all $\phi_f$ |
@@ -1304,7 +1310,7 @@ The following keys exist in the default configuration or component data but have
 | Rod insertion | $x = \max(1 - 0.2\,n_\text{pipes},\ x_\text{target})$ |
 | Rod absorption | $p_a^\text{rod} = \max(0.01, x\,a_\text{max})$ |
 | Column absorption with rod | $\min(1, p_a^\text{rod} + p_a^\text{fol} + (1 - p_a^\text{rod} - p_m^\text{fol})p_a)$ |
-| Radiovoltaic output | $P = P_\text{max}\,\eta\tanh(\operatorname{artanh}(0.95)\,H/H_{95})$, $H = (8A_f + 4A_t)/\Delta t$, $H_{95} = 0.95\,P_\text{max}\cdot 20/\kappa$ |
+| Radiovoltaic output | $P = P_\text{max}\,\eta\tanh(\operatorname{artanh}(0.95)\,H/H_{95})$, $H = (8A_f + 4A_t)/\Delta t$, $H_{95} = 0.95\,P_\text{max}\cdot 20/(m_R\kappa)$ |
 | Wigner release | $\min(E, 2000\,\tfrac{(T-1500)^2}{(T-1500)^2 + 1000^2})$ HU/cycle |
 | Maintenance efficiency | $\eta = \tfrac{\text{working}}{6}(1 - D_s/100)$ |
 | Wall-wear probability | $0.01\,(1 + 9\bar N^2/(\bar N^2 + 10^6))$ per minute |

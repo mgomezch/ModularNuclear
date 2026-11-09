@@ -5,10 +5,12 @@ physics:
   fast_absorption_damage_multiplier: 8.0
   thermal_absorption_damage_multiplier: 1.0
   fission_heat_per_neutron: 121.227
-  # EU that the steam route makes of 1 HU: distilled water takes 17.65625 HU per litre and becomes 160 L of
-  # superheated steam, at 1 EU per litre in an XL high-pressure turbine.  A radiovoltaic plate reaches 95% of its
-  # output where that output equals what steam would make of the heat it absorbs.
-  radiovoltaic_steam_eu_per_hu: 9.0619
+  # EU that plain steam makes of 1 HU: distilled water takes 17.65625 HU per litre and becomes 160 L of steam, which
+  # a steam turbine at 100% efficiency turns into 1 EU per 2 L.  Radiovoltaic plates are measured against it.
+  radiovoltaic_steam_eu_per_hu: 4.53097
+  # A radiovoltaic plate reaches 95% of its output where it makes this many times what steam would of the heat it
+  # absorbs.  A balance lever.
+  radiovoltaic_efficiency_multiplier: 2.0
   grid_conduction_multiplier: 37.9854
   fuel_burnup_multiplier: 0.0345316
   neutron_yield_multiplier: 28.959

@@ -142,28 +142,39 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             return cardValues;
         }
 
-        private static double steamEuPerHu() {
-            return NuclearSimulationEngine.params().radiovoltaicSteamEuPerHu;
+        private static double plateEuPerHu() {
+            return NuclearSimulationEngine.params()
+                .radiovoltaicEuPerHu();
         }
 
         /** The heat rate (HU/s) at which output reaches 95% of maxDirectEU. See Note [Radiovoltaic energy]. */
         public double fullOutputHeatPerSecond() {
-            return radiovoltaic.fullOutputHeatPerSecond(steamEuPerHu());
+            return radiovoltaic.fullOutputHeatPerSecond(plateEuPerHu());
         }
 
         /** EU/t for an absorbed heat rate in HU/s. */
         public double calculatePower(double heatPerSecond) {
-            return radiovoltaic.calculatePower(heatPerSecond, steamEuPerHu());
+            return radiovoltaic.calculatePower(heatPerSecond, plateEuPerHu());
         }
 
         /** Heat the plate keeps, in HU/s, for an absorbed heat rate in HU/s. */
         public double calculateHeat(double heatPerSecond) {
-            return radiovoltaic.keptHeatPerSecond(heatPerSecond, steamEuPerHu());
+            return radiovoltaic.keptHeatPerSecond(heatPerSecond, plateEuPerHu());
         }
 
-        /** EU/t the steam route makes of the same heat. */
+        /**
+         * The heat rate (HU/s) from which plain steam makes as much as the plate's maximum output. See Note
+         * [Radiovoltaic energy].
+         */
+        public double steamCatchUpHeatPerSecond() {
+            return 20.0 * radiovoltaic.getMaxEffectiveEU()
+                * radiovoltaic.euConversionEfficiency
+                / NuclearSimulationEngine.params().radiovoltaicSteamEuPerHu;
+        }
+
+        /** EU/t plain steam makes of the same heat: the baseline plates are measured against. */
         public double steamPower(double heatPerSecond) {
-            return heatPerSecond * steamEuPerHu() / 20.0;
+            return heatPerSecond * NuclearSimulationEngine.params().radiovoltaicSteamEuPerHu / 20.0;
         }
 
         public ComponentStatsData(ItemStack stack, String name, String category, double fastScattering,
@@ -1450,9 +1461,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         }
     }
 
-    /** The radiovoltaic chart's x axis runs over absorbed heat up to twice the 95% output point. */
+    /** The radiovoltaic chart's x axis runs over absorbed heat up to twice where steam catches up with the plate. */
     static double rvPlotMaxHeat(ComponentStatsData d) {
-        return 2.0 * d.fullOutputHeatPerSecond();
+        return 2.0 * d.steamCatchUpHeatPerSecond();
     }
 
     public static boolean isMouseOverRVPlot(int x, int y) {
@@ -1466,9 +1477,11 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     }
 
     /*-
-    The radiovoltaic chart, against the heat rate H (HU/s) the plate's absorbed neutrons bring, from 0 to 2 H_95:
-      left axis    EU/t, up to what the steam route makes of 2 H_95, so that its dashed line is the diagonal; the
-                   plate's power curve crosses it at H_95.  See Note [Radiovoltaic energy]
+    The radiovoltaic chart, against the heat rate H (HU/s) the plate's absorbed neutrons bring, from 0 to twice the
+    heat at which plain steam makes the plate's maximum output (steamCatchUpHeatPerSecond):
+      left axis    EU/t, up to twice the plate's maximum output.  Steam's dashed line is the diagonal, and it crosses
+                   the plate's saturated power curve at the centre, whatever radiovoltaic_efficiency_multiplier is.
+                   See Note [Radiovoltaic energy]
       right axis   HU/s on the same scale as H: the heat the plate keeps
     */
     private void drawRadiovoltaicCurve(CachedNeutronInteractionRecipe recipe, int recipeIndex) {
@@ -1524,7 +1537,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         GL11.glEnable(GL11.GL_LINE_SMOOTH);
         GL11.glHint(GL11.GL_LINE_SMOOTH_HINT, GL11.GL_NICEST);
 
-        // Steam route: the diagonal, dashed
+        // Plain steam: the diagonal, dashed
         GL11.glLineWidth(1.0f);
         NEIPalette.glColor(palette.steamRoute, 1.0f);
         GL11.glEnable(GL11.GL_LINE_STIPPLE);
@@ -1834,7 +1847,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                                 + ")"
                                 + satNote);
                         currenttip
-                            .add(EnumChatFormatting.GRAY + "Steam route: " + formatNumber(d.steamPower(h)) + " EU/t");
+                            .add(EnumChatFormatting.GRAY + "Plain steam: " + formatNumber(d.steamPower(h)) + " EU/t");
                         String heatNote = (kept <= 0.0) ? EnumChatFormatting.GRAY + " (None)" : "";
                         currenttip
                             .add(EnumChatFormatting.RED + "Heat kept: " + formatNumber(kept) + " HU/s" + heatNote);

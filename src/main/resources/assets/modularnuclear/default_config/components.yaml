@@ -317,8 +317,8 @@ insulators:
   scattering_fast: 0.05
   scattering_thermal: 0.05
 radiovoltaics:
-# Output saturates where it equals what steam would make of the heat the plate absorbs; see
-# radiovoltaic_steam_eu_per_hu in physics.yaml.
+# Output saturates where it is radiovoltaic_efficiency_multiplier times what steam would make of the heat the plate
+# absorbs; see radiovoltaic_steam_eu_per_hu in physics.yaml.
 - id: radiovoltaic_hv
   name: HV Radiovoltaic Plate
   matching:

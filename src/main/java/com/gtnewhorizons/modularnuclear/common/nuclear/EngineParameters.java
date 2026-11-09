@@ -24,6 +24,8 @@ public final class EngineParameters {
     public double fissionHeatPerNeutron = NuclearSimulationEngine.DEFAULT_FISSION_HEAT_PER_NEUTRON;
     /** See Note [Radiovoltaic energy]. */
     public double radiovoltaicSteamEuPerHu = NuclearSimulationEngine.DEFAULT_RADIOVOLTAIC_STEAM_EU_PER_HU;
+    /** See Note [Radiovoltaic energy]. */
+    public double radiovoltaicEfficiencyMultiplier = NuclearSimulationEngine.DEFAULT_RADIOVOLTAIC_EFFICIENCY_MULTIPLIER;
     public double hpWaterBoilingPoint = NuclearSimulationEngine.DEFAULT_HP_WATER_BOILING_POINT;
     public int hatchCoolantCapacity = NuclearSimulationEngine.DEFAULT_HATCH_CAPACITY;
     public NuclearSimulationEngine.TurnoverCurve turnoverCurve = NuclearSimulationEngine.DEFAULT_TURNOVER_CURVE;
@@ -89,6 +91,7 @@ public final class EngineParameters {
         c.thermalAbsorptionDamageMultiplier = thermalAbsorptionDamageMultiplier;
         c.fissionHeatPerNeutron = fissionHeatPerNeutron;
         c.radiovoltaicSteamEuPerHu = radiovoltaicSteamEuPerHu;
+        c.radiovoltaicEfficiencyMultiplier = radiovoltaicEfficiencyMultiplier;
         c.hpWaterBoilingPoint = hpWaterBoilingPoint;
         c.hatchCoolantCapacity = hatchCoolantCapacity;
         c.turnoverCurve = turnoverCurve;
@@ -121,6 +124,11 @@ public final class EngineParameters {
     }
 
     /** Rounds down and adds one with probability equal to the fractional part. */
+    /** EU a radiovoltaic plate makes of 1 HU at its full-output point. See Note [Radiovoltaic energy]. */
+    public double radiovoltaicEuPerHu() {
+        return radiovoltaicEfficiencyMultiplier * radiovoltaicSteamEuPerHu;
+    }
+
     public int stochasticRound(double value) {
         if (value <= 0.0) return 0;
         int whole = (int) value;
