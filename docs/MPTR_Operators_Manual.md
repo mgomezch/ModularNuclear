@@ -2,7 +2,7 @@
 
 **Scope.** This manual describes the internal operation of the Modular Pressure Tube Reactor as implemented in the ModularNuclear mod and its standalone simulator. It is a functional reference: it explains how the core simulation works, what each component does to neutrons and heat, how cooling is computed, and under what conditions contents are voided, the structure is damaged, or the reactor melts down. It does not prescribe a particular reactor layout.
 
-**Source of truth.** All formulas and default values below are taken from the simulation code (`NuclearSimulationEngine`, `NuclearReactorPhysics`, `MTENuclearReactor`, the hatch classes) and the default configuration files shipped in the JAR (`physics.yaml`, `tiers.yaml`, `fuels.yaml`, `components.yaml`). Every value marked *default* can be overridden by a server's configuration directory; see [Appendix A](#appendix-a--configuration-and-global-parameters).
+**Source of truth.** All formulas and default values below are taken from the simulation code (`NuclearSimulationEngine`, `NuclearReactorPhysics`, `MTENuclearReactor`, the hatch classes) and the default configuration files shipped in the JAR (`physics.yaml`, `tiers.yaml`, `fuels.yaml`, `components.yaml`). Every value marked *default* can be overridden by a server's configuration directory; see [Appendix A](#appendix-a--configuration-and-global-parameters).  Some values are calibrated and change from version to version; see [§1.4](#14-calibrated-parameters).
 
 ---
 
@@ -68,14 +68,32 @@ Every 5 ticks the controller executes one full core cycle. The order of operatio
 | 2a | Fast transport | Each emitted packet travels as a fast ray, interacting with the columns it crosses until it is absorbed, thermalized, or leaves the core. |
 | 2b | Thermal diffusion | Thermalized neutrons diffuse over the grid with a 9-point stencil until the population is exhausted. |
 | 3 | Heat deposition | All queued heat (fission, absorption, moderation, Wigner release) is added to the columns. |
-| 4 | Conduction | Heat conducts between cardinally adjacent columns and leaks to the boundary, in 5 sub-steps. |
+| 4 | Conduction | Heat conducts between cardinally adjacent columns and leaks to the boundary, in at least 5 sub-steps. |
 | 4.5 | Active components | All heat exchangers act at once on a temperature snapshot, then heat vents act. |
 | 5 | Column update | Coolant boiling and turnover, coolant-cell heat absorption, fuel and moderator wear, radiovoltaic output, depletion and ejection. |
 | 6 | Post-cycle | Telemetry, direct-power summation, wall-wear accounting, overheating checks (§12.3), meltdown check (§12.4). |
 
 On the four ticks between cycles, only the active vents and heat exchangers run (step 4.5). Their throughput limits are therefore per tick, not per cycle (§9.4).
 
-A consequence of the ordering is that **neutrons generated in a cycle are driven by absorptions recorded in the previous cycle** (§4.5). This one-cycle lag is the reactor's only form of delayed response, and it is what makes power excursions observable and controllable rather than instantaneous.
+A consequence of the ordering is that **neutrons generated in a cycle are driven by absorptions recorded in earlier cycles** (§4.2, §4.5).  This lag is the reactor's only form of delayed response, and it is what makes power excursions observable and controllable rather than instantaneous.
+
+### 1.4 Calibrated parameters
+
+Several constants in the reactor's math aren't physical quantities or fixed design choices.  They are levers, tuned together by an automated calibration so that reference reactor designs reach their intended power at every tier.  Calibration runs again when the physics changes, so **their values are expected to move**, and a server can override them.
+
+The formulas in this manual therefore name these parameters by symbol.  What to rely on is how each one enters the math, not its current size.  Worked examples use the values below, and they are only examples: for the real values, read `physics.yaml` and `devices.yaml`.
+
+| Symbol | Key | Scales | Used in | Value when this was written |
+| :--- | :--- | :--- | :--- | :--- |
+| $q_f$ | `fission_heat_per_neutron` | Prompt heat per emitted neutron (HU), and through it fuel's thermal absorption heat | §4.2, §5.1 | 121.227 |
+| $s$ | `spontaneous_heat_fraction` | Share of $q_f$ that a spontaneously emitted neutron deposits | §4.2 | 0.187 |
+| $g_t$ | `global_thermal_fission_multiplier` | Every fuel's thermal fission multiplier | §4.2 | 2.549 |
+| $m_Y$ | `neutron_yield_multiplier` | Every fuel's base yield | §4.2 | 28.959 |
+| $m_N$, $m_\phi$ | `<archetype>_nbase_multiplier`, `<archetype>_fission_multiplier` | Base yield and fission multipliers, by fuel archetype | §6.3 | see §6.3 |
+| $b$ | `fuel_burnup_multiplier` | All fuel wear.  Calibration sets it to $1/m_Y$, so that a higher yield doesn't by itself burn fuel faster | §6.4 | 0.0345 |
+| $m_G$ | `grid_conduction_multiplier` | Conduction between neighbouring columns | §5.2 | 37.985 |
+| $m_0$, $r$ | `coolant_passage_heat_transfer_multiplier`, `coolant_passage_heat_transfer_tier_ratio` | A passage's convective transfer into its loop at MV, and its growth per tier | §9.7 | 0.0699, 1.633 |
+| $m_\text{PHE}$ | `heatTransferMultiplier` (`devices.yaml`) | Every PHE's effective area | §9.7 | 1.2251 |
 
 ---
 
@@ -199,22 +217,33 @@ Fuel converts absorbed neutrons into new fast neutrons in the following cycle. T
 
 Each fuel cell emits, per cycle:
 
-$$N = \operatorname{round}\Big[\big(\tilde N_0 + \operatorname{round}(\phi_t\, A_t' + \phi_f\, A_f')\big)\cdot R(T)\Big]$$
+$$N = \operatorname{round}_\text{stoch}\Big[\big(\tilde N_0 + C\big)\cdot R(T)\Big]$$
 
 where:
 
-- $\tilde N_0$ is the **spontaneous emission**: the fuel's effective base neutron yield multiplied by $\Delta t$ (base yields are per second), rounded stochastically (the fractional part is a probability of one extra neutron);
+- $\tilde N_0 = N_\text{eff}\,\Delta t$ is the **spontaneous emission**, from the fuel's effective base yield in n/s, $N_\text{eff} = \max(1, \operatorname{round}(N_0\, m_N\, m_Y))$ (§6.3, §1.4);
+- $C = \Lambda\,\Delta t$ is the **chain-reaction emission**, from the fuel's chain rate $\Lambda$ in n/s;
+- $R(T)$ is the temperature reactivity factor (§4.6), evaluated at the cell's temperature at the start of the cycle;
+- $\operatorname{round}_\text{stoch}$ rounds stochastically: the fractional part is a probability of one extra neutron.
+
+The chain rate follows the fuel's absorptions, relaxing with a fixed time constant of 0.25 s:
+
+$$\Lambda_k = \Lambda_{k-1} + \big(1 - e^{-\Delta t / 0.25}\big)\left(\frac{\phi_t\, A_t' + \phi_f\, A_f'}{\Delta t} - \Lambda_{k-1}\right)$$
+
+where:
+
 - $A_t'$ and $A_f'$ are the thermal and fast neutrons **absorbed by this cell's fuel in the previous cycle**;
-- $\phi_t$ and $\phi_f$ are the fuel's effective thermal and fast fission multipliers, multiplied by the global multipliers (both 1.0 by default);
-- $R(T)$ is the temperature reactivity factor (§4.6), evaluated at the cell's temperature at the start of the cycle.
+- $\phi_t = \phi_{t,0}\, m_\phi\, g_t$ and $\phi_f = \phi_{f,0}\, m_\phi\, g_f$ are the fuel's effective fission multipliers: its own (§6.1), times its archetype's $m_\phi$ (§6.3), times the global multipliers.  $g_t$ is calibrated (§1.4), and $g_f$ (`global_fast_fission_multiplier`) is 1.0 by default.
 
-The effective base yield and fission multipliers include the **archetype multipliers** (§6.3). For example, a Quad Uranium Fuel Rod has a base yield of 16 n/s (standard archetype, multiplier 1.0), so $\tilde N_0 = 4$ per cycle; at $R = 1$ and with 20 thermal neutrons absorbed in the previous cycle it emits $4 + \operatorname{round}(20 \times 1.25) = 29$ neutrons.
+At the default $\Delta t = 0.25$ s, a change in absorptions moves the chain rate 63 % of the way per cycle.
 
-Every emitted neutron deposits prompt fission heat in the emitting cell: **38 HU** (`fission_heat_per_neutron`) for each chain-reaction neutron, and that times `spontaneous_heat_fraction` (default 1.0) for each spontaneous one. With the fraction $s$, the prompt heat is
+For example, with the values in §1.4, a Quad Uranium Fuel Rod (standard archetype) with $N_0 = 16$ n/s has $N_\text{eff} = 255$ n/s, so $\tilde N_0 = 63.75$ per cycle, and $\phi_t = 1.25 \times 1.251 \times 2.549 = 3.99$.  At $R = 1$ and with a steady 20 thermal neutrons absorbed per cycle, $C = 79.7$ and it emits about 143 neutrons per cycle.
 
-$$Q = 38 \cdot N \cdot \frac{s\,\tilde N_0 + C}{\tilde N_0 + C}$$
+Every emitted neutron deposits prompt fission heat in the emitting cell: $q_f$ for each chain-reaction neutron, and $s\,q_f$ for each spontaneous one (§1.4).  The prompt heat is
 
-where $C = \operatorname{round}(\phi_t A_t' + \phi_f A_f')$ is the chain-reaction part. Control rods cut $C$ but not $\tilde N_0$, so the lower $s$ is, the more of a core's heat a full insertion removes.
+$$Q = q_f \cdot N \cdot \frac{s\,\tilde N_0 + C}{\tilde N_0 + C}$$
+
+Continuing the example, that is about 11 100 HU per cycle.  Control rods cut $C$ but not $\tilde N_0$, so the lower $s$ is, the more of a core's heat a full insertion removes.
 
 **Ray count.** The $N$ neutrons are divided as evenly as possible among a number of rays:
 
@@ -258,20 +287,20 @@ $$\nu_\text{abs} = \nu\, p_a^{(t)}, \qquad \nu_\text{scat} = (\nu - \nu_\text{ab
 
 The third rule is the most important property of the thermal model: **a thermal neutron in a cell with low thermal scattering is lost, not passed on.** Thermal neutrons only travel through cells that scatter them. Fuel ($p_s^{(t)} = 0.10$) is therefore a near-terminal medium for thermal neutrons: a thermal packet entering a fuel cell is 80 % absorbed and only 2 % passed on. Water, heavy water, moderators and reflectors are good thermal carriers; insulators and radiovoltaic plates are sinks.
 
-Heat from thermal absorption is deposited per neutron: 47.5 HU ($38 \times 1.25$) when absorbed by fuel, and 4 HU when absorbed by anything else (including the control-rod share of a fuel column's absorption, §7.4).
+Heat from thermal absorption is deposited per neutron: $1.25\,q_f$ (§1.4) when absorbed by fuel, and 4 HU when absorbed by anything else (including the control-rod share of a fuel column's absorption, §7.4).
 
 ### 4.5 Chain reaction and criticality
 
 Combining §4.2–4.4, the steady neutron economy of a fuel cell is
 
-$$N_{k+1} \approx \Big(\tilde N_0 + \phi_t A_{t,k} + \phi_f A_{f,k}\Big)\, R(T_k)$$
+$$N \approx \Big(\tilde N_0 + \phi_t A_t + \phi_f A_f\Big)\, R(T)$$
 
-where $A_{t,k}$ is the thermal absorption the cell received in cycle $k$, which depends on the neutrons all its neighbours emitted in cycle $k$ and on the moderators and carriers between them. The reactor is supercritical when, around the core, each emitted neutron returns more than one neutron's worth of $\phi_t A_t + \phi_f A_f$ to fuel in the next cycle; it is subcritical when it returns less, in which case the population settles at a level sustained by spontaneous emission $\tilde N_0$.
+where $A_t$ is the thermal absorption the cell receives per cycle, which depends on the neutrons all its neighbours emit and on the moderators and carriers between them.  The reactor is supercritical when, around the core, each emitted neutron returns more than one neutron's worth of $\phi_t A_t + \phi_f A_f$ to fuel in the following cycles; it is subcritical when it returns less, in which case the population settles at a level sustained by spontaneous emission $\tilde N_0$.
 
 Three features bound the chain reaction:
 
 1. **Temperature feedback.** $R(T)$ falls above each fuel's peak temperature, so a hotter core emits fewer neutrons (§4.6).
-2. **Generation lag.** Neutrons in cycle $k+1$ respond to absorptions in cycle $k$. Power therefore changes at most by the multiplication factor per 0.25 s rather than instantaneously.
+2. **Generation lag.** Chain emission follows absorptions with a time constant of 0.25 s (§4.2), so power rises and falls over several cycles rather than instantaneously.
 3. **Leakage.** Fast rays and thermal neutrons that reach the edges of the core, cut corners, or non-scattering cells are lost.
 
 ### 4.6 Temperature reactivity coefficient
@@ -320,15 +349,15 @@ The GUI converts per-cycle neutron counts into nominal physical units by $1\ \te
 
 | Event | Heat deposited | Cell |
 | :--- | :--- | :--- |
-| Neutron emitted by fuel | 38 HU per neutron | Emitting fuel cell |
-| Thermal neutron absorbed by fuel | 47.5 HU per neutron | Fuel cell |
+| Neutron emitted by fuel | $q_f$ per chain-reaction neutron, $s\,q_f$ per spontaneous one (§4.2) | Emitting fuel cell |
+| Thermal neutron absorbed by fuel | $1.25\,q_f$ per neutron | Fuel cell |
 | Thermal neutron absorbed by anything else | 4 HU per neutron | Absorbing cell |
 | Fast neutron absorbed | 8 HU per neutron | Absorbing cell |
 | Fast neutron moderated | 8 HU per neutron | Moderating cell |
 | Wigner energy release | variable (§5.5) | Graphite moderator cell |
 | Radiovoltaic excess energy | variable (§8.4) | Radiovoltaic cell |
 
-Neutrons emitted by external neutron sources carry no prompt fission heat. Perfect insulators (dampening 1.0, i.e. Naquarite foil) absorb neutrons without receiving the 8 HU or 4 HU absorption heat.
+$q_f$ and $s$ are calibrated (§1.4): with the values there, 121 HU, 23 HU and 152 HU.  The other heats in this table are fixed.  Neutrons emitted by external neutron sources carry no prompt fission heat. Perfect insulators (dampening 1.0, i.e. Naquarite foil) absorb neutrons without receiving the 8 HU or 4 HU absorption heat.
 
 All heat produced by neutron events in a cycle is accumulated and deposited at once in step 3, after transport is complete. Deposition therefore does not influence transport within the same cycle.
 
@@ -336,15 +365,15 @@ All heat produced by neutron events in a cycle is accumulated and deposited at o
 
 After deposition, heat conducts between each pair of cardinally adjacent cells, in $N \ge 5$ sub-steps per cycle ($N$ grows with the largest coefficient and the conduction multiplier, so that no cell overshoots). In each sub-step, the heat flowing from a hotter cell A to a colder neighbour B is
 
-$$Q_{A\to B} = 32\,(T_A - T_B)\cdot\frac{c_A + c_B}{2}\cdot\frac{\Delta t}{N}\cdot\big(1 - \max(\delta_A,\delta_B)\big)$$
+$$Q_{A\to B} = 32\,m_G\,(T_A - T_B)\cdot\frac{c_A + c_B}{2}\cdot\frac{\Delta t}{N}\cdot\big(1 - \max(\delta_A,\delta_B)\big)$$
 
-with each coefficient floored at 0.01. A loses $Q/C_A$ °C and B gains $Q/C_B$ °C: between two 32 HU/°C cells the same $\Delta T$ is subtracted from A and added to B, while a hatch of larger heat capacity warms and cools more slowly than its neighbours.
+with each coefficient floored at 0.01, and $m_G$ the calibrated `grid_conduction_multiplier` (§1.4). A loses $Q/C_A$ °C and B gains $Q/C_B$ °C: between two 32 HU/°C cells the same $\Delta T$ is subtracted from A and added to B, while a hatch of larger heat capacity warms and cools more slowly than its neighbours.
 
 Each missing cardinal neighbour (grid edge or cut corner) is a boundary at ambient temperature. The heat lost through each such face per sub-step is
 
 $$Q_\text{loss} = 32\,(T_A - T_\text{amb})\cdot\frac{c_A\,\Delta t}{2N}\cdot(1 - \delta_A)$$
 
-i.e. half the coupling an equivalent neighbour would have.
+i.e. half the coupling an equivalent neighbour would have, before $m_G$: the multiplier applies between columns, not to the boundary.
 
 Conduction is diagonal-blind: corner-touching cells exchange heat only through shared cardinal neighbours. Diagonal coupling exists only for thermal neutrons.
 
@@ -364,7 +393,9 @@ Representative coefficients:
 | Empty bus | 0.02 |
 | Insulators | 0.005–0.015 |
 
-Conduction is slow. With $c = 0.05$ on both sides and $\Delta t = 0.25$ s, a fuel cell exchanges about 1.25 % of its temperature difference with each neighbour per cycle. Fuel cannot be cooled by conduction alone at significant power; it must be cooled through cells with high $c$ or by coolant in direct contact (fluid fuels in hatches cannot be cooled by their own hatch, since the hatch holds the fuel).
+How fast conduction is depends on $m_G$.  Between two 32 HU/°C columns with $c = 0.05$, each loses $0.05\,m_G$ °C per second per °C of difference to the other.  With the value in §1.4 that is about 1.9 °C per second per °C, or up to 47 % of the difference per 0.25 s cycle, so heat spreads through a core far faster than the coefficients alone suggest, and hot spots even out.  Calibration uses $m_G$ for this reason: without it, dense cores form single-cell hot spots that limit a reactor long before its cooling does.
+
+Conduction only moves heat within the core, apart from the small boundary loss.  The heat must still leave through coolant, in direct contact or within conducting reach (fluid fuels in hatches cannot be cooled by their own hatch, since the hatch holds the fuel).
 
 ### 5.3 Insulation
 
@@ -410,7 +441,7 @@ Default parameters for each fuel family. Single, dual and quad variants share al
 | Tiberium | standard | 24 / 96 | 4.70 | 0.20 | 2300 | 3100 | 2982 | 400 000 |
 | The Core (Naquadah-32) | dense | 512 | 5.50 | 0.50 | 2500 | 3200 | 3097 | 2 560 000 |
 
-Base yields and fission multipliers in this table are before archetype multipliers. Temperatures are in °C.
+Base yields and fission multipliers in this table are before the archetype multipliers (§6.3) and the global multipliers (§4.2).  Temperatures are in °C.
 
 All solid fuels share the same neutron cross-sections (fast absorption 0.25–0.35, thermal absorption 0.80–0.90, fast scattering 0.15, thermal scattering 0.10, moderation 0.10) and a heat-transfer coefficient of 0.05. They differ in emission, multiplication, temperature curve and durability.
 
@@ -434,24 +465,24 @@ Liquid fuels have a thermal absorption of 0.85 and a heat-transfer coefficient o
 
 ### 6.3 Archetypes
 
-Each fuel belongs to an archetype that scales its base yield and both fission multipliers:
+Each fuel belongs to an archetype that scales its base yield by $m_N$ and both fission multipliers by $m_\phi$.  These multipliers are calibrated (§1.4), except breeders', which stay at 1.  The values when this was written:
 
-| Archetype | Base yield × | Fission multipliers × | Character |
+| Archetype | $m_N$ | $m_\phi$ | Character |
 | :--- | :--- | :--- | :--- |
-| standard | 1.00 | 1.00 | Reference behaviour. |
-| dense | 0.50 | 1.20 | Low spontaneous emission, strong multiplication. Depends on neighbours to reach power. |
-| excited | 2.00 | 0.70 | High spontaneous emission, weaker multiplication. Produces power with little help from neighbours. |
+| standard | 0.550 | 1.251 | Reference behaviour. |
+| dense | 0.764 | 1.453 | Strongest multiplication.  Depends on neighbours to reach power. |
+| excited | 1.028 | 0.483 | Highest spontaneous emission, weakest multiplication.  Produces power with little help from neighbours. |
 | breeder | 1.00 | 1.00 | Very low yields; used for transmutation products. |
 
-Effective values are rounded: effective base yield is $\max(1, \operatorname{round}(N_0 \times m_N))$. For example, a Quad High Density Uranium rod has an effective yield of 16 n/s (4 per cycle) and an effective $\phi_t = 2.16$; a Quad Excited Uranium rod has 90 n/s (22.5 per cycle) and $\phi_t = 2.0$.
+Effective values are rounded: effective base yield is $\max(1, \operatorname{round}(N_0\, m_N\, m_Y))$ (§4.2).  For example, with the values in §1.4, a Quad High Density Uranium rod ($N_0 = 32$ n/s, $\phi_{t,0} = 1.8$) has an effective yield of 708 n/s (177 per cycle) and an effective $\phi_t = 6.67$; a Quad Excited Uranium rod ($N_0 = 64$ n/s, $\phi_{t,0} = 2.5$) has 1906 n/s (476.5 per cycle) and $\phi_t = 3.07$.
 
 ### 6.4 Wear and depletion
 
 A fuel item's damage per cycle is
 
-$$D = 0.25\,N + 8\,A_f + 1\,A_t + D_T(T)\,\Delta t$$
+$$D = b\,\big(0.25\,N + 8\,A_f + 1\,A_t + D_T(T)\,\Delta t\big)$$
 
-where $N$ is the neutrons emitted in the cycle, $A_f$ and $A_t$ are the fast and thermal neutrons absorbed by the fuel this cycle, and $D_T$ is the temperature wear rate. The fast and thermal weights are the global `fast_absorption_damage_multiplier` (8) and `thermal_absorption_damage_multiplier` (1). $D$ is scaled to the item's own damage range (by item max damage / configured durability) and rounded stochastically.
+where $b$ is the calibrated `fuel_burnup_multiplier` (§1.4), $N$ is the neutrons emitted in the cycle, $A_f$ and $A_t$ are the fast and thermal neutrons absorbed by the fuel this cycle, and $D_T$ is the temperature wear rate. The fast and thermal weights are the global `fast_absorption_damage_multiplier` (8) and `thermal_absorption_damage_multiplier` (1). $D$ is scaled to the item's own damage range (by item max damage / configured durability) and rounded stochastically.
 
 The 8:1 ratio means **fast absorption in fuel is eight times as damaging as thermal absorption** while contributing roughly a tenth of the multiplication. A core in which fuel cells see each other's fast rays directly burns fuel much faster per unit of power than one in which neutrons are moderated before reaching fuel.
 
@@ -479,13 +510,13 @@ $k$ is found by bisection on $\dfrac{e^{k(T_\text{pk}-20)}-1}{e^{k(T_{10}-20)}-1
 | Tiberium | 0.003047 | 0.0010 | 0.03 | 11.5 |
 | The Core | 0.003484 | 0.0002 | 0.01 | 11.5 |
 
-Temperature wear is small compared with neutron wear at any useful power level (a fuel at its peak temperature loses 1 point per second, against durabilities of $10^4$–$10^6$). It is a penalty for sustained over-temperature operation rather than a primary depletion mechanism.
+Temperature wear is small compared with neutron wear at any useful power level (a fuel at its peak temperature loses $b$ points per second, against durabilities of $10^4$–$10^6$). It is a penalty for sustained over-temperature operation rather than a primary depletion mechanism.
 
 **Depletion.** When damage reaches the item's maximum, the fuel is removed from the bus and its spent product (configured `spent_product`, or the item's depleted form) is sent to the reactor's output buses. The bus is then empty and behaves as an empty bus.
 
 **Liquid fuel burnup.** Liquid fuel is consumed by volume instead of durability. Each cycle a fuel hatch consumes
 
-$$L = \max\big(1,\ \operatorname{round}_\text{stoch}(0.25\,N + 8\,A_f + A_t + D_T(T)\,\Delta t)\big)\ \text{L}$$
+$$L = \max\big(1,\ \operatorname{round}_\text{stoch}(b\,(0.25\,N + 8\,A_f + A_t + D_T(T)\,\Delta t))\big)\ \text{L}$$
 
 and outputs the same volume of the corresponding spent fluid. A fuel hatch consumes at least 1 L per cycle (4 L/s) while it contains fuel.
 
@@ -567,7 +598,7 @@ When a column contains fuel and a control rod, absorbed neutrons are divided bet
 
 $$n_\text{rod} = \operatorname{round}\!\left(n \cdot \frac{p_a^\text{rod}}{p_a + p_a^\text{rod}}\right), \qquad n_\text{fuel} = n - n_\text{rod}$$
 
-Only $n_\text{fuel}$ feeds the fuel's chain reaction and wear. Rod-absorbed thermal neutrons deposit 4 HU instead of 47.5 HU. A rod under a fuel column thus reduces that column's power both by stealing its absorptions and by shielding it; a rod under a non-fuel column (e.g. a moderator or coolant column between two fuel columns) intercepts neutrons in transit.
+Only $n_\text{fuel}$ feeds the fuel's chain reaction and wear. Rod-absorbed thermal neutrons deposit 4 HU instead of $1.25\,q_f$. A rod under a fuel column thus reduces that column's power both by stealing its absorptions and by shielding it; a rod under a non-fuel column (e.g. a moderator or coolant column between two fuel columns) intercepts neutrons in transit.
 
 ### 7.5 Moderator follower
 
@@ -830,7 +861,7 @@ From Osmium tier upward, a column may be a **pressure-tube passage**: a high-pre
 | Heat capacity $C = 16 \cdot 2^t$ (HU/°C) | 32 | 64 | 128 | 256 | 512 | 1024 | 2048 | 4096 | 8192 |
 | Heat transfer at 75 L/s of water (HU·s⁻¹·°C⁻¹) | 9.3 | 25 | 66 | 174 | 461 | 1221 | 3236 | 8580 | 22700 |
 
-At 75 L/s of water a passage removes about three times what a core hatch of the same tier conducts into its own coolant (§9.2), and more with more flow.
+How a passage compares with a core hatch of the same tier (§9.2) depends on the calibrated $m_0$ and $r$ below.  With the values in §1.4, an MV passage at 75 L/s of water removes about twice what an MV hatch conducts into its own coolant, and more with more flow.  Those values also make a passage's transfer grow more slowly per tier than a hatch's conductance, so at higher tiers a passage needs more flow to keep up.
 
 **Pump tanks.** A loop's pipes must all be of one material, and the pump's Railcraft tank of that same material. Railcraft has no awakened draconium or infinity tanks, so loops of those pipes take a neutronium tank (`tankMaterials` in `pipes.yaml`); the pipes withstand 6000 and 12000 bar.
 
@@ -846,7 +877,7 @@ $$Re = \frac{\rho v D}{\mu}, \qquad Pr = \frac{\mu c_p}{k}, \qquad Nu = \begin{c
 
 $$h = m_p\,\frac{Nu\,k}{D}, \qquad \dot Q = h\,A\,(T_\text{cell} - T_\text{coolant})$$
 
-where $m_p = m_0\,r^{\,t-2}$ for a passage of voltage tier $t$, with $m_0$ = `coolant_passage_heat_transfer_multiplier` (default 0.11) and $r$ = `coolant_passage_heat_transfer_tier_ratio` (default 2.65) in `physics.yaml`. The velocity is that of the passage's own share of the loop flow: where the loop splits into parallel branches (several passages behind one manifold, or several PHEs), each branch carries a share of the flow in proportion to its pipe size, and each device sees only its branch's flow.
+where $m_p = m_0\,r^{\,t-2}$ for a passage of voltage tier $t$, with $m_0$ = `coolant_passage_heat_transfer_multiplier` and $r$ = `coolant_passage_heat_transfer_tier_ratio` in `physics.yaml`, both calibrated (§1.4). The velocity is that of the passage's own share of the loop flow: where the loop splits into parallel branches (several passages behind one manifold, or several PHEs), each branch carries a share of the flow in proportion to its pipe size, and each device sees only its branch's flow.
 
 The heat transferred in one tick is capped so that the cell and the segment cannot cross over in temperature. The cell's heat capacity is the passage's $C$ (above) times 128 J/HU (1 HU = 128 J at the interface). The coolant segment's temperature rises by $Q/(m_\text{seg}\,c_p)$.
 
@@ -890,9 +921,9 @@ Only starting can go wrong now: once the pump has been allowed to work and has f
 | Heat transfer | 1× | 2× | 4× | 8× | 16× | 32× | 64× | 128× |
 | Max coolant temp. | 1084 °C | 1584 °C | 2084 °C | 4084 °C | 6584 °C | 9084 °C | 15 000 °C | 1 000 000 °C |
 
-`heatTransferMultiplier` in `devices.yaml` (default 1.0) scales every PHE.
+`heatTransferMultiplier` in `devices.yaml` ($m_\text{PHE}$, calibrated, §1.4) scales every PHE.
 
-Each tick a PHE moves heat by convection across its effective area $A$ (exchange area × sheetmetal multiplier × `heatTransferMultiplier`), $\dot Q = h(v)\,A\,(T_\text{coolant} - T_\text{boil})$, with $h$ rising with the coolant velocity up to 5000 W·m⁻²·K⁻¹: about 45 kW per °C above the secondary's boiling point (18 HU/t per °C) for the smallest copper PHE, and 128 times that per square metre in neutronium. One batch may move at most 2.26 MJ times the PHE's voltage over 32: about 0.9k HU/t at LV, 14k HU/t at HV and 56k HU/t at EV. The PHE draws $\tfrac{15}{16}$ of its voltage every tick it runs. With no coolant flowing it does neither: a PHE on a still, stopped or empty loop moves no heat and draws no power, as no loop device exchanges anything without flow (§9.7). The coolant settles where the reactor's heat equals what the PHEs can move, so fewer, smaller or lower-tier PHEs run the loop hotter. Steam takes the grade of the coolant entering the PHE (heat-weighted over the batch), however far the PHE cools it: supercritical steam at 700 °C and above, superheated steam at 300 °C and above, plain steam below; heavy water boils to the heavy-water steam of the same grade. Below ZPM no turbine takes supercritical steam, so a loop that runs that hot there wastes its steam: extract heat faster (more, larger or higher-tier PHEs) to keep it below 700 °C. One HU makes as much steam through a PHE as through a distilled water hatch (about 9 L), so a loop's advantage is the steam grade.
+Each tick a PHE moves heat by convection across its effective area $A$ (exchange area × sheetmetal multiplier × $m_\text{PHE}$), $\dot Q = h(v)\,A\,(T_\text{coolant} - T_\text{boil})$, with $h$ rising with the coolant velocity up to 5000 W·m⁻²·K⁻¹.  With the value in §1.4, that is about 55 kW per °C above the secondary's boiling point (22 HU/t per °C) for the smallest copper PHE, and 128 times that per square metre in neutronium. One batch may move at most 2.26 MJ times the PHE's voltage over 32: about 0.9k HU/t at LV, 14k HU/t at HV and 56k HU/t at EV. The PHE draws $\tfrac{15}{16}$ of its voltage every tick it runs. With no coolant flowing it does neither: a PHE on a still, stopped or empty loop moves no heat and draws no power, as no loop device exchanges anything without flow (§9.7). The coolant settles where the reactor's heat equals what the PHEs can move, so fewer, smaller or lower-tier PHEs run the loop hotter. Steam takes the grade of the coolant entering the PHE (heat-weighted over the batch), however far the PHE cools it: supercritical steam at 700 °C and above, superheated steam at 300 °C and above, plain steam below; heavy water boils to the heavy-water steam of the same grade. Below ZPM no turbine takes supercritical steam, so a loop that runs that hot there wastes its steam: extract heat faster (more, larger or higher-tier PHEs) to keep it below 700 °C. One HU makes as much steam through a PHE as through a distilled water hatch (about 9 L), so a loop's advantage is the steam grade.
 
 **Radiolysis.** Every 4 neutrons (`coolant_passage_neutrons_per_radiolysis`) absorbed in a passage cell consume 2 L of loop coolant and add 2 L of dissolved gas plus 1 L of dissolved oxygen to the loop: deuterium for water, tritium for heavy water. Other loop fluids do not undergo radiolysis. Dissolved gas increases pump rotor wear (cavitation) by a factor $1 + 10\,f_\text{gas}$, where $f_\text{gas}$ is the dissolved gas volume fraction. A **Pressurized Degasser** extracts dissolved gases from the loop to output hatches.
 
@@ -1156,7 +1187,7 @@ In addition to the in-game mechanics, the simulator provides:
 - a closed-loop model (hydraulics, Dittus–Boelter convection, PHE steam generation, radiolysis);
 - a turbine calculator that estimates the number and configuration of large steam turbines (regular, superheated and supercritical steam stages) required to consume the reactor's output, and the resulting EU/t;
 - calibration presets (peak configurations found by automated search);
-- a fuel burnup multiplier (`fuelBurnupMultiplier`, default 1.0) for exploring durability balance, which has no in-game counterpart.
+- overrides for the calibrated parameters (§1.4), such as `fuelBurnupMultiplier` and `gridConductionMultiplier`, for exploring balance.
 
 The simulator enforces the game's structure rules (shared code, `ReactorStructureRules`): the core is 5×5, 9×9 or 13×13 with its octagonal corners cut, its item pipe casings meet the chamber's minimum tier (§2.3), core hatches hold only fluids the tier accepts (`tiers.yaml` and `required_tier` in `fuels.yaml` and `components.yaml`, read from the same configuration as the game), high-pressure passages appear only at tiers that allow loops, and loops run only through passages. A core that breaks a rule would not form in the game, so it does not run: the web application shows the reasons, and the CLI's JSON lists them in `structureErrors`.
 
@@ -1190,31 +1221,32 @@ Names are case-sensitive, as the registries are. There are no wildcards, and unl
 
 **Coolant loop files** are read from `config/coolantloops/`: `physics.yaml`, `fluids.yaml`, `pipes.yaml` and `devices.yaml`. They name fluids the same way, by exact registry name: the loop coolants in `fluids.yaml` (e.g. `ic2distilledwater`, `liquid_sodium`, `molten.lead`), its `liquidNuclearFuels`, and the fluids a PHE boils in `devices.yaml`. Pipe materials are exact GregTech material names (`Iron`, `StainlessSteel`, `TungstenSteel`, `DraconiumAwakened`, …). There are no aliases.
 
-**Global physics parameters (`physics.yaml`):**
+**Global physics parameters (`physics.yaml`):** "calibrated" marks a value that calibration sets and that is expected to change (§1.4).
 
 | Key | Default | Meaning |
 | :--- | :--- | :--- |
 | `hu_per_degree` | 32 | Heat capacity of a column other than a core hatch (HU/°C) |
 | `core_hatch_heat_capacity` | 16 | Heat capacity of a tier-0 core hatch (HU/°C); a tier-$t$ hatch holds $2^t$ times this |
-| `fission_heat_per_neutron` | 38 | Prompt heat per emitted neutron (HU) |
-| `spontaneous_heat_fraction` | 1.0 | Share of that heat a spontaneously emitted neutron deposits (§4.2) |
-| `global_thermal_fission_multiplier` | 1.0 | Scales all $\phi_t$ |
-| `global_fast_fission_multiplier` | 1.0 | Scales all $\phi_f$ |
+| `fission_heat_per_neutron` | calibrated | $q_f$: prompt heat per emitted neutron (HU) |
+| `spontaneous_heat_fraction` | calibrated | $s$: share of that heat a spontaneously emitted neutron deposits (§4.2) |
+| `global_thermal_fission_multiplier` | calibrated | $g_t$: scales all $\phi_t$ |
+| `global_fast_fission_multiplier` | 1.0 | $g_f$: scales all $\phi_f$ |
 | `fast_absorption_damage_multiplier` | 8.0 | Fuel/moderator wear per fast absorption |
 | `thermal_absorption_damage_multiplier` | 1.0 | Fuel/moderator wear per thermal absorption |
 | `t10_wear_factor` | 8.0 | Ratio of temperature wear at $T_{10}$ to wear at $T_\text{pk}$ |
 | `wall_reflection_chance` | 0.0 | Probability that a neutron reaching the outer wall is reflected |
 | `beam_energy_to_fast_neutron_multiplier` | 0.001 | Beam energy × rate → neutron packets |
-| `standard_nbase_multiplier` / `_fission_multiplier` | 1.0 / 1.0 | Archetype multipliers |
-| `dense_nbase_multiplier` / `_fission_multiplier` | 0.5 / 1.2 | |
-| `excited_nbase_multiplier` / `_fission_multiplier` | 2.0 / 0.7 | |
+| `standard_nbase_multiplier` / `_fission_multiplier` | calibrated | Archetype multipliers $m_N$ / $m_\phi$ (§6.3) |
+| `dense_nbase_multiplier` / `_fission_multiplier` | calibrated | |
+| `excited_nbase_multiplier` / `_fission_multiplier` | calibrated | |
 | `breeder_nbase_multiplier` / `_fission_multiplier` | 1.0 / 1.0 | |
-| `neutron_yield_multiplier` | 1.0 | Scales every fuel's base neutron emission, on top of its archetype multiplier |
-| `grid_conduction_multiplier` | 1.0 | Scales conduction between neighbouring columns |
+| `neutron_yield_multiplier` | calibrated | $m_Y$: scales every fuel's base neutron emission, on top of its archetype multiplier |
+| `fuel_burnup_multiplier` | calibrated | $b$: scales all fuel wear (§6.4) |
+| `grid_conduction_multiplier` | calibrated | $m_G$: scales conduction between neighbouring columns (§5.2) |
 | `base_hatch_conductance` | 8.12 | Conductance $U$ of an MV core hatch into its coolant (§9.2) |
 | `hatch_conductance_tier_ratio` | 2.65 | Factor by which $U$ grows per hatch tier (§9.2) |
-| `coolant_passage_heat_transfer_multiplier` | 0.11 | Scales convective transfer between an MV passage and its loop (§9.7) |
-| `coolant_passage_heat_transfer_tier_ratio` | 2.65 | Factor on a passage's convective transfer per voltage tier (§9.7) |
+| `coolant_passage_heat_transfer_multiplier` | calibrated | $m_0$: scales convective transfer between an MV passage and its loop (§9.7) |
+| `coolant_passage_heat_transfer_tier_ratio` | calibrated | $r$: factor on a passage's convective transfer per voltage tier (§9.7) |
 | `coolant_passage_heat_capacity` | 16 | Heat capacity of a tier-0 passage; tier $t$ holds $2^t$ times this (§9.7) |
 | `coolant_passage_conduction` | 0.9 | Conduction coefficient $c$ of a passage column |
 | `coolant_passage_scattering` | 0.8 | Scattering probability of a passage column |
@@ -1225,7 +1257,7 @@ Names are case-sensitive, as the registries are. There are no wildcards, and unl
 
 **Main mod configuration** (Forge config) additionally sets the cycle length (`ticksPerCycle`, default 5), the fallout contamination reduction per pollution removed ($62.5/30000$), item and fluid allow/block lists (exact names, as above), and visual effects (Cherenkov glow, fallout overlay). Tier temperatures (maximum operating temperature, repair threshold) are set only in `tiers.yaml`.
 
-**Engine constants (not configurable):** fast-absorption and moderation heat 8 HU per neutron; non-fuel thermal absorption heat 4 HU; fuel thermal absorption heat $1.25 \times$ fission heat; conduction floor 0.01; 5 conduction sub-steps; vent/exchanger cost 0.25 EU/HU (configurable per component); coolant cell 25 HU per heat point; wall-wear base probability 1 %/min.
+**Engine constants (not configurable):** fast-absorption and moderation heat 8 HU per neutron; non-fuel thermal absorption heat 4 HU; fuel thermal absorption heat $1.25\,q_f$; chain-rate time constant 0.25 s; conduction floor 0.01; at least 5 conduction sub-steps; vent/exchanger cost 0.25 EU/HU (configurable per component); coolant cell 25 HU per heat point; wall-wear base probability 1 %/min.
 
 ## Appendix B — Declared but inactive parameters
 
@@ -1233,7 +1265,7 @@ The following keys exist in the default configuration or component data but have
 
 | Key | Location | Status |
 | :--- | :--- | :--- |
-| `grid_heat_conduction`, `boundary_heat_loss`, `radiation_decay_factor`, `doppler_deficit_exponent`, `wall_maintenance_neutron_threshold`, `default_ambient_temp` | `physics.yaml` | Not read by the engine. Conduction uses per-material coefficients; ambient comes from the biome; wall wear uses the fixed formula in §4.7. |
+| `boundary_heat_loss`, `radiation_decay_factor`, `doppler_deficit_exponent`, `wall_maintenance_neutron_threshold`, `default_ambient_temp` | `physics.yaml` | Not read by the engine. Conduction uses per-material coefficients; ambient comes from the biome; wall wear uses the fixed formula in §4.7. |
 | `self_cooling_rate` (vents), `switch_transfer_rate` (exchangers) | `components.yaml` | Shown in tooltips only. Throughput is set by `max_hu_t` and `max_eu_t`. |
 | `heat_per_reaction` | `fuels.yaml` | Not used; prompt heat is the global `fission_heat_per_neutron`. |
 | `damage_curve` (`peak_reactivity_mult`, `peak_damage_fraction`, `end_reactivity_mult`, `end_damage_fraction`) | `fuels.yaml` | Not used; reactivity does not depend on burnup. |
@@ -1245,16 +1277,18 @@ The following keys exist in the default configuration or component data but have
 
 | Quantity | Formula |
 | :--- | :--- |
-| Emission per fuel cell per cycle | $N = \operatorname{round}[(\tilde N_0 + \operatorname{round}(\phi_t A_t' + \phi_f A_f'))\,R(T)]$ |
-| Spontaneous emission | $\tilde N_0 = \operatorname{round}_\text{stoch}(N_0\, m_N\, \Delta t)$ |
+| Emission per fuel cell per cycle | $N = \operatorname{round}_\text{stoch}[(\tilde N_0 + C)\,R(T)]$ |
+| Spontaneous emission | $\tilde N_0 = \max(1, \operatorname{round}(N_0\, m_N\, m_Y))\,\Delta t$ |
+| Chain-reaction emission | $C = \Lambda\,\Delta t$; $\Lambda$ relaxes to $(\phi_t A_t' + \phi_f A_f')/\Delta t$ with time constant 0.25 s; $\phi = \phi_0\, m_\phi\, g$ |
+| Prompt fission heat | $Q = q_f\,N\,(s\tilde N_0 + C)/(\tilde N_0 + C)$ |
 | Reactivity (rising) | $R = 0.5 + 0.5\sin(\tfrac{\pi}{2}T/T_\text{pk})$ |
 | Reactivity (falling) | $R = 0.05 + 0.475\,(1 + \cos\pi p)$, $p = (T - T_\text{pk})/(T_\text{fl} - T_\text{pk})$ |
 | $T_{10}$ | $T_\text{pk} + 0.8526\,(T_\text{fl} - T_\text{pk})$ |
 | Fast interaction | $p_\text{int} = \min(1, p_a + p_s)$; absorb w.p. $p_a/p_\text{int}$; else scatter, then moderate w.p. $p_m$ |
 | Thermal step | abs $= \nu p_a$; scatter $= (\nu - \text{abs})p_s$ to 8 neighbours (1/6, 1/12); remainder lost |
-| Conduction per sub-step | $\Delta T = (T_A - T_B)\,\tfrac{c_A + c_B}{2}\,\tfrac{\Delta t}{5}\,(1 - \max\delta)$ |
-| Boundary loss per face per sub-step | $\Delta T = (T - T_\text{amb})\,\tfrac{c\,\Delta t}{10}\,(1 - \delta)$ |
-| Fuel wear per cycle | $D = 0.25N + 8A_f + A_t + A(e^{k(T-20)} - 1)\Delta t$ |
+| Conduction per sub-step ($N \ge 5$, 32 HU/°C columns) | $\Delta T = m_G\,(T_A - T_B)\,\tfrac{c_A + c_B}{2}\,\tfrac{\Delta t}{N}\,(1 - \max\delta)$ |
+| Boundary loss per face per sub-step | $\Delta T = (T - T_\text{amb})\,\tfrac{c\,\Delta t}{2N}\,(1 - \delta)$ |
+| Fuel wear per cycle | $D = b\,(0.25N + 8A_f + A_t + A(e^{k(T-20)} - 1)\Delta t)$ |
 | Hatch cooling per cycle | $Q = C\,(T - T_\text{sink})(1 - e^{-U\eta\Delta t/C})$, $C = 16 \cdot 2^\text{tier}$ |
 | Hatch conductance | $U = 8.12 \cdot 2.65^{\text{tier}-2}$ |
 | Coolant processed | $V = \min(V_\text{stored}, \operatorname{round}(Q/h))$ |

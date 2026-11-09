@@ -13,9 +13,8 @@ physics:
   spontaneous_heat_fraction: 0.187057
   # Convective heat transfer of an MV (tier 2) high-pressure passage into its loop coolant, times
   # coolant_passage_heat_transfer_tier_ratio per voltage tier above. A passage's tier is its pipe material's (iron
-  # LV, steel MV, stainless steel HV, titanium EV, tungstensteel IV, osmium LuV, neutronium ZPM). With 75 L/s of water
-  # through it, a passage removes about 1.5 times (rising slowly with tier) what a core hatch of the same tier
-  # conducts into its own coolant.
+  # LV, steel MV, stainless steel HV, titanium EV, tungstensteel IV, osmium LuV, neutronium ZPM). Both are calibrated;
+  # the operator's manual (9.7) has how a passage compares with a core hatch.
   coolant_passage_heat_transfer_multiplier: 0.0699418
   coolant_passage_heat_transfer_tier_ratio: 1.63332
   # Heat capacity (HU/°C) of a tier-0 passage; a passage of voltage tier t holds 2^t times this.
