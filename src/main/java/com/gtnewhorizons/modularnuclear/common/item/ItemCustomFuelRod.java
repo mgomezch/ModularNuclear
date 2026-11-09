@@ -125,7 +125,7 @@ public class ItemCustomFuelRod extends ItemRadioactiveCell {
             aList.add(
                 String.format(
                     Locale.US,
-                    "%sBase Neutrons: %s%d n/t",
+                    "%sBase Neutrons: %s%d n/s",
                     EnumChatFormatting.DARK_PURPLE,
                     EnumChatFormatting.WHITE,
                     mix.getBaseNeutrons(this.rodSize)));

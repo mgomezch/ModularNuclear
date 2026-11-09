@@ -174,7 +174,7 @@ public class NuclearFuelTooltipHandler {
         event.toolTip.add(
             EnumChatFormatting.GRAY + "Base neutrons: "
                 + EnumChatFormatting.WHITE
-                + String.format(Locale.US, "%d n/t", fd.baseNeutrons)
+                + String.format(Locale.US, "%d n/s", fd.baseNeutrons)
                 + EnumChatFormatting.DARK_GRAY
                 + " | "
                 + EnumChatFormatting.GRAY

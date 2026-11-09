@@ -789,7 +789,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
 
         String l3 = String.format(
             Locale.US,
-            "Th: %s%sx%s | Fast: %s%sx%s | %s%d n/t",
+            "Th: %s%sx%s | Fast: %s%sx%s | %s%d n/s",
             EnumChatFormatting.DARK_PURPLE,
             NEINeutronInteractionHandler.formatNumber(effFiss),
             dimFormat,
@@ -826,7 +826,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         font.drawString("Reactivity", (SCREEN_X + 13) * 2, (SCREEN_Y + 3) * 2, 0xFFF59E0B);
 
         GuiDraw.drawRect((SCREEN_X + 78) * 2, (SCREEN_Y + 4) * 2 + 3, 10, 2, 0xFFF43F5E);
-        font.drawString("Durability loss / t", (SCREEN_X + 85) * 2, (SCREEN_Y + 3) * 2, 0xFFF43F5E);
+        font.drawString("Durability loss / s", (SCREEN_X + 85) * 2, (SCREEN_Y + 3) * 2, 0xFFF43F5E);
 
         // 2. Left Axis: Reactivity % labels (Warm Gold)
         for (int p = 0; p <= 100; p += 25) {
@@ -1018,7 +1018,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                 currenttip.add(
                     EnumChatFormatting.RED + "Durability damage: "
                         + NEINeutronInteractionHandler.formatNumber(d)
-                        + " / t"
+                        + " / s"
                         + dmgNote);
             }
         }

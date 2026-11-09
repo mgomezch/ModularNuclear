@@ -88,7 +88,7 @@ public class NuclearFuelTooltipHandlerTest {
             if (stripped.contains("2,300 °C (floor)")) {
                 hasFloorTemp = true;
             }
-            if (stripped.contains("Base neutrons: 4 n/t")) {
+            if (stripped.contains("Base neutrons: 4 n/s")) {
                 hasBaseNeutrons = true;
             }
             if (stripped.contains("Fission: 1.25x (thermal)")) {
