@@ -67,6 +67,8 @@ public final class NEIPalette {
     public final int damageCurve;
     public final int powerCurve;
     public final int powerLabel;
+    /** The radiovoltaic chart's steam-route reference line. */
+    public final int steamRoute;
 
     public final int peakStat;
     public final int floorStat;
@@ -123,6 +125,7 @@ public final class NEIPalette {
         this.damageCurve = ColorUtils.neiDamageCurve.getColor();
         this.powerCurve = ColorUtils.neiPowerCurve.getColor();
         this.powerLabel = ColorUtils.neiPowerLabel.getColor();
+        this.steamRoute = ColorUtils.neiSteamRoute.getColor();
 
         this.peakStat = ColorUtils.neiPeakStat.getColor();
         this.floorStat = ColorUtils.neiFloorStat.getColor();

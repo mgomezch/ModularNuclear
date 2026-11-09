@@ -29,6 +29,11 @@ public class NuclearSimulationEngine {
     }
 
     public static final double HU_FOR_FAST_NEUTRON = 8.0;
+    /**
+     * EU per HU by way of steam: distilled water takes 17.65625 HU per litre and becomes 160 L of superheated steam,
+     * which an XL high-pressure turbine turns into 1 EU per litre. See Note [Radiovoltaic energy].
+     */
+    public static final double DEFAULT_RADIOVOLTAIC_STEAM_EU_PER_HU = 160.0 / 17.65625;
     public static final double DEFAULT_HU_PER_DEGREE = 32.0;
     public static final double BASE_HEAT_CONDUCTION = 0.01;
     public static final double DEFAULT_AMBIENT_TEMP = 20.0;

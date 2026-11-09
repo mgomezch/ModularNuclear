@@ -14,6 +14,8 @@ public class PhysicsData {
     public double fastAbsorptionDamageMultiplier = 8.0;
     public double thermalAbsorptionDamageMultiplier = 1.0;
     public double fissionHeatPerNeutron = NuclearSimulationEngine.DEFAULT_FISSION_HEAT_PER_NEUTRON;
+    /** EU the steam route makes of 1 HU, which radiovoltaic plates are measured against. */
+    public double radiovoltaicSteamEuPerHu = NuclearSimulationEngine.DEFAULT_RADIOVOLTAIC_STEAM_EU_PER_HU;
     public double gridConductionMultiplier = NuclearSimulationEngine.DEFAULT_GRID_CONDUCTION_MULTIPLIER;
     public double fuelBurnupMultiplier = NuclearSimulationEngine.DEFAULT_FUEL_BURNUP_MULTIPLIER;
     /** Scales every fuel's base neutron emission, on top of its archetype's multiplier. */
@@ -102,6 +104,8 @@ public class PhysicsData {
             "thermal_absorption_damage_multiplier",
             d.thermalAbsorptionDamageMultiplier);
         d.fissionHeatPerNeutron = getDouble(map, "fission_heat_per_neutron", d.fissionHeatPerNeutron);
+        d.radiovoltaicSteamEuPerHu = Math
+            .max(1e-6, getDouble(map, "radiovoltaic_steam_eu_per_hu", d.radiovoltaicSteamEuPerHu));
         d.gridConductionMultiplier = getDouble(map, "grid_conduction_multiplier", d.gridConductionMultiplier);
         d.fuelBurnupMultiplier = getDouble(map, "fuel_burnup_multiplier", d.fuelBurnupMultiplier);
         d.neutronYieldMultiplier = Math.max(0.0, getDouble(map, "neutron_yield_multiplier", d.neutronYieldMultiplier));
@@ -172,6 +176,7 @@ public class PhysicsData {
         m.put("fast_absorption_damage_multiplier", fastAbsorptionDamageMultiplier);
         m.put("thermal_absorption_damage_multiplier", thermalAbsorptionDamageMultiplier);
         m.put("fission_heat_per_neutron", fissionHeatPerNeutron);
+        m.put("radiovoltaic_steam_eu_per_hu", radiovoltaicSteamEuPerHu);
         m.put("grid_conduction_multiplier", gridConductionMultiplier);
         m.put("fuel_burnup_multiplier", fuelBurnupMultiplier);
         m.put("neutron_yield_multiplier", neutronYieldMultiplier);

@@ -112,8 +112,12 @@ public final class TileProperties {
                 CoolantFluidData d = c.coolantFluid();
                 return pick(t, d.scatteringFast, d.scatteringThermal);
             }
-            case RADIOVOLTAIC:
+            case RADIOVOLTAIC: {
+                RadiovoltaicData d = c.radiovoltaic();
+                return pick(t, d.scatteringFast, d.scatteringThermal);
+            }
             case GENERIC_RADIOVOLTAIC:
+                return RadiovoltaicData.DEFAULT_SCATTERING;
             case GENERIC_NAQUARITE:
                 return 0.0;
             case GENERIC_FUEL:

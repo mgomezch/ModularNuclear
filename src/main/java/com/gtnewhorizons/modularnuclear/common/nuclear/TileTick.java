@@ -95,15 +95,15 @@ public final class TileTick {
     public static final double RADIOVOLTAIC_RATE_TIME_CONSTANT = 2.0;
 
     /**
-     * Updates a radiovoltaic plate's running estimate of its weighted absorption rate (neutrons per second, fast
-     * counting 4x) with this cycle's absorptions. The output curve is concave, so applying it to each cycle's noisy
-     * count would make output depend on the cycle length; an exponential average over a fixed time keeps the noise,
-     * and therefore the output, the same for any cycle length.
+     * Updates a radiovoltaic plate's running estimate of the heat its absorbed neutrons bring (HU/s) with this cycle's
+     * absorbed heat. The output curve is concave, so applying it to each cycle's noisy count would make output depend
+     * on the cycle length; an exponential average over a fixed time keeps the noise, and therefore the output, the same
+     * for any cycle length.
      */
-    public static double radiovoltaicRate(double previousRate, double weightedAbsorbed, double dt) {
+    public static double radiovoltaicRate(double previousRate, double absorbedHeat, double dt) {
         if (dt <= 0.0) return previousRate;
         double alpha = 1.0 - Math.exp(-dt / RADIOVOLTAIC_RATE_TIME_CONSTANT);
-        return previousRate + alpha * (weightedAbsorbed / dt - previousRate);
+        return previousRate + alpha * (absorbedHeat / dt - previousRate);
     }
 
     // ---- Control rods -------------------------------------------------------------------------------------------

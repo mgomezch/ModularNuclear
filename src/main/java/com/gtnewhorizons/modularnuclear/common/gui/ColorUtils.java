@@ -83,6 +83,7 @@ public final class ColorUtils {
         neiDamageCurve              = color.rgb("neiDamageCurve",               "0xAA0000"),
         neiPowerCurve               = color.rgb("neiPowerCurve",                "0x55FFFF"),
         neiPowerLabel               = color.rgb("neiPowerLabel",                "0x0044AA"),
+        neiSteamRoute               = color.rgb("neiSteamRoute",                "0x505050"),
         neiPeakStat                 = color.rgb("neiPeakStat",                  "0x00AAAA"),
         neiFloorStat                = color.rgb("neiFloorStat",                 "0xFF5555"),
         neiPointStat                = color.rgb("neiPointStat",                 "0x5555FF"),

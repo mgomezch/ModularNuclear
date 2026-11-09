@@ -140,6 +140,7 @@ public final class ReactorConfigData {
         p.setFastAbsorptionDamageMultiplier(physicsData.fastAbsorptionDamageMultiplier);
         p.setThermalAbsorptionDamageMultiplier(physicsData.thermalAbsorptionDamageMultiplier);
         p.fissionHeatPerNeutron = physicsData.fissionHeatPerNeutron;
+        p.radiovoltaicSteamEuPerHu = physicsData.radiovoltaicSteamEuPerHu;
         p.wallReflectionChance = physicsData.wallReflectionChance;
         p.setBeamEnergyToFastNeutronMultiplier(physicsData.beamEnergyToFastNeutronMultiplier);
         p.setGridConductionMultiplier(physicsData.gridConductionMultiplier);

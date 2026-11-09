@@ -74,7 +74,7 @@ public class MTEHatchNuclearBus extends MTEHatch implements IReadyBeforeFirstTic
     public double mChainRate = 0.0;
     public double mBeamlinePacketAccumulator = 0.0;
     public long mDirectEUProduced = 0;
-    /** Running radiovoltaic absorption-rate estimate (see TileTick.radiovoltaicRate); not persisted. */
+    /** Running estimate of the heat a radiovoltaic plate absorbs, in HU/s (see TileTick.radiovoltaicRate). */
     public double mRadiovoltaicRate = 0.0;
     public double mLastHeatOutput = 0.0;
     public boolean mUsedForCooling = false;

@@ -986,16 +986,19 @@ public class SimTile implements INuclearTile {
             }
         }
 
-        // Radiovoltaic direct EU generation & excess heat
+        // Radiovoltaic direct EU generation. See Note [Radiovoltaic energy]
         if (isRadiovoltaic()) {
             ComponentData.RadiovoltaicData rv = getRadiovoltaicData();
-            double weightedAbsorbed = fastAbsorbed * 4.0 + thermalAbsorbed * 1.0;
-            radiovoltaicRate = TileTick.radiovoltaicRate(radiovoltaicRate, weightedAbsorbed, dt);
-            long genEU = Math.round(rv.calculatePower(radiovoltaicRate));
+            double steamEuPerHu = parameters().radiovoltaicSteamEuPerHu;
+            double absorbedHeat = ComponentData.RadiovoltaicData.absorbedHeat(fastAbsorbed, thermalAbsorbed);
+            radiovoltaicRate = TileTick.radiovoltaicRate(radiovoltaicRate, absorbedHeat, dt);
+            long genEU = Math.round(rv.calculatePower(radiovoltaicRate, steamEuPerHu));
             this.directEUProduced = genEU;
-            double excessHeat = ComponentData.RadiovoltaicData.excessHeat(weightedAbsorbed, genEU, dt);
-            if (excessHeat > 0.0) {
-                addHeat(excessHeat);
+            double converted = ComponentData.RadiovoltaicData.convertedHeat(absorbedHeat, genEU, dt, steamEuPerHu);
+            double aboveAmbient = (temperature - parameters().ambientTemp) * getHeatCapacity();
+            double removed = Math.min(converted, Math.max(0.0, aboveAmbient));
+            if (removed > 0.0) {
+                addHeat(-removed);
             }
         } else {
             this.directEUProduced = 0;

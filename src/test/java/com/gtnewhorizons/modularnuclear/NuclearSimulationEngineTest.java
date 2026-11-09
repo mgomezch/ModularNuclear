@@ -708,31 +708,32 @@ public class NuclearSimulationEngineTest {
         assertEquals(0.40, cellHV.getAbsorptionProbability(NeutronType.THERMAL), 1e-4);
         assertEquals(0.60, cellEV.getAbsorptionProbability(NeutronType.FAST), 1e-4);
         assertEquals(0.60, cellEV.getAbsorptionProbability(NeutronType.THERMAL), 1e-4);
-        assertEquals(0.0, cellHV.getScatteringProbability(NeutronType.FAST));
+        assertEquals(0.30, cellHV.getScatteringProbability(NeutronType.FAST), 1e-4);
+        assertEquals(0.30, cellHV.getScatteringProbability(NeutronType.THERMAL), 1e-4);
         assertEquals(0.0, cellHV.getModerationProbability());
 
-        // 2. Feed fast vs thermal neutrons and check 4x weight
-        cellHV.onNeutronAbsorbed(NeutronType.FAST, 1);
+        // 2. A fast neutron brings twice a thermal one's heat, so it counts as two
+        cellHV.onNeutronAbsorbed(NeutronType.FAST, 10);
         cellHV.nuclearTick(1.0);
         long fastEU = cellHV.getDirectEUProduced();
 
         SimTile cellHVThermal = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.RADIOVOLTAIC_HV);
-        cellHVThermal.onNeutronAbsorbed(NeutronType.THERMAL, 4);
+        cellHVThermal.onNeutronAbsorbed(NeutronType.THERMAL, 20);
         cellHVThermal.nuclearTick(1.0);
         long thermalEU = cellHVThermal.getDirectEUProduced();
 
-        assertTrue(fastEU > 0, "A fast neutron must generate EU");
-        assertEquals(thermalEU, fastEU, "One fast neutron must count as four thermal neutrons");
+        assertTrue(fastEU > 0, "Fast neutrons must generate EU");
+        assertEquals(thermalEU, fastEU, "One fast neutron must count as two thermal neutrons");
 
         // 3. Saturation: HV caps around 1024 EU/t (2A HV)
         SimTile cellHVSat = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.RADIOVOLTAIC_HV);
-        cellHVSat.onNeutronAbsorbed(NeutronType.FAST, 1000);
+        cellHVSat.onNeutronAbsorbed(NeutronType.FAST, 4000);
         cellHVSat.nuclearTick(1.0);
         assertEquals(1024, cellHVSat.getDirectEUProduced(), "HV Radiovoltaic cell must cap at 1024 EU/t (2A HV)");
-        assertTrue(cellHVSat.getTemperature() > 24.0, "Excess energy beyond saturation must convert into heat");
+        assertTrue(cellHVSat.getTemperature() >= 20.0, "A plate never cools its cell below ambient");
 
         // 4. EV caps around 4096 EU/t (2A EV)
-        cellEV.onNeutronAbsorbed(NeutronType.FAST, 1000);
+        cellEV.onNeutronAbsorbed(NeutronType.FAST, 16000);
         cellEV.nuclearTick(1.0);
         assertEquals(4096, cellEV.getDirectEUProduced(), "EV Radiovoltaic cell must cap at 4096 EU/t (2A EV)");
 
@@ -802,10 +803,11 @@ public class NuclearSimulationEngineTest {
         ComponentData.RadiovoltaicData rv = new ComponentData.RadiovoltaicData();
         rv.tier = 2;
         rv.maxEU = 4096;
-        // 95% of maxEU at 10 weighted neutrons absorbed per second
-        assertEquals(0.95 * 4096, rv.calculatePower(10.0), 1e-6);
-        assertEquals(0.0, rv.calculatePower(0.0), 1e-9);
-        assertTrue(rv.calculatePower(30.0) > 0.999 * 4096, "Well past the 95% point the plate is saturated");
+        double kappa = NuclearSimulationEngine.params().radiovoltaicSteamEuPerHu;
+        double full = rv.fullOutputHeatPerSecond(kappa);
+        assertEquals(0.95 * 4096, rv.calculatePower(full, kappa), 1e-6);
+        assertEquals(0.0, rv.calculatePower(0.0, kappa), 1e-9);
+        assertTrue(rv.calculatePower(3.0 * full, kappa) > 0.999 * 4096, "Well past the 95% point it is saturated");
 
         // Same absorption rate gives the same output regardless of cycle length
         int savedTpc = NuclearSimulationEngine.getTicksPerCycle();
@@ -816,20 +818,46 @@ public class NuclearSimulationEngineTest {
                 NuclearSimulationEngine.params()
                     .setTicksPerCycle(tpcs[i]);
                 SimTile plate = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.RADIOVOLTAIC_EV);
-                // A steady 8 thermal neutrons per second (2 per cycle at 5 ticks, 8 at 20 ticks) for 30 seconds,
-                // long enough for the plate's rate average to settle
+                // A steady 400 thermal neutrons per second (100 per cycle at 5 ticks, 400 at 20 ticks) for 30
+                // seconds, long enough for the plate's rate average to settle
                 for (int c = 0; c < 30 * 20 / tpcs[i]; c++) {
-                    plate.onNeutronAbsorbed(NeutronType.THERMAL, 8 * tpcs[i] / 20);
+                    plate.onNeutronAbsorbed(NeutronType.THERMAL, 400 * tpcs[i] / 20);
                     plate.nuclearTick(1.0);
                 }
                 outputs[i] = plate.getDirectEUProduced();
             }
             assertTrue(outputs[0] > 0, "Plate must produce EU");
             assertEquals(outputs[0], outputs[1], 1.0, "Output must not depend on ticks per cycle");
-            assertEquals(Math.round(rv.calculatePower(8.0)), outputs[0], 1.0);
+            assertEquals(Math.round(rv.calculatePower(400 * 4.0, kappa)), outputs[0], 1.0);
         } finally {
             NuclearSimulationEngine.params()
                 .setTicksPerCycle(savedTpc);
+        }
+    }
+
+    // See Note [Radiovoltaic energy]
+    @Test
+    void testRadiovoltaicMatchesTheSteamRouteAtItsFullOutputPoint() {
+        double kappa = NuclearSimulationEngine.params().radiovoltaicSteamEuPerHu;
+        assertEquals(160.0 / 17.65625, kappa, 1e-3, "The steam route: water to superheated steam to an XL HP turbine");
+        for (long maxEU : new long[] { 1024, 4096 }) {
+            ComponentData.RadiovoltaicData rv = new ComponentData.RadiovoltaicData();
+            rv.maxEU = maxEU;
+            double full = rv.fullOutputHeatPerSecond(kappa);
+            assertEquals(
+                full * kappa / 20.0,
+                rv.calculatePower(full, kappa),
+                1e-6,
+                "At H_95 it makes what steam would");
+            assertTrue(
+                rv.calculatePower(2.0 * full, kappa) < 2.0 * full * kappa / 20.0,
+                "Above H_95 it makes less than steam would");
+            assertTrue(
+                rv.calculatePower(0.25 * full, kappa) > 0.25 * full * kappa / 20.0,
+                "Below H_95 it makes more than steam would");
+            assertEquals(0.0, rv.keptHeatPerSecond(0.5 * full, kappa), 1e-9, "Below H_95 it keeps no heat");
+            assertTrue(rv.keptHeatPerSecond(2.0 * full, kappa) > 0.0, "Above H_95 it keeps the rest as heat");
+            assertTrue(rv.keptHeatPerSecond(2.0 * full, kappa) < 2.0 * full, "It always converts some");
         }
     }
 
@@ -853,13 +881,14 @@ public class NuclearSimulationEngineTest {
         grid100.setTicksPerCycle(20);
         grid100.setTile(1, 1, SimTile.TileType.NEUTRON_SOURCE);
         grid100.getTile(1, 1)
-            .setNeutronSourceBeamEnergy(100.0f);
+            .setNeutronSourceBeamEnergy(100000.0f);
         grid100.getTile(1, 1)
             .setNeutronSourceBeamRate(10);
         grid100.setTile(0, 1, SimTile.TileType.RADIOVOLTAIC_EV);
         NuclearSimulationEngine.params()
             .setRandomSeed(42);
-        grid100.step();
+        // The beam's neutrons reach the plate in the second cycle, and it reports their power in the third
+        for (int i = 0; i < 3; i++) grid100.step();
         double gridEU100 = grid100.getFlowDirectEU();
         assertTrue(gridEU100 > 0, "Nominal grid must generate direct EU");
 
@@ -867,14 +896,14 @@ public class NuclearSimulationEngineTest {
         grid50.setTicksPerCycle(20);
         grid50.setTile(1, 1, SimTile.TileType.NEUTRON_SOURCE);
         grid50.getTile(1, 1)
-            .setNeutronSourceBeamEnergy(100.0f);
+            .setNeutronSourceBeamEnergy(100000.0f);
         grid50.getTile(1, 1)
             .setNeutronSourceBeamRate(10);
         grid50.setTile(0, 1, SimTile.TileType.RADIOVOLTAIC_EV);
         grid50.setMaintenanceIssues(3); // 3 issues -> (6 - 3)/6 = 0.5 maintenance efficiency
         NuclearSimulationEngine.params()
             .setRandomSeed(42);
-        grid50.step();
+        for (int i = 0; i < 3; i++) grid50.step();
         double gridEU50 = grid50.getFlowDirectEU();
 
         assertEquals(
@@ -8287,14 +8316,14 @@ public class NuclearSimulationEngineTest {
         assertEquals(1024L, rvHv.maxEU, "HV radiovoltaic maxEU must default to 1024 EU/t");
         assertEquals(0.40, rvHv.absorptionFast, 1e-4, "HV radiovoltaic fast absorption must default to 0.40");
         assertEquals(0.40, rvHv.absorptionThermal, 1e-4, "HV radiovoltaic thermal absorption must default to 0.40");
-        assertEquals(10.0, rvHv.fullOutputAbsorbedPerSecond, 1e-4, "HV radiovoltaic reaches 95% at 10 absorbed/s");
+        assertEquals(0.30, rvHv.scatteringFast, 1e-4, "HV radiovoltaic fast scattering must default to 0.30");
 
         ComponentData.RadiovoltaicData rvEv = ReactorDataRegistry.getComponentData().radiovoltaics.get(1);
         assertEquals(1.0, rvEv.euConversionEfficiency, 1e-4, "Radiovoltaic efficiency must default to 1.0 (100%)");
         assertEquals(4096L, rvEv.maxEU, "EV radiovoltaic maxEU must default to 4096 EU/t");
         assertEquals(0.60, rvEv.absorptionFast, 1e-4, "EV radiovoltaic fast absorption must default to 0.60");
         assertEquals(0.60, rvEv.absorptionThermal, 1e-4, "EV radiovoltaic thermal absorption must default to 0.60");
-        assertEquals(10.0, rvEv.fullOutputAbsorbedPerSecond, 1e-4, "EV radiovoltaic reaches 95% at 10 absorbed/s");
+        assertEquals(0.30, rvEv.scatteringThermal, 1e-4, "EV radiovoltaic thermal scattering must default to 0.30");
 
         // 3. Platings are not admitted or recognized as reactor components
         assertFalse(

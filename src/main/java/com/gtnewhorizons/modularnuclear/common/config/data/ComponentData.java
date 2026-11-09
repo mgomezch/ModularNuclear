@@ -6,6 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+
 /**
  * Structured data models for non-fuel reactor components:
  * Reflectors, Moderators, Control Rods, Heat Vents, Heat Exchangers,
@@ -695,6 +697,41 @@ public class ComponentData {
     // =========================================================================
     // RadiovoltaicData
     // =========================================================================
+
+    /*-
+    Note [Radiovoltaic energy] (generated)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    A radiovoltaic plate turns the neutrons it absorbs into EU directly.  Its energy budget is the heat those
+    neutrons bring, as in any other non-fuel cell: 8 HU per fast neutron and 4 HU per thermal one
+    (RadiovoltaicData.absorbedHeat, matching what NuclearSimulationEngine deposits).
+    
+    Design principle: a plate should not make more EU from that heat than the steam route would, once it is near
+    saturation.  The steam route is radiovoltaic_steam_eu_per_hu (κ, PhysicsData.radiovoltaicSteamEuPerHu): distilled
+    water takes 17.65625 HU per litre and becomes 160 L of superheated steam, at 1 EU per litre in an XL
+    high-pressure turbine, so κ = 9.06 EU/HU.
+    
+    Output follows a tanh curve of the absorbed heat rate H (HU/s, averaged by TileTick.radiovoltaicRate):
+    
+        P = P_max · η · tanh(artanh(0.95) · H / H_95)          EU/t
+        H_95 = 0.95 · P_max · 20 / κ                             (RadiovoltaicData.fullOutputHeatPerSecond)
+    
+    so at H_95 the plate makes exactly what steam would make of H.  For an HV plate (P_max 1024 EU/t) H_95 is about
+    2150 HU/s, some 270 fast or 540 thermal neutrons absorbed per second; for EV it is four times that.
+    
+    The plate takes the heat it converts, 20·P/κ HU/s, out of its cell (RadiovoltaicData.convertedHeat), and keeps the
+    rest.  Below H_95 the plate converts more than steam would, up to 1.93 times as much at low flux, and then it takes
+    out only what it absorbed: it never cools its cell.  Above H_95 it converts less, so more of the heat stays.  This
+    is accepted: a plate's output is capped, so its advantage at low flux doesn't scale.
+    
+    Wrinkles.
+    (W1) The heat is deposited during the neutron passes and taken out in the column update, after conduction has
+         spread some of it.  NuclearReactorPhysics and SimTile therefore never take a cell below ambient.
+    
+    (W2) Plates scatter (scattering_fast and scattering_thermal, 0.3 by default), so the neutrons they neither absorb
+         nor pass on go back into the core, and plates are not thermal sinks.
+    
+    NEINeutronInteractionHandler.drawRadiovoltaicCurve shows P, the kept heat and the steam route against H.
+    */
     public static class RadiovoltaicData {
 
         public String id;
@@ -706,70 +743,64 @@ public class ComponentData {
         public double heatTransferCoeff = 0.10;
         public double absorptionFast = 0.40;
         public double absorptionThermal = 0.40;
-        /** Weighted neutrons absorbed per second (fast count 4x) at which output reaches 95% of maxEU. */
-        public double fullOutputAbsorbedPerSecond = DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
+        public double scatteringFast = DEFAULT_SCATTERING;
+        public double scatteringThermal = DEFAULT_SCATTERING;
 
-        public static final double DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND = 10.0;
+        public static final double DEFAULT_SCATTERING = 0.30;
         public static final double FULL_OUTPUT_FRACTION = 0.95;
         private static final double ATANH_FULL_OUTPUT = 0.5
             * Math.log((1.0 + FULL_OUTPUT_FRACTION) / (1.0 - FULL_OUTPUT_FRACTION));
 
+        /** HU a plate absorbs with its neutrons, the same as any non-fuel cell. See Note [Radiovoltaic energy]. */
+        public static double absorbedHeat(double fastAbsorbed, double thermalAbsorbed) {
+            return fastAbsorbed * NuclearSimulationEngine.HU_FOR_FAST_NEUTRON
+                + thermalAbsorbed * NuclearSimulationEngine.HU_FOR_FAST_NEUTRON * 0.5;
+        }
+
         /**
-         * Fraction of maximum output for a given weighted absorption rate: a tanh curve that reaches
-         * FULL_OUTPUT_FRACTION at fullOutputAbsorbedPerSecond. Independent of the reactor cycle length.
+         * The absorbed heat rate (HU/s) at which output reaches FULL_OUTPUT_FRACTION of maxEU: where the plate's output
+         * equals what the steam route makes of the same heat. See Note [Radiovoltaic energy].
          */
-        public static double outputFraction(double weightedAbsorbedPerSecond, double fullOutputAbsorbedPerSecond) {
-            if (weightedAbsorbedPerSecond <= 0.0) return 0.0;
-            double full = fullOutputAbsorbedPerSecond > 0.0 ? fullOutputAbsorbedPerSecond
-                : DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND;
-            double x = ATANH_FULL_OUTPUT * weightedAbsorbedPerSecond / full;
+        public double fullOutputHeatPerSecond(double steamEuPerHu) {
+            return FULL_OUTPUT_FRACTION * getMaxEffectiveEU() * 20.0 / steamEuPerHu;
+        }
+
+        /**
+         * Fraction of maximum output for an absorbed heat rate: a tanh curve that reaches FULL_OUTPUT_FRACTION at
+         * fullHeatPerSecond. Independent of the reactor cycle length.
+         */
+        public static double outputFraction(double heatPerSecond, double fullHeatPerSecond) {
+            if (heatPerSecond <= 0.0 || fullHeatPerSecond <= 0.0) return 0.0;
+            double x = ATANH_FULL_OUTPUT * heatPerSecond / fullHeatPerSecond;
             // tanh is exactly 1.0 in double precision from 20 up; TeaVM's tanh overflows to NaN for large arguments
             return x >= 20.0 ? 1.0 : Math.tanh(x);
         }
 
+        /** Direct output in EU/t for an absorbed heat rate in HU/s. */
+        public double calculatePower(double heatPerSecond, double steamEuPerHu) {
+            return getMaxEffectiveEU() * euConversionEfficiency
+                * outputFraction(heatPerSecond, fullOutputHeatPerSecond(steamEuPerHu));
+        }
+
         /**
-         * Absorbed neutron energy not converted to EU, deposited as heat in the plate's cell: for weighted
-         * neutrons absorbed over an interval of the given length, the HU deposited over that interval.
+         * The share of absorbed heat a plate takes out of its cell as EU, over an interval: the steam-route heat
+         * equivalent of its output, but never more than it absorbed. See Note [Radiovoltaic energy].
          */
-        public static double excessHeat(double weightedAbsorbed, double euPerTick, double intervalSeconds) {
-            return Math.max(0.0, weightedAbsorbed * 20.0 - euPerTick * intervalSeconds);
+        public static double convertedHeat(double absorbedHeat, double euPerTick, double seconds, double steamEuPerHu) {
+            if (absorbedHeat <= 0.0 || steamEuPerHu <= 0.0) return 0.0;
+            return Math.min(absorbedHeat, euPerTick * 20.0 * seconds / steamEuPerHu);
+        }
+
+        /** Heat a plate keeps, in HU/s, for an absorbed heat rate in HU/s. */
+        public double keptHeatPerSecond(double heatPerSecond, double steamEuPerHu) {
+            return heatPerSecond
+                - convertedHeat(heatPerSecond, calculatePower(heatPerSecond, steamEuPerHu), 1.0, steamEuPerHu);
         }
 
         public RadiovoltaicData() {}
 
-        public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency,
-            double heatTransferCoeff, double absFast, double absThermal, String... matching) {
-            this(
-                id,
-                name,
-                tier,
-                euConversionEfficiency,
-                0,
-                heatTransferCoeff,
-                absFast,
-                absThermal,
-                DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND,
-                matching);
-        }
-
         public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency, long maxEU,
             double heatTransferCoeff, double absFast, double absThermal, String... matching) {
-            this(
-                id,
-                name,
-                tier,
-                euConversionEfficiency,
-                maxEU,
-                heatTransferCoeff,
-                absFast,
-                absThermal,
-                DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND,
-                matching);
-        }
-
-        public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency, long maxEU,
-            double heatTransferCoeff, double absFast, double absThermal, double fullOutputAbsorbedPerSecond,
-            String... matching) {
             this.id = id;
             this.name = name;
             this.tier = tier;
@@ -778,8 +809,12 @@ public class ComponentData {
             this.heatTransferCoeff = heatTransferCoeff;
             this.absorptionFast = absFast;
             this.absorptionThermal = absThermal;
-            this.fullOutputAbsorbedPerSecond = fullOutputAbsorbedPerSecond;
             if (matching != null) this.matching.addAll(Arrays.asList(matching));
+        }
+
+        public RadiovoltaicData(String id, String name, int tier, double euConversionEfficiency,
+            double heatTransferCoeff, double absFast, double absThermal, String... matching) {
+            this(id, name, tier, euConversionEfficiency, 0, heatTransferCoeff, absFast, absThermal, matching);
         }
 
         public RadiovoltaicData(String id, String name, double euConversionEfficiency, double heatTransferCoeff,
@@ -790,17 +825,6 @@ public class ComponentData {
         public long getMaxEffectiveEU() {
             if (maxEU > 0) return maxEU;
             return (tier >= 2) ? 4096 : 1024;
-        }
-
-        /** Direct output in EU/t for a weighted absorption rate (fast neutrons count 4x). */
-        public double calculatePower(double weightedAbsorbedPerSecond) {
-            return getMaxEffectiveEU() * euConversionEfficiency
-                * outputFraction(weightedAbsorbedPerSecond, fullOutputAbsorbedPerSecond);
-        }
-
-        /** Excess heat in HU per second for a weighted absorption rate. */
-        public double calculateHeatPerSecond(double weightedAbsorbedPerSecond) {
-            return excessHeat(weightedAbsorbedPerSecond, calculatePower(weightedAbsorbedPerSecond), 1.0);
         }
 
         public static RadiovoltaicData fromMap(Map<String, Object> map) {
@@ -819,8 +843,8 @@ public class ComponentData {
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
             d.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", d.tier >= 2 ? 0.60 : 0.40);
             d.absorptionThermal = PhysicsData.getDouble(map, "absorption_thermal", d.tier >= 2 ? 0.60 : 0.40);
-            d.fullOutputAbsorbedPerSecond = PhysicsData
-                .getDouble(map, "full_output_absorbed_per_second", DEFAULT_FULL_OUTPUT_ABSORBED_PER_SECOND);
+            d.scatteringFast = PhysicsData.getDouble(map, "scattering_fast", d.scatteringFast);
+            d.scatteringThermal = PhysicsData.getDouble(map, "scattering_thermal", d.scatteringThermal);
             return d;
         }
 
@@ -835,7 +859,8 @@ public class ComponentData {
             m.put("heat_transfer_coeff", heatTransferCoeff);
             m.put("absorption_fast", absorptionFast);
             m.put("absorption_thermal", absorptionThermal);
-            m.put("full_output_absorbed_per_second", fullOutputAbsorbedPerSecond);
+            m.put("scattering_fast", scatteringFast);
+            m.put("scattering_thermal", scatteringThermal);
             return m;
         }
     }

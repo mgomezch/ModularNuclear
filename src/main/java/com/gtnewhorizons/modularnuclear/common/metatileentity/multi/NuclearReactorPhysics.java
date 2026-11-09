@@ -771,14 +771,18 @@ public class NuclearReactorPhysics {
                 rv = new RadiovoltaicData();
                 rv.tier = reactor.getRadiovoltaicTier(stack);
             }
+            // See Note [Radiovoltaic energy]
             double dt = (double) reactor.getTicksPerCycle() / 20.0;
-            double weightedAbsorbed = bus.mFastAbsorbed * 4.0 + bus.mThermalAbsorbed * 1.0;
-            bus.mRadiovoltaicRate = TileTick.radiovoltaicRate(bus.mRadiovoltaicRate, weightedAbsorbed, dt);
-            long genEU = Math.round(rv.calculatePower(bus.mRadiovoltaicRate));
+            double steamEuPerHu = NuclearSimulationEngine.params().radiovoltaicSteamEuPerHu;
+            double absorbedHeat = RadiovoltaicData.absorbedHeat(bus.mFastAbsorbed, bus.mThermalAbsorbed);
+            bus.mRadiovoltaicRate = TileTick.radiovoltaicRate(bus.mRadiovoltaicRate, absorbedHeat, dt);
+            long genEU = Math.round(rv.calculatePower(bus.mRadiovoltaicRate, steamEuPerHu));
             bus.mDirectEUProduced = genEU;
-            double excessHeat = RadiovoltaicData.excessHeat(weightedAbsorbed, genEU, dt);
-            if (excessHeat > 0.0) {
-                addTileHeat(tile, excessHeat);
+            double converted = RadiovoltaicData.convertedHeat(absorbedHeat, genEU, dt, steamEuPerHu);
+            double aboveAmbient = (bus.mTemperature - reactor.getAmbientTemperature()) * tile.getHeatCapacity();
+            double removed = Math.min(converted, Math.max(0.0, aboveAmbient));
+            if (removed > 0.0) {
+                addTileHeat(tile, -removed);
             }
         }
         // 4. ACTIVE HEAT VENTS & HEAT EXCHANGERS (Processed actively each tick via processActiveVentsAndExchangers)

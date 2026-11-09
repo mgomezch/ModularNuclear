@@ -22,6 +22,8 @@ public final class EngineParameters {
     public double fastAbsorptionDamageMultiplier = NuclearSimulationEngine.DEFAULT_FAST_ABSORPTION_DAMAGE_MULT;
     public double thermalAbsorptionDamageMultiplier = NuclearSimulationEngine.DEFAULT_THERMAL_ABSORPTION_DAMAGE_MULT;
     public double fissionHeatPerNeutron = NuclearSimulationEngine.DEFAULT_FISSION_HEAT_PER_NEUTRON;
+    /** See Note [Radiovoltaic energy]. */
+    public double radiovoltaicSteamEuPerHu = NuclearSimulationEngine.DEFAULT_RADIOVOLTAIC_STEAM_EU_PER_HU;
     public double hpWaterBoilingPoint = NuclearSimulationEngine.DEFAULT_HP_WATER_BOILING_POINT;
     public int hatchCoolantCapacity = NuclearSimulationEngine.DEFAULT_HATCH_CAPACITY;
     public NuclearSimulationEngine.TurnoverCurve turnoverCurve = NuclearSimulationEngine.DEFAULT_TURNOVER_CURVE;
@@ -86,6 +88,7 @@ public final class EngineParameters {
         c.fastAbsorptionDamageMultiplier = fastAbsorptionDamageMultiplier;
         c.thermalAbsorptionDamageMultiplier = thermalAbsorptionDamageMultiplier;
         c.fissionHeatPerNeutron = fissionHeatPerNeutron;
+        c.radiovoltaicSteamEuPerHu = radiovoltaicSteamEuPerHu;
         c.hpWaterBoilingPoint = hpWaterBoilingPoint;
         c.hatchCoolantCapacity = hatchCoolantCapacity;
         c.turnoverCurve = turnoverCurve;

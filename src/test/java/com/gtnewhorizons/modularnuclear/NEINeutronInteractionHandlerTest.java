@@ -106,8 +106,8 @@ public class NEINeutronInteractionHandlerTest {
                         assertTrue(d.maxDirectEU >= 1024L, "Radiovoltaic plates must specify max EU/t");
                         assertTrue(d.isRadiovoltaic, "Radiovoltaic plates must have isRadiovoltaic flag");
                         assertTrue(
-                            d.fullOutputAbsorbedPerSecond > 0,
-                            "Radiovoltaic plates must specify their full-output absorption rate");
+                            d.fullOutputHeatPerSecond() > 0,
+                            "Radiovoltaic plates must have a full-output point");
                     }
                     case "Thermal Insulator" -> {
                         foundInsulator = true;
@@ -460,8 +460,11 @@ public class NEINeutronInteractionHandlerTest {
         // 2. Saturation and max EU
         assertEquals(1024L, rvHvRecipe.data.maxDirectEU, "HV max direct EU must be 1024 EU/t (2A HV)");
         assertEquals(4096L, rvEvRecipe.data.maxDirectEU, "EV max direct EU must be 4096 EU/t (2A EV)");
-        assertEquals(10.0, rvHvRecipe.data.fullOutputAbsorbedPerSecond, 1e-4, "HV reaches 95% at 10 absorbed/s");
-        assertEquals(10.0, rvEvRecipe.data.fullOutputAbsorbedPerSecond, 1e-4, "EV reaches 95% at 10 absorbed/s");
+        assertEquals(
+            4.0 * rvHvRecipe.data.fullOutputHeatPerSecond(),
+            rvEvRecipe.data.fullOutputHeatPerSecond(),
+            1e-6,
+            "EV saturates at four times HV's heat, as it makes four times the power");
 
         // 3. Recipe height: 314 for radiovoltaics (to comfortably accommodate the curve), 304 for standard
         assertEquals(
@@ -474,16 +477,18 @@ public class NEINeutronInteractionHandlerTest {
             "EV Radiovoltaic recipe height must fit its curve");
 
         // 4. Power & heat curve calculations
-        double hvPowerLow = rvHvRecipe.data.calculatePower(2.0);
-        double hvHeatLow = rvHvRecipe.data.calculateHeat(2.0);
+        double full = rvHvRecipe.data.fullOutputHeatPerSecond();
+        double hvPowerLow = rvHvRecipe.data.calculatePower(0.1 * full);
+        double hvHeatLow = rvHvRecipe.data.calculateHeat(0.1 * full);
         assertTrue(hvPowerLow > 0.0, "Low absorption must generate power");
-        assertEquals(0.0, hvHeatLow, 1e-9, "Low absorption must generate no excess heat");
-        assertEquals(0.95 * 1024, rvHvRecipe.data.calculatePower(10.0), 1e-6, "95% output at 10 absorbed/s");
+        assertEquals(0.0, hvHeatLow, 1e-9, "Low absorption must leave no heat");
+        assertEquals(0.95 * 1024, rvHvRecipe.data.calculatePower(full), 1e-6, "95% output at the full-output point");
+        assertEquals(rvHvRecipe.data.steamPower(full), rvHvRecipe.data.calculatePower(full), 1e-6);
 
-        double hvPowerHigh = rvHvRecipe.data.calculatePower(200.0);
-        double hvHeatHigh = rvHvRecipe.data.calculateHeat(200.0);
+        double hvPowerHigh = rvHvRecipe.data.calculatePower(4.0 * full);
+        double hvHeatHigh = rvHvRecipe.data.calculateHeat(4.0 * full);
         assertTrue(hvPowerHigh >= 1020.0, "High absorption power must approach 1024 EU/t saturation");
-        assertTrue(hvHeatHigh > 2500.0, "High absorption excess energy must convert to heat");
+        assertTrue(hvHeatHigh > 2.0 * full, "Past saturation most of the heat must stay");
 
         // 5. Interactive tooltips on hover over Card 4 curve
         List<String> tip = new ArrayList<>();
@@ -502,9 +507,9 @@ public class NEINeutronInteractionHandlerTest {
         boolean hasPower = false;
         boolean hasHeat = false;
         for (String line : hoverTips) {
-            if (line.contains("neutrons absorbed/s")) hasFlux = true;
+            if (line.contains("HU/s absorbed")) hasFlux = true;
             if (line.contains("Power output:")) hasPower = true;
-            if (line.contains("Excess heating:")) hasHeat = true;
+            if (line.contains("Heat kept:")) hasHeat = true;
         }
         assertTrue(hasFlux, "Tooltip must contain the absorption rate");
         assertTrue(hasPower, "Tooltip must contain power output information");
