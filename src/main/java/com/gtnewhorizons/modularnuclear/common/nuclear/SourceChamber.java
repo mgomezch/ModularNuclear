@@ -33,8 +33,10 @@ under the simple ZPM design for every recipe: raising m_R, or the multiplier, mu
 at 0.05 the bound is about 128,000 EU/t for Californium and 214,000 for Beryllium, against about 7.9 million.
 
 Wrinkles.
-(W1) Only the particle counts, not its focus: the reactor ignores focus.  A beam of any other particle explodes the
-     reactor (MTENuclearReactor.explodeReactor), which the simulator doesn't model.
+(W1) The reactor ignores focus.  It explodes (MTENuclearReactor.explodeReactor, by beamHazard) on a beam of any
+     other particle, and on a neutron beam above MAX_BEAM_KEV, 20,000 keV: more than any Source Chamber makes
+     (NEUTRON_MAX_KEV), so only a Large Hadron Collider's beams (up to 10^9 keV) reach it.  Those would otherwise
+     count as millions of Californium beams.  The simulator doesn't model explosions from beams.
 (W2) The input hatch keeps a packet for one beamline move (20 ticks) after the chamber stops, so in game the neutrons
      stop about one to three seconds after the beam does.  The simulator switches them off at once.
 */
@@ -50,6 +52,8 @@ public final class SourceChamber {
     public static final double NEUTRON_MAX_KEV = 15_000.0;
     /** The Source Chamber's own tier: ZPM, whatever its recipes' hatches. See Note [Source Chamber beams]. */
     public static final int BUILD_TIER = 7;
+    /** The most energetic neutron beam a reactor takes, keV. See wrinkle (W1) of Note [Source Chamber beams]. */
+    public static final double MAX_BEAM_KEV = 20_000.0;
     /** Fast neutrons in a packet of beam neutrons. */
     public static final int NEUTRONS_PER_PACKET = 4;
 
@@ -97,6 +101,21 @@ public final class SourceChamber {
     }
 
     private SourceChamber() {}
+
+    /**
+     * Why a beam explodes the reactor, or null if it doesn't: a particle other than neutrons, or neutrons above
+     * MAX_BEAM_KEV. See wrinkle (W1) of Note [Source Chamber beams].
+     */
+    public static String beamHazard(boolean neutron, String particleName, double energyKeV) {
+        if (!neutron) return "incompatible non-neutron particle beam injected into core: " + particleName;
+        if (energyKeV > MAX_BEAM_KEV) {
+            return "neutron beam of " + Math.round(energyKeV)
+                + " keV, above the core's "
+                + Math.round(MAX_BEAM_KEV)
+                + " keV";
+        }
+        return null;
+    }
 
     public static long voltage(int tier) {
         return V[Math.max(0, Math.min(V.length - 1, tier))];

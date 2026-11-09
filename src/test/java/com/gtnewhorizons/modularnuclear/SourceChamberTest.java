@@ -1,6 +1,7 @@
 package com.gtnewhorizons.modularnuclear;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -100,6 +101,13 @@ class SourceChamberTest {
                     + Math.round(simple));
             assertTrue(bound > SourceChamber.practicalVoltage(tier), r + ": a beam is meant to pay off");
         }
+    }
+
+    @Test
+    void beamsTheCoreCantTakeExplodeIt() {
+        assertNull(SourceChamber.beamHazard(true, "neutron", SourceChamber.NEUTRON_MAX_KEV));
+        assertNotNull(SourceChamber.beamHazard(true, "neutron", 25_000.0), "Over 20,000 keV: only an LHC makes it");
+        assertNotNull(SourceChamber.beamHazard(false, "electron", 1_000.0));
     }
 
     @Test

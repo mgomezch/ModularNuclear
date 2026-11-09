@@ -724,7 +724,9 @@ The beam comes from a Source Chamber, which burns one source item a second.  It 
 
 With the §1.4 values, a Californium beam drives 4,500 packets, 18,000 fast neutrons a second; a Beryllium beam 30,000.  The Source Chamber is a ZPM-tier multiblock, whatever hatch its recipe runs on, so beams belong to ZPM and later, where their power is small: a beam is a neutron source, for starting, driving and irradiating fuel, paid for in the items it burns and the chamber itself.  A core without fuel cannot multiply neutrons: each beam neutron brings at most 12 HU (8 when moderated, then 4 when absorbed as thermal), so on one beam such a core never beats the simple ZPM design.  With the §1.4 values that ceiling is about 128,000 EU/t for Californium and 214,000 EU/t for Beryllium, against about 7.9 million.
 
-A neutron source without a beam emits nothing and behaves as an empty bus. Injecting any particle other than neutrons through a beamline input hatch causes an explosion (§12.5).
+The core takes neutron beams up to 20,000 keV.  No Source Chamber recipe comes near it (neutrons top out at 15,000 keV), but a Large Hadron Collider's neutron outputs do, at up to 10⁹ keV: such a beam explodes the core, as any non-neutron beam does (§12.5).
+
+A neutron source without a beam emits nothing and behaves as an empty bus. Injecting any particle other than neutrons, or neutrons above 20,000 keV, through a beamline input hatch causes an explosion (§12.5).
 
 Neutron sources are the means to start a core whose fuel has too little spontaneous emission (dense fuels, breeder rods), or to drive a deliberately subcritical core.
 
@@ -1069,7 +1071,7 @@ When damage reaches 0 and all issues are fixed, a reactor that had stopped for l
 | Overheating | Column > tier max temp | Non-fuel contents voided, +1 % damage per column per cycle |
 | Thermal shock | Coolant into dry superheated hatch, or ambient ≥ coolant explosion temp | Coolant voided, +2 % damage, +1 maintenance issue |
 | Meltdown | Structural damage reaches 100 % | Internal explosion, corium, fallout, controller permanently ruined |
-| Beam explosion | Non-neutron beam into a beamline input | Explosion (power 20) at the beam hatch |
+| Beam explosion | Non-neutron beam, or neutrons above 20,000 keV, into a beamline input | Explosion (power 20) at the beam hatch |
 | Hot structure break | Structure broken while any column > 100 °C | Fuel, depleted rods, coolant items and all core fluids voided |
 | Loop rupture | Over-pressure, over-temperature, freezing, impeller melting | Explosion at the pump, coolant spill, loop failure |
 | Contents voiding (explosions disabled) | Any explosion or meltdown condition | All reactor contents voided, SCRAM |
@@ -1120,7 +1122,7 @@ who is not wearing full radiation hazmat receives severe radioactivity and the m
 
 | Cause | Location | Power |
 | :--- | :--- | :--- |
-| Non-neutron particle beam injected | Beamline input hatch | 20 |
+| Non-neutron particle beam, or neutrons above 20,000 keV, injected | Beamline input hatch | 20 |
 | Meltdown | Hollow space under core | 20 |
 | Coolant loop rupture | Coolant pump | $\min(25,\ 4 + P_\text{peak}/10)$ with $P_\text{peak}$ in bar |
 

@@ -10,9 +10,11 @@ Pairing:     a beam input hatch with no nuclear bus opposite it keeps the reacto
 Idle:        with no dust in the chamber there is no beam and the neutron source emits nothing.
 Californium: from an EV energy hatch the chamber draws 1,920 EU/t and sends a 9,000 keV neutron beam at rate 10 up
              the beamline, burning one dust a second.  The reactor turns it into energy * rate * multiplier * cycle
-             seconds packets of 4 fast neutrons: with beam_energy_to_fast_neutron_multiplier 0.01 and 5-tick cycles,
-             225 packets a cycle, so 900 neutrons a cycle, 3,600 a second.
+             seconds packets of 4 fast neutrons: with beam_energy_to_fast_neutron_multiplier 0.05 and 5-tick cycles,
+             1,125 packets a cycle, so 4,500 neutrons a cycle, 18,000 a second.
 Shutdown:    once the dust runs out, the beam and the neutrons stop within a few seconds.
+Too hot:     a second reactor, fed a neutron beam through the harness, takes 15,000 keV (a Source Chamber's most) and
+             explodes at 25,000 keV, above its 20,000 keV limit: only a Large Hadron Collider makes such beams.
 Electrons:   a Tungsten rod, from an IV energy hatch, makes an electron beam; the reactor explodes when it arrives.
 
 These are the numbers the simulator's Source Chamber model has to match.
@@ -60,6 +62,11 @@ BEAM_IN = (X0, REACTOR_Y - 1, Z0 - 2)
 CENTRE_BUS = (X0, REACTOR_Y + 3, Z0 - 2)
 PIPES = [(X0, y, Z0 - 2) for y in range(BEAM_OUT[1] + 1, BEAM_IN[1])]
 
+# A second reactor, with no chamber, for beams only a Large Hadron Collider makes, fed through the harness
+HOT_REACTOR = (X0 + 40, REACTOR_Y, Z0 - 4)
+HOT_BEAM_IN = (HOT_REACTOR[0], REACTOR_Y - 1, HOT_REACTOR[2] + 2)
+HOT_CENTRE_BUS = (HOT_REACTOR[0], REACTOR_Y + 3, HOT_REACTOR[2] + 2)
+
 STANDING_ON = (X0 + 0.5, REACTOR_Y + 6, Z0 - 12)
 
 CALIFORNIUM = "ore:dustCalifornium"
@@ -69,9 +76,9 @@ TUNGSTEN_ROD = "ore:stickTungsten"
 CALIFORNIUM_EUT = 1920
 CALIFORNIUM_KEV = 9000.0
 CALIFORNIUM_RATE = 10
-# Neutrons a cycle from that beam: 9,000 keV × 10 × 0.01 (beam_energy_to_fast_neutron_multiplier) × 0.25 s = 225
+# Neutrons a cycle from that beam: 9,000 keV × 10 × 0.05 (beam_energy_to_fast_neutron_multiplier) × 0.25 s = 1,125
 # packets of 4.  See Note [Source Chamber beams]
-CALIFORNIUM_NEUTRONS = {900}
+CALIFORNIUM_NEUTRONS = {4500}
 
 
 def gt(client: HarnessClient, pos: tuple) -> dict:
@@ -112,11 +119,18 @@ def build(client: HarnessClient):
     for pos in PIPES:
         client.set_gt_machine(*pos, BEAMLINE_PIPE_ID, UP)
 
-    client.set_gt_machine(*REACTOR, REACTOR_ID, NORTH)
-    print(f"    Reactor: {client.autobuild(*REACTOR)}")
-    client.set_gt_machine(REACTOR[0] - 1, REACTOR_Y, REACTOR[2], AUTO_TAPING_MAINTENANCE_ID, NORTH)
-    client.set_gt_machine(REACTOR[0] - 2, REACTOR_Y, REACTOR[2], DYNAMO_EV_ID, NORTH)
-    client.set_gt_machine(*BEAM_IN, BEAM_INPUT_HATCH_ID, DOWN)
+    build_reactor(client, REACTOR, BEAM_IN)
+    build_reactor(client, HOT_REACTOR, HOT_BEAM_IN)
+    client.set_gt_machine(*HOT_CENTRE_BUS, NUCLEAR_BUS_ID, UP)
+
+
+def build_reactor(client: HarnessClient, controller: tuple, beam_in: tuple):
+    """A 5x5 reactor facing north, with a beam input hatch under its centre column."""
+    client.set_gt_machine(*controller, REACTOR_ID, NORTH)
+    print(f"    Reactor: {client.autobuild(*controller)}")
+    client.set_gt_machine(controller[0] - 1, controller[1], controller[2], AUTO_TAPING_MAINTENANCE_ID, NORTH)
+    client.set_gt_machine(controller[0] - 2, controller[1], controller[2], DYNAMO_EV_ID, NORTH)
+    client.set_gt_machine(*beam_in, BEAM_INPUT_HATCH_ID, DOWN)
 
 
 def check_pairing(client: HarnessClient):
@@ -165,14 +179,14 @@ def check_californium(client: HarnessClient):
     samples = neutron_samples(client)
     print(f"    Neutrons a cycle: {samples}")
     assert set(samples) <= CALIFORNIUM_NEUTRONS, f"Expected only {CALIFORNIUM_NEUTRONS} neutrons a cycle"
-    assert abs(statistics.mean(samples) - 900.0) <= 4.0, f"Expected 900 a cycle on average, got {samples}"
+    assert abs(statistics.mean(samples) - 4500.0) <= 4.0, f"Expected 4,500 a cycle on average, got {samples}"
 
     before, t0 = dust_count(client), time.time()
     time.sleep(10.0)
     used, seconds = before - dust_count(client), time.time() - t0
     print(f"    Dust used: {used} in {seconds:.1f} s")
     assert 9 <= used <= 11, f"Expected about one dust a second, used {used} in {seconds:.1f} s"
-    print("[✓] 1,920 EU/t and a dust a second make a 9,000 keV beam at rate 10: 900 fast neutrons a cycle")
+    print("[✓] 1,920 EU/t and a dust a second make a 9,000 keV beam at rate 10: 4,500 fast neutrons a cycle")
 
 
 def check_shutdown(client: HarnessClient):
@@ -189,18 +203,52 @@ def check_shutdown(client: HarnessClient):
     print(f"[✓] The neutrons stopped about {stopped:.1f} s after the dust ran out")
 
 
+def wait_for_explosion(client: HarnessClient, controller: tuple, seconds: float = 8.0) -> dict:
+    deadline, block = time.time() + seconds, None
+    while time.time() < deadline:
+        block = client.blockinfo(*controller)
+        if block.get("mte") != "MTENuclearReactor":
+            break
+        time.sleep(0.25)
+    return block
+
+
+def check_too_hot(client: HarnessClient):
+    print("[*] Too hot: the core takes 15,000 keV neutrons, and explodes on 25,000 keV")
+    client.teleport(HOT_REACTOR[0] + 0.5, REACTOR_Y + 6, HOT_REACTOR[2] - 12)
+    time.sleep(2.0)
+    client.fix_maintenance(*HOT_REACTOR)
+    client.recheck(*HOT_REACTOR)
+    client.set_container_slot(*HOT_CENTRE_BUS, slot=0, item="GoodGenerator:neutronSource", count=1, damage=0)
+    st = client.nuke_status(*HOT_REACTOR)
+    assert st.get("formed"), f"Expected the second reactor to form, got {st}"
+
+    # The hatch holds an injected packet for about one beamline move (20 ticks), so sample at once
+    client.beam_packet(*HOT_BEAM_IN, particle=NEUTRON, energy=15000.0, rate=10, focus=95.0)
+    produced, deadline = 0, time.time() + 1.5
+    while time.time() < deadline:
+        produced = max(produced, client.nuke_status(*HOT_REACTOR).get("neutronsProduced", 0))
+        time.sleep(0.05)
+    assert client.blockinfo(*HOT_REACTOR).get("mte") == "MTENuclearReactor", "Expected 15,000 keV to be taken"
+    assert produced > 0, "Expected neutrons from a 15,000 keV beam"
+    print(f"    15,000 keV: taken, {produced} neutrons a cycle")
+
+    client.beam_packet(*HOT_BEAM_IN, particle=NEUTRON, energy=25000.0, rate=10, focus=95.0)
+    block = wait_for_explosion(client, HOT_REACTOR)
+    print(f"    25,000 keV: reactor controller block now {block}")
+    assert block.get("mte") != "MTENuclearReactor", "Expected the reactor to explode on a 25,000 keV beam"
+    client.teleport(*STANDING_ON)
+    time.sleep(2.0)
+    print("[✓] 15,000 keV neutrons drive the core; 25,000 keV explodes it")
+
+
 def check_electrons(client: HarnessClient):
     print("[*] Electrons: a Tungsten rod beam explodes the reactor")
     client.set_gt_machine(*CHAMBER_ENERGY, ENERGY_HATCH_IV_ID, DOWN)
     client.set_cover(*CHAMBER_ENERGY, DOWN, "Cover_Wireless_Energy_Debug")
     client.recheck(*CHAMBER)
     client.set_container_slot(*CHAMBER_INPUT_BUS, slot=0, item=TUNGSTEN_ROD, count=4, damage=0)
-    deadline, block = time.time() + 8.0, None
-    while time.time() < deadline:
-        block = client.blockinfo(*REACTOR)
-        if block.get("mte") != "MTENuclearReactor":
-            break
-        time.sleep(0.25)
+    block = wait_for_explosion(client, REACTOR)
     print(f"    Reactor controller block now: {block}")
     assert block.get("mte") != "MTENuclearReactor", "Expected the reactor to explode on an electron beam"
     print("[✓] The reactor exploded when the electron beam arrived")
@@ -216,6 +264,7 @@ def main(port: int) -> bool:
         check_idle(client)
         check_californium(client)
         check_shutdown(client)
+        check_too_hot(client)
         check_electrons(client)
 
     return driver.run(build_fn=build, test_fn=test)

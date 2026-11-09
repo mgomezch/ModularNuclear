@@ -53,6 +53,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorStructureRules;
+import com.gtnewhorizons.modularnuclear.common.nuclear.SourceChamber;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemCardModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.ItemKitModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.nuclearcontrol.NuclearControlIntegration;
@@ -1141,11 +1142,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
                     if (beamHatch != null && beamHatch.dataPacket != null
                         && beamHatch.dataPacket.getContent() != null) {
                         BeamInformation beamInfo = beamHatch.dataPacket.getContent();
-                        if (beamInfo.getParticle() != Particle.NEUTRON) {
-                            explodeReactor(
-                                beamHatch,
-                                "Incompatible non-neutron particle beam injected into core: " + beamInfo.getParticle()
-                                    .getName());
+                        String hazard = SourceChamber.beamHazard(
+                            beamInfo.getParticle() == Particle.NEUTRON,
+                            beamInfo.getParticle()
+                                .getName(),
+                            beamInfo.getEnergy());
+                        if (hazard != null) {
+                            explodeReactor(beamHatch, "Reactor exploded: " + hazard);
                             return;
                         }
                     }
