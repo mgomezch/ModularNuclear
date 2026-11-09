@@ -30,7 +30,7 @@ public class PhysicsData {
     public double wallReflectionChance = 0.0;
     public int wallMaintenanceNeutronThreshold = 10000;
     public double defaultAmbientTemp = 293.15;
-    public double beamEnergyToFastNeutronMultiplier = 0.001;
+    public double beamEnergyToFastNeutronMultiplier = NuclearSimulationEngine.DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER;
     public double t10WearFactor = 8.0;
     public int ticksPerCycle = NuclearSimulationEngine.DEFAULT_TICKS_PER_CYCLE;
     /** Conductance (HU/(s·°C)) of an MV core hatch into its coolant; see hatchConductanceTierRatio. */

@@ -7163,9 +7163,9 @@ public class NuclearSimulationEngineTest {
             assertEquals(0.05, sourceTile.getModerationProbability(), 1e-4);
 
             // Configure beam parameters
-            sourceTile.setNeutronSourceBeamEnergy(1000.0f);
+            sourceTile.setNeutronSourceBeamEnergy(100.0f);
             sourceTile.setNeutronSourceBeamRate(100);
-            // S = round(1000 * 100 * 0.001) = 100 per direction, total 400
+            // 100 keV × 100 × 0.01 = 100 packets in a 1 s cycle, of 4 neutrons: 400
             int produced = sourceTile.generateNeutrons(1.0);
             assertEquals(400, produced);
 
@@ -7976,7 +7976,7 @@ public class NuclearSimulationEngineTest {
             java.util.function.BiFunction<Boolean, Double, Double> runSim = (isFuel, rodFraction) -> {
                 INuclearTile[][] grid = new INuclearTile[3][3];
                 SimTile source = new SimTile(NuclearSimulationEngine.params(), SimTile.TileType.NEUTRON_SOURCE);
-                source.setNeutronSourceBeamEnergy(1000.0f);
+                source.setNeutronSourceBeamEnergy(100.0f);
                 source.setNeutronSourceBeamRate(100);
                 grid[0][1] = source;
 

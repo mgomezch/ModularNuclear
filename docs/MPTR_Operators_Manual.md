@@ -94,6 +94,7 @@ The formulas in this manual therefore name these parameters by symbol.  What to 
 | $m_G$ | `grid_conduction_multiplier` | Conduction between neighbouring columns | §5.2 | 37.985 |
 | $m_0$, $r$ | `coolant_passage_heat_transfer_multiplier`, `coolant_passage_heat_transfer_tier_ratio` | A passage's convective transfer into its loop at MV, and its growth per tier | §9.7 | 0.0699, 1.633 |
 | $m_\text{PHE}$ | `heatTransferMultiplier` (`devices.yaml`) | Every PHE's effective area | §9.7 | 1.2251 |
+| $m_B$ | `beam_energy_to_fast_neutron_multiplier` | Neutrons a Source Chamber beam drives.  Set by hand for now | §8.5 | 0.01 |
 | $m_R$ | `radiovoltaic_efficiency_multiplier` | How far radiovoltaic plates beat plain steam at small scale.  Set by hand for now | §8.4 | 2.0 |
 
 ---
@@ -710,9 +711,18 @@ The summed plate output, multiplied by the maintenance efficiency (§11.1), is e
 
 A neutron source (GoodGenerator) placed in a bus, with a beamline input hatch at the bottom of the same column, emits neutrons derived from the incoming beam. Per cycle the source accumulates
 
-$$\text{packets} \mathrel{+}= E \cdot r \cdot 0.001 \cdot \Delta t$$
+$$\text{packets} \mathrel{+}= E \cdot r \cdot m_B \cdot \Delta t$$
 
-where $E$ is the beam energy, $r$ the beam rate, and 0.001 the `beam_energy_to_fast_neutron_multiplier`. Each whole packet becomes 4 neutrons, emitted as four equal rays in the four cardinal directions. Source neutrons deposit no prompt heat.
+where $E$ is the beam energy in keV, $r$ the beam rate, and $m_B$ the `beam_energy_to_fast_neutron_multiplier` (§1.4). Each whole packet becomes 4 neutrons, emitted as four equal rays in the four cardinal directions. Source neutrons deposit no prompt heat.
+
+The beam comes from a Source Chamber, which burns one source item a second.  It draws the full practical voltage of its single energy hatch ($V \cdot 30/32$) every tick: a higher tier than the recipe needs costs more and gives the same beam.  Its neutron recipes:
+
+| Source item | Lowest hatch | Chamber draw | Beam |
+| :--- | :--- | ---: | :--- |
+| Californium Dust | EV | 1,920 EU/t | 9,000 keV, rate 10 |
+| Long Beryllium Rod | LuV | 30,720 EU/t | 15,000 keV (the neutron maximum), rate 10 |
+
+With the §1.4 values, a Californium beam drives 900 packets, 3,600 fast neutrons a second; a Beryllium beam 6,000.  A beam is meant to pay its way, paid for in the items it burns and the chamber itself.  But a core without fuel cannot multiply neutrons: each beam neutron brings at most 12 HU (8 when moderated, then 4 when absorbed as thermal), so on one beam such a core never beats the tier's simple design.  For a Californium beam that ceiling is about 25,700 EU/t, about 12.5 A at EV, and a 9×9 of EV radiovoltaic plates around the source comes close, at about 20,600 EU/t.  Driving fuel with a beam multiplies its neutrons instead.
 
 A neutron source without a beam emits nothing and behaves as an empty bus. Injecting any particle other than neutrons through a beamline input hatch causes an explosion (§12.5).
 
@@ -1246,7 +1256,7 @@ Names are case-sensitive, as the registries are. There are no wildcards, and unl
 | `thermal_absorption_damage_multiplier` | 1.0 | Fuel/moderator wear per thermal absorption |
 | `t10_wear_factor` | 8.0 | Ratio of temperature wear at $T_{10}$ to wear at $T_\text{pk}$ |
 | `wall_reflection_chance` | 0.0 | Probability that a neutron reaching the outer wall is reflected |
-| `beam_energy_to_fast_neutron_multiplier` | 0.001 | Beam energy × rate → neutron packets |
+| `beam_energy_to_fast_neutron_multiplier` | 0.01 | $m_B$: neutron packets a second per keV of beam energy and unit of beam rate (§8.5) |
 | `standard_nbase_multiplier` / `_fission_multiplier` | calibrated | Archetype multipliers $m_N$ / $m_\phi$ (§6.3) |
 | `dense_nbase_multiplier` / `_fission_multiplier` | calibrated | |
 | `excited_nbase_multiplier` / `_fission_multiplier` | calibrated | |

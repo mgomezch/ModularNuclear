@@ -144,7 +144,8 @@ public class NuclearSimulationEngine {
 
     public static final double DEFAULT_WALL_REFLECTION_CHANCE = 0.0;
 
-    public static final double DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER = 0.001;
+    /** See Note [Source Chamber beams]. */
+    public static final double DEFAULT_BEAM_ENERGY_TO_FAST_NEUTRON_MULTIPLIER = 0.01;
 
     /** Installs the default parameters, then the shared configuration's physics over them. */
     public static void resetDefaultParameters() {

@@ -45,7 +45,11 @@ physics:
   wall_reflection_chance: 0.0
   wall_maintenance_neutron_threshold: 10000
   default_ambient_temp: 293.15
-  beam_energy_to_fast_neutron_multiplier: 0.001
+  # Beam packets a second per keV of beam energy and particle of beam rate; each packet is 4 fast neutrons.  A
+  # Source Chamber burning Californium dust from an EV hatch (1,920 EU/t, a 9,000 keV beam at rate 10) then drives
+  # 3,600 fast neutrons a second.  A balance lever: beams are meant to pay off, at the price of the dust and the
+  # chamber, but a reactor without fuel must not beat a simple EV design on one.
+  beam_energy_to_fast_neutron_multiplier: 0.01
   t10_wear_factor: 8.0
   dense_nbase_multiplier: 0.763954
   dense_fission_multiplier: 1.45261

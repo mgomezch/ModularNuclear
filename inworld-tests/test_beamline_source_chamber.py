@@ -10,8 +10,8 @@ Pairing:     a beam input hatch with no nuclear bus opposite it keeps the reacto
 Idle:        with no dust in the chamber there is no beam and the neutron source emits nothing.
 Californium: from an EV energy hatch the chamber draws 1,920 EU/t and sends a 9,000 keV neutron beam at rate 10 up
              the beamline, burning one dust a second.  The reactor turns it into energy * rate * multiplier * cycle
-             seconds packets of 4 fast neutrons: with beam_energy_to_fast_neutron_multiplier 0.001 and 5-tick cycles,
-             22.5 packets a cycle, so 88 and 92 neutrons on alternate cycles, 360 a second.
+             seconds packets of 4 fast neutrons: with beam_energy_to_fast_neutron_multiplier 0.01 and 5-tick cycles,
+             225 packets a cycle, so 900 neutrons a cycle, 3,600 a second.
 Shutdown:    once the dust runs out, the beam and the neutrons stop within a few seconds.
 Electrons:   a Tungsten rod, from an IV energy hatch, makes an electron beam; the reactor explodes when it arrives.
 
@@ -69,8 +69,9 @@ TUNGSTEN_ROD = "ore:stickTungsten"
 CALIFORNIUM_EUT = 1920
 CALIFORNIUM_KEV = 9000.0
 CALIFORNIUM_RATE = 10
-# Neutrons a cycle from that beam, alternating as the reactor carries the half packet over
-CALIFORNIUM_NEUTRONS = {88, 92}
+# Neutrons a cycle from that beam: 9,000 keV × 10 × 0.01 (beam_energy_to_fast_neutron_multiplier) × 0.25 s = 225
+# packets of 4.  See Note [Source Chamber beams]
+CALIFORNIUM_NEUTRONS = {900}
 
 
 def gt(client: HarnessClient, pos: tuple) -> dict:
@@ -164,14 +165,14 @@ def check_californium(client: HarnessClient):
     samples = neutron_samples(client)
     print(f"    Neutrons a cycle: {samples}")
     assert set(samples) <= CALIFORNIUM_NEUTRONS, f"Expected only {CALIFORNIUM_NEUTRONS} neutrons a cycle"
-    assert abs(statistics.mean(samples) - 90.0) <= 2.0, f"Expected 90 a cycle on average, got {samples}"
+    assert abs(statistics.mean(samples) - 900.0) <= 4.0, f"Expected 900 a cycle on average, got {samples}"
 
     before, t0 = dust_count(client), time.time()
     time.sleep(10.0)
     used, seconds = before - dust_count(client), time.time() - t0
     print(f"    Dust used: {used} in {seconds:.1f} s")
     assert 9 <= used <= 11, f"Expected about one dust a second, used {used} in {seconds:.1f} s"
-    print("[✓] 1,920 EU/t and a dust a second make a 9,000 keV beam at rate 10: 90 fast neutrons a cycle")
+    print("[✓] 1,920 EU/t and a dust a second make a 9,000 keV beam at rate 10: 900 fast neutrons a cycle")
 
 
 def check_shutdown(client: HarnessClient):

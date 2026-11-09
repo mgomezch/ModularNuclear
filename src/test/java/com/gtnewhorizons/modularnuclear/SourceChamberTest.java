@@ -49,7 +49,7 @@ class SourceChamberTest {
 
     @Test
     void theSimulatorEmitsWhatTheReactorDoesInGame() {
-        // In game, a Californium beam gives 88 and 92 fast neutrons on alternate 5-tick cycles
+        // In game, a Californium beam gives the same neutrons a 5-tick cycle (test_beamline_source_chamber)
         int saved = NuclearSimulationEngine.getTicksPerCycle();
         try {
             StandaloneNuclearGrid grid = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
@@ -62,21 +62,43 @@ class SourceChamberTest {
                 grid.step();
                 perCycle.add(source.getLastNeutronsGenerated());
             }
+            // 9,000 keV × 10 × multiplier × 0.25 s packets a cycle, the fraction carried over: 4 neutrons each
+            double packets = SourceChamber
+                .beamPacketsPerSecond(9000.0, 10, NuclearSimulationEngine.params().beamEnergyToFastNeutronMultiplier)
+                * 0.25;
+            int low = 4 * (int) Math.floor(packets), high = 4 * (int) Math.ceil(packets);
             assertTrue(
                 perCycle.stream()
-                    .allMatch(n -> n == 88 || n == 92),
-                "Expected 88 and 92 a cycle, got " + perCycle);
+                    .allMatch(n -> n == low || n == high),
+                "Expected " + low + " or " + high + " a cycle, got " + perCycle);
             assertEquals(
-                90.0,
+                4 * packets,
                 perCycle.stream()
                     .mapToInt(Integer::intValue)
                     .average()
                     .orElse(0),
-                2.0);
+                4.0);
             assertEquals(1920, grid.getBeamEuPerTick());
         } finally {
             NuclearSimulationEngine.params()
                 .setTicksPerCycle(saved);
+        }
+    }
+
+    @Test
+    void aFuelFreeReactorNeverBeatsTheTiersSimpleDesign() {
+        // See Note [Source Chamber beams]: about 30 A at EV, 60 A at the tiers above
+        for (SourceChamber.Recipe r : SourceChamber.Recipe.values()) {
+            int tier = r.minTier();
+            double simple = (tier == EV ? 30 : 60) * SourceChamber.voltage(tier);
+            double bound = SourceChamber.maxFuelFreeEuPerTick(r, NuclearSimulationEngine.params());
+            assertTrue(
+                bound < simple,
+                r + ": a fuel-free reactor could make "
+                    + Math.round(bound)
+                    + " EU/t, more than the simple design's "
+                    + Math.round(simple));
+            assertTrue(bound > SourceChamber.practicalVoltage(tier), r + ": a beam is meant to pay off");
         }
     }
 
