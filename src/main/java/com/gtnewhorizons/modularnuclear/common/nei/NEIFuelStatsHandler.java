@@ -951,6 +951,15 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
+    public static void drawIndicatorDot(float x, float y, int color) {
+        drawIndicatorDot(
+            x,
+            y,
+            ((color >> 16) & 0xFF) / 255.0f,
+            ((color >> 8) & 0xFF) / 255.0f,
+            (color & 0xFF) / 255.0f);
+    }
+
     public static void drawIndicatorDot(float x, float y, float r, float g, float b) {
         // Outer colored diamond (radius 2.5)
         GL11.glColor4f(r, g, b, 1.0f);

@@ -82,11 +82,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     public static final int RV_PANEL_W = 154;
     public static final int RV_PANEL_H = 72;
 
-    public static final int RV_SCREEN_X = 8;
-    public static final int RV_SCREEN_Y = RV_PANEL_Y + 12;
-    public static final int RV_SCREEN_W = 150;
-    public static final int RV_SCREEN_H = 58;
-
     public static final int RV_PLOT_X = 28;
     public static final int RV_PLOT_Y = RV_PANEL_Y + 15;
     public static final int RV_PLOT_W = 104;
@@ -1302,37 +1297,40 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         CachedRecipe cached = this.arecipes.get(recipeIndex);
 
         if (cached instanceof CachedNeutronInteractionRecipe recipe) {
+            // See Note [NEI colours follow the resource pack]
+            NEIPalette palette = NEIPalette.current();
+
             // Header catalyst slot box at (6, 2)
-            drawSlotBox(6, 2);
+            palette.drawSlot(6, 2);
 
             // Card 1: Fast neutrons panel at y=33
-            drawPanel(6, 33, 154, 64);
-            drawSlotBox(74, 56);
+            palette.drawPanel(6, 33, 154, 64);
+            palette.drawSlot(74, 56);
             drawFastNeutronDiagram(recipe.data, 33);
 
             // Card 2: Thermal neutrons panel
             ComponentCardValues values = recipe.data.cardValues();
-            drawPanel(6, THERMAL_PANEL_Y, 154, 64);
+            palette.drawPanel(6, THERMAL_PANEL_Y, 154, 64);
             drawThermalNeutronDiagram(values, THERMAL_PANEL_Y);
-            drawSlotBox(74, THERMAL_SLOT_Y);
+            palette.drawSlot(74, THERMAL_SLOT_Y);
 
             // Card 3: Heat panel, its hot-to-cold diagram above its row of tiles
-            drawPanel(6, HEAT_PANEL_Y, 154, HEAT_PANEL_H);
+            palette.drawPanel(6, HEAT_PANEL_Y, 154, HEAT_PANEL_H);
             drawHeatDiagram(values, HEAT_PANEL_Y);
-            drawSlotBox(74, HEAT_SLOT_Y);
+            palette.drawSlot(74, HEAT_SLOT_Y);
             drawHeatRow(values);
 
             // Card 4: Durability & byproducts panel OR Radiovoltaic curve panel
             if (recipe.data.isRadiovoltaic) {
-                NEIFuelStatsHandler.drawThemePanel(RV_PANEL_X, RV_PANEL_Y, RV_PANEL_W, RV_PANEL_H);
-                NEIFuelStatsHandler.drawSunkenBox(RV_SCREEN_X, RV_SCREEN_Y, RV_SCREEN_W, RV_SCREEN_H, 0xFF141619);
+                palette.drawPanel(RV_PANEL_X, RV_PANEL_Y, RV_PANEL_W, RV_PANEL_H);
+                palette.drawPlotWell(RV_PLOT_X, RV_PLOT_Y, RV_PLOT_W, RV_PLOT_H);
             } else {
-                drawPanel(6, DURABILITY_PANEL_Y, 154, 64);
+                palette.drawPanel(6, DURABILITY_PANEL_Y, 154, 64);
                 int durSlotX = recipe.data.transmutationOutput != null ? 30 : 66;
-                drawSlotBox(durSlotX, DURABILITY_SLOT_Y);
+                palette.drawSlot(durSlotX, DURABILITY_SLOT_Y);
 
                 if (recipe.data.transmutationOutput != null) {
-                    drawSlotBox(100, DURABILITY_SLOT_Y);
+                    palette.drawSlot(100, DURABILITY_SLOT_Y);
                     GuiDraw.changeTexture(LONG_ARROW);
                     drawCustomTexturedModalRect(58, DURABILITY_SLOT_Y - 1, 0, 0, 40, 20, 40, 40);
                     long cycle = System.currentTimeMillis() % 3000L;
@@ -1353,8 +1351,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         if (cached instanceof CachedNeutronInteractionRecipe recipe) {
             ComponentStatsData d = recipe.data;
 
+            NEIPalette palette = NEIPalette.current();
+
             // Header summary (at top: category & description next to catalyst)
-            GuiDraw.drawString(EnumChatFormatting.DARK_BLUE + "[" + d.category + "]", 28, 3, 0x103080, false);
+            GuiDraw.drawString("[" + d.category + "]", 28, 3, palette.category, false);
             if (d.extraInfo != null) {
                 renderWrappedExtraInfo(d.extraInfo, 28, 13, 132);
             }
@@ -1364,17 +1364,21 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 StatCollector.translateToLocal("gt.nei.neutron_interaction.fast"),
                 83,
                 36,
-                0x404040,
+                palette.ink,
                 false);
 
             // Reflected neutrons percentage (between the two blue arrows)
             String fastReflStr = formatPercent(d.isReflector ? d.reflectionFast : 0.0);
-            GuiDraw
-                .drawStringC(fastReflStr, 38, 61, (d.isReflector && d.reflectionFast > 0) ? 0x9A6B00 : 0x404040, false);
+            GuiDraw.drawStringC(
+                fastReflStr,
+                38,
+                61,
+                (d.isReflector && d.reflectionFast > 0) ? palette.reflectedText : palette.ink,
+                false);
 
             // Absorbed neutrons percentage (below red arrow)
             String absStr = formatPercent(d.fastAbsorption);
-            GuiDraw.drawStringC(absStr, 83, 86, d.fastAbsorption > 0 ? 0xCC0000 : 0x404040, false);
+            GuiDraw.drawStringC(absStr, 83, 86, d.fastAbsorption > 0 ? palette.absorbedText : palette.ink, false);
 
             // Overall scattered fast neutrons percentage (between green arrows and pie chart, vertically centered)
             String fastScatteringProbStr = formatPercent(d.fastScattering);
@@ -1382,18 +1386,19 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 fastScatteringProbStr,
                 FAST_SCATTERING_LABEL_X,
                 61,
-                d.fastScattering > 0 ? 0x00A000 : 0x404040,
+                d.fastScattering > 0 ? palette.scatteredText : palette.ink,
                 false);
 
             // Relative scattered fast neutrons conditional percentage (above blue arrow)
             double slowing = Math.max(0.0, Math.min(1.0, d.slowingProbability));
             double fastFrac = 1.0 - slowing;
             String fastScatteringStr = formatPercent(fastFrac);
-            GuiDraw.drawStringC(fastScatteringStr, FAST_PIE_X, 37, fastFrac > 0 ? 0x0033CC : 0x404040, false);
+            GuiDraw
+                .drawStringC(fastScatteringStr, FAST_PIE_X, 37, fastFrac > 0 ? palette.fastText : palette.ink, false);
 
             // Relative scattered moderated neutrons conditional percentage (below purple arrow)
             String modScatteringStr = formatPercent(slowing);
-            GuiDraw.drawStringC(modScatteringStr, FAST_PIE_X, 86, slowing > 0 ? 0x7F00FF : 0x404040, false);
+            GuiDraw.drawStringC(modScatteringStr, FAST_PIE_X, 86, slowing > 0 ? palette.thermal : palette.ink, false);
 
             // --- Card 2: Thermal Neutron Panel ---
             ComponentCardValues values = d.cardValues();
@@ -1410,22 +1415,22 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     StatCollector.translateToLocal("gt.nei.neutron_interaction.absorption"),
                     83,
                     DURABILITY_PANEL_Y + 3,
-                    0x404040,
+                    palette.ink,
                     false);
 
                 if (d.transmutationOutput != null) {
                     String reqStr = formatNeutrons(d.transmutationNeutrons);
                     String transStr = reqStr + " Neutrons -> " + d.transmutationOutput.getDisplayName();
-                    GuiDraw.drawStringC(transStr, 83, DURABILITY_PANEL_Y + 52, 0x205090, false);
+                    GuiDraw.drawStringC(transStr, 83, DURABILITY_PANEL_Y + 52, palette.byproductText, false);
                 } else if (d.hasDurability) {
                     String durStr = d.durabilityLabel + ": " + formatNeutrons(d.durability);
-                    GuiDraw.drawStringC(durStr, 83, DURABILITY_PANEL_Y + 52, 0x404040, false);
+                    GuiDraw.drawStringC(durStr, 83, DURABILITY_PANEL_Y + 52, palette.ink, false);
                 } else {
                     GuiDraw.drawStringC(
                         d.durabilityLabel != null ? d.durabilityLabel : "Indestructible",
                         83,
                         DURABILITY_PANEL_Y + 52,
-                        0x008000,
+                        palette.indestructibleText,
                         false);
                 }
             }
@@ -1449,66 +1454,51 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         double maxFlux = rvPlotMaxAbsorbed(d);
         double maxHeat = Math.max(1.0, d.calculateHeat(maxFlux));
 
+        NEIPalette palette = NEIPalette.current();
+
         // Title
         GuiDraw.drawStringC(
             StatCollector.translateToLocal("gt.nei.neutron_interaction.radiovoltaic_curve"),
             83,
             RV_PANEL_Y + 2,
-            0x404040,
+            palette.ink,
             false);
 
         // 1. Grid Lines
-        GL11.glPushMatrix();
-        GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glDisable(GL11.GL_ALPHA_TEST);
-        OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
-
-        GL11.glColor4f(1.0f, 1.0f, 1.0f, 0.08f);
-        GL11.glLineWidth(1.0f);
-        GL11.glBegin(GL11.GL_LINES);
         for (int p = 25; p < 100; p += 25) {
             int gy = RV_PLOT_Y + RV_PLOT_H - (int) Math.round((p / 100.0) * RV_PLOT_H);
-            GL11.glVertex2f(RV_PLOT_X, gy);
-            GL11.glVertex2f(RV_PLOT_X + RV_PLOT_W, gy);
-        }
-        for (int p = 25; p < 100; p += 25) {
+            GuiDraw.drawRect(RV_PLOT_X, gy, RV_PLOT_W, 1, palette.grid);
             int gx = RV_PLOT_X + (int) Math.round((p / 100.0) * RV_PLOT_W);
-            GL11.glVertex2f(gx, RV_PLOT_Y);
-            GL11.glVertex2f(gx, RV_PLOT_Y + RV_PLOT_H);
+            GuiDraw.drawRect(gx, RV_PLOT_Y, 1, RV_PLOT_H, palette.grid);
         }
-        GL11.glEnd();
-        GL11.glEnable(GL11.GL_ALPHA_TEST);
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glPopMatrix();
 
         // 2. Axis text & labels (using 0.5x scale font renderer)
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
         GL11.glPushMatrix();
         GL11.glScalef(0.5f, 0.5f, 1.0f);
 
-        // Left Axis: Power EU/t (Cyan: 0xFF38BDF8)
-        font.drawString("EU", (RV_PLOT_X - 16) * 2, (RV_PLOT_Y - 2) * 2, 0xFF38BDF8);
+        // Left Axis: Power EU/t
+        font.drawString("EU", (RV_PLOT_X - 16) * 2, (RV_PLOT_Y - 2) * 2, palette.powerLabel);
         for (int p = 0; p <= 100; p += 50) {
             int gy = RV_PLOT_Y + RV_PLOT_H - (int) Math.round((p / 100.0) * RV_PLOT_H);
             long pVal = Math.round((p / 100.0) * maxEU);
             String pStr = (pVal >= 1000) ? String.format(Locale.US, "%.1fk", pVal / 1000.0) : String.valueOf(pVal);
             int sw = font.getStringWidth(pStr);
-            font.drawString(pStr, (RV_PLOT_X - 2) * 2 - sw, (gy - 2) * 2, 0xFF38BDF8);
+            font.drawString(pStr, (RV_PLOT_X - 2) * 2 - sw, (gy - 2) * 2, palette.powerLabel);
         }
 
-        // Right Axis: Excess Heat Hu/s (Coral Red: 0xFFF87171)
-        font.drawString("Hu", (RV_PLOT_X + RV_PLOT_W + 3) * 2, (RV_PLOT_Y - 2) * 2, 0xFFF87171);
+        // Right Axis: Excess Heat Hu/s
+        font.drawString("Hu", (RV_PLOT_X + RV_PLOT_W + 3) * 2, (RV_PLOT_Y - 2) * 2, palette.damageCurve);
         for (int p = 0; p <= 100; p += 50) {
             int gy = RV_PLOT_Y + RV_PLOT_H - (int) Math.round((p / 100.0) * RV_PLOT_H);
             double hVal = (p / 100.0) * maxHeat;
             String hStr = (hVal >= 1000.0) ? String.format(Locale.US, "%.1fk", hVal / 1000.0)
                 : String.valueOf((int) hVal);
-            font.drawString(hStr, (RV_PLOT_X + RV_PLOT_W + 3) * 2, (gy - 2) * 2, 0xFFF87171);
+            font.drawString(hStr, (RV_PLOT_X + RV_PLOT_W + 3) * 2, (gy - 2) * 2, palette.damageCurve);
         }
 
-        // Bottom Axis: Flux labels (Silver: 0xFF9CA3AF)
-        font.drawString("0", (RV_PLOT_X - 1) * 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, 0xFF9CA3AF);
+        // Bottom Axis: Flux labels
+        font.drawString("0", (RV_PLOT_X - 1) * 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, palette.ink);
         int midFlux = (int) (maxFlux / 2);
         String midStr = String.valueOf(midFlux);
         int midSw = font.getStringWidth(midStr);
@@ -1516,11 +1506,11 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             midStr,
             (RV_PLOT_X + RV_PLOT_W / 2) * 2 - midSw / 2,
             (RV_PLOT_Y + RV_PLOT_H + 2) * 2,
-            0xFF9CA3AF);
+            palette.ink);
         String maxStr = String.valueOf((int) maxFlux);
         int maxSw = font.getStringWidth(maxStr);
-        font.drawString(maxStr, (RV_PLOT_X + RV_PLOT_W) * 2 - maxSw / 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, 0xFF9CA3AF);
-        font.drawString("n/s", (RV_PLOT_X + RV_PLOT_W + 10) * 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, 0xFF9CA3AF);
+        font.drawString(maxStr, (RV_PLOT_X + RV_PLOT_W) * 2 - maxSw / 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, palette.ink);
+        font.drawString("n/s", (RV_PLOT_X + RV_PLOT_W + 10) * 2, (RV_PLOT_Y + RV_PLOT_H + 2) * 2, palette.ink);
 
         GL11.glPopMatrix();
 
@@ -1534,8 +1524,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         GL11.glHint(GL11.GL_LINE_SMOOTH_HINT, GL11.GL_NICEST);
         GL11.glLineWidth(2.0f);
 
-        // Power curve (Cyan: #38BDF8)
-        GL11.glColor4f(0.22f, 0.74f, 0.97f, 1.0f);
+        // Power curve
+        NEIPalette.glColor(palette.powerCurve, 1.0f);
         GL11.glBegin(GL11.GL_LINE_STRIP);
         for (int i = 0; i <= RV_PLOT_W; i++) {
             double flux = (i / (double) RV_PLOT_W) * maxFlux;
@@ -1545,8 +1535,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         }
         GL11.glEnd();
 
-        // Heat curve (Coral Red: #F87171)
-        GL11.glColor4f(0.97f, 0.44f, 0.44f, 1.0f);
+        // Heat curve
+        NEIPalette.glColor(palette.damageCurve, 1.0f);
         GL11.glBegin(GL11.GL_LINE_STRIP);
         for (int i = 0; i <= RV_PLOT_W; i++) {
             double flux = (i / (double) RV_PLOT_W) * maxFlux;
@@ -1570,31 +1560,31 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             float yp = (float) (RV_PLOT_Y + RV_PLOT_H - Math.max(0.0, Math.min(1.0, pAtMouse / maxEU)) * RV_PLOT_H);
             float yh = (float) (RV_PLOT_Y + RV_PLOT_H - Math.max(0.0, Math.min(1.0, hAtMouse / maxHeat)) * RV_PLOT_H);
 
-            // Vertical cursor line (neutral white)
+            // Vertical cursor line
             GL11.glLineWidth(1.0f);
-            GL11.glColor4f(1.0f, 1.0f, 1.0f, 0.6f);
+            NEIPalette.glColor(palette.cursor, ((palette.cursor >>> 24) & 0xFF) / 255.0f);
             GL11.glBegin(GL11.GL_LINES);
             GL11.glVertex2f(mx, RV_PLOT_Y);
             GL11.glVertex2f(mx, RV_PLOT_Y + RV_PLOT_H);
             GL11.glEnd();
 
-            // Horizontal projection to left axis for Power (Cyan)
-            GL11.glColor4f(0.22f, 0.74f, 0.97f, 0.5f);
+            // Horizontal projection to left axis for Power
+            NEIPalette.glColor(palette.powerCurve, 0.5f);
             GL11.glBegin(GL11.GL_LINES);
             GL11.glVertex2f(RV_PLOT_X, yp);
             GL11.glVertex2f(mx, yp);
             GL11.glEnd();
 
-            // Horizontal projection to right axis for Heat (Coral Red)
-            GL11.glColor4f(0.97f, 0.44f, 0.44f, 0.5f);
+            // Horizontal projection to right axis for Heat
+            NEIPalette.glColor(palette.damageCurve, 0.5f);
             GL11.glBegin(GL11.GL_LINES);
             GL11.glVertex2f(mx, yh);
             GL11.glVertex2f(RV_PLOT_X + RV_PLOT_W, yh);
             GL11.glEnd();
 
             // Snap indicator dots (diamonds)
-            NEIFuelStatsHandler.drawIndicatorDot(mx, yp, 0.22f, 0.74f, 0.97f);
-            NEIFuelStatsHandler.drawIndicatorDot(mx, yh, 0.97f, 0.44f, 0.44f);
+            NEIFuelStatsHandler.drawIndicatorDot(mx, yp, palette.powerCurve);
+            NEIFuelStatsHandler.drawIndicatorDot(mx, yh, palette.damageCurve);
         }
 
         GL11.glDisable(GL11.GL_LINE_SMOOTH);
@@ -1658,7 +1648,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         int lineSpacing = lines.size() > 2 ? 8 : 9;
         int y = lines.size() > 2 ? startY - 1 : startY;
         for (String line : lines) {
-            GuiDraw.drawString(EnumChatFormatting.GRAY + line, x, y, 0x505050, false);
+            GuiDraw.drawString(line, x, y, NEIPalette.current().inkFaint, false);
             y += lineSpacing;
         }
     }
@@ -2033,22 +2023,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         return currenttip;
     }
 
-    public static void drawPanel(int x, int y, int w, int h) {
-        GuiDraw.drawRect(x + 1, y, w - 2, 1, 0xFF373737);
-        GuiDraw.drawRect(x, y + 1, 1, h - 2, 0xFF373737);
-        GuiDraw.drawRect(x + 1, y + h - 1, w - 2, 1, 0xFFFFFFFF);
-        GuiDraw.drawRect(x + w - 1, y + 1, 1, h - 2, 0xFFFFFFFF);
-        GuiDraw.drawRect(x + 1, y + 1, w - 2, h - 2, 0xFFC6C6C6);
-    }
-
-    public static void drawSlotBox(int x, int y) {
-        GuiDraw.drawRect(x, y, 18, 1, 0xFF373737);
-        GuiDraw.drawRect(x, y, 1, 18, 0xFF373737);
-        GuiDraw.drawRect(x + 17, y, 1, 18, 0xFFFFFFFF);
-        GuiDraw.drawRect(x, y + 17, 18, 1, 0xFFFFFFFF);
-        GuiDraw.drawRect(x + 1, y + 1, 16, 16, 0xFF8B8B8B);
-    }
-
     public static void drawCustomTexturedModalRect(int x, int y, int u, int v, int width, int height, int texWidth,
         int texHeight) {
         float f = 1.0F / (float) texWidth;
@@ -2207,42 +2181,43 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
     public static void drawFastNeutronDiagram(ComponentStatsData d, int baseY) {
         double dy = baseY - 2.0;
+        NEIPalette palette = NEIPalette.current();
 
         // Incoming fast neutrons arrow (blue, down-right towards center tile)
-        drawArrow(24.0, 17.0 + dy, 70.0, 30.0 + dy, 2.0, 5.0, 6.0, 0xFF0033EE);
+        drawArrow(24.0, 17.0 + dy, 70.0, 30.0 + dy, 2.0, 5.0, 6.0, palette.fast);
 
         // Reflected fast neutrons arrow (blue, down-left away from center tile)
-        drawArrow(70.0, 38.0 + dy, 24.0, 51.0 + dy, 2.0, 5.0, 6.0, 0xFF0033EE);
+        drawArrow(70.0, 38.0 + dy, 24.0, 51.0 + dy, 2.0, 5.0, 6.0, palette.fast);
 
         // Absorbed neutrons arrow (red, straight down under center tile)
-        drawArrow(83.0, 44.0 + dy, 83.0, 52.0 + dy, 2.0, 4.0, 5.5, 0xFFDD0000);
+        drawArrow(83.0, 44.0 + dy, 83.0, 52.0 + dy, 2.0, 4.0, 5.5, palette.absorbed);
 
         // Three scattered neutrons arrows (green, pointing right away from center tile)
         // Middle: horizontal
-        drawArrow(96.0, 34.0 + dy, 107.0, 34.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
+        drawArrow(96.0, 34.0 + dy, 107.0, 34.0 + dy, 1.2, 3.5, 4.5, palette.scattered);
         // Upper: 45 degrees up-right
-        drawArrow(96.0, 32.0 + dy, 106.0, 22.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
+        drawArrow(96.0, 32.0 + dy, 106.0, 22.0 + dy, 1.2, 3.5, 4.5, palette.scattered);
         // Lower: 45 degrees down-right
-        drawArrow(96.0, 36.0 + dy, 106.0, 46.0 + dy, 1.2, 3.5, 4.5, 0xFF00CC00);
+        drawArrow(96.0, 36.0 + dy, 106.0, 46.0 + dy, 1.2, 3.5, 4.5, palette.scattered);
 
         // Dynamic pie chart at (FAST_PIE_X, 34 + dy), radius 9.0
         double slowing = Math.max(0.0, Math.min(1.0, d.slowingProbability));
         double fastFrac = 1.0 - slowing;
         if (slowing <= 0.001) {
-            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, 2.0 * Math.PI, 0xFF0033EE);
+            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, 2.0 * Math.PI, palette.fast);
         } else if (fastFrac <= 0.001) {
-            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, 2.0 * Math.PI, 0xFF7F00FF);
+            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, 2.0 * Math.PI, palette.thermal);
         } else {
             double splitAngle = fastFrac * 2.0 * Math.PI;
-            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, splitAngle, 0xFF0033EE);
-            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, splitAngle, 2.0 * Math.PI, 0xFF7F00FF);
+            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, splitAngle, palette.fast);
+            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, splitAngle, 2.0 * Math.PI, palette.thermal);
         }
 
         // Scattered fast neutrons arrow (blue, straight up above pie chart)
-        drawArrow(FAST_PIE_X, 24.0 + dy, FAST_PIE_X, 16.0 + dy, 2.0, 4.0, 5.5, 0xFF0033EE);
+        drawArrow(FAST_PIE_X, 24.0 + dy, FAST_PIE_X, 16.0 + dy, 2.0, 4.0, 5.5, palette.fast);
 
         // Scattered moderated neutrons arrow (purple, straight down below pie chart)
-        drawArrow(FAST_PIE_X, 44.0 + dy, FAST_PIE_X, 52.0 + dy, 2.0, 4.0, 5.5, 0xFF7F00FF);
+        drawArrow(FAST_PIE_X, 44.0 + dy, FAST_PIE_X, 52.0 + dy, 2.0, 4.0, 5.5, palette.thermal);
 
     }
 
@@ -2266,25 +2241,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         return val >= 100.0 ? String.valueOf(Math.round(val)) : formatNumber(val);
     }
 
-    private static int mixColor(int a, int b, double t) {
-        int result = 0xFF000000;
-        for (int shift = 0; shift <= 16; shift += 8) {
-            int ca = (a >> shift) & 0xFF;
-            int cb = (b >> shift) & 0xFF;
-            result |= ((int) Math.round(ca + (cb - ca) * t)) << shift;
-        }
-        return result;
-    }
-
-    private static final int PANEL_GREY = 0xFFC6C6C6;
-    private static final int THERMAL_PURPLE = 0xFF7F00FF;
-    private static final int ABSORBED_RED = 0xFFDD0000;
-    private static final int SCATTERED_GREEN = 0xFF00CC00;
-    private static final int LOST_GREY = 0xFF7A7A7A;
-    private static final int HEAT_ARROW = 0xFFF2913D;
+    // Data, not theme: see wrinkle (W2) of Note [NEI colours follow the resource pack]
     private static final int HOT_TILE = 0xFFE5582A;
     private static final int COLD_TILE = 0xFF2B6CDE;
-    private static final int REMOVAL_BLUE = 0xFF0055AA;
 
     /** The width of the band that stands for all arriving thermal neutrons. */
     private static final double THERMAL_BAND = 12.0;
@@ -2296,62 +2255,70 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     // See Note [Thermal and heat cards]
     public static void drawThermalNeutronDiagram(ComponentCardValues v, int baseY) {
         double midY = baseY + 32.0;
+        NEIPalette palette = NEIPalette.current();
 
-        drawArrow(
-            12.0,
-            midY,
-            73.0,
-            midY,
-            THERMAL_BAND,
-            7.0,
-            THERMAL_BAND + 6.0,
-            mixColor(THERMAL_PURPLE, PANEL_GREY, 0.25));
+        drawArrow(12.0, midY, 73.0, midY, THERMAL_BAND, 7.0, THERMAL_BAND + 6.0, palette.thermalFaint);
 
         double absorbed = thermalWidth(v.absorbed);
         if (absorbed > 0.0) {
-            drawArrow(83.0, baseY + 42.0, 83.0, baseY + 55.0, absorbed, 4.0, absorbed + 5.0, ABSORBED_RED);
+            drawArrow(83.0, baseY + 42.0, 83.0, baseY + 55.0, absorbed, 4.0, absorbed + 5.0, palette.absorbed);
         }
         double lost = thermalWidth(v.lost);
         if (lost > 0.0) {
-            drawArrow(72.0, baseY + 45.0, 46.0, baseY + 55.0, lost, 4.0, lost + 5.0, LOST_GREY);
+            drawArrow(72.0, baseY + 45.0, 46.0, baseY + 55.0, lost, 4.0, lost + 5.0, palette.lost);
         }
         double scattered = thermalWidth(v.scattered);
         if (scattered > 0.0) {
-            drawArrow(93.0, midY, 124.0, midY, scattered, 5.0, scattered + 5.0, SCATTERED_GREEN);
+            drawArrow(93.0, midY, 124.0, midY, scattered, 5.0, scattered + 5.0, palette.scattered);
         }
 
         // The spread: the tile in the middle, its neighbours by what each receives
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 boolean middle = i == 1 && j == 1;
-                int color = middle ? 0xFF6B6B6B : spreadColor(v.scattered, i != 1 && j != 1);
+                int color = middle ? palette.spreadMiddle : spreadColor(palette, v.scattered, i != 1 && j != 1);
                 GuiDraw.drawRect(131 + i * 8, baseY + 21 + j * 8, 7, 7, color);
             }
         }
-        drawArrow(142.5, baseY + 20.0, 142.5, baseY + 13.0, 2.0, 4.0, 5.5, THERMAL_PURPLE);
-        drawArrow(150.5, baseY + 44.0, 150.5, baseY + 51.0, 1.2, 3.5, 4.5, mixColor(THERMAL_PURPLE, PANEL_GREY, 0.35));
+        drawArrow(142.5, baseY + 20.0, 142.5, baseY + 13.0, 2.0, 4.0, 5.5, palette.thermal);
+        drawArrow(150.5, baseY + 44.0, 150.5, baseY + 51.0, 1.2, 3.5, 4.5, palette.thermalFainter);
     }
 
-    private static int spreadColor(double scattered, boolean corner) {
-        if (scattered <= 0.0) return 0xFFB4B4B4;
+    private static int spreadColor(NEIPalette palette, double scattered, boolean corner) {
+        if (scattered <= 0.0) return palette.spreadEmpty;
         double strength = (corner ? 0.32 : 0.62) * (0.35 + 0.65 * Math.min(1.0, scattered * 6.0));
-        return mixColor(PANEL_GREY, THERMAL_PURPLE, strength + (corner ? 0.05 : 0.2));
+        return NEIPalette.mix(palette.panel, palette.thermal, strength + (corner ? 0.05 : 0.2));
     }
 
     private static void drawThermalNeutronText(ComponentCardValues v, int baseY) {
+        NEIPalette palette = NEIPalette.current();
         GuiDraw.drawStringC(
             StatCollector.translateToLocal("gt.nei.neutron_interaction.thermal"),
             83,
             baseY + 3,
-            0x404040,
+            palette.ink,
             false);
-        GuiDraw.drawStringC(formatOutcome(v.lost), 32, baseY + 52, 0x606060, false);
-        GuiDraw.drawStringC(formatOutcome(v.absorbed), 104, baseY + 51, v.absorbed > 0.0 ? 0xCC0000 : 0x404040, false);
-        GuiDraw
-            .drawStringC(formatOutcome(v.scattered), 108, baseY + 15, v.scattered > 0.0 ? 0x00A000 : 0x404040, false);
+        GuiDraw.drawStringC(formatOutcome(v.lost), 32, baseY + 52, palette.inkDim, false);
+        GuiDraw.drawStringC(
+            formatOutcome(v.absorbed),
+            104,
+            baseY + 51,
+            v.absorbed > 0.0 ? palette.absorbedText : palette.ink,
+            false);
+        GuiDraw.drawStringC(
+            formatOutcome(v.scattered),
+            108,
+            baseY + 15,
+            v.scattered > 0.0 ? palette.scatteredText : palette.ink,
+            false);
         boolean spreads = v.scattered > 0.0;
-        GuiDraw.drawStringC(formatOutcome(v.perSide()), 142, baseY + 4, spreads ? 0x7F00FF : 0x404040, false);
-        GuiDraw.drawStringR(formatOutcome(v.perCorner()), 158, baseY + 53, spreads ? 0x7200E6 : 0x404040, false);
+        GuiDraw.drawStringC(formatOutcome(v.perSide()), 142, baseY + 4, spreads ? palette.thermal : palette.ink, false);
+        GuiDraw.drawStringR(
+            formatOutcome(v.perCorner()),
+            158,
+            baseY + 53,
+            spreads ? palette.thermalCornerText : palette.ink,
+            false);
     }
 
     /** Arrow width for a k: 0.005 draws 1 px wide and 0.9 draws 8 px wide, as k spans orders of magnitude. */
@@ -2369,29 +2336,30 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     public static void drawHeatDiagram(ComponentCardValues v, int baseY) {
         double midY = baseY + 32.0;
         boolean walled = v.dampening > 0.0;
+        NEIPalette palette = NEIPalette.current();
 
         drawShadedTile(12, baseY + 23, HOT_TILE);
         drawShadedTile(136, baseY + 23, COLD_TILE);
 
         if (v.dampening < 1.0) {
             double width = Math.max(1.0, conductionWidth(v.k) * (1.0 - v.dampening));
-            drawArrow(31.0, midY, walled ? 68.0 : 72.0, midY, width, 5.0, width + 5.0, HEAT_ARROW);
-            drawArrow(walled ? 98.0 : 94.0, midY, 135.0, midY, width, 5.0, width + 5.0, HEAT_ARROW);
+            drawArrow(31.0, midY, walled ? 68.0 : 72.0, midY, width, 5.0, width + 5.0, palette.heatArrow);
+            drawArrow(walled ? 98.0 : 94.0, midY, 135.0, midY, width, 5.0, width + 5.0, palette.heatArrow);
         }
         if (walled) {
             for (int x : new int[] { 69, 94 }) {
-                GuiDraw.drawRect(x, baseY + 22, 3, 21, 0xFF3A3A3A);
-                for (int y = baseY + 23; y < baseY + 42; y += 4) GuiDraw.drawRect(x + 1, y, 1, 2, PANEL_GREY);
+                GuiDraw.drawRect(x, baseY + 22, 3, 21, palette.ink);
+                for (int y = baseY + 23; y < baseY + 42; y += 4) GuiDraw.drawRect(x + 1, y, 1, 2, palette.panel);
             }
         }
         if (v.action == ComponentCardValues.HeatAction.EXCHANGES) {
             for (int[] span : new int[][] { { 34, 70 }, { 96, 132 } }) {
-                drawArrow(span[0], baseY + 39.0, span[1], baseY + 39.0, 1.2, 3.5, 4.5, REMOVAL_BLUE);
-                drawArrow(span[1], baseY + 43.0, span[0], baseY + 43.0, 1.2, 3.5, 4.5, REMOVAL_BLUE);
+                drawArrow(span[0], baseY + 39.0, span[1], baseY + 39.0, 1.2, 3.5, 4.5, palette.removal);
+                drawArrow(span[1], baseY + 43.0, span[0], baseY + 43.0, 1.2, 3.5, 4.5, palette.removal);
             }
         }
         if (v.removesHeat()) {
-            drawArrow(83.0, baseY + 42.0, 83.0, baseY + 51.0, 2.0, 4.0, 5.5, REMOVAL_BLUE);
+            drawArrow(83.0, baseY + 42.0, 83.0, baseY + 51.0, 2.0, 4.0, 5.5, palette.removal);
         }
     }
 
@@ -2406,14 +2374,15 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     }
 
     public static void drawHeatRow(ComponentCardValues v) {
-        GuiDraw.drawRect(8, HEAT_ROW_Y - 14, 150, 1, 0xFF8B8B8B);
+        NEIPalette palette = NEIPalette.current();
+        GuiDraw.drawRect(8, HEAT_ROW_Y - 14, 150, 1, palette.divider);
         float[][] frames = v.heatRow();
         float[] temperatures = frames[heatRowFrame(frames)];
         for (int i = 0; i < HEAT_ROW_X.length; i++) {
             if (i == HeatRowSimulation.MIDDLE) continue;
             drawShadedTile(HEAT_ROW_X[i], HEAT_ROW_Y, rowTemperatureColor(temperatures[i]));
         }
-        drawSlotBox(HEAT_ROW_X[HeatRowSimulation.MIDDLE], HEAT_ROW_Y);
+        palette.drawSlot(HEAT_ROW_X[HeatRowSimulation.MIDDLE], HEAT_ROW_Y);
         GuiDraw.drawRect(
             HEAT_ROW_X[HeatRowSimulation.MIDDLE] + 1,
             HEAT_ROW_Y + 18,
@@ -2468,25 +2437,26 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         };
     }
 
-    private static int heatActionColor(ComponentCardValues v) {
+    private static int heatActionColor(NEIPalette palette, ComponentCardValues v) {
         return switch (v.action) {
-            case BLOCKS -> 0x902020;
-            case BURNS -> 0xAA5500;
-            case CONDUCTS_ONLY -> 0x606060;
-            default -> 0x0055AA;
+            case BLOCKS -> palette.blocksText;
+            case BURNS -> palette.burnsText;
+            case CONDUCTS_ONLY -> palette.inkDim;
+            default -> palette.removal;
         };
     }
 
     private static void drawHeatText(ComponentCardValues v, int baseY) {
+        NEIPalette palette = NEIPalette.current();
         GuiDraw.drawStringC(
             StatCollector.translateToLocal("gt.nei.neutron_interaction.capture"),
             83,
             baseY + 3,
-            0x404040,
+            palette.ink,
             false);
         String capacity = capacityText(v);
-        drawScaledText(capacity, 10, baseY + 3, 0x404040, Math.min(0.75, fitScale(capacity, 60)));
-        GuiDraw.drawStringR(tr("k.value", formatNumber(v.k)), 156, baseY + 3, 0x404040, false);
+        drawScaledText(capacity, 10, baseY + 3, palette.ink, Math.min(0.75, fitScale(capacity, 60)));
+        GuiDraw.drawStringR(tr("k.value", formatNumber(v.k)), 156, baseY + 3, palette.ink, false);
 
         GuiDraw.drawStringC("+", 21, baseY + 28, 0xFFFFFF, false);
         GuiDraw.drawStringC("-", 145, baseY + 28, 0xFFFFFF, false);
@@ -2495,21 +2465,21 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 tr("conductance.value", formatCardNumber(v.conductance())),
                 50,
                 baseY + 14,
-                0x8A4A00,
+                palette.conductanceText,
                 56);
         }
-        drawTextCentredFit(heatActionText(v), 83, baseY + 54, heatActionColor(v), 150);
+        drawTextCentredFit(heatActionText(v), 83, baseY + 54, heatActionColor(palette, v), 150);
 
         // The row of tiles
         float[][] frames = v.heatRow();
         int frame = heatRowFrame(frames);
         int second = frame / HeatRowSimulation.FRAMES_PER_SECOND;
-        GuiDraw.drawStringC(tr("heat_row.title", second), 83, HEAT_ROW_Y - 11, 0x404040, false);
+        GuiDraw.drawStringC(tr("heat_row.title", second), 83, HEAT_ROW_Y - 11, palette.ink, false);
         float[] temperatures = frames[frame];
         for (int i = 0; i < HEAT_ROW_X.length; i++) {
             String degrees = String.valueOf(Math.round(temperatures[i]));
             double left = HEAT_ROW_X[i] + 9 - GuiDraw.getStringWidth(degrees) * 0.25;
-            int color = i == HeatRowSimulation.MIDDLE ? 0x000000 : 0x404040;
+            int color = i == HeatRowSimulation.MIDDLE ? palette.inkStrong : palette.ink;
             drawScaledText(degrees, left, HEAT_ROW_Y + 22, color, 0.5);
         }
     }
