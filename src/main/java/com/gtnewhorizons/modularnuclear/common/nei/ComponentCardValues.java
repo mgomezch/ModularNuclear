@@ -107,7 +107,7 @@ public final class ComponentCardValues {
         double actionRate) {
         double a = clamp01(absorption);
         this.absorbed = a;
-        this.scattered = (1.0 - a) * clamp01(scatteringProbability);
+        this.scattered = TileProperties.thermalScatteredShare(a, scatteringProbability);
         this.lost = Math.max(0.0, 1.0 - a - this.scattered);
         this.k = k;
         this.dampening = clamp01(dampening);

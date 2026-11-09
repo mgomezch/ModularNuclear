@@ -18,6 +18,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.Radiovo
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import gregtech.api.items.ItemRadioactiveCell;
@@ -240,12 +241,15 @@ public class NuclearFuelTooltipHandler {
         event.toolTip.add(EnumChatFormatting.AQUA + "MPTR neutron reflector: " + EnumChatFormatting.WHITE + ref.name);
         event.toolTip.add(
             EnumChatFormatting.GRAY + "Reflection: "
-                + EnumChatFormatting.GREEN
-                + String.format(Locale.US, "%.0f%% (thermal)", ref.scatteringThermal * 100)
-                + EnumChatFormatting.DARK_GRAY
-                + " | "
                 + EnumChatFormatting.BLUE
                 + String.format(Locale.US, "%.0f%% (fast)", ref.scatteringFast * 100));
+        event.toolTip.add(
+            EnumChatFormatting.GRAY + "Thermal scattering: "
+                + EnumChatFormatting.GREEN
+                + String.format(
+                    Locale.US,
+                    "%.0f%%",
+                    TileProperties.thermalScatteredShare(ref.absorptionThermal, ref.scatteringThermal) * 100));
 
         if (ref.durability > 0) {
             int curDmg = 0;

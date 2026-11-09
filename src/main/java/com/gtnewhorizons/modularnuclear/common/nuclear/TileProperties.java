@@ -139,6 +139,14 @@ public final class TileProperties {
         }
     }
 
+    /**
+     * Share of the thermal neutrons arriving at a cell that it scatters on to its neighbours: scattering applies to
+     * those that its absorption lets through.
+     */
+    public static double thermalScatteredShare(double absorption, double scattering) {
+        return (1.0 - Math.max(0.0, Math.min(1.0, absorption))) * Math.max(0.0, Math.min(1.0, scattering));
+    }
+
     /** Probability that a fast neutron is moderated to thermal in the cell (before any control rod). */
     public static double moderation(TileContent c) {
         switch (c.kind) {

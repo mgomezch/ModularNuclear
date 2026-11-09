@@ -49,6 +49,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearColorMaps;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
 
 import gregtech.api.util.GTUtility;
@@ -719,12 +720,15 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
-                        "  Reflection: Fast %s%.1f%%%s | Thermal %s%.1f%%",
+                        "  Reflection: Fast %s%.1f%%",
                         EnumChatFormatting.BLUE,
-                        ref.scatteringFast * 100.0,
-                        EnumChatFormatting.GRAY,
+                        ref.scatteringFast * 100.0));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Thermal scattering: %s%.1f%%",
                         EnumChatFormatting.DARK_AQUA,
-                        ref.scatteringThermal * 100.0));
+                        TileProperties.thermalScatteredShare(ref.absorptionThermal, ref.scatteringThermal) * 100.0));
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
