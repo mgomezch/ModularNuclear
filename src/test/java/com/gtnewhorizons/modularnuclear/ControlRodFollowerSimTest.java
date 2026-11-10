@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
@@ -14,6 +15,11 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNucl
 
 /** The simulator's advanced control rod hatches: a moderator follower slides in as the rod comes out, as in game. */
 class ControlRodFollowerSimTest {
+
+    @BeforeEach
+    void defaults() {
+        NuclearSimulationEngine.resetDefaultParameters();
+    }
 
     private static StandaloneNuclearGrid grid(String layout) {
         StandaloneNuclearGrid g = new StandaloneNuclearGrid(5, 5, NuclearSimulationEngine.PIPE_TIER_ELECTRUM);
@@ -67,22 +73,35 @@ class ControlRodFollowerSimTest {
     }
 
     @Test
-    void pullingARodWithAFollowerMakesMoreNeutrons() {
-        // Uranium around a rod hatch: withdrawn, the graphite follower thermalizes neutrons the fuel then fissions more
-        String around = "U4,U4,U4,U4,U4;U4,U4,U4,U4,U4;U4,U4,%s,U4,U4;U4,U4,U4,U4,U4;U4,U4,U4,U4,U4";
-        double plain = neutrons(grid(String.format(around, "CR:BORON:0")));
-        double follower = neutrons(grid(String.format(around, "CR:BORON:0:MG")));
-        assertTrue(follower > plain, "Expected more neutrons with a follower: " + follower + " vs " + plain);
+    void withTheRodOutTheFollowerThermalizesItsCell() {
+        // Uranium on the diagonals of a coolant-cooled 5x5, a rod hatch under the centre coolant column: with the rod
+        // out, its graphite follower moderates fast neutrons in that cell, so far more of the cell's flux is thermal;
+        // with the rod in, the follower is out and the cell is exactly as with a plain hatch.
+        String core = "NL,HC,HC,HC,NL;HC,U4,HC,U4,HC;HC,HC,%s,HC,HC;HC,U4,HC,U4,HC;NL,HC,HC,HC,NL";
+        double plainOut = thermalShare(grid(String.format(core, "HC+CR:BORON:0")));
+        double followerOut = thermalShare(grid(String.format(core, "HC+CR:BORON:0:MG")));
+        assertTrue(
+            followerOut > 2 * plainOut && plainOut > 0,
+            "Expected a much more thermal cell with the follower in: " + followerOut + " vs " + plainOut);
+        assertEquals(
+            thermalShare(grid(String.format(core, "HC+CR:BORON:100"))),
+            thermalShare(grid(String.format(core, "HC+CR:BORON:100:MG"))),
+            1e-12,
+            "With the rod in, the follower is out");
     }
 
-    private static double neutrons(StandaloneNuclearGrid g) {
+    /** The centre cell's thermal share of its flux, over 40 cycles after 20 to settle. */
+    private static double thermalShare(StandaloneNuclearGrid g) {
         NuclearSimulationEngine.params()
             .setRandomSeed(7);
-        double total = 0;
+        double thermal = 0, total = 0;
         for (int i = 0; i < 60; i++) {
             g.step();
-            if (i >= 20) total += g.getTotalNeutronsGenerated();
+            if (i < 20) continue;
+            SimTile t = g.getTile(2, 2);
+            thermal += t.getLastThermalFlux();
+            total += t.getLastTotalFlux();
         }
-        return total;
+        return total > 0 ? thermal / total : 0;
     }
 }

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
@@ -22,6 +23,11 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.StandaloneNucl
 class SourceChamberTest {
 
     private static final int EV = 4, IV = 5, LUV = 6;
+
+    @BeforeEach
+    void defaults() {
+        NuclearSimulationEngine.resetDefaultParameters();
+    }
 
     @Test
     void californiumFromAnEvHatchIsWhatTheGameMakes() {
