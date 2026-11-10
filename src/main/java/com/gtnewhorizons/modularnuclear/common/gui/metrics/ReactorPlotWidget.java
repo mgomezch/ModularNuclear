@@ -21,6 +21,7 @@ import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.widget.Widget;
 import com.gtnewhorizon.gtnhlib.color.ColorResource;
 import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
+import com.gtnewhorizons.modularnuclear.common.gui.ThemedDraw;
 
 /**
  * High-performance vector chart widget for MPTR live reactor cycle telemetry.
@@ -139,13 +140,7 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
 
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
 
-        // Container background
-        GuiDraw.drawRect(0, 0, w, h, ColorUtils.plotBackground.getColor());
-        int border = ColorUtils.plotBorder.getColor();
-        GuiDraw.drawRect(0, 0, w, 1, border);
-        GuiDraw.drawRect(0, h - 1, w, 1, border);
-        GuiDraw.drawRect(0, 0, 1, h, border);
-        GuiDraw.drawRect(w - 1, 0, 1, h, border);
+        ThemedDraw.terminal(context, 0, 0, w, h);
 
         // Header: metric title (sentence case)
         font.drawString(metric.getTitle(), 6, 4, ColorUtils.plotTitle.getColor());
@@ -192,9 +187,6 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
         int plotY = 16;
         int plotW = Math.max(10, w - plotX - 8);
         int plotH = Math.max(10, h - plotY - 14);
-
-        // Dark canvas background
-        GuiDraw.drawRect(plotX, plotY, plotW, plotH, ColorUtils.plotArea.getColor());
 
         // Compute min and max value range across all snapshots
         float[] bounds = calculateBounds(metric, snapshots);

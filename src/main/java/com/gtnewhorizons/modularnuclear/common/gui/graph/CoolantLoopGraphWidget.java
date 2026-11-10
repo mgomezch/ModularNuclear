@@ -22,6 +22,7 @@ import com.cleanroommc.modularui.utils.Platform;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.sizer.Area;
 import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
+import com.gtnewhorizons.modularnuclear.common.gui.ThemedDraw;
 import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphData.GraphEdge;
 import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphData.GraphNode;
 import com.gtnewhorizons.modularnuclear.common.gui.graph.SugiyamaLayout.LayoutEdge;
@@ -289,13 +290,8 @@ public class CoolantLoopGraphWidget extends Widget<CoolantLoopGraphWidget> imple
             lastHeight = rh;
         }
 
-        // 1. Draw viewport background and border in widget-local coordinates [0, 0, rw, rh]
-        GuiDraw.drawRect(0, 0, rw, rh, ColorUtils.graphBackground.getColor());
-        int border = ColorUtils.graphBorder.getColor();
-        GuiDraw.drawRect(0, 0, rw, 1, border);
-        GuiDraw.drawRect(0, rh - 1, rw, 1, border);
-        GuiDraw.drawRect(0, 0, 1, rh, border);
-        GuiDraw.drawRect(rw - 1, 0, 1, rh, border);
+        // 1. The viewport is a GregTech terminal screen, in widget-local coordinates [0, 0, rw, rh]
+        ThemedDraw.terminal(context, 0, 0, rw, rh);
 
         if (graphData == null || !graphData.isFormed) {
             String msg = (graphData != null && graphData.failureReason != null) ? ClientText.of(graphData.failureReason)

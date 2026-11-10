@@ -396,19 +396,12 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
             lastHeight = rh;
         }
 
-        // Draw background container panel and border in local coords
-        GuiDraw.drawRect(0, 0, rw, rh, ColorUtils.reactorGridBackground.getColor());
-        int border = ColorUtils.reactorGridBorder.getColor();
-        GuiDraw.drawRect(0, 0, rw, 1, border);
-        GuiDraw.drawRect(0, rh - 1, rw, 1, border);
-        GuiDraw.drawRect(0, 0, 1, rh, border);
-        GuiDraw.drawRect(rw - 1, 0, 1, rh, border);
-
+        // The cells sit on the panel itself, as the slots of any other GUI do
         if (sync == null || sync.gridSize <= 0) {
             String msg = "Reactor Core Offline / Unformed";
             FontRenderer fr = Minecraft.getMinecraft().fontRenderer;
             int sw = fr.getStringWidth(msg);
-            fr.drawStringWithShadow(msg, (rw - sw) / 2, (rh - 8) / 2, ColorUtils.reactorGridOfflineText.getColor());
+            fr.drawString(msg, (rw - sw) / 2, (rh - 8) / 2, ColorUtils.reactorGridOfflineText.getColor());
             return;
         }
 
@@ -451,9 +444,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 int idx = gx * N + gy;
                 ReactorGridSyncData.ReactorGridCellData cell = (idx < sync.cells.size()) ? sync.cells.get(idx) : null;
 
-                // Slot background
-                GuiDraw.drawRect(px, py, 18, 18, ColorUtils.reactorGridSlotBorder.getColor());
-                GuiDraw.drawRect(px + 1, py + 1, 16, 16, ColorUtils.reactorGridSlotFill.getColor());
+                ThemedDraw.slot(context, px, py);
 
                 if (cell != null && cell.exists) {
                     boolean isHeatmap = reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_TEMPERATURE
@@ -582,8 +573,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         // Controller Icon slot at center bottom (representing physical multiblock front face)
         int cx = (N * 18 - 18) / 2;
         int cy = N * 18 + 4;
-        GuiDraw.drawRect(cx, cy, 18, 18, ColorUtils.reactorGridControllerBorder.getColor());
-        GuiDraw.drawRect(cx + 1, cy + 1, 16, 16, ColorUtils.reactorGridControllerFill.getColor());
+        ThemedDraw.slot(context, cx, cy);
         if (ModMetaTileEntities.reactor != null) {
             GuiDraw.drawItem(ModMetaTileEntities.reactor.copy(), cx + 1, cy + 1, 16, 16, 0);
         }
@@ -593,7 +583,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         boolean mouseInside = (mx >= 0 && mx < rw && my >= 0 && my < rh);
 
         if (mouseInside && isOverController(mx, my)) {
-            drawHover(cx, cy);
+            drawHover(context, cx, cy);
         }
 
         // Hover highlight with crisp 1px border and subtle tint
@@ -604,7 +594,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
             int renderHy = (N - 1) - hy;
             int hpx = hx * 18;
             int hpy = renderHy * 18;
-            drawHover(hpx, hpy);
+            drawHover(context, hpx, hpy);
         }
 
         GL11.glPopMatrix();
@@ -616,14 +606,9 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
-    /** A crisp 1px border and a subtle tint over the 18x18 slot at (x, y). */
-    private static void drawHover(int x, int y) {
-        int border = ColorUtils.reactorGridHoverBorder.getColor();
-        GuiDraw.drawRect(x, y, 18, 1, border);
-        GuiDraw.drawRect(x, y + 17, 18, 1, border);
-        GuiDraw.drawRect(x, y + 1, 1, 16, border);
-        GuiDraw.drawRect(x + 17, y + 1, 1, 16, border);
-        GuiDraw.drawRect(x + 1, y + 1, 16, 16, ColorUtils.reactorGridHoverFill.getColor());
+    /** The theme's hover tint over the 18x18 slot at (x, y), as an item slot takes. */
+    private static void drawHover(ModularGuiContext context, int x, int y) {
+        GuiDraw.drawRect(x + 1, y + 1, 16, 16, ThemedDraw.slotHoverColor(context));
     }
 
     private void buildTooltip(RichTooltip tooltip) {

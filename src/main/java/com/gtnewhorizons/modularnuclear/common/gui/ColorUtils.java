@@ -15,12 +15,17 @@ defaults are the designed look, and packs override them through the same channel
                    backgrounds on the NEI pages (NEIPalette.drawSlot, drawBevel, drawPlotWell), and ours for icons
                    such as gui/lock.png (LockIconWidget).  A plot is a stretched slot, so the curves' default
                    colours are picked to read on the slot's grey
+    MUI2 themes    our machine GUIs draw what GregTech's draw from the GUI's theme, as GregTech's widgets do
+                   (ThemedDraw): item slots in the core grid and the coolant bath, and GregTech's terminal screen
+                   behind the metrics plots and the coolant loop graph.  GregTech's themes and resource packs
+                   restyle those along with the rest of the GUI
     colours        every other colour is a GTNHLib ColorResource in ColorUtils.  A pack overrides one with a lang entry,
                    such as color.resource.modularnuclear.neiInk=BFBFBF, and F3+T reloads it
     colour scales  the heat map scales are textures a pack may add; see Note [Heat map scales come from textures]
 
 Moving parts.
     ColorUtils                every colour, named by where and what it is: nei*, reactorGrid*, graph*, plot*, ...
+    ThemedDraw                slot and terminal backgrounds from the MUI2 theme
     NEIPalette                the NEI colours, read once per resource reload, with the few worked out by blending
     ColorScales               the heat map scales
 
@@ -96,12 +101,8 @@ public final class ColorUtils {
         neiTileHighlight            = color.argb("neiTileHighlight",            "0x59FFFFFF"),
         neiTileShadow               = color.argb("neiTileShadow",               "0x4D000000"),
 
-        // Reactor core grid
-        reactorGridBackground       = color.argb("reactorGridBackground",       "0xEE12161E"),
-        reactorGridBorder           = color.rgb("reactorGridBorder",            "0x2A3645"),
+        // Reactor core grid: on the panel, its slots from the GUI's theme
         reactorGridOfflineText      = color.rgb("reactorGridOfflineText",       "0x888888"),
-        reactorGridSlotBorder       = color.rgb("reactorGridSlotBorder",        "0x373737"),
-        reactorGridSlotFill         = color.rgb("reactorGridSlotFill",          "0x1E1E1E"),
         reactorGridStackSize        = color.rgb("reactorGridStackSize",         "0xFFFFFF"),
         reactorGridDurabilityTrack  = color.rgb("reactorGridDurabilityTrack",   "0x000000"),
         reactorGridHighPressure     = color.argb("reactorGridHighPressure",     "0x40FFA500"),
@@ -118,10 +119,6 @@ public final class ColorUtils {
         reactorGridRodNone          = color.argb("reactorGridRodNone",          "0x88666666"),
         reactorGridOverheat         = color.argb("reactorGridOverheat",         "0x60FF0000"),
         reactorGridDragPreview      = color.argb("reactorGridDragPreview",      "0x6000FF00"),
-        reactorGridControllerBorder = color.rgb("reactorGridControllerBorder",  "0x4A5568"),
-        reactorGridControllerFill   = color.rgb("reactorGridControllerFill",    "0x1A202C"),
-        reactorGridHoverBorder      = color.rgb("reactorGridHoverBorder",       "0xFFFFFF"),
-        reactorGridHoverFill        = color.argb("reactorGridHoverFill",        "0x30FFFFFF"),
 
         // Reactor controller GUI
         reactorCoreTemp             = color.rgb("reactorCoreTemp",              "0xFFC800"),
@@ -138,10 +135,7 @@ public final class ColorUtils {
         scramHighlight              = color.argb("scramHighlight",              "0x55FFFFFF"),
         scramText                   = color.rgb("scramText",                    "0xFFFFFF"),
 
-        // Reactor metrics plots
-        plotBackground              = color.argb("plotBackground",              "0xEE111827"),
-        plotBorder                  = color.rgb("plotBorder",                   "0x1F2937"),
-        plotArea                    = color.argb("plotArea",                    "0x44030712"),
+        // Reactor metrics plots, on GregTech's terminal screen
         plotGridLine                = color.argb("plotGridLine",                "0x1AFFFFFF"),
         plotCursor                  = color.argb("plotCursor",                  "0x73FFFFFF"),
         plotTitle                   = color.rgb("plotTitle",                    "0xE5E7EB"),
@@ -162,9 +156,7 @@ public final class ColorUtils {
         plotDirectEu                = color.rgb("plotDirectEu",                 "0xEAB308"),
         plotCoolantOutput           = color.rgb("plotCoolantOutput",            "0x3B82F6"),
 
-        // Coolant loop graph
-        graphBackground             = color.rgb("graphBackground",              "0x0A0A0A"),
-        graphBorder                 = color.rgb("graphBorder",                  "0x222222"),
+        // Coolant loop graph, on GregTech's terminal screen
         graphMessage                = color.rgb("graphMessage",                 "0xFF8888"),
         graphGridDots               = color.argb("graphGridDots",               "0x40383838"),
         graphPipe                   = color.argb("graphPipe",                   "0xE659616B"),
@@ -192,13 +184,8 @@ public final class ColorUtils {
         loopArea                    = color.rgb("loopArea",                     "0x55FFFF"),
         loopHeatTransfer            = color.rgb("loopHeatTransfer",             "0xFFAA00"),
 
-        // Coolant bath
-        bathBackground              = color.rgb("bathBackground",               "0x22262B"),
-        bathInner                   = color.rgb("bathInner",                    "0x15181C"),
-        bathSlotBorder              = color.rgb("bathSlotBorder",               "0x374151"),
-        bathSlotFill                = color.rgb("bathSlotFill",                 "0x1F2937"),
+        // Coolant bath: its slots from the GUI's theme
         bathProgress                = color.rgb("bathProgress",                 "0x10B981"),
-        bathHover                   = color.argb("bathHover",                   "0x55FFFFFF"),
 
         // Floating panels
         panelZoomText               = color.rgb("panelZoomText",                "0xFFFFFF"),

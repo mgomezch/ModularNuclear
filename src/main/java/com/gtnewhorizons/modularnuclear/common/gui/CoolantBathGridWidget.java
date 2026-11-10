@@ -109,10 +109,6 @@ public class CoolantBathGridWidget extends Widget<CoolantBathGridWidget> impleme
         int startX = (area.w() - totalWidth) / 2;
         int startY = (area.h() - totalHeight) / 2;
 
-        // Draw background container panel
-        GuiDraw.drawRect(startX - 2, startY - 2, totalWidth + 4, totalHeight + 4, ColorUtils.bathBackground.getColor());
-        GuiDraw.drawRect(startX - 1, startY - 1, totalWidth + 2, totalHeight + 2, ColorUtils.bathInner.getColor());
-
         int hoveredSlot = getSlotIndexUnderCursor();
         int z = context != null ? context.getCurrentDrawingZ() : 0;
 
@@ -122,9 +118,7 @@ public class CoolantBathGridWidget extends Widget<CoolantBathGridWidget> impleme
                 int px = startX + c * CELL_SIZE;
                 int py = startY + r * CELL_SIZE;
 
-                // Slot border & background
-                GuiDraw.drawRect(px, py, CELL_SIZE, CELL_SIZE, ColorUtils.bathSlotBorder.getColor());
-                GuiDraw.drawRect(px + 1, py + 1, CELL_SIZE - 2, CELL_SIZE - 2, ColorUtils.bathSlotFill.getColor());
+                ThemedDraw.slot(context, px, py);
 
                 ItemStack stack = getSlotStack(idx);
                 if (stack != null) {
@@ -140,7 +134,7 @@ public class CoolantBathGridWidget extends Widget<CoolantBathGridWidget> impleme
 
                 // Highlight hovered slot
                 if (idx == hoveredSlot) {
-                    GuiDraw.drawRect(px + 1, py + 1, CELL_SIZE - 2, CELL_SIZE - 2, ColorUtils.bathHover.getColor());
+                    GuiDraw.drawRect(px + 1, py + 1, CELL_SIZE - 2, CELL_SIZE - 2, ThemedDraw.slotHoverColor(context));
                 }
             }
         }
