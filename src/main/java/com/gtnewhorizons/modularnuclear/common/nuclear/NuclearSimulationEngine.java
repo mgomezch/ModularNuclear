@@ -338,6 +338,8 @@ public class NuclearSimulationEngine {
         public int fastNeutronsAbsorbed = 0;
         public int thermalNeutronsAbsorbed = 0;
         public int wallNeutronsReflected = 0;
+        /** Fast neutrons cells reflected straight back. See Note [Fast neutrons are reflected or scattered] */
+        public int fastNeutronsReflected = 0;
         public int wallNeutronsAbsorbed = 0;
         public int neutronsEscaped = 0;
         public double maxTemperature = DEFAULT_AMBIENT_TEMP;
@@ -436,6 +438,43 @@ public class NuclearSimulationEngine {
             return emitted;
         }
     }
+
+    /*-
+    Note [Fast neutrons are reflected or scattered] (generated)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    A fast neutron ray entering a cell meets one of four fates, each with the cell's own probability:
+    
+      absorbed   getAbsorptionProbability(FAST): the ray ends, and the cell heats.
+      reflected  getFastReflectionProbability(): the ray turns straight back the way it came.  It stays fast;
+                 reflection never moderates.
+      scattered  getScatteringProbability(FAST): the ray leaves in a random one of the four directions (which may
+                 happen to be back).  Of scattered rays, getModerationProbability() of them are moderated: they
+                 join the cell's thermal pool and the ray ends.
+      passes     whatever is left: the ray carries on in its direction.
+    
+    simulate draws one number for the first three; if they add up to more than 1, they share the draw in proportion.
+    
+    Being called a reflector earns a component nothing here.  Reflectors are simply the components whose
+    reflection_fast (in components.yaml) is highest, and FastReflectionDefaultsTest keeps the defaults that way.  Every component has reflection_fast:
+    moderators reflect a little, most components not at all, and the displays (the NEI component cards, the item
+    tooltip, the reactor grid's tooltip) show all three numbers for every component.
+    
+    TileProperties.reflectionFast has each cell's own reflection.  In a cell with a control rod, the rod reflects
+    nothing, and the rod hatch's moderator follower reflects with its moderator's reflection_fast at
+    1 − insertion, as it does everything else (TileTick.followerReflectionFast, TileTick.combinedReflectionFast).
+    
+    A reflected ray wears the component as a scattered one does (onNeutronScattered), so IC2 reflectors lose
+    durability from both.
+    
+    Wrinkles:
+    
+    (W1) Only fast neutrons reflect.  Thermal neutrons have no direction: they spread to the eight neighbours by
+         the diffusion stencil, and only the grid's edge sends them back (wall_reflection_chance).
+    
+    Historical note: reflection used to be a special case of scattering.  A cell scattering at least 0.90 and
+    absorbing at most 0.05 sent every scattered ray straight back, so the plate reflectors never reflected and the
+    moderators always did (issue #34).
+    */
 
     /**
      * Executes one reactor simulation tick over the 2D grid with full (100%) maintenance efficiency and default ambient
@@ -589,13 +628,15 @@ public class NuclearSimulationEngine {
                         hitTile.addNeutronFlux(NeutronType.FAST, rayNeutrons);
                         tileFluxFast[posX][posY] += rayNeutrons;
 
+                        // See Note [Fast neutrons are reflected or scattered]
                         double pAbs = hitTile.getAbsorptionProbability(NeutronType.FAST);
+                        double pReflect = hitTile.getFastReflectionProbability();
                         double pScatter = hitTile.getScatteringProbability(NeutronType.FAST);
-                        double pTotal = Math.min(1.0, pAbs + pScatter);
+                        double pTotal = pAbs + pReflect + pScatter;
+                        double roll = p.random.nextDouble() * Math.max(1.0, pTotal);
 
-                        if (p.random.nextDouble() < pTotal) {
-                            double pAbsRel = (pTotal > 0) ? (pAbs / pTotal) : 0.0;
-                            if (p.random.nextDouble() < pAbsRel) {
+                        if (roll < pTotal) {
+                            if (roll < pAbs) {
                                 hitTile.onNeutronAbsorbed(NeutronType.FAST, rayNeutrons);
                                 result.fastNeutronsAbsorbed += rayNeutrons;
                                 if (hitTile.getInsulationDampening() < 1.0) {
@@ -608,13 +649,13 @@ public class NuclearSimulationEngine {
                                 }
                                 terminated = true;
                                 break;
+                            } else if (roll < pAbs + pReflect) {
+                                hitTile.onNeutronScattered(NeutronType.FAST, rayNeutrons);
+                                result.fastNeutronsReflected += rayNeutrons;
+                                dir = (dir + 2) % 4;
                             } else {
                                 hitTile.onNeutronScattered(NeutronType.FAST, rayNeutrons);
-                                if (pScatter >= 0.90 && pAbs <= 0.05) {
-                                    dir = (dir + 2) % 4;
-                                } else {
-                                    dir = p.random.nextInt(4);
-                                }
+                                dir = p.random.nextInt(4);
 
                                 double pMod = hitTile.getModerationProbability();
                                 if (p.random.nextDouble() < pMod) {

@@ -123,9 +123,9 @@ public final class TileProperties {
             case GENERIC_FUEL:
                 return pick(t, 0.15, 0.10);
             case GENERIC_MODERATOR:
-                return pick(t, 0.93, 0.621);
+                return pick(t, 0.83, 0.621);
             case GENERIC_REFLECTOR:
-                return pick(t, 0.95, 0.98);
+                return pick(t, 0.10, 0.98);
             case GENERIC_COOLANT:
                 return 0.45;
             case OTHER_FLUID:
@@ -140,6 +140,37 @@ public final class TileProperties {
             case OTHER:
             default:
                 return 0.05;
+        }
+    }
+
+    /**
+     * Probability that a fast neutron entering the cell is reflected straight back by its contents (before any control
+     * rod). Thermal neutrons are never reflected by a cell.
+     */
+    // See Note [Fast neutrons are reflected or scattered]
+    public static double reflectionFast(TileContent c) {
+        switch (c.kind) {
+            case FUEL:
+            case LIQUID_FUEL:
+                return c.fuelData().reflectionFast;
+            case MODERATOR:
+                return c.moderator().reflectionFast;
+            case REFLECTOR:
+                return c.reflector().reflectionFast;
+            case INSULATOR:
+                return c.insulator().reflectionFast;
+            case COOLANT_ITEM:
+                return c.coolantItem().reflectionFast;
+            case COOLANT_FLUID:
+                return c.coolantFluid().reflectionFast;
+            case RADIOVOLTAIC:
+                return c.radiovoltaic().reflectionFast;
+            case GENERIC_MODERATOR:
+                return 0.10;
+            case GENERIC_REFLECTOR:
+                return 0.85;
+            default:
+                return 0.0;
         }
     }
 

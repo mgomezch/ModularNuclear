@@ -145,8 +145,14 @@ public final class TileTick {
     public static double followerScattering(ModeratorData moderator, double rodInsertion, NeutronType type) {
         double scattering = moderator != null
             ? (type == NeutronType.FAST ? moderator.scatteringFast : moderator.scatteringThermal)
-            : (type == NeutronType.FAST ? 0.93 : 0.621);
+            : (type == NeutronType.FAST ? 0.83 : 0.621);
         return clampInsertion((1.0 - clampInsertion(rodInsertion)) * scattering);
+    }
+
+    /** Fast neutron reflection of a moderator follower (see {@link #followerModeration}). */
+    public static double followerReflectionFast(ModeratorData moderator, double rodInsertion) {
+        double reflection = moderator != null ? moderator.reflectionFast : 0.10;
+        return clampInsertion((1.0 - clampInsertion(rodInsertion)) * reflection);
     }
 
     private static double clampInsertion(double insertion) {
@@ -168,6 +174,16 @@ public final class TileTick {
         double pRodScattering, double pRodModeratorScattering) {
         double pBaseEff = Math.max(0.0, 1.0 - pRodAbsorption - pRodModeration);
         return Math.min(1.0, pRodScattering + pRodModeratorScattering + pBaseEff * pBase);
+    }
+
+    /**
+     * Fast neutron reflection of a cell with a control rod (see {@link #combinedAbsorption}). The rod itself reflects
+     * nothing; its moderator follower does.
+     */
+    public static double combinedReflectionFast(double pBase, double pRodFastAbsorption, double pRodModeration,
+        double pRodModeratorReflection) {
+        double pBaseEff = Math.max(0.0, 1.0 - pRodFastAbsorption - pRodModeration);
+        return Math.min(1.0, pRodModeratorReflection + pBaseEff * pBase);
     }
 
     /** Moderation of a cell with a control rod (see {@link #combinedAbsorption}). */

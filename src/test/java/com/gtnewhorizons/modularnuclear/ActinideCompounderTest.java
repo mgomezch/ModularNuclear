@@ -626,6 +626,11 @@ public class ActinideCompounderTest {
         }
 
         @Override
+        public double getFastReflectionProbability() {
+            return 0.0;
+        }
+
+        @Override
         public double getModerationProbability() {
             return 0.0;
         }

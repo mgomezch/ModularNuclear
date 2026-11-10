@@ -72,7 +72,13 @@ public interface INuclearTile {
     double getScatteringProbability(NeutronType type);
 
     /**
-     * Probability [0.0, 1.0] that a scattered fast neutron slows down to a thermal neutron.
+     * Probability [0.0, 1.0] of reflecting a fast neutron straight back the way it came.
+     */
+    // See Note [Fast neutrons are reflected or scattered]
+    double getFastReflectionProbability();
+
+    /**
+     * Probability [0.0, 1.0] that a scattered (not reflected) fast neutron slows down to a thermal neutron.
      */
     double getModerationProbability();
 
@@ -82,7 +88,7 @@ public interface INuclearTile {
     void onNeutronAbsorbed(NeutronType type, int count);
 
     /**
-     * Callback when one or more neutrons are scattered by this tile.
+     * Callback when one or more neutrons are scattered or reflected by this tile.
      */
     void onNeutronScattered(NeutronType type, int count);
 

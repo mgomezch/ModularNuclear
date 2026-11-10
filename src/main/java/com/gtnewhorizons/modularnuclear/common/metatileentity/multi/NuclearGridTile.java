@@ -48,6 +48,7 @@ public class NuclearGridTile implements INuclearTile {
     private double pAbsorptionThermal = 0.01;
     private double pScatteringFast = 0.02;
     private double pScatteringThermal = 0.02;
+    private double pReflectionFast = 0.0;
     private double pModeration = 0.05;
     private int neutronEmissionCount = 1;
     private double controlRodAbsorptionFractionFast = 0.0;
@@ -315,6 +316,11 @@ public class NuclearGridTile implements INuclearTile {
     }
 
     @Override
+    public double getFastReflectionProbability() {
+        return pReflectionFast;
+    }
+
+    @Override
     public double getModerationProbability() {
         return pModeration;
     }
@@ -451,6 +457,7 @@ public class NuclearGridTile implements INuclearTile {
             this.pScatteringFast = NuclearReactorPhysics.getTileScatteringProbability(reactor, this, NeutronType.FAST);
             this.pScatteringThermal = NuclearReactorPhysics
                 .getTileScatteringProbability(reactor, this, NeutronType.THERMAL);
+            this.pReflectionFast = NuclearReactorPhysics.getTileFastReflectionProbability(reactor, this);
         } else {
             if (isBus() && bus != null) {
                 this.isFuel = NuclearFuelClassification.isItemFuel(stack);
@@ -467,6 +474,7 @@ public class NuclearGridTile implements INuclearTile {
             this.pAbsorptionThermal = 0.01;
             this.pScatteringFast = 0.02;
             this.pScatteringThermal = 0.02;
+            this.pReflectionFast = 0.0;
         }
 
         this.cachedFuelType = NuclearReactorPhysics.getTileFuelType(this);

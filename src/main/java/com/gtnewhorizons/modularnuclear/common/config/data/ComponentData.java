@@ -140,7 +140,8 @@ public class ComponentData {
         public List<String> matching = new ArrayList<>();
         public double absorptionFast = 0.01;
         public double absorptionThermal = 0.02;
-        public double scatteringFast = 0.95;
+        public double reflectionFast = 0.85;
+        public double scatteringFast = 0.10;
         public double scatteringThermal = 0.98;
         public double moderation = 0.20;
         public double heatTransferCoeff = 0.15;
@@ -170,6 +171,7 @@ public class ComponentData {
             readMatching(map, d.matching);
             d.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", d.absorptionFast);
             d.absorptionThermal = PhysicsData.getDouble(map, "absorption_thermal", d.absorptionThermal);
+            d.reflectionFast = PhysicsData.getDouble(map, "reflection_fast", d.reflectionFast);
             d.scatteringFast = PhysicsData.getDouble(map, "scattering_fast", d.scatteringFast);
             d.scatteringThermal = PhysicsData.getDouble(map, "scattering_thermal", d.scatteringThermal);
             d.moderation = PhysicsData.getDouble(map, "moderation", d.moderation);
@@ -185,6 +187,7 @@ public class ComponentData {
             m.put("matching", new ArrayList<>(matching));
             m.put("absorption_fast", absorptionFast);
             m.put("absorption_thermal", absorptionThermal);
+            m.put("reflection_fast", reflectionFast);
             m.put("scattering_fast", scatteringFast);
             m.put("scattering_thermal", scatteringThermal);
             m.put("moderation", moderation);
@@ -204,7 +207,8 @@ public class ComponentData {
         public List<String> matching = new ArrayList<>();
         public double absorptionFast = 0.002;
         public double absorptionThermal = 0.009;
-        public double scatteringFast = 0.93;
+        public double reflectionFast = 0.10;
+        public double scatteringFast = 0.83;
         public double scatteringThermal = 0.621;
         public double moderation = 0.50;
         public double heatTransferCoeff = 0.05;
@@ -380,6 +384,7 @@ public class ComponentData {
             readMatching(map, d.matching);
             d.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", d.absorptionFast);
             d.absorptionThermal = PhysicsData.getDouble(map, "absorption_thermal", d.absorptionThermal);
+            d.reflectionFast = PhysicsData.getDouble(map, "reflection_fast", d.reflectionFast);
             d.scatteringFast = PhysicsData.getDouble(map, "scattering_fast", d.scatteringFast);
             d.scatteringThermal = PhysicsData.getDouble(map, "scattering_thermal", d.scatteringThermal);
             d.moderation = PhysicsData.getDouble(map, "moderation", d.moderation);
@@ -411,6 +416,7 @@ public class ComponentData {
             m.put("matching", new ArrayList<>(matching));
             m.put("absorption_fast", absorptionFast);
             m.put("absorption_thermal", absorptionThermal);
+            m.put("reflection_fast", reflectionFast);
             m.put("scattering_fast", scatteringFast);
             m.put("scattering_thermal", scatteringThermal);
             m.put("moderation", moderation);
@@ -646,6 +652,7 @@ public class ComponentData {
         public double heatTransferCoeff = 0.01;
         public double absorptionFast = 0.01;
         public double absorptionThermal = 0.01;
+        public double reflectionFast = 0.0;
         public double scatteringFast = 0.05;
         public double scatteringThermal = 0.05;
 
@@ -674,6 +681,7 @@ public class ComponentData {
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
             d.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", d.absorptionFast);
             d.absorptionThermal = PhysicsData.getDouble(map, "absorption_thermal", d.absorptionThermal);
+            d.reflectionFast = PhysicsData.getDouble(map, "reflection_fast", d.reflectionFast);
             d.scatteringFast = PhysicsData.getDouble(map, "scattering_fast", d.scatteringFast);
             d.scatteringThermal = PhysicsData.getDouble(map, "scattering_thermal", d.scatteringThermal);
             return d;
@@ -688,6 +696,7 @@ public class ComponentData {
             m.put("heat_transfer_coeff", heatTransferCoeff);
             m.put("absorption_fast", absorptionFast);
             m.put("absorption_thermal", absorptionThermal);
+            m.put("reflection_fast", reflectionFast);
             m.put("scattering_fast", scatteringFast);
             m.put("scattering_thermal", scatteringThermal);
             return m;
@@ -748,6 +757,7 @@ public class ComponentData {
         public double heatTransferCoeff = 0.10;
         public double absorptionFast = 0.40;
         public double absorptionThermal = 0.40;
+        public double reflectionFast = 0.0;
         public double scatteringFast = DEFAULT_SCATTERING;
         public double scatteringThermal = DEFAULT_SCATTERING;
 
@@ -848,6 +858,7 @@ public class ComponentData {
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
             d.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", d.tier >= 2 ? 0.60 : 0.40);
             d.absorptionThermal = PhysicsData.getDouble(map, "absorption_thermal", d.tier >= 2 ? 0.60 : 0.40);
+            d.reflectionFast = PhysicsData.getDouble(map, "reflection_fast", d.reflectionFast);
             d.scatteringFast = PhysicsData.getDouble(map, "scattering_fast", d.scatteringFast);
             d.scatteringThermal = PhysicsData.getDouble(map, "scattering_thermal", d.scatteringThermal);
             return d;
@@ -864,6 +875,7 @@ public class ComponentData {
             m.put("heat_transfer_coeff", heatTransferCoeff);
             m.put("absorption_fast", absorptionFast);
             m.put("absorption_thermal", absorptionThermal);
+            m.put("reflection_fast", reflectionFast);
             m.put("scattering_fast", scatteringFast);
             m.put("scattering_thermal", scatteringThermal);
             return m;
@@ -883,6 +895,7 @@ public class ComponentData {
         public double heatCapacity = 4.184;
         public double absorptionFast = 0.05;
         public double absorptionThermal = 0.10;
+        public double reflectionFast = 0.0;
         public double scatteringFast = 0.70;
         public double scatteringThermal = 0.70;
         public double moderation = 0.25;
@@ -959,6 +972,7 @@ public class ComponentData {
             d.heatCapacity = PhysicsData.getDouble(map, "heat_capacity", d.heatCapacity);
             d.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", d.absorptionFast);
             d.absorptionThermal = PhysicsData.getDouble(map, "absorption_thermal", d.absorptionThermal);
+            d.reflectionFast = PhysicsData.getDouble(map, "reflection_fast", d.reflectionFast);
             d.scatteringFast = PhysicsData.getDouble(map, "scattering_fast", d.scatteringFast);
             d.scatteringThermal = PhysicsData.getDouble(map, "scattering_thermal", d.scatteringThermal);
             d.moderation = PhysicsData.getDouble(map, "moderation", d.moderation);
@@ -984,6 +998,7 @@ public class ComponentData {
             m.put("heat_capacity", heatCapacity);
             m.put("absorption_fast", absorptionFast);
             m.put("absorption_thermal", absorptionThermal);
+            m.put("reflection_fast", reflectionFast);
             m.put("scattering_fast", scatteringFast);
             m.put("scattering_thermal", scatteringThermal);
             m.put("moderation", moderation);
@@ -1012,6 +1027,7 @@ public class ComponentData {
         public double heatTransferCoeff = 0.40;
         public double absorptionFast = 0.02;
         public double absorptionThermal = 0.05;
+        public double reflectionFast = 0.0;
         public double scatteringFast = 0.45;
         public double scatteringThermal = 0.45;
         public double moderation = 0.05;
@@ -1056,6 +1072,7 @@ public class ComponentData {
             d.heatTransferCoeff = PhysicsData.getDouble(map, "heat_transfer_coeff", d.heatTransferCoeff);
             d.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", d.absorptionFast);
             d.absorptionThermal = PhysicsData.getDouble(map, "absorption_thermal", d.absorptionThermal);
+            d.reflectionFast = PhysicsData.getDouble(map, "reflection_fast", d.reflectionFast);
             d.scatteringFast = PhysicsData.getDouble(map, "scattering_fast", d.scatteringFast);
             d.scatteringThermal = PhysicsData.getDouble(map, "scattering_thermal", d.scatteringThermal);
             d.moderation = PhysicsData.getDouble(map, "moderation", d.moderation);
@@ -1071,6 +1088,7 @@ public class ComponentData {
             m.put("heat_transfer_coeff", heatTransferCoeff);
             m.put("absorption_fast", absorptionFast);
             m.put("absorption_thermal", absorptionThermal);
+            m.put("reflection_fast", reflectionFast);
             m.put("scattering_fast", scatteringFast);
             m.put("scattering_thermal", scatteringThermal);
             m.put("moderation", moderation);

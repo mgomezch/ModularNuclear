@@ -255,6 +255,12 @@ public class MTEHatchNuclearControlRod extends MTEHatch implements IReadyBeforeF
             .followerScattering(ReactorDataRegistry.findModerator(getModeratorStack()), getInsertionRatio(), type);
     }
 
+    public double getModeratorFastReflectionProbability() {
+        if (!hasModerator()) return 0.0;
+        return TileTick
+            .followerReflectionFast(ReactorDataRegistry.findModerator(getModeratorStack()), getInsertionRatio());
+    }
+
     public boolean mScram = false;
 
     public void setScram(boolean scram) {

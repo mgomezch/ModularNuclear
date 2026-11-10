@@ -161,7 +161,9 @@ public class NuclearFuelTooltipHandlerTest {
         // Components never reflect thermal neutrons: they scatter what they don't absorb
         List<String> stripped = new ArrayList<>();
         for (String line : tip) stripped.add(net.minecraft.util.EnumChatFormatting.getTextWithoutFormattingCodes(line));
-        assertTrue(stripped.contains("Reflection: 93% (fast)"), "Should show fast reflection, got " + stripped);
+        assertTrue(
+            stripped.contains("Fast neutrons: reflects 75%, scatters 18%"),
+            "Should show fast reflection and scattering, got " + stripped);
         assertTrue(stripped.contains("Thermal scattering: 96%"), "98% of the 98% not absorbed, got " + stripped);
     }
 

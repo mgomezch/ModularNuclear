@@ -438,6 +438,26 @@ public class NuclearReactorPhysics {
         return pBase;
     }
 
+    public static double getBaseFastReflectionProbability(MTENuclearReactor reactor, NuclearGridTile tile) {
+        if (tile.isBus() || tile.isHatch()) {
+            return TileProperties.reflectionFast(resolveTileContent(reactor, tile));
+        }
+        return 0.0;
+    }
+
+    public static double getTileFastReflectionProbability(MTENuclearReactor reactor, NuclearGridTile tile) {
+        double pBase = getBaseFastReflectionProbability(reactor, tile);
+        if (tile.hasControlRod()) {
+            MTEHatchNuclearControlRod rod = tile.getBottomControlRod();
+            return TileTick.combinedReflectionFast(
+                pBase,
+                rod.getAbsorptionProbability(NeutronType.FAST),
+                rod.getModeratorProbability(),
+                rod.getModeratorFastReflectionProbability());
+        }
+        return pBase;
+    }
+
     public static double getBaseModerationProbability(NuclearGridTile tile) {
         if (tile == null) return 0.05;
         if (tile.isBus() || tile.isHatch()) {

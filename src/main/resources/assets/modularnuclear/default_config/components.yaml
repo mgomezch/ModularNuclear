@@ -5,7 +5,8 @@ reflectors:
   - ore:plateGold
   absorption_fast: 0.15
   absorption_thermal: 0.1
-  scattering_fast: 0.85
+  reflection_fast: 0.65
+  scattering_fast: 0.2
   scattering_thermal: 0.9
   moderation: 0.0
   heat_transfer_coeff: 0.3
@@ -16,7 +17,8 @@ reflectors:
   - ore:plateStainlessSteel
   absorption_fast: 0.1
   absorption_thermal: 0.05
-  scattering_fast: 0.9
+  reflection_fast: 0.7
+  scattering_fast: 0.2
   scattering_thermal: 0.95
   moderation: 0.0
   heat_transfer_coeff: 0.2
@@ -27,7 +29,8 @@ reflectors:
   - ore:plateTungstenCarbide
   absorption_fast: 0.07
   absorption_thermal: 0.02
-  scattering_fast: 0.93
+  reflection_fast: 0.75
+  scattering_fast: 0.18
   scattering_thermal: 0.98
   moderation: 0.0
   heat_transfer_coeff: 0.1
@@ -39,7 +42,8 @@ reflectors:
   - gregtech:gt.neutronreflector
   absorption_fast: 0.01
   absorption_thermal: 0.02
-  scattering_fast: 0.95
+  reflection_fast: 0.85
+  scattering_fast: 0.1
   scattering_thermal: 0.98
   moderation: 0.2
   heat_transfer_coeff: 0.15
@@ -50,7 +54,8 @@ reflectors:
   - IC2:reactorReflectorThick
   absorption_fast: 0.005
   absorption_thermal: 0.01
-  scattering_fast: 0.98
+  reflection_fast: 0.9
+  scattering_fast: 0.08
   scattering_thermal: 0.99
   moderation: 0.25
   heat_transfer_coeff: 0.2
@@ -62,7 +67,8 @@ moderators:
   - ore:stickLongGraphite
   absorption_fast: 0.002
   absorption_thermal: 0.009
-  scattering_fast: 0.93
+  reflection_fast: 0.1
+  scattering_fast: 0.83
   scattering_thermal: 0.621
   moderation: 0.5
   heat_transfer_coeff: 0.05
@@ -85,7 +91,8 @@ moderators:
   - ore:stickLongCarbon
   absorption_fast: 0.003
   absorption_thermal: 0.012
-  scattering_fast: 0.9
+  reflection_fast: 0.1
+  scattering_fast: 0.8
   scattering_thermal: 0.6
   moderation: 0.45
   heat_transfer_coeff: 0.05
@@ -108,7 +115,8 @@ moderators:
   - ore:stickLongBeryllium
   absorption_fast: 0.001
   absorption_thermal: 0.004
-  scattering_fast: 0.96
+  reflection_fast: 0.15
+  scattering_fast: 0.81
   scattering_thermal: 0.85
   moderation: 0.65
   heat_transfer_coeff: 0.15

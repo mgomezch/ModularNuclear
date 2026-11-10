@@ -680,12 +680,18 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
-                        "  Scattering: Fast %s%.1f%%%s | Thermal %s%.1f%%",
+                        "  Fast: reflection %s%.1f%%%s | scattering %s%.1f%%",
                         EnumChatFormatting.BLUE,
-                        mod.scatteringFast * 100.0,
+                        mod.reflectionFast * 100.0,
                         EnumChatFormatting.GRAY,
+                        EnumChatFormatting.GREEN,
+                        mod.scatteringFast * 100.0));
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + String.format(
+                        Locale.US,
+                        "  Thermal scattering: %s%.1f%%",
                         EnumChatFormatting.DARK_AQUA,
-                        mod.scatteringThermal * 100.0));
+                        TileProperties.thermalScatteredShare(mod.absorptionThermal, mod.scatteringThermal) * 100.0));
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
@@ -713,8 +719,11 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
-                        "  Reflection: Fast %s%.1f%%",
+                        "  Fast: reflection %s%.1f%%%s | scattering %s%.1f%%",
                         EnumChatFormatting.BLUE,
+                        ref.reflectionFast * 100.0,
+                        EnumChatFormatting.GRAY,
+                        EnumChatFormatting.GREEN,
                         ref.scatteringFast * 100.0));
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(

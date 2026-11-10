@@ -433,6 +433,12 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
         return CoolantPassage.scattering();
     }
 
+    /** Coolant passages scatter; they don't reflect. */
+    @Override
+    public double getFastReflectionProbability() {
+        return 0.0;
+    }
+
     @Override
     public double getModerationProbability() {
         if (mConnectedPump != null && mConnectedPump.getCoolantFluidProperty() != null) {

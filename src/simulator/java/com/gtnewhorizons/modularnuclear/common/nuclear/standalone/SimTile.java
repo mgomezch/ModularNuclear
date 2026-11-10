@@ -864,6 +864,11 @@ public class SimTile implements INuclearTile {
         return f != null ? TileTick.followerAbsorption(f, rodInsertion(), nType) : 0.0;
     }
 
+    private double followerReflectionFast() {
+        ComponentData.ModeratorData f = followerData();
+        return f != null ? TileTick.followerReflectionFast(f, rodInsertion()) : 0.0;
+    }
+
     private double followerScattering(NeutronType nType) {
         ComponentData.ModeratorData f = followerData();
         return f != null ? TileTick.followerScattering(f, rodInsertion(), nType) : 0.0;
@@ -902,6 +907,24 @@ public class SimTile implements INuclearTile {
                 pMod,
                 pRodScattering,
                 followerScattering(nType));
+        }
+        return pBase;
+    }
+
+    public double getBaseFastReflectionProbability() {
+        if (type == TileType.PASSAGE_CORE) return 0.0;
+        return TileProperties.reflectionFast(getContent());
+    }
+
+    @Override
+    public double getFastReflectionProbability() {
+        double pBase = getBaseFastReflectionProbability();
+        if (hasControlRod) {
+            return TileTick.combinedReflectionFast(
+                pBase,
+                getControlRodAbsorptionProbability(NeutronType.FAST),
+                getControlRodFollowerModeration(),
+                followerReflectionFast());
         }
         return pBase;
     }

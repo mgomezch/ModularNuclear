@@ -200,12 +200,27 @@ public class NuclearFuelTooltipHandler {
         }
     }
 
+    /**
+     * What a component does with the fast neutrons that reach it, besides absorbing them. See Note [Fast neutrons are
+     * reflected or scattered]
+     */
+    static String fastNeutronLine(double reflection, double scattering) {
+        return EnumChatFormatting.GRAY + "Fast neutrons: reflects "
+            + EnumChatFormatting.BLUE
+            + String.format(Locale.US, "%.0f%%", reflection * 100)
+            + EnumChatFormatting.GRAY
+            + ", scatters "
+            + EnumChatFormatting.GREEN
+            + String.format(Locale.US, "%.0f%%", scattering * 100);
+    }
+
     private void appendModeratorTooltips(ItemTooltipEvent event, ItemStack stack, ModeratorData mod) {
         event.toolTip.add(EnumChatFormatting.AQUA + "MPTR moderator: " + EnumChatFormatting.WHITE + mod.name);
         event.toolTip.add(
             EnumChatFormatting.GRAY + "Moderation: "
                 + EnumChatFormatting.GREEN
                 + String.format(Locale.US, "%.0f%%", mod.moderation * 100));
+        event.toolTip.add(fastNeutronLine(mod.reflectionFast, mod.scatteringFast));
 
         int curDmg = 0;
         if (stack.stackTagCompound != null && stack.stackTagCompound.hasKey("advDmg")) {
@@ -239,10 +254,7 @@ public class NuclearFuelTooltipHandler {
 
     private void appendReflectorTooltips(ItemTooltipEvent event, ItemStack stack, ReflectorData ref) {
         event.toolTip.add(EnumChatFormatting.AQUA + "MPTR neutron reflector: " + EnumChatFormatting.WHITE + ref.name);
-        event.toolTip.add(
-            EnumChatFormatting.GRAY + "Reflection: "
-                + EnumChatFormatting.BLUE
-                + String.format(Locale.US, "%.0f%% (fast)", ref.scatteringFast * 100));
+        event.toolTip.add(fastNeutronLine(ref.reflectionFast, ref.scatteringFast));
         event.toolTip.add(
             EnumChatFormatting.GRAY + "Thermal scattering: "
                 + EnumChatFormatting.GREEN

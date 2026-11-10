@@ -23,6 +23,7 @@ public class FuelData {
     public double fastFissionMultiplier = 0.10;
     public double absorptionFast = 0.25;
     public double absorptionThermal = 0.80;
+    public double reflectionFast = 0.0;
     public double scatteringFast = 0.15;
     public double scatteringThermal = 0.10;
     public double moderation = 0.10;
@@ -254,6 +255,7 @@ public class FuelData {
         fd.fastFissionMultiplier = PhysicsData.getDouble(map, "fast_fission_multiplier", fd.fastFissionMultiplier);
         fd.absorptionFast = PhysicsData.getDouble(map, "absorption_fast", fd.absorptionFast);
         fd.absorptionThermal = PhysicsData.getDouble(map, "absorption_thermal", fd.absorptionThermal);
+        fd.reflectionFast = PhysicsData.getDouble(map, "reflection_fast", fd.reflectionFast);
         fd.scatteringFast = PhysicsData.getDouble(map, "scattering_fast", fd.scatteringFast);
         fd.scatteringThermal = PhysicsData.getDouble(map, "scattering_thermal", fd.scatteringThermal);
         fd.moderation = PhysicsData.getDouble(map, "moderation", fd.moderation);
@@ -312,6 +314,7 @@ public class FuelData {
         m.put("fast_fission_multiplier", fastFissionMultiplier);
         m.put("absorption_fast", absorptionFast);
         m.put("absorption_thermal", absorptionThermal);
+        m.put("reflection_fast", reflectionFast);
         m.put("scattering_fast", scatteringFast);
         m.put("scattering_thermal", scatteringThermal);
         m.put("moderation", moderation);
