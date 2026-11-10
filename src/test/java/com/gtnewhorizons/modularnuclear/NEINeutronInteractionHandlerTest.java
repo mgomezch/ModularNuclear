@@ -762,4 +762,15 @@ public class NEINeutronInteractionHandlerTest {
                         .contains("scattering")),
             "Scattering label tooltip must mention scattering");
     }
+
+    @Test
+    void theFastPieCentresEachSliceOnItsArrow() {
+        // Scattered fast neutrons go up, moderated ones down: each slice is centred on its arrow
+        for (double fast : new double[] { 0.2, 0.5, 0.8 }) {
+            double[] a = NEINeutronInteractionHandler.fastPieAngles(fast);
+            assertEquals(Math.PI / 2, (a[0] + a[1]) / 2, 1e-12, "The fast slice points up");
+            assertEquals(fast * 2 * Math.PI, a[1] - a[0], 1e-12, "It covers its share");
+            assertEquals(3 * Math.PI / 2, (a[1] + a[0] + 2 * Math.PI) / 2, 1e-12, "The moderated slice points down");
+        }
+    }
 }

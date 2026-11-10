@@ -2196,6 +2196,16 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
+    /**
+     * The fast card's pie: the start and end angles (counterclockwise from the right) of the slice for scattered fast
+     * neutrons, centred straight up on its arrow; the moderated slice runs from its end round to its start, so that it
+     * is centred straight down on its own.
+     */
+    public static double[] fastPieAngles(double fastFrac) {
+        double half = Math.max(0.0, Math.min(1.0, fastFrac)) * Math.PI;
+        return new double[] { Math.PI / 2 - half, Math.PI / 2 + half };
+    }
+
     public static void drawFastNeutronDiagram(ComponentStatsData d) {
         drawFastNeutronDiagram(d, 33);
     }
@@ -2229,9 +2239,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         } else if (fastFrac <= 0.001) {
             drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, 2.0 * Math.PI, palette.thermal);
         } else {
-            double splitAngle = fastFrac * 2.0 * Math.PI;
-            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, splitAngle, palette.fast);
-            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, splitAngle, 2.0 * Math.PI, palette.thermal);
+            double[] a = fastPieAngles(fastFrac);
+            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, a[0], a[1], palette.fast);
+            drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, a[1], a[0] + 2.0 * Math.PI, palette.thermal);
         }
 
         // Scattered fast neutrons arrow (blue, straight up above pie chart)
