@@ -135,9 +135,9 @@ public class ModFluids {
 
         /**
          * Heavy water's tint: 23 degrees of hue from water's blue toward purple, the ripples and their opacity
-         * pushed out so they stay visible, and a tenth of the way toward a deep violet. See Note [Tinting
-         * Minecraft's water]
+         * pushed out so they stay visible, and a tenth of the way toward a deep violet.
          */
+        // See Note [Tinting Minecraft's water]
         private static final TintedSprite.Tint HEAVY_WATER = new TintedSprite.Tint(
             23.0f / 360.0f,
             3.0f,
@@ -169,8 +169,9 @@ public class ModFluids {
 
         /**
          * Heavy water's look: Minecraft's water, as the loaded resource packs have it, tinted purple (HEAVY_WATER)
-         * when the atlas is stitched.
+         * when the atlas is stitched, unless a resource pack draws heavy water itself.
          */
+        // See Note [Tinting Minecraft's water]
         private IIcon tintedWater(TextureMap map, String name, String water) {
             String icon = "modularnuclear:fluids/" + name;
             map.setTextureEntry(

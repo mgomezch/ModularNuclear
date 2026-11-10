@@ -42,6 +42,15 @@ vanish.  Tint.apply therefore works on each animation frame in this order:
 Means are per frame (frames are square, stacked down the image), so a frame that is lighter on the whole stays
 lighter.  Values are clamped to 0..255 after each step.
 
+Wrinkles:
+
+(W1) A resource pack can draw heavy water itself.  The mod ships no PNG at its icons' paths
+     (modularnuclear:textures/blocks/fluids/heavywater_still.png and heavywater_flow.png), so when the resource
+     manager finds one there, a pack put it there.  TintedSprite.hasCustomLoader then returns false, and
+     TextureMap loads that PNG and its .mcmeta animation as it loads any block texture; no tint is applied.  A pack
+     that only changes Minecraft's water still gets heavy water tinted from its water.  The check assumes the
+     blocks atlas (textures/blocks), the only one TintedSprite is used on.
+
 ModFluids.ClientFluidTextureHandler.HEAVY_WATER sets the parameters.  They were chosen by eye in a local slider
 page that runs this same pipeline in JavaScript on vanilla water.  Color.HSBtoRGB rounds to whole values before
 the blend where the page doesn't, so the two can differ by 2 in 255; TintedSpriteTest checks the pipeline against
@@ -128,9 +137,19 @@ public class TintedSprite extends TextureAtlasSprite {
         this.tint = tint;
     }
 
+    // Tints only when no resource pack draws this texture itself: a pack's own PNG (and its animation) loads as
+    // any block texture does. See wrinkle (W1)
     @Override
     public boolean hasCustomLoader(IResourceManager manager, ResourceLocation location) {
-        return true;
+        ResourceLocation own = new ResourceLocation(
+            location.getResourceDomain(),
+            "textures/blocks/" + location.getResourcePath() + ".png");
+        try {
+            manager.getResource(own);
+            return false;
+        } catch (IOException e) {
+            return true;
+        }
     }
 
     /** Loads the sprite; false means it loaded (TextureMap's convention for custom loaders). */

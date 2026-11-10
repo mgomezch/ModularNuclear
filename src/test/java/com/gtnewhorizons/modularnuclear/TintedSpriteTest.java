@@ -10,7 +10,8 @@ import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.client.texture.TintedSprite.Tint;
 
-/** Heavy water's texture: Minecraft's water, tinted. See Note [Tinting Minecraft's water] */
+/** Heavy water's texture: Minecraft's water, tinted. */
+// See Note [Tinting Minecraft's water]
 class TintedSpriteTest {
 
     /** Heavy water's tint, as ModFluids has it. */
