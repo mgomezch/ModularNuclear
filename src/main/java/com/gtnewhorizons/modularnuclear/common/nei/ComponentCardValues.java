@@ -25,7 +25,8 @@ Note [Thermal and heat cards] (generated)
 Topic.  The "MPTR reactor components" NEI page explains a component with one card per subject.  The thermal and heat
 cards draw numbers the game derives rather than numbers it stores, and they must agree with what a reactor does.
 
-Design.  ComponentCardValues works out those numbers once per component from the same code the reactor reads:
+Design.  ComponentCardValues works out those numbers once per component from the same code the reactor reads (and
+the fast card's shares too, in ComponentCardValues.Fast):
 TileContent and TileProperties for neutrons and conduction, and the configuration record for what else it does with
 heat.  The thermal card shows where arriving neutrons go, with arrow widths in proportion, and a 3×3 view of the
 spread.  The heat card has two parts: heat crossing from a hot neighbour to a cold one, with arrow width set by k, and
@@ -45,7 +46,7 @@ Wrinkles.
 
 (W2) Unlike the fast card, the thermal card has no reflected arrow and no moderated share.  Components never reflect
      thermal neutrons, not even reflectors, whose thermal scattering just spreads like any other: only the grid's edge
-     can, through wall_reflection_chance.  Scattered neutrons go 1/6 to each side and 1/12 to each corner
+     can, through wall_reflection_chance.  See wrinkle (W1) of Note [Fast neutrons are reflected or scattered].  Scattered neutrons go 1/6 to each side and 1/12 to each corner
      (DIR_WEIGHTS).
 
 (W3) Control rods aren't TileContents, since the reactor reads them from their hatch.  The card shows a fully inserted
@@ -82,6 +83,12 @@ public final class ComponentCardValues {
     private static final int MIN_CORE_HATCH_TIER = 1; // LV
     private static final int MAX_CORE_HATCH_TIER = 9; // UHV
 
+    /**
+     * Shares of the fast neutrons arriving at the tile that it absorbs, reflects and scatters; the rest pass through.
+     * See Note [Fast neutrons are reflected or scattered]
+     */
+    public final Fast fast;
+
     /** Shares of the thermal neutrons arriving at the tile; they add up to 1. See wrinkle (W1). */
     public final double absorbed;
     public final double scattered;
@@ -102,9 +109,28 @@ public final class ComponentCardValues {
 
     private float[][] heatRow;
 
-    private ComponentCardValues(double absorption, double scatteringProbability, double k, double dampening,
+    /**
+     * What happens to the fast neutrons arriving at a tile, as NuclearSimulationEngine.simulate draws it: shares of all
+     * that arrive, and the share of scattered ones moderated.
+     */
+    public record Fast(double absorbed, double reflected, double scattered, double moderated) {
+
+        static Fast of(double absorption, double reflection, double scattering, double moderation) {
+            double a = clamp01(absorption), r = clamp01(reflection), s = clamp01(scattering);
+            double scale = Math.max(1.0, a + r + s);
+            return new Fast(a / scale, r / scale, s / scale, clamp01(moderation));
+        }
+
+        /** The share that neither is absorbed, reflected nor scattered, and carries on. */
+        public double passed() {
+            return Math.max(0.0, 1.0 - absorbed - reflected - scattered);
+        }
+    }
+
+    private ComponentCardValues(Fast fast, double absorption, double scatteringProbability, double k, double dampening,
         double minCapacity, double maxCapacity, boolean inHatch, HeatAction action, double actionHeat,
         double actionRate) {
+        this.fast = fast;
         double a = clamp01(absorption);
         this.absorbed = a;
         this.scattered = TileProperties.thermalScatteredShare(a, scatteringProbability);
@@ -128,6 +154,7 @@ public final class ComponentCardValues {
         ControlRodData rod = ReactorDataRegistry.findControlRod(d.stack);
         if (rod != null) { // See wrinkle (W3)
             return new ComponentCardValues(
+                Fast.of(rod.maxFastAbsorption, 0.0, rod.scatteringFast, 0.0),
                 rod.maxThermalAbsorption,
                 rod.scatteringThermal,
                 rod.heatTransferCoeff,
@@ -142,6 +169,7 @@ public final class ComponentCardValues {
         TileContent content = contentOf(d);
         if (content.kind == TileContent.Kind.OTHER) {
             return new ComponentCardValues(
+                Fast.of(d.fastAbsorption, d.fastReflection, d.fastScattering, d.slowingProbability),
                 d.thermalAbsorption,
                 d.thermalScattering,
                 d.heatTransferCoeff,
@@ -213,6 +241,11 @@ public final class ComponentCardValues {
         }
 
         return new ComponentCardValues(
+            Fast.of(
+                TileProperties.absorption(c, NeutronType.FAST),
+                TileProperties.reflectionFast(c),
+                TileProperties.scattering(c, NeutronType.FAST),
+                TileProperties.moderation(c)),
             TileProperties.absorption(c, NeutronType.THERMAL),
             TileProperties.scattering(c, NeutronType.THERMAL),
             TileProperties.heatTransferCoeff(c),

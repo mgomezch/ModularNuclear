@@ -1342,8 +1342,6 @@ public class NuclearSimulationEngineTest {
             0.50,
             0.621,
             0.009,
-            false,
-            0.0,
             0.15,
             0.0,
             0L,

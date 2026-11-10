@@ -100,14 +100,15 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         // Page 1: Neutron Interaction
         public final double fastScattering;
+        /**
+         * Fast reflection, for an item with no configuration entry (the card otherwise shows the configured one, as for
+         * the other fast numbers). See Note [Fast neutrons are reflected or scattered]
+         */
+        public double fastReflection;
         public final double fastAbsorption;
         public final double slowingProbability;
         public final double thermalScattering;
         public final double thermalAbsorption;
-
-        // Reflection
-        public final boolean isReflector;
-        public final double reflectionFast;
 
         // Page 2: Thermal & Energy Properties
         public final double heatTransferCoeff;
@@ -179,9 +180,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         public ComponentStatsData(ItemStack stack, String name, String category, double fastScattering,
             double fastAbsorption, double slowingProbability, double thermalScattering, double thermalAbsorption,
-            boolean isReflector, double reflectionFast, double heatTransferCoeff, double thermalInsulationFactor,
-            long maxDirectEU, boolean hasDurability, long durability, String durabilityLabel, boolean hasTransmutation,
-            ItemStack transmutationOutput, long transmutationNeutrons, String extraInfo) {
+            double heatTransferCoeff, double thermalInsulationFactor, long maxDirectEU, boolean hasDurability,
+            long durability, String durabilityLabel, boolean hasTransmutation, ItemStack transmutationOutput,
+            long transmutationNeutrons, String extraInfo) {
             this(
                 stack,
                 name,
@@ -191,8 +192,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 slowingProbability,
                 thermalScattering,
                 thermalAbsorption,
-                isReflector,
-                reflectionFast,
                 heatTransferCoeff,
                 thermalInsulationFactor,
                 maxDirectEU,
@@ -208,10 +207,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
 
         public ComponentStatsData(ItemStack stack, String name, String category, double fastScattering,
             double fastAbsorption, double slowingProbability, double thermalScattering, double thermalAbsorption,
-            boolean isReflector, double reflectionFast, double heatTransferCoeff, double thermalInsulationFactor,
-            long maxDirectEU, boolean hasDurability, long durability, String durabilityLabel, boolean hasTransmutation,
-            ItemStack transmutationOutput, long transmutationNeutrons, String extraInfo,
-            ComponentData.RadiovoltaicData radiovoltaic) {
+            double heatTransferCoeff, double thermalInsulationFactor, long maxDirectEU, boolean hasDurability,
+            long durability, String durabilityLabel, boolean hasTransmutation, ItemStack transmutationOutput,
+            long transmutationNeutrons, String extraInfo, ComponentData.RadiovoltaicData radiovoltaic) {
             this.stack = stack;
             this.name = name;
             this.category = category;
@@ -220,8 +218,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             this.slowingProbability = slowingProbability;
             this.thermalScattering = thermalScattering;
             this.thermalAbsorption = thermalAbsorption;
-            this.isReflector = isReflector;
-            this.reflectionFast = reflectionFast;
             this.heatTransferCoeff = heatTransferCoeff;
             this.thermalInsulationFactor = thermalInsulationFactor;
             this.maxDirectEU = maxDirectEU;
@@ -411,13 +407,14 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         initialized = true;
         ALL_COMPONENTS.clear();
 
-        // 1. REFLECTORS - High scattering / reflection back into adjacent core cells
+        // 1. REFLECTORS - Reflect fast neutrons straight back into adjacent core cells
         addReflector(
             getReflectorPlate(Materials.Gold, "Gold"),
             "Gold Plate Reflector",
+            0.65,
             0.15,
             0.10,
-            0.85,
+            0.20,
             0.90,
             0.0,
             0.30,
@@ -426,9 +423,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addReflector(
             getReflectorPlate(Materials.StainlessSteel, "StainlessSteel"),
             "Stainless Steel Plate Reflector",
+            0.70,
             0.10,
             0.05,
-            0.90,
+            0.20,
             0.95,
             0.0,
             0.20,
@@ -437,9 +435,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addReflector(
             getReflectorPlate(Materials.TungstenCarbide, "TungstenCarbide"),
             "Tungsten Carbide Plate Reflector",
+            0.75,
             0.07,
             0.02,
-            0.93,
+            0.18,
             0.98,
             0.0,
             0.10,
@@ -448,9 +447,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addIC2Reflector(
             "reactorReflector",
             "Neutron Reflector",
+            0.85,
             0.01,
             0.02,
-            0.95,
+            0.10,
             0.98,
             0.20,
             0.15,
@@ -459,9 +459,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addIC2Reflector(
             "reactorReflectorThick",
             "Thick Neutron Reflector",
+            0.90,
             0.005,
             0.01,
-            0.98,
+            0.08,
             0.99,
             0.25,
             0.20,
@@ -470,9 +471,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addGTReflector(
             ItemList.Neutron_Reflector,
             "Iridium Neutron Reflector",
+            0.85,
             0.01,
             0.02,
-            0.95,
+            0.10,
             0.98,
             0.20,
             0.15,
@@ -481,9 +483,10 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addGTReflector(
             ItemList.Reactor_NeutronReflector,
             "Thick Iridium Neutron Reflector",
+            0.90,
             0.005,
             0.01,
-            0.98,
+            0.08,
             0.99,
             0.25,
             0.20,
@@ -497,7 +500,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addModerator(
             stickGraphite,
             "Graphite Long Rod",
-            0.93,
+            0.10,
+            0.83,
             0.002,
             0.50,
             0.621,
@@ -511,7 +515,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addModerator(
             stickCarbon,
             "Carbon Long Rod",
-            0.90,
+            0.10,
+            0.80,
             0.003,
             0.45,
             0.60,
@@ -525,7 +530,8 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         addModerator(
             stickBeryllium,
             "Beryllium Long Rod",
-            0.96,
+            0.15,
+            0.81,
             0.001,
             0.65,
             0.85,
@@ -797,8 +803,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     0.0,
                     0.0,
                     0.0,
-                    false,
-                    0.0,
                     0.02,
                     0.0,
                     0L,
@@ -816,46 +820,59 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
     // Factory Helpers
     // =========================================================================
 
-    private static void addReflector(ItemStack stack, String name, double fastAbs, double thermAbs, double fastRefl,
-        double thermRefl, double slowing, double conduction, long durability, String extra) {
+    private static void addReflector(ItemStack stack, String name, double fastReflection, double fastAbs,
+        double thermAbs, double fastScattering, double thermScattering, double slowing, double conduction,
+        long durability, String extra) {
         if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
         if (stack == null) return;
-        ALL_COMPONENTS.add(
-            new ComponentStatsData(
-                stack,
-                name,
-                "Reflector",
-                fastRefl,
-                fastAbs,
-                slowing,
-                thermRefl,
-                thermAbs,
-                true,
-                fastRefl,
-                conduction,
-                0.0,
-                0L,
-                durability > 0,
-                durability,
-                durability > 0 ? "Impacts" : "Indestructible",
-                false,
-                null,
-                0L,
-                extra));
+        ComponentStatsData data = new ComponentStatsData(
+            stack,
+            name,
+            "Reflector",
+            fastScattering,
+            fastAbs,
+            slowing,
+            thermScattering,
+            thermAbs,
+            conduction,
+            0.0,
+            0L,
+            durability > 0,
+            durability,
+            durability > 0 ? "Impacts" : "Indestructible",
+            false,
+            null,
+            0L,
+            extra);
+        data.fastReflection = fastReflection;
+        ALL_COMPONENTS.add(data);
     }
 
-    private static void addIC2Reflector(String ic2Name, String name, double fastAbs, double thermAbs, double fastRefl,
-        double thermRefl, double slowing, double conduction, long durability, String extra) {
+    private static void addIC2Reflector(String ic2Name, String name, double fastReflection, double fastAbs,
+        double thermAbs, double fastScattering, double thermScattering, double slowing, double conduction,
+        long durability, String extra) {
         ItemStack stack = resolveStack("IC2:" + ic2Name);
         if (stack == null) stack = resolveStack("IC2:" + ic2Name + ":1");
         if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
         if (stack != null) {
-            addReflector(stack, name, fastAbs, thermAbs, fastRefl, thermRefl, slowing, conduction, durability, extra);
+            addReflector(
+                stack,
+                name,
+                fastReflection,
+                fastAbs,
+                thermAbs,
+                fastScattering,
+                thermScattering,
+                slowing,
+                conduction,
+                durability,
+                extra);
         }
     }
 
-    private static void addGTReflector(ItemList item, String name, double fastAbs, double thermAbs, double fastRefl,
-        double thermRefl, double slowing, double conduction, long durability, String extra) {
+    private static void addGTReflector(ItemList item, String name, double fastReflection, double fastAbs,
+        double thermAbs, double fastScattering, double thermScattering, double slowing, double conduction,
+        long durability, String extra) {
         ItemStack stack = null;
         if (item != null && item.hasBeenSet()) {
             stack = item.get(1L);
@@ -863,40 +880,50 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             stack = createTestPlaceholder(name);
         }
         if (stack != null) {
-            addReflector(stack, name, fastAbs, thermAbs, fastRefl, thermRefl, slowing, conduction, durability, extra);
+            addReflector(
+                stack,
+                name,
+                fastReflection,
+                fastAbs,
+                thermAbs,
+                fastScattering,
+                thermScattering,
+                slowing,
+                conduction,
+                durability,
+                extra);
         }
     }
 
-    private static void addModerator(ItemStack stack, String name, double fastScattering, double fastAbs,
-        double slowing, double thermScattering, double thermAbs, double conduction, long wearCapacity,
+    private static void addModerator(ItemStack stack, String name, double fastReflection, double fastScattering,
+        double fastAbs, double slowing, double thermScattering, double thermAbs, double conduction, long wearCapacity,
         ItemStack byproduct, String extra) {
         if (stack == null && isTestMode()) stack = createTestPlaceholder(name);
         if (stack == null) return;
         if (stack.getItemDamage() == OreDictionary.WILDCARD_VALUE) {
             stack.setItemDamage(0);
         }
-        ALL_COMPONENTS.add(
-            new ComponentStatsData(
-                stack,
-                name,
-                "Moderator",
-                fastScattering,
-                fastAbs,
-                slowing,
-                thermScattering,
-                thermAbs,
-                false,
-                0.0,
-                conduction,
-                0.0,
-                0L,
-                true,
-                wearCapacity,
-                "Wear Capacity",
-                byproduct != null,
-                byproduct,
-                wearCapacity,
-                extra));
+        ComponentStatsData data = new ComponentStatsData(
+            stack,
+            name,
+            "Moderator",
+            fastScattering,
+            fastAbs,
+            slowing,
+            thermScattering,
+            thermAbs,
+            conduction,
+            0.0,
+            0L,
+            true,
+            wearCapacity,
+            "Wear Capacity",
+            byproduct != null,
+            byproduct,
+            wearCapacity,
+            extra);
+        data.fastReflection = fastReflection;
+        ALL_COMPONENTS.add(data);
     }
 
     private static ItemStack getFirstOre(String oreName) {
@@ -943,8 +970,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.0,
             thermScattering,
             thermAbs,
-            false,
-            0.0,
             conduction,
             0.0,
             0L,
@@ -972,8 +997,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 0.0,
                 rv.scatteringThermal,
                 rv.absorptionThermal,
-                false,
-                0.0,
                 rv.heatTransferCoeff,
                 0.0,
                 rv.getMaxEffectiveEU(),
@@ -1001,8 +1024,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 0.0,
                 thermScattering,
                 thermAbs,
-                false,
-                0.0,
                 conduction,
                 insulation,
                 0L,
@@ -1036,8 +1057,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0.05,
             0.45,
             0.05,
-            false,
-            0.0,
             conduction,
             0.0,
             0L,
@@ -1086,8 +1105,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 slowing,
                 thermScattering,
                 thermAbs,
-                false,
-                0.0,
                 conduction,
                 0.0,
                 0L,
@@ -1114,8 +1131,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 0.05,
                 0.40,
                 0.05,
-                false,
-                0.0,
                 conduction,
                 0.0,
                 0L,
@@ -1142,8 +1157,6 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 0.05,
                 0.45,
                 0.05,
-                false,
-                0.0,
                 conduction,
                 0.0,
                 0L,
@@ -1391,30 +1404,35 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 palette.ink,
                 false);
 
+            // See Note [Fast neutrons are reflected or scattered]
+            ComponentCardValues.Fast fast = d.cardValues().fast;
+
             // Reflected neutrons percentage (between the two blue arrows)
-            String fastReflStr = formatPercent(d.isReflector ? d.reflectionFast : 0.0);
             GuiDraw.drawStringC(
-                fastReflStr,
+                formatPercent(fast.reflected()),
                 38,
                 61,
-                (d.isReflector && d.reflectionFast > 0) ? palette.reflectedText : palette.ink,
+                fast.reflected() > 0 ? palette.reflectedText : palette.ink,
                 false);
 
             // Absorbed neutrons percentage (below red arrow)
-            String absStr = formatPercent(d.fastAbsorption);
-            GuiDraw.drawStringC(absStr, 83, 86, d.fastAbsorption > 0 ? palette.absorbedText : palette.ink, false);
+            GuiDraw.drawStringC(
+                formatPercent(fast.absorbed()),
+                83,
+                86,
+                fast.absorbed() > 0 ? palette.absorbedText : palette.ink,
+                false);
 
             // Overall scattered fast neutrons percentage (between green arrows and pie chart, vertically centered)
-            String fastScatteringProbStr = formatPercent(d.fastScattering);
             GuiDraw.drawStringC(
-                fastScatteringProbStr,
+                formatPercent(fast.scattered()),
                 FAST_SCATTERING_LABEL_X,
                 61,
-                d.fastScattering > 0 ? palette.scatteredText : palette.ink,
+                fast.scattered() > 0 ? palette.scatteredText : palette.ink,
                 false);
 
             // Relative scattered fast neutrons conditional percentage (above blue arrow)
-            double slowing = Math.max(0.0, Math.min(1.0, d.slowingProbability));
+            double slowing = fast.moderated();
             double fastFrac = 1.0 - slowing;
             String fastScatteringStr = formatPercent(fastFrac);
             GuiDraw
@@ -1741,21 +1759,12 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                 // 1. Fast reflection & incoming neutrons (covers the two blue arrows and % text: X in [18, 73], Y in
                 // [45, 85])
                 if (relX >= 18 && relX <= 73 && relY >= 45 && relY <= 85) {
-                    if (d.isReflector) {
-                        currenttip.add(
-                            EnumChatFormatting.GOLD
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection"));
-                        currenttip.add(
-                            EnumChatFormatting.GRAY
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection_fast.desc"));
-                    } else {
-                        currenttip.add(
-                            EnumChatFormatting.WHITE
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection"));
-                        currenttip.add(
-                            EnumChatFormatting.GRAY
-                                + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection_fast.desc"));
-                    }
+                    currenttip.add(
+                        EnumChatFormatting.GOLD
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection"));
+                    currenttip.add(
+                        EnumChatFormatting.GRAY
+                            + StatCollector.translateToLocal("gt.nei.neutron_interaction.reflection_fast.desc"));
                     // 2. Fast absorption (center bottom: arrow and % text at (83, 86))
                 } else if (relX >= 68 && relX <= 98 && relY >= 75 && relY <= 96) {
                     currenttip.add(
@@ -1780,7 +1789,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     currenttip.add(
                         EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
                             "gt.nei.neutron_interaction.fast_fraction.desc",
-                            formatPercent(1.0 - d.slowingProbability)));
+                            formatPercent(1.0 - d.cardValues().fast.moderated())));
                     // 5. Lower: Scattered moderated arrow & percentage (X in [122, 159], Y in [76, 96])
                 } else if (relX >= 122 && relX <= 159 && relY >= 76 && relY <= 96) {
                     currenttip.add(
@@ -1789,7 +1798,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     currenttip.add(
                         EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
                             "gt.nei.neutron_interaction.thermal_fraction.desc",
-                            formatPercent(d.slowingProbability)));
+                            formatPercent(d.cardValues().fast.moderated())));
                     // 6. Center: Pie chart (X in [130, 158], Y in [55, 75])
                 } else if (relX >= 130 && relX <= 158 && relY >= 55 && relY <= 75) {
                     currenttip.add(
@@ -1798,14 +1807,14 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     currenttip.add(
                         EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
                             "gt.nei.neutron_interaction.fast_fraction.desc",
-                            formatPercent(1.0 - d.slowingProbability)));
+                            formatPercent(1.0 - d.cardValues().fast.moderated())));
                     currenttip.add(
                         EnumChatFormatting.LIGHT_PURPLE
                             + StatCollector.translateToLocal("gt.nei.neutron_interaction.thermal_fraction"));
                     currenttip.add(
                         EnumChatFormatting.GRAY + StatCollector.translateToLocalFormatted(
                             "gt.nei.neutron_interaction.thermal_fraction.desc",
-                            formatPercent(d.slowingProbability)));
+                            formatPercent(d.cardValues().fast.moderated())));
                 }
 
                 // Card 2: Thermal Neutron Panel
@@ -2017,20 +2026,16 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             currenttip.add(
                 EnumChatFormatting.YELLOW + StatCollector.translateToLocalFormatted(
                     "gt.nei.neutron_interaction.fast_stats",
-                    formatPercent(data.fastScattering),
-                    formatPercent(data.fastAbsorption),
-                    formatPercent(data.slowingProbability)));
+                    formatPercent(data.cardValues().fast.reflected()),
+                    formatPercent(data.cardValues().fast.scattered()),
+                    formatPercent(data.cardValues().fast.absorbed()),
+                    formatPercent(data.cardValues().fast.moderated())));
             currenttip.add(
                 EnumChatFormatting.AQUA + tr(
                     "thermal_stats",
                     formatOutcome(data.cardValues().absorbed),
                     formatOutcome(data.cardValues().scattered),
                     formatOutcome(data.cardValues().lost)));
-            if (data.isReflector) {
-                currenttip.add(
-                    EnumChatFormatting.GREEN
-                        + String.format(Locale.US, "Fast reflection: %s", formatPercent(data.reflectionFast)));
-            }
             if (data.extraInfo != null) {
                 currenttip.add(EnumChatFormatting.GRAY + data.extraInfo);
             }
@@ -2232,7 +2237,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         drawArrow(96.0, 36.0 + dy, 106.0, 46.0 + dy, 1.2, 3.5, 4.5, palette.scattered);
 
         // Dynamic pie chart at (FAST_PIE_X, 34 + dy), radius 9.0
-        double slowing = Math.max(0.0, Math.min(1.0, d.slowingProbability));
+        double slowing = d.cardValues().fast.moderated();
         double fastFrac = 1.0 - slowing;
         if (slowing <= 0.001) {
             drawPieSlice(FAST_PIE_X, 34.0 + dy, 9.0, 0.0, 2.0 * Math.PI, palette.fast);

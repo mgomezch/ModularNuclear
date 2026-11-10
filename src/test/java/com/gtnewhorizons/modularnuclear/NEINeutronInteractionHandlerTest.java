@@ -18,6 +18,7 @@ import com.gtnewhorizons.modularnuclear.common.item.ItemEmptyCoreTile;
 import com.gtnewhorizons.modularnuclear.common.item.ItemRadiovoltaicPlate;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.nei.ComponentCardValues;
 import com.gtnewhorizons.modularnuclear.common.nei.NEIFuelStatsHandler;
 import com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler;
 import com.gtnewhorizons.modularnuclear.common.nei.NEINeutronInteractionHandler.CachedNeutronInteractionRecipe;
@@ -90,8 +91,8 @@ public class NEINeutronInteractionHandlerTest {
                 switch (d.category) {
                     case "Reflector" -> {
                         foundReflector = true;
-                        assertTrue(d.isReflector, "Reflector must have isReflector flag set");
-                        assertTrue(d.reflectionFast > 0.0, "Reflector must specify fast reflection");
+                        ComponentCardValues.Fast fast = d.cardValues().fast;
+                        assertTrue(fast.reflected() > fast.scattered(), d.name + " must reflect more than it scatters");
                     }
                     case "Moderator" -> {
                         foundModerator = true;
@@ -199,7 +200,7 @@ public class NEINeutronInteractionHandlerTest {
 
         CachedNeutronInteractionRecipe r1 = null;
         for (CachedRecipe cr : handler.arecipes) {
-            if (cr instanceof CachedNeutronInteractionRecipe recipe && !recipe.data.isReflector) {
+            if (cr instanceof CachedNeutronInteractionRecipe recipe && !"Reflector".equals(recipe.data.category)) {
                 r1 = recipe;
                 break;
             }
@@ -395,10 +396,11 @@ public class NEINeutronInteractionHandlerTest {
                     formatted = String.format(
                         java.util.Locale.US,
                         raw,
+                        NEINeutronInteractionHandler.formatPercent(0.05),
                         NEINeutronInteractionHandler.formatPercent(0.80),
                         NEINeutronInteractionHandler.formatPercent(0.10),
                         NEINeutronInteractionHandler.formatPercent(1.0 - 0.90));
-                    assertEquals("Fast: Scatter 80%, Absorb 10%, Slow 10%", formatted);
+                    assertEquals("Fast: Reflect 5%, Scatter 80%, Absorb 10%, Slow 10% of scattered", formatted);
                 } else {
                     formatted = String.format(
                         java.util.Locale.US,
@@ -746,9 +748,22 @@ public class NEINeutronInteractionHandlerTest {
             NEINeutronInteractionHandler.FAST_SCATTERING_LABEL_X > 107,
             "Fast scattering label must be to the right of the green scattering arrows");
 
-        assertEquals("93%", NEINeutronInteractionHandler.formatPercent(graphiteRecipe.data.fastScattering));
-        assertEquals("96%", NEINeutronInteractionHandler.formatPercent(berylliumRecipe.data.fastScattering));
-        assertEquals("85%", NEINeutronInteractionHandler.formatPercent(goldReflectorRecipe.data.fastScattering));
+        // The card shows the engine's numbers. See Note [Fast neutrons are reflected or scattered]
+        assertEquals(
+            "83%",
+            NEINeutronInteractionHandler.formatPercent(graphiteRecipe.data.cardValues().fast.scattered()));
+        assertEquals(
+            "10%",
+            NEINeutronInteractionHandler.formatPercent(graphiteRecipe.data.cardValues().fast.reflected()));
+        assertEquals(
+            "81%",
+            NEINeutronInteractionHandler.formatPercent(berylliumRecipe.data.cardValues().fast.scattered()));
+        assertEquals(
+            "20%",
+            NEINeutronInteractionHandler.formatPercent(goldReflectorRecipe.data.cardValues().fast.scattered()));
+        assertEquals(
+            "65%",
+            NEINeutronInteractionHandler.formatPercent(goldReflectorRecipe.data.cardValues().fast.reflected()));
 
         int scatteringLabelX = NEINeutronInteractionHandler.FAST_SCATTERING_LABEL_X;
         List<String> scatteringLabelTip = handler.getTooltipsAt(graphiteRecipe, scatteringLabelX, 61, null);
