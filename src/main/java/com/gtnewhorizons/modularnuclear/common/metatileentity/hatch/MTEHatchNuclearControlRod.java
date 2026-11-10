@@ -240,28 +240,19 @@ public class MTEHatchNuclearControlRod extends MTEHatch implements IReadyBeforeF
 
     public double getModeratorProbability() {
         if (!hasModerator()) return 0.0;
-        double ratio = getModeratorInsertionRatio();
-        ComponentData.ModeratorData data = ReactorDataRegistry.findModerator(getModeratorStack());
-        double mod = (data != null) ? data.moderation : 0.50;
-        return Math.max(0.0, Math.min(1.0, ratio * mod));
+        return TileTick.followerModeration(ReactorDataRegistry.findModerator(getModeratorStack()), getInsertionRatio());
     }
 
     public double getModeratorAbsorptionProbability(NeutronType type) {
         if (!hasModerator()) return 0.0;
-        double ratio = getModeratorInsertionRatio();
-        ComponentData.ModeratorData data = ReactorDataRegistry.findModerator(getModeratorStack());
-        double abs = (data != null) ? ((type == NeutronType.FAST) ? data.absorptionFast : data.absorptionThermal)
-            : ((type == NeutronType.FAST) ? 0.002 : 0.009);
-        return Math.max(0.0, Math.min(1.0, ratio * abs));
+        return TileTick
+            .followerAbsorption(ReactorDataRegistry.findModerator(getModeratorStack()), getInsertionRatio(), type);
     }
 
     public double getModeratorScatteringProbability(NeutronType type) {
         if (!hasModerator()) return 0.0;
-        double ratio = getModeratorInsertionRatio();
-        ComponentData.ModeratorData data = ReactorDataRegistry.findModerator(getModeratorStack());
-        double scattering = (data != null) ? ((type == NeutronType.FAST) ? data.scatteringFast : data.scatteringThermal)
-            : ((type == NeutronType.FAST) ? 0.93 : 0.621);
-        return Math.max(0.0, Math.min(1.0, ratio * scattering));
+        return TileTick
+            .followerScattering(ReactorDataRegistry.findModerator(getModeratorStack()), getInsertionRatio(), type);
     }
 
     public boolean mScram = false;

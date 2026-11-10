@@ -123,6 +123,32 @@ public final class TileTick {
         return clampInsertion(insertion) * scattering;
     }
 
+    /**
+     * Moderation of an advanced control rod hatch's moderator follower, given the rod's insertion (0..1): the follower
+     * is
+     * withdrawn as the rod goes in, so it acts at 1 − insertion of its moderator's. An unknown moderator acts as a
+     * generic one.
+     */
+    public static double followerModeration(ModeratorData moderator, double rodInsertion) {
+        return clampInsertion((1.0 - clampInsertion(rodInsertion)) * (moderator != null ? moderator.moderation : 0.50));
+    }
+
+    /** Absorption of a moderator follower (see {@link #followerModeration}). */
+    public static double followerAbsorption(ModeratorData moderator, double rodInsertion, NeutronType type) {
+        double abs = moderator != null
+            ? (type == NeutronType.FAST ? moderator.absorptionFast : moderator.absorptionThermal)
+            : (type == NeutronType.FAST ? 0.002 : 0.009);
+        return clampInsertion((1.0 - clampInsertion(rodInsertion)) * abs);
+    }
+
+    /** Scattering of a moderator follower (see {@link #followerModeration}). */
+    public static double followerScattering(ModeratorData moderator, double rodInsertion, NeutronType type) {
+        double scattering = moderator != null
+            ? (type == NeutronType.FAST ? moderator.scatteringFast : moderator.scatteringThermal)
+            : (type == NeutronType.FAST ? 0.93 : 0.621);
+        return clampInsertion((1.0 - clampInsertion(rodInsertion)) * scattering);
+    }
+
     private static double clampInsertion(double insertion) {
         return Math.max(0.0, Math.min(1.0, insertion));
     }
