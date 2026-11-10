@@ -284,6 +284,24 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    // Loop geometry on the selected circuit: full-flow pipe blocks of the cold leg, hot leg and return run, heater
+    // rings (0 for none) and loop instruments on the hot leg, pipe blocks of each passage's and each PHE's branch.
+    setCoolantLoopGeometry(coldLeg, hotLeg, returnRun, heaterRings, instruments, passageBranch, pheBranch, notify = true) {
+        if (this.inst.exports.setCoolantLoopGeometry) {
+            this.inst.exports.setCoolantLoopGeometry(coldLeg | 0, hotLeg | 0, returnRun | 0, heaterRings | 0,
+                instruments | 0, passageBranch | 0, pheBranch | 0);
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    // The heater's pipe casing on the selected circuit (TIN ... BLACK_PLUTONIUM), or "" for the loop pipe's tier.
+    setCoolantLoopHeaterCasing(casing, notify = true) {
+        if (this.inst.exports.setCoolantLoopHeaterCasing) {
+            this.inst.exports.setCoolantLoopHeaterCasing(this.createJavaString(casing || ""));
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     // Independent loops, each with its own pump and PHEs, that the passages are split among.
     setCoolantLoopCount(count, notify = true) {
         if (this.inst.exports.setCoolantLoopCount) {
@@ -346,6 +364,22 @@ class NuclearSimWasm {
                 this.createJavaString(typeStr),
                 Math.round(insertion)
             );
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    /** Makes a cell's rod hatch an advanced one holding a moderator follower ("MG", "MC", "MB"), or a plain one (""). */
+    setControlRodFollower(x, y, moderatorCode, notify = true) {
+        if (this.inst.exports.setControlRodFollower) {
+            this.inst.exports.setControlRodFollower(x, y, this.createJavaString(moderatorCode || ""));
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
+    /** Feeds a neutron source tile from a Source Chamber: recipe "CF", "BE" or "" (none), tier name or "" (the recipe's own). */
+    setSourceChamber(x, y, recipe, tier, notify = true) {
+        if (this.inst.exports.setSourceChamber) {
+            this.inst.exports.setSourceChamber(x, y, this.createJavaString(recipe || ""), this.createJavaString(tier || ""));
         }
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }

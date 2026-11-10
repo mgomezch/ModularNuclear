@@ -114,9 +114,10 @@ if (IS_SIM_WORKER) {
         "setMachineLimits", "setTicksPerCycle", "setCoolingMode", "setCoolantLoopMaterial", "setCoolantLoopPipeSize",
         "setCoolantLoopFluid", "setCoolantLoopSecondaryCoolant", "setCoolantLoopHatchTier", "setCoolantLoopPumpHatches",
         "setCoolantLoopRotor", "selectCoolantCircuit", "removeCoolantCircuit", "setCoolantLoopControl",
-        "setCoolantLoopTempBand", "setCoolantLoopPheTempBand", "setCoolantLoopPheDesign", "setCoolantLoopCount",
-        "setCoolantLoopPhe", "attachCoolantLoopPoint", "detachCoolantLoopPoint", "clearCoolantLoopPoints", "setParam",
-        "repair", "setReactorDamage", "setControlRod", "setAllControlRodsInsertion", "scram", "setStrictMode",
+        "setCoolantLoopTempBand", "setCoolantLoopPheTempBand", "setCoolantLoopPheDesign", "setCoolantLoopGeometry",
+        "setCoolantLoopHeaterCasing", "setCoolantLoopCount", "setCoolantLoopPhe", "attachCoolantLoopPoint",
+        "detachCoolantLoopPoint", "clearCoolantLoopPoints", "setParam",
+        "repair", "setReactorDamage", "setControlRod", "setControlRodFollower", "setSourceChamber", "setAllControlRodsInsertion", "scram", "setStrictMode",
         "clearIncidentLog", "setStopOnIncidents", "clearHaltedByIncident", "setAutoSupplyFuel", "setAutoReplaceFuel",
         "setSpeed",
     ];
