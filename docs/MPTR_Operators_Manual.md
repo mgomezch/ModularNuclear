@@ -187,7 +187,7 @@ where $\tau_\text{biome}$ is Minecraft's biome temperature. The formula treats $
 Each core column is one **cell** of the grid. Every cell has:
 
 - a temperature $T$ (°C) and a heat capacity $C$: $16 \times 2^\text{tier}$ HU/°C for a nuclear core hatch (it belongs to the hatch's structure, like its $8000 \times 2^\text{tier}$ L tank, whatever fluid it holds), 32 HU/°C for every other cell;
-- interaction probabilities for fast and thermal neutrons: absorption $p_a$ and scattering $p_s$;
+- interaction probabilities for fast and thermal neutrons: absorption $p_a$ and scattering $p_s$, and for fast neutrons also reflection $p_r$;
 - a fast-neutron moderation probability $p_m$;
 - a heat-transfer coefficient $c$ used for conduction;
 - an insulation dampening factor $\delta \in [0,1]$ (non-zero only for insulators).
@@ -265,17 +265,18 @@ Each ray carries its full neutron count as a single packet. Starting from its so
 
 1. If the cell is outside the grid or a cut corner, the packet escapes. (If the optional `wall_reflection_chance` is non-zero, the packet may instead reverse direction at the outer wall; the default is 0.)
 2. The cell registers the packet as fast flux.
-3. With probability $p_\text{int} = \min(1,\ p_a + p_s)$ the packet **interacts**; otherwise it passes through unchanged.
-4. An interacting packet is **absorbed** with probability $p_a/p_\text{int}$. Absorption ends the ray, deposits 8 HU per neutron (unless the cell is a perfect insulator, §8.3), and, in graphite, stores Wigner energy (§5.5).
-5. Otherwise the packet is **scattered**. If the cell is a near-perfect reflector ($p_s \ge 0.90$ and $p_a \le 0.05$) the ray reverses direction; otherwise it takes a new uniformly random cardinal direction, which may be its original direction.
-6. A scattered packet is then **moderated** with probability $p_m$. Moderation ends the ray, deposits 8 HU per neutron, and adds the packet to the thermal pool of that cell.
+3. The packet is **absorbed** with probability $p_a$, **reflected** with probability $p_r$, **scattered** with probability $p_s$, and otherwise passes through unchanged. (If $p_a + p_r + p_s$ exceeds 1, the three share the whole in proportion.)
+4. Absorption ends the ray, deposits 8 HU per neutron (unless the cell is a perfect insulator, §8.3), and, in graphite, stores Wigner energy (§5.5).
+5. A reflected packet reverses direction: it goes straight back the way it came, and stays fast.
+6. A scattered packet takes a new uniformly random cardinal direction, which may be its original direction or straight back. It is then **moderated** with probability $p_m$. Moderation ends the ray, deposits 8 HU per neutron, and adds the packet to the thermal pool of that cell.
 
 A ray that exhausts its step budget is counted as escaped.
 
 Two consequences are worth stating explicitly:
 
-- **Specular reflection.** Components with very high scattering and very low absorption (IC2 neutron reflectors, graphite, carbon and beryllium moderators) send fast rays straight back toward where they came from. A fuel cell flanked by such cells receives its neighbours' rays reflected back toward them, and its own rays reflected back past itself.
-- **Moderation happens only after scattering.** A cell with high $p_m$ but low $p_s$ thermalizes little, because most packets never interact with it. Effective moderators combine high scattering with substantial moderation.
+- **Specular reflection.** Reflectors are the components with the highest $p_r$, and they send most fast rays straight back toward where they came from. A fuel cell flanked by reflectors receives its own rays back, and its neighbours' rays reflected back toward them. Moderators reflect a little; most other components not at all.
+- **Moderation happens only after scattering.** Reflected packets are never moderated, and a cell with high $p_m$ but low $p_s$ thermalizes little, because most packets are never scattered by it. Effective moderators combine high scattering with substantial moderation.
+- **Only fast neutrons reflect.** Thermal neutrons have no direction (§4.4): only the outer wall can send them back, through `wall_reflection_chance`.
 
 ### 4.4 Thermal diffusion
 
@@ -584,15 +585,17 @@ for each neutron type, with $a_\text{max}$ the material's maximum absorption for
 
 ### 7.3 Combined column properties
 
-A control rod occupies part of the column's interaction probability. The rest is available to the column's contents. For a column with base probabilities $p_a, p_s, p_m$ (from its top element):
+A control rod occupies part of the column's interaction probability. The rest is available to the column's contents. For a column with base probabilities $p_a, p_r, p_s, p_m$ (from its top element):
 
 $$p_a^\text{col} = \min\!\big(1,\ p_a^\text{rod} + p_{a}^\text{fol} + (1 - p_a^\text{rod} - p_m^\text{fol})\,p_a\big)$$
 
 $$p_s^\text{col} = \min\!\big(1,\ p_s^\text{rod} + p_{s}^\text{fol} + (1 - p_a^\text{rod} - p_m^\text{fol})\,p_s\big)$$
 
+$$p_r^\text{col} = \min\!\big(1,\ p_{r}^\text{fol} + (1 - p_{a,f}^\text{rod} - p_m^\text{fol})\,p_r\big)$$
+
 $$p_m^\text{col} = \min\!\big(1,\ p_m^\text{fol} + (1 - p_{a,f}^\text{rod} - p_m^\text{fol})\,p_m\big)$$
 
-where the "fol" terms are the moderator follower's contributions (§7.5; zero for a standard hatch), and $p_m^\text{fol}$ applies to fast neutrons only. The rod therefore does two things at once: it adds absorption, and it *shields* the column's own contents in proportion to its insertion.
+where the "fol" terms are the moderator follower's contributions (§7.5; zero for a standard hatch), and $p_m^\text{fol}$ and the reflections apply to fast neutrons only.  The rod itself reflects nothing. The rod therefore does two things at once: it adds absorption, and it *shields* the column's own contents in proportion to its insertion.
 
 ### 7.4 Absorption partition in fuel columns
 
@@ -606,7 +609,7 @@ Only $n_\text{fuel}$ feeds the fuel's chain reaction and wear. Rod-absorbed ther
 
 The advanced control rod hatch has a second slot for a moderator item. The moderator is withdrawn as the rod is inserted: its insertion is $1 - x$. Its contributions are its own probabilities scaled by $(1 - x)$:
 
-$$p_m^\text{fol} = (1-x)\,m, \qquad p_{a}^\text{fol} = (1-x)\,a, \qquad p_{s}^\text{fol} = (1-x)\,s$$
+$$p_m^\text{fol} = (1-x)\,m, \qquad p_{a}^\text{fol} = (1-x)\,a, \qquad p_{r}^\text{fol} = (1-x)\,r, \qquad p_{s}^\text{fol} = (1-x)\,s$$
 
 With the rod withdrawn, the column gains a moderator in place of the absorber; with the rod inserted, the moderator is removed. This doubles the control authority of a single column: withdrawal both removes absorption and adds moderation.
 
@@ -630,29 +633,29 @@ All items in this section are held in a nuclear core bus.
 
 ### 8.1 Reflectors
 
-| Reflector | $p_a$ (fast / thermal) | $p_s$ (fast / thermal) | $p_m$ | $c$ | Durability | Fast scatter mode |
+| Reflector | $p_a$ (fast / thermal) | $p_r$ (fast) | $p_s$ (fast / thermal) | $p_m$ | $c$ | Durability |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Gold plate | 0.15 / 0.10 | 0.85 / 0.90 | 0 | 0.30 | indestructible | random |
-| Stainless steel plate | 0.10 / 0.05 | 0.90 / 0.95 | 0 | 0.20 | indestructible | random |
-| Tungsten carbide plate | 0.07 / 0.02 | 0.93 / 0.98 | 0 | 0.10 | indestructible | random |
-| Neutron Reflector (IC2) | 0.01 / 0.02 | 0.95 / 0.98 | 0.20 | 0.15 | 10 000 | reverse |
-| Thick Neutron Reflector | 0.005 / 0.01 | 0.98 / 0.99 | 0.25 | 0.20 | 40 000 | reverse |
+| Gold plate | 0.15 / 0.10 | 0.65 | 0.20 / 0.90 | 0 | 0.30 | indestructible |
+| Stainless steel plate | 0.10 / 0.05 | 0.70 | 0.20 / 0.95 | 0 | 0.20 | indestructible |
+| Tungsten carbide plate | 0.07 / 0.02 | 0.75 | 0.18 / 0.98 | 0 | 0.10 | indestructible |
+| Neutron Reflector (IC2) | 0.01 / 0.02 | 0.85 | 0.10 / 0.98 | 0.20 | 0.15 | 10 000 |
+| Thick Neutron Reflector | 0.005 / 0.01 | 0.90 | 0.08 / 0.99 | 0.25 | 0.20 | 40 000 |
 
-Metal plates are pure scatterers with moderate absorption; they redirect fast rays randomly and carry thermal neutrons. IC2 reflectors are near-lossless, return fast rays along their incoming path (§4.3), and thermalize a fraction of them in place.
+All reflectors send most fast rays straight back (§4.3), and carry thermal neutrons on. Metal plates are indestructible but absorb more; IC2 reflectors are near-lossless and reflect the most, and thermalize a fraction of the rays they scatter.
 
-**Wear.** Each scattering callback on a reflector cell has a 1-in-20 chance to remove 1 point of durability. Callbacks occur per scattered fast packet and once per cycle for the aggregate thermal scattering, so wear grows with the number of distinct rays scattered, not with the number of neutrons. A reflector at zero durability is consumed.
+**Wear.** Each scattering callback on a reflector cell has a 1-in-20 chance to remove 1 point of durability. Callbacks occur per reflected or scattered fast packet and once per cycle for the aggregate thermal scattering, so wear grows with the number of distinct rays met, not with the number of neutrons. A reflector at zero durability is consumed.
 
 ### 8.2 Moderators
 
-| Moderator | $p_a$ (fast / thermal) | $p_s$ (fast / thermal) | $p_m$ | $c$ | Durability | Spent product | Wigner |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Graphite (long rod) | 0.002 / 0.009 | 0.93 / 0.621 | 0.50 | 0.05 | 80 000 | ash | yes |
-| Carbon (long rod) | 0.003 / 0.012 | 0.90 / 0.60 | 0.45 | 0.05 | 10 000 | ash | no |
-| Beryllium (long rod) | 0.001 / 0.004 | 0.96 / 0.85 | 0.65 | 0.15 | 240 000 | — | no |
+| Moderator | $p_a$ (fast / thermal) | $p_r$ (fast) | $p_s$ (fast / thermal) | $p_m$ | $c$ | Durability | Spent product | Wigner |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Graphite (long rod) | 0.002 / 0.009 | 0.10 | 0.83 / 0.621 | 0.50 | 0.05 | 80 000 | ash | yes |
+| Carbon (long rod) | 0.003 / 0.012 | 0.10 | 0.80 / 0.60 | 0.45 | 0.05 | 10 000 | ash | no |
+| Beryllium (long rod) | 0.001 / 0.004 | 0.15 | 0.81 / 0.85 | 0.65 | 0.15 | 240 000 | — | no |
 
 Graphite long rods are made from graphite dust in the extruder and forming press (§7.1).
 
-All three have fast scattering ≥ 0.90 and absorption ≤ 0.05 and therefore reverse fast rays (§4.3). A fast packet entering a graphite cell has a 93.2 % chance to interact; of those, 99.8 % scatter, and of the scattered, 50 % are thermalized in place. Unthermalized packets are sent back toward their source.
+Moderators mostly scatter fast rays, and reflect a few (§4.3). Of the fast packets entering a graphite cell, 0.2 % are absorbed, 10 % reflected straight back and 83 % scattered, and half of the scattered are thermalized in place, so 41.5 % of all arriving packets become thermal there. The rest of the scattered leave in random directions.
 
 The thermal scattering of a moderator determines how well it carries thermal neutrons onward once produced. Graphite passes 61.5 % of arriving thermal neutrons per iteration, beryllium 84.7 %.
 
@@ -1307,7 +1310,7 @@ The following keys exist in the default configuration or component data but have
 | Reactivity (rising) | $R = 0.5 + 0.5\sin(\tfrac{\pi}{2}T/T_\text{pk})$ |
 | Reactivity (falling) | $R = 0.05 + 0.475\,(1 + \cos\pi p)$, $p = (T - T_\text{pk})/(T_\text{fl} - T_\text{pk})$ |
 | $T_{10}$ | $T_\text{pk} + 0.8526\,(T_\text{fl} - T_\text{pk})$ |
-| Fast interaction | $p_\text{int} = \min(1, p_a + p_s)$; absorb w.p. $p_a/p_\text{int}$; else scatter, then moderate w.p. $p_m$ |
+| Fast interaction | absorb w.p. $p_a$, reflect (straight back) w.p. $p_r$, scatter (random direction, then moderate w.p. $p_m$) w.p. $p_s$, else pass; scaled to 1 if $p_a + p_r + p_s > 1$ |
 | Thermal step | abs $= \nu p_a$; scatter $= (\nu - \text{abs})p_s$ to 8 neighbours (1/6, 1/12); remainder lost |
 | Conduction per sub-step ($N \ge 5$, 32 HU/°C columns) | $\Delta T = m_G\,(T_A - T_B)\,\tfrac{c_A + c_B}{2}\,\tfrac{\Delta t}{N}\,(1 - \max\delta)$ |
 | Boundary loss per face per sub-step | $\Delta T = (T - T_\text{amb})\,\tfrac{c\,\Delta t}{2N}\,(1 - \delta)$ |
