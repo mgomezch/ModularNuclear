@@ -33,6 +33,42 @@ public class ColorUtilsTest {
     public void defaultsAreTheDesignedColours() {
         assertEquals(0xFF404040, ColorUtils.neiInk.getColor());
         assertEquals(0x28000000, ColorUtils.neiPlotGrid.getColor());
+        assertEquals(0xFFFFAA00, ColorUtils.plotCoreTemp.getColor());
+    }
+
+    /**
+     * Tailwind CSS's slate and gray darks and its stock accents, the look of a GUI nobody designed: none of our
+     * defaults is one. See Note [Resource packs restyle our GUIs]
+     */
+    @Test
+    public void noDefaultIsATailwindColour() throws IllegalAccessException {
+        Set<Integer> tailwind = Set.of(
+            0x0F172A,
+            0x1E293B,
+            0x334155,
+            0x475569, // slate 900 to 600
+            0x030712,
+            0x111827,
+            0x1F2937,
+            0x374151,
+            0x4B5563,
+            0x6B7280,
+            0x9CA3AF,
+            0xE5E7EB, // gray
+            0x3B82F6,
+            0x38BDF8,
+            0x06B6D4,
+            0x6366F1,
+            0xA855F7,
+            0x10B981,
+            0xF97316,
+            0xEAB308,
+            0xEF4444);
+        for (Field field : ColorUtils.class.getFields()) {
+            if (field.getType() != ColorResource.class) continue;
+            int rgb = ((ColorResource) field.get(null)).getColor() & 0xFFFFFF;
+            assertTrue(!tailwind.contains(rgb), () -> field.getName() + " defaults to " + Integer.toHexString(rgb));
+        }
     }
 
     @Test
