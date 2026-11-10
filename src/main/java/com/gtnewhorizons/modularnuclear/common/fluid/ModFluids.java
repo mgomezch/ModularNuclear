@@ -11,7 +11,7 @@ import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
-import com.gtnewhorizons.modularnuclear.client.texture.HueShiftedSprite;
+import com.gtnewhorizons.modularnuclear.client.texture.TintedSprite;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
@@ -133,8 +133,19 @@ public class ModFluids {
     @SideOnly(Side.CLIENT)
     public static class ClientFluidTextureHandler {
 
-        /** 15 degrees of hue, from water's blue toward purple. */
-        private static final float HEAVY_WATER_HUE_SHIFT = 15.0f / 360.0f;
+        /**
+         * Heavy water's tint: 23 degrees of hue from water's blue toward purple, the ripples and their opacity
+         * pushed out so they stay visible, and a tenth of the way toward a deep violet. See Note [Tinting
+         * Minecraft's water]
+         */
+        private static final TintedSprite.Tint HEAVY_WATER = new TintedSprite.Tint(
+            23.0f / 360.0f,
+            3.0f,
+            2.5f,
+            1.0f,
+            1.0f,
+            0x38007C,
+            0.10f);
 
         @SubscribeEvent
         public void onTextureStitch(TextureStitchEvent.Pre event) {
@@ -157,17 +168,17 @@ public class ModFluids {
         }
 
         /**
-         * Heavy water's look: Minecraft's water, as the loaded resource packs have it, turned a little purple
-         * (HEAVY_WATER_HUE_SHIFT) when the atlas is stitched.
+         * Heavy water's look: Minecraft's water, as the loaded resource packs have it, tinted purple (HEAVY_WATER)
+         * when the atlas is stitched.
          */
         private IIcon tintedWater(TextureMap map, String name, String water) {
             String icon = "modularnuclear:fluids/" + name;
             map.setTextureEntry(
                 icon,
-                new HueShiftedSprite(
+                new TintedSprite(
                     icon,
                     new ResourceLocation("minecraft", "textures/blocks/" + water + ".png"),
-                    HEAVY_WATER_HUE_SHIFT));
+                    HEAVY_WATER));
             return map.getTextureExtry(icon);
         }
 
