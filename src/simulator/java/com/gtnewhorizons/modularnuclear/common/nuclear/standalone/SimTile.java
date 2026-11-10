@@ -409,8 +409,9 @@ public class SimTile implements INuclearTile {
         neutronSourceBeamRate = recipe == null ? 0 : recipe.rate;
     }
 
+    /** The recipe of the Source Chamber feeding this tile, or null; a tile painted over with anything else has none. */
     public SourceChamber.Recipe getSourceChamberRecipe() {
-        return sourceChamberRecipe;
+        return isNeutronSource() ? sourceChamberRecipe : null;
     }
 
     public int getSourceChamberTier() {
@@ -419,7 +420,7 @@ public class SimTile implements INuclearTile {
 
     /** EU/t the Source Chamber feeding this tile draws, 0 without one. */
     public long getSourceChamberEuPerTick() {
-        return sourceChamberRecipe == null ? 0 : SourceChamber.practicalVoltage(sourceChamberTier);
+        return getSourceChamberRecipe() == null ? 0 : SourceChamber.practicalVoltage(sourceChamberTier);
     }
 
     @Override

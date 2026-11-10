@@ -114,7 +114,8 @@ if (!failed) {
     sim.initGrid(5, 5, 1);
     sim.loadLayout("RH,RH,RH,RH,RH;RH,RH,RH,RH,RH;RH,RH,NS,RH,RH;RH,RH,RH,RH,RH;RH,RH,RH,RH,RH", false);
     sim.setSourceChamber(2, 2, "CF", "", false);
-    sim.stepTicks(400);
+    // A few cycles: an 18,000 n/s beam overheats a 5x5 of HV plates within a few hundred ticks
+    sim.stepTicks(40);
     const st = sim.getState();
     const ns = st.tiles.find(t => t.type === "NEUTRON_SOURCE");
     const pe = st.powerEstimate;
