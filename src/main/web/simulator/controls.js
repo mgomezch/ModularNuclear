@@ -159,6 +159,14 @@ function renderInspector(t) {
               <button type="button" onclick="updateTileControlRodInsertion(${t.x}, ${t.y}, 100)" style="flex:1; padding:2px; font-size:0.68rem; min-height:24px; background:#b91c1c; border-color:#dc2626;">100% (SCRAM)</button>
             </div>
           </div>
+          <div style="margin-bottom:6px;">
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:2px;" title="An advanced control rod hatch holds a moderator below the rod: it slides in as the rod comes out, at (100 − insertion)%.">Moderator follower (advanced hatch):</div>
+            <select onchange="changeTileControlRodFollower(${t.x}, ${t.y}, this.value)" style="width:100%; font-size:0.75rem; padding:3px 6px; height:auto; min-height:28px;" aria-label="Moderator follower">
+              <option value="" ${!t.controlRodFollower ? 'selected' : ''}>None (plain hatch)</option>
+              ${CONTROL_ROD_FOLLOWERS.map(f => `<option value="${f.code}" ${f.code === t.controlRodFollower ? 'selected' : ''}>${f.name}</option>`).join('')}
+            </select>
+            ${t.controlRodFollower ? `<div class="stat-row" style="font-size:0.72rem; margin-top:3px;"><span>Follower in:</span><span class="stat-val" style="color:#a78bfa;">${100 - Math.round(t.controlRodEffectiveInsertion != null ? t.controlRodEffectiveInsertion : ins)}% · moderates ${(t.controlRodFollowerModeration || 0).toFixed(1)}% of fast</span></div>` : ''}
+          </div>
           <div style="border-top:1px dashed #373737; padding-top:4px; margin-top:4px; font-size:0.72rem;">
             <div class="stat-row" style="margin-bottom:1px;"><span>Rod fast absorbed:</span><span class="stat-val" style="color:#fbbf24;">${Math.round(fastAbs * cps).toLocaleString()} n/s (${fastAbs.toLocaleString()} /cycle)</span></div>
             <div class="stat-row" style="margin-bottom:1px;"><span>Rod thermal absorbed:</span><span class="stat-val" style="color:#4ade80;">${Math.round(thermAbs * cps).toLocaleString()} n/s (${thermAbs.toLocaleString()} /cycle)</span></div>
@@ -672,6 +680,21 @@ function sourceChamberHtml(t, cps) {
 async function changeTileSourceChamber(x, y, recipe, tier) {
   if (isWasmMode && wasmSim) {
     wasmSim.setSourceChamber(x, y, recipe, tier);
+    currentState = wasmSim.getState();
+    renderUI();
+  }
+}
+
+// Moderators an advanced control rod hatch can hold as a follower (the moderator tile types)
+const CONTROL_ROD_FOLLOWERS = [
+  { code: "MG", name: "Graphite moderator" },
+  { code: "MC", name: "Carbon moderator" },
+  { code: "MB", name: "Beryllium moderator" },
+];
+
+async function changeTileControlRodFollower(x, y, code) {
+  if (isWasmMode && wasmSim) {
+    wasmSim.setControlRodFollower(x, y, code);
     currentState = wasmSim.getState();
     renderUI();
   }

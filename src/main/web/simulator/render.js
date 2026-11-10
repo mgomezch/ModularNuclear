@@ -628,7 +628,7 @@ function renderRodsList(cps) {
     const abs = Math.round(((t.controlRodFastAbsorbed || 0) + (t.controlRodThermalAbsorbed || 0)) * cps);
     return `<div class="rod-row">` +
       `<button type="button" class="rod-xy" onclick="selectCell(${t.x}, ${t.y}); dockReveal('inspect')" title="Inspect this hatch">${t.x},${t.y}</button>` +
-      `<span class="rod-type" title="${type}">${type}</span>` +
+      `<span class="rod-type" title="${type}${t.controlRodFollowerName ? ", follower: " + t.controlRodFollowerName : ""}">${type}${t.controlRodFollower ? " +" + t.controlRodFollower : ""}</span>` +
       `<span class="rod-ins"><span class="rod-ins-bar" style="width:${ins}%"></span><span class="rod-ins-txt">${ins}%</span></span>` +
       `<span class="rod-abs" title="Absorbed by this rod">${abs.toLocaleString()} n/s</span>` +
       `<button type="button" class="btn-xs" onclick="updateTileControlRodInsertion(${t.x}, ${t.y}, 0)" title="Retract">0</button>` +

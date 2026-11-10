@@ -511,6 +511,14 @@ public class NuclearSimWasmBridge {
         }
     }
 
+    /** Makes a cell's rod hatch an advanced one with a moderator follower (MG, MC, MB), or a plain one (""). */
+    @Export(name = "setControlRodFollower")
+    public static void setControlRodFollower(int x, int y, String moderatorCode) {
+        if (grid != null) {
+            grid.setControlRodFollower(x, y, moderatorCode);
+        }
+    }
+
     /** Feeds a neutron source from a Source Chamber. See Note [Source Chamber beams]. */
     @Export(name = "setSourceChamber")
     public static void setSourceChamber(int x, int y, String recipeCode, String tierName) {
@@ -1832,6 +1840,17 @@ public class NuclearSimWasmBridge {
                 sb.append("\"controlRodInsertion\":")
                     .append(t.getControlRodInsertion())
                     .append(",");
+                if (t.getControlRodFollower() != null) {
+                    sb.append("\"controlRodFollower\":\"")
+                        .append(t.getControlRodFollower().code)
+                        .append("\",");
+                    sb.append("\"controlRodFollowerName\":\"")
+                        .append(escapeJson(t.getControlRodFollower().displayName))
+                        .append("\",");
+                    sb.append("\"controlRodFollowerModeration\":")
+                        .append(fmt1(100.0 * t.getControlRodFollowerModeration()))
+                        .append(",");
+                }
                 sb.append("\"controlRodFastAbsorbed\":")
                     .append(t.getLastControlRodFastAbsorbed())
                     .append(",");

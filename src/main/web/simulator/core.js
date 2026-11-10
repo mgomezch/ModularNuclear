@@ -163,6 +163,7 @@ async function initEngine() {
           }
           if (t.hasControlRod) {
             wasmSim.setControlRod(t.x, t.y, true, t.controlRodType || "BORON", t.controlRodInsertion || 0, false);
+            if (t.controlRodFollower) wasmSim.setControlRodFollower(t.x, t.y, t.controlRodFollower, false);
           }
           if (t.sourceChamber) {
             wasmSim.setSourceChamber(t.x, t.y, t.sourceChamber, t.sourceChamberTier || "", false);

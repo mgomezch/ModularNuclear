@@ -828,6 +828,7 @@ public class StandaloneNuclearGrid {
                 if (tile.hasControlRod()) {
                     tile.setHasControlRod(false);
                     tile.setControlRodType(SimTile.ControlRodType.NONE);
+                    tile.setControlRodFollower(null);
                 }
             }
         }
@@ -1541,6 +1542,12 @@ public class StandaloneNuclearGrid {
         }
     }
 
+    /**
+     * One layout token: a tile code, then optionally "+CR" and colon-separated rod details in any order: a rod type
+     * (BORON, B, CADMIUM, CD, ...), an insertion (0 to 100), and a moderator tile code (MG, MC, MB) for an advanced
+     * hatch's follower, e.g. "U4+CR:BORON:40:MG". "CR..." alone is a rod under an empty cell. A neutron source takes
+     * its Source Chamber as "NS:CF" or "NS:BE:UV".
+     */
     public void parseTileAndControlRod(int x, int y, String rawToken) {
         if (rawToken == null || rawToken.trim()
             .isEmpty()) return;
@@ -1575,6 +1582,7 @@ public class StandaloneNuclearGrid {
             boolean hasRod = true;
             SimTile.ControlRodType rodType = SimTile.ControlRodType.NONE;
             int insertion = 0;
+            SimTile.TileType follower = null;
 
             String crClean = crPart.toUpperCase();
             if (crClean.startsWith("CR:") || crClean.startsWith("CR_")) {
@@ -1590,7 +1598,11 @@ public class StandaloneNuclearGrid {
                         insertion = Integer.parseInt(ct);
                     } catch (NumberFormatException e) {
                         SimTile.ControlRodType parsedRod = SimTile.ControlRodType.fromName(ct);
-                        if (parsedRod != SimTile.ControlRodType.NONE) {
+                        SimTile.TileType asTile = SimTile.TileType.fromCode(ct);
+                        if (parsedRod == SimTile.ControlRodType.NONE && SimTile.contentOf(asTile)
+                            .moderator() != null) {
+                            follower = asTile; // an advanced hatch's moderator follower: MG, MC, MB
+                        } else if (parsedRod != SimTile.ControlRodType.NONE) {
                             rodType = parsedRod;
                         } else {
                             rodType = switch (ct) {
@@ -1607,6 +1619,7 @@ public class StandaloneNuclearGrid {
                 }
             }
             setControlRod(x, y, hasRod, rodType, insertion);
+            grid[x][y].setControlRodFollower(follower);
         } else {
             setControlRod(x, y, false, SimTile.ControlRodType.NONE, 0);
         }
@@ -1636,6 +1649,9 @@ public class StandaloneNuclearGrid {
                     }
                     if (tile.getControlRodInsertion() > 0) {
                         code = code + ":" + tile.getControlRodInsertion();
+                    }
+                    if (tile.getControlRodFollower() != null) {
+                        code = code + ":" + tile.getControlRodFollower().code;
                     }
                 }
                 sb.append(code);
@@ -2543,8 +2559,22 @@ public class StandaloneNuclearGrid {
                 tile.setHasControlRod(hasRod);
                 tile.setControlRodType(type != null ? type : SimTile.ControlRodType.NONE);
                 tile.setControlRodInsertion(Math.max(0, Math.min(100, insertion)));
+                if (!hasRod) tile.setControlRodFollower(null);
             }
         }
+    }
+
+    /**
+     * Makes a cell's control rod hatch an advanced one holding a moderator follower: a moderator tile code (MG, MC,
+     * MB),
+     * or empty for a plain hatch. A cell with no rod hatch takes none.
+     */
+    public void setControlRodFollower(int x, int y, String moderatorCode) {
+        if (x < 0 || x >= width || y < 0 || y >= height) return;
+        SimTile tile = grid[x][y];
+        if (tile == null || !tile.hasControlRod()) return;
+        tile.setControlRodFollower(
+            moderatorCode == null || moderatorCode.isEmpty() ? null : SimTile.TileType.fromCode(moderatorCode));
     }
 
     public void setAllControlRodsInsertion(int insertion) {

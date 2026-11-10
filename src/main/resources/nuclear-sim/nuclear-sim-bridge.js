@@ -368,6 +368,14 @@ class NuclearSimWasm {
         if (notify && this.onStateChange) this.onStateChange(this.getState());
     }
 
+    /** Makes a cell's rod hatch an advanced one holding a moderator follower ("MG", "MC", "MB"), or a plain one (""). */
+    setControlRodFollower(x, y, moderatorCode, notify = true) {
+        if (this.inst.exports.setControlRodFollower) {
+            this.inst.exports.setControlRodFollower(x, y, this.createJavaString(moderatorCode || ""));
+        }
+        if (notify && this.onStateChange) this.onStateChange(this.getState());
+    }
+
     /** Feeds a neutron source tile from a Source Chamber: recipe "CF", "BE" or "" (none), tier name or "" (the recipe's own). */
     setSourceChamber(x, y, recipe, tier, notify = true) {
         if (this.inst.exports.setSourceChamber) {

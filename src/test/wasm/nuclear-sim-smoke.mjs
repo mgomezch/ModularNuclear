@@ -133,4 +133,28 @@ if (!failed) {
   }
 }
 
+// An advanced control rod hatch's moderator follower comes in as the rod goes out
+if (!failed) {
+  try {
+    sim.initGrid(5, 5, 1);
+    sim.loadLayout("U4,U4,U4,U4,U4;U4,U4,U4,U4,U4;U4,U4,CR:BORON:0,U4,U4;U4,U4,U4,U4,U4;U4,U4,U4,U4,U4", false);
+    sim.setControlRodFollower(2, 2, "MG", false);
+    let st = sim.getState();
+    const out = st.tiles.find(t => t.x === 2 && t.y === 2);
+    sim.setControlRod(2, 2, true, "BORON", 100, false);
+    st = sim.getState();
+    const inserted = st.tiles.find(t => t.x === 2 && t.y === 2);
+    if (out.controlRodFollower !== "MG" || !(out.controlRodFollowerModeration > 0) || inserted.controlRodFollowerModeration !== 0
+        || !st.layout.split(/[;,]/).includes("CR:BORON:100:MG")) {
+      failed++;
+      console.log(`FAIL rod follower: ${JSON.stringify({ out, inserted, layout: st.layout })}`);
+    } else {
+      console.log(`ok   rod follower (graphite moderates ${out.controlRodFollowerModeration}% withdrawn, 0% inserted)`);
+    }
+  } catch (err) {
+    failed++;
+    console.log(`FAIL rod follower: ${String(err).split("\n")[0]}`);
+  }
+}
+
 process.exit(failed ? 1 : 0);

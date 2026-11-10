@@ -831,12 +831,51 @@ public class SimTile implements INuclearTile {
         return (sum > 0.0) ? (pRod / sum) : 0.0;
     }
 
+    private TileType controlRodFollower;
+
+    /**
+     * The moderator an advanced control rod hatch holds as a follower, withdrawn as the rod goes in, or null for none
+     * (a plain hatch). Only the moderator tile types (MG, MC, MB) can be followers.
+     */
+    public void setControlRodFollower(TileType moderator) {
+        controlRodFollower = moderator != null && contentOf(moderator).moderator() != null ? moderator : null;
+    }
+
+    public TileType getControlRodFollower() {
+        return controlRodFollower;
+    }
+
+    private ComponentData.ModeratorData followerData() {
+        return hasControlRod && controlRodFollower != null ? contentOf(controlRodFollower).moderator() : null;
+    }
+
+    private double rodInsertion() {
+        return getEffectiveControlRodInsertion() / 100.0;
+    }
+
+    /** The follower's moderation, absorption and scattering, as the game's advanced hatch has them. */
+    public double getControlRodFollowerModeration() {
+        ComponentData.ModeratorData f = followerData();
+        return f != null ? TileTick.followerModeration(f, rodInsertion()) : 0.0;
+    }
+
+    private double followerAbsorption(NeutronType nType) {
+        ComponentData.ModeratorData f = followerData();
+        return f != null ? TileTick.followerAbsorption(f, rodInsertion(), nType) : 0.0;
+    }
+
+    private double followerScattering(NeutronType nType) {
+        ComponentData.ModeratorData f = followerData();
+        return f != null ? TileTick.followerScattering(f, rodInsertion(), nType) : 0.0;
+    }
+
     @Override
     public double getAbsorptionProbability(NeutronType nType) {
         double pBase = getBaseAbsorptionProbability(nType);
         if (hasControlRod) {
-            // The simulator's rod housings hold no moderator.
-            return TileTick.combinedAbsorption(pBase, getControlRodAbsorptionProbability(nType), 0.0, 0.0);
+            double pMod = nType == NeutronType.FAST ? getControlRodFollowerModeration() : 0.0;
+            return TileTick
+                .combinedAbsorption(pBase, getControlRodAbsorptionProbability(nType), pMod, followerAbsorption(nType));
         }
         return pBase;
     }
@@ -856,8 +895,13 @@ public class SimTile implements INuclearTile {
             double pRodScattering = rod != null
                 ? TileTick.rodScattering(rod, getEffectiveControlRodInsertion() / 100.0, nType)
                 : 0.0;
-            return TileTick
-                .combinedScattering(pBase, getControlRodAbsorptionProbability(nType), 0.0, pRodScattering, 0.0);
+            double pMod = nType == NeutronType.FAST ? getControlRodFollowerModeration() : 0.0;
+            return TileTick.combinedScattering(
+                pBase,
+                getControlRodAbsorptionProbability(nType),
+                pMod,
+                pRodScattering,
+                followerScattering(nType));
         }
         return pBase;
     }
@@ -868,7 +912,10 @@ public class SimTile implements INuclearTile {
         double pBase = (type == TileType.PASSAGE_CORE) ? CoolantPassage.moderation(passageLoopFluid)
             : TileProperties.moderation(getContent());
         if (hasControlRod) {
-            return TileTick.combinedModeration(pBase, getControlRodAbsorptionProbability(NeutronType.FAST), 0.0);
+            return TileTick.combinedModeration(
+                pBase,
+                getControlRodAbsorptionProbability(NeutronType.FAST),
+                getControlRodFollowerModeration());
         }
         return pBase;
     }
