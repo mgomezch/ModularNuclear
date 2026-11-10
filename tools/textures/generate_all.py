@@ -45,13 +45,10 @@ def main():
     # 3. Molten Corium Fluids (Still & Flowing animations)
     run_generator(tools_dir / "generate_corium.py")
 
-    # 4. Water Fluids (Heavy Water) via harmonic wave math
-    run_generator(tools_dir / "generate_water_fluids.py")
-
-    # 5. Nuclear Machine Casing (Pure procedural lead-shielded casing)
+    # 4. Nuclear Machine Casing (Pure procedural lead-shielded casing)
     run_generator(tools_dir / "generate_casing.py")
 
-    # 6. Radiovoltaic Plates (Pure procedural Si-Ge and SiC-Graphene wafers)
+    # 5. Radiovoltaic Plates (Pure procedural Si-Ge and SiC-Graphene wafers)
     run_generator(tools_dir / "generate_radiovoltaic_plates.py")
 
     dt = time.time() - t0

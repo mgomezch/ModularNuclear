@@ -3,12 +3,15 @@ package com.gtnewhorizons.modularnuclear.common.fluid;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.IIcon;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.TextureStitchEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
+
+import com.gtnewhorizons.modularnuclear.client.texture.HueShiftedSprite;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
@@ -130,14 +133,17 @@ public class ModFluids {
     @SideOnly(Side.CLIENT)
     public static class ClientFluidTextureHandler {
 
+        /** 15 degrees of hue, from water's blue toward purple. */
+        private static final float HEAVY_WATER_HUE_SHIFT = 15.0f / 360.0f;
+
         @SubscribeEvent
         public void onTextureStitch(TextureStitchEvent.Pre event) {
             if (event.map.getTextureType() == 0) { // terrain / blocks atlas
-                registerIcons(
-                    event.map,
-                    fluidHeavyWater,
-                    "modularnuclear:fluids/heavywater_still",
-                    "modularnuclear:fluids/heavywater_flow");
+                if (fluidHeavyWater != null) {
+                    fluidHeavyWater.setIcons(
+                        tintedWater(event.map, "heavywater_still", "water_still"),
+                        tintedWater(event.map, "heavywater_flow", "water_flow"));
+                }
                 for (Fluid steam : new Fluid[] { fluidHeavyWaterSteam, fluidSuperheatedHeavyWaterSteam,
                     fluidSupercriticalHeavyWaterSteam }) {
                     registerIcons(event.map, steam, "gregtech:fluids/fluid.steam", "gregtech:fluids/fluid.steam");
@@ -148,6 +154,21 @@ public class ModFluids {
                     "modularnuclear:fluids/corium_still",
                     "modularnuclear:fluids/corium_flow");
             }
+        }
+
+        /**
+         * Heavy water's look: Minecraft's water, as the loaded resource packs have it, turned a little purple
+         * (HEAVY_WATER_HUE_SHIFT) when the atlas is stitched.
+         */
+        private IIcon tintedWater(TextureMap map, String name, String water) {
+            String icon = "modularnuclear:fluids/" + name;
+            map.setTextureEntry(
+                icon,
+                new HueShiftedSprite(
+                    icon,
+                    new ResourceLocation("minecraft", "textures/blocks/" + water + ".png"),
+                    HEAVY_WATER_HUE_SHIFT));
+            return map.getTextureExtry(icon);
         }
 
         private void registerIcons(TextureMap map, Fluid fluid, String stillPath, String flowPath) {

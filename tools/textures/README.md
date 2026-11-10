@@ -5,7 +5,6 @@
 | `textures/gui/nei/long_arrow.png` | `generate_nei_atlas.py` |
 | `textures/blocks/OVERLAY_FRONT_FISSION_REACTOR.png`<br>`textures/blocks/OVERLAY_FRONT_FISSION_REACTOR_ACTIVE.png` | `generate_reactor_overlays.py` |
 | `textures/blocks/fluids/corium_still.png`<br>`textures/blocks/fluids/corium_flow.png` | `generate_corium.py` |
-| `textures/blocks/fluids/heavywater_*` | `generate_water_fluids.py` |
 | `textures/blocks/MACHINE_CASING_NUCLEAR.png` | `generate_casing.py` |
 | `textures/items/gt.radiovoltaic.plate.hv.png`<br>`textures/items/gt.radiovoltaic.plate.ev.png` | `generate_radiovoltaic_plates.py` |
 
@@ -25,3 +24,5 @@ Or from mgomezch's `nh-dev` "monorepo" root:
 ```bash
 make sim-textures
 ```
+
+Heavy water has no texture of its own: it is Minecraft's water, as the loaded resource packs have it, with its hue turned toward purple when textures load (`HueShiftedSprite`, set up in `ModFluids`).
