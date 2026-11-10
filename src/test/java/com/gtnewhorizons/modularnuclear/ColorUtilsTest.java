@@ -37,12 +37,12 @@ public class ColorUtilsTest {
     }
 
     /**
-     * Tailwind CSS's slate and gray darks and its stock accents, the look of a GUI nobody designed: none of our
-     * defaults is one. See Note [Resource packs restyle our GUIs]
+     * The stock web palette's slate and gray darks and its usual accents, the generic dark blue-teal look of a GUI
+     * nobody designed for this game: none of our defaults is one. See Note [Resource packs restyle our GUIs]
      */
     @Test
-    public void noDefaultIsATailwindColour() throws IllegalAccessException {
-        Set<Integer> tailwind = Set.of(
+    public void noDefaultIsAStockWebColour() throws IllegalAccessException {
+        Set<Integer> stockWeb = Set.of(
             0x0F172A,
             0x1E293B,
             0x334155,
@@ -67,7 +67,7 @@ public class ColorUtilsTest {
         for (Field field : ColorUtils.class.getFields()) {
             if (field.getType() != ColorResource.class) continue;
             int rgb = ((ColorResource) field.get(null)).getColor() & 0xFFFFFF;
-            assertTrue(!tailwind.contains(rgb), () -> field.getName() + " defaults to " + Integer.toHexString(rgb));
+            assertTrue(!stockWeb.contains(rgb), () -> field.getName() + " defaults to " + Integer.toHexString(rgb));
         }
     }
 
