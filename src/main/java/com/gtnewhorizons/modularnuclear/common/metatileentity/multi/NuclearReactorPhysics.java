@@ -411,6 +411,16 @@ public class NuclearReactorPhysics {
         return pBase;
     }
 
+    /** The share of a cell's absorbed neutrons its rod housing takes (see {@link TileTick#rodShareOfAbsorption}). */
+    public static double rodShareOfAbsorption(MTEHatchNuclearControlRod rod, double pBase, NeutronType type) {
+        double pMod = (type == NeutronType.FAST) ? rod.getModeratorProbability() : 0.0;
+        return TileTick.rodShareOfAbsorption(
+            pBase,
+            rod.getAbsorptionProbability(type),
+            pMod,
+            rod.getModeratorAbsorptionProbability(type));
+    }
+
     public static double getBaseScatteringProbability(MTENuclearReactor reactor, NuclearGridTile tile,
         NeutronType type) {
         if (tile.isBus() || tile.isHatch()) {
@@ -486,9 +496,9 @@ public class NuclearReactorPhysics {
         if (count <= 0) return;
         if (tile.hasControlRod()) {
             MTEHatchNuclearControlRod rod = tile.getBottomControlRod();
-            double pRod = rod.getAbsorptionProbability(type);
-            double pBase = getBaseAbsorptionProbability(reactor, tile, type);
-            int nRod = TileTick.rodShareOfAbsorbed(count, pBase, pRod);
+            int nRod = TileTick.rodShareOfAbsorbed(
+                count,
+                rodShareOfAbsorption(rod, getBaseAbsorptionProbability(reactor, tile, type), type));
             int nBase = count - nRod;
 
             if (nRod > 0) {

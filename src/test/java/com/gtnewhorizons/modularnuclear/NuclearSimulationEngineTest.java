@@ -7999,7 +7999,8 @@ public class NuclearSimulationEngineTest {
         double pBaseThermal = simTileFuel.getBaseAbsorptionProbability(NeutronType.THERMAL);
         double pRodThermal = simTileFuel.getControlRodAbsorptionProbability(NeutronType.THERMAL);
         assertEquals(0.85, pRodThermal, 1e-6);
-        double expectedFrac = pRodThermal / (pBaseThermal + pRodThermal);
+        // The rod acts first: the fuel only absorbs what it lets through
+        double expectedFrac = pRodThermal / (pRodThermal + (1.0 - pRodThermal) * pBaseThermal);
         assertEquals(expectedFrac, simTileFuel.getControlRodAbsorptionFraction(NeutronType.THERMAL), 1e-6);
 
         // 2. Verify NuclearGridTile control rod absorption fraction with MTEHatchNuclearControlRod
@@ -8014,7 +8015,7 @@ public class NuclearSimulationEngineTest {
         assertTrue(gridTile.hasControlRod());
         double pGridBase = reactor.getBaseAbsorptionProbability(gridTile, NeutronType.THERMAL);
         double pGridRod = rodHatch.getAbsorptionProbability(NeutronType.THERMAL);
-        double expectedGridFrac = pGridRod / (pGridBase + pGridRod);
+        double expectedGridFrac = pGridRod / (pGridRod + (1.0 - pGridRod) * pGridBase);
         assertEquals(expectedGridFrac, gridTile.getControlRodAbsorptionFraction(NeutronType.THERMAL), 1e-6);
 
         // 3. Verify NuclearSimulationEngine heat generation:

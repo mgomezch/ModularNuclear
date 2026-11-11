@@ -502,19 +502,14 @@ public class NuclearGridTile implements INuclearTile {
             this.controlRodAbsorptionFractionFast = 0.0;
             this.controlRodAbsorptionFractionThermal = 0.0;
         } else {
-            double pRodFast = bottomControlRod.getAbsorptionProbability(NeutronType.FAST);
-            double pBaseFast = (reactor != null)
-                ? NuclearReactorPhysics.getBaseAbsorptionProbability(reactor, this, NeutronType.FAST)
-                : 0.01;
-            double sumFast = pBaseFast + pRodFast;
-            this.controlRodAbsorptionFractionFast = (sumFast > 0.0) ? (pRodFast / sumFast) : 0.0;
-
-            double pRodTherm = bottomControlRod.getAbsorptionProbability(NeutronType.THERMAL);
-            double pBaseTherm = (reactor != null)
-                ? NuclearReactorPhysics.getBaseAbsorptionProbability(reactor, this, NeutronType.THERMAL)
-                : 0.01;
-            double sumTherm = pBaseTherm + pRodTherm;
-            this.controlRodAbsorptionFractionThermal = (sumTherm > 0.0) ? (pRodTherm / sumTherm) : 0.0;
+            this.controlRodAbsorptionFractionFast = rodShareOfAbsorption(NeutronType.FAST);
+            this.controlRodAbsorptionFractionThermal = rodShareOfAbsorption(NeutronType.THERMAL);
         }
+    }
+
+    private double rodShareOfAbsorption(NeutronType type) {
+        double pBase = (reactor != null) ? NuclearReactorPhysics.getBaseAbsorptionProbability(reactor, this, type)
+            : 0.01;
+        return NuclearReactorPhysics.rodShareOfAbsorption(bottomControlRod, pBase, type);
     }
 }

@@ -192,10 +192,21 @@ public final class TileTick {
         return Math.min(1.0, pRodModeration + pBaseEff * pBase);
     }
 
-    /** How many of a cell's absorbed neutrons the control rod took, splitting in proportion to the probabilities. */
-    public static int rodShareOfAbsorbed(int count, double pBase, double pRod) {
-        double sum = pBase + pRod;
-        int nRod = (sum > 0) ? (int) Math.round(count * (pRod / sum)) : count / 2;
-        return Math.min(count, Math.max(0, nRod));
+    /**
+     * The share of a cell's absorbed neutrons that its rod housing (the rod and any moderator follower) took, as
+     * {@link #combinedAbsorption} draws them: the housing acts first, so the contents only absorb what it leaves. A
+     * fully inserted hafnium rod over a uranium cell takes 99.1% of the thermal neutrons the cell absorbs.
+     */
+    public static double rodShareOfAbsorption(double pBase, double pRod, double pRodModeration,
+        double pRodModeratorAbsorption) {
+        double housing = pRod + pRodModeratorAbsorption;
+        double contents = Math.max(0.0, 1.0 - pRod - pRodModeration) * pBase;
+        double sum = housing + contents;
+        return sum > 0.0 ? housing / sum : 0.0;
+    }
+
+    /** How many of a cell's absorbed neutrons the rod housing took, at its {@link #rodShareOfAbsorption}. */
+    public static int rodShareOfAbsorbed(int count, double rodShare) {
+        return Math.min(count, Math.max(0, (int) Math.round(count * rodShare)));
     }
 }

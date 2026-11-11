@@ -825,10 +825,12 @@ public class SimTile implements INuclearTile {
     @Override
     public double getControlRodAbsorptionFraction(NeutronType nType) {
         if (!hasControlRod) return 0.0;
-        double pRod = getControlRodAbsorptionProbability(nType);
-        double pBase = getBaseAbsorptionProbability(nType);
-        double sum = pBase + pRod;
-        return (sum > 0.0) ? (pRod / sum) : 0.0;
+        double pMod = nType == NeutronType.FAST ? getControlRodFollowerModeration() : 0.0;
+        return TileTick.rodShareOfAbsorption(
+            getBaseAbsorptionProbability(nType),
+            getControlRodAbsorptionProbability(nType),
+            pMod,
+            followerAbsorption(nType));
     }
 
     private TileType controlRodFollower;
@@ -947,10 +949,7 @@ public class SimTile implements INuclearTile {
     public void onNeutronAbsorbed(NeutronType nType, int count) {
         if (count <= 0) return;
         if (hasControlRod) {
-            int nRod = TileTick.rodShareOfAbsorbed(
-                count,
-                getBaseAbsorptionProbability(nType),
-                getControlRodAbsorptionProbability(nType));
+            int nRod = TileTick.rodShareOfAbsorbed(count, getControlRodAbsorptionFraction(nType));
             int nBase = count - nRod;
 
             if (nRod > 0) {
