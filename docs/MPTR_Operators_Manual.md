@@ -85,15 +85,15 @@ The formulas in this manual therefore name these parameters by symbol.  What to 
 
 | Symbol | Key | Scales | Used in | Value when this was written |
 | :--- | :--- | :--- | :--- | :--- |
-| $q_f$ | `fission_heat_per_neutron` | Prompt heat per emitted neutron (HU), and through it fuel's thermal absorption heat | §4.2, §5.1 | 121.227 |
-| $s$ | `spontaneous_heat_fraction` | Share of $q_f$ that a spontaneously emitted neutron deposits | §4.2 | 0.187 |
-| $g_t$ | `global_thermal_fission_multiplier` | Every fuel's thermal fission multiplier | §4.2 | 2.549 |
-| $m_Y$ | `neutron_yield_multiplier` | Every fuel's base yield | §4.2 | 28.959 |
+| $q_f$ | `fission_heat_per_neutron` | Prompt heat per emitted neutron (HU), and through it fuel's thermal absorption heat | §4.2, §5.1 | 237.269 |
+| $s$ | `spontaneous_heat_fraction` | Share of $q_f$ that a spontaneously emitted neutron deposits | §4.2 | 0.129 |
+| $g_t$ | `global_thermal_fission_multiplier` | Every fuel's thermal fission multiplier | §4.2 | 1.532 |
+| $m_Y$ | `neutron_yield_multiplier` | Every fuel's base yield | §4.2 | 22.849 |
 | $m_N$, $m_\phi$ | `<archetype>_nbase_multiplier`, `<archetype>_fission_multiplier` | Base yield and fission multipliers, by fuel archetype | §6.3 | see §6.3 |
-| $b$ | `fuel_burnup_multiplier` | All fuel wear.  Calibration sets it to $1/m_Y$, so that a higher yield doesn't by itself burn fuel faster | §6.4 | 0.0345 |
-| $m_G$ | `grid_conduction_multiplier` | Conduction between neighbouring columns | §5.2 | 37.985 |
-| $m_0$, $r$ | `coolant_passage_heat_transfer_multiplier`, `coolant_passage_heat_transfer_tier_ratio` | A passage's convective transfer into its loop at MV, and its growth per tier | §9.7 | 0.0699, 1.633 |
-| $m_\text{PHE}$ | `heatTransferMultiplier` (`devices.yaml`) | Every PHE's effective area | §9.7 | 1.2251 |
+| $b$ | `fuel_burnup_multiplier` | All fuel wear.  Calibration sets it to $1/m_Y$, so that a higher yield doesn't by itself burn fuel faster | §6.4 | 0.0438 |
+| $m_G$ | `grid_conduction_multiplier` | Conduction between neighbouring columns | §5.2 | 16.257 |
+| $m_0$, $r$ | `coolant_passage_heat_transfer_multiplier`, `coolant_passage_heat_transfer_tier_ratio` | A passage's convective transfer into its loop at MV, and its growth per tier | §9.7 | 0.0636, 1.712 |
+| $m_\text{PHE}$ | `heatTransferMultiplier` (`devices.yaml`) | Every PHE's effective area | §9.7 | 1.2826 |
 | $m_B$ | `beam_energy_to_fast_neutron_multiplier` | Neutrons a Source Chamber beam drives.  Set by hand for now | §8.5 | 0.05 |
 | $m_R$ | `radiovoltaic_efficiency_multiplier` | How far radiovoltaic plates beat plain steam at small scale.  Set by hand for now | §8.4 | 2.0 |
 
@@ -239,7 +239,7 @@ where:
 
 At the default $\Delta t = 0.25$ s, a change in absorptions moves the chain rate 63 % of the way per cycle.
 
-For example, with the values in §1.4, a Quad Uranium Fuel Rod (standard archetype) with $N_0 = 16$ n/s has $N_\text{eff} = 255$ n/s, so $\tilde N_0 = 63.75$ per cycle, and $\phi_t = 1.25 \times 1.251 \times 2.549 = 3.99$.  At $R = 1$ and with a steady 20 thermal neutrons absorbed per cycle, $C = 79.7$ and it emits about 143 neutrons per cycle.
+For example, with the values in §1.4, a Quad Uranium Fuel Rod (standard archetype) with $N_0 = 16$ n/s has $N_\text{eff} = 207$ n/s, so $\tilde N_0 = 51.75$ per cycle, and $\phi_t = 1.25 \times 1.768 \times 1.532 = 3.39$.  At $R = 1$ and with a steady 20 thermal neutrons absorbed per cycle, $C = 67.7$ and it emits about 119 neutrons per cycle.
 
 Every emitted neutron deposits prompt fission heat in the emitting cell: $q_f$ for each chain-reaction neutron, and $s\,q_f$ for each spontaneous one (§1.4).  The prompt heat is
 
@@ -472,12 +472,12 @@ Each fuel belongs to an archetype that scales its base yield by $m_N$ and both f
 
 | Archetype | $m_N$ | $m_\phi$ | Character |
 | :--- | :--- | :--- | :--- |
-| standard | 0.550 | 1.251 | Reference behaviour. |
-| dense | 0.764 | 1.453 | Strongest multiplication.  Depends on neighbours to reach power. |
-| excited | 1.028 | 0.483 | Highest spontaneous emission, weakest multiplication.  Produces power with little help from neighbours. |
+| standard | 0.566 | 1.768 | Reference behaviour. |
+| dense | 0.363 | 2.240 | Strongest multiplication.  Depends on neighbours to reach power. |
+| excited | 0.756 | 0.659 | Highest spontaneous emission, weakest multiplication.  Produces power with little help from neighbours. |
 | breeder | 1.00 | 1.00 | Very low yields; used for transmutation products. |
 
-Effective values are rounded: effective base yield is $\max(1, \operatorname{round}(N_0\, m_N\, m_Y))$ (§4.2).  For example, with the values in §1.4, a Quad High Density Uranium rod ($N_0 = 32$ n/s, $\phi_{t,0} = 1.8$) has an effective yield of 708 n/s (177 per cycle) and an effective $\phi_t = 6.67$; a Quad Excited Uranium rod ($N_0 = 64$ n/s, $\phi_{t,0} = 2.5$) has 1906 n/s (476.5 per cycle) and $\phi_t = 3.07$.
+Effective values are rounded: effective base yield is $\max(1, \operatorname{round}(N_0\, m_N\, m_Y))$ (§4.2).  For example, with the values in §1.4, a Quad High Density Uranium rod ($N_0 = 32$ n/s, $\phi_{t,0} = 1.8$) has an effective yield of 266 n/s (66.5 per cycle) and an effective $\phi_t = 6.18$; a Quad Excited Uranium rod ($N_0 = 64$ n/s, $\phi_{t,0} = 2.5$) has 1105 n/s (276.25 per cycle) and $\phi_t = 2.52$.
 
 ### 6.4 Wear and depletion
 
