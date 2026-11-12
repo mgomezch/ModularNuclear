@@ -307,10 +307,13 @@ public class NuclearFuelTooltipHandler {
                 + EnumChatFormatting.RED
                 + String.format(Locale.US, "Max temp: %,.0f °C", vent.maxTemperature))
             : "";
+        // Its caps apply every tick. See Note [Neutron and heat rates are per second]
         event.toolTip.add(
-            EnumChatFormatting.GRAY + "Self-cooling rate: "
+            EnumChatFormatting.GRAY + "Removes up to "
                 + EnumChatFormatting.AQUA
-                + String.format(Locale.US, "%.1f HU/t", vent.selfCoolingRate)
+                + String.format(Locale.US, "%,.0f HU/s", vent.maxHUt * 20.0)
+                + EnumChatFormatting.GRAY
+                + String.format(Locale.US, " for %,d EU/t", vent.maxEUt)
                 + maxTempStr);
     }
 
@@ -322,9 +325,11 @@ public class NuclearFuelTooltipHandler {
                 + String.format(Locale.US, "Max temp: %,.0f °C", hex.maxTemperature))
             : "";
         event.toolTip.add(
-            EnumChatFormatting.GRAY + "Transfer rate: "
+            EnumChatFormatting.GRAY + "Evens out up to "
                 + EnumChatFormatting.AQUA
-                + String.format(Locale.US, "%.1f HU/t", hex.switchTransferRate)
+                + String.format(Locale.US, "%,.0f HU/s", hex.maxHUt * 20.0)
+                + EnumChatFormatting.GRAY
+                + String.format(Locale.US, " for %,d EU/t", hex.maxEUt)
                 + maxTempStr);
     }
 

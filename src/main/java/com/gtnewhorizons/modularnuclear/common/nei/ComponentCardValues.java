@@ -102,7 +102,10 @@ public final class ComponentCardValues {
     public final boolean inHatch;
 
     public final HeatAction action;
-    /** VENTS, EXCHANGES: HU/t. BOILS, COOLS_TO_AMBIENT: HU per litre. STORES: total HU. */
+    /**
+     * VENTS, EXCHANGES: HU per tick (cards show it per second). BOILS, COOLS_TO_AMBIENT: HU per litre. STORES: total
+     * HU.
+     */
     public final double actionHeat;
     /** VENTS, EXCHANGES: EU/t. STORES: HU/s. BOILS: the boiling point. BURNS: the temperature. */
     public final double actionRate;

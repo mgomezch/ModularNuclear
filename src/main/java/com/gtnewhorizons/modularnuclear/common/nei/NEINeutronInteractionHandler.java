@@ -2457,10 +2457,14 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         return switch (v.action) {
             case BOILS -> tr("heat_action.boils", formatNumber(v.actionRate), formatNumber(v.actionHeat));
             case COOLS_TO_AMBIENT -> tr("heat_action.cools", formatNumber(v.actionHeat));
-            case VENTS -> tr("heat_action.vents", formatCardNumber(v.actionHeat), formatCardNumber(v.actionRate));
+            // Per-tick heat caps, shown per second. See Note [Neutron and heat rates are per second]
+            case VENTS -> tr(
+                "heat_action.vents",
+                formatCardNumber(v.actionHeat * 20.0),
+                formatCardNumber(v.actionRate));
             case EXCHANGES -> tr(
                 "heat_action.exchanges",
-                formatCardNumber(v.actionHeat),
+                formatCardNumber(v.actionHeat * 20.0),
                 formatCardNumber(v.actionRate));
             case STORES -> tr("heat_action.stores", formatCardNumber(v.actionHeat), formatCardNumber(v.actionRate));
             case BLOCKS -> tr("heat_action.blocks", formatPercent(v.dampening));
