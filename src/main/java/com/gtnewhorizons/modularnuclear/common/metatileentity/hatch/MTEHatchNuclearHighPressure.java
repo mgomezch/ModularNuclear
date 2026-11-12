@@ -1,5 +1,6 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.hatch;
 
+import java.util.Locale;
 import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -70,6 +71,10 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
     /** Was in a loop when saved, and its pump has not bound it again since loading. */
     protected boolean mAwaitingLoopPump = false;
     protected int mNeutronAccumulator = 0;
+
+    public int getTicksPerCycle() {
+        return mReactor != null ? mReactor.getTicksPerCycle() : NuclearSimulationEngine.params().ticksPerCycle;
+    }
 
     public int mFastFlux = 0;
     public int mThermalFlux = 0;
@@ -617,7 +622,11 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
             .widget(
                 new TextWidget()
                     .setStringSupplier(
-                        () -> String.format("Fast: %d n/t  Thrm: %d n/t", mLastFastFlux, mLastThermalFlux))
+                        () -> String.format(
+                            Locale.US,
+                            "Fast: %,d  Thrm: %,d n/s",
+                            Math.round(NuclearSimulationEngine.perSecond(mLastFastFlux, getTicksPerCycle())),
+                            Math.round(NuclearSimulationEngine.perSecond(mLastThermalFlux, getTicksPerCycle()))))
                     .setDefaultColor(ColorUtils.hatchFastFlux.getColor())
                     .setPos(10, 57))
             .widget(

@@ -1,5 +1,7 @@
 package com.gtnewhorizons.modularnuclear.common.gui;
 
+import java.util.Locale;
+
 import net.minecraft.util.EnumChatFormatting;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
@@ -12,6 +14,7 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import gregtech.api.modularui2.GTWidgetThemes;
 import gregtech.api.modularui2.common.CommonWidgets;
@@ -69,8 +72,12 @@ public class MTEHatchNuclearHighPressureGui extends MTEHatchBaseGui<MTEHatchNucl
 
         textColumn.child(
             IKey.dynamic(
-                () -> EnumChatFormatting.AQUA
-                    + String.format("Fast: %d n/t  Thrm: %d n/t", machine.mLastFastFlux, machine.mLastThermalFlux))
+                () -> EnumChatFormatting.AQUA + String.format(
+                    Locale.US,
+                    "Fast: %,d  Thrm: %,d n/s",
+                    Math.round(NuclearSimulationEngine.perSecond(machine.mLastFastFlux, machine.getTicksPerCycle())),
+                    Math.round(
+                        NuclearSimulationEngine.perSecond(machine.mLastThermalFlux, machine.getTicksPerCycle()))))
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 

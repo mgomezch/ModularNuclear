@@ -145,13 +145,10 @@ public class NuclearReactorWailaProvider {
         if (flux > 0 || fast > 0 || therm > 0 || esc > 0) {
             list.add(
                 EnumChatFormatting.GRAY + String.format(
-                    "Neutrons: %,d fast/s (%,d /cycle), %,d therm/s (%,d /cycle), %,d esc/s (%,d /cycle)",
+                    "Neutrons: %,d fast/s, %,d therm/s, %,d esc/s",
                     Math.round(fast * cyclesPerSec),
-                    fast,
                     Math.round(therm * cyclesPerSec),
-                    therm,
-                    Math.round(esc * cyclesPerSec),
-                    esc));
+                    Math.round(esc * cyclesPerSec)));
         }
 
         int fuelCount = tag.getInteger("fuelCount");
@@ -271,15 +268,12 @@ public class NuclearReactorWailaProvider {
         list.add(
             String.format(
                 Locale.US,
-                "%sNeutrons: %s%,d fast/s (%,d /cycle), %,d therm/s (%,d /cycle), %,d esc/s (%,d /cycle)",
+                "%sNeutrons: %s%,d fast/s, %,d therm/s, %,d esc/s",
                 EnumChatFormatting.YELLOW,
                 EnumChatFormatting.RESET,
                 Math.round(reactor.mFastAbsorbed * cyclesPerSec),
-                reactor.mFastAbsorbed,
                 Math.round(reactor.mThermalAbsorbed * cyclesPerSec),
-                reactor.mThermalAbsorbed,
-                Math.round(reactor.mEscapedNeutrons * cyclesPerSec),
-                reactor.mEscapedNeutrons));
+                Math.round(reactor.mEscapedNeutrons * cyclesPerSec)));
 
         // Power & Coolant Output
         if (reactor.mDirectPowerEUt > 0) {

@@ -977,7 +977,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
             tooltip.addLine(
                 EnumChatFormatting.GRAY + "Neutrons absorbed: "
                     + EnumChatFormatting.LIGHT_PURPLE
-                    + String.format(Locale.US, "%,d /s (%,d /cycle)", totalAbsSec, totalAbs)
+                    + String.format(Locale.US, "%,d n/s", totalAbsSec)
                     + EnumChatFormatting.DARK_GRAY
                     + String.format(
                         Locale.US,
@@ -1002,7 +1002,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
             tooltip.addLine(
                 EnumChatFormatting.GRAY + "Heat output: "
                     + EnumChatFormatting.GOLD
-                    + String.format(Locale.US, "%,.1f Hu/s (%,.1f Hu/cycle)", heatSec, (double) cell.heatOutput));
+                    + String.format(Locale.US, "%,.1f HU/s", heatSec));
         }
 
         // 6. Control Rod Info

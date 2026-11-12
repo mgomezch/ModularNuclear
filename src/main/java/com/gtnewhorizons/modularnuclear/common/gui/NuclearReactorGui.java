@@ -198,10 +198,8 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         // Fast neutrons
         list.child(IKey.dynamic(() -> {
             long fast = fastAbsSyncer != null ? fastAbsSyncer.getLongValue() : multiblock.mFastAbsorbed;
-            int tpc = multiblock.getTicksPerCycle();
-            double cps = 20.0 / (double) tpc;
-            long fastSec = Math.round(fast * cps);
-            return String.format(Locale.US, "Fast neutrons: %,d /s (%,d /cycle)", fastSec, fast);
+            long fastSec = Math.round(NuclearSimulationEngine.perSecond(fast, multiblock.getTicksPerCycle()));
+            return String.format(Locale.US, "Fast neutrons: %,d n/s", fastSec);
         })
             .color(ColorUtils.reactorNeutronBreakdown::getColor)
             .asWidget()
@@ -210,10 +208,8 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         // Thermal neutrons
         list.child(IKey.dynamic(() -> {
             long therm = thermAbsSyncer != null ? thermAbsSyncer.getLongValue() : multiblock.mThermalAbsorbed;
-            int tpc = multiblock.getTicksPerCycle();
-            double cps = 20.0 / (double) tpc;
-            long thermSec = Math.round(therm * cps);
-            return String.format(Locale.US, "Thermal neutrons: %,d /s (%,d /cycle)", thermSec, therm);
+            long thermSec = Math.round(NuclearSimulationEngine.perSecond(therm, multiblock.getTicksPerCycle()));
+            return String.format(Locale.US, "Thermal neutrons: %,d n/s", thermSec);
         })
             .color(ColorUtils.reactorNeutronBreakdown::getColor)
             .asWidget()
@@ -222,10 +218,8 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         // Escaped neutrons
         list.child(IKey.dynamic(() -> {
             long esc = escSyncer != null ? escSyncer.getLongValue() : multiblock.mEscapedNeutrons;
-            int tpc = multiblock.getTicksPerCycle();
-            double cps = 20.0 / (double) tpc;
-            long escSec = Math.round(esc * cps);
-            return String.format(Locale.US, "Escaped neutrons: %,d /s (%,d /cycle)", escSec, esc);
+            long escSec = Math.round(NuclearSimulationEngine.perSecond(esc, multiblock.getTicksPerCycle()));
+            return String.format(Locale.US, "Escaped neutrons: %,d n/s", escSec);
         })
             .color(ColorUtils.reactorNeutronBreakdown::getColor)
             .asWidget()

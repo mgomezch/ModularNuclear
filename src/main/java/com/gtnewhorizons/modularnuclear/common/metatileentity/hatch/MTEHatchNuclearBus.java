@@ -4,6 +4,8 @@ import static gregtech.api.enums.Textures.BlockIcons.ITEM_IN_SIGN;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_COLORS;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_IN;
 
+import java.util.Locale;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -469,11 +471,21 @@ public class MTEHatchNuclearBus extends MTEHatch implements IReadyBeforeFirstTic
                     .setDefaultColor(ColorUtils.hatchTemperature.getColor())
                     .setPos(10, 31))
             .widget(
-                new TextWidget().setStringSupplier(() -> String.format("Fast: %d n/t", mLastFastFlux))
+                new TextWidget()
+                    .setStringSupplier(
+                        () -> String.format(
+                            Locale.US,
+                            "Fast: %,d n/s",
+                            Math.round(NuclearSimulationEngine.perSecond(mLastFastFlux, getTicksPerCycle()))))
                     .setDefaultColor(ColorUtils.hatchFastFlux.getColor())
                     .setPos(10, 42))
             .widget(
-                new TextWidget().setStringSupplier(() -> String.format("Thrm: %d n/t", mLastThermalFlux))
+                new TextWidget()
+                    .setStringSupplier(
+                        () -> String.format(
+                            Locale.US,
+                            "Thrm: %,d n/s",
+                            Math.round(NuclearSimulationEngine.perSecond(mLastThermalFlux, getTicksPerCycle()))))
                     .setDefaultColor(ColorUtils.hatchThermalFlux.getColor())
                     .setPos(10, 53))
             .widget(

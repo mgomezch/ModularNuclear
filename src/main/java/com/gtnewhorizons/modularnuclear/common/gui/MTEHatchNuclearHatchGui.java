@@ -17,6 +17,7 @@ import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.slot.FluidSlot;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.api.modularui2.GTWidgetThemes;
@@ -73,17 +74,19 @@ public class MTEHatchNuclearHatchGui extends MTEHatchBaseGui<MTEHatchNuclearHatc
 
         textColumn.child(
             IKey.dynamic(
-                () -> EnumChatFormatting.AQUA
-                    + String.format("F: %d  T: %d", machine.mLastFastFlux, machine.mLastThermalFlux))
+                () -> EnumChatFormatting.AQUA + String.format(
+                    Locale.US,
+                    "F: %,d  T: %,d n/s",
+                    Math.round(NuclearSimulationEngine.perSecond(machine.mLastFastFlux, machine.getTicksPerCycle())),
+                    Math.round(
+                        NuclearSimulationEngine.perSecond(machine.mLastThermalFlux, machine.getTicksPerCycle()))))
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
             int abs = machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed;
-            int tpc = machine.getTicksPerCycle();
-            double cps = 20.0 / (double) tpc;
-            long absSec = Math.round(abs * cps);
-            return EnumChatFormatting.GRAY + String.format(Locale.US, "Abs: %,d n/s (%,d /cycle)", absSec, abs);
+            long absSec = Math.round(NuclearSimulationEngine.perSecond(abs, machine.getTicksPerCycle()));
+            return EnumChatFormatting.GRAY + String.format(Locale.US, "Abs: %,d n/s", absSec);
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));

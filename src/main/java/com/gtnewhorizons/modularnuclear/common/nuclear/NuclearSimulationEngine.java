@@ -348,6 +348,30 @@ public class NuclearSimulationEngine {
         public double totalHeatHU = 0;
     }
 
+    /*-
+    Note [Neutron and heat rates are per second] (generated)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    The engine counts neutrons and reactor heat per reactor cycle: neutrons only move in a cycle's transport pass,
+    and the hatches' mLastFastFlux, mLastFastAbsorbed, mLastHeatOutput and the reactor's mNeutronsProduced hold the
+    last cycle's totals.  A cycle's length is a server setting (ticksPerCycle, 5 by default), so a per-cycle count
+    means nothing physical on its own.  Everything shown to players or scripts is therefore a rate per second, from
+    perSecond, and never the per-cycle count beside it:
+    
+        the hatch, bus and rod GUIs, old and new, the reactor GUI, its grid tooltip and its plots, WAILA, and the
+        OpenComputers API (NuclearControlEnvironment), where neutronsProduced, fastFlux and the like are n/s;
+        the item tooltips' vent and exchanger heat (HU/s, from their per-tick caps, see
+        Note [Active vents and exchangers run every tick]);
+        the web simulator, whose state carries per-cycle counts that its pages convert with the same 20 / ticks.
+    
+    Electricity stays in EU/t, GregTech's own unit, as do the coolant loop machines, which run every tick.  Coolant
+    litres are outside this rule.
+    */
+
+    /** A count or amount gathered over one reactor cycle of {@code ticksPerCycle} ticks, as a rate per second. */
+    public static double perSecond(double perCycle, int ticksPerCycle) {
+        return perCycle * 20.0 / Math.max(1, ticksPerCycle);
+    }
+
     /**
      * Formats neutron flux into realistic physical units (multiples of 10¹³ neutrons/cm²/sec).
      * Follows the US Nuclear Regulatory Commission (NRC) definition:

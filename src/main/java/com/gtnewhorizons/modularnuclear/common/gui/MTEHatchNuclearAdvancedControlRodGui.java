@@ -17,6 +17,7 @@ import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearAdvancedControlRod;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.api.modularui2.GTWidgetThemes;
@@ -115,10 +116,8 @@ public class MTEHatchNuclearAdvancedControlRodGui extends MTEHatchBaseGui<MTEHat
 
         textColumn.child(IKey.dynamic(() -> {
             int abs = machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed;
-            int tpc = machine.getTicksPerCycle();
-            double cps = 20.0 / (double) tpc;
-            long absSec = Math.round(abs * cps);
-            return EnumChatFormatting.GRAY + String.format(Locale.US, "Abs: %,d n/s (%,d /cycle)", absSec, abs);
+            long absSec = Math.round(NuclearSimulationEngine.perSecond(abs, machine.getTicksPerCycle()));
+            return EnumChatFormatting.GRAY + String.format(Locale.US, "Abs: %,d n/s", absSec);
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));

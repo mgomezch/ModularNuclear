@@ -5902,7 +5902,8 @@ public class NuclearSimulationEngineTest {
         assertTrue(
             combined.contains("Flux: " + NuclearSimulationEngine.formatNeutronFlux(5000, 20)),
             "Neutron flux should be formatted");
-        assertTrue(combined.contains("3,000 fast/s (3,000 /cycle)"), "Fast neutrons should be reported");
+        assertTrue(combined.contains("3,000 fast/s,"), "Fast neutrons should be reported per second");
+        assertFalse(combined.contains("fast/s ("), "Neutrons show no per-cycle count");
         assertTrue(combined.contains("+2,048 EU/t"), "EU output should be reported");
         assertTrue(
             combined.contains("1,500 L/s (1,500 L/cycle) Supercritical Carbon Dioxide"),

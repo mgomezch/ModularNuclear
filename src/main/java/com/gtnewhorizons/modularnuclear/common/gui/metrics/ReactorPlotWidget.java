@@ -476,38 +476,24 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
                         + ": "
                         + EnumChatFormatting.WHITE
                         + String.format(Locale.US, "%,d %s", Math.round(val), metric.getUnit()));
-            } else {
-                long perCycle = 0;
-                String cycleUnit = switch (metric) {
-                    case FAST_NEUTRONS -> {
-                        perCycle = hoveredSnapshot.fastNeutronsProduced;
-                        yield "n/cycle";
-                    }
-                    case THERMAL_NEUTRONS -> {
-                        perCycle = hoveredSnapshot.thermalNeutronsAbsorbed;
-                        yield "n/cycle";
-                    }
-                    case ESCAPED_NEUTRONS -> {
-                        perCycle = hoveredSnapshot.escapedNeutrons;
-                        yield "n/cycle";
-                    }
-                    case COOLANT_OUTPUT -> {
-                        perCycle = hoveredSnapshot.coolantOutput;
-                        yield "L/cycle";
-                    }
-                    default -> "";
-                };
+            } else if (metric == Metric.COOLANT_OUTPUT) {
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + metric.getTitle()
                         + ": "
                         + EnumChatFormatting.WHITE
                         + String.format(
                             Locale.US,
-                            "%,d %s (%,d %s)",
+                            "%,d %s (%,d L/cycle)",
                             Math.round(val),
                             metric.getUnit(),
-                            perCycle,
-                            cycleUnit));
+                            hoveredSnapshot.coolantOutput));
+            } else {
+                // Neutrons and heat show per second only
+                tooltip.addLine(
+                    EnumChatFormatting.GRAY + metric.getTitle()
+                        + ": "
+                        + EnumChatFormatting.WHITE
+                        + String.format(Locale.US, "%,d %s", Math.round(val), metric.getUnit()));
             }
         }
     }

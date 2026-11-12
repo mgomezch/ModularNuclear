@@ -17,6 +17,7 @@ import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.api.modularui2.GTWidgetThemes;
@@ -68,21 +69,16 @@ public class MTEHatchNuclearBusGui extends MTEHatchBaseGui<MTEHatchNuclearBus> {
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
-            int tpc = machine.getTicksPerCycle();
-            double cps = 20.0 / (double) tpc;
-            long sec = Math.round(machine.mLastFastFlux * cps);
-            return EnumChatFormatting.AQUA
-                + String.format(Locale.US, "Fast: %,d n/s (%,d /cycle)", sec, machine.mLastFastFlux);
+            long sec = Math.round(NuclearSimulationEngine.perSecond(machine.mLastFastFlux, machine.getTicksPerCycle()));
+            return EnumChatFormatting.AQUA + String.format(Locale.US, "Fast: %,d n/s", sec);
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
-            int tpc = machine.getTicksPerCycle();
-            double cps = 20.0 / (double) tpc;
-            long sec = Math.round(machine.mLastThermalFlux * cps);
-            return EnumChatFormatting.BLUE
-                + String.format(Locale.US, "Thermal: %,d n/s (%,d /cycle)", sec, machine.mLastThermalFlux);
+            long sec = Math
+                .round(NuclearSimulationEngine.perSecond(machine.mLastThermalFlux, machine.getTicksPerCycle()));
+            return EnumChatFormatting.BLUE + String.format(Locale.US, "Thermal: %,d n/s", sec);
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
@@ -95,11 +91,9 @@ public class MTEHatchNuclearBusGui extends MTEHatchBaseGui<MTEHatchNuclearBus> {
             } else if (damp > 0.0) {
                 return EnumChatFormatting.LIGHT_PURPLE + String.format(Locale.US, "Insulation: %.0f%%", damp * 100.0);
             }
-            int tpc = machine.getTicksPerCycle();
-            double cps = 20.0 / (double) tpc;
-            long sec = Math.round(machine.mLastNeutronsGenerated * cps);
-            return EnumChatFormatting.GRAY
-                + String.format(Locale.US, "Neutrons: %,d n/s (%,d /cycle)", sec, machine.mLastNeutronsGenerated);
+            long sec = Math
+                .round(NuclearSimulationEngine.perSecond(machine.mLastNeutronsGenerated, machine.getTicksPerCycle()));
+            return EnumChatFormatting.GRAY + String.format(Locale.US, "Neutrons: %,d n/s", sec);
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));

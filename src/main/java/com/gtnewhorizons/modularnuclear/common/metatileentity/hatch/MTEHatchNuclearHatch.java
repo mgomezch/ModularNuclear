@@ -5,6 +5,8 @@ import static gregtech.api.enums.Textures.BlockIcons.FLUID_IN_SIGN;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_COLORS;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_IN;
 
+import java.util.Locale;
+
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
@@ -425,11 +427,21 @@ public class MTEHatchNuclearHatch extends MTEHatch implements IReadyBeforeFirstT
                 .setDefaultColor(ColorUtils.hatchTemperature.getColor())
                 .setPos(10, 31))
             .widget(
-                new TextWidget().setStringSupplier(() -> String.format("F: %d", mLastFastFlux))
+                new TextWidget()
+                    .setStringSupplier(
+                        () -> String.format(
+                            Locale.US,
+                            "F: %,d n/s",
+                            Math.round(NuclearSimulationEngine.perSecond(mLastFastFlux, getTicksPerCycle()))))
                     .setDefaultColor(ColorUtils.hatchFastFlux.getColor())
                     .setPos(10, 42))
             .widget(
-                new TextWidget().setStringSupplier(() -> String.format("T: %d", mLastThermalFlux))
+                new TextWidget()
+                    .setStringSupplier(
+                        () -> String.format(
+                            Locale.US,
+                            "T: %,d n/s",
+                            Math.round(NuclearSimulationEngine.perSecond(mLastThermalFlux, getTicksPerCycle()))))
                     .setDefaultColor(ColorUtils.hatchThermalFlux.getColor())
                     .setPos(10, 53))
             // Coolant In Tank
