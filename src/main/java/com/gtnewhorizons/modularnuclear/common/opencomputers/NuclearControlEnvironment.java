@@ -97,6 +97,8 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
         // Trigger telemetry calculation
         reactor.calculateTelemetry();
 
+        // Neutron counts are per second. See Note [Neutron and heat rates are per second]
+        int tpc = reactor.getTicksPerCycle();
         data.put("gridSize", reactor.gridSize);
         data.put("coreDimension", reactor.coreDimension);
         data.put("casingTier", reactor.mPipeTier);
@@ -107,10 +109,10 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
         data.put("avgTemp", reactor.mAvgTemp);
         data.put("reactivityEfficiency", reactor.mReactivity);
         data.put("directPowerEUt", reactor.mDirectPowerEUt);
-        data.put("neutronsProduced", reactor.mNeutronsProduced);
-        data.put("fastNeutronsAbsorbed", reactor.mFastAbsorbed);
-        data.put("thermalNeutronsAbsorbed", reactor.mThermalAbsorbed);
-        data.put("escapedNeutrons", reactor.mEscapedNeutrons);
+        data.put("neutronsProduced", perSecond(reactor.mNeutronsProduced, tpc));
+        data.put("fastNeutronsAbsorbed", perSecond(reactor.mFastAbsorbed, tpc));
+        data.put("thermalNeutronsAbsorbed", perSecond(reactor.mThermalAbsorbed, tpc));
+        data.put("escapedNeutrons", perSecond(reactor.mEscapedNeutrons, tpc));
         data.put("outputCoolantRate", reactor.mOutputCoolantRate);
         data.put("outputCoolantName", reactor.mOutputCoolantName != null ? reactor.mOutputCoolantName : "");
         data.put("scram", reactor.mScram);
@@ -210,6 +212,7 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
         }
 
         int size = reactor.gridSize;
+        int tpc = reactor.getTicksPerCycle();
         List<Map<String, Object>> cellList = new ArrayList<>(size * size);
 
         for (int y = 0; y < size; y++) {
@@ -236,10 +239,10 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
                     cellMap.put("type", "BUS");
                     cellMap.put("isFluid", false);
                     MTEHatchNuclearBus bus = gt.getBus();
-                    cellMap.put("fastFlux", bus.mLastFastFlux);
-                    cellMap.put("thermalFlux", bus.mLastThermalFlux);
-                    cellMap.put("fastAbsorbed", bus.mLastFastAbsorbed);
-                    cellMap.put("thermalAbsorbed", bus.mLastThermalAbsorbed);
+                    cellMap.put("fastFlux", perSecond(bus.mLastFastFlux, tpc));
+                    cellMap.put("thermalFlux", perSecond(bus.mLastThermalFlux, tpc));
+                    cellMap.put("fastAbsorbed", perSecond(bus.mLastFastAbsorbed, tpc));
+                    cellMap.put("thermalAbsorbed", perSecond(bus.mLastThermalAbsorbed, tpc));
                     cellMap.put("directEU", bus.mDirectEUProduced);
 
                     ItemStack stack = bus.mInventory[MTEHatchNuclearBus.SLOT_INPUT];
@@ -265,10 +268,10 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
                     cellMap.put("type", "HATCH");
                     cellMap.put("isFluid", true);
                     MTEHatchNuclearHatch nhatch = gt.getHatch();
-                    cellMap.put("fastFlux", nhatch.mLastFastFlux);
-                    cellMap.put("thermalFlux", nhatch.mLastThermalFlux);
-                    cellMap.put("fastAbsorbed", nhatch.mLastFastAbsorbed);
-                    cellMap.put("thermalAbsorbed", nhatch.mLastThermalAbsorbed);
+                    cellMap.put("fastFlux", perSecond(nhatch.mLastFastFlux, tpc));
+                    cellMap.put("thermalFlux", perSecond(nhatch.mLastThermalFlux, tpc));
+                    cellMap.put("fastAbsorbed", perSecond(nhatch.mLastFastAbsorbed, tpc));
+                    cellMap.put("thermalAbsorbed", perSecond(nhatch.mLastThermalAbsorbed, tpc));
                     cellMap.put("directEU", 0L);
 
                     FluidStack fluid = nhatch.mInputFluid;
@@ -369,5 +372,10 @@ public class NuclearControlEnvironment extends ManagedEnvironment implements Nam
             map.put("maxDurability", stack.getMaxDamage());
         }
         return map;
+    }
+
+    /** A count from the reactor's last cycle as a rate per second, the unit scripts see. */
+    private static long perSecond(long perCycle, int ticksPerCycle) {
+        return Math.round(NuclearSimulationEngine.perSecond(perCycle, ticksPerCycle));
     }
 }
