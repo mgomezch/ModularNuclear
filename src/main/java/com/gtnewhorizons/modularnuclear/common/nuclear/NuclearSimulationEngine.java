@@ -1011,8 +1011,29 @@ public class NuclearSimulationEngine {
         return calculateEfficiency(NuclearFuelType.URANIUM, avgTemp);
     }
 
+    /*-
+    Note [Active vents and exchangers run every tick] (generated)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Heat vents and heat exchangers act once per game tick, not once per reactor cycle.  In game,
+    NuclearReactorCycle.tick calls processActiveVentsAndExchangers on every tick that is not a cycle tick, and on
+    the cycle tick simulate runs the same pass once (pass 4.5, after conduction and the coolant hatches).  A cycle
+    of ticksPerCycle ticks therefore holds ticksPerCycle passes.
+    
+    So a component's max_hu_t and max_eu_t are per-tick caps: a standard vent moves at most 512 HU and draws at
+    most 128 EU of electricity from the energy hatches each tick, up to 5 × 512 HU in a 5-tick cycle.  That is
+    20 × max_hu_t HU per second whatever the cycle length.  Heat only spreads through the core on the cycle tick,
+    though, so the passes between cycles only drain heat already in a vent's own cell, or keep evening out an
+    exchanger's cells; nothing new reaches them until the next cycle.
+    
+    The simulator mirrors this: StandaloneNuclearGrid.step runs ticksPerCycle - 1 more passes after the cycle's
+    overheating check, where the game's ticks between cycles fall.  StandaloneVentTickTest checks the electricity
+    a vent draws per cycle.  The game also runs these passes on the ticks a cycle is held back for passage pumps;
+    the simulator never holds a cycle back.
+    */
+
     /**
-     * Executes active heat exchanger equalization and active heat vent cooling over the 2D grid.
+     * Executes active heat exchanger equalization and active heat vent cooling over the 2D grid, once: this is one
+     * tick's worth.
      * <p>
      * Heat exchangers act first, as one atomic, order-independent pass over a snapshot of cell temperatures (see
      * {@link #processHeatExchangers}). Heat vents then act on the resulting temperatures, so that vents remove heat

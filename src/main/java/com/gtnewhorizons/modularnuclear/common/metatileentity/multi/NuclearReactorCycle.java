@@ -27,6 +27,7 @@ final class NuclearReactorCycle {
         int tpc = r.getTicksPerCycle();
         boolean cycleDue = aTick % tpc == 0 || r.mCycleDeferred;
         if (r.mGrid != null && !cycleDue) {
+            // See Note [Active vents and exchangers run every tick]
             NuclearSimulationEngine
                 .processActiveVentsAndExchangers(r.mGrid, r.gridSize, r.gridSize, r.mCachedAmbientTemp);
         }

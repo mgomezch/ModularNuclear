@@ -1040,6 +1040,12 @@ public class StandaloneNuclearGrid {
 
         if (!applyOverheating()) return false;
 
+        // The game's ticks before the next cycle. See Note [Active vents and exchangers run every tick]
+        for (int tick = 1; tick < ticksPerCycle; tick++) {
+            NuclearSimulationEngine
+                .processActiveVentsAndExchangers(simGrid, width, height, engine().parameters().ambientTemp);
+        }
+
         // 4. Calculate energy and steam generation in this tick
         long cumSteam = 0;
         int dCount = 0;
