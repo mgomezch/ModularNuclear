@@ -239,26 +239,26 @@ function updateGridDOM() {
         const flSec = Math.round(fl * cps);
         overlayBg = fl > 0 ? getNeutronColor(flSec) : "transparent";
         metricStr = formatFluxValue(flSec);
-        tipText = `Total flux: ${flSec.toLocaleString()} n/s (${fl.toLocaleString()} /cycle) (Fast: ${Math.round((t.fastFlux||0)*cps).toLocaleString()} n/s, Thermal: ${Math.round((t.thermalFlux||0)*cps).toLocaleString()} n/s)`;
+        tipText = `Total flux: ${flSec.toLocaleString()} n/s (Fast: ${Math.round((t.fastFlux||0)*cps).toLocaleString()} n/s, Thermal: ${Math.round((t.thermalFlux||0)*cps).toLocaleString()} n/s)`;
       } else if (gridDisplayMode === "FAST_FLUX") {
         const fl = t.fastFlux || 0;
         const flSec = Math.round(fl * cps);
         overlayBg = fl > 0 ? getNeutronColor(flSec) : "transparent";
         metricStr = formatFluxValue(flSec);
-        tipText = `Fast flux: ${flSec.toLocaleString()} n/s (${fl.toLocaleString()} /cycle)`;
+        tipText = `Fast flux: ${flSec.toLocaleString()} n/s`;
       } else if (gridDisplayMode === "THERMAL_FLUX") {
         const fl = t.thermalFlux || 0;
         const flSec = Math.round(fl * cps);
         overlayBg = fl > 0 ? getNeutronColor(flSec) : "transparent";
         metricStr = formatFluxValue(flSec);
-        tipText = `Thermal flux: ${flSec.toLocaleString()} n/s (${fl.toLocaleString()} /cycle)`;
+        tipText = `Thermal flux: ${flSec.toLocaleString()} n/s`;
       } else if (gridDisplayMode === "ABSORPTION") {
         const abs = (t.fastAbsorbed || 0) + (t.thermalAbsorbed || 0);
         const rodAbs = (t.controlRodFastAbsorbed || 0) + (t.controlRodThermalAbsorbed || 0);
         const absSec = Math.round(abs * cps);
         overlayBg = abs > 0 ? getAbsorptionColor(absSec) : "transparent";
         metricStr = abs > 0 ? formatFluxValue(absSec) : "";
-        tipText = `Absorbed: ${absSec.toLocaleString()} n/s (${abs.toLocaleString()} /cycle) (Base: ${Math.round((abs - rodAbs)*cps).toLocaleString()} n/s, Bottom rod: ${Math.round(rodAbs*cps).toLocaleString()} n/s)`;
+        tipText = `Absorbed: ${absSec.toLocaleString()} n/s (Base: ${Math.round((abs - rodAbs)*cps).toLocaleString()} n/s, Bottom rod: ${Math.round(rodAbs*cps).toLocaleString()} n/s)`;
       } else if (gridDisplayMode === "CONTROL_RODS") {
         if (t.hasControlRod) {
           if (t.controlRodType && t.controlRodType !== "NONE") {
@@ -282,7 +282,7 @@ function updateGridDOM() {
         const hoSec = ho * cps;
         overlayBg = ho > 0 ? getHeatOutputColor(hoSec) : "transparent";
         metricStr = hoSec > 0 ? (hoSec >= 10000 ? (hoSec / 1000).toFixed(1) + "k" : Math.round(hoSec).toString()) : "";
-        tipText = `Heat output: ${hoSec.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/s (${ho.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/cycle)`;
+        tipText = `Heat output: ${hoSec.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} HU/s`;
       } else {
         overlayBg = getTemperatureColor(t.temp, currentState.maxSafeTemp);
         metricStr = Math.round(t.temp) + "°C";

@@ -92,7 +92,7 @@ function renderUI() {
   const rngGlobalRod = document.getElementById("rng-global-rod-ins");
   if (rngGlobalRod && document.activeElement !== rngGlobalRod) rngGlobalRod.value = avgRodIns;
   const rodsAbsVal = document.getElementById("rods-total-abs-val");
-  if (rodsAbsVal) setText(rodsAbsVal, `${totalRodAbsorbed.toLocaleString()} n/s`);
+  if (rodsAbsVal) setText(rodsAbsVal, `${Math.round(totalRodAbsorbed * 20 / (currentState.ticksPerCycle || 5)).toLocaleString()} n/s`);
 
   // Run state: status label, play button and the one-line alert (its full text is in the tooltip).
   let stateText, stateTone, alertCls, alertHtml;

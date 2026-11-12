@@ -65,17 +65,18 @@ function renderInspector(t) {
 
   let fluxHtml = "";
   const tpc = currentState.ticksPerCycle || 5;
+  // Counts are per cycle; pages show them per second. See Note [Neutron and heat rates are per second]
   const cps = 20 / tpc;
   // Rows depend on the tile's kind, never on live values, so the inspector keeps its shape while the reactor runs.
   if (t.code !== "NL") {
     fluxHtml = `
       <div style="background:#10141d; border:1px solid #373737; border-radius:3px; padding:6px 8px; margin-top:8px;">
         <div style="font-weight:700; font-size:0.75rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px;">Neutron kinetics</div>
-        <div class="stat-row" style="margin-bottom:2px;"><span>Total flux:</span><span class="stat-val" style="color:#38bdf8;">${Math.round((t.totalFlux || 0) * cps).toLocaleString()} n/s (${(t.totalFlux || 0).toLocaleString()} /cycle)</span></div>
-        <div class="stat-row" style="margin-bottom:2px;"><span>Fast flux:</span><span class="stat-val" style="color:#fbbf24;">${Math.round((t.fastFlux || 0) * cps).toLocaleString()} n/s (${(t.fastFlux || 0).toLocaleString()} /cycle)</span></div>
-        <div class="stat-row" style="margin-bottom:2px;"><span>Thermal flux:</span><span class="stat-val" style="color:#4ade80;">${Math.round((t.thermalFlux || 0) * cps).toLocaleString()} n/s (${(t.thermalFlux || 0).toLocaleString()} /cycle)</span></div>
-        <div class="stat-row" style="margin-bottom:2px;"><span>Fast absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${Math.round((t.fastAbsorbed || 0) * cps).toLocaleString()} n/s (${(t.fastAbsorbed || 0).toLocaleString()} /cycle)</span></div>
-        <div class="stat-row" style="margin-bottom:2px;"><span>Thermal absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${Math.round((t.thermalAbsorbed || 0) * cps).toLocaleString()} n/s (${(t.thermalAbsorbed || 0).toLocaleString()} /cycle)</span></div>
+        <div class="stat-row" style="margin-bottom:2px;"><span>Total flux:</span><span class="stat-val" style="color:#38bdf8;">${Math.round((t.totalFlux || 0) * cps).toLocaleString()} n/s</span></div>
+        <div class="stat-row" style="margin-bottom:2px;"><span>Fast flux:</span><span class="stat-val" style="color:#fbbf24;">${Math.round((t.fastFlux || 0) * cps).toLocaleString()} n/s</span></div>
+        <div class="stat-row" style="margin-bottom:2px;"><span>Thermal flux:</span><span class="stat-val" style="color:#4ade80;">${Math.round((t.thermalFlux || 0) * cps).toLocaleString()} n/s</span></div>
+        <div class="stat-row" style="margin-bottom:2px;"><span>Fast absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${Math.round((t.fastAbsorbed || 0) * cps).toLocaleString()} n/s</span></div>
+        <div class="stat-row" style="margin-bottom:2px;"><span>Thermal absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${Math.round((t.thermalAbsorbed || 0) * cps).toLocaleString()} n/s</span></div>
         ${(t.directEU || (t.type && t.type.startsWith("RADIOVOLTAIC_"))) ? `<div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #373737;"><span>Radiovoltaic output:</span><span class="stat-val" style="color:#38bdf8;">${(t.directEU || 0).toLocaleString()} EU/t</span></div>` : ''}
       </div>
     `;
@@ -168,8 +169,8 @@ function renderInspector(t) {
             ${t.controlRodFollower ? `<div class="stat-row" style="font-size:0.72rem; margin-top:3px;"><span>Follower in:</span><span class="stat-val" style="color:#a78bfa;">${100 - Math.round(t.controlRodEffectiveInsertion != null ? t.controlRodEffectiveInsertion : ins)}% · moderates ${(t.controlRodFollowerModeration || 0).toFixed(1)}% of fast</span></div>` : ''}
           </div>
           <div style="border-top:1px dashed #373737; padding-top:4px; margin-top:4px; font-size:0.72rem;">
-            <div class="stat-row" style="margin-bottom:1px;"><span>Rod fast absorbed:</span><span class="stat-val" style="color:#fbbf24;">${Math.round(fastAbs * cps).toLocaleString()} n/s (${fastAbs.toLocaleString()} /cycle)</span></div>
-            <div class="stat-row" style="margin-bottom:1px;"><span>Rod thermal absorbed:</span><span class="stat-val" style="color:#4ade80;">${Math.round(thermAbs * cps).toLocaleString()} n/s (${thermAbs.toLocaleString()} /cycle)</span></div>
+            <div class="stat-row" style="margin-bottom:1px;"><span>Rod fast absorbed:</span><span class="stat-val" style="color:#fbbf24;">${Math.round(fastAbs * cps).toLocaleString()} n/s</span></div>
+            <div class="stat-row" style="margin-bottom:1px;"><span>Rod thermal absorbed:</span><span class="stat-val" style="color:#4ade80;">${Math.round(thermAbs * cps).toLocaleString()} n/s</span></div>
           </div>
         </div>
       `;
@@ -191,7 +192,7 @@ function renderInspector(t) {
       </div>
     </div>
     <div class="stat-row"><span>Temperature:</span><span class="stat-val">${t.temp} °C</span></div>
-    ${t.code !== "NL" ? `<div class="stat-row"><span>Heat output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${((t.heatOutput || 0) * cps).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/s (${(t.heatOutput || 0).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} Hu/cycle)</span></div>` : ''}
+    ${t.code !== "NL" ? `<div class="stat-row"><span>Heat output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${((t.heatOutput || 0) * cps).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} HU/s</span></div>` : ''}
     ${coolingMethodHtml}
     ${sourceChamberHtml(t, cps)}
     ${controlRodHtml}
