@@ -1279,7 +1279,10 @@ public class CoolantLoopModel {
         return h;
     }
 
-    /** A loop instrument in the hot leg, as the game's crawler adds an in-line device: a meter at the pipe's bore. */
+    /**
+     * A loop instrument in the hot leg, as the game's crawler adds an in-line device: a meter at the pipe's bore and
+     * temperature rating. See Note [In-line devices take their pipe's rating]
+     */
     private static LoopSegment instrument(Circuit c, String id, double temp) {
         LoopSegment s = new LoopSegment(
             id,
@@ -1288,7 +1291,7 @@ public class CoolantLoopModel {
             0.000045,
             LoopSegment.INSTRUMENT_MINOR_LOSS_K,
             LoopSegment.NO_LIMIT,
-            2000.0,
+            c.material.maxTemperatureCelsius(),
             temp);
         s.setCustomVolumeM3(Math.PI * 0.10 * 0.10 / 4.0);
         return s;

@@ -442,6 +442,35 @@ public class LoopGraphCrawler {
         return thickest != null ? CoolantPipingRegistry.getProperties(thickest) : null;
     }
 
+    /*-
+     * Note [In-line devices take their pipe's rating] (generated)
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * A device that sits in a pipe run, such as a loop instrument, is a fitting in that pipe: its segment takes the
+     * bore (inlineBore) and the temperature rating (inlineMaxTemperature) of the pipe that feeds it.  An instrument
+     * on an Infinity loop is rated like Infinity pipe, not at the 2000 C that ICoolantLoopDevice gives a device by
+     * default; that default applies only where no pipe feeds the device.  Every device's output is a pipe (the
+     * crawler refuses a device discharging straight into another), so the feeding pipe is the block on the side
+     * the crawl entered from.
+     *
+     * The simulator rates its instruments by the loop's pipe material the same way (CoolantLoopModel.instrument).
+     */
+
+    /**
+     * Temperature rating (C) of the pipe a crawl step came through, or fallback if it did not come through a pipe.
+     * See Note [In-line devices take their pipe's rating]
+     */
+    static double inlineMaxTemperature(World world, FrontierStep step, double fallback) {
+        if (step.entrySide == null || step.entrySide == ForgeDirection.UNKNOWN) return fallback;
+        TileEntity te = world.getTileEntity(
+            step.x + step.entrySide.offsetX,
+            step.y + step.entrySide.offsetY,
+            step.z + step.entrySide.offsetZ);
+        if (te instanceof BaseMetaPipeEntity bmpe && bmpe.getMetaTileEntity() instanceof MTEFluidPipe pipe) {
+            return CoolantPipingRegistry.getProperties(pipe).maxTemperatureCelsius;
+        }
+        return fallback;
+    }
+
     /** Bore of the pipe a crawl step came through, or fallback (m) if it did not come through a pipe. */
     static double inlineBore(FrontierStep step, double fallback) {
         return step.segmentThickness != null ? CoolantPipingRegistry.getDiameterForThickness(step.segmentThickness)
@@ -1817,7 +1846,8 @@ public class LoopGraphCrawler {
                     devices.add(device);
                 }
 
-                // An in-line device sits in the pipe run and takes its bore
+                // An in-line device sits in the pipe run and takes its bore and its temperature rating. See Note
+                // [In-line devices take their pipe's rating]
                 LoopSegment devSeg = new LoopSegment(
                     device.getDeviceId(),
                     step.x,
@@ -1828,7 +1858,7 @@ public class LoopGraphCrawler {
                     0.000045,
                     device.getMinorLossK(),
                     LoopSegment.NO_LIMIT,
-                    2000.0,
+                    inlineMaxTemperature(world, step, device.getMaxOperatingTemperatureCelsius()),
                     device.getDeviceTemperatureCelsius());
                 devSeg.setCustomVolumeM3(Math.PI * 0.10 * 0.10 / 4.0);
                 segments.add(devSeg);
