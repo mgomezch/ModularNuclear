@@ -1431,8 +1431,31 @@ public class CoolantLoopModel {
         return loop;
     }
 
+    /*-
+     * Note [Loop copies take contiguous runs of passages] (generated)
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * A circuit built as several copies splits its passages among them in layout order (row by row), each copy
+     * taking one contiguous run: with 72 passages and 4 copies, copy 0 takes the first 18, copy 1 the next 18, and
+     * so on.  copyStart gives where each run begins, for buildCircuit and sameTiles.
+     *
+     * The split has to be one a player can pipe.  Each copy joins its passages with a manifold above the core (and
+     * one below), and the other copies' pipes rise through that layer at their own passages.  Dealt round robin,
+     * every copy's passages are scattered over the whole core, and in a checkerboard of passages the cells between
+     * them touch only other passages, never each other: a manifold could not reach its own passages without
+     * crossing another copy's pipes.  The ceiling UHV design, 72 checkerboarded passages on 4 copies, could not be
+     * built that way.  A contiguous run of rows reaches the core's edge along its own rows.
+     *
+     * The showcase world builder (split_copies in tools/bot/mptr_loop_builder.py, in nh-dev) splits passages the
+     * same way, so the loops it builds are the ones simulated.
+     */
+
+    /** Index of the first of the passages copy k of n takes. See Note [Loop copies take contiguous runs of passages] */
+    private static int copyStart(int k, int n, int passages) {
+        return k * passages / n;
+    }
+
     /**
-     * Splits a circuit's passages among its copies (round robin) and builds each copy. A rebuild keeps the coolant's
+     * Splits a circuit's passages among its copies and builds each copy. A rebuild keeps the coolant's
      * temperature unless the fluid changed, in which case the new fluid enters at its fill temperature.
      */
     private static void buildCircuit(Circuit c, List<SimTile> passageTiles, int coreSpanBlocks) {
@@ -1449,8 +1472,8 @@ public class CoolantLoopModel {
         c.loops.clear();
         int n = Math.max(1, Math.min(c.copies, Math.max(1, passageTiles.size())));
         for (int k = 0; k < n; k++) {
-            List<SimTile> mine = new ArrayList<>();
-            for (int i = k; i < passageTiles.size(); i += n) mine.add(passageTiles.get(i));
+            List<SimTile> mine = new ArrayList<>(
+                passageTiles.subList(copyStart(k, n, passageTiles.size()), copyStart(k + 1, n, passageTiles.size())));
             Loop loop = buildLoop(c, mine.size(), startTemp, coreSpanBlocks);
             loop.passageTiles.addAll(mine);
             loop.filled = filled;
@@ -1468,8 +1491,10 @@ public class CoolantLoopModel {
         int n = c.loops.size();
         for (int k = 0; k < n; k++) {
             List<SimTile> mine = c.loops.get(k).passageTiles;
+            int start = copyStart(k, n, tiles.size());
+            if (mine.size() != copyStart(k + 1, n, tiles.size()) - start) return false;
             for (int i = 0; i < mine.size(); i++) {
-                if (mine.get(i) != tiles.get(k + i * n)) return false;
+                if (mine.get(i) != tiles.get(start + i)) return false;
             }
         }
         return true;
