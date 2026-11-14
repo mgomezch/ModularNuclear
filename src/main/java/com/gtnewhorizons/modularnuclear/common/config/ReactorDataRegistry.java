@@ -261,7 +261,9 @@ public final class ReactorDataRegistry {
             w.write("- tiers.yaml      : override or define reactor pressure tube tiers\n");
             w.write("- fuels.yaml      : override fuel parameters, define new fuels, or disable defaults\n");
             w.write("- components.yaml : override moderators, reflectors, control rods, vents, exchangers,\n");
-            w.write("                    insulators, radiovoltaics, and coolant fluids/items\n\n");
+            w.write("                    insulators, radiovoltaics, and coolant fluids/items\n");
+            w.write("- coolant_loops/physics.yaml, fluids.yaml, pipes.yaml, devices.yaml :\n");
+            w.write("                    override coolant loop physics, fluids, pipes and devices\n\n");
             w.write("Overriding rules:\n");
             w.write("1. Partial override: specify only the fields you wish to change. All omitted fields\n");
             w.write("   will continue to use default values from the JAR.\n");

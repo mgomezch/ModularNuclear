@@ -2,10 +2,7 @@ package com.gtnewhorizons.modularnuclear.common.config;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -29,16 +26,14 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.ConvectiveHeatTransfe
 public class CoolantLoopDataRegistry {
 
     private static final Logger LOG = LogManager.getLogger("CoolantLoopDataRegistry");
-    private static final String DEFAULTS_PATH = "assets/modularnuclear/default_config/coolant_loops/";
-
     private static File configFolder;
 
+    /**
+     * Loads the built-in defaults, then any override files in {@code config/modularnuclear/coolant_loops}. Nothing is
+     * written there: a copy of the defaults would freeze them, so later builds' defaults would never take effect.
+     */
     public static synchronized void init(File configDirectory) {
         configFolder = new File(configDirectory, "modularnuclear/coolant_loops");
-        if (!configFolder.exists()) {
-            configFolder.mkdirs();
-        }
-
         loadFromDir();
         LOG.info("Coolant loop YAML Data Registry initialized successfully.");
     }
@@ -105,14 +100,12 @@ public class CoolantLoopDataRegistry {
     }
 
     /**
-     * Loads one config document as UTF-8 and applies it, writing the shipped default first if the file is missing. A
-     * file that cannot be read or applied stops loading.
+     * Applies one override file, read as UTF-8, on top of the defaults; a missing file overrides nothing. A file that
+     * cannot be read or applied stops loading.
      */
     private static void loadFile(String name, Consumer<Object> applier) {
         File file = new File(configFolder, name);
-        if (!file.exists()) {
-            writeDefault(name, file);
-        }
+        if (!file.exists()) return;
         try (InputStreamReader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
             Object doc = createYaml().load(reader);
             if (doc != null && !(doc instanceof Map)) {
@@ -121,21 +114,6 @@ public class CoolantLoopDataRegistry {
             applier.accept(doc);
         } catch (Exception e) {
             throw ConfigException.inFile(file, e);
-        }
-    }
-
-    private static void writeDefault(String name, File file) {
-        try (InputStream in = CoolantLoopDataRegistry.class.getClassLoader()
-            .getResourceAsStream(DEFAULTS_PATH + name); OutputStream out = new FileOutputStream(file)) {
-            if (in == null) {
-                LOG.error("Default " + name + " resource not found in JAR!");
-                return;
-            }
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-        } catch (Exception e) {
-            LOG.error("Failed to write default YAML file " + file.getName(), e);
         }
     }
 
