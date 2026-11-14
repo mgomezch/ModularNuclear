@@ -74,14 +74,16 @@ public class CommandModularNuclear extends CommandBase {
             tell(sender, "Every config file already exists in " + configDir + ": nothing to write.");
             return;
         }
-        tell(
-            sender,
-            "Wrote " + result.written.size() + " config files with the built-in defaults to " + configDir + ":");
+        tell(sender, "Wrote " + files(result.written.size()) + " with the built-in defaults to " + configDir + ":");
         for (String path : result.written) tell(sender, "  " + path);
         if (mode == Mode.MISSING_ONLY && !result.existing.isEmpty()) {
-            tell(sender, "Left the " + result.existing.size() + " existing files as they were.");
+            tell(sender, "Left " + files(result.existing.size()) + " that already existed as they were.");
         }
         tell(sender, "They take effect after a restart.  Delete the ones you don't change, so they keep the defaults.");
+    }
+
+    private static String files(int n) {
+        return n == 1 ? "1 config file" : n + " config files";
     }
 
     private static void tell(ICommandSender sender, String text) {
