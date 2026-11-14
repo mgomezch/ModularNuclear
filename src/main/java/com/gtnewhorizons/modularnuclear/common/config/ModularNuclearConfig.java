@@ -1,6 +1,8 @@
 package com.gtnewhorizons.modularnuclear.common.config;
 
 import java.io.File;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -114,6 +116,9 @@ public final class ModularNuclearConfig {
 
     public static String[] allowedNeutronSources = new String[] { "GoodGenerator:neutronSource" };
 
+    // The settings above as compiled in, for writeDefaults; declared after them, so they are initialized first
+    private static final Map<Field, Object> BUILT_IN = settings();
+
     /**
      * What reactors work out from this configuration once (item and fluid roles) is kept until it changes. Code that
      * edits the lists above at runtime must call this.
@@ -168,185 +173,235 @@ public final class ModularNuclearConfig {
         changed();
     }
 
+    /**
+     * Reads modularnuclear.cfg if there is one; otherwise every setting keeps its built-in default. Never writes it.
+     */
     public static void init(File configFile) {
-        Configuration config = new Configuration(configFile);
-        try {
-            config.load();
-
-            // Client Visuals
-            enableCherenkovRadiation = config.getBoolean(
-                "enableCherenkovRadiation",
-                "client_visuals",
-                enableCherenkovRadiation,
-                "Enable client-side Cherenkov radiation visual effects (blue beams and particles) above flooded reactors.");
-
-            enableCherenkovLightEmission = config.getBoolean(
-                "enableCherenkovLightEmission",
-                "client_visuals",
-                enableCherenkovLightEmission,
-                "Enable dynamic client block light emission from hatches when Cherenkov radiation is active.");
-
-            cherenkovLightLevel = config.getInt(
-                "cherenkovLightLevel",
-                "client_visuals",
-                cherenkovLightLevel,
-                1,
-                15,
-                "Block light level emitted by reactor core hatches when Cherenkov radiation is active (default 10).");
-
-            cherenkovIntensityMultiplier = config.getFloat(
-                "cherenkovIntensityMultiplier",
-                "client_visuals",
-                cherenkovIntensityMultiplier,
-                0.1f,
-                10.0f,
-                "Multiplier for Cherenkov visual beam intensity (default 6.0).");
-
-            enableFalloutVisualEffect = config.getBoolean(
-                "enableFalloutVisualEffect",
-                "client_visuals",
-                enableFalloutVisualEffect,
-                "Enable the post-processing shader visual effect (static, desaturation, darkening) during meltdown fallout.");
-
-            falloutEffectMaxDistance = config.getFloat(
-                "falloutEffectMaxDistance",
-                "client_visuals",
-                falloutEffectMaxDistance,
-                16.0f,
-                160.0f,
-                "Maximum distance in meters where the meltdown fallout visual effect is visible (default 80).");
-
-            // Meltdown Fallout Dynamics
-            final String CAT_FALLOUT = "meltdown_fallout";
-            config.setCategoryComment(CAT_FALLOUT, "Meltdown fallout contamination and pollution mitigation tuning.");
-
-            falloutContaminationReductionPerPollution = config.get(
-                CAT_FALLOUT,
-                "falloutContaminationReductionPerPollution",
-                falloutContaminationReductionPerPollution,
-                "Contamination counter reduction per unit of pollution removed by scrubbers or mufflers (default: 1/480, reducing fallout radius by 1m per 30,000 pollution removed).")
-                .getDouble();
-
-            // Allowlists & Blocklists
-            final String CAT_ALLOWLISTS = "allowlists";
-            config.setCategoryComment(
-                CAT_ALLOWLISTS,
-                "Data-driven item and fluid allowlists/blocklists for the reactor core.");
-
-            blockedItems = config.getStringList(
-                "blockedItems",
-                CAT_ALLOWLISTS,
-                blockedItems,
-                "Items blocked from insertion into reactor core hatches (depleted rods, empty rods, etc.): exact modid:name, modid:name:meta or ore:oreName.");
-
-            allowedFuelItems = config.getStringList(
-                "allowedFuelItems",
-                CAT_ALLOWLISTS,
-                allowedFuelItems,
-                "Items recognized as active nuclear fuel in reactor core hatches: exact modid:name, modid:name:meta or ore:oreName.");
-
-            allowedFuelFluids = config.getStringList(
-                "allowedFuelFluids",
-                CAT_ALLOWLISTS,
-                allowedFuelFluids,
-                "Fluid registry names recognized as nuclear fuels for fluid-cooled reactor cores.");
-
-            blockedFuelFluids = config.getStringList(
-                "blockedFuelFluids",
-                CAT_ALLOWLISTS,
-                blockedFuelFluids,
-                "Fluid registry names blocked from reactor fuel hatches (e.g. molten.naquadah).");
-
-            allowedCoolantItems = config.getStringList(
-                "allowedCoolantItems",
-                CAT_ALLOWLISTS,
-                allowedCoolantItems,
-                "Items recognized as coolant cells in reactor core hatches: exact modid:name, modid:name:meta or ore:oreName.");
-
-            allowedCoolantFluids = config.getStringList(
-                "allowedCoolantFluids",
-                CAT_ALLOWLISTS,
-                allowedCoolantFluids,
-                "Fluid registry names recognized as valid reactor coolants.");
-
-            allowedControlRods = config.getStringList(
-                "allowedControlRods",
-                CAT_ALLOWLISTS,
-                allowedControlRods,
-                "Items mapped to control rod types (item=TYPE), item as modid:name, modid:name:meta or ore:oreName.");
-
-            allowedReflectors = config.getStringList(
-                "allowedReflectors",
-                CAT_ALLOWLISTS,
-                allowedReflectors,
-                "Items recognized as neutron reflectors: modid:name, modid:name:meta or ore:oreName.");
-
-            allowedModerators = config.getStringList(
-                "allowedModerators",
-                CAT_ALLOWLISTS,
-                allowedModerators,
-                "Items recognized as neutron moderators: modid:name, modid:name:meta or ore:oreName.");
-
-            allowedHeatVents = config
-                .getStringList("allowedHeatVents", CAT_ALLOWLISTS, allowedHeatVents, "Items recognized as heat vents.");
-
-            allowedHeatExchangers = config.getStringList(
-                "allowedHeatExchangers",
-                CAT_ALLOWLISTS,
-                allowedHeatExchangers,
-                "Items recognized as heat exchangers.");
-
-            allowedInsulators = config.getStringList(
-                "allowedInsulators",
-                CAT_ALLOWLISTS,
-                allowedInsulators,
-                "Items mapped to insulation dampening factor (item=fraction), item as modid:name, modid:name:meta or ore:oreName.");
-
-            allowedRadiovoltaics = config.getStringList(
-                "allowedRadiovoltaics",
-                CAT_ALLOWLISTS,
-                allowedRadiovoltaics,
-                "Items recognized as radiovoltaic energy converters.");
-
-            allowedNeutronSources = config.getStringList(
-                "allowedNeutronSources",
-                CAT_ALLOWLISTS,
-                allowedNeutronSources,
-                "Items recognized as external beam neutron sources.");
-
-            ticksPerCycle = config.getInt(
-                "ticksPerCycle",
-                CAT_SIMULATION,
-                ticksPerCycle,
-                1,
-                100,
-                "Number of ticks per reactor simulation cycle (default 5, i.e. 4 cycles/second).");
-            NuclearSimulationEngine.params().ticksPerCycle = ticksPerCycle;
-
-            config.setCategoryComment(CAT_GUI, "How often machine GUIs send their data to the players viewing them.");
-            loopGraphSyncIntervalDedicated = config.getInt(
-                "loopGraphSyncIntervalDedicated",
-                CAT_GUI,
-                loopGraphSyncIntervalDedicated,
-                1,
-                1200,
-                "Minimum ticks between coolant loop graph updates to each player viewing one, on a dedicated server (default 20, once a second). A large loop's graph is tens of KB, rebuilt for each update.");
-            loopGraphSyncIntervalIntegrated = config.getInt(
-                "loopGraphSyncIntervalIntegrated",
-                CAT_GUI,
-                loopGraphSyncIntervalIntegrated,
-                1,
-                1200,
-                "Minimum ticks between coolant loop graph updates in singleplayer and LAN games (the integrated server; default 1, every tick).");
-
-        } catch (Exception e) {
-            ModularNuclear.LOG.error("Failed to load ModularNuclear config", e);
-        } finally {
-            if (config.hasChanged()) {
-                config.save();
+        // See wrinkle (W1) of Note [Config files only override the built-in defaults]
+        if (configFile.exists()) {
+            try {
+                define(new Configuration(configFile));
+            } catch (Exception e) {
+                ModularNuclear.LOG.error("Failed to load ModularNuclear config", e);
             }
-            changed();
         }
+        NuclearSimulationEngine.params().ticksPerCycle = ticksPerCycle;
+        changed();
+    }
+
+    /**
+     * Writes a modularnuclear.cfg with every setting at its built-in default, replacing any file there, and leaves the
+     * settings in use as they were.
+     */
+    public static synchronized void writeDefaults(File configFile) throws java.io.IOException {
+        Map<Field, Object> inUse = settings();
+        restore(BUILT_IN);
+        try {
+            if (configFile.exists() && !configFile.delete()) {
+                throw new java.io.IOException("cannot replace " + configFile);
+            }
+            Configuration config = new Configuration(configFile);
+            define(config);
+            config.save();
+        } finally {
+            restore(inUse);
+        }
+    }
+
+    /** The public static settings, by field, with arrays copied. */
+    private static Map<Field, Object> settings() {
+        Map<Field, Object> values = new LinkedHashMap<>();
+        for (Field f : ModularNuclearConfig.class.getDeclaredFields()) {
+            int m = f.getModifiers();
+            if (!Modifier.isPublic(m) || !Modifier.isStatic(m) || Modifier.isFinal(m)) continue;
+            try {
+                Object v = f.get(null);
+                values.put(f, v instanceof String[]a ? a.clone() : v);
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        return values;
+    }
+
+    private static void restore(Map<Field, Object> values) {
+        for (Map.Entry<Field, Object> e : values.entrySet()) {
+            try {
+                Object v = e.getValue();
+                e.getKey()
+                    .set(null, v instanceof String[]a ? a.clone() : v);
+            } catch (IllegalAccessException ex) {
+                throw new IllegalStateException(ex);
+            }
+        }
+    }
+
+    /** Declares every setting in config, with its current value as the default, and reads it back. */
+    private static void define(Configuration config) {
+        // Client Visuals
+        enableCherenkovRadiation = config.getBoolean(
+            "enableCherenkovRadiation",
+            "client_visuals",
+            enableCherenkovRadiation,
+            "Enable client-side Cherenkov radiation visual effects (blue beams and particles) above flooded reactors.");
+
+        enableCherenkovLightEmission = config.getBoolean(
+            "enableCherenkovLightEmission",
+            "client_visuals",
+            enableCherenkovLightEmission,
+            "Enable dynamic client block light emission from hatches when Cherenkov radiation is active.");
+
+        cherenkovLightLevel = config.getInt(
+            "cherenkovLightLevel",
+            "client_visuals",
+            cherenkovLightLevel,
+            1,
+            15,
+            "Block light level emitted by reactor core hatches when Cherenkov radiation is active (default 10).");
+
+        cherenkovIntensityMultiplier = config.getFloat(
+            "cherenkovIntensityMultiplier",
+            "client_visuals",
+            cherenkovIntensityMultiplier,
+            0.1f,
+            10.0f,
+            "Multiplier for Cherenkov visual beam intensity (default 6.0).");
+
+        enableFalloutVisualEffect = config.getBoolean(
+            "enableFalloutVisualEffect",
+            "client_visuals",
+            enableFalloutVisualEffect,
+            "Enable the post-processing shader visual effect (static, desaturation, darkening) during meltdown fallout.");
+
+        falloutEffectMaxDistance = config.getFloat(
+            "falloutEffectMaxDistance",
+            "client_visuals",
+            falloutEffectMaxDistance,
+            16.0f,
+            160.0f,
+            "Maximum distance in meters where the meltdown fallout visual effect is visible (default 80).");
+
+        // Meltdown Fallout Dynamics
+        final String CAT_FALLOUT = "meltdown_fallout";
+        config.setCategoryComment(CAT_FALLOUT, "Meltdown fallout contamination and pollution mitigation tuning.");
+
+        falloutContaminationReductionPerPollution = config.get(
+            CAT_FALLOUT,
+            "falloutContaminationReductionPerPollution",
+            falloutContaminationReductionPerPollution,
+            "Contamination counter reduction per unit of pollution removed by scrubbers or mufflers (default: 1/480, reducing fallout radius by 1m per 30,000 pollution removed).")
+            .getDouble();
+
+        // Allowlists & Blocklists
+        final String CAT_ALLOWLISTS = "allowlists";
+        config.setCategoryComment(
+            CAT_ALLOWLISTS,
+            "Data-driven item and fluid allowlists/blocklists for the reactor core.");
+
+        blockedItems = config.getStringList(
+            "blockedItems",
+            CAT_ALLOWLISTS,
+            blockedItems,
+            "Items blocked from insertion into reactor core hatches (depleted rods, empty rods, etc.): exact modid:name, modid:name:meta or ore:oreName.");
+
+        allowedFuelItems = config.getStringList(
+            "allowedFuelItems",
+            CAT_ALLOWLISTS,
+            allowedFuelItems,
+            "Items recognized as active nuclear fuel in reactor core hatches: exact modid:name, modid:name:meta or ore:oreName.");
+
+        allowedFuelFluids = config.getStringList(
+            "allowedFuelFluids",
+            CAT_ALLOWLISTS,
+            allowedFuelFluids,
+            "Fluid registry names recognized as nuclear fuels for fluid-cooled reactor cores.");
+
+        blockedFuelFluids = config.getStringList(
+            "blockedFuelFluids",
+            CAT_ALLOWLISTS,
+            blockedFuelFluids,
+            "Fluid registry names blocked from reactor fuel hatches (e.g. molten.naquadah).");
+
+        allowedCoolantItems = config.getStringList(
+            "allowedCoolantItems",
+            CAT_ALLOWLISTS,
+            allowedCoolantItems,
+            "Items recognized as coolant cells in reactor core hatches: exact modid:name, modid:name:meta or ore:oreName.");
+
+        allowedCoolantFluids = config.getStringList(
+            "allowedCoolantFluids",
+            CAT_ALLOWLISTS,
+            allowedCoolantFluids,
+            "Fluid registry names recognized as valid reactor coolants.");
+
+        allowedControlRods = config.getStringList(
+            "allowedControlRods",
+            CAT_ALLOWLISTS,
+            allowedControlRods,
+            "Items mapped to control rod types (item=TYPE), item as modid:name, modid:name:meta or ore:oreName.");
+
+        allowedReflectors = config.getStringList(
+            "allowedReflectors",
+            CAT_ALLOWLISTS,
+            allowedReflectors,
+            "Items recognized as neutron reflectors: modid:name, modid:name:meta or ore:oreName.");
+
+        allowedModerators = config.getStringList(
+            "allowedModerators",
+            CAT_ALLOWLISTS,
+            allowedModerators,
+            "Items recognized as neutron moderators: modid:name, modid:name:meta or ore:oreName.");
+
+        allowedHeatVents = config
+            .getStringList("allowedHeatVents", CAT_ALLOWLISTS, allowedHeatVents, "Items recognized as heat vents.");
+
+        allowedHeatExchangers = config.getStringList(
+            "allowedHeatExchangers",
+            CAT_ALLOWLISTS,
+            allowedHeatExchangers,
+            "Items recognized as heat exchangers.");
+
+        allowedInsulators = config.getStringList(
+            "allowedInsulators",
+            CAT_ALLOWLISTS,
+            allowedInsulators,
+            "Items mapped to insulation dampening factor (item=fraction), item as modid:name, modid:name:meta or ore:oreName.");
+
+        allowedRadiovoltaics = config.getStringList(
+            "allowedRadiovoltaics",
+            CAT_ALLOWLISTS,
+            allowedRadiovoltaics,
+            "Items recognized as radiovoltaic energy converters.");
+
+        allowedNeutronSources = config.getStringList(
+            "allowedNeutronSources",
+            CAT_ALLOWLISTS,
+            allowedNeutronSources,
+            "Items recognized as external beam neutron sources.");
+
+        ticksPerCycle = config.getInt(
+            "ticksPerCycle",
+            CAT_SIMULATION,
+            ticksPerCycle,
+            1,
+            100,
+            "Number of ticks per reactor simulation cycle (default 5, i.e. 4 cycles/second).");
+
+        config.setCategoryComment(CAT_GUI, "How often machine GUIs send their data to the players viewing them.");
+        loopGraphSyncIntervalDedicated = config.getInt(
+            "loopGraphSyncIntervalDedicated",
+            CAT_GUI,
+            loopGraphSyncIntervalDedicated,
+            1,
+            1200,
+            "Minimum ticks between coolant loop graph updates to each player viewing one, on a dedicated server (default 20, once a second). A large loop's graph is tens of KB, rebuilt for each update.");
+        loopGraphSyncIntervalIntegrated = config.getInt(
+            "loopGraphSyncIntervalIntegrated",
+            CAT_GUI,
+            loopGraphSyncIntervalIntegrated,
+            1,
+            1200,
+            "Minimum ticks between coolant loop graph updates in singleplayer and LAN games (the integrated server; default 1, every tick).");
     }
 
     /** Minimum ticks between coolant loop graph updates on the server running now. */

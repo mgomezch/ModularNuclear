@@ -6350,10 +6350,9 @@ public class NuclearSimulationEngineTest {
         try {
             ReactorDataRegistry.init(tempDir.toFile());
 
+            // See Note [Config files only override the built-in defaults]
             File configFolder = new File(tempDir.toFile(), "modularnuclear");
-            assertTrue(configFolder.exists(), "Config folder modularnuclear should be created");
-            File readmeFile = new File(configFolder, "README.txt");
-            assertTrue(readmeFile.exists(), "README.txt should be written on init");
+            assertFalse(configFolder.exists(), "init must write no config files");
 
             // Default configurations are loaded directly from JAR resources without cluttering disk
             assertTrue(

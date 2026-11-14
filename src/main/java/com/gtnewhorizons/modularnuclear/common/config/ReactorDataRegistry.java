@@ -240,39 +240,11 @@ public final class ReactorDataRegistry {
         return in;
     }
 
+    /** Loads the built-in defaults and any override files in the configuration directory, which it never writes. */
     public static synchronized void init(File modConfigDir) {
+        // See Note [Config files only override the built-in defaults]
         configDirectory = new File(modConfigDir, "modularnuclear");
-        if (!configDirectory.exists()) {
-            configDirectory.mkdirs();
-            writeReadme(new File(configDirectory, "README.txt"));
-        }
         loadFromDir(configDirectory);
-    }
-
-    private static void writeReadme(File readmeFile) {
-        if (readmeFile.exists()) return;
-        try (Writer w = new OutputStreamWriter(new FileOutputStream(readmeFile), StandardCharsets.UTF_8)) {
-            w.write("Modular Nuclear Reactor - Configuration Directory\n");
-            w.write("==================================================\n\n");
-            w.write("All default configurations for physics, tiers, fuels, and components are\n");
-            w.write("loaded directly from the mod JAR.\n\n");
-            w.write("To customize or override settings, create any of the following YAML files:\n");
-            w.write("- physics.yaml    : override specific global physics constants (e.g. hu_per_degree)\n");
-            w.write("- tiers.yaml      : override or define reactor pressure tube tiers\n");
-            w.write("- fuels.yaml      : override fuel parameters, define new fuels, or disable defaults\n");
-            w.write("- components.yaml : override moderators, reflectors, control rods, vents, exchangers,\n");
-            w.write("                    insulators, radiovoltaics, and coolant fluids/items\n");
-            w.write("- coolant_loops/physics.yaml, fluids.yaml, pipes.yaml, devices.yaml :\n");
-            w.write("                    override coolant loop physics, fluids, pipes and devices\n\n");
-            w.write("Overriding rules:\n");
-            w.write("1. Partial override: specify only the fields you wish to change. All omitted fields\n");
-            w.write("   will continue to use default values from the JAR.\n");
-            w.write("2. Disabling items : to remove a default fuel or component, specify its id with\n");
-            w.write("   'remove: true' (or 'enabled: false', or map its key to null in YAML).\n");
-            w.write("3. Adding items    : to add a new fuel or component, specify a unique id and required fields.\n");
-        } catch (Exception e) {
-            ModularNuclear.LOG.error("Failed to write README.txt to configuration directory", e);
-        }
     }
 
     public static synchronized void loadDefaults() {

@@ -8,7 +8,9 @@ import com.gtnewhorizons.modularnuclear.client.renderer.FalloutVisualEffectRende
 import com.gtnewhorizons.modularnuclear.client.renderer.RenderEmpty;
 import com.gtnewhorizons.modularnuclear.common.CommonProxy;
 import com.gtnewhorizons.modularnuclear.common.block.ModBlocks;
+import com.gtnewhorizons.modularnuclear.common.command.CommandModularNuclear;
 import com.gtnewhorizons.modularnuclear.common.config.ConfigNameCheck;
+import com.gtnewhorizons.modularnuclear.common.config.DefaultConfigFiles;
 import com.gtnewhorizons.modularnuclear.common.config.ModularNuclearConfig;
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopChunkLoader;
@@ -36,6 +38,7 @@ import cpw.mods.fml.common.event.FMLConstructionEvent;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.event.FMLServerStartingEvent;
 
 @Mod(
     modid = ModularNuclear.MODID,
@@ -71,6 +74,16 @@ public class ModularNuclear {
         ModBlocks.init();
         ModItems.init();
         CoolantLoopSetup.preInit(event);
+        if (DefaultConfigFiles.existing(event.getModConfigurationDirectory())
+            .isEmpty()) {
+            LOG.info(
+                "No config files: running on the built-in defaults. '/modularnuclear config generate' writes them out to customize.");
+        }
+    }
+
+    @Mod.EventHandler
+    public void serverStarting(FMLServerStartingEvent event) {
+        event.registerServerCommand(new CommandModularNuclear());
     }
 
     @Mod.EventHandler
