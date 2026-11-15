@@ -956,38 +956,34 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         int tpc = sync.ticksPerCycle > 0 ? sync.ticksPerCycle : NuclearSimulationEngine.params().ticksPerCycle;
         double cyclesPerSec = 20.0 / (double) tpc;
         int totalFlux = cell.fastFlux + cell.thermalFlux;
-        if (totalFlux > 0) {
-            tooltip.addLine(
-                EnumChatFormatting.GRAY + "Neutron flux: "
-                    + EnumChatFormatting.AQUA
-                    + NuclearSimulationEngine.formatNeutronFlux(totalFlux, tpc)
-                    + EnumChatFormatting.DARK_GRAY
-                    + String.format(
-                        Locale.US,
-                        " (%,d fast/s, %,d thermal/s)",
-                        Math.round(cell.fastFlux * cyclesPerSec),
-                        Math.round(cell.thermalFlux * cyclesPerSec)));
-        } else {
-            tooltip.addLine(EnumChatFormatting.DARK_GRAY + "Neutron flux: 0 n/s");
-        }
+        tooltip.addLine(
+            EnumChatFormatting.GRAY + "Neutron flux: "
+                + EnumChatFormatting.AQUA
+                + NuclearSimulationEngine.formatNeutronFlux(totalFlux, tpc)
+                + EnumChatFormatting.DARK_GRAY
+                + String.format(
+                    Locale.US,
+                    " (%,d fast/s, %,d thermal/s)",
+                    Math.round(cell.fastFlux * cyclesPerSec),
+                    Math.round(cell.thermalFlux * cyclesPerSec)));
 
         int totalAbs = cell.fastAbsorbed + cell.thermalAbsorbed;
-        if (totalAbs > 0) {
-            long totalAbsSec = Math.round(totalAbs * cyclesPerSec);
-            tooltip.addLine(
-                EnumChatFormatting.GRAY + "Neutrons absorbed: "
-                    + EnumChatFormatting.LIGHT_PURPLE
-                    + String.format(Locale.US, "%,d n/s", totalAbsSec)
-                    + EnumChatFormatting.DARK_GRAY
-                    + String.format(
-                        Locale.US,
-                        " (%,d fast/s, %,d thermal/s)",
-                        Math.round(cell.fastAbsorbed * cyclesPerSec),
-                        Math.round(cell.thermalAbsorbed * cyclesPerSec)));
-        }
+        tooltip.addLine(
+            EnumChatFormatting.GRAY + "Neutrons absorbed: "
+                + EnumChatFormatting.LIGHT_PURPLE
+                + String.format(Locale.US, "%,d n/s", Math.round(totalAbs * cyclesPerSec))
+                + EnumChatFormatting.DARK_GRAY
+                + String.format(
+                    Locale.US,
+                    " (%,d fast/s, %,d thermal/s)",
+                    Math.round(cell.fastAbsorbed * cyclesPerSec),
+                    Math.round(cell.thermalAbsorbed * cyclesPerSec)));
 
-        // 5. Radiovoltaic Power
-        if (cell.directEU > 0) {
+        // 5. Radiovoltaic Power, for the cells that can make it, even while it is zero: the tooltip is live, and
+        // lines that come and go with the values make it jump
+        boolean isRadiovoltaic = cell.directEU > 0
+            || cell.itemStack != null && ReactorDataRegistry.findRadiovoltaic(cell.itemStack) != null;
+        if (isRadiovoltaic) {
             tooltip.addLine(
                 EnumChatFormatting.AQUA + "Radiovoltaic power: "
                     + EnumChatFormatting.GREEN
@@ -997,13 +993,10 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
         }
 
         // 5.5 Heat Output
-        if (cell.heatOutput > 0) {
-            double heatSec = cell.heatOutput * cyclesPerSec;
-            tooltip.addLine(
-                EnumChatFormatting.GRAY + "Heat output: "
-                    + EnumChatFormatting.GOLD
-                    + String.format(Locale.US, "%,.1f HU/s", heatSec));
-        }
+        tooltip.addLine(
+            EnumChatFormatting.GRAY + "Heat output: "
+                + EnumChatFormatting.GOLD
+                + String.format(Locale.US, "%,.1f HU/s", cell.heatOutput * cyclesPerSec));
 
         // 6. Control Rod Info
         if (cell.hasControlRod) {
@@ -1077,24 +1070,17 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                     }
                 }
             }
-            if (totalHeat > 0 && cell.heatOutput > 0) {
-                double share = (cell.heatOutput / totalHeat) * 100.0;
-                tooltip.addLine(
-                    EnumChatFormatting.DARK_GRAY + String.format(Locale.US, "Core heat output share: %.1f%%", share));
-            }
+            double share = totalHeat > 0 ? (cell.heatOutput / totalHeat) * 100.0 : 0.0;
+            tooltip.addLine(
+                EnumChatFormatting.DARK_GRAY + String.format(Locale.US, "Core heat output share: %.1f%%", share));
         } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_FLUX) {
-            if (sync.neutronsProduced > 0 && totalFlux > 0) {
-                double share = ((double) totalFlux / sync.neutronsProduced) * 100.0;
-                tooltip
-                    .addLine(EnumChatFormatting.DARK_GRAY + String.format(Locale.US, "Core flux share: %.1f%%", share));
-            }
+            double share = sync.neutronsProduced > 0 ? ((double) totalFlux / sync.neutronsProduced) * 100.0 : 0.0;
+            tooltip.addLine(EnumChatFormatting.DARK_GRAY + String.format(Locale.US, "Core flux share: %.1f%%", share));
         } else if (reactor.mCurrentGuiMode == MTENuclearReactor.GUI_MODE_NEUTRON_ABSORPTION) {
             int totalCoreAbs = sync.fastAbsorbed + sync.thermalAbsorbed;
-            if (totalCoreAbs > 0 && totalAbs > 0) {
-                double share = ((double) totalAbs / totalCoreAbs) * 100.0;
-                tooltip.addLine(
-                    EnumChatFormatting.DARK_GRAY + String.format(Locale.US, "Core absorption share: %.1f%%", share));
-            }
+            double share = totalCoreAbs > 0 ? ((double) totalAbs / totalCoreAbs) * 100.0 : 0.0;
+            tooltip.addLine(
+                EnumChatFormatting.DARK_GRAY + String.format(Locale.US, "Core absorption share: %.1f%%", share));
         }
     }
 
