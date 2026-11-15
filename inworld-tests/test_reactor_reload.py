@@ -75,18 +75,17 @@ def main(preset_name: str) -> bool:
     pinfo = W.parse_preset(preset)
     S.ensure_showcase_instance_running()
     harness = S.HarnessClient(port=S.HARNESS_PORT)
-    sfm = S.SfmClient(port=S.SFM_PORT)
     sandbox = WorldSandbox(template_name="superflat_empty", world_name=WORLD,
                            saves_dir=get_saves_dir(FleetClient(), "sfm-test-runner"),
                            on_unmount=lambda: harness.exitworld())
     with sandbox:
-        sfm.autoworld(name=WORLD)
+        harness.autoworld(name=WORLD)
         wait_in_world(harness)
         time.sleep(1.0)
         harness.close_gui()
         for cmd in ("/gamemode 1", "/gamerule doDaylightCycle false", "/gamerule doMobSpawning false",
                     "/time set 6000", "/weather clear 999999", "/difficulty 0"):
-            sfm.chat(message=cmd)
+            harness.chat(message=cmd)
         _, _, xc, zc = W.get_cell_origin(0)
         harness.stand(xc, W.Y_TOP + 4, zc - pinfo["radius"] - 3)
         time.sleep(1.0)
@@ -106,7 +105,7 @@ def main(preset_name: str) -> bool:
         harness.save_world()
         harness.exitworld()
         time.sleep(2.0)
-        sfm.autoworld(name=WORLD)
+        harness.autoworld(name=WORLD)
         wait_in_world(harness)
         first_took = fill_hatches(harness, pinfo, xc, zc)
         print(f"    First top-up after the reload: {first_took} of {len(pinfo['coolants'])} hatches took fluid")

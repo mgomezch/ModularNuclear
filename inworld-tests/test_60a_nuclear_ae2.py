@@ -31,13 +31,11 @@ from typing import Dict, Any, List, Tuple
 from nhdev import NH_DEV_ROOT as REPO_ROOT
 
 from tools.agentharness import HarnessClient, HarnessError
-from tools.sfm_client import SfmClient
 from tools.runner_instance import get_saves_dir, ensure_sfm_instance_running
 from tools.mcfleet.client import FleetClient
 from tools.bot.world_manager import WorldSandbox
 
 HARNESS_PORT = 25572
-SFM_PORT = 25573
 
 OUTPUT_DIR = REPO_ROOT / "output" / "ae2_nuclear_60a"
 ARTIFACTS_DIR = Path("/home/mgomezch/.gemini/antigravity/brain/bc0c2152-bd77-425b-aa35-bf4d7878b40d")
@@ -95,7 +93,7 @@ MAIN_DRIVE_POS = (500, 5, 493)
 VOID_DRIVE_POS = (500, 5, 492)
 
 
-def build_reactor_and_sfm_supply(harness: HarnessClient, sfm: SfmClient):
+def build_reactor_and_sfm_supply(harness: HarnessClient):
     print("============================================================")
     print("[*] Stage 1: Constructing 60A Electrum Reactor & Hatches...")
     print("============================================================")
@@ -171,16 +169,16 @@ def build_reactor_and_sfm_supply(harness: HarnessClient, sfm: SfmClient):
     # 8. Configure SFM Labels and Supply Program
     print("[*] Programming SFM supply logic...")
     mx, my, mz = MGR_POS
-    sfm.clearlabels(x=mx, y=my, z=mz)
-    sfm.setlabel(x=mx, y=my, z=mz, label="u4_drawer", tx=DRAWER_U4_POS[0], ty=DRAWER_U4_POS[1], tz=DRAWER_U4_POS[2])
-    sfm.setlabel(x=mx, y=my, z=mz, label="m4_drawer", tx=DRAWER_M4_POS[0], ty=DRAWER_M4_POS[1], tz=DRAWER_M4_POS[2])
-    sfm.setlabel(x=mx, y=my, z=mz, label="coolant_tank", tx=COOLANT_TANK_POS[0], ty=COOLANT_TANK_POS[1], tz=COOLANT_TANK_POS[2])
+    harness.sfm_clear_labels(x=mx, y=my, z=mz)
+    harness.sfm_label(x=mx, y=my, z=mz, label="u4_drawer", bx=DRAWER_U4_POS[0], by=DRAWER_U4_POS[1], bz=DRAWER_U4_POS[2])
+    harness.sfm_label(x=mx, y=my, z=mz, label="m4_drawer", bx=DRAWER_M4_POS[0], by=DRAWER_M4_POS[1], bz=DRAWER_M4_POS[2])
+    harness.sfm_label(x=mx, y=my, z=mz, label="coolant_tank", bx=COOLANT_TANK_POS[0], by=COOLANT_TANK_POS[1], bz=COOLANT_TANK_POS[2])
     for pos in COOLANT_HATCHES:
-        sfm.setlabel(x=mx, y=my, z=mz, label="coolant_hatches", tx=pos[0], ty=pos[1], tz=pos[2])
+        harness.sfm_label(x=mx, y=my, z=mz, label="coolant_hatches", bx=pos[0], by=pos[1], bz=pos[2])
     for pos in U4_BUSES:
-        sfm.setlabel(x=mx, y=my, z=mz, label="u4_buses", tx=pos[0], ty=pos[1], tz=pos[2])
+        harness.sfm_label(x=mx, y=my, z=mz, label="u4_buses", bx=pos[0], by=pos[1], bz=pos[2])
     for pos in M4_BUSES:
-        sfm.setlabel(x=mx, y=my, z=mz, label="m4_buses", tx=pos[0], ty=pos[1], tz=pos[2])
+        harness.sfm_label(x=mx, y=my, z=mz, label="m4_buses", bx=pos[0], by=pos[1], bz=pos[2])
 
     program_code = (
         "NAME \"60A Reactor Supply\"\n"
@@ -193,15 +191,15 @@ def build_reactor_and_sfm_supply(harness: HarnessClient, sfm: SfmClient):
         "  OUTPUT TO coolant_hatches\n"
         "END\n"
     )
-    res_prog = sfm.programmanager(x=mx, y=my, z=mz, code=program_code)
+    res_prog = harness.sfm_program(x=mx, y=my, z=mz, code=program_code, start=True)
     print(f"    Compiler result: {res_prog}")
     assert res_prog["valid"], f"SFM program failed compilation: {res_prog}"
-    sfm.settick(x=mx, y=my, z=mz, tick=0)
-    sfm.setrunning(x=mx, y=my, z=mz, running=True)
+    harness.sfm_set_tick(x=mx, y=my, z=mz, tick=0)
+    harness.sfm_set_running(x=mx, y=my, z=mz, running=True)
     print("[✓] Reactor core & SFM supply configured!")
 
 
-def build_and_configure_ae2_network(harness: HarnessClient, sfm: SfmClient):
+def build_and_configure_ae2_network(harness: HarnessClient):
     print("============================================================")
     print("[*] Stage 2: Constructing AE2 Dense Cable Output Network...")
     print("============================================================")
@@ -257,23 +255,23 @@ def build_and_configure_ae2_network(harness: HarnessClient, sfm: SfmClient):
 
     # 5. Capture Main Drive GUI
     print("[*] Opening Main ME Drive GUI...")
-    sfm.closegui()
+    harness.close_gui()
     time.sleep(0.3)
-    sfm.teleport(x=498.5, y=6.0, z=493.0)
-    sfm.look(yaw=-90, pitch=15)
+    harness.teleport(x=498.5, y=6.0, z=493.0)
+    harness.look(yaw=-90, pitch=15)
     time.sleep(0.3)
     harness.click_block(x=MAIN_DRIVE_POS[0], y=MAIN_DRIVE_POS[1], z=MAIN_DRIVE_POS[2], side=4)
     time.sleep(0.6)
     p_main_drive = OUTPUT_DIR / "03a_me_main_drive_gui.png"
-    sfm.screenshot(path=p_main_drive)
+    harness.screenshot(path=str(p_main_drive))
     print(f"[+] Captured {p_main_drive.name}")
     harness.close_gui()
     time.sleep(0.3)
 
     # 6. Configure Void Drive Priority to -1 via GUI interaction
     print("[*] Setting Void ME Drive priority to -1 via GUI interaction...")
-    sfm.teleport(x=498.5, y=6.0, z=492.0)
-    sfm.look(yaw=-90, pitch=15)
+    harness.teleport(x=498.5, y=6.0, z=492.0)
+    harness.look(yaw=-90, pitch=15)
     time.sleep(0.3)
     # Right-click Drive #2 (face 4 is West)
     harness.click_block(x=VOID_DRIVE_POS[0], y=VOID_DRIVE_POS[1], z=VOID_DRIVE_POS[2], side=4)
@@ -281,7 +279,7 @@ def build_and_configure_ae2_network(harness: HarnessClient, sfm: SfmClient):
 
     # Capture Drive GUI screenshot
     p_drive_gui = OUTPUT_DIR / "03_me_void_drive_gui.png"
-    sfm.screenshot(path=p_drive_gui)
+    harness.screenshot(path=str(p_drive_gui))
     print(f"[+] Captured {p_drive_gui.name}")
 
     # Click Priority tab button (rel 160, 5)
@@ -290,7 +288,7 @@ def build_and_configure_ae2_network(harness: HarnessClient, sfm: SfmClient):
 
     # Capture Priority GUI before change
     p_prio_before = OUTPUT_DIR / "04a_me_priority_gui_initial.png"
-    sfm.screenshot(path=p_prio_before)
+    harness.screenshot(path=str(p_prio_before))
 
     # Click -1 button (rel 31, 85)
     harness.click_gui_rel(x=31, y=85)
@@ -298,7 +296,7 @@ def build_and_configure_ae2_network(harness: HarnessClient, sfm: SfmClient):
 
     # Capture Priority GUI after -1 change
     p_prio_gui = OUTPUT_DIR / "04_me_priority_gui.png"
-    sfm.screenshot(path=p_prio_gui)
+    harness.screenshot(path=str(p_prio_gui))
     print(f"[+] Captured {p_prio_gui.name}")
 
     harness.close_gui()
@@ -306,7 +304,7 @@ def build_and_configure_ae2_network(harness: HarnessClient, sfm: SfmClient):
     print("[✓] AE2 Output Logistics Network configured successfully!")
 
 
-def verify_and_capture(harness: HarnessClient, sfm: SfmClient):
+def verify_and_capture(harness: HarnessClient):
     print("============================================================")
     print("[*] Stage 3: Verifying Reactor Fission & AE2 Output Flow...")
     print("============================================================")
@@ -360,25 +358,25 @@ def verify_and_capture(harness: HarnessClient, sfm: SfmClient):
     # 4. Visual Verification Screenshots
     print("[*] Clearing ground entities and capturing high-resolution verification screenshots...")
     try:
-        sfm.chat(message="/cofh killall *")
+        harness.chat(message="/cofh killall *")
     except Exception:
         pass
     time.sleep(0.3)
 
     # A. 3D Overview of Complete System (Reactor, SFM Canopy, AE2 Dense Cable Network)
-    sfm.teleport(x=493.0, y=14.0, z=488.0)
-    sfm.look(yaw=-38, pitch=32)
+    harness.teleport(x=493.0, y=14.0, z=488.0)
+    harness.look(yaw=-38, pitch=32)
     time.sleep(0.5)
     p_3d = OUTPUT_DIR / "01_reactor_60a_ae2_overview.png"
-    sfm.screenshot(path=p_3d)
+    harness.screenshot(path=str(p_3d))
     print(f"[+] Captured {p_3d.name}")
 
     # B. Close-up of AE2 Dense Cable Trunk, Controller, Energy Cell & ME Drives
-    sfm.teleport(x=496.5, y=8.0, z=490.5)
-    sfm.look(yaw=-55, pitch=26)
+    harness.teleport(x=496.5, y=8.0, z=490.5)
+    harness.look(yaw=-55, pitch=26)
     time.sleep(0.5)
     p_ae2 = OUTPUT_DIR / "02_ae2_network_closeup.png"
-    sfm.screenshot(path=p_ae2)
+    harness.screenshot(path=str(p_ae2))
     print(f"[+] Captured {p_ae2.name}")
 
     # C. Reactor Controller GUI showing 5x5 Grid & Core Diagnostics
@@ -388,7 +386,7 @@ def verify_and_capture(harness: HarnessClient, sfm: SfmClient):
     harness.mclick(RC_X, RC_Y, RC_Z, 2)
     time.sleep(0.8)
     p_reactor = OUTPUT_DIR / "05_reactor_controller_gui.png"
-    sfm.screenshot(path=p_reactor)
+    harness.screenshot(path=str(p_reactor))
     harness.close_gui()
     time.sleep(0.3)
     print(f"[+] Captured {p_reactor.name}")
@@ -407,7 +405,6 @@ def verify_and_capture(harness: HarnessClient, sfm: SfmClient):
 def run_full_suite():
     ensure_sfm_instance_running()
 
-    sfm = SfmClient(port=SFM_PORT)
     harness = HarnessClient(port=HARNESS_PORT)
 
     client = FleetClient()
@@ -424,7 +421,7 @@ def run_full_suite():
 
     with sandbox:
         print(f"[*] Launching world '{world_name}'...")
-        sfm.autoworld(name=world_name)
+        harness.autoworld(name=world_name)
 
         # Wait for IN_WORLD
         print("[*] Waiting for player to enter world...")
@@ -445,23 +442,23 @@ def run_full_suite():
             harness.respawn()
             time.sleep(1.0)
         harness.close_gui()
-        sfm.chat(message="/gamemode 1")
-        sfm.chat(message="/gamerule doDaylightCycle false")
-        sfm.chat(message="/gamerule doMobSpawning false")
-        sfm.chat(message="/gamerule mobGriefing false")
-        sfm.chat(message="/time set 6000")
-        sfm.chat(message="/weather clear 999999")
-        sfm.chat(message="/difficulty 0")
-        sfm.chat(message="/cofh killall *")
+        harness.chat(message="/gamemode 1")
+        harness.chat(message="/gamerule doDaylightCycle false")
+        harness.chat(message="/gamerule doMobSpawning false")
+        harness.chat(message="/gamerule mobGriefing false")
+        harness.chat(message="/time set 6000")
+        harness.chat(message="/weather clear 999999")
+        harness.chat(message="/difficulty 0")
+        harness.chat(message="/cofh killall *")
         harness.stand(500, 10, 490)
         time.sleep(0.5)
 
-        build_reactor_and_sfm_supply(harness, sfm)
-        build_and_configure_ae2_network(harness, sfm)
-        verify_and_capture(harness, sfm)
+        build_reactor_and_sfm_supply(harness)
+        build_and_configure_ae2_network(harness)
+        verify_and_capture(harness)
 
         print("[*] Gracefully saving and exiting world...")
-        sfm.chat(message="/save-all")
+        harness.chat(message="/save-all")
         time.sleep(0.5)
         res_exit = harness.exitworld()
         assert "ARRIVED_AT_MAIN_MENU" in res_exit, f"Exit error: {res_exit}"

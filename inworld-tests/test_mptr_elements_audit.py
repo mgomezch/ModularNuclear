@@ -22,14 +22,12 @@ from typing import Dict, Any, List, Optional, Tuple
 from nhdev import NH_DEV_ROOT as REPO_ROOT
 
 from tools.agentharness import HarnessClient, HarnessError
-from tools.sfm_client import SfmClient
 from tools.runner_instance import get_saves_dir
 from tools.bot.world_manager import WorldSandbox
 from tools.mcfleet.client import FleetClient
 from tools.mcfleet.schema import InstanceSpec, DisplayMode
 
 HARNESS_PORT = 25572
-SFM_PORT = 25573
 INSTANCE_NAME = "mptr-sfm-audit"
 
 RC_X, RC_Y, RC_Z = 518, 5, 20
@@ -57,16 +55,15 @@ TANK_POS = (513, 9, 21)
 def ensure_instance():
     fleet = FleetClient()
     harness = HarnessClient(port=HARNESS_PORT)
-    sfm = SfmClient(port=SFM_PORT)
 
-    if harness.ping() and sfm.ping():
-        print(f"[+] Instance already running and responsive on ports {HARNESS_PORT} and {SFM_PORT}.")
+    if harness.ping():
+        print(f"[+] Instance already running and responsive on port {HARNESS_PORT}.")
         try:
             harness.exitworld()
             time.sleep(2.0)
         except Exception:
             pass
-        return harness, sfm
+        return harness
 
     print(f"[*] Launching ephemeral test instance '{INSTANCE_NAME}' via FleetClient...")
     mod_libs = list((REPO_ROOT / "mods" / "ModularNuclear" / "build" / "libs").glob("modularnuclear-*.jar"))
@@ -89,35 +86,31 @@ def ensure_instance():
         memory_min="6144m",
         memory_max="6144m",
         mod_overrides=overrides,
-        jvm_args=[
-            "-Dsfm.testHarness=true",
-            f"-Dsfm.harness.port={SFM_PORT}",
-        ],
     )
     inst = fleet.launch(spec, auto_start=True)
     print(f"[+] Started instance '{spec.name}' (PID {inst.status.pid if inst.status else 'unknown'}).")
 
     start_t = time.time()
     while time.time() - start_t < 240:
-        if harness.ping() and sfm.ping():
+        if harness.ping():
             try:
                 st = harness.state()
                 if "GuiCustom" in st or "GuiMainMenu" in st or "MAIN_MENU" in st or "IN_WORLD" in st:
-                    print(f"[+] Both controllers ready after {time.time() - start_t:.1f}s ({st})!")
-                    return harness, sfm
+                    print(f"[+] AgentHarness ready after {time.time() - start_t:.1f}s ({st})!")
+                    return harness
             except Exception:
                 pass
         time.sleep(3)
         print(f"[*] Waiting for game initialization... ({int(time.time() - start_t)}s elapsed)")
 
-    raise RuntimeError("Timed out waiting for test instance controllers to become ready")
+    raise RuntimeError("Timed out waiting for the test instance's AgentHarness to become ready")
 
 
-def enter_world(harness: HarnessClient, sfm: SfmClient, world_name: str):
+def enter_world(harness: HarnessClient, world_name: str):
     st = harness.state()
     if "IN_WORLD" not in st:
         print(f"[*] Loading world '{world_name}'...")
-        res = sfm.autoworld(name=world_name)
+        res = harness.autoworld(name=world_name)
         print(f"    autoworld attempt result: {res}")
         start_w = time.time()
         last_send = time.time()
@@ -127,7 +120,7 @@ def enter_world(harness: HarnessClient, sfm: SfmClient, world_name: str):
                 print(f"[+] Successfully entered world: {st}")
                 break
             if time.time() - last_send >= 5.0:
-                res = sfm.autoworld(name=world_name)
+                res = harness.autoworld(name=world_name)
                 print(f"    autoworld retry: {res}")
                 last_send = time.time()
             time.sleep(1.0)
@@ -140,15 +133,15 @@ def enter_world(harness: HarnessClient, sfm: SfmClient, world_name: str):
 
     # Standardize baseline environment
     print("[*] Setting world baseline parameters...")
-    sfm.chat(message="/gamemode 1")
-    sfm.chat(message="/gamerule doDaylightCycle false")
-    sfm.chat(message="/gamerule doMobSpawning false")
-    sfm.chat(message="/time set 6000")
-    sfm.chat(message="/weather clear 99999")
+    harness.chat(message="/gamemode 1")
+    harness.chat(message="/gamerule doDaylightCycle false")
+    harness.chat(message="/gamerule doMobSpawning false")
+    harness.chat(message="/time set 6000")
+    harness.chat(message="/weather clear 99999")
     time.sleep(0.5)
 
 
-def build_audit_reactor(harness: HarnessClient, sfm: SfmClient):
+def build_audit_reactor(harness: HarnessClient):
     print("============================================================")
     print("[*] Stage 1: Constructing 5x5 MPTR reactor with test elements...")
     print("    Elements: 1 U1 fuel rod, 1 Beryllium moderator rod,")
@@ -260,7 +253,7 @@ def build_audit_reactor(harness: HarnessClient, sfm: SfmClient):
     print("[✓] Reactor constructed and formed successfully!")
 
 
-def setup_sfm_logistics(harness: HarnessClient, sfm: SfmClient):
+def setup_sfm_logistics(harness: HarnessClient):
     print("\n============================================================")
     print("[*] Stage 2: Setting up Super Factory Manager Coolant Logistics...")
     print("============================================================")
@@ -289,9 +282,9 @@ def setup_sfm_logistics(harness: HarnessClient, sfm: SfmClient):
     # 3. Program SFM labels
     print("[*] Assigning peripheral labels in Factory Manager...")
     mx, my, mz = MGR_POS
-    sfm.clearlabels(x=mx, y=my, z=mz)
-    sfm.setlabel(x=mx, y=my, z=mz, label="coolant_tank", tx=TANK_POS[0], ty=TANK_POS[1], tz=TANK_POS[2])
-    sfm.setlabel(x=mx, y=my, z=mz, label="coolant_hatch", tx=COOLANT_POS[0], ty=COOLANT_POS[1], tz=COOLANT_POS[2])
+    harness.sfm_clear_labels(x=mx, y=my, z=mz)
+    harness.sfm_label(x=mx, y=my, z=mz, label="coolant_tank", bx=TANK_POS[0], by=TANK_POS[1], bz=TANK_POS[2])
+    harness.sfm_label(x=mx, y=my, z=mz, label="coolant_hatch", bx=COOLANT_POS[0], by=COOLANT_POS[1], bz=COOLANT_POS[2])
 
     # 4. Load, compile, and run SFM program
     prog = (
@@ -302,13 +295,13 @@ def setup_sfm_logistics(harness: HarnessClient, sfm: SfmClient):
         "END\n"
     )
     print("[*] Compiling SFM program via SFM controller...")
-    res_prog = sfm.programmanager(x=mx, y=my, z=mz, code=prog)
+    res_prog = harness.sfm_program(x=mx, y=my, z=mz, code=prog, start=True)
     print(f"    SFM compiler result: {res_prog}")
     assert res_prog["valid"], f"SFM program failed compilation: {res_prog}"
 
     print("[*] Activating SFM Factory Manager execution...")
-    sfm.settick(x=mx, y=my, z=mz, tick=0)
-    sfm.setrunning(x=mx, y=my, z=mz, running=True)
+    harness.sfm_set_tick(x=mx, y=my, z=mz, tick=0)
+    harness.sfm_set_running(x=mx, y=my, z=mz, running=True)
 
     time.sleep(1.0)
     print("[✓] SFM Coolant Logistics active and running!")
@@ -507,7 +500,7 @@ def collect_telemetry_and_audit(harness: HarnessClient):
 
 
 def main():
-    harness, sfm = ensure_instance()
+    harness = ensure_instance()
     fleet = FleetClient()
     saves_dir = get_saves_dir(fleet, INSTANCE_NAME)
     saves_dir.mkdir(parents=True, exist_ok=True)
@@ -521,9 +514,9 @@ def main():
     )
     try:
         with sandbox:
-            enter_world(harness, sfm, world_name)
-            build_audit_reactor(harness, sfm)
-            setup_sfm_logistics(harness, sfm)
+            enter_world(harness, world_name)
+            build_audit_reactor(harness)
+            setup_sfm_logistics(harness)
             collect_telemetry_and_audit(harness)
     finally:
         print("\n[*] Tearing down ephemeral test instance...")

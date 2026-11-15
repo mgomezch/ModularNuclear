@@ -59,13 +59,11 @@ from typing import Dict, Any, List, Tuple
 from nhdev import NH_DEV_ROOT as REPO_ROOT
 
 from tools.agentharness import HarnessClient, HarnessError
-from tools.sfm_client import SfmClient
 from tools.runner_instance import get_saves_dir, ensure_sfm_instance_running
 from tools.mcfleet.client import FleetClient
 from tools.bot.world_manager import WorldSandbox
 
 HARNESS_PORT = 25572
-SFM_PORT = 25573
 
 OUTPUT_DIR = REPO_ROOT / "output" / "reactor_9x9_coolant_loop"
 ARTIFACTS_DIR = Path("/home/mgomezch/.gemini/antigravity/brain/bc0c2152-bd77-425b-aa35-bf4d7878b40d")
@@ -218,7 +216,7 @@ def build_elevated_reactor(harness: HarnessClient):
     print(f"[✓] Tier 2 Reactor formed cleanly! (tiles={st_rc.get('tiles')}, pipeTier={st_rc.get('pipeTier')})")
 
 
-def build_ae2_output_network(harness: HarnessClient, sfm: SfmClient):
+def build_ae2_output_network(harness: HarnessClient):
     print("\n============================================================")
     print("[*] Stage 3: Constructing AE2 Dense Smart Cable Output Network...")
     print("============================================================")
@@ -273,7 +271,7 @@ def build_ae2_output_network(harness: HarnessClient, sfm: SfmClient):
     print("[✓] AE2 Dense Output Network assembled and priority configured!")
 
 
-def build_sfm_supply_logistics(harness: HarnessClient, sfm: SfmClient):
+def build_sfm_supply_logistics(harness: HarnessClient):
     print("\n============================================================")
     print("[*] Stage 4: Constructing SFM Supply Logistics Station & Canopy...")
     print("============================================================")
@@ -319,7 +317,7 @@ def build_sfm_supply_logistics(harness: HarnessClient, sfm: SfmClient):
     # 4. Configure SFM Manager Labels
     print("[*] Programming peripheral labels into SFM Factory Manager...")
     mx, my, mz = SFM_MGR_POS
-    res_clear = sfm.clearlabels(x=mx, y=my, z=mz)
+    res_clear = harness.sfm_clear_labels(x=mx, y=my, z=mz)
     print(f"    clearlabels result: {res_clear}")
     time.sleep(0.1)
 
@@ -329,21 +327,21 @@ def build_sfm_supply_logistics(harness: HarnessClient, sfm: SfmClient):
         ("hdp_drawer", SFM_DRAWER_HDP),
         ("coolant_tank", SFM_COOLANT_TANK),
     ]:
-        res = sfm.setlabel(x=mx, y=my, z=mz, label=label_name, tx=pos[0], ty=pos[1], tz=pos[2])
+        res = harness.sfm_label(x=mx, y=my, z=mz, label=label_name, bx=pos[0], by=pos[1], bz=pos[2])
         print(f"    setlabel {label_name}: {res}")
         time.sleep(0.05)
 
     for wx, wz in U4_BUSES:
-        sfm.setlabel(x=mx, y=my, z=mz, label="u4_buses", tx=wx, ty=21, tz=wz)
+        harness.sfm_label(x=mx, y=my, z=mz, label="u4_buses", bx=wx, by=21, bz=wz)
         time.sleep(0.02)
     for wx, wz in M4_BUSES:
-        sfm.setlabel(x=mx, y=my, z=mz, label="m4_buses", tx=wx, ty=21, tz=wz)
+        harness.sfm_label(x=mx, y=my, z=mz, label="m4_buses", bx=wx, by=21, bz=wz)
         time.sleep(0.02)
     for wx, wz in HDP_BUSES:
-        sfm.setlabel(x=mx, y=my, z=mz, label="hdp_buses", tx=wx, ty=21, tz=wz)
+        harness.sfm_label(x=mx, y=my, z=mz, label="hdp_buses", bx=wx, by=21, bz=wz)
         time.sleep(0.02)
     for wx, wz in COOLANT_HATCHES:
-        sfm.setlabel(x=mx, y=my, z=mz, label="coolant_hatches", tx=wx, ty=21, tz=wz)
+        harness.sfm_label(x=mx, y=my, z=mz, label="coolant_hatches", bx=wx, by=21, bz=wz)
         time.sleep(0.02)
 
     time.sleep(0.5)
@@ -363,13 +361,13 @@ def build_sfm_supply_logistics(harness: HarnessClient, sfm: SfmClient):
         "END\n"
     )
     print("[*] Compiling SFM Automation Script...")
-    res_prog = sfm.programmanager(x=mx, y=my, z=mz, code=program_code)
+    res_prog = harness.sfm_program(x=mx, y=my, z=mz, code=program_code, start=True)
     print(f"    Compiler result: {res_prog}")
     assert res_prog["valid"], f"SFM program failed compilation: {res_prog}"
-    sfm.settick(x=mx, y=my, z=mz, tick=0)
+    harness.sfm_set_tick(x=mx, y=my, z=mz, tick=0)
     # Stopped until the coolant loop circulates (verify_simulation_and_capture): the reactor has no off switch, so it
     # runs as soon as it holds fuel. A compiled program starts running by itself
-    sfm.setrunning(x=mx, y=my, z=mz, running=False)
+    harness.sfm_set_running(x=mx, y=my, z=mz, running=False)
     print("[✓] SFM program compiled; it starts once the coolant loop circulates")
 
 
@@ -490,7 +488,7 @@ def build_coolant_loop_and_manifolds(harness: HarnessClient):
     print("[✓] Complete Closed Coolant Loop DAG with 16 parallel passage branches assembled!")
 
 
-def verify_simulation_and_capture(harness: HarnessClient, sfm: SfmClient):
+def verify_simulation_and_capture(harness: HarnessClient):
     print("\n============================================================")
     print("[*] Stage 6: Verifying Autonomous Operation & Thermal Exchange...")
     print("============================================================")
@@ -549,7 +547,7 @@ def verify_simulation_and_capture(harness: HarnessClient, sfm: SfmClient):
 
     # 5b. Start fuel supply only now that the loop cools the core
     mx, my, mz = SFM_MGR_POS
-    sfm.setrunning(x=mx, y=my, z=mz, running=True)
+    harness.sfm_set_running(x=mx, y=my, z=mz, running=True)
     print("[✓] SFM Logistics started: core buses and hatches continuously replenished!")
     # 2. Verify SFM has supplied fuel rods and coolant into core tiles
     print("\n[*] Verifying SFM core replenishment...")
@@ -609,10 +607,10 @@ def verify_simulation_and_capture(harness: HarnessClient, sfm: SfmClient):
         pitch = -math.degrees(math.atan2(dy, dist))
         harness.stand(cx, cy, cz, yaw, pitch)
         harness.look(yaw, pitch)
-        sfm.look(yaw=yaw, pitch=pitch)
+        harness.look(yaw=yaw, pitch=pitch)
         time.sleep(1.2)
         p = OUTPUT_DIR / filename
-        sfm.screenshot(path=p)
+        harness.screenshot(path=str(p))
         print(f"[+] Captured {filename} (pos: {cx},{cy},{cz} -> target: {tx},{ty},{tz}, yaw={yaw:.1f}, pitch={pitch:.1f})")
 
     print("\n[*] Capturing comprehensive verification screenshots...")
@@ -635,27 +633,27 @@ def verify_simulation_and_capture(harness: HarnessClient, sfm: SfmClient):
     shoot_view("04_ae2_dense_cable_and_drives.png", cx=496, cy=20, cz=14, tx=501, ty=18, tz=21)
 
     # 5. ME Main Drive GUI
-    sfm.teleport(x=498.5, y=19.0, z=18.0)
-    sfm.look(yaw=-90, pitch=15)
+    harness.teleport(x=498.5, y=19.0, z=18.0)
+    harness.look(yaw=-90, pitch=15)
     time.sleep(0.3)
     harness.click_block(x=AE2_MAIN_DRIVE_POS[0], y=AE2_MAIN_DRIVE_POS[1], z=AE2_MAIN_DRIVE_POS[2], side=4)
     time.sleep(0.6)
     p_main_drive = OUTPUT_DIR / "05_me_main_drive_gui.png"
-    sfm.screenshot(path=p_main_drive)
+    harness.screenshot(path=str(p_main_drive))
     harness.close_gui()
     time.sleep(0.3)
     print(f"[+] Captured {p_main_drive.name}")
 
     # 6. ME Void Drive Priority GUI
-    sfm.teleport(x=498.5, y=19.0, z=17.0)
-    sfm.look(yaw=-90, pitch=15)
+    harness.teleport(x=498.5, y=19.0, z=17.0)
+    harness.look(yaw=-90, pitch=15)
     time.sleep(0.3)
     harness.click_block(x=AE2_VOID_DRIVE_POS[0], y=AE2_VOID_DRIVE_POS[1], z=AE2_VOID_DRIVE_POS[2], side=4)
     time.sleep(0.6)
     harness.click_gui_rel(x=160, y=5)
     time.sleep(0.4)
     p_prio_gui = OUTPUT_DIR / "06_me_void_drive_priority_gui.png"
-    sfm.screenshot(path=p_prio_gui)
+    harness.screenshot(path=str(p_prio_gui))
     harness.close_gui()
     time.sleep(0.3)
     print(f"[+] Captured {p_prio_gui.name}")
@@ -673,7 +671,7 @@ def verify_simulation_and_capture(harness: HarnessClient, sfm: SfmClient):
     harness.mclick(RC_X, RC_Y, RC_Z, 2)
     time.sleep(0.8)
     p_reactor_gui = OUTPUT_DIR / "09_reactor_9x9_controller_gui.png"
-    sfm.screenshot(path=p_reactor_gui)
+    harness.screenshot(path=str(p_reactor_gui))
     harness.close_gui()
     time.sleep(0.3)
     print(f"[+] Captured {p_reactor_gui.name}")
@@ -692,7 +690,6 @@ def verify_simulation_and_capture(harness: HarnessClient, sfm: SfmClient):
 def run_full_suite():
     ensure_sfm_instance_running()
 
-    sfm = SfmClient(port=SFM_PORT)
     harness = HarnessClient(port=HARNESS_PORT)
 
     client = FleetClient()
@@ -730,26 +727,26 @@ def run_full_suite():
             harness.respawn()
             time.sleep(1.0)
         harness.close_gui()
-        sfm.chat(message="/gamemode 1")
-        sfm.chat(message="/gamerule doDaylightCycle false")
-        sfm.chat(message="/gamerule doMobSpawning false")
-        sfm.chat(message="/gamerule mobGriefing false")
-        sfm.chat(message="/time set 6000")
-        sfm.chat(message="/weather clear 999999")
-        sfm.chat(message="/difficulty 0")
-        sfm.chat(message="/cofh killall *")
+        harness.chat(message="/gamemode 1")
+        harness.chat(message="/gamerule doDaylightCycle false")
+        harness.chat(message="/gamerule doMobSpawning false")
+        harness.chat(message="/gamerule mobGriefing false")
+        harness.chat(message="/time set 6000")
+        harness.chat(message="/weather clear 999999")
+        harness.chat(message="/difficulty 0")
+        harness.chat(message="/cofh killall *")
         harness.stand(505, 19, 18)
         time.sleep(0.5)
 
         build_world_foundations(harness)
         build_elevated_reactor(harness)
-        build_ae2_output_network(harness, sfm)
-        build_sfm_supply_logistics(harness, sfm)
+        build_ae2_output_network(harness)
+        build_sfm_supply_logistics(harness)
         build_coolant_loop_and_manifolds(harness)
-        verify_simulation_and_capture(harness, sfm)
+        verify_simulation_and_capture(harness)
 
         print("[*] Gracefully saving and exiting world...")
-        sfm.chat(message="/save-all")
+        harness.chat(message="/save-all")
         time.sleep(0.5)
         res_exit = harness.exitworld()
         assert "ARRIVED_AT_MAIN_MENU" in res_exit, f"Exit error: {res_exit}"
