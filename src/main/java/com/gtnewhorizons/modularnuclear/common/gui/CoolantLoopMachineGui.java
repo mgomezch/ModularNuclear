@@ -7,6 +7,10 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
+
 import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
@@ -19,13 +23,16 @@ import com.cleanroommc.modularui.value.sync.DynamicSyncHandler;
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.DynamicSyncedWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
+import com.gtnewhorizon.gtnhlib.color.ColorResource;
 import com.gtnewhorizons.modularnuclear.common.gui.graph.CoolantLoopGraphPanel;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTECoolantPump;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedFluidHeater;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
 import com.gtnewhorizons.modularnuclear.common.util.ClientText;
 import com.gtnewhorizons.modularnuclear.common.util.LocalizedText;
 import com.gtnewhorizons.modularnuclear.common.util.LocalizedTextNbt;
@@ -239,9 +246,98 @@ public class CoolantLoopMachineGui<T extends MTEMultiBlockBase> extends MTEMulti
                     .asWidget()
                     .textAlign(Alignment.CenterLeft)
                     .setEnabledIf(w -> showHeaterStats.get()));
+        } else if (multiblock instanceof MTEPressurizedHeatExchanger phe) {
+            DoubleSyncValue coolantTempSyncer = new DoubleSyncValue(phe::getDeviceTemperatureCelsius);
+            DoubleSyncValue maxTempSyncer = new DoubleSyncValue(phe::getMaxOperatingTemperatureCelsius);
+            StringSyncValue secondarySyncer = new StringSyncValue(phe::getSecondaryFluidName);
+            DoubleSyncValue thresholdSyncer = new DoubleSyncValue(phe::getMinTransferTemperatureCelsius);
+            DoubleSyncValue areaSyncer = new DoubleSyncValue(phe::getExchangeAreaM2);
+            DoubleSyncValue areaMultiplierSyncer = new DoubleSyncValue(phe::getExchangeAreaMultiplier);
+            DoubleSyncValue flowSyncer = new DoubleSyncValue(() -> phe.getLastCoolantFlowRateM3s() * 1000.0);
+            DoubleSyncValue velocitySyncer = new DoubleSyncValue(phe::getCoolantVelocityMetersPerSecond);
+            DoubleSyncValue convectionSyncer = new DoubleSyncValue(phe::getConvectionCoefficient);
+            DoubleSyncValue transferRateSyncer = new DoubleSyncValue(phe::getLastHeatTransferHuPerTick);
+            DoubleSyncValue transferCapSyncer = new DoubleSyncValue(phe::getMaxHeatTransferHuPerTick);
+            syncManager.syncValue("pheCoolantTemp", coolantTempSyncer);
+            syncManager.syncValue("pheMaxTemp", maxTempSyncer);
+            syncManager.syncValue("pheSecondary", secondarySyncer);
+            syncManager.syncValue("pheThreshold", thresholdSyncer);
+            syncManager.syncValue("pheArea", areaSyncer);
+            syncManager.syncValue("pheAreaMultiplier", areaMultiplierSyncer);
+            syncManager.syncValue("pheFlow", flowSyncer);
+            syncManager.syncValue("pheVelocity", velocitySyncer);
+            syncManager.syncValue("pheConvection", convectionSyncer);
+            syncManager.syncValue("pheTransferRate", transferRateSyncer);
+            syncManager.syncValue("pheTransferCap", transferCapSyncer);
+
+            IntSyncValue errorIDSyncer = syncManager.findSyncHandler("errorID", IntSyncValue.class);
+            Supplier<Boolean> showPheStats = () -> (errorIDSyncer == null) || ((errorIDSyncer.getValue() & 64) == 0);
+
+            statLine(
+                list,
+                () -> String.format(
+                    Locale.US,
+                    "Coolant: %.1f °C (max %.0f)",
+                    coolantTempSyncer.getDoubleValue(),
+                    maxTempSyncer.getDoubleValue()),
+                ColorUtils.loopTemperature,
+                showPheStats);
+            statLine(list, () -> {
+                String name = secondarySyncer.getValue();
+                Fluid fluid = name == null || name.isEmpty() ? null : FluidRegistry.getFluid(name);
+                if (fluid == null) return "Secondary: none";
+                return "Secondary: " + new FluidStack(fluid, 1).getLocalizedName();
+            }, ColorUtils.loopFlow, showPheStats);
+            statLine(list, () -> {
+                String name = secondarySyncer.getValue();
+                if (name == null || name.isEmpty()) return "Exchanges above: -";
+                return String.format(Locale.US, "Exchanges above: %.1f °C", thresholdSyncer.getDoubleValue());
+            }, ColorUtils.loopTemperature, showPheStats);
+            statLine(
+                list,
+                () -> String.format(
+                    Locale.US,
+                    "Area: %.1f m² ×%.2f",
+                    areaSyncer.getDoubleValue(),
+                    areaMultiplierSyncer.getDoubleValue()),
+                ColorUtils.loopArea,
+                showPheStats);
+            statLine(
+                list,
+                () -> String.format(
+                    Locale.US,
+                    "Flow: %.1f L/s, %.2f m/s",
+                    flowSyncer.getDoubleValue(),
+                    velocitySyncer.getDoubleValue()),
+                ColorUtils.loopFlow,
+                showPheStats);
+            statLine(
+                list,
+                () -> String.format(Locale.US, "Convection: %,.0f W/m²·K", convectionSyncer.getDoubleValue()),
+                ColorUtils.loopHeatCapacity,
+                showPheStats);
+            statLine(
+                list,
+                () -> String.format(
+                    Locale.US,
+                    "Heat: %,.1f / %,.0f HU/t",
+                    transferRateSyncer.getDoubleValue(),
+                    transferCapSyncer.getDoubleValue()),
+                ColorUtils.loopHeatTransfer,
+                showPheStats);
         }
 
         return list;
+    }
+
+    private static void statLine(ListWidget<IWidget, ?> list, Supplier<String> text, ColorResource color,
+        Supplier<Boolean> enabled) {
+        list.child(
+            IKey.dynamic(text)
+                .color(color::getColor)
+                .asWidget()
+                .textAlign(Alignment.CenterLeft)
+                .setEnabledIf(w -> enabled.get()));
     }
 
     @Override

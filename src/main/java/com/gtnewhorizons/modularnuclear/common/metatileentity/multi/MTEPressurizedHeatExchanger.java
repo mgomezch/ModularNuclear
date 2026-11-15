@@ -28,6 +28,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureCh
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PheSheetmetalTier;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.PressurizedHeatExchangerStructure;
+import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.util.FreezerRecipeEnergy;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
@@ -842,6 +843,59 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
 
     public double getLastHeatTransferredWatts() {
         return mLastHeatTransferredWatts;
+    }
+
+    // The getters below feed the GUI's stats: the inputs PheExchange.tick takes, as it sees them
+
+    /** Heat moved per tick, averaged over the last batch. */
+    public double getLastHeatTransferHuPerTick() {
+        return mLastHeatTransferredWatts * 0.05 / CoolantPassage.JOULES_PER_HU;
+    }
+
+    /** The most heat a tick can move at the PHE's voltage. */
+    public double getMaxHeatTransferHuPerTick() {
+        return getMaxHeatExchangePerBatchJoules() / Math.max(1, getBatchTicks()) / CoolantPassage.JOULES_PER_HU;
+    }
+
+    public double getExchangeAreaM2() {
+        return mExchangeArea;
+    }
+
+    /** What the exchange area is multiplied by: the sheetmetal's and the configured multiplier. */
+    public double getExchangeAreaMultiplier() {
+        return mHeatTransferMultiplier * pheConfig().heatTransferMultiplier;
+    }
+
+    public double getCoolantVelocityMetersPerSecond() {
+        return mBoundSegment != null && mBoundSegment.getArea() > 0
+            ? Math.abs(mLastCoolantFlowRateM3s) / mBoundSegment.getArea()
+            : 0.0;
+    }
+
+    /** The convection coefficient at the coolant's velocity, in W/(m²·K). */
+    public double getConvectionCoefficient() {
+        return mConvectiveModel.computeH(getCoolantVelocityMetersPerSecond());
+    }
+
+    /** The fluid in the input hatches that boils as a secondary coolant, or null. */
+    public CoolantDeviceData.PHEData.SecondaryCoolantEntry getSecondaryCoolant() {
+        scanSecondaryInput(pheConfig());
+        return mScanCoolant;
+    }
+
+    public String getSecondaryFluidName() {
+        CoolantDeviceData.PHEData.SecondaryCoolantEntry coolant = getSecondaryCoolant();
+        return coolant != null ? coolant.inputFluidName : "";
+    }
+
+    public double getSecondaryBoilingPointCelsius() {
+        CoolantDeviceData.PHEData.SecondaryCoolantEntry coolant = getSecondaryCoolant();
+        return coolant != null ? coolant.boilingPointCelsius : 0.0;
+    }
+
+    /** The coolant must be hotter than this for heat to move: the secondary's boiling point plus the approach. */
+    public double getMinTransferTemperatureCelsius() {
+        return getSecondaryBoilingPointCelsius() + pheConfig().approachMinDeltaT;
     }
 
     public void setCurrentCoolantTemp(double temp) {

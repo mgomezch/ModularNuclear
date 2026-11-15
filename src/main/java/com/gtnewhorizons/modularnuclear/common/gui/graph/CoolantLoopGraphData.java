@@ -455,7 +455,7 @@ public class CoolantLoopGraphData {
                 }
                 status = phe.getBaseMetaTileEntity() != null && phe.getBaseMetaTileEntity()
                     .isActive() ? "Active" : "Idle";
-                extra.put("Operating mode", "High-pressure convective");
+                extra.put("Heat transfer", String.format(Locale.US, "%,.1f HU/t", phe.getLastHeatTransferHuPerTick()));
             } else if (devObj instanceof MTEPressurizedFluidHeater heater) {
                 label = "Pressurized fluid heater";
                 itemType = "fluid_heater";
