@@ -290,8 +290,8 @@ def setup_sfm_logistics(harness: HarnessClient):
     prog = (
         "NAME \"Coolant Feed\"\n"
         "EVERY 20 TICKS DO\n"
-        "  INPUT 8000 fluid:ic2coolant FROM coolant_tank\n"
-        "  OUTPUT TO coolant_hatch\n"
+        "  INPUT 8000 fluid:ic2coolant FROM \"coolant_tank\"\n"
+        "  OUTPUT TO \"coolant_hatch\"\n"
         "END\n"
     )
     print("[*] Compiling SFM program via SFM controller...")

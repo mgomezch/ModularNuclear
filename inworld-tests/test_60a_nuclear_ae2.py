@@ -183,12 +183,12 @@ def build_reactor_and_sfm_supply(harness: HarnessClient):
     program_code = (
         "NAME \"60A Reactor Supply\"\n"
         "EVERY 20 TICKS DO\n"
-        "  INPUT FROM u4_drawer\n"
-        "  OUTPUT TO u4_buses\n"
-        "  INPUT FROM m4_drawer\n"
-        "  OUTPUT TO m4_buses\n"
-        "  INPUT 8000 fluid:ic2coolant FROM coolant_tank\n"
-        "  OUTPUT TO coolant_hatches\n"
+        "  INPUT FROM \"u4_drawer\"\n"
+        "  OUTPUT TO \"u4_buses\"\n"
+        "  INPUT FROM \"m4_drawer\"\n"
+        "  OUTPUT TO \"m4_buses\"\n"
+        "  INPUT 8000 fluid:ic2coolant FROM \"coolant_tank\"\n"
+        "  OUTPUT TO \"coolant_hatches\"\n"
         "END\n"
     )
     res_prog = harness.sfm_program(x=mx, y=my, z=mz, code=program_code, start=True)

@@ -350,14 +350,14 @@ def build_sfm_supply_logistics(harness: HarnessClient):
     program_code = (
         "NAME \"9x9 Reactor Automation\"\n"
         "EVERY 20 TICKS DO\n"
-        "  INPUT FROM u4_drawer\n"
-        "  OUTPUT TO u4_buses\n"
-        "  INPUT FROM m4_drawer\n"
-        "  OUTPUT TO m4_buses\n"
-        "  INPUT FROM hdp_drawer\n"
-        "  OUTPUT TO hdp_buses\n"
-        "  INPUT 8000 fluid:ic2coolant FROM coolant_tank\n"
-        "  OUTPUT TO coolant_hatches\n"
+        "  INPUT FROM \"u4_drawer\"\n"
+        "  OUTPUT TO \"u4_buses\"\n"
+        "  INPUT FROM \"m4_drawer\"\n"
+        "  OUTPUT TO \"m4_buses\"\n"
+        "  INPUT FROM \"hdp_drawer\"\n"
+        "  OUTPUT TO \"hdp_buses\"\n"
+        "  INPUT 8000 fluid:ic2coolant FROM \"coolant_tank\"\n"
+        "  OUTPUT TO \"coolant_hatches\"\n"
         "END\n"
     )
     print("[*] Compiling SFM Automation Script...")
