@@ -38,6 +38,7 @@ import gregtech.api.enums.Textures;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
+import gregtech.api.interfaces.modularui.IAddGregtechLogo;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.render.TextureFactory;
@@ -47,7 +48,7 @@ import io.netty.buffer.ByteBuf;
 import mrtjp.projectred.api.IBundledEmitter;
 
 @Optional.Interface(iface = "mrtjp.projectred.api.IBundledEmitter", modid = "ProjRed|Transmission")
-public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter, IAlignment {
+public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter, IAlignment, IAddGregtechLogo {
 
     public static final int METRIC_TEMPERATURE = 0;
     public static final int METRIC_COOLANT_ITEM_DURABILITY = 1;

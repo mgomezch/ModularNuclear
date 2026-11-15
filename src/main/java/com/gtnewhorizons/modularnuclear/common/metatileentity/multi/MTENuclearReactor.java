@@ -2015,4 +2015,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public void getExtraInfoData(List<String> info) {
         NuclearReactorWailaProvider.getExtraInfoData(this, info);
     }
+
+    /** Our GUIs show no GregTech logo. */
+    @Override
+    public boolean supportsLogo() {
+        return false;
+    }
 }

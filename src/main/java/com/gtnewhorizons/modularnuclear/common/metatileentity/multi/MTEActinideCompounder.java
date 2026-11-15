@@ -491,4 +491,10 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         if (mMachine) return -1;
         return survivialBuildPiece(STRUCTURE_PIECE_MAIN, stackSize, 1, 1, 0, elementBudget, env, false, true);
     }
+
+    /** Our GUIs show no GregTech logo. */
+    @Override
+    public boolean supportsLogo() {
+        return false;
+    }
 }

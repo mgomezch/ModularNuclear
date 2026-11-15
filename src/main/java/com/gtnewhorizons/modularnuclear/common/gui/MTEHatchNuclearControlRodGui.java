@@ -21,9 +21,8 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.api.modularui2.GTWidgetThemes;
 import gregtech.api.modularui2.common.CommonWidgets;
-import gregtech.common.gui.modularui.hatch.base.MTEHatchBaseGui;
 
-public class MTEHatchNuclearControlRodGui extends MTEHatchBaseGui<MTEHatchNuclearControlRod> {
+public class MTEHatchNuclearControlRodGui extends ModularNuclearHatchGui<MTEHatchNuclearControlRod> {
 
     public MTEHatchNuclearControlRodGui(MTEHatchNuclearControlRod machine) {
         super(machine);

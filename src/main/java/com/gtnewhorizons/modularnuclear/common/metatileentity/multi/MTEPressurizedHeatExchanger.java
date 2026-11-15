@@ -1094,4 +1094,10 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     public MTEHatchPressurizedFluid getLoopOutlet() {
         return getPrimaryOutlet();
     }
+
+    /** Our GUIs show no GregTech logo. */
+    @Override
+    public boolean supportsLogo() {
+        return false;
+    }
 }

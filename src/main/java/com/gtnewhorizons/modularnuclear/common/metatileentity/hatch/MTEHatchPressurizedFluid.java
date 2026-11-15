@@ -28,6 +28,7 @@ import gregtech.api.enums.Textures;
 import gregtech.api.gui.modularui.GTUITextures;
 import gregtech.api.interfaces.IIconContainer;
 import gregtech.api.interfaces.ITexture;
+import gregtech.api.interfaces.modularui.IAddGregtechLogo;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
@@ -38,7 +39,8 @@ import gregtech.api.render.TextureFactory;
  * Bridges multiblock machines (coolant pump, heat exchangers, baths, reactor columns)
  * to closed coolant loops.
  */
-public class MTEHatchPressurizedFluid extends MTEHatch implements ICoolantLoopDevice, ICoolantPassageHatch {
+public class MTEHatchPressurizedFluid extends MTEHatch
+    implements ICoolantLoopDevice, ICoolantPassageHatch, IAddGregtechLogo {
 
     public static class CustomHatchIcon implements IIconContainer, Runnable {
 

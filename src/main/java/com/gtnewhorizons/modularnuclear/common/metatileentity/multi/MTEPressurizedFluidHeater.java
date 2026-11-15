@@ -1328,4 +1328,10 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
     public MTEHatchPressurizedFluid getLoopOutlet() {
         return getPressurizedOutputHatch();
     }
+
+    /** Our GUIs show no GregTech logo. */
+    @Override
+    public boolean supportsLogo() {
+        return false;
+    }
 }

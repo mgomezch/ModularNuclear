@@ -1826,4 +1826,10 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
             .toolTipFinisher(StatCollector.translateToLocal("gt.multiblock.modularnuclear.coolant_loop.finisher"));
         return tt;
     }
+
+    /** Our GUIs show no GregTech logo. */
+    @Override
+    public boolean supportsLogo() {
+        return false;
+    }
 }

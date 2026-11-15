@@ -18,9 +18,8 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import gregtech.api.modularui2.GTWidgetThemes;
 import gregtech.api.modularui2.common.CommonWidgets;
-import gregtech.common.gui.modularui.hatch.base.MTEHatchBaseGui;
 
-public class MTEHatchNuclearHighPressureGui extends MTEHatchBaseGui<MTEHatchNuclearHighPressure> {
+public class MTEHatchNuclearHighPressureGui extends ModularNuclearHatchGui<MTEHatchNuclearHighPressure> {
 
     public MTEHatchNuclearHighPressureGui(MTEHatchNuclearHighPressure machine) {
         super(machine);
