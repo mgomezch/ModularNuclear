@@ -448,93 +448,88 @@ public class MTEHatchNuclearControl extends MTEHatch implements IBundledEmitter,
         builder.widget(
             new DrawableWidget().setDrawable(GTUITextures.PICTURE_SCREEN_BLACK)
                 .setPos(7, 16)
-                .setSize(162, 75))
-            .widget(
-                new TextWidget("Nuclear control hatch").setDefaultColor(ColorUtils.hatchControlTitle.getColor())
-                    .setPos(12, 20))
+                .setSize(162, 63))
             // Row 1: Metric
             .widget(
                 new ButtonWidget().setOnClick((clickData, widget) -> cycleMetric(-1))
                     .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
                     .addTooltip("Previous metric")
-                    .setPos(12, 32)
+                    .setPos(12, 20)
                     .setSize(12, 12))
             .widget(
                 new TextWidget(Text.localised("<")).setTextAlignment(Alignment.Center)
-                    .setPos(12, 34)
+                    .setPos(12, 22)
                     .setSize(12, 10))
             .widget(
                 new TextWidget().setStringSupplier(() -> "Metric: " + getMetricName(mMetric))
                     .setDefaultColor(ColorUtils.hatchControlMetric.getColor())
-                    .setPos(28, 34))
+                    .setPos(28, 22))
             .widget(
                 new ButtonWidget().setOnClick((clickData, widget) -> cycleMetric(1))
                     .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
                     .addTooltip("Next metric")
-                    .setPos(153, 32)
+                    .setPos(153, 20)
                     .setSize(12, 12))
             .widget(
                 new TextWidget(Text.localised(">")).setTextAlignment(Alignment.Center)
-                    .setPos(153, 34)
+                    .setPos(153, 22)
                     .setSize(12, 10))
             // Row 2: Statistic
             .widget(
                 new ButtonWidget().setOnClick((clickData, widget) -> cycleStatistic(-1))
                     .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
                     .addTooltip("Previous statistic")
-                    .setPos(12, 47)
+                    .setPos(12, 35)
                     .setSize(12, 12))
             .widget(
                 new TextWidget(Text.localised("<")).setTextAlignment(Alignment.Center)
-                    .setPos(12, 49)
+                    .setPos(12, 37)
                     .setSize(12, 10))
             .widget(
                 new TextWidget().setStringSupplier(() -> "Stat: " + getStatisticDisplayName(mStatistic))
                     .setDefaultColor(ColorUtils.hatchControlStatistic.getColor())
-                    .setPos(28, 49))
+                    .setPos(28, 37))
             .widget(
                 new ButtonWidget().setOnClick((clickData, widget) -> cycleStatistic(1))
                     .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
                     .addTooltip("Next statistic")
-                    .setPos(153, 47)
+                    .setPos(153, 35)
                     .setSize(12, 12))
             .widget(
                 new TextWidget(Text.localised(">")).setTextAlignment(Alignment.Center)
-                    .setPos(153, 49)
+                    .setPos(153, 37)
                     .setSize(12, 10))
             // Row 3: Output Signal
-            .widget(new TextWidget().setStringSupplier(() -> {
-                if (isInterfacingProjectRed()) {
-                    return String.format("Output: %d / 15 (PR: %d / 255)", mOutputStrength, mFineOutputStrength);
-                }
-                return String.format("Output: %d / 15 (Fine: %d / 255)", mOutputStrength, mFineOutputStrength);
-            })
-                .setDefaultColor(ColorUtils.hatchControlOutput.getColor())
-                .setPos(12, 62))
+            .widget(
+                new TextWidget()
+                    .setStringSupplier(
+                        () -> String.format("Output: %d / 15 (%d / 255)", mOutputStrength, mFineOutputStrength))
+                    .setDefaultColor(ColorUtils.hatchControlOutput.getColor())
+                    .setPos(12, 50))
             // Row 4: ProjectRed Bundled Cable Mode
             .widget(
                 new ButtonWidget().setOnClick((clickData, widget) -> cycleBundledMode(-1))
                     .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
                     .addTooltip("Previous bundled mode")
-                    .setPos(12, 74)
+                    .setPos(12, 62)
                     .setSize(12, 12))
             .widget(
                 new TextWidget(Text.localised("<")).setTextAlignment(Alignment.Center)
-                    .setPos(12, 76)
+                    .setPos(12, 64)
                     .setSize(12, 10))
             .widget(
                 new TextWidget().setStringSupplier(() -> "PR: " + getBundledModeName(mBundledChannelMode))
                     .setDefaultColor(ColorUtils.hatchControlBundled.getColor())
-                    .setPos(28, 76))
+                    .setPos(28, 64))
             .widget(
                 new ButtonWidget().setOnClick((clickData, widget) -> cycleBundledMode(1))
                     .setBackground(() -> new IDrawable[] { GTUITextures.BUTTON_STANDARD })
                     .addTooltip("Next bundled mode")
-                    .setPos(153, 74)
+                    .setPos(153, 62)
                     .setSize(12, 12))
             .widget(
                 new TextWidget(Text.localised(">")).setTextAlignment(Alignment.Center)
-                    .setPos(153, 76)
+                    .setPos(153, 64)
                     .setSize(12, 10))
             // Syncers
             .widget(new FakeSyncWidget.IntegerSyncer(this::getMetric, this::setMetric))

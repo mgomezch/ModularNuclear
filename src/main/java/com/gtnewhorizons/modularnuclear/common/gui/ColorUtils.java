@@ -202,7 +202,6 @@ public final class ColorUtils {
         // Hatch GUIs
         hatchSlotLabel              = color.rgb("hatchSlotLabel",               "0xFFFFFF"),
         hatchBusTitle               = color.rgb("hatchBusTitle",                "0x55FF55"),
-        hatchControlTitle           = color.rgb("hatchControlTitle",            "0x55FF55"),
         hatchControlRodTitle        = color.rgb("hatchControlRodTitle",         "0xFF55FF"),
         hatchHighPressureTitle      = color.rgb("hatchHighPressureTitle",       "0xFFAA00"),
         hatchPressurizedTitle       = color.rgb("hatchPressurizedTitle",        "0xFF55FF"),
