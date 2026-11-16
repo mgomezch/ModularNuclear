@@ -59,11 +59,10 @@ from typing import Dict, Any, List, Tuple
 from nhdev import NH_DEV_ROOT as REPO_ROOT
 
 from tools.agentharness import HarnessClient, HarnessError
-from tools.runner_instance import get_saves_dir, ensure_sfm_instance_running
+from tools.runner_instance import HARNESS_PORT, INSTANCE_NAME, get_saves_dir, ensure_sfm_instance_running
 from tools.mcfleet.client import FleetClient
 from tools.bot.world_manager import WorldSandbox
 
-HARNESS_PORT = 25572
 
 OUTPUT_DIR = REPO_ROOT / "output" / "reactor_9x9_coolant_loop"
 ARTIFACTS_DIR = Path("/home/mgomezch/.gemini/antigravity/brain/bc0c2152-bd77-425b-aa35-bf4d7878b40d")
@@ -693,7 +692,7 @@ def run_full_suite():
     harness = HarnessClient(port=HARNESS_PORT)
 
     client = FleetClient()
-    saves_dir = get_saves_dir(client, "sfm-test-runner")
+    saves_dir = get_saves_dir(client, INSTANCE_NAME)
     world_name = "reactor_9x9_coolant_loop_test"
 
     print(f"[*] Mounting ephemeral WorldSandbox over 'superflat_empty' into '{saves_dir}' as '{world_name}'...")
