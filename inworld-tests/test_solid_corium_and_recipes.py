@@ -177,6 +177,8 @@ def run_test(port: int = 25571):
         saves_dir=saves_dir,
         no_mobs=True,
         base_template="mptr_corium_mechanics_pre",
+        # Radiation has to reach the player: see wrinkle (W1) of Note [Test worlds carry the player loadout]
+        equip_player=False,
     )
     return driver.run(build_fn=build_solid_corium_setup, test_fn=test_solid_corium_mechanics)
 
