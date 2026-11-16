@@ -323,36 +323,40 @@ public class ManifoldFacetCullingTest {
     }
 
     @Test
-    public void testNeighborBlockChangeDisconnectsIncompatibleNeighbors() {
+    public void testNeighborBlockChangeLeavesManifoldConnectionsAlone() {
+        // See Note [Manifold connections are set when placed]: two compatible manifolds side by side whose touching
+        // sides were switched off stay apart when a neighbour changes
         net.minecraft.world.World world = Mockito.mock(net.minecraft.world.World.class);
         TileEntityManifold manifoldA = new TileEntityManifold();
         manifoldA.xCoord = 10;
         manifoldA.yCoord = 20;
         manifoldA.zCoord = 30;
         manifoldA.setWorldObj(world);
-        manifoldA.setFacing(ForgeDirection.NORTH); // Z normal
+        manifoldA.setFacing(ForgeDirection.UP);
 
         TileEntityManifold manifoldB = new TileEntityManifold();
         manifoldB.xCoord = 11;
         manifoldB.yCoord = 20;
         manifoldB.zCoord = 30;
         manifoldB.setWorldObj(world);
-        manifoldB.setFacing(ForgeDirection.UP); // Y normal (incompatible)
+        manifoldB.setFacing(ForgeDirection.UP);
 
         Mockito.when(world.getTileEntity(10, 20, 30))
             .thenReturn(manifoldA);
         Mockito.when(world.getTileEntity(11, 20, 30))
             .thenReturn(manifoldB);
 
-        // Force connection flags
-        manifoldA.setConnected(ForgeDirection.EAST, true);
-        manifoldB.setConnected(ForgeDirection.WEST, true);
+        manifoldA.setConnected(ForgeDirection.EAST, false);
+        manifoldB.setConnected(ForgeDirection.WEST, false);
+        manifoldA.setConnected(ForgeDirection.NORTH, true);
 
         BlockManifold block = new BlockManifold();
         block.onNeighborBlockChange(world, 10, 20, 30, block);
+        block.onNeighborBlockChange(world, 11, 20, 30, block);
 
         assertFalse(manifoldA.isConnected(ForgeDirection.EAST));
         assertFalse(manifoldB.isConnected(ForgeDirection.WEST));
+        assertTrue(manifoldA.isConnected(ForgeDirection.NORTH), "an in-plane side facing nothing is left as it was");
     }
 
     @Test
