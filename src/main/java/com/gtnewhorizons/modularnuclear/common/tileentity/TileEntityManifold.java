@@ -237,16 +237,17 @@ public class TileEntityManifold extends TileEntity implements ICoolantLoopDevice
     Note [Manifold connections are set when placed] (generated)
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     A manifold's connections are decided when it is placed, and after that only by an explicit act: a wrench
-    (BlockManifold's wrenching, toggleConnectionWithNeighbor), a mask set from outside (setConnections), or a pipe
-    across its plane being connected to it or disconnected from it.  Nothing else changes them, so a side a player
-    or a builder switched off stays off whatever is placed or broken around it.
+    (BlockManifold's wrenching, toggleConnectionWithNeighbor), or a mask set from outside (setConnections, as a
+    builder does).  The mod itself never connects or disconnects them later: not on a neighbour change, and not in
+    the pump's loop crawler (LoopGraphCrawler only reads the flags, and takes manifolds as one group only where both
+    sides are connected).  Nor does it connect a pipe to a manifold.
     
       placement   validateConnectionsWithNeighbors, from BlockManifold.onBlockPlacedBy and onBlockAdded and from
                   setFacing: connects the new manifold to the compatible manifolds beside it in its plane (both
-                  sides, so the two join) and to the pipes across its plane, and retracts its sides facing nothing.
-      neighbours  BlockManifold.onNeighborBlockChange calls followPipeConnections only: a coolant pipe across the
-                  plane carries its own connection flags, set when it was placed or wrenched, and the manifold's
-                  side towards it follows them.  Sides in the plane are never touched.
+                  sides, so a manifold placed against another joins it) and to the pipes across its plane, and
+                  retracts its sides facing nothing.
+      neighbours  BlockManifold.onNeighborBlockChange leaves every side as it is and only refreshes the group's pipe
+                  material (its colour).
     
     The reason is a build with two manifold groups side by side that must stay apart, such as two loop copies'
     splitter trees in one layer (tools/bot/mptr_loop_builder.py in nh-dev, Note [Loops are built as they were
@@ -320,33 +321,6 @@ public class TileEntityManifold extends TileEntity implements ICoolantLoopDevice
                 worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
                 worldObj.notifyBlocksOfNeighborChange(xCoord, yCoord, zCoord, getBlockType());
             }
-        }
-        return changed;
-    }
-
-    /**
-     * Makes each side across the plane follow the coolant pipe there, if any: connected while the pipe is connected
-     * towards this manifold. Sides in the plane, and sides facing anything else, are left as they are. See Note
-     * [Manifold connections are set when placed].
-     */
-    public boolean followPipeConnections() {
-        if (worldObj == null) return false;
-        boolean changed = false;
-        for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
-            if (!isNormalDirection(dir)) continue;
-            TileEntity te = worldObj.getTileEntity(xCoord + dir.offsetX, yCoord + dir.offsetY, zCoord + dir.offsetZ);
-            if (!(te instanceof gregtech.api.metatileentity.BaseMetaPipeEntity bmpe)
-                || !(bmpe.getMetaTileEntity() instanceof MTECoolantPipe pipe)) continue;
-            boolean towardsUs = LoopGraphCrawler.isPipeConnectedAtSide(bmpe, pipe, dir.getOpposite());
-            if (towardsUs != isConnected(dir)) {
-                setConnected(dir, towardsUs);
-                changed = true;
-            }
-        }
-        if (changed) {
-            updateGroupPipeMaterial();
-            markDirty();
-            if (!worldObj.isRemote) worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
         }
         return changed;
     }

@@ -174,8 +174,8 @@ public class BlockManifold extends BlockContainer {
     public void onNeighborBlockChange(World world, int x, int y, int z, Block neighborBlock) {
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof TileEntityManifold manifold) {
-            // See Note [Manifold connections are set when placed]
-            manifold.followPipeConnections();
+            // Connections stay as they are: see Note [Manifold connections are set when placed]
+            manifold.updateGroupPipeMaterial();
         }
         super.onNeighborBlockChange(world, x, y, z, neighborBlock);
     }
