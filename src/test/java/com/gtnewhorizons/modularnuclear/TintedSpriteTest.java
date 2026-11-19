@@ -5,13 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.gtnewhorizons.modularnuclear.client.texture.TintedSprite;
 import com.gtnewhorizons.modularnuclear.client.texture.TintedSprite.Tint;
 
-/** Heavy water's texture: Minecraft's water, tinted. */
-// See Note [Tinting Minecraft's water]
+/** Heavy water's textures: Minecraft's water and the steams, tinted. */
+// See Note [Tinting heavy water's textures]
 class TintedSpriteTest {
 
     /** Heavy water's tint, as ModFluids has it. */
@@ -82,5 +84,17 @@ class TintedSpriteTest {
         int[] out = pixels(contrastOnly.apply(strip));
         assertClose(0xB32E43F4, out[0], "the first frame");
         assertClose(0xB35A6EF4, out[1], "the second frame");
+    }
+
+    /** GregTech's steam, forward and back, so that the last frame shown is next to the first. */
+    // See wrinkle (W2) of Note [Tinting heavy water's textures]
+    @Test
+    void pingPongFramesReturnsWithoutRepeatingTheEnds() {
+        assertEquals(List.of(0, 1, 2, 3, 2, 1), TintedSprite.pingPongFrames(4));
+        assertEquals(
+            38,
+            TintedSprite.pingPongFrames(20)
+                .size());
+        assertEquals(List.of(0), TintedSprite.pingPongFrames(1));
     }
 }

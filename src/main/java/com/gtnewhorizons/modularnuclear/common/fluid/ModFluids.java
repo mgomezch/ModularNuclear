@@ -137,7 +137,7 @@ public class ModFluids {
          * Heavy water's tint: 23 degrees of hue from water's blue toward purple, the ripples and their opacity
          * pushed out so they stay visible, and a tenth of the way toward a deep violet.
          */
-        // See Note [Tinting Minecraft's water]
+        // See Note [Tinting heavy water's textures]
         private static final TintedSprite.Tint HEAVY_WATER = new TintedSprite.Tint(
             23.0f / 360.0f,
             3.0f,
@@ -147,6 +147,20 @@ public class ModFluids {
             0x38007C,
             0.10f);
 
+        /**
+         * Heavy-water steam's tint: the steam of the same grade blended 30% of the way toward heavy water's average
+         * colour, its mottle pushed out to make up for what the blend takes.
+         */
+        // See Note [Tinting heavy water's textures]
+        private static final TintedSprite.Tint HEAVY_WATER_STEAM = new TintedSprite.Tint(
+            0.0f,
+            1.4f,
+            1.0f,
+            1.0f,
+            1.0f,
+            0x612AE8,
+            0.30f);
+
         @SubscribeEvent
         public void onTextureStitch(TextureStitchEvent.Pre event) {
             if (event.map.getTextureType() == 0) { // terrain / blocks atlas
@@ -155,9 +169,46 @@ public class ModFluids {
                         tintedWater(event.map, "heavywater_still", "water_still"),
                         tintedWater(event.map, "heavywater_flow", "water_flow"));
                 }
-                for (Fluid steam : new Fluid[] { fluidHeavyWaterSteam, fluidSuperheatedHeavyWaterSteam,
-                    fluidSupercriticalHeavyWaterSteam }) {
-                    registerIcons(event.map, steam, "gregtech:fluids/fluid.steam", "gregtech:fluids/fluid.steam");
+                if (fluidHeavyWaterSteam != null) {
+                    // Steam as GTNH shows it, Railcraft's, or else GregTech's played forward and back
+                    // See wrinkle (W2) of Note [Tinting heavy water's textures]
+                    boolean railcraft = Loader.isModLoaded("Railcraft");
+                    IIcon steam = tinted(
+                        event.map,
+                        "heavywatersteam",
+                        railcraft ? new ResourceLocation("railcraft", "textures/blocks/fluids/steam_still.png")
+                            : new ResourceLocation("gregtech", "textures/blocks/fluids/fluid.steam.png"),
+                        HEAVY_WATER_STEAM,
+                        !railcraft);
+                    fluidHeavyWaterSteam.setIcons(steam, steam);
+                }
+                if (fluidSuperheatedHeavyWaterSteam != null) {
+                    IIcon steam = tinted(
+                        event.map,
+                        "superheatedheavywatersteam",
+                        new ResourceLocation("ic2", "textures/blocks/fluids/superheatedsteam_still.png"),
+                        HEAVY_WATER_STEAM,
+                        false);
+                    fluidSuperheatedHeavyWaterSteam.setIcons(steam, steam);
+                }
+                if (fluidSupercriticalHeavyWaterSteam != null) {
+                    fluidSupercriticalHeavyWaterSteam.setIcons(
+                        tinted(
+                            event.map,
+                            "supercriticalheavywatersteam_still",
+                            new ResourceLocation(
+                                "goodgenerator",
+                                "textures/blocks/fluids/supercriticalSteam.still.png"),
+                            HEAVY_WATER_STEAM,
+                            false),
+                        tinted(
+                            event.map,
+                            "supercriticalheavywatersteam_flow",
+                            new ResourceLocation(
+                                "goodgenerator",
+                                "textures/blocks/fluids/supercriticalSteam.flowing.png"),
+                            HEAVY_WATER_STEAM,
+                            false));
                 }
                 registerIcons(
                     event.map,
@@ -171,15 +222,21 @@ public class ModFluids {
          * Heavy water's look: Minecraft's water, as the loaded resource packs have it, tinted purple (HEAVY_WATER)
          * when the atlas is stitched, unless a resource pack draws heavy water itself.
          */
-        // See Note [Tinting Minecraft's water]
+        // See Note [Tinting heavy water's textures]
         private IIcon tintedWater(TextureMap map, String name, String water) {
+            return tinted(
+                map,
+                name,
+                new ResourceLocation("minecraft", "textures/blocks/" + water + ".png"),
+                HEAVY_WATER,
+                false);
+        }
+
+        /** The icon modularnuclear:fluids/name: source tinted, unless a resource pack draws the icon itself. */
+        private IIcon tinted(TextureMap map, String name, ResourceLocation source, TintedSprite.Tint tint,
+            boolean pingPong) {
             String icon = "modularnuclear:fluids/" + name;
-            map.setTextureEntry(
-                icon,
-                new TintedSprite(
-                    icon,
-                    new ResourceLocation("minecraft", "textures/blocks/" + water + ".png"),
-                    HEAVY_WATER));
+            map.setTextureEntry(icon, new TintedSprite(icon, source, tint, pingPong));
             return map.getTextureExtry(icon);
         }
 
