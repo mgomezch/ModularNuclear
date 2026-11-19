@@ -10,9 +10,9 @@ Architecture Under Test:
     - 16 osmium High-Pressure Convective Passage Hatches (input 32166, output 32173) paired top (inlet, facing UP, Y=21)
       and bottom (outlet, facing DOWN, Y=17).
     - 14 EV IC2 Coolant Hatches (ID 32104) filled with ic2coolant.
-    - 26 Quad Uranium Nuclear Buses (ID 32100).
-    - 4 Quad MOX Nuclear Buses (ID 32100).
-    - 9 Quad High Density Plutonium Nuclear Buses (ID 32100).
+    - 37 Dual Uranium Nuclear Buses (ID 32100).
+    - 1 Dual MOX Nuclear Bus (ID 32100).
+    - 1 Dual High Density Uranium Nuclear Bus (ID 32100).
   * Perimeter Hatches on Front Wall (Slice 3, Y=18, Z=25):
     - Auto-Taping Maintenance Hatch (GT ID 15497).
     - UV Dynamo Hatch (GT ID 38).
@@ -28,7 +28,7 @@ Architecture Under Test:
   * 3D bridge cables at Y=23..25 routing across passage rings.
   * Supply station at X=492, Y=22:
     - Factory Manager.
-    - Creative Vending Drawers for Quad Uranium, Quad MOX, Quad HD Plutonium.
+    - Creative Vending Drawers for Dual Uranium, Dual MOX and Dual High Density Uranium rods.
     - Infinite Debug Tank for IC2 Coolant.
   * Automated SFM program distributing fuel rods and coolant into all core buses and hatches.
 - Multi-Passage Closed Coolant Loop with Manifolds:
@@ -89,9 +89,9 @@ AE2_VOID_DRIVE_POS = (500, 18, 17)
 
 # SFM Logistics Supply Station Positions at Y=22
 SFM_MGR_POS = (492, 22, 30)
-SFM_DRAWER_U4 = (492, 22, 29)
-SFM_DRAWER_M4 = (492, 22, 28)
-SFM_DRAWER_HDP = (492, 22, 27)
+SFM_DRAWER_U2 = (492, 22, 29)
+SFM_DRAWER_MOX = (492, 22, 28)
+SFM_DRAWER_HDU = (492, 22, 27)
 SFM_COOLANT_TANK = (492, 22, 26)
 
 # Manifold Levels & Key Pipe Ports
@@ -108,22 +108,28 @@ PASSAGES_COORDS: List[Tuple[int, int]] = [
     (500, 33)
 ]
 
-U4_BUSES: List[Tuple[int, int]] = [
-    (500, 26), (497, 27), (499, 27), (501, 27), (503, 27),
-    (500, 28), (497, 29), (498, 29), (499, 29), (501, 29),
-    (502, 29), (503, 29), (496, 30), (504, 30), (497, 31),
-    (498, 31), (499, 31), (501, 31), (502, 31), (503, 31),
-    (500, 32), (497, 33), (499, 33), (501, 33), (503, 33),
-    (500, 34)
-]
+# The fuel load: dual uranium rods but for one dual MOX rod and one dual high-density uranium rod, so that the SFM
+# program feeds three kinds of rod, each to its own buses.  Of the loads tried in the simulator with this reactor
+# and loop (tools/gtnh-nuclear-sim with these cells and loop_mat=STEEL loop_size=NORMAL loop_fluid=DISTILLED_WATER
+# phe_count=1 loop_power=2048), it stays furthest under the tier's 1800 °C: over an hour, seeds 1..40 peak at
+# 1711 °C at worst.  Quad rods, or more MOX and high-density rods, melt the core down within minutes.  Where the two
+# odd rods sit matters as much as which rods they are: single rods in the same cells overheat one seed in 20, a few
+# minutes in.
+U2_ROD = "gregtech:gt.rodUranium2"
+MOX_ROD = "gregtech:gt.rodMOX2"
+HDU_ROD = "gregtech:gt.rodHighDensityUranium2"
 
-M4_BUSES: List[Tuple[int, int]] = [
-    (499, 26), (501, 26), (499, 34), (501, 34)
-]
-
-HDP_BUSES: List[Tuple[int, int]] = [
-    (498, 26), (502, 26), (496, 29), (504, 29), (500, 30),
-    (496, 31), (504, 31), (498, 34), (502, 34)
+MOX_BUSES: List[Tuple[int, int]] = [(499, 26)]
+HDU_BUSES: List[Tuple[int, int]] = [(498, 34)]
+U2_BUSES: List[Tuple[int, int]] = [
+    (498, 26), (500, 26), (501, 26), (502, 26), (497, 27),
+    (499, 27), (501, 27), (503, 27), (500, 28), (496, 29),
+    (497, 29), (498, 29), (499, 29), (501, 29), (502, 29),
+    (503, 29), (504, 29), (496, 30), (500, 30), (504, 30),
+    (496, 31), (497, 31), (498, 31), (499, 31), (501, 31),
+    (502, 31), (503, 31), (504, 31), (500, 32), (497, 33),
+    (499, 33), (501, 33), (503, 33), (499, 34), (500, 34),
+    (501, 34), (502, 34)
 ]
 
 COOLANT_HATCHES: List[Tuple[int, int]] = [
@@ -192,16 +198,16 @@ def build_elevated_reactor(harness: HarnessClient):
         harness.set_gt_machine(wx, TOP_Y, wz, 32104, 1)  # EV Coolant Hatch facing UP
         harness.fill_fluid(wx, TOP_Y, wz, "ic2coolant", 16000)
 
-    print("[*] Installing 26 Quad Uranium Buses at Y=21...")
-    for wx, wz in U4_BUSES:
+    print(f"[*] Installing {len(U2_BUSES)} Dual Uranium Buses at Y=21...")
+    for wx, wz in U2_BUSES:
         harness.set_gt_machine(wx, TOP_Y, wz, 32100, 1)  # Nuclear Bus facing UP
 
-    print("[*] Installing 4 Quad MOX Buses at Y=21...")
-    for wx, wz in M4_BUSES:
+    print(f"[*] Installing {len(MOX_BUSES)} Dual MOX Bus at Y=21...")
+    for wx, wz in MOX_BUSES:
         harness.set_gt_machine(wx, TOP_Y, wz, 32100, 1)  # Nuclear Bus facing UP
 
-    print("[*] Installing 9 Quad HD Plutonium Buses at Y=21...")
-    for wx, wz in HDP_BUSES:
+    print(f"[*] Installing {len(HDU_BUSES)} Dual High Density Uranium Bus at Y=21...")
+    for wx, wz in HDU_BUSES:
         harness.set_gt_machine(wx, TOP_Y, wz, 32100, 1)  # Nuclear Bus facing UP
 
     time.sleep(0.5)
@@ -281,16 +287,16 @@ def build_sfm_supply_logistics(harness: HarnessClient):
 
     # 1. Place SFM Manager, Creative Vending Drawers, and Debug Coolant Tank at X=492, Y=22
     harness.set_block(SFM_MGR_POS[0], SFM_MGR_POS[1], SFM_MGR_POS[2], "superfactorymanager:manager", 0)
-    harness.setup_vending_drawer(x=SFM_DRAWER_U4[0], y=SFM_DRAWER_U4[1], z=SFM_DRAWER_U4[2], item="gregtech:gt.rodUranium4", meta=0, dir=2)
-    harness.setup_vending_drawer(x=SFM_DRAWER_M4[0], y=SFM_DRAWER_M4[1], z=SFM_DRAWER_M4[2], item="gregtech:gt.rodMOX4", meta=0, dir=2)
-    harness.setup_vending_drawer(x=SFM_DRAWER_HDP[0], y=SFM_DRAWER_HDP[1], z=SFM_DRAWER_HDP[2], item="gregtech:gt.rodHighDensityPlutonium4", meta=0, dir=2)
+    harness.setup_vending_drawer(x=SFM_DRAWER_U2[0], y=SFM_DRAWER_U2[1], z=SFM_DRAWER_U2[2], item=U2_ROD, meta=0, dir=2)
+    harness.setup_vending_drawer(x=SFM_DRAWER_MOX[0], y=SFM_DRAWER_MOX[1], z=SFM_DRAWER_MOX[2], item=MOX_ROD, meta=0, dir=2)
+    harness.setup_vending_drawer(x=SFM_DRAWER_HDU[0], y=SFM_DRAWER_HDU[1], z=SFM_DRAWER_HDU[2], item=HDU_ROD, meta=0, dir=2)
     harness.set_gt_machine(SFM_COOLANT_TANK[0], SFM_COOLANT_TANK[1], SFM_COOLANT_TANK[2], 238, 2)
     time.sleep(0.3)
     harness.configure_debug_tank(SFM_COOLANT_TANK[0], SFM_COOLANT_TANK[1], SFM_COOLANT_TANK[2], "ic2coolant", output_fluid=False)
     time.sleep(0.3)
 
     # 2. Place SFM fancy inventory cables over all 53 non-passage core cells at Y=22
-    all_non_passages = U4_BUSES + M4_BUSES + HDP_BUSES + COOLANT_HATCHES
+    all_non_passages = U2_BUSES + MOX_BUSES + HDU_BUSES + COOLANT_HATCHES
     print(f"[*] Placing SFM Fancy Cables at Y=22 over {len(all_non_passages)} non-passage core cells...")
     for wx, wz in all_non_passages:
         harness.set_block(wx, 22, wz, "superfactorymanager:fancyCable", 0)
@@ -321,23 +327,23 @@ def build_sfm_supply_logistics(harness: HarnessClient):
     time.sleep(0.1)
 
     for label_name, pos in [
-        ("u4_drawer", SFM_DRAWER_U4),
-        ("m4_drawer", SFM_DRAWER_M4),
-        ("hdp_drawer", SFM_DRAWER_HDP),
+        ("u2_drawer", SFM_DRAWER_U2),
+        ("mox_drawer", SFM_DRAWER_MOX),
+        ("hdu_drawer", SFM_DRAWER_HDU),
         ("coolant_tank", SFM_COOLANT_TANK),
     ]:
         res = harness.sfm_label(x=mx, y=my, z=mz, label=label_name, bx=pos[0], by=pos[1], bz=pos[2])
         print(f"    setlabel {label_name}: {res}")
         time.sleep(0.05)
 
-    for wx, wz in U4_BUSES:
-        harness.sfm_label(x=mx, y=my, z=mz, label="u4_buses", bx=wx, by=21, bz=wz)
+    for wx, wz in U2_BUSES:
+        harness.sfm_label(x=mx, y=my, z=mz, label="u2_buses", bx=wx, by=21, bz=wz)
         time.sleep(0.02)
-    for wx, wz in M4_BUSES:
-        harness.sfm_label(x=mx, y=my, z=mz, label="m4_buses", bx=wx, by=21, bz=wz)
+    for wx, wz in MOX_BUSES:
+        harness.sfm_label(x=mx, y=my, z=mz, label="mox_buses", bx=wx, by=21, bz=wz)
         time.sleep(0.02)
-    for wx, wz in HDP_BUSES:
-        harness.sfm_label(x=mx, y=my, z=mz, label="hdp_buses", bx=wx, by=21, bz=wz)
+    for wx, wz in HDU_BUSES:
+        harness.sfm_label(x=mx, y=my, z=mz, label="hdu_buses", bx=wx, by=21, bz=wz)
         time.sleep(0.02)
     for wx, wz in COOLANT_HATCHES:
         harness.sfm_label(x=mx, y=my, z=mz, label="coolant_hatches", bx=wx, by=21, bz=wz)
@@ -349,14 +355,14 @@ def build_sfm_supply_logistics(harness: HarnessClient):
     program_code = (
         "NAME \"9x9 Reactor Automation\"\n"
         "EVERY 20 TICKS DO\n"
-        "  INPUT FROM \"u4_drawer\"\n"
-        "  OUTPUT TO \"u4_buses\"\n"
+        "  INPUT FROM \"u2_drawer\"\n"
+        "  OUTPUT TO \"u2_buses\"\n"
         "  FORGET\n"
-        "  INPUT FROM \"m4_drawer\"\n"
-        "  OUTPUT TO \"m4_buses\"\n"
+        "  INPUT FROM \"mox_drawer\"\n"
+        "  OUTPUT TO \"mox_buses\"\n"
         "  FORGET\n"
-        "  INPUT FROM \"hdp_drawer\"\n"
-        "  OUTPUT TO \"hdp_buses\"\n"
+        "  INPUT FROM \"hdu_drawer\"\n"
+        "  OUTPUT TO \"hdu_buses\"\n"
         "  FORGET\n"
         "  INPUT 8000 fluid:ic2coolant FROM \"coolant_tank\"\n"
         "  OUTPUT TO \"coolant_hatches\"\n"
@@ -554,22 +560,22 @@ def verify_simulation_and_capture(harness: HarnessClient):
     # 2. Verify SFM has supplied fuel rods and coolant into core tiles
     print("\n[*] Verifying SFM core replenishment...")
     time.sleep(4.0)
-    sample_u4 = harness.container_info(x=U4_BUSES[0][0], y=21, z=U4_BUSES[0][1])
-    sample_m4 = harness.container_info(x=M4_BUSES[0][0], y=21, z=M4_BUSES[0][1])
-    sample_hdp = harness.container_info(x=HDP_BUSES[0][0], y=21, z=HDP_BUSES[0][1])
+    sample_u2 = harness.container_info(x=U2_BUSES[0][0], y=21, z=U2_BUSES[0][1])
+    sample_mox = harness.container_info(x=MOX_BUSES[0][0], y=21, z=MOX_BUSES[0][1])
+    sample_hdu = harness.container_info(x=HDU_BUSES[0][0], y=21, z=HDU_BUSES[0][1])
     sample_coolant = harness.te_fluid(COOLANT_HATCHES[0][0], 21, COOLANT_HATCHES[0][1])
 
-    print(f"    Sample U4 Bus: {sample_u4.get('slots', [])}")
-    print(f"    Sample M4 Bus: {sample_m4.get('slots', [])}")
-    print(f"    Sample HDP Bus: {sample_hdp.get('slots', [])}")
+    print(f"    Sample U2 Bus: {sample_u2.get('slots', [])}")
+    print(f"    Sample MOX Bus: {sample_mox.get('slots', [])}")
+    print(f"    Sample HDU Bus: {sample_hdu.get('slots', [])}")
     print(f"    Sample Coolant Hatch: {sample_coolant.get('tanks', [])}")
 
-    assert len(sample_u4.get("slots", [])) > 0, "U4 bus not supplied!"
-    assert sample_u4["slots"][0]["item"] == "gregtech:gt.rodUranium4", f"Expected U4, got {sample_u4}"
-    assert len(sample_m4.get("slots", [])) > 0, "M4 bus not supplied!"
-    assert sample_m4["slots"][0]["item"] == "gregtech:gt.rodMOX4", f"Expected M4, got {sample_m4}"
-    assert len(sample_hdp.get("slots", [])) > 0, "HDP bus not supplied!"
-    assert sample_hdp["slots"][0]["item"] == "gregtech:gt.rodHighDensityPlutonium4", f"Expected HDP, got {sample_hdp}"
+    assert len(sample_u2.get("slots", [])) > 0, "U2 bus not supplied!"
+    assert sample_u2["slots"][0]["item"] == U2_ROD, f"Expected {U2_ROD}, got {sample_u2}"
+    assert len(sample_mox.get("slots", [])) > 0, "MOX bus not supplied!"
+    assert sample_mox["slots"][0]["item"] == MOX_ROD, f"Expected {MOX_ROD}, got {sample_mox}"
+    assert len(sample_hdu.get("slots", [])) > 0, "HDU bus not supplied!"
+    assert sample_hdu["slots"][0]["item"] == HDU_ROD, f"Expected {HDU_ROD}, got {sample_hdu}"
     assert len(sample_coolant.get("tanks", [])) > 0 and sample_coolant["tanks"][0]["amount"] > 0, "Coolant hatch not supplied!"
     print("[✓] SFM autonomously supplied all fuel types and conductive coolant!")
 
