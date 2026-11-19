@@ -1,6 +1,16 @@
 package com.gtnewhorizons.modularnuclear.common.fluid;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraft.client.resources.IResource;
+import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.ResourceLocation;
@@ -11,6 +21,10 @@ import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.gtnewhorizons.modularnuclear.ModularNuclear;
 import com.gtnewhorizons.modularnuclear.client.texture.TintedSprite;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -161,9 +175,25 @@ public class ModFluids {
             0x612AE8,
             0.30f);
 
+        /** Where a resource pack can set the tints. */
+        // See wrinkle (W3) of Note [Tinting heavy water's textures]
+        private static final ResourceLocation PACK_TINTS = new ResourceLocation("modularnuclear", "fluid_tints.json");
+
+        /** This stitch's tints, by fluid name: the mod's, with a resource pack's fields over them. */
+        private final Map<String, TintedSprite.Tint> tints = new HashMap<>();
+
         @SubscribeEvent
         public void onTextureStitch(TextureStitchEvent.Pre event) {
             if (event.map.getTextureType() == 0) { // terrain / blocks atlas
+                tints.clear();
+                tints.put("heavywater", HEAVY_WATER);
+                for (String steam : new String[] { "heavywatersteam", "superheatedheavywatersteam",
+                    "supercriticalheavywatersteam" }) {
+                    tints.put(steam, HEAVY_WATER_STEAM);
+                }
+                packTints(
+                    Minecraft.getMinecraft()
+                        .getResourceManager());
                 if (fluidHeavyWater != null) {
                     fluidHeavyWater.setIcons(
                         tintedWater(event.map, "heavywater_still", "water_still"),
@@ -178,7 +208,7 @@ public class ModFluids {
                         "heavywatersteam",
                         railcraft ? new ResourceLocation("railcraft", "textures/blocks/fluids/steam_still.png")
                             : new ResourceLocation("gregtech", "textures/blocks/fluids/fluid.steam.png"),
-                        HEAVY_WATER_STEAM,
+                        tints.get("heavywatersteam"),
                         !railcraft);
                     fluidHeavyWaterSteam.setIcons(steam, steam);
                 }
@@ -187,7 +217,7 @@ public class ModFluids {
                         event.map,
                         "superheatedheavywatersteam",
                         new ResourceLocation("ic2", "textures/blocks/fluids/superheatedsteam_still.png"),
-                        HEAVY_WATER_STEAM,
+                        tints.get("superheatedheavywatersteam"),
                         false);
                     fluidSuperheatedHeavyWaterSteam.setIcons(steam, steam);
                 }
@@ -199,7 +229,7 @@ public class ModFluids {
                             new ResourceLocation(
                                 "goodgenerator",
                                 "textures/blocks/fluids/supercriticalSteam.still.png"),
-                            HEAVY_WATER_STEAM,
+                            tints.get("supercriticalheavywatersteam"),
                             false),
                         tinted(
                             event.map,
@@ -207,7 +237,7 @@ public class ModFluids {
                             new ResourceLocation(
                                 "goodgenerator",
                                 "textures/blocks/fluids/supercriticalSteam.flowing.png"),
-                            HEAVY_WATER_STEAM,
+                            tints.get("supercriticalheavywatersteam"),
                             false));
                 }
                 registerIcons(
@@ -228,8 +258,43 @@ public class ModFluids {
                 map,
                 name,
                 new ResourceLocation("minecraft", "textures/blocks/" + water + ".png"),
-                HEAVY_WATER,
+                tints.get("heavywater"),
                 false);
+        }
+
+        /** Puts a resource pack's fluid_tints.json entries over the mod's tints, if a pack has the file. */
+        // See wrinkle (W3) of Note [Tinting heavy water's textures]
+        private void packTints(IResourceManager manager) {
+            IResource resource;
+            try {
+                resource = manager.getResource(PACK_TINTS);
+            } catch (IOException e) {
+                return; // no pack sets them
+            }
+            JsonObject root;
+            try (Reader in = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
+                root = new JsonParser().parse(in)
+                    .getAsJsonObject();
+            } catch (IOException | RuntimeException e) {
+                ModularNuclear.LOG.error("Could not read " + PACK_TINTS + "; keeping the mod's fluid tints", e);
+                return;
+            }
+            for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+                TintedSprite.Tint tint = tints.get(entry.getKey());
+                if (tint == null) {
+                    ModularNuclear.LOG.warn(PACK_TINTS + " names no fluid the mod tints: " + entry.getKey());
+                    continue;
+                }
+                try {
+                    tints.put(
+                        entry.getKey(),
+                        tint.withOverrides(
+                            entry.getValue()
+                                .getAsJsonObject()));
+                } catch (RuntimeException e) {
+                    ModularNuclear.LOG.error("Could not read " + entry.getKey() + " in " + PACK_TINTS, e);
+                }
+            }
         }
 
         /** The icon modularnuclear:fluids/name: source tinted, unless a resource pack draws the icon itself. */

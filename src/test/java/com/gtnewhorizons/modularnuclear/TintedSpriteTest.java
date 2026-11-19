@@ -1,6 +1,7 @@
 package com.gtnewhorizons.modularnuclear;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Color;
@@ -9,6 +10,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.gtnewhorizons.modularnuclear.client.texture.TintedSprite;
 import com.gtnewhorizons.modularnuclear.client.texture.TintedSprite.Tint;
 
@@ -96,5 +99,30 @@ class TintedSpriteTest {
             TintedSprite.pingPongFrames(20)
                 .size());
         assertEquals(List.of(0), TintedSprite.pingPongFrames(1));
+    }
+
+    private static JsonObject json(String text) {
+        return new JsonParser().parse(text)
+            .getAsJsonObject();
+    }
+
+    /** A pack's entry replaces the fields it gives, the hue in degrees, and keeps the rest. */
+    // See wrinkle (W3) of Note [Tinting heavy water's textures]
+    @Test
+    void withOverridesReplacesOnlyTheFieldsGiven() {
+        Tint t = HEAVY_WATER.withOverrides(json("{\"hue\": -60, \"blendColour\": \"#FF8000\", \"blend\": 0.5}"));
+        assertEquals(new Tint(-60.0f / 360.0f, 3.0f, 2.5f, 1.0f, 1.0f, 0xFF8000, 0.5f), t);
+        assertEquals(HEAVY_WATER, HEAVY_WATER.withOverrides(json("{}")));
+        assertEquals(
+            0x00FF00,
+            HEAVY_WATER.withOverrides(json("{\"blendColour\": \"00ff00\"}"))
+                .blendColour());
+    }
+
+    @Test
+    void withOverridesRefusesAColourThatIsNotRRGGBB() {
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> HEAVY_WATER.withOverrides(json("{\"blendColour\": \"red\"}")));
     }
 }

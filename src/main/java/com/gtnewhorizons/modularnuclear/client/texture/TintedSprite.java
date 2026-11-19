@@ -18,6 +18,8 @@ import net.minecraft.client.resources.data.AnimationMetadataSection;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.util.ResourceLocation;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.gtnewhorizons.modularnuclear.ModularNuclear;
 
 import cpw.mods.fml.relauncher.Side;
@@ -77,6 +79,24 @@ Wrinkles:
      order pingPongFrames gives): 0, 1, ..., 19, 18, ..., 1, then 0 again.  The steam doesn't drift, so playing it
      backward doesn't show.  A source whose .mcmeta lists its frames keeps its own order.
 
+(W3) A resource pack can also change the tints, rather than draw the textures: an entry in
+     assets/modularnuclear/fluid_tints.json, by fluid name, replaces the fields it gives and keeps the mod's
+     values for the rest (Tint.withOverrides).  For example, to make heavy water greener and its plain steam
+     red:
+
+         {
+           "heavywater":      { "hue": -60 },
+           "heavywatersteam": { "blendColour": "#FF0000", "blend": 0.5 }
+         }
+
+     The fields are Tint's, with the hue turn in degrees: hue, contrast, alphaContrast, saturation, brightness,
+     blendColour ("#RRGGBB") and blend.  The names are heavywater (both its icons), heavywatersteam,
+     superheatedheavywatersteam and supercriticalheavywatersteam (both its icons).  ModFluids'
+     ClientFluidTextureHandler.packTints reads the file each time the block atlas is stitched, so a pack takes
+     effect on a resource reload.  The mod ships no such file, so whatever the resource manager finds is a pack's,
+     and only the topmost pack's file counts.  A file or an entry that doesn't parse is logged and skipped, and its
+     fluids keep the mod's tints.  A pack that draws a texture itself (W1) wins over a tint for it.
+
 HEAVY_WATER's parameters were chosen by eye in a local slider page that runs this same pipeline in JavaScript on
 vanilla water.  Color.HSBtoRGB rounds to whole values before the blend where the page doesn't, so the two can
 differ by 2 in 255; TintedSpriteTest checks the pipeline against pixels taken from that page.
@@ -103,6 +123,37 @@ public class TintedSprite extends TextureAtlasSprite {
      */
     public record Tint(float hueTurn, float contrast, float alphaContrast, float saturation, float brightness,
         int blendColour, float blend) {
+
+        /**
+         * This tint with the fields a resource pack's fluid_tints.json entry sets replaced: hue (degrees), contrast,
+         * alphaContrast, saturation, brightness, blendColour ("#RRGGBB") and blend.
+         */
+        // See wrinkle (W3)
+        public Tint withOverrides(JsonObject o) {
+            return new Tint(
+                o.has("hue") ? o.get("hue")
+                    .getAsFloat() / 360.0f : hueTurn,
+                number(o, "contrast", contrast),
+                number(o, "alphaContrast", alphaContrast),
+                number(o, "saturation", saturation),
+                number(o, "brightness", brightness),
+                o.has("blendColour") ? colour(o.get("blendColour")) : blendColour,
+                number(o, "blend", blend));
+        }
+
+        private static float number(JsonObject o, String key, float otherwise) {
+            return o.has(key) ? o.get(key)
+                .getAsFloat() : otherwise;
+        }
+
+        /** "#RRGGBB" (or "RRGGBB"), or a number. */
+        private static int colour(JsonElement e) {
+            String s = e.getAsString()
+                .trim();
+            if (s.startsWith("#")) s = s.substring(1);
+            if (!s.matches("[0-9A-Fa-f]{6}")) throw new IllegalArgumentException("not a #RRGGBB colour: " + e);
+            return Integer.parseInt(s, 16);
+        }
 
         /** A copy of the image, each square frame tinted. */
         public BufferedImage apply(BufferedImage image) {
