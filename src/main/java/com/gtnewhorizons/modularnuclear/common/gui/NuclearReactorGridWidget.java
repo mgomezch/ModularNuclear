@@ -763,16 +763,17 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                         fuel.archetype,
                         EnumChatFormatting.GRAY,
                         EnumChatFormatting.AQUA,
-                        NeutronUnits.rate(fuel.baseNeutrons)));
+                        NeutronUnits
+                            .rate(TileProperties.effectiveBaseNeutrons(NuclearSimulationEngine.params(), fuel))));
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
                         "  Fission: Thermal %s%.2fx%s | Fast %s%.2fx",
                         EnumChatFormatting.GREEN,
-                        fuel.thermalFissionMultiplier,
+                        TileProperties.fuelThermalFission(NuclearSimulationEngine.params(), fuel),
                         EnumChatFormatting.GRAY,
                         EnumChatFormatting.BLUE,
-                        fuel.fastFissionMultiplier));
+                        TileProperties.fuelFastFission(NuclearSimulationEngine.params(), fuel)));
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
@@ -860,16 +861,17 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                         fFuel.archetype,
                         EnumChatFormatting.GRAY,
                         EnumChatFormatting.AQUA,
-                        NeutronUnits.rate(fFuel.baseNeutrons)));
+                        NeutronUnits
+                            .rate(TileProperties.effectiveBaseNeutrons(NuclearSimulationEngine.params(), fFuel))));
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
                         "  Fission: Thermal %s%.2fx%s | Fast %s%.2fx",
                         EnumChatFormatting.GREEN,
-                        fFuel.thermalFissionMultiplier,
+                        TileProperties.fuelThermalFission(NuclearSimulationEngine.params(), fFuel),
                         EnumChatFormatting.GRAY,
                         EnumChatFormatting.BLUE,
-                        fFuel.fastFissionMultiplier));
+                        TileProperties.fuelFastFission(NuclearSimulationEngine.params(), fFuel)));
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,

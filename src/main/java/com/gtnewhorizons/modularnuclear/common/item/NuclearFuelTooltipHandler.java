@@ -18,7 +18,9 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.Radiovo
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -171,11 +173,12 @@ public class NuclearFuelTooltipHandler {
                 + EnumChatFormatting.RED
                 + String.format(Locale.US, "%,.0f °C (floor)", fd.floorTemp));
 
-        // Base neutrons & Archetype
+        // See Note [Players see a fuel's effective values]
+        EngineParameters p = NuclearSimulationEngine.params();
         event.toolTip.add(
             EnumChatFormatting.GRAY + "Base neutrons: "
                 + EnumChatFormatting.WHITE
-                + NeutronUnits.rate(fd.baseNeutrons)
+                + NeutronUnits.rate(TileProperties.effectiveBaseNeutrons(p, fd))
                 + EnumChatFormatting.DARK_GRAY
                 + " | "
                 + EnumChatFormatting.GRAY
@@ -187,11 +190,11 @@ public class NuclearFuelTooltipHandler {
         event.toolTip.add(
             EnumChatFormatting.GRAY + "Fission: "
                 + EnumChatFormatting.LIGHT_PURPLE
-                + String.format(Locale.US, "%.2fx (thermal)", fd.thermalFissionMultiplier)
+                + String.format(Locale.US, "%.2fx (thermal)", TileProperties.fuelThermalFission(p, fd))
                 + EnumChatFormatting.DARK_GRAY
                 + " | "
                 + EnumChatFormatting.BLUE
-                + String.format(Locale.US, "%.2fx (fast)", fd.fastFissionMultiplier));
+                + String.format(Locale.US, "%.2fx (fast)", TileProperties.fuelFastFission(p, fd)));
 
         // Required casing tier
         if (fd.requiredTier > 0) {

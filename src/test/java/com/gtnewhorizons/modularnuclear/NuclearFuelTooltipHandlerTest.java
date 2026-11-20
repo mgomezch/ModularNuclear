@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
@@ -17,6 +18,9 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.Moderat
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.item.NuclearFuelTooltipHandler;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 public class NuclearFuelTooltipHandlerTest {
 
@@ -70,6 +74,17 @@ public class NuclearFuelTooltipHandlerTest {
         ItemTooltipEvent event = new ItemTooltipEvent(uStack, null, tip, false);
         handler.onItemTooltip(event);
 
+        // The shipped config's multipliers apply: neutron_yield_multiplier 22.849 makes 4 base neutrons 91
+        EngineParameters p = NuclearSimulationEngine.params();
+        String expectedNeutrons = "Base neutrons: "
+            + NeutronUnits.rate(Math.round(defaultUranium.baseNeutrons * p.nbaseMultiplier("standard")));
+        String expectedThermal = String.format(
+            Locale.US,
+            "Fission: %.2fx (thermal)",
+            defaultUranium.thermalFissionMultiplier * p.fissionMultiplier("standard")
+                * p.globalThermalFissionMultiplier);
+        assertNotEquals("Base neutrons: " + NeutronUnits.rate(defaultUranium.baseNeutrons), expectedNeutrons);
+
         // Verify durability was replaced from 10k to configured 160k
         boolean hasConfiguredDurability = false;
         boolean hasPeakReactivity = false;
@@ -88,10 +103,10 @@ public class NuclearFuelTooltipHandlerTest {
             if (stripped.contains("2,300 °C (floor)")) {
                 hasFloorTemp = true;
             }
-            if (stripped.contains("Base neutrons: 4.00e14 n/s")) {
+            if (stripped.contains(expectedNeutrons)) {
                 hasBaseNeutrons = true;
             }
-            if (stripped.contains("Fission: 1.25x (thermal)")) {
+            if (stripped.contains(expectedThermal)) {
                 hasFission = true;
             }
         }
@@ -101,6 +116,54 @@ public class NuclearFuelTooltipHandlerTest {
         assertTrue(hasFloorTemp, "Tooltip should show floor temp 2,300 °C");
         assertTrue(hasBaseNeutrons, "Tooltip should show base neutrons");
         assertTrue(hasFission, "Tooltip should show fission multipliers");
+    }
+
+    /** The tooltip shows a fuel's values with the config's multipliers applied, not its raw entry. */
+    @Test
+    public void testFuelTooltipAppliesConfigMultipliers() {
+        FuelData uranium = ReactorDataRegistry.getAllFuels()
+            .stream()
+            .filter(f -> "fuel_uranium_1".equalsIgnoreCase(f.id))
+            .findFirst()
+            .orElseThrow();
+        EngineParameters installed = NuclearSimulationEngine.params();
+        EngineParameters p = installed.copy();
+        p.standardNbaseMultiplier = 3.0;
+        p.neutronYieldMultiplier = 2.0;
+        p.standardFissionMultiplier = 2.0;
+        p.globalThermalFissionMultiplier = 1.5;
+        p.globalFastFissionMultiplier = 0.5;
+        NuclearSimulationEngine.installParameters(p);
+        List<String> stripped = new ArrayList<>();
+        try {
+            ItemTooltipEvent event = new ItemTooltipEvent(
+                TestItems.stack("gregtech:gt.rodUranium"),
+                null,
+                new ArrayList<>(),
+                false);
+            new NuclearFuelTooltipHandler().onItemTooltip(event);
+            for (String line : event.toolTip) {
+                stripped.add(net.minecraft.util.EnumChatFormatting.getTextWithoutFormattingCodes(line));
+            }
+        } finally {
+            NuclearSimulationEngine.installParameters(installed);
+        }
+
+        String neutrons = "Base neutrons: " + NeutronUnits.rate(Math.round(uranium.baseNeutrons * 6.0));
+        String thermal = String.format(Locale.US, "Fission: %.2fx (thermal)", uranium.thermalFissionMultiplier * 3.0);
+        String fast = String.format(Locale.US, "%.2fx (fast)", uranium.fastFissionMultiplier * 1.0);
+        assertTrue(
+            stripped.stream()
+                .anyMatch(l -> l.contains(neutrons)),
+            neutrons + " in " + stripped);
+        assertTrue(
+            stripped.stream()
+                .anyMatch(l -> l.contains(thermal)),
+            thermal + " in " + stripped);
+        assertTrue(
+            stripped.stream()
+                .anyMatch(l -> l.contains(fast)),
+            fast + " in " + stripped);
     }
 
     @Test

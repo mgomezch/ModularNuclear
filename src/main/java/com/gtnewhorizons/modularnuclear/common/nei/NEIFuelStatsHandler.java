@@ -24,9 +24,12 @@ import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import codechicken.lib.gui.GuiDraw;
@@ -673,11 +676,17 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             .add(")", palette.label);
 
         // Line 3: Fission Multiplier & Base Neutron Output
-        double effFiss = (fd != null) ? fd.getEffectiveFissionMultiplier(physics)
-            : (recipe.fuel != null ? recipe.fuel.getEffectiveFissionMultiplier(physics) : 1.0);
-        double effFastFiss = (fd != null) ? fd.getEffectiveFastFissionMultiplier(physics)
-            : (recipe.fuel != null ? recipe.fuel.getEffectiveFastFissionMultiplier(physics) : 0.1);
-        int effNeutrons = (fd != null) ? fd.getEffectiveBaseNeutrons(physics)
+        // See Note [Players see a fuel's effective values]
+        EngineParameters engine = NuclearSimulationEngine.params();
+        double effFiss = (fd != null) ? TileProperties.fuelThermalFission(engine, fd)
+            : TileProperties.thermalFissionYield(
+                engine,
+                recipe.fuel != null ? recipe.fuel.getEffectiveFissionMultiplier(physics) : 1.0);
+        double effFastFiss = (fd != null) ? TileProperties.fuelFastFission(engine, fd)
+            : TileProperties.fastFissionYield(
+                engine,
+                recipe.fuel != null ? recipe.fuel.getEffectiveFastFissionMultiplier(physics) : 0.1);
+        int effNeutrons = (fd != null) ? TileProperties.effectiveBaseNeutrons(engine, fd)
             : (recipe.fuel != null ? recipe.fuel.getEffectiveBaseNeutrons(physics) : 4);
 
         new StatLine(12, 44, STATS_SCALE).add("Th: ", palette.subtitle)

@@ -9,7 +9,10 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
 
 import gregtech.api.items.ItemRadioactiveCell;
 
@@ -113,16 +116,18 @@ public class ItemCustomFuelRod extends ItemRadioactiveCell {
                     EnumChatFormatting.DARK_RED,
                     EnumChatFormatting.WHITE,
                     mix.floorTemp));
+            // See Note [Players see a fuel's effective values]
+            EngineParameters p = NuclearSimulationEngine.params();
             aList.add(
                 String.format(
                     Locale.US,
                     "%sThermal Mult: %s%.2fx %s| Fast Mult: %s%.2fx",
                     EnumChatFormatting.BLUE,
                     EnumChatFormatting.WHITE,
-                    mix.baseThermalFissionMultiplier,
+                    TileProperties.thermalFissionYield(p, mix.baseThermalFissionMultiplier),
                     EnumChatFormatting.DARK_GRAY,
                     EnumChatFormatting.WHITE,
-                    mix.baseFastFissionMultiplier));
+                    TileProperties.fastFissionYield(p, mix.baseFastFissionMultiplier)));
             aList.add(
                 String.format(
                     Locale.US,

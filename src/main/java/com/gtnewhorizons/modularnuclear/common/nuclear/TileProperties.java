@@ -290,8 +290,8 @@ public final class TileProperties {
     public static double chainRate(EngineParameters p, double previousRate, int lastThermalAbsorbed,
         int lastFastAbsorbed, double thermalFissionMult, double fastFissionMult, double dt) {
         if (dt <= 0.0) return previousRate;
-        double effThermal = thermalFissionMult * p.globalThermalFissionMultiplier;
-        double effFast = fastFissionMult * p.globalFastFissionMultiplier;
+        double effThermal = thermalFissionYield(p, thermalFissionMult);
+        double effFast = fastFissionYield(p, fastFissionMult);
         double target = (lastThermalAbsorbed * effThermal + lastFastAbsorbed * effFast) / dt;
         double alpha = 1.0 - Math.exp(-dt / CHAIN_TIME_CONSTANT);
         return previousRate + alpha * (target - previousRate);
@@ -317,7 +317,48 @@ public final class TileProperties {
         return (baseNeutronsPerSecond * p.spontaneousHeatFraction + chain) / total;
     }
 
-    /** Base neutrons per second after the archetype multiplier. */
+    /*-
+    Note [Players see a fuel's effective values] (generated)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    A fuel's entry in the config gives its base neutron yield and fission multipliers, but the engine scales them by
+    other config values before using them: the yield by its archetype's nbase multiplier and the global
+    neutron_yield_multiplier, and each fission multiplier by its archetype's fission multiplier and the global
+    thermal or fast fission multiplier.  Players don't know the config's structure and only care what a fuel does in
+    their own game, so every place that shows these numbers shows them with all that applied, the values the engine
+    uses:
+    
+        effectiveBaseNeutrons            base neutrons per second, as NuclearReactorPhysics emits them;
+        fuelThermalFission, fuelFastFission
+                                         neutrons a fuel emits per thermal or fast neutron it absorbs, as chainRate
+                                         multiplies them.
+    
+    The displays are the fuel tooltip (NuclearFuelTooltipHandler), the reactor grid's cell tooltip
+    (NuclearReactorGridWidget) and NEI's fuel page (NEIFuelStatsHandler), all with the installed parameters,
+    NuclearSimulationEngine.params().  A custom fuel mix (ItemCustomFuelRod) has its own yield, which the engine uses
+    as it is, and its fission multipliers go through thermalFissionYield and fastFissionYield like any fuel's.
+    */
+
+    /** Thermal fission multiplier with the global one applied: neutrons emitted per thermal neutron absorbed. */
+    public static double thermalFissionYield(EngineParameters p, double thermalFissionMult) {
+        return thermalFissionMult * p.globalThermalFissionMultiplier;
+    }
+
+    /** Fast fission multiplier with the global one applied: neutrons emitted per fast neutron absorbed. */
+    public static double fastFissionYield(EngineParameters p, double fastFissionMult) {
+        return fastFissionMult * p.globalFastFissionMultiplier;
+    }
+
+    /** A fuel's thermal fission multiplier as the engine uses it, with every config multiplier applied. */
+    public static double fuelThermalFission(EngineParameters p, FuelData fd) {
+        return thermalFissionYield(p, effectiveThermalFissionMultiplier(p, fd));
+    }
+
+    /** A fuel's fast fission multiplier as the engine uses it, with every config multiplier applied. */
+    public static double fuelFastFission(EngineParameters p, FuelData fd) {
+        return fastFissionYield(p, effectiveFastFissionMultiplier(p, fd));
+    }
+
+    /** Base neutrons per second after the archetype and global yield multipliers. */
     public static int effectiveBaseNeutrons(EngineParameters p, FuelData fd) {
         double mult = p.nbaseMultiplier(fd.archetype);
         return Math.max(1, (int) Math.round(fd.baseNeutrons * mult));
