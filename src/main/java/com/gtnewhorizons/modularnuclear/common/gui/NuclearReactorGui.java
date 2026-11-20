@@ -34,6 +34,7 @@ import com.cleanroommc.modularui.widgets.TextWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.gtnewhorizons.modularnuclear.common.gui.metrics.ReactorMetricsDashboardPanel;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import gregtech.api.enums.ItemList;
@@ -185,12 +186,13 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
                 .asWidget()
                 .textAlign(Alignment.CenterLeft));
 
-        // Flux
+        // Neutrons the fuel emits, a rate: no area goes with it. See Note [Neutrons are shown in physical units]
         list.child(
             IKey.dynamic(
-                () -> "Flux: " + NuclearSimulationEngine.formatNeutronFlux(
-                    fluxSyncer != null ? (int) fluxSyncer.getLongValue() : multiblock.mNeutronsProduced,
-                    multiblock.getTicksPerCycle()))
+                () -> "Neutrons produced: " + NeutronUnits.rate(
+                    NuclearSimulationEngine.perSecond(
+                        fluxSyncer != null ? fluxSyncer.getLongValue() : multiblock.mNeutronsProduced,
+                        multiblock.getTicksPerCycle())))
                 .color(ColorUtils.reactorNeutrons::getColor)
                 .asWidget()
                 .textAlign(Alignment.CenterLeft));
@@ -198,8 +200,8 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         // Fast neutrons
         list.child(IKey.dynamic(() -> {
             long fast = fastAbsSyncer != null ? fastAbsSyncer.getLongValue() : multiblock.mFastAbsorbed;
-            long fastSec = Math.round(NuclearSimulationEngine.perSecond(fast, multiblock.getTicksPerCycle()));
-            return String.format(Locale.US, "Fast neutrons: %,d n/s", fastSec);
+            return "Fast neutrons: "
+                + NeutronUnits.rate(NuclearSimulationEngine.perSecond(fast, multiblock.getTicksPerCycle()));
         })
             .color(ColorUtils.reactorNeutronBreakdown::getColor)
             .asWidget()
@@ -208,8 +210,8 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         // Thermal neutrons
         list.child(IKey.dynamic(() -> {
             long therm = thermAbsSyncer != null ? thermAbsSyncer.getLongValue() : multiblock.mThermalAbsorbed;
-            long thermSec = Math.round(NuclearSimulationEngine.perSecond(therm, multiblock.getTicksPerCycle()));
-            return String.format(Locale.US, "Thermal neutrons: %,d n/s", thermSec);
+            return "Thermal neutrons: "
+                + NeutronUnits.rate(NuclearSimulationEngine.perSecond(therm, multiblock.getTicksPerCycle()));
         })
             .color(ColorUtils.reactorNeutronBreakdown::getColor)
             .asWidget()
@@ -218,8 +220,8 @@ public class NuclearReactorGui extends MTEMultiBlockBaseGui<MTENuclearReactor> {
         // Escaped neutrons
         list.child(IKey.dynamic(() -> {
             long esc = escSyncer != null ? escSyncer.getLongValue() : multiblock.mEscapedNeutrons;
-            long escSec = Math.round(NuclearSimulationEngine.perSecond(esc, multiblock.getTicksPerCycle()));
-            return String.format(Locale.US, "Escaped neutrons: %,d n/s", escSec);
+            return "Escaped neutrons: "
+                + NeutronUnits.rate(NuclearSimulationEngine.perSecond(esc, multiblock.getTicksPerCycle()));
         })
             .color(ColorUtils.reactorNeutronBreakdown::getColor)
             .asWidget()

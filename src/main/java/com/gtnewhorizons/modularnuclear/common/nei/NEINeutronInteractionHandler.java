@@ -31,6 +31,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.gui.ColorScales;
 import com.gtnewhorizons.modularnuclear.common.item.ModItems;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
@@ -63,6 +64,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         "textures/gui/nei/long_arrow.png");
 
     public static final String OVERLAY_ID = "gt.nei.neutron_interaction";
+
+    /** The durability label of a control rod, whose durability is the neutrons it absorbs before it wears out. */
+    private static final String ROD_CAPACITY_LABEL = "Absorbs";
 
     public static final String CATEGORY_EMPTY = "Empty Core Tile";
 
@@ -975,7 +979,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             0L,
             true,
             capacity,
-            "Neutrons",
+            ROD_CAPACITY_LABEL,
             false,
             null,
             0L,
@@ -1461,11 +1465,14 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                     false);
 
                 if (d.transmutationOutput != null) {
-                    String reqStr = formatNeutrons(d.transmutationNeutrons);
-                    String transStr = reqStr + " Neutrons -> " + d.transmutationOutput.getDisplayName();
+                    String transStr = NeutronUnits.count(d.transmutationNeutrons) + " -> "
+                        + d.transmutationOutput.getDisplayName();
                     GuiDraw.drawStringC(transStr, 83, DURABILITY_PANEL_Y + 52, palette.byproductText, false);
                 } else if (d.hasDurability) {
-                    String durStr = d.durabilityLabel + ": " + formatNeutrons(d.durability);
+                    // A rod's capacity is in neutrons absorbed. See Note [Neutrons are shown in physical units]
+                    String amount = ROD_CAPACITY_LABEL.equals(d.durabilityLabel) ? NeutronUnits.count(d.durability)
+                        : formatAmount(d.durability);
+                    String durStr = d.durabilityLabel + ": " + amount;
                     GuiDraw.drawStringC(durStr, 83, DURABILITY_PANEL_Y + 52, palette.ink, false);
                 } else {
                     GuiDraw.drawStringC(
@@ -1629,7 +1636,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
         return (float) (RV_PLOT_Y + RV_PLOT_H - Math.max(0.0, Math.min(1.0, fraction)) * RV_PLOT_H);
     }
 
-    private static String formatNeutrons(long n) {
+    private static String formatAmount(long n) {
         if (n >= 1_000_000_000L) {
             return String.format(Locale.US, "%.1fB", n / 1_000_000_000.0);
         } else if (n >= 1_000_000L) {
@@ -1843,9 +1850,9 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
                         currenttip.add(
                             EnumChatFormatting.GRAY + String.format(
                                 Locale.US,
-                                "%s fast or %s thermal neutrons/s",
-                                formatNumber(fast),
-                                formatNumber(2.0 * fast)));
+                                "%s fast or %s thermal n/s",
+                                NeutronUnits.rateValue(fast),
+                                NeutronUnits.rateValue(2.0 * fast)));
                         String satNote = (h >= fullH) ? EnumChatFormatting.GOLD + " (Saturated)"
                             : (h >= fullH * 0.5 ? EnumChatFormatting.YELLOW + " (Knee)" : "");
                         currenttip.add(

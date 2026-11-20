@@ -9,6 +9,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 
 import gregtech.api.items.ItemRadioactiveCell;
 
@@ -125,10 +126,10 @@ public class ItemCustomFuelRod extends ItemRadioactiveCell {
             aList.add(
                 String.format(
                     Locale.US,
-                    "%sBase Neutrons: %s%d n/s",
+                    "%sBase neutrons: %s%s",
                     EnumChatFormatting.DARK_PURPLE,
                     EnumChatFormatting.WHITE,
-                    mix.getBaseNeutrons(this.rodSize)));
+                    NeutronUnits.rate(mix.getBaseNeutrons(this.rodSize))));
         } else {
             aList.add(EnumChatFormatting.GRAY + "Empty / uncalibrated custom fuel rod");
         }

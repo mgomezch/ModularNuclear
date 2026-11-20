@@ -20,6 +20,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHighPressure;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -127,7 +128,7 @@ public class NuclearReactorWailaProvider {
         }
 
         float reactivity = tag.getFloat("reactivity");
-        int flux = tag.getInteger("neutronsProduced");
+        int produced = tag.getInteger("neutronsProduced");
         list.add(
             EnumChatFormatting.YELLOW + "Reactivity: "
                 + EnumChatFormatting.WHITE
@@ -135,20 +136,21 @@ public class NuclearReactorWailaProvider {
                 + EnumChatFormatting.GRAY
                 + " | "
                 + EnumChatFormatting.YELLOW
-                + "Flux: "
+                + "Neutrons: "
                 + EnumChatFormatting.WHITE
-                + NuclearSimulationEngine.formatNeutronFlux(flux, tpc));
+                + NeutronUnits.rate(produced * cyclesPerSec));
 
         int fast = tag.getInteger("fastAbsorbed");
         int therm = tag.getInteger("thermalAbsorbed");
         int esc = tag.getInteger("escapedNeutrons");
-        if (flux > 0 || fast > 0 || therm > 0 || esc > 0) {
+        if (produced > 0 || fast > 0 || therm > 0 || esc > 0) {
             list.add(
-                EnumChatFormatting.GRAY + String.format(
-                    "Neutrons: %,d fast/s, %,d therm/s, %,d esc/s",
-                    Math.round(fast * cyclesPerSec),
-                    Math.round(therm * cyclesPerSec),
-                    Math.round(esc * cyclesPerSec)));
+                EnumChatFormatting.GRAY + "Absorbed: fast "
+                    + NeutronUnits.rateValue(fast * cyclesPerSec)
+                    + ", thermal "
+                    + NeutronUnits.rateValue(therm * cyclesPerSec)
+                    + " n/s; escaped "
+                    + NeutronUnits.rate(esc * cyclesPerSec));
         }
 
         int fuelCount = tag.getInteger("fuelCount");
@@ -257,23 +259,23 @@ public class NuclearReactorWailaProvider {
         list.add(
             String.format(
                 Locale.US,
-                "%sReactivity: %s%.1f%%%s | %sFlux: %s%s",
+                "%sReactivity: %s%.1f%%%s | %sNeutrons: %s%s",
                 EnumChatFormatting.YELLOW,
                 EnumChatFormatting.RESET,
                 reactor.mReactivity * 100.0,
                 EnumChatFormatting.RESET,
                 EnumChatFormatting.YELLOW,
                 EnumChatFormatting.RESET,
-                NuclearSimulationEngine.formatNeutronFlux(reactor.mNeutronsProduced, tpc)));
+                NeutronUnits.rate(reactor.mNeutronsProduced * cyclesPerSec)));
         list.add(
-            String.format(
-                Locale.US,
-                "%sNeutrons: %s%,d fast/s, %,d therm/s, %,d esc/s",
-                EnumChatFormatting.YELLOW,
-                EnumChatFormatting.RESET,
-                Math.round(reactor.mFastAbsorbed * cyclesPerSec),
-                Math.round(reactor.mThermalAbsorbed * cyclesPerSec),
-                Math.round(reactor.mEscapedNeutrons * cyclesPerSec)));
+            EnumChatFormatting.YELLOW + "Absorbed: "
+                + EnumChatFormatting.RESET
+                + "fast "
+                + NeutronUnits.rateValue(reactor.mFastAbsorbed * cyclesPerSec)
+                + ", thermal "
+                + NeutronUnits.rateValue(reactor.mThermalAbsorbed * cyclesPerSec)
+                + " n/s; escaped "
+                + NeutronUnits.rate(reactor.mEscapedNeutrons * cyclesPerSec));
 
         // Power & Coolant Output
         if (reactor.mDirectPowerEUt > 0) {

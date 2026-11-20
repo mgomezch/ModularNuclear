@@ -47,6 +47,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNucl
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.NuclearGridTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.ReactorGridSyncData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
@@ -757,12 +758,12 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
-                        "  Archetype: %s%s%s | Base neutrons: %s%d",
+                        "  Archetype: %s%s%s | Base neutrons: %s%s",
                         EnumChatFormatting.YELLOW,
                         fuel.archetype,
                         EnumChatFormatting.GRAY,
                         EnumChatFormatting.AQUA,
-                        fuel.baseNeutrons));
+                        NeutronUnits.rate(fuel.baseNeutrons)));
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
@@ -854,12 +855,12 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
-                        "  Archetype: %s%s%s | Base neutrons: %s%d",
+                        "  Archetype: %s%s%s | Base neutrons: %s%s",
                         EnumChatFormatting.YELLOW,
                         fFuel.archetype,
                         EnumChatFormatting.GRAY,
                         EnumChatFormatting.AQUA,
-                        fFuel.baseNeutrons));
+                        NeutronUnits.rate(fFuel.baseNeutrons)));
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
@@ -952,32 +953,32 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
             tooltip.addLine(EnumChatFormatting.GREEN + "Thermal status: Nominal operation");
         }
 
-        // 4. Neutron Telemetry
+        // 4. Neutron Telemetry. See Note [Neutrons are shown in physical units]
         int tpc = sync.ticksPerCycle > 0 ? sync.ticksPerCycle : NuclearSimulationEngine.params().ticksPerCycle;
         double cyclesPerSec = 20.0 / (double) tpc;
         int totalFlux = cell.fastFlux + cell.thermalFlux;
         tooltip.addLine(
             EnumChatFormatting.GRAY + "Neutron flux: "
                 + EnumChatFormatting.AQUA
-                + NuclearSimulationEngine.formatNeutronFlux(totalFlux, tpc)
+                + NeutronUnits.flux(totalFlux * cyclesPerSec)
                 + EnumChatFormatting.DARK_GRAY
-                + String.format(
-                    Locale.US,
-                    " (%,d fast/s, %,d thermal/s)",
-                    Math.round(cell.fastFlux * cyclesPerSec),
-                    Math.round(cell.thermalFlux * cyclesPerSec)));
+                + " (fast "
+                + NeutronUnits.fluxValue(cell.fastFlux * cyclesPerSec)
+                + ", thermal "
+                + NeutronUnits.fluxValue(cell.thermalFlux * cyclesPerSec)
+                + ")");
 
         int totalAbs = cell.fastAbsorbed + cell.thermalAbsorbed;
         tooltip.addLine(
             EnumChatFormatting.GRAY + "Neutrons absorbed: "
                 + EnumChatFormatting.LIGHT_PURPLE
-                + String.format(Locale.US, "%,d n/s", Math.round(totalAbs * cyclesPerSec))
+                + NeutronUnits.rate(totalAbs * cyclesPerSec)
                 + EnumChatFormatting.DARK_GRAY
-                + String.format(
-                    Locale.US,
-                    " (%,d fast/s, %,d thermal/s)",
-                    Math.round(cell.fastAbsorbed * cyclesPerSec),
-                    Math.round(cell.thermalAbsorbed * cyclesPerSec)));
+                + " (fast "
+                + NeutronUnits.rateValue(cell.fastAbsorbed * cyclesPerSec)
+                + ", thermal "
+                + NeutronUnits.rateValue(cell.thermalAbsorbed * cyclesPerSec)
+                + ")");
 
         // 5. Radiovoltaic Power, for the cells that can make it, even while it is zero: the tooltip is live, and
         // lines that come and go with the values make it jump

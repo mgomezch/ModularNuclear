@@ -17,6 +17,7 @@ import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.slot.FluidSlot;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearHatch;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import gregtech.api.modularui2.GTGuiTextures;
@@ -57,11 +58,6 @@ public class MTEHatchNuclearHatchGui extends ModularNuclearHatchGui<MTEHatchNucl
             .childPadding(1)
             .crossAxisAlignment(Alignment.CrossAxis.START);
 
-        textColumn.child(
-            IKey.dynamic(() -> EnumChatFormatting.AQUA + "STATS")
-                .asWidget()
-                .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
-
         textColumn.child(IKey.dynamic(() -> {
             if (!machine.isFluidTierValid()) {
                 return EnumChatFormatting.RED + "ERR: TIER";
@@ -71,21 +67,27 @@ public class MTEHatchNuclearHatchGui extends ModularNuclearHatchGui<MTEHatchNucl
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
+        // See Note [Neutrons are shown in physical units]
         textColumn.child(
             IKey.dynamic(
-                () -> EnumChatFormatting.AQUA + String.format(
-                    Locale.US,
-                    "F: %,d  T: %,d n/s",
-                    Math.round(NuclearSimulationEngine.perSecond(machine.mLastFastFlux, machine.getTicksPerCycle())),
-                    Math.round(
-                        NuclearSimulationEngine.perSecond(machine.mLastThermalFlux, machine.getTicksPerCycle()))))
+                () -> EnumChatFormatting.AQUA + "F: "
+                    + NeutronUnits
+                        .flux(NuclearSimulationEngine.perSecond(machine.mLastFastFlux, machine.getTicksPerCycle())))
+                .asWidget()
+                .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
+
+        textColumn.child(
+            IKey.dynamic(
+                () -> EnumChatFormatting.BLUE + "T: "
+                    + NeutronUnits
+                        .flux(NuclearSimulationEngine.perSecond(machine.mLastThermalFlux, machine.getTicksPerCycle())))
                 .asWidget()
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
             int abs = machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed;
-            long absSec = Math.round(NuclearSimulationEngine.perSecond(abs, machine.getTicksPerCycle()));
-            return EnumChatFormatting.GRAY + String.format(Locale.US, "Abs: %,d n/s", absSec);
+            return EnumChatFormatting.GRAY + "Abs: "
+                + NeutronUnits.rate(NuclearSimulationEngine.perSecond(abs, machine.getTicksPerCycle()));
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));

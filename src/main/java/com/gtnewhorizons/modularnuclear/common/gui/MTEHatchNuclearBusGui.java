@@ -17,6 +17,7 @@ import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearBus;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import gregtech.api.modularui2.GTGuiTextures;
@@ -68,16 +69,18 @@ public class MTEHatchNuclearBusGui extends ModularNuclearHatchGui<MTEHatchNuclea
                 .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
-            long sec = Math.round(NuclearSimulationEngine.perSecond(machine.mLastFastFlux, machine.getTicksPerCycle()));
-            return EnumChatFormatting.AQUA + String.format(Locale.US, "Fast: %,d n/s", sec);
+            // See Note [Neutrons are shown in physical units]
+            return EnumChatFormatting.AQUA + "F: "
+                + NeutronUnits
+                    .flux(NuclearSimulationEngine.perSecond(machine.mLastFastFlux, machine.getTicksPerCycle()));
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
 
         textColumn.child(IKey.dynamic(() -> {
-            long sec = Math
-                .round(NuclearSimulationEngine.perSecond(machine.mLastThermalFlux, machine.getTicksPerCycle()));
-            return EnumChatFormatting.BLUE + String.format(Locale.US, "Thermal: %,d n/s", sec);
+            return EnumChatFormatting.BLUE + "T: "
+                + NeutronUnits
+                    .flux(NuclearSimulationEngine.perSecond(machine.mLastThermalFlux, machine.getTicksPerCycle()));
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));
@@ -90,9 +93,9 @@ public class MTEHatchNuclearBusGui extends ModularNuclearHatchGui<MTEHatchNuclea
             } else if (damp > 0.0) {
                 return EnumChatFormatting.LIGHT_PURPLE + String.format(Locale.US, "Insulation: %.0f%%", damp * 100.0);
             }
-            long sec = Math
-                .round(NuclearSimulationEngine.perSecond(machine.mLastNeutronsGenerated, machine.getTicksPerCycle()));
-            return EnumChatFormatting.GRAY + String.format(Locale.US, "Neutrons: %,d n/s", sec);
+            return EnumChatFormatting.GRAY + "Emits: "
+                + NeutronUnits.rate(
+                    NuclearSimulationEngine.perSecond(machine.mLastNeutronsGenerated, machine.getTicksPerCycle()));
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));

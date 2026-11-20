@@ -363,6 +363,9 @@ public class NuclearSimulationEngine {
         Note [Active vents and exchangers run every tick]);
         the web simulator, whose state carries per-cycle counts that its pages convert with the same 20 / ticks.
     
+    Players then see neutron rates scaled to physical units, and scripts see them unscaled; see
+    Note [Neutrons are shown in physical units].
+    
     Electricity stays in EU/t, GregTech's own unit, as do the coolant loop machines, which run every tick.  Coolant
     litres are outside this rule.
     */
@@ -370,56 +373,6 @@ public class NuclearSimulationEngine {
     /** A count or amount gathered over one reactor cycle of {@code ticksPerCycle} ticks, as a rate per second. */
     public static double perSecond(double perCycle, int ticksPerCycle) {
         return perCycle * 20.0 / Math.max(1, ticksPerCycle);
-    }
-
-    /**
-     * Formats neutron flux into realistic physical units (multiples of 10¹³ neutrons/cm²/sec).
-     * Follows the US Nuclear Regulatory Commission (NRC) definition:
-     * Rate of flow of neutrons per unit area per second (nv = n·v), measured in neutrons/cm²/sec.
-     * Uses current ticksPerCycle to extrapolate from per-cycle neutron population to physical rate per second.
-     */
-    public static String formatNeutronFlux(double neutronsProduced) {
-        return formatNeutronFlux(neutronsProduced, params().ticksPerCycle);
-    }
-
-    public static String formatNeutronFlux(double neutronsProduced, int tpc) {
-        if (neutronsProduced <= 0) {
-            return "0 neutrons/cm²/sec";
-        }
-        double cyclesPerSec = (tpc > 0) ? (20.0 / (double) tpc) : 1.0;
-        double physicalFlux = neutronsProduced * cyclesPerSec * 1.0e13;
-        return WasmStrings.replace(
-            WasmStrings.replace(String.format(java.util.Locale.US, "%.2e neutrons/cm²/sec", physicalFlux), "+0", ""),
-            "+",
-            "");
-    }
-
-    public static String formatNeutronFlux(int neutronsProduced) {
-        return formatNeutronFlux((double) neutronsProduced, params().ticksPerCycle);
-    }
-
-    public static String formatNeutronFlux(int neutronsProduced, int tpc) {
-        return formatNeutronFlux((double) neutronsProduced, tpc);
-    }
-
-    /**
-     * Formats cumulative neutron fluence into physical units (neutrons/cm²).
-     * Follows the US Nuclear Regulatory Commission (NRC) definition:
-     * Time-integrated neutron flux (∫ φ dt), measured in neutrons/cm².
-     */
-    public static String formatNeutronFluence(double cumulativeNeutrons) {
-        if (cumulativeNeutrons <= 0) {
-            return "0 neutrons/cm²";
-        }
-        double physicalFluence = cumulativeNeutrons * 1.0e13;
-        return WasmStrings.replace(
-            WasmStrings.replace(String.format(java.util.Locale.US, "%.2e neutrons/cm²", physicalFluence), "+0", ""),
-            "+",
-            "");
-    }
-
-    public static String formatNeutronFluence(long cumulativeNeutrons) {
-        return formatNeutronFluence((double) cumulativeNeutrons);
     }
 
     /**

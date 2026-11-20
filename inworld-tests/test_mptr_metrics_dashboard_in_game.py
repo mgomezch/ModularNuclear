@@ -21,6 +21,7 @@ import sys
 import os
 import time
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -126,8 +127,9 @@ def main():
         print(f"    UI DOM dumped ({len(str(dom_no_cover))} chars)")
 
         # Verify NO fluence line in terminal text
-        dom_str = json.dumps(dom_no_cover) if isinstance(dom_no_cover, (dict, list)) else str(dom_no_cover)
-        assert "neutrons/cm²" not in dom_str, "Fluence units found in GUI terminal text!"
+        dom_str = json.dumps(dom_no_cover, ensure_ascii=False) if isinstance(dom_no_cover, (dict, list)) else str(dom_no_cover)
+        # Flux is n/cm²/s; fluence would be n/cm² with no time.  See Note [Neutrons are shown in physical units]
+        assert not re.search(r"n/cm²(?!/s)", dom_str), "Fluence units found in GUI terminal text!"
         assert "Fluence" not in dom_str and "fluence" not in dom_str, "Fluence label found in GUI terminal text!"
         print("[✓] Fluence tracking and display confirmed ABSENT from controller GUI.")
 

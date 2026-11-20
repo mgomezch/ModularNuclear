@@ -1416,28 +1416,6 @@ public class NuclearSimulationEngineTest {
     }
 
     @Test
-    void testFormatNeutronFlux() {
-        assertEquals("0 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(0));
-        assertEquals("0 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(-5));
-        assertEquals("1.00e13 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(1, 20));
-        assertEquals("4.00e13 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(1, 5));
-        assertEquals("4.00e13 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(1));
-        assertEquals("8.80e14 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(88, 20));
-        assertEquals("3.52e15 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(88, 5));
-        assertEquals("1.50e15 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(150, 20));
-        assertEquals("6.00e15 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(150, 5));
-    }
-
-    @Test
-    void testFormatNeutronFluence() {
-        assertEquals("0 neutrons/cm²", NuclearSimulationEngine.formatNeutronFluence(0));
-        assertEquals("0 neutrons/cm²", NuclearSimulationEngine.formatNeutronFluence(-5));
-        assertEquals("1.00e13 neutrons/cm²", NuclearSimulationEngine.formatNeutronFluence(1));
-        assertEquals("8.80e14 neutrons/cm²", NuclearSimulationEngine.formatNeutronFluence(88));
-        assertEquals("1.50e15 neutrons/cm²", NuclearSimulationEngine.formatNeutronFluence(150));
-    }
-
-    @Test
     void testMaintenanceEfficiencyScaling() {
         NuclearSimulationEngine.resetDefaultParameters();
 
@@ -5899,11 +5877,10 @@ public class NuclearSimulationEngineTest {
         assertTrue(combined.contains("Osmium"), "Tier name should be reported");
         assertTrue(combined.contains("0.0% (nominal)"), "Hull damage should be nominal");
         assertTrue(combined.contains("100.0%"), "Reactivity should be 100%");
-        assertTrue(
-            combined.contains("Flux: " + NuclearSimulationEngine.formatNeutronFlux(5000, 20)),
-            "Neutron flux should be formatted");
-        assertTrue(combined.contains("3,000 fast/s,"), "Fast neutrons should be reported per second");
-        assertFalse(combined.contains("fast/s ("), "Neutrons show no per-cycle count");
+        // 5000 per cycle at 20 ticks per cycle, scaled. See Note [Neutrons are shown in physical units]
+        assertTrue(combined.contains("Neutrons: 5.00e17 n/s"), "Neutrons produced should be shown scaled, per second");
+        assertTrue(combined.contains("fast 3.00e17,"), "Fast neutrons should be reported per second, scaled");
+        assertFalse(combined.contains("5,000"), "Neutrons show no unscaled count");
         assertTrue(combined.contains("+2,048 EU/t"), "EU output should be reported");
         assertTrue(
             combined.contains("1,500 L/s (1,500 L/cycle) Supercritical Carbon Dioxide"),

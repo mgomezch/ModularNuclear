@@ -22,6 +22,7 @@ import com.cleanroommc.modularui.widget.Widget;
 import com.gtnewhorizon.gtnhlib.color.ColorResource;
 import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 import com.gtnewhorizons.modularnuclear.common.gui.ThemedDraw;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 
 /**
  * High-performance vector chart widget for MPTR live reactor cycle telemetry.
@@ -93,6 +94,16 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
 
         public boolean isQuartile() {
             return quartile;
+        }
+
+        // Neutron rates, which are shown scaled. See Note [Neutrons are shown in physical units]
+        public boolean isNeutronRate() {
+            return this == FAST_NEUTRONS || this == THERMAL_NEUTRONS || this == ESCAPED_NEUTRONS;
+        }
+
+        /** A scalar value of this metric, with its unit. */
+        public String format(double val) {
+            return isNeutronRate() ? NeutronUnits.rate(val) : String.format(Locale.US, "%,d %s", Math.round(val), unit);
         }
 
         public Function<ReactorCycleSnapshot, Float> getScalarVal() {
@@ -177,8 +188,7 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
                 metric.maxVal.apply(latest));
             font.drawString(latestStr, w - font.getStringWidth(latestStr) - 6, 4, ColorUtils.plotLatest.getColor());
         } else {
-            String latestStr = String
-                .format(Locale.US, "latest: %,d %s", Math.round(metric.scalarVal.apply(latest)), metric.getUnit());
+            String latestStr = "latest: " + metric.format(metric.scalarVal.apply(latest));
             font.drawString(latestStr, w - font.getStringWidth(latestStr) - 6, 4, ColorUtils.plotLatest.getColor());
         }
 
@@ -201,7 +211,8 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
             GuiDraw.drawRect(plotX, lineY, plotW, 1, ColorUtils.plotGridLine.getColor());
 
             float yVal = minVal + frac * range;
-            String lbl = formatCompact(yVal);
+            String lbl = metric.isNeutronRate() ? NeutronUnits.number(yVal * NeutronUnits.NEUTRONS_PER_COUNT, 2)
+                : formatCompact(yVal);
             int strW = font.getStringWidth(lbl);
             font.drawString(lbl, plotX - strW - 3, lineY - 4, ColorUtils.plotAxisLabel.getColor());
         }
@@ -490,10 +501,7 @@ public class ReactorPlotWidget extends Widget<ReactorPlotWidget> implements Inte
             } else {
                 // Neutrons and heat show per second only
                 tooltip.addLine(
-                    EnumChatFormatting.GRAY + metric.getTitle()
-                        + ": "
-                        + EnumChatFormatting.WHITE
-                        + String.format(Locale.US, "%,d %s", Math.round(val), metric.getUnit()));
+                    EnumChatFormatting.GRAY + metric.getTitle() + ": " + EnumChatFormatting.WHITE + metric.format(val));
             }
         }
     }

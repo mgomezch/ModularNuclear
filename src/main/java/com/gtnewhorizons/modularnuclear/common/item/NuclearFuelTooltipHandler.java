@@ -18,6 +18,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.Radiovo
 import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData.ReflectorData;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.config.data.TierData;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -174,7 +175,7 @@ public class NuclearFuelTooltipHandler {
         event.toolTip.add(
             EnumChatFormatting.GRAY + "Base neutrons: "
                 + EnumChatFormatting.WHITE
-                + String.format(Locale.US, "%d n/s", fd.baseNeutrons)
+                + NeutronUnits.rate(fd.baseNeutrons)
                 + EnumChatFormatting.DARK_GRAY
                 + " | "
                 + EnumChatFormatting.GRAY

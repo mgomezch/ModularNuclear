@@ -1,7 +1,5 @@
 package com.gtnewhorizons.modularnuclear.common.gui;
 
-import java.util.Locale;
-
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 
@@ -16,6 +14,7 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchNuclearControlRod;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 import gregtech.api.modularui2.GTGuiTextures;
@@ -122,8 +121,8 @@ public class MTEHatchNuclearControlRodGui extends ModularNuclearHatchGui<MTEHatc
 
         textColumn.child(IKey.dynamic(() -> {
             int abs = machine.mLastFastAbsorbed + machine.mLastThermalAbsorbed;
-            long absSec = Math.round(NuclearSimulationEngine.perSecond(abs, machine.getTicksPerCycle()));
-            return EnumChatFormatting.GRAY + String.format(Locale.US, "Abs: %,d n/s", absSec);
+            return EnumChatFormatting.GRAY + "Abs: "
+                + NeutronUnits.rate(NuclearSimulationEngine.perSecond(abs, machine.getTicksPerCycle()));
         })
             .asWidget()
             .widgetTheme(GTWidgetThemes.DISPLAY_TEXT_WHITE));

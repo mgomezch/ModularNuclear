@@ -1,6 +1,5 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.hatch;
 
-import java.util.Locale;
 import java.util.Set;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -25,6 +24,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.CoolantPassage;
 import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.INuclearTile;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronType;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularui.api.screen.ModularWindow;
 import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
@@ -622,11 +622,12 @@ public class MTEHatchNuclearHighPressure extends MTEHatch
             .widget(
                 new TextWidget()
                     .setStringSupplier(
-                        () -> String.format(
-                            Locale.US,
-                            "Fast: %,d  Thrm: %,d n/s",
-                            Math.round(NuclearSimulationEngine.perSecond(mLastFastFlux, getTicksPerCycle())),
-                            Math.round(NuclearSimulationEngine.perSecond(mLastThermalFlux, getTicksPerCycle()))))
+                        () -> "F: "
+                            + NeutronUnits
+                                .fluxValue(NuclearSimulationEngine.perSecond(mLastFastFlux, getTicksPerCycle()))
+                            + "  T: "
+                            + NeutronUnits
+                                .flux(NuclearSimulationEngine.perSecond(mLastThermalFlux, getTicksPerCycle())))
                     .setDefaultColor(ColorUtils.hatchFastFlux.getColor())
                     .setPos(10, 57))
             .widget(

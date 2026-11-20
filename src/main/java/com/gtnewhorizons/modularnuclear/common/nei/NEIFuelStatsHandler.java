@@ -25,6 +25,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
 import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
@@ -684,7 +685,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             .add(" | Fast: ", palette.label)
             .add(NEINeutronInteractionHandler.formatNumber(effFastFiss) + "x", palette.pointStat)
             .add(" | ", palette.label)
-            .add(effNeutrons + " n/s", palette.yieldStat);
+            .add(NeutronUnits.rate(effNeutrons), palette.yieldStat);
 
         // Line 4: Durability & Growth Parameter k (calculated dynamically for sAmbientTemp)
         int durability = (fd != null) ? fd.defaultDurability

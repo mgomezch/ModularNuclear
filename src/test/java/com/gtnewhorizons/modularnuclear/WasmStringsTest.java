@@ -18,7 +18,6 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
-import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.WasmStrings;
 import com.gtnewhorizons.modularnuclear.common.nuclear.standalone.CoolantLoopModel;
 
@@ -68,12 +67,6 @@ public class WasmStringsTest {
             IllegalArgumentException.class,
             () -> CoolantLoopModel.CoolantFluidType.fromString("heavy water"),
             "Fluids are named exactly");
-    }
-
-    @Test
-    void testFluxFormattingDropsExponentSign() {
-        // 1 neutron/cycle at 5 ticks/cycle = 4e13 n/cm²/s
-        assertEquals("4.00e13 neutrons/cm²/sec", NuclearSimulationEngine.formatNeutronFlux(1.0, 5));
     }
 
     /**

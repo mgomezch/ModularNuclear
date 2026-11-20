@@ -4,8 +4,6 @@ import static gregtech.api.enums.Textures.BlockIcons.ITEM_IN_SIGN;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_COLORS;
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_PIPE_IN;
 
-import java.util.Locale;
-
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -16,6 +14,7 @@ import com.gtnewhorizons.modularnuclear.common.config.data.ComponentData;
 import com.gtnewhorizons.modularnuclear.common.gui.ColorUtils;
 import com.gtnewhorizons.modularnuclear.common.gui.MTEHatchNuclearBusGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTENuclearReactor;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.recipe.CheeseRecipeRegistry;
 import com.gtnewhorizons.modularnuclear.common.util.NuclearFuelClassification;
@@ -473,19 +472,15 @@ public class MTEHatchNuclearBus extends MTEHatch implements IReadyBeforeFirstTic
             .widget(
                 new TextWidget()
                     .setStringSupplier(
-                        () -> String.format(
-                            Locale.US,
-                            "Fast: %,d n/s",
-                            Math.round(NuclearSimulationEngine.perSecond(mLastFastFlux, getTicksPerCycle()))))
+                        () -> "Fast: "
+                            + NeutronUnits.flux(NuclearSimulationEngine.perSecond(mLastFastFlux, getTicksPerCycle())))
                     .setDefaultColor(ColorUtils.hatchFastFlux.getColor())
                     .setPos(10, 42))
             .widget(
                 new TextWidget()
                     .setStringSupplier(
-                        () -> String.format(
-                            Locale.US,
-                            "Thrm: %,d n/s",
-                            Math.round(NuclearSimulationEngine.perSecond(mLastThermalFlux, getTicksPerCycle()))))
+                        () -> "Thrm: " + NeutronUnits
+                            .flux(NuclearSimulationEngine.perSecond(mLastThermalFlux, getTicksPerCycle())))
                     .setDefaultColor(ColorUtils.hatchThermalFlux.getColor())
                     .setPos(10, 53))
             .widget(

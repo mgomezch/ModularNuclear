@@ -121,8 +121,9 @@ def test_reactor(client: HarnessClient):
     temp_node = client.assert_ui("text:contains('Core temp:')")
     print(f"    Found telemetry: {temp_node.get('text')}")
 
-    flux_node = client.assert_ui("text:contains('Flux:')")
-    print(f"    Found flux output: {flux_node.get('text')}")
+    flux_node = client.assert_ui("text:contains('Neutrons produced:')")
+    print(f"    Found neutron output: {flux_node.get('text')}")
+    assert flux_node.get("text", "").endswith(" n/s"), f"Neutron output should be a rate in n/s: {flux_node}"
 
     react_node = client.assert_ui("text:contains('Avg reactivity:')")
     print(f"    Found reactivity: {react_node.get('text')}")
