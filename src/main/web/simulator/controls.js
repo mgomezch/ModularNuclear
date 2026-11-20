@@ -72,11 +72,11 @@ function renderInspector(t) {
     fluxHtml = `
       <div style="background:#10141d; border:1px solid #373737; border-radius:3px; padding:6px 8px; margin-top:8px;">
         <div style="font-weight:700; font-size:0.75rem; color:#94a3b8; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px;">Neutron kinetics</div>
-        <div class="stat-row" style="margin-bottom:2px;"><span>Total flux:</span><span class="stat-val" style="color:#38bdf8;">${Math.round((t.totalFlux || 0) * cps).toLocaleString()} n/s</span></div>
-        <div class="stat-row" style="margin-bottom:2px;"><span>Fast flux:</span><span class="stat-val" style="color:#fbbf24;">${Math.round((t.fastFlux || 0) * cps).toLocaleString()} n/s</span></div>
-        <div class="stat-row" style="margin-bottom:2px;"><span>Thermal flux:</span><span class="stat-val" style="color:#4ade80;">${Math.round((t.thermalFlux || 0) * cps).toLocaleString()} n/s</span></div>
-        <div class="stat-row" style="margin-bottom:2px;"><span>Fast absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${Math.round((t.fastAbsorbed || 0) * cps).toLocaleString()} n/s</span></div>
-        <div class="stat-row" style="margin-bottom:2px;"><span>Thermal absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${Math.round((t.thermalAbsorbed || 0) * cps).toLocaleString()} n/s</span></div>
+        <div class="stat-row" style="margin-bottom:2px;"><span>Total flux:</span><span class="stat-val" style="color:#38bdf8;">${neutronFlux((t.totalFlux || 0) * cps)}</span></div>
+        <div class="stat-row" style="margin-bottom:2px;"><span>Fast flux:</span><span class="stat-val" style="color:#fbbf24;">${neutronFlux((t.fastFlux || 0) * cps)}</span></div>
+        <div class="stat-row" style="margin-bottom:2px;"><span>Thermal flux:</span><span class="stat-val" style="color:#4ade80;">${neutronFlux((t.thermalFlux || 0) * cps)}</span></div>
+        <div class="stat-row" style="margin-bottom:2px;"><span>Fast absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${neutronRate((t.fastAbsorbed || 0) * cps)}</span></div>
+        <div class="stat-row" style="margin-bottom:2px;"><span>Thermal absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${neutronRate((t.thermalAbsorbed || 0) * cps)}</span></div>
         ${(t.directEU || (t.type && t.type.startsWith("RADIOVOLTAIC_"))) ? `<div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #373737;"><span>Radiovoltaic output:</span><span class="stat-val" style="color:#38bdf8;">${(t.directEU || 0).toLocaleString()} EU/t</span></div>` : ''}
       </div>
     `;
@@ -169,8 +169,8 @@ function renderInspector(t) {
             ${t.controlRodFollower ? `<div class="stat-row" style="font-size:0.72rem; margin-top:3px;"><span>Follower in:</span><span class="stat-val" style="color:#a78bfa;">${100 - Math.round(t.controlRodEffectiveInsertion != null ? t.controlRodEffectiveInsertion : ins)}% · moderates ${(t.controlRodFollowerModeration || 0).toFixed(1)}% of fast</span></div>` : ''}
           </div>
           <div style="border-top:1px dashed #373737; padding-top:4px; margin-top:4px; font-size:0.72rem;">
-            <div class="stat-row" style="margin-bottom:1px;"><span>Rod fast absorbed:</span><span class="stat-val" style="color:#fbbf24;">${Math.round(fastAbs * cps).toLocaleString()} n/s</span></div>
-            <div class="stat-row" style="margin-bottom:1px;"><span>Rod thermal absorbed:</span><span class="stat-val" style="color:#4ade80;">${Math.round(thermAbs * cps).toLocaleString()} n/s</span></div>
+            <div class="stat-row" style="margin-bottom:1px;"><span>Rod fast absorbed:</span><span class="stat-val" style="color:#fbbf24;">${neutronRate(fastAbs * cps)}</span></div>
+            <div class="stat-row" style="margin-bottom:1px;"><span>Rod thermal absorbed:</span><span class="stat-val" style="color:#4ade80;">${neutronRate(thermAbs * cps)}</span></div>
           </div>
         </div>
       `;
@@ -660,7 +660,7 @@ function sourceChamberHtml(t, cps) {
   const beam = r
     ? `<div class="stat-row"><span>Beam:</span><span class="stat-val">${Math.round(t.beamEnergyKeV).toLocaleString()} keV × ${t.beamRate}</span></div>` +
       `<div class="stat-row"><span>Chamber draw:</span><span class="stat-val" style="color:var(--danger); font-weight:600;">−${(t.beamEuPerTick || 0).toLocaleString()} EU/t</span></div>` +
-      `<div class="stat-row"><span>Fast neutrons:</span><span class="stat-val">${Math.round((t.neutronsGenerated || 0) * cps).toLocaleString()} n/s</span></div>`
+      `<div class="stat-row"><span>Fast neutrons:</span><span class="stat-val">${neutronRate((t.neutronsGenerated || 0) * cps)}</span></div>`
     : `<div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">No beam: this source emits nothing until a Source Chamber feeds it.</div>`;
   return `
     <div style="background:#10141d; border:1px solid #e879f9; border-radius:3px; padding:6px 8px; margin-top:8px;">

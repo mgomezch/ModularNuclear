@@ -92,7 +92,7 @@ function renderUI() {
   const rngGlobalRod = document.getElementById("rng-global-rod-ins");
   if (rngGlobalRod && document.activeElement !== rngGlobalRod) rngGlobalRod.value = avgRodIns;
   const rodsAbsVal = document.getElementById("rods-total-abs-val");
-  if (rodsAbsVal) setText(rodsAbsVal, `${Math.round(totalRodAbsorbed * 20 / (currentState.ticksPerCycle || 5)).toLocaleString()} n/s`);
+  if (rodsAbsVal) setText(rodsAbsVal, neutronRate(totalRodAbsorbed * 20 / (currentState.ticksPerCycle || 5)));
 
   // Run state: status label, play button and the one-line alert (its full text is in the tooltip).
   let stateText, stateTone, alertCls, alertHtml;
@@ -247,9 +247,11 @@ function renderUI() {
   setText("stat-max-temp", currentState.coreMaxTemp + " °C");
   setText("stat-avg-temp", currentState.coreAvgTemp + " °C");
   setText("stat-eff", (currentState.efficiency * 100).toFixed(1) + " %");
-  setText("stat-neutrons", currentState.lastNeutrons + " / tick");
-  setText("stat-thermal", currentState.thermalAbsorbed + " / tick");
-  setText("stat-fast", currentState.fastAbsorbed + " / tick");
+  // The last cycle's counts, per second and scaled. See Note [Neutrons are shown in physical units]
+  const statCps = 20 / (currentState.ticksPerCycle || 5);
+  setText("stat-neutrons", neutronRate((currentState.lastNeutrons || 0) * statCps));
+  setText("stat-thermal", neutronRate((currentState.thermalAbsorbed || 0) * statCps));
+  setText("stat-fast", neutronRate((currentState.fastAbsorbed || 0) * statCps));
   setText("stat-steam", currentState.totalSteam.toLocaleString() + " L");
   setText("stat-deuterium", currentState.totalDeuterium.toLocaleString() + " L");
   setText("stat-tritium", currentState.totalTritium.toLocaleString() + " L");
@@ -625,12 +627,12 @@ function renderRodsList(cps) {
   patchHTML(el, rods.map(t => {
     const ins = Math.round(t.controlRodInsertion || 0);
     const type = t.controlRodType && t.controlRodType !== "NONE" ? (t.controlRodTypeName || t.controlRodType) : "empty";
-    const abs = Math.round(((t.controlRodFastAbsorbed || 0) + (t.controlRodThermalAbsorbed || 0)) * cps);
+    const abs = ((t.controlRodFastAbsorbed || 0) + (t.controlRodThermalAbsorbed || 0)) * cps;
     return `<div class="rod-row">` +
       `<button type="button" class="rod-xy" onclick="selectCell(${t.x}, ${t.y}); dockReveal('inspect')" title="Inspect this hatch">${t.x},${t.y}</button>` +
       `<span class="rod-type" title="${type}${t.controlRodFollowerName ? ", follower: " + t.controlRodFollowerName : ""}">${type}${t.controlRodFollower ? " +" + t.controlRodFollower : ""}</span>` +
       `<span class="rod-ins"><span class="rod-ins-bar" style="width:${ins}%"></span><span class="rod-ins-txt">${ins}%</span></span>` +
-      `<span class="rod-abs" title="Absorbed by this rod">${abs.toLocaleString()} n/s</span>` +
+      `<span class="rod-abs" title="Absorbed by this rod">${neutronRate(abs)}</span>` +
       `<button type="button" class="btn-xs" onclick="updateTileControlRodInsertion(${t.x}, ${t.y}, 0)" title="Retract">0</button>` +
       `<button type="button" class="btn-xs" onclick="updateTileControlRodInsertion(${t.x}, ${t.y}, 50)" title="Insert 50%">50</button>` +
       `<button type="button" class="btn-xs btn-alarm" onclick="updateTileControlRodInsertion(${t.x}, ${t.y}, 100)" title="Insert fully">100</button>` +

@@ -238,27 +238,27 @@ function updateGridDOM() {
         const fl = t.totalFlux || 0;
         const flSec = Math.round(fl * cps);
         overlayBg = fl > 0 ? getNeutronColor(flSec) : "transparent";
-        metricStr = formatFluxValue(flSec);
-        tipText = `Total flux: ${flSec.toLocaleString()} n/s (Fast: ${Math.round((t.fastFlux||0)*cps).toLocaleString()} n/s, Thermal: ${Math.round((t.thermalFlux||0)*cps).toLocaleString()} n/s)`;
+        metricStr = fl > 0 ? neutronFluxValue(fl * cps, 2) : "0";
+        tipText = `Total flux: ${neutronFlux(fl * cps)} (fast ${neutronFluxValue((t.fastFlux||0)*cps)}, thermal ${neutronFluxValue((t.thermalFlux||0)*cps)})`;
       } else if (gridDisplayMode === "FAST_FLUX") {
         const fl = t.fastFlux || 0;
         const flSec = Math.round(fl * cps);
         overlayBg = fl > 0 ? getNeutronColor(flSec) : "transparent";
-        metricStr = formatFluxValue(flSec);
-        tipText = `Fast flux: ${flSec.toLocaleString()} n/s`;
+        metricStr = fl > 0 ? neutronFluxValue(fl * cps, 2) : "0";
+        tipText = `Fast flux: ${neutronFlux(fl * cps)}`;
       } else if (gridDisplayMode === "THERMAL_FLUX") {
         const fl = t.thermalFlux || 0;
         const flSec = Math.round(fl * cps);
         overlayBg = fl > 0 ? getNeutronColor(flSec) : "transparent";
-        metricStr = formatFluxValue(flSec);
-        tipText = `Thermal flux: ${flSec.toLocaleString()} n/s`;
+        metricStr = fl > 0 ? neutronFluxValue(fl * cps, 2) : "0";
+        tipText = `Thermal flux: ${neutronFlux(fl * cps)}`;
       } else if (gridDisplayMode === "ABSORPTION") {
         const abs = (t.fastAbsorbed || 0) + (t.thermalAbsorbed || 0);
         const rodAbs = (t.controlRodFastAbsorbed || 0) + (t.controlRodThermalAbsorbed || 0);
         const absSec = Math.round(abs * cps);
         overlayBg = abs > 0 ? getAbsorptionColor(absSec) : "transparent";
-        metricStr = abs > 0 ? formatFluxValue(absSec) : "";
-        tipText = `Absorbed: ${absSec.toLocaleString()} n/s (Base: ${Math.round((abs - rodAbs)*cps).toLocaleString()} n/s, Bottom rod: ${Math.round(rodAbs*cps).toLocaleString()} n/s)`;
+        metricStr = abs > 0 ? neutronRateValue(abs * cps, 2) : "";
+        tipText = `Absorbed: ${neutronRate(abs * cps)} (tile ${neutronRateValue((abs - rodAbs)*cps)}, bottom rod ${neutronRateValue(rodAbs*cps)})`;
       } else if (gridDisplayMode === "CONTROL_RODS") {
         if (t.hasControlRod) {
           if (t.controlRodType && t.controlRodType !== "NONE") {

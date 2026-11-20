@@ -758,11 +758,24 @@ function getHeatOutputColor(heatRate) {
   return colorMaps.heatOutput[u];
 }
 
-function formatFluxValue(val) {
-  if (!val || val <= 0) return "0";
-  if (val >= 10000) return (val / 1000).toFixed(1) + "k";
-  return val.toString();
+// Neutrons in physical units: each of the engine's neutrons stands for NEUTRONS_PER_COUNT real ones, and a tile's
+// face is TILE_AREA_CM2.  Keep both equal to NeutronUnits.java's.  See Note [Neutrons are shown in physical units]
+const NEUTRONS_PER_COUNT = 1e14;
+const TILE_AREA_CM2 = 1e4;
+
+// A number in scientific notation, "1.23e14", with that many significant digits; zero and non-numbers are "0".
+function sciNumber(v, digits = 3) {
+  if (!isFinite(v) || v === 0) return "0";
+  return v.toExponential(digits - 1).replace("e+", "e");
 }
+
+// The engine's neutrons per second, as real ones: "2.10e19 n/s".  Without a unit, for lines that give it once.
+function neutronRateValue(perSec, digits) { return sciNumber(perSec * NEUTRONS_PER_COUNT, digits); }
+function neutronRate(perSec) { return neutronRateValue(perSec) + " n/s"; }
+
+// The engine's neutrons per second through one tile, as a flux: "1.23e14 n/cm²/s".
+function neutronFluxValue(perSec, digits) { return sciNumber(perSec * NEUTRONS_PER_COUNT / TILE_AREA_CM2, digits); }
+function neutronFlux(perSec) { return neutronFluxValue(perSec) + " n/cm²/s"; }
 
 let isFetching = false;
 let pollTimer = null;

@@ -112,8 +112,8 @@ function trendLegendFlux() {
   let f = null;
   for (let i = trend.flux.length - 1; i >= 0 && !f; i--) f = trend.flux[i];
   const o = FLUX_KINDS[trendView.kind];
-  const fmt = (v) => formatFluxValue(Math.round(fluxPerSec(v)));
-  setText("tr-fmed", f ? fmt(f[o + 2]) + " n/s" : "—");
+  const fmt = (v) => neutronFluxValue(fluxPerSec(v), 2);
+  setText("tr-fmed", f ? fmt(f[o + 2]) + " n/cm²/s" : "—");
   setText("tr-fiqr", f ? fmt(f[o + 1]) + "–" + fmt(f[o + 3]) : "—");
   setText("tr-frange", f ? fmt(f[o]) + "–" + fmt(f[o + 4]) : "—");
 }
@@ -449,7 +449,7 @@ function trendDrawFlux(ctx, span, r) {
   ctx.fillStyle = "#c4b5fd";
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
-  ticks.forEach(v => ctx.fillText(formatFluxValue(Math.round(v)), r.x - 4, Y(v)));
+  ticks.forEach(v => ctx.fillText(neutronFluxValue(v, 2), r.x - 4, Y(v)));
   if (!n) return;
   ctx.save();
   ctx.beginPath();
@@ -462,7 +462,7 @@ function trendDrawFlux(ctx, span, r) {
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillStyle = "rgba(196,181,253,0.8)";
-  ctx.fillText(trendView.kind + " flux, n/s per cell" + (log ? " (log)" : ""), r.x + 4, r.y + 2);
+  ctx.fillText(trendView.kind + " flux, n/cm²/s" + (log ? " (log)" : ""), r.x + 4, r.y + 2);
 }
 
 function trendInit() {
