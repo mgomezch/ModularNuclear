@@ -116,6 +116,13 @@ public class NuclearFuelTooltipHandlerTest {
         assertTrue(hasFloorTemp, "Tooltip should show floor temp 2,300 °C");
         assertTrue(hasBaseNeutrons, "Tooltip should show base neutrons");
         assertTrue(hasFission, "Tooltip should show fission multipliers");
+        // Archetypes are calibration structure, not something players are told
+        assertTrue(
+            event.toolTip.stream()
+                .noneMatch(
+                    l -> l.toLowerCase()
+                        .contains("archetype")),
+            "Tooltip should not mention archetypes: " + event.toolTip);
     }
 
     /** The tooltip shows a fuel's values with the config's multipliers applied, not its raw entry. */

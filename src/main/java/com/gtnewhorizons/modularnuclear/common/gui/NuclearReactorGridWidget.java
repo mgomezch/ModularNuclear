@@ -758,10 +758,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
-                        "  Archetype: %s%s%s | Base neutrons: %s%s",
-                        EnumChatFormatting.YELLOW,
-                        fuel.archetype,
-                        EnumChatFormatting.GRAY,
+                        "  Base neutrons: %s%s",
                         EnumChatFormatting.AQUA,
                         NeutronUnits
                             .rate(TileProperties.effectiveBaseNeutrons(NuclearSimulationEngine.params(), fuel))));
@@ -856,10 +853,7 @@ public class NuclearReactorGridWidget extends Widget<NuclearReactorGridWidget> i
                 tooltip.addLine(
                     EnumChatFormatting.GRAY + String.format(
                         Locale.US,
-                        "  Archetype: %s%s%s | Base neutrons: %s%s",
-                        EnumChatFormatting.YELLOW,
-                        fFuel.archetype,
-                        EnumChatFormatting.GRAY,
+                        "  Base neutrons: %s%s",
                         EnumChatFormatting.AQUA,
                         NeutronUnits
                             .rate(TileProperties.effectiveBaseNeutrons(NuclearSimulationEngine.params(), fFuel))));

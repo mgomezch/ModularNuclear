@@ -178,13 +178,7 @@ public class NuclearFuelTooltipHandler {
         event.toolTip.add(
             EnumChatFormatting.GRAY + "Base neutrons: "
                 + EnumChatFormatting.WHITE
-                + NeutronUnits.rate(TileProperties.effectiveBaseNeutrons(p, fd))
-                + EnumChatFormatting.DARK_GRAY
-                + " | "
-                + EnumChatFormatting.GRAY
-                + "Archetype: "
-                + EnumChatFormatting.YELLOW
-                + fd.archetype);
+                + NeutronUnits.rate(TileProperties.effectiveBaseNeutrons(p, fd)));
 
         // Fission multipliers
         event.toolTip.add(
