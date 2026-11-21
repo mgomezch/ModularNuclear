@@ -71,15 +71,8 @@ public final class CustomFuelMixCache {
         if (!root.hasKey("Units", TAG_COMPOUND)) return null;
         NBTTagCompound units = root.getCompoundTag("Units");
 
-        long hash = 0xCBF29CE484222325L;
-        boolean any = false;
-        for (ActinideIsotope iso : ISOTOPES) {
-            int u = unitsOf(units, iso);
-            if (u > 0) any = true;
-            hash = (hash ^ u) * 0x100000001B3L;
-        }
-        if (!any) return null;
-        if (hash == 0L) hash = 1L;
+        long hash = CustomFuelMix.compositionHash(units);
+        if (hash == 0L) return null;
 
         if (now - lastSweep > SWEEP_EVERY_MS) sweep(now);
         Entry[] chain = byHash.get(hash);

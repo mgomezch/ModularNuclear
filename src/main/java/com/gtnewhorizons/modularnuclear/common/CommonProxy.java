@@ -13,6 +13,9 @@ public class CommonProxy {
 
     public void registerNEIHandlerInfo() {}
 
+    /** Sets up the custom fuel rods' icons, on the client. */
+    public void registerItemIcons() {}
+
     public void registerFallout(EntityMeltdownFallout fallout) {}
 
     public void unregisterFallout(EntityMeltdownFallout fallout) {}

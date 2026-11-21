@@ -31,6 +31,8 @@ public final class ModularNuclearConfig {
     public static float cherenkovIntensityMultiplier = 6.0f;
     public static boolean enableFalloutVisualEffect = true;
     public static float falloutEffectMaxDistance = 80.0f;
+    // See Note [Custom fuel rod textures]
+    public static int fuelRodTextureCacheSize = 30;
 
     // ==========================================
     // Meltdown Fallout Dynamics
@@ -280,6 +282,16 @@ public final class ModularNuclearConfig {
             16.0f,
             160.0f,
             "Maximum distance in meters where the meltdown fallout visual effect is visible (default 80).");
+
+        fuelRodTextureCacheSize = config.getInt(
+            "fuelRodTextureCacheSize",
+            "client_visuals",
+            fuelRodTextureCacheSize,
+            1,
+            1024,
+            "How many custom fuel rod textures the client keeps, one per mix and kind of rod (fresh or depleted, single, "
+                + "dual or quad); the least recently drawn makes way for a new one.  They are kept in the item "
+                + "texture atlas, so a change takes effect when textures reload (F3+T) (default 30).");
 
         // Meltdown Fallout Dynamics
         final String CAT_FALLOUT = "meltdown_fallout";

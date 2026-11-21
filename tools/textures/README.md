@@ -26,3 +26,5 @@ make sim-textures
 ```
 
 Heavy water has no texture of its own: it is Minecraft's water, as the loaded resource packs have it, with its hue turned toward purple when textures load (`HueShiftedSprite`, set up in `ModFluids`).
+
+The custom fuel rods have no textures of their own either: each is GregTech's uranium rod of its size, as the loaded resource packs have it, with the fuel in its window blended from GregTech's rods of the fuels in its mix, drawn into the item atlas as rods are shown (`FuelRodIcons`; see Note [Custom fuel rod textures]).

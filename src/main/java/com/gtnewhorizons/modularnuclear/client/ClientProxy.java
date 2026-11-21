@@ -3,6 +3,7 @@ package com.gtnewhorizons.modularnuclear.client;
 import net.minecraftforge.common.MinecraftForge;
 
 import com.gtnewhorizons.modularnuclear.client.renderer.FalloutVisualEffectRenderer;
+import com.gtnewhorizons.modularnuclear.client.texture.FuelRodIcons;
 import com.gtnewhorizons.modularnuclear.common.CommonProxy;
 import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 import com.gtnewhorizons.modularnuclear.common.gui.FloatingPanelNEIHandler;
@@ -34,6 +35,12 @@ public class ClientProxy extends CommonProxy {
                 Swallowed.note(swallowed);
             }
         }
+    }
+
+    // See Note [Custom fuel rod textures]
+    @Override
+    public void registerItemIcons() {
+        FuelRodIcons.register();
     }
 
     @Override

@@ -73,6 +73,7 @@ public class ModularNuclear {
         ModWerkstoffs.register();
         ModBlocks.init();
         ModItems.init();
+        proxy.registerItemIcons();
         CoolantLoopSetup.preInit(event);
         if (DefaultConfigFiles.existing(event.getModConfigurationDirectory())
             .isEmpty()) {

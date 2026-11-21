@@ -4,12 +4,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.IIcon;
 
+import com.gtnewhorizons.modularnuclear.client.texture.FuelRodIcons;
 import com.gtnewhorizons.modularnuclear.common.nuclear.CustomFuelMix;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import gregtech.api.items.GTGenericItem;
 
 /**
@@ -31,6 +36,30 @@ public class ItemCustomDepletedFuelRod extends GTGenericItem {
 
     public ItemCustomDepletedFuelRod() {
         this(4);
+    }
+
+    // The icon is GregTech's uranium rod, its window coloured by the rod's mix; there's no texture file to register
+    // See Note [Custom fuel rod textures]
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void registerIcons(IIconRegister register) {}
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public IIcon getIconFromDamage(int meta) {
+        return FuelRodIcons.base(FuelRodIcons.Kind.of(true, rodSize));
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public IIcon getIconIndex(ItemStack stack) {
+        return FuelRodIcons.icon(FuelRodIcons.Kind.of(true, rodSize), stack);
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    public IIcon getIcon(ItemStack stack, int pass) {
+        return FuelRodIcons.icon(FuelRodIcons.Kind.of(true, rodSize), stack);
     }
 
     @Override

@@ -34,6 +34,10 @@ import gregtech.api.enums.Materials;
 public class CustomFuelMix {
 
     public static final String NBT_TAG_ROOT = "CustomFuelMix";
+    /** The composition's hash ({@link #compositionHash}), stored beside its units; a long under the root tag. */
+    public static final String NBT_HASH = "Hash";
+    private static final ActinideIsotope[] ISOTOPES = ActinideIsotope.values();
+    private static final int TAG_COMPOUND = 10;
     public static final int REQUIRED_TOTAL_UNITS = 360;
 
     public static int getRequiredUnits(int rodSize) {
@@ -309,6 +313,8 @@ public class CustomFuelMix {
                 entry.getValue());
         }
         root.setTag("Units", unitsTag);
+        // See Note [Custom fuel rod textures]
+        root.setLong(NBT_HASH, compositionHash(unitsTag));
         root.setDouble("PeakTemp", peakReactivityTemp);
         root.setDouble("FloorTemp", floorTemp);
         root.setDouble("ThermalMult", baseThermalFissionMultiplier);
@@ -317,6 +323,37 @@ public class CustomFuelMix {
         root.setInteger("MaxDurability", defaultDurability);
 
         nbt.setTag(NBT_TAG_ROOT, root);
+    }
+
+    /**
+     * A hash of a composition, from its units tag (units by isotope name): FNV-1a over every isotope's units, in
+     * {@link ActinideIsotope} order, missing and negative units counting as none. 0 when there are no units; never 0
+     * otherwise. It keys {@link CustomFuelMixCache} and the client's rod textures, so it must stay the same for a
+     * composition across versions: rods in worlds carry it.
+     */
+    public static long compositionHash(NBTTagCompound units) {
+        long hash = 0xCBF29CE484222325L;
+        boolean any = false;
+        for (ActinideIsotope iso : ISOTOPES) {
+            int u = Math.max(0, units.getInteger(iso.name()));
+            if (u > 0) any = true;
+            hash = (hash ^ u) * 0x100000001B3L;
+        }
+        if (!any) return 0L;
+        return hash == 0L ? 1L : hash;
+    }
+
+    /**
+     * The composition hash an item's NBT carries: the one stored when the rod was made, or, for a rod made before
+     * rods stored it, worked out from its units. 0 when the NBT carries no mix.
+     */
+    // See Note [Custom fuel rod textures]
+    public static long hashOf(NBTTagCompound nbt) {
+        if (nbt == null || !nbt.hasKey(NBT_TAG_ROOT, TAG_COMPOUND)) return 0L;
+        NBTTagCompound root = nbt.getCompoundTag(NBT_TAG_ROOT);
+        long stored = root.getLong(NBT_HASH);
+        if (stored != 0L) return stored;
+        return root.hasKey("Units", TAG_COMPOUND) ? compositionHash(root.getCompoundTag("Units")) : 0L;
     }
 
     /** The mix an item's NBT carries, or null; the shared instance for its composition. */
