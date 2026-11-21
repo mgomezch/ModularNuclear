@@ -361,8 +361,8 @@ public class MTECoolantPump extends MTEEnhancedMultiBlockBase<MTECoolantPump>
         if (side == facing) {
             return new ITexture[] { TextureFactory.of(GregTechAPI.sBlockCasings2, 15),
                 TextureFactory.of(
-                    aActive ? Textures.BlockIcons.OVERLAY_FRONT_DIESEL_ENGINE_ACTIVE
-                        : Textures.BlockIcons.OVERLAY_FRONT_DIESEL_ENGINE) };
+                    aActive ? Textures.BlockIcons.OVERLAY_FRONT_WATER_PUMP_ACTIVE
+                        : Textures.BlockIcons.OVERLAY_FRONT_WATER_PUMP) };
         }
         return new ITexture[] { TextureFactory.of(GregTechAPI.sBlockCasings2, 15) };
     }
