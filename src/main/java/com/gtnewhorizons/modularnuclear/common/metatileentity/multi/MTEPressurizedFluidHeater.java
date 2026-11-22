@@ -413,8 +413,9 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
         int matchedLen = detectedLen;
 
         if (!matched) {
-            for (int l = PressurizedFluidHeaterStructure.MIN_LENGTH; l
-                <= PressurizedFluidHeaterStructure.MAX_LENGTH; l++) {
+            // Longest first.
+            for (int l = PressurizedFluidHeaterStructure.MAX_LENGTH; l
+                >= PressurizedFluidHeaterStructure.MIN_LENGTH; l--) {
                 if (l == detectedLen) continue;
                 resetStructureCounters();
                 testErrors.clear();

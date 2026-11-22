@@ -722,9 +722,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
         mGrid = null;
         gridSize = 0;
         coreDimension = 0;
+        // Largest tier first.
         resetMatchedParts();
-        if (checkPiece(STRUCTURE_TIER_1, 3, 3, 0, errors)) {
-            gridSize = 5;
+        if (checkPiece(STRUCTURE_TIER_3, 7, 3, 0, errors)) {
+            gridSize = 13;
         } else {
             resetMatchedParts();
             errors.clear();
@@ -733,8 +734,8 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             } else {
                 resetMatchedParts();
                 errors.clear();
-                if (!checkPiece(STRUCTURE_TIER_3, 7, 3, 0, errors)) return;
-                gridSize = 13;
+                if (!checkPiece(STRUCTURE_TIER_1, 3, 3, 0, errors)) return;
+                gridSize = 5;
             }
         }
         coreDimension = gridSize;
@@ -784,12 +785,13 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     already in the world without adding them to the lists, so the lists must already hold them.
     
     After each pass that places something, survivalBuildPiece(..., checkIfPlaced) re-checks the
-    structure, and checkMachine tries tier 1, then 2, then 3, calling resetMatchedParts before
-    each try.  On a half-built tier 1 or 2 reactor every try fails, and the last one, tier 3,
-    fails before it reaches any hatch, so the lists end up empty.  The next pass then saw no
+    structure, and checkMachine tries each tier, largest first, calling resetMatchedParts before
+    each try.  On a half-built reactor every try fails, and the lists keep only what the last try
+    found before its first missing block: nothing of the tier being built, unless that tier
+    happens to be the last one tried.  The next pass then saw no
     maintenance hatch and placed another, until every outer casing of the side walls was one:
     that's what NEI's structure preview (BlockRenderer6343's GTGuiMultiblockHandler, which runs
-    survivalConstruct until nothing changes) showed for tiers 1 and 2.
+    survivalConstruct until nothing changes) showed for every tier but the last one tried.
     
     survivalBuildTier therefore checks the tier it's about to build before each pass, so the
     lists hold that tier's hatches.  The check stops at the first missing block, so a hatch the

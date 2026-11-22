@@ -245,9 +245,12 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         int matchedL = detL;
 
         if (!matched) {
-            outer: for (int h : PressurizedHeatExchangerStructure.VALID_HEIGHTS) {
-                for (int l = PressurizedHeatExchangerStructure.MIN_LENGTH; l
-                    <= PressurizedHeatExchangerStructure.MAX_LENGTH; l++) {
+            // Largest first: tallest, then longest.
+            int[] heights = PressurizedHeatExchangerStructure.VALID_HEIGHTS;
+            outer: for (int hi = heights.length - 1; hi >= 0; hi--) {
+                int h = heights[hi];
+                for (int l = PressurizedHeatExchangerStructure.MAX_LENGTH; l
+                    >= PressurizedHeatExchangerStructure.MIN_LENGTH; l--) {
                     if (h == detH && l == detL) continue;
                     resetMatchedParts();
                     testErrors.clear();
