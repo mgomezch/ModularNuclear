@@ -94,7 +94,7 @@ public class NuclearReactorWailaProvider {
             topColor = ColorUtils.wailaTempNormalTop;
             bottomColor = ColorUtils.wailaTempNormalBottom;
         }
-        String tempText = String.format("Core temp: %,.1f / %,.0f °C", temp, maxTemp);
+        String tempText = String.format(Locale.US, "Core temp: %,.1f / %,.0f °C", temp, maxTemp);
         list.add(TTRenderBar.create(tempText, topColor.getColor(), bottomColor.getColor(), ratio));
 
         long euOutput = tag.getLong("euOutput");
@@ -109,14 +109,14 @@ public class NuclearReactorWailaProvider {
             list.add(
                 EnumChatFormatting.GREEN + "EU output: "
                     + EnumChatFormatting.WHITE
-                    + String.format("+%,d EU/t", euOutput));
+                    + String.format(Locale.US, "+%,d EU/t", euOutput));
         }
         if (coolantRate > 0 && !coolantName.isEmpty()) {
             long coolantRateSec = Math.round(coolantRate * cyclesPerSec);
             list.add(
                 EnumChatFormatting.AQUA + "Coolant output: "
                     + EnumChatFormatting.WHITE
-                    + String.format("%,d L/s (%,d L/cycle) %s", coolantRateSec, coolantRate, coolantName));
+                    + String.format(Locale.US, "%,d L/s (%,d L/cycle) %s", coolantRateSec, coolantRate, coolantName));
         }
         if (euOutput == 0 && coolantRate == 0) {
             list.add(EnumChatFormatting.GRAY + "Output: " + EnumChatFormatting.DARK_GRAY + "0 EU/t | 0 L/s");

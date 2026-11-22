@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 
@@ -173,7 +174,11 @@ final class NuclearReactorMeltdown {
 
         GTLog.writeExplosionLog(
             reactor,
-            String.format("MELTDOWN: reactor damage %.1f%%, core %.0f °C", reactor.mReactorDamage, reactor.mCoreTemp));
+            String.format(
+                Locale.US,
+                "MELTDOWN: reactor damage %.1f%%, core %.0f °C",
+                reactor.mReactorDamage,
+                reactor.mCoreTemp));
 
         if (!GregTechAPI.sMachineExplosions) {
             ModularNuclear.LOG.warn(

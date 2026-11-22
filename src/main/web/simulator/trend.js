@@ -288,7 +288,7 @@ function trendDraw() {
   ctx.textBaseline = "top";
   [0, 0.5, 1].forEach((f, k) => {
     ctx.textAlign = k === 0 ? "left" : k === 1 ? "center" : "right";
-    ctx.fillText("t=" + Math.round(t0 + (t1 - t0) * f).toLocaleString(), L + pw * f, T + ph + 3);
+    ctx.fillText("t=" + Math.round(t0 + (t1 - t0) * f).toLocaleString("en-US"), L + pw * f, T + ph + 3);
   });
   if (n === 0) {
     ctx.fillStyle = "#64748b";

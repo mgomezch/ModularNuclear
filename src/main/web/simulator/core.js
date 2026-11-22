@@ -323,7 +323,7 @@ function formatPowerAndAmps(eut, compact = false) {
   if (eut === undefined || eut === null || isNaN(eut)) return "-";
   const voltage = VOLTAGE_TIERS[selectedVoltageTier] || 8192;
   const amps = eut / voltage;
-  const euStr = Math.round(eut).toLocaleString() + " EU/t";
+  const euStr = Math.round(eut).toLocaleString("en-US") + " EU/t";
   const ampStr = (amps >= 100 ? amps.toFixed(1) : amps.toFixed(2)) + " A";
   if (compact) {
     return `${euStr} (${ampStr} @ ${selectedVoltageTier})`;

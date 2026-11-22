@@ -252,11 +252,11 @@ function renderUI() {
   setText("stat-neutrons", neutronRate((currentState.lastNeutrons || 0) * statCps));
   setText("stat-thermal", neutronRate((currentState.thermalAbsorbed || 0) * statCps));
   setText("stat-fast", neutronRate((currentState.fastAbsorbed || 0) * statCps));
-  setText("stat-steam", currentState.totalSteam.toLocaleString() + " L");
-  setText("stat-deuterium", currentState.totalDeuterium.toLocaleString() + " L");
-  setText("stat-tritium", currentState.totalTritium.toLocaleString() + " L");
+  setText("stat-steam", currentState.totalSteam.toLocaleString("en-US") + " L");
+  setText("stat-deuterium", currentState.totalDeuterium.toLocaleString("en-US") + " L");
+  setText("stat-tritium", currentState.totalTritium.toLocaleString("en-US") + " L");
   const oxEl = document.getElementById("stat-oxygen");
-  if (oxEl) setText(oxEl, (currentState.totalOxygen ? currentState.totalOxygen.toLocaleString() : "0") + " L");
+  if (oxEl) setText(oxEl, (currentState.totalOxygen ? currentState.totalOxygen.toLocaleString("en-US") : "0") + " L");
 
   // Turbine config sync
   const activeEl = document.activeElement;
@@ -414,7 +414,7 @@ function renderUI() {
       // The pump limit line keeps its space whether or not a limit is switching the pump off.
       patchHTML(circTable, (cl.circuits.length < 2 ? "" :
         `<table style="width:100%; border-collapse:collapse;"><tr style="color:var(--text-muted);"><td>Circuit</td><td>Cells</td><td>Flow</td><td>Cold → Hot</td><td>Heat</td><td>Pump on</td></tr>` +
-        cl.circuits.map(c => `<tr${c.index === cl.selectedCircuit ? ' style="color:#00d2ff;"' : ''}><td>${c.code} ${c.fluid}</td><td>${c.passages}</td><td>${Math.round(c.flowLPerSec)} L/s</td><td>${Math.round(c.coldLegC)} → ${Math.round(c.hotLegC)} °C</td><td>${Math.round(c.heatHut).toLocaleString()} HU/t</td><td>${Math.round(c.pumpOn * 100)}%</td></tr>`).join("") +
+        cl.circuits.map(c => `<tr${c.index === cl.selectedCircuit ? ' style="color:#00d2ff;"' : ''}><td>${c.code} ${c.fluid}</td><td>${c.passages}</td><td>${Math.round(c.flowLPerSec)} L/s</td><td>${Math.round(c.coldLegC)} → ${Math.round(c.hotLegC)} °C</td><td>${Math.round(c.heatHut).toLocaleString("en-US")} HU/t</td><td>${Math.round(c.pumpOn * 100)}%</td></tr>`).join("") +
         `</table>`) + `<div class="loop-limit-line">${cl.limitReason ? `⚙️ Pump switched off by ${cl.limitReason} (${Math.round(cl.pumpOnFraction * 100)}% of ticks on)` : ""}</div>`);
     }
     syncSel("loop-phe-hatch-tier-select", cl.pheHatchTier);
@@ -445,7 +445,7 @@ function renderUI() {
 
     const flowEl = document.getElementById("loop-flow-val");
     if (flowEl) {
-      let flowTxt = `${cl.currentFlowRateLPerSec.toFixed(1)} / ${Math.round(cl.maxFlowLPerSec).toLocaleString()} L/s`;
+      let flowTxt = `${cl.currentFlowRateLPerSec.toFixed(1)} / ${Math.round(cl.maxFlowLPerSec).toLocaleString("en-US")} L/s`;
       setText(flowEl, flowTxt);
     }
 
@@ -467,21 +467,21 @@ function renderUI() {
     if (heatEl) {
       const mw = (cl.lastHeatExtractedWatts || 0) / 1000000;
       const hut = cl.lastHeatExtractedHut || 0;
-      setText(heatEl, `${Math.round(hut).toLocaleString()} Hu/s (${mw.toFixed(2)} MWth)`);
+      setText(heatEl, `${Math.round(hut).toLocaleString("en-US")} Hu/s (${mw.toFixed(2)} MWth)`);
     }
 
     const steamEl = document.getElementById("loop-steam-val");
     if (steamEl) {
       const grades = [];
-      if (cl.lastSteamLt > 0) grades.push(`steam ${Math.round(cl.lastSteamLt).toLocaleString()}`);
-      if (cl.lastSuperheatedSteamLt > 0) grades.push(`superheated ${Math.round(cl.lastSuperheatedSteamLt).toLocaleString()}`);
-      if (cl.lastSupercriticalSteamLt > 0) grades.push(`supercritical ${Math.round(cl.lastSupercriticalSteamLt).toLocaleString()}`);
-      setText(steamEl, `${Math.round(cl.lastSecondarySteamProducedLt).toLocaleString()} L/t` + (grades.length ? ` (${grades.join(", ")})` : ""));
+      if (cl.lastSteamLt > 0) grades.push(`steam ${Math.round(cl.lastSteamLt).toLocaleString("en-US")}`);
+      if (cl.lastSuperheatedSteamLt > 0) grades.push(`superheated ${Math.round(cl.lastSuperheatedSteamLt).toLocaleString("en-US")}`);
+      if (cl.lastSupercriticalSteamLt > 0) grades.push(`supercritical ${Math.round(cl.lastSupercriticalSteamLt).toLocaleString("en-US")}`);
+      setText(steamEl, `${Math.round(cl.lastSecondarySteamProducedLt).toLocaleString("en-US")} L/t` + (grades.length ? ` (${grades.join(", ")})` : ""));
     }
 
     const pumpEl = document.getElementById("loop-pump-val");
     if (pumpEl) {
-      let pText = `-${Math.round(cl.lastPumpPowerEUt).toLocaleString()} EU/t pumps, -${Math.round(cl.lastPhePowerEUt).toLocaleString()} EU/t PHEs`;
+      let pText = `-${Math.round(cl.lastPumpPowerEUt).toLocaleString("en-US")} EU/t pumps, -${Math.round(cl.lastPhePowerEUt).toLocaleString("en-US")} EU/t PHEs`;
       pText += ` (${(cl.pumpMechanicalPowerW / 1000).toFixed(0)} kW into the coolant · rotor ${Math.round((cl.rotorEfficiency || 1.0) * 100)}%)`;
       setText(pumpEl, pText);
     }
@@ -494,9 +494,9 @@ function renderUI() {
       if (cl.fluid !== "DISTILLED_WATER" && cl.fluid !== "HEAVY_WATER") {
         setText(bypEl, "None (no radiolysis)");
       } else {
-        let bypStr = `${cl.totalDeuteriumProduced.toLocaleString()} L D₂ | ${cl.totalTritiumProduced.toLocaleString()} L T₂`;
+        let bypStr = `${cl.totalDeuteriumProduced.toLocaleString("en-US")} L D₂ | ${cl.totalTritiumProduced.toLocaleString("en-US")} L T₂`;
         if (cl.totalOxygenProduced && cl.totalOxygenProduced > 0) {
-          bypStr += ` | ${cl.totalOxygenProduced.toLocaleString()} L O₂`;
+          bypStr += ` | ${cl.totalOxygenProduced.toLocaleString("en-US")} L O₂`;
         }
         setText(bypEl, bypStr);
       }
@@ -510,21 +510,21 @@ function renderUI() {
     let pwrDisplay = formatPowerAndAmps(pe.totalPowerEUt, false);
     const pump = currentState.pumpPowerEUt || 0, beam = currentState.beamEuPerTick || 0;
     if (pump > 0 || beam > 0) {
-      pwrDisplay += ` [Gross: ${Math.round(currentState.grossPowerEUt).toLocaleString()}` +
-        (pump > 0 ? ` - Pump: ${Math.round(pump).toLocaleString()}` : "") +
-        (beam > 0 ? ` - Beam: ${Math.round(beam).toLocaleString()}` : "") + "]";
+      pwrDisplay += ` [Gross: ${Math.round(currentState.grossPowerEUt).toLocaleString("en-US")}` +
+        (pump > 0 ? ` - Pump: ${Math.round(pump).toLocaleString("en-US")}` : "") +
+        (beam > 0 ? ` - Beam: ${Math.round(beam).toLocaleString("en-US")}` : "") + "]";
     }
     setText("stat-power-tier", formatPowerAndAmps(pe.totalPowerEUt, false));
     setText("stat-power", pwrDisplay);
     setText("turb-eff", (pe.efficiency * 100).toFixed(1) + " %");
-    setText("turb-opt-flow", Math.round(pe.optFlowPerTurbine).toLocaleString() + " L/t");
+    setText("turb-opt-flow", Math.round(pe.optFlowPerTurbine).toLocaleString("en-US") + " L/t");
     setText("turb-sc-pwr", formatPowerAndAmps(pe.xlstScPowerEUt, true) + " (" + pe.xlstScTurbinesNeeded.toFixed(2) + " units)");
     setText("turb-hp-pwr", formatPowerAndAmps(pe.xlstHpPowerEUt, true) + " (" + pe.xlstHpTurbinesNeeded.toFixed(2) + " units)");
     setText("turb-reg-pwr", formatPowerAndAmps(pe.xlstPowerEUt, true) + " (" + (pe.isLST ? pe.lstTurbinesNeeded : pe.xlstTurbinesNeeded).toFixed(2) + " units)");
 
     const eheRow = document.getElementById("ehe-row");
     if (pe.coolantMachine && pe.coolantMachine !== "None" && pe.coolantMachineMode && pe.coolantMachineMode !== "NONE") {
-      setText("turb-ehe-info", pe.coolantMachine + " [" + pe.coolantMachineMode + "] (" + Math.round(pe.coolantSteamProduced).toLocaleString() + " L/t stm, " + Math.round(pe.coolantWaterConsumed).toLocaleString() + " L/t water)");
+      setText("turb-ehe-info", pe.coolantMachine + " [" + pe.coolantMachineMode + "] (" + Math.round(pe.coolantSteamProduced).toLocaleString("en-US") + " L/t stm, " + Math.round(pe.coolantWaterConsumed).toLocaleString("en-US") + " L/t water)");
     } else {
       setText("turb-ehe-info", "None");
     }
@@ -588,21 +588,21 @@ function renderUI() {
 // Status strip, trend legend and tab badges: headline numbers in fixed-width slots.
 function renderStatusStrip(avgRodIns, hatches, loopText, loopTone) {
   const st = currentState;
-  setText("st-tick", (st.currentTick || 0).toLocaleString());
+  setText("st-tick", (st.currentTick || 0).toLocaleString("en-US"));
   const pe = st.powerEstimate;
   const power = pe ? pe.totalPowerEUt : ((st.history && st.history.length) ? st.history[st.history.length - 1].power : 0);
   const volts = VOLTAGE_TIERS[selectedVoltageTier] || 8192;
   const amps = (power || 0) / volts;
-  setText("st-power", formatEuCompact(power) + " · " + (amps >= 100 ? Math.round(amps).toLocaleString() : amps.toFixed(1)) + " A");
+  setText("st-power", formatEuCompact(power) + " · " + (amps >= 100 ? Math.round(amps).toLocaleString("en-US") : amps.toFixed(1)) + " A");
   setText("tr-pwr", formatEuCompact(power));
   const limit = st.maxSafeTemp || 0;
   const maxT = st.coreMaxTemp || 0;
-  setText("st-maxt", Math.round(maxT).toLocaleString() + (limit ? " / " + Math.round(limit).toLocaleString() : "") + " °C");
+  setText("st-maxt", Math.round(maxT).toLocaleString("en-US") + (limit ? " / " + Math.round(limit).toLocaleString("en-US") : "") + " °C");
   const ratio = limit > 0 ? maxT / limit : 0;
   setClass(document.getElementById("st-maxt"), "st-v tone-" + (ratio >= 1 ? "alarm" : ratio >= 0.85 ? "warn" : "ok"));
-  setText("st-avgt", Math.round(st.coreAvgTemp || 0).toLocaleString() + " °C");
-  setText("tr-max", Math.round(maxT).toLocaleString() + " °C");
-  setText("tr-avg", Math.round(st.coreAvgTemp || 0).toLocaleString() + " °C");
+  setText("st-avgt", Math.round(st.coreAvgTemp || 0).toLocaleString("en-US") + " °C");
+  setText("tr-max", Math.round(maxT).toLocaleString("en-US") + " °C");
+  setText("tr-avg", Math.round(st.coreAvgTemp || 0).toLocaleString("en-US") + " °C");
   setText("st-rods", hatches > 0 ? avgRodIns + "%" : "none");
   setText("tr-rods", hatches > 0 ? avgRodIns + "%" : "—");
   setText("st-loop", loopText);
