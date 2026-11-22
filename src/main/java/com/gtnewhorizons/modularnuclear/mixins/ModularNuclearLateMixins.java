@@ -30,6 +30,10 @@ public class ModularNuclearLateMixins implements ILateMixinLoader {
             mixins.add("MixinPollution");
             mixins.add("MixinBaseMetaTileEntity");
         }
+        if (loadedMods.contains("NotEnoughItems")) {
+            // See Note [NEI item groups from the mod]
+            mixins.add("MixinCollapsibleItems");
+        }
         return mixins;
     }
 }

@@ -591,3 +591,13 @@ modularnuclear.coolant_loop.engine.froze=Catastrophic coolant freezing: Coolant 
 modularnuclear.coolant_loop.engine.failed=Coolant loop failure
 modularnuclear.coolant_loop.gui.graph.not_formed=Coolant loop not formed
 modularnuclear.coolant_loop.structure.error.pump.corner_frame_tank=Frame box of the pump tank's material
+
+# NEI item groups; see Note [NEI item groups from the mod]
+modularnuclear.nei.group.nuclear_core_hatches=Nuclear Core Hatches
+modularnuclear.nei.group.high_pressure_input_hatches=Nuclear Core High-Pressure Input Hatches
+modularnuclear.nei.group.high_pressure_output_hatches=Nuclear Core High-Pressure Output Hatches
+modularnuclear.nei.group.coolant_pipes.tiny=Tiny Coolant Pipes
+modularnuclear.nei.group.coolant_pipes.small=Small Coolant Pipes
+modularnuclear.nei.group.coolant_pipes.medium=Medium Coolant Pipes
+modularnuclear.nei.group.coolant_pipes.large=Large Coolant Pipes
+modularnuclear.nei.group.coolant_pipes.huge=Huge Coolant Pipes
