@@ -57,7 +57,7 @@ public class HeavyWaterSteamTurbineHelper {
         Fluid f = exhaust.getFluid();
         if (f == FluidRegistry.getFluid("ic2superheatedsteam")) return ModFluids.fluidSuperheatedHeavyWaterSteam;
         if ("steam".equals(f.getName()) || GTModHandler.isSteam(exhaust)) return ModFluids.fluidHeavyWaterSteam;
-        if (exhaust.isFluidEqual(GTModHandler.getDistilledWater(1))) {
+        if (exhaust.isFluidEqual(distilledWater(1))) {
             return getHeavyWater(1).getFluid();
         }
         return null;
@@ -82,6 +82,19 @@ public class HeavyWaterSteamTurbineHelper {
         if (heavyAmount > 0) outputConsumer.accept(new FluidStack(heavy, heavyAmount));
     }
 
+    private static Fluid distilledWater;
+
+    /**
+     * Distilled water, IC2's ic2distilledwater, which is GregTech's too. The fluid is looked up once and kept: a
+     * turbine asks every tick. GregTech's own lookup goes through Materials.DistilledWater, which has no fluid until
+     * GregTech has loaded (in unit tests, never).
+     */
+    static FluidStack distilledWater(long amount) {
+        if (distilledWater == null) distilledWater = FluidRegistry.getFluid("ic2distilledwater");
+        if (distilledWater != null) return new FluidStack(distilledWater, GTUtility.safeInt(amount));
+        return GTModHandler.getDistilledWater(amount);
+    }
+
     public static FluidStack getHeavyWater(long amount) {
         if (ModFluids.fluidHeavyWater != null) {
             return new FluidStack(ModFluids.fluidHeavyWater, GTUtility.safeInt(amount));
@@ -90,12 +103,12 @@ public class HeavyWaterSteamTurbineHelper {
         if (hw != null) {
             return new FluidStack(hw, GTUtility.safeInt(amount));
         }
-        return GTModHandler.getDistilledWater(amount);
+        return distilledWater(amount);
     }
 
     public static void distributeCondensedWater(Consumer<FluidStack> outputConsumer, int totalWater,
         int hwSteamConsumed, int regularSteamConsumed) {
         if (totalWater <= 0) return;
-        splitExhaust(outputConsumer, GTModHandler.getDistilledWater(totalWater), hwSteamConsumed, regularSteamConsumed);
+        splitExhaust(outputConsumer, distilledWater(totalWater), hwSteamConsumed, regularSteamConsumed);
     }
 }
