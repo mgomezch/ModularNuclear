@@ -149,17 +149,20 @@ public final class CoolantPumpStructure {
                 case WALL -> EnumMachineBeta.TANK_IRON_WALL;
                 case VALVE -> EnumMachineBeta.TANK_IRON_VALVE;
                 case GAUGE -> EnumMachineBeta.TANK_IRON_GAUGE;
+                default -> throw new IllegalArgumentException(part.name()); // See Note [The jar must load on Java 17]
             };
             IEnumMachine steel = switch (part) {
                 case WALL -> EnumMachineBeta.TANK_STEEL_WALL;
                 case VALVE -> EnumMachineBeta.TANK_STEEL_VALVE;
                 case GAUGE -> EnumMachineBeta.TANK_STEEL_GAUGE;
+                default -> throw new IllegalArgumentException(part.name());
             };
             GenericMultiTankBase tank = advancedTank(mat);
             IEnumMachine advanced = tank == null ? null : switch (part) {
                 case WALL -> tank.TANK_WALL;
                 case VALVE -> tank.TANK_VALVE;
                 case GAUGE -> tank.TANK_GAUGE;
+                default -> throw new IllegalArgumentException(part.name());
             };
             if (mat == Materials.Iron && iron != null) return iron.getItem();
             if (mat == Materials.Steel && steel != null) return steel.getItem();

@@ -372,6 +372,7 @@ public class TileEntityLoopInstrument extends TileEntity
             case IMPELLER_WEAR -> getCurrentImpellerWearPercent();
             case FILL_LEVEL -> getCurrentFillPercent();
             case RESERVOIR_LEVEL -> (double) getCurrentReservoirLiters();
+            default -> throw new IllegalStateException(trackedMetric.name()); // See Note [The jar must load on Java 17]
         };
     }
 

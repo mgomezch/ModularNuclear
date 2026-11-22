@@ -1988,6 +1988,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             case BLOCKS -> tr("heat_action.blocks.desc");
             case BURNS -> tr("heat_action.burns.desc");
             case CONDUCTS_ONLY -> tr("heat_action.conducts.desc");
+            default -> throw new IllegalArgumentException(v.action.name()); // See Note [The jar must load on Java 17]
         };
     }
 
@@ -2477,6 +2478,7 @@ public class NEINeutronInteractionHandler extends TemplateRecipeHandler {
             case BLOCKS -> tr("heat_action.blocks", formatPercent(v.dampening));
             case BURNS -> tr("heat_action.burns", formatNumber(v.actionRate));
             case CONDUCTS_ONLY -> tr("heat_action.conducts");
+            default -> throw new IllegalArgumentException(v.action.name()); // See Note [The jar must load on Java 17]
         };
     }
 

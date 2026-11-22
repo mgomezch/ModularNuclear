@@ -80,7 +80,7 @@ public class FloatingPanelNEIHandler
             FloatingPanelNEIHandler handler = new FloatingPanelNEIHandler();
             API.registerNEIGuiHandler(handler);
             if (!GuiContainerManager.inputHandlers.contains(handler)) {
-                GuiContainerManager.inputHandlers.addFirst(handler);
+                GuiContainerManager.inputHandlers.add(0, handler); // See Note [The jar must load on Java 17]
             }
             GuiContainerManager.addTooltipHandler(handler);
             if (!GuiContainerManager.drawHandlers.contains(handler)) {

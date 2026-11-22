@@ -54,6 +54,7 @@ public final class CoreHatchRules {
                 hatchTemperature,
                 boiling);
             case SAFE -> "";
+            default -> throw new IllegalArgumentException(feed.name()); // See Note [The jar must load on Java 17]
         };
     }
 }

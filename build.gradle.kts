@@ -1,3 +1,5 @@
+import java.util.zip.ZipFile
+
 
 plugins {
     id("com.gtnewhorizons.gtnhconvention")
@@ -293,4 +295,67 @@ val generateAllTextures by tasks.registering {
 
 tasks.test {
     systemProperty("gt.recipebuilder.debug", "false")
+}
+
+/*
+Note [The jar must load on Java 17] (generated)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+GTNH runs on Java 17 and newer, and ModularNuclear is written in newer Java, which jvmdowngrader turns into a
+multi-release jar (gradle.properties' enableModernJavaSyntax and jvmDowngraderMultiReleaseVersions): Java 8 classes
+at the top, and under META-INF/versions/<n>/ the classes a Java <n> or newer loads instead.  Where a class uses an
+API newer than the Java that loads it, the downgraded class calls a jvmdowngrader stub in xyz/wagyourtail/jvmdg,
+such as J_L_MatchException for Java 21's MatchException.  Neither our jar (jvmDowngraderStubsProvider is unset) nor
+any GTNH mod ships those stubs, so on Java 17 to 20 such a class fails to load with NoClassDefFoundError.  The
+reactor's CoreHatchRules did: every game on Java 17 would have lost the reactor.
+
+Two constructs bring in a Java 21 stub without looking new:
+
+  - A switch expression over an enum with no default.  javac makes it throw MatchException for a constant it
+    doesn't know (an enum changed after compiling), so each such switch has a default branch that throws instead.
+    The cost: javac no longer insists that the switch names every constant.
+  - A call that Java 21 also declares on SequencedCollection, such as LinkedList.addFirst: jvmdowngrader sends it
+    to its J_U_SequencedCollection stub even on a LinkedList.  NEI's GuiContainerManager.inputHandlers takes
+    add(0, handler) instead.
+
+checkJava17Stubs fails the build when a class some Java from 17 up would load calls a stub the jar doesn't ship,
+naming the class and the stub.  nh-dev's link check (tools/linkcheck) also reports them, per pack.
+*/
+val checkJava17Stubs by tasks.registering {
+    group = "verification"
+    description = "Fails if classes Java 17 and newer load call jvmdowngrader stubs the jar doesn't ship"
+    val jar = tasks.named("reobfJar").map { it.outputs.files.singleFile }
+    inputs.file(jar)
+    doLast {
+        val versioned = Regex("""META-INF/versions/(\d+)/(.+\.class)""")
+        val stub = Regex("""xyz/wagyourtail/jvmdg/[A-Za-z0-9_/$]+""")
+        ZipFile(jar.get()).use { z ->
+            val entries = z.entries().toList().map { it.name }
+            val shipped = entries.filter { it.endsWith(".class") }.map { it.removeSuffix(".class") }.toSet()
+            val base = entries.filter { it.endsWith(".class") && !it.startsWith("META-INF/") }
+            val overlays = entries.mapNotNull { versioned.matchEntire(it) }.map { it.groupValues[1].toInt() to it }
+            val starts = (listOf(17) + overlays.map { it.first }.filter { it > 17 }).toSortedSet()
+            val problems = sortedSetOf<String>()
+            for (java in starts) {
+                val view = base.associateBy { it }.toMutableMap()
+                overlays.filter { it.first <= java }.sortedBy { it.first }
+                    .forEach { (_, m) -> view[m.groupValues[2]] = m.value }
+                for ((cls, entry) in view) {
+                    val text = String(z.getInputStream(z.getEntry(entry)).readBytes(), Charsets.ISO_8859_1)
+                    for (ref in stub.findAll(text).map { it.value }.toSet()) {
+                        if (ref !in shipped) problems += "${cls.removeSuffix(".class")} calls $ref (Java $java)"
+                    }
+                }
+            }
+            if (problems.isNotEmpty()) {
+                throw GradleException(
+                    "Classes Java 17 or newer loads call jvmdowngrader stubs the jar doesn't ship " +
+                        "(see Note [The jar must load on Java 17] in build.gradle.kts):\n  " +
+                        problems.joinToString("\n  "))
+            }
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(checkJava17Stubs)
 }
