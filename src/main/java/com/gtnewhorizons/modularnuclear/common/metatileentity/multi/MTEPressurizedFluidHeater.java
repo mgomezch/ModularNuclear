@@ -525,6 +525,9 @@ public class MTEPressurizedFluidHeater extends MTEExtendedPowerMultiBlockBase<MT
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
         int length = PressurizedFluidHeaterStructure.getLengthFromTrigger(stackSize);
+        // See Note [Survival builds count the hatches of the tier they build]
+        resetStructureCounters();
+        checkPiece(PressurizedFluidHeaterStructure.getShapeName(length), 1, 2, 0, new ArrayList<>());
         return survivalBuildPiece(
             PressurizedFluidHeaterStructure.getShapeName(length),
             stackSize,

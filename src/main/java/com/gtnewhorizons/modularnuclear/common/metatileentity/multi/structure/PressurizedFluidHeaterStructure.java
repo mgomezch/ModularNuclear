@@ -66,18 +66,16 @@ public final class PressurizedFluidHeaterStructure {
         return 13;
     }
 
+    /**
+     * The length to build: the heater_length channel, or the shortest heater if it isn't set. The trigger's stack
+     * size (NEI's Tier) picks the coils, not the length, so the two can be set apart.
+     */
     public static int getLengthFromTrigger(ItemStack trigger) {
-        if (trigger == null) return MIN_LENGTH;
-        if (ChannelDataAccessor.hasSubChannel(trigger, CoolantStructureChannels.HEATER_LENGTH.get())) {
-            int val = CoolantStructureChannels.HEATER_LENGTH.getValueClamped(trigger, MIN_LENGTH, MAX_LENGTH);
-            return clampLength(val);
+        if (trigger == null
+            || !ChannelDataAccessor.hasSubChannel(trigger, CoolantStructureChannels.HEATER_LENGTH.get())) {
+            return MIN_LENGTH;
         }
-
-        int size = trigger.stackSize;
-        if (size >= 1 && size <= 9) {
-            return clampLength(size + 2);
-        }
-        return MIN_LENGTH;
+        return clampLength(CoolantStructureChannels.HEATER_LENGTH.getValueClamped(trigger, MIN_LENGTH, MAX_LENGTH));
     }
 
     /**
@@ -120,8 +118,9 @@ public final class PressurizedFluidHeaterStructure {
                 .hint(1)
                 .build();
 
+            // Hatches before the casing, or survival autobuild and NEI's preview place casings everywhere.
             IStructureElement<MTEPressurizedFluidHeater> xElement = StructureUtility
-                .ofChain(countedCasing, frontAndBackHatches);
+                .ofChain(frontAndBackHatches, countedCasing);
 
             IStructureElement<MTEPressurizedFluidHeater> hpInputElement = HatchElementBuilder
                 .<MTEPressurizedFluidHeater>builder()
@@ -164,7 +163,9 @@ public final class PressurizedFluidHeaterStructure {
                 builder.addShape(getShapeName(l), makeShape(l));
             }
 
-            STRUCTURE_DEFINITION = builder.addElement('x', xElement)
+            STRUCTURE_DEFINITION = builder
+                .addChannel(CoolantStructureChannels.HEATER_LENGTH.get(), MIN_LENGTH, MAX_LENGTH)
+                .addElement('x', xElement)
                 .addElement('I', hpInputElement)
                 .addElement('O', hpOutputElement)
                 .addElement('c', coilElement)
