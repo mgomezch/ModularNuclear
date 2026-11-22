@@ -1,5 +1,12 @@
 package com.gtnewhorizons.modularnuclear.common.metatileentity.multi;
 
+import static gregtech.api.enums.HatchElement.Energy;
+import static gregtech.api.enums.HatchElement.InputBus;
+import static gregtech.api.enums.HatchElement.InputHatch;
+import static gregtech.api.enums.HatchElement.Maintenance;
+import static gregtech.api.enums.HatchElement.OutputBus;
+import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,21 +36,16 @@ import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.ITexture;
-import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
-import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
-import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
-import gregtech.api.metatileentity.implementations.MTEHatchOutput;
-import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.objects.ItemData;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrors;
 import gregtech.api.util.GTOreDictUnificator;
-import gregtech.api.util.GTStructureUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 
 /**
@@ -60,6 +62,9 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
 
     private static final String STRUCTURE_PIECE_MAIN = "compounder_3x3x3";
     private static IStructureDefinition<MTEActinideCompounder> STRUCTURE_DEFINITION = null;
+
+    /** Regular energy hatches only, like most GregTech multiblocks: two of a tier power the next tier's recipes. */
+    private static final int MAX_ENERGY_HATCHES = 2;
     protected int mCasing = 0;
 
     public MTEActinideCompounder(int aID, String aName, String aNameRegional) {
@@ -95,7 +100,7 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
             .addInputBus("Any casing", 1)
             .addOutputBus("Any casing", 1)
             .addInputHatch("Any casing", 1)
-            .addEnergyHatch("Any casing (minimum EV for single, IV for dual, LuV for quad)", 1)
+            .addEnergyHatch("Any casing, 1 or 2 (single: 1 EV or 2 HV; dual: 1 IV or 2 EV; quad: 1 LuV or 2 IV)", 1)
             .addMaintenanceHatch("Any casing", 1)
             .toolTipFinisher("Modular Nuclear");
         return tt;
@@ -116,31 +121,6 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(BlockNuclearCasing.CASING_TEXTURE_INDEX) };
     }
 
-    public boolean addHatch(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
-        if (aTileEntity == null) return false;
-        IMetaTileEntity aMetaTileEntity = aTileEntity.getMetaTileEntity();
-        if (aMetaTileEntity == null) return false;
-        if (aMetaTileEntity instanceof MTEHatchInput) {
-            return addInputToMachineList(aTileEntity, aBaseCasingIndex);
-        }
-        if (aMetaTileEntity instanceof MTEHatchInputBus) {
-            return addInputToMachineList(aTileEntity, aBaseCasingIndex);
-        }
-        if (aMetaTileEntity instanceof MTEHatchOutput) {
-            return addOutputToMachineList(aTileEntity, aBaseCasingIndex);
-        }
-        if (aMetaTileEntity instanceof MTEHatchOutputBus) {
-            return addOutputToMachineList(aTileEntity, aBaseCasingIndex);
-        }
-        if (aMetaTileEntity instanceof MTEHatchEnergy) {
-            return addEnergyInputToMachineList(aTileEntity, aBaseCasingIndex);
-        }
-        if (aMetaTileEntity instanceof MTEHatchMaintenance) {
-            return addMaintenanceToMachineList(aTileEntity, aBaseCasingIndex);
-        }
-        return false;
-    }
-
     @Override
     public IStructureDefinition<MTEActinideCompounder> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
@@ -151,11 +131,13 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
                         new String[][] { { "CCC", "CCC", "CCC" }, { "C~C", "C C", "CCC" }, { "CCC", "CCC", "CCC" } }))
                 .addElement(
                     'C',
-                    StructureUtility.ofChain(
-                        GTStructureUtility
-                            .ofHatchAdder(MTEActinideCompounder::addHatch, BlockNuclearCasing.CASING_TEXTURE_INDEX, 1),
-                        StructureUtility
-                            .onElementPass(t -> t.mCasing++, StructureUtility.ofBlock(ModBlocks.nuclearCasing, 0))))
+                    buildHatchAdder(MTEActinideCompounder.class)
+                        .atLeast(InputBus, InputHatch, OutputBus, Maintenance, Energy)
+                        .casingIndex(BlockNuclearCasing.CASING_TEXTURE_INDEX)
+                        .hint(1)
+                        .buildAndChain(
+                            StructureUtility
+                                .onElementPass(t -> t.mCasing++, StructureUtility.ofBlock(ModBlocks.nuclearCasing, 0))))
                 .build();
         }
         return STRUCTURE_DEFINITION;
@@ -177,6 +159,9 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
 
         checkCasingMin(aErrors, mCasing, 14);
         checkHasEnergyHatch(aErrors);
+        if (mEnergyHatches.size() > MAX_ENERGY_HATCHES) {
+            aErrors.add(StructureErrors.tooManyHatches(ItemList.Hatch_Energy_EV.get(1), MAX_ENERGY_HATCHES));
+        }
         checkHasInputBus(aErrors);
         checkHasOutputBus(aErrors);
         checkHasInputHatch(aErrors);
@@ -344,6 +329,9 @@ public class MTEActinideCompounder extends MTEEnhancedMultiBlockBase<MTEActinide
         int requiredTritium = 25 * targetRodSize;
         int requiredUnits = CustomFuelMix.getRequiredUnits(targetRodSize);
         int recipeTime = 150 * targetRodSize;
+        if (getPowerRequirement(targetRodSize) > getMaxInputPower()) {
+            return false; // the energy hatches can't supply this rod size's EU/t
+        }
 
         // 1. Check for required Tritium in stored input fluids
         FluidStack foundTritium = null;
