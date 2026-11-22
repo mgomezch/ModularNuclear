@@ -44,9 +44,6 @@ public class NuclearReactorTooltipValues {
             .addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal("gt.multiblock.nuclearreactor.desc19"))
             .addInfo(StatCollector.translateToLocal("gt.multiblock.nuclearreactor.desc20"))
             .beginVariableStructureBlock(7, 15, 5, 5, 7, 15, true)
-            .addStructureInfo(
-                EnumChatFormatting.RED
-                    + StatCollector.translateToLocal("gt.multiblock.nuclearreactor.structure.wallshare"))
             .addStructureInfo(StatCollector.translateToLocal("gt.multiblock.nuclearreactor.structure.facing"))
             .addController(StatCollector.translateToLocal("gt.mbtt.structure.front_center_2nd_layer"))
             .addCasing("50+", StatCollector.translateToLocal("gt.multiblock.nuclearreactor.structure.casings"), false)

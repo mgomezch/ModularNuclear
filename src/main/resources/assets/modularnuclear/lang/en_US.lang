@@ -110,7 +110,6 @@ gt.multiblock.nuclearreactor.desc19=Radiovoltaic cells convert neutron flux to E
 gt.multiblock.nuclearreactor.desc20=Hull damage repair requires maintenance with average temperature below 20% of max.
 gt.multiblock.nuclearreactor.finisher=GregTech nuclear power
 
-gt.multiblock.nuclearreactor.structure.wallshare=This multiblock cannot share walls TODO: yes it can
 gt.multiblock.nuclearreactor.structure.facing=Top-layer core hatches face up; bottom-layer core hatches face down; outer hatches must face outward and be upright
 gt.multiblock.nuclearreactor.structure.casings=Nuclear casings
 gt.multiblock.nuclearreactor.structure.pipe_casings=Item pipe casings (Tier 1: Electrum+, Tier 2: Platinum+, Tier 3: Osmium+)
