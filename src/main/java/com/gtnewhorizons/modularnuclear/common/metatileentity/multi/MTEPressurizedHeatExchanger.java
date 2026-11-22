@@ -212,8 +212,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         return mPrimaryOutlet;
     }
 
-    @Override
-    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> aErrors) {
+    /** Forgets the hatches, casings and sheet metal a structure match collected, before trying a size. */
+    private void resetMatchedParts() {
         mPrimaryInlet = null;
         mPrimaryOutlet = null;
         mInputHatches.clear();
@@ -224,6 +224,11 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         mSheetmetalCount = 0;
         mFirstSheetmetalTier = null;
         mSheetmetalsUniform = true;
+    }
+
+    @Override
+    public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> aErrors) {
+        resetMatchedParts();
 
         int[] detectedDims = PressurizedHeatExchangerStructure.detectDimensions(aBaseMetaTileEntity);
         int detH = detectedDims[0];
@@ -244,16 +249,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
                 for (int l = PressurizedHeatExchangerStructure.MIN_LENGTH; l
                     <= PressurizedHeatExchangerStructure.MAX_LENGTH; l++) {
                     if (h == detH && l == detL) continue;
-                    mPrimaryInlet = null;
-                    mPrimaryOutlet = null;
-                    mInputHatches.clear();
-                    mOutputHatches.clear();
-                    mMaintenanceHatches.clear();
-                    mEnergyHatches.clear();
-                    mCasing = 0;
-                    mSheetmetalCount = 0;
-                    mFirstSheetmetalTier = null;
-                    mSheetmetalsUniform = true;
+                    resetMatchedParts();
                     testErrors.clear();
 
                     if (checkPiece(PressurizedHeatExchangerStructure.getPieceName(h, l), 1, h / 2, 0, testErrors)) {
@@ -267,16 +263,7 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         }
 
         if (!matched) {
-            mPrimaryInlet = null;
-            mPrimaryOutlet = null;
-            mInputHatches.clear();
-            mOutputHatches.clear();
-            mMaintenanceHatches.clear();
-            mEnergyHatches.clear();
-            mCasing = 0;
-            mSheetmetalCount = 0;
-            mFirstSheetmetalTier = null;
-            mSheetmetalsUniform = true;
+            resetMatchedParts();
             checkPiece(PressurizedHeatExchangerStructure.getPieceName(detH, detL), 1, detH / 2, 0, aErrors);
             return;
         }
@@ -1078,6 +1065,9 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
         if (mMachine) return -1;
         int h = PressurizedHeatExchangerStructure.getHeightFromTrigger(stackSize);
         int l = PressurizedHeatExchangerStructure.getLengthFromTrigger(stackSize);
+        // See Note [Survival builds count the hatches of the tier they build]
+        resetMatchedParts();
+        checkPiece(PressurizedHeatExchangerStructure.getPieceName(h, l), 1, h / 2, 0, new ArrayList<>());
         return survivalBuildPiece(
             PressurizedHeatExchangerStructure.getPieceName(h, l),
             stackSize,

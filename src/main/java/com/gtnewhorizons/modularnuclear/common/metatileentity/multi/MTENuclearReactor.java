@@ -794,6 +794,10 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     survivalBuildTier therefore checks the tier it's about to build before each pass, so the
     lists hold that tier's hatches.  The check stops at the first missing block, so a hatch the
     player placed beyond a gap isn't counted; GregTech's own multiblocks behave the same way.
+    
+    MTEPressurizedHeatExchanger and MTEPressurizedFluidHeater come in several sizes, and their
+    checkMachine tries each size the same way, so their survivalConstruct checks the size it's
+    about to build too.
     */
 
     /** Forgets the hatches, casings and tiers a structure match collected, before trying a tier. */

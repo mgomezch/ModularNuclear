@@ -18,11 +18,18 @@ import com.gtnewhorizon.structurelib.structure.StructureDefinition;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.PheGeometry;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.CoolantStructureChannels;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedInput;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedOutput;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.MTEPressurizedHeatExchanger;
 
 import gregtech.api.GregTechAPI;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
-import gregtech.api.util.GTStructureUtility;
+import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
+import gregtech.api.metatileentity.implementations.MTEHatchInput;
+import gregtech.api.metatileentity.implementations.MTEHatchMaintenance;
+import gregtech.api.metatileentity.implementations.MTEHatchOutput;
+import gregtech.api.util.HatchElementBuilder;
 
 /**
  * Structure definition and helpers for the Pressurized Heat Exchanger (PHE).
@@ -39,6 +46,38 @@ public final class PressurizedHeatExchangerStructure {
     public static final int MAX_LENGTH = PheGeometry.MAX_LENGTH;
 
     private static IStructureDefinition<MTEPressurizedHeatExchanger> STRUCTURE_DEFINITION = null;
+
+    // The hatches the PHE takes, so that NEI's preview and survival autobuild place one of each.
+    private static final IHatchElement<MTEPressurizedHeatExchanger> MAINTENANCE = new CountedHatchElement<>(
+        "Maintenance",
+        MTEPressurizedHeatExchanger::addMaintenanceOrEnergyHatch,
+        t -> t.mMaintenanceHatches.size(),
+        MTEHatchMaintenance.class);
+    private static final IHatchElement<MTEPressurizedHeatExchanger> ENERGY = new CountedHatchElement<>(
+        "Energy",
+        MTEPressurizedHeatExchanger::addMaintenanceOrEnergyHatch,
+        t -> t.mEnergyHatches.size(),
+        MTEHatchEnergy.class);
+    private static final IHatchElement<MTEPressurizedHeatExchanger> PRIMARY_INLET = new CountedHatchElement<>(
+        "PressurizedInput",
+        MTEPressurizedHeatExchanger::addPressurizedHatch,
+        t -> t.getPrimaryInlet() != null ? 1 : 0,
+        MTEHatchPressurizedInput.class);
+    private static final IHatchElement<MTEPressurizedHeatExchanger> PRIMARY_OUTLET = new CountedHatchElement<>(
+        "PressurizedOutput",
+        MTEPressurizedHeatExchanger::addPressurizedHatch,
+        t -> t.getPrimaryOutlet() != null ? 1 : 0,
+        MTEHatchPressurizedOutput.class);
+    private static final IHatchElement<MTEPressurizedHeatExchanger> SECONDARY_INPUT = new CountedHatchElement<>(
+        "InputHatch",
+        MTEPressurizedHeatExchanger::addSecondaryHatch,
+        t -> t.mInputHatches.size(),
+        MTEHatchInput.class);
+    private static final IHatchElement<MTEPressurizedHeatExchanger> SECONDARY_OUTPUT = new CountedHatchElement<>(
+        "OutputHatch",
+        MTEPressurizedHeatExchanger::addSecondaryHatch,
+        t -> t.mOutputHatches.size(),
+        MTEHatchOutput.class);
 
     private PressurizedHeatExchangerStructure() {}
 
@@ -101,32 +140,40 @@ public final class PressurizedHeatExchangerStructure {
                 }
             }
 
-            builder
+            builder.addChannel(CoolantStructureChannels.PHE_HEIGHT.get(), MIN_HEIGHT, MAX_HEIGHT)
+                .addChannel(CoolantStructureChannels.PHE_LENGTH.get(), MIN_LENGTH, MAX_LENGTH)
+                // Not set is copper, sheet metal tier 0; see PheSheetmetalTier.fromTrigger.
+                .addChannel(CoolantStructureChannels.PHE_SHEETMETAL.get(), 1, PheSheetmetalTier.values().length - 1)
                 .addElement(
                     'x',
-                    StructureUtility.ofChain(
-                        GTStructureUtility.ofHatchAdder(
-                            MTEPressurizedHeatExchanger::addMaintenanceOrEnergyHatch,
-                            MTEPressurizedHeatExchanger.CASING_INDEX_HEAT_PROOF,
-                            1),
-                        StructureUtility.onElementPass(
-                            MTEPressurizedHeatExchanger::addCasingBlock,
-                            StructureUtility.ofBlock(GregTechAPI.sBlockCasings1, 11))))
+                    HatchElementBuilder.<MTEPressurizedHeatExchanger>builder()
+                        .atLeast(MAINTENANCE, ENERGY)
+                        .adder(MTEPressurizedHeatExchanger::addMaintenanceOrEnergyHatch)
+                        .casingIndex(MTEPressurizedHeatExchanger.CASING_INDEX_HEAT_PROOF)
+                        .hint(1)
+                        .buildAndChain(
+                            StructureUtility.onElementPass(
+                                MTEPressurizedHeatExchanger::addCasingBlock,
+                                StructureUtility.ofBlock(GregTechAPI.sBlockCasings1, 11))))
                 .addElement('h', StructureUtility.ofBlock(GregTechAPI.sBlockCasings10, 10))
                 .addElement('l', StructureUtility.ofBlock(GregTechAPI.sBlockCasings10, 9))
                 .addElement('c', ofSheetMetalTiered())
                 .addElement(
                     'H',
-                    GTStructureUtility.ofHatchAdder(
-                        MTEPressurizedHeatExchanger::addPressurizedHatch,
-                        MTEPressurizedHeatExchanger.CASING_INDEX_HEAT_PROOF,
-                        2))
+                    HatchElementBuilder.<MTEPressurizedHeatExchanger>builder()
+                        .atLeast(PRIMARY_INLET, PRIMARY_OUTLET)
+                        .adder(MTEPressurizedHeatExchanger::addPressurizedHatch)
+                        .casingIndex(MTEPressurizedHeatExchanger.CASING_INDEX_HEAT_PROOF)
+                        .hint(2)
+                        .build())
                 .addElement(
                     'L',
-                    GTStructureUtility.ofHatchAdder(
-                        MTEPressurizedHeatExchanger::addSecondaryHatch,
-                        MTEPressurizedHeatExchanger.CASING_INDEX_HEAT_PROOF,
-                        3));
+                    HatchElementBuilder.<MTEPressurizedHeatExchanger>builder()
+                        .atLeast(SECONDARY_INPUT, SECONDARY_OUTPUT)
+                        .adder(MTEPressurizedHeatExchanger::addSecondaryHatch)
+                        .casingIndex(MTEPressurizedHeatExchanger.CASING_INDEX_HEAT_PROOF)
+                        .hint(3)
+                        .build());
 
             STRUCTURE_DEFINITION = builder.build();
         }
