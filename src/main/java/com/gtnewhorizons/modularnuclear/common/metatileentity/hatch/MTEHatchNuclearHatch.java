@@ -105,7 +105,7 @@ public class MTEHatchNuclearHatch extends MTEHatch implements IReadyBeforeFirstT
             "gt.blockmachines.hatch.nuclearhatch.desc",
             GTValues.VN[mTier],
             formatNumber(mCapacity),
-            NuclearSimulationEngine.getHatchConductance(mTier));
+            formatNumber(NuclearSimulationEngine.getHatchConductance(mTier)));
     }
 
     @Override
