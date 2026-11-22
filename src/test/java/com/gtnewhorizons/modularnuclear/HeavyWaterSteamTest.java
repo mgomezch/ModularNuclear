@@ -230,6 +230,26 @@ public class HeavyWaterSteamTest {
         assertEquals(1000, amountOf(outputs, "steam"));
     }
 
+    @Test
+    void testCondensateIsIc2DistilledWater() {
+        // The helper looks the fluid up by IC2's name. GregTech's GTModHandler.getDistilledWater goes through
+        // Materials.DistilledWater on newer GregTech, which has no fluid outside the game: the condensate would be null
+        List<FluidStack> outputs = new ArrayList<>();
+        HeavyWaterSteamTurbineHelper.distributeCondensedWater(outputs::add, 1000, 0, 160000);
+        assertEquals(1, outputs.size());
+        assertEquals(1000, amountOf(outputs, "ic2distilledwater"));
+    }
+
+    @Test
+    void testDistilledWaterCondensateKeepsToHeavyWater() {
+        // A turbine's distilled water condensate, of half heavy steam, comes out half heavy water
+        List<FluidStack> outputs = new ArrayList<>();
+        HeavyWaterSteamTurbineHelper
+            .splitExhaust(outputs::add, new FluidStack(FluidRegistry.getFluid("ic2distilledwater"), 1000), 1, 1);
+        assertEquals(500, amountOf(outputs, "ic2distilledwater"));
+        assertEquals(500, amountOf(outputs, "heavywater"));
+    }
+
     private static Fluid regularSteam() {
         return FluidRegistry.getFluid("steam");
     }
