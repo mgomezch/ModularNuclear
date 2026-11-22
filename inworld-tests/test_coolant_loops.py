@@ -152,6 +152,9 @@ def build_coolant_loops(client: HarnessClient):
         preferred_y=OY_LOOP,
     )
     print(f"    [+] Cold Leg Segment 2 routed: length={route_cold_2.get('length')} blocks")
+    # A manifold connects only to the pipes there when it is configured (Note [Manifold connections are set when
+    # placed]), and its exit pipe came after it: configure it again
+    client.configure_manifold(OX + 6, OY_LOOP, OZ + 8, "WEST")
     print("[✓] Closed piping circuit assembled and connected!")
 
     # 4. Secondary Circuit for PHE: Debug Tank (Distilled Water) -> PHE -> Supertank (Steam)

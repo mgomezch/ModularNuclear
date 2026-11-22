@@ -171,6 +171,9 @@ def build_maintenance_test_world(client: HarnessClient):
         preferred_y=OY_LOOP,
     )
     print(f"    [+] Cold Leg Segment 2 routed: length={route_cold_2.get('length')} blocks")
+    # A manifold connects only to the pipes there when it is configured (Note [Manifold connections are set when
+    # placed]), and its exit pipe came after it: configure it again
+    client.configure_manifold(OX + 5, OY_LOOP, OZ + 8, "WEST")
 
     # Setup Secondary Circuit on PHE (Debug Tank and Super Tank)
     client.set_gt_machine(OX + 13, OY_LOOP, OZ, 238, 4)
