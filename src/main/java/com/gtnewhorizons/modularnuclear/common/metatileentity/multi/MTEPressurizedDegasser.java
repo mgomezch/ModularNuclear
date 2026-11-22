@@ -26,6 +26,9 @@ import com.gtnewhorizons.modularnuclear.common.coolantloop.ILoopHatchOwner;
 import com.gtnewhorizons.modularnuclear.common.coolantloop.LoopSegment;
 import com.gtnewhorizons.modularnuclear.common.gui.CoolantLoopMachineGui;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedFluid;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedInput;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.MTEHatchPressurizedOutput;
+import com.gtnewhorizons.modularnuclear.common.metatileentity.multi.structure.CountedHatchElement;
 import com.gtnewhorizons.modularnuclear.common.util.MultiblockStartup;
 import com.gtnewhorizons.modularnuclear.common.util.StructureChunks;
 import com.gtnewhorizons.modularui.api.widget.IWidgetBuilder;
@@ -36,6 +39,7 @@ import gregtech.api.enums.GTValues;
 import gregtech.api.enums.HatchElement;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.Textures;
+import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
@@ -47,7 +51,7 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrors;
-import gregtech.api.util.GTStructureUtility;
+import gregtech.api.util.HatchElementBuilder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
@@ -283,6 +287,33 @@ public class MTEPressurizedDegasser extends MTEEnhancedMultiBlockBase<MTEPressur
 
     private static IStructureDefinition<MTEPressurizedDegasser> STRUCTURE_DEFINITION = null;
 
+    // The hatches the degasser takes, so that NEI's preview and survival autobuild place one of each.
+    private static final IHatchElement<MTEPressurizedDegasser> PRIMARY_INLET = new CountedHatchElement<>(
+        "PressurizedInput",
+        MTEPressurizedDegasser::addBottomHatch,
+        t -> t.mPrimaryInlet != null ? 1 : 0,
+        MTEHatchPressurizedInput.class);
+    private static final IHatchElement<MTEPressurizedDegasser> PRIMARY_OUTLET = new CountedHatchElement<>(
+        "PressurizedOutput",
+        MTEPressurizedDegasser::addBottomHatch,
+        t -> t.mPrimaryOutlet != null ? 1 : 0,
+        MTEHatchPressurizedOutput.class);
+    private static final IHatchElement<MTEPressurizedDegasser> MAINTENANCE = new CountedHatchElement<>(
+        "Maintenance",
+        MTEPressurizedDegasser::addBottomHatch,
+        t -> t.mMaintenanceHatches.size(),
+        MTEHatchMaintenance.class);
+    private static final IHatchElement<MTEPressurizedDegasser> ENERGY = new CountedHatchElement<>(
+        "Energy",
+        MTEPressurizedDegasser::addBottomHatch,
+        t -> t.mEnergyHatches.size(),
+        MTEHatchEnergy.class);
+    private static final IHatchElement<MTEPressurizedDegasser> GAS_OUTPUT = new CountedHatchElement<>(
+        "OutputHatch",
+        MTEPressurizedDegasser::addTopHatch,
+        t -> t.mOutputHatches.size(),
+        MTEHatchOutput.class);
+
     @Override
     public IStructureDefinition<MTEPressurizedDegasser> getStructureDefinition() {
         if (STRUCTURE_DEFINITION == null) {
@@ -295,16 +326,26 @@ public class MTEPressurizedDegasser extends MTEEnhancedMultiBlockBase<MTEPressur
                             { "C~C", "CCC", "CCC" } }))
                 .addElement(
                     'C',
-                    StructureUtility.ofChain(
-                        GTStructureUtility.ofHatchAdder(MTEPressurizedDegasser::addBottomHatch, 48 + 2, 1),
-                        StructureUtility
-                            .onElementPass(t -> t.mCasing++, StructureUtility.ofBlock(GregTechAPI.sBlockCasings4, 2))))
+                    HatchElementBuilder.<MTEPressurizedDegasser>builder()
+                        .atLeast(PRIMARY_INLET, PRIMARY_OUTLET, MAINTENANCE, ENERGY)
+                        .adder(MTEPressurizedDegasser::addBottomHatch)
+                        .casingIndex(48 + 2)
+                        .hint(1)
+                        .buildAndChain(
+                            StructureUtility.onElementPass(
+                                t -> t.mCasing++,
+                                StructureUtility.ofBlock(GregTechAPI.sBlockCasings4, 2))))
                 .addElement(
                     'T',
-                    StructureUtility.ofChain(
-                        GTStructureUtility.ofHatchAdder(MTEPressurizedDegasser::addTopHatch, 48 + 2, 2),
-                        StructureUtility
-                            .onElementPass(t -> t.mCasing++, StructureUtility.ofBlock(GregTechAPI.sBlockCasings4, 2))))
+                    HatchElementBuilder.<MTEPressurizedDegasser>builder()
+                        .atLeast(GAS_OUTPUT)
+                        .adder(MTEPressurizedDegasser::addTopHatch)
+                        .casingIndex(48 + 2)
+                        .hint(2)
+                        .buildAndChain(
+                            StructureUtility.onElementPass(
+                                t -> t.mCasing++,
+                                StructureUtility.ofBlock(GregTechAPI.sBlockCasings4, 2))))
                 .build();
         }
         return STRUCTURE_DEFINITION;
