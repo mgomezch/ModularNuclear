@@ -282,7 +282,7 @@ function updateGridDOM() {
         const hoSec = ho * cps;
         overlayBg = ho > 0 ? getHeatOutputColor(hoSec) : "transparent";
         metricStr = hoSec > 0 ? (hoSec >= 10000 ? (hoSec / 1000).toFixed(1) + "k" : Math.round(hoSec).toString()) : "";
-        tipText = `Heat output: ${hoSec.toLocaleString("en-US", {minimumFractionDigits: 1, maximumFractionDigits: 1})} HU/s`;
+        tipText = `Heat output: ${hoSec.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} HU/s`;
       } else {
         overlayBg = getTemperatureColor(t.temp, currentState.maxSafeTemp);
         metricStr = Math.round(t.temp) + "°C";

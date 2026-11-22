@@ -24,10 +24,10 @@ function renderInspector(t) {
       ? '<span class="badge" style="color:var(--danger); background:rgba(255,71,87,0.2);">⚠️ DEPLETED</span>'
       : '<span class="badge" style="color:var(--success);">ACTIVE</span>';
     extraHtml = `
-      <div class="stat-row"><span>Durability:</span><span class="stat-val">${t.durability.toLocaleString("en-US")} / ${maxDur.toLocaleString("en-US")} (${t.durabilityPct}%)</span></div>
+      <div class="stat-row"><span>Durability:</span><span class="stat-val">${t.durability.toLocaleString()} / ${maxDur.toLocaleString()} (${t.durabilityPct}%)</span></div>
       <div class="stat-row"><span>Rod Status:</span><span class="stat-val">${depBadge}</span></div>
       <div class="stat-row"><span>Depleted Output:</span><span class="stat-val" style="color:#34d399; font-weight:600;"><span class="badge" style="font-size:0.68rem; padding:1px 4px; color:#34d399; border-color:#059669;">${t.depletedCode || "DEP"}</span> ${t.depletedName || "Depleted Fuel Rod"}</span></div>
-      <div class="stat-row"><span>Burn Rate:</span><span class="stat-val" style="color:#fbbf24;">${burnRate.toFixed(2)} / tick (${Math.round(durPerMin).toLocaleString("en-US")} / min)</span></div>
+      <div class="stat-row"><span>Burn Rate:</span><span class="stat-val" style="color:#fbbf24;">${burnRate.toFixed(2)} / tick (${Math.round(durPerMin).toLocaleString()} / min)</span></div>
       <div class="stat-row"><span>Est. Remaining Lifespan:</span><span class="stat-val" style="color:#38bdf8;">${minsLeft}</span></div>
     `;
   } else if (t.fluidName && t.fluidName.length > 0) {
@@ -47,7 +47,7 @@ function renderInspector(t) {
       const burnRateL = t.lastLiquidBurned || 0;
       liqFuelHtml = `
         <div class="stat-row"><span>Depleted Output:</span><span class="stat-val" style="color:#38bdf8; font-weight:600;">${t.depletedName || "Depleted Fuel Fluid"}</span></div>
-        <div class="stat-row"><span>Fuel Consumption:</span><span class="stat-val" style="color:#f59e0b;">${burnRateL} L/t (${(burnRateL * 1200).toLocaleString("en-US")} L/min)</span></div>
+        <div class="stat-row"><span>Fuel Consumption:</span><span class="stat-val" style="color:#f59e0b;">${burnRateL} L/t (${(burnRateL * 1200).toLocaleString()} L/min)</span></div>
       `;
     }
     extraHtml = `
@@ -55,7 +55,7 @@ function renderInspector(t) {
       <div class="stat-row"><span>Coolant Volume:</span><span class="stat-val">${t.fluidAmount} / ${cap} L (${pct}%)</span></div>
       ${liqFuelHtml}
       <div class="stat-row"><span>Live Turnover:</span><span class="stat-val" style="color:#38bdf8;">${coolantTurnover} L/t coolant &rarr; ${steamFlow} L/t ${isCoolant ? "hot coolant" : "steam"}</span></div>
-      <div class="stat-row"><span>Cumulative ${isCoolant ? "Hot Coolant" : "Steam"}:</span><span class="stat-val">${cumProduced.toLocaleString("en-US")} L</span></div>
+      <div class="stat-row"><span>Cumulative ${isCoolant ? "Hot Coolant" : "Steam"}:</span><span class="stat-val">${cumProduced.toLocaleString()} L</span></div>
       <div class="stat-row"><span>Hatch Status:</span><span class="stat-val">${dryBadge}</span></div>
     `;
   }
@@ -77,7 +77,7 @@ function renderInspector(t) {
         <div class="stat-row" style="margin-bottom:2px;"><span>Thermal flux:</span><span class="stat-val" style="color:#4ade80;">${neutronFlux((t.thermalFlux || 0) * cps)}</span></div>
         <div class="stat-row" style="margin-bottom:2px;"><span>Fast absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${neutronRate((t.fastAbsorbed || 0) * cps)}</span></div>
         <div class="stat-row" style="margin-bottom:2px;"><span>Thermal absorbed:</span><span class="stat-val" style="color:#cbd5e1;">${neutronRate((t.thermalAbsorbed || 0) * cps)}</span></div>
-        ${(t.directEU || (t.type && t.type.startsWith("RADIOVOLTAIC_"))) ? `<div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #373737;"><span>Radiovoltaic output:</span><span class="stat-val" style="color:#38bdf8;">${(t.directEU || 0).toLocaleString("en-US")} EU/t</span></div>` : ''}
+        ${(t.directEU || (t.type && t.type.startsWith("RADIOVOLTAIC_"))) ? `<div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px dashed #373737;"><span>Radiovoltaic output:</span><span class="stat-val" style="color:#38bdf8;">${(t.directEU || 0).toLocaleString()} EU/t</span></div>` : ''}
       </div>
     `;
   }
@@ -192,7 +192,7 @@ function renderInspector(t) {
       </div>
     </div>
     <div class="stat-row"><span>Temperature:</span><span class="stat-val">${t.temp} °C</span></div>
-    ${t.code !== "NL" ? `<div class="stat-row"><span>Heat output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${((t.heatOutput || 0) * cps).toLocaleString("en-US", {minimumFractionDigits: 1, maximumFractionDigits: 1})} HU/s</span></div>` : ''}
+    ${t.code !== "NL" ? `<div class="stat-row"><span>Heat output:</span><span class="stat-val" style="color:#f59e0b; font-weight:600;">${((t.heatOutput || 0) * cps).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} HU/s</span></div>` : ''}
     ${coolingMethodHtml}
     ${sourceChamberHtml(t, cps)}
     ${controlRodHtml}
@@ -658,8 +658,8 @@ function sourceChamberHtml(t, cps) {
   const r = SOURCE_CHAMBER_RECIPES.find(r => r.code === recipe);
   const tiers = r ? SOURCE_CHAMBER_TIERS.slice(SOURCE_CHAMBER_TIERS.indexOf(r.minTier)) : [];
   const beam = r
-    ? `<div class="stat-row"><span>Beam:</span><span class="stat-val">${Math.round(t.beamEnergyKeV).toLocaleString("en-US")} keV × ${t.beamRate}</span></div>` +
-      `<div class="stat-row"><span>Chamber draw:</span><span class="stat-val" style="color:var(--danger); font-weight:600;">−${(t.beamEuPerTick || 0).toLocaleString("en-US")} EU/t</span></div>` +
+    ? `<div class="stat-row"><span>Beam:</span><span class="stat-val">${Math.round(t.beamEnergyKeV).toLocaleString()} keV × ${t.beamRate}</span></div>` +
+      `<div class="stat-row"><span>Chamber draw:</span><span class="stat-val" style="color:var(--danger); font-weight:600;">−${(t.beamEuPerTick || 0).toLocaleString()} EU/t</span></div>` +
       `<div class="stat-row"><span>Fast neutrons:</span><span class="stat-val">${neutronRate((t.neutronsGenerated || 0) * cps)}</span></div>`
     : `<div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">No beam: this source emits nothing until a Source Chamber feeds it.</div>`;
   return `
