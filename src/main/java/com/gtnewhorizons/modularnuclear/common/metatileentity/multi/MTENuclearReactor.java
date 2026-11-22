@@ -569,40 +569,18 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
         int tier = stackSize == null ? 1 : stackSize.stackSize;
-        if (tier >= 3) {
-            return survivalBuildPiece(
-                STRUCTURE_TIER_3,
-                prepareConstructTrigger(stackSize, 3),
-                7,
-                3,
-                0,
-                elementBudget,
-                env,
-                false,
-                true);
-        } else if (tier == 2) {
-            return survivalBuildPiece(
-                STRUCTURE_TIER_2,
-                prepareConstructTrigger(stackSize, 2),
-                5,
-                3,
-                0,
-                elementBudget,
-                env,
-                false,
-                true);
-        } else {
-            return survivalBuildPiece(
-                STRUCTURE_TIER_1,
-                prepareConstructTrigger(stackSize, 1),
-                3,
-                3,
-                0,
-                elementBudget,
-                env,
-                false,
-                true);
-        }
+        if (tier >= 3) return survivalBuildTier(STRUCTURE_TIER_3, 3, 7, stackSize, elementBudget, env);
+        if (tier == 2) return survivalBuildTier(STRUCTURE_TIER_2, 2, 5, stackSize, elementBudget, env);
+        return survivalBuildTier(STRUCTURE_TIER_1, 1, 3, stackSize, elementBudget, env);
+    }
+
+    // See Note [Survival builds count the hatches of the tier they build]
+    private int survivalBuildTier(String piece, int reactorTier, int horizontalOffset, ItemStack stackSize,
+        int elementBudget, ISurvivalBuildEnvironment env) {
+        ItemStack trigger = prepareConstructTrigger(stackSize, reactorTier);
+        resetMatchedParts();
+        checkPiece(piece, horizontalOffset, 3, 0, new ArrayList<>());
+        return survivalBuildPiece(piece, trigger, horizontalOffset, 3, 0, elementBudget, env, false, true);
     }
 
     public void updateNuclearTilesPipeTier() {
@@ -796,6 +774,27 @@ public class MTENuclearReactor extends MTEEnhancedMultiBlockBase<MTENuclearReact
             }
         }
     }
+
+    /*-
+    Note [Survival builds count the hatches of the tier they build] (generated)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    GregTech's hatch elements decide whether to place a hatch from the controller's hatch lists:
+    the 'c' casing element of NuclearReactorStructure, built with atLeast(Maintenance), places a
+    maintenance hatch while mMaintenanceHatches is empty.  A survival build pass skips hatches
+    already in the world without adding them to the lists, so the lists must already hold them.
+    
+    After each pass that places something, survivalBuildPiece(..., checkIfPlaced) re-checks the
+    structure, and checkMachine tries tier 1, then 2, then 3, calling resetMatchedParts before
+    each try.  On a half-built tier 1 or 2 reactor every try fails, and the last one, tier 3,
+    fails before it reaches any hatch, so the lists end up empty.  The next pass then saw no
+    maintenance hatch and placed another, until every outer casing of the side walls was one:
+    that's what NEI's structure preview (BlockRenderer6343's GTGuiMultiblockHandler, which runs
+    survivalConstruct until nothing changes) showed for tiers 1 and 2.
+    
+    survivalBuildTier therefore checks the tier it's about to build before each pass, so the
+    lists hold that tier's hatches.  The check stops at the first missing block, so a hatch the
+    player placed beyond a gap isn't counted; GregTech's own multiblocks behave the same way.
+    */
 
     /** Forgets the hatches, casings and tiers a structure match collected, before trying a tier. */
     private void resetMatchedParts() {
