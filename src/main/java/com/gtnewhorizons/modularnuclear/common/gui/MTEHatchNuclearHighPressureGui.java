@@ -46,7 +46,7 @@ public class MTEHatchNuclearHighPressureGui extends ModularNuclearHatchGui<MTEHa
             .childPadding(4);
 
         // Status and telemetry screen (width 160, height 70)
-        ParentWidget<?> statsScreen = CommonWidgets.createFluidScreen(160, 70);
+        ParentWidget<?> statsScreen = CommonWidgets.createHatchScreen(160, 70);
         Flow textColumn = Flow.column()
             .childPadding(1)
             .crossAxisAlignment(Alignment.CrossAxis.START);

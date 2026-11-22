@@ -53,7 +53,7 @@ public class MTEHatchNuclearHatchGui extends ModularNuclearHatchGui<MTEHatchNucl
             .childPadding(4);
 
         // 1. Stats and Telemetry Screen (width 104, height 54)
-        ParentWidget<?> statsScreen = CommonWidgets.createFluidScreen(104, 54);
+        ParentWidget<?> statsScreen = CommonWidgets.createHatchScreen(104, 54);
         Flow textColumn = Flow.column()
             .childPadding(1)
             .crossAxisAlignment(Alignment.CrossAxis.START);
@@ -109,7 +109,7 @@ public class MTEHatchNuclearHatchGui extends ModularNuclearHatchGui<MTEHatchNucl
         mainRow.child(statsScreen);
 
         // 2. Input Tank Screen (width 50, height 54)
-        ParentWidget<?> inputScreen = CommonWidgets.createFluidScreen(50, 54);
+        ParentWidget<?> inputScreen = CommonWidgets.createHatchScreen(50, 54);
         Flow inTextCol = Flow.column()
             .childPadding(1)
             .crossAxisAlignment(Alignment.CrossAxis.START);
