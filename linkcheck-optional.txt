@@ -1,0 +1,3 @@
+# Mods ModularNuclear works without: their classes are only loaded when the mod is there.  One package per line.
+# Read by nh-dev's link check, tools/linkcheck (Note [Link checks against a pack]).
+com.hfstudio.bqapi    # BetterQuestingAPI: ModularNuclearQuestIntegration checks Loader.isModLoaded("bqapi")
