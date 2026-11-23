@@ -11,6 +11,7 @@ import com.gtnewhorizons.modularnuclear.common.metatileentity.hatch.IReadyBefore
 import gregtech.api.metatileentity.BaseMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 
+// At integration into GT5-Unofficial: mgomezch/ModularNuclear#46
 @Mixin(value = BaseMetaTileEntity.class, remap = false)
 public abstract class MixinBaseMetaTileEntity {
 

@@ -18,6 +18,7 @@ import gregtech.api.util.GTModHandler;
 import gregtech.api.util.TurbineStatCalculator;
 import gregtech.common.tileentities.machines.multi.xlturbines.MTEXLTurbineSteam;
 
+// At integration into GT5-Unofficial: mgomezch/ModularNuclear#45
 @Mixin(value = MTEXLTurbineSteam.class, remap = false)
 public abstract class MixinMTEXLTurbineSteam {
 

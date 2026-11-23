@@ -17,6 +17,7 @@ import com.gtnewhorizons.modularnuclear.common.entity.EntityMeltdownFallout;
 import gregtech.common.pollution.Pollution;
 
 // Ties meltdown fallout to GregTech pollution. See Note [Fallout and GregTech pollution]
+// At integration into GT5-Unofficial: mgomezch/ModularNuclear#47
 @Mixin(value = Pollution.class, remap = false)
 public abstract class MixinPollution {
 

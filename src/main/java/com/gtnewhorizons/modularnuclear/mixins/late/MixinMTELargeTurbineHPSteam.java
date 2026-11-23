@@ -21,6 +21,7 @@ import gregtech.common.tileentities.machines.multi.turbines.MTELargeTurbineHPSte
  * Superheated heavy-water steam in the large high-pressure steam turbine: GregTech's superheated steam list takes
  * it in (ModFluids.registerWithGregTech); its share of the exhaust leaves as heavy-water steam.
  */
+// At integration into GT5-Unofficial: mgomezch/ModularNuclear#45
 @Mixin(value = MTELargeTurbineHPSteam.class, remap = false)
 public abstract class MixinMTELargeTurbineHPSteam {
 

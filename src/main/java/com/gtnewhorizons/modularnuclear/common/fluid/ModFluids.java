@@ -76,6 +76,7 @@ public class ModFluids {
      * Heavy-water steam joins GregTech's steam, and its superheated grade GregTech's superheated steam, so the turbines
      * that take those take them too (the turbine mixins turn their exhaust back into heavy water).
      */
+    // At integration into GT5-Unofficial: mgomezch/ModularNuclear#45
     public static void registerWithGregTech() {
         if (fluidHeavyWaterSteam != null && GTModHandler.sAnySteamFluidIDs != null) {
             GTModHandler.sAnySteamFluidIDs = withFluid(GTModHandler.sAnySteamFluidIDs, fluidHeavyWaterSteam);

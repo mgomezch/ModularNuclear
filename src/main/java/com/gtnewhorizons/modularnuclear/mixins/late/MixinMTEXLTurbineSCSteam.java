@@ -23,6 +23,7 @@ import gregtech.common.tileentities.machines.multi.xlturbines.MTEXLTurbineSCStea
  * supercriticalsteam: the heavy grade passes for it, and its share of the exhaust leaves as superheated heavy-water
  * steam.
  */
+// At integration into GT5-Unofficial: mgomezch/ModularNuclear#45
 @Mixin(value = MTEXLTurbineSCSteam.class, remap = false)
 public abstract class MixinMTEXLTurbineSCSteam {
 

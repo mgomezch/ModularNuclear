@@ -23,6 +23,7 @@ import gregtech.common.tileentities.machines.multi.xlturbines.MTEXLTurbineHPStea
  * superheated steam (heavy-water steam for steam, burnt as waste), and its share of the exhaust leaves as heavy-water
  * steam.
  */
+// At integration into GT5-Unofficial: mgomezch/ModularNuclear#45
 @Mixin(value = MTEXLTurbineHPSteam.class, remap = false)
 public abstract class MixinMTEXLTurbineHPSteam {
 

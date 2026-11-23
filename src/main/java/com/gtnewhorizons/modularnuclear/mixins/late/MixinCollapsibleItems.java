@@ -14,6 +14,7 @@ import codechicken.nei.CollapsibleItems;
 import codechicken.nei.NEIClientConfig;
 
 // Adds the mod's NEI item groups. See Note [NEI item groups from the mod]
+// At integration into GTNH: mgomezch/ModularNuclear#44
 @Mixin(value = CollapsibleItems.class, remap = false)
 public abstract class MixinCollapsibleItems {
 

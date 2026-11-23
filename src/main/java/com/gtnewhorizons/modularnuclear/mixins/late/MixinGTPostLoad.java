@@ -9,6 +9,7 @@ import com.gtnewhorizons.modularnuclear.common.fluid.ModFluids;
 
 import gregtech.loaders.postload.GTPostLoad;
 
+// At integration into GT5-Unofficial: mgomezch/ModularNuclear#45
 @Mixin(value = GTPostLoad.class, remap = false)
 public abstract class MixinGTPostLoad {
 

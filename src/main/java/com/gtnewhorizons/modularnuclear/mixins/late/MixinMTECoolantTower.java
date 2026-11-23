@@ -18,6 +18,7 @@ import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 
+// At integration into GT5-Unofficial: mgomezch/ModularNuclear#45
 @Mixin(value = MTECoolantTower.class, remap = false)
 public abstract class MixinMTECoolantTower {
 
