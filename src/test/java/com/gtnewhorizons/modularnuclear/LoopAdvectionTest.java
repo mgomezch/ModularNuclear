@@ -292,47 +292,44 @@ public class LoopAdvectionTest {
     }
 
     @Test
-    void testAKeptPlanFollowsRewiring() {
-        // See Note [The advection graph is kept between steps]: a kept Plan must give, step for step, exactly what
-        // a graph built afresh gives, as the wiring and the flow fractions change under it.
-        CoolantLoopEngine kept = CoolantLoopEnergyConservationTest.loop(6, 2, 21);
-        CoolantLoopEngine fresh = CoolantLoopEnergyConservationTest.loop(6, 2, 21);
-        LoopAdvection.Plan plan = new LoopAdvection.Plan();
-        for (int tick = 0; tick < 120; tick++) {
-            if (tick == 30) {
-                // New flow fractions for the passages
-                for (CoolantLoopEngine e : new CoolantLoopEngine[] { kept, fresh }) {
-                    List<LoopSegment> segs = e.getSegments();
-                    for (int k = 0; k < segs.size(); k++) {
-                        if (segs.get(k)
-                            .getId()
-                            .startsWith("passage_")) {
-                            segs.get(k)
-                                .setFlowFraction(k % 2 == 0 ? 0.25 : 1.0 / 12);
-                        }
-                    }
-                }
-            }
-            if (tick == 60) {
-                // Rewired: the second passage now also feeds from the first
-                for (CoolantLoopEngine e : new CoolantLoopEngine[] { kept, fresh }) {
-                    LoopSegment p0 = find(e, "passage_0"), p1 = find(e, "passage_1");
-                    p1.addUpstreamSegment(p0);
-                }
-            }
-            if (tick == 90) {
-                // Rewired again: back to the plain manifold
-                for (CoolantLoopEngine e : new CoolantLoopEngine[] { kept, fresh }) {
-                    LoopSegment p1 = find(e, "passage_1");
-                    p1.clearUpstreamSegments();
-                    p1.addUpstreamSegment(find(e, "manifold_in"));
-                }
-            }
-            double a = LoopAdvection.step(plan, kept.getSegments(), 2.0, TICK);
-            double b = LoopAdvection.step(fresh.getSegments(), 2.0, TICK);
-            assertEquals(b, a, 0.0, "peak at tick " + tick);
-            assertArrayEquals(temps(fresh), temps(kept), 0.0, "tick " + tick);
+    void testReplacedSegmentsGetANewAdvectionGraph() {
+        // See Note [The advection graph is kept between steps]: an engine that has advected one loop and then had
+        // its segments replaced by differently wired ones (as after a crawl) must advect exactly as a new engine
+        // with those segments. The two loops have as many segments, so a stale graph would still run.
+        CoolantLoopEngine replaced = CoolantLoopEnergyConservationTest.loop(6, 2, 21);
+        start(replaced);
+        for (int tick = 0; tick < 20; tick++) replaced.step(TICK);
+        replaced.replaceSegments(rewired(), false);
+        CoolantLoopEngine fresh = new CoolantLoopEngine(CoolantFluidProperty.WATER);
+        for (LoopSegment s : rewired()) fresh.addSegment(s);
+        start(replaced);
+        start(fresh);
+        for (int tick = 0; tick < 60; tick++) {
+            replaced.step(TICK);
+            fresh.step(TICK);
+            assertArrayEquals(temps(fresh), temps(replaced), 0.0, "tick " + tick);
         }
+    }
+
+    private static void start(CoolantLoopEngine e) {
+        e.setMaxVolumetricFlowRate(100.0);
+        e.setVolumetricFlowRate(2.0);
+    }
+
+    /** The loop of loop(6, 2, 21), wired differently before it goes into an engine. */
+    private static List<LoopSegment> rewired() {
+        CoolantLoopEngine e = CoolantLoopEnergyConservationTest.loop(6, 2, 21);
+        List<LoopSegment> segs = new ArrayList<>(e.getSegments());
+        for (int k = 0; k < segs.size(); k++) {
+            if (segs.get(k)
+                .getId()
+                .startsWith("passage_")) {
+                segs.get(k)
+                    .setFlowFraction(k % 2 == 0 ? 0.25 : 1.0 / 12);
+            }
+        }
+        find(e, "passage_1").addUpstreamSegment(find(e, "passage_0"));
+        return segs;
     }
 
     private static LoopSegment find(CoolantLoopEngine e, String id) {

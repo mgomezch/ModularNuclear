@@ -31,21 +31,29 @@ public final class LoopAdvection {
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     A step needs the loop's flow graph by segment index (Graph): each segment's upstreams, their mixing weights,
     and the order in which solveByCut resolves the segments once the edges into segment 0 are cut.  Building it
-    takes an IdentityHashMap from segment to index, arrays per segment and a topological sort, and a loop of 40
-    segments did that every tick: it was most of the advection's cost in the profiles of the showcase designs
-    (about 0.16 of 0.19 ms per tick for four loops).
+    takes an IdentityHashMap from segment to index, arrays per segment and a topological sort.  A loop of 40
+    segments that did this every tick spent most of its advection time on it in the profiles of the showcase
+    designs (about 0.16 of 0.19 ms per tick for four loops).
     
-    The graph only changes when the loop is wired again: LoopGraphCrawler rewires the segments and sets their flow
-    fractions when it crawls the loop, and CoolantLoopEngine.importState when a loop is loaded.  Neither tells the
-    advection, and tests wire segments by hand.  So a Plan keeps the last Graph, and Graph.matches checks it
-    against the segments at the start of each step, without allocating: the same segments in the same order, each
-    with the same upstream list (by identity, in order) and each upstream with the same flow fraction, compared
-    exactly.  Any difference rebuilds the graph.  The check costs one pass over the edges, much less than the
-    rebuild, and a stale graph can't survive it, as everything the graph is built from is compared.
+    A loop's graph changes only when its segments are replaced.  The rule that makes this so:
     
-    CoolantLoopEngine keeps one Plan per loop.  LoopAdvection.step without a Plan builds the graph afresh, as
-    before.  LoopAdvectionTest.testAKeptPlanFollowsRewiring checks that a kept Plan follows rewiring and new flow
-    fractions, step for step identically to fresh graphs.
+        A segment's wiring (its upstream segments) and its flow fraction are set before it goes into a
+        CoolantLoopEngine, and never changed while it is in one.
+    
+    LoopGraphCrawler builds new segments on every crawl, sets their flow fractions and wires them, and the pump
+    installs them with CoolantLoopEngine.replaceSegments or replaceSegmentsKeepingCoolant.  copyStateFrom carries
+    temperatures, pressures and gases over from the old segments, not wiring.  CoolantLoopEngine.importState builds
+    and wires new segments from a save in the same way.  The engine hands its segments out read-only
+    (getSegments), so they change only through its own methods.
+    
+    So the engine keeps a Plan, which holds the last Graph, and every engine method that changes the segment list
+    calls segmentsChanged, which drops it.  The next step builds a new graph: once per crawl, every 10 seconds or
+    so for a running loop.  Nothing is checked per step except that the segment count still matches, so that a
+    break of the rule can't index past the end of the graph's arrays.
+    
+    LoopAdvection.step without a Plan builds the graph afresh each time, for code (and tests) that wire segments
+    by hand between steps.  CoolantLoopEngineTest.testReplacedSegmentsGetANewAdvectionGraph checks that an engine
+    whose segments are replaced by differently wired ones advects exactly as a new engine with those segments.
     */
 
     private LoopAdvection() {}
@@ -55,9 +63,14 @@ public final class LoopAdvection {
 
         private Graph graph;
 
+        /** Drops the graph: the segments were replaced. */
+        void segmentsChanged() {
+            graph = null;
+        }
+
         Graph graphFor(List<LoopSegment> segments) {
             Graph g = graph;
-            if (g == null || !g.matches(segments)) {
+            if (g == null || g.upstreams.length != segments.size()) {
                 g = Graph.of(segments);
                 graph = g;
             }
@@ -145,7 +158,7 @@ public final class LoopAdvection {
 
     /**
      * The loop's flow graph by segment index, with each segment's upstreams and their mixing weights, the order
-     * solveByCut resolves them in, and what it was built from. See Note [The advection graph is kept between steps]
+     * solveByCut resolves them in. See Note [The advection graph is kept between steps]
      */
     private static final class Graph {
 
@@ -154,47 +167,19 @@ public final class LoopAdvection {
         /** Flow order with the edges into segment 0 cut; null when the cut graph still has a cycle. */
         final int[] cutOrder;
 
-        // What the graph was built from, for matches
-        private final LoopSegment[] segments;
-        private final LoopSegment[][] wired;
-        private final double[][] wiredFractions;
-
         // Scratch for a step
         final double[] old, a, b, alpha, beta;
 
-        private Graph(LoopSegment[] segments, LoopSegment[][] wired, double[][] wiredFractions, int[][] upstreams,
-            double[][] weights) {
-            this.segments = segments;
-            this.wired = wired;
-            this.wiredFractions = wiredFractions;
+        private Graph(int[][] upstreams, double[][] weights) {
             this.upstreams = upstreams;
             this.weights = weights;
             this.cutOrder = cutOrder(upstreams);
-            int n = segments.length;
+            int n = upstreams.length;
             old = new double[n];
             a = new double[n];
             b = new double[n];
             alpha = new double[n];
             beta = new double[n];
-        }
-
-        /** Whether the graph was built from these segments as they are wired now. */
-        boolean matches(List<LoopSegment> now) {
-            int n = segments.length;
-            if (now.size() != n) return false;
-            for (int i = 0; i < n; i++) {
-                LoopSegment s = now.get(i);
-                if (s != segments[i]) return false;
-                List<LoopSegment> ups = s.getUpstreamSegments();
-                LoopSegment[] was = wired[i];
-                if (ups.size() != was.length) return false;
-                for (int k = 0; k < was.length; k++) {
-                    LoopSegment up = ups.get(k);
-                    // Exact: the weights were computed from these values
-                    if (up != was[k] || up.getFlowFraction() != wiredFractions[i][k]) return false;
-                }
-            }
-            return true;
         }
 
         /**
@@ -204,17 +189,12 @@ public final class LoopAdvection {
         static Graph of(List<LoopSegment> segments) {
             int n = segments.size();
             LoopSegment[] segs = segments.toArray(new LoopSegment[0]);
-            LoopSegment[][] wiredSnapshot = new LoopSegment[n][];
-            double[][] fractions = new double[n][];
             Map<LoopSegment, Integer> index = new IdentityHashMap<>(2 * n);
             for (int i = 0; i < n; i++) index.put(segs[i], i);
             int[][] ups = new int[n][];
             double[][] ws = new double[n][];
             for (int i = 0; i < n; i++) {
                 List<LoopSegment> wired = segs[i].getUpstreamSegments();
-                wiredSnapshot[i] = wired.toArray(new LoopSegment[0]);
-                fractions[i] = new double[wired.size()];
-                for (int k = 0; k < wired.size(); k++) fractions[i][k] = wiredSnapshot[i][k].getFlowFraction();
                 if (wired.isEmpty()) {
                     ups[i] = n > 1 ? new int[] { (i + n - 1) % n } : new int[0];
                     ws[i] = n > 1 ? new double[] { 1.0 } : new double[0];
@@ -236,7 +216,7 @@ public final class LoopAdvection {
                 ups[i] = Arrays.copyOf(u, k);
                 ws[i] = Arrays.copyOf(w, k);
             }
-            return new Graph(segs, wiredSnapshot, fractions, ups, ws);
+            return new Graph(ups, ws);
         }
 
         /** Kahn's algorithm over the graph with the edges into segment 0 cut; null if a cycle remains. */

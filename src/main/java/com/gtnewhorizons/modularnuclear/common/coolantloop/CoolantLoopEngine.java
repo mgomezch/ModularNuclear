@@ -223,6 +223,12 @@ public class CoolantLoopEngine {
             throw new IllegalArgumentException("Segment cannot be null");
         }
         segments.add(segment);
+        segmentsChanged();
+    }
+
+    /** Every change to the segment list comes here. See Note [The advection graph is kept between steps] */
+    private void segmentsChanged() {
+        advectionPlan.segmentsChanged();
     }
 
     /**
@@ -245,6 +251,7 @@ public class CoolantLoopEngine {
         }
         if (sameLoop) {
             segments.clear();
+            segmentsChanged();
             for (LoopSegment s : next) {
                 s.copyStateFrom(previous.get(s.getKey()));
                 addSegment(s);
@@ -270,6 +277,7 @@ public class CoolantLoopEngine {
         boolean hadCoolant = !segments.isEmpty();
         boolean same = previous.size() == next.size();
         segments.clear();
+        segmentsChanged();
         for (LoopSegment s : next) {
             LoopSegment old = previous.get(s.getKey());
             if (old != null) {
@@ -289,6 +297,7 @@ public class CoolantLoopEngine {
 
     public void clearSegments() {
         segments.clear();
+        segmentsChanged();
         volumetricFlowRate = 0.0;
         pumpHeadPressurePa = 0.0;
         maxVolumetricFlowRate = Double.MAX_VALUE;
@@ -739,5 +748,6 @@ public class CoolantLoopEngine {
             }
             this.segments.addAll(segMap.values());
         }
+        segmentsChanged();
     }
 }
