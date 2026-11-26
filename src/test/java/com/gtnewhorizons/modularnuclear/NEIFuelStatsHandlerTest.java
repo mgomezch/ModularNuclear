@@ -244,6 +244,35 @@ public class NEIFuelStatsHandlerTest {
         assertNotEquals(Items.water_bucket, displayStack.getItem(), "Should not fall back to water bucket");
     }
 
+    // mgomezch/ModularNuclear#35: the page's fission multipliers are the ones chainRate uses, global ones included
+    @Test
+    public void testFissionReadoutsAreWhatTheReactorUses() {
+        EngineParameters p = NuclearSimulationEngine.params()
+            .copy();
+        p.globalThermalFissionMultiplier = 2.5;
+        p.globalFastFissionMultiplier = 0.5;
+        // The archetype multipliers, as ReactorConfigData.syncPhysicsToEngine installs them in game
+        PhysicsData physics = ReactorDataRegistry.getPhysics();
+        p.standardFissionMultiplier = physics.standardFissionMultiplier;
+        p.denseFissionMultiplier = physics.denseFissionMultiplier;
+        p.excitedFissionMultiplier = physics.excitedFissionMultiplier;
+        p.breederFissionMultiplier = physics.breederFissionMultiplier;
+        List<FuelData> fuels = ReactorDataRegistry.getAllFuels();
+        assertFalse(fuels.isEmpty());
+        for (FuelData fd : fuels) {
+            // NuclearReactorPhysics.generateTileNeutrons hands chainRate these, and chainRate applies the globals
+            double thermal = TileProperties.thermalFissionYield(p, fd.getEffectiveFissionMultiplier(physics));
+            double fast = TileProperties.fastFissionYield(p, fd.getEffectiveFastFissionMultiplier(physics));
+            assertEquals(thermal, TileProperties.fuelThermalFission(p, fd), 1e-12, fd.id);
+            assertEquals(fast, TileProperties.fuelFastFission(p, fd), 1e-12, fd.id);
+            assertEquals(
+                fd.getEffectiveFissionMultiplier(physics) * p.globalThermalFissionMultiplier,
+                TileProperties.fuelThermalFission(p, fd),
+                1e-12,
+                fd.id);
+        }
+    }
+
     // mgomezch/ModularNuclear#36: the plotted wear is what TileTick.fuelWear charges for temperature
     @Test
     public void testPlottedWearIsWhatTheReactorCharges() {
