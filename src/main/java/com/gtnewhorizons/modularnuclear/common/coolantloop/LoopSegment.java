@@ -17,6 +17,7 @@ public class LoopSegment {
     private final double diameter; // Inner diameter (m)
     private final double area; // Cross-sectional area (m^2)
     private final double roughness; // Absolute pipe wall roughness (m)
+    private final double relRoughness; // roughness / diameter, for the friction factor
     /** Minor loss of a pipe block (its fitting to the next). */
     public static final double PIPE_BLOCK_MINOR_LOSS_K = 0.05;
     /** Minor loss of a loop instrument in a pipe run. */
@@ -80,6 +81,7 @@ public class LoopSegment {
         this.diameter = diameter;
         this.area = Math.PI * Math.pow(diameter / 2.0, 2);
         this.roughness = roughness;
+        this.relRoughness = roughness / diameter;
         this.minorLossK = minorLossK;
         this.maxPressureBar = maxPressureBar;
         this.maxTemperatureCelsius = maxTemperatureCelsius;
@@ -463,10 +465,24 @@ public class LoopSegment {
         }
 
         // Churchill correlation for transitional and turbulent regimes:
-        double relRoughness = roughness / diameter;
-        double a = Math.pow(-2.457 * Math.log(Math.pow(7.0 / reynolds, 0.9) + 0.27 * relRoughness), 16.0);
-        double b = Math.pow(37530.0 / reynolds, 16.0);
-        return 8.0 * Math.pow(Math.pow(8.0 / reynolds, 12.0) + 1.0 / Math.pow(a + b, 1.5), 1.0 / 12.0);
+        // f = 8 [(8/Re)^12 + (A + B)^-1.5]^(1/12)
+        // A = [-2.457 ln((7/Re)^0.9 + 0.27 e/D)]^16, B = (37530/Re)^16
+        // It runs for every segment twice a step, so the whole and half powers are multiplications and square
+        // roots rather than Math.pow; FrictionFactorTest holds it to the formula as written.
+        double a = pow16(-2.457 * Math.log(Math.pow(7.0 / reynolds, 0.9) + 0.27 * relRoughness));
+        double b = pow16(37530.0 / reynolds);
+        double r2 = (8.0 / reynolds) * (8.0 / reynolds);
+        double r4 = r2 * r2;
+        double ab = a + b;
+        double sum = r4 * r4 * r4 + 1.0 / (ab * Math.sqrt(ab));
+        return 8.0 * Math.sqrt(Math.sqrt(Math.cbrt(sum))); // the twelfth root
+    }
+
+    private static double pow16(double x) {
+        double x2 = x * x;
+        double x4 = x2 * x2;
+        double x8 = x4 * x4;
+        return x8 * x8;
     }
 
     /**
