@@ -24,6 +24,8 @@ public class CoolantLoopEngine {
 
     private CoolantFluidProperty fluid;
     private final List<LoopSegment> segments = new ArrayList<>();
+    /** See Note [The advection graph is kept between steps] */
+    private final LoopAdvection.Plan advectionPlan = new LoopAdvection.Plan();
 
     // State variables
     private double volumetricFlowRate = 0.0; // m^3/s
@@ -639,7 +641,7 @@ public class CoolantLoopEngine {
             }
             return;
         }
-        peakLoopTempCelsius = LoopAdvection.step(segments, volumetricFlowRate, dt);
+        peakLoopTempCelsius = LoopAdvection.step(advectionPlan, segments, volumetricFlowRate, dt);
     }
 
     /**

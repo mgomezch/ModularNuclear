@@ -290,4 +290,54 @@ public class LoopAdvectionTest {
         e.step(TICK);
         assertEquals(before, CoolantLoopEnergyConservationTest.heat(e), 1e-9 * Math.abs(before));
     }
+
+    @Test
+    void testAKeptPlanFollowsRewiring() {
+        // See Note [The advection graph is kept between steps]: a kept Plan must give, step for step, exactly what
+        // a graph built afresh gives, as the wiring and the flow fractions change under it.
+        CoolantLoopEngine kept = CoolantLoopEnergyConservationTest.loop(6, 2, 21);
+        CoolantLoopEngine fresh = CoolantLoopEnergyConservationTest.loop(6, 2, 21);
+        LoopAdvection.Plan plan = new LoopAdvection.Plan();
+        for (int tick = 0; tick < 120; tick++) {
+            if (tick == 30) {
+                // New flow fractions for the passages
+                for (CoolantLoopEngine e : new CoolantLoopEngine[] { kept, fresh }) {
+                    List<LoopSegment> segs = e.getSegments();
+                    for (int k = 0; k < segs.size(); k++) {
+                        if (segs.get(k)
+                            .getId()
+                            .startsWith("passage_")) {
+                            segs.get(k)
+                                .setFlowFraction(k % 2 == 0 ? 0.25 : 1.0 / 12);
+                        }
+                    }
+                }
+            }
+            if (tick == 60) {
+                // Rewired: the second passage now also feeds from the first
+                for (CoolantLoopEngine e : new CoolantLoopEngine[] { kept, fresh }) {
+                    LoopSegment p0 = find(e, "passage_0"), p1 = find(e, "passage_1");
+                    p1.addUpstreamSegment(p0);
+                }
+            }
+            if (tick == 90) {
+                // Rewired again: back to the plain manifold
+                for (CoolantLoopEngine e : new CoolantLoopEngine[] { kept, fresh }) {
+                    LoopSegment p1 = find(e, "passage_1");
+                    p1.clearUpstreamSegments();
+                    p1.addUpstreamSegment(find(e, "manifold_in"));
+                }
+            }
+            double a = LoopAdvection.step(plan, kept.getSegments(), 2.0, TICK);
+            double b = LoopAdvection.step(fresh.getSegments(), 2.0, TICK);
+            assertEquals(b, a, 0.0, "peak at tick " + tick);
+            assertArrayEquals(temps(fresh), temps(kept), 0.0, "tick " + tick);
+        }
+    }
+
+    private static LoopSegment find(CoolantLoopEngine e, String id) {
+        for (LoopSegment s : e.getSegments()) if (s.getId()
+            .equals(id)) return s;
+        throw new AssertionError(id);
+    }
 }

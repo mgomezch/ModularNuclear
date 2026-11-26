@@ -1,7 +1,5 @@
 package com.gtnewhorizons.modularnuclear.common.coolantloop;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -28,35 +26,79 @@ import java.util.Map;
  */
 public final class LoopAdvection {
 
+    /*-
+    Note [The advection graph is kept between steps] (generated)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    A step needs the loop's flow graph by segment index (Graph): each segment's upstreams, their mixing weights,
+    and the order in which solveByCut resolves the segments once the edges into segment 0 are cut.  Building it
+    takes an IdentityHashMap from segment to index, arrays per segment and a topological sort, and a loop of 40
+    segments did that every tick: it was most of the advection's cost in the profiles of the showcase designs
+    (about 0.16 of 0.19 ms per tick for four loops).
+    
+    The graph only changes when the loop is wired again: LoopGraphCrawler rewires the segments and sets their flow
+    fractions when it crawls the loop, and CoolantLoopEngine.importState when a loop is loaded.  Neither tells the
+    advection, and tests wire segments by hand.  So a Plan keeps the last Graph, and Graph.matches checks it
+    against the segments at the start of each step, without allocating: the same segments in the same order, each
+    with the same upstream list (by identity, in order) and each upstream with the same flow fraction, compared
+    exactly.  Any difference rebuilds the graph.  The check costs one pass over the edges, much less than the
+    rebuild, and a stale graph can't survive it, as everything the graph is built from is compared.
+    
+    CoolantLoopEngine keeps one Plan per loop.  LoopAdvection.step without a Plan builds the graph afresh, as
+    before.  LoopAdvectionTest.testAKeptPlanFollowsRewiring checks that a kept Plan follows rewiring and new flow
+    fractions, step for step identically to fresh graphs.
+    */
+
     private LoopAdvection() {}
+
+    /** What a loop keeps between steps: its last graph. See Note [The advection graph is kept between steps] */
+    public static final class Plan {
+
+        private Graph graph;
+
+        Graph graphFor(List<LoopSegment> segments) {
+            Graph g = graph;
+            if (g == null || !g.matches(segments)) {
+                g = Graph.of(segments);
+                graph = g;
+            }
+            return g;
+        }
+    }
 
     /**
      * Advances the segments' temperatures by {@code dt} seconds at {@code flowM3s} volumetric flow, sets each
      * segment's incoming temperature, and returns the hottest new temperature.
      */
     public static double step(List<LoopSegment> segments, double flowM3s, double dt) {
-        int n = segments.size();
-        Graph g = Graph.of(segments);
+        return step(new Plan(), segments, flowM3s, dt);
+    }
 
-        double[] old = new double[n];
+    /** As {@link #step(List, double, double)}, reusing the plan's graph while the wiring stays the same. */
+    public static double step(Plan plan, List<LoopSegment> segments, double flowM3s, double dt) {
+        int n = segments.size();
+        Graph g = plan.graphFor(segments);
+
+        double[] old = g.old;
         for (int i = 0; i < n; i++) old[i] = segments.get(i)
             .getCurrentTemperatureCelsius();
         double theta = theta(segments, g, flowM3s, dt);
 
         // V (T' - T) = c [theta (Tin' - T') + (1 - theta) (Tin - T)], rearranged as T'_i = a_i + b_i * Tin'_i
-        double[] a = new double[n];
-        double[] b = new double[n];
+        double[] a = g.a;
+        double[] b = g.b;
         for (int i = 0; i < n; i++) {
             LoopSegment s = segments.get(i);
             double inflow = flowM3s * s.getFlowFraction() * dt;
             double volume = s.getVolume();
             if (g.upstreams[i].length == 0) {
                 a[i] = old[i];
+                b[i] = 0.0;
             } else if (volume > 0.0) {
                 double explicit = (1.0 - theta) * inflow * (g.mix(i, old) - old[i]);
                 a[i] = (volume * old[i] + explicit) / (volume + theta * inflow);
                 b[i] = theta * inflow / (volume + theta * inflow);
             } else {
+                a[i] = 0.0;
                 b[i] = 1.0;
             }
         }
@@ -101,15 +143,58 @@ public final class LoopAdvection {
         return max;
     }
 
-    /** The loop's flow graph by segment index, with each segment's upstreams and their mixing weights. */
+    /**
+     * The loop's flow graph by segment index, with each segment's upstreams and their mixing weights, the order
+     * solveByCut resolves them in, and what it was built from. See Note [The advection graph is kept between steps]
+     */
     private static final class Graph {
 
         final int[][] upstreams;
         final double[][] weights;
+        /** Flow order with the edges into segment 0 cut; null when the cut graph still has a cycle. */
+        final int[] cutOrder;
 
-        private Graph(int[][] upstreams, double[][] weights) {
+        // What the graph was built from, for matches
+        private final LoopSegment[] segments;
+        private final LoopSegment[][] wired;
+        private final double[][] wiredFractions;
+
+        // Scratch for a step
+        final double[] old, a, b, alpha, beta;
+
+        private Graph(LoopSegment[] segments, LoopSegment[][] wired, double[][] wiredFractions, int[][] upstreams,
+            double[][] weights) {
+            this.segments = segments;
+            this.wired = wired;
+            this.wiredFractions = wiredFractions;
             this.upstreams = upstreams;
             this.weights = weights;
+            this.cutOrder = cutOrder(upstreams);
+            int n = segments.length;
+            old = new double[n];
+            a = new double[n];
+            b = new double[n];
+            alpha = new double[n];
+            beta = new double[n];
+        }
+
+        /** Whether the graph was built from these segments as they are wired now. */
+        boolean matches(List<LoopSegment> now) {
+            int n = segments.length;
+            if (now.size() != n) return false;
+            for (int i = 0; i < n; i++) {
+                LoopSegment s = now.get(i);
+                if (s != segments[i]) return false;
+                List<LoopSegment> ups = s.getUpstreamSegments();
+                LoopSegment[] was = wired[i];
+                if (ups.size() != was.length) return false;
+                for (int k = 0; k < was.length; k++) {
+                    LoopSegment up = ups.get(k);
+                    // Exact: the weights were computed from these values
+                    if (up != was[k] || up.getFlowFraction() != wiredFractions[i][k]) return false;
+                }
+            }
+            return true;
         }
 
         /**
@@ -118,13 +203,18 @@ public final class LoopAdvection {
          */
         static Graph of(List<LoopSegment> segments) {
             int n = segments.size();
+            LoopSegment[] segs = segments.toArray(new LoopSegment[0]);
+            LoopSegment[][] wiredSnapshot = new LoopSegment[n][];
+            double[][] fractions = new double[n][];
             Map<LoopSegment, Integer> index = new IdentityHashMap<>(2 * n);
-            for (int i = 0; i < n; i++) index.put(segments.get(i), i);
+            for (int i = 0; i < n; i++) index.put(segs[i], i);
             int[][] ups = new int[n][];
             double[][] ws = new double[n][];
             for (int i = 0; i < n; i++) {
-                List<LoopSegment> wired = segments.get(i)
-                    .getUpstreamSegments();
+                List<LoopSegment> wired = segs[i].getUpstreamSegments();
+                wiredSnapshot[i] = wired.toArray(new LoopSegment[0]);
+                fractions[i] = new double[wired.size()];
+                for (int k = 0; k < wired.size(); k++) fractions[i][k] = wiredSnapshot[i][k].getFlowFraction();
                 if (wired.isEmpty()) {
                     ups[i] = n > 1 ? new int[] { (i + n - 1) % n } : new int[0];
                     ws[i] = n > 1 ? new double[] { 1.0 } : new double[0];
@@ -146,7 +236,30 @@ public final class LoopAdvection {
                 ups[i] = Arrays.copyOf(u, k);
                 ws[i] = Arrays.copyOf(w, k);
             }
-            return new Graph(ups, ws);
+            return new Graph(segs, wiredSnapshot, fractions, ups, ws);
+        }
+
+        /** Kahn's algorithm over the graph with the edges into segment 0 cut; null if a cycle remains. */
+        private static int[] cutOrder(int[][] upstreams) {
+            int n = upstreams.length;
+            int[] pending = new int[n];
+            int[] downCount = new int[n];
+            for (int i = 1; i < n; i++) {
+                pending[i] = upstreams[i].length;
+                for (int u : upstreams[i]) downCount[u]++;
+            }
+            int[][] downstream = new int[n][];
+            for (int i = 0; i < n; i++) downstream[i] = new int[downCount[i]];
+            int[] fill = new int[n];
+            for (int i = 1; i < n; i++) for (int u : upstreams[i]) downstream[u][fill[u]++] = i;
+            int[] order = new int[n];
+            int head = 0, tail = 0;
+            for (int i = 0; i < n; i++) if (pending[i] == 0) order[tail++] = i;
+            while (head < tail) {
+                int i = order[head++];
+                for (int d : downstream[i]) if (--pending[d] == 0) order[tail++] = d;
+            }
+            return tail == n ? order : null;
         }
 
         /** Temperature of the coolant flowing into segment i, for the given segment temperatures. */
@@ -162,23 +275,11 @@ public final class LoopAdvection {
          * the cut graph still has a cycle.
          */
         double[] solveByCut(double[] a, double[] b) {
+            if (cutOrder == null) return null;
             int n = a.length;
-            int[] pending = new int[n];
-            List<List<Integer>> downstream = new ArrayList<>(n);
-            for (int i = 0; i < n; i++) downstream.add(new ArrayList<>());
-            for (int i = 1; i < n; i++) {
-                pending[i] = upstreams[i].length;
-                for (int u : upstreams[i]) downstream.get(u)
-                    .add(i);
-            }
-            double[] alpha = new double[n];
-            double[] beta = new double[n];
-            ArrayDeque<Integer> ready = new ArrayDeque<>();
-            for (int i = 0; i < n; i++) if (pending[i] == 0) ready.add(i);
-            int done = 0;
-            while (!ready.isEmpty()) {
-                int i = ready.poll();
-                done++;
+            double[] alpha = this.alpha;
+            double[] beta = this.beta;
+            for (int i : cutOrder) {
                 double inAlpha = 0.0, inBeta = 0.0;
                 if (i == 0) {
                     inBeta = 1.0;
@@ -190,9 +291,7 @@ public final class LoopAdvection {
                 }
                 alpha[i] = a[i] + b[i] * inAlpha;
                 beta[i] = b[i] * inBeta;
-                for (int d : downstream.get(i)) if (--pending[d] == 0) ready.add(d);
             }
-            if (done < n) return null;
 
             double p = 0.0, r = 0.0;
             for (int k = 0; k < upstreams[0].length; k++) {
