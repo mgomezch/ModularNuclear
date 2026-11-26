@@ -38,6 +38,8 @@ public enum NuclearFuelType {
 
     public final String displayName;
     public final String archetype;
+    /** archetype as NuclearSimulationEngine.archetypeOf codes it. See Note [Fuel archetypes are resolved once]. */
+    public final int archetypeCode;
     public final double peakReactivityTemp;
     public final double floorTemp;
     public final double baseThermalFissionMultiplier;
@@ -70,6 +72,7 @@ public enum NuclearFuelType {
         double wearFactor) {
         this.displayName = displayName;
         this.archetype = archetype != null ? archetype : "standard";
+        this.archetypeCode = NuclearSimulationEngine.archetypeOf(this.archetype);
         this.peakReactivityTemp = peakReactivityTemp;
         this.floorTemp = floorTemp;
         this.baseThermalFissionMultiplier = baseThermalFissionMultiplier;
@@ -87,17 +90,17 @@ public enum NuclearFuelType {
     }
 
     public int getEffectiveBaseNeutrons(PhysicsData physics) {
-        double mult = (physics != null) ? physics.getArchetypeNbaseMultiplier(this.archetype) : 1.0;
+        double mult = (physics != null) ? physics.getArchetypeNbaseMultiplier(this.archetypeCode) : 1.0;
         return Math.max(1, (int) Math.round(this.baseNeutrons * mult));
     }
 
     public double getEffectiveFissionMultiplier(PhysicsData physics) {
-        double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetype) : 1.0;
+        double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetypeCode) : 1.0;
         return this.baseThermalFissionMultiplier * mult;
     }
 
     public double getEffectiveFastFissionMultiplier(PhysicsData physics) {
-        double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetype) : 1.0;
+        double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetypeCode) : 1.0;
         return this.baseFastFissionMultiplier * mult;
     }
 

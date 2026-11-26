@@ -120,13 +120,13 @@ public class NuclearSimulationEngine {
     public static final double DEFAULT_BREEDER_NBASE_MULT = 1.00;
     public static final double DEFAULT_BREEDER_FISSION_MULT = 1.00;
 
-    static final int ARCHETYPE_STANDARD = 0, ARCHETYPE_DENSE = 1, ARCHETYPE_EXCITED = 2, ARCHETYPE_BREEDER = 3;
+    public static final int ARCHETYPE_STANDARD = 0, ARCHETYPE_DENSE = 1, ARCHETYPE_EXCITED = 2, ARCHETYPE_BREEDER = 3;
 
     /**
      * A fuel archetype name's family. Called per fuel cell every cycle: configured names are lower case and match
      * directly; only an unrecognised one is lower-cased and tried again.
      */
-    static int archetypeOf(String archetype) {
+    public static int archetypeOf(String archetype) {
         if (archetype == null) return ARCHETYPE_STANDARD;
         int a = archetypeExact(archetype);
         return a >= 0 ? a : Math.max(ARCHETYPE_STANDARD, archetypeExact(archetype.toLowerCase(java.util.Locale.ROOT)));

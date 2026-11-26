@@ -7,6 +7,7 @@ import java.util.Map;
 
 import com.gtnewhorizons.modularnuclear.common.config.ReactorConfigData;
 import com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 
 public class FuelData {
 
@@ -285,18 +286,66 @@ public class FuelData {
         return fd;
     }
 
+    /*-
+    Note [Fuel archetypes are resolved once] (generated)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    A fuel's archetype (standard, dense, excited, breeder, and their aliases such as "naquadah") picks which of
+    the calibration multipliers in PhysicsData and EngineParameters apply to it.  The engine reads them for every
+    fuel cell every cycle, in NuclearReactorPhysics.generateTileNeutrons and the TileProperties helpers it calls,
+    so they must not look the name up as a string there.
+    
+    NuclearSimulationEngine.archetypeOf turns the name into an int code, and the multiplier lookups
+    (PhysicsData.getArchetypeFissionMultiplier(int), EngineParameters.fissionMultiplier(int) and their nbase
+    twins) switch on that code.  Their String overloads remain for code that isn't per tick.
+    
+    Each fuel keeps its code:
+    
+      - NuclearFuelType resolves it in the constructor, into the final field archetypeCode.
+      - FuelData.archetype is a public field that the constructors, fromMap and tests assign, so FuelData resolves it
+        in archetypeCode() and keeps the result with the String it came from.  A later call that finds the same
+        String object (an identity test, not equals) reuses the code; one that finds another String resolves
+        again.  The pair lives in one immutable ResolvedArchetype, so a thread that reads the field sees a name
+        and a code that belong together.
+    
+    The multipliers themselves aren't cached: they come from the config, which can be reloaded, and tests set
+    them directly.  FuelArchetypeCodeTest pins the codes, the aliases, and re-resolving after an assignment.
+    */
+
+    private static final class ResolvedArchetype {
+
+        final String name;
+        final int code;
+
+        ResolvedArchetype(String name) {
+            this.name = name;
+            this.code = NuclearSimulationEngine.archetypeOf(name);
+        }
+    }
+
+    private transient ResolvedArchetype resolvedArchetype;
+
+    /** archetype as NuclearSimulationEngine.archetypeOf codes it, resolved once per value of the field. */
+    public int archetypeCode() {
+        ResolvedArchetype r = resolvedArchetype;
+        if (r == null || r.name != archetype) {
+            r = new ResolvedArchetype(archetype);
+            resolvedArchetype = r;
+        }
+        return r.code;
+    }
+
     public int getEffectiveBaseNeutrons(PhysicsData physics) {
-        double mult = (physics != null) ? physics.getArchetypeNbaseMultiplier(this.archetype) : 1.0;
+        double mult = (physics != null) ? physics.getArchetypeNbaseMultiplier(archetypeCode()) : 1.0;
         return Math.max(1, (int) Math.round(this.baseNeutrons * mult));
     }
 
     public double getEffectiveFissionMultiplier(PhysicsData physics) {
-        double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetype) : 1.0;
+        double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(archetypeCode()) : 1.0;
         return this.thermalFissionMultiplier * mult;
     }
 
     public double getEffectiveFastFissionMultiplier(PhysicsData physics) {
-        double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(this.archetype) : 1.0;
+        double mult = (physics != null) ? physics.getArchetypeFissionMultiplier(archetypeCode()) : 1.0;
         return this.fastFissionMultiplier * mult;
     }
 

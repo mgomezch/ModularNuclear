@@ -137,7 +137,12 @@ public final class EngineParameters {
 
     /** Base neutron multiplier of a fuel archetype, including the global neutron yield multiplier. */
     public double nbaseMultiplier(String archetype) {
-        double mult = switch (NuclearSimulationEngine.archetypeOf(archetype)) {
+        return nbaseMultiplier(NuclearSimulationEngine.archetypeOf(archetype));
+    }
+
+    /** nbaseMultiplier of an archetype code (NuclearSimulationEngine.archetypeOf), without a string lookup. */
+    public double nbaseMultiplier(int archetype) {
+        double mult = switch (archetype) {
             case NuclearSimulationEngine.ARCHETYPE_DENSE -> denseNbaseMultiplier;
             case NuclearSimulationEngine.ARCHETYPE_EXCITED -> excitedNbaseMultiplier;
             case NuclearSimulationEngine.ARCHETYPE_BREEDER -> breederNbaseMultiplier;
@@ -148,7 +153,12 @@ public final class EngineParameters {
 
     /** Fission multiplier of a fuel archetype. */
     public double fissionMultiplier(String archetype) {
-        return switch (NuclearSimulationEngine.archetypeOf(archetype)) {
+        return fissionMultiplier(NuclearSimulationEngine.archetypeOf(archetype));
+    }
+
+    /** fissionMultiplier of an archetype code (NuclearSimulationEngine.archetypeOf), without a string lookup. */
+    public double fissionMultiplier(int archetype) {
+        return switch (archetype) {
             case NuclearSimulationEngine.ARCHETYPE_DENSE -> denseFissionMultiplier;
             case NuclearSimulationEngine.ARCHETYPE_EXCITED -> excitedFissionMultiplier;
             case NuclearSimulationEngine.ARCHETYPE_BREEDER -> breederFissionMultiplier;

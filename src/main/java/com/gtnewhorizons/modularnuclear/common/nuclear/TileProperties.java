@@ -359,18 +359,19 @@ public final class TileProperties {
     }
 
     /** Base neutrons per second after the archetype and global yield multipliers. */
+    // See Note [Fuel archetypes are resolved once]
     public static int effectiveBaseNeutrons(EngineParameters p, FuelData fd) {
-        double mult = p.nbaseMultiplier(fd.archetype);
+        double mult = p.nbaseMultiplier(fd.archetypeCode());
         return Math.max(1, (int) Math.round(fd.baseNeutrons * mult));
     }
 
     /** Thermal fission multiplier after the archetype multiplier (before the global multiplier). */
     public static double effectiveThermalFissionMultiplier(EngineParameters p, FuelData fd) {
-        return fd.thermalFissionMultiplier * p.fissionMultiplier(fd.archetype);
+        return fd.thermalFissionMultiplier * p.fissionMultiplier(fd.archetypeCode());
     }
 
     /** Fast fission multiplier after the archetype multiplier (before the global multiplier). */
     public static double effectiveFastFissionMultiplier(EngineParameters p, FuelData fd) {
-        return fd.fastFissionMultiplier * p.fissionMultiplier(fd.archetype);
+        return fd.fastFissionMultiplier * p.fissionMultiplier(fd.archetypeCode());
     }
 }

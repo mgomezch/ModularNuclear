@@ -68,22 +68,33 @@ public class PhysicsData {
 
     /** Base neutron multiplier of a fuel archetype, including the global neutron yield multiplier. */
     public double getArchetypeNbaseMultiplier(String archetype) {
-        double mult = archetype == null ? standardNbaseMultiplier
-            : switch (archetype.toLowerCase(java.util.Locale.ROOT)) {
-            case "dense", "subcritical", "naquadah" -> denseNbaseMultiplier;
-            case "excited", "driver" -> excitedNbaseMultiplier;
-            case "breeder" -> breederNbaseMultiplier;
+        return getArchetypeNbaseMultiplier(NuclearSimulationEngine.archetypeOf(archetype));
+    }
+
+    /**
+     * getArchetypeNbaseMultiplier of an archetype code (NuclearSimulationEngine.archetypeOf), without a string lookup.
+     * See Note [Fuel archetypes are resolved once].
+     */
+    public double getArchetypeNbaseMultiplier(int archetype) {
+        double mult = switch (archetype) {
+            case NuclearSimulationEngine.ARCHETYPE_DENSE -> denseNbaseMultiplier;
+            case NuclearSimulationEngine.ARCHETYPE_EXCITED -> excitedNbaseMultiplier;
+            case NuclearSimulationEngine.ARCHETYPE_BREEDER -> breederNbaseMultiplier;
             default -> standardNbaseMultiplier;
-            };
+        };
         return mult * neutronYieldMultiplier;
     }
 
     public double getArchetypeFissionMultiplier(String archetype) {
-        if (archetype == null) return standardFissionMultiplier;
-        return switch (archetype.toLowerCase(java.util.Locale.ROOT)) {
-            case "dense", "subcritical", "naquadah" -> denseFissionMultiplier;
-            case "excited", "driver" -> excitedFissionMultiplier;
-            case "breeder" -> breederFissionMultiplier;
+        return getArchetypeFissionMultiplier(NuclearSimulationEngine.archetypeOf(archetype));
+    }
+
+    /** getArchetypeFissionMultiplier of an archetype code, without a string lookup. */
+    public double getArchetypeFissionMultiplier(int archetype) {
+        return switch (archetype) {
+            case NuclearSimulationEngine.ARCHETYPE_DENSE -> denseFissionMultiplier;
+            case NuclearSimulationEngine.ARCHETYPE_EXCITED -> excitedFissionMultiplier;
+            case NuclearSimulationEngine.ARCHETYPE_BREEDER -> breederFissionMultiplier;
             default -> standardFissionMultiplier;
         };
     }
