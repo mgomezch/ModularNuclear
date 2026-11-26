@@ -15,10 +15,15 @@ import org.junit.jupiter.api.Test;
 
 import com.gtnewhorizons.modularnuclear.common.config.ReactorDataRegistry;
 import com.gtnewhorizons.modularnuclear.common.config.data.FuelData;
+import com.gtnewhorizons.modularnuclear.common.config.data.PhysicsData;
 import com.gtnewhorizons.modularnuclear.common.metatileentity.ModMetaTileEntities;
 import com.gtnewhorizons.modularnuclear.common.nei.NEIFuelStatsHandler;
+import com.gtnewhorizons.modularnuclear.common.nuclear.EngineParameters;
 import com.gtnewhorizons.modularnuclear.common.nuclear.FuelDamageCurveSolver;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
+import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileTick;
 
 import codechicken.nei.recipe.HandlerInfo;
 
@@ -237,5 +242,36 @@ public class NEIFuelStatsHandlerTest {
         ItemStack displayStack = stacks.get(0);
         assertNotNull(displayStack);
         assertNotEquals(Items.water_bucket, displayStack.getItem(), "Should not fall back to water bucket");
+    }
+
+    // mgomezch/ModularNuclear#36: the plotted wear is what TileTick.fuelWear charges for temperature
+    @Test
+    public void testPlottedWearIsWhatTheReactorCharges() {
+        EngineParameters p = NuclearSimulationEngine.params()
+            .copy();
+        p.fuelBurnupMultiplier = 0.04;
+        for (FuelData fd : ReactorDataRegistry.getAllFuels()) {
+            FuelDamageCurveSolver.FuelCurveStats stats = NEIFuelStatsHandler.curveStats(fd, null);
+            for (double temp : new double[] { 20.0, 300.0, fd.peakReactivityTemp, fd.floorTemp }) {
+                double raw = fd.calculateTemperatureDamage(temp);
+                double charged = TileTick.fuelWear(p, raw, 0, 0, 0, 1.0);
+                double plotted = NEIFuelStatsHandler.temperatureWear(p, stats, temp);
+                assertEquals(charged, plotted, Math.max(1e-12, charged * 1e-9), fd.id + " at " + temp);
+                if (raw > 0.0) assertTrue(plotted < raw, fd.id + ": the burnup multiplier applies");
+            }
+        }
+    }
+
+    @Test
+    public void testWearAxisAndLabels() {
+        assertEquals(0.08, NEIFuelStatsHandler.wearAxisMax(0.07), 1e-12); // 0.077 / 4 rounds up to 0.02
+        assertEquals(2.0, NEIFuelStatsHandler.wearAxisMax(1.5), 1e-12); // 1.65 / 4 to 0.5
+        assertEquals(40.0, NEIFuelStatsHandler.wearAxisMax(30.0), 1e-12); // 33 / 4 to 10
+        assertEquals(4.0, NEIFuelStatsHandler.wearAxisMax(10.0 / 1.1 * 4.0 / 10.0), 1e-12); // exactly 1 per step
+        assertEquals(1.0, NEIFuelStatsHandler.wearAxisMax(0.0), 1e-12);
+        assertEquals("0.0438", NEIFuelStatsHandler.formatWear(0.0437655));
+        assertEquals("12.5", NEIFuelStatsHandler.formatWear(12.5));
+        assertEquals("0.02", NEIFuelStatsHandler.formatWear(0.02));
+        assertEquals("0", NEIFuelStatsHandler.formatWear(0.0));
     }
 }

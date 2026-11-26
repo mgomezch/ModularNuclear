@@ -30,6 +30,7 @@ import com.gtnewhorizons.modularnuclear.common.nuclear.NeutronUnits;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearFuelType;
 import com.gtnewhorizons.modularnuclear.common.nuclear.NuclearSimulationEngine;
 import com.gtnewhorizons.modularnuclear.common.nuclear.TileProperties;
+import com.gtnewhorizons.modularnuclear.common.nuclear.TileTick;
 import com.gtnewhorizons.modularnuclear.common.util.Swallowed;
 
 import codechicken.lib.gui.GuiDraw;
@@ -632,12 +633,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         double maxTemp = Math.ceil((floorTemp + 200.0) / 500.0) * 500.0;
 
         PhysicsData physics = ReactorDataRegistry.getPhysics();
-        double wear = (fd != null && fd.t10WearFactor != null && fd.t10WearFactor > 1.0) ? fd.t10WearFactor
-            : (recipe.fuel != null && recipe.fuel.wearFactor > 1.0 ? recipe.fuel.wearFactor
-                : (physics != null ? physics.t10WearFactor : FuelDamageCurveSolver.DEFAULT_T10_WEAR_FACTOR));
-
-        FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver
-            .solve(recipe.fuel, peakTemp, floorTemp, AMBIENT_TEMP, wear);
+        FuelDamageCurveSolver.FuelCurveStats stats = curveStats(fd, recipe.fuel);
 
         FontRenderer font = Minecraft.getMinecraft().fontRenderer;
         NEIPalette palette = NEIPalette.current();
@@ -705,8 +701,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             .add(String.format(Locale.US, "%.6f", stats.k), palette.inkStrong);
 
         // --- DYNAMIC VECTOR PLOT RENDERING ---
-        double damageAtFloor = stats.calculateDamage(floorTemp);
-        double maxDamage = Math.max(6.0, Math.ceil(damageAtFloor * 1.1));
+        double maxDamage = wearAxisMax(temperatureWear(engine, stats, floorTemp));
 
         // Sub-pixel 0.5x labels for axes and legend
         GL11.glPushMatrix();
@@ -717,7 +712,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         font.drawString("Reactivity", (SCREEN_X + 13) * 2, (SCREEN_Y + 3) * 2, palette.reactivityLabel);
 
         GuiDraw.drawRect((SCREEN_X + 78) * 2, (SCREEN_Y + 4) * 2 + 3, 10, 2, palette.damageCurve);
-        font.drawString("Durability loss / s", (SCREEN_X + 85) * 2, (SCREEN_Y + 3) * 2, palette.damageCurve);
+        font.drawString("Temperature wear / s", (SCREEN_X + 85) * 2, (SCREEN_Y + 3) * 2, palette.damageCurve);
 
         // 2. Left Axis: Reactivity % labels
         for (int p = 0; p <= 100; p += 25) {
@@ -731,7 +726,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         for (int p = 0; p <= 100; p += 25) {
             int gy = PLOT_Y + PLOT_H - (int) Math.round((p / 100.0) * PLOT_H);
             double dVal = (p / 100.0) * maxDamage;
-            String dStr = String.format(Locale.US, "%.1f", dVal);
+            String dStr = formatWear(dVal);
             font.drawString(dStr, (PLOT_X + PLOT_W + 3) * 2, (gy - 2) * 2, palette.damageCurve);
         }
 
@@ -776,7 +771,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         GL11.glBegin(GL11.GL_LINE_STRIP);
         for (int i = 0; i <= PLOT_W; i++) {
             double temp = (i / (double) PLOT_W) * maxTemp;
-            double d = stats.calculateDamage(temp);
+            double d = temperatureWear(engine, stats, temp);
             float y = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, d / maxDamage)) * PLOT_H);
             GL11.glVertex2f(PLOT_X + i, y);
         }
@@ -793,7 +788,7 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             double tempAtMouse = ((mx - PLOT_X) / (double) PLOT_W) * maxTemp;
             double rAtMouse = (fd != null) ? fd.calculateReactivity(tempAtMouse)
                 : (recipe.fuel != null ? recipe.fuel.calculateReactivity(tempAtMouse) : 0.0);
-            double dAtMouse = stats.calculateDamage(tempAtMouse);
+            double dAtMouse = temperatureWear(engine, stats, tempAtMouse);
             float yr = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, rAtMouse)) * PLOT_H);
             float yd = (float) (PLOT_Y + PLOT_H - Math.max(0.0, Math.min(1.0, dAtMouse / maxDamage)) * PLOT_H);
 
@@ -830,6 +825,51 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         GL11.glPopMatrix();
+    }
+
+    /** A fuel's temperature damage curve, from its config entry if it has one. */
+    public static FuelDamageCurveSolver.FuelCurveStats curveStats(FuelData fd, NuclearFuelType fuel) {
+        double peakTemp = (fd != null) ? fd.peakReactivityTemp : (fuel != null ? fuel.peakReactivityTemp : 770.0);
+        double floorTemp = (fd != null) ? fd.floorTemp : (fuel != null ? fuel.floorTemp : 2300.0);
+        PhysicsData physics = ReactorDataRegistry.getPhysics();
+        double wear = (fd != null && fd.t10WearFactor != null && fd.t10WearFactor > 1.0) ? fd.t10WearFactor
+            : (fuel != null && fuel.wearFactor > 1.0 ? fuel.wearFactor
+                : (physics != null ? physics.t10WearFactor : FuelDamageCurveSolver.DEFAULT_T10_WEAR_FACTOR));
+        return FuelDamageCurveSolver.solve(fuel, peakTemp, floorTemp, AMBIENT_TEMP, wear);
+    }
+
+    /**
+     * Durability a fuel loses per second at a temperature from temperature alone, as the reactor charges it: the
+     * curve's damage with the fuel burnup multiplier applied (TileTick.fuelTemperatureWear).
+     */
+    public static double temperatureWear(EngineParameters p, FuelDamageCurveSolver.FuelCurveStats stats, double temp) {
+        return TileTick.fuelTemperatureWear(p, stats.calculateDamage(temp));
+    }
+
+    /**
+     * The top of the plot's wear axis: the wear at the floor temperature plus 10%, rounded up so that each of the
+     * axis's four steps is 1, 2 or 5 times a power of ten.
+     */
+    public static double wearAxisMax(double wearAtFloor) {
+        double quarter = wearAtFloor * 1.1 / 4.0;
+        if (!(quarter > 0.0) || Double.isInfinite(quarter)) return 1.0;
+        double magnitude = Math.pow(10.0, Math.floor(Math.log10(quarter)));
+        double step = 10.0 * magnitude;
+        for (double m : new double[] { 1.0, 2.0, 5.0 }) {
+            if (m * magnitude >= quarter * (1.0 - 1e-9)) {
+                step = m * magnitude;
+                break;
+            }
+        }
+        return 4.0 * step;
+    }
+
+    /** A wear rate to three significant figures, as "0.0437" or "12.5". */
+    public static String formatWear(double wear) {
+        if (!(wear > 0.0) || Double.isInfinite(wear)) return "0";
+        return new java.math.BigDecimal(wear).round(new java.math.MathContext(3))
+            .stripTrailingZeros()
+            .toPlainString();
     }
 
     /** A line of stats, each piece in its own colour. */
@@ -896,20 +936,14 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
             double peakTemp = (fd != null) ? fd.peakReactivityTemp
                 : (recipe.fuel != null ? recipe.fuel.peakReactivityTemp : 770.0);
             double floorTemp = (fd != null) ? fd.floorTemp : (recipe.fuel != null ? recipe.fuel.floorTemp : 2300.0);
-            PhysicsData physics = ReactorDataRegistry.getPhysics();
-            double wear = (fd != null && fd.t10WearFactor != null && fd.t10WearFactor > 1.0) ? fd.t10WearFactor
-                : (recipe.fuel != null && recipe.fuel.wearFactor > 1.0 ? recipe.fuel.wearFactor
-                    : (physics != null ? physics.t10WearFactor : FuelDamageCurveSolver.DEFAULT_T10_WEAR_FACTOR));
-
-            FuelDamageCurveSolver.FuelCurveStats stats = FuelDamageCurveSolver
-                .solve(recipe.fuel, peakTemp, floorTemp, AMBIENT_TEMP, wear);
+            FuelDamageCurveSolver.FuelCurveStats stats = curveStats(fd, recipe.fuel);
 
             if (isMouseOverPlot(mouseInRecipe.x, mouseInRecipe.y)) {
                 double maxTemp = Math.ceil((floorTemp + 200.0) / 500.0) * 500.0;
                 double temp = ((mouseInRecipe.x - PLOT_X) / (double) PLOT_W) * maxTemp;
                 double r = (fd != null) ? fd.calculateReactivity(temp)
                     : (recipe.fuel != null ? recipe.fuel.calculateReactivity(temp) : 0.0);
-                double d = stats.calculateDamage(temp);
+                double d = temperatureWear(NuclearSimulationEngine.params(), stats, temp);
 
                 currenttip.add(
                     EnumChatFormatting.WHITE + ""
@@ -926,11 +960,8 @@ public class NEIFuelStatsHandler extends TemplateRecipeHandler {
                         + peakNote);
 
                 String dmgNote = (temp <= AMBIENT_TEMP) ? EnumChatFormatting.GRAY + " (None)" : "";
-                currenttip.add(
-                    EnumChatFormatting.RED + "Durability damage: "
-                        + NEINeutronInteractionHandler.formatNumber(d)
-                        + " / s"
-                        + dmgNote);
+                currenttip.add(EnumChatFormatting.RED + "Temperature wear: " + formatWear(d) + " / s" + dmgNote);
+                currenttip.add(EnumChatFormatting.GRAY + "Emitting and absorbing neutrons wear fuel too");
             }
         }
         return currenttip;

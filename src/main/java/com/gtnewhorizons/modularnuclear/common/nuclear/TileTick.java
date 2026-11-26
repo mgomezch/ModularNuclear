@@ -26,6 +26,14 @@ public final class TileTick {
         return wear * p.fuelBurnupMultiplier;
     }
 
+    /**
+     * The temperature term of {@link #fuelWear}, per second: a fuel's temperature damage with the fuel burnup
+     * multiplier applied. NEI's fuel page plots this.
+     */
+    public static double fuelTemperatureWear(EngineParameters p, double tempDamagePerSecond) {
+        return tempDamagePerSecond * p.fuelBurnupMultiplier;
+    }
+
     /** Temperature damage per second for a fuel without a configuration entry. */
     public static double genericFuelTemperatureDamage(double temp) {
         return temp > 20.0 ? (temp - 20.0) / 100.0 : 0.0;
