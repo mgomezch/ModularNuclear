@@ -28,7 +28,7 @@ a reference latent heat, and a saturation curve fitted through its normal boilin
 CO2) and its critical point:
 
     ln P_sat(T) = A - B / T            (Clausius-Clapeyron through two points)
-    L(T) = L_0 ((T_c - T) / (T_c - T_0))^0.38      (Watson)
+    L(T) = L_0 + (cp_v - cp_l) (T - T_0)           (Kirchhoff)
 
 | Gas | M (g/mol) | T_ref (K), P_ref (bar) | T_c (K), P_c (bar) | L at T_ref (kJ/kg) | freezes (°C) |
 | :-- | --: | :-- | :-- | --: | --: |
