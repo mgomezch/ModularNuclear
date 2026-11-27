@@ -35,7 +35,9 @@ A PHE works three ways beyond boiling a secondary fluid with a liquid loop's hea
   Liquefaction.  A gas loop colder than a cryogen's boiling point by the approach temperature condenses the
     cryogen's gas (nitrogen, oxygen, air, helium) from the secondary input into its liquid, the heat going into
     the loop.  A litre takes up the heat a litre boiling gives off (SecondaryCoolantEntry.latentHeat, the
-    freezer's energy for it), so boiling and condensing balance.  stepCondense.
+    freezer's energy for it), so boiling and condensing balance.  stepCondense.  A litre of liquid nitrogen
+    takes 16 MJ, many batches' heat on a small loop, so a batch makes the whole litres its heat pays for and
+    carries the rest of the heat to the next batch (completeCondense), and no heat is lost to the rounding.
 
 The PHE's stepHeatExchange picks the mode: dual if it has the second pair, else on a gas loop condensing when the
 loop is cold enough for a condensable gas in its input, boiling otherwise.
@@ -45,7 +47,7 @@ final class PheGasModes {
 
     private PheGasModes() {}
 
-    /** A batch of liquefaction. */
+    /** A batch of liquefaction, with the heat earlier batches took towards a litre they didn't finish. */
     static final class CondenseBatch {
 
         int timer;
@@ -217,7 +219,6 @@ final class PheGasModes {
                 int batchTicks = Math.max(1, cfg.batchTicks);
                 double latentPerL = coolant.latentHeat();
                 q = Math.min(q, maxBatchHeat / batchTicks);
-                q = Math.min(q, Math.max(0.0, maxBatchHeat - b.heatJoules));
                 q = Math.min(q, Math.max(0.0, availableL * latentPerL - b.heatJoules));
                 if (q > 0.0) {
                     moved = SegmentHeat.exchange(gas, s, ceilingC + 273.15, q, dt);
@@ -228,6 +229,14 @@ final class PheGasModes {
         }
         if (b.timer >= Math.max(1, cfg.batchTicks)) completeCondense(phe, gasFluid);
         return moved;
+    }
+
+    /**
+     * The heat a liquefaction batch carries to the next: what it took beyond the litres it made, and, if the gas ran
+     * out before it made all the litres it paid for, no more than a litre's worth.
+     */
+    static double carriedHeat(double heatJoules, int litresMade, double latentPerLitre) {
+        return Math.max(0.0, Math.min(heatJoules - litresMade * latentPerLitre, latentPerLitre));
     }
 
     private static void completeCondense(MTEPressurizedHeatExchanger phe, Fluid gasFluid) {
@@ -245,7 +254,12 @@ final class PheGasModes {
             }
             Fluid liquid = FluidRegistry.getFluid(coolant.inputFluidName);
             if (drained > 0 && liquid != null) phe.addOutput(new FluidStack(liquid, drained));
-            phe.mLastCondensedLiters = drained;
+            phe.mCondensedLiters += drained;
+            double rest = carriedHeat(b.heatJoules, drained, coolant.latentHeat());
+            b.reset();
+            b.heatJoules = rest;
+            b.coolant = coolant;
+            return;
         }
         b.reset();
     }

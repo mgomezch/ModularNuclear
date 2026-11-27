@@ -103,7 +103,8 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
     protected MTEHatchPressurizedFluid mSecondaryOutlet = null;
     final PheSecondSide mSideB = new PheSecondSide(this);
     final PheGasModes.CondenseBatch mCondenseBatch = new PheGasModes.CondenseBatch();
-    int mLastCondensedLiters = 0;
+    /** Litres liquefied since the PHE last loaded, for its readout. */
+    long mCondensedLiters = 0;
     private String mGasMode = "";
 
     /** Whether the PHE joins two loops (or two passes of one). See Note [PHE gas modes] */
@@ -822,10 +823,11 @@ public class MTEPressurizedHeatExchanger extends MTEEnhancedMultiBlockBase<MTEPr
                         dt);
                     mLastHeatTransferredWatts = q / dt;
                     mGasMode = String.format(
-                        "Liquefying %s: %sW, %d L last batch",
+                        "Liquefying %s: %sW, %,d L made, %.0f%% of the next",
                         c.outputGasName,
                         siWatts(q / dt),
-                        mLastCondensedLiters);
+                        mCondensedLiters,
+                        100.0 * mCondenseBatch.heatJoules / Math.max(1.0, c.latentHeat()));
                     return true;
                 }
             }
